@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Lightbulb, LayoutDashboard, List, GitCompare, MessageSquare, User } from 'lucide-react'
+import { Lightbulb, LayoutDashboard, List, GitCompare, MessageSquare, User, ScrollText } from 'lucide-react'
 import clsx from 'clsx'
 
 interface LayoutProps {
@@ -11,6 +11,7 @@ const navigation = [
   { name: 'Ideas', href: '/ideas', icon: List },
   { name: 'Compare', href: '/compare', icon: GitCompare },
   { name: 'Debates', href: '/debate', icon: MessageSquare },
+  { name: 'Event Log', href: '/events', icon: ScrollText },
   { name: 'Profile', href: '/profile', icon: User },
 ]
 

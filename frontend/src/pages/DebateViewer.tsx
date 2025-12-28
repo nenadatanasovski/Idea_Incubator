@@ -62,6 +62,8 @@ interface CriterionDebate {
   originalScore?: number
   finalScore?: number
   isComplete: boolean
+  isSkipped: boolean  // Whether debate was skipped (budget/error)
+  skipReason?: string // Reason for skipping
 }
 
 // A round within a debate
@@ -91,6 +93,7 @@ function groupEventsByCriterion(events: DebateEvent[]): CriterionDebate[] {
         startTime: event.timestamp,
         rounds: [],
         isComplete: false,
+        isSkipped: false,
       })
       roundCounters.set(criterion, 0)
     }
@@ -98,24 +101,27 @@ function groupEventsByCriterion(events: DebateEvent[]): CriterionDebate[] {
     const debate = debates.get(criterion)!
 
     switch (event.type) {
-      // NEW: Criterion debate start (from debate.ts)
+      // Criterion debate start (from debate.ts) - this is the authoritative source
       case 'debate:criterion:start':
+        // Always set/update the assessment - criterionStart is the authoritative event
         debate.evaluatorAssessment = {
-          content: event.data.content || '',
-          score: event.data.score,
+          content: event.data.content || debate.evaluatorAssessment?.content || '',
+          score: event.data.score ?? debate.evaluatorAssessment?.score,
           timestamp: event.timestamp,
         }
-        debate.originalScore = event.data.score
+        debate.originalScore = event.data.score ?? debate.originalScore
         break
 
-      // NEW: Initial assessment (from specialized-evaluators.ts, before debate)
+      // Initial assessment (from specialized-evaluators.ts, before debate)
       case 'evaluator:initial':
-        if (!debate.evaluatorAssessment) {
-          debate.evaluatorAssessment = {
-            content: event.data.content || '',
-            score: event.data.score,
-            timestamp: event.timestamp,
-          }
+        // Merge with existing if present, otherwise create new
+        // This handles the case where evaluator:initial arrives before or after criterionStart
+        debate.evaluatorAssessment = {
+          content: event.data.content || debate.evaluatorAssessment?.content || '',
+          score: event.data.score ?? debate.evaluatorAssessment?.score,
+          timestamp: debate.evaluatorAssessment?.timestamp || event.timestamp,
+        }
+        if (event.data.score !== undefined && debate.originalScore === undefined) {
           debate.originalScore = event.data.score
         }
         break
@@ -198,10 +204,19 @@ function groupEventsByCriterion(events: DebateEvent[]): CriterionDebate[] {
         debate.isComplete = true
         break
 
-      // NEW: Criterion debate complete
+      // Criterion debate complete
       case 'debate:criterion:complete':
         debate.finalScore = event.data.score
         debate.isComplete = true
+        break
+
+      // Criterion debate skipped (budget/error)
+      case 'debate:criterion:skipped':
+        debate.finalScore = event.data.score
+        debate.originalScore = event.data.score
+        debate.isComplete = true
+        debate.isSkipped = true
+        debate.skipReason = event.data.message || 'Skipped'
         break
     }
   }
@@ -235,11 +250,15 @@ const eventTypeColors: Record<string, string> = {
   'debate:complete': 'text-green-700',
   'synthesis:started': 'text-amber-500',
   'synthesis:complete': 'text-amber-600',
+  'api:call': 'text-cyan-500',
+  'budget:status': 'text-green-400',
   'error': 'text-red-700',
   'connected': 'text-green-400',
 }
 
-// Event Log Panel component
+type LogTab = 'events' | 'api';
+
+// Event Log Panel component with tabs
 function EventLogPanel({
   events,
   isOpen,
@@ -250,12 +269,34 @@ function EventLogPanel({
   onToggle: () => void
 }) {
   const logEndRef = useRef<HTMLDivElement>(null)
+  const [activeTab, setActiveTab] = useState<LogTab>('events')
+
+  // Filter events based on active tab
+  const filteredEvents = useMemo(() => {
+    if (activeTab === 'api') {
+      return events.filter(e => e.type === 'api:call')
+    }
+    // For 'events' tab, show all non-api events
+    return events.filter(e => e.type !== 'api:call')
+  }, [events, activeTab])
+
+  // Count API calls for badge
+  const apiCallCount = useMemo(() =>
+    events.filter(e => e.type === 'api:call').length
+  , [events])
+
+  // Calculate total API cost
+  const totalApiCost = useMemo(() =>
+    events
+      .filter(e => e.type === 'api:call')
+      .reduce((sum, e) => sum + (e.data.cost as number || 0), 0)
+  , [events])
 
   useEffect(() => {
     if (isOpen) {
       logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [events.length, isOpen])
+  }, [filteredEvents.length, isOpen])
 
   return (
     <div className={`bg-gray-900 text-gray-100 transition-all duration-300 ${isOpen ? 'h-64' : 'h-10'}`}>
@@ -283,36 +324,92 @@ function EventLogPanel({
         </div>
       </button>
 
-      {/* Log content */}
+      {/* Tabs and content */}
       {isOpen && (
-        <div className="h-[calc(100%-2.5rem)] overflow-y-auto font-mono text-xs p-2 space-y-1">
-          {events.length === 0 ? (
-            <div className="text-gray-500 text-center py-4">No events yet...</div>
-          ) : (
-            <>
-              {events.slice(-50).map((event, idx) => (
-                <div key={`${event.timestamp}-${idx}`} className="flex gap-2 hover:bg-gray-800 px-1 rounded">
-                  <span className="text-gray-500 shrink-0">{formatTime(event.timestamp)}</span>
-                  <span className={`shrink-0 ${eventTypeColors[event.type] || 'text-gray-400'}`}>
-                    [{event.type}]
-                  </span>
-                  <span className="text-gray-300 truncate">
-                    {event.data.criterion && <span className="text-yellow-400">{event.data.criterion}</span>}
-                    {event.data.roundNumber && <span className="text-gray-500"> R{event.data.roundNumber}</span>}
-                    {event.data.persona && <span className="text-red-400"> ({event.data.persona})</span>}
-                    {event.data.score !== undefined && <span className="text-cyan-400"> score:{event.data.score}</span>}
-                    {event.data.adjustment !== undefined && event.data.adjustment !== 0 && (
-                      <span className={event.data.adjustment > 0 ? 'text-green-400' : 'text-red-400'}>
-                        {' '}{event.data.adjustment > 0 ? '+' : ''}{event.data.adjustment}
-                      </span>
+        <div className="h-[calc(100%-2.5rem)] flex flex-col">
+          {/* Tab bar */}
+          <div className="flex border-b border-gray-700 px-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); setActiveTab('events'); }}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeTab === 'events'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              Events ({filteredEvents.length})
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setActiveTab('api'); }}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                activeTab === 'api'
+                  ? 'text-white border-b-2 border-cyan-500'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              API Calls
+              {apiCallCount > 0 && (
+                <span className="bg-cyan-600 text-white px-1.5 py-0.5 rounded text-[10px]">
+                  {apiCallCount}
+                </span>
+              )}
+              {totalApiCost > 0 && (
+                <span className="text-green-400 text-[10px]">
+                  ${totalApiCost.toFixed(4)}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Log content */}
+          <div className="flex-1 overflow-y-auto font-mono text-xs p-2 space-y-1">
+            {filteredEvents.length === 0 ? (
+              <div className="text-gray-500 text-center py-4">
+                {activeTab === 'api' ? 'No API calls yet...' : 'No events yet...'}
+              </div>
+            ) : (
+              <>
+                {filteredEvents.slice(-100).map((event, idx) => (
+                  <div key={`${event.timestamp}-${idx}`} className="flex gap-2 hover:bg-gray-800 px-1 rounded">
+                    <span className="text-gray-500 shrink-0">{formatTime(event.timestamp)}</span>
+                    {activeTab === 'api' ? (
+                      // API call format
+                      <>
+                        <span className="text-cyan-400 shrink-0">[{event.data.message}]</span>
+                        <span className="text-gray-300">
+                          <span className="text-blue-300">{(event.data.inputTokens as number || 0).toLocaleString()}</span>
+                          <span className="text-gray-500"> in / </span>
+                          <span className="text-purple-300">{(event.data.outputTokens as number || 0).toLocaleString()}</span>
+                          <span className="text-gray-500"> out</span>
+                          <span className="text-green-400 ml-2">${(event.data.cost as number || 0).toFixed(4)}</span>
+                        </span>
+                      </>
+                    ) : (
+                      // Standard event format
+                      <>
+                        <span className={`shrink-0 ${eventTypeColors[event.type] || 'text-gray-400'}`}>
+                          [{event.type}]
+                        </span>
+                        <span className="text-gray-300 truncate">
+                          {event.data.criterion && <span className="text-yellow-400">{event.data.criterion}</span>}
+                          {event.data.roundNumber && <span className="text-gray-500"> R{event.data.roundNumber}</span>}
+                          {event.data.persona && <span className="text-red-400"> ({event.data.persona})</span>}
+                          {event.data.score !== undefined && <span className="text-cyan-400"> score:{event.data.score}</span>}
+                          {event.data.adjustment !== undefined && event.data.adjustment !== 0 && (
+                            <span className={event.data.adjustment > 0 ? 'text-green-400' : 'text-red-400'}>
+                              {' '}{event.data.adjustment > 0 ? '+' : ''}{event.data.adjustment}
+                            </span>
+                          )}
+                          {event.data.message && <span className="text-gray-400"> {event.data.message}</span>}
+                        </span>
+                      </>
                     )}
-                    {event.data.message && <span className="text-gray-400"> {event.data.message}</span>}
-                  </span>
-                </div>
-              ))}
-              <div ref={logEndRef} />
-            </>
-          )}
+                  </div>
+                ))}
+                <div ref={logEndRef} />
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -361,13 +458,21 @@ function DebateCard({
               Active
             </span>
           )}
+          {debate.isSkipped && (
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+              Skipped
+            </span>
+          )}
           {debate.isComplete && debate.finalScore != null && (
             <span className="text-sm font-bold bg-white px-3 py-1 rounded-full shadow-sm">
               {debate.finalScore.toFixed(1)}/10
             </span>
           )}
-          {debate.isComplete && (
+          {debate.isComplete && !debate.isSkipped && (
             <CheckCircle className="h-5 w-5 text-green-500" />
+          )}
+          {debate.isComplete && debate.isSkipped && (
+            <AlertCircle className="h-5 w-5 text-amber-500" />
           )}
         </div>
       </button>
@@ -399,6 +504,22 @@ function DebateCard({
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Show skip reason if debate was skipped */}
+          {debate.isSkipped && (
+            <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-600" />
+                <span className="text-sm font-medium text-amber-700">Debate Skipped</span>
+              </div>
+              <p className="mt-1 text-sm text-amber-600">
+                {debate.skipReason || 'This criterion was not debated'}
+              </p>
+              <p className="mt-2 text-xs text-gray-500">
+                The initial evaluation score ({debate.originalScore}/10) was kept without red team challenge.
+              </p>
             </div>
           )}
 
@@ -598,6 +719,15 @@ export default function DebateViewer() {
   // Stats
   const completedCount = debates.filter(d => d.isComplete).length
   const totalChallenges = debates.reduce((sum, d) => sum + d.rounds.reduce((s, r) => s + r.challenges.length, 0), 0)
+
+  // Get latest budget status for API call count and cost
+  const latestBudgetEvent = useMemo(() => {
+    const budgetEvents = events.filter(e => e.type === 'budget:status')
+    return budgetEvents.length > 0 ? budgetEvents[budgetEvents.length - 1] : null
+  }, [events])
+  const apiCalls = latestBudgetEvent?.data.apiCalls as number | undefined
+  const budgetRemaining = latestBudgetEvent?.data.remaining as number | undefined
+  const budgetTotal = latestBudgetEvent?.data.total as number | undefined
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col bg-gray-100">
@@ -850,6 +980,16 @@ export default function DebateViewer() {
         <div className="flex items-center space-x-4">
           <span>Criteria: {completedCount}/{debates.length || 30}</span>
           <span>Events: {events.length}</span>
+          {apiCalls !== undefined && (
+            <span className="text-cyan-400" title="Total API calls made (informational - does not control stopping)">
+              API Calls: {apiCalls}
+            </span>
+          )}
+          {budgetRemaining !== undefined && budgetTotal !== undefined && (
+            <span className="text-green-400" title="Budget in dollars - evaluation stops when budget is exhausted">
+              Budget: ${budgetRemaining.toFixed(2)} / ${budgetTotal.toFixed(2)}
+            </span>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           {overallPhase === 'complete' && (

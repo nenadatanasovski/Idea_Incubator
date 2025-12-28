@@ -210,13 +210,8 @@ export async function generateChallenges(
   const config = getConfig();
   const personaDef = PERSONA_DEFINITIONS[persona];
 
-  const response = await client.messages.create({
-    model: config.model,
-    max_tokens: 1024,
-    system: personaDef.systemPrompt,
-    messages: [{
-      role: 'user',
-      content: `Challenge this evaluation:
+  const systemPrompt = personaDef.systemPrompt;
+  const userContent = `Challenge this evaluation:
 
 ## Criterion
 ${criterion.name}: ${criterion.question}
@@ -243,17 +238,36 @@ Respond in JSON:
       "requiredEvidence": ["Evidence needed to resolve this"]
     }
   ]
-}`
-    }]
-  });
+}`;
 
-  costTracker.track(response.usage, `redteam-${persona}`);
-  logDebug(`Generated challenges from ${persona} for ${criterion.name}`);
+  const response = await client.messages.create({
+    model: config.model,
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userContent }]
+  });
 
   const content = response.content[0];
   if (content.type !== 'text') {
     throw new EvaluationParseError('Unexpected response from red team');
   }
+
+  // Track with request/response data for API logging
+  costTracker.track(
+    response.usage,
+    `redteam-${persona}`,
+    {
+      model: config.model,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }],
+      max_tokens: 1024,
+    },
+    {
+      content: content.text,
+      stop_reason: response.stop_reason,
+    }
+  );
+  logDebug(`Generated challenges from ${persona} for ${criterion.name}`);
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
@@ -286,10 +300,11 @@ function validateSeverity(severity: string): 'critical' | 'significant' | 'minor
 }
 
 /**
- * Generate challenges from all active personas in parallel
+ * Generate challenges from all active personas in parallel (legacy - multiple API calls)
  * Uses config.redTeamMode to determine which personas to use
+ * @deprecated Use generateAllChallengesBundled for efficiency
  */
-export async function generateAllChallenges(
+export async function generateAllChallengesLegacy(
   criterion: CriterionDefinition,
   claim: string,
   score: number,
@@ -313,6 +328,158 @@ export async function generateAllChallenges(
 
   logDebug(`Generated ${allChallenges.length} challenges for ${criterion.name}`);
   return allChallenges;
+}
+
+/**
+ * Generate challenges from all active personas in a SINGLE API call
+ * This is more efficient than calling each persona separately
+ */
+export async function generateAllChallenges(
+  criterion: CriterionDefinition,
+  claim: string,
+  score: number,
+  reasoning: string,
+  costTracker: CostTracker
+): Promise<Challenge[]> {
+  const config = getConfig();
+  const activePersonas = getActivePersonas();
+  logInfo(`Generating red team challenges for: ${criterion.name} (${activePersonas.length} personas, bundled)`);
+
+  // Build persona descriptions for the prompt - use FULL system prompts
+  const personaDescriptions = activePersonas.map(persona => {
+    const def = PERSONA_DEFINITIONS[persona];
+    return `### ${def.name} (id: ${persona})
+${def.systemPrompt}`;
+  }).join('\n\n');
+
+  const systemPrompt = `You are a Red Team composed of multiple adversarial personas. Your job is to challenge evaluations from different perspectives simultaneously.
+
+You must embody ALL of these personas and generate challenges from each perspective:
+
+${personaDescriptions}
+
+Generate 1-2 challenges per persona. Each challenge should be distinct and leverage that persona's unique perspective.`;
+
+  const userContent = `Challenge this evaluation from ALL ${activePersonas.length} red team perspectives:
+
+## Criterion
+${criterion.name}: ${criterion.question}
+
+## Evaluator's Claim
+Score: ${score}/10
+Reasoning: ${reasoning}
+
+## Your Task
+Generate challenges from EACH persona (${activePersonas.join(', ')}).
+
+For each challenge:
+1. Identify which persona is speaking
+2. State the specific weakness in the claim from that persona's viewpoint
+3. Explain why this matters
+4. State what evidence would resolve this
+5. Rate severity: critical (score should drop 2+), significant (1-2 points), minor (<1 point)
+
+Respond in JSON:
+{
+  "challenges": [
+    {
+      "persona": "${activePersonas[0]}",
+      "challenge": "The specific challenge text from this persona's perspective",
+      "severity": "critical|significant|minor",
+      "requiredEvidence": ["Evidence needed to resolve this"]
+    }
+  ]
+}`;
+
+  const response = await client.messages.create({
+    model: config.model,
+    max_tokens: 2048,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userContent }]
+  });
+
+  const content = response.content[0];
+  if (content.type !== 'text') {
+    throw new EvaluationParseError('Unexpected response from red team');
+  }
+
+  // Track with request/response data for API logging
+  costTracker.track(
+    response.usage,
+    'redteam-bundled',
+    {
+      model: config.model,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }],
+      max_tokens: 2048,
+    },
+    {
+      content: content.text,
+      stop_reason: response.stop_reason,
+    }
+  );
+  logDebug(`Generated bundled challenges for ${criterion.name}`);
+
+  const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new EvaluationParseError('Could not parse red team response');
+  }
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    const allChallenges = (parsed.challenges || []).map((c: any, i: number) => {
+      const persona = validatePersona(c.persona, activePersonas);
+      return {
+        id: `${persona}-${criterion.id}-${i}`,
+        persona,
+        criterion,
+        originalClaim: claim,
+        originalScore: score,
+        challenge: c.challenge,
+        severity: validateSeverity(c.severity),
+        requiredEvidence: c.requiredEvidence || []
+      };
+    });
+
+    // Sort by severity (critical first)
+    const severityOrder: Record<string, number> = { critical: 0, significant: 1, minor: 2 };
+    allChallenges.sort((a: Challenge, b: Challenge) => severityOrder[a.severity] - severityOrder[b.severity]);
+
+    logDebug(`Generated ${allChallenges.length} challenges for ${criterion.name}`);
+    return allChallenges;
+  } catch {
+    throw new EvaluationParseError('Invalid JSON in red team response');
+  }
+}
+
+/**
+ * Validate persona value against active personas
+ * Handles various formats: "skeptic", "The Skeptic", "SKEPTIC", etc.
+ */
+function validatePersona(persona: string, activePersonas: RedTeamPersona[]): RedTeamPersona {
+  if (!persona) return activePersonas[0];
+
+  // Try exact match first
+  const lower = persona.toLowerCase();
+  if (activePersonas.includes(lower as RedTeamPersona)) {
+    return lower as RedTeamPersona;
+  }
+
+  // Try normalized match (remove "the ", spaces, special chars)
+  const normalized = lower.replace(/^the\s+/i, '').replace(/[^a-z-]/g, '');
+  if (activePersonas.includes(normalized as RedTeamPersona)) {
+    return normalized as RedTeamPersona;
+  }
+
+  // Try partial match (e.g., "first principles" -> "first-principles")
+  for (const active of activePersonas) {
+    if (normalized.includes(active.replace('-', '')) || active.replace('-', '').includes(normalized)) {
+      return active;
+    }
+  }
+
+  // Fallback to first persona
+  return activePersonas[0];
 }
 
 /**
@@ -341,19 +508,15 @@ export async function generateDefense(
     `[${c.id}] ${c.persona.toUpperCase()}: ${c.challenge}\n  Severity: ${c.severity}`
   ).join('\n\n');
 
-  const response = await client.messages.create({
-    model: config.model,
-    max_tokens: 2048,
-    system: `You are the Evaluator defending your assessment.
+  const systemPrompt = `You are the Evaluator defending your assessment.
 
 You must respond to each challenge honestly:
 - If the challenge is valid, concede the point and adjust your score
 - If you can refute it with evidence from the idea, defend your position
 - Cite specific evidence from the idea content
-- Be intellectually honest - don't defend weak positions`,
-    messages: [{
-      role: 'user',
-      content: `Defend your evaluation against these challenges:
+- Be intellectually honest - don't defend weak positions`;
+
+  const userContent = `Defend your evaluation against these challenges:
 
 ## Original Idea Content
 ${ideaContent}
@@ -373,16 +536,35 @@ For each challenge, respond in JSON:
       "adjustmentReason": "Why score changed (only if conceding)"
     }
   ]
-}`
-    }]
-  });
+}`;
 
-  costTracker.track(response.usage, 'evaluator-defense');
+  const response = await client.messages.create({
+    model: config.model,
+    max_tokens: 2048,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userContent }]
+  });
 
   const content = response.content[0];
   if (content.type !== 'text') {
     throw new EvaluationParseError('Unexpected response from evaluator defense');
   }
+
+  // Track with request/response data for API logging
+  costTracker.track(
+    response.usage,
+    'evaluator-defense',
+    {
+      model: config.model,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }],
+      max_tokens: 2048,
+    },
+    {
+      content: content.text,
+      stop_reason: response.stop_reason,
+    }
+  );
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {

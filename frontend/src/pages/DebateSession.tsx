@@ -313,6 +313,12 @@ export default function DebateSession() {
               </p>
               <p className="text-xs text-gray-500">Net Adjustment</p>
             </div>
+            {session.apiCalls !== undefined && (
+              <div className="text-center">
+                <p className="text-2xl font-bold text-cyan-600">{session.apiCalls}</p>
+                <p className="text-xs text-gray-500">API Calls</p>
+              </div>
+            )}
           </div>
         </div>
 

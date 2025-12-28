@@ -8,8 +8,43 @@ import {
   ChevronRight,
   AlertCircle,
   Loader2,
+  Copy,
+  Check,
+  CheckCircle,
+  FileText,
 } from 'lucide-react'
 import { getDebateSessions, type DebateSession } from '../api/client'
+
+// Copy to clipboard helper
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="inline-flex items-center p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+      title="Copy session ID"
+    >
+      {copied ? (
+        <Check className="h-3.5 w-3.5 text-green-500" />
+      ) : (
+        <Copy className="h-3.5 w-3.5" />
+      )}
+    </button>
+  )
+}
 
 // Format date for display
 function formatDate(dateStr: string): string {
@@ -37,6 +72,35 @@ function formatRelativeTime(dateStr: string): string {
   if (diffHours < 24) return `${diffHours}h ago`
   if (diffDays < 7) return `${diffDays}d ago`
   return formatDate(dateStr)
+}
+
+// Status indicator component
+function StatusIndicator({ status }: { status?: DebateSession['status'] }) {
+  switch (status) {
+    case 'complete':
+      return (
+        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+          <CheckCircle className="h-3 w-3" />
+          Complete
+        </span>
+      )
+    case 'in-progress':
+      return (
+        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          In Progress
+        </span>
+      )
+    case 'evaluation-only':
+      return (
+        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700" title="Evaluation ran without debate phase">
+          <FileText className="h-3 w-3" />
+          Eval Only
+        </span>
+      )
+    default:
+      return null
+  }
 }
 
 export default function DebateList() {
@@ -136,18 +200,26 @@ export default function DebateList() {
                             <span className="text-sm font-medium text-gray-900">
                               {session.idea_title}
                             </span>
+                            <StatusIndicator status={session.status} />
                           </div>
                           <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
                             <span className="flex items-center">
                               <Clock className="h-3.5 w-3.5 mr-1" />
                               {formatRelativeTime(session.latest_at)}
                             </span>
-                            <span>
-                              {session.round_count} round{session.round_count !== 1 ? 's' : ''}
-                            </span>
-                            <span>
-                              {session.criterion_count} criteri{session.criterion_count !== 1 ? 'a' : 'on'}
-                            </span>
+                            {session.round_count > 0 && (
+                              <span>
+                                {session.round_count} round{session.round_count !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                            {session.criterion_count > 0 && (
+                              <span>
+                                {session.criterion_count} criteri{session.criterion_count !== 1 ? 'a' : 'on'}
+                              </span>
+                            )}
+                            {session.status === 'evaluation-only' && (
+                              <span className="text-amber-600">No debate</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -155,8 +227,11 @@ export default function DebateList() {
                     </div>
 
                     {/* Session ID */}
-                    <div className="mt-2 ml-14 text-xs text-gray-400 font-mono">
-                      {session.evaluation_run_id}
+                    <div className="mt-2 ml-14 flex items-center space-x-2">
+                      <span className="text-xs text-gray-400 font-mono">
+                        {session.evaluation_run_id}
+                      </span>
+                      <CopyButton text={session.evaluation_run_id} />
                     </div>
                   </div>
                 </Link>

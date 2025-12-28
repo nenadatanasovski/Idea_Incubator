@@ -20,6 +20,7 @@ import ProfileSelector from '../components/ProfileSelector'
 import ReadinessMeter from '../components/ReadinessMeter'
 import DevelopmentWizard from '../components/DevelopmentWizard'
 import AnswerHistory from '../components/AnswerHistory'
+import EvaluationSettingsModal from '../components/EvaluationSettingsModal'
 import clsx from 'clsx'
 
 const ideaTypeColors: Record<IdeaType, string> = {
@@ -57,6 +58,7 @@ export default function IdeaDetail() {
     refetchAll
   } = useDevelopment(slug)
   const [showDevelopWizard, setShowDevelopWizard] = useState(false)
+  const [showEvalSettings, setShowEvalSettings] = useState(false)
 
   const [isDeleting, setIsDeleting] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
@@ -77,12 +79,21 @@ export default function IdeaDetail() {
     }
   }
 
-  const handleEvaluate = async () => {
+  const handleEvaluate = () => {
+    if (!slug) return
+    setShowEvalSettings(true)
+  }
+
+  const handleEvaluateWithSettings = async (settings: { budget: number; unlimited: boolean }) => {
     if (!slug) return
     setIsEvaluating(true)
     setActionError(null)
     try {
-      await triggerEvaluation(slug)
+      await triggerEvaluation(slug, {
+        budget: settings.budget,
+        unlimited: settings.unlimited,
+      })
+      setShowEvalSettings(false)
       // Navigate to live debate viewer
       navigate(`/debate/live/${slug}`)
     } catch (err) {
@@ -500,6 +511,15 @@ export default function IdeaDetail() {
             refetchAll()
           }}
           onEvaluate={handleEvaluate}
+        />
+      )}
+
+      {/* Evaluation Settings Modal */}
+      {showEvalSettings && (
+        <EvaluationSettingsModal
+          onStart={handleEvaluateWithSettings}
+          onClose={() => setShowEvalSettings(false)}
+          loading={isEvaluating}
         />
       )}
     </div>

@@ -78,13 +78,7 @@ export async function judgeExchange(
 ): Promise<ArbiterVerdict> {
   const config = getConfig();
 
-  const response = await client.messages.create({
-    model: config.model,
-    max_tokens: 512,
-    system: ARBITER_SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `Judge this debate exchange:
+  const userContent = `Judge this debate exchange:
 
 ## Context
 ${previousContext || 'First round of debate.'}
@@ -111,17 +105,36 @@ Respond in JSON:
   "scoreAdjustment": -3 to +3,
   "confidenceImpact": -0.3 to +0.3,
   "keyInsight": "Optional key insight from this exchange"
-}`
-    }]
-  });
+}`;
 
-  costTracker.track(response.usage, 'arbiter');
-  logDebug(`Arbiter judged ${challenge.id}`);
+  const response = await client.messages.create({
+    model: config.model,
+    max_tokens: 512,
+    system: ARBITER_SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userContent }]
+  });
 
   const content = response.content[0];
   if (content.type !== 'text') {
     throw new EvaluationParseError('Unexpected response from arbiter');
   }
+
+  // Track with request/response data for API logging
+  costTracker.track(
+    response.usage,
+    'arbiter',
+    {
+      model: config.model,
+      system: ARBITER_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userContent }],
+      max_tokens: 512,
+    },
+    {
+      content: content.text,
+      stop_reason: response.stop_reason,
+    }
+  );
+  logDebug(`Arbiter judged ${challenge.id}`);
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
@@ -161,9 +174,10 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
- * Judge multiple exchanges in a round
+ * Judge multiple exchanges in a round (legacy - multiple API calls)
+ * @deprecated Use judgeRound which now bundles all exchanges
  */
-export async function judgeRound(
+export async function judgeRoundLegacy(
   challenges: Challenge[],
   defenses: Defense[],
   roundNumber: number,
@@ -215,6 +229,173 @@ export async function judgeRound(
       output: report.outputTokens - totalOutputTokens
     }
   };
+}
+
+/**
+ * Judge ALL exchanges in a round with a SINGLE API call
+ * This is more efficient than judging each exchange separately
+ */
+export async function judgeRound(
+  challenges: Challenge[],
+  defenses: Defense[],
+  roundNumber: number,
+  previousRoundContext: string,
+  costTracker: CostTracker
+): Promise<RoundResult> {
+  const config = getConfig();
+
+  // Build all exchanges for bundled judgment
+  const exchanges: Array<{ challenge: Challenge; defense: Defense }> = [];
+  for (const challenge of challenges) {
+    const defense = defenses.find(d => d.challengeId === challenge.id);
+    if (defense) {
+      exchanges.push({ challenge, defense });
+    }
+  }
+
+  if (exchanges.length === 0) {
+    return {
+      round: roundNumber,
+      verdicts: [],
+      evaluatorPoints: 0,
+      redTeamPoints: 0,
+      runningScore: 0,
+      tokensUsed: { input: 0, output: 0 }
+    };
+  }
+
+  // Format all exchanges for the prompt
+  const exchangesText = exchanges.map(({ challenge, defense }, i) => `
+### Exchange ${i + 1}: ${challenge.id}
+
+**Challenge from ${challenge.persona.toUpperCase()}**
+Criterion: ${challenge.criterion.name}
+Original Score: ${challenge.originalScore}/10
+Challenge: ${challenge.challenge}
+Severity: ${challenge.severity}
+
+**Evaluator's Defense**
+Defense: ${defense.defense}
+Evidence Provided: ${defense.evidenceProvided.join(', ') || 'None cited'}
+Concedes: ${defense.concedes ? 'Yes' : 'No'}
+${defense.adjustedScore ? `Proposed New Score: ${defense.adjustedScore}` : ''}`).join('\n\n---\n');
+
+  const userContent = `Judge ALL of these debate exchanges in Round ${roundNumber}:
+
+## Context
+${previousRoundContext || 'First round of debate.'}
+
+## Exchanges to Judge
+${exchangesText}
+
+## Your Task
+Provide a verdict for EACH exchange. Consider them holistically - how do they relate to each other? Do patterns emerge?
+
+Respond in JSON with verdicts for ALL ${exchanges.length} exchanges:
+{
+  "verdicts": [
+    {
+      "challengeId": "the challenge id",
+      "winner": "EVALUATOR" | "RED_TEAM" | "DRAW",
+      "reasoning": "Clear explanation of your verdict",
+      "firstPrinciplesBonus": true/false,
+      "scoreAdjustment": -3 to +3,
+      "confidenceImpact": -0.3 to +0.3,
+      "keyInsight": "Optional key insight from this exchange"
+    }
+  ]
+}`;
+
+  const maxTokens = 1024 + (exchanges.length * 256);
+
+  const response = await client.messages.create({
+    model: config.model,
+    max_tokens: maxTokens,
+    system: ARBITER_SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userContent }]
+  });
+
+  const content = response.content[0];
+  if (content.type !== 'text') {
+    throw new EvaluationParseError('Unexpected response from arbiter');
+  }
+
+  // Track with request/response data for API logging
+  costTracker.track(
+    response.usage,
+    'arbiter-bundled',
+    {
+      model: config.model,
+      system: ARBITER_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userContent }],
+      max_tokens: maxTokens,
+    },
+    {
+      content: content.text,
+      stop_reason: response.stop_reason,
+    }
+  );
+  logDebug(`Arbiter judged ${exchanges.length} exchanges in round ${roundNumber}`);
+
+  const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new EvaluationParseError('Could not parse arbiter verdicts');
+  }
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    const rawVerdicts = parsed.verdicts || [];
+
+    // Map verdicts to challenge IDs and validate
+    const verdicts: ArbiterVerdict[] = rawVerdicts.map((v: any, i: number) => {
+      // Try to match by challengeId, fallback to index-based matching
+      const matchedExchange = exchanges.find(e => e.challenge.id === v.challengeId) || exchanges[i];
+      const challengeId = matchedExchange?.challenge.id || v.challengeId || `unknown-${i}`;
+
+      return {
+        challengeId,
+        winner: validateWinner(v.winner),
+        reasoning: v.reasoning || '',
+        firstPrinciplesBonus: Boolean(v.firstPrinciplesBonus),
+        scoreAdjustment: clamp(v.scoreAdjustment || 0, -3, 3),
+        confidenceImpact: clamp(v.confidenceImpact || 0, -0.3, 0.3),
+        keyInsight: v.keyInsight
+      };
+    });
+
+    // Tally points
+    let evaluatorPoints = 0;
+    let redTeamPoints = 0;
+    let totalScoreAdjustment = 0;
+
+    for (const verdict of verdicts) {
+      if (verdict.winner === 'EVALUATOR') {
+        evaluatorPoints += 1 + (verdict.firstPrinciplesBonus ? 0.5 : 0);
+      } else if (verdict.winner === 'RED_TEAM') {
+        redTeamPoints += 1 + (verdict.firstPrinciplesBonus ? 0.5 : 0);
+      } else {
+        evaluatorPoints += 0.5;
+        redTeamPoints += 0.5;
+      }
+      totalScoreAdjustment += verdict.scoreAdjustment;
+    }
+
+    const report = costTracker.getReport();
+
+    return {
+      round: roundNumber,
+      verdicts,
+      evaluatorPoints,
+      redTeamPoints,
+      runningScore: totalScoreAdjustment,
+      tokensUsed: {
+        input: report.inputTokens,
+        output: report.outputTokens
+      }
+    };
+  } catch {
+    throw new EvaluationParseError('Invalid JSON in arbiter verdicts');
+  }
 }
 
 /**

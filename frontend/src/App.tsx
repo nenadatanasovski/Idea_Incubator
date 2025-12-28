@@ -9,6 +9,7 @@ import Comparison from './pages/Comparison'
 import DebateList from './pages/DebateList'
 import DebateSession from './pages/DebateSession'
 import DebateViewer from './pages/DebateViewer'
+import EventLog from './pages/EventLog'
 import Profile from './pages/Profile'
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
         <Route path="/debate/live" element={<DebateViewer />} />
         <Route path="/debate/live/:slug" element={<DebateViewer />} />
         <Route path="/debate/session/:runId" element={<DebateSession />} />
+        <Route path="/events" element={<EventLog />} />
         <Route path="/profile" element={<Profile />} />
       </Routes>
     </Layout>

@@ -3,20 +3,25 @@
  * Used by evaluation scripts running in separate processes
  */
 
+import type { ApiRequestData, ApiResponseData } from './cost-tracker.js';
+
 const API_URL = process.env.API_URL || 'http://localhost:3001';
 
 export type BroadcastEventType =
   | 'debate:started'
-  | 'debate:criterion:start'    // NEW: Marks start of debate for a specific criterion
+  | 'debate:criterion:start'    // Marks start of debate for a specific criterion
   | 'debate:round:started'
-  | 'evaluator:initial'         // NEW: Initial assessment (before debate)
+  | 'evaluator:initial'         // Initial assessment (before debate)
   | 'evaluator:speaking'        // DEPRECATED: Use evaluator:initial or evaluator:defense
-  | 'evaluator:defense'         // NEW: Defense against red team (during debate)
+  | 'evaluator:defense'         // Defense against red team (during debate)
   | 'redteam:challenge'
   | 'arbiter:verdict'
   | 'debate:round:complete'
-  | 'debate:criterion:complete' // NEW: Marks end of debate for a specific criterion
+  | 'debate:criterion:complete' // Marks end of debate for a specific criterion
+  | 'debate:criterion:skipped'  // Criterion debate skipped (budget/error)
   | 'debate:complete'
+  | 'budget:status'             // Budget update event
+  | 'api:call'                  // Individual API call log
   | 'synthesis:started'
   | 'synthesis:complete'
   | 'error';
@@ -170,6 +175,43 @@ export function createBroadcaster(ideaSlug: string, runId: string) {
       broadcastEvent('debate:complete', ideaSlug, runId, {
         score: overallScore,
         message: `Evaluation complete with score: ${overallScore.toFixed(1)}/10`,
+      }),
+
+    // Budget status update
+    budgetStatus: (spent: number, remaining: number, total: number, apiCalls?: number) =>
+      broadcastEvent('budget:status', ideaSlug, runId, {
+        message: `Budget: $${spent.toFixed(2)} spent, $${remaining.toFixed(2)} remaining`,
+        spent,
+        remaining,
+        total,
+        apiCalls,
+      }),
+
+    // Individual API call log with full request/response data
+    apiCall: (
+      operation: string,
+      inputTokens: number,
+      outputTokens: number,
+      cost: number,
+      request?: ApiRequestData,
+      response?: ApiResponseData
+    ) =>
+      broadcastEvent('api:call', ideaSlug, runId, {
+        message: operation,
+        inputTokens,
+        outputTokens,
+        cost,
+        request,
+        response,
+      }),
+
+    // Criterion skipped (budget or error)
+    criterionSkipped: (criterion: string, category: string, reason: string, originalScore: number) =>
+      broadcastEvent('debate:criterion:skipped', ideaSlug, runId, {
+        criterion,
+        category,
+        score: originalScore,
+        message: reason,
       }),
 
     error: (error: string) =>

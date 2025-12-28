@@ -19,6 +19,7 @@ This is an idea incubation system that uses AI agents to evaluate and red-team i
 3. **Proactive questioning** - After capturing an idea, ask 3 clarifying questions
 4. **Update database** - Remind user to run `npm run sync` after file changes
 5. **Cost awareness** - Warn user before running expensive evaluations
+6. **NEVER stop servers** - Never stop a running server unless explicitly asked to do so
 
 ## File Locations
 

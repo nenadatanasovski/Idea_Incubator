@@ -4,15 +4,18 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 export type DebateEventType =
   | 'connected'
   | 'debate:started'
-  | 'debate:criterion:start'     // NEW: Marks start of debate for a specific criterion
+  | 'debate:criterion:start'     // Marks start of debate for a specific criterion
   | 'debate:round:started'
-  | 'evaluator:initial'          // NEW: Initial assessment (before debate)
+  | 'evaluator:initial'          // Initial assessment (before debate)
   | 'evaluator:speaking'         // DEPRECATED: Use evaluator:initial or evaluator:defense
-  | 'evaluator:defense'          // NEW: Defense against red team (during debate)
+  | 'evaluator:defense'          // Defense against red team (during debate)
   | 'redteam:challenge'
   | 'arbiter:verdict'
   | 'debate:round:complete'
-  | 'debate:criterion:complete'  // NEW: Marks end of debate for a specific criterion
+  | 'debate:criterion:complete'  // Marks end of debate for a specific criterion
+  | 'debate:criterion:skipped'   // Criterion debate skipped (budget/error)
+  | 'budget:status'              // Budget update event
+  | 'api:call'                   // Individual API call log
   | 'debate:complete'
   | 'synthesis:started'
   | 'synthesis:complete'
@@ -72,7 +75,7 @@ const getWsUrl = () => {
 export function useDebateStream({
   ideaSlug,
   autoConnect = true,
-  maxEvents = 500, // Increased to handle full 30-criterion evaluations
+  maxEvents = 5000, // Large buffer to handle full 30-criterion evaluations with 3 rounds each
 }: UseDebateStreamOptions) {
   const [state, setState] = useState<DebateStreamState>({
     connected: false,

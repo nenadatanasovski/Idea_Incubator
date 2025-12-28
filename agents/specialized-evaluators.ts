@@ -290,10 +290,8 @@ export async function runSpecializedEvaluator(
 
   // Note: We don't broadcast roundStarted at category level - only per criterion via evaluatorSpeaking
 
-  const response = await client.messages.create({
-    model: config.model,
-    max_tokens: 2048,
-    system: evaluator.systemPrompt + `
+  // Build request for API call logging
+  const systemPrompt = evaluator.systemPrompt + `
 
 ## Response Format
 
@@ -309,10 +307,9 @@ Respond in JSON format:
       "gapsIdentified": ["Missing information"]
     }
   ]
-}`,
-    messages: [{
-      role: 'user',
-      content: `Evaluate this idea for all ${category.toUpperCase()} criteria:
+}`;
+
+  const userContent = `Evaluate this idea for all ${category.toUpperCase()} criteria:
 
 ${researchSection}
 ${structuredSection}
@@ -326,17 +323,36 @@ ${profileSection}
 
 ${criteriaPrompt}
 
-Provide a thorough evaluation for each of the ${criteria.length} criteria.`
-    }]
-  });
+Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
 
-  costTracker.track(response.usage, evaluator.id);
-  logDebug(`${evaluator.name} completed evaluation`);
+  const response = await client.messages.create({
+    model: config.model,
+    max_tokens: 2048,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userContent }]
+  });
 
   const content = response.content[0];
   if (content.type !== 'text') {
     throw new EvaluationParseError(`Unexpected response type from ${evaluator.name}`);
   }
+
+  // Track with request/response data for API logging
+  costTracker.track(
+    response.usage,
+    evaluator.id,
+    {
+      model: config.model,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }],
+      max_tokens: 2048,
+    },
+    {
+      content: content.text,
+      stop_reason: response.stop_reason,
+    }
+  );
+  logDebug(`${evaluator.name} completed evaluation`);
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {

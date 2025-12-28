@@ -83,11 +83,13 @@ export interface DebateSession {
   criterion_count: number;
   started_at: string;
   latest_at: string;
+  status?: 'complete' | 'in-progress' | 'evaluation-only';
 }
 
 export interface DebateSessionDetail extends DebateSession {
   rounds: DebateRound[];
   redteamChallenges: RedTeamChallenge[];
+  apiCalls?: number;
   synthesis: {
     overall_score: number;
     recommendation: string;
@@ -276,6 +278,7 @@ export interface TriggerEvaluationInput {
   budget?: number;
   mode?: 'v1' | 'v2';
   skipDebate?: boolean;
+  unlimited?: boolean;
 }
 
 export interface TriggerEvaluationResult {

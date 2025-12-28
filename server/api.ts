@@ -1255,34 +1255,81 @@ app.get('/api/debate/:slug/status', asyncHandler(async (req, res) => {
   });
 }));
 
-// GET /api/debates - Get all debate sessions
+// GET /api/debates - Get all debate sessions (including evaluation-only sessions)
 app.get('/api/debates', asyncHandler(async (_req, res) => {
-  const sessions = await query<{
-    evaluation_run_id: string;
+  // First, get sessions from evaluation_events table (captures all evaluation runs)
+  const eventSessions = await query<{
+    session_id: string;
     idea_id: string;
-    idea_slug: string;
-    idea_title: string;
-    round_count: number;
-    criterion_count: number;
     started_at: string;
     latest_at: string;
   }>(
     `SELECT
-      d.evaluation_run_id,
-      d.idea_id,
-      i.slug as idea_slug,
-      i.title as idea_title,
-      COUNT(*) as round_count,
-      COUNT(DISTINCT d.criterion) as criterion_count,
-      MIN(d.timestamp) as started_at,
-      MAX(d.timestamp) as latest_at
-    FROM debate_rounds d
-    JOIN ideas i ON d.idea_id = i.id
-    GROUP BY d.evaluation_run_id, d.idea_id
-    ORDER BY MAX(d.timestamp) DESC`
+      session_id,
+      idea_id,
+      MIN(created_at) as started_at,
+      MAX(created_at) as latest_at
+    FROM evaluation_events
+    GROUP BY session_id, idea_id`
   );
 
-  respond(res, sessions);
+  // Build a comprehensive list of sessions
+  const sessions = await Promise.all(
+    eventSessions.map(async (es) => {
+      // Get idea info
+      const idea = await getOne<{ slug: string; title: string }>(
+        'SELECT slug, title FROM ideas WHERE id = ?',
+        [es.idea_id]
+      );
+
+      if (!idea) return null;
+
+      // Get debate round counts for this session
+      const roundInfo = await getOne<{ round_count: number; criterion_count: number }>(
+        `SELECT
+          COUNT(*) as round_count,
+          COUNT(DISTINCT criterion) as criterion_count
+        FROM debate_rounds
+        WHERE evaluation_run_id = ?`,
+        [es.session_id]
+      );
+
+      // Check if synthesis exists (indicates completion)
+      const synthesis = await getOne<{ id: number }>(
+        'SELECT id FROM final_syntheses WHERE evaluation_run_id = ?',
+        [es.session_id]
+      );
+
+      // Determine status based on what data exists
+      let status: 'complete' | 'in-progress' | 'evaluation-only';
+      if (synthesis) {
+        status = 'complete';
+      } else if (roundInfo && roundInfo.round_count > 0) {
+        status = 'in-progress';
+      } else {
+        status = 'evaluation-only';
+      }
+
+      return {
+        evaluation_run_id: es.session_id,
+        idea_id: es.idea_id,
+        idea_slug: idea.slug,
+        idea_title: idea.title,
+        round_count: roundInfo?.round_count || 0,
+        criterion_count: roundInfo?.criterion_count || 0,
+        started_at: es.started_at,
+        latest_at: es.latest_at,
+        status
+      };
+    })
+  );
+
+  // Filter out nulls and sort by latest_at descending
+  const validSessions = sessions
+    .filter((s): s is NonNullable<typeof s> => s !== null)
+    .sort((a, b) => new Date(b.latest_at).getTime() - new Date(a.latest_at).getTime());
+
+  respond(res, validSessions);
 }));
 
 // GET /api/debates/:runId - Get a specific debate session
@@ -1357,10 +1404,28 @@ app.get('/api/debates/:runId', asyncHandler(async (req, res) => {
     [runId]
   );
 
+  // Get API call count from the latest budget:status event
+  const budgetEvent = await getOne<{ event_data: string }>(
+    `SELECT event_data FROM evaluation_events
+     WHERE session_id = ? AND event_type = 'budget:status'
+     ORDER BY created_at DESC LIMIT 1`,
+    [runId]
+  );
+  let apiCalls: number | undefined;
+  if (budgetEvent) {
+    try {
+      const eventData = JSON.parse(budgetEvent.event_data);
+      apiCalls = eventData.apiCalls;
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
   respond(res, {
     ...session,
     rounds,
     redteamChallenges,
+    apiCalls,
     synthesis: synthesis
       ? {
           ...synthesis,
@@ -1374,7 +1439,7 @@ app.get('/api/debates/:runId', asyncHandler(async (req, res) => {
 // POST /api/ideas/:slug/evaluate - Trigger evaluation for an idea
 app.post('/api/ideas/:slug/evaluate', asyncHandler(async (req, res) => {
   const { slug } = req.params;
-  const { budget = 10, mode = 'v2', skipDebate = false } = req.body;
+  const { budget = 15, mode = 'v2', skipDebate = false, unlimited = false } = req.body;
 
   // Check if idea exists
   const idea = await getOne<{ id: string; title: string }>('SELECT id, title FROM ideas WHERE slug = ?', [slug]);
@@ -1395,6 +1460,9 @@ app.post('/api/ideas/:slug/evaluate', asyncHandler(async (req, res) => {
   const args = ['scripts/evaluate.ts', slug, '--budget', String(budget), '--mode', mode, '--force'];
   if (skipDebate) {
     args.push('--skip-debate');
+  }
+  if (unlimited) {
+    args.push('--unlimited');
   }
 
   console.log(`[Evaluate] Starting: npx tsx ${args.join(' ')}`);

@@ -26,6 +26,27 @@ import {
 // Broadcaster type for WebSocket events
 type Broadcaster = ReturnType<typeof import('../utils/broadcast.js').createBroadcaster>;
 
+/**
+ * Debounced budget broadcaster to prevent overwhelming WebSocket with updates
+ * Only broadcasts if at least intervalMs has passed since last broadcast
+ */
+function createDebouncedBudgetBroadcast(broadcaster: Broadcaster, intervalMs: number = 500) {
+  let lastBroadcast = 0;
+  return async (costTracker: CostTracker) => {
+    const now = Date.now();
+    if (now - lastBroadcast >= intervalMs) {
+      const report = costTracker.getReport();
+      await broadcaster.budgetStatus(
+        report.estimatedCost,
+        report.budgetRemaining,
+        report.estimatedCost + report.budgetRemaining,
+        report.apiCalls
+      );
+      lastBroadcast = now;
+    }
+  };
+}
+
 export interface DebateConfig {
   challengesPerCriterion: number;
   roundsPerChallenge: number;
@@ -71,7 +92,8 @@ export async function runCriterionDebate(
   evaluation: EvaluationResult,
   ideaContent: string,
   costTracker: CostTracker,
-  broadcaster?: Broadcaster
+  broadcaster?: Broadcaster,
+  debouncedBudgetBroadcast?: (costTracker: CostTracker) => Promise<void>
 ): Promise<CriterionDebate> {
   const config = getConfig();
   const debateConfig = config.debate;
@@ -96,6 +118,11 @@ export async function runCriterionDebate(
     evaluation.reasoning,
     costTracker
   );
+
+  // Broadcast budget status after generating challenges
+  if (debouncedBudgetBroadcast) {
+    await debouncedBudgetBroadcast(costTracker);
+  }
 
   // Limit challenges if needed
   const activeChallenges = challenges.slice(0, debateConfig.challengesPerCriterion);
@@ -155,6 +182,11 @@ export async function runCriterionDebate(
     // Generate defenses for active challenges
     const defenses = await generateDefense(activeChallenges, ideaContent, costTracker);
 
+    // Broadcast budget status after generating defenses
+    if (debouncedBudgetBroadcast) {
+      await debouncedBudgetBroadcast(costTracker);
+    }
+
     // Broadcast evaluator defenses (as DEFENSE, not initial assessment)
     if (broadcaster) {
       for (const defense of defenses) {
@@ -176,6 +208,11 @@ export async function runCriterionDebate(
       previousContext,
       costTracker
     );
+
+    // Broadcast budget status after judging
+    if (debouncedBudgetBroadcast) {
+      await debouncedBudgetBroadcast(costTracker);
+    }
 
     // Broadcast arbiter verdicts (with winner info)
     if (broadcaster) {
@@ -235,7 +272,8 @@ export async function runCriterionDebate(
 }
 
 /**
- * Run debate for all criteria in parallel (by category)
+ * Run debate for all criteria in parallel (across ALL categories)
+ * This ensures all categories get debated even with limited budget
  */
 export async function runFullDebate(
   ideaSlug: string,
@@ -248,41 +286,42 @@ export async function runFullDebate(
   const config = getConfig();
 
   logInfo(`Starting full debate for: ${ideaSlug}`);
-  logInfo(`Debating ${evaluations.length} criteria...`);
+  logInfo(`Debating ${evaluations.length} criteria across all categories in parallel...`);
 
-  // Group evaluations by category
-  const byCategory = new Map<Category, EvaluationResult[]>();
-  for (const eval_ of evaluations) {
-    const category = eval_.criterion.category;
-    if (!byCategory.has(category)) {
-      byCategory.set(category, []);
-    }
-    byCategory.get(category)!.push(eval_);
+  // Emit budget status at start of debate phase
+  const initialReport = costTracker.getReport();
+  if (broadcaster) {
+    await broadcaster.budgetStatus(
+      initialReport.estimatedCost,
+      initialReport.budgetRemaining,
+      initialReport.estimatedCost + initialReport.budgetRemaining,
+      initialReport.apiCalls
+    );
   }
 
-  // Run debates in parallel within each category, sequentially across categories
-  const allDebates: CriterionDebate[] = [];
-  let budgetExceeded = false;
+  // Create debounced budget broadcaster for periodic updates during debates
+  const debouncedBudgetBroadcast = broadcaster
+    ? createDebouncedBudgetBroadcast(broadcaster, 500)
+    : undefined;
 
-  for (const category of CATEGORIES) {
-    // Skip remaining categories if budget is exceeded
-    if (budgetExceeded || !costTracker.isWithinBudget()) {
-      logWarning(`Skipping ${category} category - budget exceeded`);
-      budgetExceeded = true;
-
-      // Emit completion events for skipped debates with original scores
-      const categoryEvals = byCategory.get(category) || [];
-      for (const eval_ of categoryEvals) {
+  // Run ALL criteria debates in parallel (not sequentially by category)
+  // This ensures all 6 categories get equal chance at budget
+  const debatePromises = evaluations.map(eval_ =>
+    runCriterionDebate(eval_.criterion, eval_, ideaContent, costTracker, broadcaster, debouncedBudgetBroadcast)
+      .catch(error => {
+        const isBudgetError = error.message?.includes('budget') || error.name === 'BudgetExceededError';
+        logWarning(`Debate failed for ${eval_.criterion.name}: ${error.message}`);
+        // Emit completion with original score on failure
         if (broadcaster) {
-          await broadcaster.criterionComplete(
+          broadcaster.criterionComplete(
             eval_.criterion.name,
             eval_.criterion.category,
             eval_.score,
-            eval_.score // Use original score for skipped debates
+            eval_.score // Use original score on failure
           );
         }
-        // Add fallback result for skipped debates
-        allDebates.push({
+        // Return a fallback result instead of throwing
+        return {
           criterion: eval_.criterion,
           originalScore: eval_.score,
           originalReasoning: eval_.reasoning,
@@ -296,66 +335,46 @@ export async function runFullDebate(
             firstPrinciplesBonuses: 0,
             netScoreAdjustment: 0,
             netConfidenceImpact: 0,
-            keyInsights: ['Debate skipped: budget exceeded'],
+            keyInsights: [isBudgetError ? 'Debate skipped: budget exceeded' : `Debate skipped: ${error.message}`],
             recommendedFinalScore: eval_.score
           },
           finalScore: eval_.score,
           finalConfidence: eval_.confidence
-        });
+        } as CriterionDebate;
+      })
+  );
+
+  const allDebates = await Promise.all(debatePromises);
+
+  // Log completion status
+  const completedDebates = allDebates.filter(d => d.rounds.length > 0);
+  const skippedDebates = allDebates.filter(d => d.rounds.length === 0);
+  if (skippedDebates.length > 0) {
+    logWarning(`${skippedDebates.length} criteria skipped due to budget/errors`);
+    // Emit skipped events for transparency
+    if (broadcaster) {
+      for (const skipped of skippedDebates) {
+        const reason = skipped.summary.keyInsights[0] || 'Unknown reason';
+        await broadcaster.criterionSkipped(
+          skipped.criterion.name,
+          skipped.criterion.category,
+          reason,
+          skipped.originalScore
+        );
       }
-      continue;
     }
+  }
+  logInfo(`Completed ${completedDebates.length}/${allDebates.length} criterion debates`);
 
-    const categoryEvals = byCategory.get(category) || [];
-    logInfo(`Debating ${category} category (${categoryEvals.length} criteria)`);
-
-    // Run criteria debates in parallel within category using allSettled
-    // This ensures all debates complete even if some fail
-    const debatePromises = categoryEvals.map(eval_ =>
-      runCriterionDebate(eval_.criterion, eval_, ideaContent, costTracker, broadcaster)
-        .catch(error => {
-          logWarning(`Debate failed for ${eval_.criterion.name}: ${error.message}`);
-          // Emit completion with original score on failure
-          if (broadcaster) {
-            broadcaster.criterionComplete(
-              eval_.criterion.name,
-              eval_.criterion.category,
-              eval_.score,
-              eval_.score // Use original score on failure
-            );
-          }
-          // Return a fallback result instead of throwing
-          return {
-            criterion: eval_.criterion,
-            originalScore: eval_.score,
-            originalReasoning: eval_.reasoning,
-            challenges: [],
-            rounds: [],
-            summary: {
-              totalRounds: 0,
-              evaluatorWins: 0,
-              redTeamWins: 0,
-              draws: 0,
-              firstPrinciplesBonuses: 0,
-              netScoreAdjustment: 0,
-              netConfidenceImpact: 0,
-              keyInsights: [`Debate skipped: ${error.message}`],
-              recommendedFinalScore: eval_.score
-            },
-            finalScore: eval_.score,
-            finalConfidence: eval_.confidence
-          } as CriterionDebate;
-        })
+  // Emit final budget status
+  const finalReport = costTracker.getReport();
+  if (broadcaster) {
+    await broadcaster.budgetStatus(
+      finalReport.estimatedCost,
+      finalReport.budgetRemaining,
+      finalReport.estimatedCost + finalReport.budgetRemaining,
+      finalReport.apiCalls
     );
-
-    const categoryDebates = await Promise.all(debatePromises);
-    allDebates.push(...categoryDebates);
-
-    // Check budget between categories (don't throw, just track)
-    if (!costTracker.isWithinBudget()) {
-      budgetExceeded = true;
-      logWarning('Budget exceeded - remaining debates will be skipped');
-    }
   }
 
   // Calculate category results

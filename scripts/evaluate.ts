@@ -35,6 +35,7 @@ program
   .option('-f, --force', 'Force re-evaluation even if not stale')
   .option('-m, --mode <mode>', 'Evaluator mode: v1 (sequential) or v2 (parallel)', 'v2')
   .option('--skip-debate', 'Skip debate phase (initial evaluation only)')
+  .option('--unlimited', 'Disable budget limits (run to completion regardless of cost)')
   .option('--dry-run', 'Show what would happen without running')
   .option('-v, --verbose', 'Show detailed output')
   .action(async (slug, options) => {
@@ -56,13 +57,18 @@ program
 
       // Set budget
       const budget = parseFloat(options.budget);
-      if (isNaN(budget) || budget <= 0) {
+      const unlimited = Boolean(options.unlimited);
+      if (!unlimited && (isNaN(budget) || budget <= 0)) {
         logError('Invalid budget', new Error('Budget must be a positive number'));
         process.exit(1);
       }
 
       logInfo(`Starting evaluation for: ${slug}`);
-      logInfo(`Budget: $${budget.toFixed(2)}`);
+      if (unlimited) {
+        logWarning('UNLIMITED MODE: Budget limits disabled. This could result in significant charges.');
+      } else {
+        logInfo(`Budget: $${budget.toFixed(2)}`);
+      }
 
       // Check if idea exists
       const idea = await query<{
@@ -153,8 +159,14 @@ program
         logInfo('Develop the idea with: /idea-develop ' + slug);
       }
 
-      // Initialize cost tracker
-      const costTracker = new CostTracker(budget);
+      // Initialize cost tracker with model-aware pricing
+      const config = getConfig();
+      const costTracker = new CostTracker(budget, unlimited, undefined, config.model);
+
+      // Set up API call callback to broadcast individual API calls with request/response data
+      costTracker.setApiCallCallback((operation, inputTokens, outputTokens, cost, request, response) => {
+        broadcaster.apiCall(operation, inputTokens, outputTokens, cost, request, response);
+      });
 
       // Validate mode
       const mode = options.mode as 'v1' | 'v2';

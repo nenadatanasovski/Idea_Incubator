@@ -60,6 +60,21 @@ export class BudgetExceededError extends IdeaIncubatorError {
 }
 
 /**
+ * Thrown when API call limit is exceeded
+ */
+export class ApiCallLimitError extends IdeaIncubatorError {
+  public readonly calls: number;
+  public readonly maxCalls: number;
+
+  constructor(calls: number, maxCalls: number) {
+    super(`API call limit exceeded: ${calls} calls made of ${maxCalls} limit`);
+    this.name = 'ApiCallLimitError';
+    this.calls = calls;
+    this.maxCalls = maxCalls;
+  }
+}
+
+/**
  * Thrown when debate fails to converge within limits
  */
 export class ConvergenceTimeoutError extends IdeaIncubatorError {
