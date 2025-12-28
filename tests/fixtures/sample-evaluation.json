@@ -1,0 +1,53 @@
+{
+  "evaluations": [
+    {
+      "criterion": "Problem Clarity",
+      "category": "problem",
+      "score": 8,
+      "confidence": 0.85,
+      "reasoning": "The problem is well-defined: outdoor enthusiasts need portable power for their devices in remote areas."
+    },
+    {
+      "criterion": "Problem Severity",
+      "category": "problem",
+      "score": 6,
+      "confidence": 0.75,
+      "reasoning": "While inconvenient, this is not a critical pain point for most users. However, for serious hikers and emergency situations, it becomes more severe."
+    },
+    {
+      "criterion": "Target User Clarity",
+      "category": "problem",
+      "score": 7,
+      "confidence": 0.80,
+      "reasoning": "Target users are identified but could be more specific about demographics and use frequency."
+    },
+    {
+      "criterion": "Solution Clarity",
+      "category": "solution",
+      "score": 7,
+      "confidence": 0.70,
+      "reasoning": "Basic specifications are outlined but technical details need more work."
+    },
+    {
+      "criterion": "Solution Feasibility",
+      "category": "solution",
+      "score": 9,
+      "confidence": 0.90,
+      "reasoning": "Technology exists and similar products are already on the market. This is technically very achievable."
+    },
+    {
+      "criterion": "Market Size",
+      "category": "market",
+      "score": 7,
+      "confidence": 0.70,
+      "reasoning": "Outdoor gear market is substantial, but this is a niche within it."
+    },
+    {
+      "criterion": "Competition Intensity",
+      "category": "market",
+      "score": 4,
+      "confidence": 0.85,
+      "reasoning": "Many existing players including Goal Zero, Anker, and BioLite. Market is fairly saturated."
+    }
+  ]
+}

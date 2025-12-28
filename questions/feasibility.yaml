@@ -1,0 +1,118 @@
+# Feasibility Category Questions (F1-F5)
+category: feasibility
+
+questions:
+  # F1: Technical Complexity
+  - id: F1_MVP
+    criterion: F1
+    text: "What's the simplest possible version that delivers real value to users? (Minimum Viable Product)"
+    type: analytical
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [F1_COMPONENTS]
+
+  - id: F1_COMPONENTS
+    criterion: F1
+    text: "What are the main technical components or parts you need to build?"
+    type: factual
+    priority: important
+    idea_types: [business, technical, research]
+    depends_on: [F1_MVP]
+    follow_ups: null
+
+  - id: F1_UNKNOWNS
+    criterion: F1
+    text: "What technical questions do you not yet know the answer to? What needs to be figured out?"
+    type: reflective
+    priority: important
+    idea_types: null
+    depends_on: [F1_MVP]
+    follow_ups: null
+
+  # F2: Resource Requirements
+  - id: F2_COST
+    criterion: F2
+    text: "What will it cost to build an MVP? (rough estimate in dollars or time)"
+    type: factual
+    priority: important
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: [F1_MVP]
+    follow_ups: [F2_TEAM]
+
+  - id: F2_TEAM
+    criterion: F2
+    text: "What skills or roles would you need on a team to build this? Can you do it alone?"
+    type: factual
+    priority: important
+    depends_on: [F2_COST]
+    follow_ups: null
+
+  - id: F2_TOOLS
+    criterion: F2
+    text: "What tools, services, APIs, or infrastructure would you need?"
+    type: factual
+    priority: nice-to-have
+    depends_on: [F1_MVP]
+    follow_ups: null
+
+  # F3: Skill Availability
+  # Note: Partially covered by profile linking, but idea-specific context matters
+  - id: F3_GAP
+    criterion: F3
+    text: "What skills does this specific idea require that you don't currently have?"
+    type: reflective
+    priority: important
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [F3_ACQUIRE]
+
+  - id: F3_ACQUIRE
+    criterion: F3
+    text: "How would you acquire the missing skills? (learn, hire, partner, outsource)"
+    type: analytical
+    priority: important
+    depends_on: [F3_GAP]
+    follow_ups: null
+
+  # F4: Time to Value
+  - id: F4_FIRST_VALUE
+    criterion: F4
+    text: "How long until you could show this to a real user and get feedback? (weeks, months)"
+    type: factual
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: [F1_MVP]
+    follow_ups: [F4_FIRST_REVENUE]
+
+  - id: F4_FIRST_REVENUE
+    criterion: F4
+    text: "How long until this could generate its first dollar of revenue or primary value?"
+    type: factual
+    priority: important
+    idea_types: [business]
+    depends_on: [F4_FIRST_VALUE]
+    follow_ups: null
+
+  # F5: Dependency Risk
+  - id: F5_DEPS
+    criterion: F5
+    text: "What external factors does your idea depend on? (APIs, platforms, regulations, partners, suppliers)"
+    type: factual
+    priority: important
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [F5_CONTROL]
+
+  - id: F5_CONTROL
+    criterion: F5
+    text: "Which dependencies are outside your control? What if they change, disappear, or increase prices?"
+    type: analytical
+    priority: important
+    depends_on: [F5_DEPS]
+    follow_ups: null

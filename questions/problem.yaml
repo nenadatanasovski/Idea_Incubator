@@ -1,0 +1,155 @@
+# Problem Category Questions (P1-P5)
+category: problem
+
+questions:
+  # P1: Problem Clarity
+  - id: P1_CORE
+    criterion: P1
+    text: "In one sentence, what specific problem does this solve?"
+    type: factual
+    priority: critical
+    idea_types: null  # all types
+    lifecycle_stages: [SPARK, CLARIFY, RESEARCH]
+    depends_on: null
+    follow_ups: [P1_SCOPE, P1_WHEN]
+
+  - id: P1_SCOPE
+    criterion: P1
+    text: "Is this ONE problem or multiple related problems? If multiple, which is the PRIMARY problem?"
+    type: analytical
+    priority: important
+    depends_on: [P1_CORE]
+    follow_ups: null
+
+  - id: P1_WHEN
+    criterion: P1
+    text: "When and where does this problem typically occur? What triggers it?"
+    type: factual
+    priority: important
+    depends_on: [P1_CORE]
+    follow_ups: null
+
+  # P2: Problem Severity
+  - id: P2_PAIN
+    criterion: P2
+    text: "On a scale of 'minor annoyance' to 'business critical', how painful is this problem for those who experience it?"
+    type: reflective
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: [P1_CORE]
+    follow_ups: [P2_COST]
+
+  - id: P2_COST
+    criterion: P2
+    text: "What does this problem cost the target user? (time, money, frustration, opportunity cost)"
+    type: factual
+    priority: critical
+    depends_on: [P2_PAIN]
+    follow_ups: null
+
+  - id: P2_FREQUENCY
+    criterion: P2
+    text: "How often does the target user encounter this problem? (daily, weekly, monthly, occasionally)"
+    type: factual
+    priority: important
+    depends_on: [P1_CORE]
+    follow_ups: null
+
+  - id: P2_ALTERNATIVES
+    criterion: P2
+    text: "How do people currently cope with this problem? What's their workaround?"
+    type: factual
+    priority: important
+    depends_on: [P1_CORE]
+    follow_ups: null
+
+  # P3: Target User Clarity
+  - id: P3_WHO
+    criterion: P3
+    text: "Describe your ideal customer in one sentence. Be specific (not 'everyone' or 'businesses')."
+    type: factual
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [P3_SEGMENT]
+
+  - id: P3_SEGMENT
+    criterion: P3
+    text: "What characteristics define your target user? (demographics, behaviors, circumstances, job titles)"
+    type: factual
+    priority: critical
+    depends_on: [P3_WHO]
+    follow_ups: null
+
+  - id: P3_SIZE
+    criterion: P3
+    text: "Roughly how many people or businesses fit your target user description?"
+    type: factual
+    priority: important
+    depends_on: [P3_WHO]
+    follow_ups: null
+
+  - id: P3_ACCESS
+    criterion: P3
+    text: "Where do these target users congregate? How would you reach them?"
+    type: analytical
+    priority: important
+    depends_on: [P3_WHO]
+    follow_ups: null
+
+  # P4: Problem Validation
+  - id: P4_EVIDENCE
+    criterion: P4
+    text: "What evidence do you have that this problem exists and matters? (interviews, data, personal experience, research)"
+    type: factual
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: [P1_CORE]
+    follow_ups: [P4_CONVERSATIONS]
+
+  - id: P4_CONVERSATIONS
+    criterion: P4
+    text: "Have you talked to potential users about this problem? What did they say? (Include quotes if available)"
+    type: factual
+    priority: critical
+    depends_on: [P4_EVIDENCE]
+    follow_ups: [P4_WILLINGNESS]
+
+  - id: P4_WILLINGNESS
+    criterion: P4
+    text: "Have potential users expressed willingness to pay for a solution? If so, how much?"
+    type: factual
+    priority: important
+    idea_types: [business]
+    depends_on: [P4_CONVERSATIONS]
+    follow_ups: null
+
+  # P5: Problem Uniqueness
+  - id: P5_EXISTING
+    criterion: P5
+    text: "What solutions currently exist for this problem? List specific products, services, or approaches."
+    type: factual
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: [P1_CORE]
+    follow_ups: [P5_GAP]
+
+  - id: P5_GAP
+    criterion: P5
+    text: "Why haven't existing solutions fully solved this problem? What's missing?"
+    type: analytical
+    priority: important
+    depends_on: [P5_EXISTING]
+    follow_ups: null
+
+  - id: P5_ANGLE
+    criterion: P5
+    text: "What aspect of this problem are you addressing that others have missed or ignored?"
+    type: analytical
+    priority: important
+    depends_on: [P5_GAP]
+    follow_ups: null

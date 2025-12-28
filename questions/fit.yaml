@@ -1,0 +1,148 @@
+# Fit Category Questions (FT1-FT5)
+# These questions supplement the user profile for Personal Fit evaluation
+category: fit
+
+questions:
+  # FT1: Personal Fit (Goal Alignment)
+  - id: FT1_GOALS
+    criterion: FT1
+    text: "How does this idea align with your personal and professional goals?"
+    type: reflective
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [FT1_WHY_THIS]
+
+  - id: FT1_WHY_THIS
+    criterion: FT1
+    text: "Why are you drawn to THIS idea specifically, over other opportunities?"
+    type: reflective
+    priority: important
+    depends_on: [FT1_GOALS]
+    follow_ups: null
+
+  - id: FT1_SUCCESS
+    criterion: FT1
+    text: "What would success look like for you with this idea? (income, impact, freedom, learning, etc.)"
+    type: reflective
+    priority: important
+    depends_on: null
+    follow_ups: null
+
+  # FT2: Passion Alignment
+  - id: FT2_PASSION
+    criterion: FT2
+    text: "What's your personal connection or passion for this problem space?"
+    type: reflective
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [FT2_EXPERIENCE]
+
+  - id: FT2_EXPERIENCE
+    criterion: FT2
+    text: "Have you personally experienced this problem? Tell me about it."
+    type: reflective
+    priority: important
+    depends_on: [FT2_PASSION]
+    follow_ups: null
+
+  - id: FT2_LONG_TERM
+    criterion: FT2
+    text: "Could you see yourself working on this for 5+ years? Why or why not?"
+    type: reflective
+    priority: important
+    depends_on: null
+    follow_ups: null
+
+  # FT3: Skill Match
+  - id: FT3_SKILLS
+    criterion: FT3
+    text: "What relevant skills and experience do you bring to this idea?"
+    type: factual
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [FT3_UNIQUE]
+
+  - id: FT3_UNIQUE
+    criterion: FT3
+    text: "Do you have any unique skills or experiences that give you an unfair advantage for this?"
+    type: reflective
+    priority: important
+    depends_on: [FT3_SKILLS]
+    follow_ups: null
+
+  - id: FT3_LEARN
+    criterion: FT3
+    text: "What new skills would you need to learn? Are you excited to learn them?"
+    type: reflective
+    priority: important
+    depends_on: [FT3_SKILLS]
+    follow_ups: null
+
+  # FT4: Network Leverage
+  - id: FT4_NETWORK
+    criterion: FT4
+    text: "What connections or relationships could help you execute this idea?"
+    type: factual
+    priority: important
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [FT4_ACCESS]
+
+  - id: FT4_ACCESS
+    criterion: FT4
+    text: "Do you have access to potential customers, partners, or investors for this idea?"
+    type: factual
+    priority: important
+    depends_on: [FT4_NETWORK]
+    follow_ups: null
+
+  - id: FT4_COMMUNITY
+    criterion: FT4
+    text: "Are you part of any communities relevant to this idea? (industry groups, online communities, etc.)"
+    type: factual
+    priority: nice-to-have
+    depends_on: null
+    follow_ups: null
+
+  # FT5: Life Stage Fit
+  - id: FT5_TIMING
+    criterion: FT5
+    text: "Why is NOW the right time in YOUR life to pursue this?"
+    type: reflective
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [FT5_CAPACITY]
+
+  - id: FT5_CAPACITY
+    criterion: FT5
+    text: "How much time can you realistically dedicate to this? (hours per week)"
+    type: factual
+    priority: important
+    depends_on: [FT5_TIMING]
+    follow_ups: null
+
+  - id: FT5_RUNWAY
+    criterion: FT5
+    text: "How long could you work on this before needing income? What's your financial runway?"
+    type: factual
+    priority: important
+    idea_types: [business]
+    depends_on: null
+    follow_ups: null
+
+  - id: FT5_RISK
+    criterion: FT5
+    text: "What's your risk tolerance right now? Can you afford for this to fail?"
+    type: reflective
+    priority: important
+    depends_on: null
+    follow_ups: null

@@ -1,0 +1,116 @@
+# Market Category Questions (M1-M5)
+category: market
+
+questions:
+  # M1: Market Size
+  - id: M1_TAM
+    criterion: M1
+    text: "How big is the total market for solutions like yours? (Total Addressable Market - rough estimate)"
+    type: factual
+    priority: important
+    idea_types: [business]
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [M1_SAM]
+
+  - id: M1_SAM
+    criterion: M1
+    text: "What portion of that market could you realistically serve? (Serviceable Addressable Market)"
+    type: analytical
+    priority: important
+    idea_types: [business]
+    depends_on: [M1_TAM]
+    follow_ups: [M1_SOM]
+
+  - id: M1_SOM
+    criterion: M1
+    text: "What market share could you realistically capture in the first 1-2 years? (Serviceable Obtainable Market)"
+    type: analytical
+    priority: nice-to-have
+    idea_types: [business]
+    depends_on: [M1_SAM]
+    follow_ups: null
+
+  # M2: Market Growth
+  - id: M2_TREND
+    criterion: M2
+    text: "Is the market for this growing, shrinking, or stable? What's the trend?"
+    type: factual
+    priority: important
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [M2_DRIVERS]
+
+  - id: M2_DRIVERS
+    criterion: M2
+    text: "What's driving growth or decline in this market? (technology shifts, regulations, demographics)"
+    type: analytical
+    priority: nice-to-have
+    depends_on: [M2_TREND]
+    follow_ups: null
+
+  # M3: Competition Intensity
+  - id: M3_COMPETITORS
+    criterion: M3
+    text: "Who are your top 3-5 competitors? (direct and indirect - name specific companies or products)"
+    type: factual
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [M3_LANDSCAPE, M3_COMP_WEAKNESS]
+
+  - id: M3_LANDSCAPE
+    criterion: M3
+    text: "Is this market crowded or relatively open? Are there dominant players?"
+    type: analytical
+    priority: important
+    depends_on: [M3_COMPETITORS]
+    follow_ups: null
+
+  - id: M3_COMP_WEAKNESS
+    criterion: M3
+    text: "What do existing competitors do poorly? What are their weaknesses you could exploit?"
+    type: analytical
+    priority: important
+    depends_on: [M3_COMPETITORS]
+    follow_ups: null
+
+  # M4: Entry Barriers
+  - id: M4_BARRIERS
+    criterion: M4
+    text: "What barriers exist to entering this market? (capital requirements, regulations, relationships, technology)"
+    type: factual
+    priority: important
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [M4_OVERCOME]
+
+  - id: M4_OVERCOME
+    criterion: M4
+    text: "How would you overcome these entry barriers? Do you have any advantages?"
+    type: analytical
+    priority: important
+    depends_on: [M4_BARRIERS]
+    follow_ups: null
+
+  # M5: Timing
+  - id: M5_WHY_NOW
+    criterion: M5
+    text: "Why is NOW the right time for this idea? Why not 5 years ago or 5 years from now?"
+    type: analytical
+    priority: important
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [M5_CATALYST]
+
+  - id: M5_CATALYST
+    criterion: M5
+    text: "Is there a recent event, technology, or trend that makes this more viable now?"
+    type: factual
+    priority: nice-to-have
+    depends_on: [M5_WHY_NOW]
+    follow_ups: null

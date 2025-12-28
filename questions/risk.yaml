@@ -1,0 +1,99 @@
+# Risk Category Questions (R1-R5)
+category: risk
+
+questions:
+  # General Risk Assessment
+  - id: R_BIGGEST
+    criterion: R1
+    text: "What's the single biggest risk that could cause this idea to fail completely?"
+    type: reflective
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [R_MITIGATION]
+
+  - id: R_MITIGATION
+    criterion: R1
+    text: "How would you mitigate or reduce this biggest risk?"
+    type: analytical
+    priority: critical
+    depends_on: [R_BIGGEST]
+    follow_ups: null
+
+  # R1: Execution Risk
+  - id: R_EXECUTION
+    criterion: R1
+    text: "What could go wrong in building this? What execution challenges do you anticipate?"
+    type: analytical
+    priority: important
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: null
+
+  # R2: Market Risk
+  - id: R_MARKET
+    criterion: R2
+    text: "What could go wrong with market adoption? Why might users not want this?"
+    type: analytical
+    priority: important
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: null
+
+  # R3: Technical Risk
+  - id: R_TECHNICAL
+    criterion: R3
+    text: "What could go wrong technically? Are there unsolved technical challenges?"
+    type: analytical
+    priority: important
+    idea_types: [business, technical, research]
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: null
+
+  # R4: Financial Risk
+  - id: R_FINANCIAL
+    criterion: R4
+    text: "What's your financial worst-case scenario? Can you survive it? How long can you sustain this?"
+    type: reflective
+    priority: important
+    idea_types: [business]
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: null
+
+  # R5: Regulatory Risk
+  - id: R_REGULATORY
+    criterion: R5
+    text: "Are there any legal, regulatory, or compliance concerns? (privacy, licensing, certifications)"
+    type: factual
+    priority: important
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: null
+
+  # Kill Conditions
+  - id: R_KILL
+    criterion: R1
+    text: "What would cause you to abandon this idea entirely? What are your 'kill conditions'?"
+    type: reflective
+    priority: nice-to-have
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: null
+
+  # Pre-mortem
+  - id: R_PREMORTEM
+    criterion: R1
+    text: "Imagine this idea failed in 2 years. What's the most likely reason it failed?"
+    type: reflective
+    priority: important
+    idea_types: null
+    lifecycle_stages: [EVALUATE, VALIDATE, DESIGN]
+    depends_on: null
+    follow_ups: null

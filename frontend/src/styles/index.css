@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-gray-900;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-gray-600 hover:bg-gray-100 focus:ring-gray-500;
+  }
+
+  .input {
+    @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .score-bar {
+    @apply h-2 rounded-full;
+  }
+}
+
+@layer utilities {
+  .text-score-excellent {
+    @apply text-green-600;
+  }
+  .text-score-strong {
+    @apply text-lime-600;
+  }
+  .text-score-promising {
+    @apply text-yellow-600;
+  }
+  .text-score-uncertain {
+    @apply text-orange-600;
+  }
+  .text-score-weak {
+    @apply text-red-600;
+  }
+  .text-score-poor {
+    @apply text-red-900;
+  }
+}
+
+/* Markdown content styling */
+.markdown-content {
+  @apply prose prose-gray max-w-none;
+}
+
+.markdown-content h1 {
+  @apply text-2xl font-bold mt-8 mb-4;
+}
+
+.markdown-content h2 {
+  @apply text-xl font-semibold mt-6 mb-3;
+}
+
+.markdown-content h3 {
+  @apply text-lg font-medium mt-4 mb-2;
+}
+
+.markdown-content p {
+  @apply my-3 leading-relaxed;
+}
+
+.markdown-content ul, .markdown-content ol {
+  @apply my-3 pl-6;
+}
+
+.markdown-content li {
+  @apply my-1;
+}
+
+.markdown-content code {
+  @apply bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono;
+}
+
+.markdown-content pre {
+  @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4;
+}
+
+.markdown-content pre code {
+  @apply bg-transparent p-0;
+}
+
+.markdown-content blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic my-4 text-gray-600;
+}
+
+/* Radar chart custom styles */
+.recharts-polar-grid-angle line {
+  stroke: #e5e7eb;
+}
+
+.recharts-polar-grid-concentric circle {
+  stroke: #e5e7eb;
+}

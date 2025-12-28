@@ -1,0 +1,132 @@
+# Solution Category Questions (S1-S5)
+category: solution
+
+questions:
+  # S1: Solution Clarity
+  - id: S1_WHAT
+    criterion: S1
+    text: "In one paragraph, describe what you're building and how it works."
+    type: factual
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [S1_VALUE_PROP, S1_HOW]
+
+  - id: S1_VALUE_PROP
+    criterion: S1
+    text: "What's the single most important benefit users get from your solution?"
+    type: analytical
+    priority: critical
+    depends_on: [S1_WHAT]
+    follow_ups: null
+
+  - id: S1_HOW
+    criterion: S1
+    text: "Walk through how a user would use your solution to solve their problem, step by step."
+    type: factual
+    priority: important
+    depends_on: [S1_WHAT]
+    follow_ups: null
+
+  # S2: Solution Feasibility
+  - id: S2_TECH
+    criterion: S2
+    text: "What technology, approach, or methodology would you use to build this?"
+    type: factual
+    priority: critical
+    idea_types: [business, technical, research]
+    lifecycle_stages: null
+    depends_on: [S1_WHAT]
+    follow_ups: [S2_HARD]
+
+  - id: S2_PROVEN
+    criterion: S2
+    text: "Has this type of solution been built before? What's novel about your approach?"
+    type: analytical
+    priority: important
+    depends_on: [S2_TECH]
+    follow_ups: null
+
+  - id: S2_HARD
+    criterion: S2
+    text: "What's the technically hardest part of building this? What's your plan to solve it?"
+    type: analytical
+    priority: important
+    depends_on: [S2_TECH]
+    follow_ups: null
+
+  # S3: Solution Uniqueness
+  - id: S3_DIFF
+    criterion: S3
+    text: "How is your solution fundamentally different from existing alternatives?"
+    type: analytical
+    priority: critical
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: [S1_WHAT]
+    follow_ups: [S3_WHY_BETTER]
+
+  - id: S3_WHY_BETTER
+    criterion: S3
+    text: "Why would someone choose your solution over competitors? What's the compelling reason?"
+    type: analytical
+    priority: critical
+    depends_on: [S3_DIFF]
+    follow_ups: null
+
+  - id: S3_SECRET
+    criterion: S3
+    text: "What do you know or believe about this problem/solution that competitors don't?"
+    type: reflective
+    priority: important
+    depends_on: [S3_DIFF]
+    follow_ups: null
+
+  # S4: Solution Scalability
+  - id: S4_SCALE
+    criterion: S4
+    text: "If you had 10x more users tomorrow, what would break or become bottlenecks?"
+    type: analytical
+    priority: important
+    idea_types: [business, technical]
+    lifecycle_stages: null
+    depends_on: [S1_WHAT]
+    follow_ups: [S4_MARGINAL]
+
+  - id: S4_MARGINAL
+    criterion: S4
+    text: "Does serving each additional customer cost you significant time or money, or is it nearly free?"
+    type: analytical
+    priority: important
+    idea_types: [business]
+    depends_on: [S4_SCALE]
+    follow_ups: null
+
+  # S5: Solution Defensibility
+  - id: S5_MOAT
+    criterion: S5
+    text: "What would make it hard for competitors to copy your solution? (Network effects, data, brand, switching costs)"
+    type: analytical
+    priority: important
+    idea_types: null
+    lifecycle_stages: null
+    depends_on: [S1_WHAT]
+    follow_ups: [S5_NETWORK]
+
+  - id: S5_PROTECTION
+    criterion: S5
+    text: "Do you have or could you get any IP protection? (patents, trade secrets, trademarks)"
+    type: factual
+    priority: nice-to-have
+    idea_types: [business, technical]
+    depends_on: [S5_MOAT]
+    follow_ups: null
+
+  - id: S5_NETWORK
+    criterion: S5
+    text: "Does your solution get better as more people use it? (network effects, data flywheel)"
+    type: analytical
+    priority: important
+    depends_on: [S5_MOAT]
+    follow_ups: null

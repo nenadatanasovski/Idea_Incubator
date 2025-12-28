@@ -1,0 +1,65 @@
+# Business Model Questions (for business ideas)
+category: business_model
+
+questions:
+  # Revenue Model
+  - id: BM_MODEL
+    criterion: S1
+    text: "How will this make money? (subscription, transaction fees, ads, freemium, licensing, etc.)"
+    type: factual
+    priority: critical
+    idea_types: [business]
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: [BM_PRICE]
+
+  - id: BM_PRICE
+    criterion: S1
+    text: "What would you charge? What's your pricing logic? How did you arrive at this price?"
+    type: analytical
+    priority: important
+    idea_types: [business]
+    depends_on: [BM_MODEL]
+    follow_ups: null
+
+  # Unit Economics
+  - id: BM_CAC
+    criterion: M1
+    text: "How much would it cost to acquire a customer? (Customer Acquisition Cost - rough estimate)"
+    type: analytical
+    priority: nice-to-have
+    idea_types: [business]
+    lifecycle_stages: [VALIDATE, DESIGN, PROTOTYPE]
+    depends_on: [BM_PRICE]
+    follow_ups: [BM_LTV]
+
+  - id: BM_LTV
+    criterion: M1
+    text: "How much revenue would a customer generate over their lifetime? (Lifetime Value - rough estimate)"
+    type: analytical
+    priority: nice-to-have
+    idea_types: [business]
+    depends_on: [BM_CAC]
+    follow_ups: null
+
+  # Go-to-Market
+  - id: BM_GTM
+    criterion: M3
+    text: "How will you get your first 10 customers? First 100? What's your distribution strategy?"
+    type: analytical
+    priority: important
+    idea_types: [business]
+    lifecycle_stages: null
+    depends_on: null
+    follow_ups: null
+
+  # Revenue Projections
+  - id: BM_REVENUE
+    criterion: M1
+    text: "What's your realistic revenue target for year 1? Year 3?"
+    type: factual
+    priority: nice-to-have
+    idea_types: [business]
+    lifecycle_stages: [VALIDATE, DESIGN, BUILD]
+    depends_on: [BM_PRICE]
+    follow_ups: null
