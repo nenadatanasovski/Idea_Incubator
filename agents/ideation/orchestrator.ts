@@ -14,6 +14,7 @@ import {
 import { sessionManager } from './session-manager.js';
 import { messageStore } from './message-store.js';
 import { memoryManager } from './memory-manager.js';
+import { candidateManager } from './candidate-manager.js';
 import { extractSignals, ParsedAgentResponse } from './signal-extractor.js';
 import { calculateConfidence } from './confidence-calculator.js';
 import { calculateViability } from './viability-calculator.js';
@@ -107,12 +108,20 @@ export class AgentOrchestrator {
     const marketDiscovery = this.mergeState(currentState.marketDiscovery, signals.marketDiscovery);
     const narrowingState = this.mergeState(currentState.narrowing, signals.narrowing);
 
+    // Load existing candidate if current response doesn't have one
+    const existingCandidate = await candidateManager.getActiveForSession(session.id);
+    const candidateForCalculation = parsed.candidateTitle
+      ? { title: parsed.candidateTitle, summary: parsed.candidateSummary }
+      : existingCandidate
+        ? { title: existingCandidate.title, summary: existingCandidate.summary || undefined }
+        : null;
+
     // Calculate meters
     const confidenceResult = calculateConfidence({
       selfDiscovery: selfDiscovery as SelfDiscoveryState,
       marketDiscovery: marketDiscovery as MarketDiscoveryState,
       narrowingState: narrowingState as NarrowingState,
-      candidate: parsed.candidateTitle ? { title: parsed.candidateTitle, summary: parsed.candidateSummary } : null,
+      candidate: candidateForCalculation,
       userConfirmations: this.countConfirmations(messages),
     });
 
@@ -121,28 +130,36 @@ export class AgentOrchestrator {
       marketDiscovery: marketDiscovery as MarketDiscoveryState,
       narrowingState: narrowingState as NarrowingState,
       webSearchResults: [], // Populated from web search if available
-      candidate: parsed.candidateTitle ? { id: '', title: parsed.candidateTitle } : null,
+      candidate: candidateForCalculation ? { id: existingCandidate?.id || '', title: candidateForCalculation.title } : null,
     });
+
+    // Determine candidate for memory update - preserve existing if no new one
+    const candidateForMemory = parsed.candidateTitle ? {
+      id: existingCandidate?.id || '',
+      sessionId: session.id,
+      title: parsed.candidateTitle,
+      summary: parsed.candidateSummary || existingCandidate?.summary || null,
+      confidence: confidenceResult.total,
+      viability: viabilityResult.total,
+      userSuggested: existingCandidate?.userSuggested || false,
+      status: existingCandidate?.status || 'forming' as const,
+      capturedIdeaId: existingCandidate?.capturedIdeaId || null,
+      version: (existingCandidate?.version || 0) + 1,
+      createdAt: existingCandidate?.createdAt || new Date(),
+      updatedAt: new Date(),
+    } : existingCandidate ? {
+      ...existingCandidate,
+      confidence: confidenceResult.total,
+      viability: viabilityResult.total,
+      updatedAt: new Date(),
+    } : null;
 
     // Update memory files
     await memoryManager.updateAll(session.id, {
       selfDiscovery: selfDiscovery as SelfDiscoveryState,
       marketDiscovery: marketDiscovery as MarketDiscoveryState,
       narrowingState: narrowingState as NarrowingState,
-      candidate: parsed.candidateTitle ? {
-        id: '',
-        sessionId: session.id,
-        title: parsed.candidateTitle,
-        summary: parsed.candidateSummary || null,
-        confidence: confidenceResult.total,
-        viability: viabilityResult.total,
-        userSuggested: false,
-        status: 'forming',
-        capturedIdeaId: null,
-        version: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } : null,
+      candidate: candidateForMemory,
       viability: { total: viabilityResult.total, risks: viabilityResult.risks },
     });
 
@@ -167,9 +184,9 @@ export class AgentOrchestrator {
       reply: parsed.reply,
       buttons: parsed.buttons || null,
       form: parsed.formFields as FormDefinition || null,
-      candidateUpdate: parsed.candidateTitle ? {
-        title: parsed.candidateTitle,
-        summary: parsed.candidateSummary,
+      candidateUpdate: candidateForCalculation ? {
+        title: candidateForCalculation.title,
+        summary: candidateForCalculation.summary,
       } : null,
       confidence: confidenceResult.total,
       viability: viabilityResult.total,
