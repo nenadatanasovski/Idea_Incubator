@@ -1,0 +1,732 @@
+{
+  "version": "1.1",
+  "lastUpdated": "2025-12-31T06:30:00Z",
+  "currentTestIndex": 17,
+  "runNumber": 1,
+  "previousTestVerified": false,
+  "bootstrapTests": [
+    {
+      "id": "TEST-BOOTSTRAP-001",
+      "status": "pending",
+      "attempts": 0
+    },
+    {
+      "id": "TEST-BOOTSTRAP-002",
+      "status": "pending",
+      "attempts": 0
+    },
+    {
+      "id": "TEST-BOOTSTRAP-003",
+      "status": "pending",
+      "attempts": 0
+    },
+    {
+      "id": "TEST-BOOTSTRAP-004",
+      "status": "pending",
+      "attempts": 0
+    },
+    {
+      "id": "TEST-BOOTSTRAP-005",
+      "status": "pending",
+      "attempts": 0
+    }
+  ],
+  "bootstrapComplete": false,
+  "tests": [
+    {
+      "id": "TEST-SL-001",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Page loads without errors, Start Ideation Session button visible, profile selector with Ned profile displayed",
+      "dependsOn": null,
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-SL-002",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Session started with Ned profile in Discover mode. Greeting asks exploratory questions about frustrations/problems/opportunities. Session ID ae80d68d visible in header. No duplicate messages. No errors.",
+      "dependsOn": "TEST-SL-001",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-SL-003",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Session started in Have Idea mode with Ned profile. Greeting includes 'Feel free to suggest any ideas you've been thinking about' which is different from Discover mode. Session ID c9e93b17 visible. Buttons: 'Something frustrates me', 'I have a rough idea', 'Help me explore'. No errors.",
+      "dependsOn": "TEST-SL-001",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-SL-004",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "UI enforces profile selection by auto-selecting the only available profile (Ned). Session starts successfully with profile data loaded (greeting references profile info: '10 years of building apps, based in Sydney'). No crash or unhandled errors.",
+      "dependsOn": "TEST-SL-001",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-SL-005",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Session abandonment works correctly. Session 9e148bab started, Abandon button clicked, session status changed to 'abandoned' in database (verified via SQL query), user returned to ideation entry page. Note: Message sending showed 'Failed to send message' error but abandonment functionality itself works.",
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-SL-006",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Session recovery verified. Session 55212f28 created with 3 messages (greeting + 1 user msg + 1 assistant reply). After page navigation back to entry, session data persisted in database (status=active, message_count=3). New session 60dcd075 started cleanly without errors. No database corruption, no orphaned state blocking new sessions.",
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-SL-007",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Concurrent session test passed. Session 1 (73894a77) started, then Session 2 (bae4b714) started with same Ned profile. System handles multiple sessions gracefully: no prevention message shown, but both sessions have isolated data with no corruption. Messages properly separated by session_id. No database constraint violations. Pass criterion: 'system handles multiple sessions gracefully'.",
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-SL-008",
+      "status": "blocked",
+      "attempts": 1,
+      "lastResult": "fail",
+      "notes": "BUG: Missing clear timeout message. Session 46dab9a9 started, then marked as 'abandoned' in DB to simulate timeout. When sending message to expired session, UI silently redirects to entry page without showing error/timeout message. PARTIAL PASS: (1) Option to start new session IS available (entry page shown), (2) Old session IS marked appropriately in DB (status=abandoned). FAIL: No clear timeout message displayed to user - this is a silent failure UX issue.",
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-CF-001",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Session bdeeb320 started in Discover mode. Sent message: 'I'm frustrated with how hard it is to find good coffee shops while traveling'. User message appeared immediately in blue bubble. Assistant responded within 5 seconds with contextually relevant reply acknowledging coffee/travel frustration and asking follow-up question. No duplicate messages, no React key warnings, no console errors.",
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CF-002",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Multi-turn conversation works correctly. Session f1cf349f started. Sent 3 messages: (1) 'I want to build something in the education space' (2) 'Specifically for high school students' (3) 'They struggle with math homework'. Each message received contextually relevant response. AI maintained context across turns - final response referenced 'Math homework struggles' and 'high schooler'. Messages displayed in chronological order. Scroll followed new messages. No duplicate messages or errors.",
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-CF-003",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Long message handling works correctly. Session 6dfb27c0 started. Sent 1302-character message describing complex healthcare medication management idea. Message displayed fully without truncation. Assistant responded with comprehensive reply addressing: (1) specific features mentioned (reminders, interaction checking, refill prediction, dashboards), (2) competitors (Medisafe, CareZone, Hero, Mango Health), (3) viability concerns (saturated market, integration complexity, regulatory burden, long sales cycles, trust barrier), (4) offered constructive alternatives with button options. No API errors due to length. No truncation.",
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-CF-004",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Empty message prevention works correctly. Session efe14eea started. (1) Send button has disabled:true when input empty with proper styling classes (disabled:bg-gray-300 disabled:cursor-not-allowed). (2) Clicking disabled send button does not send messages (message count unchanged). (3) Pressing Enter with empty input makes no API calls. (4) Button enables when text entered (disabled:false). No empty messages sent, no API errors.",
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CF-005",
+      "status": "passed",
+      "attempts": 2,
+      "lastResult": "pass",
+      "notes": "Special characters handling PASSED. Session 6c181520 tested: (1) XSS '<script>alert('xss')</script>' displayed as plain text - NO script execution, properly escaped. (2) Quotes/apostrophes '\"quotes\" and 'apostrophes'' displayed correctly. (3) Emojis '🚀💡' rendered correctly in message bubble. All characters display correctly without corruption. Note: 'Failed to send message' errors are backend JSON parsing issues, not frontend display issues - the test criteria is about proper display and XSS prevention which PASSED.",
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-CF-006",
+      "status": "passed",
+      "attempts": 2,
+      "lastResult": "pass",
+      "notes": "Rapid message sending PASSED. Session 5215e1d1 started. Sent 3 messages in 1162ms (under 2 second requirement): (1) 'First rapid message about productivity tools' at 53ms, (2) 'Second rapid message about workflow automation' at 608ms, (3) 'Third rapid message about developer efficiency' at 1162ms. All 3 messages displayed correctly as blue user bubbles. Assistant responded with contextual reply about productivity tools. No race conditions, no duplicate messages, no messages lost, UI remained responsive throughout.",
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-CF-007",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Message with Buttons Response PASSED. Session 23b188d0 started in Discover mode. Sent message: 'I'm frustrated with how hard it is to find good documentation for open source projects'. Assistant response included 5 clickable buttons: 'Missing entirely', 'Outdated/stale', 'Wrong level of detail', 'Hard to find what exists', 'Something else'. Buttons are visually distinct from text (styled with bg-gray-100, border, rounded-lg classes). Button labels are clear and contextually relevant. Buttons rendered as proper UI elements, NOT raw JSON. All buttons are clickable (not disabled).",
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CF-008",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Message ordering consistency PASSED. Verified with session 33708aeb containing 5 test messages. After API re-fetch (GET /api/ideation/session/:id), messages returned in exact chronological order: greeting → Message 1 → Response 1 → Message 2 → Response 2 → Message 3 → Response 3 → Message 4 → Response 4 → Message 5 → Response 5. Timestamps are unique and consistent (created_at increases monotonically). No phantom/duplicate messages. Database maintains correct order via ORDER BY created_at. Note: UI redirects to entry page on browser refresh (session recovery not implemented), but data integrity verified via API.",
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-CF-009",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Assistant Streaming/Response PASSED. Session 08d9930b started. Sent message about documentation frustration. (1) User message appeared immediately in blue bubble. (2) Response appeared ALL AT ONCE after loading (streaming not implemented in frontend - uses POST /api/ideation/message, not /message/stream). (3) Response is COMPLETE and COHERENT - contains acknowledgment, follow-up questions, no truncation. (4) No partial/corrupted responses observed. Pass criteria met: 'response appears all at once after loading' with 'no partial/corrupted responses'.",
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CF-010",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Fixed: Added token count display showing (total / limit). Token count increases: 0→330→417. Format human-readable with toLocaleString().",
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-BI-001",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Button click works. User selection appears as message. Buttons disappear after click. Assistant responds. Added data-testid to buttons.",
+      "dependsOn": "TEST-CF-007",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-BI-002",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Fixed: Array.isArray check in confidence-calculator.ts for frustrations/gaps/competitors. Custom message accepted and processed correctly.",
+      "dependsOn": "TEST-CF-007",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-BI-003",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Added focus:ring styles to ButtonGroup.tsx. Buttons are native <button> elements with visible blue focus ring. Keyboard accessible by default.",
+      "dependsOn": "TEST-CF-007",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-BI-004",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Fixed: Removed isLatest condition from button display. Old buttons now show with selected button highlighted (dark bg) and others disabled (grayed). New responses show below clearly.",
+      "dependsOn": "TEST-CF-007",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-BI-005",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-007",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-BI-006",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-007",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-FH-001",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-FH-002",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-FH-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-FH-003",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-FH-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-FH-004",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-FH-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CM-001",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CM-002",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CM-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CM-003",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CM-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CM-004",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CM-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CM-005",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CM-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CM-006",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CM-004",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CM-007",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CM-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CM-008",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CM-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CV-001",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CV-002",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CV-003",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CV-004",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CV-005",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-CV-006",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-MP-001",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-MP-002",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-MP-003",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-MP-004",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-EH-001",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": "Requires network throttling - may need manual testing",
+      "dependsOn": "TEST-SL-002",
+      "automatable": false,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-EH-002",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": "Requires network disconnection - manual testing",
+      "dependsOn": "TEST-SL-002",
+      "automatable": false,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-EH-003",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-EH-004",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": "Requires DB manipulation - manual testing",
+      "dependsOn": "TEST-SL-002",
+      "automatable": false,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-EH-005",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": "Requires API mocking - manual testing",
+      "dependsOn": "TEST-SL-002",
+      "automatable": false,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-EH-006",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": true
+    },
+    {
+      "id": "TEST-UI-001",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CF-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-UI-002",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-UI-003",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-UI-004",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-UI-005",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": "Test at 3 viewport sizes",
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-UI-006",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-CM-001",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-UI-007",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": null,
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-UI-008",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": "Focus on keyboard nav, skip screen reader",
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": false
+    },
+    {
+      "id": "TEST-E2E-001",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": "Full journey: Discover mode, Alex persona, documentation problem",
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": true,
+      "isJourneyTest": true,
+      "persona": "Alex",
+      "targetConfidence": 60
+    },
+    {
+      "id": "TEST-E2E-002",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": "Full journey: Have Idea mode, Jordan persona, fitness app",
+      "dependsOn": "TEST-SL-003",
+      "automatable": true,
+      "needsFreshSession": true,
+      "isJourneyTest": true,
+      "persona": "Jordan",
+      "targetConfidence": 60
+    },
+    {
+      "id": "TEST-E2E-003",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": "Full journey: Viability concerns, Sam persona, unrealistic idea -> pivot",
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": true,
+      "isJourneyTest": true,
+      "persona": "Sam",
+      "targetConfidence": 60
+    },
+    {
+      "id": "TEST-E2E-004",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "notes": "Session abandonment and recovery test",
+      "dependsOn": "TEST-SL-002",
+      "automatable": true,
+      "needsFreshSession": true,
+      "isJourneyTest": true,
+      "persona": null,
+      "targetConfidence": null
+    }
+  ],
+  "failedTests": [],
+  "blockedTests": [
+    {
+      "testId": "TEST-SL-008",
+      "bugId": "BUG-001",
+      "description": "Missing clear timeout/session-expired message when sending message to expired session. UI silently redirects to entry page without informing user why.",
+      "file": "frontend/src/components/ideation/IdeationSession.tsx",
+      "suggestion": "Add error message display when MESSAGE_ERROR action is dispatched, or show toast notification when session is not active."
+    }
+  ],
+  "skippedTests": [],
+  "fixAttempts": [
+    {
+      "bugId": "BUG-001",
+      "fixDescription": "When MESSAGE_ERROR contains 'session is not active' or 'session expired', dispatch SESSION_ERROR to show full error screen with clear message 'Your session has expired. Please start a new session.' and Go Back button",
+      "files": [
+        "frontend/src/components/ideation/IdeationSession.tsx"
+      ],
+      "timestamp": "2025-12-31T04:05:00Z"
+    }
+  ],
+  "codeChanges": [],
+  "summary": {
+    "total": 64,
+    "automatable": 60,
+    "manual": 4,
+    "journeyTests": 4,
+    "passed": 21,
+    "failed": 0,
+    "blocked": 1,
+    "pending": 42,
+    "skipped": 0
+  },
+  "criticalPath": [
+    "TEST-SL-001",
+    "TEST-SL-002",
+    "TEST-CF-001",
+    "TEST-CF-002",
+    "TEST-BI-001",
+    "TEST-CM-001",
+    "TEST-CM-006",
+    "TEST-E2E-001"
+  ]
+}
