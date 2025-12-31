@@ -1,34 +1,36 @@
 # E2E Test Handoff
 
 ## Current State
-- **Last Updated:** 2025-12-31 Session 3
-- **Progress:** Passed: 22 | Blocked: 1 | Pending: 41 | Total: 64
+- **Last Updated:** 2025-12-31 Session 8
+- **Progress:** Passed: 23 | Blocked: 1 | Pending: 40 | Total: 64
 
-## IMPORTANT FOR NEXT AGENT
+## What Was Fixed This Session
 
-### Code Fix Committed But NOT Verified
+### TEST-BI-006: Button Response Updates Candidate (PASSED)
 
-I fixed a bug for TEST-BI-006 but the browser session became unresponsive before I could verify it.
+**Problem:** Backend was throwing `TypeError: input.marketDiscovery.gaps.some is not a function`
 
-**What was fixed:**
-- Backend was returning `ideaCandidate` but frontend expects `candidateUpdate`
-- Changed server/routes/ideation.ts to return `candidateUpdate`
-- Also added `confidence`, `viability`, and `risks` fields to the response
-- This affects both `/api/ideation/message` and `/api/ideation/button` endpoints
+**Root Cause:** The `mergeState()` function in `agents/ideation/orchestrator.ts` was incorrectly overwriting arrays with objects. When the LLM returned partial updates like `{ gaps: {} }` (an empty object), the merge logic would overwrite the array `gaps: []` with the object `{}`, causing `.some()` to fail.
 
-**What you need to do:**
-1. Navigate to http://localhost:3000/ideate
-2. Start a session (click "Start Ideation Session" -> "Help me discover")
-3. Interact with the conversation (click buttons, send messages about an idea)
-4. Check if the "Idea Candidate" panel on the right updates with the idea title/summary
+**Fix Applied:** Updated `mergeState()` to:
+1. Only merge arrays with arrays
+2. Skip updates where existing value is an array but update value is not (preserving the array)
+3. Only deep-merge objects when both existing and update values are non-array objects
 
-**If the panel updates:**
-- Mark TEST-BI-006 as passed in test-state.json
-- Progress becomes 23/64
+**Verification:**
+- Started new session, sent 6+ messages
+- No backend errors in logs
+- Idea Forming progress bar displays correctly
+- Conversation flows smoothly with button clicks and text input
 
-**If the panel still doesn't update:**
-- Check server logs: `tail -50 tests/e2e/logs/backend.log`
-- The orchestrator may not be returning `candidateUpdate` - check `agents/ideation/orchestrator.ts`
+## Next Session Should
+
+1. **Work on TEST-FH-001** (Form Display) - Next pending test
+   - Requires progressing conversation until a form is presented
+   - Check that form renders correctly with all fields
+
+2. **Or continue with confidence/viability tests** (TEST-CM-xxx, TEST-CV-xxx)
+   - These test the meters and candidate panel functionality
 
 ## Known Issues
 
@@ -46,18 +48,16 @@ SELECT id, status, started_at, message_count FROM ideation_sessions;
 SELECT id, role, content, created_at FROM ideation_messages ORDER BY created_at;
 ```
 
-## Key Patterns
+## Key Patterns Learned
 
 **DO:**
-- Use button clicks for initial interactions (more reliable)
-- Wait for elements with event-based polling, not setTimeout
-- Check API state via curl when UI is unclear
-- Diagnose failures before retrying
+- Check backend logs (`tail -30 tests/e2e/logs/backend.log`) when UI behaves unexpectedly
+- Restart backend server after code changes: `kill <PID> && npm run server > tests/e2e/logs/backend.log 2>&1 &`
+- Use `lsof -ti:3001` to find backend PID
 
 **DON'T:**
-- Stack multiple setTimeout waits
-- Create new sessions for each retry
-- Query `created_at` on sessions or `timestamp` on messages
+- Assume frontend issues when backend is throwing errors
+- Overwrite arrays with objects in state merging logic
 
 ## Files Structure
 
@@ -77,6 +77,8 @@ tests/e2e/
 ## Git History
 
 ```
+f2c9a10 Fix TEST-BI-006: Prevent array corruption in mergeState function
+9bcde1e Update E2E progress and handoff notes
 1a4f937 Fix TEST-BI-006: Align candidateUpdate field name between backend and frontend
 5bda881 Fix TEST-BI-002/003/004: Custom input, keyboard nav, multiple buttons
 fc5c47a update

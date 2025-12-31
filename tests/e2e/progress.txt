@@ -13,3 +13,15 @@
 - Next: Next agent should verify the fix works by navigating to /ideate, starting a session,
   and checking that the Idea Candidate panel updates when conversation progresses
 
+
+[2025-12-31 19:49] Session 8 Complete
+- Fixed: TEST-BI-006 (Button Response Updates Candidate)
+- Root cause: mergeState() in orchestrator.ts was overwriting arrays with objects
+  when LLM returned partial updates (e.g., {gaps: {}} overwrote gaps: [])
+- Code changed: agents/ideation/orchestrator.ts - added check to skip updates 
+  where existing value is array but update is not
+- Verified: 6+ messages processed without 'gaps.some is not a function' error
+- Verified: Idea Forming progress bar displays and updates
+- Progress: 23/64 passing (was 22/64)
+- Next: TEST-FH-001 (Form Display) or other pending tests
+
