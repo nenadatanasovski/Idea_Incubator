@@ -25,3 +25,13 @@
 - Progress: 23/64 passing (was 22/64)
 - Next: TEST-FH-001 (Form Display) or other pending tests
 
+
+[2025-12-31 20:03] Session 9 Complete
+- Fixed: Orchestrator not returning risks array (was missing from response)
+- Code changed: agents/ideation/orchestrator.ts - added risks to OrchestratorResponse
+- Passed: TEST-CM-001 (Candidate Panel), TEST-CM-002 (Title Gen), TEST-CM-003 (Summary Gen)
+- Blocked: TEST-FH-001 through TEST-FH-004 (Forms are AI-generated, not deterministic)
+- Verified: Candidate panel shows title, summary, confidence, viability correctly
+- Progress: 26/64 passing (was 23/64)
+- Next: TEST-CM-004 (Confidence Updates), TEST-CM-005 (Viability + Risks display)
+

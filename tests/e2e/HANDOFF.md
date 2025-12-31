@@ -1,42 +1,58 @@
 # E2E Test Handoff
 
 ## Current State
-- **Last Updated:** 2025-12-31 Session 8
-- **Progress:** Passed: 23 | Blocked: 1 | Pending: 40 | Total: 64
+- **Last Updated:** 2025-12-31 Session 9
+- **Progress:** Passed: 26 | Blocked: 5 | Pending: 33 | Total: 64
 
 ## What Was Fixed This Session
 
-### TEST-BI-006: Button Response Updates Candidate (PASSED)
+### Bug Fix: Orchestrator Not Returning Risks
 
-**Problem:** Backend was throwing `TypeError: input.marketDiscovery.gaps.some is not a function`
+**Problem:** The candidate panel wasn't showing risk items because `viabilityResult.risks` wasn't being returned from the orchestrator.
 
-**Root Cause:** The `mergeState()` function in `agents/ideation/orchestrator.ts` was incorrectly overwriting arrays with objects. When the LLM returned partial updates like `{ gaps: {} }` (an empty object), the merge logic would overwrite the array `gaps: []` with the object `{}`, causing `.some()` to fail.
+**Fix Applied:** Updated `agents/ideation/orchestrator.ts`:
+1. Imported `ViabilityRisk` type from `types/ideation.js`
+2. Added `risks: ViabilityRisk[]` to `OrchestratorResponse` interface
+3. Added `risks: viabilityResult.risks || []` to the return object
 
-**Fix Applied:** Updated `mergeState()` to:
-1. Only merge arrays with arrays
-2. Skip updates where existing value is an array but update value is not (preserving the array)
-3. Only deep-merge objects when both existing and update values are non-array objects
+**Commit:** `13b0c53 Fix orchestrator to return viability risks + pass CM tests`
 
-**Verification:**
-- Started new session, sent 6+ messages
-- No backend errors in logs
-- Idea Forming progress bar displays correctly
-- Conversation flows smoothly with button clicks and text input
+### Tests Passed This Session
+
+| Test ID | Description | Notes |
+|---------|-------------|-------|
+| TEST-CM-001 | Candidate Panel Visibility | Panel appears at 30%+ confidence, shows all metrics |
+| TEST-CM-002 | Candidate Title Generation | "AI Meal Planning Assistant" generated correctly |
+| TEST-CM-003 | Candidate Summary Generation | Coherent summary captured |
+
+### Tests Blocked (AI-Dependent)
+
+| Test ID | Description | Issue |
+|---------|-------------|-------|
+| TEST-FH-001-004 | Form Handling | Forms are AI-generated at discretion, can't be deterministically triggered |
 
 ## Next Session Should
 
-1. **Work on TEST-FH-001** (Form Display) - Next pending test
-   - Requires progressing conversation until a form is presented
-   - Check that form renders correctly with all fields
+1. **Verify risks fix works** - Start new session, progress to viability concerns, check if risks display
+2. **Work on TEST-CM-004** - Confidence Score Updates (may need investigation - scores were dropping)
+3. **Work on TEST-CM-005** - Viability Score and Risks display
+4. **Consider TEST-CV tests** - Confidence/Viability meter tests
 
-2. **Or continue with confidence/viability tests** (TEST-CM-xxx, TEST-CV-xxx)
-   - These test the meters and candidate panel functionality
+## Observations About Confidence Behavior
+
+During testing, confidence behaved unexpectedly:
+- Started at 0%
+- Rose to 34% after sharing idea details
+- Dropped to 18%, then 7% as conversation continued
+
+This is counterintuitive - confidence should increase as more info is provided. May need investigation in `confidence-calculator.ts`.
 
 ## Known Issues
 
 | Test | Bug | Description |
 |------|-----|-------------|
 | TEST-SL-008 | BUG-001 | Missing timeout message - UI silently redirects when session expired |
+| TEST-FH-* | BUG-002 | Forms not deterministically triggered - AI decides when to use them |
 
 ## Schema Quick Reference
 
@@ -48,39 +64,17 @@ SELECT id, status, started_at, message_count FROM ideation_sessions;
 SELECT id, role, content, created_at FROM ideation_messages ORDER BY created_at;
 ```
 
-## Key Patterns Learned
+## Key Files Modified
 
-**DO:**
-- Check backend logs (`tail -30 tests/e2e/logs/backend.log`) when UI behaves unexpectedly
-- Restart backend server after code changes: `kill <PID> && npm run server > tests/e2e/logs/backend.log 2>&1 &`
-- Use `lsof -ti:3001` to find backend PID
-
-**DON'T:**
-- Assume frontend issues when backend is throwing errors
-- Overwrite arrays with objects in state merging logic
-
-## Files Structure
-
-```
-tests/e2e/
-├── agent-memory.json    # Schema, patterns, known bugs
-├── test-state.json      # Test status (source of truth)
-├── HANDOFF.md           # This file
-├── progress.txt         # Running log of all sessions
-├── prompts/
-│   ├── E2E-AGENT.md         # Main agent prompt
-│   ├── DIAGNOSTIC-CHECKPOINT.md  # How to diagnose failures
-│   └── WAITING-PATTERNS.md  # Event-based waiting patterns
-└── logs/                # Detailed logs from each run
-```
+- `agents/ideation/orchestrator.ts` - Added risks to response
+- `tests/e2e/test-state.json` - Updated test statuses
 
 ## Git History
 
 ```
+13b0c53 Fix orchestrator to return viability risks + pass CM tests
+74f3884 Update E2E progress notes and handoff for Session 8
 f2c9a10 Fix TEST-BI-006: Prevent array corruption in mergeState function
 9bcde1e Update E2E progress and handoff notes
 1a4f937 Fix TEST-BI-006: Align candidateUpdate field name between backend and frontend
-5bda881 Fix TEST-BI-002/003/004: Custom input, keyboard nav, multiple buttons
-fc5c47a update
-7974a59 Initial commit: Idea Incubator system
 ```
