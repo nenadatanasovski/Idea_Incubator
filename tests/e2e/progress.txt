@@ -35,3 +35,14 @@
 - Progress: 26/64 passing (was 23/64)
 - Next: TEST-CM-004 (Confidence Updates), TEST-CM-005 (Viability + Risks display)
 
+
+[2025-12-31 20:07] Session 9 Update - Additional Fix
+- Fixed: Confidence dropping during conversation
+- Root cause: Candidate wasn't preserved when AI didn't include candidateTitle
+- Code changed: agents/ideation/orchestrator.ts
+  - Import candidateManager
+  - Load existing candidate using getActiveForSession()
+  - Use existing candidate for confidence/viability calculation
+  - Preserve candidate in memory updates
+- This should stabilize confidence scores during conversation
+
