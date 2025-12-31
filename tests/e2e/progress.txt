@@ -1,0 +1,15 @@
+# E2E Test Progress Notes
+# ========================
+# This file tracks what each agent session accomplished.
+
+[2025-12-31 Session 3] Working on TEST-BI-006
+- Identified bug: Backend returns 'ideaCandidate' but frontend expects 'candidateUpdate'
+- Fixed server/routes/ideation.ts to return 'candidateUpdate' instead of 'ideaCandidate'
+- Also added confidence, viability, and risks fields to API response
+- Fixed both /api/ideation/message and /api/ideation/button endpoints
+- Committed fix: "Fix TEST-BI-006: Align candidateUpdate field name between backend and frontend"
+- Browser session became unresponsive (detached Frame error), could not verify fix via UI
+- Progress: 22/64 passing (code fix committed but NOT yet verified via browser)
+- Next: Next agent should verify the fix works by navigating to /ideate, starting a session,
+  and checking that the Idea Candidate panel updates when conversation progresses
+
