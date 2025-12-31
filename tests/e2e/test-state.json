@@ -255,20 +255,20 @@
     },
     {
       "id": "TEST-BI-005",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Fixed: Added buttonClickInProgressRef to prevent double clicks. Ref is set synchronously before dispatch, preventing race conditions.",
       "dependsOn": "TEST-CF-007",
       "automatable": true,
       "needsFreshSession": false
     },
     {
       "id": "TEST-BI-006",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Fixed: mergeState function in orchestrator.ts was overwriting arrays with objects when LLM returned partial updates. Fix ensures arrays are preserved when update value is not an array. Verified: Idea Forming progress bar updates, backend processes 6+ messages without gaps.some error, conversation flows correctly.",
       "dependsOn": "TEST-CF-007",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 21,
+    "passed": 23,
     "failed": 0,
     "blocked": 1,
-    "pending": 42,
+    "pending": 40,
     "skipped": 0
   },
   "criticalPath": [
