@@ -9,6 +9,7 @@ import {
   SelfDiscoveryState,
   MarketDiscoveryState,
   NarrowingState,
+  ViabilityRisk,
 } from '../../types/ideation.js';
 import { sessionManager } from './session-manager.js';
 import { messageStore } from './message-store.js';
@@ -47,6 +48,7 @@ export interface OrchestratorResponse {
   } | null;
   confidence: number;
   viability: number;
+  risks: ViabilityRisk[];
   requiresIntervention: boolean;
   handoffOccurred: boolean;
 }
@@ -171,6 +173,7 @@ export class AgentOrchestrator {
       } : null,
       confidence: confidenceResult.total,
       viability: viabilityResult.total,
+      risks: viabilityResult.risks || [],
       requiresIntervention: viabilityResult.requiresIntervention,
       handoffOccurred,
     };
