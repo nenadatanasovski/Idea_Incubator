@@ -1,4 +1,4 @@
-import { useCategoryScores, useEvaluations, useSynthesis, useDebateRounds, useRedTeamChallenges } from '../hooks/useEvaluations'
+import { useCategoryScores, useEvaluations, useSynthesis, useDebateRounds, useRedTeamChallenges, usePreviousRunScores } from '../hooks/useEvaluations'
 import { scoreInterpretation, categoryWeights } from '../types'
 import type { EvaluationCategory, UserProfileSummary } from '../types'
 import {
@@ -170,7 +170,7 @@ function CategoryCard({
   category,
   score,
   confidence: _confidence,
-  initialScore,
+  previousScore,
   expanded,
   onToggle,
   criteria,
@@ -179,10 +179,10 @@ function CategoryCard({
   category: EvaluationCategory
   score: number
   confidence: number
-  initialScore?: number
+  previousScore?: number
   expanded: boolean
   onToggle: () => void
-  criteria: Array<{ name: string; score: number; reasoning: string }>
+  criteria: Array<{ name: string; previousScore?: number; finalScore: number; reasoning: string; debateChallenges: string[] }>
   hasProfile?: boolean
 }) {
   const label = categoryLabels[category]
@@ -226,8 +226,8 @@ function CategoryCard({
               {Math.round(weight * 100)}% weight
             </div>
           </div>
-          {initialScore !== undefined && Math.abs(score - initialScore) >= 0.1 && (
-            <ScoreChange initial={initialScore} final={score} />
+          {previousScore !== undefined && Math.abs(score - previousScore) >= 0.1 && (
+            <ScoreChange initial={previousScore} final={score} />
           )}
           {expanded ? (
             <ChevronUp className="w-5 h-5 text-gray-400" />
@@ -240,23 +240,62 @@ function CategoryCard({
       {expanded && (
         <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
           <div className="grid gap-2">
-            {criteria.map((c) => (
-              <div key={c.name} className="bg-white rounded p-3 border border-gray-100">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm text-gray-700">{c.name}</span>
-                  <span className={clsx('font-bold text-sm', scoreInterpretation.getColor(c.score))}>
-                    {c.score.toFixed(1)}
-                  </span>
+            {criteria.map((c) => {
+              const hasPreviousScore = c.previousScore !== undefined
+              const delta = hasPreviousScore ? c.finalScore - (c.previousScore ?? 0) : 0
+              const hasDebateForCriterion = c.debateChallenges.length > 0
+              return (
+                <div key={c.name} className="bg-white rounded p-3 border border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm text-gray-700">{c.name}</span>
+                    <div className="flex items-center gap-2">
+                      {/* Show current score as the primary score */}
+                      <span className={clsx('font-bold text-sm', scoreInterpretation.getColor(c.finalScore))}>
+                        {c.finalScore.toFixed(1)}
+                      </span>
+                      {/* Show change from previous assessment if available */}
+                      {hasPreviousScore && Math.abs(delta) >= 0.5 && (
+                        <span className="text-xs text-gray-400">
+                          (prev: {c.previousScore!.toFixed(1)})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Progress bar shows current score */}
+                  <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden mb-2">
+                    <div
+                      className={clsx('h-full rounded-full', scoreInterpretation.getBgColor(c.finalScore))}
+                      style={{ width: `${(c.finalScore / 10) * 100}%` }}
+                    />
+                  </div>
+                  {/* Show debate findings if there were challenges */}
+                  {hasDebateForCriterion ? (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded">
+                        Score adjusted after red team debate:
+                      </p>
+                      <ul className="text-xs text-gray-600 space-y-1 pl-3">
+                        {c.debateChallenges.map((challenge, idx) => (
+                          <li key={idx} className="list-disc">
+                            {challenge}
+                          </li>
+                        ))}
+                      </ul>
+                      <details className="text-xs text-gray-400">
+                        <summary className="cursor-pointer hover:text-gray-600">
+                          View assessment reasoning
+                        </summary>
+                        <p className="mt-1 text-gray-500 pl-2 border-l border-gray-200">
+                          {c.reasoning}
+                        </p>
+                      </details>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-600 leading-relaxed">{c.reasoning}</p>
+                  )}
                 </div>
-                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden mb-2">
-                  <div
-                    className={clsx('h-full rounded-full', scoreInterpretation.getBgColor(c.score))}
-                    style={{ width: `${(c.score / 10) * 100}%` }}
-                  />
-                </div>
-                <p className="text-xs text-gray-600 leading-relaxed">{c.reasoning}</p>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
@@ -290,9 +329,12 @@ export default function EvaluationScorecard({ slug, runId, profile }: Evaluation
   const { synthesis } = useSynthesis(slug, runId)
   const { rounds } = useDebateRounds(slug, runId)
   const { challenges } = useRedTeamChallenges(slug, runId)
+  const { previousScores } = usePreviousRunScores(slug, runId)
 
   const [expandedCategory, setExpandedCategory] = useState<EvaluationCategory | null>(null)
   const [showAllInsights, setShowAllInsights] = useState(false)
+  const [showDebateSummary, setShowDebateSummary] = useState(false)
+  const [showInsights, setShowInsights] = useState(false)
 
   if (scoresLoading || evalsLoading) {
     return (
@@ -322,28 +364,64 @@ export default function EvaluationScorecard({ slug, runId, profile }: Evaluation
     )
   }
 
-  // Calculate scores
+  // Calculate current weighted score (from final_score in API)
   const weightedAvg = scores.reduce((acc, cat) => {
     const weight = categoryWeights[cat.category as EvaluationCategory] || 0
     return acc + cat.avg_score * weight
   }, 0)
 
-  // Check for debate data to show before/after
-  const hasDebate = rounds.length > 0
-  const initialScore = synthesis?.overall_score
-    ? synthesis.overall_score + (rounds.reduce((sum, r) => sum + r.score_adjustment, 0) * -1) / rounds.length
+  // Calculate previous assessment weighted score (from the previous evaluation run)
+  // First principles: compare against the previous evaluation run's scores, not initial_score within same run
+  const hasPreviousAssessment = previousScores !== null && previousScores.length > 0
+  const weightedPreviousAvg = hasPreviousAssessment
+    ? previousScores.reduce((acc, cat) => {
+        const weight = categoryWeights[cat.category as EvaluationCategory] || 0
+        return acc + cat.avg_score * weight
+      }, 0)
     : weightedAvg
 
+  // Build a lookup map for previous scores by category
+  const previousScoresByCategory = new Map<string, number>()
+  if (previousScores) {
+    for (const cat of previousScores) {
+      previousScoresByCategory.set(cat.category, cat.avg_score)
+    }
+  }
+
+  // Build a lookup map for previous scores by criterion
+  const previousScoresByCriterion = new Map<string, number>()
+  if (previousScores) {
+    for (const cat of previousScores) {
+      for (const criterion of cat.criteria) {
+        previousScoresByCriterion.set(criterion.criterion, criterion.final_score)
+      }
+    }
+  }
+
+  // Check for debate data (still useful for showing debate summary)
+  const hasDebate = rounds.length > 0
+
   // Group evaluations by category for expanded view
+  // Include debate challenges that explain the final score
+  // Use previous run scores for comparison (not initial_score from same run)
   const evaluationsByCategory = evaluations.reduce((acc, e) => {
     if (!acc[e.category]) acc[e.category] = []
+    // Get debate challenges for this criterion that impacted the score
+    const criterionDebates = rounds.filter(r => r.criterion === e.criterion)
+    const debateChallenges = criterionDebates
+      .filter(r => r.arbiter_verdict === 'RED_TEAM' || r.arbiter_verdict === 'DRAW')
+      .map(r => r.redteam_challenge)
+      .filter((c): c is string => c !== null)
+
     acc[e.category].push({
       name: e.criterion.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-      score: e.final_score,
+      previousScore: previousScoresByCriterion.get(e.criterion),  // From previous evaluation run
+      finalScore: e.final_score,
       reasoning: e.reasoning,
+      debateChallenges,  // Challenges that explain why score was adjusted
     })
     return acc
-  }, {} as Record<string, Array<{ name: string; score: number; reasoning: string }>>)
+  }, {} as Record<string, Array<{ name: string; previousScore?: number; finalScore: number; reasoning: string; debateChallenges: string[] }>>)
 
   // Calculate debate stats
   const totalRounds = rounds.length
@@ -393,17 +471,17 @@ export default function EvaluationScorecard({ slug, runId, profile }: Evaluation
               </div>
             )}
 
-            {hasDebate && (
+            {hasPreviousAssessment && (
               <div className="flex flex-wrap justify-center lg:justify-start gap-4 text-sm">
                 <div className="bg-gray-100 rounded-lg px-3 py-2">
-                  <span className="text-gray-500">Initial: </span>
-                  <span className="font-medium">{initialScore.toFixed(1)}</span>
+                  <span className="text-gray-500">Previous: </span>
+                  <span className="font-medium">{weightedPreviousAvg.toFixed(2)}</span>
                 </div>
                 <div className="bg-gray-100 rounded-lg px-3 py-2">
-                  <span className="text-gray-500">After Debate: </span>
-                  <span className="font-medium">{weightedAvg.toFixed(1)}</span>
+                  <span className="text-gray-500">Current: </span>
+                  <span className="font-medium">{weightedAvg.toFixed(2)}</span>
                 </div>
-                <ScoreChange initial={initialScore} final={weightedAvg} />
+                <ScoreChange initial={weightedPreviousAvg} final={weightedAvg} />
               </div>
             )}
           </div>
@@ -434,49 +512,67 @@ export default function EvaluationScorecard({ slug, runId, profile }: Evaluation
         </div>
       </div>
 
-      {/* Debate Summary (if applicable) */}
+      {/* Debate Summary (if applicable) - Collapsible */}
       {hasDebate && (
-        <div className="card bg-gradient-to-r from-purple-50 to-blue-50">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Shield className="w-5 h-5 text-purple-600" />
-            Red Team Debate Results
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-gray-900">{totalRounds}</div>
-              <div className="text-sm text-gray-500">Total Rounds</div>
+        <div className="card bg-gradient-to-r from-purple-50 to-blue-50 p-0 overflow-hidden">
+          <button
+            onClick={() => setShowDebateSummary(!showDebateSummary)}
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/30 transition"
+          >
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-purple-600" />
+              <span className="font-semibold text-gray-900">Red Team Debate Results</span>
+              <span className="text-sm text-gray-500">
+                {survivalRate.toFixed(0)}% survival rate • {totalRounds} rounds
+              </span>
             </div>
-            <div className="bg-white rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-green-600">{evaluatorWins}</div>
-              <div className="text-sm text-gray-500">Evaluator Wins</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-red-600">{redTeamWins}</div>
-              <div className="text-sm text-gray-500">Red Team Wins</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 text-center">
-              <div className={clsx(
-                'text-3xl font-bold',
-                survivalRate >= 50 ? 'text-green-600' : 'text-red-600'
-              )}>
-                {survivalRate.toFixed(0)}%
-              </div>
-              <div className="text-sm text-gray-500">Survival Rate</div>
-            </div>
-          </div>
+            {showDebateSummary ? (
+              <ChevronUp className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
 
-          {challenges.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-purple-200">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">
-                  <AlertTriangle className="w-4 h-4 inline mr-1 text-red-500" />
-                  {criticalChallenges.length} critical/high severity issues identified
-                </span>
-                <span className="text-gray-600">
-                  <CheckCircle className="w-4 h-4 inline mr-1 text-green-500" />
-                  {addressedChallenges.length}/{challenges.length} addressed
-                </span>
+          {showDebateSummary && (
+            <div className="px-6 pb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-gray-900">{totalRounds}</div>
+                  <div className="text-sm text-gray-500">Total Rounds</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-green-600">{evaluatorWins}</div>
+                  <div className="text-sm text-gray-500">Evaluator Wins</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-red-600">{redTeamWins}</div>
+                  <div className="text-sm text-gray-500">Red Team Wins</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 text-center">
+                  <div className={clsx(
+                    'text-3xl font-bold',
+                    survivalRate >= 50 ? 'text-green-600' : 'text-red-600'
+                  )}>
+                    {survivalRate.toFixed(0)}%
+                  </div>
+                  <div className="text-sm text-gray-500">Survival Rate</div>
+                </div>
               </div>
+
+              {challenges.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-purple-200">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">
+                      <AlertTriangle className="w-4 h-4 inline mr-1 text-red-500" />
+                      {criticalChallenges.length} critical/high severity issues identified
+                    </span>
+                    <span className="text-gray-600">
+                      <CheckCircle className="w-4 h-4 inline mr-1 text-green-500" />
+                      {addressedChallenges.length}/{challenges.length} addressed
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -495,6 +591,7 @@ export default function EvaluationScorecard({ slug, runId, profile }: Evaluation
               category={cat.category as EvaluationCategory}
               score={cat.avg_score}
               confidence={cat.avg_confidence}
+              previousScore={previousScoresByCategory.get(cat.category)}
               expanded={expandedCategory === cat.category}
               onToggle={() =>
                 setExpandedCategory(
@@ -508,32 +605,53 @@ export default function EvaluationScorecard({ slug, runId, profile }: Evaluation
         </div>
       </div>
 
-      {/* Key Insights */}
+      {/* Key Insights - Collapsible (default collapsed) */}
       {allInsights.length > 0 && (
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h3>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {displayedInsights.map((insight, idx) => (
-              <InsightCard key={idx} insight={insight.text} type={insight.type} />
-            ))}
-          </div>
-          {allInsights.length > 6 && (
-            <button
-              onClick={() => setShowAllInsights(!showAllInsights)}
-              className="mt-4 text-sm text-primary-600 hover:text-primary-800 flex items-center gap-1"
-            >
-              {showAllInsights ? (
-                <>
-                  <ChevronUp className="w-4 h-4" />
-                  Show less
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="w-4 h-4" />
-                  Show all {allInsights.length} insights
-                </>
+        <div className="card p-0 overflow-hidden">
+          <button
+            onClick={() => setShowInsights(!showInsights)}
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition"
+          >
+            <div className="flex items-center gap-3">
+              <Target className="w-5 h-5 text-primary-600" />
+              <span className="font-semibold text-gray-900">Key Insights</span>
+              <span className="text-sm text-gray-500">
+                {allInsights.filter(i => i.type === 'strength').length} strengths • {allInsights.filter(i => i.type === 'weakness').length} weaknesses
+              </span>
+            </div>
+            {showInsights ? (
+              <ChevronUp className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
+
+          {showInsights && (
+            <div className="px-6 pb-6">
+              <div className="grid sm:grid-cols-2 gap-3">
+                {displayedInsights.map((insight, idx) => (
+                  <InsightCard key={idx} insight={insight.text} type={insight.type} />
+                ))}
+              </div>
+              {allInsights.length > 6 && (
+                <button
+                  onClick={() => setShowAllInsights(!showAllInsights)}
+                  className="mt-4 text-sm text-primary-600 hover:text-primary-800 flex items-center gap-1"
+                >
+                  {showAllInsights ? (
+                    <>
+                      <ChevronUp className="w-4 h-4" />
+                      Show less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4" />
+                      Show all {allInsights.length} insights
+                    </>
+                  )}
+                </button>
               )}
-            </button>
+            </div>
           )}
         </div>
       )}
@@ -555,23 +673,23 @@ export default function EvaluationScorecard({ slug, runId, profile }: Evaluation
         </div>
       )}
 
-      {/* Quick Stats Footer */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-2xl font-bold text-gray-900">{evaluations.length}</div>
-          <div className="text-sm text-gray-500">Criteria Evaluated</div>
+      {/* Quick Stats Footer - Compact inline row */}
+      <div className="flex flex-wrap items-center gap-4 py-3 px-4 bg-gray-50 rounded-lg text-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-gray-500">Criteria:</span>
+          <span className="font-semibold text-gray-900">{evaluations.length}</span>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-2xl font-bold text-gray-900">{scores.length}</div>
-          <div className="text-sm text-gray-500">Categories Analyzed</div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-500">Categories:</span>
+          <span className="font-semibold text-gray-900">{scores.length}</span>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-2xl font-bold text-gray-900">{challenges.length}</div>
-          <div className="text-sm text-gray-500">Challenges Raised</div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-500">Challenges:</span>
+          <span className="font-semibold text-gray-900">{challenges.length}</span>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-2xl font-bold text-gray-900">{totalRounds}</div>
-          <div className="text-sm text-gray-500">Debate Rounds</div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-500">Debates:</span>
+          <span className="font-semibold text-gray-900">{totalRounds}</span>
         </div>
       </div>
     </div>

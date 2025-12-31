@@ -64,60 +64,38 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Lightbulb className="h-6 w-6 text-primary-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Ideas</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {stats?.totalIdeas ?? '-'}
-              </p>
+      {/* Stats Row - Compact inline stats */}
+      <div className="card">
+        <div className="flex flex-wrap items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <Lightbulb className="h-5 w-5 text-primary-600" />
+            <div>
+              <p className="text-xs text-gray-500">Ideas</p>
+              <p className="text-xl font-bold text-gray-900">{stats?.totalIdeas ?? '-'}</p>
             </div>
           </div>
-        </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <TrendingUp className="h-6 w-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Average Score</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {stats?.avgScore ? stats.avgScore.toFixed(1) : '-'}
-              </p>
+          <div className="flex items-center gap-3">
+            <TrendingUp className="h-5 w-5 text-green-600" />
+            <div>
+              <p className="text-xs text-gray-500">Avg Score</p>
+              <p className="text-xl font-bold text-gray-900">{stats?.avgScore ? stats.avgScore.toFixed(1) : '-'}</p>
             </div>
           </div>
-        </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <DollarSign className="h-6 w-6 text-amber-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Cost</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                ${stats?.totalCost?.toFixed(2) ?? '0.00'}
-              </p>
+          <div className="flex items-center gap-3">
+            <DollarSign className="h-5 w-5 text-amber-600" />
+            <div>
+              <p className="text-xs text-gray-500">Total Cost</p>
+              <p className="text-xl font-bold text-gray-900">${stats?.totalCost?.toFixed(2) ?? '0.00'}</p>
             </div>
           </div>
-        </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <BarChart3 className="h-6 w-6 text-indigo-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Evaluated</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {ideas.filter(i => i.avg_final_score !== null).length}
-              </p>
+          <div className="flex items-center gap-3">
+            <BarChart3 className="h-5 w-5 text-indigo-600" />
+            <div>
+              <p className="text-xs text-gray-500">Evaluated</p>
+              <p className="text-xl font-bold text-gray-900">{ideas.filter(i => i.avg_final_score !== null).length}</p>
             </div>
           </div>
         </div>
@@ -186,7 +164,7 @@ export default function Dashboard() {
                         <span
                           className={`text-sm font-medium ${scoreInterpretation.getColor(idea.avg_final_score)}`}
                         >
-                          {idea.avg_final_score.toFixed(1)}
+                          {idea.avg_final_score.toFixed(2)}
                         </span>
                       )}
                       <span
@@ -260,49 +238,49 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Export/Import */}
+        {/* Export/Import - Compact toolbar */}
         <div className="card lg:col-span-2">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Data Management
-          </h2>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => downloadExport(getExportAllIdeasUrl())}
-              className="btn btn-secondary inline-flex items-center"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export All (JSON)
-            </button>
-            <button
-              onClick={() => downloadExport(getExportCsvUrl())}
-              className="btn btn-secondary inline-flex items-center"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export All (CSV)
-            </button>
-            <label className="btn btn-secondary inline-flex items-center cursor-pointer">
-              <Upload className="h-4 w-4 mr-2" />
-              Import Ideas
-              <input
-                type="file"
-                accept=".json"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (!file) return
-                  try {
-                    const text = await file.text()
-                    const data = JSON.parse(text)
-                    const result = await importIdeas(data)
-                    alert(`Import complete: ${result.imported} imported, ${result.skipped} skipped${result.errors.length ? '\nErrors: ' + result.errors.join(', ') : ''}`)
-                    window.location.reload()
-                  } catch (error) {
-                    alert('Import failed: ' + (error as Error).message)
-                  }
-                  e.target.value = ''
-                }}
-              />
-            </label>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-gray-500">Data Management</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => downloadExport(getExportAllIdeasUrl())}
+                className="btn btn-secondary btn-sm inline-flex items-center"
+              >
+                <Download className="h-3 w-3 mr-1" />
+                JSON
+              </button>
+              <button
+                onClick={() => downloadExport(getExportCsvUrl())}
+                className="btn btn-secondary btn-sm inline-flex items-center"
+              >
+                <Download className="h-3 w-3 mr-1" />
+                CSV
+              </button>
+              <label className="btn btn-secondary btn-sm inline-flex items-center cursor-pointer">
+                <Upload className="h-3 w-3 mr-1" />
+                Import
+                <input
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    try {
+                      const text = await file.text()
+                      const data = JSON.parse(text)
+                      const result = await importIdeas(data)
+                      alert(`Import complete: ${result.imported} imported, ${result.skipped} skipped${result.errors.length ? '\nErrors: ' + result.errors.join(', ') : ''}`)
+                      window.location.reload()
+                    } catch (error) {
+                      alert('Import failed: ' + (error as Error).message)
+                    }
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+            </div>
           </div>
         </div>
       </div>

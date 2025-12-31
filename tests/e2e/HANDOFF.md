@@ -1,53 +1,44 @@
 # E2E Test Handoff
 
 ## Current State
-- **Last Updated:** 2025-12-31 Session 9 (End)
-- **Progress:** Passed: 26 | Blocked: 5 | Pending: 33 | Total: 64
+- **Last Updated:** 2025-12-31 Session 10 (End)
+- **Progress:** Passed: 28 | Blocked: 5 | Pending: 31 | Total: 64
 
 ## What Was Fixed This Session
 
-### Bug Fix 1: Orchestrator Not Returning Risks
+### Bug Fix: Confidence Calculator String Format Handling
 
-**Problem:** The candidate panel wasn't showing risk items because `viabilityResult.risks` wasn't being returned from the orchestrator.
+**Problem:** Confidence was staying low (36%) even after providing extensive information. The confidence calculator expected structured object formats, but the LLM was returning simple string formats.
 
-**Fix Applied:** Updated `agents/ideation/orchestrator.ts`:
-1. Imported `ViabilityRisk` type from `types/ideation.js`
-2. Added `risks: ViabilityRisk[]` to `OrchestratorResponse` interface
-3. Added `risks: viabilityResult.risks || []` to the return object
+**Root Cause:** The signal extractor and LLM were storing data as strings:
+- `frustrations: ["2 hours weekly on meal planning", ...]` (string array)
+- `customerType: "B2C"` (string)
+- `expertise: ["10 years app development", ...]` (string array)
 
-### Bug Fix 2: Confidence Dropping During Conversation
+But the confidence calculator expected:
+- `frustrations: [{description: "...", severity: "high"}, ...]` (object array)
+- `customerType: {value: "B2C", confidence: 0.8}` (object)
+- `expertise: [{area: "app development", depth: "expert"}, ...]` (object array)
 
-**Problem:** Confidence was dropping from 34% to 7% as conversation progressed, which is counterintuitive.
-
-**Root Cause:** When the AI response didn't include `candidateTitle`, the orchestrator was passing `null` to the confidence calculator, losing the 6+ points from having a title/summary. Additionally, the `memoryManager.loadState()` was returning default empty state (placeholder implementation), so accumulated signals weren't persisted.
-
-**Fix Applied:** Updated `agents/ideation/orchestrator.ts`:
-1. Import `candidateManager` from `./candidate-manager.js`
-2. Load existing candidate using `candidateManager.getActiveForSession(session.id)`
-3. Use existing candidate for confidence/viability calculation when AI doesn't include new one
-4. Preserve candidate in memory update instead of setting to null
-5. Return preserved candidate in API response
+**Fix Applied:** Updated `agents/ideation/confidence-calculator.ts` to handle BOTH formats:
+1. **Problem Definition**: Check if frustrations/gaps are strings or objects
+2. **Target User**: Handle customerType/geography as string or {value, confidence} object
+3. **Solution Direction**: Handle productType/technicalDepth as string or object
+4. **Differentiation**: Handle competitors/expertise as string arrays
+5. **User Fit**: Handle flat constraint fields (budget, runway)
 
 ### Tests Passed This Session
 
 | Test ID | Description | Notes |
 |---------|-------------|-------|
-| TEST-CM-001 | Candidate Panel Visibility | Panel appears at 30%+ confidence, shows all metrics |
-| TEST-CM-002 | Candidate Title Generation | "AI Meal Planning Assistant" generated correctly |
-| TEST-CM-003 | Candidate Summary Generation | Coherent summary captured |
-
-### Tests Blocked (AI-Dependent)
-
-| Test ID | Description | Issue |
-|---------|-------------|-------|
-| TEST-FH-001-004 | Form Handling | Forms are AI-generated at discretion, can't be deterministically triggered |
+| TEST-CM-004 | Confidence Score Updates | Confidence goes 0%->90% with comprehensive message, stays stable |
+| TEST-CM-005 | Viability Score and Risks | 85% viability, risk items displayed correctly |
 
 ## Next Session Should
 
-1. **Verify confidence fix works** - Start new session, send multiple messages, check confidence doesn't drop randomly
-2. **Work on TEST-CM-004** - Confidence Score Updates (should work now with the fix)
-3. **Work on TEST-CM-005** - Viability Score and Risks display (risks now returned)
-4. **Consider TEST-CV tests** - Confidence/Viability meter tests
+1. **Work on TEST-CM-006** - Capture Idea Button (needs 60%+ confidence - now achievable!)
+2. **Work on TEST-CV tests** - Confidence/Viability meter display tests
+3. **Consider journey tests** - TEST-E2E-001 through TEST-E2E-004
 
 ## Known Issues
 
@@ -55,16 +46,10 @@
 |------|-----|-------------|
 | TEST-SL-008 | BUG-001 | Missing timeout message - UI silently redirects when session expired |
 | TEST-FH-* | BUG-002 | Forms not deterministically triggered - AI decides when to use them |
-| N/A | BUG-003 | `memoryManager.loadState()` returns defaults (placeholder) - signals not persisted |
 
-## Architecture Note: Memory Persistence
+## Key Files Modified This Session
 
-The `memoryManager.loadState()` function currently returns default empty state - it's a placeholder implementation that doesn't actually parse the saved markdown files. This means:
-- Signals extracted from conversation aren't persisted between messages
-- Each message starts with fresh empty state for selfDiscovery, marketDiscovery, narrowingState
-- Only the candidate is preserved (via the candidate table)
-
-This is a larger fix that would require implementing markdown parsing in the memory manager.
+- `agents/ideation/confidence-calculator.ts` - Handle string formats for all confidence components
 
 ## Schema Quick Reference
 
@@ -79,16 +64,23 @@ SELECT id, role, content, created_at FROM ideation_messages ORDER BY created_at;
 SELECT id, title, summary, confidence, viability FROM ideation_candidates WHERE session_id = ?;
 ```
 
-## Key Files Modified This Session
-
-- `agents/ideation/orchestrator.ts` - Added risks to response, fixed candidate preservation
-
 ## Git History
 
 ```
-4b1a9c7 Fix confidence drop by preserving candidate across messages
-13b0c53 Fix orchestrator to return viability risks + pass CM tests
-74f3884 Update E2E progress notes and handoff for Session 8
-f2c9a10 Fix TEST-BI-006: Prevent array corruption in mergeState function
-1a4f937 Fix TEST-BI-006: Align candidateUpdate field name between backend and frontend
+Latest commit should be: Fix confidence calculator to handle string formats from LLM
 ```
+
+## Test Approach for Next Session
+
+To test confidence properly:
+1. Start new session with "I have an idea" mode
+2. Send comprehensive message including:
+   - Frustrations/problems
+   - Target user (e.g., "working parents aged 30-45")
+   - Location (e.g., "Australia")
+   - Solution direction (e.g., "mobile app")
+   - Competitors (e.g., "Mealime")
+   - Expertise (e.g., "10 years app development")
+   - Constraints (e.g., "$20k budget, 6 months runway")
+3. Verify confidence reaches 60%+ (capture threshold) or 90%+ (clear)
+4. Verify confidence stays stable on subsequent messages

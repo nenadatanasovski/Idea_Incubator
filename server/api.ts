@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { spawn } from 'child_process';
-import { query, getOne, saveDb } from '../database/db.js';
+import { query, getOne, saveDb, reloadDb } from '../database/db.js';
 import { initWebSocket, getActiveRooms, getClientCount, emitDebateEvent } from './websocket.js';
 import {
   getRelevantQuestions,
@@ -33,6 +33,41 @@ import type {
   LifecycleStageFilter,
   QuestionPriority
 } from '../questions/types.js';
+import {
+  getVersionHistory,
+  getVersionSnapshot,
+  compareVersions,
+  createVersionSnapshot
+} from '../utils/versioning.js';
+import {
+  updateIdeaStatus,
+  getStatusHistory
+} from '../utils/status.js';
+import {
+  createBranch,
+  getLineage
+} from '../utils/lineage.js';
+import {
+  getIterationHistory
+} from '../agents/iteration.js';
+import {
+  generateProactiveSuggestions
+} from '../agents/gap-suggestion.js';
+import {
+  runDifferentiationAnalysis
+} from '../agents/differentiation.js';
+import {
+  runPositioningAnalysis
+} from '../agents/positioning.js';
+import {
+  validateDifferentiationAnalysis
+} from '../agents/differentiation-validator.js';
+import {
+  generateUpdateSuggestions
+} from '../agents/update-generator.js';
+import { CostTracker } from '../utils/cost-tracker.js';
+import type { IdeaStatus, IdeaContext, ProfileContext, StrategicApproach, IdeaFinancialAllocation } from '../types/incubation.js';
+import { ideationRouter } from './routes/ideation.js';
 
 const app = express();
 const PORT = process.env.API_PORT || 3001;
@@ -40,6 +75,9 @@ const PORT = process.env.API_PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Mount ideation routes
+app.use('/api/ideation', ideationRouter);
 
 // Types
 interface Idea {
@@ -49,6 +87,7 @@ interface Idea {
   summary: string | null;
   idea_type: string;
   lifecycle_stage: string;
+  incubation_phase: string | null;
   content: string | null;
   content_hash: string | null;
   folder_path: string;
@@ -81,6 +120,13 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 
 // ==================== ROUTES ====================
 
+// POST /api/db/reload - Force reload database from disk
+// Useful when external processes have written to the database file
+app.post('/api/db/reload', asyncHandler(async (_req, res) => {
+  await reloadDb();
+  respond(res, { message: 'Database reloaded from disk' });
+}));
+
 // GET /api/ideas - List all ideas with optional filters
 app.get('/api/ideas', asyncHandler(async (req, res) => {
   const { type, stage, tag, search, sortBy = 'updated_at', sortOrder = 'desc' } = req.query;
@@ -89,9 +135,11 @@ app.get('/api/ideas', asyncHandler(async (req, res) => {
     SELECT
       i.*,
       s.avg_score as avg_final_score,
-      s.avg_confidence
+      s.avg_confidence,
+      s.latest_run_id,
+      s.total_evaluation_count
     FROM ideas i
-    LEFT JOIN idea_scores s ON i.id = s.id
+    LEFT JOIN idea_latest_scores s ON i.id = s.id
     WHERE 1=1
   `;
   const params: (string | number)[] = [];
@@ -146,13 +194,32 @@ app.get('/api/ideas', asyncHandler(async (req, res) => {
 app.get('/api/ideas/:slug', asyncHandler(async (req, res) => {
   const { slug } = req.params;
 
-  const idea = await getOne<Idea & { avg_final_score: number | null; avg_confidence: number | null }>(
+  const idea = await getOne<{
+    id: string;
+    slug: string;
+    title: string;
+    summary: string | null;
+    idea_type: string;
+    lifecycle_stage: string;
+    incubation_phase: string | null;
+    content: string | null;
+    content_hash: string | null;
+    folder_path: string;
+    created_at: string;
+    updated_at: string;
+    avg_final_score: number | null;
+    avg_confidence: number | null;
+    latest_run_id: string | null;
+    total_evaluation_count: number;
+  }>(
     `SELECT
       i.*,
       s.avg_score as avg_final_score,
-      s.avg_confidence
+      s.avg_confidence,
+      s.latest_run_id,
+      s.total_evaluation_count
     FROM ideas i
-    LEFT JOIN idea_scores s ON i.id = s.id
+    LEFT JOIN idea_latest_scores s ON i.id = s.id
     WHERE i.slug = ?`,
     [slug]
   );
@@ -196,7 +263,10 @@ app.get('/api/ideas/:slug', asyncHandler(async (req, res) => {
     }
   }
 
-  respond(res, { ...idea, content, tags: tags.map((t) => t.name) });
+  // Map DB phase to UI phase - 'differentiation' -> 'position'
+  const uiPhase = idea.incubation_phase === 'differentiation' ? 'position' : idea.incubation_phase;
+
+  respond(res, { ...idea, incubation_phase: uiPhase, content, tags: tags.map((t) => t.name) });
 }));
 
 // POST /api/ideas - Create a new idea
@@ -558,29 +628,49 @@ app.get('/api/ideas/:slug/category-scores', asyncHandler(async (req, res) => {
   }
 
   // Get all evaluations for this run
+  // First principles: final_score is now correctly updated after debate
+  // (via saveDebateResults in evaluate.ts and migration 015)
+  // No need for complex JOIN - just use the stored values directly
   const evaluations = await query<{
     category: string;
     criterion: string;
+    initial_score: number;
     final_score: number;
     confidence: number;
     reasoning: string;
   }>(
-    `SELECT category, criterion, final_score, confidence, reasoning
-     FROM evaluations
-     WHERE idea_id = ? AND evaluation_run_id = ?
-     ORDER BY category, criterion`,
+    `SELECT
+       e.category,
+       e.criterion,
+       COALESCE(e.initial_score, e.final_score) as initial_score,
+       e.final_score,
+       e.confidence,
+       e.reasoning
+     FROM evaluations e
+     WHERE e.idea_id = ? AND e.evaluation_run_id = ?
+     ORDER BY e.category, e.criterion`,
     [idea.id, targetRunId]
   );
 
   // Group by category and calculate averages
-  const categoryMap = new Map<string, { scores: number[]; confidences: number[]; criteria: typeof evaluations }>();
+  // final_score = post-debate score (already clamped to [1,10])
+  // initial_score = pre-debate score (for before/after display)
+  const categoryMap = new Map<string, {
+    scores: number[];
+    initialScores: number[];
+    confidences: number[];
+    criteria: typeof evaluations;
+  }>();
 
   for (const eval_ of evaluations) {
     if (!categoryMap.has(eval_.category)) {
-      categoryMap.set(eval_.category, { scores: [], confidences: [], criteria: [] });
+      categoryMap.set(eval_.category, { scores: [], initialScores: [], confidences: [], criteria: [] });
     }
     const cat = categoryMap.get(eval_.category)!;
+    // Use final_score which is the correct post-debate score
     cat.scores.push(eval_.final_score);
+    // Track initial score for before/after comparison
+    cat.initialScores.push(eval_.initial_score);
     cat.confidences.push(eval_.confidence);
     cat.criteria.push(eval_);
   }
@@ -588,6 +678,7 @@ app.get('/api/ideas/:slug/category-scores', asyncHandler(async (req, res) => {
   const categoryScores = Array.from(categoryMap.entries()).map(([category, data]) => ({
     category,
     avg_score: data.scores.reduce((a, b) => a + b, 0) / data.scores.length,
+    avg_initial_score: data.initialScores.reduce((a, b) => a + b, 0) / data.initialScores.length,
     avg_confidence: data.confidences.reduce((a, b) => a + b, 0) / data.confidences.length,
     criteria: data.criteria,
   }));
@@ -624,12 +715,22 @@ app.get('/api/ideas/:slug/debates', asyncHandler(async (req, res) => {
     return;
   }
 
+  // Default to latest evaluation run if no runId provided
+  let targetRunId = runId as string;
+  if (!targetRunId) {
+    const latestRun = await getOne<{ evaluation_run_id: string }>(
+      'SELECT evaluation_run_id FROM evaluations WHERE idea_id = ? ORDER BY evaluated_at DESC LIMIT 1',
+      [idea.id]
+    );
+    targetRunId = latestRun?.evaluation_run_id || '';
+  }
+
   let sql = 'SELECT * FROM debate_rounds WHERE idea_id = ?';
   const params: (string | number)[] = [idea.id];
 
-  if (runId) {
+  if (targetRunId) {
     sql += ' AND evaluation_run_id = ?';
-    params.push(runId as string);
+    params.push(targetRunId);
   }
 
   sql += ' ORDER BY round_number';
@@ -649,12 +750,22 @@ app.get('/api/ideas/:slug/redteam', asyncHandler(async (req, res) => {
     return;
   }
 
+  // Default to latest evaluation run if no runId provided
+  let targetRunId = runId as string;
+  if (!targetRunId) {
+    const latestRun = await getOne<{ evaluation_run_id: string }>(
+      'SELECT evaluation_run_id FROM evaluations WHERE idea_id = ? ORDER BY evaluated_at DESC LIMIT 1',
+      [idea.id]
+    );
+    targetRunId = latestRun?.evaluation_run_id || '';
+  }
+
   let sql = 'SELECT * FROM redteam_log WHERE idea_id = ?';
   const params: (string | number)[] = [idea.id];
 
-  if (runId) {
+  if (targetRunId) {
     sql += ' AND evaluation_run_id = ?';
-    params.push(runId as string);
+    params.push(targetRunId);
   }
 
   sql += ' ORDER BY logged_at';
@@ -685,12 +796,23 @@ app.get('/api/ideas/:slug/synthesis', asyncHandler(async (req, res) => {
     return;
   }
 
+  // Default to latest EVALUATION run if no runId provided
+  // This ensures synthesis matches the evaluation data shown elsewhere
+  let targetRunId = runId as string;
+  if (!targetRunId) {
+    const latestRun = await getOne<{ evaluation_run_id: string }>(
+      'SELECT evaluation_run_id FROM evaluations WHERE idea_id = ? ORDER BY evaluated_at DESC LIMIT 1',
+      [idea.id]
+    );
+    targetRunId = latestRun?.evaluation_run_id || '';
+  }
+
   let sql = 'SELECT * FROM final_syntheses WHERE idea_id = ?';
   const params: (string | number)[] = [idea.id];
 
-  if (runId) {
+  if (targetRunId) {
     sql += ' AND evaluation_run_id = ?';
-    params.push(runId as string);
+    params.push(targetRunId);
   }
 
   sql += ' ORDER BY completed_at DESC LIMIT 1';
@@ -704,17 +826,87 @@ app.get('/api/ideas/:slug/synthesis', asyncHandler(async (req, res) => {
   }>(sql, params);
 
   if (synthesis) {
-    // Parse JSON arrays
+    // Recalculate overall_score from actual evaluations for this run
+    // This fixes data integrity issues where synthesis was saved with wrong scores
+    const categoryWeights: Record<string, number> = {
+      problem: 0.20,
+      solution: 0.20,
+      feasibility: 0.15,
+      fit: 0.15,
+      market: 0.15,
+      risk: 0.15
+    };
+
+    // First principles: final_score is now correctly updated after debate
+    // (via saveDebateResults in evaluate.ts and migration 015)
+    const categoryScores = await query<{ category: string; avg_score: number; avg_confidence: number }>(
+      `SELECT category, AVG(final_score) as avg_score, AVG(confidence) as avg_confidence
+       FROM evaluations
+       WHERE idea_id = ? AND evaluation_run_id = ?
+       GROUP BY category`,
+      [idea.id, targetRunId]
+    );
+
+    let recalculatedScore = 0;
+    let recalculatedConfidence = 0;
+    let totalWeight = 0;
+
+    for (const cat of categoryScores) {
+      const weight = categoryWeights[cat.category] || 0;
+      recalculatedScore += cat.avg_score * weight;
+      recalculatedConfidence += (cat.avg_confidence || 0.5) * weight;
+      totalWeight += weight;
+    }
+
+    // Normalize if not all categories present
+    if (totalWeight > 0 && totalWeight < 1) {
+      recalculatedScore = recalculatedScore / totalWeight;
+      recalculatedConfidence = recalculatedConfidence / totalWeight;
+    }
+
+    // Round to 2 decimal places
+    recalculatedScore = Math.round(recalculatedScore * 100) / 100;
+
+    // Recalculate recommendation based on score (fixes stale recommendations)
+    function getRecommendationFromScore(score: number): string {
+      if (score >= 7.0) return 'PURSUE';
+      if (score >= 5.0) return 'REFINE';
+      if (score >= 4.0) return 'PAUSE';
+      return 'ABANDON';
+    }
+    const recalculatedRecommendation = getRecommendationFromScore(recalculatedScore);
+
+    // Get actual weak criteria from evaluations (final_score < 6)
+    // final_score is now correctly updated after debate
+    const weakEvaluations = await query<{ criterion: string; final_score: number }>(
+      `SELECT criterion, final_score FROM evaluations
+       WHERE idea_id = ? AND evaluation_run_id = ? AND final_score < 6
+       ORDER BY final_score ASC`,
+      [idea.id, targetRunId]
+    );
+
+    const recalculatedWeaknesses = weakEvaluations.map(e =>
+      `${e.criterion.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}: Weak (${e.final_score}/10)`
+    );
+
+    // Parse JSON arrays from stored synthesis
     respond(res, {
       ...synthesis,
+      // Use recalculated values instead of stored ones
+      overall_score: recalculatedScore,
+      overall_confidence: Math.round(recalculatedConfidence * 100) / 100,
+      confidence: Math.round(recalculatedConfidence * 100) / 100, // Frontend uses 'confidence' field
+      recommendation: recalculatedRecommendation, // Override stored recommendation
       key_strengths: JSON.parse(synthesis.key_strengths || '[]'),
-      key_weaknesses: JSON.parse(synthesis.key_weaknesses || '[]'),
+      key_weaknesses: recalculatedWeaknesses.length > 0
+        ? recalculatedWeaknesses
+        : JSON.parse(synthesis.key_weaknesses || '[]'),
       critical_assumptions: JSON.parse(synthesis.critical_assumptions || '[]'),
       unresolved_questions: JSON.parse(synthesis.unresolved_questions || '[]'),
       is_preliminary: false
     });
   } else {
-    // Generate preliminary synthesis if no full evaluation exists
+    // Generate preliminary synthesis if no full evaluation exists for this run
     const preliminarySynthesis = await generatePreliminarySynthesis(idea.id);
     respond(res, preliminarySynthesis);
   }
@@ -1155,6 +1347,7 @@ app.get('/api/export/csv', asyncHandler(async (_req, res) => {
   // Get category scores for each idea
   const ideasWithScores = await Promise.all(
     ideas.map(async (idea) => {
+      // First principles: final_score is now correctly updated after debate
       const categoryScores = await query<{ category: string; avg_score: number }>(
         `SELECT category, AVG(final_score) as avg_score
          FROM evaluations
@@ -1257,6 +1450,10 @@ app.get('/api/debate/:slug/status', asyncHandler(async (req, res) => {
 
 // GET /api/debates - Get all debate sessions (including evaluation-only sessions)
 app.get('/api/debates', asyncHandler(async (_req, res) => {
+  // Reload database from disk to ensure we have the latest data
+  // (sql.js uses in-memory DB which doesn't see changes from other processes)
+  await reloadDb();
+
   // First, get sessions from evaluation_events table (captures all evaluation runs)
   const eventSessions = await query<{
     session_id: string;
@@ -1273,9 +1470,29 @@ app.get('/api/debates', asyncHandler(async (_req, res) => {
     GROUP BY session_id, idea_id`
   );
 
+  // Also get sessions from debate_rounds that might not be in evaluation_events
+  const debateOnlySessions = await query<{
+    session_id: string;
+    idea_id: string;
+    started_at: string;
+    latest_at: string;
+  }>(
+    `SELECT
+      evaluation_run_id as session_id,
+      idea_id,
+      MIN(timestamp) as started_at,
+      MAX(timestamp) as latest_at
+    FROM debate_rounds
+    WHERE evaluation_run_id NOT IN (SELECT DISTINCT session_id FROM evaluation_events)
+    GROUP BY evaluation_run_id, idea_id`
+  );
+
+  // Combine both sources
+  const allSessions = [...eventSessions, ...debateOnlySessions];
+
   // Build a comprehensive list of sessions
   const sessions = await Promise.all(
-    eventSessions.map(async (es) => {
+    allSessions.map(async (es) => {
       // Get idea info
       const idea = await getOne<{ slug: string; title: string }>(
         'SELECT slug, title FROM ideas WHERE id = ?',
@@ -1285,14 +1502,30 @@ app.get('/api/debates', asyncHandler(async (_req, res) => {
       if (!idea) return null;
 
       // Get debate round counts for this session
-      const roundInfo = await getOne<{ round_count: number; criterion_count: number }>(
+      const roundInfo = await getOne<{ round_count: number; criterion_count: number; max_round_number: number }>(
         `SELECT
           COUNT(*) as round_count,
-          COUNT(DISTINCT criterion) as criterion_count
+          COUNT(DISTINCT criterion) as criterion_count,
+          MAX(round_number) as max_round_number
         FROM debate_rounds
         WHERE evaluation_run_id = ?`,
         [es.session_id]
       );
+
+      // Get configured debate rounds from evaluation:config event (if stored)
+      const configEvent = await getOne<{ event_data: string }>(
+        `SELECT event_data FROM evaluation_events
+         WHERE session_id = ? AND event_type = 'evaluation:config' LIMIT 1`,
+        [es.session_id]
+      );
+      // Use max round_number as the debate rounds setting (round_number = debate rounds, challenge_number = challenges per criterion)
+      let configuredRounds = roundInfo?.max_round_number || 1;
+      if (configEvent) {
+        try {
+          const config = JSON.parse(configEvent.event_data);
+          configuredRounds = config.debateRounds || configuredRounds;
+        } catch { /* ignore parse errors */ }
+      }
 
       // Check if synthesis exists (indicates completion)
       const synthesis = await getOne<{ id: number }>(
@@ -1300,12 +1533,24 @@ app.get('/api/debates', asyncHandler(async (_req, res) => {
         [es.session_id]
       );
 
+      // Check if there are debate events but no debate_rounds (indicates data loss)
+      const debateEvents = await getOne<{ count: number }>(
+        `SELECT COUNT(*) as count FROM evaluation_events
+         WHERE session_id = ? AND event_type = 'arbiter:verdict'`,
+        [es.session_id]
+      );
+      const hasDebateEvents = (debateEvents?.count || 0) > 0;
+      const hasDebateRounds = (roundInfo?.round_count || 0) > 0;
+
       // Determine status based on what data exists
-      let status: 'complete' | 'in-progress' | 'evaluation-only';
-      if (synthesis) {
+      let status: 'complete' | 'in-progress' | 'evaluation-only' | 'data-loss';
+      if (synthesis && hasDebateRounds) {
         status = 'complete';
-      } else if (roundInfo && roundInfo.round_count > 0) {
+      } else if (hasDebateRounds) {
         status = 'in-progress';
+      } else if (hasDebateEvents && !hasDebateRounds) {
+        // Events exist but rounds weren't saved - indicates data loss
+        status = 'data-loss';
       } else {
         status = 'evaluation-only';
       }
@@ -1317,6 +1562,7 @@ app.get('/api/debates', asyncHandler(async (_req, res) => {
         idea_title: idea.title,
         round_count: roundInfo?.round_count || 0,
         criterion_count: roundInfo?.criterion_count || 0,
+        rounds_per_criterion: configuredRounds,
         started_at: es.started_at,
         latest_at: es.latest_at,
         status
@@ -1336,8 +1582,11 @@ app.get('/api/debates', asyncHandler(async (_req, res) => {
 app.get('/api/debates/:runId', asyncHandler(async (req, res) => {
   const { runId } = req.params;
 
-  // Get session info
-  const session = await getOne<{
+  // Reload database from disk to ensure we have the latest data
+  await reloadDb();
+
+  // First try to get session from debate_rounds (for sessions with debate data)
+  let session = await getOne<{
     evaluation_run_id: string;
     idea_id: string;
     idea_slug: string;
@@ -1354,6 +1603,33 @@ app.get('/api/debates/:runId', asyncHandler(async (req, res) => {
     LIMIT 1`,
     [runId]
   );
+
+  // If not found in debate_rounds, check evaluation_events (for evaluation-only sessions)
+  if (!session) {
+    const evalSession = await getOne<{
+      session_id: string;
+      idea_id: string;
+    }>(
+      `SELECT session_id, idea_id FROM evaluation_events WHERE session_id = ? LIMIT 1`,
+      [runId]
+    );
+
+    if (evalSession) {
+      const idea = await getOne<{ slug: string; title: string }>(
+        'SELECT slug, title FROM ideas WHERE id = ?',
+        [evalSession.idea_id]
+      );
+
+      if (idea) {
+        session = {
+          evaluation_run_id: evalSession.session_id,
+          idea_id: evalSession.idea_id,
+          idea_slug: idea.slug,
+          idea_title: idea.title,
+        };
+      }
+    }
+  }
 
   if (!session) {
     res.status(404).json({ success: false, error: 'Debate session not found' });
@@ -1404,6 +1680,46 @@ app.get('/api/debates/:runId', asyncHandler(async (req, res) => {
     [runId]
   );
 
+  // Recalculate overall_score from actual evaluations (synthesis table may have stale/wrong values)
+  let recalculatedScore = synthesis?.overall_score || 0;
+  if (synthesis) {
+    const categoryWeightsForRecalc: Record<string, number> = {
+      problem: 0.20,
+      solution: 0.20,
+      feasibility: 0.15,
+      fit: 0.15,
+      market: 0.15,
+      risk: 0.15
+    };
+    // First principles: final_score is now correctly updated after debate
+    const categoryScoresForRecalc = await query<{ category: string; avg_score: number }>(
+      `SELECT category, AVG(final_score) as avg_score
+       FROM evaluations
+       WHERE evaluation_run_id = ?
+       GROUP BY category`,
+      [runId]
+    );
+    if (categoryScoresForRecalc.length > 0) {
+      recalculatedScore = 0;
+      for (const cat of categoryScoresForRecalc) {
+        const weight = categoryWeightsForRecalc[cat.category] || 0;
+        recalculatedScore += cat.avg_score * weight;
+      }
+      recalculatedScore = Math.round(recalculatedScore * 100) / 100;
+    }
+  }
+
+  // Recalculate recommendation based on score (fixes stale recommendations)
+  function getRecommendationFromScoreForDebate(score: number): string {
+    if (score >= 7.0) return 'PURSUE';
+    if (score >= 5.0) return 'REFINE';
+    if (score >= 4.0) return 'PAUSE';
+    return 'ABANDON';
+  }
+  const recalculatedRecommendation = synthesis
+    ? getRecommendationFromScoreForDebate(recalculatedScore)
+    : null;
+
   // Get API call count from the latest budget:status event
   const budgetEvent = await getOne<{ event_data: string }>(
     `SELECT event_data FROM evaluation_events
@@ -1421,14 +1737,64 @@ app.get('/api/debates/:runId', asyncHandler(async (req, res) => {
     }
   }
 
+  // Get session start time from evaluation_events
+  const startEvent = await getOne<{ started_at: string }>(
+    `SELECT MIN(created_at) as started_at FROM evaluation_events WHERE session_id = ?`,
+    [runId]
+  );
+
+  // Get configured debate rounds from evaluation:config event (if stored)
+  const configEvent = await getOne<{ event_data: string }>(
+    `SELECT event_data FROM evaluation_events
+     WHERE session_id = ? AND event_type = 'evaluation:config' LIMIT 1`,
+    [runId]
+  );
+  // Calculate max round_number from actual data (round_number = debate rounds setting, challenge_number = challenges per criterion)
+  const maxRoundNumber = rounds.length > 0 ? Math.max(...rounds.map(r => r.round_number)) : 1;
+  let roundsPerCriterion = maxRoundNumber;
+  if (configEvent) {
+    try {
+      const config = JSON.parse(configEvent.event_data);
+      roundsPerCriterion = config.debateRounds || roundsPerCriterion;
+    } catch { /* ignore parse errors */ }
+  }
+
+  // Check if there are debate events but no debate_rounds (indicates data loss)
+  const debateEventsForStatus = await getOne<{ count: number }>(
+    `SELECT COUNT(*) as count FROM evaluation_events
+     WHERE session_id = ? AND event_type = 'arbiter:verdict'`,
+    [runId]
+  );
+  const hasDebateEvents = (debateEventsForStatus?.count || 0) > 0;
+  const hasDebateRounds = rounds.length > 0;
+
+  // Determine status
+  let status: 'complete' | 'in-progress' | 'evaluation-only' | 'data-loss';
+  if (synthesis && hasDebateRounds) {
+    status = 'complete';
+  } else if (hasDebateRounds) {
+    status = 'in-progress';
+  } else if (hasDebateEvents && !hasDebateRounds) {
+    status = 'data-loss';
+  } else {
+    status = 'evaluation-only';
+  }
+
   respond(res, {
     ...session,
+    started_at: startEvent?.started_at || new Date().toISOString(),
+    round_count: rounds.length,
+    criterion_count: new Set(rounds.map(r => r.criterion)).size,
+    rounds_per_criterion: roundsPerCriterion,
     rounds,
     redteamChallenges,
     apiCalls,
+    status,
     synthesis: synthesis
       ? {
           ...synthesis,
+          overall_score: recalculatedScore, // Use recalculated score from evaluations table
+          recommendation: recalculatedRecommendation, // Use recalculated recommendation
           key_strengths: JSON.parse(synthesis.key_strengths || '[]'),
           key_weaknesses: JSON.parse(synthesis.key_weaknesses || '[]'),
         }
@@ -1439,7 +1805,7 @@ app.get('/api/debates/:runId', asyncHandler(async (req, res) => {
 // POST /api/ideas/:slug/evaluate - Trigger evaluation for an idea
 app.post('/api/ideas/:slug/evaluate', asyncHandler(async (req, res) => {
   const { slug } = req.params;
-  const { budget = 15, mode = 'v2', skipDebate = false, unlimited = false } = req.body;
+  const { budget = 15, mode = 'v2', skipDebate = false, unlimited = false, debateRounds = 1 } = req.body;
 
   // Check if idea exists
   const idea = await getOne<{ id: string; title: string }>('SELECT id, title FROM ideas WHERE slug = ?', [slug]);
@@ -1451,19 +1817,29 @@ app.post('/api/ideas/:slug/evaluate', asyncHandler(async (req, res) => {
   // Generate a run ID
   const runId = crypto.randomUUID();
 
+  // Store configured debate_rounds in evaluation_events for later retrieval
+  const rounds = Math.min(3, Math.max(1, Number(debateRounds) || 1));
+  await query(
+    `INSERT INTO evaluation_events (session_id, idea_id, event_type, event_data, created_at)
+     VALUES (?, ?, 'evaluation:config', ?, ?)`,
+    [runId, idea.id, JSON.stringify({ debateRounds: rounds, budget, mode, skipDebate, unlimited }), new Date().toISOString()]
+  );
+
   // Emit start event to WebSocket
   emitDebateEvent('debate:started', slug, runId, {
     message: `Starting evaluation for: ${idea.title}`,
   });
 
   // Spawn the evaluation process in the background
-  const args = ['scripts/evaluate.ts', slug, '--budget', String(budget), '--mode', mode, '--force'];
+  const args = ['scripts/evaluate.ts', slug, '--budget', String(budget), '--mode', mode, '--force', '--run-id', runId];
   if (skipDebate) {
     args.push('--skip-debate');
   }
   if (unlimited) {
     args.push('--unlimited');
   }
+  // Add debate rounds (1-3, default 1) - rounds already calculated above
+  args.push('--debate-rounds', String(rounds));
 
   console.log(`[Evaluate] Starting: npx tsx ${args.join(' ')}`);
 
@@ -2463,6 +2839,95 @@ app.get('/api/ideas/:slug/questions/criterion/:criterion', asyncHandler(async (r
   respond(res, questions);
 }));
 
+// POST /api/ideas/:slug/questions/:questionId/suggestions - Get AI suggestions for a question
+app.post('/api/ideas/:slug/questions/:questionId/suggestions', asyncHandler(async (req, res) => {
+  const { slug, questionId } = req.params;
+  const fs = await import('fs/promises');
+  const path = await import('path');
+
+  // Get idea
+  const idea = await getOne<{ id: string; folder_path: string }>('SELECT id, folder_path FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Get the question
+  const question = await getQuestionById(questionId);
+  if (!question) {
+    res.status(404).json({ success: false, error: 'Question not found' });
+    return;
+  }
+
+  // Read idea content from file
+  let content = '';
+  try {
+    const readmePath = path.join(idea.folder_path, 'README.md');
+    content = await fs.readFile(readmePath, 'utf-8');
+  } catch {
+    // Content not available - continue with empty string
+  }
+
+  // Get existing answers for context
+  const answers = await getAnswersForIdea(idea.id);
+  const answerMap: Record<string, string> = {};
+  for (const a of answers) {
+    const q = await getQuestionById(a.questionId);
+    if (q) {
+      answerMap[q.text] = a.answer;
+    }
+  }
+
+  // Build idea context
+  const ideaContext: IdeaContext = {
+    problem: content.match(/## Problem\s*\n([\s\S]*?)(?=\n##|$)/)?.[1]?.trim() || '',
+    solution: content.match(/## Solution\s*\n([\s\S]*?)(?=\n##|$)/)?.[1]?.trim() || '',
+    targetUser: content.match(/## Target User\s*\n([\s\S]*?)(?=\n##|$)/)?.[1]?.trim() || '',
+    currentAnswers: answerMap
+  };
+
+  // Get profile if linked
+  let profileContext: ProfileContext = {};
+  const linkedProfile = await getOne<{ profile_id: string }>(
+    'SELECT profile_id FROM idea_profiles WHERE idea_id = ?',
+    [idea.id]
+  );
+
+  if (linkedProfile) {
+    const profile = await getOne<{
+      primary_goals: string | null;
+      technical_skills: string | null;
+      industry_connections: string | null;
+      risk_tolerance: string | null;
+    }>(
+      'SELECT primary_goals, technical_skills, industry_connections, risk_tolerance FROM user_profiles WHERE id = ?',
+      [linkedProfile.profile_id]
+    );
+    if (profile) {
+      profileContext = {
+        goals: profile.primary_goals ? [profile.primary_goals] : [],
+        skills: profile.technical_skills ? profile.technical_skills.split(',').map(s => s.trim()) : [],
+        network: profile.industry_connections ? profile.industry_connections.split(',').map(s => s.trim()) : [],
+        constraints: profile.risk_tolerance ? [profile.risk_tolerance] : []
+      };
+    }
+  }
+
+  // Generate suggestions
+  const costTracker = new CostTracker();
+  const suggestions = await generateProactiveSuggestions(
+    question.text,
+    ideaContext,
+    profileContext,
+    costTracker
+  );
+
+  respond(res, {
+    suggestions,
+    cost: costTracker.getEstimatedCost()
+  });
+}));
+
 // GET /api/ideas/:slug/structured-data - Get structured answers for evaluation
 app.get('/api/ideas/:slug/structured-data', asyncHandler(async (req, res) => {
   const { slug } = req.params;
@@ -2532,6 +2997,1714 @@ app.get('/api/ideas/:slug/profile', asyncHandler(async (req, res) => {
   `, [idea.id]);
 
   respond(res, profile || null);
+}));
+
+// ==================== INCUBATION LIFECYCLE ROUTES ====================
+
+// GET /api/ideas/:slug/versions - Get version history
+app.get('/api/ideas/:slug/versions', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const versions = await getVersionHistory(idea.id);
+  respond(res, versions);
+}));
+
+// GET /api/ideas/:slug/versions/:version - Get specific version
+app.get('/api/ideas/:slug/versions/:version', asyncHandler(async (req, res) => {
+  const { slug, version } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const versionData = await getVersionSnapshot(idea.id, parseInt(version, 10));
+  if (!versionData) {
+    res.status(404).json({ success: false, error: 'Version not found' });
+    return;
+  }
+
+  respond(res, versionData);
+}));
+
+// GET /api/ideas/:slug/versions/compare/:v1/:v2 - Compare two versions
+app.get('/api/ideas/:slug/versions/compare/:v1/:v2', asyncHandler(async (req, res) => {
+  const { slug, v1, v2 } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const diff = await compareVersions(idea.id, parseInt(v1, 10), parseInt(v2, 10));
+  respond(res, diff);
+}));
+
+// POST /api/ideas/:slug/snapshot - Create manual version snapshot
+app.post('/api/ideas/:slug/snapshot', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const { summary } = req.body;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const versionId = await createVersionSnapshot(idea.id, 'manual', summary || 'Manual snapshot');
+  await saveDb();
+
+  respond(res, { versionId });
+}));
+
+// GET /api/ideas/:slug/lineage - Get lineage tree
+app.get('/api/ideas/:slug/lineage', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const lineage = await getLineage(idea.id);
+  respond(res, lineage);
+}));
+
+// POST /api/ideas/:slug/branch - Create a branch from an idea
+app.post('/api/ideas/:slug/branch', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const { title, reason, parentAction = 'keep_active' } = req.body;
+
+  if (!title || !reason) {
+    res.status(400).json({ success: false, error: 'Title and reason are required' });
+    return;
+  }
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const newSlug = await createBranch({
+    parentIdeaId: idea.id,
+    newTitle: title,
+    branchReason: reason,
+    parentAction
+  });
+  await saveDb();
+
+  respond(res, { slug: newSlug });
+}));
+
+// GET /api/ideas/:slug/status-history - Get status history
+app.get('/api/ideas/:slug/status-history', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const history = await getStatusHistory(idea.id);
+  respond(res, history);
+}));
+
+// POST /api/ideas/:slug/status - Update idea status
+app.post('/api/ideas/:slug/status', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const { status, reason } = req.body;
+
+  if (!status) {
+    res.status(400).json({ success: false, error: 'Status is required' });
+    return;
+  }
+
+  const idea = await getOne<{ id: string; status: string }>('SELECT id, status FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  await updateIdeaStatus(idea.id, status as IdeaStatus, reason);
+  await saveDb();
+
+  respond(res, { previousStatus: idea.status, newStatus: status });
+}));
+
+// GET /api/ideas/:slug/iterations - Get iteration history
+app.get('/api/ideas/:slug/iterations', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const iterations = await getIterationHistory(idea.id);
+  respond(res, iterations);
+}));
+
+// GET /api/ideas/:slug/assumptions - Get assumptions
+app.get('/api/ideas/:slug/assumptions', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const assumptions = await query<{
+    id: string;
+    assumption_text: string;
+    category: string;
+    risk_level: string;
+    validated: number;
+    validation_notes: string | null;
+    created_at: string;
+  }>('SELECT * FROM idea_assumptions WHERE idea_id = ? ORDER BY risk_level DESC, created_at DESC', [idea.id]);
+
+  respond(res, assumptions.map(a => ({
+    ...a,
+    validated: Boolean(a.validated)
+  })));
+}));
+
+// GET /api/ideas/:slug/gates - Get gate decisions
+app.get('/api/ideas/:slug/gates', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const gates = await query<{
+    id: string;
+    gate_type: string;
+    advisory_shown: string;
+    user_choice: string;
+    readiness_score: number | null;
+    overall_score: number | null;
+    decided_at: string;
+  }>('SELECT * FROM gate_decisions WHERE idea_id = ? ORDER BY decided_at DESC', [idea.id]);
+
+  respond(res, gates);
+}));
+
+// POST /api/ideas/:slug/gates - Record a gate decision
+app.post('/api/ideas/:slug/gates', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const { gateType, advisoryShown, userChoice, readinessScore, overallScore } = req.body;
+
+  if (!gateType || !advisoryShown || !userChoice) {
+    res.status(400).json({ success: false, error: 'gateType, advisoryShown, and userChoice are required' });
+    return;
+  }
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Build context JSON with scores
+  const context = JSON.stringify({
+    readinessScore: readinessScore ?? null,
+    overallScore: overallScore ?? null
+  });
+
+  const id = crypto.randomUUID();
+  await query(
+    `INSERT INTO gate_decisions (id, idea_id, gate_type, recommendation, user_choice, context)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, idea.id, gateType, advisoryShown, userChoice, context]
+  );
+  await saveDb();
+
+  respond(res, { id });
+}));
+
+// POST /api/ideas/:slug/phase - Update incubation phase
+app.post('/api/ideas/:slug/phase', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  let { phase } = req.body;
+
+  // Valid UI phases: 'position' is the new name, 'differentiate' still accepted for backward compat
+  const uiPhases = ['capture', 'clarify', 'position', 'differentiate', 'update', 'evaluate', 'iterate'];
+
+  if (!phase || !uiPhases.includes(phase)) {
+    res.status(400).json({ success: false, error: `Invalid phase. Must be one of: ${uiPhases.join(', ')}` });
+    return;
+  }
+
+  // Map UI phase to DB phase - both 'position' and 'differentiate' map to 'differentiation' in DB
+  // (DB constraint still uses 'differentiation' for backward compatibility)
+  const mapUiToDb = (p: string) => {
+    if (p === 'differentiate' || p === 'position') return 'differentiation';
+    return p;
+  };
+  const dbPhase = mapUiToDb(phase);
+
+  const idea = await getOne<{ id: string; incubation_phase: string }>('SELECT id, incubation_phase FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Map DB phase back to UI phase for response - always use 'position' now
+  const mapDbToUi = (p: string) => p === 'differentiation' ? 'position' : p;
+  const previousPhase = mapDbToUi(idea.incubation_phase || 'capture');
+
+  await query('UPDATE ideas SET incubation_phase = ?, updated_at = ? WHERE id = ?', [
+    dbPhase,
+    new Date().toISOString(),
+    idea.id
+  ]);
+  await saveDb();
+
+  // Return 'position' as the canonical phase name
+  const canonicalPhase = phase === 'differentiate' ? 'position' : phase;
+  respond(res, { previousPhase, newPhase: canonicalPhase });
+}));
+
+// POST /api/ideas/:slug/differentiate - Run differentiation analysis
+app.post('/api/ideas/:slug/differentiate', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  // Get the idea
+  const idea = await getOne<{
+    id: string;
+    title: string;
+    summary: string | null;
+    folder_path: string;
+  }>('SELECT id, title, summary, folder_path FROM ideas WHERE slug = ?', [slug]);
+
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Read content from README.md file
+  let content = '';
+  if (idea.folder_path) {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const readmePath = path.join(idea.folder_path, 'README.md');
+      content = await fs.readFile(readmePath, 'utf-8');
+    } catch {
+      // Content not available
+    }
+  }
+
+  const ideaContent = `# ${idea.title}\n\n${idea.summary || ''}\n\n${content || ''}`;
+
+  // Get answers for the idea
+  const answersData = await getAnswersForIdea(idea.id);
+  const answers: Record<string, string> = {};
+  for (const a of answersData) {
+    const question = await getQuestionById(a.questionId);
+    if (question) {
+      answers[question.text] = a.answer;
+    }
+  }
+
+  // Calculate readiness for the viability gate check
+  const readiness = await calculateReadiness(idea.id);
+  if (readiness.overall < 0.5) {
+    res.status(400).json({
+      success: false,
+      error: `Viability gate requires at least 50% readiness. Current: ${Math.round(readiness.overall * 100)}%`
+    });
+    return;
+  }
+
+  // Get linked profile if available
+  const profileLink = await getOne<{ profile_id: string }>(
+    'SELECT profile_id FROM idea_profiles WHERE idea_id = ?',
+    [idea.id]
+  );
+
+  let profileContext: ProfileContext = {};
+  if (profileLink) {
+    const profile = await getOne<{
+      primary_goals: string | null;
+      technical_skills: string | null;
+      professional_network: string | null;
+      other_commitments: string | null;
+      interests: string | null;
+    }>('SELECT primary_goals, technical_skills, professional_network, other_commitments, interests FROM user_profiles WHERE id = ?', [profileLink.profile_id]);
+
+    if (profile) {
+      // Parse text fields into arrays (they may be comma-separated or JSON)
+      const parseField = (val: string | null): string[] => {
+        if (!val) return [];
+        try {
+          return JSON.parse(val);
+        } catch {
+          // If not JSON, split by comma or newline
+          return val.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+        }
+      };
+      profileContext = {
+        goals: parseField(profile.primary_goals),
+        skills: parseField(profile.technical_skills),
+        network: parseField(profile.professional_network),
+        constraints: parseField(profile.other_commitments),
+        interests: parseField(profile.interests)
+      };
+    }
+  }
+
+  // Build gap analysis from readiness data
+  const gapAnalysis = {
+    assumptions: readiness.blockingGaps?.map((gap, idx) => ({
+      id: `gap-${idx}`,
+      text: gap,
+      category: 'problem' as const,
+      impact: 'critical' as const,
+      confidence: 'low' as const,
+      addressed: false
+    })) || [],
+    criticalGapsCount: readiness.blockingGaps?.length || 0,
+    significantGapsCount: 0,
+    readinessScore: Math.round(readiness.overall * 100)
+  };
+
+  // Create cost tracker with $5 budget for differentiation analysis
+  const costTracker = new CostTracker(5.00);
+
+  try {
+    // Run differentiation analysis
+    const analysis = await runDifferentiationAnalysis(
+      ideaContent,
+      gapAnalysis,
+      answers,
+      profileContext,
+      costTracker
+    );
+
+    // Build idea context for validation
+    const ideaContext: IdeaContext = {
+      problem: answers['What problem does this solve?'] || idea.summary || '',
+      solution: answers['How does this solution work?'] || '',
+      targetUser: answers['Who is the target user?'] || '',
+      currentAnswers: answers
+    };
+
+    // Validate the analysis
+    const validatedAnalysis = await validateDifferentiationAnalysis(
+      analysis,
+      ideaContext,
+      profileContext,
+      costTracker
+    );
+
+    // Transform to frontend format
+    const opportunities = validatedAnalysis.marketOpportunities.map((opp, idx) => ({
+      id: `opp-${idx}`,
+      segment: opp.targetSegment,
+      description: opp.description,
+      fit: opp.potentialImpact as 'high' | 'medium' | 'low',
+      confidence: Math.round(opp.validationConfidence * 100),
+      reasons: opp.validationWarnings.length > 0 ? opp.validationWarnings : ['Aligned with profile']
+    }));
+
+    const strategies = validatedAnalysis.differentiationStrategies.map((strat, idx) => ({
+      id: `strat-${idx}`,
+      approach: strat.name,
+      description: strat.description,
+      validated: strat.validationConfidence >= 0.7,
+      validationNotes: strat.validationWarnings.join('; ') || undefined,
+      alignedWith: strat.differentiators,
+      risks: strat.tradeoffs
+    }));
+
+    const competitiveRisks = validatedAnalysis.competitiveRisks.map((risk, idx) => ({
+      id: `risk-${idx}`,
+      competitor: 'Competitor',
+      threat: risk.description,
+      severity: risk.severity as 'high' | 'medium' | 'low',
+      mitigation: risk.mitigation
+    }));
+
+    // Log cost report
+    const costReport = costTracker.getReport();
+    console.log(`Differentiation analysis complete. Cost: $${costReport.estimatedCost.toFixed(4)}, API calls: ${costReport.apiCalls}`);
+
+    // Save cost to database (using a synthetic run_id for differentiation)
+    const diffRunId = `diff-${Date.now()}`;
+    for (const entry of costTracker.getLog()) {
+      await query(
+        `INSERT INTO cost_log (evaluation_run_id, idea_id, operation, input_tokens, output_tokens, estimated_cost, timestamp)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          diffRunId,
+          idea.id,
+          entry.operation,
+          entry.inputTokens,
+          entry.outputTokens,
+          entry.cost,
+          entry.timestamp.toISOString()
+        ]
+      );
+    }
+    await saveDb();
+
+    // Save results to database for persistence
+    const diffResultId = `diff-result-${Date.now()}`;
+    await query(
+      `INSERT INTO differentiation_results
+       (id, idea_id, run_id, opportunities, strategies, competitive_risks, summary, overall_confidence, cost_dollars, api_calls, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        diffResultId,
+        idea.id,
+        diffRunId,
+        JSON.stringify(opportunities),
+        JSON.stringify(strategies),
+        JSON.stringify(competitiveRisks),
+        validatedAnalysis.summary,
+        validatedAnalysis.overallConfidence,
+        costReport.estimatedCost,
+        costReport.apiCalls,
+        new Date().toISOString()
+      ]
+    );
+    await saveDb();
+
+    respond(res, {
+      opportunities,
+      strategies,
+      competitiveRisks,
+      summary: validatedAnalysis.summary,
+      overallConfidence: Math.round(validatedAnalysis.overallConfidence * 100)
+    });
+  } catch (err) {
+    console.error('Differentiation analysis failed:', err);
+    res.status(500).json({
+      success: false,
+      error: (err as Error).message || 'Differentiation analysis failed'
+    });
+  }
+}));
+
+// GET /api/ideas/:slug/differentiation - Get saved differentiation results
+app.get('/api/ideas/:slug/differentiation', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Get the most recent differentiation result
+  const result = await getOne<{
+    id: string;
+    run_id: string;
+    opportunities: string;
+    strategies: string;
+    competitive_risks: string;
+    summary: string;
+    overall_confidence: number;
+    cost_dollars: number;
+    api_calls: number;
+    created_at: string;
+  }>(
+    `SELECT * FROM differentiation_results
+     WHERE idea_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [idea.id]
+  );
+
+  if (!result) {
+    respond(res, null);
+    return;
+  }
+
+  // Parse JSON fields
+  respond(res, {
+    id: result.id,
+    runId: result.run_id,
+    opportunities: JSON.parse(result.opportunities),
+    strategies: JSON.parse(result.strategies),
+    competitiveRisks: JSON.parse(result.competitive_risks),
+    summary: result.summary,
+    overallConfidence: Math.round(result.overall_confidence * 100),
+    cost: result.cost_dollars,
+    apiCalls: result.api_calls,
+    createdAt: result.created_at
+  });
+}));
+
+// POST /api/ideas/:slug/generate-update - Generate AI update suggestions
+app.post('/api/ideas/:slug/generate-update', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const { selectedStrategyIndex } = req.body;
+
+  // Get the idea
+  const idea = await getOne<{
+    id: string;
+    title: string;
+    summary: string | null;
+    folder_path: string;
+  }>('SELECT id, title, summary, folder_path FROM ideas WHERE slug = ?', [slug]);
+
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Read content from README.md
+  let content = '';
+  if (idea.folder_path) {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const readmePath = path.join(idea.folder_path, 'README.md');
+      content = await fs.readFile(readmePath, 'utf-8');
+    } catch {
+      // Content not available
+    }
+  }
+
+  // Get the latest differentiation results (including extended analysis fields)
+  const diffResult = await getOne<{
+    opportunities: string;
+    strategies: string;
+    competitive_risks: string;
+    summary: string;
+    market_timing_analysis: string | null;
+    execution_roadmap: string | null;
+    strategic_summary: string | null;
+    strategic_approach: string | null;
+  }>(
+    `SELECT opportunities, strategies, competitive_risks, summary,
+            market_timing_analysis, execution_roadmap, strategic_summary, strategic_approach
+     FROM differentiation_results
+     WHERE idea_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [idea.id]
+  );
+
+  if (!diffResult) {
+    res.status(400).json({
+      success: false,
+      error: 'No differentiation analysis found. Run differentiation analysis first.'
+    });
+    return;
+  }
+
+  // Get linked profile
+  const profileLink = await getOne<{ profile_id: string }>(
+    'SELECT profile_id FROM idea_profiles WHERE idea_id = ?',
+    [idea.id]
+  );
+
+  let profileContext: ProfileContext = {};
+  if (profileLink) {
+    const profile = await getOne<{
+      primary_goals: string | null;
+      success_definition: string | null;
+      technical_skills: string | null;
+      interests: string | null;
+      motivations: string | null;
+      domain_connection: string | null;
+      professional_experience: string | null;
+      domain_expertise: string | null;
+      known_gaps: string | null;
+      industry_connections: string | null;
+      professional_network: string | null;
+      employment_status: string | null;
+      weekly_hours_available: number | null;
+      risk_tolerance: string | null;
+    }>(`SELECT primary_goals, success_definition, technical_skills, interests,
+        motivations, domain_connection, professional_experience, domain_expertise,
+        known_gaps, industry_connections, professional_network, employment_status,
+        weekly_hours_available, risk_tolerance
+        FROM user_profiles WHERE id = ?`, [profileLink.profile_id]);
+
+    if (profile) {
+      const parseField = (val: string | null): string[] => {
+        if (!val) return [];
+        try {
+          return JSON.parse(val);
+        } catch {
+          return val.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+        }
+      };
+      profileContext = {
+        goals: parseField(profile.primary_goals),
+        skills: parseField(profile.technical_skills),
+        interests: parseField(profile.interests),
+        // Extended fields
+        successDefinition: profile.success_definition || undefined,
+        motivations: profile.motivations || undefined,
+        domainConnection: profile.domain_connection || undefined,
+        professionalExperience: profile.professional_experience || undefined,
+        domainExpertise: parseField(profile.domain_expertise),
+        knownGaps: profile.known_gaps || undefined,
+        industryConnections: parseField(profile.industry_connections),
+        professionalNetwork: profile.professional_network || undefined,
+        employmentStatus: profile.employment_status || undefined,
+        weeklyHoursAvailable: profile.weekly_hours_available || undefined,
+        riskTolerance: profile.risk_tolerance || undefined
+      };
+    }
+  }
+
+  // Parse differentiation results
+  const differentiationAnalysis = {
+    marketOpportunities: JSON.parse(diffResult.opportunities),
+    differentiationStrategies: JSON.parse(diffResult.strategies),
+    competitiveRisks: JSON.parse(diffResult.competitive_risks),
+    summary: diffResult.summary
+  };
+
+  // Load full positioning decision (user's strategic choices)
+  const positioningDecision = await getOne<{
+    primary_strategy_id: string | null;
+    primary_strategy_name: string | null;
+    secondary_strategy_name: string | null;
+    timing_decision: string | null;
+    timing_rationale: string | null;
+    selected_approach: string | null;
+    risk_responses: string | null;
+    notes: string | null;
+  }>(`SELECT primary_strategy_id, primary_strategy_name, secondary_strategy_name,
+             timing_decision, timing_rationale, selected_approach, risk_responses, notes
+      FROM positioning_decisions WHERE idea_id = ? ORDER BY created_at DESC LIMIT 1`, [idea.id]);
+
+  const riskResponses = positioningDecision?.risk_responses
+    ? JSON.parse(positioningDecision.risk_responses)
+    : [];
+
+  // Load financial allocation (user's resource commitment)
+  const financialAllocation = await getOne<{
+    allocated_budget: number | null;
+    allocated_weekly_hours: number | null;
+    allocated_runway_months: number | null;
+    target_income_from_idea: number | null;
+    income_timeline_months: number | null;
+    income_type: string | null;
+    validation_budget: number | null;
+    kill_criteria: string | null;
+    strategic_approach: string | null;
+    approach_rationale: string | null;
+  }>(`SELECT allocated_budget, allocated_weekly_hours, allocated_runway_months,
+             target_income_from_idea, income_timeline_months, income_type,
+             validation_budget, kill_criteria, strategic_approach, approach_rationale
+      FROM idea_financial_allocations WHERE idea_id = ?`, [idea.id]);
+
+  // Load Q&A answers from Clarify phase
+  const answersResult = await query(
+    `SELECT q.id as question_id, q.question_text, a.answer
+     FROM idea_answers a
+     JOIN question_bank q ON a.question_id = q.id
+     WHERE a.idea_id = ?
+     ORDER BY a.answered_at`,
+    [idea.id]
+  ) as Array<{ question_id: string; question_text: string; answer: string }>;
+
+  const qaContext = answersResult.map((a: { question_text: string; answer: string }) => ({
+    question: a.question_text,
+    answer: a.answer
+  }));
+
+  // Create cost tracker
+  const costTracker = new CostTracker(3.00);
+
+  // Build positioning context from user's decisions
+  const positioningContext = positioningDecision ? {
+    primaryStrategyId: positioningDecision.primary_strategy_id || undefined,
+    primaryStrategyName: positioningDecision.primary_strategy_name || undefined,
+    secondaryStrategyName: positioningDecision.secondary_strategy_name || undefined,
+    timingDecision: positioningDecision.timing_decision as 'proceed_now' | 'wait' | 'urgent' | undefined,
+    timingRationale: positioningDecision.timing_rationale || undefined,
+    strategicApproach: positioningDecision.selected_approach as any,
+    notes: positioningDecision.notes || undefined
+  } : undefined;
+
+  // Build financial context from allocation
+  const financialCtx = financialAllocation ? {
+    allocatedBudget: financialAllocation.allocated_budget || undefined,
+    allocatedWeeklyHours: financialAllocation.allocated_weekly_hours || undefined,
+    allocatedRunwayMonths: financialAllocation.allocated_runway_months || undefined,
+    targetIncome: financialAllocation.target_income_from_idea || undefined,
+    incomeTimelineMonths: financialAllocation.income_timeline_months || undefined,
+    incomeType: financialAllocation.income_type as any,
+    validationBudget: financialAllocation.validation_budget || undefined,
+    killCriteria: financialAllocation.kill_criteria || undefined,
+    strategicApproach: financialAllocation.strategic_approach as any,
+    approachRationale: financialAllocation.approach_rationale || undefined
+  } : undefined;
+
+  // Build extended analysis context
+  const extendedAnalysis = {
+    marketTimingAnalysis: diffResult.market_timing_analysis
+      ? JSON.parse(diffResult.market_timing_analysis)
+      : undefined,
+    executionRoadmap: diffResult.execution_roadmap
+      ? JSON.parse(diffResult.execution_roadmap)
+      : undefined,
+    strategicSummary: diffResult.strategic_summary || undefined
+  };
+
+  try {
+    const suggestion = await generateUpdateSuggestions(
+      {
+        title: idea.title,
+        summary: idea.summary || '',
+        content: content
+      },
+      differentiationAnalysis,
+      selectedStrategyIndex ?? null,
+      profileContext,
+      qaContext,
+      costTracker,
+      riskResponses,
+      positioningContext,
+      financialCtx,
+      extendedAnalysis
+    );
+
+    // Save the suggestion to database
+    const suggestionId = `update-${Date.now()}`;
+    await query(
+      `INSERT INTO update_suggestions
+       (id, idea_id, suggested_title, suggested_summary, suggested_content, change_rationale, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
+      [
+        suggestionId,
+        idea.id,
+        suggestion.suggestedTitle,
+        suggestion.suggestedSummary,
+        suggestion.suggestedContent,
+        JSON.stringify(suggestion.changeRationale),
+        new Date().toISOString()
+      ]
+    );
+    await saveDb();
+
+    const costReport = costTracker.getReport();
+    console.log(`Update suggestion generated. Cost: $${costReport.estimatedCost.toFixed(4)}`);
+
+    respond(res, {
+      id: suggestionId,
+      ...suggestion,
+      cost: costReport.estimatedCost
+    });
+  } catch (err) {
+    console.error('Update suggestion generation failed:', err);
+    res.status(500).json({
+      success: false,
+      error: (err as Error).message || 'Failed to generate update suggestions'
+    });
+  }
+}));
+
+// GET /api/ideas/:slug/update-suggestion - Get latest update suggestion
+app.get('/api/ideas/:slug/update-suggestion', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const suggestion = await getOne<{
+    id: string;
+    suggested_title: string;
+    suggested_summary: string;
+    suggested_content: string;
+    change_rationale: string;
+    status: string;
+    created_at: string;
+  }>(
+    `SELECT * FROM update_suggestions
+     WHERE idea_id = ? AND status = 'pending'
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [idea.id]
+  );
+
+  if (!suggestion) {
+    respond(res, null);
+    return;
+  }
+
+  respond(res, {
+    id: suggestion.id,
+    suggestedTitle: suggestion.suggested_title,
+    suggestedSummary: suggestion.suggested_summary,
+    suggestedContent: suggestion.suggested_content,
+    changeRationale: JSON.parse(suggestion.change_rationale),
+    status: suggestion.status,
+    createdAt: suggestion.created_at
+  });
+}));
+
+// POST /api/ideas/:slug/apply-update - Apply the update suggestion
+app.post('/api/ideas/:slug/apply-update', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const { suggestionId, modified } = req.body;
+
+  const idea = await getOne<{ id: string; folder_path: string }>(
+    'SELECT id, folder_path FROM ideas WHERE slug = ?',
+    [slug]
+  );
+
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Get the suggestion
+  const suggestion = await getOne<{
+    id: string;
+    suggested_title: string;
+    suggested_summary: string;
+    suggested_content: string;
+  }>(
+    'SELECT * FROM update_suggestions WHERE id = ? AND idea_id = ?',
+    [suggestionId, idea.id]
+  );
+
+  if (!suggestion) {
+    res.status(404).json({ success: false, error: 'Update suggestion not found' });
+    return;
+  }
+
+  // Apply the updates (use modified content if provided)
+  const newTitle = modified?.title || suggestion.suggested_title;
+  const newSummary = modified?.summary || suggestion.suggested_summary;
+  const newContent = modified?.content || suggestion.suggested_content;
+
+  // Update the idea in database
+  await query(
+    'UPDATE ideas SET title = ?, summary = ?, updated_at = ? WHERE id = ?',
+    [newTitle, newSummary, new Date().toISOString(), idea.id]
+  );
+
+  // Update the README.md file if folder exists
+  if (idea.folder_path) {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const readmePath = path.join(idea.folder_path, 'README.md');
+      await fs.writeFile(readmePath, newContent, 'utf-8');
+    } catch (err) {
+      console.error('Failed to update README.md:', err);
+    }
+  }
+
+  // Mark suggestion as accepted
+  await query(
+    `UPDATE update_suggestions SET status = ?, resolved_at = ?, user_modified_content = ? WHERE id = ?`,
+    [
+      modified ? 'modified' : 'accepted',
+      new Date().toISOString(),
+      modified ? JSON.stringify(modified) : null,
+      suggestionId
+    ]
+  );
+  await saveDb();
+
+  respond(res, { success: true, message: 'Update applied successfully' });
+}));
+
+// ==================== FINANCIAL ALLOCATION ENDPOINTS ====================
+
+// GET /api/ideas/:slug/allocation - Get financial allocation for an idea
+app.get('/api/ideas/:slug/allocation', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const allocation = await getOne<{
+    id: string;
+    idea_id: string;
+    allocated_budget: number;
+    allocated_weekly_hours: number;
+    allocated_runway_months: number;
+    allocation_priority: string;
+    target_income_from_idea: number | null;
+    income_timeline_months: number | null;
+    income_type: string;
+    exit_intent: number;
+    idea_risk_tolerance: string | null;
+    max_acceptable_loss: number | null;
+    pivot_willingness: string;
+    validation_budget: number;
+    max_time_to_validate_months: number | null;
+    kill_criteria: string | null;
+    strategic_approach: string | null;
+    approach_rationale: string | null;
+    created_at: string;
+    updated_at: string;
+  }>('SELECT * FROM idea_financial_allocations WHERE idea_id = ?', [idea.id]);
+
+  if (!allocation) {
+    // Return default allocation if none exists
+    respond(res, {
+      ideaId: idea.id,
+      allocatedBudget: 0,
+      allocatedWeeklyHours: 0,
+      allocatedRunwayMonths: 0,
+      allocationPriority: 'exploration',
+      targetIncomeFromIdea: null,
+      incomeTimelineMonths: null,
+      incomeType: 'supplement',
+      exitIntent: false,
+      ideaRiskTolerance: null,
+      maxAcceptableLoss: null,
+      pivotWillingness: 'moderate',
+      validationBudget: 0,
+      maxTimeToValidateMonths: null,
+      killCriteria: null,
+      strategicApproach: null,
+      approachRationale: null,
+      exists: false
+    });
+    return;
+  }
+
+  respond(res, {
+    id: allocation.id,
+    ideaId: allocation.idea_id,
+    allocatedBudget: allocation.allocated_budget,
+    allocatedWeeklyHours: allocation.allocated_weekly_hours,
+    allocatedRunwayMonths: allocation.allocated_runway_months,
+    allocationPriority: allocation.allocation_priority,
+    targetIncomeFromIdea: allocation.target_income_from_idea,
+    incomeTimelineMonths: allocation.income_timeline_months,
+    incomeType: allocation.income_type,
+    exitIntent: Boolean(allocation.exit_intent),
+    ideaRiskTolerance: allocation.idea_risk_tolerance,
+    maxAcceptableLoss: allocation.max_acceptable_loss,
+    pivotWillingness: allocation.pivot_willingness,
+    validationBudget: allocation.validation_budget,
+    maxTimeToValidateMonths: allocation.max_time_to_validate_months,
+    killCriteria: allocation.kill_criteria,
+    strategicApproach: allocation.strategic_approach,
+    approachRationale: allocation.approach_rationale,
+    createdAt: allocation.created_at,
+    updatedAt: allocation.updated_at,
+    exists: true
+  });
+}));
+
+// POST /api/ideas/:slug/allocation - Create or update financial allocation
+app.post('/api/ideas/:slug/allocation', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const {
+    allocatedBudget,
+    allocatedWeeklyHours,
+    allocatedRunwayMonths,
+    allocationPriority,
+    targetIncomeFromIdea,
+    incomeTimelineMonths,
+    incomeType,
+    exitIntent,
+    ideaRiskTolerance,
+    maxAcceptableLoss,
+    pivotWillingness,
+    validationBudget,
+    maxTimeToValidateMonths,
+    killCriteria,
+    strategicApproach,
+    approachRationale
+  } = req.body;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Check if allocation exists
+  const existing = await getOne<{ id: string }>('SELECT id FROM idea_financial_allocations WHERE idea_id = ?', [idea.id]);
+
+  if (existing) {
+    // Update existing allocation
+    await query(
+      `UPDATE idea_financial_allocations SET
+        allocated_budget = ?,
+        allocated_weekly_hours = ?,
+        allocated_runway_months = ?,
+        allocation_priority = ?,
+        target_income_from_idea = ?,
+        income_timeline_months = ?,
+        income_type = ?,
+        exit_intent = ?,
+        idea_risk_tolerance = ?,
+        max_acceptable_loss = ?,
+        pivot_willingness = ?,
+        validation_budget = ?,
+        max_time_to_validate_months = ?,
+        kill_criteria = ?,
+        strategic_approach = ?,
+        approach_rationale = ?,
+        updated_at = ?
+       WHERE idea_id = ?`,
+      [
+        allocatedBudget ?? 0,
+        allocatedWeeklyHours ?? 0,
+        allocatedRunwayMonths ?? 0,
+        allocationPriority ?? 'exploration',
+        targetIncomeFromIdea ?? null,
+        incomeTimelineMonths ?? null,
+        incomeType ?? 'supplement',
+        exitIntent ? 1 : 0,
+        ideaRiskTolerance ?? null,
+        maxAcceptableLoss ?? null,
+        pivotWillingness ?? 'moderate',
+        validationBudget ?? 0,
+        maxTimeToValidateMonths ?? null,
+        killCriteria ?? null,
+        strategicApproach ?? null,
+        approachRationale ?? null,
+        new Date().toISOString(),
+        idea.id
+      ]
+    );
+    await saveDb();
+    respond(res, { id: existing.id, updated: true });
+  } else {
+    // Create new allocation
+    const id = crypto.randomUUID();
+    await query(
+      `INSERT INTO idea_financial_allocations (
+        id, idea_id, allocated_budget, allocated_weekly_hours, allocated_runway_months,
+        allocation_priority, target_income_from_idea, income_timeline_months, income_type,
+        exit_intent, idea_risk_tolerance, max_acceptable_loss, pivot_willingness,
+        validation_budget, max_time_to_validate_months, kill_criteria,
+        strategic_approach, approach_rationale
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        idea.id,
+        allocatedBudget ?? 0,
+        allocatedWeeklyHours ?? 0,
+        allocatedRunwayMonths ?? 0,
+        allocationPriority ?? 'exploration',
+        targetIncomeFromIdea ?? null,
+        incomeTimelineMonths ?? null,
+        incomeType ?? 'supplement',
+        exitIntent ? 1 : 0,
+        ideaRiskTolerance ?? null,
+        maxAcceptableLoss ?? null,
+        pivotWillingness ?? 'moderate',
+        validationBudget ?? 0,
+        maxTimeToValidateMonths ?? null,
+        killCriteria ?? null,
+        strategicApproach ?? null,
+        approachRationale ?? null
+      ]
+    );
+    await saveDb();
+    respond(res, { id, created: true });
+  }
+}));
+
+// DELETE /api/ideas/:slug/allocation - Delete financial allocation
+app.delete('/api/ideas/:slug/allocation', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  await query('DELETE FROM idea_financial_allocations WHERE idea_id = ?', [idea.id]);
+  await saveDb();
+
+  respond(res, { deleted: true });
+}));
+
+// ==================== POSITIONING DECISION ENDPOINTS ====================
+
+// GET /api/ideas/:slug/positioning-decision - Get positioning decision for an idea
+app.get('/api/ideas/:slug/positioning-decision', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Get the most recent decision
+  const decision = await getOne<{
+    id: string;
+    idea_id: string;
+    primary_strategy_id: string | null;
+    primary_strategy_name: string | null;
+    secondary_strategy_id: string | null;
+    secondary_strategy_name: string | null;
+    acknowledged_risk_ids: string;
+    risk_responses: string | null;
+    risk_response_stats: string | null;
+    timing_decision: string | null;
+    timing_rationale: string | null;
+    selected_approach: string | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+  }>('SELECT * FROM positioning_decisions WHERE idea_id = ? ORDER BY created_at DESC LIMIT 1', [idea.id]);
+
+  if (!decision) {
+    respond(res, { exists: false, ideaId: idea.id });
+    return;
+  }
+
+  respond(res, {
+    id: decision.id,
+    ideaId: decision.idea_id,
+    primaryStrategyId: decision.primary_strategy_id,
+    primaryStrategyName: decision.primary_strategy_name,
+    secondaryStrategyId: decision.secondary_strategy_id,
+    secondaryStrategyName: decision.secondary_strategy_name,
+    acknowledgedRiskIds: JSON.parse(decision.acknowledged_risk_ids || '[]'),
+    riskResponses: JSON.parse(decision.risk_responses || '[]'),
+    riskResponseStats: decision.risk_response_stats ? JSON.parse(decision.risk_response_stats) : null,
+    timingDecision: decision.timing_decision,
+    timingRationale: decision.timing_rationale,
+    selectedApproach: decision.selected_approach,
+    notes: decision.notes,
+    createdAt: decision.created_at,
+    updatedAt: decision.updated_at,
+    exists: true
+  });
+}));
+
+// Risk response type definitions for API
+interface RiskResponseInput {
+  riskId: string;
+  riskDescription: string;
+  riskSeverity: 'high' | 'medium' | 'low';
+  response: 'mitigate' | 'accept' | 'monitor' | 'disagree' | 'skip';
+  disagreeReason?: 'not_applicable' | 'already_addressed' | 'low_likelihood' | 'insider_knowledge' | 'other';
+  reasoning?: string;
+  mitigationPlan?: string;
+  respondedAt: string;
+}
+
+// Calculate risk response stats
+function calculateRiskResponseStats(responses: RiskResponseInput[]): {
+  total: number;
+  responded: number;
+  mitigate: number;
+  accept: number;
+  monitor: number;
+  disagree: number;
+  skipped: number;
+} {
+  return {
+    total: responses.length,
+    responded: responses.filter(r => r.response !== 'skip').length,
+    mitigate: responses.filter(r => r.response === 'mitigate').length,
+    accept: responses.filter(r => r.response === 'accept').length,
+    monitor: responses.filter(r => r.response === 'monitor').length,
+    disagree: responses.filter(r => r.response === 'disagree').length,
+    skipped: responses.filter(r => r.response === 'skip').length,
+  };
+}
+
+// POST /api/ideas/:slug/positioning-decision - Create or update positioning decision
+app.post('/api/ideas/:slug/positioning-decision', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const {
+    primaryStrategyId,
+    primaryStrategyName,
+    secondaryStrategyId,
+    secondaryStrategyName,
+    acknowledgedRiskIds,
+    riskResponses,
+    timingDecision,
+    timingRationale,
+    selectedApproach,
+    notes
+  } = req.body;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Calculate risk response stats if responses provided
+  const riskResponsesArray: RiskResponseInput[] = riskResponses ?? [];
+  const stats = riskResponsesArray.length > 0 ? calculateRiskResponseStats(riskResponsesArray) : null;
+
+  // Always create a new decision record (we keep history)
+  const id = crypto.randomUUID();
+  await query(
+    `INSERT INTO positioning_decisions (
+      id, idea_id, primary_strategy_id, primary_strategy_name,
+      secondary_strategy_id, secondary_strategy_name, acknowledged_risk_ids,
+      risk_responses, risk_response_stats,
+      timing_decision, timing_rationale, selected_approach, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      idea.id,
+      primaryStrategyId ?? null,
+      primaryStrategyName ?? null,
+      secondaryStrategyId ?? null,
+      secondaryStrategyName ?? null,
+      JSON.stringify(acknowledgedRiskIds ?? []),
+      JSON.stringify(riskResponsesArray),
+      stats ? JSON.stringify(stats) : null,
+      timingDecision ?? null,
+      timingRationale ?? null,
+      selectedApproach ?? null,
+      notes ?? null
+    ]
+  );
+
+  // Log individual risk responses for analytics
+  if (riskResponsesArray.length > 0) {
+    for (const response of riskResponsesArray) {
+      const logId = crypto.randomUUID();
+      await query(
+        `INSERT INTO risk_response_log (
+          id, idea_id, risk_id, risk_description, risk_severity,
+          response_type, disagree_reason, reasoning, mitigation_plan,
+          strategic_approach, positioning_decision_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          logId,
+          idea.id,
+          response.riskId,
+          response.riskDescription,
+          response.riskSeverity,
+          response.response,
+          response.disagreeReason ?? null,
+          response.reasoning ?? null,
+          response.mitigationPlan ?? null,
+          selectedApproach ?? null,
+          id
+        ]
+      );
+    }
+  }
+
+  await saveDb();
+
+  respond(res, { id, created: true, stats });
+}));
+
+// GET /api/ideas/:slug/positioning-decisions - Get all positioning decisions (history)
+app.get('/api/ideas/:slug/positioning-decisions', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  const decisions = await query<{
+    id: string;
+    idea_id: string;
+    primary_strategy_id: string | null;
+    primary_strategy_name: string | null;
+    secondary_strategy_id: string | null;
+    secondary_strategy_name: string | null;
+    acknowledged_risk_ids: string;
+    risk_responses: string | null;
+    risk_response_stats: string | null;
+    timing_decision: string | null;
+    timing_rationale: string | null;
+    selected_approach: string | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+  }>('SELECT * FROM positioning_decisions WHERE idea_id = ? ORDER BY created_at DESC', [idea.id]);
+
+  respond(res, decisions.map(d => ({
+    id: d.id,
+    ideaId: d.idea_id,
+    primaryStrategyId: d.primary_strategy_id,
+    primaryStrategyName: d.primary_strategy_name,
+    secondaryStrategyId: d.secondary_strategy_id,
+    secondaryStrategyName: d.secondary_strategy_name,
+    acknowledgedRiskIds: JSON.parse(d.acknowledged_risk_ids || '[]'),
+    riskResponses: JSON.parse(d.risk_responses || '[]'),
+    riskResponseStats: d.risk_response_stats ? JSON.parse(d.risk_response_stats) : null,
+    timingDecision: d.timing_decision,
+    timingRationale: d.timing_rationale,
+    selectedApproach: d.selected_approach,
+    notes: d.notes,
+    createdAt: d.created_at,
+    updatedAt: d.updated_at
+  })));
+}));
+
+// ==================== POSITIONING ANALYSIS ENDPOINT ====================
+
+// GET /api/ideas/:slug/positioning - Get saved positioning analysis results
+app.get('/api/ideas/:slug/positioning', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Get the most recent positioning result (differentiation_results with strategic_approach)
+  const result = await getOne<{
+    id: string;
+    run_id: string;
+    opportunities: string;
+    strategies: string;
+    competitive_risks: string;
+    summary: string;
+    overall_confidence: number;
+    cost_dollars: number;
+    api_calls: number;
+    strategic_approach: string | null;
+    strategic_summary: string | null;
+    created_at: string;
+  }>(
+    `SELECT * FROM differentiation_results
+     WHERE idea_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [idea.id]
+  );
+
+  if (!result) {
+    respond(res, null);
+    return;
+  }
+
+  // Parse JSON fields
+  const opportunities = JSON.parse(result.opportunities || '[]');
+  const strategies = JSON.parse(result.strategies || '[]');
+  const competitiveRisks = JSON.parse(result.competitive_risks || '[]');
+  const strategicSummary = result.strategic_summary ? JSON.parse(result.strategic_summary) : null;
+
+  respond(res, {
+    id: result.id,
+    runId: result.run_id,
+    approach: result.strategic_approach,
+    strategicSummary,
+    marketOpportunities: opportunities,
+    strategies: strategies.map((s: any, i: number) => ({
+      ...s,
+      id: s.id || `strategy-${i}`,
+    })),
+    competitiveRisks: competitiveRisks.map((r: any, i: number) => ({
+      ...r,
+      id: r.id || `risk-${i}`,
+    })),
+    summary: result.summary,
+    overallConfidence: result.overall_confidence,
+    cost: {
+      dollars: result.cost_dollars,
+      apiCalls: result.api_calls,
+    },
+    createdAt: result.created_at
+  });
+}));
+
+// POST /api/ideas/:slug/position - Run positioning analysis with strategic approach
+app.post('/api/ideas/:slug/position', asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const { approach } = req.body as { approach: StrategicApproach };
+
+  // Validate approach
+  const validApproaches: StrategicApproach[] = ['create', 'copy_improve', 'combine', 'localize', 'specialize', 'time'];
+  if (!approach || !validApproaches.includes(approach)) {
+    res.status(400).json({
+      success: false,
+      error: `Invalid strategic approach. Must be one of: ${validApproaches.join(', ')}`
+    });
+    return;
+  }
+
+  // Get the idea
+  const idea = await getOne<{
+    id: string;
+    title: string;
+    summary: string | null;
+    folder_path: string;
+  }>('SELECT id, title, summary, folder_path FROM ideas WHERE slug = ?', [slug]);
+
+  if (!idea) {
+    res.status(404).json({ success: false, error: 'Idea not found' });
+    return;
+  }
+
+  // Read content from README.md file
+  let content = '';
+  if (idea.folder_path) {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const readmePath = path.join(idea.folder_path, 'README.md');
+      content = await fs.readFile(readmePath, 'utf-8');
+    } catch {
+      // Content not available
+    }
+  }
+
+  const ideaContent = `# ${idea.title}\n\n${idea.summary || ''}\n\n${content || ''}`;
+
+  // Get answers for the idea
+  const answersData = await getAnswersForIdea(idea.id);
+  const answers: Record<string, string> = {};
+  for (const a of answersData) {
+    const question = await getQuestionById(a.questionId);
+    if (question) {
+      answers[question.text] = a.answer;
+    }
+  }
+
+  // Calculate readiness for the viability gate check
+  const readiness = await calculateReadiness(idea.id);
+  if (readiness.overall < 0.5) {
+    res.status(400).json({
+      success: false,
+      error: `Viability gate requires at least 50% readiness. Current: ${Math.round(readiness.overall * 100)}%`
+    });
+    return;
+  }
+
+  // Get linked profile if available
+  const profileLink = await getOne<{ profile_id: string }>(
+    'SELECT profile_id FROM idea_profiles WHERE idea_id = ?',
+    [idea.id]
+  );
+
+  let profileContext: ProfileContext = {};
+  if (profileLink) {
+    const profile = await getOne<{
+      primary_goals: string | null;
+      technical_skills: string | null;
+      professional_network: string | null;
+      other_commitments: string | null;
+      interests: string | null;
+      current_monthly_income: number | null;
+      financial_runway_months: number | null;
+      weekly_hours_available: number | null;
+      risk_tolerance: string | null;
+    }>('SELECT primary_goals, technical_skills, professional_network, other_commitments, interests, current_monthly_income, financial_runway_months, weekly_hours_available, risk_tolerance FROM user_profiles WHERE id = ?', [profileLink.profile_id]);
+
+    if (profile) {
+      // Parse text fields into arrays (they may be comma-separated or JSON)
+      const parseField = (val: string | null): string[] => {
+        if (!val) return [];
+        try {
+          return JSON.parse(val);
+        } catch {
+          // If not JSON, split by comma or newline
+          return val.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+        }
+      };
+      profileContext = {
+        goals: parseField(profile.primary_goals),
+        skills: parseField(profile.technical_skills),
+        network: parseField(profile.professional_network),
+        constraints: parseField(profile.other_commitments),
+        interests: parseField(profile.interests),
+        currentAnnualIncome: profile.current_monthly_income ? profile.current_monthly_income * 12 : undefined,
+        runwayMonths: profile.financial_runway_months ?? undefined,
+        hoursPerWeek: profile.weekly_hours_available ?? undefined,
+        riskTolerance: profile.risk_tolerance ?? undefined
+      };
+    }
+  }
+
+  // Get financial allocation for this idea
+  const allocationRow = await getOne<{
+    id: string;
+    idea_id: string;
+    allocated_budget: number;
+    allocated_weekly_hours: number;
+    allocated_runway_months: number;
+    allocation_priority: string;
+    strategic_approach: string | null;
+    target_income_from_idea: number | null;
+    income_timeline_months: number | null;
+    income_type: string | null;
+    exit_intent: number;
+    idea_risk_tolerance: string | null;
+    max_acceptable_loss: number | null;
+    pivot_willingness: string | null;
+    validation_budget: number;
+    max_time_to_validate_months: number | null;
+    kill_criteria: string | null;
+  }>('SELECT * FROM idea_financial_allocations WHERE idea_id = ?', [idea.id]);
+
+  let allocation: IdeaFinancialAllocation | undefined;
+  if (allocationRow) {
+    allocation = {
+      id: allocationRow.id,
+      ideaId: allocationRow.idea_id,
+      allocatedBudget: allocationRow.allocated_budget,
+      allocatedWeeklyHours: allocationRow.allocated_weekly_hours,
+      allocatedRunwayMonths: allocationRow.allocated_runway_months,
+      allocationPriority: (allocationRow.allocation_priority || 'exploration') as 'primary' | 'secondary' | 'exploration' | 'parked',
+      strategicApproach: allocationRow.strategic_approach as StrategicApproach || undefined,
+      targetIncomeFromIdea: allocationRow.target_income_from_idea ?? undefined,
+      incomeTimelineMonths: allocationRow.income_timeline_months ?? undefined,
+      incomeType: (allocationRow.income_type || 'supplement') as 'full_replacement' | 'partial_replacement' | 'supplement' | 'wealth_building' | 'learning',
+      exitIntent: allocationRow.exit_intent === 1,
+      ideaRiskTolerance: allocationRow.idea_risk_tolerance as 'low' | 'medium' | 'high' | 'very_high' | undefined,
+      maxAcceptableLoss: allocationRow.max_acceptable_loss ?? undefined,
+      pivotWillingness: (allocationRow.pivot_willingness || 'moderate') as 'rigid' | 'moderate' | 'flexible' | 'very_flexible',
+      validationBudget: allocationRow.validation_budget,
+      maxTimeToValidateMonths: allocationRow.max_time_to_validate_months ?? undefined,
+      killCriteria: allocationRow.kill_criteria ?? undefined
+    };
+  }
+
+  // Build gap analysis from readiness data
+  const gapAnalysis = {
+    assumptions: readiness.blockingGaps?.map((gap, idx) => ({
+      id: `gap-${idx}`,
+      text: gap,
+      category: 'problem' as const,
+      impact: 'critical' as const,
+      confidence: 'low' as const,
+      addressed: false
+    })) || [],
+    criticalGapsCount: readiness.blockingGaps?.length || 0,
+    significantGapsCount: 0,
+    readinessScore: Math.round(readiness.overall * 100)
+  };
+
+  // Create cost tracker with $5 budget for positioning analysis
+  const costTracker = new CostTracker(5.00);
+
+  try {
+    // Run positioning analysis
+    const analysis = await runPositioningAnalysis({
+      ideaTitle: idea.title,
+      ideaSummary: idea.summary || '',
+      ideaContent,
+      approach,
+      gapAnalysis,
+      answers,
+      profile: profileContext,
+      allocation
+    }, costTracker);
+
+    // Get cost report
+    const costReport = costTracker.getReport();
+    console.log(`Positioning analysis complete. Cost: $${costReport.estimatedCost.toFixed(4)}, API calls: ${costReport.apiCalls}`);
+
+    // Save cost to database
+    const runId = `pos-${Date.now()}`;
+    for (const entry of costTracker.getLog()) {
+      await query(
+        `INSERT INTO cost_log (evaluation_run_id, idea_id, operation, input_tokens, output_tokens, estimated_cost, timestamp)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          runId,
+          idea.id,
+          entry.operation,
+          entry.inputTokens,
+          entry.outputTokens,
+          entry.cost,
+          entry.timestamp.toISOString()
+        ]
+      );
+    }
+    await saveDb();
+
+    // Transform analysis for storage
+    const strategies = analysis.strategies.map((strat, idx) => ({
+      id: strat.id || `strat-${idx}`,
+      name: strat.name,
+      description: strat.description,
+      differentiators: strat.differentiators,
+      tradeoffs: strat.tradeoffs,
+      fitWithProfile: strat.fitWithProfile,
+      fiveWH: strat.fiveWH,
+      addressesOpportunities: strat.addressesOpportunities,
+      mitigatesRisks: strat.mitigatesRisks,
+      timingAlignment: strat.timingAlignment,
+      revenueEstimates: strat.revenueEstimates,
+      goalAlignment: strat.goalAlignment,
+      profileFitBreakdown: strat.profileFitBreakdown
+    }));
+
+    // Save results to differentiation_results table
+    const resultId = `pos-result-${Date.now()}`;
+    await query(
+      `INSERT INTO differentiation_results
+       (id, idea_id, run_id, opportunities, strategies, competitive_risks, summary, overall_confidence, cost_dollars, api_calls, created_at, strategic_approach, strategic_summary)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        resultId,
+        idea.id,
+        runId,
+        JSON.stringify(analysis.marketOpportunities),
+        JSON.stringify(strategies),
+        JSON.stringify(analysis.competitiveRisks),
+        analysis.summary,
+        analysis.overallConfidence,
+        costReport.estimatedCost,
+        costReport.apiCalls,
+        new Date().toISOString(),
+        approach,
+        JSON.stringify(analysis.strategicSummary)
+      ]
+    );
+
+    await saveDb();
+
+    // Return results
+    respond(res, {
+      id: resultId,
+      approach: analysis.strategicApproach,
+      strategicSummary: analysis.strategicSummary,
+      marketOpportunities: analysis.marketOpportunities,
+      competitiveRisks: analysis.competitiveRisks,
+      strategies,
+      marketTiming: analysis.marketTiming,
+      summary: analysis.summary,
+      overallConfidence: analysis.overallConfidence,
+      cost: {
+        dollars: costReport.estimatedCost,
+        apiCalls: costReport.apiCalls
+      }
+    });
+  } catch (err) {
+    console.error('Positioning analysis failed:', err);
+    res.status(500).json({
+      success: false,
+      error: err instanceof Error ? err.message : 'Positioning analysis failed'
+    });
+  }
 }));
 
 // Start server with WebSocket support

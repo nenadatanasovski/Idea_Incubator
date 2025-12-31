@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Lightbulb, LayoutDashboard, List, GitCompare, MessageSquare, User, ScrollText } from 'lucide-react'
+import { Lightbulb, LayoutDashboard, List, GitCompare, MessageSquare, User, ScrollText, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
 
 interface LayoutProps {
@@ -8,6 +8,7 @@ interface LayoutProps {
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Ideate', href: '/ideate', icon: Sparkles, highlight: true },
   { name: 'Ideas', href: '/ideas', icon: List },
   { name: 'Compare', href: '/compare', icon: GitCompare },
   { name: 'Debates', href: '/debate', icon: MessageSquare },
@@ -20,9 +21,9 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Header - Fixed */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               {/* Logo */}
@@ -38,6 +39,7 @@ export default function Layout({ children }: LayoutProps) {
                 {navigation.map((item) => {
                   const isActive = location.pathname === item.href ||
                     (item.href !== '/' && location.pathname.startsWith(item.href))
+                  const isHighlight = 'highlight' in item && item.highlight
                   return (
                     <Link
                       key={item.name}
@@ -46,7 +48,9 @@ export default function Layout({ children }: LayoutProps) {
                         'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md',
                         isActive
                           ? 'bg-primary-50 text-primary-700'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                          : isHighlight
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       )}
                     >
                       <item.icon className="h-4 w-4 mr-2" />
@@ -60,8 +64,8 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main content - pt-16 accounts for fixed header */}
+      <main className="px-4 sm:px-6 lg:px-8 pt-16 pb-6">
         {children}
       </main>
     </div>

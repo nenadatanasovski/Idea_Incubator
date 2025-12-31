@@ -12,7 +12,7 @@ import { query, run, saveDb, closeDb } from '../database/db.js';
 import { runMigrations } from '../database/migrate.js';
 import { CostTracker } from '../utils/cost-tracker.js';
 import { getConfig, updateConfig } from '../config/index.js';
-import { evaluateIdea, formatEvaluationResults, type FullEvaluationResult, type StructuredEvaluationContext, type StructuredAnswerData } from '../agents/evaluator.js';
+import { evaluateIdea, formatEvaluationResults, type FullEvaluationResult, type StructuredEvaluationContext, type StructuredAnswerData, type PositioningRiskContext, type StrategicPositioningContext } from '../agents/evaluator.js';
 import { getAnswersForIdea, calculateReadiness, calculateCriterionCoverage } from '../questions/readiness.js';
 import { getQuestionsByIds } from '../questions/loader.js';
 import { runAllSpecializedEvaluators } from '../agents/specialized-evaluators.js';
@@ -36,8 +36,10 @@ program
   .option('-m, --mode <mode>', 'Evaluator mode: v1 (sequential) or v2 (parallel)', 'v2')
   .option('--skip-debate', 'Skip debate phase (initial evaluation only)')
   .option('--unlimited', 'Disable budget limits (run to completion regardless of cost)')
+  .option('--debate-rounds <rounds>', 'Number of debate rounds per criterion (1-3)', '1')
   .option('--dry-run', 'Show what would happen without running')
   .option('-v, --verbose', 'Show detailed output')
+  .option('--run-id <id>', 'Use a specific run ID (for API integration)')
   .action(async (slug, options) => {
     // Set a maximum execution time failsafe (30 minutes)
     // Full evaluations with debates can take 15-20 minutes
@@ -63,12 +65,24 @@ program
         process.exit(1);
       }
 
+      // Set debate rounds (1-3)
+      const debateRounds = Math.min(3, Math.max(1, parseInt(options.debateRounds) || 1));
+      if (debateRounds !== 3) {  // Only update if not using default config value
+        updateConfig({
+          debate: {
+            ...getConfig().debate,
+            roundsPerChallenge: debateRounds
+          }
+        });
+      }
+
       logInfo(`Starting evaluation for: ${slug}`);
       if (unlimited) {
         logWarning('UNLIMITED MODE: Budget limits disabled. This could result in significant charges.');
       } else {
         logInfo(`Budget: $${budget.toFixed(2)}`);
       }
+      logInfo(`Debate rounds per criterion: ${debateRounds}`);
 
       // Check if idea exists
       const idea = await query<{
@@ -88,8 +102,8 @@ program
       const ideaData = idea[0];
       logInfo(`Found: "${ideaData.title}" (${ideaData.lifecycle_stage})`);
 
-      // Generate run ID for WebSocket broadcasting
-      const runId = randomUUID();
+      // Use provided run ID or generate a new one for WebSocket broadcasting
+      const runId = options.runId || randomUUID();
       const broadcaster = createBroadcaster(slug, runId);
 
       // Notify clients that evaluation is starting
@@ -226,12 +240,170 @@ program
         logInfo('Skipping research phase (web search unavailable)');
       }
 
+      // Load full positioning context from Position phase
+      let positioningContext: PositioningRiskContext | null = null;
+      let strategicContext: StrategicPositioningContext | null = null;
+
+      // Load positioning decisions (strategy selection, timing, approach)
+      const positioningDecision = await query<{
+        primary_strategy_id: string | null;
+        primary_strategy_name: string | null;
+        timing_decision: string | null;
+        timing_rationale: string | null;
+        selected_approach: string | null;
+        risk_responses: string | null;
+        risk_response_stats: string | null;
+        notes: string | null;
+      }>(`SELECT primary_strategy_id, primary_strategy_name, timing_decision, timing_rationale,
+                 selected_approach, risk_responses, risk_response_stats, notes
+          FROM positioning_decisions WHERE idea_id = ? ORDER BY created_at DESC LIMIT 1`, [ideaData.id]);
+
+      // Load financial allocation
+      const financialAllocation = await query<{
+        allocated_budget: number | null;
+        allocated_weekly_hours: number | null;
+        allocated_runway_months: number | null;
+        target_income_from_idea: number | null;
+        income_timeline_months: number | null;
+        income_type: string | null;
+        validation_budget: number | null;
+        kill_criteria: string | null;
+        strategic_approach: string | null;
+      }>(`SELECT allocated_budget, allocated_weekly_hours, allocated_runway_months,
+                 target_income_from_idea, income_timeline_months, income_type,
+                 validation_budget, kill_criteria, strategic_approach
+          FROM idea_financial_allocations WHERE idea_id = ?`, [ideaData.id]);
+
+      // Load differentiation results (for market opportunities and competitive risks)
+      const diffResults = await query<{
+        opportunities: string | null;
+        competitive_risks: string | null;
+        market_timing_analysis: string | null;
+        strategic_summary: string | null;
+      }>(`SELECT opportunities, competitive_risks, market_timing_analysis, strategic_summary
+          FROM differentiation_results WHERE idea_id = ? ORDER BY created_at DESC LIMIT 1`, [ideaData.id]);
+
+      // Build risk context (for backward compatibility)
+      if (positioningDecision.length > 0 && positioningDecision[0].risk_responses) {
+        try {
+          positioningContext = {
+            riskResponses: JSON.parse(positioningDecision[0].risk_responses),
+            riskResponseStats: positioningDecision[0].risk_response_stats
+              ? JSON.parse(positioningDecision[0].risk_response_stats)
+              : undefined
+          };
+          logInfo(`Loaded ${positioningContext.riskResponses?.length || 0} risk responses from Position phase`);
+        } catch {
+          logWarning('Failed to parse positioning risk responses');
+        }
+      }
+
+      // Build comprehensive strategic context
+      const hasPositioningData = positioningDecision.length > 0 && positioningDecision[0].primary_strategy_name;
+      const hasFinancialData = financialAllocation.length > 0 && (
+        financialAllocation[0].allocated_budget ||
+        financialAllocation[0].allocated_weekly_hours ||
+        financialAllocation[0].target_income_from_idea
+      );
+      const hasDiffData = diffResults.length > 0;
+
+      if (hasPositioningData || hasFinancialData || hasDiffData) {
+        strategicContext = {};
+
+        // Add selected strategy
+        if (positioningDecision.length > 0 && positioningDecision[0].primary_strategy_name) {
+          const pd = positioningDecision[0];
+          strategicContext.selectedStrategy = {
+            name: pd.primary_strategy_name!, // Non-null asserted (verified in condition above)
+            description: '' // Would need to load from differentiation_results if needed
+          };
+
+          // Add strategic approach
+          if (pd.selected_approach) {
+            strategicContext.strategicApproach = pd.selected_approach as any;
+          }
+
+          // Add timing decision
+          if (pd.timing_decision) {
+            strategicContext.timing = {
+              decision: pd.timing_decision as 'proceed_now' | 'wait' | 'urgent',
+              rationale: pd.timing_rationale || undefined
+            };
+          }
+        }
+
+        // Add financial context
+        if (financialAllocation.length > 0) {
+          const fa = financialAllocation[0];
+          if (fa.allocated_budget || fa.allocated_weekly_hours || fa.target_income_from_idea) {
+            strategicContext.financials = {
+              allocatedBudget: fa.allocated_budget || undefined,
+              allocatedWeeklyHours: fa.allocated_weekly_hours || undefined,
+              allocatedRunwayMonths: fa.allocated_runway_months || undefined,
+              targetIncome: fa.target_income_from_idea || undefined,
+              incomeTimelineMonths: fa.income_timeline_months || undefined,
+              incomeType: fa.income_type as any,
+              validationBudget: fa.validation_budget || undefined,
+              killCriteria: fa.kill_criteria || undefined
+            };
+
+            // Use financial approach if positioning approach not set
+            if (!strategicContext.strategicApproach && fa.strategic_approach) {
+              strategicContext.strategicApproach = fa.strategic_approach as any;
+            }
+          }
+        }
+
+        // Add differentiation insights
+        if (diffResults.length > 0) {
+          const dr = diffResults[0];
+          strategicContext.differentiation = {};
+
+          if (dr.opportunities) {
+            try {
+              const opps = JSON.parse(dr.opportunities);
+              strategicContext.differentiation.topOpportunities = opps
+                .slice(0, 3)
+                .map((o: any) => `${o.targetSegment || o.segment || 'Unknown'}: ${o.description || 'No description'}`);
+            } catch { /* ignore parse errors */ }
+          }
+
+          if (dr.competitive_risks) {
+            try {
+              const risks = JSON.parse(dr.competitive_risks);
+              strategicContext.differentiation.competitiveRisks = risks
+                .slice(0, 3)
+                .map((r: any) => r.description || r.risk || 'Unknown risk');
+            } catch { /* ignore parse errors */ }
+          }
+
+          if (dr.market_timing_analysis) {
+            try {
+              const timing = JSON.parse(dr.market_timing_analysis);
+              strategicContext.differentiation.marketTimingAnalysis =
+                timing.recommendation || timing.summary || 'Market timing analysis available';
+            } catch {
+              strategicContext.differentiation.marketTimingAnalysis = dr.market_timing_analysis;
+            }
+          }
+
+          if (dr.strategic_summary) {
+            strategicContext.differentiation.strategicSummary = dr.strategic_summary;
+          }
+        }
+
+        // Add risk context
+        strategicContext.riskContext = positioningContext || undefined;
+
+        logInfo(`Loaded Position phase context - Strategy: ${strategicContext.selectedStrategy?.name || 'Not set'}, Budget: $${strategicContext.financials?.allocatedBudget || 'Not set'}`);
+      }
+
       console.log(`\n--- Starting Evaluation (${mode === 'v2' ? 'Parallel Specialists' : 'Sequential Generalist'}) ---\n`);
 
       // Run evaluation based on mode
       let result: FullEvaluationResult;
       if (mode === 'v2') {
-        // v2: Parallel specialized evaluators
+        // v2: Parallel specialized evaluators (TODO: Add strategicContext support)
         const v2Result = await runAllSpecializedEvaluators(
           slug,
           ideaData.id,
@@ -256,7 +428,9 @@ program
           costTracker,
           broadcaster,
           profileContext,
-          structuredContext
+          structuredContext,
+          positioningContext,
+          strategicContext
         );
       }
 
@@ -701,6 +875,20 @@ async function saveDebateResults(
         ]
       );
     }
+
+    // First principles: Update evaluations.final_score with post-debate adjustment
+    // This ensures the evaluations table contains the true final score after debate
+    // Uses MAX/MIN to clamp to valid range [1, 10] to respect CHECK constraint
+    const adjustment = debate.finalScore - debate.originalScore;
+    await run(
+      `UPDATE evaluations
+       SET final_score = MAX(1, MIN(10, COALESCE(initial_score, final_score) + ?))
+       WHERE idea_id = ?
+         AND evaluation_run_id = ?
+         AND criterion = ?`,
+      [adjustment, ideaId, sessionId, debate.criterion.name]
+    );
+    logDebug(`Updated ${debate.criterion.name} final_score: ${debate.originalScore} → ${debate.finalScore} (adj: ${adjustment > 0 ? '+' : ''}${adjustment})`);
   }
 
   logDebug('Debate results saved');

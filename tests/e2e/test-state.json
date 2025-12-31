@@ -345,20 +345,20 @@
     },
     {
       "id": "TEST-CM-004",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Fixed: Confidence calculator wasn't handling string formats from LLM. Updated confidence-calculator.ts to handle both object format ({severity: 'high'}) and string format ('frustration text'). Verified: (1) Confidence goes from 0% to 90% with comprehensive message containing frustrations, gaps, target user, solution. (2) Confidence stays stable at 90% after follow-up message. (3) Score reflects breakdown components properly.",
       "dependsOn": "TEST-CM-001",
       "automatable": true,
       "needsFreshSession": false
     },
     {
       "id": "TEST-CM-005",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Verified: Viability score 85% (Healthy) shown. Risk item displayed: 'too vague' / 'medium' / 'Target customer not clearly defined'. Risks are relevant to idea and formatted correctly.",
       "dependsOn": "TEST-CM-001",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 26,
+    "passed": 28,
     "failed": 0,
     "blocked": 5,
-    "pending": 33,
+    "pending": 31,
     "skipped": 0
   },
   "criticalPath": [

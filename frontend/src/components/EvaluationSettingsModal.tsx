@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { X, DollarSign, AlertTriangle, Play } from 'lucide-react'
+import { X, DollarSign, AlertTriangle, Play, MessageSquare } from 'lucide-react'
 import clsx from 'clsx'
 
 interface EvaluationSettingsModalProps {
-  onStart: (settings: { budget: number; unlimited: boolean }) => void
+  onStart: (settings: { budget: number; unlimited: boolean; debateRounds: number }) => void
   onClose: () => void
   loading?: boolean
   initialBudget?: number
+  initialDebateRounds?: number
 }
 
 export default function EvaluationSettingsModal({
@@ -14,13 +15,15 @@ export default function EvaluationSettingsModal({
   onClose,
   loading = false,
   initialBudget = 15,
+  initialDebateRounds = 1,
 }: EvaluationSettingsModalProps) {
   const [budget, setBudget] = useState(initialBudget)
   const [unlimited, setUnlimited] = useState(false)
+  const [debateRounds, setDebateRounds] = useState(initialDebateRounds)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onStart({ budget, unlimited })
+    onStart({ budget, unlimited, debateRounds })
   }
 
   return (
@@ -64,6 +67,29 @@ export default function EvaluationSettingsModal({
               </div>
               <p className="mt-1 text-xs text-gray-500">
                 Typical evaluation costs $3-8. Higher budgets allow more thorough debate rounds.
+              </p>
+            </div>
+
+            {/* Debate Rounds Input */}
+            <div>
+              <label htmlFor="debateRounds" className="block text-sm font-medium text-gray-700 mb-1">
+                Debate Rounds
+              </label>
+              <div className="relative">
+                <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="number"
+                  id="debateRounds"
+                  min="1"
+                  max="3"
+                  step="1"
+                  value={debateRounds}
+                  onChange={(e) => setDebateRounds(Math.min(3, Math.max(1, parseInt(e.target.value) || 1)))}
+                  className="input pl-10 w-full"
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Number of challenge/defense rounds per criterion (1-3). More rounds = deeper analysis but higher cost.
               </p>
             </div>
 

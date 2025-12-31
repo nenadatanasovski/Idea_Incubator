@@ -190,6 +190,10 @@ export const IndustryConnectionSchema = z.object({
 
 export type IndustryConnection = z.infer<typeof IndustryConnectionSchema>;
 
+// Debt tolerance level
+export const DebtToleranceSchema = z.enum(['none', 'low', 'moderate', 'high']);
+export type DebtTolerance = z.infer<typeof DebtToleranceSchema>;
+
 // Full user profile schema
 export const UserProfileSchema = z.object({
   id: z.string().uuid(),
@@ -223,6 +227,15 @@ export const UserProfileSchema = z.object({
   financialRunwayMonths: z.number().min(0).optional(),
   riskTolerance: RiskToleranceSchema.optional(),
   otherCommitments: z.string().optional(),
+
+  // Extended Financial Fields (Portfolio Level)
+  currentAnnualIncome: z.number().min(0).optional(),
+  monthlyBurnRate: z.number().min(0).optional(),
+  hasAlternativeIncome: z.boolean().optional(),
+  totalInvestmentCapacity: z.number().min(0).optional(),
+  debtTolerance: DebtToleranceSchema.optional(),
+  willingnessToRaiseFunding: z.boolean().optional(),
+  lifestyleIncomeTarget: z.number().min(0).optional(),
 
   // Geographic Location (for market analysis)
   country: z.string().optional(),

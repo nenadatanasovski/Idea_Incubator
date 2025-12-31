@@ -1,0 +1,4 @@
+# Ralph Loop E2E Testing Harness
+# Python dependencies for Claude Agent SDK harness
+
+claude-code-sdk>=0.1.0

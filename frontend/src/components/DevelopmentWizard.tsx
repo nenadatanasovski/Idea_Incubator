@@ -434,6 +434,7 @@ export default function DevelopmentWizard({
                       onAnswer={handleAnswer}
                       onSkip={handleSkip}
                       existingAnswer={answers.get(currentQuestion.id)}
+                      ideaSlug={ideaSlug}
                     />
 
                     {/* Submission Error Display */}
@@ -553,6 +554,7 @@ export default function DevelopmentWizard({
                       onAnswer={handleAnswer}
                       onSkip={() => setSelectedQuestion(null)}
                       existingAnswer={selectedQuestion.answer}
+                      ideaSlug={ideaSlug}
                     />
 
                     {submitError && (

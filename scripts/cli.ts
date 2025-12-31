@@ -1,8 +1,31 @@
 #!/usr/bin/env tsx
 import { Command } from 'commander';
 import { logInfo, logSuccess, logError, logWarning } from '../utils/logger.js';
-import { getDb, closeDb, query } from '../database/db.js';
+import { getDb, closeDb, query, getOne, saveDb } from '../database/db.js';
 import { runMigrations } from '../database/migrate.js';
+import {
+  pauseIdea,
+  resumeIdea,
+  abandonIdea,
+  resurrectIdea,
+  archiveIdea,
+  completeIdea,
+  getStatusHistory,
+  formatStatusHistory,
+  getStatusIcon
+} from '../utils/status.js';
+import {
+  createVersionSnapshot,
+  getVersionHistory,
+  compareVersions,
+  formatVersionHistory,
+  formatVersionDiff
+} from '../utils/versioning.js';
+import {
+  createBranch,
+  getLineage,
+  formatLineageTree
+} from '../utils/lineage.js';
 
 const program = new Command();
 
@@ -188,6 +211,408 @@ program
 
     } catch (error) {
       logError('Failed to get stats', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// ============================================================================
+// Status Management Commands
+// ============================================================================
+
+// Pause an idea
+program
+  .command('pause <slug>')
+  .description('Pause an active idea')
+  .option('-r, --reason <reason>', 'Reason for pausing', 'Paused via CLI')
+  .action(async (slug, options) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{ id: string; slug: string; status: string }>(
+        'SELECT id, slug, status FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      await pauseIdea(idea.id, options.reason);
+      await saveDb();
+      logSuccess(`Paused: ${slug}`);
+      console.log(`Reason: ${options.reason}`);
+    } catch (error) {
+      logError('Failed to pause idea', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// Resume an idea
+program
+  .command('resume <slug>')
+  .description('Resume a paused idea')
+  .action(async (slug) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{ id: string; slug: string }>(
+        'SELECT id, slug FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      await resumeIdea(idea.id);
+      await saveDb();
+      logSuccess(`Resumed: ${slug}`);
+    } catch (error) {
+      logError('Failed to resume idea', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// Abandon an idea
+program
+  .command('abandon <slug>')
+  .description('Abandon an idea')
+  .option('-r, --reason <reason>', 'Reason for abandoning', 'Abandoned via CLI')
+  .action(async (slug, options) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{ id: string; slug: string }>(
+        'SELECT id, slug FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      await abandonIdea(idea.id, options.reason);
+      await saveDb();
+      logSuccess(`Abandoned: ${slug}`);
+      console.log(`Reason: ${options.reason}`);
+    } catch (error) {
+      logError('Failed to abandon idea', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// Resurrect an idea
+program
+  .command('resurrect <slug>')
+  .description('Resurrect an abandoned or archived idea')
+  .option('-r, --reason <reason>', 'Reason for resurrecting', 'Resurrected via CLI')
+  .action(async (slug, options) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{ id: string; slug: string }>(
+        'SELECT id, slug FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      await resurrectIdea(idea.id, options.reason);
+      await saveDb();
+      logSuccess(`Resurrected: ${slug}`);
+    } catch (error) {
+      logError('Failed to resurrect idea', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// Archive an idea
+program
+  .command('archive <slug>')
+  .description('Archive an idea')
+  .action(async (slug) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{ id: string; slug: string }>(
+        'SELECT id, slug FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      await archiveIdea(idea.id);
+      await saveDb();
+      logSuccess(`Archived: ${slug}`);
+    } catch (error) {
+      logError('Failed to archive idea', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// Complete an idea
+program
+  .command('complete <slug>')
+  .description('Mark an idea as completed')
+  .action(async (slug) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{ id: string; slug: string }>(
+        'SELECT id, slug FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      await completeIdea(idea.id);
+      await saveDb();
+      logSuccess(`Completed: ${slug}`);
+    } catch (error) {
+      logError('Failed to complete idea', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// Show status and history
+program
+  .command('status <slug>')
+  .description('Show current status and history')
+  .action(async (slug) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{
+        id: string;
+        slug: string;
+        title: string;
+        status: string;
+        status_reason: string | null;
+        status_changed_at: string | null;
+      }>(
+        'SELECT id, slug, title, status, status_reason, status_changed_at FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      console.log(`\n${getStatusIcon(idea.status as any)} ${idea.title}`);
+      console.log(`Status: ${idea.status.toUpperCase()}`);
+      if (idea.status_reason) {
+        console.log(`Reason: ${idea.status_reason}`);
+      }
+      if (idea.status_changed_at) {
+        console.log(`Changed: ${idea.status_changed_at}`);
+      }
+
+      const history = await getStatusHistory(idea.id);
+      console.log(formatStatusHistory(history));
+    } catch (error) {
+      logError('Failed to get status', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// ============================================================================
+// Version Management Commands
+// ============================================================================
+
+// List version history
+program
+  .command('versions <slug>')
+  .description('List version history')
+  .option('-l, --limit <n>', 'Limit number of versions', '10')
+  .action(async (slug, options) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{ id: string; slug: string }>(
+        'SELECT id, slug FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      const versions = await getVersionHistory(idea.id);
+      const limited = versions.slice(0, parseInt(options.limit));
+
+      if (limited.length === 0) {
+        logInfo('No versions found.');
+        return;
+      }
+
+      console.log(formatVersionHistory(limited));
+    } catch (error) {
+      logError('Failed to get versions', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// Compare two versions
+program
+  .command('compare <slug> <v1> <v2>')
+  .description('Compare two versions')
+  .action(async (slug, v1, v2) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{ id: string; slug: string }>(
+        'SELECT id, slug FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      const diff = await compareVersions(idea.id, parseInt(v1), parseInt(v2));
+      console.log(formatVersionDiff(diff));
+    } catch (error) {
+      logError('Failed to compare versions', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// Create manual snapshot
+program
+  .command('snapshot <slug>')
+  .description('Create a manual version snapshot')
+  .option('-s, --summary <text>', 'Summary of changes', 'Manual snapshot')
+  .action(async (slug, options) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{ id: string; slug: string; current_version: number }>(
+        'SELECT id, slug, current_version FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      await createVersionSnapshot(idea.id, 'manual', options.summary);
+      await saveDb();
+      logSuccess(`Created snapshot v${idea.current_version + 1} for ${slug}`);
+    } catch (error) {
+      logError('Failed to create snapshot', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// ============================================================================
+// Lineage & Branching Commands
+// ============================================================================
+
+// Create a branch
+program
+  .command('branch <slug>')
+  .description('Create a branch from an idea')
+  .requiredOption('-t, --title <title>', 'Title for the new branch')
+  .requiredOption('-r, --reason <reason>', 'How this differs from the original')
+  .option('-a, --action <action>', 'What to do with parent: keep, pause, abandon', 'keep')
+  .action(async (slug, options) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{ id: string; slug: string }>(
+        'SELECT id, slug FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      const parentAction = options.action === 'pause'
+        ? 'pause'
+        : options.action === 'abandon'
+          ? 'abandon'
+          : 'keep_active';
+
+      const newSlug = await createBranch({
+        parentIdeaId: idea.id,
+        newTitle: options.title,
+        branchReason: options.reason,
+        parentAction
+      });
+
+      await saveDb();
+      logSuccess(`Created branch: ${newSlug}`);
+      console.log(`Parent action: ${parentAction}`);
+    } catch (error) {
+      logError('Failed to create branch', error as Error);
+      process.exit(1);
+    } finally {
+      await closeDb();
+    }
+  });
+
+// Show lineage tree
+program
+  .command('lineage <slug>')
+  .description("Show idea's family tree")
+  .action(async (slug) => {
+    try {
+      await runMigrations();
+
+      const idea = await getOne<{ id: string; slug: string }>(
+        'SELECT id, slug FROM ideas WHERE slug = ?',
+        [slug]
+      );
+
+      if (!idea) {
+        logWarning(`Idea not found: ${slug}`);
+        return;
+      }
+
+      const lineage = await getLineage(idea.id);
+      console.log(formatLineageTree(lineage));
+    } catch (error) {
+      logError('Failed to get lineage', error as Error);
       process.exit(1);
     } finally {
       await closeDb();

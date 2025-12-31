@@ -81,9 +81,10 @@ export interface DebateSession {
   idea_title: string;
   round_count: number;
   criterion_count: number;
+  rounds_per_criterion: number;
   started_at: string;
   latest_at: string;
-  status?: 'complete' | 'in-progress' | 'evaluation-only';
+  status?: 'complete' | 'in-progress' | 'evaluation-only' | 'data-loss';
 }
 
 export interface DebateSessionDetail extends DebateSession {
@@ -279,6 +280,7 @@ export interface TriggerEvaluationInput {
   mode?: 'v1' | 'v2';
   skipDebate?: boolean;
   unlimited?: boolean;
+  debateRounds?: number;  // Number of debate rounds per criterion (1-3)
 }
 
 export interface TriggerEvaluationResult {
@@ -461,4 +463,632 @@ export async function startDevelopmentSession(
 // Get active development session
 export async function getDevelopmentSession(slug: string): Promise<DevelopmentSession | null> {
   return fetchApi<DevelopmentSession | null>(`/ideas/${slug}/develop`);
+}
+
+// ==================== Incubation Lifecycle ====================
+
+// Types for incubation lifecycle
+export type IdeaStatus = 'active' | 'paused' | 'abandoned' | 'completed' | 'archived';
+export type IncubationPhase = 'capture' | 'clarify' | 'position' | 'update' | 'evaluate' | 'iterate';
+
+export interface IdeaVersion {
+  id: string;
+  ideaId: string;
+  versionNumber: number;
+  iterationNumber: number;
+  contentSnapshot: string;
+  evaluationSnapshot?: string;
+  phase: IncubationPhase;
+  changeType: string;
+  changeSummary?: string;
+  createdAt: string;
+}
+
+export interface VersionDiff {
+  from: number;
+  to: number;
+  contentChanges: Array<{
+    field: string;
+    before: string;
+    after: string;
+  }>;
+  scoreChanges?: Array<{
+    criterion: string;
+    before: number;
+    after: number;
+    delta: number;
+  }>;
+}
+
+export interface StatusHistoryEntry {
+  id: number;
+  ideaId: string;
+  fromStatus: IdeaStatus | null;
+  toStatus: IdeaStatus;
+  reason?: string;
+  changedAt: string;
+}
+
+export interface IdeaSummary {
+  id: string;
+  slug: string;
+  title: string;
+  status: IdeaStatus;
+  currentVersion: number;
+  latestScore?: number;
+  branchReason?: string;
+}
+
+export interface IdeaLineage {
+  current: IdeaSummary;
+  parent?: IdeaSummary;
+  children: IdeaSummary[];
+  ancestors: IdeaSummary[];
+}
+
+export interface IterationLog {
+  id: string;
+  ideaId: string;
+  fromIteration: number;
+  toIteration: number;
+  triggerCriteria: string[];
+  focusCategories: string[];
+  userDirection: string;
+  previousScore: number;
+  createdAt: string;
+}
+
+export interface Assumption {
+  id: string;
+  assumption_text: string;
+  category: string;
+  risk_level: string;
+  validated: boolean;
+  validation_notes: string | null;
+  created_at: string;
+}
+
+export interface GateDecision {
+  id: string;
+  gate_type: string;
+  advisory_shown: string;
+  user_choice: string;
+  readiness_score: number | null;
+  overall_score: number | null;
+  decided_at: string;
+}
+
+// Version history
+export async function getVersionHistory(slug: string): Promise<IdeaVersion[]> {
+  return fetchApi<IdeaVersion[]>(`/ideas/${slug}/versions`);
+}
+
+// Get specific version
+export async function getVersionSnapshot(slug: string, version: number): Promise<IdeaVersion> {
+  return fetchApi<IdeaVersion>(`/ideas/${slug}/versions/${version}`);
+}
+
+// Compare two versions
+export async function compareVersions(slug: string, v1: number, v2: number): Promise<VersionDiff> {
+  return fetchApi<VersionDiff>(`/ideas/${slug}/versions/compare/${v1}/${v2}`);
+}
+
+// Create manual snapshot
+export async function createSnapshot(slug: string, summary?: string): Promise<{ versionId: string }> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/snapshot`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ summary }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to create snapshot');
+  }
+  const result: ApiResponse<{ versionId: string }> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to create snapshot');
+  }
+  return result.data;
+}
+
+// Lineage
+export async function getLineage(slug: string): Promise<IdeaLineage> {
+  return fetchApi<IdeaLineage>(`/ideas/${slug}/lineage`);
+}
+
+// Create branch
+export async function createBranch(
+  slug: string,
+  data: { title: string; reason: string; parentAction?: 'keep_active' | 'pause' | 'abandon' }
+): Promise<{ slug: string }> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/branch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to create branch');
+  }
+  const result: ApiResponse<{ slug: string }> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to create branch');
+  }
+  return result.data;
+}
+
+// Status history
+export async function getStatusHistory(slug: string): Promise<StatusHistoryEntry[]> {
+  return fetchApi<StatusHistoryEntry[]>(`/ideas/${slug}/status-history`);
+}
+
+// Update status
+export async function updateIdeaStatus(
+  slug: string,
+  status: IdeaStatus,
+  reason?: string
+): Promise<{ previousStatus: string; newStatus: string }> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, reason }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to update status');
+  }
+  const result: ApiResponse<{ previousStatus: string; newStatus: string }> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to update status');
+  }
+  return result.data;
+}
+
+// Iterations
+export async function getIterations(slug: string): Promise<IterationLog[]> {
+  return fetchApi<IterationLog[]>(`/ideas/${slug}/iterations`);
+}
+
+// Assumptions
+export async function getAssumptions(slug: string): Promise<Assumption[]> {
+  return fetchApi<Assumption[]>(`/ideas/${slug}/assumptions`);
+}
+
+// Gate decisions
+export async function getGateDecisions(slug: string): Promise<GateDecision[]> {
+  return fetchApi<GateDecision[]>(`/ideas/${slug}/gates`);
+}
+
+// Update incubation phase
+export async function updateIncubationPhase(
+  slug: string,
+  phase: IncubationPhase
+): Promise<{ previousPhase: string; newPhase: string }> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/phase`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phase }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to update phase');
+  }
+  const result: ApiResponse<{ previousPhase: string; newPhase: string }> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to update phase');
+  }
+  return result.data;
+}
+
+// Record gate decision
+export async function recordGateDecision(
+  slug: string,
+  data: {
+    gateType: 'viability' | 'evaluation';
+    advisoryShown: string;
+    userChoice: string;
+    readinessScore?: number;
+    overallScore?: number;
+  }
+): Promise<{ id: string }> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/gates`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to record gate decision');
+  }
+  const result: ApiResponse<{ id: string }> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to record gate decision');
+  }
+  return result.data;
+}
+
+// ==================== Differentiation Analysis ====================
+
+export interface FiveWH {
+  what?: string;
+  why?: string;
+  how?: string;
+  when?: string;
+  where?: string;
+  howMuch?: string;
+}
+
+export interface MarketOpportunity {
+  id: string;
+  segment: string;
+  description: string;
+  fit: 'high' | 'medium' | 'low';
+  confidence: number;
+  reasons: string[];
+  // Extended 5W+H fields
+  why?: string;
+  marketSize?: string;
+  timing?: string;
+}
+
+export interface DifferentiationStrategy {
+  id: string;
+  approach: string;
+  description: string;
+  validated: boolean;
+  validationNotes?: string;
+  alignedWith: string[];
+  risks: string[];
+  fitScore?: number;
+  fiveWH?: FiveWH;
+}
+
+export interface MarketTiming {
+  currentWindow: string;
+  urgency: 'high' | 'medium' | 'low';
+  keyTrends: string[];
+  recommendation: string;
+}
+
+export interface CompetitiveRisk {
+  id: string;
+  competitor: string;
+  threat: string;
+  severity: 'high' | 'medium' | 'low';
+  mitigation?: string;
+}
+
+export interface DifferentiationAnalysisResult {
+  opportunities: MarketOpportunity[];
+  strategies: DifferentiationStrategy[];
+  competitiveRisks: CompetitiveRisk[];
+  summary: string;
+  overallConfidence: number;
+  marketTiming?: MarketTiming;
+}
+
+// Run differentiation analysis for an idea
+export async function runDifferentiationAnalysis(
+  slug: string
+): Promise<DifferentiationAnalysisResult> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/differentiate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to run differentiation analysis');
+  }
+  const result: ApiResponse<DifferentiationAnalysisResult> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to run differentiation analysis');
+  }
+  return result.data;
+}
+
+// Extended result with metadata
+export interface SavedDifferentiationResult extends DifferentiationAnalysisResult {
+  id: string;
+  runId: string;
+  cost: number;
+  apiCalls: number;
+  createdAt: string;
+}
+
+// Get saved differentiation results for an idea
+export async function getDifferentiationResults(
+  slug: string
+): Promise<SavedDifferentiationResult | null> {
+  return fetchApi<SavedDifferentiationResult | null>(`/ideas/${slug}/differentiation`);
+}
+
+// ==================== Update Suggestions ====================
+
+export interface UpdateSuggestion {
+  id: string;
+  suggestedTitle: string;
+  suggestedSummary: string;
+  suggestedContent: string;
+  changeRationale: {
+    title: string;
+    summary: string;
+    content: string;
+    overall: string;
+  };
+  keyInsightsIncorporated?: string[];
+  positioningStrategy?: string;
+  targetSegment?: string;
+  status?: string;
+  createdAt?: string;
+  cost?: number;
+}
+
+// Generate AI update suggestions based on differentiation analysis
+export async function generateUpdateSuggestion(
+  slug: string,
+  selectedStrategyIndex?: number
+): Promise<UpdateSuggestion> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/generate-update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ selectedStrategyIndex }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to generate update suggestion');
+  }
+  const result: ApiResponse<UpdateSuggestion> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to generate update suggestion');
+  }
+  return result.data;
+}
+
+// Get saved update suggestion for an idea
+export async function getUpdateSuggestion(
+  slug: string
+): Promise<UpdateSuggestion | null> {
+  return fetchApi<UpdateSuggestion | null>(`/ideas/${slug}/update-suggestion`);
+}
+
+// Apply an update suggestion to the idea
+export async function applyUpdateSuggestion(
+  slug: string,
+  suggestionId: string,
+  modified?: { title?: string; summary?: string; content?: string }
+): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/apply-update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ suggestionId, modified }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to apply update');
+  }
+  const result: ApiResponse<{ success: boolean; message: string }> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to apply update');
+  }
+  return result.data;
+}
+
+// ==========================================
+// FINANCIAL ALLOCATION
+// ==========================================
+
+import type {
+  IdeaFinancialAllocation,
+  PositioningDecision,
+  StrategicApproach,
+} from '../types';
+
+// Get financial allocation for an idea
+export async function getFinancialAllocation(slug: string): Promise<IdeaFinancialAllocation> {
+  return fetchApi<IdeaFinancialAllocation>(`/ideas/${slug}/allocation`);
+}
+
+// Save financial allocation for an idea
+export async function saveFinancialAllocation(
+  slug: string,
+  allocation: Partial<IdeaFinancialAllocation>
+): Promise<{ id: string; updated?: boolean; created?: boolean }> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/allocation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(allocation),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to save allocation');
+  }
+  const result: ApiResponse<{ id: string; updated?: boolean; created?: boolean }> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to save allocation');
+  }
+  return result.data;
+}
+
+// Delete financial allocation for an idea
+export async function deleteFinancialAllocation(slug: string): Promise<{ deleted: boolean }> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/allocation`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to delete allocation');
+  }
+  const result: ApiResponse<{ deleted: boolean }> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to delete allocation');
+  }
+  return result.data;
+}
+
+// ==========================================
+// POSITIONING DECISIONS
+// ==========================================
+
+// Get the most recent positioning decision for an idea
+export async function getPositioningDecision(slug: string): Promise<PositioningDecision & { exists: boolean }> {
+  return fetchApi<PositioningDecision & { exists: boolean }>(`/ideas/${slug}/positioning-decision`);
+}
+
+// Save a positioning decision for an idea
+export async function savePositioningDecision(
+  slug: string,
+  decision: Partial<PositioningDecision>
+): Promise<{ id: string; created: boolean }> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/positioning-decision`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(decision),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to save decision');
+  }
+  const result: ApiResponse<{ id: string; created: boolean }> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to save decision');
+  }
+  return result.data;
+}
+
+// Get all positioning decisions for an idea (history)
+export async function getPositioningDecisionHistory(slug: string): Promise<PositioningDecision[]> {
+  return fetchApi<PositioningDecision[]>(`/ideas/${slug}/positioning-decisions`);
+}
+
+// ==========================================
+// POSITIONING ANALYSIS
+// ==========================================
+
+export interface PositioningAnalysisResult {
+  id: string;
+  approach: StrategicApproach;
+  strategicSummary: {
+    recommendedStrategy: {
+      id: string;
+      name: string;
+      fitScore: number;
+      reason: string;
+    };
+    primaryOpportunity: {
+      id: string;
+      segment: string;
+      fit: 'high' | 'medium' | 'low';
+    };
+    criticalRisk: {
+      id: string;
+      description: string;
+      severity: 'high' | 'medium' | 'low';
+      mitigation: string;
+    };
+    timingAssessment: {
+      urgency: 'high' | 'medium' | 'low';
+      window: string;
+    };
+    overallConfidence: number;
+  };
+  marketOpportunities: Array<{
+    id: string;
+    description: string;
+    targetSegment: string;
+    potentialImpact: 'high' | 'medium' | 'low';
+    feasibility: 'high' | 'medium' | 'low';
+    why?: string;
+    marketSize?: string;
+    timing?: string;
+    validationConfidence?: number;
+    validationWarnings?: string[];
+  }>;
+  competitiveRisks: Array<{
+    id: string;
+    description: string;
+    likelihood: 'high' | 'medium' | 'low';
+    severity: 'high' | 'medium' | 'low';
+    mitigation?: string;
+    competitors?: string[];
+    timeframe?: string;
+  }>;
+  strategies: Array<{
+    id: string;
+    name: string;
+    description: string;
+    differentiators: string[];
+    tradeoffs: string[];
+    fitWithProfile: number;
+    fiveWH?: {
+      what?: string;
+      why?: string;
+      how?: string;
+      when?: string;
+      where?: string;
+      howMuch?: string;
+    };
+    addressesOpportunities: string[];
+    mitigatesRisks: string[];
+    timingAlignment: 'favorable' | 'neutral' | 'challenging';
+    revenueEstimates?: {
+      year1: { low: number; mid: number; high: number };
+      year3: { low: number; mid: number; high: number };
+      assumptions: string[];
+    };
+    goalAlignment?: {
+      meetsIncomeTarget: boolean;
+      gapToTarget: number | null;
+      timelineAlignment: 'faster' | 'aligned' | 'slower' | 'unlikely';
+      runwaySufficient: boolean;
+      investmentFeasible: boolean;
+    };
+    profileFitBreakdown?: {
+      score: number;
+      strengths: string[];
+      gaps: string[];
+      suggestions: string[];
+    };
+  }>;
+  marketTiming?: {
+    currentWindow: string;
+    urgency: 'high' | 'medium' | 'low';
+    keyTrends: string[];
+    recommendation: string;
+  };
+  summary: string;
+  overallConfidence: number;
+  cost: {
+    dollars: number;
+    apiCalls: number;
+  };
+}
+
+// Run positioning analysis with a strategic approach
+export async function runPositioningAnalysis(
+  slug: string,
+  approach: StrategicApproach
+): Promise<PositioningAnalysisResult> {
+  const response = await fetch(`${API_BASE}/ideas/${slug}/position`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ approach }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `Positioning analysis failed: ${response.statusText}`);
+  }
+
+  const result: ApiResponse<PositioningAnalysisResult> = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Positioning analysis failed');
+  }
+  return result.data;
+}
+
+// Get saved positioning analysis results for an idea
+export async function getPositioningResults(
+  slug: string
+): Promise<PositioningAnalysisResult | null> {
+  return fetchApi<PositioningAnalysisResult | null>(`/ideas/${slug}/positioning`);
 }

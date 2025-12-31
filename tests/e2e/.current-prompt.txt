@@ -1,0 +1,18 @@
+Execute test TEST-CF-008. Output text at each step.
+
+STEPS:
+1. Output "Starting TEST-CF-008..."
+2. Read tests/e2e/test-state.json for test details
+3. Read docs/specs/ideation-agent/E2E-TEST-PLAN.md for test steps (search for "TEST-CF-008:")
+4. Execute the test using browser automation (mcp__puppeteer__* tools)
+5. Take screenshots to verify results
+6. Output pass/fail verdict with reason
+
+UPDATE FILES:
+- tests/e2e/test-state.json: Update TEST-CF-008 status to "passed" or "blocked", add notes
+- tests/e2e/HANDOFF.md: Point to next test if passed, or fix-bug if blocked
+
+RULES:
+- If test PASSES → handoff to next pending test
+- If APP BUG → mark blocked, handoff to fix-bug action
+- If TOOL ERROR → keep handoff on TEST-CF-008 for retry (don't advance)

@@ -1,5 +1,4 @@
-import { User, AlertTriangle, Link as LinkIcon, Clock } from 'lucide-react'
-import { format } from 'date-fns'
+import { User, AlertTriangle, Link as LinkIcon } from 'lucide-react'
 import type { UserProfileSummary } from '../types'
 
 interface ProfileStatusCardProps {
@@ -7,6 +6,7 @@ interface ProfileStatusCardProps {
   loading: boolean
   onLink: () => void
   onUnlink: () => void
+  compact?: boolean
 }
 
 function parseGoals(goalsJson: string): string[] {
@@ -18,100 +18,98 @@ function parseGoals(goalsJson: string): string[] {
   }
 }
 
-export default function ProfileStatusCard({ profile, loading, onLink, onUnlink }: ProfileStatusCardProps) {
+export default function ProfileStatusCard({ profile, loading, onLink, onUnlink, compact = false }: ProfileStatusCardProps) {
   if (loading) {
-    return (
-      <div className="card animate-pulse">
-        <div className="h-16 bg-gray-200 rounded" />
+    return compact ? (
+      <div className="inline-flex items-center px-2 py-1 bg-gray-100 rounded animate-pulse">
+        <div className="h-4 w-16 bg-gray-200 rounded" />
+      </div>
+    ) : (
+      <div className="p-3 bg-gray-50 rounded-lg animate-pulse">
+        <div className="h-8 bg-gray-200 rounded" />
       </div>
     )
   }
 
+  // Compact variant - inline badge style
+  if (compact) {
+    if (!profile) {
+      return (
+        <button
+          onClick={onLink}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs text-amber-700 hover:bg-amber-100 transition-colors"
+        >
+          <AlertTriangle className="h-3 w-3" />
+          <span>No profile</span>
+        </button>
+      )
+    }
+    return (
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-full text-xs">
+        <User className="h-3 w-3 text-green-600" />
+        <span className="text-green-800 font-medium">{profile.name}</span>
+        <button
+          onClick={onLink}
+          className="text-gray-400 hover:text-gray-600 ml-1"
+          title="Change profile"
+        >
+          <LinkIcon className="h-3 w-3" />
+        </button>
+      </div>
+    )
+  }
+
+  // Full display when no profile - inline alert
   if (!profile) {
     return (
-      <div className="card border-amber-200 bg-amber-50">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <div className="font-medium text-amber-800">No profile linked</div>
-              <p className="text-sm text-amber-700 mt-1">
-                Personal Fit scores (FT1-FT5) will default to 5/10 with low confidence.
-                Link a profile for accurate evaluation.
-              </p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={onLink}
-                  className="btn btn-primary text-sm"
-                >
-                  <LinkIcon className="h-4 w-4 mr-1" />
-                  Link Profile
-                </button>
-              </div>
-            </div>
-          </div>
+      <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+          <span className="text-sm text-amber-800">
+            No profile linked — Fit scores will default to 5/10
+          </span>
         </div>
+        <button
+          onClick={onLink}
+          className="text-sm font-medium text-amber-700 hover:text-amber-800"
+        >
+          <LinkIcon className="h-3 w-3 inline mr-1" />
+          Link
+        </button>
       </div>
     )
   }
 
   const goals = parseGoals(profile.primary_goals)
 
+  // Full display when profile is linked - single line with details on hover
   return (
-    <div className="card border-green-200 bg-green-50">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-3">
-          <User className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <div className="font-medium text-green-800">
-              Evaluating as: {profile.name}
-            </div>
-            <div className="text-sm text-green-700 mt-1 space-y-1">
-              {goals.length > 0 && (
-                <div>
-                  <span className="font-medium">Goals:</span>{' '}
-                  {goals.map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(', ')}
-                </div>
-              )}
-              {profile.employment_status && (
-                <div>
-                  <span className="font-medium">Status:</span>{' '}
-                  {profile.employment_status.replace(/-/g, ' ')}
-                  {profile.weekly_hours_available && ` (${profile.weekly_hours_available} hrs/week)`}
-                </div>
-              )}
-              {profile.risk_tolerance && (
-                <div>
-                  <span className="font-medium">Risk:</span>{' '}
-                  {profile.risk_tolerance.charAt(0).toUpperCase() + profile.risk_tolerance.slice(1)} tolerance
-                </div>
-              )}
-            </div>
-            <div className="mt-2 flex items-center text-xs text-green-600">
-              <Clock className="h-3 w-3 mr-1" />
-              Updated {format(new Date(profile.updated_at), 'MMM d, yyyy')}
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={onLink}
-            className="btn btn-secondary text-sm"
-          >
-            Change
-          </button>
-          <button
-            onClick={onUnlink}
-            className="btn btn-secondary text-sm text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            Unlink
-          </button>
-        </div>
+    <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+      <div className="flex items-center gap-2">
+        <User className="h-4 w-4 text-green-600 flex-shrink-0" />
+        <span className="text-sm text-green-800">
+          <span className="font-medium">{profile.name}</span>
+          {goals.length > 0 && (
+            <span className="text-green-600 ml-2">
+              · {goals.slice(0, 2).map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(', ')}
+              {goals.length > 2 && ` +${goals.length - 2}`}
+            </span>
+          )}
+        </span>
       </div>
-      <div className="mt-3 pt-3 border-t border-green-200">
-        <p className="text-xs text-green-700">
-          FT1-FT5 scores will be personalized based on this profile
-        </p>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onLink}
+          className="text-xs text-gray-500 hover:text-gray-700"
+        >
+          Change
+        </button>
+        <button
+          onClick={onUnlink}
+          className="text-xs text-red-500 hover:text-red-700"
+        >
+          Unlink
+        </button>
       </div>
     </div>
   )

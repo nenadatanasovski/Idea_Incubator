@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/nenadatanasovski/idea_incurator/logs/.22e19c80b21527b2fa8c520496bd86de42046580-audit.json",
+    "files": [
+        {
+            "date": 1767163783237,
+            "name": "/Users/nenadatanasovski/idea_incurator/logs/mcp-puppeteer-2025-12-31.log",
+            "hash": "f84b93448310cc6a60c42fbc26708313a1401d7db945cca83132ada409eb112e"
+        }
+    ],
+    "hashType": "sha256"
+}

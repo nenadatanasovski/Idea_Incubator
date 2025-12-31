@@ -1,10 +1,15 @@
+import { useState } from 'react'
 import { useRedTeamChallenges, useDebateRounds } from '../hooks/useEvaluations'
-import { AlertTriangle, Shield, Target, Compass, CheckCircle, XCircle, MessageSquare, Lightbulb } from 'lucide-react'
+import { AlertTriangle, Shield, Target, Compass, CheckCircle, XCircle, MessageSquare, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
 import clsx from 'clsx'
+import RiskResponseSummary from './RiskResponseSummary'
+import type { RiskResponse, RiskResponseStats } from '../types'
 
 interface RedTeamViewProps {
   slug: string
   runId?: string
+  riskResponses?: RiskResponse[]
+  riskResponseStats?: RiskResponseStats | null
 }
 
 const personaInfo: Record<string, { icon: typeof AlertTriangle; label: string; description: string; color: string }> = {
@@ -67,9 +72,23 @@ const severityColors: Record<string, string> = {
   critical: 'bg-red-100 text-red-800',
 }
 
-export default function RedTeamView({ slug, runId }: RedTeamViewProps) {
+export default function RedTeamView({ slug, runId, riskResponses, riskResponseStats }: RedTeamViewProps) {
   const { challenges, loading: challengesLoading } = useRedTeamChallenges(slug, runId)
   const { rounds, loading: roundsLoading } = useDebateRounds(slug, runId)
+  const [expandedPersonas, setExpandedPersonas] = useState<Set<string>>(new Set())
+  const [showDebateTranscript, setShowDebateTranscript] = useState(false)
+
+  const togglePersona = (persona: string) => {
+    setExpandedPersonas(prev => {
+      const next = new Set(prev)
+      if (next.has(persona)) {
+        next.delete(persona)
+      } else {
+        next.add(persona)
+      }
+      return next
+    })
+  }
 
   if (challengesLoading || roundsLoading) {
     return (
@@ -122,41 +141,40 @@ export default function RedTeamView({ slug, runId }: RedTeamViewProps) {
         </div>
       )}
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="card p-4">
-          <div className="flex items-center">
-            <Shield className="h-8 w-8 text-primary-500" />
-            <div className="ml-3">
-              <p className="text-2xl font-bold text-gray-900">{totalChallenges}</p>
-              <p className="text-sm text-gray-500">Total Challenges</p>
-            </div>
-          </div>
+      {/* Risk Response Summary from Position phase */}
+      {riskResponses && riskResponses.length > 0 && (
+        <div className="card">
+          <RiskResponseSummary
+            responses={riskResponses}
+            stats={riskResponseStats || null}
+          />
+          <p className="text-xs text-gray-500 mt-3">
+            Your risk assessment from the Position phase influences R2 (Market Risk) scoring.
+          </p>
         </div>
-        <div className="card p-4">
-          <div className="flex items-center">
-            <CheckCircle className="h-8 w-8 text-green-500" />
-            <div className="ml-3">
-              <p className="text-2xl font-bold text-gray-900">
-                {addressedChallenges}/{totalChallenges}
-              </p>
-              <p className="text-sm text-gray-500">Addressed</p>
-            </div>
-          </div>
+      )}
+
+      {/* Summary Stats - Compact inline row */}
+      <div className="flex flex-wrap items-center gap-6 py-3 px-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-primary-500" />
+          <span className="text-sm text-gray-500">Challenges:</span>
+          <span className="font-bold text-gray-900">{totalChallenges}</span>
         </div>
-        <div className="card p-4">
-          <div className="flex items-center">
-            <AlertTriangle className="h-8 w-8 text-red-500" />
-            <div className="ml-3">
-              <p className="text-2xl font-bold text-gray-900">{criticalChallenges}</p>
-              <p className="text-sm text-gray-500">Critical Issues</p>
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-5 w-5 text-green-500" />
+          <span className="text-sm text-gray-500">Addressed:</span>
+          <span className="font-bold text-gray-900">{addressedChallenges}/{totalChallenges}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-red-500" />
+          <span className="text-sm text-gray-500">Critical:</span>
+          <span className="font-bold text-gray-900">{criticalChallenges}</span>
         </div>
       </div>
 
-      {/* Challenges by Persona */}
-      <div className="space-y-6">
+      {/* Challenges by Persona - Collapsible */}
+      <div className="space-y-4">
         {Object.entries(challengesByPersona).map(([persona, personaChallenges]) => {
           const info = personaInfo[persona] || {
             icon: Shield,
@@ -165,24 +183,44 @@ export default function RedTeamView({ slug, runId }: RedTeamViewProps) {
             color: 'text-gray-600 bg-gray-50',
           }
           const Icon = info.icon
+          const isExpanded = expandedPersonas.has(persona)
+          const criticalCount = personaChallenges.filter(c => c.severity === 'critical' || c.severity === 'high').length
 
           return (
-            <div key={persona} className="card">
-              <div className="flex items-center gap-3 mb-4">
-                <div className={clsx('p-2 rounded-lg', info.color)}>
-                  <Icon className="h-5 w-5" />
+            <div key={persona} className="card p-0 overflow-hidden">
+              <button
+                onClick={() => togglePersona(persona)}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={clsx('p-2 rounded-lg', info.color)}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-gray-900">{info.label}</h3>
+                    <p className="text-xs text-gray-500">{info.description}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{info.label}</h3>
-                  <p className="text-sm text-gray-500">{info.description}</p>
+                <div className="flex items-center gap-3">
+                  <span className="badge bg-gray-100 text-gray-600">
+                    {personaChallenges.length} challenges
+                  </span>
+                  {criticalCount > 0 && (
+                    <span className="badge bg-red-100 text-red-600">
+                      {criticalCount} critical
+                    </span>
+                  )}
+                  {isExpanded ? (
+                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                  )}
                 </div>
-                <span className="ml-auto badge bg-gray-100 text-gray-600">
-                  {personaChallenges.length} challenges
-                </span>
-              </div>
+              </button>
 
-              <div className="space-y-3">
-                {personaChallenges.map((challenge) => (
+              {isExpanded && (
+                <div className="px-4 pb-4 space-y-3">
+                  {personaChallenges.map((challenge) => (
                   <div
                     key={challenge.id}
                     className={clsx(
@@ -228,68 +266,82 @@ export default function RedTeamView({ slug, runId }: RedTeamViewProps) {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )
         })}
       </div>
 
-      {/* Debate Rounds */}
+      {/* Debate Rounds - Collapsible */}
       {rounds.length > 0 && (
-        <div className="card">
-          <div className="flex items-center gap-2 mb-4">
-            <MessageSquare className="h-5 w-5 text-primary-500" />
-            <h3 className="font-semibold text-gray-900">Debate Transcript</h3>
-          </div>
+        <div className="card p-0 overflow-hidden">
+          <button
+            onClick={() => setShowDebateTranscript(!showDebateTranscript)}
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+          >
+            <div className="flex items-center gap-3">
+              <MessageSquare className="h-5 w-5 text-primary-500" />
+              <span className="font-semibold text-gray-900">Debate Transcript</span>
+              <span className="text-sm text-gray-500">{rounds.length} rounds</span>
+            </div>
+            {showDebateTranscript ? (
+              <ChevronUp className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
 
-          <div className="space-y-4">
-            {rounds.map((round) => (
-              <div key={round.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                  <span className="font-medium text-gray-900">Round {round.round_number}</span>
-                  <span
-                    className={clsx(
-                      'ml-3 badge',
-                      round.score_adjustment > 0
-                        ? 'bg-green-100 text-green-800'
-                        : round.score_adjustment < 0
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-600'
-                    )}
-                  >
-                    {round.score_adjustment > 0 ? '+' : ''}{round.score_adjustment.toFixed(1)}
-                  </span>
+          {showDebateTranscript && (
+            <div className="px-4 pb-4 space-y-4">
+              {rounds.map((round) => (
+                <div key={round.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                    <span className="font-medium text-gray-900">Round {round.round_number}</span>
+                    <span
+                      className={clsx(
+                        'ml-3 badge',
+                        round.score_adjustment > 0
+                          ? 'bg-green-100 text-green-800'
+                          : round.score_adjustment < 0
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-600'
+                      )}
+                    >
+                      {round.score_adjustment > 0 ? '+' : ''}{round.score_adjustment.toFixed(1)}
+                    </span>
+                  </div>
+
+                  <div className="p-4 space-y-4">
+                    {/* Evaluator */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="badge bg-blue-100 text-blue-800">Evaluator</span>
+                      </div>
+                      <p className="text-sm text-gray-700">{round.evaluator_claim}</p>
+                    </div>
+
+                    {/* Red Team */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="badge bg-red-100 text-red-800">Red Team</span>
+                      </div>
+                      <p className="text-sm text-gray-700">{round.redteam_challenge}</p>
+                    </div>
+
+                    {/* Arbiter */}
+                    <div className="pt-3 border-t border-gray-200">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="badge bg-purple-100 text-purple-800">Arbiter</span>
+                      </div>
+                      <p className="text-sm text-gray-700">{round.arbiter_verdict}</p>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="p-4 space-y-4">
-                  {/* Evaluator */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="badge bg-blue-100 text-blue-800">Evaluator</span>
-                    </div>
-                    <p className="text-sm text-gray-700">{round.evaluator_claim}</p>
-                  </div>
-
-                  {/* Red Team */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="badge bg-red-100 text-red-800">Red Team</span>
-                    </div>
-                    <p className="text-sm text-gray-700">{round.redteam_challenge}</p>
-                  </div>
-
-                  {/* Arbiter */}
-                  <div className="pt-3 border-t border-gray-200">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="badge bg-purple-100 text-purple-800">Arbiter</span>
-                    </div>
-                    <p className="text-sm text-gray-700">{round.arbiter_verdict}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

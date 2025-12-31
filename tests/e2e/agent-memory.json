@@ -1,0 +1,145 @@
+{
+  "version": "1.0",
+  "lastUpdated": null,
+
+  "schema": {
+    "ideation_sessions": {
+      "columns": ["id", "profile_id", "entry_mode", "status", "started_at", "ended_at", "message_count", "idea_candidate_id"],
+      "primary_key": "id",
+      "notes": "status can be: active, completed, abandoned"
+    },
+    "ideation_messages": {
+      "columns": ["id", "session_id", "role", "content", "buttons", "created_at", "sequence"],
+      "primary_key": "id",
+      "notes": "role can be: user, assistant. Order by created_at or sequence for chronological order"
+    },
+    "idea_candidates": {
+      "columns": ["id", "session_id", "title", "problem_statement", "target_user", "solution_approach", "unique_value", "confidence_score", "created_at", "updated_at", "captured_as_idea_id"],
+      "primary_key": "id",
+      "notes": "confidence_score is 0-100"
+    },
+    "profiles": {
+      "columns": ["id", "slug", "name", "data", "created_at", "updated_at"],
+      "primary_key": "id",
+      "notes": "data is JSON containing profile details"
+    }
+  },
+
+  "workingPatterns": [
+    {
+      "pattern": "Use puppeteer_navigate directly - it launches browser automatically",
+      "reason": "The MCP server handles Chrome startup, no need to connect first",
+      "confidence": "high",
+      "learnedFrom": "Puppeteer MCP best practices"
+    },
+    {
+      "pattern": "Use button clicks instead of textarea for initial interactions",
+      "reason": "Buttons trigger proper message flow, textarea input sometimes causes redirect",
+      "confidence": "high",
+      "learnedFrom": "TEST-CF-008 iterations"
+    },
+    {
+      "pattern": "Wait for .message or role='log' elements after sending message",
+      "reason": "Event-based waiting is more reliable than setTimeout",
+      "confidence": "high",
+      "learnedFrom": "Auto-build-agent best practices"
+    },
+    {
+      "pattern": "Check API response before verifying UI",
+      "reason": "API verification can confirm data saved even if UI has issues",
+      "confidence": "high",
+      "learnedFrom": "TEST-CF-008 message ordering"
+    }
+  ],
+
+  "failingPatterns": [
+    {
+      "pattern": "Using :has-text() or :contains() CSS selectors",
+      "symptom": "SyntaxError: not a valid selector",
+      "alternative": "Use puppeteer_evaluate with Array.find() to match by text content",
+      "severity": "critical"
+    },
+    {
+      "pattern": "Reading entire large files (test-state.json, etc)",
+      "symptom": "Wastes context, slow",
+      "alternative": "Use jq, head, tail to extract only what you need",
+      "severity": "efficiency"
+    },
+    {
+      "pattern": "Calling puppeteer_connect_active_tab before puppeteer_navigate",
+      "symptom": "Wastes time searching for debug ports",
+      "alternative": "Just call puppeteer_navigate directly",
+      "severity": "efficiency"
+    },
+    {
+      "pattern": "Direct textarea input followed by send button click",
+      "symptom": "UI redirects to entry page without error",
+      "hypothesis": "Session state may be lost during React re-render",
+      "avoidUntilFixed": true
+    },
+    {
+      "pattern": "Multiple setTimeout waits in sequence",
+      "symptom": "Unpredictable timing, wasted time",
+      "alternative": "Use waitForSelector or waitForFunction"
+    },
+    {
+      "pattern": "Starting new session on every failure - THIS IS CRITICAL",
+      "symptom": "Tab/session proliferation, orphaned sessions in DB, never fixes root cause",
+      "alternative": "Stay on current page, diagnose WHY it failed, fix the code, then retry",
+      "severity": "critical",
+      "note": "If you navigate to /ideate after a failure, you are doing this wrong"
+    },
+    {
+      "pattern": "Navigating to /ideate when action fails",
+      "symptom": "Creates new session instead of fixing problem",
+      "alternative": "STOP. Diagnose. Fix code. Retry on same session.",
+      "severity": "critical"
+    }
+  ],
+
+  "knownBugs": [
+    {
+      "id": "BUG-001",
+      "symptom": "UI silently redirects to entry page when session expired",
+      "location": "frontend/src/components/ideation/IdeationSession.tsx",
+      "status": "blocked",
+      "fixAttempts": 1
+    },
+    {
+      "id": "BUG-002",
+      "symptom": "Raw JSON appears alongside rendered buttons in follow-up responses",
+      "location": "frontend/src/components/ideation/ConversationPanel.tsx or MessageBubble.tsx",
+      "status": "observed",
+      "fixAttempts": 0
+    }
+  ],
+
+  "apiEndpoints": {
+    "startSession": "POST /api/ideation/start",
+    "sendMessage": "POST /api/ideation/message",
+    "getSession": "GET /api/ideation/session/:sessionId",
+    "abandonSession": "POST /api/ideation/session/:sessionId/abandon",
+    "getProfiles": "GET /api/profiles"
+  },
+
+  "cssSelectors": {
+    "startButton": "[data-testid='start-ideation-btn']",
+    "entryModeHaveIdea": "[data-testid='entry-mode-have_idea']",
+    "entryModeDiscover": "[data-testid='entry-mode-discover']",
+    "messageInput": "[data-testid='message-input']",
+    "sendButton": "[data-testid='send-message-btn']",
+    "messages": ".message, [role='log'] > div",
+    "loadingIndicator": ".loading, [aria-busy='true']",
+    "errorMessage": ".text-red-500, [role='alert']"
+  },
+
+  "diagnosticChecklist": [
+    "Check browser console for errors",
+    "Check network tab for failed API calls",
+    "Query database to verify data state",
+    "Read relevant source code",
+    "Form hypothesis before retrying"
+  ],
+
+  "actionOutcomes": []
+}

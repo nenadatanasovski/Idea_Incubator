@@ -127,28 +127,6 @@ export default function ReadinessMeter({
         </div>
       )}
 
-      {/* Blocking Gaps */}
-      {readiness.blockingGaps.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <h4 className="text-sm font-medium text-amber-700 mb-2 flex items-center gap-1">
-            <AlertTriangle className="h-4 w-4" />
-            Critical Questions Unanswered
-          </h4>
-          <ul className="space-y-1">
-            {readiness.blockingGaps.slice(0, 3).map((gap, index) => (
-              <li key={index} className="text-sm text-gray-600">
-                {gap}
-              </li>
-            ))}
-            {readiness.blockingGaps.length > 3 && (
-              <li className="text-sm text-gray-500 italic">
-                +{readiness.blockingGaps.length - 3} more...
-              </li>
-            )}
-          </ul>
-        </div>
-      )}
-
       {/* Action Buttons */}
       {(onDevelop || onEvaluate) && (
         <div className="mt-4 pt-4 border-t border-gray-200 flex gap-3">

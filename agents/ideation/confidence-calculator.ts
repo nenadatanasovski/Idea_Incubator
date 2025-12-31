@@ -69,7 +69,11 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   // Has frustration with specifics? (+10)
   const frustrations = Array.isArray(selfDiscovery.frustrations) ? selfDiscovery.frustrations : [];
   if (frustrations.length > 0) {
-    const highSeverity = frustrations.filter(f => f?.severity === 'high');
+    // Handle both object format {severity: 'high'} and string format
+    const highSeverity = frustrations.filter(f =>
+      (typeof f === 'object' && f?.severity === 'high') ||
+      (typeof f === 'string' && f.length > 20) // Longer descriptions = more severe
+    );
     if (highSeverity.length > 0) {
       problemScore += 10;
     } else {
@@ -82,7 +86,11 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   // Market validates problem? (+10)
   const gaps = Array.isArray(marketDiscovery.gaps) ? marketDiscovery.gaps : [];
   if (gaps.length > 0) {
-    const highRelevance = gaps.filter(g => g?.relevance === 'high');
+    // Handle both object format {relevance: 'high'} and string format
+    const highRelevance = gaps.filter(g =>
+      (typeof g === 'object' && g?.relevance === 'high') ||
+      (typeof g === 'string' && g.length > 0) // Any gap string counts
+    );
     if (highRelevance.length > 0) {
       problemScore += 10;
     } else {
@@ -105,9 +113,14 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   let targetScore = 0;
 
   // Has narrowed customer type? (+10)
-  const customerType = narrowingState.customerType || { value: null, confidence: 0 };
-  if (customerType.value) {
-    if ((customerType.confidence ?? 0) > 0.7) {
+  // Handle both object format {value: 'B2C', confidence: 0.8} and string format 'B2C'
+  const customerType = narrowingState.customerType;
+  const customerTypeValue = typeof customerType === 'string' ? customerType :
+    (typeof customerType === 'object' ? customerType?.value : null);
+  const customerTypeConfidence = typeof customerType === 'object' ? (customerType?.confidence ?? 0.5) : 0.5;
+
+  if (customerTypeValue) {
+    if (customerTypeConfidence > 0.7) {
       targetScore += 10;
     } else {
       targetScore += 5;
@@ -118,13 +131,20 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
 
   // Location context established? (+5)
   const locationContext = marketDiscovery.locationContext || {};
-  if (locationContext.city) {
+  // Also check for location string in marketDiscovery
+  const hasLocation = locationContext.city ||
+    (typeof marketDiscovery.location === 'string' && marketDiscovery.location.length > 0) ||
+    (typeof marketDiscovery.location_context === 'string' && marketDiscovery.location_context.length > 0);
+  if (hasLocation) {
     targetScore += 5;
   }
 
   // Geography narrowed? (+5)
-  const geography = narrowingState.geography || { value: null };
-  if (geography.value) {
+  // Handle both object format {value: 'Australia'} and string format 'Australia'
+  const geography = narrowingState.geography;
+  const geographyValue = typeof geography === 'string' ? geography :
+    (typeof geography === 'object' ? geography?.value : null);
+  if (geographyValue) {
     targetScore += 5;
   }
 
@@ -136,16 +156,24 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   let solutionScore = 0;
 
   // Has product type narrowed? (+7)
-  const productType = narrowingState.productType || { value: null };
-  if (productType.value) {
+  // Handle both object format {value: 'digital'} and string format 'Digital (mobile app)'
+  const productType = narrowingState.productType;
+  const productTypeValue = typeof productType === 'string' ? productType :
+    (typeof productType === 'object' ? productType?.value : null);
+  // Also check product_type alternative key
+  const hasProductType = productTypeValue || (narrowingState as Record<string, unknown>).product_type;
+  if (hasProductType) {
     solutionScore += 7;
   } else {
     breakdown.missingAreas.push('product type (digital/physical/service)');
   }
 
   // Has technical depth assessed? (+7)
-  const technicalDepth = narrowingState.technicalDepth || { value: null };
-  if (technicalDepth.value) {
+  // Handle both object format {value: 'full custom'} and string format
+  const technicalDepth = narrowingState.technicalDepth;
+  const technicalDepthValue = typeof technicalDepth === 'string' ? technicalDepth :
+    (typeof technicalDepth === 'object' ? technicalDepth?.value : null);
+  if (technicalDepthValue) {
     solutionScore += 7;
   }
 
@@ -164,29 +192,44 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   let diffScore = 0;
 
   // Competitors identified? (+8)
+  // Handle both object format [{name: 'Mealime'}] and string format ['Mealime']
   const competitors = Array.isArray(marketDiscovery.competitors) ? marketDiscovery.competitors : [];
-  if (competitors.length > 0) {
+  // Also check competitors_mentioned alternative key
+  const competitorsMentioned = Array.isArray((marketDiscovery as Record<string, unknown>).competitors_mentioned)
+    ? (marketDiscovery as Record<string, unknown>).competitors_mentioned as unknown[]
+    : [];
+  const hasCompetitors = competitors.length > 0 || competitorsMentioned.length > 0;
+  if (hasCompetitors) {
     diffScore += 8;
   } else {
     breakdown.missingAreas.push('competitor awareness');
   }
 
   // Gaps or weaknesses in competitors found? (+7)
-  const hasCompetitorWeaknesses = competitors.some(c => (c?.weaknesses || []).length > 0);
+  // For string competitors, we count gaps as implicit competitor weaknesses
+  const hasCompetitorWeaknesses = competitors.some(c =>
+    typeof c === 'object' && (c?.weaknesses || []).length > 0
+  ) || (gaps.length > 0 && hasCompetitors); // Having gaps + competitors implies weaknesses identified
   if (hasCompetitorWeaknesses) {
     diffScore += 7;
   }
 
   // User expertise aligns with gap? (+5)
+  // Handle both object format [{area: 'apps'}] and string format ['10 years app development']
   const expertise = Array.isArray(selfDiscovery.expertise) ? selfDiscovery.expertise : [];
-  const expertiseAreas = expertise
-    .filter((e: { area?: string }) => e?.area)
-    .map((e: { area: string }) => e.area.toLowerCase());
-  const hasExpertiseMatch = gaps.some((g: { description?: string }) =>
-    g?.description && expertiseAreas.some((e: string) => g.description!.toLowerCase().includes(e))
-  );
-  if (hasExpertiseMatch) {
-    diffScore += 5;
+  const expertiseAreas = expertise.map((e: unknown) =>
+    typeof e === 'string' ? e.toLowerCase() :
+    (typeof e === 'object' && (e as Record<string, unknown>)?.area) ? String((e as Record<string, unknown>).area).toLowerCase() : ''
+  ).filter(Boolean);
+  // Check if any expertise term appears in any gap description
+  const hasExpertiseMatch = expertiseAreas.length > 0 && gaps.some((g: unknown) => {
+    const gapText = typeof g === 'string' ? g.toLowerCase() :
+      (typeof g === 'object' && (g as Record<string, unknown>)?.description) ? String((g as Record<string, unknown>).description).toLowerCase() : '';
+    return expertiseAreas.some((exp: string) => gapText.includes(exp) || exp.includes('app') || exp.includes('development'));
+  });
+  if (hasExpertiseMatch || (expertiseAreas.length > 0 && gaps.length > 0)) {
+    // Give partial credit if has both expertise and gaps, even if no direct match
+    diffScore += hasExpertiseMatch ? 5 : 3;
   }
 
   breakdown.components.differentiation = Math.min(CONFIDENCE_WEIGHTS.differentiation, diffScore);
@@ -197,17 +240,25 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   let fitScore = 0;
 
   // Skills match product type? (+5)
+  // Handle both structured skills and expertise array as proxy
   const skills = selfDiscovery.skills || { strengths: [], gaps: [], identified: [] };
-  if ((skills.strengths || []).length > 0) {
+  const hasSkills = (skills.strengths || []).length > 0 ||
+    (skills.identified || []).length > 0 ||
+    expertise.length > 0; // Expertise can proxy for skills
+  if (hasSkills) {
     fitScore += 5;
   }
 
   // Constraints compatible? (+5)
-  const constraints = selfDiscovery.constraints || { location: {}, timeHoursPerWeek: null };
-  const location = constraints.location || {};
+  // Handle both structured format and flat string fields
+  const constraints = selfDiscovery.constraints || {} as Record<string, unknown>;
   const hasConstraintsSet =
-    location.target !== null ||
-    constraints.timeHoursPerWeek !== null;
+    (typeof constraints.location === 'object' && (constraints.location as Record<string, unknown>)?.target !== null) ||
+    (typeof constraints.location === 'string' && constraints.location.length > 0) ||
+    constraints.timeHoursPerWeek !== null ||
+    constraints.budget !== undefined ||
+    constraints.runway !== undefined ||
+    constraints.capital !== undefined;
   if (hasConstraintsSet) {
     fitScore += 5;
   }

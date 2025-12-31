@@ -274,7 +274,7 @@ export default function IdeaList() {
                           idea.avg_final_score
                         )}`}
                       >
-                        {idea.avg_final_score.toFixed(1)}
+                        {idea.avg_final_score.toFixed(2)}
                       </div>
                       <div className="text-xs text-gray-500">
                         {scoreInterpretation.getLevel(idea.avg_final_score)}

@@ -49,6 +49,9 @@ export interface Idea {
   updated_at: string;
 }
 
+// Idea status for lifecycle management
+export type IdeaStatus = 'active' | 'paused' | 'abandoned' | 'completed' | 'archived';
+
 // Idea with computed scores
 export interface IdeaWithScores extends Idea {
   avg_agent_score: number | null;
@@ -56,6 +59,16 @@ export interface IdeaWithScores extends Idea {
   avg_final_score: number | null;
   avg_confidence: number | null;
   tags: string[];
+  // Latest run tracking (scores are from most recent evaluation only)
+  latest_run_id?: string | null;
+  total_evaluation_count?: number;
+  // Lifecycle fields
+  status?: IdeaStatus;
+  status_reason?: string | null;
+  current_version?: number;
+  iteration_number?: number;
+  parent_idea_id?: string | null;
+  incubation_phase?: string;
 }
 
 // Individual evaluation
@@ -67,9 +80,10 @@ export interface Evaluation {
   category: EvaluationCategory;
   agent_score: number;
   user_score: number | null;
-  final_score: number;
+  initial_score: number; // Score when reasoning was written (pre-debate)
+  final_score: number;   // Score after debate adjustments
   confidence: number;
-  reasoning: string;
+  reasoning: string;     // Reasoning matches initial_score, not final_score
   created_at: string;
 }
 
@@ -77,6 +91,7 @@ export interface Evaluation {
 export interface CategoryScore {
   category: EvaluationCategory;
   avg_score: number;
+  avg_initial_score?: number; // Pre-debate score for before/after comparison
   avg_confidence: number;
   criteria: Evaluation[];
 }
@@ -396,4 +411,478 @@ export interface UserProfileSummary {
   weekly_hours_available: number | null;
   risk_tolerance: string | null;
   updated_at: string;
+  // Extended financial fields
+  current_annual_income?: number | null;
+  monthly_burn_rate?: number | null;
+  has_alternative_income?: boolean;
+  total_investment_capacity?: number | null;
+  debt_tolerance?: 'none' | 'low' | 'moderate' | 'high' | null;
+  willingness_to_raise_funding?: boolean;
+  lifestyle_income_target?: number | null;
+}
+
+// ==========================================
+// STRATEGIC APPROACH TYPES
+// ==========================================
+
+export type StrategicApproach = 'create' | 'copy_improve' | 'combine' | 'localize' | 'specialize' | 'time';
+
+export const strategicApproachMeta: Record<StrategicApproach, {
+  label: string;
+  description: string;
+  bestFor: string;
+  riskLevel: 'low' | 'medium' | 'high';
+  timeToRevenue: string;
+}> = {
+  create: {
+    label: 'Create',
+    description: 'Build something genuinely new',
+    bestFor: 'VC-backed, long runway, high risk tolerance',
+    riskLevel: 'high',
+    timeToRevenue: '12-24+ months'
+  },
+  copy_improve: {
+    label: 'Copy & Improve',
+    description: 'Take proven model, execute better',
+    bestFor: 'Bootstrapped, income goals, proven demand',
+    riskLevel: 'low',
+    timeToRevenue: '3-6 months'
+  },
+  combine: {
+    label: 'Combine',
+    description: 'Merge two validated concepts',
+    bestFor: 'Unique insight at intersection',
+    riskLevel: 'medium',
+    timeToRevenue: '6-12 months'
+  },
+  localize: {
+    label: 'Localize',
+    description: 'Proven model, new geography/segment',
+    bestFor: 'Local market knowledge',
+    riskLevel: 'low',
+    timeToRevenue: '3-6 months'
+  },
+  specialize: {
+    label: 'Specialize',
+    description: 'Narrow general solution to niche',
+    bestFor: 'Deep domain expertise',
+    riskLevel: 'low',
+    timeToRevenue: '4-8 months'
+  },
+  time: {
+    label: 'Time',
+    description: 'Retry failed concept, market now ready',
+    bestFor: 'Timing insight, patience',
+    riskLevel: 'high',
+    timeToRevenue: 'Variable'
+  }
+};
+
+// ==========================================
+// FINANCIAL ALLOCATION TYPES
+// ==========================================
+
+export type AllocationPriority = 'primary' | 'secondary' | 'exploration' | 'parked';
+export type IncomeType = 'full_replacement' | 'partial_replacement' | 'supplement' | 'wealth_building' | 'learning';
+export type PivotWillingness = 'rigid' | 'moderate' | 'flexible' | 'very_flexible';
+export type RiskTolerance = 'low' | 'medium' | 'high' | 'very_high';
+
+export interface IdeaFinancialAllocation {
+  id?: string;
+  ideaId: string;
+  allocatedBudget: number;
+  allocatedWeeklyHours: number;
+  allocatedRunwayMonths: number;
+  allocationPriority: AllocationPriority;
+  targetIncomeFromIdea: number | null;
+  incomeTimelineMonths: number | null;
+  incomeType: IncomeType;
+  exitIntent: boolean;
+  ideaRiskTolerance: RiskTolerance | null;
+  maxAcceptableLoss: number | null;
+  pivotWillingness: PivotWillingness;
+  validationBudget: number;
+  maxTimeToValidateMonths: number | null;
+  killCriteria: string | null;
+  strategicApproach: StrategicApproach | null;
+  approachRationale: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  exists?: boolean;
+}
+
+export const allocationPriorityMeta: Record<AllocationPriority, { label: string; description: string; color: string }> = {
+  primary: { label: 'Primary', description: 'Main focus', color: 'bg-green-500' },
+  secondary: { label: 'Secondary', description: 'Active but not main', color: 'bg-blue-500' },
+  exploration: { label: 'Exploration', description: 'Testing viability', color: 'bg-yellow-500' },
+  parked: { label: 'Parked', description: 'On hold', color: 'bg-gray-500' }
+};
+
+export const incomeTypeMeta: Record<IncomeType, { label: string; description: string }> = {
+  full_replacement: { label: 'Full Replacement', description: 'This idea replaces your job' },
+  partial_replacement: { label: 'Partial Replacement', description: 'This idea + other income = target' },
+  supplement: { label: 'Supplement', description: 'Extra income on top' },
+  wealth_building: { label: 'Wealth Building', description: 'Equity play, income later' },
+  learning: { label: 'Learning', description: 'Not income focused' }
+};
+
+// ==========================================
+// POSITIONING DECISION TYPES
+// ==========================================
+
+export type TimingDecision = 'proceed_now' | 'wait' | 'urgent';
+
+export interface PositioningDecision {
+  id?: string;
+  ideaId: string;
+  primaryStrategyId: string | null;
+  primaryStrategyName: string | null;
+  secondaryStrategyId: string | null;
+  secondaryStrategyName: string | null;
+  acknowledgedRiskIds: string[];  // DEPRECATED - kept for backward compatibility
+  riskResponses?: RiskResponse[];  // New structured responses
+  riskResponseStats?: RiskResponseStats;  // Quick stats lookup
+  timingDecision: TimingDecision | null;
+  timingRationale: string | null;
+  selectedApproach: StrategicApproach | null;
+  notes: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  exists?: boolean;
+}
+
+// ==========================================
+// ENHANCED STRATEGY TYPES (with financial viability)
+// ==========================================
+
+export interface RevenueEstimate {
+  year1: { low: number; mid: number; high: number };
+  year3: { low: number; mid: number; high: number };
+  assumptions: string[];
+}
+
+export interface GoalAlignment {
+  meetsIncomeTarget: boolean;
+  gapToTarget: number | null;
+  timelineAlignment: 'faster' | 'aligned' | 'slower' | 'unlikely';
+  runwaySufficient: boolean;
+  investmentFeasible: boolean;
+}
+
+export interface AllocationFeasibility {
+  budgetSufficient: boolean;
+  budgetGap: number | null;
+  timeSufficient: boolean;
+  timeGap: number | null;
+  runwaySufficient: boolean;
+  runwayGap: number | null;
+  overallFeasible: boolean;
+  adjustmentOptions: Array<{
+    type: 'increase_allocation' | 'reduce_scope' | 'extend_timeline' | 'seek_funding';
+    description: string;
+    newRequirement: number;
+  }>;
+}
+
+export interface ProfileFitBreakdown {
+  score: number;
+  strengths: string[];
+  gaps: string[];
+  suggestions: string[];
+}
+
+export interface EnhancedStrategy {
+  id?: string;
+  name: string;
+  description: string;
+  differentiators: string[];
+  tradeoffs: string[];
+  fitWithProfile: number;
+  fiveWH?: {
+    what?: string;
+    why?: string;
+    how?: string;
+    when?: string;
+    where?: string;
+    howMuch?: string;
+  };
+  // Relationship tracking
+  addressesOpportunities?: string[];
+  mitigatesRisks?: string[];
+  timingAlignment?: 'favorable' | 'neutral' | 'challenging';
+  // Financial analysis
+  revenueEstimates?: RevenueEstimate;
+  goalAlignment?: GoalAlignment;
+  allocationFeasibility?: AllocationFeasibility;
+  profileFitBreakdown?: ProfileFitBreakdown;
+}
+
+export interface StrategicSummary {
+  recommendedStrategy: {
+    id: string;
+    name: string;
+    fitScore: number;
+    reason: string;
+  };
+  primaryOpportunity: {
+    id: string;
+    segment: string;
+    fit: 'high' | 'medium' | 'low';
+  };
+  criticalRisk: {
+    id: string;
+    description: string;
+    severity: 'high' | 'medium' | 'low';
+    mitigation: string;
+  };
+  timingAssessment: {
+    urgency: 'high' | 'medium' | 'low';
+    window: string;
+  };
+  overallConfidence: number;
+}
+
+// Incubation phases - now includes 'position' (replaces 'differentiation')
+export type IncubationPhase = 'capture' | 'clarify' | 'position' | 'update' | 'evaluate' | 'iterate';
+
+// For backward compatibility
+export type LegacyIncubationPhase = 'capture' | 'clarify' | 'differentiation' | 'update' | 'evaluate' | 'iterate';
+
+export const incubationPhases: Array<{ phase: IncubationPhase; label: string; description: string }> = [
+  { phase: 'capture', label: 'Capture', description: 'Initial idea capture' },
+  { phase: 'clarify', label: 'Clarify', description: 'Answer questions to clarify the idea' },
+  { phase: 'position', label: 'Position', description: 'Choose strategic positioning' },
+  { phase: 'update', label: 'Update', description: 'Refine idea based on positioning' },
+  { phase: 'evaluate', label: 'Evaluate', description: 'Full evaluation against 30 criteria' },
+  { phase: 'iterate', label: 'Iterate', description: 'Address weak areas and iterate' }
+];
+
+// ==========================================
+// COMPETITIVE ANALYSIS TYPES
+// ==========================================
+
+export interface ValidatedOpportunity {
+  id: string;
+  targetSegment: string;
+  description: string;
+  potentialImpact: 'high' | 'medium' | 'low';
+  feasibility: 'high' | 'medium' | 'low';
+  marketSize?: string;
+  timing?: string;
+  validationConfidence?: number;
+  validationWarnings?: string[];
+  why?: string;
+  sourceStrategyId?: string;
+}
+
+export interface CompetitiveRisk {
+  id: string;
+  competitor: string;
+  type: 'direct_competition' | 'feature_parity' | 'price_war' | 'market_saturation' | 'substitution';
+  threat: string;
+  severity: 'high' | 'medium' | 'low';
+  mitigation?: string;
+  timeframe?: string;
+}
+
+// ==========================================
+// RISK RESPONSE TYPES
+// ==========================================
+
+// 5 response options for risks
+export type RiskResponseType = 'mitigate' | 'accept' | 'monitor' | 'disagree' | 'skip';
+
+// Structured disagreement reasons
+export type DisagreeReason =
+  | 'not_applicable'      // This doesn't apply to my situation
+  | 'already_addressed'   // Already handling this
+  | 'low_likelihood'      // AI overestimated the likelihood
+  | 'insider_knowledge'   // I have info the AI doesn't
+  | 'other';              // Custom reason
+
+// Individual risk response
+export interface RiskResponse {
+  riskId: string;
+  riskDescription: string;        // Store for context
+  riskSeverity: 'high' | 'medium' | 'low';
+  response: RiskResponseType;
+  disagreeReason?: DisagreeReason;
+  reasoning?: string;             // Freetext explanation
+  mitigationPlan?: string;        // For mitigate/monitor
+  respondedAt: string;            // ISO timestamp
+}
+
+// Stats for quick access
+export interface RiskResponseStats {
+  total: number;
+  responded: number;
+  mitigate: number;
+  accept: number;
+  monitor: number;
+  disagree: number;
+  skipped: number;
+}
+
+// Response metadata for display
+export const riskResponseMeta: Record<RiskResponseType, {
+  label: string;
+  icon: string;
+  description: string;
+  color: string;
+  bgColor: string;
+}> = {
+  mitigate: {
+    label: 'Mitigate',
+    icon: '🛡️',
+    description: 'I will actively address this risk',
+    color: 'text-blue-700',
+    bgColor: 'bg-blue-50 border-blue-200'
+  },
+  accept: {
+    label: 'Accept',
+    icon: '✓',
+    description: 'I accept this risk as-is',
+    color: 'text-green-700',
+    bgColor: 'bg-green-50 border-green-200'
+  },
+  monitor: {
+    label: 'Monitor',
+    icon: '👁️',
+    description: 'I will watch this closely',
+    color: 'text-yellow-700',
+    bgColor: 'bg-yellow-50 border-yellow-200'
+  },
+  disagree: {
+    label: 'Disagree',
+    icon: '✗',
+    description: 'I don\'t think this applies',
+    color: 'text-red-700',
+    bgColor: 'bg-red-50 border-red-200'
+  },
+  skip: {
+    label: 'Skip',
+    icon: '⏭️',
+    description: 'Skip for now',
+    color: 'text-gray-500',
+    bgColor: 'bg-gray-50 border-gray-200'
+  }
+};
+
+// Disagree reason metadata
+export const disagreeReasonMeta: Record<DisagreeReason, {
+  label: string;
+  description: string;
+}> = {
+  not_applicable: {
+    label: 'Not applicable',
+    description: 'This risk doesn\'t apply to my situation'
+  },
+  already_addressed: {
+    label: 'Already addressed',
+    description: 'I\'m already handling this'
+  },
+  low_likelihood: {
+    label: 'Low likelihood',
+    description: 'AI overestimated the probability'
+  },
+  insider_knowledge: {
+    label: 'Insider knowledge',
+    description: 'I have information the AI doesn\'t'
+  },
+  other: {
+    label: 'Other',
+    description: 'Different reason (explain below)'
+  }
+};
+
+// ==========================================
+// IDEATION TYPES (Re-exported from root)
+// ==========================================
+
+// Core Ideation Types
+export type SessionStatus = 'active' | 'completed' | 'abandoned';
+export type SessionPhase = 'exploring' | 'narrowing' | 'validating' | 'refining';
+export type CandidateStatus = 'forming' | 'active' | 'captured' | 'discarded' | 'saved';
+export type RiskType =
+  | 'impossible'
+  | 'unrealistic'
+  | 'too_complex'
+  | 'too_vague'
+  | 'saturated_market'
+  | 'wrong_timing'
+  | 'resource_mismatch';
+export type RiskSeverity = 'critical' | 'high' | 'medium' | 'low';
+export type ButtonStyle = 'primary' | 'secondary' | 'outline' | 'danger';
+
+export interface IdeaCandidate {
+  id: string;
+  sessionId: string;
+  title: string;
+  summary: string | null;
+  confidence: number;  // 0-100
+  viability: number;   // 0-100
+  userSuggested: boolean;
+  status: CandidateStatus;
+  capturedIdeaId: string | null;
+  version: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface ViabilityRisk {
+  id: string;
+  candidateId: string;
+  riskType: RiskType;
+  description: string;
+  evidenceUrl: string | null;
+  evidenceText: string | null;
+  severity: RiskSeverity;
+  userAcknowledged: boolean;
+  userResponse: string | null;
+  createdAt: Date | string;
+}
+
+export interface ButtonOption {
+  id: string;
+  label: string;
+  value: string;
+  style: ButtonStyle;
+  fullWidth?: boolean;
+  icon?: string;
+  disabled?: boolean;
+}
+
+export interface FormField {
+  id: string;
+  type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'slider' | 'dropdown' | 'date';
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+  options?: FormFieldOption[];
+  min?: number;
+  max?: number;
+  step?: number;
+  defaultValue?: unknown;
+}
+
+export interface FormFieldOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+export interface FormDefinition {
+  id: string;
+  title?: string;
+  description?: string;
+  fields: FormField[];
+  submitLabel?: string;
+}
+
+export interface WebSearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  source: string;
+  publishedDate?: string;
 }

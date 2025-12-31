@@ -163,6 +163,35 @@ export class AgentOrchestrator {
       viability: { total: viabilityResult.total, risks: viabilityResult.risks },
     });
 
+    // Save candidate to database
+    if (parsed.candidateTitle) {
+      // New candidate or update
+      if (existingCandidate) {
+        // Update existing candidate
+        await candidateManager.update(existingCandidate.id, {
+          title: parsed.candidateTitle,
+          summary: parsed.candidateSummary || existingCandidate.summary || undefined,
+          confidence: confidenceResult.total,
+          viability: viabilityResult.total,
+        });
+      } else {
+        // Create new candidate
+        await candidateManager.create({
+          sessionId: session.id,
+          title: parsed.candidateTitle,
+          summary: parsed.candidateSummary,
+          confidence: confidenceResult.total,
+          viability: viabilityResult.total,
+        });
+      }
+    } else if (existingCandidate) {
+      // Update confidence/viability for existing candidate
+      await candidateManager.update(existingCandidate.id, {
+        confidence: confidenceResult.total,
+        viability: viabilityResult.total,
+      });
+    }
+
     // Store messages
     await messageStore.add({
       sessionId: session.id,

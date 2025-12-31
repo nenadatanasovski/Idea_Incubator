@@ -98,6 +98,13 @@ function StatusIndicator({ status }: { status?: DebateSession['status'] }) {
           Eval Only
         </span>
       )
+    case 'data-loss':
+      return (
+        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700" title="Debate ran but data was not saved - process may have crashed">
+          <AlertCircle className="h-3 w-3" />
+          Data Lost
+        </span>
+      )
     default:
       return null
   }
@@ -180,8 +187,8 @@ export default function DebateList() {
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <ul className="divide-y divide-gray-200">
-            {sessions.map((session) => (
-              <li key={session.evaluation_run_id}>
+            {sessions.map((session, index) => (
+              <li key={session.evaluation_run_id || `session-${index}`}>
                 <Link
                   to={`/debate/session/${session.evaluation_run_id}`}
                   className="block hover:bg-gray-50 transition-colors"
@@ -209,12 +216,17 @@ export default function DebateList() {
                             </span>
                             {session.round_count > 0 && (
                               <span>
-                                {session.round_count} round{session.round_count !== 1 ? 's' : ''}
+                                {session.round_count} debate round{session.round_count !== 1 ? 's' : ''}
                               </span>
                             )}
                             {session.criterion_count > 0 && (
                               <span>
                                 {session.criterion_count} criteri{session.criterion_count !== 1 ? 'a' : 'on'}
+                              </span>
+                            )}
+                            {session.rounds_per_criterion > 0 && session.status !== 'evaluation-only' && (
+                              <span className="text-primary-600">
+                                {session.rounds_per_criterion} round{session.rounds_per_criterion !== 1 ? 's' : ''}/criterion
                               </span>
                             )}
                             {session.status === 'evaluation-only' && (

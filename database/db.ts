@@ -67,6 +67,34 @@ export async function closeDb(): Promise<void> {
 }
 
 /**
+ * Reload database from disk (useful when another process has written to the file)
+ */
+export async function reloadDb(): Promise<void> {
+  const config = getConfig();
+  const dbPath = config.paths.database;
+
+  try {
+    const SQL = await initSqlJs();
+
+    // Close existing connection if any
+    if (db) {
+      db.close();
+      db = null;
+    }
+
+    // Reload from disk
+    if (fs.existsSync(dbPath)) {
+      const buffer = fs.readFileSync(dbPath);
+      db = new SQL.Database(buffer);
+    } else {
+      db = new SQL.Database();
+    }
+  } catch (error) {
+    throw new DatabaseError('reload', (error as Error).message);
+  }
+}
+
+/**
  * Execute SQL and return results
  */
 export async function query<T extends Record<string, unknown>>(

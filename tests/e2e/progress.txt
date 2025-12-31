@@ -46,3 +46,22 @@
   - Preserve candidate in memory updates
 - This should stabilize confidence scores during conversation
 
+
+[2025-12-31 10:45] Session 10 Complete
+- Fixed: Confidence calculator not handling string formats from LLM
+- Root cause: LLM returns strings like "2 hours weekly on meal planning" but
+  calculator expected objects like {description: "...", severity: "high"}
+- Code changed: agents/ideation/confidence-calculator.ts
+  - Problem Definition: Handle both object format and string format for frustrations/gaps
+  - Target User: Handle string customerType, geography, and location fields
+  - Solution Direction: Handle string productType and technicalDepth
+  - Differentiation: Handle string competitors and expertise arrays
+  - User Fit: Handle flat string constraints (budget, runway)
+- Passed: TEST-CM-004 (Confidence Score Updates)
+- Passed: TEST-CM-005 (Viability Score and Risks)
+- Verified: Confidence goes from 0% to 90% with comprehensive message
+- Verified: Confidence stays stable (does not drop) during conversation
+- Verified: Viability shows 85% with risk items displayed
+- Progress: 28/64 passing (was 26/64)
+- Next: TEST-CM-006 (Capture Idea Button) or other pending tests
+

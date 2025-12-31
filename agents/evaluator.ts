@@ -437,6 +437,260 @@ No structured answers available for the ${category} category. Base your assessme
 }
 
 /**
+ * Risk response context from Position phase
+ */
+export interface PositioningRiskContext {
+  riskResponses?: Array<{
+    riskId: string;
+    riskDescription: string;
+    riskSeverity: 'high' | 'medium' | 'low';
+    response: 'mitigate' | 'accept' | 'monitor' | 'disagree' | 'skip';
+    disagreeReason?: string;
+    reasoning?: string;
+    mitigationPlan?: string;
+  }>;
+  riskResponseStats?: {
+    total: number;
+    responded: number;
+    mitigate: number;
+    accept: number;
+    monitor: number;
+    disagree: number;
+    skipped: number;
+  };
+}
+
+/**
+ * Complete strategic positioning context from Position phase
+ * This informs evaluation criteria about the user's chosen approach and constraints
+ */
+export interface StrategicPositioningContext {
+  // User's selected strategy from differentiation analysis
+  selectedStrategy?: {
+    name: string;
+    description: string;
+    differentiators?: string[];
+  };
+
+  // Strategic approach chosen
+  strategicApproach?: 'create' | 'copy_improve' | 'combine' | 'localize' | 'specialize' | 'time';
+
+  // Timing decision
+  timing?: {
+    decision: 'proceed_now' | 'wait' | 'urgent';
+    rationale?: string;
+  };
+
+  // Financial allocation - what resources they've committed
+  financials?: {
+    allocatedBudget?: number;
+    allocatedWeeklyHours?: number;
+    allocatedRunwayMonths?: number;
+    targetIncome?: number;
+    incomeTimelineMonths?: number;
+    incomeType?: 'full_replacement' | 'partial_replacement' | 'supplement' | 'wealth_building' | 'learning';
+    validationBudget?: number;
+    killCriteria?: string;
+  };
+
+  // Key insights from differentiation analysis
+  differentiation?: {
+    topOpportunities?: string[];
+    competitiveRisks?: string[];
+    marketTimingAnalysis?: string;
+    strategicSummary?: string;
+  };
+
+  // Risk responses (extending existing context)
+  riskContext?: PositioningRiskContext;
+}
+
+/**
+ * Format strategic positioning context for evaluator prompt
+ * This context helps evaluators score the idea within the user's stated constraints
+ */
+function formatStrategicContext(ctx: StrategicPositioningContext | null, category: Category): string {
+  if (!ctx) return '';
+
+  const parts: string[] = [];
+
+  // Strategy section - relevant for all categories
+  if (ctx.selectedStrategy || ctx.strategicApproach) {
+    parts.push('### Strategic Positioning');
+    if (ctx.selectedStrategy?.name) {
+      parts.push(`**Selected Strategy:** ${ctx.selectedStrategy.name}`);
+      if (ctx.selectedStrategy.description) {
+        parts.push(`  ${ctx.selectedStrategy.description}`);
+      }
+    }
+    if (ctx.strategicApproach) {
+      const approachDescriptions: Record<string, string> = {
+        create: 'CREATE - Building something genuinely new (expect higher risk, longer timeline)',
+        copy_improve: 'COPY & IMPROVE - Proven model, better execution (lower risk, faster)',
+        combine: 'COMBINE - Merging validated concepts (medium risk)',
+        localize: 'LOCALIZE - Proven model for new geography/segment (lower risk)',
+        specialize: 'SPECIALIZE - Narrow general solution to niche (lower risk)',
+        time: 'TIME - Retry concept whose time has come (variable risk)'
+      };
+      parts.push(`**Strategic Approach:** ${approachDescriptions[ctx.strategicApproach] || ctx.strategicApproach}`);
+    }
+    parts.push('');
+  }
+
+  // Timing - especially relevant for Market (M5) and Risk categories
+  if (ctx.timing && (category === 'market' || category === 'risk' || category === 'feasibility')) {
+    parts.push('### Timing Decision');
+    const timingLabels: Record<string, string> = {
+      proceed_now: 'PROCEED NOW - User is ready to execute immediately',
+      wait: 'WAIT - User plans to delay execution',
+      urgent: 'URGENT - Time-sensitive opportunity, must move fast'
+    };
+    parts.push(`**Decision:** ${timingLabels[ctx.timing.decision] || ctx.timing.decision}`);
+    if (ctx.timing.rationale) {
+      parts.push(`**Rationale:** ${ctx.timing.rationale}`);
+    }
+    parts.push('');
+  }
+
+  // Financial constraints - especially relevant for Feasibility (F2, F4, F5) and Fit (FT5)
+  if (ctx.financials && (category === 'feasibility' || category === 'fit' || category === 'risk')) {
+    parts.push('### Resource Constraints (User\'s Committed Allocation)');
+
+    if (ctx.financials.allocatedBudget !== undefined && ctx.financials.allocatedBudget > 0) {
+      parts.push(`**Allocated Budget:** $${ctx.financials.allocatedBudget.toLocaleString()}`);
+    }
+    if (ctx.financials.allocatedWeeklyHours !== undefined && ctx.financials.allocatedWeeklyHours > 0) {
+      parts.push(`**Time Commitment:** ${ctx.financials.allocatedWeeklyHours} hours/week`);
+    }
+    if (ctx.financials.allocatedRunwayMonths !== undefined && ctx.financials.allocatedRunwayMonths > 0) {
+      parts.push(`**Runway:** ${ctx.financials.allocatedRunwayMonths} months`);
+    }
+    if (ctx.financials.validationBudget !== undefined && ctx.financials.validationBudget > 0) {
+      parts.push(`**Validation Budget:** $${ctx.financials.validationBudget.toLocaleString()}`);
+    }
+
+    // Income goals - affects how we evaluate feasibility and fit
+    if (ctx.financials.targetIncome !== undefined && ctx.financials.targetIncome > 0) {
+      const timeline = ctx.financials.incomeTimelineMonths
+        ? ` within ${ctx.financials.incomeTimelineMonths} months`
+        : '';
+      parts.push(`**Income Target:** $${ctx.financials.targetIncome.toLocaleString()}/year${timeline}`);
+    }
+    if (ctx.financials.incomeType) {
+      const incomeLabels: Record<string, string> = {
+        full_replacement: 'Full income replacement required',
+        partial_replacement: 'Partial income replacement',
+        supplement: 'Supplemental income',
+        wealth_building: 'Equity/wealth building focus',
+        learning: 'Learning-focused (income secondary)'
+      };
+      parts.push(`**Income Type:** ${incomeLabels[ctx.financials.incomeType] || ctx.financials.incomeType}`);
+    }
+
+    // Kill criteria - critical for Risk evaluation
+    if (ctx.financials.killCriteria) {
+      parts.push(`**Kill Criteria:** ${ctx.financials.killCriteria}`);
+      parts.push('  *(User will abandon if these conditions are met)*');
+    }
+
+    parts.push('');
+  }
+
+  // Differentiation insights - relevant for Market and Solution categories
+  if (ctx.differentiation && (category === 'market' || category === 'solution')) {
+    parts.push('### Differentiation Analysis Insights');
+
+    if (ctx.differentiation.strategicSummary) {
+      parts.push(`**Summary:** ${ctx.differentiation.strategicSummary}`);
+    }
+    if (ctx.differentiation.topOpportunities?.length) {
+      parts.push('**Top Opportunities:**');
+      ctx.differentiation.topOpportunities.slice(0, 3).forEach(opp => {
+        parts.push(`  - ${opp}`);
+      });
+    }
+    if (ctx.differentiation.competitiveRisks?.length) {
+      parts.push('**Competitive Risks Identified:**');
+      ctx.differentiation.competitiveRisks.slice(0, 3).forEach(risk => {
+        parts.push(`  - ${risk}`);
+      });
+    }
+    if (ctx.differentiation.marketTimingAnalysis) {
+      parts.push(`**Market Timing:** ${ctx.differentiation.marketTimingAnalysis}`);
+    }
+
+    parts.push('');
+  }
+
+  if (parts.length === 0) return '';
+
+  return `## Strategic Context (from Position Phase)
+
+**IMPORTANT FOR EVALUATION:** The user has completed the Position phase and made specific decisions about strategy, resources, and timing. Evaluate the idea within these stated constraints, not against an idealized scenario.
+
+${parts.join('\n')}
+**Evaluation Guidance:**
+- Score F2 (Resources) based on their allocated budget/time, not ideal resources
+- Score F4 (Time to Value) against their stated income timeline
+- Score R1-R5 (Risks) considering their mitigation plans and kill criteria
+- Score FT1/FT5 (Fit) against their income goals and life stage constraints
+- Consider their strategic approach (${ctx.strategicApproach || 'not specified'}) when assessing risk/reward tradeoffs
+`;
+}
+
+/**
+ * Format positioning risk context for evaluator prompt (specifically for R2 Market Risk)
+ */
+function formatPositioningContextForRisk(positioningContext: PositioningRiskContext | null): string {
+  if (!positioningContext || !positioningContext.riskResponses || positioningContext.riskResponses.length === 0) {
+    return '';
+  }
+
+  const responses = positioningContext.riskResponses;
+  const stats = positioningContext.riskResponseStats;
+
+  let context = `## Position Phase Risk Assessment
+
+The creator has already reviewed ${stats?.responded || 0} competitive risks in the Position phase:
+`;
+
+  // Summary stats
+  if (stats) {
+    context += `- ${stats.mitigate} risks they will actively mitigate\n`;
+    context += `- ${stats.accept} risks they accept\n`;
+    context += `- ${stats.monitor} risks they will monitor\n`;
+    context += `- ${stats.disagree} risks they dispute (may have insider knowledge)\n`;
+    context += '\n';
+  }
+
+  // Detail the disagreements - this is the most important signal
+  const disagreements = responses.filter(r => r.response === 'disagree');
+  if (disagreements.length > 0) {
+    context += `### User Disagreements (Consider these when scoring R2 Market Risk)\n\n`;
+    context += `The user has disputed the following AI-identified risks, potentially indicating insider knowledge:\n\n`;
+    disagreements.forEach(r => {
+      context += `- **"${r.riskDescription}"** (${r.riskSeverity} severity)\n`;
+      context += `  Reason: ${r.disagreeReason || 'Not specified'}\n`;
+      if (r.reasoning) context += `  Explanation: ${r.reasoning}\n`;
+      context += '\n';
+    });
+    context += `**Impact on R2 confidence**: Consider reducing confidence if user has plausible insider knowledge that contradicts AI risk assessment.\n\n`;
+  }
+
+  // Detail mitigation plans - shows user is thinking about risk
+  const mitigations = responses.filter(r => r.response === 'mitigate' && r.mitigationPlan);
+  if (mitigations.length > 0) {
+    context += `### User Mitigation Plans\n\n`;
+    mitigations.forEach(r => {
+      context += `- **"${r.riskDescription}"**: ${r.mitigationPlan}\n`;
+    });
+    context += '\n';
+  }
+
+  return context;
+}
+
+/**
  * Evaluate a single category
  */
 export async function evaluateCategory(
@@ -446,7 +700,9 @@ export async function evaluateCategory(
   broadcaster?: Broadcaster,
   roundNumber?: number,
   profileContext?: ProfileContext | null,
-  structuredContext?: StructuredEvaluationContext | null
+  structuredContext?: StructuredEvaluationContext | null,
+  positioningContext?: PositioningRiskContext | null,
+  strategicContext?: StrategicPositioningContext | null
 ): Promise<EvaluationResult[]> {
   const config = getConfig();
   const criteria = EVALUATION_CRITERIA[category];
@@ -464,6 +720,14 @@ export async function evaluateCategory(
   // Generate structured data section from dynamic questioning
   const structuredSection = formatStructuredDataForPrompt(structuredContext ?? null, category);
 
+  // Generate positioning risk context section (for risk category, specifically R2)
+  const positioningSection = category === 'risk'
+    ? formatPositioningContextForRisk(positioningContext ?? null)
+    : '';
+
+  // Generate strategic positioning context (from Position phase)
+  const strategicSection = formatStrategicContext(strategicContext ?? null, category);
+
   // Note: We don't broadcast roundStarted at category level - only per criterion via evaluatorSpeaking
 
   const response = await client.messages.create({
@@ -475,6 +739,8 @@ export async function evaluateCategory(
       content: `Evaluate this idea for the **${category.toUpperCase()}** category:
 
 ${structuredSection}
+${strategicSection}
+${positioningSection}
 
 ## Idea Content
 
@@ -596,7 +862,9 @@ export async function evaluateIdea(
   costTracker: CostTracker,
   broadcaster?: Broadcaster,
   profileContext?: ProfileContext | null,
-  structuredContext?: StructuredEvaluationContext | null
+  structuredContext?: StructuredEvaluationContext | null,
+  positioningContext?: PositioningRiskContext | null,
+  strategicContext?: StrategicPositioningContext | null
 ): Promise<FullEvaluationResult> {
   const config = getConfig();
   logInfo(`Starting evaluation for idea: ${ideaSlug}`);
@@ -613,6 +881,12 @@ export async function evaluateIdea(
     logInfo('No structured answers available - evaluation will rely on idea content only');
   }
 
+  if (strategicContext) {
+    logInfo(`Using Position phase context - Strategy: ${strategicContext.selectedStrategy?.name || 'Not specified'}, Approach: ${strategicContext.strategicApproach || 'Not specified'}`);
+  } else {
+    logInfo('No Position phase context - evaluation will not consider user\'s strategic decisions');
+  }
+
   const allEvaluations: EvaluationResult[] = [];
   const categoryScores: Record<Category, number> = {
     problem: 0,
@@ -627,7 +901,10 @@ export async function evaluateIdea(
   for (let i = 0; i < CATEGORIES.length; i++) {
     const category = CATEGORIES[i];
     logDebug(`Evaluating category: ${category}`);
-    const categoryEvals = await evaluateCategory(category, ideaContent, costTracker, broadcaster, i + 1, profileContext, structuredContext);
+    // Pass positioning context only for risk category (R2 Market Risk uses it)
+    const categoryPositioningContext = category === 'risk' ? positioningContext : null;
+    // Pass strategic context to all categories
+    const categoryEvals = await evaluateCategory(category, ideaContent, costTracker, broadcaster, i + 1, profileContext, structuredContext, categoryPositioningContext, strategicContext);
     allEvaluations.push(...categoryEvals);
 
     // Calculate category average

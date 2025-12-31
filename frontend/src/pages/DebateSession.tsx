@@ -181,7 +181,7 @@ function CriterionSection({ criterion, rounds }: { criterion: string; rounds: De
       >
         <div className="flex items-center space-x-4">
           <h3 className="text-lg font-medium text-gray-900">{criterion}</h3>
-          <span className="text-sm text-gray-500">{rounds.length} round{rounds.length !== 1 ? 's' : ''}</span>
+          <span className="text-sm text-gray-500">{rounds.length} challenge{rounds.length !== 1 ? 's' : ''}</span>
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2 text-sm">
@@ -293,6 +293,23 @@ export default function DebateSession() {
               </span>
               <span>{totalRounds} debate rounds</span>
               <span>{groupedRounds.size} criteria</span>
+              {session.rounds_per_criterion > 0 && (
+                <span className="text-primary-600 font-medium">
+                  {session.rounds_per_criterion} round{session.rounds_per_criterion !== 1 ? 's' : ''}/criterion
+                </span>
+              )}
+              {session.status && (
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                  session.status === 'complete' ? 'bg-green-100 text-green-800' :
+                  session.status === 'evaluation-only' ? 'bg-amber-100 text-amber-800' :
+                  session.status === 'data-loss' ? 'bg-red-100 text-red-800' :
+                  'bg-blue-100 text-blue-800'
+                }`}>
+                  {session.status === 'evaluation-only' ? 'Evaluation Only' :
+                   session.status === 'complete' ? 'Complete' :
+                   session.status === 'data-loss' ? 'Data Lost' : 'In Progress'}
+                </span>
+              )}
             </div>
             <p className="mt-2 text-xs text-gray-400 font-mono">{session.evaluation_run_id}</p>
           </div>
@@ -340,7 +357,7 @@ export default function DebateSession() {
             <div className="mt-3 flex items-center space-x-2">
               <span className="text-sm text-gray-500">Overall Score:</span>
               <span className="text-lg font-bold text-primary-600">
-                {session.synthesis.overall_score.toFixed(1)}
+                {session.synthesis.overall_score.toFixed(2)}
               </span>
             </div>
           </div>
@@ -349,9 +366,40 @@ export default function DebateSession() {
 
       {/* Debate rounds by criterion */}
       <div className="space-y-4">
-        {Array.from(groupedRounds.entries()).map(([criterion, rounds]) => (
-          <CriterionSection key={criterion} criterion={criterion} rounds={rounds} />
-        ))}
+        {groupedRounds.size === 0 ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <AlertCircle className={`h-12 w-12 mx-auto mb-4 ${session.status === 'data-loss' ? 'text-red-500' : 'text-amber-500'}`} />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {session.status === 'evaluation-only' ? 'Evaluation Only - No Debate Data' :
+               session.status === 'data-loss' ? 'Debate Data Lost' :
+               'No Debate Rounds Found'}
+            </h3>
+            <p className="text-sm text-gray-500 max-w-md mx-auto mb-4">
+              {session.status === 'evaluation-only'
+                ? 'This evaluation ran without the debate phase. Scores are based on initial AI assessment only, without red team challenges.'
+                : session.status === 'data-loss'
+                ? 'The debate ran but the results were not saved to the database. This usually happens when the evaluation process crashes or exits unexpectedly before completing. You may want to re-run the evaluation.'
+                : 'No debate rounds were recorded for this session. This could indicate the evaluation is still in progress or there was an issue with data recording.'}
+            </p>
+            {session.apiCalls !== undefined && session.apiCalls > 0 && (
+              <p className="text-xs text-gray-400">
+                {session.apiCalls} API calls were made during this session
+              </p>
+            )}
+            <div className="mt-6">
+              <Link
+                to={`/ideas/${session.idea_slug}`}
+                className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                View Idea Details
+              </Link>
+            </div>
+          </div>
+        ) : (
+          Array.from(groupedRounds.entries()).map(([criterion, rounds]) => (
+            <CriterionSection key={criterion} criterion={criterion} rounds={rounds} />
+          ))
+        )}
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Wifi,
@@ -17,9 +17,19 @@ import {
   ChevronRight,
   Terminal,
   ChevronUp,
+  ArrowRight,
 } from 'lucide-react'
 import { useDebateStream, type DebateEvent } from '../hooks/useDebateStream'
 import { useIdeas } from '../hooks/useIdeas'
+import {
+  getSynthesis,
+  getEvaluations,
+  getDebateRounds,
+  recordGateDecision,
+  updateIdeaStatus,
+  updateIncubationPhase,
+} from '../api/client'
+import EvaluationAdvisoryModal, { type EvaluationDecision } from '../components/EvaluationAdvisoryModal'
 
 // Phase indicator colors
 const phaseColors = {
@@ -465,7 +475,7 @@ function DebateCard({
           )}
           {debate.isComplete && debate.finalScore != null && (
             <span className="text-sm font-bold bg-white px-3 py-1 rounded-full shadow-sm">
-              {debate.finalScore.toFixed(1)}/10
+              {debate.finalScore.toFixed(2)}/10
             </span>
           )}
           {debate.isComplete && !debate.isSkipped && (
@@ -633,7 +643,7 @@ function DebateCard({
               <div className="flex items-center justify-center gap-3 py-2 bg-white rounded-lg">
                 <CheckCircle className="h-5 w-5 text-green-500" />
                 <span className="text-sm font-medium text-gray-700">Debate Complete</span>
-                <span className="text-lg font-bold text-gray-900">{debate.finalScore.toFixed(1)}/10</span>
+                <span className="text-lg font-bold text-gray-900">{debate.finalScore.toFixed(2)}/10</span>
               </div>
             </div>
           )}
@@ -658,6 +668,26 @@ export default function DebateViewer() {
   const { ideas, loading: ideasLoading } = useIdeas({ sortBy: 'updated_at', sortOrder: 'desc' })
   const [selectedSlug, setSelectedSlug] = useState(urlSlug || '')
   const [showEventLog, setShowEventLog] = useState(false)
+
+  // Evaluation Advisory Modal state
+  const [showAdvisoryModal, setShowAdvisoryModal] = useState(false)
+  const [advisoryData, setAdvisoryData] = useState<{
+    overallScore: number
+    confidence: number
+    previousScore?: number
+    weakCriteria: Array<{
+      criterion: string
+      category: string
+      previousScore?: number  // From previous evaluation run
+      finalScore: number
+      reasoning: string
+      debateChallenges: string[]
+    }>
+    recommendation: EvaluationDecision
+    recommendationReasoning: string
+  } | null>(null)
+  const [isLoadingAdvisory, setIsLoadingAdvisory] = useState(false)
+  const [hasShownAdvisory, setHasShownAdvisory] = useState(false)
 
   const {
     connected,
@@ -713,6 +743,176 @@ export default function DebateViewer() {
       disconnect()
       clearEvents()
       setSelectedSlug(newSlug)
+      setHasShownAdvisory(false)
+      setAdvisoryData(null)
+    }
+  }
+
+  // Generate recommendation based on score
+  const generateRecommendation = useCallback((
+    overallScore: number,
+    weakCriteria: Array<{ criterion: string; category: string; previousScore?: number; finalScore: number }>
+  ): { recommendation: EvaluationDecision; reasoning: string } => {
+    // Check if weaknesses are addressable (not market/external factors)
+    const hardToAddressCriteria = ['Market Size', 'Market Growth', 'Market Timing', 'Regulatory Risk']
+    const hasAddressableWeaknesses = weakCriteria.some(
+      c => !hardToAddressCriteria.some(hard => c.criterion.includes(hard))
+    )
+
+    if (overallScore >= 7.5) {
+      return {
+        recommendation: 'pursue',
+        reasoning: `Strong overall score of ${overallScore.toFixed(2)}/10. This idea shows good potential across key criteria. Ready to move forward with development.`
+      }
+    } else if (overallScore >= 5.0 && hasAddressableWeaknesses) {
+      const weakNames = weakCriteria.slice(0, 3).map(c => c.criterion).join(', ')
+      return {
+        recommendation: 'iterate',
+        reasoning: `Score of ${overallScore.toFixed(2)}/10 with ${weakCriteria.length} weak areas that can be improved. Iteration recommended to address: ${weakNames}.`
+      }
+    } else if (overallScore >= 5.0 && !hasAddressableWeaknesses) {
+      return {
+        recommendation: 'branch',
+        reasoning: `Score of ${overallScore.toFixed(2)}/10 but weak areas may require fundamental changes. Consider branching to explore a different approach.`
+      }
+    } else if (overallScore >= 3.0) {
+      return {
+        recommendation: 'pause',
+        reasoning: `Score of ${overallScore.toFixed(2)}/10 indicates significant gaps. Consider pausing to gather more information or revisit the core concept.`
+      }
+    } else {
+      return {
+        recommendation: 'abandon',
+        reasoning: `Score of ${overallScore.toFixed(2)}/10 suggests fundamental issues. The idea may not be viable in its current form.`
+      }
+    }
+  }, [])
+
+  // Fetch synthesis data when debate completes
+  useEffect(() => {
+    if (overallPhase !== 'complete' || !selectedSlug || hasShownAdvisory) return
+
+    const fetchAdvisoryData = async () => {
+      setIsLoadingAdvisory(true)
+      try {
+        // Fetch synthesis, evaluations, and debate rounds
+        const [synthesis, evaluations, debateRounds] = await Promise.all([
+          getSynthesis(selectedSlug),
+          getEvaluations(selectedSlug),
+          getDebateRounds(selectedSlug)
+        ])
+
+        if (!synthesis) {
+          console.log('No synthesis available yet')
+          return
+        }
+
+        // Identify weak criteria (final_score < 6 after debate)
+        // Include debate challenges that explain the weakness
+        const weakCriteria = evaluations
+          .filter(e => e.final_score !== null && e.final_score < 6)
+          .sort((a, b) => (a.final_score ?? 10) - (b.final_score ?? 10))
+          .slice(0, 5)
+          .map(e => {
+            // Get debate challenges for this criterion
+            const criterionDebates = debateRounds.filter(r => r.criterion === e.criterion)
+            const debateChallenges = criterionDebates
+              .filter(r => r.arbiter_verdict === 'RED_TEAM' || r.arbiter_verdict === 'DRAW')
+              .map(r => r.redteam_challenge)
+              .filter((c): c is string => c !== null)
+            return {
+              criterion: e.criterion,
+              category: e.category,
+              // previousScore not available in live stream context - would need to fetch previous run
+              previousScore: undefined,
+              finalScore: e.final_score ?? 0,
+              reasoning: e.reasoning || 'Score below threshold',
+              debateChallenges
+            }
+          })
+
+        // Calculate confidence from evaluations
+        const avgConfidence = evaluations.length > 0
+          ? evaluations.reduce((sum, e) => sum + (e.confidence ?? 0.7), 0) / evaluations.length
+          : 0.7
+
+        const { recommendation, reasoning } = generateRecommendation(
+          synthesis.overall_score,
+          weakCriteria
+        )
+
+        setAdvisoryData({
+          overallScore: synthesis.overall_score,
+          confidence: avgConfidence,
+          weakCriteria,
+          recommendation,
+          recommendationReasoning: reasoning
+        })
+
+        // Auto-show the modal
+        setShowAdvisoryModal(true)
+        setHasShownAdvisory(true)
+      } catch (err) {
+        console.error('Failed to fetch advisory data:', err)
+      } finally {
+        setIsLoadingAdvisory(false)
+      }
+    }
+
+    // Small delay to ensure synthesis is saved
+    const timer = setTimeout(fetchAdvisoryData, 2000)
+    return () => clearTimeout(timer)
+  }, [overallPhase, selectedSlug, hasShownAdvisory, generateRecommendation])
+
+  // Handle user's advisory decision
+  const handleAdvisoryDecision = async (decision: EvaluationDecision) => {
+    if (!selectedSlug || !advisoryData) return
+
+    try {
+      // Record the gate decision
+      await recordGateDecision(selectedSlug, {
+        gateType: 'evaluation',
+        advisoryShown: advisoryData.recommendation,
+        userChoice: decision,
+        overallScore: advisoryData.overallScore
+      })
+
+      // Handle status/phase changes based on decision
+      switch (decision) {
+        case 'pursue':
+          // Update phase to iterate (ready for next steps)
+          await updateIncubationPhase(selectedSlug, 'iterate')
+          setShowAdvisoryModal(false)
+          navigate(`/ideas/${selectedSlug}`)
+          break
+
+        case 'iterate':
+          // Go back to clarify phase for focused improvement
+          await updateIncubationPhase(selectedSlug, 'clarify')
+          setShowAdvisoryModal(false)
+          navigate(`/ideas/${selectedSlug}`)
+          break
+
+        case 'branch':
+          // Navigate to idea detail where branch dialog can be opened
+          setShowAdvisoryModal(false)
+          navigate(`/ideas/${selectedSlug}?action=branch`)
+          break
+
+        case 'pause':
+          await updateIdeaStatus(selectedSlug, 'paused', 'Paused after evaluation - needs more work')
+          setShowAdvisoryModal(false)
+          navigate(`/ideas/${selectedSlug}`)
+          break
+
+        case 'abandon':
+          await updateIdeaStatus(selectedSlug, 'abandoned', 'Abandoned after evaluation - not viable')
+          setShowAdvisoryModal(false)
+          navigate('/ideas')
+          break
+      }
+    } catch (err) {
+      console.error('Failed to process decision:', err)
     }
   }
 
@@ -961,6 +1161,35 @@ export default function DebateViewer() {
                   <p className="text-xs text-green-600 mt-1">
                     {completedCount} criteria evaluated
                   </p>
+
+                  {/* Loading advisory */}
+                  {isLoadingAdvisory && (
+                    <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>Loading results...</span>
+                    </div>
+                  )}
+
+                  {/* View Results button */}
+                  {!isLoadingAdvisory && advisoryData && !showAdvisoryModal && (
+                    <button
+                      onClick={() => setShowAdvisoryModal(true)}
+                      className="mt-3 w-full btn btn-primary text-xs py-2 flex items-center justify-center gap-1"
+                    >
+                      <ArrowRight className="h-3 w-3" />
+                      View Results & Next Steps
+                    </button>
+                  )}
+
+                  {/* Direct link to idea if no advisory */}
+                  {!isLoadingAdvisory && !advisoryData && hasShownAdvisory && (
+                    <button
+                      onClick={() => navigate(`/ideas/${selectedSlug}`)}
+                      className="mt-3 w-full btn btn-secondary text-xs py-2"
+                    >
+                      Back to Idea
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1006,6 +1235,21 @@ export default function DebateViewer() {
           )}
         </div>
       </div>
+
+      {/* Evaluation Advisory Modal */}
+      {advisoryData && (
+        <EvaluationAdvisoryModal
+          isOpen={showAdvisoryModal}
+          overallScore={advisoryData.overallScore}
+          confidence={advisoryData.confidence}
+          previousScore={advisoryData.previousScore}
+          weakCriteria={advisoryData.weakCriteria}
+          recommendation={advisoryData.recommendation}
+          recommendationReasoning={advisoryData.recommendationReasoning}
+          onDecision={handleAdvisoryDecision}
+          onClose={() => setShowAdvisoryModal(false)}
+        />
+      )}
     </div>
   )
 }
