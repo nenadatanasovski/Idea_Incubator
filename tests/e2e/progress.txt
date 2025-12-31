@@ -65,3 +65,25 @@
 - Progress: 28/64 passing (was 26/64)
 - Next: TEST-CM-006 (Capture Idea Button) or other pending tests
 
+
+[2025-12-31 22:19] TEST-CM-006 PASSED: Capture Idea Button
+- Added data-testid='capture-idea-btn' to IdeaCandidatePanel.tsx
+- Also added data-testid for Save for Later and Discard buttons
+- Verified: Button enabled at 85% confidence (threshold is 50%)
+- Verified: Click creates new idea in database (id: 4eb68521...)
+- Verified: Redirects to idea detail page with title, summary, incubation journey
+- Verified: Session marked as 'completed' in database
+- Verified: Candidate status changed to 'captured' with captured_idea_id linked
+- Progress: 29/64 passing
+
+
+[2025-12-31 Session 11] Web Search Integration Fixed
+- Fixed: Web search was parsing but never executing
+- Root cause: orchestrator.ts didn't call performWebSearch()
+- Root cause: exec() didn't handle multiline prompts correctly
+- Changed to spawn() with stdin.write() for prompts
+- Added data-testid to Capture Idea button
+- Passed: TEST-CM-006 (Capture Idea Button)
+- Verified: 17-20 web search results per query batch
+- Progress: 29/64 passing (was 28/64)
+- Next: TEST-CM-007 (Save for Later), TEST-CV tests

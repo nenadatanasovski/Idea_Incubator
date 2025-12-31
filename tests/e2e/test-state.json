@@ -365,10 +365,10 @@
     },
     {
       "id": "TEST-CM-006",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Fixed: Added data-testid to capture button. Verified: Button enabled at 85% confidence, click creates idea in DB, redirects to idea detail page, session marked completed, candidate linked to idea.",
       "dependsOn": "TEST-CM-004",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 28,
+    "passed": 29,
     "failed": 0,
     "blocked": 5,
-    "pending": 31,
+    "pending": 30,
     "skipped": 0
   },
   "criticalPath": [

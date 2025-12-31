@@ -273,7 +273,8 @@ export function IdeationSession({
     try {
       const result = await api.captureIdea(state.session.sessionId);
       dispatch({ type: 'SESSION_COMPLETE', payload: { ideaId: result.ideaId } });
-      onComplete(result.ideaId);
+      // Pass slug for navigation since route is /ideas/:slug
+      onComplete(result.ideaSlug);
     } catch (error) {
       dispatch({
         type: 'MESSAGE_ERROR',

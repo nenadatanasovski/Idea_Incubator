@@ -1,7 +1,4 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { spawn } from 'child_process';
 
 /**
  * WEB SEARCH SERVICE
@@ -79,9 +76,11 @@ Search query: "${query}"
 
 Please search for this and return:
 1. Key findings (3-5 bullet points)
-2. Source URLs with titles
+2. Source URLs in markdown format: [Title](https://url) - REQUIRED
 3. Any concerns or red flags
 4. Opportunities identified
+
+IMPORTANT: Include ALL source URLs as markdown links like [Source Name](https://example.com)
 `;
 }
 
@@ -89,21 +88,54 @@ Please search for this and return:
  * Execute Claude CLI with WebSearch tool.
  */
 async function runClaudeCliWithSearch(prompt: string): Promise<string> {
-  const escapedPrompt = prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  return new Promise((resolve, reject) => {
+    console.log('[WebSearch] Executing CLI command via stdin...');
 
-  try {
-    const { stdout } = await execAsync(
-      `claude --allowedTools WebSearch --print "${escapedPrompt}"`,
-      {
-        timeout: 30000, // 30 second timeout
-        maxBuffer: 1024 * 1024, // 1MB buffer
+    const claude = spawn('claude', ['--allowedTools', 'WebSearch', '--print', '-'], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    claude.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    claude.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    claude.on('close', (code) => {
+      if (code === 0) {
+        console.log(`[WebSearch] Output length: ${stdout.length} chars`);
+        console.log('[WebSearch] Output preview:', stdout.slice(0, 200));
+        resolve(stdout);
+      } else {
+        console.error('[WebSearch] Exit code:', code);
+        console.error('[WebSearch] stderr:', stderr.slice(0, 500));
+        console.error('[WebSearch] stdout:', stdout.slice(0, 500));
+        reject(new Error(`Web search failed with code ${code}: ${stderr}`));
       }
-    );
+    });
 
-    return stdout;
-  } catch (error) {
-    throw new Error(`Web search failed: ${(error as Error).message}`);
-  }
+    claude.on('error', (err) => {
+      console.error('[WebSearch] Spawn error:', err.message);
+      reject(new Error(`Failed to spawn claude: ${err.message}`));
+    });
+
+    // Set timeout
+    const timeout = setTimeout(() => {
+      claude.kill();
+      reject(new Error('Web search timed out after 90 seconds'));
+    }, 90000);
+
+    claude.on('close', () => clearTimeout(timeout));
+
+    // Write prompt to stdin and close
+    claude.stdin.write(prompt);
+    claude.stdin.end();
+  });
 }
 
 /**

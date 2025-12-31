@@ -1,42 +1,48 @@
 # E2E Test Handoff
 
 ## Current State
-- **Last Updated:** 2025-12-31 Session 10 (End)
-- **Progress:** Passed: 28 | Blocked: 5 | Pending: 31 | Total: 64
+- **Last Updated:** 2025-12-31 Session 11 (End)
+- **Progress:** Passed: 29 | Blocked: 5 | Pending: 30 | Total: 64
 
 ## What Was Fixed This Session
 
-### Bug Fix: Confidence Calculator String Format Handling
+### Bug Fix: Web Search Integration
 
-**Problem:** Confidence was staying low (36%) even after providing extensive information. The confidence calculator expected structured object formats, but the LLM was returning simple string formats.
+**Problem:** The ideation agent was saying "I don't have web search capabilities" when the web search service was fully implemented but never wired up.
 
-**Root Cause:** The signal extractor and LLM were storing data as strings:
-- `frustrations: ["2 hours weekly on meal planning", ...]` (string array)
-- `customerType: "B2C"` (string)
-- `expertise: ["10 years app development", ...]` (string array)
+**Root Cause:**
+1. `orchestrator.ts` parsed `webSearchNeeded` from LLM response but never executed searches
+2. `web-search-service.ts` used `exec()` which doesn't properly handle multiline prompts
+3. Default shell `/bin/sh` doesn't support `$'...'` bash syntax
 
-But the confidence calculator expected:
-- `frustrations: [{description: "...", severity: "high"}, ...]` (object array)
-- `customerType: {value: "B2C", confidence: 0.8}` (object)
-- `expertise: [{area: "app development", depth: "expert"}, ...]` (object array)
+**Fix Applied:**
+1. Added web search execution to `orchestrator.ts`:
+   - Import `performWebSearch` and `SearchPurpose` from web-search-service
+   - Execute web searches when LLM returns `webSearchNeeded` queries
+   - Map results to `WebSearchResult[]` format for viability calculation
+2. Changed `web-search-service.ts` from `exec` to `spawn`:
+   - Use `spawn('claude', [...])` with stdin for prompt
+   - Proper handling of multiline prompts via stdin.write()
+   - 90 second timeout for web searches
+3. Updated prompt to request markdown links `[Title](url)`
 
-**Fix Applied:** Updated `agents/ideation/confidence-calculator.ts` to handle BOTH formats:
-1. **Problem Definition**: Check if frustrations/gaps are strings or objects
-2. **Target User**: Handle customerType/geography as string or {value, confidence} object
-3. **Solution Direction**: Handle productType/technicalDepth as string or object
-4. **Differentiation**: Handle competitors/expertise as string arrays
-5. **User Fit**: Handle flat constraint fields (budget, runway)
+**Result:** Web searches now work! Returns 17-20 results per query batch.
+
+### Bug Fix: Capture Button Missing data-testid
+
+**Problem:** The "Capture Idea" button had no `data-testid` making it difficult to click reliably in E2E tests.
+
+**Fix Applied:** Added `data-testid="capture-idea-btn"` to `IdeaCandidatePanel.tsx`
 
 ### Tests Passed This Session
 
 | Test ID | Description | Notes |
 |---------|-------------|-------|
-| TEST-CM-004 | Confidence Score Updates | Confidence goes 0%->90% with comprehensive message, stays stable |
-| TEST-CM-005 | Viability Score and Risks | 85% viability, risk items displayed correctly |
+| TEST-CM-006 | Capture Idea Button | Button enabled at 85% confidence, creates idea, redirects to detail page |
 
 ## Next Session Should
 
-1. **Work on TEST-CM-006** - Capture Idea Button (needs 60%+ confidence - now achievable!)
+1. **Work on TEST-CM-007** - Save for Later (draft functionality)
 2. **Work on TEST-CV tests** - Confidence/Viability meter display tests
 3. **Consider journey tests** - TEST-E2E-001 through TEST-E2E-004
 
@@ -49,7 +55,10 @@ But the confidence calculator expected:
 
 ## Key Files Modified This Session
 
-- `agents/ideation/confidence-calculator.ts` - Handle string formats for all confidence components
+- `agents/ideation/orchestrator.ts` - Execute web searches, import search functions
+- `agents/ideation/web-search-service.ts` - Use spawn() with stdin instead of exec()
+- `agents/ideation/signal-extractor.ts` - Add webSearchNeeded to ParsedAgentResponse
+- `frontend/src/components/ideation/IdeaCandidatePanel.tsx` - Add data-testid for buttons
 
 ## Schema Quick Reference
 
@@ -64,23 +73,14 @@ SELECT id, role, content, created_at FROM ideation_messages ORDER BY created_at;
 SELECT id, title, summary, confidence, viability FROM ideation_candidates WHERE session_id = ?;
 ```
 
-## Git History
+## Web Search Verification
 
+To verify web search is working:
+```bash
+# Check backend logs for:
+# [Orchestrator] Executing N web searches...
+# [WebSearch] Executing CLI command via stdin...
+# [WebSearch] Output length: XXXX chars
+# [Orchestrator] Web searches completed: XX results
+tail -50 tests/e2e/logs/backend.log | grep -E "WebSearch|Orchestrator"
 ```
-Latest commit should be: Fix confidence calculator to handle string formats from LLM
-```
-
-## Test Approach for Next Session
-
-To test confidence properly:
-1. Start new session with "I have an idea" mode
-2. Send comprehensive message including:
-   - Frustrations/problems
-   - Target user (e.g., "working parents aged 30-45")
-   - Location (e.g., "Australia")
-   - Solution direction (e.g., "mobile app")
-   - Competitors (e.g., "Mealime")
-   - Expertise (e.g., "10 years app development")
-   - Constraints (e.g., "$20k budget, 6 months runway")
-3. Verify confidence reaches 60%+ (capture threshold) or 90%+ (clear)
-4. Verify confidence stays stable on subsequent messages

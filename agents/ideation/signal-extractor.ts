@@ -24,6 +24,7 @@ export interface ParsedAgentResponse {
   };
   candidateTitle?: string;
   candidateSummary?: string;
+  webSearchNeeded?: string[];
 }
 
 export interface ExtractedSignals {

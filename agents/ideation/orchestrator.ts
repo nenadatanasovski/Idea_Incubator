@@ -10,6 +10,7 @@ import {
   MarketDiscoveryState,
   NarrowingState,
   ViabilityRisk,
+  WebSearchResult,
 } from '../../types/ideation.js';
 import { sessionManager } from './session-manager.js';
 import { messageStore } from './message-store.js';
@@ -26,6 +27,10 @@ import {
   createDefaultMarketDiscoveryState,
   createDefaultNarrowingState,
 } from '../../utils/ideation-defaults.js';
+import {
+  performWebSearch,
+  SearchPurpose,
+} from './web-search-service.js';
 
 /**
  * AGENT ORCHESTRATOR
@@ -125,11 +130,41 @@ export class AgentOrchestrator {
       userConfirmations: this.countConfirmations(messages),
     });
 
+    // Execute web searches if requested by the LLM
+    let webSearchResults: WebSearchResult[] = [];
+    if (parsed.webSearchNeeded && parsed.webSearchNeeded.length > 0) {
+      console.log(`[Orchestrator] Executing ${parsed.webSearchNeeded.length} web searches...`);
+      const searchPromises = parsed.webSearchNeeded.map(async (query: string) => {
+        const purpose: SearchPurpose = {
+          type: 'general',
+          context: candidateForCalculation?.title || 'Ideation session',
+        };
+        return performWebSearch(query, purpose);
+      });
+
+      try {
+        const rawResults = await Promise.all(searchPromises);
+        // Map web-search-service results to types/ideation WebSearchResult format
+        webSearchResults = rawResults.flatMap(r =>
+          r.results.map(item => ({
+            title: item.title,
+            url: item.url,
+            snippet: item.snippet,
+            source: item.source,
+          }))
+        );
+        console.log(`[Orchestrator] Web searches completed: ${webSearchResults.length} results`);
+      } catch (error) {
+        console.error('[Orchestrator] Web search failed:', error);
+        // Continue without search results
+      }
+    }
+
     const viabilityResult = calculateViability({
       selfDiscovery: selfDiscovery as SelfDiscoveryState,
       marketDiscovery: marketDiscovery as MarketDiscoveryState,
       narrowingState: narrowingState as NarrowingState,
-      webSearchResults: [], // Populated from web search if available
+      webSearchResults: webSearchResults,
       candidate: candidateForCalculation ? { id: existingCandidate?.id || '', title: candidateForCalculation.title } : null,
     });
 
@@ -285,6 +320,7 @@ export class AgentOrchestrator {
         signals: parsed.signals,
         candidateTitle: parsed.candidateUpdate?.title,
         candidateSummary: parsed.candidateUpdate?.summary,
+        webSearchNeeded: parsed.webSearchNeeded,
       };
     } catch {
       // If JSON parsing fails, treat entire response as text
