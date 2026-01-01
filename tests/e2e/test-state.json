@@ -395,10 +395,10 @@
     },
     {
       "id": "TEST-CV-001",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Confidence increases as frustration is described: 43% -> 48% after describing budget frustration in detail",
       "dependsOn": "TEST-CF-001",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 32,
+    "passed": 33,
     "failed": 0,
     "blocked": 4,
-    "pending": 28,
+    "pending": 27,
     "skipped": 0
   },
   "criticalPath": [
