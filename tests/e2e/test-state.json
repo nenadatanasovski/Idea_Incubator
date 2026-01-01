@@ -515,10 +515,10 @@
     },
     {
       "id": "TEST-EH-003",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Verified: API returns 404 with clear error {error: Session not found} for invalid session ID. No crash, no 500 error.",
       "dependsOn": "TEST-SL-002",
       "automatable": true,
       "needsFreshSession": false
@@ -713,7 +713,7 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 42,
+    "passed": 43,
     "failed": 0,
     "blocked": 4,
     "pending": 21,
