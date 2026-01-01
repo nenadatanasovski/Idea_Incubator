@@ -10,6 +10,7 @@ import asyncio
 import json
 from pathlib import Path
 from typing import Optional
+from collections import deque
 
 from claude_code_sdk import ClaudeSDKClient
 
@@ -18,6 +19,54 @@ from client import create_client
 
 # Configuration
 AUTO_CONTINUE_DELAY_SECONDS = 3
+TRANSCRIPT_LINES = 100  # Keep last N lines for next session
+
+
+class TranscriptWriter:
+    """Captures output to both console and a rolling transcript file."""
+
+    def __init__(self, transcript_path: Path, max_lines: int = TRANSCRIPT_LINES):
+        self.transcript_path = transcript_path
+        self.max_lines = max_lines
+        self.lines: deque = deque(maxlen=max_lines)
+        # Load existing lines if file exists
+        if transcript_path.exists():
+            try:
+                with open(transcript_path) as f:
+                    for line in f:
+                        self.lines.append(line.rstrip('\n'))
+            except IOError:
+                pass
+
+    def write(self, text: str, end: str = '\n', flush: bool = True):
+        """Print to console and save to transcript."""
+        print(text, end=end, flush=flush)
+        # Split by newlines and add each line
+        full_text = text + (end if end != '\n' else '')
+        for line in full_text.split('\n'):
+            if line:  # Skip empty lines from split
+                self.lines.append(line)
+        self._save()
+
+    def _save(self):
+        """Save current lines to file."""
+        try:
+            with open(self.transcript_path, 'w') as f:
+                f.write('\n'.join(self.lines) + '\n')
+        except IOError:
+            pass
+
+
+# Global transcript writer (set in run_e2e_agent)
+_transcript: Optional[TranscriptWriter] = None
+
+
+def log(text: str, end: str = '\n', flush: bool = True):
+    """Log to console and transcript."""
+    if _transcript:
+        _transcript.write(text, end=end, flush=flush)
+    else:
+        print(text, end=end, flush=flush)
 
 
 def get_prompt(prompts_dir: Path, e2e_dir: Path) -> str:
@@ -62,11 +111,11 @@ def get_test_progress(e2e_dir: Path) -> tuple[int, int, int]:
 
 def print_session_header(session_num: int, model: str) -> None:
     """Print formatted session header."""
-    print("\n" + "=" * 70)
-    print(f"  SESSION {session_num}: E2E-AGENT")
-    print(f"  Model: {model}")
-    print("=" * 70)
-    print()
+    log("\n" + "=" * 70)
+    log(f"  SESSION {session_num}: E2E-AGENT")
+    log(f"  Model: {model}")
+    log("=" * 70)
+    log("")
 
 
 def print_progress_summary(e2e_dir: Path) -> None:
@@ -76,10 +125,10 @@ def print_progress_summary(e2e_dir: Path) -> None:
 
     if total > 0:
         percentage = (passed / total) * 100
-        print(f"\nProgress: {passed}/{total} tests passing ({percentage:.1f}%)")
-        print(f"  Blocked: {blocked} | Pending: {pending}")
+        log(f"\nProgress: {passed}/{total} tests passing ({percentage:.1f}%)")
+        log(f"  Blocked: {blocked} | Pending: {pending}")
     else:
-        print("\nProgress: test-state.json not found")
+        log("\nProgress: test-state.json not found")
 
 
 async def run_agent_session(
@@ -92,7 +141,7 @@ async def run_agent_session(
     Returns:
         (status, response_text, stats) where stats contains turn and usage info
     """
-    print("Sending prompt to Claude Agent SDK...\n")
+    log("Sending prompt to Claude Agent SDK...\n")
 
     stats = {"tool_calls": 0, "num_turns": 0, "usage": None}
 
@@ -107,7 +156,7 @@ async def run_agent_session(
             if msg_type == "ResultMessage":
                 stats["num_turns"] = getattr(msg, "num_turns", 0)
                 stats["usage"] = getattr(msg, "usage", None)
-                print(f"\n[Session complete: {stats['num_turns']} turns, {stats['tool_calls']} tool calls]", flush=True)
+                log(f"\n[Session complete: {stats['num_turns']} turns, {stats['tool_calls']} tool calls]")
 
             elif msg_type == "AssistantMessage" and hasattr(msg, "content"):
                 for block in msg.content:
@@ -115,17 +164,17 @@ async def run_agent_session(
 
                     if block_type == "TextBlock" and hasattr(block, "text"):
                         response_text += block.text
-                        print(block.text, end="", flush=True)
+                        log(block.text, end="")
                     elif block_type == "ToolUseBlock" and hasattr(block, "name"):
                         stats["tool_calls"] += 1
-                        # Print tool call count
-                        print(f"\n[Tool #{stats['tool_calls']}: {block.name}]", flush=True)
+                        # Log tool call
+                        log(f"\n[Tool #{stats['tool_calls']}: {block.name}]")
                         if hasattr(block, "input"):
                             input_str = str(block.input)
                             if len(input_str) > 200:
-                                print(f"  Input: {input_str[:200]}...", flush=True)
+                                log(f"  Input: {input_str[:200]}...")
                             else:
-                                print(f"  Input: {input_str}", flush=True)
+                                log(f"  Input: {input_str}")
 
             elif msg_type == "UserMessage" and hasattr(msg, "content"):
                 for block in msg.content:
@@ -144,18 +193,18 @@ async def run_agent_session(
                         )
 
                         if is_security_blocked:
-                            print(f"  [SECURITY BLOCKED] {result_str[:200]}", flush=True)
+                            log(f"  [SECURITY BLOCKED] {result_str[:200]}")
                         elif is_error:
                             error_str = result_str[:300]
-                            print(f"  [Error] {error_str}", flush=True)
+                            log(f"  [Error] {error_str}")
                         else:
-                            print("  [Done]", flush=True)
+                            log("  [Done]")
 
-        print("\n" + "-" * 70 + "\n")
+        log("\n" + "-" * 70 + "\n")
         return "continue", response_text, stats
 
     except Exception as e:
-        print(f"Error during agent session: {e}")
+        log(f"Error during agent session: {e}")
         return "error", str(e), stats
 
 
@@ -169,6 +218,7 @@ async def run_e2e_agent(
 
     Each iteration creates a FRESH client (fresh context window).
     The agent reads progress.txt and test-state.json to understand previous work.
+    The agent also reads transcript.log to see what the previous session was doing.
     Git commits after each test preserve progress across context boundaries.
 
     Args:
@@ -176,19 +226,26 @@ async def run_e2e_agent(
         model: Claude model to use
         max_iterations: Max iterations (None for unlimited)
     """
+    global _transcript
+
     e2e_dir = project_dir / "tests" / "e2e"
     prompts_dir = e2e_dir / "prompts"
+    logs_dir = e2e_dir / "logs"
+    logs_dir.mkdir(exist_ok=True)
 
-    print("\n" + "=" * 70)
-    print("  RALPH LOOP - E2E TESTING AGENT")
-    print("=" * 70)
-    print(f"\nProject: {project_dir}")
-    print(f"Model: {model}")
+    # Initialize transcript writer
+    _transcript = TranscriptWriter(logs_dir / "transcript.log")
+
+    log("\n" + "=" * 70)
+    log("  RALPH LOOP - E2E TESTING AGENT")
+    log("=" * 70)
+    log(f"\nProject: {project_dir}")
+    log(f"Model: {model}")
     if max_iterations:
-        print(f"Max iterations: {max_iterations}")
+        log(f"Max iterations: {max_iterations}")
     else:
-        print("Max iterations: Unlimited")
-    print()
+        log("Max iterations: Unlimited")
+    log("")
 
     print_progress_summary(e2e_dir)
 
@@ -198,16 +255,16 @@ async def run_e2e_agent(
         iteration += 1
 
         if max_iterations and iteration > max_iterations:
-            print(f"\nReached max iterations ({max_iterations})")
+            log(f"\nReached max iterations ({max_iterations})")
             break
 
         # Check if all tests done
         passed, blocked, pending = get_test_progress(e2e_dir)
         if pending == 0:
-            print("\n" + "=" * 70)
-            print("  ALL TESTS COMPLETE!")
-            print("=" * 70)
-            print(f"\nPassed: {passed} | Blocked: {blocked}")
+            log("\n" + "=" * 70)
+            log("  ALL TESTS COMPLETE!")
+            log("=" * 70)
+            log(f"\nPassed: {passed} | Blocked: {blocked}")
             break
 
         print_session_header(iteration, model)
@@ -223,24 +280,24 @@ async def run_e2e_agent(
             status, response, stats = await run_agent_session(client, prompt)
 
         # Log session stats
-        print(f"\nSession {iteration} stats: {stats['num_turns']} turns, {stats['tool_calls']} tool calls")
+        log(f"\nSession {iteration} stats: {stats['num_turns']} turns, {stats['tool_calls']} tool calls")
         if stats.get('usage'):
-            print(f"  Token usage: {stats['usage']}")
+            log(f"  Token usage: {stats['usage']}")
 
         print_progress_summary(e2e_dir)
 
         if status == "continue":
-            print(f"\nAuto-continuing in {AUTO_CONTINUE_DELAY_SECONDS}s...")
+            log(f"\nAuto-continuing in {AUTO_CONTINUE_DELAY_SECONDS}s...")
             await asyncio.sleep(AUTO_CONTINUE_DELAY_SECONDS)
         elif status == "error":
-            print("\nSession error - retrying...")
+            log("\nSession error - retrying...")
             await asyncio.sleep(AUTO_CONTINUE_DELAY_SECONDS)
 
         await asyncio.sleep(1)
 
     # Final summary
-    print("\n" + "=" * 70)
-    print("  SESSION COMPLETE")
-    print("=" * 70)
+    log("\n" + "=" * 70)
+    log("  SESSION COMPLETE")
+    log("=" * 70)
     print_progress_summary(e2e_dir)
-    print("\nDone!")
+    log("\nDone!")

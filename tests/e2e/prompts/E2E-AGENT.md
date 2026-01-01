@@ -28,16 +28,18 @@ Uncommitted work is LOST when session ends.
 ## STEP 1: GET BEARINGS
 
 ```bash
-cat tests/e2e/progress.txt | tail -50
+# 1. Read what the PREVIOUS SESSION was doing when it ended (CRITICAL!)
+cat tests/e2e/logs/transcript.log | tail -50
+
+# 2. Read progress notes
+cat tests/e2e/progress.txt | tail -30
+
+# 3. Check test state
 cat tests/e2e/test-state.json | jq '.summary'
 git log --oneline -5
-cat tests/e2e/test-state.json | jq -r '[.tests[] | select(.status == "pending")][0].id'
 ```
 
-Then read the test definition:
-```bash
-grep -A 30 "TEST-XXX" docs/specs/ideation-agent/E2E-TEST-PLAN.md
-```
+**The transcript.log shows the previous session's final actions** - continue from where it left off!
 
 ---
 
