@@ -415,10 +415,10 @@
     },
     {
       "id": "TEST-CV-003",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Solution direction specified (mobile app with Woolworths/Coles API integration) - description updated to reflect concrete technical direction",
       "dependsOn": "TEST-CF-001",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 34,
+    "passed": 35,
     "failed": 0,
     "blocked": 4,
-    "pending": 26,
+    "pending": 25,
     "skipped": 0
   },
   "criticalPath": [
