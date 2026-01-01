@@ -204,3 +204,25 @@
 - Smooth transitions observed
 
 - Progress: 46/64 passing
+[2026-01-01 16:07] TEST-UI-006 PASSED: Candidate Panel Layout
+- Verified: Title, description, confidence (85%), viability (75%), 2 risks visible
+- Action buttons accessible: Capture Idea, Save for Later, Discard
+- No overflow issues
+
+[2026-01-01 16:07] TEST-UI-007 PASSED: Session Header
+- Session ID displayed (388a78f6...)
+- Token usage shown (1% - 1,108/100,000)
+- Exit button visible
+
+[2026-01-01 16:07] TEST-UI-005 PASSED: Responsive Layout
+- Tested at mobile viewport 375x667
+- Layout adapts, all features accessible
+- Candidate panel shows as sidebar
+
+[2026-01-01 16:07] Blocked Tests (require special environment):
+- TEST-EH-001: API Timeout (needs network throttling)
+- TEST-EH-002: Network Disconnection (needs network manipulation)
+- TEST-EH-004: Database Error (needs DB manipulation)
+- TEST-EH-005: Malformed Response (needs API mocking)
+
+- Progress: 49/64 passing, 8 blocked

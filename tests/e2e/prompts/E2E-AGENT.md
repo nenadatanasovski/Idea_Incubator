@@ -3,8 +3,8 @@
 Fresh context window. Read `progress.txt` and `test-state.json` first.
 **Your job: Make tests pass by FIXING CODE, not just reporting failures.**
 
-⚠️ **COMMIT AFTER EVERY CODE CHANGE** - Run `git add -A && git commit -m "..."` immediately after any edit.
-Uncommitted work is LOST when session ends.
+⚠️ **COMMIT AND PUSH AFTER EVERY CODE CHANGE** - Run `git add -A && git commit -m "..." && git push` immediately after any edit.
+Uncommitted/unpushed work is LOST when session ends.
 
 ---
 
@@ -139,10 +139,10 @@ echo "[$(date '+%Y-%m-%d %H:%M')] TEST-XXX BLOCKED: [why]" >> /Users/nenadatanas
 
 ---
 
-## STEP 7: GIT COMMIT
+## STEP 7: GIT COMMIT AND PUSH
 
 ```bash
-git add -A && git commit -m "TEST-XXX: [description]"
+git add -A && git commit -m "TEST-XXX: [description]" && git push
 ```
 
 ---
@@ -176,7 +176,7 @@ SELECT id, role, content, created_at FROM ideation_messages;
 
 ## CRITICAL RULES
 
-1. **Commit immediately after ANY code edit** - `git add -A && git commit` right after Edit tool
+1. **Commit AND PUSH after ANY code edit** - `git add -A && git commit -m "..." && git push`
 2. **Fix code, don't just report** - Your job is to make tests pass
 3. **Single browser session** - Don't restart browser on failure, fix code instead
 4. **Minimal fixes** - Only change what's necessary
