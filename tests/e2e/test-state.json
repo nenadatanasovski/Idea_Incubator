@@ -485,10 +485,10 @@
     },
     {
       "id": "TEST-MP-004",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Verified: conversation_summary file contains comprehensive state for handoff. Includes selfDiscovery, marketDiscovery, narrowingState, and viability data. 3180 chars of structured JSON state + markdown summary.",
       "dependsOn": "TEST-CF-002",
       "automatable": true,
       "needsFreshSession": false
@@ -713,7 +713,7 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 41,
+    "passed": 42,
     "failed": 0,
     "blocked": 4,
     "pending": 21,
