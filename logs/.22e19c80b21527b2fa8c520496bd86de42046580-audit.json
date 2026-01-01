@@ -9,6 +9,11 @@
             "date": 1767163783237,
             "name": "/Users/nenadatanasovski/idea_incurator/logs/mcp-puppeteer-2025-12-31.log",
             "hash": "f84b93448310cc6a60c42fbc26708313a1401d7db945cca83132ada409eb112e"
+        },
+        {
+            "date": 1767203581514,
+            "name": "/Users/nenadatanasovski/idea_incurator/logs/mcp-puppeteer-2026-01-01.log",
+            "hash": "92e052a3ca85b30a01f2175dccae9cd3efd1e58c3605ba126d553f5b5d7cdb52"
         }
     ],
     "hashType": "sha256"

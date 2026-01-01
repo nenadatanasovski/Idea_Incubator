@@ -586,10 +586,9 @@ ideationRouter.post('/save', async (req: Request, res: Response) => {
       status: 'saved',
     });
 
-    // Update session status
-    await sessionManager.update(sessionId, {
-      status: 'paused' as 'active', // Cast for now, may need to extend type
-    });
+    // Keep session active (user can resume it later)
+    // Note: Session remains 'active' since 'paused' is not in the DB schema
+    // The candidate's 'saved' status indicates this session has a saved idea
 
     // Store save action as memory
     await memoryManager.upsert(sessionId, 'conversation_summary', `

@@ -3,7 +3,7 @@
 // Main container for an ideation session
 // =============================================================================
 
-import { useEffect, useReducer, useCallback, useRef } from 'react';
+import { useEffect, useReducer, useCallback, useRef, useState } from 'react';
 import { SessionHeader } from './SessionHeader';
 import { ConversationPanel } from './ConversationPanel';
 import { IdeaCandidatePanel } from './IdeaCandidatePanel';
@@ -27,6 +27,7 @@ export function IdeationSession({
   const api = useIdeationAPI();
   const initRef = useRef(false);
   const buttonClickInProgressRef = useRef(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Initialize session (with guard against React 18 Strict Mode double-invoke)
   useEffect(() => {
@@ -289,12 +290,13 @@ export function IdeationSession({
 
     try {
       await api.saveForLater(state.session.sessionId);
-      // Could show a toast confirmation here
+      // Show success toast
+      setToast({ message: 'Idea saved for later! You can resume this session anytime.', type: 'success' });
+      // Auto-hide after 4 seconds
+      setTimeout(() => setToast(null), 4000);
     } catch (error) {
-      dispatch({
-        type: 'MESSAGE_ERROR',
-        payload: { error: error instanceof Error ? error.message : 'Failed to save idea' },
-      });
+      setToast({ message: error instanceof Error ? error.message : 'Failed to save idea', type: 'error' });
+      setTimeout(() => setToast(null), 4000);
     }
   }, [state.session.sessionId, api]);
 
@@ -355,7 +357,7 @@ export function IdeationSession({
   }
 
   return (
-    <div className="ideation-session h-full flex flex-col">
+    <div className="ideation-session h-full flex flex-col relative">
       <SessionHeader
         sessionId={state.session.sessionId || ''}
         tokenUsage={state.tokens.usage}
@@ -385,6 +387,37 @@ export function IdeationSession({
           showIntervention={state.candidate.showIntervention}
         />
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          data-testid="toast-notification"
+          className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 transition-all ${
+            toast.type === 'success'
+              ? 'bg-green-600 text-white'
+              : 'bg-red-600 text-white'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          )}
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 hover:opacity-80"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

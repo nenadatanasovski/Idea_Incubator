@@ -25,6 +25,27 @@ DO NOT stop after:
 
 ---
 
+## ⚠️ TURN LIMIT AWARENESS
+
+**Context fills up around 35-40 tool calls.** After ~30 tool calls, you should:
+1. Finish your current test (pass it OR mark it blocked)
+2. Start wrapping up - Steps 6-10
+
+**AT EXACTLY 30 TOOL CALLS, say:**
+```
+"⏰ TURN CHECK: ~30 tool calls used. Starting wrap-up phase.
+I will finish this test and write handoff before context fills."
+```
+
+**If you haven't completed a test by tool call 30:**
+- Mark current work as "in_progress" in HANDOFF.md
+- Document what you tried and what to try next
+- Still write progress.txt and HANDOFF.md
+
+**Better to end cleanly at 30-35 calls than be cut off at 40 with nothing saved.**
+
+---
+
 ## APP CONTEXT
 
 **URL:** http://localhost:3000/ideate
@@ -439,6 +460,19 @@ the next agent will repeat your mistakes or redo your work.
 
 ---
 
-**You have unlimited time. Take as long as needed to get one test right, then end cleanly.**
+---
+
+## 🚨 MANDATORY WRAP-UP TRIGGER
+
+**When you see `[Tool #30:` in your output, you MUST:**
+
+1. **Say out loud:** "⏰ TOOL CALL 30 - TIME TO WRAP UP"
+2. **Finish current action** (don't leave things half-done)
+3. **Run Steps 6-10** - Update state, commit, write handoff
+4. **Say:** "Session complete - handoff written"
+
+**The session WILL be cut off around tool call 35-40. Don't gamble - wrap up at 30.**
+
+---
 
 Begin by running STEP 1 (Get Your Bearings).
