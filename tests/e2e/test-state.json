@@ -475,10 +475,10 @@
     },
     {
       "id": "TEST-MP-003",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Verified: narrowingState captured in conversation_summary JSON. productType: Mobile app, customerType: B2C (travelers) with B2B potential, geography: Multi-national, scale: Lifestyle to Growth, technicalDepth: Full custom.",
       "dependsOn": "TEST-CF-002",
       "automatable": true,
       "needsFreshSession": false
@@ -713,7 +713,7 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 40,
+    "passed": 41,
     "failed": 0,
     "blocked": 4,
     "pending": 21,

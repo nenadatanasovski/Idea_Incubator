@@ -168,3 +168,11 @@
 - Gaps: No specialty coffee filter, No work-friendly/wifi filter, Outdated data, No good option outside US
 - Geography: Australia, Japan, Europe (location context captured)
 - Progress: 40/64 passing
+[2026-01-01 16:00] TEST-MP-003 PASSED: Narrowing State Memory
+- Verified: narrowingState captured in conversation_summary JSON
+- productType: Mobile app (likely)
+- customerType: B2C (travelers) with potential B2B (roaster partnerships)
+- geography: Multi-national but focused markets
+- scale: Lifestyle to Growth (10hr/week constraint)
+- technicalDepth: Full custom (leveraging existing mobile skills)
+- Progress: 41/64 passing
