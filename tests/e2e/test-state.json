@@ -545,10 +545,10 @@
     },
     {
       "id": "TEST-EH-006",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "blocked",
+      "attempts": 1,
+      "lastResult": "blocked",
+      "notes": "Rate limiting middleware not implemented. Would require express-rate-limit or similar package to test.",
       "dependsOn": "TEST-SL-002",
       "automatable": true,
       "needsFreshSession": true
@@ -625,10 +625,10 @@
     },
     {
       "id": "TEST-UI-008",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": "Focus on keyboard nav, skip screen reader",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Added focus-visible styles to all interactive elements. All 10 elements keyboard accessible, adequate contrast.",
       "dependsOn": "TEST-SL-002",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 50,
+    "passed": 51,
     "failed": 0,
-    "blocked": 8,
-    "pending": 6,
+    "blocked": 9,
+    "pending": 4,
     "skipped": 0
   },
   "criticalPath": [

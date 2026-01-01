@@ -815,11 +815,11 @@ ideationRouter.get('/sessions', async (req: Request, res: Response) => {
       filteredSessions = sessionsWithDetails.filter(s => s.status !== 'abandoned');
     }
 
-    res.json({ sessions: filteredSessions });
+    res.json({ success: true, data: { sessions: filteredSessions } });
 
   } catch (error) {
     console.error('Error listing sessions:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

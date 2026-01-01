@@ -987,10 +987,16 @@ export async function getIdeationSessions(
   if (options?.status) params.set('status', options.status);
   if (options?.includeAll) params.set('includeAll', 'true');
 
-  const result = await fetchApi<{ sessions: IdeationSessionSummary[] }>(
-    `/ideation/sessions?${params.toString()}`
-  );
-  return result.sessions;
+  const response = await fetch(`${API_BASE}/ideation/sessions?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error(`API error: ${response.statusText}`);
+  }
+  const data = await response.json();
+  // Handle both wrapped {success, data} format and direct {sessions} format
+  if (data.success && data.data) {
+    return data.data.sessions;
+  }
+  return data.sessions || [];
 }
 
 export async function deleteIdeationSession(sessionId: string): Promise<void> {

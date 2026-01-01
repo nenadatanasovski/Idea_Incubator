@@ -73,7 +73,8 @@ export function InputArea({
           aria-label="Send"
           className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700
                      disabled:bg-gray-300 disabled:cursor-not-allowed
-                     transition-colors flex-shrink-0"
+                     transition-colors flex-shrink-0
+                     focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <Send className="w-5 h-5" />
         </button>

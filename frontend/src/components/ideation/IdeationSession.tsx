@@ -417,7 +417,7 @@ export function IdeationSession({
           <p className="text-red-600 mb-4">{state.session.error}</p>
           <button
             onClick={onExit}
-            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             Go Back
           </button>
@@ -491,7 +491,7 @@ export function IdeationSession({
           <span>{toast.message}</span>
           <button
             onClick={() => setToast(null)}
-            className="ml-2 hover:opacity-80"
+            className="ml-2 hover:opacity-80 rounded focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

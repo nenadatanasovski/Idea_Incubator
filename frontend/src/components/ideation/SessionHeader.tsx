@@ -37,14 +37,14 @@ export function SessionHeader({
       <div className="flex items-center gap-2">
         <button
           onClick={onMinimize}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
           title="Minimize"
         >
           <Minimize2 className="w-4 h-4" />
         </button>
         <button
           onClick={onAbandon}
-          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none"
           title="Abandon session"
         >
           <LogOut className="w-4 h-4" />

@@ -60,7 +60,8 @@ export function IdeaCandidatePanel({
             disabled={confidence < 50}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5
                        bg-green-600 text-white rounded-lg hover:bg-green-700
-                       disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                       disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors
+                       focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             <CheckCircle className="w-4 h-4" />
             Capture Idea
@@ -71,7 +72,8 @@ export function IdeaCandidatePanel({
               onClick={onSave}
               className="flex-1 flex items-center justify-center gap-2 px-3 py-2
                          border border-gray-300 rounded-lg hover:bg-gray-50
-                         text-gray-700 text-sm transition-colors"
+                         text-gray-700 text-sm transition-colors
+                         focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               <Save className="w-4 h-4" />
               Save for Later
@@ -81,7 +83,8 @@ export function IdeaCandidatePanel({
               onClick={onDiscard}
               className="flex items-center justify-center gap-2 px-3 py-2
                          border border-red-200 rounded-lg hover:bg-red-50
-                         text-red-600 text-sm transition-colors"
+                         text-red-600 text-sm transition-colors
+                         focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -198,7 +201,8 @@ function InterventionState({
         <button
           onClick={onContinue}
           className="w-full flex items-center justify-center gap-2 px-4 py-2
-                     bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                     bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors
+                     focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <ArrowRight className="w-4 h-4" />
           Continue Anyway
@@ -206,7 +210,8 @@ function InterventionState({
         <button
           onClick={onDiscard}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg
-                     hover:bg-gray-50 text-gray-700 transition-colors"
+                     hover:bg-gray-50 text-gray-700 transition-colors
+                     focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           Start Fresh
         </button>

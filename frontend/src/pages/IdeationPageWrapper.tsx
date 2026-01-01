@@ -206,7 +206,7 @@ export default function IdeationPageWrapper() {
               <button
                 key={profile.id}
                 onClick={() => setSelectedProfileId(profile.id)}
-                className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                className={`w-full p-4 rounded-lg border-2 text-left transition-all focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none ${
                   selectedProfileId === profile.id
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -229,6 +229,7 @@ export default function IdeationPageWrapper() {
           className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold
                      rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all
                      disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed
+                     focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none
                      flex items-center justify-center gap-2"
         >
           <Sparkles className="w-5 h-5" />
