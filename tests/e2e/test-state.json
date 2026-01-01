@@ -405,10 +405,10 @@
     },
     {
       "id": "TEST-CV-002",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Target user specified (family of 4, Sydney, B2C) - confidence increased from 48% to 60%",
       "dependsOn": "TEST-CF-001",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 33,
+    "passed": 34,
     "failed": 0,
     "blocked": 4,
-    "pending": 27,
+    "pending": 26,
     "skipped": 0
   },
   "criticalPath": [
