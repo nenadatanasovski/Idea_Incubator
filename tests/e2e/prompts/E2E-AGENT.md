@@ -59,9 +59,18 @@ for i in {1..30}; do curl -s http://localhost:3001/api/profiles > /dev/null && b
 
 ## STEP 3: PICK WORK
 
-Priority: Blocked tests first, then next pending test.
+**Priority order:**
+1. **BLOCKED tests first** - These have known bugs to fix
+2. Then pending tests
 
 ```bash
+# Check for blocked tests FIRST
+cat tests/e2e/test-state.json | jq '[.tests[] | select(.status == "blocked")] | length'
+
+# If blocked > 0, work on first blocked test:
+cat tests/e2e/test-state.json | jq '[.tests[] | select(.status == "blocked")][0]'
+
+# Only if no blocked tests, get next pending:
 cat tests/e2e/test-state.json | jq '[.tests[] | select(.status == "pending")][0]'
 ```
 

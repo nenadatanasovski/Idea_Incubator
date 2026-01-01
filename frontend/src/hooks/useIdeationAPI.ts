@@ -90,8 +90,12 @@ export function useIdeationAPI() {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Failed to send message' } }));
-      throw new Error(error.error?.message || 'Failed to send message');
+      const errorData = await response.json().catch(() => ({ error: 'Failed to send message' }));
+      // Handle both { error: "string" } and { error: { message: "string" } } formats
+      const errorMessage = typeof errorData.error === 'string'
+        ? errorData.error
+        : errorData.error?.message || 'Failed to send message';
+      throw new Error(errorMessage);
     }
 
     return response.json();
