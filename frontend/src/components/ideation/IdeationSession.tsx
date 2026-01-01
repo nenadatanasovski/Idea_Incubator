@@ -171,7 +171,7 @@ export function IdeationSession({
   }, [state.session.sessionId, api]);
 
   // Handle button clicks
-  const handleButtonClick = useCallback(async (buttonId: string, buttonValue: string) => {
+  const handleButtonClick = useCallback(async (buttonId: string, buttonValue: string, buttonLabel: string) => {
     if (!state.session.sessionId) return;
     // Prevent double clicks - use ref for synchronous check
     if (buttonClickInProgressRef.current || state.conversation.isLoading) return;
@@ -179,12 +179,12 @@ export function IdeationSession({
 
     dispatch({ type: 'BUTTON_CLICK', payload: { buttonId, buttonValue } });
 
-    // Add user's selection as a message in the conversation
+    // Add user's selection as a message in the conversation (use label for display)
     const userMessage = {
       id: generateMessageId(),
       sessionId: state.session.sessionId,
       role: 'user' as const,
-      content: buttonValue,
+      content: buttonLabel,
       buttons: null,
       form: null,
       createdAt: new Date().toISOString(),
@@ -286,15 +286,22 @@ export function IdeationSession({
 
   // Handle save for later
   const handleSave = useCallback(async () => {
-    if (!state.session.sessionId) return;
+    console.log('[handleSave] Called, sessionId:', state.session.sessionId);
+    if (!state.session.sessionId) {
+      console.log('[handleSave] No session ID, returning early');
+      return;
+    }
 
     try {
+      console.log('[handleSave] Calling api.saveForLater...');
       await api.saveForLater(state.session.sessionId);
+      console.log('[handleSave] Success! Setting toast...');
       // Show success toast
       setToast({ message: 'Idea saved for later! You can resume this session anytime.', type: 'success' });
       // Auto-hide after 4 seconds
       setTimeout(() => setToast(null), 4000);
     } catch (error) {
+      console.log('[handleSave] Error:', error);
       setToast({ message: error instanceof Error ? error.message : 'Failed to save idea', type: 'error' });
       setTimeout(() => setToast(null), 4000);
     }

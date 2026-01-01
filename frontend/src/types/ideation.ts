@@ -95,21 +95,21 @@ export interface ConversationPanelProps {
   isLoading: boolean;
   error?: string | null;
   onSendMessage: (message: string) => void;
-  onButtonClick: (buttonId: string, buttonValue: string) => void;
+  onButtonClick: (buttonId: string, buttonValue: string, buttonLabel: string) => void;
   onFormSubmit: (formId: string, answers: Record<string, unknown>) => void;
   onRetry?: () => void;
 }
 
 export interface MessageListProps {
   messages: IdeationMessage[];
-  onButtonClick: (buttonId: string, buttonValue: string) => void;
+  onButtonClick: (buttonId: string, buttonValue: string, buttonLabel: string) => void;
   onFormSubmit: (formId: string, answers: Record<string, unknown>) => void;
   isLoading: boolean;
 }
 
 export interface AgentMessageProps {
   message: IdeationMessage;
-  onButtonClick: (buttonId: string, buttonValue: string) => void;
+  onButtonClick: (buttonId: string, buttonValue: string, buttonLabel: string) => void;
   onFormSubmit: (formId: string, answers: Record<string, unknown>) => void;
   isLatest: boolean;
 }
@@ -133,7 +133,7 @@ export interface TypingIndicatorProps {
 
 export interface ButtonGroupProps {
   buttons: ButtonOption[];
-  onSelect: (buttonId: string, buttonValue: string) => void;
+  onSelect: (buttonId: string, buttonValue: string, buttonLabel: string) => void;
   disabled: boolean;
   selectedId?: string;
 }

@@ -154,7 +154,8 @@ export function ideationReducer(
         conversation: {
           ...state.conversation,
           messages: [...state.conversation.messages, action.payload.message],
-          isLoading: false,
+          // Only clear loading when assistant responds, not when adding user message
+          isLoading: action.payload.message.role === 'user' ? state.conversation.isLoading : false,
         },
       };
 

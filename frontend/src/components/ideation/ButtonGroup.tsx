@@ -25,7 +25,7 @@ export function ButtonGroup({
           <button
             key={button.id}
             data-testid={`action-btn-${button.id}`}
-            onClick={() => onSelect(button.id, button.value)}
+            onClick={() => onSelect(button.id, button.value, button.label)}
             disabled={isDisabled}
             className={`${baseClasses} ${styleClasses} ${button.fullWidth ? 'w-full' : ''}`}
           >

@@ -3,6 +3,9 @@
 Fresh context window. Read `progress.txt` and `test-state.json` first.
 **Your job: Make tests pass by FIXING CODE, not just reporting failures.**
 
+⚠️ **COMMIT AFTER EVERY CODE CHANGE** - Run `git add -A && git commit -m "..."` immediately after any edit.
+Uncommitted work is LOST when session ends.
+
 ---
 
 ## WORKFLOW (8 Steps)
@@ -162,25 +165,32 @@ SELECT id, role, content, created_at FROM ideation_messages;
 
 ## CRITICAL RULES
 
-1. **Fix code, don't just report** - Your job is to make tests pass
-2. **Commit after EACH test** - Preserves progress if context fills
+1. **Commit immediately after ANY code edit** - `git add -A && git commit` right after Edit tool
+2. **Fix code, don't just report** - Your job is to make tests pass
 3. **Single browser session** - Don't restart browser on failure, fix code instead
 4. **Minimal fixes** - Only change what's necessary
+5. **No sleep/waits** - Puppeteer waits automatically
 
 ---
 
 ## ANTI-PATTERNS
 
 ```
+BAD: sleep 1, sleep 2, setTimeout(3000)
+DO:  Poll for elements - puppeteer waits automatically
+
 BAD: "Test failed" → update state → move on
 DO:  Fix code → verify → THEN update state
 
 BAD: Failed → navigate to /ideate → new session
 DO:  Stay on page → diagnose → fix code → retry
 
-BAD: setTimeout(3000) → setTimeout(5000)
-DO:  Poll for elements with timeout
+BAD: Using alert(), confirm(), prompt() for debugging
+DO:  Use console.log() - alerts block UI and puppeteer can't dismiss them
 ```
+
+**NEVER use `sleep` or arbitrary waits.** Puppeteer tools wait for elements automatically.
+After click/navigate, just take screenshot or interact with next element - no sleep needed.
 
 ---
 
