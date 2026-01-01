@@ -338,26 +338,20 @@ echo "
 
 ---
 
-## STEP 9: UPDATE HANDOFF
+## STEP 9: UPDATE PROGRESS NOTES
 
-Write HANDOFF.md for next session:
-```markdown
-# E2E Test Handoff
-
-## Last Session
+Append to progress.txt after completing work:
+```bash
+echo "
+[$(date '+%Y-%m-%d %H:%M')] Session Complete
 - Fixed: TEST-XXX
-- Code changes: [list files]
+- Code changed: [files modified]
 - Progress: X/Y passing
-
-## Next Session Should
-1. Verify TEST-XXX still works
-2. Work on TEST-YYY
-3. Note: [any context]
-
-## Schema Reminder
-- Sessions: id, status, started_at, message_count (NOT created_at)
-- Messages: id, role, content, created_at (NOT timestamp)
+- Next: [what to work on next]
+" >> tests/e2e/progress.txt
 ```
+
+**(Optional) If you have time, also update HANDOFF.md with more detailed context.**
 
 ---
 
@@ -365,10 +359,9 @@ Write HANDOFF.md for next session:
 
 **Before context fills up:**
 1. Commit all working code
-2. Update progress.txt with what you accomplished
-3. Update HANDOFF.md for the next session
-4. Ensure no uncommitted changes
-5. Leave app in working state
+2. Append to progress.txt with what you accomplished
+3. Ensure no uncommitted changes
+4. Leave app in working state
 
 **It's OK if you only complete one test.** The important thing is to leave
 a clean state for the next session to continue.
@@ -428,15 +421,15 @@ DO: SELECT started_at FROM ideation_sessions
 ## WORKFLOW SUMMARY
 
 ```
-1. GET BEARINGS     - Read HANDOFF.md, progress.txt, git log (MANDATORY)
+1. GET BEARINGS     - Read progress.txt, test-state.json, git log (MANDATORY)
 2. START SERVERS    - Ensure frontend and backend running
 3. PICK WORK        - Blocked bugs first, then pending tests
 4. FIX CODE         - Read source, understand bug, write fix
 5. VERIFY FIX       - Test through browser, take screenshots
 6. UPDATE STATE     - Mark passed/blocked in test-state.json
-7. GIT COMMIT       - Commit code changes and state
-8. PROGRESS NOTES   - Append to progress.txt
-9. HANDOFF          - Write context for next session
+7. PROGRESS NOTES   - Append to progress.txt
+8. GIT COMMIT       - Commit code changes and state
+9. (repeat 3-8 for more tests if time)
 10. END CLEANLY     - Before context fills, leave clean state
 ```
 
@@ -448,14 +441,11 @@ DO: SELECT started_at FROM ideation_sessions
 
 1. **Commit all code** - Don't leave uncommitted changes
 2. **Update progress.txt** - What you did, what you learned
-3. **Update HANDOFF.md** - Detailed context for the next agent
 
-The next session has NO MEMORY of this one. If you don't update the handoff,
-the next agent will repeat your mistakes or redo your work.
+The next session reads progress.txt and test-state.json to understand context.
+Git commits preserve your work even if context fills mid-session.
 
 **It's OK to complete only one test per session.** Quality over quantity.
-
----
 
 ---
 
