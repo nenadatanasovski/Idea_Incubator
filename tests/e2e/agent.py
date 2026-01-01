@@ -152,6 +152,10 @@ async def run_agent_session(
         async for msg in client.receive_response():
             msg_type = type(msg).__name__
 
+            # Debug: log all message types
+            if msg_type not in ("AssistantMessage", "ResultMessage"):
+                log(f"[DEBUG MSG] type={msg_type}")
+
             # Track ResultMessage for final stats
             if msg_type == "ResultMessage":
                 stats["num_turns"] = getattr(msg, "num_turns", 0)
@@ -180,9 +184,16 @@ async def run_agent_session(
                 for block in msg.content:
                     block_type = type(block).__name__
 
+                    # Debug: log what block types we're getting
+                    if block_type != "ToolResultBlock":
+                        log(f"  [DEBUG] UserMessage block type: {block_type}")
+
                     if block_type == "ToolResultBlock":
                         result_content = getattr(block, "content", "")
                         is_error = getattr(block, "is_error", False)
+
+                        # Debug: log raw content type
+                        log(f"  [DEBUG] ToolResultBlock content type: {type(result_content).__name__}, is_error: {is_error}")
 
                         # Check for security hook blocking (specific format)
                         result_str = str(result_content)

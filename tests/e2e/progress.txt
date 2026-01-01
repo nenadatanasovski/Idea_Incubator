@@ -95,3 +95,10 @@
 - Verified: Go Back button takes user to entry page where they can start new session
 - Verified: Old session marked as 'abandoned' in database
 - Progress: 30/64 passing (was 29/64)
+[2026-01-01 15:11] TEST-CM-007 PASSED: Save for Later
+- Clicked Save for Later button
+- Verified: Candidate status changed to 'saved' in database
+- Verified: Session remains 'active' (can resume later)
+- Verified: Conversation can continue after saving
+- Toast notification configured (4s auto-hide)
+- Progress: 31/64 passing

@@ -375,10 +375,10 @@
     },
     {
       "id": "TEST-CM-007",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Save for Later works: candidate status changed to saved in DB, session remains active, conversation can continue",
       "dependsOn": "TEST-CM-001",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 30,
+    "passed": 31,
     "failed": 0,
     "blocked": 4,
-    "pending": 30,
+    "pending": 29,
     "skipped": 0
   },
   "criticalPath": [
