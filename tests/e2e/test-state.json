@@ -674,10 +674,10 @@
     },
     {
       "id": "TEST-E2E-004",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": "Session abandonment and recovery test",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Session abandonment works. New session gets fresh ID, reset context (0 tokens), no message carryover.",
       "dependsOn": "TEST-SL-002",
       "automatable": true,
       "needsFreshSession": true,
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 51,
+    "passed": 52,
     "failed": 0,
     "blocked": 9,
-    "pending": 4,
+    "pending": 3,
     "skipped": 0
   },
   "criticalPath": [
