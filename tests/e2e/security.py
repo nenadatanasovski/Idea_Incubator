@@ -19,6 +19,19 @@ ALLOWED_COMMANDS = {
     "tail",
     "wc",
     "grep",
+    "find",
+    "file",
+    "stat",
+    "diff",
+    # Text processing
+    "sed",
+    "awk",
+    "sort",
+    "uniq",
+    "tr",
+    "cut",
+    "xargs",
+    "tee",
     # File operations
     "cp",
     "mkdir",
@@ -26,9 +39,14 @@ ALLOWED_COMMANDS = {
     "rm",
     "mv",
     "touch",
-    # Directory
+    "ln",
+    # Path utilities
     "pwd",
     "cd",
+    "basename",
+    "dirname",
+    "realpath",
+    "which",
     # Node.js development
     "npm",
     "node",
@@ -41,8 +59,10 @@ ALLOWED_COMMANDS = {
     "sleep",
     "pkill",
     "kill",
+    "pgrep",
     # Network
     "curl",
+    "wget",
     # Database
     "sqlite3",
     # Misc
@@ -51,11 +71,18 @@ ALLOWED_COMMANDS = {
     "jq",
     "md5",
     "md5sum",
+    "sha256sum",
     "timeout",
     "true",
     "false",
+    "env",
+    "printenv",
+    "test",
+    "[",
     # macOS specific
     "open",
+    "pbcopy",
+    "pbpaste",
 }
 
 # Commands needing extra validation

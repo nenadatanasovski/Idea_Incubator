@@ -198,7 +198,12 @@ async def run_agent_session(
                             error_str = result_str[:300]
                             log(f"  [Error] {error_str}")
                         else:
-                            log("  [Done]")
+                            # Show preview of result for context
+                            if result_str and len(result_str) > 10:
+                                preview = result_str[:500].replace('\n', ' ')[:200]
+                                log(f"  [Done] {preview}...")
+                            else:
+                                log("  [Done]")
 
         log("\n" + "-" * 70 + "\n")
         return "continue", response_text, stats

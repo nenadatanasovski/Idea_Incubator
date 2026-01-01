@@ -29,13 +29,13 @@ Uncommitted work is LOST when session ends.
 
 ```bash
 # 1. Read what the PREVIOUS SESSION was doing when it ended (CRITICAL!)
-cat tests/e2e/logs/transcript.log | tail -50
+cat /Users/nenadatanasovski/idea_incurator/tests/e2e/logs/transcript.log | tail -50
 
 # 2. Read progress notes
-cat tests/e2e/progress.txt | tail -30
+cat /Users/nenadatanasovski/idea_incurator/tests/e2e/progress.txt | tail -30
 
 # 3. Check test state
-cat tests/e2e/test-state.json | jq '.summary'
+cat /Users/nenadatanasovski/idea_incurator/tests/e2e/test-state.json | jq '.summary'
 git log --oneline -5
 ```
 
@@ -67,13 +67,13 @@ for i in {1..30}; do curl -s http://localhost:3001/api/profiles > /dev/null && b
 
 ```bash
 # Check for blocked tests FIRST
-cat tests/e2e/test-state.json | jq '[.tests[] | select(.status == "blocked")] | length'
+cat /Users/nenadatanasovski/idea_incurator/tests/e2e/test-state.json | jq '[.tests[] | select(.status == "blocked")] | length'
 
 # If blocked > 0, work on first blocked test:
-cat tests/e2e/test-state.json | jq '[.tests[] | select(.status == "blocked")][0]'
+cat /Users/nenadatanasovski/idea_incurator/tests/e2e/test-state.json | jq '[.tests[] | select(.status == "blocked")][0]'
 
 # Only if no blocked tests, get next pending:
-cat tests/e2e/test-state.json | jq '[.tests[] | select(.status == "pending")][0]'
+cat /Users/nenadatanasovski/idea_incurator/tests/e2e/test-state.json | jq '[.tests[] | select(.status == "pending")][0]'
 ```
 
 ---
@@ -122,9 +122,9 @@ jq '(.tests[] | select(.id == "TEST-XXX")) |= . + {
   status: "passed", attempts: (.attempts + 1), lastResult: "pass",
   notes: "Fixed: [description]"
 } | .summary.passed += 1 | .summary.pending -= 1' \
-tests/e2e/test-state.json > tmp.json && mv tmp.json tests/e2e/test-state.json
+/Users/nenadatanasovski/idea_incurator/tests/e2e/test-state.json > /tmp/test-state.json && mv /tmp/test-state.json /Users/nenadatanasovski/idea_incurator/tests/e2e/test-state.json
 
-echo "[$(date '+%Y-%m-%d %H:%M')] TEST-XXX PASSED: [description]" >> tests/e2e/progress.txt
+echo "[$(date '+%Y-%m-%d %H:%M')] TEST-XXX PASSED: [description]" >> /Users/nenadatanasovski/idea_incurator/tests/e2e/progress.txt
 ```
 
 **On BLOCKED (after 3 attempts):**
@@ -132,9 +132,9 @@ echo "[$(date '+%Y-%m-%d %H:%M')] TEST-XXX PASSED: [description]" >> tests/e2e/p
 jq '(.tests[] | select(.id == "TEST-XXX")) |= . + {
   status: "blocked", notes: "BUG: [description]"
 } | .summary.blocked += 1 | .summary.pending -= 1' \
-tests/e2e/test-state.json > tmp.json && mv tmp.json tests/e2e/test-state.json
+/Users/nenadatanasovski/idea_incurator/tests/e2e/test-state.json > /tmp/test-state.json && mv /tmp/test-state.json /Users/nenadatanasovski/idea_incurator/tests/e2e/test-state.json
 
-echo "[$(date '+%Y-%m-%d %H:%M')] TEST-XXX BLOCKED: [why]" >> tests/e2e/progress.txt
+echo "[$(date '+%Y-%m-%d %H:%M')] TEST-XXX BLOCKED: [why]" >> /Users/nenadatanasovski/idea_incurator/tests/e2e/progress.txt
 ```
 
 ---
