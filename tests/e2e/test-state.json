@@ -635,10 +635,10 @@
     },
     {
       "id": "TEST-E2E-001",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": "Full journey: Discover mode, Alex persona, documentation problem",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Full journey test passed: Discover mode, 82% confidence, idea captured as Version-Aware Developer Knowledge Base",
       "dependsOn": "TEST-SL-002",
       "automatable": true,
       "needsFreshSession": true,
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 52,
+    "passed": 53,
     "failed": 0,
     "blocked": 9,
-    "pending": 3,
+    "pending": 2,
     "skipped": 0
   },
   "criticalPath": [
