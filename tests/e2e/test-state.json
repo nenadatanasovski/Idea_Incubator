@@ -435,10 +435,10 @@
     },
     {
       "id": "TEST-CV-005",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Verified: Discussed skills (10 yrs dev, API exp), expressed excitement/passion. Confidence increased 87% → 92%. AI acknowledged skills match.",
       "dependsOn": "TEST-CF-001",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 36,
+    "passed": 37,
     "failed": 0,
     "blocked": 4,
-    "pending": 24,
+    "pending": 23,
     "skipped": 0
   },
   "criticalPath": [
