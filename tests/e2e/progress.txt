@@ -150,3 +150,9 @@
 - AI acknowledged: 'You have a clear product vision, relevant technical skills, and genuine personal frustration'
 - Profile considered: commitment level (part-time), skills match
 - Progress: 37/64 passing
+[2026-01-01 15:47] TEST-CV-006 PASSED: Null Data Handling
+- Verified: Session starts without crashes
+- Verified: Initial state shows 'No idea yet' placeholder
+- Verified: No NaN, TypeError, or 500 errors
+- Verified: Confidence panel handles empty state gracefully
+- Progress: 38/64 passing

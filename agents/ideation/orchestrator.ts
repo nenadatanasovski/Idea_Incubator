@@ -154,6 +154,39 @@ export class AgentOrchestrator {
           }))
         );
         console.log(`[Orchestrator] Web searches completed: ${webSearchResults.length} results`);
+
+        // Make a second LLM call with search results so it can incorporate them
+        if (webSearchResults.length > 0) {
+          console.log('[Orchestrator] Making follow-up call with search results...');
+          const searchResultsSummary = webSearchResults
+            .slice(0, 10) // Limit to top 10 results
+            .map(r => `- **${r.title}** (${r.source}): ${r.snippet}`)
+            .join('\n');
+
+          const followUpMessages = [
+            ...context.messages,
+            { role: 'assistant' as const, content: parsed.reply },
+            {
+              role: 'user' as const,
+              content: `[SYSTEM: Web search completed. Here are the results for your queries:\n\n${searchResultsSummary}\n\nPlease incorporate these findings into your response. Update your previous message with the research insights.]`,
+            },
+          ];
+
+          const followUpResponse = await this.client.messages.create({
+            model: getConfig().model || 'claude-sonnet-4-20250514',
+            max_tokens: 4096,
+            system: context.systemPrompt,
+            messages: followUpMessages,
+          });
+
+          // Use the follow-up response instead
+          const followUpParsed = this.parseResponse(followUpResponse);
+          parsed.reply = followUpParsed.reply;
+          // Preserve buttons/forms from original if follow-up doesn't have them
+          if (followUpParsed.buttons) parsed.buttons = followUpParsed.buttons;
+          if (followUpParsed.form) parsed.form = followUpParsed.form;
+          console.log('[Orchestrator] Follow-up response incorporated search results');
+        }
       } catch (error) {
         console.error('[Orchestrator] Web search failed:', error);
         // Continue without search results

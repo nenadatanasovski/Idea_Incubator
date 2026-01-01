@@ -445,10 +445,10 @@
     },
     {
       "id": "TEST-CV-006",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Verified: Session starts with no crashes, shows No idea yet state, no NaN/TypeError/500 errors. Confidence panel shows empty state correctly.",
       "dependsOn": "TEST-CF-001",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 37,
+    "passed": 38,
     "failed": 0,
     "blocked": 4,
-    "pending": 23,
+    "pending": 22,
     "skipped": 0
   },
   "criticalPath": [
