@@ -156,3 +156,9 @@
 - Verified: No NaN, TypeError, or 500 errors
 - Verified: Confidence panel handles empty state gracefully
 - Progress: 38/64 passing
+[2026-01-01 15:50] TEST-MP-001 PASSED: Self-Discovery Memory
+- Verified: Data persisted in ideation_memory_files table
+- Found files: self_discovery, market_discovery, narrowing_state, idea_candidate, viability_assessment
+- Markdown format is valid
+- All structured data captured in appropriate sections
+- Progress: 39/64 passing

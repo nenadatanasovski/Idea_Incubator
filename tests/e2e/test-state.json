@@ -455,10 +455,10 @@
     },
     {
       "id": "TEST-MP-001",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Verified: Data persisted in ideation_memory_files table. Found self_discovery, market_discovery, narrowing_state, idea_candidate, viability_assessment files. Markdown format valid.",
       "dependsOn": "TEST-CF-002",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 38,
+    "passed": 39,
     "failed": 0,
     "blocked": 4,
-    "pending": 22,
+    "pending": 21,
     "skipped": 0
   },
   "criticalPath": [
