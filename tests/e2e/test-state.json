@@ -585,10 +585,10 @@
     },
     {
       "id": "TEST-UI-004",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Fixed: Added error states for invalid session URLs and 404 pages with recovery options",
       "dependsOn": "TEST-SL-002",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 49,
+    "passed": 50,
     "failed": 0,
     "blocked": 8,
-    "pending": 7,
+    "pending": 6,
     "skipped": 0
   },
   "criticalPath": [

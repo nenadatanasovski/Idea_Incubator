@@ -4,8 +4,8 @@
 // =============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Sparkles, AlertCircle, User } from 'lucide-react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { Sparkles, AlertCircle, User, Home } from 'lucide-react';
 import { IdeationEntryModal } from '../components/ideation/IdeationEntryModal';
 import { IdeationSession } from '../components/ideation/IdeationSession';
 import type { EntryMode } from '../types/ideation';
@@ -18,18 +18,22 @@ interface UserProfile {
 
 export default function IdeationPageWrapper() {
   const navigate = useNavigate();
+  const { sessionId: urlSessionId } = useParams<{ sessionId?: string }>();
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [entryMode, setEntryMode] = useState<EntryMode>(null);
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
+  const [resumeSessionId, setResumeSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sessionNotFound, setSessionNotFound] = useState(false);
 
-  // Load profiles on mount
+  // Load profiles and validate URL session on mount
   useEffect(() => {
-    async function loadProfiles() {
+    async function init() {
       try {
+        // Load profiles first
         const response = await fetch('/api/profiles');
         if (!response.ok) throw new Error('Failed to load profiles');
         const result = await response.json();
@@ -40,14 +44,30 @@ export default function IdeationPageWrapper() {
         if (profileList.length === 1) {
           setSelectedProfileId(profileList[0].id);
         }
+
+        // If URL contains a session ID, validate it
+        if (urlSessionId) {
+          const sessionResponse = await fetch(`/api/ideation/sessions/${urlSessionId}`);
+          if (!sessionResponse.ok) {
+            setSessionNotFound(true);
+          } else {
+            const sessionData = await sessionResponse.json();
+            // Valid session - auto-resume
+            if (sessionData.data?.profileId) {
+              setSelectedProfileId(sessionData.data.profileId);
+            }
+            setResumeSessionId(urlSessionId);
+            setSessionStarted(true);
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load profiles');
       } finally {
         setLoading(false);
       }
     }
-    loadProfiles();
-  }, []);
+    init();
+  }, [urlSessionId]);
 
   const handleStartIdeation = useCallback(() => {
     if (!selectedProfileId) {
@@ -61,6 +81,14 @@ export default function IdeationPageWrapper() {
     setEntryMode(mode);
     setShowEntryModal(false);
     setSessionStarted(true);
+    setResumeSessionId(null);
+  }, []);
+
+  const handleResumeSession = useCallback((sessionId: string) => {
+    setResumeSessionId(sessionId);
+    setShowEntryModal(false);
+    setSessionStarted(true);
+    setEntryMode(null);
   }, []);
 
   const handleComplete = useCallback((ideaId: string) => {
@@ -71,6 +99,7 @@ export default function IdeationPageWrapper() {
   const handleExit = useCallback(() => {
     setSessionStarted(false);
     setEntryMode(null);
+    setResumeSessionId(null);
   }, []);
 
   if (loading) {
@@ -84,14 +113,40 @@ export default function IdeationPageWrapper() {
     );
   }
 
+  // If session ID in URL was not found, show error
+  if (sessionNotFound) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center max-w-md p-8" data-testid="error-display">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Session Not Found</h1>
+          <p className="text-gray-600 mb-6" data-testid="error-message">
+            The ideation session "{urlSessionId}" doesn't exist or has been deleted.
+          </p>
+          <Link
+            to="/ideate"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            data-testid="error-recovery"
+          >
+            <Home className="w-4 h-4" />
+            Start New Session
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   // If session is started, show full-screen ideation
-  if (sessionStarted && selectedProfileId && entryMode) {
+  if (sessionStarted && selectedProfileId && (entryMode || resumeSessionId)) {
     return (
       <div className="fixed inset-0 z-50 bg-gray-50">
         <IdeationSession
-          sessionId=""
+          sessionId={resumeSessionId || ''}
           profileId={selectedProfileId}
           entryMode={entryMode}
+          isResuming={!!resumeSessionId}
           onComplete={handleComplete}
           onExit={handleExit}
         />
@@ -204,7 +259,9 @@ export default function IdeationPageWrapper() {
       {/* Entry Modal */}
       <IdeationEntryModal
         isOpen={showEntryModal}
+        profileId={selectedProfileId || ''}
         onSelect={handleEntrySelect}
+        onResumeSession={handleResumeSession}
         onClose={() => setShowEntryModal(false)}
       />
     </div>

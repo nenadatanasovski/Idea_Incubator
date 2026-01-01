@@ -104,8 +104,18 @@ export function IdeationSession({
             type: 'CANDIDATE_UPDATE',
             payload: {
               candidate: {
+                id: sessionData.candidate.id,
+                sessionId: initialSessionId,
                 title: sessionData.candidate.title,
-                summary: sessionData.candidate.summary ?? undefined,
+                summary: sessionData.candidate.summary,
+                confidence: sessionData.candidate.confidence,
+                viability: sessionData.candidate.viability,
+                userSuggested: false,
+                status: 'forming' as const,
+                capturedIdeaId: null,
+                version: 1,
+                createdAt: new Date(),
+                updatedAt: new Date(),
               },
             },
           });
