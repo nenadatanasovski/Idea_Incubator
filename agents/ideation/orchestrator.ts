@@ -154,6 +154,7 @@ export class AgentOrchestrator {
           }))
         );
         console.log(`[Orchestrator] Web searches completed: ${webSearchResults.length} results`);
+        console.log(`[Orchestrator] DEBUG: About to check if we should make follow-up call`);
 
         // Make a second LLM call with search results so it can incorporate them
         if (webSearchResults.length > 0) {

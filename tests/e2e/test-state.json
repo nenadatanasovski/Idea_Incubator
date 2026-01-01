@@ -648,10 +648,10 @@
     },
     {
       "id": "TEST-E2E-002",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": "Full journey: Have Idea mode, Jordan persona, fitness app",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Have Idea mode completed. Fitness app idea refined through conversation, reached 85% confidence, captured as Gym-Free Fitness App",
       "dependsOn": "TEST-SL-003",
       "automatable": true,
       "needsFreshSession": true,
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 53,
+    "passed": 54,
     "failed": 0,
     "blocked": 9,
-    "pending": 2,
+    "pending": 1,
     "skipped": 0
   },
   "criticalPath": [

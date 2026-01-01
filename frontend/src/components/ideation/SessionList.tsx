@@ -128,11 +128,14 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
     <div className="max-h-80 overflow-y-auto">
       <div className="space-y-2 p-2">
         {sessions.map(session => (
-          <button
+          <div
             key={session.id}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelectSession(session.id)}
+            onKeyDown={(e) => e.key === 'Enter' && onSelectSession(session.id)}
             className="w-full p-3 border border-gray-200 rounded-lg hover:border-blue-400
-                       hover:bg-blue-50/50 transition-all text-left group relative"
+                       hover:bg-blue-50/50 transition-all text-left group relative cursor-pointer"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
@@ -177,7 +180,7 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
                 )}
               </button>
             </div>
-          </button>
+          </div>
         ))}
       </div>
     </div>
