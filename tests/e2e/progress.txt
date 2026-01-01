@@ -87,3 +87,11 @@
 - Verified: 17-20 web search results per query batch
 - Progress: 29/64 passing (was 28/64)
 - Next: TEST-CM-007 (Save for Later), TEST-CV tests
+[2026-01-01 14:33] TEST-SL-008 PASSED: Session Timeout Behavior
+- Fixed: Error message format handling in useIdeationAPI.ts
+- Root cause: Backend returns {error: 'Session is not active'} but frontend expected {error: {message: 'string'}}
+- Code changed: frontend/src/hooks/useIdeationAPI.ts - handle both string and object error formats
+- Verified: Clear timeout message displayed ('Your session has expired. Please start a new session.')
+- Verified: Go Back button takes user to entry page where they can start new session
+- Verified: Old session marked as 'abandoned' in database
+- Progress: 30/64 passing (was 29/64)

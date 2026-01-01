@@ -105,10 +105,10 @@
     },
     {
       "id": "TEST-SL-008",
-      "status": "blocked",
-      "attempts": 1,
-      "lastResult": "fail",
-      "notes": "BUG: Missing clear timeout message. Session 46dab9a9 started, then marked as 'abandoned' in DB to simulate timeout. When sending message to expired session, UI silently redirects to entry page without showing error/timeout message. PARTIAL PASS: (1) Option to start new session IS available (entry page shown), (2) Old session IS marked appropriately in DB (status=abandoned). FAIL: No clear timeout message displayed to user - this is a silent failure UX issue.",
+      "status": "passed",
+      "attempts": 2,
+      "lastResult": "pass",
+      "notes": "Fixed: Error message format handling in useIdeationAPI.ts - backend returns {error: string} but frontend expected {error: {message: string}}. Now properly displays session expired error.",
       "dependsOn": "TEST-SL-002",
       "automatable": true,
       "needsFreshSession": true
@@ -713,9 +713,9 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 29,
+    "passed": 30,
     "failed": 0,
-    "blocked": 5,
+    "blocked": 4,
     "pending": 30,
     "skipped": 0
   },
