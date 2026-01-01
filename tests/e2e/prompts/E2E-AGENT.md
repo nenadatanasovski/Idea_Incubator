@@ -76,16 +76,27 @@ cat tests/e2e/test-state.json | jq '[.tests[] | select(.status == "pending")][0]
 
 ## STEP 5: VERIFY FIX
 
-Test through browser UI (not just curl):
-- Navigate with `mcp__puppeteer__puppeteer_navigate`
-- Click elements with `mcp__puppeteer__puppeteer_click` or `puppeteer_evaluate`
-- Take screenshots as evidence
+**Puppeteer auto-launches a browser. Just call navigate:**
+```
+mcp__puppeteer__puppeteer_navigate → url: http://localhost:3000/ideate
+```
 
-**To click by text:**
+**DO NOT:**
+- Call `puppeteer_connect_active_tab` (causes errors, wastes 5+ tool calls)
+- Try to start Chrome manually (`open -a "Google Chrome"`)
+- Search for debugging ports
+
+**Click elements:**
 ```javascript
+// By selector
+mcp__puppeteer__puppeteer_click → selector: [data-testid="start-ideation-btn"]
+
+// By text (use evaluate)
 Array.from(document.querySelectorAll('button'))
   .find(b => b.textContent.includes('Help me discover'))?.click()
 ```
+
+Take screenshots at key steps. Test through UI, not just curl.
 
 ---
 
