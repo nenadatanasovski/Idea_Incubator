@@ -30,8 +30,9 @@ def get_prompt(prompts_dir: Path, e2e_dir: Path) -> str:
         return """
 # E2E-AGENT
 
-Read tests/e2e/HANDOFF.md and tests/e2e/test-state.json.
+Read tests/e2e/progress.txt and tests/e2e/test-state.json.
 Find the next pending test and FIX CODE to make it pass.
+Commit after each test.
 """
 
 
@@ -167,8 +168,8 @@ async def run_e2e_agent(
     Run the E2E testing agent loop.
 
     Each iteration creates a FRESH client (fresh context window).
-    The agent reads HANDOFF.md to understand previous session's work.
-    The agent writes HANDOFF.md before context fills to pass context to next session.
+    The agent reads progress.txt and test-state.json to understand previous work.
+    Git commits after each test preserve progress across context boundaries.
 
     Args:
         project_dir: Project root directory
@@ -214,7 +215,7 @@ async def run_e2e_agent(
         # Create fresh client (fresh context window)
         client = create_client(project_dir, model)
 
-        # Load prompt - agent will read HANDOFF.md in GET BEARINGS step
+        # Load prompt - agent will read progress.txt in GET BEARINGS step
         prompt = get_prompt(prompts_dir, e2e_dir)
 
         # Run session with fresh context
