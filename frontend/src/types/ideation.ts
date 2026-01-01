@@ -48,6 +48,7 @@ export interface IdeationSessionProps {
   sessionId: string;
   profileId: string;
   entryMode: EntryMode;
+  isResuming?: boolean;
   onComplete: (ideaId: string) => void;
   onExit: () => void;
 }

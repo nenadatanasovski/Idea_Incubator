@@ -12,13 +12,20 @@ export function IdeationPage({ profileId, onComplete, onExit }: IdeationPageProp
   const [entryMode, setEntryMode] = useState<EntryMode>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [showEntryModal, setShowEntryModal] = useState(true);
+  const [isResuming, setIsResuming] = useState(false);
 
   const handleEntrySelect = useCallback((mode: EntryMode) => {
     setEntryMode(mode);
     setShowEntryModal(false);
+    setIsResuming(false);
   }, []);
 
-  // Session ID is set when session is created in IdeationSession component
+  const handleResumeSession = useCallback((resumeSessionId: string) => {
+    setSessionId(resumeSessionId);
+    setEntryMode(null); // Will be loaded from session
+    setShowEntryModal(false);
+    setIsResuming(true);
+  }, []);
 
   const handleComplete = useCallback((ideaId: string) => {
     onComplete(ideaId);
@@ -27,6 +34,7 @@ export function IdeationPage({ profileId, onComplete, onExit }: IdeationPageProp
   const handleExit = useCallback(() => {
     setSessionId(null);
     setEntryMode(null);
+    setIsResuming(false);
     onExit();
   }, [onExit]);
 
@@ -34,7 +42,9 @@ export function IdeationPage({ profileId, onComplete, onExit }: IdeationPageProp
     return (
       <IdeationEntryModal
         isOpen={true}
+        profileId={profileId}
         onSelect={handleEntrySelect}
+        onResumeSession={handleResumeSession}
         onClose={onExit}
       />
     );
@@ -46,6 +56,7 @@ export function IdeationPage({ profileId, onComplete, onExit }: IdeationPageProp
         sessionId={sessionId || ''}
         profileId={profileId}
         entryMode={entryMode}
+        isResuming={isResuming}
         onComplete={handleComplete}
         onExit={handleExit}
       />

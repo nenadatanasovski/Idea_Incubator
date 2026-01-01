@@ -204,6 +204,34 @@ export function useIdeationAPI() {
     return response.json();
   }, []);
 
+  const loadSession = useCallback(async (sessionId: string): Promise<{
+    session: { id: string; profileId: string; status: string; entryMode: string | null };
+    messages: Array<{
+      id: string;
+      role: 'user' | 'assistant';
+      content: string;
+      buttonsShown?: unknown[];
+      formShown?: unknown;
+      createdAt: string;
+    }>;
+    candidate: {
+      id: string;
+      title: string;
+      summary: string | null;
+      confidence: number;
+      viability: number;
+    } | null;
+  }> => {
+    const response = await fetch(`${API_BASE}/session/${sessionId}`);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: { message: 'Failed to load session' } }));
+      throw new Error(error.error?.message || 'Failed to load session');
+    }
+
+    return response.json();
+  }, []);
+
   const listSessions = useCallback(async (
     profileId: string,
     status?: string
@@ -231,6 +259,7 @@ export function useIdeationAPI() {
     discardSession,
     abandonSession,
     getSession,
+    loadSession,
     listSessions,
   }), [
     startSession,
@@ -242,6 +271,7 @@ export function useIdeationAPI() {
     discardSession,
     abandonSession,
     getSession,
+    loadSession,
     listSessions,
   ]);
 }

@@ -961,6 +961,76 @@ export async function getPositioningDecisionHistory(slug: string): Promise<Posit
 }
 
 // ==========================================
+// IDEATION SESSIONS
+// ==========================================
+
+export interface IdeationSessionSummary {
+  id: string;
+  profileId: string;
+  status: 'active' | 'completed' | 'abandoned';
+  entryMode: 'have_idea' | 'discover' | null;
+  messageCount: number;
+  tokenCount: number;
+  startedAt: string;
+  completedAt: string | null;
+  candidateTitle: string | null;
+  candidateSummary: string | null;
+  lastMessagePreview: string | null;
+  lastMessageAt: string;
+}
+
+export async function getIdeationSessions(
+  profileId: string,
+  options?: { status?: string; includeAll?: boolean }
+): Promise<IdeationSessionSummary[]> {
+  const params = new URLSearchParams({ profileId });
+  if (options?.status) params.set('status', options.status);
+  if (options?.includeAll) params.set('includeAll', 'true');
+
+  const result = await fetchApi<{ sessions: IdeationSessionSummary[] }>(
+    `/ideation/sessions?${params.toString()}`
+  );
+  return result.sessions;
+}
+
+export async function deleteIdeationSession(sessionId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/ideation/session/${sessionId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || 'Failed to delete session');
+  }
+}
+
+export async function getIdeationSession(sessionId: string): Promise<{
+  session: {
+    id: string;
+    profileId: string;
+    status: string;
+    entryMode: string | null;
+    startedAt: string;
+  };
+  messages: Array<{
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    buttonsShown?: unknown[];
+    formShown?: unknown;
+    createdAt: string;
+  }>;
+  candidate: {
+    id: string;
+    title: string;
+    summary: string | null;
+    confidence: number;
+    viability: number;
+  } | null;
+}> {
+  return fetchApi(`/ideation/session/${sessionId}`);
+}
+
+// ==========================================
 // POSITIONING ANALYSIS
 // ==========================================
 

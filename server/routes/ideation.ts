@@ -749,28 +749,113 @@ ideationRouter.post('/session/:sessionId/abandon', async (req: Request, res: Res
 // ============================================================================
 // GET /api/ideation/sessions
 // ============================================================================
-// List sessions for a profile
+// List sessions for a profile (with optional status filter)
 
 ideationRouter.get('/sessions', async (req: Request, res: Response) => {
   try {
-    const { profileId, status } = req.query;
+    const { profileId, status, includeAll } = req.query;
 
     if (!profileId) {
       return res.status(400).json({ error: 'profileId is required' });
     }
 
-    let sessions;
-    if (status === 'active') {
-      sessions = await sessionManager.getActiveByProfile(profileId as string);
-    } else {
-      // Return all active sessions for now
-      sessions = await sessionManager.getActiveByProfile(profileId as string);
+    // Get all sessions for the profile
+    const allSessions = await query<{
+      id: string;
+      profile_id: string;
+      status: string;
+      entry_mode: string | null;
+      message_count: number;
+      token_count: number;
+      started_at: string;
+      completed_at: string | null;
+    }>(
+      `SELECT id, profile_id, status, entry_mode, message_count, token_count, started_at, completed_at
+       FROM ideation_sessions
+       WHERE profile_id = ?
+       ORDER BY started_at DESC
+       LIMIT 50`,
+      [profileId as string]
+    );
+
+    // Get candidate info for each session
+    const sessionsWithDetails = await Promise.all(
+      allSessions.map(async (session) => {
+        const candidate = await candidateManager.getActiveForSession(session.id);
+        const lastMessage = await getOne<{ content: string; created_at: string }>(
+          `SELECT content, created_at FROM ideation_messages
+           WHERE session_id = ?
+           ORDER BY created_at DESC LIMIT 1`,
+          [session.id]
+        );
+
+        return {
+          id: session.id,
+          profileId: session.profile_id,
+          status: session.status,
+          entryMode: session.entry_mode,
+          messageCount: session.message_count,
+          tokenCount: session.token_count,
+          startedAt: session.started_at,
+          completedAt: session.completed_at,
+          candidateTitle: candidate?.title || null,
+          candidateSummary: candidate?.summary || null,
+          lastMessagePreview: lastMessage?.content?.slice(0, 100) || null,
+          lastMessageAt: lastMessage?.created_at || session.started_at,
+        };
+      })
+    );
+
+    // Filter by status if requested
+    let filteredSessions = sessionsWithDetails;
+    if (status && status !== 'all') {
+      filteredSessions = sessionsWithDetails.filter(s => s.status === status);
+    } else if (!includeAll) {
+      // By default, only return active and completed sessions (not abandoned)
+      filteredSessions = sessionsWithDetails.filter(s => s.status !== 'abandoned');
     }
 
-    res.json({ sessions });
+    res.json({ sessions: filteredSessions });
 
   } catch (error) {
     console.error('Error listing sessions:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// DELETE /api/ideation/session/:sessionId
+// ============================================================================
+// Delete a session and its messages
+
+ideationRouter.delete('/session/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    // Check session exists
+    const session = await sessionManager.load(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Delete messages
+    await query('DELETE FROM ideation_messages WHERE session_id = ?', [sessionId]);
+
+    // Delete candidates
+    await query('DELETE FROM ideation_candidates WHERE session_id = ?', [sessionId]);
+
+    // Delete memory
+    await query('DELETE FROM ideation_memory WHERE session_id = ?', [sessionId]);
+
+    // Delete session
+    await query('DELETE FROM ideation_sessions WHERE id = ?', [sessionId]);
+
+    await saveDb();
+
+    res.json({ success: true, message: 'Session deleted' });
+
+  } catch (error) {
+    console.error('Error deleting session:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

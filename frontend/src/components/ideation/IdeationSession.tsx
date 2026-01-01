@@ -20,6 +20,7 @@ export function IdeationSession({
   sessionId: initialSessionId,
   profileId,
   entryMode,
+  isResuming = false,
   onComplete,
   onExit,
 }: IdeationSessionProps) {
@@ -29,10 +30,9 @@ export function IdeationSession({
   const buttonClickInProgressRef = useRef(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Initialize session (with guard against React 18 Strict Mode double-invoke)
+  // Initialize or resume session (with guard against React 18 Strict Mode double-invoke)
   useEffect(() => {
     if (initRef.current) return;
-    if (initialSessionId) return;
 
     initRef.current = true;
 
@@ -69,8 +69,72 @@ export function IdeationSession({
       }
     }
 
-    initSession();
-  }, [profileId, entryMode, initialSessionId, api]);
+    async function resumeSession() {
+      dispatch({ type: 'SESSION_START', payload: { profileId, entryMode: null } });
+
+      try {
+        const sessionData = await api.loadSession(initialSessionId);
+
+        dispatch({
+          type: 'SESSION_CREATED',
+          payload: { sessionId: initialSessionId, greeting: '' },
+        });
+
+        // Add all existing messages
+        for (const msg of sessionData.messages) {
+          dispatch({
+            type: 'MESSAGE_RECEIVED',
+            payload: {
+              message: {
+                id: msg.id || generateMessageId(),
+                sessionId: initialSessionId,
+                role: msg.role,
+                content: msg.content,
+                buttons: (msg.buttonsShown as import('../../types').ButtonOption[]) || null,
+                form: (msg.formShown as import('../../types').FormDefinition) || null,
+                createdAt: msg.createdAt,
+              },
+            },
+          });
+        }
+
+        // Update candidate if present
+        if (sessionData.candidate) {
+          dispatch({
+            type: 'CANDIDATE_UPDATE',
+            payload: {
+              candidate: {
+                title: sessionData.candidate.title,
+                summary: sessionData.candidate.summary ?? undefined,
+              },
+            },
+          });
+          dispatch({
+            type: 'CONFIDENCE_UPDATE',
+            payload: { confidence: sessionData.candidate.confidence },
+          });
+          dispatch({
+            type: 'VIABILITY_UPDATE',
+            payload: {
+              viability: sessionData.candidate.viability,
+              risks: [],
+            },
+          });
+        }
+      } catch (error) {
+        dispatch({
+          type: 'SESSION_ERROR',
+          payload: { error: error instanceof Error ? error.message : 'Failed to resume session' },
+        });
+      }
+    }
+
+    if (isResuming && initialSessionId) {
+      resumeSession();
+    } else if (!initialSessionId) {
+      initSession();
+    }
+  }, [profileId, entryMode, initialSessionId, isResuming, api]);
 
   // Handle sending messages
   const handleSendMessage = useCallback(async (content: string) => {
