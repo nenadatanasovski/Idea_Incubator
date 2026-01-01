@@ -465,10 +465,10 @@
     },
     {
       "id": "TEST-MP-002",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Verified: market_discovery data stored in conversation_summary JSON. Competitors: Google Maps, Yelp, Beanhunter, TripAdvisor. Gaps: No specialty coffee filter, No work-friendly/wifi filter, Outdated data. Geography: Australia, Japan, Europe.",
       "dependsOn": "TEST-CF-002",
       "automatable": true,
       "needsFreshSession": false
@@ -713,7 +713,7 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 39,
+    "passed": 40,
     "failed": 0,
     "blocked": 4,
     "pending": 21,

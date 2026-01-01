@@ -162,3 +162,9 @@
 - Markdown format is valid
 - All structured data captured in appropriate sections
 - Progress: 39/64 passing
+[2026-01-01 15:55] TEST-MP-002 PASSED: Market Discovery Memory
+- Verified: Data persisted in conversation_summary JSON state
+- Competitors: Google Maps, Yelp, Beanhunter, TripAdvisor
+- Gaps: No specialty coffee filter, No work-friendly/wifi filter, Outdated data, No good option outside US
+- Geography: Australia, Japan, Europe (location context captured)
+- Progress: 40/64 passing
