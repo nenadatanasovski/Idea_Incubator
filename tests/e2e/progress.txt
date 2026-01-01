@@ -102,3 +102,9 @@
 - Verified: Conversation can continue after saving
 - Toast notification configured (4s auto-hide)
 - Progress: 31/64 passing
+[2026-01-01 15:12] TEST-CM-008 PASSED: Discard Candidate
+- Clicked Discard button (trash icon)
+- Verified: Candidate cleared from panel (shows 'No idea yet')
+- Verified: Conversation continues (AI still responding)
+- Verified: Action buttons removed, empty state displayed
+- Progress: 32/64 passing

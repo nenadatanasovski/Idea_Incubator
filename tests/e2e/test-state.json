@@ -385,10 +385,10 @@
     },
     {
       "id": "TEST-CM-008",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Discard works: candidate cleared from panel, conversation continues, panel shows No idea yet",
       "dependsOn": "TEST-CM-001",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 31,
+    "passed": 32,
     "failed": 0,
     "blocked": 4,
-    "pending": 29,
+    "pending": 28,
     "skipped": 0
   },
   "criticalPath": [
