@@ -47,14 +47,14 @@ export default function IdeationPageWrapper() {
 
         // If URL contains a session ID, validate it
         if (urlSessionId) {
-          const sessionResponse = await fetch(`/api/ideation/sessions/${urlSessionId}`);
+          const sessionResponse = await fetch(`/api/ideation/session/${urlSessionId}`);
           if (!sessionResponse.ok) {
             setSessionNotFound(true);
           } else {
             const sessionData = await sessionResponse.json();
             // Valid session - auto-resume
-            if (sessionData.data?.profileId) {
-              setSelectedProfileId(sessionData.data.profileId);
+            if (sessionData.session?.profileId) {
+              setSelectedProfileId(sessionData.session.profileId);
             }
             setResumeSessionId(urlSessionId);
             setSessionStarted(true);
