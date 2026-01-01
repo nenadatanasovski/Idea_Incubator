@@ -81,9 +81,6 @@ def print_progress_summary(e2e_dir: Path) -> None:
         print("\nProgress: test-state.json not found")
 
 
-WRAP_UP_THRESHOLD = 30  # Tool calls before we remind agent to wrap up
-
-
 async def run_agent_session(
     client: ClaudeSDKClient,
     message: str,
@@ -96,7 +93,7 @@ async def run_agent_session(
     """
     print("Sending prompt to Claude Agent SDK...\n")
 
-    stats = {"tool_calls": 0, "num_turns": 0, "usage": None, "wrap_up_reminded": False}
+    stats = {"tool_calls": 0, "num_turns": 0, "usage": None}
 
     try:
         await client.query(message)
@@ -128,19 +125,6 @@ async def run_agent_session(
                                 print(f"  Input: {input_str[:200]}...", flush=True)
                             else:
                                 print(f"  Input: {input_str}", flush=True)
-
-                        # Wrap-up reminder at threshold
-                        if stats["tool_calls"] == WRAP_UP_THRESHOLD and not stats["wrap_up_reminded"]:
-                            stats["wrap_up_reminded"] = True
-                            print(f"\n{'='*60}", flush=True)
-                            print(f"⏰ TOOL CALL {WRAP_UP_THRESHOLD} REACHED - TIME TO WRAP UP!", flush=True)
-                            print("You MUST now:", flush=True)
-                            print("1. Finish current action", flush=True)
-                            print("2. Update test-state.json", flush=True)
-                            print("3. Commit changes (git add -A && git commit)", flush=True)
-                            print("4. Write HANDOFF.md for next session", flush=True)
-                            print("5. Say 'Session complete - handoff written'", flush=True)
-                            print(f"{'='*60}\n", flush=True)
 
             elif msg_type == "UserMessage" and hasattr(msg, "content"):
                 for block in msg.content:

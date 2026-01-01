@@ -16,33 +16,30 @@ DO NOT stop after:
 - Running a command (check result and continue!)
 - Any intermediate step
 
-**Keep working through Steps 1-10 until you:**
-1. Complete at least one test (pass or block), AND
-2. Write progress.txt and HANDOFF.md, AND
-3. Explicitly say "Session complete - handoff written"
-
-**If you stop without writing handoff, the next session will have no context and will repeat your work.**
+**Keep working through Steps 1-10 until you complete at least one test.**
 
 ---
 
-## ⚠️ TURN LIMIT AWARENESS
+## ⚠️ SAVE PROGRESS FREQUENTLY (ANTI-CUTOFF STRATEGY)
 
-**Context fills up around 35-40 tool calls.** After ~30 tool calls, you should:
-1. Finish your current test (pass it OR mark it blocked)
-2. Start wrapping up - Steps 6-10
+**Context may fill up unexpectedly.** To prevent losing work:
 
-**AT EXACTLY 30 TOOL CALLS, say:**
+1. **Update test-state.json IMMEDIATELY after each test** (pass OR block)
+2. **Append to progress.txt IMMEDIATELY after each test**
+3. **Git commit after EACH test passes** (not at session end)
+
+This way, if context fills unexpectedly, the next session has your progress.
+
+**Pattern (do this after EVERY test):**
+```bash
+# 1. Update test-state.json (see Step 6)
+# 2. Append to progress.txt
+echo "[$(date '+%Y-%m-%d %H:%M')] TEST-XXX: [result]" >> tests/e2e/progress.txt
+# 3. Git commit
+git add -A && git commit -m "TEST-XXX: [description]"
 ```
-"⏰ TURN CHECK: ~30 tool calls used. Starting wrap-up phase.
-I will finish this test and write handoff before context fills."
-```
 
-**If you haven't completed a test by tool call 30:**
-- Mark current work as "in_progress" in HANDOFF.md
-- Document what you tried and what to try next
-- Still write progress.txt and HANDOFF.md
-
-**Better to end cleanly at 30-35 calls than be cut off at 40 with nothing saved.**
+**The next session reads progress.txt and test-state.json - these ARE your handoff.**
 
 ---
 
@@ -462,16 +459,19 @@ the next agent will repeat your mistakes or redo your work.
 
 ---
 
-## 🚨 MANDATORY WRAP-UP TRIGGER
+## HOW CONTEXT HANDOFF WORKS
 
-**When you see `[Tool #30:` in your output, you MUST:**
+**You don't need to write a special "handoff" file.** Just:
+1. Keep progress.txt up to date (append after each test)
+2. Keep test-state.json up to date (mark tests passed/blocked)
+3. Commit frequently
 
-1. **Say out loud:** "⏰ TOOL CALL 30 - TIME TO WRAP UP"
-2. **Finish current action** (don't leave things half-done)
-3. **Run Steps 6-10** - Update state, commit, write handoff
-4. **Say:** "Session complete - handoff written"
+The next session will run Step 1 (Get Your Bearings) and read these files.
 
-**The session WILL be cut off around tool call 35-40. Don't gamble - wrap up at 30.**
+**If context fills mid-work:** Your git commits preserve progress. The next session
+continues from where you committed.
+
+**You have unlimited time.** Focus on completing one test right, then commit.
 
 ---
 
