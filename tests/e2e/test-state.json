@@ -425,10 +425,10 @@
     },
     {
       "id": "TEST-CV-004",
-      "status": "pending",
-      "attempts": 0,
-      "lastResult": null,
-      "notes": null,
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "notes": "Verified: Discussed competitors (Mint, YNAB, Pocketbook, Frollo) and gaps. System updated description to include differentiation points and updated competitor count (11+ to 19+). Confidence maintained at 87%.",
       "dependsOn": "TEST-CF-001",
       "automatable": true,
       "needsFreshSession": false
@@ -713,10 +713,10 @@
     "automatable": 60,
     "manual": 4,
     "journeyTests": 4,
-    "passed": 35,
+    "passed": 36,
     "failed": 0,
     "blocked": 4,
-    "pending": 25,
+    "pending": 24,
     "skipped": 0
   },
   "criticalPath": [
