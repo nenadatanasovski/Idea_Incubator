@@ -161,15 +161,23 @@ export class AgentOrchestrator {
           console.log('[Orchestrator] Making follow-up call with search results...');
           const searchResultsSummary = webSearchResults
             .slice(0, 10) // Limit to top 10 results
-            .map(r => `- **${r.title}** (${r.source}): ${r.snippet}`)
-            .join('\n');
+            .map(r => `- **${r.title}**: ${r.snippet}\n  Source: [${r.source}](${r.url})`)
+            .join('\n\n');
 
           const followUpMessages = [
             ...context.messages,
             { role: 'assistant' as const, content: parsed.reply },
             {
               role: 'user' as const,
-              content: `[SYSTEM: Web search completed. Here are the results for your queries:\n\n${searchResultsSummary}\n\nPlease incorporate these findings into your response. Update your previous message with the research insights.]`,
+              content: `[SYSTEM: Your web search has completed successfully. Here are the results:
+
+${searchResultsSummary}
+
+IMPORTANT INSTRUCTIONS:
+1. Do NOT say you don't have web search access - you DO have it and these are YOUR search results
+2. Incorporate these findings naturally into your response
+3. ALWAYS cite sources with clickable markdown links like [Source Name](https://url)
+4. Update your previous message with these research insights]`,
             },
           ];
 
@@ -335,6 +343,7 @@ export class AgentOrchestrator {
     }
 
     const text = textContent.text;
+    console.log('[Orchestrator] Raw LLM response (first 500 chars):', text.slice(0, 500));
 
     // Try to parse as JSON
     try {
@@ -347,6 +356,7 @@ export class AgentOrchestrator {
       const jsonStr = jsonMatch[1] || jsonMatch[0];
       const parsed = JSON.parse(jsonStr);
 
+      console.log('[Orchestrator] Parsed JSON - webSearchNeeded:', parsed.webSearchNeeded);
       return {
         reply: parsed.text || text,
         buttons: parsed.buttons,
@@ -356,8 +366,9 @@ export class AgentOrchestrator {
         candidateSummary: parsed.candidateUpdate?.summary,
         webSearchNeeded: parsed.webSearchNeeded,
       };
-    } catch {
+    } catch (e) {
       // If JSON parsing fails, treat entire response as text
+      console.log('[Orchestrator] JSON parsing failed, treating as plain text. Error:', e);
       return { reply: text };
     }
   }

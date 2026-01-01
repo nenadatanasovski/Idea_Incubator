@@ -7,11 +7,16 @@ import 'react';
 import type { MessageTextProps } from '../../types/ideation';
 
 export function MessageText({ content, isStreaming = false }: MessageTextProps) {
-  // Helper to format inline markdown (bold, italic, code)
+  // Helper to format inline markdown (bold, italic, code, links)
   const formatInline = (text: string): string => {
     return text
+      // Links: [text](url) -> clickable anchor
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">$1</a>')
+      // Bold: **text**
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Italic: *text*
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Inline code: `text`
       .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded text-sm">$1</code>');
   };
 
@@ -124,9 +129,11 @@ export function MessageText({ content, isStreaming = false }: MessageTextProps) 
         return (
           <ul key={index} className="list-disc list-inside space-y-1 mb-2">
             {items.map((item, i) => (
-              <li key={i} className="text-gray-800">
-                {item.replace(/^[-*]\s+/, '')}
-              </li>
+              <li
+                key={i}
+                className="text-gray-800"
+                dangerouslySetInnerHTML={{ __html: formatInline(item.replace(/^[-*]\s+/, '')) }}
+              />
             ))}
           </ul>
         );
@@ -138,9 +145,11 @@ export function MessageText({ content, isStreaming = false }: MessageTextProps) 
         return (
           <ol key={index} className="list-decimal list-inside space-y-1 mb-2">
             {items.map((item, i) => (
-              <li key={i} className="text-gray-800">
-                {item.replace(/^\d+\.\s*/, '')}
-              </li>
+              <li
+                key={i}
+                className="text-gray-800"
+                dangerouslySetInnerHTML={{ __html: formatInline(item.replace(/^\d+\.\s*/, '')) }}
+              />
             ))}
           </ol>
         );
