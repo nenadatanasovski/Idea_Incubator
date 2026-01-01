@@ -188,3 +188,19 @@
 - Response: {error: "Session not found"} - clear error message
 - No crash observed
 - Progress: 43/64 passing
+[2026-01-01 16:05] TEST-UI-001 PASSED: Message List Rendering
+- Verified: 11 messages (6 assistant + 5 user) rendered
+- User messages in blue, assistant in white - visually distinct
+- Conversation is scrollable
+
+[2026-01-01 16:05] TEST-UI-002 PASSED: Input Field Behavior
+- Verified: Input field accepts text
+- Placeholder shows Shift+Enter for multiline support
+- Send button is active when text present
+
+[2026-01-01 16:05] TEST-UI-003 PASSED: Loading States
+- Verified: Loading dots appear during AI response
+- UI not frozen - buttons clickable during load
+- Smooth transitions observed
+
+- Progress: 46/64 passing
