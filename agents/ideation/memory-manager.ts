@@ -493,6 +493,21 @@ ${candidate.summary || 'No summary yet.'}
   }
 
   /**
+   * Reset memory state to defaults (used when editing messages to recalculate from scratch).
+   */
+  async resetState(sessionId: string): Promise<void> {
+    const db = await getDb();
+
+    // Delete all memory files for this session
+    db.run(`
+      DELETE FROM ideation_memory_files
+      WHERE session_id = ?
+    `, [sessionId]);
+
+    await saveDb();
+  }
+
+  /**
    * Create handoff summary.
    */
   async createHandoffSummary(sessionId: string, conversationSummary: string): Promise<void> {

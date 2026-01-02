@@ -3,14 +3,13 @@
 // Session header with token usage and actions
 // =============================================================================
 
-import { LogOut, Minimize2 } from 'lucide-react';
+import { Minimize2 } from 'lucide-react';
 import { TokenUsageIndicator } from './TokenUsageIndicator';
 import type { SessionHeaderProps } from '../../types/ideation';
 
 export function SessionHeader({
   sessionId,
   tokenUsage,
-  onAbandon,
   onMinimize,
 }: SessionHeaderProps) {
   return (
@@ -41,13 +40,6 @@ export function SessionHeader({
           title="Minimize"
         >
           <Minimize2 className="w-4 h-4" />
-        </button>
-        <button
-          onClick={onAbandon}
-          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-          title="Abandon session"
-        >
-          <LogOut className="w-4 h-4" />
         </button>
       </div>
     </header>

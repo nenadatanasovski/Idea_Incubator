@@ -4,7 +4,7 @@
 // =============================================================================
 
 import { useCallback, useMemo } from 'react';
-import type { EntryMode, TokenUsageInfo, IdeationMessage } from '../types/ideation';
+import type { EntryMode, TokenUsageInfo, IdeationMessage, Artifact, ResearchResult } from '../types/ideation';
 import type { ButtonOption, FormDefinition, IdeaCandidate, ViabilityRisk } from '../types';
 
 const API_BASE = '/api/ideation';
@@ -15,8 +15,16 @@ interface StartSessionResponse {
   buttons?: ButtonOption[];
 }
 
+interface ArtifactUpdateResponse {
+  id: string;
+  content: string;
+  title?: string;
+  updatedAt: string;
+}
+
 interface MessageResponse {
-  messageId: string;
+  userMessageId?: string;
+  messageId?: string;
   reply: string;
   buttons?: ButtonOption[];
   form?: FormDefinition;
@@ -26,6 +34,25 @@ interface MessageResponse {
   risks?: ViabilityRisk[];
   intervention?: { type: 'warning' | 'critical' };
   tokenUsage?: TokenUsageInfo;
+  webSearchQueries?: string[]; // Queries to execute async
+  artifact?: Artifact; // Visual artifact from agent
+  artifactUpdate?: ArtifactUpdateResponse; // Update to existing artifact
+}
+
+interface WebSearchResponse {
+  success: boolean;
+  artifact: {
+    id: string;
+    type: 'research';
+    title: string;
+    content: ResearchResult[];
+    queries: string[];
+    timestamp: string;
+  };
+}
+
+interface EditMessageResponse extends MessageResponse {
+  deletedCount: number;
 }
 
 interface CaptureResponse {
@@ -101,15 +128,38 @@ export function useIdeationAPI() {
     return response.json();
   }, []);
 
+  const editMessage = useCallback(async (
+    sessionId: string,
+    messageId: string,
+    newContent: string
+  ): Promise<EditMessageResponse> => {
+    const response = await fetch(`${API_BASE}/message/edit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, messageId, newContent }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Failed to edit message' }));
+      const errorMessage = typeof errorData.error === 'string'
+        ? errorData.error
+        : errorData.error?.message || 'Failed to edit message';
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }, []);
+
   const clickButton = useCallback(async (
     sessionId: string,
     buttonId: string,
-    buttonValue: string
+    buttonValue: string,
+    buttonLabel?: string
   ): Promise<MessageResponse> => {
     const response = await fetch(`${API_BASE}/button`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, buttonId, buttonValue }),
+      body: JSON.stringify({ sessionId, buttonId, buttonValue, buttonLabel }),
     });
 
     if (!response.ok) {
@@ -221,6 +271,7 @@ export function useIdeationAPI() {
       confidence: number;
       viability: number;
     } | null;
+    artifacts?: Artifact[];
   }> => {
     const response = await fetch(`${API_BASE}/session/${sessionId}`);
 
@@ -249,9 +300,93 @@ export function useIdeationAPI() {
     return response.json();
   }, []);
 
+  /**
+   * Delete an artifact from the database
+   */
+  const deleteArtifact = useCallback(async (
+    sessionId: string,
+    artifactId: string
+  ): Promise<{ success: boolean }> => {
+    const response = await fetch(`${API_BASE}/artifact/${artifactId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to delete artifact' }));
+      throw new Error(typeof error.error === 'string' ? error.error : 'Failed to delete artifact');
+    }
+
+    return response.json();
+  }, []);
+
+  /**
+   * Save an artifact to the database
+   */
+  const saveArtifact = useCallback(async (
+    sessionId: string,
+    artifact: {
+      id: string;
+      type: string;
+      title: string;
+      content: string | object;
+      language?: string;
+      identifier?: string;
+    }
+  ): Promise<{ success: boolean; artifactId: string }> => {
+    const response = await fetch(`${API_BASE}/artifact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, artifact }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to save artifact' }));
+      throw new Error(typeof error.error === 'string' ? error.error : 'Failed to save artifact');
+    }
+
+    return response.json();
+  }, []);
+
+  /**
+   * Execute async web search and return results as an artifact
+   */
+  const executeWebSearch = useCallback(async (
+    sessionId: string,
+    queries: string[],
+    context?: string
+  ): Promise<Artifact> => {
+    const response = await fetch(`${API_BASE}/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, queries, context }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Web search failed' }));
+      throw new Error(typeof error.error === 'string' ? error.error : 'Web search failed');
+    }
+
+    const data: WebSearchResponse = await response.json();
+
+    // Convert to Artifact format
+    return {
+      id: data.artifact.id,
+      type: 'research',
+      title: data.artifact.title,
+      content: data.artifact.content,
+      queries: data.artifact.queries,
+      status: 'ready',
+      createdAt: data.artifact.timestamp,
+      identifier: `research_${queries[0]?.slice(0, 20).replace(/\s+/g, '_').toLowerCase() || 'results'}`,
+    };
+  }, []);
+
   return useMemo(() => ({
     startSession,
     sendMessage,
+    editMessage,
     clickButton,
     submitForm,
     captureIdea,
@@ -261,9 +396,13 @@ export function useIdeationAPI() {
     getSession,
     loadSession,
     listSessions,
+    executeWebSearch,
+    saveArtifact,
+    deleteArtifact,
   }), [
     startSession,
     sendMessage,
+    editMessage,
     clickButton,
     submitForm,
     captureIdea,
@@ -273,5 +412,8 @@ export function useIdeationAPI() {
     getSession,
     loadSession,
     listSessions,
+    executeWebSearch,
+    saveArtifact,
+    deleteArtifact,
   ]);
 }

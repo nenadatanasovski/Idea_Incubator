@@ -16,12 +16,13 @@ import { sessionManager } from './session-manager.js';
 import { messageStore } from './message-store.js';
 import { memoryManager } from './memory-manager.js';
 import { candidateManager } from './candidate-manager.js';
-import { extractSignals, ParsedAgentResponse } from './signal-extractor.js';
+import { extractSignals, ParsedAgentResponse, AgentArtifact, AgentArtifactUpdate } from './signal-extractor.js';
 import { calculateConfidence } from './confidence-calculator.js';
 import { calculateViability } from './viability-calculator.js';
 import { calculateTokenUsage } from './token-counter.js';
 import { prepareHandoff } from './handoff.js';
-import { buildSystemPrompt } from './system-prompt.js';
+import { buildSystemPrompt, ArtifactSummary } from './system-prompt.js';
+import { artifactStore } from './artifact-store.js';
 import {
   createDefaultSelfDiscoveryState,
   createDefaultMarketDiscoveryState,
@@ -57,6 +58,9 @@ export interface OrchestratorResponse {
   risks: ViabilityRisk[];
   requiresIntervention: boolean;
   handoffOccurred: boolean;
+  webSearchQueries?: string[];  // Queries to execute asynchronously
+  artifact?: AgentArtifact;     // Visual artifact (mermaid diagram, code, etc.)
+  artifactUpdate?: AgentArtifactUpdate; // Update to existing artifact
 }
 
 export class AgentOrchestrator {
@@ -68,11 +72,13 @@ export class AgentOrchestrator {
 
   /**
    * Process a user message and return the agent's response.
+   * @param displayMessage - Optional display version of the message (e.g., button label instead of value)
    */
   async processMessage(
     session: IdeationSession,
     userMessage: string,
-    userProfile: Record<string, unknown>
+    userProfile: Record<string, unknown>,
+    displayMessage?: string
   ): Promise<OrchestratorResponse> {
     // Get existing messages
     const messages = await messageStore.getBySession(session.id);
@@ -87,11 +93,19 @@ export class AgentOrchestrator {
       handoffOccurred = true;
     }
 
-    // Build context
-    const context = await this.buildContext(session, messages, userProfile, handoffOccurred);
+    // Build context (pass current message so we can extract artifact references)
+    const context = await this.buildContext(session, messages, userProfile, handoffOccurred, userMessage);
 
     // Add user message to context
     context.messages.push({ role: 'user', content: userMessage });
+
+    // Store user message BEFORE calling Claude so it can be edited if Claude times out
+    const userMsg = await messageStore.add({
+      sessionId: session.id,
+      role: 'user',
+      content: displayMessage || userMessage,
+      tokenCount: Math.ceil((displayMessage || userMessage).length / 4),
+    });
 
     // Call Claude
     const response = await this.client.messages.create({
@@ -130,77 +144,14 @@ export class AgentOrchestrator {
       userConfirmations: this.countConfirmations(messages),
     });
 
-    // Execute web searches if requested by the LLM
+    // Track if web search was requested (will be handled asynchronously)
     let webSearchResults: WebSearchResult[] = [];
-    if (parsed.webSearchNeeded && parsed.webSearchNeeded.length > 0) {
-      console.log(`[Orchestrator] Executing ${parsed.webSearchNeeded.length} web searches...`);
-      const searchPromises = parsed.webSearchNeeded.map(async (query: string) => {
-        const purpose: SearchPurpose = {
-          type: 'general',
-          context: candidateForCalculation?.title || 'Ideation session',
-        };
-        return performWebSearch(query, purpose);
-      });
+    const webSearchRequested = parsed.webSearchNeeded && parsed.webSearchNeeded.length > 0;
 
-      try {
-        const rawResults = await Promise.all(searchPromises);
-        // Map web-search-service results to types/ideation WebSearchResult format
-        webSearchResults = rawResults.flatMap(r =>
-          r.results.map(item => ({
-            title: item.title,
-            url: item.url,
-            snippet: item.snippet,
-            source: item.source,
-          }))
-        );
-        console.log(`[Orchestrator] Web searches completed: ${webSearchResults.length} results`);
-        console.log(`[Orchestrator] DEBUG: About to check if we should make follow-up call`);
-
-        // Make a second LLM call with search results so it can incorporate them
-        if (webSearchResults.length > 0) {
-          console.log('[Orchestrator] Making follow-up call with search results...');
-          const searchResultsSummary = webSearchResults
-            .slice(0, 10) // Limit to top 10 results
-            .map(r => `- **${r.title}**: ${r.snippet}\n  Source: [${r.source}](${r.url})`)
-            .join('\n\n');
-
-          const followUpMessages = [
-            ...context.messages,
-            { role: 'assistant' as const, content: parsed.reply },
-            {
-              role: 'user' as const,
-              content: `[SYSTEM: Your web search has completed successfully. Here are the results:
-
-${searchResultsSummary}
-
-IMPORTANT INSTRUCTIONS:
-1. Do NOT say you don't have web search access - you DO have it and these are YOUR search results
-2. Incorporate these findings naturally into your response
-3. ALWAYS cite sources with clickable markdown links like [Source Name](https://url)
-4. Update your previous message with these research insights]`,
-            },
-          ];
-
-          const followUpResponse = await this.client.messages.create({
-            model: getConfig().model || 'claude-sonnet-4-20250514',
-            max_tokens: 4096,
-            system: context.systemPrompt,
-            messages: followUpMessages,
-          });
-
-          // Use the follow-up response instead
-          const followUpParsed = this.parseResponse(followUpResponse);
-          parsed.reply = followUpParsed.reply;
-          // Preserve buttons/forms from original if follow-up doesn't have them
-          if (followUpParsed.buttons) parsed.buttons = followUpParsed.buttons;
-          if (followUpParsed.form) parsed.form = followUpParsed.form;
-          console.log('[Orchestrator] Follow-up response incorporated search results');
-        }
-      } catch (error) {
-        console.error('[Orchestrator] Web search failed:', error);
-        // Continue without search results
-      }
-    }
+    // NOTE: Web search is now handled asynchronously via a separate endpoint.
+    // The response is returned immediately without waiting for search results.
+    // If webSearchNeeded is set, the frontend should call the search endpoint
+    // and display results in the artifact panel.
 
     const viabilityResult = calculateViability({
       selfDiscovery: selfDiscovery as SelfDiscoveryState,
@@ -269,15 +220,8 @@ IMPORTANT INSTRUCTIONS:
       });
     }
 
-    // Store messages
-    await messageStore.add({
-      sessionId: session.id,
-      role: 'user',
-      content: userMessage,
-      tokenCount: Math.ceil(userMessage.length / 4),
-    });
-
-    await messageStore.add({
+    // Store assistant message (user message was stored earlier, before Claude call)
+    const assistantMsg = await messageStore.add({
       sessionId: session.id,
       role: 'assistant',
       content: parsed.reply,
@@ -299,6 +243,11 @@ IMPORTANT INSTRUCTIONS:
       risks: viabilityResult.risks || [],
       requiresIntervention: viabilityResult.requiresIntervention,
       handoffOccurred,
+      userMessageId: userMsg.id,
+      assistantMessageId: assistantMsg.id,
+      webSearchQueries: webSearchRequested ? parsed.webSearchNeeded : undefined,
+      artifact: parsed.artifact,
+      artifactUpdate: parsed.artifactUpdate,
     };
   }
 
@@ -309,7 +258,8 @@ IMPORTANT INSTRUCTIONS:
     session: IdeationSession,
     messages: IdeationMessage[],
     userProfile: Record<string, unknown>,
-    isHandoff: boolean
+    isHandoff: boolean,
+    currentUserMessage?: string
   ): Promise<AgentContext> {
     let memoryFiles: { fileType: string; content: string }[] | undefined;
 
@@ -322,7 +272,51 @@ IMPORTANT INSTRUCTIONS:
       }));
     }
 
-    const systemPrompt = buildSystemPrompt(userProfile, memoryFiles);
+    // Load artifacts for context so agent can reference and edit them
+    const storedArtifacts = await artifactStore.getBySession(session.id);
+    console.log('[BuildContext] Stored artifacts in DB:', storedArtifacts.map(a => ({ id: a.id, type: a.type, title: a.title })));
+
+    // Extract artifact IDs referenced in the current user message
+    const referencedIds = new Set<string>();
+    const messageToCheck = currentUserMessage || '';
+    const matches = messageToCheck.matchAll(/@artifact:([a-zA-Z0-9_-]+)/g);
+    for (const match of matches) {
+      referencedIds.add(match[1]);
+    }
+    console.log('[BuildContext] Referenced artifact IDs:', Array.from(referencedIds));
+
+    // Warn if a referenced artifact doesn't exist in the database
+    for (const refId of referencedIds) {
+      if (!storedArtifacts.find(a => a.id === refId)) {
+        console.warn(`[BuildContext] WARNING: Referenced artifact ${refId} not found in database!`);
+      }
+    }
+
+    // Only include full content for explicitly referenced artifacts
+    const artifactSummaries: ArtifactSummary[] = storedArtifacts.map(a => {
+      const isReferenced = referencedIds.has(a.id);
+
+      // Log artifact content details for debugging
+      if (isReferenced) {
+        const contentPreview = typeof a.content === 'string'
+          ? a.content.substring(0, 300)
+          : JSON.stringify(a.content).substring(0, 300);
+        console.log(`[BuildContext] REFERENCED artifact "${a.id}" (${a.title}):`);
+        console.log(`[BuildContext]   - Content length: ${typeof a.content === 'string' ? a.content.length : JSON.stringify(a.content).length}`);
+        console.log(`[BuildContext]   - Content preview: "${contentPreview}..."`);
+      }
+
+      return {
+        id: a.id,
+        type: a.type,
+        title: a.title,
+        identifier: a.identifier,
+        // Only include content if this artifact was referenced by the user
+        content: isReferenced ? a.content : undefined,
+      };
+    });
+
+    const systemPrompt = buildSystemPrompt(userProfile, memoryFiles, artifactSummaries);
 
     // Convert messages to API format
     const apiMessages = messages.map(m => ({
@@ -356,7 +350,18 @@ IMPORTANT INSTRUCTIONS:
       const jsonStr = jsonMatch[1] || jsonMatch[0];
       const parsed = JSON.parse(jsonStr);
 
-      console.log('[Orchestrator] Parsed JSON - webSearchNeeded:', parsed.webSearchNeeded);
+      console.log('[Orchestrator] Parsed JSON - webSearchNeeded:', parsed.webSearchNeeded, 'artifact:', parsed.artifact?.type, 'artifactUpdate:', JSON.stringify(parsed.artifactUpdate));
+
+      // Validate artifactUpdate has required fields
+      if (parsed.artifactUpdate) {
+        if (!parsed.artifactUpdate.content) {
+          console.error('[Orchestrator] ERROR: artifactUpdate missing content field! Agent provided ID but no content.');
+          console.error('[Orchestrator] artifactUpdate received:', JSON.stringify(parsed.artifactUpdate));
+        } else {
+          console.log('[Orchestrator] artifactUpdate content length:', parsed.artifactUpdate.content.length);
+        }
+      }
+
       return {
         reply: parsed.text || text,
         buttons: parsed.buttons,
@@ -365,6 +370,8 @@ IMPORTANT INSTRUCTIONS:
         candidateTitle: parsed.candidateUpdate?.title,
         candidateSummary: parsed.candidateUpdate?.summary,
         webSearchNeeded: parsed.webSearchNeeded,
+        artifact: parsed.artifact,
+        artifactUpdate: parsed.artifactUpdate,
       };
     } catch (e) {
       // If JSON parsing fails, treat entire response as text

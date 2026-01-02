@@ -4,12 +4,14 @@
 // =============================================================================
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Square } from 'lucide-react';
 import type { InputAreaProps } from '../../types/ideation';
 
 export function InputArea({
   onSend,
+  onStop,
   disabled,
+  isLoading = false,
   placeholder = 'Type a message...',
 }: InputAreaProps) {
   const [value, setValue] = useState('');
@@ -65,19 +67,33 @@ export function InputArea({
             style={{ minHeight: '48px', maxHeight: '150px' }}
           />
         </div>
-        <button
-          role="button"
-          data-testid="send-message-btn"
-          onClick={handleSubmit}
-          disabled={isSubmitDisabled}
-          aria-label="Send"
-          className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700
-                     disabled:bg-gray-300 disabled:cursor-not-allowed
-                     transition-colors flex-shrink-0
-                     focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-        >
-          <Send className="w-5 h-5" />
-        </button>
+        {isLoading && onStop ? (
+          <button
+            role="button"
+            data-testid="stop-message-btn"
+            onClick={onStop}
+            aria-label="Stop"
+            className="p-3 bg-red-600 text-white rounded-lg hover:bg-red-700
+                       transition-colors flex-shrink-0
+                       focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            <Square className="w-5 h-5 fill-current" />
+          </button>
+        ) : (
+          <button
+            role="button"
+            data-testid="send-message-btn"
+            onClick={handleSubmit}
+            disabled={isSubmitDisabled}
+            aria-label="Send"
+            className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700
+                       disabled:bg-gray-300 disabled:cursor-not-allowed
+                       transition-colors flex-shrink-0
+                       focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            <Send className="w-5 h-5" />
+          </button>
+        )}
       </div>
       <p className="text-xs text-gray-500 mt-2">
         Press Enter to send, Shift+Enter for new line

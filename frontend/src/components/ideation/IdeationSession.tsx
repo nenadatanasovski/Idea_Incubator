@@ -3,13 +3,14 @@
 // Main container for an ideation session
 // =============================================================================
 
-import { useEffect, useReducer, useCallback, useRef, useState } from 'react';
+import { useEffect, useReducer, useCallback, useRef, useState, useMemo } from 'react';
 import { SessionHeader } from './SessionHeader';
 import { ConversationPanel } from './ConversationPanel';
 import { IdeaCandidatePanel } from './IdeaCandidatePanel';
+import { ArtifactPanel } from './ArtifactPanel';
 import { useIdeationAPI } from '../../hooks/useIdeationAPI';
 import { ideationReducer, initialState } from '../../reducers/ideationReducer';
-import type { IdeationSessionProps } from '../../types/ideation';
+import type { IdeationSessionProps, Artifact } from '../../types/ideation';
 
 // Generate unique message IDs
 function generateMessageId(): string {
@@ -131,6 +132,27 @@ export function IdeationSession({
             },
           });
         }
+
+        // Restore artifacts if present
+        console.log('[Session Resume] Artifacts from API:', sessionData.artifacts);
+        if (sessionData.artifacts && sessionData.artifacts.length > 0) {
+          console.log('[Session Resume] Restoring', sessionData.artifacts.length, 'artifacts');
+          for (const artifact of sessionData.artifacts) {
+            console.log('[Session Resume] Adding artifact:', artifact.id, artifact.type, artifact.title);
+            dispatch({
+              type: 'ARTIFACT_ADD',
+              payload: { artifact },
+            });
+          }
+          // Open artifact panel and select the first artifact
+          dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: true } });
+          dispatch({
+            type: 'ARTIFACT_SELECT',
+            payload: { artifact: sessionData.artifacts[0] },  // Fixed: pass artifact object, not artifactId
+          });
+        } else {
+          console.log('[Session Resume] No artifacts to restore');
+        }
       } catch (error) {
         dispatch({
           type: 'SESSION_ERROR',
@@ -146,15 +168,159 @@ export function IdeationSession({
     }
   }, [profileId, entryMode, initialSessionId, isResuming, api]);
 
+  // WebSocket connection for real-time artifact updates
+  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    const sessionId = state.session.sessionId;
+    if (!sessionId) return;
+
+    // Create WebSocket connection
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = window.location.hostname;
+    const wsPort = '3001'; // Backend port
+    const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}/ws?session=${sessionId}`;
+
+    console.log('[WebSocket] Connecting to:', wsUrl);
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      console.log('[WebSocket] Connected to session:', sessionId);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('[WebSocket] Received:', data.type, data);
+
+        switch (data.type) {
+          case 'artifact:updating':
+            console.log('[WebSocket] Artifact updating:', data.data.artifactId);
+            // Set artifact status to 'updating' - shows pulsing indicator in tab
+            dispatch({
+              type: 'ARTIFACT_UPDATE',
+              payload: {
+                id: data.data.artifactId,
+                updates: { status: 'updating' },
+              },
+            });
+            break;
+
+          case 'artifact:updated':
+            console.log('[WebSocket] Artifact updated:', data.data.artifactId);
+            if (data.data.content) {
+              dispatch({
+                type: 'ARTIFACT_UPDATE',
+                payload: {
+                  id: data.data.artifactId,
+                  updates: {
+                    content: data.data.content,
+                    status: 'ready',
+                    updatedAt: new Date().toISOString(),
+                  },
+                },
+              });
+              // Open artifact panel to show the update
+              dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: true } });
+              // Select the updated artifact
+              const updatedArtifact = state.artifacts.artifacts.find(a => a.id === data.data.artifactId);
+              if (updatedArtifact) {
+                dispatch({ type: 'ARTIFACT_SELECT', payload: { artifact: { ...updatedArtifact, content: data.data.content, status: 'ready' } } });
+              }
+              // Update the "Updating artifact..." message to show completion
+              if (data.data.messageId) {
+                dispatch({
+                  type: 'MESSAGE_CONTENT_UPDATE',
+                  payload: {
+                    messageId: data.data.messageId,
+                    content: `Artifact updated! ${data.data.summary || ''}`,
+                  },
+                });
+              }
+            }
+            break;
+
+          case 'artifact:error':
+            console.error('[WebSocket] Artifact error:', data.data.error);
+            // Reset artifact status and show error
+            dispatch({
+              type: 'ARTIFACT_UPDATE',
+              payload: {
+                id: data.data.artifactId,
+                updates: { status: 'ready' }, // Reset to ready
+              },
+            });
+            setToast({ message: `Failed to update: ${data.data.error}`, type: 'error' });
+            setTimeout(() => setToast(null), 5000);
+            break;
+
+          case 'connected':
+            console.log('[WebSocket] Connection confirmed:', data.data.message);
+            break;
+
+          case 'pong':
+            // Heartbeat response
+            break;
+
+          default:
+            console.log('[WebSocket] Unknown event type:', data.type);
+        }
+      } catch (error) {
+        console.error('[WebSocket] Failed to parse message:', error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('[WebSocket] Error:', error);
+    };
+
+    ws.onclose = () => {
+      console.log('[WebSocket] Connection closed');
+    };
+
+    // Heartbeat to keep connection alive
+    const heartbeat = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30000);
+
+    // Cleanup
+    return () => {
+      clearInterval(heartbeat);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+      wsRef.current = null;
+    };
+  }, [state.session.sessionId]);
+
+  // Handle stopping generation
+  const handleStopGeneration = useCallback(() => {
+    console.log('[IdeationSession] Stopping generation');
+    // Clear loading and streaming states
+    dispatch({ type: 'MESSAGE_STREAM_END', payload: { message: {
+      id: generateMessageId(),
+      sessionId: state.session.sessionId || '',
+      role: 'assistant' as const,
+      content: '*(Generation stopped by user)*',
+      buttons: null,
+      form: null,
+      createdAt: new Date().toISOString(),
+    }}});
+  }, [state.session.sessionId]);
+
   // Handle sending messages
   const handleSendMessage = useCallback(async (content: string) => {
     if (!state.session.sessionId) return;
 
     dispatch({ type: 'MESSAGE_SEND', payload: { content } });
 
-    // Add user message to conversation
+    // Add user message to conversation with temporary ID
+    const tempUserMessageId = generateMessageId();
     const userMessage = {
-      id: generateMessageId(),
+      id: tempUserMessageId,
       sessionId: state.session.sessionId,
       role: 'user' as const,
       content,
@@ -169,6 +335,14 @@ export function IdeationSession({
 
     try {
       const response = await api.sendMessage(state.session.sessionId, content);
+
+      // Update user message ID with the real ID from the backend
+      if (response.userMessageId) {
+        dispatch({
+          type: 'MESSAGE_UPDATE_ID',
+          payload: { oldId: tempUserMessageId, newId: response.userMessageId },
+        });
+      }
 
       // Update with response
       dispatch({
@@ -226,6 +400,37 @@ export function IdeationSession({
           payload: { usage: response.tokenUsage },
         });
       }
+
+      // Handle async web search if queries were returned
+      console.log('[Message Response] webSearchQueries:', response.webSearchQueries);
+      if (response.webSearchQueries && response.webSearchQueries.length > 0) {
+        console.log('[Message Response] Triggering web search with queries:', response.webSearchQueries);
+        executeAsyncWebSearch(response.webSearchQueries);
+      }
+
+      // Handle artifact if returned (mermaid diagrams, code, etc.)
+      if (response.artifact) {
+        dispatch({ type: 'ARTIFACT_ADD', payload: { artifact: response.artifact } });
+      }
+
+      // Handle artifact update if returned (agent edited an existing artifact)
+      if (response.artifactUpdate) {
+        dispatch({
+          type: 'ARTIFACT_UPDATE',
+          payload: {
+            id: response.artifactUpdate.id,
+            updates: {
+              content: response.artifactUpdate.content,
+              ...(response.artifactUpdate.title && { title: response.artifactUpdate.title }),
+              updatedAt: response.artifactUpdate.updatedAt,
+            },
+          },
+        });
+        // Open the artifact panel to show the update
+        dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: true } });
+        setToast({ message: 'Artifact updated!', type: 'success' });
+        setTimeout(() => setToast(null), 3000);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
       dispatch({
@@ -244,6 +449,246 @@ export function IdeationSession({
     }
   }, [state.session.sessionId, api]);
 
+  // Execute async web search and add results as artifact
+  const executeAsyncWebSearch = useCallback(async (queries: string[]) => {
+    console.log('[WebSearch] executeAsyncWebSearch called with queries:', queries);
+    console.log('[WebSearch] Current sessionId:', state.session.sessionId);
+    if (!state.session.sessionId) {
+      console.log('[WebSearch] No sessionId, returning early');
+      return;
+    }
+
+    // Create a pending artifact to show loading state
+    const pendingArtifactId = `research_${Date.now()}`;
+    const pendingArtifact: Artifact = {
+      id: pendingArtifactId,
+      type: 'research',
+      title: `Researching: ${queries[0]?.slice(0, 25)}...`,
+      content: [],
+      queries,
+      status: 'loading',
+      createdAt: new Date().toISOString(),
+      identifier: `research_${queries[0]?.slice(0, 20).replace(/\s+/g, '_').toLowerCase() || 'results'}`,
+    };
+
+    console.log('[WebSearch] Adding pending artifact:', pendingArtifactId);
+    dispatch({ type: 'ARTIFACT_ADD', payload: { artifact: pendingArtifact } });
+
+    try {
+      console.log('[WebSearch] Calling API...');
+      const resultArtifact = await api.executeWebSearch(
+        state.session.sessionId,
+        queries,
+        state.candidate.candidate?.title
+      );
+      console.log('[WebSearch] API returned artifact:', resultArtifact.id, resultArtifact.title);
+
+      // Update the artifact with results
+      console.log('[WebSearch] Updating artifact with results');
+      dispatch({
+        type: 'ARTIFACT_UPDATE',
+        payload: {
+          id: pendingArtifactId,
+          updates: {
+            ...resultArtifact,
+            id: pendingArtifactId, // Keep the original ID
+            status: 'ready',
+          },
+        },
+      });
+      console.log('[WebSearch] Artifact update dispatched');
+    } catch (error) {
+      console.error('[WebSearch] Error:', error);
+      dispatch({
+        type: 'ARTIFACT_LOADING_END',
+        payload: {
+          id: pendingArtifactId,
+          error: error instanceof Error ? error.message : 'Web search failed',
+        },
+      });
+    }
+  }, [state.session.sessionId, state.candidate.candidate?.title, api]);
+
+  // Handle artifact selection
+  const handleSelectArtifact = useCallback((artifact: Artifact) => {
+    console.log('[IdeationSession] handleSelectArtifact called');
+    console.log('[IdeationSession] Artifact to select:', artifact.id, artifact.title);
+    console.log('[IdeationSession] Current artifact before dispatch:', state.artifacts.currentArtifact?.id);
+    dispatch({ type: 'ARTIFACT_SELECT', payload: { artifact } });
+  }, [state.artifacts.currentArtifact?.id]);
+
+  // Handle close artifact panel (minimize)
+  const handleCloseArtifact = useCallback(() => {
+    dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: false } });
+  }, []);
+
+  // Handle expand artifact panel
+  const handleExpandArtifact = useCallback(() => {
+    dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: true } });
+  }, []);
+
+  // Handle deleting an artifact
+  const handleDeleteArtifact = useCallback(async (artifactId: string) => {
+    if (!state.session.sessionId) return;
+
+    try {
+      await api.deleteArtifact(state.session.sessionId, artifactId);
+      dispatch({ type: 'ARTIFACT_REMOVE', payload: { id: artifactId } });
+      setToast({ message: 'Artifact deleted', type: 'success' });
+    } catch (error) {
+      console.error('[DeleteArtifact] Failed:', error);
+      setToast({ message: 'Failed to delete artifact', type: 'error' });
+    }
+    setTimeout(() => setToast(null), 3000);
+  }, [state.session.sessionId, api]);
+
+  // Handle editing an artifact manually
+  const handleEditArtifact = useCallback(async (artifactId: string, content: string) => {
+    console.log('[handleEditArtifact] Called with artifactId:', artifactId);
+    console.log('[handleEditArtifact] Content length:', content.length);
+
+    if (!state.session.sessionId) return;
+
+    const artifact = state.artifacts.artifacts.find(a => a.id === artifactId);
+    if (!artifact) {
+      setToast({ message: 'Artifact not found', type: 'error' });
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
+
+    try {
+      console.log('[handleEditArtifact] Calling api.saveArtifact...');
+      await api.saveArtifact(state.session.sessionId, {
+        id: artifactId,
+        type: artifact.type,
+        title: artifact.title,
+        content,
+        language: artifact.language,
+        identifier: artifact.identifier,
+      });
+      console.log('[handleEditArtifact] API save successful');
+
+      // Update local state
+      console.log('[handleEditArtifact] Dispatching ARTIFACT_UPDATE with content length:', content.length);
+      dispatch({
+        type: 'ARTIFACT_UPDATE',
+        payload: {
+          id: artifactId,
+          updates: {
+            content,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+      console.log('[handleEditArtifact] Dispatch complete');
+      setToast({ message: 'Artifact saved', type: 'success' });
+    } catch (error) {
+      console.error('[EditArtifact] Failed:', error);
+      setToast({ message: 'Failed to save artifact', type: 'error' });
+      throw error; // Re-throw so the panel knows the save failed
+    }
+    setTimeout(() => setToast(null), 3000);
+  }, [state.session.sessionId, state.artifacts.artifacts, api]);
+
+  // Handle renaming an artifact
+  const handleRenameArtifact = useCallback(async (artifactId: string, newTitle: string) => {
+    if (!state.session.sessionId) return;
+
+    const artifact = state.artifacts.artifacts.find(a => a.id === artifactId);
+    if (!artifact) {
+      setToast({ message: 'Artifact not found', type: 'error' });
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
+
+    try {
+      await api.saveArtifact(state.session.sessionId, {
+        id: artifactId,
+        type: artifact.type,
+        title: newTitle,
+        content: artifact.content,
+        language: artifact.language,
+        identifier: artifact.identifier,
+      });
+
+      // Update local state
+      dispatch({
+        type: 'ARTIFACT_UPDATE',
+        payload: {
+          id: artifactId,
+          updates: {
+            title: newTitle,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+      setToast({ message: 'Artifact renamed', type: 'success' });
+    } catch (error) {
+      console.error('[RenameArtifact] Failed:', error);
+      setToast({ message: 'Failed to rename artifact', type: 'error' });
+      throw error;
+    }
+    setTimeout(() => setToast(null), 3000);
+  }, [state.session.sessionId, state.artifacts.artifacts, api]);
+
+  // Handle artifact click from message (when user clicks @artifact:id reference)
+  const handleArtifactClick = useCallback((artifactId: string) => {
+    const artifact = state.artifacts.artifacts.find(a => a.id === artifactId);
+    if (artifact) {
+      dispatch({ type: 'ARTIFACT_SELECT', payload: { artifact } });
+      dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: true } });
+    } else {
+      // Try partial match (in case reference is truncated)
+      const partialMatch = state.artifacts.artifacts.find(a => a.id.startsWith(artifactId));
+      if (partialMatch) {
+        dispatch({ type: 'ARTIFACT_SELECT', payload: { artifact: partialMatch } });
+        dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: true } });
+      } else {
+        setToast({ message: `Artifact "${artifactId}" not found`, type: 'error' });
+        setTimeout(() => setToast(null), 3000);
+      }
+    }
+  }, [state.artifacts.artifacts]);
+
+  // Handle converting a message to an artifact
+  const handleConvertToArtifact = useCallback(async (content: string, title?: string) => {
+    if (!state.session.sessionId) return;
+
+    const artifactId = `text_${Date.now()}`;
+    const newArtifact: Artifact = {
+      id: artifactId,
+      type: 'markdown',
+      title: title || 'Converted Message',
+      content,
+      status: 'ready',
+      createdAt: new Date().toISOString(),
+      identifier: `msg_${artifactId.slice(-8)}`,
+    };
+
+    // Save to database FIRST for persistence (so agent can reference it)
+    try {
+      console.log('[SaveArtifact] Saving artifact to DB:', artifactId);
+      await api.saveArtifact(state.session.sessionId, {
+        id: artifactId,
+        type: 'markdown',
+        title: title || 'Converted Message',
+        content,
+        identifier: `msg_${artifactId.slice(-8)}`,
+      });
+      console.log('[SaveArtifact] Artifact saved successfully:', artifactId);
+
+      // Only add to UI after successful save
+      dispatch({ type: 'ARTIFACT_ADD', payload: { artifact: newArtifact } });
+      dispatch({ type: 'ARTIFACT_SELECT', payload: { artifact: newArtifact } });
+      dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: true } });
+      setToast({ message: `Saved as artifact! ID: ${artifactId}`, type: 'success' });
+    } catch (error) {
+      console.error('[SaveArtifact] Failed to save artifact:', error);
+      setToast({ message: 'Failed to save artifact - try again', type: 'error' });
+    }
+    setTimeout(() => setToast(null), 3000);
+  }, [state.session.sessionId, api]);
+
   // Handle button clicks
   const handleButtonClick = useCallback(async (buttonId: string, buttonValue: string, buttonLabel: string) => {
     if (!state.session.sessionId) return;
@@ -254,8 +699,9 @@ export function IdeationSession({
     dispatch({ type: 'BUTTON_CLICK', payload: { buttonId, buttonValue } });
 
     // Add user's selection as a message in the conversation (use label for display)
+    const tempUserMessageId = generateMessageId();
     const userMessage = {
-      id: generateMessageId(),
+      id: tempUserMessageId,
       sessionId: state.session.sessionId,
       role: 'user' as const,
       content: buttonLabel,
@@ -266,7 +712,15 @@ export function IdeationSession({
     dispatch({ type: 'MESSAGE_RECEIVED', payload: { message: userMessage } });
 
     try {
-      const response = await api.clickButton(state.session.sessionId, buttonId, buttonValue);
+      const response = await api.clickButton(state.session.sessionId, buttonId, buttonValue, buttonLabel);
+
+      // Update user message ID with the real ID from the backend
+      if (response.userMessageId) {
+        dispatch({
+          type: 'MESSAGE_UPDATE_ID',
+          payload: { oldId: tempUserMessageId, newId: response.userMessageId },
+        });
+      }
 
       dispatch({
         type: 'MESSAGE_RECEIVED',
@@ -300,6 +754,13 @@ export function IdeationSession({
           payload: { usage: response.tokenUsage },
         });
       }
+
+      // Handle async web search if queries were returned
+      console.log('[Button Response] webSearchQueries:', response.webSearchQueries);
+      if (response.webSearchQueries && response.webSearchQueries.length > 0) {
+        console.log('[Button Response] Triggering web search with queries:', response.webSearchQueries);
+        executeAsyncWebSearch(response.webSearchQueries);
+      }
     } catch (error) {
       dispatch({
         type: 'MESSAGE_ERROR',
@@ -308,7 +769,7 @@ export function IdeationSession({
     } finally {
       buttonClickInProgressRef.current = false;
     }
-  }, [state.session.sessionId, api]);
+  }, [state.session.sessionId, api, executeAsyncWebSearch]);
 
   // Handle form submissions
   const handleFormSubmit = useCallback(async (formId: string, answers: Record<string, unknown>) => {
@@ -337,6 +798,98 @@ export function IdeationSession({
       dispatch({
         type: 'MESSAGE_ERROR',
         payload: { error: error instanceof Error ? error.message : 'Failed to submit form' },
+      });
+    }
+  }, [state.session.sessionId, api]);
+
+  // Handle message editing
+  const handleEditMessage = useCallback(async (messageId: string, newContent: string) => {
+    if (!state.session.sessionId) return;
+
+    // Truncate messages from the edited message onwards in local state
+    dispatch({ type: 'MESSAGES_TRUNCATE', payload: { messageId } });
+    dispatch({ type: 'MESSAGE_SEND', payload: { content: newContent } });
+
+    // Add the new user message to conversation with temporary ID
+    const tempUserMessageId = generateMessageId();
+    const userMessage = {
+      id: tempUserMessageId,
+      sessionId: state.session.sessionId,
+      role: 'user' as const,
+      content: newContent,
+      buttons: null,
+      form: null,
+      createdAt: new Date().toISOString(),
+    };
+    dispatch({ type: 'MESSAGE_RECEIVED', payload: { message: userMessage } });
+
+    // Start streaming
+    dispatch({ type: 'MESSAGE_STREAM_START' });
+
+    try {
+      const response = await api.editMessage(state.session.sessionId, messageId, newContent);
+
+      // Update user message ID with the real ID from the backend
+      if (response.userMessageId) {
+        dispatch({
+          type: 'MESSAGE_UPDATE_ID',
+          payload: { oldId: tempUserMessageId, newId: response.userMessageId },
+        });
+      }
+
+      // Update with response
+      dispatch({
+        type: 'MESSAGE_STREAM_END',
+        payload: {
+          message: {
+            id: response.messageId || generateMessageId(),
+            sessionId: state.session.sessionId,
+            role: 'assistant',
+            content: response.reply,
+            buttons: response.buttons || null,
+            form: response.form || null,
+            createdAt: new Date().toISOString(),
+          },
+        },
+      });
+
+      // Update candidate if present
+      if (response.candidateUpdate) {
+        dispatch({
+          type: 'CANDIDATE_UPDATE',
+          payload: { candidate: response.candidateUpdate },
+        });
+      }
+
+      // Update confidence/viability
+      if (response.confidence !== undefined) {
+        dispatch({
+          type: 'CONFIDENCE_UPDATE',
+          payload: { confidence: response.confidence },
+        });
+      }
+      if (response.viability !== undefined) {
+        dispatch({
+          type: 'VIABILITY_UPDATE',
+          payload: {
+            viability: response.viability,
+            risks: response.risks || [],
+          },
+        });
+      }
+
+      // Update token usage
+      if (response.tokenUsage) {
+        dispatch({
+          type: 'TOKEN_UPDATE',
+          payload: { usage: response.tokenUsage },
+        });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to edit message';
+      dispatch({
+        type: 'MESSAGE_ERROR',
+        payload: { error: errorMessage },
       });
     }
   }, [state.session.sessionId, api]);
@@ -380,20 +933,6 @@ export function IdeationSession({
       setTimeout(() => setToast(null), 4000);
     }
   }, [state.session.sessionId, api]);
-
-  // Handle abandon
-  const handleAbandon = useCallback(async () => {
-    if (!state.session.sessionId) return;
-
-    try {
-      await api.abandonSession(state.session.sessionId);
-      dispatch({ type: 'SESSION_ABANDON' });
-      onExit();
-    } catch (error) {
-      console.error('Failed to abandon session:', error);
-      onExit();
-    }
-  }, [state.session.sessionId, api, onExit]);
 
   // Handle discard candidate
   const handleDiscard = useCallback(() => {
@@ -442,31 +981,53 @@ export function IdeationSession({
       <SessionHeader
         sessionId={state.session.sessionId || ''}
         tokenUsage={state.tokens.usage}
-        onAbandon={handleAbandon}
         onMinimize={onExit}
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <ConversationPanel
-          messages={state.conversation.messages}
-          isLoading={state.conversation.isLoading}
-          error={state.conversation.error}
-          onSendMessage={handleSendMessage}
-          onButtonClick={handleButtonClick}
-          onFormSubmit={handleFormSubmit}
-        />
+        {/* Conversation Panel - Main content */}
+        <div className={`flex-1 flex overflow-hidden ${state.artifacts.isPanelOpen ? 'min-w-0' : ''}`}>
+          <ConversationPanel
+            messages={state.conversation.messages}
+            isLoading={state.conversation.isLoading}
+            error={state.conversation.error}
+            onSendMessage={handleSendMessage}
+            onStopGeneration={handleStopGeneration}
+            onButtonClick={handleButtonClick}
+            onFormSubmit={handleFormSubmit}
+            onEditMessage={handleEditMessage}
+            onArtifactClick={handleArtifactClick}
+            onConvertToArtifact={handleConvertToArtifact}
+          />
 
-        <IdeaCandidatePanel
-          candidate={state.candidate.candidate}
-          confidence={state.candidate.confidence}
-          viability={state.candidate.viability}
-          risks={state.candidate.risks}
-          onCapture={handleCapture}
-          onSave={handleSave}
-          onDiscard={handleDiscard}
-          onContinue={handleContinue}
-          showIntervention={state.candidate.showIntervention}
-        />
+          <IdeaCandidatePanel
+            candidate={state.candidate.candidate}
+            confidence={state.candidate.confidence}
+            viability={state.candidate.viability}
+            risks={state.candidate.risks}
+            onCapture={handleCapture}
+            onSave={handleSave}
+            onDiscard={handleDiscard}
+            onContinue={handleContinue}
+            showIntervention={state.candidate.showIntervention}
+          />
+        </div>
+
+        {/* Artifact Panel - Right side (always render when artifacts exist, can be minimized) */}
+        {state.artifacts.artifacts.length > 0 && (
+          <ArtifactPanel
+            artifacts={state.artifacts.artifacts}
+            currentArtifact={state.artifacts.currentArtifact}
+            onSelectArtifact={handleSelectArtifact}
+            onCloseArtifact={handleCloseArtifact}
+            onExpandArtifact={handleExpandArtifact}
+            onDeleteArtifact={handleDeleteArtifact}
+            onEditArtifact={handleEditArtifact}
+            onRenameArtifact={handleRenameArtifact}
+            isLoading={state.artifacts.isLoading}
+            isMinimized={!state.artifacts.isPanelOpen}
+          />
+        )}
       </div>
 
       {/* Toast Notification */}

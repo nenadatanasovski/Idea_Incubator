@@ -1,5 +1,5 @@
 /**
- * WebSocket server for real-time debate streaming
+ * WebSocket server for real-time debate streaming and ideation updates
  */
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
@@ -21,6 +21,26 @@ export type DebateEventType =
   | 'synthesis:complete'
   | 'error';
 
+// Event types for ideation sessions
+export type IdeationEventType =
+  | 'artifact:updating'    // Artifact edit in progress
+  | 'artifact:updated'     // Artifact edit completed
+  | 'artifact:error';      // Artifact edit failed
+
+export interface IdeationEvent {
+  type: IdeationEventType;
+  timestamp: string;
+  sessionId: string;
+  data: {
+    artifactId?: string;
+    content?: string;
+    title?: string;
+    summary?: string;
+    error?: string;
+    [key: string]: unknown;
+  };
+}
+
 export interface DebateEvent {
   type: DebateEventType;
   timestamp: string;
@@ -40,8 +60,11 @@ export interface DebateEvent {
   };
 }
 
-// Track connected clients by idea slug
+// Track connected clients by idea slug (for debates)
 const debateRooms = new Map<string, Set<WebSocket>>();
+
+// Track connected clients by session ID (for ideation)
+const sessionRooms = new Map<string, Set<WebSocket>>();
 
 // WebSocket server instance
 let wss: WebSocketServer | null = null;
@@ -55,29 +78,48 @@ export function initWebSocket(server: Server): WebSocketServer {
   wss.on('connection', (ws, req) => {
     const url = new URL(req.url || '', `http://${req.headers.host}`);
     const ideaSlug = url.searchParams.get('idea');
+    const sessionId = url.searchParams.get('session');
 
-    if (!ideaSlug) {
-      ws.close(4000, 'Missing idea parameter');
+    // Must have either idea or session parameter
+    if (!ideaSlug && !sessionId) {
+      ws.close(4000, 'Missing idea or session parameter');
       return;
     }
 
-    // Join the debate room for this idea
-    if (!debateRooms.has(ideaSlug)) {
-      debateRooms.set(ideaSlug, new Set());
+    // Join the appropriate room
+    if (sessionId) {
+      // Ideation session room
+      if (!sessionRooms.has(sessionId)) {
+        sessionRooms.set(sessionId, new Set());
+      }
+      sessionRooms.get(sessionId)!.add(ws);
+      console.log(`Client joined ideation session: ${sessionId}`);
+
+      ws.send(
+        JSON.stringify({
+          type: 'connected',
+          timestamp: new Date().toISOString(),
+          sessionId,
+          data: { message: 'Connected to ideation session' },
+        })
+      );
+    } else if (ideaSlug) {
+      // Debate room
+      if (!debateRooms.has(ideaSlug)) {
+        debateRooms.set(ideaSlug, new Set());
+      }
+      debateRooms.get(ideaSlug)!.add(ws);
+      console.log(`Client joined debate room: ${ideaSlug}`);
+
+      ws.send(
+        JSON.stringify({
+          type: 'connected',
+          timestamp: new Date().toISOString(),
+          ideaSlug,
+          data: { message: 'Connected to debate stream' },
+        })
+      );
     }
-    debateRooms.get(ideaSlug)!.add(ws);
-
-    console.log(`Client joined debate room: ${ideaSlug}`);
-
-    // Send welcome message
-    ws.send(
-      JSON.stringify({
-        type: 'connected',
-        timestamp: new Date().toISOString(),
-        ideaSlug,
-        data: { message: 'Connected to debate stream' },
-      })
-    );
 
     // Handle client messages (e.g., ping/pong)
     ws.on('message', (message) => {
@@ -93,18 +135,29 @@ export function initWebSocket(server: Server): WebSocketServer {
 
     // Clean up on disconnect
     ws.on('close', () => {
-      const room = debateRooms.get(ideaSlug);
-      if (room) {
-        room.delete(ws);
-        if (room.size === 0) {
-          debateRooms.delete(ideaSlug);
+      if (sessionId) {
+        const room = sessionRooms.get(sessionId);
+        if (room) {
+          room.delete(ws);
+          if (room.size === 0) {
+            sessionRooms.delete(sessionId);
+          }
         }
+        console.log(`Client left ideation session: ${sessionId}`);
+      } else if (ideaSlug) {
+        const room = debateRooms.get(ideaSlug);
+        if (room) {
+          room.delete(ws);
+          if (room.size === 0) {
+            debateRooms.delete(ideaSlug);
+          }
+        }
+        console.log(`Client left debate room: ${ideaSlug}`);
       }
-      console.log(`Client left debate room: ${ideaSlug}`);
     });
 
     ws.on('error', (err) => {
-      console.error(`WebSocket error for ${ideaSlug}:`, err);
+      console.error(`WebSocket error:`, err);
     });
   });
 
@@ -171,6 +224,42 @@ export function closeWebSocket(): void {
     debateRooms.clear();
     wss = null;
   }
+}
+
+/**
+ * Broadcast an event to all clients in an ideation session
+ */
+export function broadcastSessionEvent(event: IdeationEvent): void {
+  const room = sessionRooms.get(event.sessionId);
+  if (!room || room.size === 0) {
+    console.log(`[WS] No clients in session ${event.sessionId} to receive event`);
+    return;
+  }
+
+  const message = JSON.stringify(event);
+  console.log(`[WS] Broadcasting ${event.type} to ${room.size} clients in session ${event.sessionId}`);
+
+  for (const client of room) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
+}
+
+/**
+ * Helper to emit an ideation session event
+ */
+export function emitSessionEvent(
+  type: IdeationEventType,
+  sessionId: string,
+  data: IdeationEvent['data'] = {}
+): void {
+  broadcastSessionEvent({
+    type,
+    timestamp: new Date().toISOString(),
+    sessionId,
+    data,
+  });
 }
 
 export { wss };

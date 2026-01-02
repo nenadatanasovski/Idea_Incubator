@@ -44,6 +44,12 @@ export const initialState: IdeationStore = {
     handoffPending: false,
     handoffCount: 0,
   },
+  artifacts: {
+    artifacts: [],
+    currentArtifact: null,
+    isLoading: false,
+    isPanelOpen: false,
+  },
 };
 
 export function ideationReducer(
@@ -290,6 +296,162 @@ export function ideationReducer(
           ...state.tokens,
           handoffPending: false,
           handoffCount: state.tokens.handoffCount + 1,
+        },
+      };
+
+    case 'MESSAGES_TRUNCATE': {
+      // Find the index of the message to truncate from
+      const messageIndex = state.conversation.messages.findIndex(
+        m => m.id === action.payload.messageId
+      );
+      if (messageIndex === -1) {
+        return state;
+      }
+      // Keep all messages before the specified message
+      return {
+        ...state,
+        conversation: {
+          ...state.conversation,
+          messages: state.conversation.messages.slice(0, messageIndex),
+        },
+      };
+    }
+
+    case 'MESSAGE_UPDATE_ID': {
+      // Update a message's ID (used to sync frontend IDs with backend IDs)
+      const updatedMessages = state.conversation.messages.map(m =>
+        m.id === action.payload.oldId ? { ...m, id: action.payload.newId } : m
+      );
+      return {
+        ...state,
+        conversation: {
+          ...state.conversation,
+          messages: updatedMessages,
+        },
+      };
+    }
+
+    case 'MESSAGE_CONTENT_UPDATE': {
+      // Update a message's content (used for async artifact edit completion)
+      const messagesWithUpdate = state.conversation.messages.map(m =>
+        m.id === action.payload.messageId ? { ...m, content: action.payload.content } : m
+      );
+      return {
+        ...state,
+        conversation: {
+          ...state.conversation,
+          messages: messagesWithUpdate,
+        },
+      };
+    }
+
+    // =========================================================================
+    // Artifact Actions
+    // =========================================================================
+    case 'ARTIFACT_ADD':
+      return {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          artifacts: [...state.artifacts.artifacts, action.payload.artifact],
+          // Auto-open panel and select the new artifact
+          isPanelOpen: true,
+          currentArtifact: action.payload.artifact,
+        },
+      };
+
+    case 'ARTIFACT_UPDATE': {
+      const updatedArtifacts = state.artifacts.artifacts.map(a =>
+        a.id === action.payload.id ? { ...a, ...action.payload.updates } : a
+      );
+      // Also update currentArtifact if it's the one being updated
+      const updatedCurrent =
+        state.artifacts.currentArtifact?.id === action.payload.id
+          ? { ...state.artifacts.currentArtifact, ...action.payload.updates }
+          : state.artifacts.currentArtifact;
+      return {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          artifacts: updatedArtifacts,
+          currentArtifact: updatedCurrent,
+        },
+      };
+    }
+
+    case 'ARTIFACT_REMOVE':
+      return {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          artifacts: state.artifacts.artifacts.filter(a => a.id !== action.payload.id),
+          currentArtifact:
+            state.artifacts.currentArtifact?.id === action.payload.id
+              ? null
+              : state.artifacts.currentArtifact,
+        },
+      };
+
+    case 'ARTIFACT_SELECT':
+      return {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          currentArtifact: action.payload.artifact,
+          isPanelOpen: action.payload.artifact !== null,
+        },
+      };
+
+    case 'ARTIFACT_LOADING_START':
+      return {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          isLoading: true,
+          artifacts: state.artifacts.artifacts.map(a =>
+            a.id === action.payload.id ? { ...a, status: 'loading' as const } : a
+          ),
+        },
+      };
+
+    case 'ARTIFACT_LOADING_END': {
+      const newStatus = action.payload.error ? 'error' : 'ready';
+      const finalArtifacts = state.artifacts.artifacts.map(a =>
+        a.id === action.payload.id
+          ? {
+              ...a,
+              status: newStatus as 'error' | 'ready',
+              error: action.payload.error,
+            }
+          : a
+      );
+      return {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          isLoading: false,
+          artifacts: finalArtifacts,
+        },
+      };
+    }
+
+    case 'ARTIFACT_PANEL_TOGGLE':
+      return {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          isPanelOpen: action.payload.isOpen,
+        },
+      };
+
+    case 'ARTIFACTS_CLEAR':
+      return {
+        ...state,
+        artifacts: {
+          artifacts: [],
+          currentArtifact: null,
+          isLoading: false,
+          isPanelOpen: false,
         },
       };
 

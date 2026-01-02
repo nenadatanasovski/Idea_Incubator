@@ -3,8 +3,8 @@
 // Lists previous ideation sessions for resume/delete
 // =============================================================================
 
-import { useState, useEffect } from 'react';
-import { MessageSquare, Trash2, Clock, Lightbulb, Loader2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { MessageSquare, Trash2, Clock, Lightbulb, Loader2, Search } from 'lucide-react';
 import {
   getIdeationSessions,
   deleteIdeationSession,
@@ -22,6 +22,16 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return sessions;
+    const query = searchQuery.toLowerCase();
+    return sessions.filter(session =>
+      (session.candidateTitle?.toLowerCase().includes(query)) ||
+      (session.lastMessagePreview?.toLowerCase().includes(query))
+    );
+  }, [sessions, searchQuery]);
 
   useEffect(() => {
     loadSessions();
@@ -31,7 +41,7 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
     try {
       setLoading(true);
       setError(null);
-      const data = await getIdeationSessions(profileId);
+      const data = await getIdeationSessions(profileId, { includeAll: true });
       setSessions(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load sessions');
@@ -125,9 +135,32 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
   }
 
   return (
-    <div className="max-h-80 overflow-y-auto">
-      <div className="space-y-2 p-2">
-        {sessions.map(session => (
+    <div>
+      {/* Search bar */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search sessions..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                     placeholder-gray-400 text-gray-900"
+        />
+      </div>
+
+      {/* Sessions list */}
+      <div className="max-h-[640px] overflow-y-auto">
+        <div className="space-y-2 p-2">
+          {filteredSessions.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="mb-2">No sessions found</p>
+              <p className="text-sm">Try a different search term.</p>
+            </div>
+          ) : (
+          filteredSessions.map(session => (
           <div
             key={session.id}
             role="button"
@@ -181,7 +214,9 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
               </button>
             </div>
           </div>
-        ))}
+        ))
+          )}
+        </div>
       </div>
     </div>
   );

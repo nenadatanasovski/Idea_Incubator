@@ -10,6 +10,7 @@ import { spawn } from 'child_process';
 export interface WebSearchResult {
   query: string;
   results: SearchResultItem[];
+  synthesis: string; // Full Claude synthesis with key findings, concerns, opportunities
   timestamp: string;
   error?: string;
 }
@@ -43,12 +44,14 @@ export async function performWebSearch(
     return {
       query,
       results: parseSearchResults(result),
+      synthesis: result, // Keep the full Claude synthesis
       timestamp,
     };
   } catch (error) {
     return {
       query,
       results: [],
+      synthesis: '',
       timestamp,
       error: (error as Error).message,
     };

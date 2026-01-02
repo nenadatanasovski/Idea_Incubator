@@ -9,6 +9,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
+        timeout: 400000, // 400 seconds to allow for 360s Claude CLI timeout
       },
       '/ws': {
         target: 'http://localhost:3001',

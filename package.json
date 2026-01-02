@@ -19,7 +19,7 @@
     "spike:sdk": "tsx spikes/spike-0.1-agent-sdk.ts",
     "spike:parallel": "tsx spikes/spike-0.2-parallel.ts",
     "spike:sqlite": "tsx spikes/spike-0.3-sqlite.ts",
-    "server": "tsx server/index.ts",
+    "server": "tsx watch server/index.ts",
     "frontend": "cd frontend && npm run dev",
     "frontend:build": "cd frontend && npm run build",
     "frontend:install": "cd frontend && npm install",

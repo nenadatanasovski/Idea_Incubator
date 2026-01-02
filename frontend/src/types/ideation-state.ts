@@ -4,10 +4,10 @@
 // =============================================================================
 
 import type { IdeaCandidate, ViabilityRisk } from './index';
-import type { TokenUsageInfo, EntryMode, IdeationMessage } from './ideation';
+import type { TokenUsageInfo, EntryMode, IdeationMessage, Artifact } from './ideation';
 
 // Re-export for convenience
-export type { TokenUsageInfo, EntryMode, IdeationMessage };
+export type { TokenUsageInfo, EntryMode, IdeationMessage, Artifact };
 
 // -----------------------------------------------------------------------------
 // Session State
@@ -44,6 +44,13 @@ export interface TokenState {
   handoffCount: number;
 }
 
+export interface ArtifactState {
+  artifacts: Artifact[];
+  currentArtifact: Artifact | null;
+  isLoading: boolean;
+  isPanelOpen: boolean;
+}
+
 // -----------------------------------------------------------------------------
 // Combined Store State
 // -----------------------------------------------------------------------------
@@ -53,6 +60,7 @@ export interface IdeationStore {
   conversation: ConversationState;
   candidate: CandidateState;
   tokens: TokenState;
+  artifacts: ArtifactState;
 }
 
 // -----------------------------------------------------------------------------
@@ -81,4 +89,16 @@ export type IdeationAction =
   | { type: 'INTERVENTION_DISMISS' }
   | { type: 'TOKEN_UPDATE'; payload: { usage: TokenUsageInfo } }
   | { type: 'HANDOFF_PENDING' }
-  | { type: 'HANDOFF_COMPLETE' };
+  | { type: 'HANDOFF_COMPLETE' }
+  | { type: 'MESSAGES_TRUNCATE'; payload: { messageId: string } }
+  | { type: 'MESSAGE_UPDATE_ID'; payload: { oldId: string; newId: string } }
+  | { type: 'MESSAGE_CONTENT_UPDATE'; payload: { messageId: string; content: string } }
+  // Artifact actions
+  | { type: 'ARTIFACT_ADD'; payload: { artifact: Artifact } }
+  | { type: 'ARTIFACT_UPDATE'; payload: { id: string; updates: Partial<Artifact> } }
+  | { type: 'ARTIFACT_REMOVE'; payload: { id: string } }
+  | { type: 'ARTIFACT_SELECT'; payload: { artifact: Artifact | null } }
+  | { type: 'ARTIFACT_LOADING_START'; payload: { id: string } }
+  | { type: 'ARTIFACT_LOADING_END'; payload: { id: string; error?: string } }
+  | { type: 'ARTIFACT_PANEL_TOGGLE'; payload: { isOpen: boolean } }
+  | { type: 'ARTIFACTS_CLEAR' };

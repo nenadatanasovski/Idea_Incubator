@@ -4,7 +4,7 @@
 // =============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { Sparkles, AlertCircle, User, Home } from 'lucide-react';
 import { IdeationEntryModal } from '../components/ideation/IdeationEntryModal';
 import { IdeationSession } from '../components/ideation/IdeationSession';
@@ -18,7 +18,10 @@ interface UserProfile {
 
 export default function IdeationPageWrapper() {
   const navigate = useNavigate();
-  const { sessionId: urlSessionId } = useParams<{ sessionId?: string }>();
+  const { sessionId: routeSessionId } = useParams<{ sessionId?: string }>();
+  const [searchParams] = useSearchParams();
+  // Support both route params (/ideate/:sessionId) and query params (/ideate?sessionId=xxx)
+  const urlSessionId = routeSessionId || searchParams.get('sessionId') || undefined;
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [entryMode, setEntryMode] = useState<EntryMode>(null);
@@ -82,14 +85,20 @@ export default function IdeationPageWrapper() {
     setShowEntryModal(false);
     setSessionStarted(true);
     setResumeSessionId(null);
-  }, []);
+    // Clear sessionId from URL when starting a new session
+    if (searchParams.has('sessionId')) {
+      navigate('/ideate', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const handleResumeSession = useCallback((sessionId: string) => {
     setResumeSessionId(sessionId);
     setShowEntryModal(false);
     setSessionStarted(true);
     setEntryMode(null);
-  }, []);
+    // Update URL to reflect resumed session
+    navigate(`/ideate?sessionId=${sessionId}`, { replace: true });
+  }, [navigate]);
 
   const handleComplete = useCallback((ideaId: string) => {
     // Navigate to the new idea
@@ -100,7 +109,11 @@ export default function IdeationPageWrapper() {
     setSessionStarted(false);
     setEntryMode(null);
     setResumeSessionId(null);
-  }, []);
+    // Clear sessionId from URL when exiting
+    if (searchParams.has('sessionId')) {
+      navigate('/ideate', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   if (loading) {
     return (

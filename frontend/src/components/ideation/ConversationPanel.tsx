@@ -14,8 +14,12 @@ export function ConversationPanel({
   isLoading,
   error,
   onSendMessage,
+  onStopGeneration,
   onButtonClick,
   onFormSubmit,
+  onEditMessage,
+  onArtifactClick,
+  onConvertToArtifact,
   onRetry,
 }: ConversationPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -32,6 +36,9 @@ export function ConversationPanel({
           messages={messages}
           onButtonClick={onButtonClick}
           onFormSubmit={onFormSubmit}
+          onEditMessage={onEditMessage}
+          onArtifactClick={onArtifactClick}
+          onConvertToArtifact={onConvertToArtifact}
           isLoading={isLoading}
         />
         <TypingIndicator isVisible={isLoading} />
@@ -58,7 +65,9 @@ export function ConversationPanel({
 
       <InputArea
         onSend={onSendMessage}
+        onStop={onStopGeneration}
         disabled={isLoading}
+        isLoading={isLoading}
         placeholder="Type your message..."
       />
     </div>

@@ -171,6 +171,23 @@ export class MessageStore {
   }
 
   /**
+   * Update message content (for async artifact edit completion).
+   */
+  async update(messageId: string, updates: { content?: string }): Promise<void> {
+    const db = await getDb();
+
+    if (updates.content) {
+      db.run(`
+        UPDATE ideation_messages
+        SET content = ?
+        WHERE id = ?
+      `, [updates.content, messageId]);
+
+      await saveDb();
+    }
+  }
+
+  /**
    * Get total token count for a session.
    */
   async getTotalTokens(sessionId: string): Promise<number> {
@@ -234,6 +251,44 @@ export class MessageStore {
     return resultsToObjects(results[0]).map(row =>
       mapMessageRowToMessage(row as IdeationMessageRow)
     );
+  }
+
+  /**
+   * Delete a message and all messages after it (for message editing).
+   * Returns the number of deleted messages.
+   */
+  async deleteFromMessage(sessionId: string, messageId: string): Promise<number> {
+    const db = await getDb();
+
+    // Get the created_at of the reference message
+    const refResults = db.exec(`
+      SELECT created_at FROM ideation_messages WHERE id = ?
+    `, [messageId]);
+
+    if (refResults.length === 0 || refResults[0].values.length === 0) {
+      return 0;
+    }
+
+    const refCreatedAt = refResults[0].values[0][0] as string;
+
+    // Count messages to delete (including the reference message)
+    const countResults = db.exec(`
+      SELECT COUNT(*) as count
+      FROM ideation_messages
+      WHERE session_id = ? AND created_at >= ?
+    `, [sessionId, refCreatedAt]);
+
+    const deleteCount = countResults.length > 0 ? Number(countResults[0].values[0][0]) || 0 : 0;
+
+    // Delete the messages (including the reference message and all after)
+    db.run(`
+      DELETE FROM ideation_messages
+      WHERE session_id = ? AND created_at >= ?
+    `, [sessionId, refCreatedAt]);
+
+    await saveDb();
+
+    return deleteCount;
   }
 
   /**

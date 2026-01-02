@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { getOne, query, saveDb } from '../../database/db.js';
@@ -11,8 +11,56 @@ import { candidateManager } from '../../agents/ideation/candidate-manager.js';
 import { createSSEStream, StreamingResponseHandler } from '../../agents/ideation/streaming.js';
 import { client as anthropicClient } from '../../utils/anthropic-client.js';
 import { buildSystemPrompt } from '../../agents/ideation/system-prompt.js';
+import { performWebSearch, SearchPurpose } from '../../agents/ideation/web-search-service.js';
+import { artifactStore } from '../../agents/ideation/artifact-store.js';
+import { editArtifact, detectArtifactEditRequest } from '../../agents/ideation/artifact-editor.js';
+import { emitSessionEvent } from '../websocket.js';
 
 export const ideationRouter = Router();
+
+// ============================================================================
+// REQUEST TIMEOUT MIDDLEWARE
+// ============================================================================
+// Prevents browser timeout by returning an error before the default 2-minute
+// browser fetch timeout. Also configures response for long-running requests.
+
+const REQUEST_TIMEOUT_MS = 400000; // 400 seconds - allows for 360s Claude CLI timeout
+
+const timeoutMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  // Set server timeout higher than our middleware timeout
+  req.setTimeout(REQUEST_TIMEOUT_MS + 30000);
+  res.setTimeout(REQUEST_TIMEOUT_MS + 30000);
+
+  // Track if response has been sent
+  let responded = false;
+
+  const timeout = setTimeout(() => {
+    if (!responded && !res.headersSent) {
+      responded = true;
+      console.error(`[Timeout] Request to ${req.path} timed out after ${REQUEST_TIMEOUT_MS}ms`);
+      res.status(504).json({
+        error: 'Request timed out',
+        message: 'The request took too long to process. Please try again with a simpler request.',
+      });
+    }
+  }, REQUEST_TIMEOUT_MS);
+
+  // Clear timeout when response finishes
+  res.on('finish', () => {
+    responded = true;
+    clearTimeout(timeout);
+  });
+
+  res.on('close', () => {
+    responded = true;
+    clearTimeout(timeout);
+  });
+
+  next();
+};
+
+// Apply timeout to all ideation routes
+ideationRouter.use(timeoutMiddleware);
 
 // ============================================================================
 // REQUEST SCHEMAS
@@ -31,6 +79,7 @@ const ButtonClickSchema = z.object({
   sessionId: z.string().min(1, 'sessionId is required'),
   buttonId: z.string().min(1, 'buttonId is required'),
   buttonValue: z.string(),
+  buttonLabel: z.string().optional(), // Display label for the button
 });
 
 const CaptureIdeaSchema = z.object({
@@ -52,6 +101,18 @@ const SaveForLaterSchema = z.object({
 const DiscardAndRestartSchema = z.object({
   sessionId: z.string().min(1, 'sessionId is required'),
   reason: z.string().optional(),
+});
+
+const EditMessageSchema = z.object({
+  sessionId: z.string().min(1, 'sessionId is required'),
+  messageId: z.string().min(1, 'messageId is required'),
+  newContent: z.string().min(1, 'newContent is required'),
+});
+
+const WebSearchSchema = z.object({
+  sessionId: z.string().min(1, 'sessionId is required'),
+  queries: z.array(z.string()).min(1, 'At least one query is required'),
+  context: z.string().optional(),
 });
 
 // ============================================================================
@@ -197,12 +258,18 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     const { sessionId, message } = parseResult.data;
 
     // Load session
-    const session = await sessionManager.load(sessionId);
+    let session = await sessionManager.load(sessionId);
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    if (session.status !== 'active') {
+    // Reactivate abandoned sessions when user sends a message
+    if (session.status === 'abandoned') {
+      await sessionManager.update(sessionId, { status: 'active' });
+      session = await sessionManager.load(sessionId);
+    }
+
+    if (session!.status !== 'active') {
       return res.status(400).json({ error: 'Session is not active' });
     }
 
@@ -210,6 +277,106 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     const profile = await getProfileById(session.profileId);
     if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // Check for artifact edit request - delegate to sub-agent for async processing
+    console.log(`[Message] Checking for artifact edit in: "${message.substring(0, 100)}..."`);
+    const artifactEditRequest = detectArtifactEditRequest(message);
+    console.log(`[Message] detectArtifactEditRequest result:`, artifactEditRequest);
+    if (artifactEditRequest) {
+      console.log(`[Message] Detected artifact edit request for ${artifactEditRequest.artifactId}`);
+
+      // Verify artifact exists
+      const artifacts = await artifactStore.getBySession(sessionId);
+      const artifact = artifacts.find(a => a.id === artifactEditRequest.artifactId);
+
+      if (artifact) {
+        // Store user message
+        const userMsg = await messageStore.add({
+          sessionId,
+          role: 'user',
+          content: message,
+          tokenCount: Math.ceil(message.length / 4),
+        });
+
+        // Store immediate response
+        const assistantMsg = await messageStore.add({
+          sessionId,
+          role: 'assistant',
+          content: `Updating the artifact "${artifact.title}" now...`,
+          tokenCount: 20,
+        });
+
+        // Notify clients that edit is starting (include messageId for later update)
+        emitSessionEvent('artifact:updating', sessionId, {
+          artifactId: artifactEditRequest.artifactId,
+          messageId: assistantMsg.id,
+          summary: 'Updating artifact...',
+        });
+
+        // Trigger async edit (don't await)
+        editArtifact({
+          sessionId,
+          artifactId: artifactEditRequest.artifactId,
+          editRequest: artifactEditRequest.editRequest,
+        })
+          .then((result) => {
+            if (result.success) {
+              console.log(`[Message] Artifact edit completed for ${artifactEditRequest.artifactId}`);
+              emitSessionEvent('artifact:updated', sessionId, {
+                artifactId: result.artifactId,
+                messageId: assistantMsg.id,
+                content: result.content,
+                summary: result.summary,
+              });
+              // Update the message in the database too
+              messageStore.update(assistantMsg.id, {
+                content: `Updated artifact "${artifact.title}". ${result.summary || ''}`,
+              }).catch(err => console.error('[Message] Failed to update message:', err));
+            } else {
+              console.error(`[Message] Artifact edit failed: ${result.error}`);
+              emitSessionEvent('artifact:error', sessionId, {
+                artifactId: artifactEditRequest.artifactId,
+                messageId: assistantMsg.id,
+                error: result.error,
+              });
+            }
+          })
+          .catch((error) => {
+            console.error(`[Message] Artifact edit error:`, error);
+            emitSessionEvent('artifact:error', sessionId, {
+              artifactId: artifactEditRequest.artifactId,
+              messageId: assistantMsg.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+          });
+
+        // Return immediately
+        return res.json({
+          userMessageId: userMsg.id,
+          messageId: assistantMsg.id,
+          reply: `Updating the artifact "${artifact.title}" now...`,
+          buttons: null,
+          formFields: null,
+          candidateUpdate: null,
+          confidence: 0,
+          viability: 100,
+          risks: [],
+          intervention: null,
+          handoffOccurred: false,
+          tokenUsage: { total: 0, limit: 100000, percentUsed: 0, shouldHandoff: false },
+          webSearchQueries: null,
+          artifact: null,
+          artifactUpdate: null,
+          artifactEditPending: {
+            artifactId: artifactEditRequest.artifactId,
+            status: 'pending',
+          },
+        });
+      } else {
+        console.warn(`[Message] Artifact ${artifactEditRequest.artifactId} not found for edit`);
+        // Fall through to normal processing - agent will handle the error
+      }
     }
 
     // Process message through orchestrator
@@ -255,8 +422,315 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     const percentUsed = Math.min((totalTokens / TOKEN_LIMIT) * 100, 100);
     const shouldHandoff = percentUsed >= 80;
 
+    // Build artifact response if present
+    const artifactResponse = response.artifact ? {
+      id: `artifact_${Date.now()}`,
+      type: response.artifact.type,
+      title: response.artifact.title,
+      content: response.artifact.content,
+      language: response.artifact.language,
+      status: 'ready',
+      createdAt: new Date().toISOString(),
+    } : null;
+
+    // Handle artifact update if present
+    let artifactUpdateResponse = null;
+    console.log(`[Routes/Message] Checking artifactUpdate:`, response.artifactUpdate ? `id=${response.artifactUpdate.id}, hasContent=${!!response.artifactUpdate.content}` : 'null');
+    if (response.artifactUpdate) {
+      const { id, content, title } = response.artifactUpdate;
+      console.log(`[ArtifactUpdate] Processing artifact ${id}, content length: ${content?.length || 0}`);
+
+      // Validate content is provided
+      if (!content) {
+        console.error(`[ArtifactUpdate] ERROR: No content provided for artifact ${id}! Agent failed to include updated content.`);
+      } else {
+        // Get existing artifact to preserve type/title
+        const existingArtifacts = await artifactStore.getBySession(sessionId);
+        const existingArtifact = existingArtifacts.find(a => a.id === id);
+
+        if (existingArtifact) {
+          // Update the artifact in the database, preserving original type
+          await artifactStore.save({
+            id,
+            sessionId,
+            type: existingArtifact.type,
+            title: title || existingArtifact.title,
+            content,
+            status: 'ready',
+          });
+          artifactUpdateResponse = {
+            id,
+            content,
+            title: title || existingArtifact.title,
+            updatedAt: new Date().toISOString(),
+          };
+          console.log(`[ArtifactUpdate] Successfully updated artifact ${id} with ${content.length} chars`);
+        } else {
+          console.error(`[ArtifactUpdate] Artifact ${id} not found in session ${sessionId}`);
+        }
+      }
+    }
+
     // Return response
     res.json({
+      userMessageId: response.userMessageId,
+      messageId: response.assistantMessageId,
+      reply: response.reply,
+      buttons: response.buttons,
+      formFields: response.form,
+      candidateUpdate: candidateData ? {
+        id: candidateData.id,
+        title: candidateData.title,
+        summary: candidateData.summary,
+      } : null,
+      confidence: response.confidence,
+      viability: response.viability,
+      risks: response.risks || [],
+      intervention,
+      handoffOccurred: response.handoffOccurred,
+      tokenUsage: {
+        total: totalTokens,
+        limit: TOKEN_LIMIT,
+        percentUsed,
+        shouldHandoff,
+      },
+      webSearchQueries: response.webSearchQueries || null, // Queries to execute async
+      artifact: artifactResponse, // Visual artifact from agent
+      artifactUpdate: artifactUpdateResponse, // Updated artifact from agent
+    });
+
+  } catch (error) {
+    console.error('Error processing ideation message:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// POST /api/ideation/message/edit
+// ============================================================================
+// Edits a user message by deleting it and all subsequent messages,
+// then processing the new content as a fresh message
+
+ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
+  try {
+    // Validate request
+    const parseResult = EditMessageSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Validation error',
+        details: parseResult.error.issues,
+      });
+    }
+
+    const { sessionId, messageId, newContent } = parseResult.data;
+
+    // Load session
+    let session = await sessionManager.load(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Reactivate abandoned sessions when user edits a message
+    if (session.status === 'abandoned') {
+      await sessionManager.update(sessionId, { status: 'active' });
+      session = await sessionManager.load(sessionId);
+    }
+
+    if (session!.status !== 'active') {
+      return res.status(400).json({ error: 'Session is not active' });
+    }
+
+    // Verify the message exists and belongs to this session
+    const messageToEdit = await messageStore.get(messageId);
+    if (!messageToEdit) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    if (messageToEdit.sessionId !== sessionId) {
+      return res.status(400).json({ error: 'Message does not belong to this session' });
+    }
+    if (messageToEdit.role !== 'user') {
+      return res.status(400).json({ error: 'Only user messages can be edited' });
+    }
+
+    // Delete the message and all messages after it
+    const deletedCount = await messageStore.deleteFromMessage(sessionId, messageId);
+
+    // Reset memory state so it can be recalculated from remaining messages
+    await memoryManager.resetState(sessionId);
+
+    // Load profile
+    const profile = await getProfileById(session.profileId);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // Check for artifact edit request - delegate to sub-agent for async processing
+    console.log(`[MessageEdit] Checking for artifact edit in: "${newContent.substring(0, 100)}..."`);
+    const artifactEditRequest = detectArtifactEditRequest(newContent);
+    console.log(`[MessageEdit] detectArtifactEditRequest result:`, artifactEditRequest);
+    if (artifactEditRequest) {
+      console.log(`[MessageEdit] Detected artifact edit request for ${artifactEditRequest.artifactId}`);
+
+      // Verify artifact exists
+      const artifacts = await artifactStore.getBySession(sessionId);
+      const artifact = artifacts.find(a => a.id === artifactEditRequest.artifactId);
+
+      if (artifact) {
+        // Store user message
+        const userMsg = await messageStore.add({
+          sessionId,
+          role: 'user',
+          content: newContent,
+          tokenCount: Math.ceil(newContent.length / 4),
+        });
+
+        // Store immediate response
+        const assistantMsg = await messageStore.add({
+          sessionId,
+          role: 'assistant',
+          content: `Updating the artifact "${artifact.title}" now...`,
+          tokenCount: 20,
+        });
+
+        // Notify clients that edit is starting (include messageId for later update)
+        emitSessionEvent('artifact:updating', sessionId, {
+          artifactId: artifactEditRequest.artifactId,
+          messageId: assistantMsg.id,
+          summary: 'Updating artifact...',
+        });
+
+        // Trigger async edit (don't await)
+        editArtifact({
+          sessionId,
+          artifactId: artifactEditRequest.artifactId,
+          editRequest: artifactEditRequest.editRequest,
+        })
+          .then((result) => {
+            if (result.success) {
+              console.log(`[MessageEdit] Artifact edit completed for ${artifactEditRequest.artifactId}`);
+              emitSessionEvent('artifact:updated', sessionId, {
+                artifactId: result.artifactId,
+                messageId: assistantMsg.id,
+                content: result.content,
+                summary: result.summary,
+              });
+              // Update the message in the database too
+              messageStore.update(assistantMsg.id, {
+                content: `Updated artifact "${artifact.title}". ${result.summary || ''}`,
+              }).catch(err => console.error('[MessageEdit] Failed to update message:', err));
+            } else {
+              console.error(`[MessageEdit] Artifact edit failed: ${result.error}`);
+              emitSessionEvent('artifact:error', sessionId, {
+                artifactId: artifactEditRequest.artifactId,
+                messageId: assistantMsg.id,
+                error: result.error,
+              });
+            }
+          })
+          .catch((error) => {
+            console.error(`[MessageEdit] Artifact edit error:`, error);
+            emitSessionEvent('artifact:error', sessionId, {
+              artifactId: artifactEditRequest.artifactId,
+              messageId: assistantMsg.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+          });
+
+        // Return immediately
+        return res.json({
+          userMessageId: userMsg.id,
+          messageId: assistantMsg.id,
+          reply: `Updating the artifact "${artifact.title}" now...`,
+          buttons: null,
+          formFields: null,
+          candidateUpdate: null,
+          confidence: 0,
+          viability: 100,
+          risks: [],
+          intervention: null,
+          handoffOccurred: false,
+          tokenUsage: { total: 0, limit: 100000, percentUsed: 0, shouldHandoff: false },
+          webSearchQueries: null,
+          artifact: null,
+          artifactUpdate: null,
+          artifactEditPending: {
+            artifactId: artifactEditRequest.artifactId,
+            status: 'pending',
+          },
+        });
+      } else {
+        console.warn(`[MessageEdit] Artifact ${artifactEditRequest.artifactId} not found for edit`);
+        // Fall through to normal processing - agent will handle the error
+      }
+    }
+
+    // Process the new message through orchestrator (same as /message endpoint)
+    const response = await agentOrchestrator.processMessage(session, newContent, profile as Record<string, unknown>);
+
+    // Update session
+    const messages = await messageStore.getBySession(sessionId);
+    const totalTokens = await messageStore.getTotalTokens(sessionId);
+    await sessionManager.update(sessionId, {
+      messageCount: messages.length,
+      tokenCount: totalTokens,
+    });
+
+    // Get or update candidate - always update existing candidate with new scores after edit
+    let candidateData = null;
+    const existingCandidate = await candidateManager.getActiveForSession(sessionId);
+
+    if (existingCandidate) {
+      // Update existing candidate with recalculated scores
+      await candidateManager.update(existingCandidate.id, {
+        confidence: response.confidence,
+        viability: response.viability,
+        ...(response.candidateUpdate ? {
+          title: response.candidateUpdate.title,
+          summary: response.candidateUpdate.summary,
+        } : {}),
+      });
+      candidateData = {
+        ...existingCandidate,
+        confidence: response.confidence,
+        viability: response.viability,
+        ...(response.candidateUpdate || {}),
+      };
+    } else if (response.confidence >= 30 && response.candidateUpdate) {
+      // Create new candidate if confidence is high enough
+      const candidate = await candidateManager.getOrCreateForSession(sessionId, {
+        title: response.candidateUpdate.title,
+        summary: response.candidateUpdate.summary,
+        confidence: response.confidence,
+        viability: response.viability,
+      });
+      candidateData = candidate;
+    }
+
+    // Build intervention if needed
+    let intervention = null;
+    if (response.requiresIntervention) {
+      intervention = {
+        type: response.viability < 25 ? 'critical' : 'warning',
+        message: 'Viability concerns detected',
+        options: [
+          { id: 'address', label: 'Address challenges', value: 'Let\'s address these challenges' },
+          { id: 'pivot', label: 'Pivot direction', value: 'I want to explore a different direction' },
+          { id: 'continue', label: 'Continue anyway', value: 'I understand the risks, let\'s continue' },
+          { id: 'fresh', label: 'Start fresh', value: 'Let\'s start with a completely new idea' },
+        ],
+      };
+    }
+
+    // Calculate token usage for frontend display
+    const TOKEN_LIMIT = 100000;
+    const percentUsed = Math.min((totalTokens / TOKEN_LIMIT) * 100, 100);
+    const shouldHandoff = percentUsed >= 80;
+
+    // Return response
+    res.json({
+      deletedCount,
+      userMessageId: response.userMessageId,
+      messageId: response.assistantMessageId,
       reply: response.reply,
       buttons: response.buttons,
       formFields: response.form,
@@ -279,7 +753,7 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    console.error('Error processing ideation message:', error);
+    console.error('Error editing ideation message:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -300,15 +774,21 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
       });
     }
 
-    const { sessionId, buttonId, buttonValue } = parseResult.data;
+    const { sessionId, buttonId, buttonValue, buttonLabel } = parseResult.data;
 
     // Load session
-    const session = await sessionManager.load(sessionId);
+    let session = await sessionManager.load(sessionId);
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    if (session.status !== 'active') {
+    // Reactivate abandoned sessions when user clicks a button
+    if (session.status === 'abandoned') {
+      await sessionManager.update(sessionId, { status: 'active' });
+      session = await sessionManager.load(sessionId);
+    }
+
+    if (session!.status !== 'active') {
       return res.status(400).json({ error: 'Session is not active' });
     }
 
@@ -325,8 +805,12 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
+    // Use label for display, value for processing
+    const displayMessage = buttonLabel || buttonValue;
+
     // Process button value as message through orchestrator
-    const response = await agentOrchestrator.processMessage(session, buttonValue, profile as Record<string, unknown>);
+    // Pass displayMessage so it gets stored correctly, but the LLM sees the semantic value
+    const response = await agentOrchestrator.processMessage(session, buttonValue, profile as Record<string, unknown>, displayMessage);
 
     // Update session
     const updatedMessages = await messageStore.getBySession(sessionId);
@@ -355,6 +839,8 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
 
     // Return response
     res.json({
+      userMessageId: response.userMessageId,
+      messageId: response.assistantMessageId,
       reply: response.reply,
       buttons: response.buttons,
       formFields: response.form,
@@ -373,6 +859,7 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
         percentUsed,
         shouldHandoff,
       },
+      webSearchQueries: response.webSearchQueries || null, // Queries to execute async
     });
 
   } catch (error) {
@@ -400,16 +887,22 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
     const { sessionId, formId, responses } = parseResult.data;
 
     // Load session
-    const session = await sessionManager.load(sessionId);
+    let session = await sessionManager.load(sessionId);
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
+    // Reactivate abandoned sessions when user submits a form
+    if (session.status === 'abandoned') {
+      await sessionManager.update(sessionId, { status: 'active' });
+      session = await sessionManager.load(sessionId);
+    }
+
     // Check session state
-    if (session.status !== 'active') {
+    if (session!.status !== 'active') {
       return res.status(400).json({
         error: 'Session is not active',
-        status: session.status,
+        status: session!.status,
       });
     }
 
@@ -698,18 +1191,33 @@ ideationRouter.get('/session/:sessionId', async (req: Request, res: Response) =>
   try {
     const { sessionId } = req.params;
 
-    const session = await sessionManager.load(sessionId);
+    let session = await sessionManager.load(sessionId);
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
+    // Reactivate abandoned sessions when resumed
+    if (session.status === 'abandoned') {
+      await sessionManager.update(sessionId, { status: 'active' });
+      session = await sessionManager.load(sessionId);
+    }
+
     const messages = await messageStore.getBySession(sessionId);
     const candidate = await candidateManager.getActiveForSession(sessionId);
+    const artifacts = await artifactStore.getBySession(sessionId);
+
+    // Log artifact content lengths for debugging
+    console.log(`[GetSession] Returning ${artifacts.length} artifacts:`);
+    artifacts.forEach(a => {
+      const contentLen = typeof a.content === 'string' ? a.content.length : JSON.stringify(a.content).length;
+      console.log(`  - ${a.id}: "${a.title}" (${contentLen} chars)`);
+    });
 
     res.json({
       session,
       messages,
       candidate,
+      artifacts,
     });
 
   } catch (error) {
@@ -773,8 +1281,7 @@ ideationRouter.get('/sessions', async (req: Request, res: Response) => {
       `SELECT id, profile_id, status, entry_mode, message_count, token_count, started_at, completed_at
        FROM ideation_sessions
        WHERE profile_id = ?
-       ORDER BY started_at DESC
-       LIMIT 50`,
+       ORDER BY started_at DESC`,
       [profileId as string]
     );
 
@@ -838,14 +1345,26 @@ ideationRouter.delete('/session/:sessionId', async (req: Request, res: Response)
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // Delete messages
+    // Delete in correct order (respecting foreign key constraints)
+    // Note: viability_risks cascade from candidates automatically
+
+    // Delete artifacts
+    await query('DELETE FROM ideation_artifacts WHERE session_id = ?', [sessionId]);
+
+    // Delete memory files
+    await query('DELETE FROM ideation_memory_files WHERE session_id = ?', [sessionId]);
+
+    // Delete searches
+    await query('DELETE FROM ideation_searches WHERE session_id = ?', [sessionId]);
+
+    // Delete signals
+    await query('DELETE FROM ideation_signals WHERE session_id = ?', [sessionId]);
+
+    // Delete messages (before candidates since messages may reference candidates)
     await query('DELETE FROM ideation_messages WHERE session_id = ?', [sessionId]);
 
-    // Delete candidates
+    // Delete candidates (viability_risks will cascade)
     await query('DELETE FROM ideation_candidates WHERE session_id = ?', [sessionId]);
-
-    // Delete memory
-    await query('DELETE FROM ideation_memory WHERE session_id = ?', [sessionId]);
 
     // Delete session
     await query('DELETE FROM ideation_sessions WHERE id = ?', [sessionId]);
@@ -879,16 +1398,22 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
     const { sessionId, message } = parseResult.data;
 
     // Load session
-    const session = await sessionManager.load(sessionId);
+    let session = await sessionManager.load(sessionId);
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
+    // Reactivate abandoned sessions when user sends a streaming message
+    if (session.status === 'abandoned') {
+      await sessionManager.update(sessionId, { status: 'active' });
+      session = await sessionManager.load(sessionId);
+    }
+
     // Check session state
-    if (session.status !== 'active') {
+    if (session!.status !== 'active') {
       return res.status(400).json({
         error: 'Session is not active',
-        status: session.status,
+        status: session!.status,
       });
     }
 
@@ -954,8 +1479,17 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
       }
     });
 
-    // Build system prompt
-    const systemPrompt = buildSystemPrompt(profile || {});
+    // Load artifacts for context
+    const storedArtifacts = await artifactStore.getBySession(sessionId);
+    const artifactSummaries = storedArtifacts.map(a => ({
+      id: a.id,
+      type: a.type,
+      title: a.title,
+      identifier: a.identifier,
+    }));
+
+    // Build system prompt with artifacts
+    const systemPrompt = buildSystemPrompt(profile || {}, undefined, artifactSummaries);
 
     // Start streaming
     await handler.streamMessage(
@@ -967,6 +1501,291 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
     console.error('Error in streaming message:', error);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+});
+
+// ============================================================================
+// POST /api/ideation/artifact
+// ============================================================================
+// Saves an artifact to the database
+
+const SaveArtifactSchema = z.object({
+  sessionId: z.string().min(1, 'sessionId is required'),
+  artifact: z.object({
+    id: z.string().min(1),
+    type: z.string(),
+    title: z.string(),
+    content: z.union([z.string(), z.record(z.unknown())]),
+    language: z.string().optional(),
+    identifier: z.string().optional(),
+  }),
+});
+
+ideationRouter.post('/artifact', async (req: Request, res: Response) => {
+  try {
+    const parseResult = SaveArtifactSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      console.error('[SaveArtifact] Validation error:', parseResult.error.issues);
+      return res.status(400).json({
+        error: 'Validation error',
+        details: parseResult.error.issues,
+      });
+    }
+
+    const { sessionId, artifact } = parseResult.data;
+    console.log(`[SaveArtifact] Saving artifact ${artifact.id} to session ${sessionId}`);
+
+    // Verify session exists
+    const session = await sessionManager.load(sessionId);
+    if (!session) {
+      console.error(`[SaveArtifact] Session ${sessionId} not found`);
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Save artifact
+    await artifactStore.save({
+      id: artifact.id,
+      sessionId,
+      type: artifact.type as 'markdown' | 'research' | 'mermaid' | 'code' | 'analysis' | 'comparison' | 'idea-summary',
+      title: artifact.title,
+      content: artifact.content,
+      language: artifact.language,
+      identifier: artifact.identifier,
+      status: 'ready',
+    });
+
+    // Verify it was saved with correct content
+    const savedArtifacts = await artifactStore.getBySession(sessionId);
+    const saved = savedArtifacts.find(a => a.id === artifact.id);
+    if (saved) {
+      const savedContentLength = typeof saved.content === 'string' ? saved.content.length : JSON.stringify(saved.content).length;
+      const inputContentLength = typeof artifact.content === 'string' ? artifact.content.length : JSON.stringify(artifact.content).length;
+      console.log(`[SaveArtifact] Successfully saved artifact ${artifact.id}`);
+      console.log(`[SaveArtifact] Input content length: ${inputContentLength}, Saved content length: ${savedContentLength}`);
+      if (savedContentLength !== inputContentLength) {
+        console.error(`[SaveArtifact] WARNING: Content length mismatch!`);
+      }
+    } else {
+      console.error(`[SaveArtifact] WARNING: Artifact ${artifact.id} not found after save!`);
+    }
+
+    res.json({ success: true, artifactId: artifact.id });
+  } catch (error) {
+    console.error('[SaveArtifact] Error saving artifact:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// DELETE /api/ideation/artifact/:artifactId
+// ============================================================================
+// Deletes an artifact from the database
+
+ideationRouter.delete('/artifact/:artifactId', async (req: Request, res: Response) => {
+  try {
+    const { artifactId } = req.params;
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
+
+    // Verify session exists
+    const session = await sessionManager.load(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Delete the artifact
+    await query('DELETE FROM ideation_artifacts WHERE id = ? AND session_id = ?', [artifactId, sessionId]);
+    await saveDb();
+
+    console.log(`[DeleteArtifact] Deleted artifact ${artifactId} from session ${sessionId}`);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[DeleteArtifact] Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// POST /api/ideation/artifact/edit
+// ============================================================================
+// Async artifact editing using dedicated sub-agent
+// Returns immediately, sends WebSocket notification when complete
+
+const EditArtifactSchema = z.object({
+  sessionId: z.string().min(1, 'sessionId is required'),
+  artifactId: z.string().min(1, 'artifactId is required'),
+  editRequest: z.string().min(1, 'editRequest is required'),
+});
+
+ideationRouter.post('/artifact/edit', async (req: Request, res: Response) => {
+  try {
+    const parseResult = EditArtifactSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Validation error',
+        details: parseResult.error.issues,
+      });
+    }
+
+    const { sessionId, artifactId, editRequest } = parseResult.data;
+    console.log(`[ArtifactEdit] Starting async edit for ${artifactId} in session ${sessionId}`);
+
+    // Verify session exists
+    const session = await sessionManager.load(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Verify artifact exists
+    const artifacts = await artifactStore.getBySession(sessionId);
+    const artifact = artifacts.find(a => a.id === artifactId);
+    if (!artifact) {
+      return res.status(404).json({ error: 'Artifact not found' });
+    }
+
+    // Notify clients that edit is starting
+    emitSessionEvent('artifact:updating', sessionId, {
+      artifactId,
+      summary: 'Updating artifact...',
+    });
+
+    // Return immediately - edit happens asynchronously
+    res.json({
+      success: true,
+      status: 'pending',
+      message: 'Artifact edit started. You will be notified when complete.',
+    });
+
+    // Execute edit asynchronously (don't await)
+    editArtifact({ sessionId, artifactId, editRequest })
+      .then((result) => {
+        if (result.success) {
+          console.log(`[ArtifactEdit] Async edit completed for ${artifactId}`);
+          emitSessionEvent('artifact:updated', sessionId, {
+            artifactId: result.artifactId,
+            content: result.content,
+            summary: result.summary,
+          });
+        } else {
+          console.error(`[ArtifactEdit] Async edit failed for ${artifactId}: ${result.error}`);
+          emitSessionEvent('artifact:error', sessionId, {
+            artifactId,
+            error: result.error,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error(`[ArtifactEdit] Async edit error for ${artifactId}:`, error);
+        emitSessionEvent('artifact:error', sessionId, {
+          artifactId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
+
+  } catch (error) {
+    console.error('[ArtifactEdit] Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// POST /api/ideation/search
+// ============================================================================
+// Executes web searches asynchronously and returns results as artifacts
+
+ideationRouter.post('/search', async (req: Request, res: Response) => {
+  try {
+    // Validate request
+    const parseResult = WebSearchSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Validation error',
+        details: parseResult.error.issues,
+      });
+    }
+
+    const { sessionId, queries, context } = parseResult.data;
+
+    // Load session to verify it exists
+    const session = await sessionManager.load(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Execute searches in parallel
+    console.log(`[WebSearch API] Executing ${queries.length} searches...`);
+    const searchPromises = queries.map(async (searchQuery: string) => {
+      const purpose: SearchPurpose = {
+        type: 'general',
+        context: context || 'Ideation research',
+      };
+      return performWebSearch(searchQuery, purpose);
+    });
+
+    const rawResults = await Promise.all(searchPromises);
+
+    // Format sources for citation
+    const sources = rawResults.flatMap(r =>
+      r.results.map(item => ({
+        title: item.title,
+        url: item.url,
+        snippet: item.snippet,
+        source: item.source,
+        query: r.query,
+      }))
+    );
+
+    // Combine all synthesis content from Claude's research
+    const combinedSynthesis = rawResults
+      .filter(r => r.synthesis && r.synthesis.trim())
+      .map(r => r.synthesis)
+      .join('\n\n---\n\n');
+
+    console.log(`[WebSearch API] Completed: ${sources.length} sources, synthesis length: ${combinedSynthesis.length}`);
+
+    // Build artifact
+    const artifactId = `research_${Date.now()}`;
+    const artifact = {
+      id: artifactId,
+      type: 'research' as const,
+      title: `Research: ${queries[0].slice(0, 30)}${queries.length > 1 ? ` (+${queries.length - 1} more)` : ''}`,
+      content: {
+        synthesis: combinedSynthesis,
+        sources,
+        queries,
+      },
+      queries,
+      status: 'ready' as const,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Save artifact to database for session persistence
+    await artifactStore.save({
+      id: artifactId,
+      sessionId,
+      type: 'research',
+      title: artifact.title,
+      content: artifact.content,
+      queries,
+      identifier: `research_${queries[0]?.slice(0, 20).replace(/\s+/g, '_').toLowerCase() || 'results'}`,
+      status: 'ready',
+    });
+
+    // Return synthesized research artifact
+    res.json({
+      success: true,
+      artifact,
+    });
+
+  } catch (error) {
+    console.error('Error executing web search:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Web search failed' });
     }
   }
 });

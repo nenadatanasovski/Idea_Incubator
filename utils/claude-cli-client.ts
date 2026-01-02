@@ -74,8 +74,9 @@ export async function callClaudeCli(
   const toolsStr = tools.length > 0 ? ` [tools: ${tools.join(',')}]` : '';
   console.log(`[CLI] Running claude --model ${model}${toolsStr}`);
 
-  // Default timeout: 5 minutes for CLI calls
-  const CLI_TIMEOUT_MS = 5 * 60 * 1000;
+  // Default timeout: 360 seconds for CLI calls (6 minutes)
+  // Increased to handle complex requests with large context
+  const CLI_TIMEOUT_MS = 360 * 1000;
 
   return new Promise((resolve, reject) => {
     // Build environment for Claude CLI
@@ -128,7 +129,7 @@ export async function callClaudeCli(
       clearTimeout(timeoutId);
 
       if (timedOut) {
-        reject(new Error('Claude CLI timed out after 5 minutes'));
+        reject(new Error('Claude CLI timed out after 360 seconds. Try a simpler request or start a new session.'));
         return;
       }
 

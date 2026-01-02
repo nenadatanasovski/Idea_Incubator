@@ -12,6 +12,9 @@ export function MessageList({
   messages,
   onButtonClick,
   onFormSubmit,
+  onEditMessage,
+  onArtifactClick,
+  onConvertToArtifact,
   isLoading,
 }: MessageListProps) {
   return (
@@ -27,11 +30,21 @@ export function MessageList({
               onButtonClick={onButtonClick}
               onFormSubmit={onFormSubmit}
               isLatest={isLatest && !isLoading}
+              onArtifactClick={onArtifactClick}
+              onConvertToArtifact={onConvertToArtifact}
             />
           );
         }
 
-        return <UserMessage key={message.id} message={message} />;
+        return (
+          <UserMessage
+            key={message.id}
+            message={message}
+            onEdit={onEditMessage}
+            isEditable={!isLoading}
+            onConvertToArtifact={onConvertToArtifact}
+          />
+        );
       })}
     </div>
   );

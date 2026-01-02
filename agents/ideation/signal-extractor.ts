@@ -13,6 +13,19 @@ import {
  * rule-based pattern matching for real-time extraction.
  */
 
+export interface AgentArtifact {
+  type: 'mermaid' | 'code' | 'markdown' | 'analysis' | 'comparison' | 'idea-summary';
+  title: string;
+  content: string;
+  language?: string; // For code artifacts
+}
+
+export interface AgentArtifactUpdate {
+  id: string;
+  content: string;
+  title?: string; // Optional title update
+}
+
 export interface ParsedAgentResponse {
   reply: string;
   buttons?: ButtonOption[];
@@ -25,6 +38,8 @@ export interface ParsedAgentResponse {
   candidateTitle?: string;
   candidateSummary?: string;
   webSearchNeeded?: string[];
+  artifact?: AgentArtifact; // Agent can create visual artifacts
+  artifactUpdate?: AgentArtifactUpdate; // Agent can update existing artifacts
 }
 
 export interface ExtractedSignals {

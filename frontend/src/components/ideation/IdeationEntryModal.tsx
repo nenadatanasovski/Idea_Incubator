@@ -29,7 +29,9 @@ export function IdeationEntryModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-8 max-w-lg w-full mx-4 shadow-2xl relative">
+      <div className={`bg-white rounded-xl p-8 w-full mx-4 shadow-2xl relative transition-all duration-300 ${
+        showSessions ? 'max-w-5xl' : 'max-w-lg'
+      }`}>
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none rounded"
