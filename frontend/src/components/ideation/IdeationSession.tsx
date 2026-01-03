@@ -3,11 +3,10 @@
 // Main container for an ideation session
 // =============================================================================
 
-import { useEffect, useReducer, useCallback, useRef, useState, useMemo } from 'react';
+import { useEffect, useReducer, useCallback, useRef, useState } from 'react';
 import { SessionHeader } from './SessionHeader';
 import { ConversationPanel } from './ConversationPanel';
-import { IdeaCandidatePanel } from './IdeaCandidatePanel';
-import { ArtifactPanel } from './ArtifactPanel';
+import { IdeaArtifactPanel } from './IdeaArtifactPanel';
 import { useIdeationAPI } from '../../hooks/useIdeationAPI';
 import { ideationReducer, initialState } from '../../reducers/ideationReducer';
 import type { IdeationSessionProps, Artifact } from '../../types/ideation';
@@ -945,6 +944,32 @@ export function IdeationSession({
     dispatch({ type: 'INTERVENTION_DISMISS' });
   }, []);
 
+  // Handle updating candidate title
+  const handleUpdateTitle = useCallback(async (newTitle: string) => {
+    if (!state.candidate.candidate || !state.session.sessionId) return;
+
+    try {
+      // Update in the backend first
+      await api.updateCandidate(state.session.sessionId, { title: newTitle });
+
+      // Then update local state
+      dispatch({
+        type: 'CANDIDATE_UPDATE',
+        payload: {
+          candidate: {
+            ...state.candidate.candidate,
+            title: newTitle,
+          },
+        },
+      });
+      setToast({ message: 'Title updated', type: 'success' });
+    } catch (error) {
+      console.error('Failed to update title:', error);
+      setToast({ message: 'Failed to update title', type: 'error' });
+    }
+    setTimeout(() => setToast(null), 2000);
+  }, [state.candidate.candidate, state.session.sessionId, api]);
+
   if (state.session.status === 'error') {
     return (
       <div className="flex items-center justify-center h-full">
@@ -981,12 +1006,19 @@ export function IdeationSession({
       <SessionHeader
         sessionId={state.session.sessionId || ''}
         tokenUsage={state.tokens.usage}
+        candidate={state.candidate.candidate}
+        confidence={state.candidate.confidence}
+        viability={state.candidate.viability}
+        onCapture={handleCapture}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
         onMinimize={onExit}
+        onUpdateTitle={handleUpdateTitle}
       />
 
       <div className="flex-1 flex overflow-hidden">
         {/* Conversation Panel - Main content */}
-        <div className={`flex-1 flex overflow-hidden ${state.artifacts.isPanelOpen ? 'min-w-0' : ''}`}>
+        <div className="flex-1 flex overflow-hidden min-w-0">
           <ConversationPanel
             messages={state.conversation.messages}
             isLoading={state.conversation.isLoading}
@@ -999,35 +1031,28 @@ export function IdeationSession({
             onArtifactClick={handleArtifactClick}
             onConvertToArtifact={handleConvertToArtifact}
           />
-
-          <IdeaCandidatePanel
-            candidate={state.candidate.candidate}
-            confidence={state.candidate.confidence}
-            viability={state.candidate.viability}
-            risks={state.candidate.risks}
-            onCapture={handleCapture}
-            onSave={handleSave}
-            onDiscard={handleDiscard}
-            onContinue={handleContinue}
-            showIntervention={state.candidate.showIntervention}
-          />
         </div>
 
-        {/* Artifact Panel - Right side (always render when artifacts exist, can be minimized) */}
-        {state.artifacts.artifacts.length > 0 && (
-          <ArtifactPanel
-            artifacts={state.artifacts.artifacts}
-            currentArtifact={state.artifacts.currentArtifact}
-            onSelectArtifact={handleSelectArtifact}
-            onCloseArtifact={handleCloseArtifact}
-            onExpandArtifact={handleExpandArtifact}
-            onDeleteArtifact={handleDeleteArtifact}
-            onEditArtifact={handleEditArtifact}
-            onRenameArtifact={handleRenameArtifact}
-            isLoading={state.artifacts.isLoading}
-            isMinimized={!state.artifacts.isPanelOpen}
-          />
-        )}
+        {/* Combined Idea & Artifact Panel - Right side */}
+        <IdeaArtifactPanel
+          candidate={state.candidate.candidate}
+          confidence={state.candidate.confidence}
+          viability={state.candidate.viability}
+          risks={state.candidate.risks}
+          showIntervention={state.candidate.showIntervention}
+          onContinue={handleContinue}
+          onDiscard={handleDiscard}
+          artifacts={state.artifacts.artifacts}
+          currentArtifact={state.artifacts.currentArtifact}
+          onSelectArtifact={handleSelectArtifact}
+          onCloseArtifact={handleCloseArtifact}
+          onExpandArtifact={handleExpandArtifact}
+          onDeleteArtifact={handleDeleteArtifact}
+          onEditArtifact={handleEditArtifact}
+          onRenameArtifact={handleRenameArtifact}
+          isArtifactLoading={state.artifacts.isLoading}
+          isMinimized={!state.artifacts.isPanelOpen}
+        />
       </div>
 
       {/* Toast Notification */}

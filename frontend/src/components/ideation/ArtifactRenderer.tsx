@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import mermaid from 'mermaid';
-import type { Artifact, ArtifactRendererProps, ResearchResult, SynthesizedResearch } from '../../types/ideation';
+import type { ArtifactRendererProps, ResearchResult, SynthesizedResearch } from '../../types/ideation';
 
 // Initialize mermaid
 mermaid.initialize({
@@ -435,7 +435,7 @@ const LoadingArtifact: React.FC = () => {
 };
 
 // Main renderer component
-export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({ artifact, isFullscreen }) => {
+export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({ artifact, isFullscreen: _isFullscreen }) => {
   // Handle loading state
   if (artifact.status === 'loading') {
     return <LoadingArtifact />;

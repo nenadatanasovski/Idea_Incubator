@@ -21,8 +21,12 @@ export function InputArea({
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
+      // Reset to minimum height first to get accurate scrollHeight
+      textarea.style.height = '48px';
+      const newHeight = Math.min(Math.max(textarea.scrollHeight, 48), 150);
+      textarea.style.height = `${newHeight}px`;
+      // Only show scrollbar when at max height
+      textarea.style.overflowY = newHeight >= 150 ? 'auto' : 'hidden';
     }
   }, [value]);
 
@@ -48,32 +52,30 @@ export function InputArea({
 
   return (
     <div className="input-area border-t border-gray-200 bg-white p-4">
-      <div className="flex items-end gap-3">
-        <div className="flex-1 relative">
-          <textarea
-            ref={textareaRef}
-            role="textbox"
-            data-testid="message-input"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={disabled}
-            rows={1}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none
-                       focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                       disabled:bg-gray-100 disabled:text-gray-500
-                       placeholder:text-gray-400"
-            style={{ minHeight: '48px', maxHeight: '150px' }}
-          />
-        </div>
+      <div className="flex items-center gap-2">
+        <textarea
+          ref={textareaRef}
+          role="textbox"
+          data-testid="message-input"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          rows={1}
+          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg resize-none
+                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                     disabled:bg-gray-100 disabled:text-gray-500
+                     placeholder:text-gray-400"
+          style={{ height: '48px', overflowY: 'hidden' }}
+        />
         {isLoading && onStop ? (
           <button
             role="button"
             data-testid="stop-message-btn"
             onClick={onStop}
             aria-label="Stop"
-            className="p-3 bg-red-600 text-white rounded-lg hover:bg-red-700
+            className="h-12 w-12 flex items-center justify-center bg-red-600 text-white rounded-lg hover:bg-red-700
                        transition-colors flex-shrink-0
                        focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
@@ -86,7 +88,7 @@ export function InputArea({
             onClick={handleSubmit}
             disabled={isSubmitDisabled}
             aria-label="Send"
-            className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700
+            className="h-12 w-12 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700
                        disabled:bg-gray-300 disabled:cursor-not-allowed
                        transition-colors flex-shrink-0
                        focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"

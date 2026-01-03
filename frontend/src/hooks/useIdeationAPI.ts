@@ -350,6 +350,27 @@ export function useIdeationAPI() {
   }, []);
 
   /**
+   * Update candidate details (title, summary)
+   */
+  const updateCandidate = useCallback(async (
+    sessionId: string,
+    updates: { title?: string; summary?: string }
+  ): Promise<{ success: boolean; candidate: IdeaCandidate }> => {
+    const response = await fetch(`${API_BASE}/candidate/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, ...updates }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to update candidate' }));
+      throw new Error(typeof error.error === 'string' ? error.error : 'Failed to update candidate');
+    }
+
+    return response.json();
+  }, []);
+
+  /**
    * Execute async web search and return results as an artifact
    */
   const executeWebSearch = useCallback(async (
@@ -399,6 +420,7 @@ export function useIdeationAPI() {
     executeWebSearch,
     saveArtifact,
     deleteArtifact,
+    updateCandidate,
   }), [
     startSession,
     sendMessage,
@@ -415,5 +437,6 @@ export function useIdeationAPI() {
     executeWebSearch,
     saveArtifact,
     deleteArtifact,
+    updateCandidate,
   ]);
 }

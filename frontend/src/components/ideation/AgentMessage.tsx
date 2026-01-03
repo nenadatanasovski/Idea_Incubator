@@ -54,8 +54,8 @@ export function AgentMessage({
             <Bot className="w-5 h-5 text-blue-600" />
           </div>
         </div>
-        <div className="flex-1 max-w-[85%]">
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+        <div className="flex-1 max-w-[85%] min-w-0 overflow-hidden">
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 overflow-hidden">
             <MessageText content={message.content} onArtifactClick={onArtifactClick} />
           </div>
         </div>

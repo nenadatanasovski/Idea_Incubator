@@ -30,8 +30,8 @@ export function ConversationPanel({
   }, [messages, isLoading]);
 
   return (
-    <div className="conversation-panel flex-1 flex flex-col bg-gray-50 border-r border-gray-200">
-      <div className="flex-1 overflow-y-auto p-4">
+    <div className="conversation-panel flex-1 flex flex-col bg-gray-50 border-r border-gray-200 min-w-0 overflow-hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
         <MessageList
           messages={messages}
           onButtonClick={onButtonClick}

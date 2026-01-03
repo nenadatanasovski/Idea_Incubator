@@ -422,16 +422,33 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     const percentUsed = Math.min((totalTokens / TOKEN_LIMIT) * 100, 100);
     const shouldHandoff = percentUsed >= 80;
 
-    // Build artifact response if present
-    const artifactResponse = response.artifact ? {
-      id: `artifact_${Date.now()}`,
-      type: response.artifact.type,
-      title: response.artifact.title,
-      content: response.artifact.content,
-      language: response.artifact.language,
-      status: 'ready',
-      createdAt: new Date().toISOString(),
-    } : null;
+    // Build artifact response if present and save to database
+    let artifactResponse = null;
+    if (response.artifact) {
+      const artifactId = `text_${Date.now()}`;
+      artifactResponse = {
+        id: artifactId,
+        type: response.artifact.type,
+        title: response.artifact.title,
+        content: response.artifact.content,
+        language: response.artifact.language,
+        status: 'ready',
+        createdAt: new Date().toISOString(),
+      };
+
+      // Save artifact to database for persistence
+      console.log(`[Routes/Message] Saving new artifact ${artifactId} to database`);
+      await artifactStore.save({
+        id: artifactId,
+        sessionId,
+        type: response.artifact.type,
+        title: response.artifact.title,
+        content: response.artifact.content,
+        language: response.artifact.language,
+        status: 'ready',
+      });
+      console.log(`[Routes/Message] Artifact ${artifactId} saved successfully`);
+    }
 
     // Handle artifact update if present
     let artifactUpdateResponse = null;
@@ -726,6 +743,63 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
     const percentUsed = Math.min((totalTokens / TOKEN_LIMIT) * 100, 100);
     const shouldHandoff = percentUsed >= 80;
 
+    // Build artifact response if present and save to database
+    let artifactResponse = null;
+    if (response.artifact) {
+      const artifactId = `text_${Date.now()}`;
+      artifactResponse = {
+        id: artifactId,
+        type: response.artifact.type,
+        title: response.artifact.title,
+        content: response.artifact.content,
+        language: response.artifact.language,
+        status: 'ready',
+        createdAt: new Date().toISOString(),
+      };
+
+      // Save artifact to database for persistence
+      console.log(`[Routes/MessageEdit] Saving new artifact ${artifactId} to database`);
+      await artifactStore.save({
+        id: artifactId,
+        sessionId,
+        type: response.artifact.type,
+        title: response.artifact.title,
+        content: response.artifact.content,
+        language: response.artifact.language,
+        status: 'ready',
+      });
+      console.log(`[Routes/MessageEdit] Artifact ${artifactId} saved successfully`);
+    }
+
+    // Handle artifact update if present
+    let artifactUpdateResponse = null;
+    if (response.artifactUpdate) {
+      const { id, content, title } = response.artifactUpdate;
+      console.log(`[Routes/MessageEdit] Processing artifact update ${id}`);
+
+      if (content) {
+        const existingArtifacts = await artifactStore.getBySession(sessionId);
+        const existingArtifact = existingArtifacts.find(a => a.id === id);
+
+        if (existingArtifact) {
+          await artifactStore.save({
+            id,
+            sessionId,
+            type: existingArtifact.type,
+            title: title || existingArtifact.title,
+            content,
+            status: 'ready',
+          });
+          artifactUpdateResponse = {
+            id,
+            content,
+            title: title || existingArtifact.title,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+      }
+    }
+
     // Return response
     res.json({
       deletedCount,
@@ -750,6 +824,9 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
         percentUsed,
         shouldHandoff,
       },
+      webSearchResults: response.webSearchResults || null,
+      artifact: artifactResponse,
+      artifactUpdate: artifactUpdateResponse,
     });
 
   } catch (error) {
@@ -1101,6 +1178,64 @@ ${notes ? `**Notes**: ${notes}` : ''}
 
   } catch (error) {
     console.error('Error saving for later:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// POST /api/ideation/candidate/update
+// ============================================================================
+// Updates candidate details (title, summary)
+
+const UpdateCandidateSchema = z.object({
+  sessionId: z.string().min(1, 'sessionId is required'),
+  title: z.string().optional(),
+  summary: z.string().optional(),
+});
+
+ideationRouter.post('/candidate/update', async (req: Request, res: Response) => {
+  try {
+    // Validate request
+    const parseResult = UpdateCandidateSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Validation error',
+        details: parseResult.error.issues,
+      });
+    }
+
+    const { sessionId, title, summary } = parseResult.data;
+
+    // Load session
+    const session = await sessionManager.load(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Get active candidate
+    const candidate = await candidateManager.getActiveForSession(sessionId);
+    if (!candidate) {
+      return res.status(404).json({ error: 'No active candidate for this session' });
+    }
+
+    // Build update object
+    const updates: { title?: string; summary?: string } = {};
+    if (title !== undefined) updates.title = title;
+    if (summary !== undefined) updates.summary = summary;
+
+    // Update candidate
+    await candidateManager.update(candidate.id, updates);
+
+    // Get updated candidate
+    const updatedCandidate = await candidateManager.getById(candidate.id);
+
+    res.json({
+      success: true,
+      candidate: updatedCandidate,
+    });
+
+  } catch (error) {
+    console.error('Error updating candidate:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

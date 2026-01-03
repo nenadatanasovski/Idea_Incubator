@@ -328,6 +328,57 @@ export class AgentOrchestrator {
   }
 
   /**
+   * Attempt to repair common JSON formatting issues from LLM output.
+   * Handles unescaped newlines and control characters in string values.
+   */
+  private repairJsonString(jsonStr: string): string {
+    // This is tricky because we need to escape newlines ONLY inside string values
+    // Strategy: Process character by character, tracking if we're inside a string
+    let result = '';
+    let inString = false;
+    let escapeNext = false;
+
+    for (let i = 0; i < jsonStr.length; i++) {
+      const char = jsonStr[i];
+
+      if (escapeNext) {
+        result += char;
+        escapeNext = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        result += char;
+        escapeNext = true;
+        continue;
+      }
+
+      if (char === '"') {
+        inString = !inString;
+        result += char;
+        continue;
+      }
+
+      if (inString) {
+        // Escape control characters inside strings
+        if (char === '\n') {
+          result += '\\n';
+        } else if (char === '\r') {
+          result += '\\r';
+        } else if (char === '\t') {
+          result += '\\t';
+        } else {
+          result += char;
+        }
+      } else {
+        result += char;
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Parse agent response from Claude.
    */
   private parseResponse(response: Anthropic.Message): ParsedAgentResponse {
@@ -342,12 +393,22 @@ export class AgentOrchestrator {
     // Try to parse as JSON
     try {
       // Find JSON in response (may be wrapped in markdown code blocks)
-      const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) || text.match(/\{[\s\S]*\}/);
+      // Try code block first, then raw JSON object
+      const codeBlockMatch = text.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
+      const rawJsonMatch = text.match(/(\{[\s\S]*\})/);
+
+      const jsonMatch = codeBlockMatch || rawJsonMatch;
       if (!jsonMatch) {
+        console.log('[Orchestrator] No JSON found in response, treating as plain text');
         return { reply: text };
       }
 
-      const jsonStr = jsonMatch[1] || jsonMatch[0];
+      let jsonStr = jsonMatch[1] || jsonMatch[0];
+
+      // Try to repair common JSON issues before parsing
+      // 1. Fix unescaped newlines inside string values
+      jsonStr = this.repairJsonString(jsonStr);
+
       const parsed = JSON.parse(jsonStr);
 
       console.log('[Orchestrator] Parsed JSON - webSearchNeeded:', parsed.webSearchNeeded, 'artifact:', parsed.artifact?.type, 'artifactUpdate:', JSON.stringify(parsed.artifactUpdate));
@@ -362,8 +423,33 @@ export class AgentOrchestrator {
         }
       }
 
+      // IMPORTANT: When JSON is successfully parsed, ONLY use parsed.text
+      // Never fall back to raw text which may contain preamble or the JSON itself
+      const reply = parsed.text || 'I processed your request.';
+
+      // Detect if agent accidentally included JSON in its text field
+      if (reply.includes('"text":') || reply.includes('"buttons":')) {
+        console.warn('[Orchestrator] WARNING: Agent may have included JSON structure in text field');
+        // Try to extract just the intended message
+        const cleanMatch = reply.match(/^([^{]*?)(?:\s*\{|$)/);
+        if (cleanMatch && cleanMatch[1].trim()) {
+          console.log('[Orchestrator] Extracted clean text:', cleanMatch[1].trim().slice(0, 100));
+          return {
+            reply: cleanMatch[1].trim(),
+            buttons: parsed.buttons,
+            formFields: parsed.form,
+            signals: parsed.signals,
+            candidateTitle: parsed.candidateUpdate?.title,
+            candidateSummary: parsed.candidateUpdate?.summary,
+            webSearchNeeded: parsed.webSearchNeeded,
+            artifact: parsed.artifact,
+            artifactUpdate: parsed.artifactUpdate,
+          };
+        }
+      }
+
       return {
-        reply: parsed.text || text,
+        reply,
         buttons: parsed.buttons,
         formFields: parsed.form,
         signals: parsed.signals,
@@ -374,9 +460,24 @@ export class AgentOrchestrator {
         artifactUpdate: parsed.artifactUpdate,
       };
     } catch (e) {
-      // If JSON parsing fails, treat entire response as text
+      // If JSON parsing fails, try to extract meaningful content
       console.log('[Orchestrator] JSON parsing failed, treating as plain text. Error:', e);
-      return { reply: text };
+
+      // Try to extract preamble text before any code block (which likely contains malformed JSON)
+      const preambleMatch = text.match(/^([\s\S]*?)(?:```|$)/);
+      if (preambleMatch && preambleMatch[1].trim()) {
+        const preamble = preambleMatch[1].trim();
+        console.log('[Orchestrator] Extracted preamble text:', preamble.slice(0, 200));
+
+        // If preamble is just introducing an artifact, provide a cleaner message
+        if (preamble.toLowerCase().includes('artifact') || preamble.toLowerCase().includes('create')) {
+          return { reply: 'I encountered an issue creating the artifact. Please try again with a simpler request.' };
+        }
+        return { reply: preamble };
+      }
+
+      // Last resort: return a generic message instead of raw JSON
+      return { reply: 'I processed your request but encountered a formatting issue. Please try again.' };
     }
   }
 

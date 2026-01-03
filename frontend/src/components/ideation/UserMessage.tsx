@@ -63,7 +63,7 @@ export function UserMessage({ message, onEdit, isEditable = true, onConvertToArt
   };
 
   const handleSaveEdit = () => {
-    if (editContent.trim() && editContent !== message.content && onEdit) {
+    if (editContent.trim() && onEdit) {
       onEdit(message.id, editContent.trim());
     }
     setIsEditing(false);
@@ -133,7 +133,7 @@ export function UserMessage({ message, onEdit, isEditable = true, onConvertToArt
                   onClick={handleSaveEdit}
                   className="p-1.5 rounded hover:bg-blue-700 transition-colors"
                   title="Save (Enter)"
-                  disabled={!editContent.trim() || editContent === message.content}
+                  disabled={!editContent.trim()}
                 >
                   <Check className="w-4 h-4" />
                 </button>

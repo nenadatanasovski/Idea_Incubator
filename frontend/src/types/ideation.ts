@@ -54,11 +54,7 @@ export interface IdeationSessionProps {
   onExit: () => void;
 }
 
-export interface SessionHeaderProps {
-  sessionId: string;
-  tokenUsage: TokenUsageInfo;
-  onMinimize: () => void;
-}
+// SessionHeaderProps is now defined in SessionHeader.tsx with extended props
 
 export interface TokenUsageInfo {
   total: number;

@@ -31,7 +31,7 @@ export function MessageText({ content, isStreaming = false, onArtifactClick }: M
   }, [onArtifactClick]);
 
   return (
-    <div className="message-text prose prose-sm max-w-none dark:prose-invert">
+    <div className="message-text prose prose-sm max-w-none dark:prose-invert overflow-hidden break-words">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -49,18 +49,22 @@ export function MessageText({ content, isStreaming = false, onArtifactClick }: M
             }
 
             return (
-              <SyntaxHighlighter
-                style={oneDark}
-                language={match ? match[1] : 'text'}
-                PreTag="div"
-                customStyle={{
-                  margin: '0.5rem 0',
-                  borderRadius: '0.375rem',
-                  fontSize: '13px',
-                }}
-              >
-                {String(children).replace(/\n$/, '')}
-              </SyntaxHighlighter>
+              <div className="overflow-x-auto max-w-full">
+                <SyntaxHighlighter
+                  style={oneDark}
+                  language={match ? match[1] : 'text'}
+                  PreTag="div"
+                  customStyle={{
+                    margin: '0.5rem 0',
+                    borderRadius: '0.375rem',
+                    fontSize: '13px',
+                    overflowX: 'auto',
+                  }}
+                  wrapLongLines={false}
+                >
+                  {String(children).replace(/\n$/, '')}
+                </SyntaxHighlighter>
+              </div>
             );
           },
           // Tables
