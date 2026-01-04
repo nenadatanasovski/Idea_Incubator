@@ -50,6 +50,10 @@ export const initialState: IdeationStore = {
     isLoading: false,
     isPanelOpen: false,
   },
+  subAgents: {
+    subAgents: [],
+    activeCount: 0,
+  },
 };
 
 export function ideationReducer(
@@ -452,6 +456,85 @@ export function ideationReducer(
           currentArtifact: null,
           isLoading: false,
           isPanelOpen: false,
+        },
+      };
+
+    // =========================================================================
+    // Sub-Agent Actions
+    // =========================================================================
+    case 'SUBAGENT_SPAWN': {
+      const newSubAgent = {
+        id: action.payload.id,
+        type: action.payload.type,
+        name: action.payload.name,
+        status: 'spawning' as const,
+        startedAt: new Date().toISOString(),
+      };
+      return {
+        ...state,
+        subAgents: {
+          subAgents: [...state.subAgents.subAgents, newSubAgent],
+          activeCount: state.subAgents.activeCount + 1,
+        },
+      };
+    }
+
+    case 'SUBAGENT_STATUS': {
+      const updatedSubAgents = state.subAgents.subAgents.map(agent =>
+        agent.id === action.payload.id
+          ? {
+              ...agent,
+              status: action.payload.status,
+              error: action.payload.error,
+              ...(action.payload.status === 'completed' || action.payload.status === 'failed'
+                ? { completedAt: new Date().toISOString() }
+                : {}),
+            }
+          : agent
+      );
+      // Calculate active count (spawning or running)
+      const activeCount = updatedSubAgents.filter(
+        a => a.status === 'spawning' || a.status === 'running'
+      ).length;
+      return {
+        ...state,
+        subAgents: {
+          subAgents: updatedSubAgents,
+          activeCount,
+        },
+      };
+    }
+
+    case 'SUBAGENT_RESULT': {
+      const subAgentsWithResult = state.subAgents.subAgents.map(agent =>
+        agent.id === action.payload.id
+          ? {
+              ...agent,
+              status: 'completed' as const,
+              result: action.payload.result,
+              completedAt: new Date().toISOString(),
+            }
+          : agent
+      );
+      // Calculate active count (spawning or running)
+      const activeAfterResult = subAgentsWithResult.filter(
+        a => a.status === 'spawning' || a.status === 'running'
+      ).length;
+      return {
+        ...state,
+        subAgents: {
+          subAgents: subAgentsWithResult,
+          activeCount: activeAfterResult,
+        },
+      };
+    }
+
+    case 'SUBAGENT_CLEAR':
+      return {
+        ...state,
+        subAgents: {
+          subAgents: [],
+          activeCount: 0,
         },
       };
 

@@ -92,6 +92,7 @@ export interface ConversationPanelProps {
   isLoading: boolean;
   streamingContent?: string;
   error?: string | null;
+  subAgents?: SubAgent[];
   onSendMessage: (message: string) => void;
   onStopGeneration?: () => void;
   onButtonClick: (buttonId: string, buttonValue: string, buttonLabel: string) => void;
@@ -137,6 +138,40 @@ export interface MessageTextProps {
 export interface TypingIndicatorProps {
   isVisible: boolean;
   streamingContent?: string;
+}
+
+// -----------------------------------------------------------------------------
+// Sub-Agents
+// -----------------------------------------------------------------------------
+
+export type SubAgentStatus = 'spawning' | 'running' | 'completed' | 'failed';
+
+export type SubAgentType =
+  | 'research'      // Web research agent
+  | 'evaluator'     // Idea evaluation agent
+  | 'redteam'       // Red team challenge agent
+  | 'development'   // Idea development agent
+  | 'synthesis';    // Synthesis agent
+
+export interface SubAgent {
+  id: string;
+  type: SubAgentType;
+  name: string;
+  status: SubAgentStatus;
+  startedAt: string;
+  completedAt?: string;
+  result?: unknown;
+  error?: string;
+}
+
+export interface SubAgentIndicatorProps {
+  agents: SubAgent[];
+}
+
+export interface SubAgentsPanelProps {
+  subAgents: SubAgent[];
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 // -----------------------------------------------------------------------------

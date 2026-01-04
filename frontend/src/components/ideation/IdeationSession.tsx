@@ -262,6 +262,42 @@ export function IdeationSession({
             // Heartbeat response
             break;
 
+          // Sub-agent events
+          case 'subagent:spawn':
+            console.log('[WebSocket] Sub-agent spawned:', data.data.subAgentId, data.data.subAgentName);
+            dispatch({
+              type: 'SUBAGENT_SPAWN',
+              payload: {
+                id: data.data.subAgentId,
+                type: data.data.subAgentType,
+                name: data.data.subAgentName,
+              },
+            });
+            break;
+
+          case 'subagent:status':
+            console.log('[WebSocket] Sub-agent status:', data.data.subAgentId, data.data.subAgentStatus);
+            dispatch({
+              type: 'SUBAGENT_STATUS',
+              payload: {
+                id: data.data.subAgentId,
+                status: data.data.subAgentStatus,
+                error: data.data.error,
+              },
+            });
+            break;
+
+          case 'subagent:result':
+            console.log('[WebSocket] Sub-agent result:', data.data.subAgentId);
+            dispatch({
+              type: 'SUBAGENT_RESULT',
+              payload: {
+                id: data.data.subAgentId,
+                result: data.data.result,
+              },
+            });
+            break;
+
           default:
             console.log('[WebSocket] Unknown event type:', data.type);
         }
@@ -1053,6 +1089,7 @@ export function IdeationSession({
             isLoading={state.conversation.isLoading}
             streamingContent={state.conversation.streamingContent}
             error={state.conversation.error}
+            subAgents={state.subAgents.subAgents}
             onSendMessage={handleSendMessage}
             onStopGeneration={handleStopGeneration}
             onButtonClick={handleButtonClick}

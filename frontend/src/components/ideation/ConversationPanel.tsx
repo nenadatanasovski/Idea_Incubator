@@ -7,6 +7,7 @@ import { useRef, useEffect } from 'react';
 import { MessageList } from './MessageList';
 import { InputArea } from './InputArea';
 import { TypingIndicator } from './TypingIndicator';
+import { SubAgentIndicator } from './SubAgentIndicator';
 import type { ConversationPanelProps } from '../../types/ideation';
 
 export function ConversationPanel({
@@ -14,6 +15,7 @@ export function ConversationPanel({
   isLoading,
   streamingContent,
   error,
+  subAgents = [],
   onSendMessage,
   onStopGeneration,
   onButtonClick,
@@ -25,10 +27,10 @@ export function ConversationPanel({
 }: ConversationPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages or sub-agent updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, subAgents]);
 
   return (
     <div className="conversation-panel flex-1 flex flex-col bg-gray-50 border-r border-gray-200 min-w-0 overflow-hidden">
@@ -43,6 +45,11 @@ export function ConversationPanel({
           isLoading={isLoading}
         />
         <TypingIndicator isVisible={isLoading} streamingContent={streamingContent} />
+        {subAgents.length > 0 && (
+          <div className="mx-4 mb-4">
+            <SubAgentIndicator agents={subAgents} />
+          </div>
+        )}
         {error && (
           <div className="mx-4 p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
             <div className="flex items-start gap-2">

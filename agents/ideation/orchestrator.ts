@@ -61,6 +61,33 @@ export interface OrchestratorResponse {
   webSearchQueries?: string[];  // Queries to execute asynchronously
   artifact?: AgentArtifact;     // Visual artifact (mermaid diagram, code, etc.)
   artifactUpdate?: AgentArtifactUpdate; // Update to existing artifact
+  isQuickAck: boolean;          // True if this is a quick acknowledgment (no Claude call)
+  subAgentTasks?: SubAgentTask[]; // Tasks to execute in background after quick ack
+  acknowledgmentText?: string;  // Custom acknowledgment text if different from reply
+  userMessageId?: string;       // ID of stored user message
+  assistantMessageId?: string;  // ID of stored assistant message
+}
+
+export interface SubAgentTask {
+  id: string;
+  type: 'action-plan' | 'pitch-refine' | 'architecture-explore' | 'custom';
+  label: string;
+  prompt?: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+}
+
+export interface SubAgentTaskSignal {
+  id: string;
+  type: 'action-plan' | 'pitch-refine' | 'architecture-explore' | 'custom';
+  label: string;
+  prompt?: string;
+}
+
+export interface TaskSelectionResult {
+  isTaskSelection: boolean;
+  selectedTasks: number[];
+  rawSelection: string;
+  selectAll: boolean;
 }
 
 export class AgentOrchestrator {
@@ -82,6 +109,15 @@ export class AgentOrchestrator {
   ): Promise<OrchestratorResponse> {
     // Get existing messages
     const messages = await messageStore.getBySession(session.id);
+
+    // Check for task selection (quick acknowledgment pattern)
+    // If user selected from numbered options, return immediately without calling Claude
+    const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop();
+    const taskSelection = this.detectTaskSelection(userMessage, lastAssistantMessage);
+
+    if (taskSelection.isTaskSelection && lastAssistantMessage?.buttonsShown) {
+      return this.handleQuickAcknowledgment(session, userMessage, taskSelection, lastAssistantMessage);
+    }
 
     // Check token usage
     const tokenUsage = calculateTokenUsage(messages, userMessage);
@@ -248,6 +284,7 @@ export class AgentOrchestrator {
       webSearchQueries: webSearchRequested ? parsed.webSearchNeeded : undefined,
       artifact: parsed.artifact,
       artifactUpdate: parsed.artifactUpdate,
+      isQuickAck: false,
     };
   }
 
@@ -593,6 +630,255 @@ export class AgentOrchestrator {
       viability: 100,
       risks: [],
     });
+  }
+
+  /**
+   * Detect if user message is a task selection from numbered options.
+   * Handles patterns like "1", "1 and 3", "all", "first one", "1, 2", etc.
+   */
+  private detectTaskSelection(
+    userMessage: string,
+    lastAssistantMessage: IdeationMessage | undefined
+  ): TaskSelectionResult {
+    const defaultResult: TaskSelectionResult = {
+      isTaskSelection: false,
+      selectedTasks: [],
+      rawSelection: userMessage,
+      selectAll: false,
+    };
+
+    // Check if last assistant message had numbered buttons/tasks
+    if (!lastAssistantMessage?.buttonsShown || !this.hasNumberedTasks(lastAssistantMessage.buttonsShown)) {
+      return defaultResult;
+    }
+
+    // Check if user input looks like a selection
+    if (!this.isSelectionInput(userMessage)) {
+      return defaultResult;
+    }
+
+    const maxTasks = lastAssistantMessage.buttonsShown.length;
+    const { tasks, selectAll } = this.parseTaskSelection(userMessage, maxTasks);
+
+    if (tasks.length === 0 && !selectAll) {
+      return defaultResult;
+    }
+
+    return {
+      isTaskSelection: true,
+      selectedTasks: selectAll ? Array.from({ length: maxTasks }, (_, i) => i + 1) : tasks,
+      rawSelection: userMessage,
+      selectAll,
+    };
+  }
+
+  /**
+   * Parse user selection into task numbers.
+   */
+  private parseTaskSelection(
+    selection: string,
+    maxTasks: number
+  ): { tasks: number[]; selectAll: boolean } {
+    const normalized = selection.toLowerCase().trim();
+
+    // Check for "all" or "all of them"
+    if (/^(all|all of them|everything|do all|run all|both|do both)$/i.test(normalized)) {
+      return { tasks: [], selectAll: true };
+    }
+
+    // Check for ordinal words
+    const ordinalMap: Record<string, number> = {
+      'first': 1, 'first one': 1, '1st': 1,
+      'second': 2, 'second one': 2, '2nd': 2,
+      'third': 3, 'third one': 3, '3rd': 3,
+      'fourth': 4, 'fourth one': 4, '4th': 4,
+      'fifth': 5, 'fifth one': 5, '5th': 5,
+      'last': maxTasks, 'last one': maxTasks,
+    };
+
+    // Direct ordinal match
+    if (ordinalMap[normalized]) {
+      const num = ordinalMap[normalized];
+      return { tasks: num <= maxTasks ? [num] : [], selectAll: false };
+    }
+
+    // Extract numbers from input (handles "1", "1 and 3", "1, 2, 3", "1 2 3", etc.)
+    const numbers: number[] = [];
+
+    // Match standalone numbers
+    const numberMatches = normalized.match(/\b(\d+)\b/g);
+    if (numberMatches) {
+      for (const match of numberMatches) {
+        const num = parseInt(match, 10);
+        if (num >= 1 && num <= maxTasks && !numbers.includes(num)) {
+          numbers.push(num);
+        }
+      }
+    }
+
+    // Also check for ordinals mixed with numbers ("first and 3")
+    for (const [word, num] of Object.entries(ordinalMap)) {
+      if (normalized.includes(word) && num <= maxTasks && !numbers.includes(num)) {
+        numbers.push(num);
+      }
+    }
+
+    return { tasks: numbers.sort((a, b) => a - b), selectAll: false };
+  }
+
+  /**
+   * Check if buttons represent numbered tasks.
+   */
+  private hasNumberedTasks(buttons: ButtonOption[] | null): boolean {
+    if (!buttons || buttons.length === 0) return false;
+
+    // Check if buttons have numeric labels or are task-like
+    // Tasks typically have labels like "1. Create action plan" or values like "task_1"
+    return buttons.some(b =>
+      /^\d+[\.\)]?\s/.test(b.label) ||  // Starts with number
+      /^task[_-]?\d+$/i.test(b.value) ||  // Value like task_1
+      b.value.startsWith('option_')  // Generic option format
+    );
+  }
+
+  /**
+   * Check if input looks like a task selection.
+   */
+  private isSelectionInput(input: string): boolean {
+    const normalized = input.toLowerCase().trim();
+
+    // Very short input with just numbers
+    if (/^\d+(\s*(,|and|\+|&)\s*\d+)*$/.test(normalized)) {
+      return true;
+    }
+
+    // Ordinal words
+    if (/^(first|second|third|fourth|fifth|last|1st|2nd|3rd|4th|5th)(\s+one)?$/i.test(normalized)) {
+      return true;
+    }
+
+    // "all" variations
+    if (/^(all|all of them|everything|do all|run all|both|do both)$/i.test(normalized)) {
+      return true;
+    }
+
+    // Mixed patterns like "1 and 3", "first and second"
+    if (/^((\d+|first|second|third|fourth|fifth)\s*(,|and|&|\+)\s*)+(\d+|first|second|third|fourth|fifth)$/i.test(normalized)) {
+      return true;
+    }
+
+    // Single number with optional confirmation
+    if (/^\d+\s*(please|thanks|ok|okay)?$/i.test(normalized)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Handle quick acknowledgment for task selection.
+   * Returns immediately with "On it..." and includes tasks for background execution.
+   */
+  private async handleQuickAcknowledgment(
+    session: IdeationSession,
+    userMessage: string,
+    taskSelection: TaskSelectionResult,
+    lastAssistantMessage: IdeationMessage
+  ): Promise<OrchestratorResponse> {
+    const buttons = lastAssistantMessage.buttonsShown || [];
+
+    // Build list of selected tasks
+    const selectedTasks: SubAgentTask[] = taskSelection.selectedTasks
+      .filter(num => num >= 1 && num <= buttons.length)
+      .map((num, index) => {
+        const button = buttons[num - 1];
+        return {
+          id: `task_${Date.now()}_${index}`,
+          type: this.inferTaskType(button.value, button.label),
+          label: button.label,
+          prompt: button.value,
+          status: 'pending' as const,
+        };
+      });
+
+    if (selectedTasks.length === 0) {
+      // No valid tasks selected, fall through to normal processing
+      // This shouldn't happen if detectTaskSelection worked correctly
+      return {
+        reply: "I couldn't identify which tasks you selected. Could you clarify?",
+        buttons: null,
+        form: null,
+        candidateUpdate: null,
+        confidence: 0,
+        viability: 0,
+        risks: [],
+        requiresIntervention: false,
+        handoffOccurred: false,
+        isQuickAck: false,
+      };
+    }
+
+    // Build acknowledgment message
+    const acknowledgmentText = selectedTasks.length === 1
+      ? `On it...`
+      : `Working on ${selectedTasks.length} tasks...`;
+
+    // Store user message
+    const userMsg = await messageStore.add({
+      sessionId: session.id,
+      role: 'user',
+      content: userMessage,
+      tokenCount: Math.ceil(userMessage.length / 4),
+    });
+
+    // Store quick ack message
+    const assistantMsg = await messageStore.add({
+      sessionId: session.id,
+      role: 'assistant',
+      content: acknowledgmentText,
+      tokenCount: Math.ceil(acknowledgmentText.length / 4),
+    });
+
+    // Load current state for confidence/viability
+    const existingCandidate = await candidateManager.getActiveForSession(session.id);
+
+    return {
+      reply: acknowledgmentText,
+      buttons: null,
+      form: null,
+      candidateUpdate: existingCandidate ? {
+        title: existingCandidate.title,
+        summary: existingCandidate.summary || undefined,
+      } : null,
+      confidence: existingCandidate?.confidence || 0,
+      viability: existingCandidate?.viability || 100,
+      risks: [],
+      requiresIntervention: false,
+      handoffOccurred: false,
+      isQuickAck: true,
+      subAgentTasks: selectedTasks,
+      acknowledgmentText,
+      userMessageId: userMsg.id,
+      assistantMessageId: assistantMsg.id,
+    };
+  }
+
+  /**
+   * Infer task type from button value and label.
+   */
+  private inferTaskType(value: string, label: string): SubAgentTask['type'] {
+    const combined = `${value} ${label}`.toLowerCase();
+
+    if (combined.includes('action') || combined.includes('plan') || combined.includes('roadmap')) {
+      return 'action-plan';
+    }
+    if (combined.includes('pitch') || combined.includes('refine') || combined.includes('elevator')) {
+      return 'pitch-refine';
+    }
+    if (combined.includes('architecture') || combined.includes('technical') || combined.includes('system')) {
+      return 'architecture-explore';
+    }
+    return 'custom';
   }
 }
 

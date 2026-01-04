@@ -25,18 +25,50 @@ export type DebateEventType =
 export type IdeationEventType =
   | 'artifact:updating'    // Artifact edit in progress
   | 'artifact:updated'     // Artifact edit completed
-  | 'artifact:error';      // Artifact edit failed
+  | 'artifact:error'       // Artifact edit failed
+  | 'subagent:spawn'       // When a sub-agent starts
+  | 'subagent:status'      // When a sub-agent status changes (running/completed/failed)
+  | 'subagent:result';     // When a sub-agent produces results
+
+// Sub-agent status types
+export type SubAgentStatus = 'spawning' | 'running' | 'completed' | 'failed';
+
+// Sub-agent types
+export type SubAgentType =
+  | 'research'      // Web research agent
+  | 'evaluator'     // Idea evaluation agent
+  | 'redteam'       // Red team challenge agent
+  | 'development'   // Idea development agent
+  | 'synthesis';    // Synthesis agent
+
+export interface SubAgentInfo {
+  id: string;
+  type: SubAgentType;
+  name: string;
+  status: SubAgentStatus;
+  startedAt: string;
+  completedAt?: string;
+  result?: unknown;
+  error?: string;
+}
 
 export interface IdeationEvent {
   type: IdeationEventType;
   timestamp: string;
   sessionId: string;
   data: {
+    // Artifact-related
     artifactId?: string;
     content?: string;
     title?: string;
     summary?: string;
     error?: string;
+    // Sub-agent-related
+    subAgentId?: string;
+    subAgentType?: SubAgentType;
+    subAgentName?: string;
+    subAgentStatus?: SubAgentStatus;
+    result?: unknown;
     [key: string]: unknown;
   };
 }
@@ -259,6 +291,54 @@ export function emitSessionEvent(
     timestamp: new Date().toISOString(),
     sessionId,
     data,
+  });
+}
+
+/**
+ * Helper to emit a sub-agent spawn event
+ */
+export function emitSubAgentSpawn(
+  sessionId: string,
+  subAgentId: string,
+  subAgentType: SubAgentType,
+  subAgentName: string
+): void {
+  emitSessionEvent('subagent:spawn', sessionId, {
+    subAgentId,
+    subAgentType,
+    subAgentName,
+    subAgentStatus: 'spawning' as SubAgentStatus,
+  });
+}
+
+/**
+ * Helper to emit a sub-agent status change event
+ */
+export function emitSubAgentStatus(
+  sessionId: string,
+  subAgentId: string,
+  status: SubAgentStatus,
+  error?: string
+): void {
+  emitSessionEvent('subagent:status', sessionId, {
+    subAgentId,
+    subAgentStatus: status,
+    error,
+  });
+}
+
+/**
+ * Helper to emit a sub-agent result event
+ */
+export function emitSubAgentResult(
+  sessionId: string,
+  subAgentId: string,
+  result: unknown
+): void {
+  emitSessionEvent('subagent:result', sessionId, {
+    subAgentId,
+    subAgentStatus: 'completed' as SubAgentStatus,
+    result,
   });
 }
 

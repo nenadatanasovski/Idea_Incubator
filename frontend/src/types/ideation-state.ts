@@ -4,10 +4,10 @@
 // =============================================================================
 
 import type { IdeaCandidate, ViabilityRisk } from './index';
-import type { TokenUsageInfo, EntryMode, IdeationMessage, Artifact } from './ideation';
+import type { TokenUsageInfo, EntryMode, IdeationMessage, Artifact, SubAgent, SubAgentType, SubAgentStatus } from './ideation';
 
 // Re-export for convenience
-export type { TokenUsageInfo, EntryMode, IdeationMessage, Artifact };
+export type { TokenUsageInfo, EntryMode, IdeationMessage, Artifact, SubAgent, SubAgentType, SubAgentStatus };
 
 // -----------------------------------------------------------------------------
 // Session State
@@ -51,6 +51,11 @@ export interface ArtifactState {
   isPanelOpen: boolean;
 }
 
+export interface SubAgentsState {
+  subAgents: SubAgent[];
+  activeCount: number;
+}
+
 // -----------------------------------------------------------------------------
 // Combined Store State
 // -----------------------------------------------------------------------------
@@ -61,6 +66,7 @@ export interface IdeationStore {
   candidate: CandidateState;
   tokens: TokenState;
   artifacts: ArtifactState;
+  subAgents: SubAgentsState;
 }
 
 // -----------------------------------------------------------------------------
@@ -101,4 +107,9 @@ export type IdeationAction =
   | { type: 'ARTIFACT_LOADING_START'; payload: { id: string } }
   | { type: 'ARTIFACT_LOADING_END'; payload: { id: string; error?: string } }
   | { type: 'ARTIFACT_PANEL_TOGGLE'; payload: { isOpen: boolean } }
-  | { type: 'ARTIFACTS_CLEAR' };
+  | { type: 'ARTIFACTS_CLEAR' }
+  // Sub-agent actions
+  | { type: 'SUBAGENT_SPAWN'; payload: { id: string; type: SubAgentType; name: string } }
+  | { type: 'SUBAGENT_STATUS'; payload: { id: string; status: SubAgentStatus; error?: string } }
+  | { type: 'SUBAGENT_RESULT'; payload: { id: string; result: unknown } }
+  | { type: 'SUBAGENT_CLEAR' };
