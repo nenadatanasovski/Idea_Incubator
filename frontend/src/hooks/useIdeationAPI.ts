@@ -283,6 +283,17 @@ export function useIdeationAPI() {
       viability: number;
     } | null;
     artifacts?: Artifact[];
+    subAgents?: Array<{
+      id: string;
+      sessionId: string;
+      type: string;
+      name: string;
+      status: 'pending' | 'spawning' | 'running' | 'completed' | 'failed';
+      result?: string;
+      error?: string;
+      startedAt: string;
+      completedAt?: string;
+    }>;
   }> => {
     const response = await fetch(`${API_BASE}/session/${sessionId}`);
 

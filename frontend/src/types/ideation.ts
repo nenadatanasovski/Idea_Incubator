@@ -151,7 +151,8 @@ export type SubAgentType =
   | 'evaluator'     // Idea evaluation agent
   | 'redteam'       // Red team challenge agent
   | 'development'   // Idea development agent
-  | 'synthesis';    // Synthesis agent
+  | 'synthesis'     // Synthesis agent
+  | 'custom';       // Custom/fallback type for race condition handling
 
 export interface SubAgent {
   id: string;

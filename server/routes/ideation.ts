@@ -13,6 +13,7 @@ import { client as anthropicClient } from '../../utils/anthropic-client.js';
 import { buildSystemPrompt } from '../../agents/ideation/system-prompt.js';
 import { performWebSearch, SearchPurpose } from '../../agents/ideation/web-search-service.js';
 import { artifactStore } from '../../agents/ideation/artifact-store.js';
+import { subAgentStore } from '../../agents/ideation/subagent-store.js';
 import { editArtifact, detectArtifactEditRequest } from '../../agents/ideation/artifact-editor.js';
 import { emitSessionEvent, emitSubAgentSpawn, emitSubAgentStatus, emitSubAgentResult } from '../websocket.js';
 import { subAgentManager, SubAgentTask as ManagerSubAgentTask } from '../../agents/ideation/sub-agent-manager.js';
@@ -46,6 +47,14 @@ function createSubAgentStatusCallback(
       // Emit status update
       if (task.status === 'running' || task.status === 'completed' || task.status === 'failed') {
         emitSubAgentStatus(sessionId, task.id, task.status, task.error);
+
+        // Persist status to database
+        subAgentStore.updateStatus(task.id, task.status as 'running' | 'completed' | 'failed', {
+          result: task.result,
+          error: task.error,
+        }).catch(err => {
+          console.error(`${logPrefix} Failed to persist sub-agent status: ${err}`);
+        });
       }
 
       // Save artifact only once when completed
@@ -608,9 +617,20 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
 
       const context = contextParts.join('\n');
 
-      // Emit initial spawn events for UI
+      // Clear completed sub-agents from database before spawning new ones
+      await subAgentStore.clearCompleted(sessionId);
+
+      // Emit initial spawn events for UI and persist to database
       for (const task of response.subAgentTasks) {
         emitSubAgentSpawn(sessionId, task.id, task.type, task.label);
+        // Save initial state to database
+        await subAgentStore.save({
+          id: task.id,
+          sessionId,
+          type: task.type,
+          name: task.label,
+          status: 'spawning',
+        });
       }
 
       // Delay sub-agent execution to ensure HTTP response is flushed first
@@ -973,9 +993,20 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
 
       const context = contextParts.join('\n');
 
-      // Emit initial spawn events for UI
+      // Clear completed sub-agents from database before spawning new ones
+      await subAgentStore.clearCompleted(sessionId);
+
+      // Emit initial spawn events for UI and persist to database
       for (const task of response.subAgentTasks) {
         emitSubAgentSpawn(sessionId, task.id, task.type, task.label);
+        // Save initial state to database
+        await subAgentStore.save({
+          id: task.id,
+          sessionId,
+          type: task.type,
+          name: task.label,
+          status: 'spawning',
+        });
       }
 
       // Delay sub-agent execution to ensure HTTP response is flushed first
@@ -1136,9 +1167,20 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
 
       const context = contextParts.join('\n');
 
-      // Emit initial spawn events for UI
+      // Clear completed sub-agents from database before spawning new ones
+      await subAgentStore.clearCompleted(sessionId);
+
+      // Emit initial spawn events for UI and persist to database
       for (const task of response.subAgentTasks) {
         emitSubAgentSpawn(sessionId, task.id, task.type, task.label);
+        // Save initial state to database
+        await subAgentStore.save({
+          id: task.id,
+          sessionId,
+          type: task.type,
+          name: task.label,
+          status: 'spawning',
+        });
       }
 
       // Delay sub-agent execution to ensure HTTP response is flushed first
@@ -1561,9 +1603,10 @@ ideationRouter.get('/session/:sessionId', async (req: Request, res: Response) =>
     const messages = await messageStore.getBySession(sessionId);
     const candidate = await candidateManager.getActiveForSession(sessionId);
     const artifacts = await artifactStore.getBySession(sessionId);
+    const subAgents = await subAgentStore.getBySession(sessionId);
 
     // Log artifact content lengths for debugging
-    console.log(`[GetSession] Returning ${artifacts.length} artifacts:`);
+    console.log(`[GetSession] Returning ${artifacts.length} artifacts, ${subAgents.length} sub-agents:`);
     artifacts.forEach(a => {
       const contentLen = typeof a.content === 'string' ? a.content.length : JSON.stringify(a.content).length;
       console.log(`  - ${a.id}: "${a.title}" (${contentLen} chars)`);
@@ -1574,6 +1617,7 @@ ideationRouter.get('/session/:sessionId', async (req: Request, res: Response) =>
       messages,
       candidate,
       artifacts,
+      subAgents,
     });
 
   } catch (error) {

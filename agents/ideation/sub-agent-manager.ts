@@ -195,7 +195,8 @@ export class SubAgentManager {
 
   constructor(options?: { maxConcurrency?: number }) {
     this.client = anthropicClient;
-    this.maxConcurrency = options?.maxConcurrency ?? 5;
+    // Reduced from 5 to 2 to avoid API rate limiting and timeouts
+    this.maxConcurrency = options?.maxConcurrency ?? 2;
   }
 
   /**
@@ -287,8 +288,8 @@ export class SubAgentManager {
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       if (attempt > 0) {
-        // Exponential backoff: 2s, 4s
-        const backoffMs = Math.pow(2, attempt) * 1000;
+        // Exponential backoff: 3s, 9s (base 3 instead of 2 for more recovery time)
+        const backoffMs = Math.pow(3, attempt) * 1000;
         console.log(`[SubAgentManager] Retry ${attempt}/${MAX_RETRIES} for ${taskConfig.id} after ${backoffMs}ms`);
         await new Promise(resolve => setTimeout(resolve, backoffMs));
       }
@@ -339,15 +340,23 @@ export class SubAgentManager {
   }
 
   /**
-   * Execute promises with concurrency control.
+   * Execute promises with concurrency control and staggered starts.
    */
   private async executeWithConcurrency(
     taskFns: (() => Promise<void>)[],
     limit: number
   ): Promise<void> {
     const executing = new Set<Promise<void>>();
+    const STAGGER_DELAY_MS = 1000; // 1 second delay between task starts to avoid rate limiting
 
-    for (const taskFn of taskFns) {
+    for (let i = 0; i < taskFns.length; i++) {
+      const taskFn = taskFns[i];
+
+      // Stagger task starts to avoid API rate limiting
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, STAGGER_DELAY_MS));
+      }
+
       // Start the task
       const promise = taskFn().finally(() => {
         executing.delete(promise);

@@ -463,16 +463,29 @@ export function ideationReducer(
     // Sub-Agent Actions
     // =========================================================================
     case 'SUBAGENT_SPAWN': {
-      // IDEMPOTENCY CHECK: Prevent duplicate sub-agents with same ID
-      // This can happen if both API response and WebSocket emit spawn events
-      const existingAgent = state.subAgents.subAgents.find(
+      // Check if agent already exists (may have been created by early status update)
+      const existingAgentIndex = state.subAgents.subAgents.findIndex(
         agent => agent.id === action.payload.id
       );
-      if (existingAgent) {
-        console.log('[Reducer] SUBAGENT_SPAWN ignored - already exists:', action.payload.id);
-        return state; // Don't add duplicate
+
+      if (existingAgentIndex !== -1) {
+        // Agent exists (created by early status update) - update name/type but keep status
+        console.log('[Reducer] SUBAGENT_SPAWN updating existing agent:', action.payload.id);
+        const updatedSubAgents = state.subAgents.subAgents.map(agent =>
+          agent.id === action.payload.id
+            ? { ...agent, name: action.payload.name, type: action.payload.type }
+            : agent
+        );
+        return {
+          ...state,
+          subAgents: {
+            ...state.subAgents,
+            subAgents: updatedSubAgents,
+          },
+        };
       }
 
+      // Agent doesn't exist - create it
       const newSubAgent = {
         id: action.payload.id,
         type: action.payload.type,
@@ -490,18 +503,45 @@ export function ideationReducer(
     }
 
     case 'SUBAGENT_STATUS': {
-      const updatedSubAgents = state.subAgents.subAgents.map(agent =>
-        agent.id === action.payload.id
-          ? {
-              ...agent,
-              status: action.payload.status,
-              error: action.payload.error,
-              ...(action.payload.status === 'completed' || action.payload.status === 'failed'
-                ? { completedAt: new Date().toISOString() }
-                : {}),
-            }
-          : agent
+      // Check if agent exists
+      const existingAgentIndex = state.subAgents.subAgents.findIndex(
+        agent => agent.id === action.payload.id
       );
+
+      let updatedSubAgents: typeof state.subAgents.subAgents;
+
+      if (existingAgentIndex === -1) {
+        // ROBUST FIX: Agent doesn't exist - create it with this status
+        // This handles race conditions where status arrives before spawn
+        console.log('[Reducer] SUBAGENT_STATUS creating agent (race condition fix):', action.payload.id, action.payload.status);
+        const newAgent = {
+          id: action.payload.id,
+          type: 'custom' as const,
+          name: action.payload.id, // Placeholder - will show ID until spawn event arrives
+          status: action.payload.status,
+          startedAt: new Date().toISOString(),
+          error: action.payload.error,
+          ...(action.payload.status === 'completed' || action.payload.status === 'failed'
+            ? { completedAt: new Date().toISOString() }
+            : {}),
+        };
+        updatedSubAgents = [...state.subAgents.subAgents, newAgent];
+      } else {
+        // Agent exists - update it
+        updatedSubAgents = state.subAgents.subAgents.map(agent =>
+          agent.id === action.payload.id
+            ? {
+                ...agent,
+                status: action.payload.status,
+                error: action.payload.error,
+                ...(action.payload.status === 'completed' || action.payload.status === 'failed'
+                  ? { completedAt: new Date().toISOString() }
+                  : {}),
+              }
+            : agent
+        );
+      }
+
       // Calculate active count (spawning or running)
       const activeCount = updatedSubAgents.filter(
         a => a.status === 'spawning' || a.status === 'running'
@@ -516,16 +556,39 @@ export function ideationReducer(
     }
 
     case 'SUBAGENT_RESULT': {
-      const subAgentsWithResult = state.subAgents.subAgents.map(agent =>
-        agent.id === action.payload.id
-          ? {
-              ...agent,
-              status: 'completed' as const,
-              result: action.payload.result,
-              completedAt: new Date().toISOString(),
-            }
-          : agent
+      // Check if agent exists
+      const existingResultAgent = state.subAgents.subAgents.find(
+        agent => agent.id === action.payload.id
       );
+
+      let subAgentsWithResult: typeof state.subAgents.subAgents;
+
+      if (!existingResultAgent) {
+        // ROBUST FIX: Agent doesn't exist - create it as completed
+        console.log('[Reducer] SUBAGENT_RESULT creating agent (race condition fix):', action.payload.id);
+        const newAgent = {
+          id: action.payload.id,
+          type: 'custom' as const,
+          name: action.payload.id,
+          status: 'completed' as const,
+          result: action.payload.result,
+          startedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+        };
+        subAgentsWithResult = [...state.subAgents.subAgents, newAgent];
+      } else {
+        subAgentsWithResult = state.subAgents.subAgents.map(agent =>
+          agent.id === action.payload.id
+            ? {
+                ...agent,
+                status: 'completed' as const,
+                result: action.payload.result,
+                completedAt: new Date().toISOString(),
+              }
+            : agent
+        );
+      }
+
       // Calculate active count (spawning or running)
       const activeAfterResult = subAgentsWithResult.filter(
         a => a.status === 'spawning' || a.status === 'running'

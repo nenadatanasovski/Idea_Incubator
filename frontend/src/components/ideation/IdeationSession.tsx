@@ -152,6 +152,37 @@ export function IdeationSession({
         } else {
           console.log('[Session Resume] No artifacts to restore');
         }
+
+        // Restore sub-agents if present
+        console.log('[Session Resume] SubAgents from API:', sessionData.subAgents);
+        if (sessionData.subAgents && sessionData.subAgents.length > 0) {
+          console.log('[Session Resume] Restoring', sessionData.subAgents.length, 'sub-agents');
+          for (const subAgent of sessionData.subAgents) {
+            console.log('[Session Resume] Adding sub-agent:', subAgent.id, subAgent.type, subAgent.status);
+            // First spawn the agent
+            dispatch({
+              type: 'SUBAGENT_SPAWN',
+              payload: {
+                id: subAgent.id,
+                type: subAgent.type as import('../../types/ideation').SubAgentType,
+                name: subAgent.name,
+              },
+            });
+            // Then update its status if not spawning
+            if (subAgent.status !== 'spawning') {
+              dispatch({
+                type: 'SUBAGENT_STATUS',
+                payload: {
+                  id: subAgent.id,
+                  status: subAgent.status as import('../../types/ideation').SubAgentStatus,
+                  error: subAgent.error,
+                },
+              });
+            }
+          }
+        } else {
+          console.log('[Session Resume] No sub-agents to restore');
+        }
       } catch (error) {
         dispatch({
           type: 'SESSION_ERROR',
@@ -264,11 +295,17 @@ export function IdeationSession({
 
           // Sub-agent events
           case 'subagent:spawn':
-            // NOTE: Sub-agents are already spawned from API response for immediate UI feedback.
-            // This WebSocket event is a confirmation that can be used for logging/debugging,
-            // but we don't dispatch SUBAGENT_SPAWN again to avoid duplicates.
-            // The reducer also has idempotency protection as a defensive measure.
-            console.log('[WebSocket] Sub-agent spawn confirmed (already created from API):', data.data.subAgentId);
+            // ROBUST: Always dispatch spawn - reducer handles idempotency and updates name/type
+            // This ensures agent exists even if HTTP response was slow
+            console.log('[WebSocket] Sub-agent spawn:', data.data.subAgentId, data.data.subAgentName);
+            dispatch({
+              type: 'SUBAGENT_SPAWN',
+              payload: {
+                id: data.data.subAgentId,
+                type: data.data.subAgentType,
+                name: data.data.subAgentName,
+              },
+            });
             break;
 
           case 'subagent:status':
