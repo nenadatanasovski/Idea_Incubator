@@ -90,6 +90,7 @@ export interface IdeationMessage {
 export interface ConversationPanelProps {
   messages: IdeationMessage[];
   isLoading: boolean;
+  streamingContent?: string;
   error?: string | null;
   onSendMessage: (message: string) => void;
   onStopGeneration?: () => void;
@@ -135,6 +136,7 @@ export interface MessageTextProps {
 
 export interface TypingIndicatorProps {
   isVisible: boolean;
+  streamingContent?: string;
 }
 
 // -----------------------------------------------------------------------------

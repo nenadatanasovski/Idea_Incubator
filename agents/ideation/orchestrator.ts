@@ -393,23 +393,44 @@ export class AgentOrchestrator {
     // Try to parse as JSON
     try {
       // Find JSON in response (may be wrapped in markdown code blocks)
-      // Try code block first, then raw JSON object
-      const codeBlockMatch = text.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
+      // Strategy: Try multiple extraction methods, use whichever produces valid JSON
+
+      // Method 1: Greedy code block match (captures until LAST ```) - handles artifacts with code blocks
+      const greedyCodeBlockMatch = text.match(/```(?:json)?\n?([\s\S]*)```/);
+      // Method 2: Non-greedy code block match (original) - works for simple cases
+      const simpleCodeBlockMatch = text.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
+      // Method 3: Raw JSON extraction - find outermost { }
       const rawJsonMatch = text.match(/(\{[\s\S]*\})/);
 
-      const jsonMatch = codeBlockMatch || rawJsonMatch;
-      if (!jsonMatch) {
+      // Try each method in order until one produces valid JSON
+      const candidates = [greedyCodeBlockMatch, simpleCodeBlockMatch, rawJsonMatch].filter(Boolean);
+
+      if (candidates.length === 0) {
         console.log('[Orchestrator] No JSON found in response, treating as plain text');
         return { reply: text };
       }
 
-      let jsonStr = jsonMatch[1] || jsonMatch[0];
+      let jsonStr: string | null = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let parsed: any = null;
 
-      // Try to repair common JSON issues before parsing
-      // 1. Fix unescaped newlines inside string values
-      jsonStr = this.repairJsonString(jsonStr);
+      for (const match of candidates) {
+        const candidate = match![1] || match![0];
+        try {
+          const repaired = this.repairJsonString(candidate);
+          parsed = JSON.parse(repaired);
+          jsonStr = repaired;
+          console.log('[Orchestrator] Successfully parsed JSON using method', candidates.indexOf(match) + 1);
+          break;
+        } catch {
+          // Try next method
+          continue;
+        }
+      }
 
-      const parsed = JSON.parse(jsonStr);
+      if (!parsed || !jsonStr) {
+        throw new Error('All JSON extraction methods failed');
+      }
 
       console.log('[Orchestrator] Parsed JSON - webSearchNeeded:', parsed.webSearchNeeded, 'artifact:', parsed.artifact?.type, 'artifactUpdate:', JSON.stringify(parsed.artifactUpdate));
 

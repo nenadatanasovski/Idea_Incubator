@@ -4,7 +4,7 @@
 
 **Status:** Ideation
 **Created:** 2025-01-02
-**Updated:** 2025-01-03
+**Updated:** 2025-01-04
 **Creator:** Ned
 **Location:** Sydney, Australia
 
@@ -71,7 +71,7 @@ Every app built on Vibe ships with invisible infrastructure:
 | **Hosting + DB** | Base infrastructure cost + small Vibe margin | App complexity, data volume |
 | **Feature Garden** | Monthly fee per OOB feature enabled | Customer count, transaction volume |
 | **Custom Features** | Credits for AI agent time + Vibe margin | Frequency of change requests |
-| **Revenue Share** | Small % of user's app revenue | Interactions/transactions in the app |
+| **Revenue Share** | Optional — only if using Vibe Payments | Transactions through Vibe's payment system |
 | **Paid Testing** | Creators pay testers; Vibe takes small fee | Testing activity |
 
 ### Credit System
@@ -84,6 +84,8 @@ Every app built on Vibe ships with invisible infrastructure:
 **Aligned incentives:** Vibe makes more when users succeed.
 
 **No escape hatch:** Code is never exposed. Users can't self-host or export code. Fair trade for never worrying about technical operations.
+
+**Platform Continuity Clause:** If Vibe ever discontinues service, users can purchase their codebase outright. This is documented in T&Cs to build trust.
 
 ---
 
@@ -170,6 +172,27 @@ Vibe's core differentiator is its self-evolving autonomous agent architecture.
 | **Self-Correction** | Agents detect when stuck and can modify their own instructions to break loops |
 | **Dynamic Creation** | New agent types are spawned on-demand when existing types don't fit the task |
 
+### The Self-Improvement Agent (SIA)
+
+The SIA is a critical meta-agent that improves other agents:
+- Triggers between build loops when the same task is being reworked
+- Analyzes transcripts/footprints from previous agent attempts
+- Applies techniques from its prompt library to suggest new approaches
+- Maintains internal memory (md file) of system prompts tried
+- Tracks whether changes improve or degrade performance
+- Has failsafe: after X failed attempts, triggers human-in-the-loop
+
+### Validation & Ground Truth
+- Each task has deterministic pass/fail criteria
+- Tasks vetted by AI before assignment to prevent impossible tasks
+- Internal memory tracks previous attempts for comparison
+- Clear metrics determine if an SIA-suggested change actually improves outcomes
+
+### Circuit Breakers
+- Maximum attempt threshold before human escalation
+- Credit consumption limits to prevent runaway costs
+- Impossible task detection at assignment time
+
 ### The Orchestrator
 
 The master coordinator that:
@@ -182,7 +205,7 @@ The master coordinator that:
 
 **User-Facing:** Ideation, Specification, Build, Support, Network, Analytics
 
-**System:** Testing, QA, Optimization, Security, Deployment
+**System:** Testing, QA, Optimization, Security, Deployment, Self-Improvement (SIA)
 
 **Meta:** Orchestrator, Registry, Pipeline
 
@@ -193,6 +216,10 @@ Testing agents with browser control continuously simulate user behavior:
 2. **Capture** — Record all actions, errors, friction points
 3. **Analyze** — Identify gaps, stuck points, opportunities
 4. **Action** — Auto-fix simple issues, queue complex ones, update agent registry
+
+**Test Environment Isolation:** All testing runs in lower environments to prevent real side effects (emails, data creation, etc.)
+
+**Edge Case Discovery:** AI proactively suggests test scenarios covering edge cases — deterministic self-suggesting nature.
 
 **Why this matters:** The platform improves even when the founder is at his day job. This scales 15-20 hours/week dramatically.
 
@@ -205,6 +232,7 @@ Testing agents with browser control continuously simulate user behavior:
 | Technical blocker | External dependency or limitation |
 | Low confidence | <60% confidence in approach |
 | Safety concern | Potential harmful content detected |
+| SIA exhaustion | X failed system prompt variations |
 
 ---
 
@@ -257,6 +285,35 @@ IDEATION                |
 3. **Proactive continuous AI** — behavioral shift, not just a feature
 4. **Self-optimizing platform** — testing agents improve product autonomously
 5. **"Never see code" lock-in** — trade-off creates defensibility
+6. **Self-Improvement Agent (SIA)** — agents that improve other agents
+
+### Competitive Defense Strategy
+
+**The real fear:** Someone beats Vibe to market with similar proposition plus more capital.
+
+**Why Vibe can win:**
+- First-mover in specific niche (ideation + build + network unified)
+- Self-optimizing systems that improve without direct intervention
+- Founder-market fit (10 years building apps)
+- Speed of AI-native development (Ralph loops)
+- Focus (competitors maintain existing products; Vibe is purpose-built)
+
+**The answer:** Can't out-capital them. Must out-focus and out-iterate them. Winner is who learns fastest and builds tightest product-market fit.
+
+---
+
+## User Retention Strategy
+
+Why users stay (not just sign up):
+
+| Retention Mechanism | How It Works |
+|---------------------|--------------|
+| **Network lock-in** | Cross-app discovery only works inside Vibe ecosystem |
+| **Continuous AI improvement** | App gets better automatically — why leave? |
+| **Data/analytics lock-in** | Unified intelligence across apps — can't replicate elsewhere |
+| **Community** | Relationships with collaborators built on Vibe |
+| **Cost of recreation** | Rebuilding elsewhere means starting from scratch |
+| **Technical liberation** | Never worry about code, hosting, updates again |
 
 ---
 
@@ -297,6 +354,7 @@ IDEATION                |
 - Expensive without known CAC/LTV
 - Requires optimization time founder doesn't have
 - Better after organic validation proves who converts
+- Can run small test campaigns ($500-1K AUD) to learn messaging once MVP exists
 
 ### Triggers to Go Full-Time
 
@@ -310,60 +368,28 @@ IDEATION                |
 
 ---
 
-## Investor Pitch Summary
-
-### The Problem
-
-**42% of startups fail because they build something nobody wants.**
-
-The journey from idea to product is broken:
-- Ideation tools give reports, then leave you alone
-- AI builders assume clear specs (users don't have them)
-- No-code platforms still require learning curves
-- Everything is disconnected
-
-### The Solution
-
-**One platform. Idea to income.**
-
-1. "What makes you tick?" → AI explores passions
-2. Guided ideation → Validated, spec'd idea
-3. Collaborative refinement → Invite experts, friends
-4. AI builds the app → Full context = no garbage prompts
-5. Launch & grow → Proactive AI surfaces opportunities
-
-### Why Now
-
-- "Vibe coding" = Collins Dictionary Word of the Year 2025
-- 75% of apps will be low-code by 2026 (Gartner)
-- 25% of Y Combinator Spring 2025 batch was 95%+ AI-generated
-- Tools exist but nobody's connected ideation + build + network
-
-### The Ask
-
-- Raising: TBD based on runway modeling
-- Use of funds: Complete MVP, first 100 users, network features
-- Milestones: 500+ signups, 50+ apps built, evidence of retention
-
-### Why Invest
-
-1. **Massive market** — $265B by 2032, 32% CAGR
-2. **Clear whitespace** — Nobody connects ideation + build + network
-3. **Aligned incentives** — Revenue share means winning together
-4. **Self-improving product** — Platform evolves autonomously
-5. **Right founder** — Technical + sales + AI-native mindset
-
----
-
 ## Trust & Safety
 
 | Concern | Approach |
 |---------|----------|
 | **Idea theft** | Users share at own risk; NDA terms; granular sharing controls; can ask experts questions without revealing full idea. Having an idea does not equal successfully executing it. |
 | **AI failure modes** | Terms & Conditions cover liability; transparent escalation; human-in-the-loop for complex situations |
+| **Price transparency** | No hidden fees; cost forecasts upfront; clear communication about any price changes |
+| **Platform shutdown** | T&Cs include Platform Continuity clause: users can purchase codebase outright if service discontinues |
 | **User churn** | Platform differentiates by being the best alternative for realizing dreams |
 | **Harmful apps** | AI moderation; content policies; no harmful apps, adult content, or scams; human review for edge cases. |
 | **Data ownership** | Users own their data completely. Can opt to anonymize data for Vibe analytics features. |
+| **Legal/regulatory** | Legal AI agent prepares users for professional legal counsel; T&Cs clearly disclaim that users are responsible for compliance |
+
+### What AI Cannot Fully Solve (Honest Assessment)
+
+| Problem | Limitation | Mitigation |
+|---------|------------|------------|
+| Novel API integrations | No training data | Human-in-the-loop, documentation guidance |
+| Complex debugging | Context limits | SIA system, escalation protocols |
+| Performance at scale | Requires profiling | Specialized optimization agents |
+| Legal nuance by jurisdiction | High stakes, constant change | AI prepares, human professional advises |
+| UX intuition | Taste is hard to codify | User feedback loops, testing agents |
 
 ---
 
@@ -429,6 +455,107 @@ Start with safe bets (CRUD apps, landing pages, simple tools), add complexity as
 
 **Open to:** Co-founder with complementary skills (product, growth, technical depth).
 
+### Co-founder Search Strategy
+
+**Profile sought:**
+- Complementary skills (product/growth if Ned is orchestration-focused)
+- Entrepreneurial mindset (not employee seeking equity)
+- Comfortable with ambiguity and AI-native workflows
+- Existing network in startup/creator communities
+
+**Where to look:**
+- Indie Hackers (community of builders)
+- On Deck (founder network)
+- Y Combinator co-founder matching
+- Twitter/X startup circles
+- Former colleagues with entrepreneurial interest
+
+**Timing:** Passive search now (lurk, note interesting people). Active search when MVP is demo-able.
+
+---
+
+## Skeptic/Realist Assessment
+
+### Strengths Validated
+
+| Strength | Evidence |
+|----------|----------|
+| Clear vision | Differentiated positioning in competitive landscape |
+| AI-native approach | Working ideation agent proves capability |
+| Self-optimizing systems | SIA architecture with deterministic validation |
+| Aligned revenue model | Platform succeeds when users succeed |
+| Founder commitment | 10 years experience, clear triggers for full-time |
+| Ground-truth validation | Each task has deterministic pass/fail criteria — not just "vibes" |
+| Circuit breakers exist | Maximum attempts before human escalation; credit limits prevent runaway costs |
+
+### Risks Acknowledged
+
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| Execution speed | High | Ruthless prioritization, Ralph loops |
+| Market timing | Medium | Window open but closing; move fast |
+| Solo founder | Medium | Co-founder search starting soon, AI amplification |
+| Lock-in perception | Medium | Transparency from day one, Platform Continuity clause, no hidden fees |
+| AI limitations | Medium | Human-in-the-loop, clear disclaimers, SIA system |
+| Competitor resources | High | Out-focus, out-iterate, learn faster |
+| Price increase resentment | Medium | Cost forecasts upfront, responsive pricing with clear communication |
+| Adverse selection | Medium | Strong retention tactics prevent winners from leaving |
+
+### Skeptic Challenges Addressed
+
+| Challenge | Response |
+|-----------|----------|
+| **"SIA improvements might be hallucinated"** | Deterministic pass/fail criteria validate improvements. Internal memory tracks what worked. |
+| **"Context handoffs lose nuance"** | Git commit history + agent footprints/transcripts preserve context |
+| **"Self-correction could make agents worse"** | SIA tracks system prompt history, compares outcomes, rolls back bad changes |
+| **"Orchestrator is single point of failure"** | Pipeline exists independent of orchestrator; internal memory for new agents |
+| **"Testing agents might cause side effects"** | Isolated lower test environments; no real comms sent by agents |
+| **"Lock-in is predatory"** | It's liberation in disguise; Platform Continuity clause allows code purchase if shutdown |
+| **"Revenue share is unenforceable"** | Revenue share only applies to optional Vibe Payments; convenience-based, not mandatory |
+| **"PoC users will leave"** | PoC still consumes credits (revenue); platform demonstrates unique value to retain winners |
+| **"Dreamers can't afford lawyers"** | Fixed costs of business exist; Vibe prepares users for legal conversations, T&Cs disclaim liability |
+| **"Network requires critical mass"** | Network is multiplier, not MVP requirement; Feature Garden provides standalone value early |
+| **"AI can't solve everything"** | Human-in-the-loop for novel APIs, complex debugging, legal nuance, UX taste |
+
+### Retention Tactics (Explicit)
+
+| Tactic | How It Retains |
+|--------|----------------|
+| **Network lock-in** | Cross-app discovery only works inside Vibe ecosystem |
+| **Continuous AI improvement** | App gets better automatically — why leave? |
+| **Data/analytics lock-in** | Unified intelligence across apps — can't replicate elsewhere |
+| **Community** | Relationships with collaborators built on Vibe |
+| **Cost of recreation** | Rebuilding elsewhere means starting from scratch |
+| **Technical liberation** | Never worry about code, hosting, updates again |
+
+### The Real Fear
+
+Someone beats Vibe to market with similar proposition plus more capital and larger user base.
+
+**Response:** Capital is not the only moat. Speed of learning, depth of product-market fit, and continuous innovation are equally powerful.
+
+### Why Vibe Can Win Despite Resource Disadvantage
+
+| Advantage | Why It Matters |
+|-----------|----------------|
+| First-mover in specific niche | "Ideation + Build + Network" as unified experience |
+| Self-optimizing systems | Platform improves without direct intervention |
+| Founder-market fit | 10 years building apps, lives the problem |
+| Speed of AI-native development | Ralph loops enable faster iteration than traditional teams |
+| Focus | Competitors maintain existing products; Vibe is purpose-built |
+
+### Overall Assessment
+
+**Vibe is a viable idea with significant execution risk.**
+
+The vision is differentiated. The technical approach (self-optimizing agents, deterministic pipelines) is sophisticated. The business model has aligned incentives.
+
+**Critical success factors:**
+1. Execute fast enough to matter (6-12 month window)
+2. Learn faster than well-funded competitors
+3. Find co-founder sooner rather than later
+4. Build in public to create attention moat
+
 ---
 
 ## Key Quotes from Ideation Session
@@ -459,23 +586,40 @@ If someone uses Vibe and succeeds wildly, they are those who:
 ## Related Documents
 
 - [Autonomous Agent System](./autonomous-agent-system.md) — Detailed technical architecture
-- [Investor Pitch](./investor-pitch.md) — Full pitch deck content (to be created)
-- [Competitive Analysis](./competitive-analysis.md) — Deep dive on competitors (to be created)
+- [Investor Pitch](./investor-pitch.md) — Full pitch deck content
+- [Action Plan](./action-plan.md) — 30/60/90 day execution roadmap
+- [Competitive Analysis](./competitive-analysis.md) — Deep dive on competitors
+
+---
+
+## Immediate Priorities (Next 30 Days)
+
+1. **Ideation agent system** — Complete the conversational ideation experience
+2. **Multi-agent orchestration** — Build the orchestrator and agent registry
+3. **Hosting capability** — Ability to deploy and run an app (if time permits)
+
+### 60-Day Horizon
+- Specification agent fully functional
+- Build agent with Ralph loop operational
+- First external users testing ideation flow
+
+### 90-Day Horizon
+- End-to-end demo: idea → built app
+- 10-20 users beyond inner circle
+- Begin Product Hunt preparation
 
 ---
 
 ## Open Questions for Future Exploration
 
-1. **Capital requirements** for competing with well-funded players
-2. **Detailed pricing tiers** and credit economics
-3. **Technical architecture** — high-level system design
-4. **NDA contract specifics** and fork rights framework
-5. **AI liability T&Cs** for when AI builds something wrong
-6. **Proactive AI channel rules** — when to call vs. notify vs. email
-7. **App store submission automation** vs. PWA-first strategy
-8. **International expansion** considerations (legal, payments, localization)
+1. **Detailed pricing tiers** and credit economics
+2. **Technical architecture** — high-level system design
+3. **NDA contract specifics** and fork rights framework
+4. **Proactive AI channel rules** — when to call vs. notify vs. email
+5. **App store submission automation** vs. PWA-first strategy
+6. **International expansion** considerations (legal, payments, localization)
 
 ---
 
-*Last updated: January 3, 2025*
+*Last updated: January 4, 2025*
 *Created through AI-guided ideation — a demonstration of the platform's own methodology.*

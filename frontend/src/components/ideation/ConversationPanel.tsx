@@ -12,6 +12,7 @@ import type { ConversationPanelProps } from '../../types/ideation';
 export function ConversationPanel({
   messages,
   isLoading,
+  streamingContent,
   error,
   onSendMessage,
   onStopGeneration,
@@ -41,7 +42,7 @@ export function ConversationPanel({
           onConvertToArtifact={onConvertToArtifact}
           isLoading={isLoading}
         />
-        <TypingIndicator isVisible={isLoading} />
+        <TypingIndicator isVisible={isLoading} streamingContent={streamingContent} />
         {error && (
           <div className="mx-4 p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
             <div className="flex items-start gap-2">

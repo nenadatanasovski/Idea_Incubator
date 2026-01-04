@@ -884,6 +884,35 @@ export function IdeationSession({
           payload: { usage: response.tokenUsage },
         });
       }
+
+      // Handle artifact if returned (mermaid diagrams, code, etc.)
+      if (response.artifact) {
+        dispatch({ type: 'ARTIFACT_ADD', payload: { artifact: response.artifact } });
+      }
+
+      // Handle artifact update if returned (agent edited an existing artifact)
+      if (response.artifactUpdate) {
+        dispatch({
+          type: 'ARTIFACT_UPDATE',
+          payload: {
+            id: response.artifactUpdate.id,
+            updates: {
+              content: response.artifactUpdate.content,
+              ...(response.artifactUpdate.title && { title: response.artifactUpdate.title }),
+              updatedAt: response.artifactUpdate.updatedAt,
+            },
+          },
+        });
+        // Open the artifact panel to show the update
+        dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: true } });
+        setToast({ message: 'Artifact updated!', type: 'success' });
+        setTimeout(() => setToast(null), 3000);
+      }
+
+      // Handle async web search if queries were returned
+      if (response.webSearchQueries && response.webSearchQueries.length > 0) {
+        executeAsyncWebSearch(response.webSearchQueries);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to edit message';
       dispatch({
@@ -891,7 +920,7 @@ export function IdeationSession({
         payload: { error: errorMessage },
       });
     }
-  }, [state.session.sessionId, api]);
+  }, [state.session.sessionId, api, executeAsyncWebSearch]);
 
   // Handle capture
   const handleCapture = useCallback(async () => {
@@ -1022,6 +1051,7 @@ export function IdeationSession({
           <ConversationPanel
             messages={state.conversation.messages}
             isLoading={state.conversation.isLoading}
+            streamingContent={state.conversation.streamingContent}
             error={state.conversation.error}
             onSendMessage={handleSendMessage}
             onStopGeneration={handleStopGeneration}
