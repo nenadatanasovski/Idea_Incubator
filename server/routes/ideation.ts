@@ -14,7 +14,72 @@ import { buildSystemPrompt } from '../../agents/ideation/system-prompt.js';
 import { performWebSearch, SearchPurpose } from '../../agents/ideation/web-search-service.js';
 import { artifactStore } from '../../agents/ideation/artifact-store.js';
 import { editArtifact, detectArtifactEditRequest } from '../../agents/ideation/artifact-editor.js';
-import { emitSessionEvent } from '../websocket.js';
+import { emitSessionEvent, emitSubAgentSpawn, emitSubAgentStatus, emitSubAgentResult } from '../websocket.js';
+import { subAgentManager, SubAgentTask as ManagerSubAgentTask } from '../../agents/ideation/sub-agent-manager.js';
+
+/**
+ * Creates a sub-agent status callback with proper deduplication.
+ * Tracks which task+status combinations have been emitted to avoid duplicates
+ * when onStatusChange receives ALL tasks on every status change.
+ */
+function createSubAgentStatusCallback(
+  sessionId: string,
+  logPrefix: string = '[SubAgent]'
+): (tasks: ManagerSubAgentTask[]) => void {
+  // Track emitted statuses: "taskId:status"
+  const emittedStatuses = new Set<string>();
+  // Track saved artifacts by task ID
+  const savedArtifacts = new Set<string>();
+
+  return (tasks: ManagerSubAgentTask[]) => {
+    for (const task of tasks) {
+      const statusKey = `${task.id}:${task.status}`;
+
+      // Skip if we've already processed this task+status combination
+      if (emittedStatuses.has(statusKey)) {
+        continue;
+      }
+
+      console.log(`${logPrefix} Task ${task.id} status: ${task.status}`);
+      emittedStatuses.add(statusKey);
+
+      // Emit status update
+      if (task.status === 'running' || task.status === 'completed' || task.status === 'failed') {
+        emitSubAgentStatus(sessionId, task.id, task.status, task.error);
+      }
+
+      // Save artifact only once when completed
+      if (task.status === 'completed' && task.result && !savedArtifacts.has(task.id)) {
+        savedArtifacts.add(task.id);
+        emitSubAgentResult(sessionId, task.id, task.result);
+
+        // Save result as artifact
+        const artifactId = `subagent_${task.id}`;
+        artifactStore.save({
+          id: artifactId,
+          sessionId,
+          type: 'markdown',
+          title: task.label.replace('...', ''),
+          content: task.result,
+          status: 'ready',
+        }).then(() => {
+          console.log(`${logPrefix} Saved artifact: ${artifactId}`);
+          // Notify frontend about new artifact
+          emitSessionEvent('artifact:created', sessionId, {
+            id: artifactId,
+            type: 'markdown',
+            title: task.label.replace('...', ''),
+            content: task.result,
+            status: 'ready',
+            createdAt: new Date().toISOString(),
+          });
+        }).catch(err => {
+          console.error(`${logPrefix} Failed to save artifact: ${err}`);
+        });
+      }
+    }
+  };
+}
 
 export const ideationRouter = Router();
 
@@ -514,7 +579,60 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
       webSearchQueries: response.webSearchQueries || null, // Queries to execute async
       artifact: artifactResponse, // Visual artifact from agent
       artifactUpdate: artifactUpdateResponse, // Updated artifact from agent
+      // Quick acknowledgment fields for sub-agent execution
+      isQuickAck: response.isQuickAck,
+      subAgentTasks: response.subAgentTasks || null,
     });
+
+    // If this was a quick-ack response with sub-agent tasks, execute them asynchronously
+    if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks.length > 0) {
+      console.log(`[Routes/Message] Quick-ack detected, spawning ${response.subAgentTasks.length} sub-agents`);
+
+      // Build context for sub-agents from memory files
+      const memoryFiles = await memoryManager.getAll(sessionId);
+      const contextParts: string[] = [];
+
+      // Add candidate info
+      const candidate = await candidateManager.getActiveForSession(sessionId);
+      if (candidate) {
+        contextParts.push(`## Current Idea: ${candidate.title}`);
+        if (candidate.summary) {
+          contextParts.push(`Summary: ${candidate.summary}`);
+        }
+      }
+
+      // Add memory file context
+      for (const file of memoryFiles) {
+        contextParts.push(`\n## ${file.fileType}\n${file.content}`);
+      }
+
+      const context = contextParts.join('\n');
+
+      // Emit initial spawn events for UI
+      for (const task of response.subAgentTasks) {
+        emitSubAgentSpawn(sessionId, task.id, task.type, task.label);
+      }
+
+      // Delay sub-agent execution to ensure HTTP response is flushed first
+      // This prevents race condition where WebSocket 'running' arrives before frontend creates agents
+      setTimeout(() => {
+        subAgentManager.spawnAgents(
+          response.subAgentTasks.map(t => ({
+            id: t.id,
+            type: t.type,
+            label: t.label,
+            prompt: t.prompt,
+          })),
+          context,
+          // Use deduplicated callback to avoid multiple emissions per task
+          createSubAgentStatusCallback(sessionId, '[SubAgent]')
+        ).then((completedTasks) => {
+          console.log(`[Routes/Message] All ${completedTasks.length} sub-agents completed`);
+        }).catch((error) => {
+          console.error(`[Routes/Message] Sub-agent execution error:`, error);
+        });
+      }, 100); // 100ms delay
+    }
 
   } catch (error) {
     console.error('Error processing ideation message:', error);
@@ -827,7 +945,59 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
       webSearchResults: response.webSearchResults || null,
       artifact: artifactResponse,
       artifactUpdate: artifactUpdateResponse,
+      // Quick acknowledgment fields for sub-agent execution
+      isQuickAck: response.isQuickAck,
+      subAgentTasks: response.subAgentTasks || null,
     });
+
+    // If this was a quick-ack response with sub-agent tasks, execute them asynchronously
+    if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks.length > 0) {
+      console.log(`[Routes/MessageEdit] Quick-ack detected, spawning ${response.subAgentTasks.length} sub-agents`);
+
+      // Build context for sub-agents from memory files
+      const memoryFiles = await memoryManager.getAll(sessionId);
+      const contextParts: string[] = [];
+
+      if (memoryFiles.selfDiscovery) {
+        contextParts.push(`## Self Discovery\n${JSON.stringify(memoryFiles.selfDiscovery, null, 2)}`);
+      }
+      if (memoryFiles.marketDiscovery) {
+        contextParts.push(`## Market Discovery\n${JSON.stringify(memoryFiles.marketDiscovery, null, 2)}`);
+      }
+      if (memoryFiles.narrowing) {
+        contextParts.push(`## Narrowing State\n${JSON.stringify(memoryFiles.narrowing, null, 2)}`);
+      }
+      if (candidateData) {
+        contextParts.push(`## Current Idea Candidate\nTitle: ${candidateData.title}\nSummary: ${candidateData.summary || 'Not yet defined'}`);
+      }
+
+      const context = contextParts.join('\n');
+
+      // Emit initial spawn events for UI
+      for (const task of response.subAgentTasks) {
+        emitSubAgentSpawn(sessionId, task.id, task.type, task.label);
+      }
+
+      // Delay sub-agent execution to ensure HTTP response is flushed first
+      // This prevents race condition where WebSocket 'running' arrives before frontend creates agents
+      setTimeout(() => {
+        subAgentManager.spawnAgents(
+          response.subAgentTasks.map(t => ({
+            id: t.id,
+            type: t.type,
+            label: t.label,
+            prompt: t.prompt,
+          })),
+          context,
+          // Use deduplicated callback to avoid multiple emissions per task
+          createSubAgentStatusCallback(sessionId, '[SubAgent/Edit]')
+        ).then(completedTasks => {
+          console.log(`[Routes/MessageEdit] All ${completedTasks.length} sub-agents completed`);
+        }).catch(err => {
+          console.error(`[Routes/MessageEdit] Sub-agent execution error:`, err);
+        });
+      }, 100); // 100ms delay
+    }
 
   } catch (error) {
     console.error('Error editing ideation message:', error);
@@ -937,7 +1107,58 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
         shouldHandoff,
       },
       webSearchQueries: response.webSearchQueries || null, // Queries to execute async
+      // Quick acknowledgment fields for sub-agent execution
+      isQuickAck: response.isQuickAck,
+      subAgentTasks: response.subAgentTasks || null,
     });
+
+    // If this was a quick-ack response with sub-agent tasks, execute them asynchronously
+    if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks.length > 0) {
+      console.log(`[Routes/Button] Quick-ack detected, spawning ${response.subAgentTasks.length} sub-agents`);
+
+      // Build context for sub-agents from memory files
+      const memoryFiles = await memoryManager.getAll(sessionId);
+      const contextParts: string[] = [];
+
+      // Add candidate info
+      const candidate = await candidateManager.getActiveForSession(sessionId);
+      if (candidate) {
+        contextParts.push(`## Current Idea: ${candidate.title}`);
+        if (candidate.summary) {
+          contextParts.push(`Summary: ${candidate.summary}`);
+        }
+      }
+
+      // Add memory file context
+      for (const file of memoryFiles) {
+        contextParts.push(`\n## ${file.fileType}\n${file.content}`);
+      }
+
+      const context = contextParts.join('\n');
+
+      // Emit initial spawn events for UI
+      for (const task of response.subAgentTasks) {
+        emitSubAgentSpawn(sessionId, task.id, task.type, task.label);
+      }
+
+      // Delay sub-agent execution to ensure HTTP response is flushed first
+      // This prevents race condition where WebSocket 'running' arrives before frontend creates agents
+      setTimeout(() => {
+        subAgentManager.spawnAgents(
+          response.subAgentTasks.map(t => ({
+            id: t.id,
+            type: t.type,
+            label: t.label,
+            prompt: t.prompt,
+          })),
+          context,
+          // Use deduplicated callback to avoid multiple emissions per task
+          createSubAgentStatusCallback(sessionId, '[SubAgent/Button]')
+        ).catch(err => {
+          console.error(`[Routes/Button] Sub-agent execution failed:`, err);
+        });
+      }, 100); // 100ms delay
+    }
 
   } catch (error) {
     console.error('Error processing button click:', error);

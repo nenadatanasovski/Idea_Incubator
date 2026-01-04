@@ -585,10 +585,18 @@ If someone uses Vibe and succeeds wildly, they are those who:
 
 ## Related Documents
 
-- [Autonomous Agent System](./autonomous-agent-system.md) — Detailed technical architecture
-- [Investor Pitch](./investor-pitch.md) — Full pitch deck content
+### Core Architecture
+- [Autonomous Agent System](./autonomous-agent-system.md) — Agent orchestration and lifecycle
+- [Technical Architecture](./technical-architecture.md) — High-level system design (layers, databases, APIs, infrastructure)
+- [SIA Loop Architecture](./sia-loop-architecture.md) — Self-Improvement Agent detailed design
+
+### Business Documents
+- [Investor Pitch (Refined)](./investor-pitch-refined.md) — Full pitch deck content (post-skeptic session)
+- [Elevator Pitch](./elevator-pitch.md) — Quick reference pitches for different contexts
 - [Action Plan](./action-plan.md) — 30/60/90 day execution roadmap
-- [Competitive Analysis](./competitive-analysis.md) — Deep dive on competitors
+
+### Analysis
+- [Skeptic Findings](./skeptic-findings.md) — Challenges and responses from skeptic session
 
 ---
 

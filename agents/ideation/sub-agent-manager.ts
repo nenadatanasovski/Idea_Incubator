@@ -260,7 +260,7 @@ export class SubAgentManager {
   }
 
   /**
-   * Execute a single sub-agent task.
+   * Execute a single sub-agent task with timeout protection and retry logic.
    */
   private async executeSubAgent(
     taskConfig: SubAgentTaskConfig,
@@ -280,23 +280,62 @@ export class SubAgentManager {
     console.log(`[SubAgentManager] Starting task: ${taskConfig.id} (${taskConfig.type})`);
     console.log(`[SubAgentManager] Label: ${taskConfig.label}`);
 
-    const response = await this.client.messages.create({
-      model: getConfig().model || 'claude-sonnet-4-20250514',
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
+    // Retry configuration
+    const MAX_RETRIES = 2;
+    const TIMEOUT_MS = 120_000; // 120 seconds (increased from 90)
+    let lastError: Error | null = null;
 
-    // Extract text content
-    const textContent = response.content.find((c) => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from sub-agent');
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        // Exponential backoff: 2s, 4s
+        const backoffMs = Math.pow(2, attempt) * 1000;
+        console.log(`[SubAgentManager] Retry ${attempt}/${MAX_RETRIES} for ${taskConfig.id} after ${backoffMs}ms`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+      }
+
+      try {
+        // Create timeout promise
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error(`Sub-agent task timed out after ${TIMEOUT_MS / 1000}s: ${taskConfig.label}`));
+          }, TIMEOUT_MS);
+        });
+
+        // Race the API call against timeout
+        const response = await Promise.race([
+          this.client.messages.create({
+            model: getConfig().model || 'claude-sonnet-4-20250514',
+            max_tokens: 8192,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: userPrompt }],
+          }),
+          timeoutPromise,
+        ]);
+
+        // Extract text content
+        const textContent = response.content.find((c) => c.type === 'text');
+        if (!textContent || textContent.type !== 'text') {
+          throw new Error('No text response from sub-agent');
+        }
+
+        console.log(`[SubAgentManager] Completed task: ${taskConfig.id}`);
+        console.log(`[SubAgentManager] Result length: ${textContent.text.length} chars`);
+
+        return textContent.text;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        console.error(`[SubAgentManager] Attempt ${attempt + 1} failed for ${taskConfig.id}:`, lastError.message);
+
+        // Don't retry on certain errors
+        if (lastError.message.includes('invalid_api_key') ||
+            lastError.message.includes('authentication')) {
+          throw lastError;
+        }
+      }
     }
 
-    console.log(`[SubAgentManager] Completed task: ${taskConfig.id}`);
-    console.log(`[SubAgentManager] Result length: ${textContent.text.length} chars`);
-
-    return textContent.text;
+    // All retries exhausted
+    throw lastError || new Error('Sub-agent task failed after retries');
   }
 
   /**

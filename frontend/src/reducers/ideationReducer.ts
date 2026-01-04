@@ -463,6 +463,16 @@ export function ideationReducer(
     // Sub-Agent Actions
     // =========================================================================
     case 'SUBAGENT_SPAWN': {
+      // IDEMPOTENCY CHECK: Prevent duplicate sub-agents with same ID
+      // This can happen if both API response and WebSocket emit spawn events
+      const existingAgent = state.subAgents.subAgents.find(
+        agent => agent.id === action.payload.id
+      );
+      if (existingAgent) {
+        console.log('[Reducer] SUBAGENT_SPAWN ignored - already exists:', action.payload.id);
+        return state; // Don't add duplicate
+      }
+
       const newSubAgent = {
         id: action.payload.id,
         type: action.payload.type,

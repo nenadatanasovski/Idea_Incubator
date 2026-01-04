@@ -25,6 +25,7 @@ export type DebateEventType =
 export type IdeationEventType =
   | 'artifact:updating'    // Artifact edit in progress
   | 'artifact:updated'     // Artifact edit completed
+  | 'artifact:created'     // New artifact created (e.g., by sub-agent)
   | 'artifact:error'       // Artifact edit failed
   | 'subagent:spawn'       // When a sub-agent starts
   | 'subagent:status'      // When a sub-agent status changes (running/completed/failed)
@@ -33,13 +34,17 @@ export type IdeationEventType =
 // Sub-agent status types
 export type SubAgentStatus = 'spawning' | 'running' | 'completed' | 'failed';
 
-// Sub-agent types
+// Sub-agent types (extended to support orchestrator task types)
 export type SubAgentType =
-  | 'research'      // Web research agent
-  | 'evaluator'     // Idea evaluation agent
-  | 'redteam'       // Red team challenge agent
-  | 'development'   // Idea development agent
-  | 'synthesis';    // Synthesis agent
+  | 'research'              // Web research agent
+  | 'evaluator'             // Idea evaluation agent
+  | 'redteam'               // Red team challenge agent
+  | 'development'           // Idea development agent
+  | 'synthesis'             // Synthesis agent
+  | 'action-plan'           // Action plan generator
+  | 'pitch-refine'          // Pitch refinement agent
+  | 'architecture-explore'  // Architecture exploration agent
+  | 'custom';               // Custom task agent
 
 export interface SubAgentInfo {
   id: string;

@@ -22,6 +22,14 @@ interface ArtifactUpdateResponse {
   updatedAt: string;
 }
 
+interface SubAgentTask {
+  id: string;
+  type: string;
+  label: string;
+  prompt?: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+}
+
 interface MessageResponse {
   userMessageId?: string;
   messageId?: string;
@@ -37,6 +45,9 @@ interface MessageResponse {
   webSearchQueries?: string[]; // Queries to execute async
   artifact?: Artifact; // Visual artifact from agent
   artifactUpdate?: ArtifactUpdateResponse; // Update to existing artifact
+  // Quick-ack fields for parallel sub-agent execution
+  isQuickAck?: boolean;
+  subAgentTasks?: SubAgentTask[];
 }
 
 interface WebSearchResponse {

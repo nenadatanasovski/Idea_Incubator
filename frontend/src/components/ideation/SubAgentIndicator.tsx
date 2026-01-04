@@ -88,25 +88,6 @@ function AgentRow({ agent, index }: { agent: SubAgent; index: number }) {
 }
 
 export function SubAgentIndicator({ agents }: SubAgentIndicatorProps) {
-  const [isExiting, setIsExiting] = useState(false);
-
-  // Check if all agents are done (completed or failed)
-  const allDone = agents.length > 0 && agents.every(
-    (agent) => agent.status === 'completed' || agent.status === 'failed'
-  );
-
-  // Trigger exit animation when all done
-  useEffect(() => {
-    if (allDone) {
-      const timer = setTimeout(() => {
-        setIsExiting(true);
-      }, 1500); // Show completed state for 1.5s before fading
-      return () => clearTimeout(timer);
-    } else {
-      setIsExiting(false);
-    }
-  }, [allDone]);
-
   if (agents.length === 0) return null;
 
   // Calculate progress
@@ -118,12 +99,7 @@ export function SubAgentIndicator({ agents }: SubAgentIndicatorProps) {
 
   return (
     <div
-      className={`
-        sub-agent-indicator
-        bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden
-        transition-all duration-500 ease-out
-        ${isExiting ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
-      `}
+      className="sub-agent-indicator bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
     >
       {/* Header with progress bar */}
       <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">

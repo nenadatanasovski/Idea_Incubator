@@ -264,15 +264,11 @@ export function IdeationSession({
 
           // Sub-agent events
           case 'subagent:spawn':
-            console.log('[WebSocket] Sub-agent spawned:', data.data.subAgentId, data.data.subAgentName);
-            dispatch({
-              type: 'SUBAGENT_SPAWN',
-              payload: {
-                id: data.data.subAgentId,
-                type: data.data.subAgentType,
-                name: data.data.subAgentName,
-              },
-            });
+            // NOTE: Sub-agents are already spawned from API response for immediate UI feedback.
+            // This WebSocket event is a confirmation that can be used for logging/debugging,
+            // but we don't dispatch SUBAGENT_SPAWN again to avoid duplicates.
+            // The reducer also has idempotency protection as a defensive measure.
+            console.log('[WebSocket] Sub-agent spawn confirmed (already created from API):', data.data.subAgentId);
             break;
 
           case 'subagent:status':
@@ -296,6 +292,27 @@ export function IdeationSession({
                 result: data.data.result,
               },
             });
+            break;
+
+          case 'artifact:created':
+            console.log('[WebSocket] Artifact created:', data.data.id);
+            if (data.data.content) {
+              dispatch({
+                type: 'ARTIFACT_ADD',
+                payload: {
+                  artifact: {
+                    id: data.data.id,
+                    type: data.data.type || 'markdown',
+                    title: data.data.title || 'Sub-agent Result',
+                    content: data.data.content,
+                    status: 'ready',
+                    createdAt: data.data.createdAt || new Date().toISOString(),
+                  },
+                },
+              });
+              // Open artifact panel to show the new artifact
+              dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: true } });
+            }
             break;
 
           default:
@@ -465,6 +482,23 @@ export function IdeationSession({
         dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: true } });
         setToast({ message: 'Artifact updated!', type: 'success' });
         setTimeout(() => setToast(null), 3000);
+      }
+
+      // Handle quick-ack with sub-agent tasks - spawn sub-agents immediately for UI
+      if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks.length > 0) {
+        console.log('[Quick-Ack] Spawning', response.subAgentTasks.length, 'sub-agents');
+        // Clear old completed sub-agents before spawning new batch
+        dispatch({ type: 'SUBAGENT_CLEAR' });
+        for (const task of response.subAgentTasks) {
+          dispatch({
+            type: 'SUBAGENT_SPAWN',
+            payload: {
+              id: task.id,
+              type: task.type,
+              name: task.label,
+            },
+          });
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
@@ -796,6 +830,24 @@ export function IdeationSession({
         console.log('[Button Response] Triggering web search with queries:', response.webSearchQueries);
         executeAsyncWebSearch(response.webSearchQueries);
       }
+
+      // Handle quick-ack with sub-agent tasks - spawn sub-agents immediately for UI
+      // Same as handleSendMessage - spawns from API response for immediate feedback
+      if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks.length > 0) {
+        console.log('[Quick-Ack/Button] Spawning', response.subAgentTasks.length, 'sub-agents');
+        // Clear old completed sub-agents before spawning new batch
+        dispatch({ type: 'SUBAGENT_CLEAR' });
+        for (const task of response.subAgentTasks) {
+          dispatch({
+            type: 'SUBAGENT_SPAWN',
+            payload: {
+              id: task.id,
+              type: task.type,
+              name: task.label,
+            },
+          });
+        }
+      }
     } catch (error) {
       dispatch({
         type: 'MESSAGE_ERROR',
@@ -948,6 +1000,23 @@ export function IdeationSession({
       // Handle async web search if queries were returned
       if (response.webSearchQueries && response.webSearchQueries.length > 0) {
         executeAsyncWebSearch(response.webSearchQueries);
+      }
+
+      // Handle quick-ack with sub-agent tasks - spawn sub-agents immediately for UI
+      if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks.length > 0) {
+        console.log('[Quick-Ack/Edit] Spawning', response.subAgentTasks.length, 'sub-agents');
+        // Clear old completed sub-agents before spawning new batch
+        dispatch({ type: 'SUBAGENT_CLEAR' });
+        for (const task of response.subAgentTasks) {
+          dispatch({
+            type: 'SUBAGENT_SPAWN',
+            payload: {
+              id: task.id,
+              type: task.type,
+              name: task.label,
+            },
+          });
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to edit message';
