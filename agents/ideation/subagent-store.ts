@@ -6,6 +6,8 @@
 
 import { query, run, saveDb } from '../../database/db.js';
 
+console.log('[SubAgentStore] Module loaded');
+
 export interface StoredSubAgent {
   id: string;
   sessionId: string;

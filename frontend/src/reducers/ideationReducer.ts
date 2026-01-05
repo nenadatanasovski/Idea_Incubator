@@ -383,18 +383,34 @@ export function ideationReducer(
       };
     }
 
-    case 'ARTIFACT_REMOVE':
+    case 'ARTIFACT_REMOVE': {
+      const remainingArtifacts = state.artifacts.artifacts.filter(a => a.id !== action.payload.id);
+      const isCurrentDeleted = state.artifacts.currentArtifact?.id === action.payload.id;
+
+      let newCurrentArtifact = state.artifacts.currentArtifact;
+      if (isCurrentDeleted) {
+        // Find the index of the deleted artifact to select a nearby one
+        const deletedIndex = state.artifacts.artifacts.findIndex(a => a.id === action.payload.id);
+        if (remainingArtifacts.length > 0) {
+          // Select the artifact at the same index, or the last one if we deleted the last
+          const newIndex = Math.min(deletedIndex, remainingArtifacts.length - 1);
+          newCurrentArtifact = remainingArtifacts[newIndex];
+        } else {
+          newCurrentArtifact = null;
+        }
+      }
+
       return {
         ...state,
         artifacts: {
           ...state.artifacts,
-          artifacts: state.artifacts.artifacts.filter(a => a.id !== action.payload.id),
-          currentArtifact:
-            state.artifacts.currentArtifact?.id === action.payload.id
-              ? null
-              : state.artifacts.currentArtifact,
+          artifacts: remainingArtifacts,
+          currentArtifact: newCurrentArtifact,
+          // Close panel if no artifacts remain
+          isPanelOpen: remainingArtifacts.length > 0 ? state.artifacts.isPanelOpen : false,
         },
       };
+    }
 
     case 'ARTIFACT_SELECT':
       return {

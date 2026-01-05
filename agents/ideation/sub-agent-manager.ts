@@ -195,8 +195,8 @@ export class SubAgentManager {
 
   constructor(options?: { maxConcurrency?: number }) {
     this.client = anthropicClient;
-    // Reduced from 5 to 2 to avoid API rate limiting and timeouts
-    this.maxConcurrency = options?.maxConcurrency ?? 2;
+    // Run sequentially (1 at a time) to avoid API rate limiting and timeouts
+    this.maxConcurrency = options?.maxConcurrency ?? 1;
   }
 
   /**
@@ -283,7 +283,7 @@ export class SubAgentManager {
 
     // Retry configuration
     const MAX_RETRIES = 2;
-    const TIMEOUT_MS = 120_000; // 120 seconds (increased from 90)
+    const TIMEOUT_MS = 360_000; // 360 seconds (6 minutes)
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -305,7 +305,7 @@ export class SubAgentManager {
         // Race the API call against timeout
         const response = await Promise.race([
           this.client.messages.create({
-            model: getConfig().model || 'claude-sonnet-4-20250514',
+            model: 'claude-opus-4-5-20251101',
             max_tokens: 8192,
             system: systemPrompt,
             messages: [{ role: 'user', content: userPrompt }],
