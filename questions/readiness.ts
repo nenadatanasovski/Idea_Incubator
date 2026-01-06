@@ -26,6 +26,7 @@ interface DBAnswer {
   confidence: number;
   answered_at: string;
   updated_at: string;
+  [key: string]: unknown;
 }
 
 interface DBIdea {
@@ -34,6 +35,7 @@ interface DBIdea {
   title: string;
   idea_type: string;
   lifecycle_stage: string;
+  [key: string]: unknown;
 }
 
 interface DBReadiness {
@@ -47,11 +49,13 @@ interface DBReadiness {
   risk_coverage: number;
   business_model_coverage: number;
   last_calculated: string;
+  [key: string]: unknown;
 }
 
 interface DBIdeaProfile {
   idea_id: string;
   profile_id: string;
+  [key: string]: unknown;
 }
 
 // ==========================================
@@ -510,6 +514,7 @@ export async function completeDevelopmentSession(
     questions_answered: number;
     readiness_before: number | null;
     readiness_after: number | null;
+    [key: string]: unknown;
   }
 
   const session = await getOne<DBSession>(
@@ -571,6 +576,7 @@ export async function getSessionHistory(ideaId: string): Promise<DevelopmentSess
     questions_answered: number;
     readiness_before: number | null;
     readiness_after: number | null;
+    [key: string]: unknown;
   }
 
   const rows = await query<DBSession>(

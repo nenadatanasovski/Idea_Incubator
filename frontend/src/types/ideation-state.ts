@@ -10,6 +10,17 @@ import type { TokenUsageInfo, EntryMode, IdeationMessage, Artifact, SubAgent, Su
 export type { TokenUsageInfo, EntryMode, IdeationMessage, Artifact, SubAgent, SubAgentType, SubAgentStatus };
 
 // -----------------------------------------------------------------------------
+// Classification Types
+// -----------------------------------------------------------------------------
+
+export type Classification = 'required' | 'recommended' | 'optional';
+
+export interface ClassificationInfo {
+  classification: Classification;
+  isComplete: boolean;
+}
+
+// -----------------------------------------------------------------------------
 // Session State
 // -----------------------------------------------------------------------------
 
@@ -49,6 +60,11 @@ export interface ArtifactState {
   currentArtifact: Artifact | null;
   isLoading: boolean;
   isPanelOpen: boolean;
+  // UI state for unified file system
+  linkedIdea: { userSlug: string; ideaSlug: string } | null;
+  viewMode: 'files' | 'sessions';
+  selectedArtifactPath: string | null;
+  artifactClassifications: Record<string, ClassificationInfo>;
 }
 
 export interface SubAgentsState {
@@ -108,6 +124,11 @@ export type IdeationAction =
   | { type: 'ARTIFACT_LOADING_END'; payload: { id: string; error?: string } }
   | { type: 'ARTIFACT_PANEL_TOGGLE'; payload: { isOpen: boolean } }
   | { type: 'ARTIFACTS_CLEAR' }
+  // Unified file system actions
+  | { type: 'SET_LINKED_IDEA'; payload: { userSlug: string; ideaSlug: string } | null }
+  | { type: 'SET_VIEW_MODE'; payload: { viewMode: 'files' | 'sessions' } }
+  | { type: 'SET_SELECTED_ARTIFACT'; payload: { path: string | null } }
+  | { type: 'SET_ARTIFACT_CLASSIFICATIONS'; payload: { classifications: Record<string, ClassificationInfo> } }
   // Sub-agent actions
   | { type: 'SUBAGENT_SPAWN'; payload: { id: string; type: SubAgentType; name: string } }
   | { type: 'SUBAGENT_STATUS'; payload: { id: string; status: SubAgentStatus; error?: string } }

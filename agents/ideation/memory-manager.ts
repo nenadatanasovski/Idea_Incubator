@@ -8,12 +8,14 @@ import {
   MarketDiscoveryState,
   NarrowingState,
   IdeaCandidate,
+  IdeaTypeSelectionState,
 } from '../../types/ideation.js';
 import { mapMemoryRowToMemory } from '../../utils/ideation-mappers.js';
 import {
   createDefaultSelfDiscoveryState,
   createDefaultMarketDiscoveryState,
   createDefaultNarrowingState,
+  createDefaultIdeaTypeSelectionState,
 } from '../../utils/ideation-defaults.js';
 
 /**
@@ -29,6 +31,7 @@ export interface MemoryState {
   narrowingState: NarrowingState;
   candidate: IdeaCandidate | null;
   viability: { total: number; risks: ViabilityRiskSummary[] };
+  ideaTypeSelection?: IdeaTypeSelectionState;
 }
 
 export interface ViabilityRiskSummary {
@@ -452,6 +455,7 @@ ${candidate.summary || 'No summary yet.'}
       marketDiscovery: state.marketDiscovery,
       narrowingState: state.narrowingState,
       viability: state.viability,
+      ideaTypeSelection: state.ideaTypeSelection,
     };
     const jsonContent = `<!-- STATE_JSON\n${JSON.stringify(jsonState)}\nSTATE_JSON -->\n\n# State Summary\n\nThis file contains structured state data.`;
     await this.upsert(sessionId, 'conversation_summary', jsonContent);
@@ -475,6 +479,7 @@ ${candidate.summary || 'No summary yet.'}
             narrowingState: parsed.narrowingState || createDefaultNarrowingState(),
             candidate: null, // Candidate is loaded separately via candidateManager
             viability: parsed.viability || { total: 100, risks: [] },
+            ideaTypeSelection: parsed.ideaTypeSelection || createDefaultIdeaTypeSelectionState(),
           };
         } catch (e) {
           console.error('Failed to parse state JSON:', e);
@@ -489,6 +494,7 @@ ${candidate.summary || 'No summary yet.'}
       narrowingState: createDefaultNarrowingState(),
       candidate: null,
       viability: { total: 100, risks: [] },
+      ideaTypeSelection: createDefaultIdeaTypeSelectionState(),
     };
   }
 
@@ -528,6 +534,39 @@ Reference the memory files above for context.
 
     await this.upsert(sessionId, 'handoff_notes', handoffContent);
     await this.upsert(sessionId, 'conversation_summary', `# Conversation Summary\n\n${conversationSummary}`);
+  }
+
+  /**
+   * Update only the idea type selection state.
+   * This is a convenience method for the orchestrator to persist idea type selections
+   * without having to update the entire state.
+   */
+  async updateIdeaTypeSelection(sessionId: string, ideaTypeSelection: IdeaTypeSelectionState): Promise<void> {
+    // Load current state
+    const currentState = await this.loadState(sessionId);
+
+    // Update with new idea type selection
+    currentState.ideaTypeSelection = ideaTypeSelection;
+
+    // Store the updated JSON state
+    const jsonState = {
+      selfDiscovery: currentState.selfDiscovery,
+      marketDiscovery: currentState.marketDiscovery,
+      narrowingState: currentState.narrowingState,
+      viability: currentState.viability,
+      ideaTypeSelection: currentState.ideaTypeSelection,
+    };
+    const jsonContent = `<!-- STATE_JSON\n${JSON.stringify(jsonState)}\nSTATE_JSON -->\n\n# State Summary\n\nThis file contains structured state data.`;
+    await this.upsert(sessionId, 'conversation_summary', jsonContent);
+  }
+
+  /**
+   * Load only the idea type selection state.
+   * This is a convenience method for the orchestrator to check selection state.
+   */
+  async loadIdeaTypeSelection(sessionId: string): Promise<IdeaTypeSelectionState> {
+    const state = await this.loadState(sessionId);
+    return state.ideaTypeSelection || createDefaultIdeaTypeSelectionState();
   }
 }
 

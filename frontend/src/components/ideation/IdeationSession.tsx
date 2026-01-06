@@ -7,6 +7,7 @@ import { useEffect, useReducer, useCallback, useRef, useState } from 'react';
 import { SessionHeader } from './SessionHeader';
 import { ConversationPanel } from './ConversationPanel';
 import { IdeaArtifactPanel } from './IdeaArtifactPanel';
+import { IdeaTypeModal, type IdeaTypeValue } from './IdeaTypeModal';
 import { useIdeationAPI } from '../../hooks/useIdeationAPI';
 import { ideationReducer, initialState } from '../../reducers/ideationReducer';
 import type { IdeationSessionProps, Artifact } from '../../types/ideation';
@@ -29,6 +30,7 @@ export function IdeationSession({
   const initRef = useRef(false);
   const buttonClickInProgressRef = useRef(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showIdeaTypeModal, setShowIdeaTypeModal] = useState(false);
 
   // Initialize or resume session (with guard against React 18 Strict Mode double-invoke)
   useEffect(() => {
@@ -215,6 +217,9 @@ export function IdeationSession({
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
+    // Expose WebSocket for testing
+    (window as unknown as { __IDEATION_WS__: WebSocket | null }).__IDEATION_WS__ = ws;
+
     ws.onopen = () => {
       console.log('[WebSocket] Connected to session:', sessionId);
     };
@@ -333,6 +338,13 @@ export function IdeationSession({
 
           case 'artifact:created':
             console.log('[WebSocket] Artifact created:', data.data.id);
+            // Check if event is scoped to current linked idea (if applicable)
+            if (data.data.ideaSlug && state.artifacts.linkedIdea) {
+              if (data.data.ideaSlug !== state.artifacts.linkedIdea.ideaSlug) {
+                console.log('[WebSocket] Ignoring artifact:created for different idea');
+                break;
+              }
+            }
             if (data.data.content) {
               dispatch({
                 type: 'ARTIFACT_ADD',
@@ -349,6 +361,42 @@ export function IdeationSession({
               });
               // Open artifact panel to show the new artifact
               dispatch({ type: 'ARTIFACT_PANEL_TOGGLE', payload: { isOpen: true } });
+            }
+            break;
+
+          case 'artifact:deleted':
+            console.log('[WebSocket] Artifact deleted:', data.data.artifactId);
+            // Check if event is scoped to current linked idea (if applicable)
+            if (data.data.ideaSlug && state.artifacts.linkedIdea) {
+              if (data.data.ideaSlug !== state.artifacts.linkedIdea.ideaSlug) {
+                console.log('[WebSocket] Ignoring artifact:deleted for different idea');
+                break;
+              }
+            }
+            dispatch({
+              type: 'ARTIFACT_REMOVE',
+              payload: {
+                id: data.data.artifactId,
+              },
+            });
+            break;
+
+          case 'classifications:updated':
+            console.log('[WebSocket] Classifications updated:', data.data.ideaSlug);
+            // Only update if classifications are for current linked idea
+            if (data.data.ideaSlug && state.artifacts.linkedIdea) {
+              if (data.data.ideaSlug !== state.artifacts.linkedIdea.ideaSlug) {
+                console.log('[WebSocket] Ignoring classifications:updated for different idea');
+                break;
+              }
+            }
+            if (data.data.classifications) {
+              dispatch({
+                type: 'SET_ARTIFACT_CLASSIFICATIONS',
+                payload: {
+                  classifications: data.data.classifications,
+                },
+              });
             }
             break;
 
@@ -382,6 +430,8 @@ export function IdeationSession({
         ws.close();
       }
       wsRef.current = null;
+      // Clean up test reference
+      (window as unknown as { __IDEATION_WS__: WebSocket | null }).__IDEATION_WS__ = null;
     };
   }, [state.session.sessionId]);
 
@@ -1141,6 +1191,99 @@ export function IdeationSession({
     setTimeout(() => setToast(null), 2000);
   }, [state.candidate.candidate, state.session.sessionId, api]);
 
+  // Handle idea selection from IdeaSelector
+  const handleSelectIdea = useCallback(async (idea: { userSlug: string; ideaSlug: string } | null) => {
+    if (!state.session.sessionId) return;
+
+    try {
+      if (idea) {
+        // Link the idea to the session via API
+        await api.linkIdea(state.session.sessionId, idea.userSlug, idea.ideaSlug);
+        // Update local state
+        dispatch({
+          type: 'SET_LINKED_IDEA',
+          payload: idea,
+        });
+        setToast({ message: `Now working on: ${idea.ideaSlug}`, type: 'success' });
+      } else {
+        // Unlink the idea
+        dispatch({
+          type: 'SET_LINKED_IDEA',
+          payload: null,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to link idea:', error);
+      setToast({ message: 'Failed to link idea', type: 'error' });
+    }
+    setTimeout(() => setToast(null), 2000);
+  }, [state.session.sessionId, api]);
+
+  // Handle opening new idea modal
+  const handleNewIdea = useCallback(() => {
+    setShowIdeaTypeModal(true);
+  }, []);
+
+  // Handle creating a new idea
+  const handleCreateIdea = useCallback(async (data: {
+    name: string;
+    ideaType: IdeaTypeValue;
+    parent?: {
+      type: 'internal' | 'external';
+      slug?: string;
+      name?: string;
+    };
+  }) => {
+    if (!state.session.sessionId) {
+      setToast({ message: 'No active session', type: 'error' });
+      setTimeout(() => setToast(null), 2000);
+      return;
+    }
+
+    try {
+      // Call API to name/create the idea
+      const response = await fetch(`/api/ideation/session/${state.session.sessionId}/name-idea`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: data.name,
+          ideaType: data.ideaType,
+          parent: data.parent,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create idea');
+      }
+
+      const result = await response.json();
+
+      // Update state with the new linked idea
+      if (result.success && result.session) {
+        dispatch({
+          type: 'SET_LINKED_IDEA',
+          payload: {
+            userSlug: result.session.userSlug,
+            ideaSlug: result.session.ideaSlug,
+          },
+        });
+        setToast({ message: `Created: ${data.name}`, type: 'success' });
+      }
+
+      setShowIdeaTypeModal(false);
+    } catch (error) {
+      console.error('Failed to create idea:', error);
+      setToast({
+        message: error instanceof Error ? error.message : 'Failed to create idea',
+        type: 'error',
+      });
+    }
+    setTimeout(() => setToast(null), 2000);
+  }, [state.session.sessionId]);
+
   if (state.session.status === 'error') {
     return (
       <div className="flex items-center justify-center h-full">
@@ -1185,6 +1328,10 @@ export function IdeationSession({
         onDiscard={handleDiscard}
         onMinimize={onExit}
         onUpdateTitle={handleUpdateTitle}
+        userSlug={profileId}
+        linkedIdea={state.artifacts.linkedIdea}
+        onSelectIdea={handleSelectIdea}
+        onNewIdea={handleNewIdea}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -1217,6 +1364,7 @@ export function IdeationSession({
           onDiscard={handleDiscard}
           artifacts={state.artifacts.artifacts}
           currentArtifact={state.artifacts.currentArtifact}
+          classifications={state.artifacts.artifactClassifications}
           onSelectArtifact={handleSelectArtifact}
           onCloseArtifact={handleCloseArtifact}
           onExpandArtifact={handleExpandArtifact}
@@ -1231,7 +1379,7 @@ export function IdeationSession({
       {/* Toast Notification */}
       {toast && (
         <div
-          data-testid="toast-notification"
+          data-testid={toast.type === 'error' ? 'error-toast' : 'toast-notification'}
           className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 transition-all ${
             toast.type === 'success'
               ? 'bg-green-600 text-white'
@@ -1258,6 +1406,14 @@ export function IdeationSession({
           </button>
         </div>
       )}
+
+      {/* Idea Type Modal */}
+      <IdeaTypeModal
+        isOpen={showIdeaTypeModal}
+        userSlug={profileId}
+        onClose={() => setShowIdeaTypeModal(false)}
+        onSubmit={handleCreateIdea}
+      />
     </div>
   );
 }

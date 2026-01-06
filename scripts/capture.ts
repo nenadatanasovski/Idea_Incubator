@@ -5,8 +5,8 @@ import * as readline from 'readline';
 import { v4 as uuidv4 } from 'uuid';
 import { getConfig } from '../config/index.js';
 import { titleToSlug } from '../utils/parser.js';
-import { logInfo, logSuccess, logError, logWarning } from '../utils/logger.js';
-import { IdeaType, LifecycleStage } from '../utils/schemas.js';
+import { logInfo, logSuccess, logError } from '../utils/logger.js';
+import { IdeaType } from '../utils/schemas.js';
 
 interface CaptureInput {
   title: string;

@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { CostTracker } from '../utils/cost-tracker.js';
 import { EvaluationParseError } from '../utils/errors.js';
-import { logInfo, logDebug } from '../utils/logger.js';
+import { logInfo } from '../utils/logger.js';
 import { getConfig } from '../config/index.js';
 import { CATEGORIES, interpretScore, type Category } from './config.js';
 import { type FullDebateResult } from './debate.js';

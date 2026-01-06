@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Minimize2, CheckCircle, Save, Trash2, Pencil } from 'lucide-react';
 import { TokenUsageIndicator } from './TokenUsageIndicator';
+import { IdeaSelector } from './IdeaSelector';
 import type { IdeaCandidate } from '../../types/ideation';
 
 export interface SessionHeaderProps {
@@ -24,6 +25,11 @@ export interface SessionHeaderProps {
   onDiscard: () => void;
   onMinimize: () => void;
   onUpdateTitle?: (newTitle: string) => void;
+  // IdeaSelector props
+  userSlug?: string;
+  linkedIdea?: { userSlug: string; ideaSlug: string } | null;
+  onSelectIdea?: (idea: { userSlug: string; ideaSlug: string } | null) => void;
+  onNewIdea?: () => void;
 }
 
 // Compact meter for header
@@ -79,6 +85,10 @@ export function SessionHeader({
   onDiscard,
   onMinimize,
   onUpdateTitle,
+  userSlug,
+  linkedIdea,
+  onSelectIdea,
+  onNewIdea,
 }: SessionHeaderProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(candidate?.title || '');
@@ -185,6 +195,18 @@ export function SessionHeader({
             Session: {sessionId.slice(0, 8)}...
           </p>
         </div>
+
+        {/* IdeaSelector - only show when userSlug is provided */}
+        {userSlug && onSelectIdea && (
+          <div className="ml-4">
+            <IdeaSelector
+              userSlug={userSlug}
+              selectedIdea={linkedIdea || null}
+              onSelectIdea={onSelectIdea}
+              onNewIdea={onNewIdea}
+            />
+          </div>
+        )}
       </div>
 
       {/* Center: Metrics (only show when candidate exists) */}

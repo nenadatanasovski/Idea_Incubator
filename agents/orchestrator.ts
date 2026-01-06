@@ -107,7 +107,7 @@ Classify this input.`
  */
 export function routeToWorkflow(
   classification: ClassificationResult,
-  userInput: string
+  _userInput: string
 ): WorkflowAction {
   switch (classification.type) {
     case 'NEW':

@@ -1,0 +1,708 @@
+{
+  "version": "1.0",
+  "name": "Unified File System Implementation",
+  "lastUpdated": "2026-01-06T23:13:17.901626Z",
+  "currentTestIndex": 0,
+  "runNumber": 1,
+  "previousTestVerified": false,
+  "tests": [
+    {
+      "id": "TEST-FS-001",
+      "status": "passed",
+      "attempts": 2,
+      "lastResult": "pass",
+      "dependsOn": null,
+      "automatable": true,
+      "notes": "Create idea_relationships table"
+    },
+    {
+      "id": "TEST-FS-002",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-001",
+      "automatable": true,
+      "notes": "Add columns to ideation_sessions"
+    },
+    {
+      "id": "TEST-FS-003",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-002",
+      "automatable": true,
+      "notes": "Add columns to ideation_artifacts"
+    },
+    {
+      "id": "TEST-FS-004",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-003",
+      "automatable": true,
+      "notes": "Verify all migrations applied"
+    },
+    {
+      "id": "TEST-FS-005",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-001",
+      "automatable": true,
+      "notes": "Create users/ directory structure utility"
+    },
+    {
+      "id": "TEST-FS-006",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-005",
+      "automatable": true,
+      "notes": "Create draft folder utility"
+    },
+    {
+      "id": "TEST-FS-007",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-006",
+      "automatable": true,
+      "notes": "Create idea folder with templates"
+    },
+    {
+      "id": "TEST-FS-008",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-007",
+      "automatable": true,
+      "notes": "Rename draft to idea folder"
+    },
+    {
+      "id": "TEST-FS-009",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-004",
+      "automatable": true,
+      "notes": "Create core templates"
+    },
+    {
+      "id": "TEST-FS-010",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-009",
+      "automatable": true,
+      "notes": "Create research/validation templates"
+    },
+    {
+      "id": "TEST-FS-011",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-010",
+      "automatable": true,
+      "notes": "Create planning/build/marketing templates"
+    },
+    {
+      "id": "TEST-FS-012",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-011",
+      "automatable": true,
+      "notes": "Create metadata templates"
+    },
+    {
+      "id": "TEST-FS-013",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-012",
+      "automatable": true,
+      "notes": "Add idea type question to orchestrator"
+    },
+    {
+      "id": "TEST-FS-014",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-013",
+      "automatable": true,
+      "notes": "Store relationship in database"
+    },
+    {
+      "id": "TEST-FS-015",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-014",
+      "automatable": true,
+      "notes": "Sync relationships to metadata file"
+    },
+    {
+      "id": "TEST-AS-001",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-FS-015",
+      "automatable": true,
+      "notes": "Define UnifiedArtifact interface"
+    },
+    {
+      "id": "TEST-AS-002",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-001",
+      "automatable": true,
+      "notes": "Implement frontmatter parser"
+    },
+    {
+      "id": "TEST-AS-003",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-002",
+      "automatable": true,
+      "notes": "Implement frontmatter generator"
+    },
+    {
+      "id": "TEST-AS-004",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-003",
+      "automatable": true,
+      "notes": "Implement token counting"
+    },
+    {
+      "id": "TEST-AS-005",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-004",
+      "automatable": true,
+      "notes": "Implement saveArtifact"
+    },
+    {
+      "id": "TEST-AS-006",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-005",
+      "automatable": true,
+      "notes": "Implement loadArtifact"
+    },
+    {
+      "id": "TEST-AS-007",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-006",
+      "automatable": true,
+      "notes": "Implement listArtifacts"
+    },
+    {
+      "id": "TEST-AS-008",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-007",
+      "automatable": true,
+      "notes": "Implement deleteArtifact"
+    },
+    {
+      "id": "TEST-AS-009",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-008",
+      "automatable": true,
+      "notes": "Implement deleteSessionArtifacts"
+    },
+    {
+      "id": "TEST-AS-010",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-009",
+      "automatable": true,
+      "notes": "Implement rebuildCache"
+    },
+    {
+      "id": "TEST-AS-011",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-010",
+      "automatable": true,
+      "notes": "Cache invalidation on file changes"
+    },
+    {
+      "id": "TEST-AS-012",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-011",
+      "automatable": true,
+      "notes": "Implement renameIdeaFolder"
+    },
+    {
+      "id": "TEST-AS-013",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-012",
+      "automatable": true,
+      "notes": "Migrate existing database artifacts"
+    },
+    {
+      "id": "TEST-AS-014",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-013",
+      "automatable": true,
+      "notes": "Update server routes"
+    },
+    {
+      "id": "TEST-AS-015",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-014",
+      "automatable": true,
+      "notes": "Backward compatibility export"
+    },
+    {
+      "id": "TEST-SC-001",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-AS-015",
+      "automatable": true,
+      "notes": "Define AgentContext interface"
+    },
+    {
+      "id": "TEST-SC-002",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-001",
+      "automatable": true,
+      "notes": "Session linking API"
+    },
+    {
+      "id": "TEST-SC-003",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-002",
+      "automatable": true,
+      "notes": "Create session with draft folder"
+    },
+    {
+      "id": "TEST-SC-004",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-003",
+      "automatable": true,
+      "notes": "Convert draft to named idea"
+    },
+    {
+      "id": "TEST-SC-005",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-004",
+      "automatable": true,
+      "notes": "Build identity layer"
+    },
+    {
+      "id": "TEST-SC-006",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-005",
+      "automatable": true,
+      "notes": "Build progress layer"
+    },
+    {
+      "id": "TEST-SC-007",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-006",
+      "automatable": true,
+      "notes": "Build relationships layer"
+    },
+    {
+      "id": "TEST-SC-008",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-007",
+      "automatable": true,
+      "notes": "Build core docs layer"
+    },
+    {
+      "id": "TEST-SC-009",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-008",
+      "automatable": true,
+      "notes": "Build phase docs layer"
+    },
+    {
+      "id": "TEST-SC-010",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-009",
+      "automatable": true,
+      "notes": "Build available docs index"
+    },
+    {
+      "id": "TEST-SC-011",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-010",
+      "automatable": true,
+      "notes": "Full context builder"
+    },
+    {
+      "id": "TEST-SC-012",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-011",
+      "automatable": true,
+      "notes": "Create priority manager"
+    },
+    {
+      "id": "TEST-SC-013",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-012",
+      "automatable": true,
+      "notes": "Update priority on activity"
+    },
+    {
+      "id": "TEST-SC-014",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-013",
+      "automatable": true,
+      "notes": "AI-recommended documents"
+    },
+    {
+      "id": "TEST-SC-015",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-014",
+      "automatable": true,
+      "notes": "Add IDEA_CONTEXT to system prompt"
+    },
+    {
+      "id": "TEST-PH-001",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-SC-015",
+      "automatable": true,
+      "notes": "Define classification rules schema"
+    },
+    {
+      "id": "TEST-PH-002",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-001",
+      "automatable": true,
+      "notes": "Define content-based rules"
+    },
+    {
+      "id": "TEST-PH-003",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-002",
+      "automatable": true,
+      "notes": "Create document classifier"
+    },
+    {
+      "id": "TEST-PH-004",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-003",
+      "automatable": true,
+      "notes": "Classify with content inference"
+    },
+    {
+      "id": "TEST-PH-005",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-004",
+      "automatable": true,
+      "notes": "Bulk classify all documents"
+    },
+    {
+      "id": "TEST-PH-006",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-005",
+      "automatable": true,
+      "notes": "Save classifications to cache"
+    },
+    {
+      "id": "TEST-PH-007",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-006",
+      "automatable": true,
+      "notes": "Create phase manager"
+    },
+    {
+      "id": "TEST-PH-008",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-007",
+      "automatable": true,
+      "notes": "Update phase"
+    },
+    {
+      "id": "TEST-PH-009",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-008",
+      "automatable": true,
+      "notes": "Check phase transition readiness"
+    },
+    {
+      "id": "TEST-PH-010",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-009",
+      "automatable": true,
+      "notes": "Execute phase transition"
+    },
+    {
+      "id": "TEST-PH-011",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-010",
+      "automatable": true,
+      "notes": "Create handoff generator"
+    },
+    {
+      "id": "TEST-PH-012",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-011",
+      "automatable": true,
+      "notes": "Extract key insights"
+    },
+    {
+      "id": "TEST-PH-013",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-012",
+      "automatable": true,
+      "notes": "Calculate confidence score"
+    },
+    {
+      "id": "TEST-PH-014",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-013",
+      "automatable": true,
+      "notes": "Save handoff brief"
+    },
+    {
+      "id": "TEST-PH-015",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-014",
+      "automatable": true,
+      "notes": "Classification change announcements"
+    },
+    {
+      "id": "TEST-UI-001",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-PH-015",
+      "automatable": true,
+      "notes": "Update ideation reducer"
+    },
+    {
+      "id": "TEST-UI-002",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-001",
+      "automatable": true,
+      "notes": "Create artifact selectors"
+    },
+    {
+      "id": "TEST-UI-003",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-002",
+      "automatable": true,
+      "notes": "Create ArtifactTable component"
+    },
+    {
+      "id": "TEST-UI-004",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-003",
+      "automatable": true,
+      "notes": "Add classification badges"
+    },
+    {
+      "id": "TEST-UI-005",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-004",
+      "automatable": true,
+      "notes": "Create ArtifactPreview component"
+    },
+    {
+      "id": "TEST-UI-006",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-005",
+      "automatable": true,
+      "notes": "Create redesigned IdeaArtifactPanel"
+    },
+    {
+      "id": "TEST-UI-007",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-006",
+      "automatable": true,
+      "notes": "Implement sessions view"
+    },
+    {
+      "id": "TEST-UI-008",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-007",
+      "automatable": true,
+      "notes": "Create IdeaSelector component"
+    },
+    {
+      "id": "TEST-UI-009",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-008",
+      "automatable": true,
+      "notes": "Integrate IdeaSelector in SessionHeader"
+    },
+    {
+      "id": "TEST-UI-010",
+      "status": "passed",
+      "attempts": 3,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-009",
+      "automatable": true,
+      "notes": "Handle idea type selection flow"
+    },
+    {
+      "id": "TEST-UI-011",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-010",
+      "automatable": true,
+      "notes": "WebSocket artifact updates"
+    },
+    {
+      "id": "TEST-UI-012",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-011",
+      "automatable": true,
+      "notes": "Classification update events"
+    },
+    {
+      "id": "TEST-UI-013",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-012",
+      "automatable": true,
+      "notes": "Loading states"
+    },
+    {
+      "id": "TEST-UI-014",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-013",
+      "automatable": true,
+      "notes": "Error states"
+    },
+    {
+      "id": "TEST-UI-015",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": "TEST-UI-014",
+      "automatable": true,
+      "notes": "Keyboard navigation"
+    }
+  ],
+  "failedTests": [],
+  "blockedTests": [],
+  "skippedTests": [],
+  "fixAttempts": [],
+  "codeChanges": [],
+  "summary": {
+    "total": 75,
+    "automatable": 75,
+    "manual": 0,
+    "journeyTests": 0,
+    "passed": 75,
+    "failed": 0,
+    "blocked": 0,
+    "pending": 0,
+    "skipped": 0
+  },
+  "specFiles": {
+    "TEST-FS": "docs/specs/unified-file-system/01-folder-structure-idea-types.md",
+    "TEST-AS": "docs/specs/unified-file-system/02-unified-artifact-store.md",
+    "TEST-SC": "docs/specs/unified-file-system/03-session-context-management.md",
+    "TEST-PH": "docs/specs/unified-file-system/04-phase-transitions-handoffs.md",
+    "TEST-UI": "docs/specs/unified-file-system/05-ui-components.md"
+  }
+}

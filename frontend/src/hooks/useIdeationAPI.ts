@@ -393,6 +393,28 @@ export function useIdeationAPI() {
   }, []);
 
   /**
+   * Link a session to a specific user/idea
+   */
+  const linkIdea = useCallback(async (
+    sessionId: string,
+    userSlug: string,
+    ideaSlug: string
+  ): Promise<{ success: boolean }> => {
+    const response = await fetch(`${API_BASE}/session/${sessionId}/link-idea`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userSlug, ideaSlug }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to link idea' }));
+      throw new Error(typeof error.error === 'string' ? error.error : 'Failed to link idea');
+    }
+
+    return response.json();
+  }, []);
+
+  /**
    * Execute async web search and return results as an artifact
    */
   const executeWebSearch = useCallback(async (
@@ -443,6 +465,7 @@ export function useIdeationAPI() {
     saveArtifact,
     deleteArtifact,
     updateCandidate,
+    linkIdea,
   }), [
     startSession,
     sendMessage,
@@ -460,5 +483,6 @@ export function useIdeationAPI() {
     saveArtifact,
     deleteArtifact,
     updateCandidate,
+    linkIdea,
   ]);
 }

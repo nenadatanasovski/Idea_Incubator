@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import Anthropic from '@anthropic-ai/sdk';
 import { getOne, query, saveDb } from '../../database/db.js';
 import { sessionManager } from '../../agents/ideation/session-manager.js';
 import { messageStore } from '../../agents/ideation/message-store.js';
@@ -13,8 +14,18 @@ import { client as anthropicClient } from '../../utils/anthropic-client.js';
 import { buildSystemPrompt } from '../../agents/ideation/system-prompt.js';
 import { performWebSearch, SearchPurpose } from '../../agents/ideation/web-search-service.js';
 import { artifactStore } from '../../agents/ideation/artifact-store.js';
+import {
+  saveArtifact as saveUnifiedArtifact,
+  loadArtifact as loadUnifiedArtifact,
+  listArtifacts as listUnifiedArtifacts,
+  deleteArtifact as deleteUnifiedArtifact,
+  UnifiedArtifact,
+  CreateArtifactInput,
+  ArtifactType,
+} from '../../agents/ideation/unified-artifact-store.js';
 import { subAgentStore } from '../../agents/ideation/subagent-store.js';
 import { editArtifact, detectArtifactEditRequest } from '../../agents/ideation/artifact-editor.js';
+import { ideaFolderExists, createDraftFolder, renameDraftToIdea, listUserIdeas, IdeaType, ParentInfo } from '../../utils/folder-structure.js';
 import { emitSessionEvent, emitSubAgentSpawn, emitSubAgentStatus, emitSubAgentResult } from '../websocket.js';
 import { subAgentManager, SubAgentTask as ManagerSubAgentTask } from '../../agents/ideation/sub-agent-manager.js';
 
@@ -975,17 +986,17 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
       console.log(`[Routes/MessageEdit] Quick-ack detected, spawning ${response.subAgentTasks.length} sub-agents`);
 
       // Build context for sub-agents from memory files
-      const memoryFiles = await memoryManager.getAll(sessionId);
+      const memoryState = await memoryManager.loadState(sessionId);
       const contextParts: string[] = [];
 
-      if (memoryFiles.selfDiscovery) {
-        contextParts.push(`## Self Discovery\n${JSON.stringify(memoryFiles.selfDiscovery, null, 2)}`);
+      if (memoryState.selfDiscovery) {
+        contextParts.push(`## Self Discovery\n${JSON.stringify(memoryState.selfDiscovery, null, 2)}`);
       }
-      if (memoryFiles.marketDiscovery) {
-        contextParts.push(`## Market Discovery\n${JSON.stringify(memoryFiles.marketDiscovery, null, 2)}`);
+      if (memoryState.marketDiscovery) {
+        contextParts.push(`## Market Discovery\n${JSON.stringify(memoryState.marketDiscovery, null, 2)}`);
       }
-      if (memoryFiles.narrowing) {
-        contextParts.push(`## Narrowing State\n${JSON.stringify(memoryFiles.narrowing, null, 2)}`);
+      if (memoryState.narrowingState) {
+        contextParts.push(`## Narrowing State\n${JSON.stringify(memoryState.narrowingState, null, 2)}`);
       }
       if (candidateData) {
         contextParts.push(`## Current Idea Candidate\nTitle: ${candidateData.title}\nSummary: ${candidateData.summary || 'Not yet defined'}`);
@@ -1655,6 +1666,207 @@ ideationRouter.post('/session/:sessionId/abandon', async (req: Request, res: Res
 });
 
 // ============================================================================
+// PATCH /api/ideation/session/:sessionId/link-idea
+// ============================================================================
+// Link a session to a specific user/idea
+
+const LinkIdeaSchema = z.object({
+  userSlug: z.string().min(1, 'userSlug is required'),
+  ideaSlug: z.string().min(1, 'ideaSlug is required'),
+});
+
+ideationRouter.patch('/session/:sessionId/link-idea', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    // Validate request body
+    const parseResult = LinkIdeaSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Validation error',
+        details: parseResult.error.issues,
+      });
+    }
+
+    const { userSlug, ideaSlug } = parseResult.data;
+
+    // Load session
+    const session = await sessionManager.load(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Validate that idea folder exists before linking
+    if (!ideaFolderExists(userSlug, ideaSlug)) {
+      return res.status(400).json({
+        error: 'Idea folder not found',
+        message: `No idea folder exists at users/${userSlug}/ideas/${ideaSlug}`,
+      });
+    }
+
+    // Update session in database with user_slug and idea_slug
+    const db = await import('../../database/db.js');
+    await db.run(
+      `UPDATE ideation_sessions SET user_slug = ?, idea_slug = ?, last_activity_at = ? WHERE id = ?`,
+      [userSlug, ideaSlug, new Date().toISOString(), sessionId]
+    );
+    await db.saveDb();
+
+    // Load and return updated session
+    const updatedSession = await sessionManager.load(sessionId);
+
+    // Add userSlug and ideaSlug to the response since they may not be in the mapped session type
+    return res.json({
+      success: true,
+      session: {
+        ...updatedSession,
+        userSlug,
+        ideaSlug,
+      },
+    });
+
+  } catch (error) {
+    console.error('Error linking idea to session:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// POST /api/ideation/session/:sessionId/name-idea
+// ============================================================================
+// Converts a draft folder to a named idea by renaming it and adding templates
+
+const NameIdeaSchema = z.object({
+  title: z.string().min(1, 'title is required'),
+  ideaType: z.enum(['business', 'feature_internal', 'feature_external', 'service', 'pivot']),
+  parent: z.object({
+    type: z.enum(['internal', 'external']),
+    slug: z.string().optional(),
+    name: z.string().optional(),
+  }).optional(),
+});
+
+ideationRouter.post('/session/:sessionId/name-idea', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    // Validate request body
+    const parseResult = NameIdeaSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Validation error',
+        details: parseResult.error.issues,
+      });
+    }
+
+    const { title, ideaType, parent } = parseResult.data;
+
+    // Load session
+    const db = await import('../../database/db.js');
+    const sessionRow = await db.getOne<{
+      id: string;
+      user_slug: string | null;
+      idea_slug: string | null;
+      status: string;
+    }>(
+      `SELECT id, user_slug, idea_slug, status FROM ideation_sessions WHERE id = ?`,
+      [sessionId]
+    );
+
+    if (!sessionRow) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Verify session is linked to a draft
+    if (!sessionRow.idea_slug || !sessionRow.idea_slug.startsWith('draft_')) {
+      return res.status(400).json({
+        error: 'Session not linked to draft',
+        message: 'This session is not linked to a draft folder. Only sessions with draft folders can be named.',
+      });
+    }
+
+    if (!sessionRow.user_slug) {
+      return res.status(400).json({
+        error: 'Session missing user',
+        message: 'This session does not have a user_slug set.',
+      });
+    }
+
+    // Generate slug from title
+    const ideaSlug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 50);
+
+    // Check if target slug already exists
+    if (ideaFolderExists(sessionRow.user_slug, ideaSlug)) {
+      return res.status(409).json({
+        error: 'Idea slug already exists',
+        message: `An idea with slug '${ideaSlug}' already exists for this user.`,
+      });
+    }
+
+    // Convert parent to ParentInfo type for folder structure
+    const parentInfo: ParentInfo | undefined = parent ? {
+      type: parent.type,
+      slug: parent.slug,
+      name: parent.name,
+    } : undefined;
+    // TODO: Pass parentInfo to renameDraftToIdea when relationship support is added
+    void parentInfo; // Preserve for upcoming relationship feature
+
+    // Rename draft folder to idea folder
+    await renameDraftToIdea(
+      sessionRow.user_slug,
+      sessionRow.idea_slug,
+      ideaSlug,
+      ideaType as IdeaType
+    );
+
+    // Update session's idea_slug in database
+    await db.run(
+      `UPDATE ideation_sessions SET idea_slug = ?, last_activity_at = ? WHERE id = ?`,
+      [ideaSlug, new Date().toISOString(), sessionId]
+    );
+    await db.saveDb();
+
+    // Return updated session
+    return res.json({
+      success: true,
+      session: {
+        id: sessionRow.id,
+        userSlug: sessionRow.user_slug,
+        ideaSlug: ideaSlug,
+        status: sessionRow.status,
+      },
+    });
+
+  } catch (error) {
+    console.error('Error naming idea:', error);
+
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (error.message.includes('already exists')) {
+        return res.status(409).json({
+          error: 'Idea slug already exists',
+          message: error.message,
+        });
+      }
+      if (error.message.includes('does not exist')) {
+        return res.status(400).json({
+          error: 'Draft folder not found',
+          message: error.message,
+        });
+      }
+    }
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
 // GET /api/ideation/sessions
 // ============================================================================
 // List sessions for a profile (with optional status filter)
@@ -1834,8 +2046,7 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
     const candidate = await candidateManager.getActiveForSession(sessionId);
 
     // Create streaming handler
-    const client = anthropicClient;
-    const handler = new StreamingResponseHandler(client);
+    const handler = new StreamingResponseHandler(anthropicClient as unknown as Anthropic);
 
     // Listen for stream events
     handler.on('stream', async (event) => {
@@ -2002,6 +2213,11 @@ ideationRouter.delete('/artifact/:artifactId', async (req: Request, res: Respons
     await saveDb();
 
     console.log(`[DeleteArtifact] Deleted artifact ${artifactId} from session ${sessionId}`);
+
+    // Emit WebSocket event for real-time UI updates
+    emitSessionEvent('artifact:deleted', sessionId, {
+      artifactId,
+    });
 
     res.json({ success: true });
   } catch (error) {
@@ -2187,5 +2403,328 @@ ideationRouter.post('/search', async (req: Request, res: Response) => {
     if (!res.headersSent) {
       res.status(500).json({ error: 'Web search failed' });
     }
+  }
+});
+
+// ============================================================================
+// GET /api/ideation/ideas/:userSlug
+// ============================================================================
+// List all ideas for a user (for IdeaSelector component)
+
+ideationRouter.get('/ideas/:userSlug', async (req: Request, res: Response) => {
+  try {
+    const { userSlug } = req.params;
+
+    if (!userSlug) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'userSlug is required',
+      });
+    }
+
+    console.log(`[IdeaSelector] Listing ideas for user: ${userSlug}`);
+
+    const ideas = await listUserIdeas(userSlug);
+
+    console.log(`[IdeaSelector] Found ${ideas.length} ideas for user ${userSlug}`);
+
+    res.json({
+      success: true,
+      data: {
+        ideas,
+        count: ideas.length,
+      },
+    });
+
+  } catch (error) {
+    console.error('[IdeaSelector] Error listing ideas:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// ============================================================================
+// GET /api/ideation/ideas/:userSlug/:ideaSlug/artifacts
+// ============================================================================
+// Get all artifacts for an idea (filesystem-based unified artifact store)
+
+ideationRouter.get('/ideas/:userSlug/:ideaSlug/artifacts', async (req: Request, res: Response) => {
+  try {
+    const { userSlug, ideaSlug } = req.params;
+
+    if (!userSlug || !ideaSlug) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'userSlug and ideaSlug are required',
+      });
+    }
+
+    console.log(`[IdeaArtifacts] Listing artifacts for ${userSlug}/${ideaSlug}`);
+
+    // Use unified artifact store to list all artifacts in the idea folder
+    const artifacts = await listUnifiedArtifacts(userSlug, ideaSlug);
+
+    console.log(`[IdeaArtifacts] Found ${artifacts.length} artifacts`);
+
+    res.json({
+      success: true,
+      data: {
+        artifacts,
+        count: artifacts.length,
+      },
+    });
+
+  } catch (error) {
+    console.error('[IdeaArtifacts] Error listing artifacts:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// ============================================================================
+// POST /api/ideation/ideas/:userSlug/:ideaSlug/artifacts
+// ============================================================================
+// Create a new artifact in an idea folder (filesystem-based unified artifact store)
+
+const CreateIdeaArtifactSchema = z.object({
+  type: z.enum(['research', 'mermaid', 'markdown', 'code', 'analysis', 'comparison', 'idea-summary', 'template']),
+  title: z.string().min(1, 'title is required'),
+  content: z.string().min(1, 'content is required'),
+  sessionId: z.string().optional(),
+  language: z.string().optional(),
+  queries: z.array(z.string()).optional(),
+  identifier: z.string().optional(),
+  filePath: z.string().optional(),
+});
+
+ideationRouter.post('/ideas/:userSlug/:ideaSlug/artifacts', async (req: Request, res: Response) => {
+  try {
+    const { userSlug, ideaSlug } = req.params;
+
+    if (!userSlug || !ideaSlug) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'userSlug and ideaSlug are required',
+      });
+    }
+
+    // Validate request body
+    const parseResult = CreateIdeaArtifactSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Validation error',
+        details: parseResult.error.issues,
+      });
+    }
+
+    const { type, title, content, sessionId, language, queries, identifier, filePath } = parseResult.data;
+
+    console.log(`[IdeaArtifacts] Creating artifact "${title}" for ${userSlug}/${ideaSlug}`);
+
+    // Build create artifact input
+    const input: CreateArtifactInput = {
+      type: type as ArtifactType,
+      title,
+      content,
+      sessionId,
+      language,
+      queries,
+      identifier,
+      filePath,
+    };
+
+    // Save using unified artifact store
+    const artifact: UnifiedArtifact = await saveUnifiedArtifact(userSlug, ideaSlug, input);
+
+    console.log(`[IdeaArtifacts] Created artifact ${artifact.id} at ${artifact.filePath}`);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        artifact,
+      },
+    });
+
+  } catch (error) {
+    console.error('[IdeaArtifacts] Error creating artifact:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// ============================================================================
+// GET /api/ideation/ideas/:userSlug/:ideaSlug/artifacts/:filePath
+// ============================================================================
+// Get a specific artifact by file path
+
+ideationRouter.get('/ideas/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (req: Request, res: Response) => {
+  try {
+    const { userSlug, ideaSlug, filePath } = req.params;
+
+    if (!userSlug || !ideaSlug || !filePath) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'userSlug, ideaSlug, and filePath are required',
+      });
+    }
+
+    console.log(`[IdeaArtifacts] Loading artifact ${filePath} for ${userSlug}/${ideaSlug}`);
+
+    // Load using unified artifact store
+    const artifact = await loadUnifiedArtifact(userSlug, ideaSlug, filePath);
+
+    if (!artifact) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: `Artifact not found: ${filePath}`,
+      });
+    }
+
+    console.log(`[IdeaArtifacts] Loaded artifact ${artifact.id}`);
+
+    res.json({
+      success: true,
+      data: {
+        artifact,
+      },
+    });
+
+  } catch (error) {
+    console.error('[IdeaArtifacts] Error loading artifact:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// ============================================================================
+// DELETE /api/ideation/ideas/:userSlug/:ideaSlug/artifacts/:filePath
+// ============================================================================
+// Delete an artifact by file path
+
+ideationRouter.delete('/ideas/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (req: Request, res: Response) => {
+  try {
+    const { userSlug, ideaSlug, filePath } = req.params;
+
+    if (!userSlug || !ideaSlug || !filePath) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'userSlug, ideaSlug, and filePath are required',
+      });
+    }
+
+    console.log(`[IdeaArtifacts] Deleting artifact ${filePath} for ${userSlug}/${ideaSlug}`);
+
+    // Delete using unified artifact store
+    const deleted = await deleteUnifiedArtifact(userSlug, ideaSlug, filePath);
+
+    if (!deleted) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: `Artifact not found: ${filePath}`,
+      });
+    }
+
+    console.log(`[IdeaArtifacts] Deleted artifact ${filePath}`);
+
+    res.json({
+      success: true,
+      message: 'Artifact deleted',
+    });
+
+  } catch (error) {
+    console.error('[IdeaArtifacts] Error deleting artifact:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// ============================================================================
+// POST /api/ideation/session
+// ============================================================================
+// Creates a new session with optional idea linking.
+// When userSlug is provided without ideaSlug, creates a draft folder.
+
+const CreateSessionWithUserSchema = z.object({
+  userSlug: z.string().min(1, 'userSlug is required'),
+  ideaSlug: z.string().optional(),
+  profileId: z.string().optional(),
+});
+
+ideationRouter.post('/session', async (req: Request, res: Response) => {
+  try {
+    // Validate request body
+    const parseResult = CreateSessionWithUserSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Validation error',
+        details: parseResult.error.issues,
+      });
+    }
+
+    const { userSlug, ideaSlug, profileId } = parseResult.data;
+    let finalIdeaSlug = ideaSlug;
+
+    console.log(`[Session] Creating session for user ${userSlug}, ideaSlug: ${ideaSlug || 'none (will create draft)'}`);
+
+    // If no ideaSlug provided, create a draft folder
+    if (!ideaSlug) {
+      const draftResult = await createDraftFolder(userSlug);
+      finalIdeaSlug = draftResult.draftId;
+      console.log(`[Session] Created draft folder: ${draftResult.draftId} at ${draftResult.path}`);
+    } else {
+      // Validate that idea folder exists if ideaSlug is provided
+      if (!ideaFolderExists(userSlug, ideaSlug)) {
+        return res.status(400).json({
+          error: 'Idea folder not found',
+          message: `No idea folder exists at users/${userSlug}/ideas/${ideaSlug}`,
+        });
+      }
+    }
+
+    // Create session in database
+    const db = await import('../../database/db.js');
+    const sessionId = uuidv4();
+    const now = new Date().toISOString();
+
+    await db.run(`
+      INSERT INTO ideation_sessions (
+        id, profile_id, user_slug, idea_slug, status, current_phase, entry_mode,
+        started_at, last_activity_at,
+        handoff_count, token_count, message_count
+      )
+      VALUES (?, ?, ?, ?, 'active', 'exploring', 'discover', ?, ?, 0, 0, 0)
+    `, [sessionId, profileId || null, userSlug, finalIdeaSlug, now, now]);
+
+    await db.saveDb();
+
+    // Return session details
+    return res.status(201).json({
+      success: true,
+      id: sessionId,
+      userSlug,
+      ideaSlug: finalIdeaSlug,
+      status: 'active',
+      currentPhase: 'exploring',
+      entryMode: 'discover',
+      startedAt: now,
+      lastActivityAt: now,
+    });
+
+  } catch (error) {
+    console.error('[Session] Error creating session:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 });

@@ -68,6 +68,7 @@ import {
 import { CostTracker } from '../utils/cost-tracker.js';
 import type { IdeaStatus, IdeaContext, ProfileContext, StrategicApproach, IdeaFinancialAllocation } from '../types/incubation.js';
 import { ideationRouter } from './routes/ideation.js';
+import { splitIdeationRouter } from './routes/ideation/index.js';
 
 const app = express();
 const PORT = process.env.API_PORT || 3001;
@@ -76,7 +77,11 @@ const PORT = process.env.API_PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Mount ideation routes
+// Mount split ideation routes FIRST (session + artifact routes)
+// These take precedence over the legacy routes in ideation.ts
+app.use('/api/ideation', splitIdeationRouter);
+
+// Mount main ideation routes (message handling, actions)
 app.use('/api/ideation', ideationRouter);
 
 // Types
@@ -93,6 +98,7 @@ interface Idea {
   folder_path: string;
   created_at: string;
   updated_at: string;
+  [key: string]: unknown;
 }
 
 interface ApiResponse<T> {

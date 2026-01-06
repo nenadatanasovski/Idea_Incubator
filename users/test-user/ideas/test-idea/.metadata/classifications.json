@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-01-06T20:28:54.187Z",
+  "phase": "RESEARCH",
+  "documents": [
+    {
+      "path": "README.md",
+      "classification": "required",
+      "reason": "Phase requirement: new test"
+    },
+    {
+      "path": "new-file.md",
+      "classification": "optional",
+      "reason": "Testing overwrite"
+    }
+  ]
+}

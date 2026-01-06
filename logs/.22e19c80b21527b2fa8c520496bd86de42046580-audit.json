@@ -14,6 +14,16 @@
             "date": 1767203581514,
             "name": "/Users/nenadatanasovski/idea_incurator/logs/mcp-puppeteer-2026-01-01.log",
             "hash": "92e052a3ca85b30a01f2175dccae9cd3efd1e58c3605ba126d553f5b5d7cdb52"
+        },
+        {
+            "date": 1767670869335,
+            "name": "/Users/nenadatanasovski/idea_incurator/logs/mcp-puppeteer-2026-01-06.log",
+            "hash": "46778481c8225158b7a23d945d734936167c1a6c39c7ef02c852a32c2f9b672c"
+        },
+        {
+            "date": 1767728636210,
+            "name": "/Users/nenadatanasovski/idea_incurator/logs/mcp-puppeteer-2026-01-07.log",
+            "hash": "de7496501003639347cf3f9a90764f0bfed7a7b296eb78fb32236d9e7b25a628"
         }
     ],
     "hashType": "sha256"

@@ -1,0 +1,15 @@
+- [ ] Ability to address any leftover assumptions identified by AI - ‘Scan for assumptions’ button?
+- [ ] Building a network of contacts allowing their ideas to recognise each other to surface collaboration opportunities
+- [x] Ability to identify ‘differentiation opportunities’ in order to discover new markets 
+- [x] Get AI to create smart suggestions to the questions asked. Base it on the user profile and web search results as well if needed.
+- [ ] Business intelligence powered AI agent driven process to first dot all the I's and cross all the t's so the coding agent in the background has all it needs before it starts
+- [ ] Imagine people having different app ideas. Those apps all have a certain demographic, data set and integration points. The overlap in customers or technology can be served as an opportunity for collaboration to cross-expand audiences.
+- [ ] Load network in by passing in your email address and access to LinkedIn
+- [ ] The ability to distinguish if this an idea part of an existing platform, app or business or a brand new business idea (very important distinction)
+- [ ] AI domain expert profiles in network - Auto-spun up sub agent with domain knowledge expertise baked in - valid, relevant and helpfully questioning.
+- [ ] Platform handles/guides user through legal setup of the business
+- [ ] Platform handles regulatory and technical aspects of putting apps on the App Store/ google Store
+- [ ] If another user has a feature already built out, the platform could incentivise the allow the current user to purchase or license that feature from the other user while the platform makes a small fee on that transaction
+- [ ] Ideas don’t have to be full apps. They can also just simply be micro services, server less api endpoints etc. with integration with other apps
+- [ ] The idea folder is what the ideation agent uses to ‘get their bearings’ before the chat starts OR when specific artifacts/files are referenced or when questions are asked that require deep dive.
+- [ ] The platform sets up a plan for the user to approve for their business idea with timelines. And those timelines are front and centre for the user so that they have a live tracker for the timelines.

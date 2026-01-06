@@ -3,7 +3,7 @@
  * Determines when debate has reached stable conclusions
  */
 import { getConfig } from '../config/index.js';
-import { logDebug, logInfo } from '../utils/logger.js';
+// Logger imports removed - using getConfig for debug settings
 import { type FullDebateResult, type CriterionDebate } from './debate.js';
 
 export type ConvergenceReason =

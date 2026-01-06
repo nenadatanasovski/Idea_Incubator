@@ -1,0 +1,36 @@
+# Coordination System Python Dependencies
+# Install: pip install -r requirements.txt
+
+# Core (built-in, but documenting version expectations)
+# sqlite3 - built into Python 3.10+
+
+# Schema validation
+jsonschema>=4.0.0
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+
+# CLI interface
+rich>=13.0.0
+click>=8.0.0
+
+# YAML configuration
+pyyaml>=6.0.0
+
+# Telegram notifications
+python-telegram-bot>=20.0
+
+# HTTP requests (for Telegram, optional integrations)
+httpx>=0.24.0
+
+# Date/time handling
+python-dateutil>=2.8.0
+
+# Process management
+psutil>=5.9.0
+
+# Development dependencies (optional)
+# black>=23.0.0
+# mypy>=1.0.0
+# ruff>=0.1.0

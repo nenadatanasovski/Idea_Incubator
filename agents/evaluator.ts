@@ -16,10 +16,6 @@ import {
   type CriterionDefinition
 } from './config.js';
 import {
-  CriterionEvaluationSchema,
-  EvaluationResponseSchema,
-  type CriterionEvaluation,
-  type EvaluationResponse,
   type ProfileContext
 } from '../utils/schemas.js';
 
@@ -698,7 +694,7 @@ export async function evaluateCategory(
   ideaContent: string,
   costTracker: CostTracker,
   broadcaster?: Broadcaster,
-  roundNumber?: number,
+  _roundNumber?: number,
   profileContext?: ProfileContext | null,
   structuredContext?: StructuredEvaluationContext | null,
   positioningContext?: PositioningRiskContext | null,
@@ -790,7 +786,7 @@ Evaluate all ${criteria.length} criteria in the ${category} category.`
     // Remove trailing commas before ] or }
     repaired = repaired.replace(/,\s*([\]}])/g, '$1');
     // Try to escape unescaped newlines in strings (rough heuristic)
-    repaired = repaired.replace(/:\s*"([^"]*?)(\n)([^"]*?)"/g, (_, pre, nl, post) =>
+    repaired = repaired.replace(/:\s*"([^"]*?)(\n)([^"]*?)"/g, (_, pre, _nl, post) =>
       `: "${pre}\\n${post}"`
     );
     return repaired;

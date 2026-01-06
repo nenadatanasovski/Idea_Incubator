@@ -20,6 +20,7 @@ This is an idea incubation system that uses AI agents to evaluate and red-team i
 4. **Update database** - Remind user to run `npm run sync` after file changes
 5. **Cost awareness** - Warn user before running expensive evaluations
 6. **NEVER stop servers** - Never stop a running server unless explicitly asked to do so
+7. **ALWAYS use python3** - Never use `python`, always use `python3` for all Python commands
 
 ## File Locations
 
@@ -60,6 +61,11 @@ npm run evaluate <slug> --budget=15  # With custom budget
 # Testing
 npm test                    # Run all tests
 npm test:run                # Run tests once
+
+# Ralph Loops (always use python3)
+python3 tests/e2e/ralph_loop.py                      # Main E2E test loop
+python3 tests/e2e/unified-fs-ralph-loop.py           # Unified File System implementation
+python3 tests/e2e/unified-fs-ralph-loop.py --max-iterations 5  # With limit
 ```
 
 ## User Profiles (Personal Fit)

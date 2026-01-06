@@ -11,8 +11,10 @@ import {
   NarrowingState,
   ViabilityRisk,
   WebSearchResult,
+  IdeaTypeSelectionState,
+  IdeaTypeSelection,
 } from '../../types/ideation.js';
-import { sessionManager } from './session-manager.js';
+// sessionManager import removed - not currently used
 import { messageStore } from './message-store.js';
 import { memoryManager } from './memory-manager.js';
 import { candidateManager } from './candidate-manager.js';
@@ -28,10 +30,8 @@ import {
   createDefaultMarketDiscoveryState,
   createDefaultNarrowingState,
 } from '../../utils/ideation-defaults.js';
-import {
-  performWebSearch,
-  SearchPurpose,
-} from './web-search-service.js';
+// web-search-service imports removed - not currently used
+import { query } from '../../database/db.js';
 
 /**
  * AGENT ORCHESTRATOR
@@ -59,6 +59,7 @@ export interface OrchestratorResponse {
   requiresIntervention: boolean;
   handoffOccurred: boolean;
   webSearchQueries?: string[];  // Queries to execute asynchronously
+  webSearchResults?: WebSearchResult[];  // Results from executed web searches
   artifact?: AgentArtifact;     // Visual artifact (mermaid diagram, code, etc.)
   artifactUpdate?: AgentArtifactUpdate; // Update to existing artifact
   isQuickAck: boolean;          // True if this is a quick acknowledgment (no Claude call)
@@ -141,6 +142,14 @@ export class AgentOrchestrator {
       return this.handleDirectArtifactRequest(session, userMessage, directArtifactRequest);
     }
 
+    // Check for idea type classification flow
+    // This is triggered at session start (when there are few messages and idea type not selected)
+    const ideaTypeResponse = await this.handleIdeaTypeClassification(session, userMessage, messages, lastAssistantMessage);
+    if (ideaTypeResponse) {
+      console.log('[Orchestrator] Idea type classification flow - returning early');
+      return ideaTypeResponse;
+    }
+
     // Check token usage
     const tokenUsage = calculateTokenUsage(messages, userMessage);
 
@@ -173,8 +182,8 @@ export class AgentOrchestrator {
       messages: context.messages,
     });
 
-    // Parse response
-    const parsed = this.parseResponse(response);
+    // Parse response (cast to handle SDK type variations)
+    const parsed = this.parseResponse(response as Anthropic.Message);
 
     // Extract signals
     const currentState = await this.loadSessionState(session.id);
@@ -241,12 +250,18 @@ export class AgentOrchestrator {
     } : null;
 
     // Update memory files
+    // Map ViabilityRisk to ViabilityRiskSummary format expected by memory manager
+    const riskSummaries = viabilityResult.risks.map(r => ({
+      type: r.riskType,
+      description: r.description,
+      severity: r.severity,
+    }));
     await memoryManager.updateAll(session.id, {
       selfDiscovery: selfDiscovery as SelfDiscoveryState,
       marketDiscovery: marketDiscovery as MarketDiscoveryState,
       narrowingState: narrowingState as NarrowingState,
       candidate: candidateForMemory,
-      viability: { total: viabilityResult.total, risks: viabilityResult.risks },
+      viability: { total: viabilityResult.total, risks: riskSummaries },
     });
 
     // Save candidate to database
@@ -640,7 +655,7 @@ export class AgentOrchestrator {
   /**
    * Perform handoff preparation.
    */
-  private async performHandoff(session: IdeationSession, messages: IdeationMessage[]): Promise<void> {
+  private async performHandoff(session: IdeationSession, _messages: IdeationMessage[]): Promise<void> {
     const state = await this.loadSessionState(session.id);
 
     await prepareHandoff(session, {
@@ -927,7 +942,8 @@ export class AgentOrchestrator {
     );
 
     if (createArtifactsMatch) {
-      const expectedCount = parseInt(createArtifactsMatch[1], 10);
+      // Parse count for validation (currently unused but may be used in future)
+      void parseInt(createArtifactsMatch[1], 10);
       const listPart = createArtifactsMatch[2];
 
       // Extract numbered items: "1) item" or "1. item" or just comma-separated
@@ -1118,7 +1134,7 @@ export class AgentOrchestrator {
           label: option.text,
           prompt: option.value || option.text,
           status: 'pending' as const,
-        };
+        } as SubAgentTask;
       })
       .filter((t): t is SubAgentTask => t !== null);
 
@@ -1202,6 +1218,456 @@ export class AgentOrchestrator {
       return 'architecture-explore';
     }
     return 'custom';
+  }
+
+  // ============================================================================
+  // IDEA TYPE CLASSIFICATION FLOW
+  // ============================================================================
+
+  /**
+   * The idea type buttons shown to the user at session start.
+   */
+  private getIdeaTypeButtons(): ButtonOption[] {
+    return [
+      {
+        id: 'idea_type_business',
+        label: 'New business idea',
+        value: 'idea_type:business',
+        style: 'primary',
+      },
+      {
+        id: 'idea_type_feature_internal',
+        label: 'Feature for my existing idea',
+        value: 'idea_type:feature_internal',
+        style: 'secondary',
+      },
+      {
+        id: 'idea_type_feature_external',
+        label: 'Feature for external platform',
+        value: 'idea_type:feature_external',
+        style: 'secondary',
+      },
+      {
+        id: 'idea_type_service',
+        label: 'Service business',
+        value: 'idea_type:service',
+        style: 'secondary',
+      },
+      {
+        id: 'idea_type_pivot',
+        label: 'Pivoting an existing idea',
+        value: 'idea_type:pivot',
+        style: 'secondary',
+      },
+    ];
+  }
+
+  /**
+   * Generate buttons for selecting an existing idea as parent.
+   */
+  private async getExistingIdeaButtons(): Promise<ButtonOption[]> {
+    // Get existing ideas from database
+    const ideas = await query<{ slug: string; title: string }>(
+      'SELECT slug, title FROM ideas ORDER BY updated_at DESC LIMIT 10'
+    );
+
+    const buttons: ButtonOption[] = ideas.map((idea, index) => ({
+      id: `parent_idea_${index}`,
+      label: idea.title.substring(0, 40) + (idea.title.length > 40 ? '...' : ''),
+      value: `parent_idea:${idea.slug}`,
+      style: 'secondary' as const,
+    }));
+
+    // Add option to type manually
+    buttons.push({
+      id: 'parent_idea_none',
+      label: 'None of these / Create without parent',
+      value: 'parent_idea:none',
+      style: 'outline',
+    });
+
+    return buttons;
+  }
+
+  /**
+   * Handle idea type classification flow at session start.
+   * Returns a response if in classification flow, null to continue normal processing.
+   */
+  private async handleIdeaTypeClassification(
+    session: IdeationSession,
+    userMessage: string,
+    messages: IdeationMessage[],
+    lastAssistantMessage: IdeationMessage | undefined
+  ): Promise<OrchestratorResponse | null> {
+    // Load current idea type selection state
+    const ideaTypeState = await memoryManager.loadIdeaTypeSelection(session.id);
+    console.log('[Orchestrator] Idea type state:', JSON.stringify(ideaTypeState));
+
+    // If idea type is already selected and all follow-ups are complete, skip this flow
+    if (ideaTypeState.ideaTypeSelected && !ideaTypeState.parentSelectionNeeded) {
+      console.log('[Orchestrator] Idea type already selected, skipping classification flow');
+      return null;
+    }
+
+    // If parent selection is needed and completed, skip this flow
+    if (ideaTypeState.parentSelectionNeeded && ideaTypeState.parentSelected) {
+      console.log('[Orchestrator] Parent already selected, skipping classification flow');
+      return null;
+    }
+
+    // Check if the last message was asking for idea type selection
+    const lastMessageAskedIdeaType = lastAssistantMessage?.buttonsShown?.some(
+      b => b.value.startsWith('idea_type:')
+    ) || false;
+
+    // Check if the last message was asking for parent selection
+    const lastMessageAskedParent = lastAssistantMessage?.buttonsShown?.some(
+      b => b.value.startsWith('parent_idea:') || b.value.startsWith('parent_platform:')
+    ) || false;
+
+    // Case 1: User is responding to idea type question
+    if (lastMessageAskedIdeaType && userMessage.startsWith('idea_type:')) {
+      return this.handleIdeaTypeSelection(session, userMessage, ideaTypeState);
+    }
+
+    // Case 2: User is responding to parent selection question
+    if (lastMessageAskedParent && (
+      userMessage.startsWith('parent_idea:') ||
+      userMessage.startsWith('parent_platform:') ||
+      ideaTypeState.parentSelectionNeeded
+    )) {
+      return this.handleParentSelection(session, userMessage, ideaTypeState);
+    }
+
+    // Case 3: This is a new session (only greeting message exists) - ask idea type
+    // The greeting is the first assistant message, so if we only have 1 assistant message
+    // and the user just sent their first response, we should ask about idea type
+    const assistantMessages = messages.filter(m => m.role === 'assistant');
+    const userMessages = messages.filter(m => m.role === 'user');
+
+    // Only trigger idea type question if:
+    // 1. There's only the initial greeting (1 assistant message)
+    // 2. No user messages yet (this is their first message)
+    // 3. Idea type hasn't been asked yet
+    if (assistantMessages.length === 1 && userMessages.length === 0 && !ideaTypeState.ideaTypeSelected) {
+      return this.askIdeaTypeQuestion(session, userMessage);
+    }
+
+    // Not in classification flow
+    return null;
+  }
+
+  /**
+   * Ask the user about the type of idea they want to explore.
+   */
+  private async askIdeaTypeQuestion(
+    session: IdeationSession,
+    userMessage: string
+  ): Promise<OrchestratorResponse> {
+    // Store the user's first message
+    const userMsg = await messageStore.add({
+      sessionId: session.id,
+      role: 'user',
+      content: userMessage,
+      tokenCount: Math.ceil(userMessage.length / 4),
+    });
+
+    // Generate the idea type question
+    const responseText = `Thanks for sharing! Before we dive deeper, let me understand what type of idea you're exploring. This helps me tailor my questions and analysis.
+
+What kind of idea is this?`;
+
+    const buttons = this.getIdeaTypeButtons();
+
+    // Store the assistant message with idea type buttons
+    const assistantMsg = await messageStore.add({
+      sessionId: session.id,
+      role: 'assistant',
+      content: responseText,
+      buttonsShown: buttons,
+      tokenCount: Math.ceil(responseText.length / 4),
+    });
+
+    return {
+      reply: responseText,
+      buttons,
+      form: null,
+      candidateUpdate: null,
+      confidence: 0,
+      viability: 100,
+      risks: [],
+      requiresIntervention: false,
+      handoffOccurred: false,
+      isQuickAck: false,
+      userMessageId: userMsg.id,
+      assistantMessageId: assistantMsg.id,
+    };
+  }
+
+  /**
+   * Handle the user's idea type selection.
+   */
+  private async handleIdeaTypeSelection(
+    session: IdeationSession,
+    userMessage: string,
+    currentState: IdeaTypeSelectionState
+  ): Promise<OrchestratorResponse> {
+    // Parse the idea type from the button value
+    const ideaType = userMessage.replace('idea_type:', '') as IdeaTypeSelection;
+    console.log('[Orchestrator] User selected idea type:', ideaType);
+
+    // Determine if parent selection is needed
+    const needsParent = ['feature_internal', 'feature_external', 'pivot'].includes(ideaType);
+
+    // Update the state
+    const updatedState: IdeaTypeSelectionState = {
+      ...currentState,
+      ideaTypeSelected: true,
+      ideaType,
+      parentSelectionNeeded: needsParent,
+      parentSelected: !needsParent, // Mark as selected if not needed
+    };
+
+    // Persist the state
+    await memoryManager.updateIdeaTypeSelection(session.id, updatedState);
+
+    // Store the user message (showing the button label)
+    const buttonLabel = this.getIdeaTypeButtons().find(b => b.value === userMessage)?.label || userMessage;
+    const userMsg = await messageStore.add({
+      sessionId: session.id,
+      role: 'user',
+      content: buttonLabel,
+      tokenCount: Math.ceil(buttonLabel.length / 4),
+    });
+
+    // If parent selection is needed, ask the follow-up question
+    if (needsParent) {
+      return this.askParentSelectionQuestion(session, ideaType, userMsg.id);
+    }
+
+    // Otherwise, confirm selection and proceed
+    const confirmText = this.getIdeaTypeConfirmation(ideaType);
+
+    const assistantMsg = await messageStore.add({
+      sessionId: session.id,
+      role: 'assistant',
+      content: confirmText,
+      tokenCount: Math.ceil(confirmText.length / 4),
+    });
+
+    return {
+      reply: confirmText,
+      buttons: null,
+      form: null,
+      candidateUpdate: null,
+      confidence: 0,
+      viability: 100,
+      risks: [],
+      requiresIntervention: false,
+      handoffOccurred: false,
+      isQuickAck: false,
+      userMessageId: userMsg.id,
+      assistantMessageId: assistantMsg.id,
+    };
+  }
+
+  /**
+   * Ask the follow-up question for parent selection.
+   */
+  private async askParentSelectionQuestion(
+    session: IdeationSession,
+    ideaType: IdeaTypeSelection,
+    userMsgId: string
+  ): Promise<OrchestratorResponse> {
+    let questionText: string;
+    let buttons: ButtonOption[];
+
+    if (ideaType === 'feature_internal') {
+      questionText = `Got it - you want to add a feature to one of your existing ideas. Which idea is this feature for?`;
+      buttons = await this.getExistingIdeaButtons();
+    } else if (ideaType === 'feature_external') {
+      questionText = `Interesting! You want to build something that extends an external platform. What platform or product would this feature be for?
+
+You can type the name of the platform (e.g., "Shopify", "Slack", "Notion") or select from common options:`;
+      buttons = [
+        { id: 'platform_shopify', label: 'Shopify', value: 'parent_platform:shopify', style: 'secondary' },
+        { id: 'platform_slack', label: 'Slack', value: 'parent_platform:slack', style: 'secondary' },
+        { id: 'platform_notion', label: 'Notion', value: 'parent_platform:notion', style: 'secondary' },
+        { id: 'platform_wordpress', label: 'WordPress', value: 'parent_platform:wordpress', style: 'secondary' },
+        { id: 'platform_other', label: 'Other (I\'ll type it)', value: 'parent_platform:other', style: 'outline' },
+      ];
+    } else if (ideaType === 'pivot') {
+      questionText = `I see - you're looking to pivot an existing idea. Which idea are you pivoting from?`;
+      buttons = await this.getExistingIdeaButtons();
+    } else {
+      // Should not reach here, but handle gracefully
+      questionText = `Let's continue exploring your idea.`;
+      buttons = [];
+    }
+
+    const assistantMsg = await messageStore.add({
+      sessionId: session.id,
+      role: 'assistant',
+      content: questionText,
+      buttonsShown: buttons,
+      tokenCount: Math.ceil(questionText.length / 4),
+    });
+
+    return {
+      reply: questionText,
+      buttons,
+      form: null,
+      candidateUpdate: null,
+      confidence: 0,
+      viability: 100,
+      risks: [],
+      requiresIntervention: false,
+      handoffOccurred: false,
+      isQuickAck: false,
+      userMessageId: userMsgId,
+      assistantMessageId: assistantMsg.id,
+    };
+  }
+
+  /**
+   * Handle the user's parent selection.
+   */
+  private async handleParentSelection(
+    session: IdeationSession,
+    userMessage: string,
+    currentState: IdeaTypeSelectionState
+  ): Promise<OrchestratorResponse> {
+    console.log('[Orchestrator] Processing parent selection:', userMessage);
+
+    let parentType: 'internal' | 'external' | null = null;
+    let parentSlug: string | null = null;
+    let parentName: string | null = null;
+    let buttonLabel = userMessage;
+
+    if (userMessage.startsWith('parent_idea:')) {
+      const slug = userMessage.replace('parent_idea:', '');
+      if (slug !== 'none') {
+        parentType = 'internal';
+        parentSlug = slug;
+        // Get the title for display
+        const ideas = await query<{ title: string }>('SELECT title FROM ideas WHERE slug = ?', [slug]);
+        buttonLabel = ideas[0]?.title || slug;
+      } else {
+        buttonLabel = 'None of these / Create without parent';
+      }
+    } else if (userMessage.startsWith('parent_platform:')) {
+      const platform = userMessage.replace('parent_platform:', '');
+      if (platform !== 'other') {
+        parentType = 'external';
+        parentName = platform.charAt(0).toUpperCase() + platform.slice(1); // Capitalize
+        buttonLabel = parentName;
+      } else {
+        buttonLabel = 'Other (I\'ll type it)';
+      }
+    } else {
+      // User typed a custom platform name
+      parentType = 'external';
+      parentName = userMessage;
+      buttonLabel = userMessage;
+    }
+
+    // Update the state
+    const updatedState: IdeaTypeSelectionState = {
+      ...currentState,
+      parentSelected: true,
+      parentType,
+      parentSlug,
+      parentName,
+    };
+
+    // Persist the state
+    await memoryManager.updateIdeaTypeSelection(session.id, updatedState);
+
+    // Store the user message
+    const userMsg = await messageStore.add({
+      sessionId: session.id,
+      role: 'user',
+      content: buttonLabel,
+      tokenCount: Math.ceil(buttonLabel.length / 4),
+    });
+
+    // Generate confirmation and continue
+    const confirmText = this.getParentSelectionConfirmation(currentState.ideaType!, parentType, parentSlug, parentName);
+
+    const assistantMsg = await messageStore.add({
+      sessionId: session.id,
+      role: 'assistant',
+      content: confirmText,
+      tokenCount: Math.ceil(confirmText.length / 4),
+    });
+
+    return {
+      reply: confirmText,
+      buttons: null,
+      form: null,
+      candidateUpdate: null,
+      confidence: 0,
+      viability: 100,
+      risks: [],
+      requiresIntervention: false,
+      handoffOccurred: false,
+      isQuickAck: false,
+      userMessageId: userMsg.id,
+      assistantMessageId: assistantMsg.id,
+    };
+  }
+
+  /**
+   * Get confirmation text for idea type selection.
+   */
+  private getIdeaTypeConfirmation(ideaType: IdeaTypeSelection): string {
+    switch (ideaType) {
+      case 'business':
+        return `Perfect - we're exploring a new business idea. I'll focus on market opportunity, target customers, and viability.
+
+Now, tell me more about what you're thinking. What problem are you trying to solve, or what opportunity have you spotted?`;
+      case 'service':
+        return `Great - a service business. I'll focus on your unique skills, target clients, and how to package and price your offering.
+
+What kind of service are you thinking about? What makes you well-suited to offer it?`;
+      default:
+        return `Got it. Let's explore this idea together.
+
+What's the core concept you're working with?`;
+    }
+  }
+
+  /**
+   * Get confirmation text for parent selection.
+   */
+  private getParentSelectionConfirmation(
+    ideaType: IdeaTypeSelection,
+    _parentType: 'internal' | 'external' | null,
+    parentSlug: string | null,
+    parentName: string | null
+  ): string {
+    if (ideaType === 'feature_internal' && parentSlug) {
+      return `Perfect - you're adding a feature to your existing idea. I'll keep that context in mind as we explore.
+
+What feature are you thinking about adding? What problem would it solve?`;
+    }
+
+    if (ideaType === 'feature_external' && parentName) {
+      return `Got it - you want to build something for ${parentName}. I'll consider platform constraints and ecosystem dynamics as we explore.
+
+What would this feature or extension do? What gap does it fill?`;
+    }
+
+    if (ideaType === 'pivot' && parentSlug) {
+      return `I see - you're pivoting from an existing idea. Understanding what worked and didn't will be valuable here.
+
+What's driving the pivot? What did you learn from the original direction?`;
+    }
+
+    // No parent selected or fallback
+    return `Alright, let's explore this idea together.
+
+Tell me more about what you're thinking. What's the core concept?`;
   }
 }
 

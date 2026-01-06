@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 import { Command } from 'commander';
 import { logInfo, logSuccess, logError, logWarning } from '../utils/logger.js';
-import { getDb, closeDb, query, getOne, saveDb } from '../database/db.js';
+import { closeDb, query, getOne, saveDb } from '../database/db.js';
 import { runMigrations } from '../database/migrate.js';
 import {
   pauseIdea,

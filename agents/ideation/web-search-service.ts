@@ -149,7 +149,7 @@ export function parseSearchResults(output: string): SearchResultItem[] {
 
   // Extract URLs with markdown link pattern [title](url)
   const linkPattern = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
-  let match;
+  let match: RegExpExecArray | null;
 
   while ((match = linkPattern.exec(output)) !== null) {
     results.push({
@@ -163,7 +163,7 @@ export function parseSearchResults(output: string): SearchResultItem[] {
   // Also check for bare URLs
   const urlPattern = /(https?:\/\/[^\s\)]+)/g;
   while ((match = urlPattern.exec(output)) !== null) {
-    if (!results.some(r => r.url === match[1])) {
+    if (!results.some(r => r.url === match![1])) {
       results.push({
         title: 'Source',
         url: match[1],

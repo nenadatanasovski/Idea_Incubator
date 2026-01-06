@@ -1,0 +1,26 @@
+{
+  "always_show": ["README.md", "development.md"],
+  "by_phase": {
+    "SPARK": ["README.md", "development.md"],
+    "CLARIFY": ["README.md", "development.md", "target-users.md", "problem-solution.md"],
+    "RESEARCH": ["research/market.md", "research/competitive.md", "research/user-personas.md"],
+    "IDEATE": ["development.md", "problem-solution.md"],
+    "EVALUATE": ["analysis/redteam.md", "analysis/risk-mitigation.md"],
+    "VALIDATE": ["validation/assumptions.md", "validation/results.md"],
+    "DESIGN": ["planning/brief.md", "planning/architecture.md"],
+    "PROTOTYPE": ["planning/mvp-scope.md", "build/spec.md"],
+    "TEST": ["validation/results.md", "build/tasks.md"],
+    "REFINE": ["development.md", "build/decisions.md"],
+    "BUILD": ["build/spec.md", "build/tasks.md", "build/decisions.md"],
+    "LAUNCH": ["marketing/launch-plan.md", "marketing/gtm.md"],
+    "GROW": ["marketing/channels.md", "networking/opportunities.md"],
+    "MAINTAIN": ["build/tasks.md", "team.md"],
+    "PIVOT": ["analysis/redteam.md", "development.md"],
+    "PAUSE": ["README.md"],
+    "SUNSET": ["README.md"],
+    "ARCHIVE": ["README.md"],
+    "ABANDONED": ["README.md"]
+  },
+  "recently_updated": [],
+  "ai_recommended": []
+}

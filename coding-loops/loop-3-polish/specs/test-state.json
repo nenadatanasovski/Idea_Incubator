@@ -1,0 +1,314 @@
+{
+  "version": "1.0",
+  "name": "Loop 3: Polish (Monitoring → E2E → Mobile)",
+  "lastUpdated": "2026-01-07T00:00:00Z",
+  "summary": {
+    "total": 30,
+    "passed": 0,
+    "failed": 0,
+    "blocked": 0,
+    "pending": 30
+  },
+  "tests": [
+    {
+      "id": "POLISH-MON-001",
+      "category": "monitoring",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": null,
+      "automatable": true,
+      "notes": "Install @sentry/react and @sentry/node packages"
+    },
+    {
+      "id": "POLISH-MON-002",
+      "category": "monitoring",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-MON-001",
+      "automatable": true,
+      "notes": "Create utils/error-tracker.ts with Sentry init"
+    },
+    {
+      "id": "POLISH-MON-003",
+      "category": "monitoring",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-MON-002",
+      "automatable": true,
+      "notes": "Initialize Sentry in frontend (main.tsx)"
+    },
+    {
+      "id": "POLISH-MON-004",
+      "category": "monitoring",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-MON-003",
+      "automatable": true,
+      "notes": "Initialize Sentry in backend (api.ts)"
+    },
+    {
+      "id": "POLISH-MON-005",
+      "category": "monitoring",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-MON-004",
+      "automatable": true,
+      "notes": "Create frontend/src/components/ErrorBoundary.tsx"
+    },
+    {
+      "id": "POLISH-MON-006",
+      "category": "monitoring",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-MON-005",
+      "automatable": true,
+      "notes": "Wrap App with ErrorBoundary"
+    },
+    {
+      "id": "POLISH-MON-007",
+      "category": "monitoring",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-MON-006",
+      "automatable": true,
+      "notes": "Create server/middleware/error-handler.ts"
+    },
+    {
+      "id": "POLISH-MON-008",
+      "category": "monitoring",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-MON-007",
+      "automatable": true,
+      "notes": "Create utils/analytics.ts for event tracking"
+    },
+    {
+      "id": "POLISH-MON-009",
+      "category": "monitoring",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-MON-008",
+      "automatable": true,
+      "notes": "Add tracking to key ideation events"
+    },
+    {
+      "id": "POLISH-MON-010",
+      "category": "monitoring",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-MON-009",
+      "automatable": true,
+      "notes": "Verify errors captured in Sentry dashboard"
+    },
+    {
+      "id": "POLISH-E2E-001",
+      "category": "e2e",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-MON-010",
+      "automatable": true,
+      "notes": "Create tests/e2e/ideation-journey/ directory"
+    },
+    {
+      "id": "POLISH-E2E-002",
+      "category": "e2e",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-E2E-001",
+      "automatable": true,
+      "notes": "Create test: Complete discovery mode journey"
+    },
+    {
+      "id": "POLISH-E2E-003",
+      "category": "e2e",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-E2E-002",
+      "automatable": true,
+      "notes": "Create test: Complete 'have idea' mode journey"
+    },
+    {
+      "id": "POLISH-E2E-004",
+      "category": "e2e",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-E2E-003",
+      "automatable": true,
+      "notes": "Create test: Viability intervention triggers"
+    },
+    {
+      "id": "POLISH-E2E-005",
+      "category": "e2e",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-E2E-004",
+      "automatable": true,
+      "notes": "Create test: Session abandonment and recovery"
+    },
+    {
+      "id": "POLISH-E2E-006",
+      "category": "e2e",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-E2E-005",
+      "automatable": true,
+      "notes": "Create test: Web search integration"
+    },
+    {
+      "id": "POLISH-E2E-007",
+      "category": "e2e",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-E2E-006",
+      "automatable": true,
+      "notes": "Create test: Artifact creation and editing"
+    },
+    {
+      "id": "POLISH-E2E-008",
+      "category": "e2e",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-E2E-007",
+      "automatable": true,
+      "notes": "Create test: Idea capture flow"
+    },
+    {
+      "id": "POLISH-E2E-009",
+      "category": "e2e",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-E2E-008",
+      "automatable": true,
+      "notes": "Create .github/workflows/test.yml for CI"
+    },
+    {
+      "id": "POLISH-E2E-010",
+      "category": "e2e",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-E2E-009",
+      "automatable": true,
+      "notes": "Verify CI runs tests on PR"
+    },
+    {
+      "id": "POLISH-PWA-001",
+      "category": "pwa",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-E2E-010",
+      "automatable": true,
+      "notes": "Create public/manifest.json"
+    },
+    {
+      "id": "POLISH-PWA-002",
+      "category": "pwa",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-PWA-001",
+      "automatable": true,
+      "notes": "Create PWA icons (192x192, 512x512)"
+    },
+    {
+      "id": "POLISH-PWA-003",
+      "category": "pwa",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-PWA-002",
+      "automatable": true,
+      "notes": "Add manifest link to index.html"
+    },
+    {
+      "id": "POLISH-PWA-004",
+      "category": "pwa",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-PWA-003",
+      "automatable": true,
+      "notes": "Add iOS meta tags to index.html"
+    },
+    {
+      "id": "POLISH-PWA-005",
+      "category": "pwa",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-PWA-004",
+      "automatable": true,
+      "notes": "Install vite-plugin-pwa"
+    },
+    {
+      "id": "POLISH-PWA-006",
+      "category": "pwa",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-PWA-005",
+      "automatable": true,
+      "notes": "Configure service worker in vite.config.ts"
+    },
+    {
+      "id": "POLISH-PWA-007",
+      "category": "pwa",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-PWA-006",
+      "automatable": true,
+      "notes": "Verify PWA installable on Chrome"
+    },
+    {
+      "id": "POLISH-PWA-008",
+      "category": "pwa",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-PWA-007",
+      "automatable": true,
+      "notes": "Test mobile responsiveness on ideation page"
+    },
+    {
+      "id": "POLISH-PWA-009",
+      "category": "pwa",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-PWA-008",
+      "automatable": true,
+      "notes": "Fix mobile touch target sizes"
+    },
+    {
+      "id": "POLISH-PWA-010",
+      "category": "pwa",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "POLISH-PWA-009",
+      "automatable": true,
+      "notes": "Verify offline shell loads"
+    }
+  ]
+}

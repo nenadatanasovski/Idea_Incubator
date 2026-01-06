@@ -1,0 +1,11 @@
+{
+  "loop_name": "Loop 1: Critical Path (UFS -> Spec -> Build)",
+  "status": "stopped",
+  "current_test": "CP-UFS-001",
+  "progress": {
+    "passed": 1,
+    "total": 45
+  },
+  "last_heartbeat": "2026-01-06T21:05:04.586521Z",
+  "pid": 67166
+}

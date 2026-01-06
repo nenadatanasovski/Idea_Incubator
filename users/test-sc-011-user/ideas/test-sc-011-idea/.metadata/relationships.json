@@ -1,0 +1,19 @@
+{
+  "idea_type": "business",
+  "parent": null,
+  "integrates_with": [
+    {
+      "type": "external",
+      "name": "GitHub",
+      "description": "Code hosting"
+    }
+  ],
+  "collaboration": {
+    "contributors": [
+      {
+        "name": "Test User",
+        "role": "Developer"
+      }
+    ]
+  }
+}

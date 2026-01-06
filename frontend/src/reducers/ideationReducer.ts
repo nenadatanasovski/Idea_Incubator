@@ -49,6 +49,10 @@ export const initialState: IdeationStore = {
     currentArtifact: null,
     isLoading: false,
     isPanelOpen: false,
+    linkedIdea: null,
+    viewMode: 'files',
+    selectedArtifactPath: null,
+    artifactClassifications: {},
   },
   subAgents: {
     subAgents: [],
@@ -472,6 +476,49 @@ export function ideationReducer(
           currentArtifact: null,
           isLoading: false,
           isPanelOpen: false,
+          linkedIdea: null,
+          viewMode: 'files',
+          selectedArtifactPath: null,
+          artifactClassifications: {},
+        },
+      };
+
+    // =========================================================================
+    // Unified File System Actions
+    // =========================================================================
+    case 'SET_LINKED_IDEA':
+      return {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          linkedIdea: action.payload,
+        },
+      };
+
+    case 'SET_VIEW_MODE':
+      return {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          viewMode: action.payload.viewMode,
+        },
+      };
+
+    case 'SET_SELECTED_ARTIFACT':
+      return {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          selectedArtifactPath: action.payload.path,
+        },
+      };
+
+    case 'SET_ARTIFACT_CLASSIFICATIONS':
+      return {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          artifactClassifications: action.payload.classifications,
         },
       };
 

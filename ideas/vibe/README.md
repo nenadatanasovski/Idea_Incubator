@@ -594,6 +594,7 @@ If someone uses Vibe and succeeds wildly, they are those who:
 - [Investor Pitch (Refined)](./investor-pitch-refined.md) — Full pitch deck content (post-skeptic session)
 - [Elevator Pitch](./elevator-pitch.md) — Quick reference pitches for different contexts
 - [Action Plan](./action-plan.md) — 30/60/90 day execution roadmap
+- [Target Customer](./target-customer.md) — Detailed customer segmentation and validation plan
 
 ### Analysis
 - [Skeptic Findings](./skeptic-findings.md) — Challenges and responses from skeptic session

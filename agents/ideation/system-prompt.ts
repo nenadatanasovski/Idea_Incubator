@@ -4,6 +4,8 @@
  * Defines the agent's behavior, questioning strategy, and output format.
  */
 
+import type { AgentContext } from './idea-context-builder.js';
+
 export const IDEATION_AGENT_SYSTEM_PROMPT = `
 ## MANDATORY OUTPUT FORMAT — READ THIS FIRST
 
@@ -386,6 +388,9 @@ When a user asks you to edit, modify, update, remove content from, or change an 
 ## AVAILABLE ARTIFACTS
 {{ARTIFACTS_CONTEXT}}
 
+## IDEA CONTEXT
+{{IDEA_CONTEXT}}
+
 ## USER PROFILE
 {{USER_PROFILE}}
 
@@ -396,6 +401,7 @@ When a user asks you to edit, modify, update, remove content from, or change an 
 export const USER_PROFILE_PLACEHOLDER = '{{USER_PROFILE}}';
 export const MEMORY_FILES_PLACEHOLDER = '{{MEMORY_FILES}}';
 export const ARTIFACTS_CONTEXT_PLACEHOLDER = '{{ARTIFACTS_CONTEXT}}';
+export const IDEA_CONTEXT_PLACEHOLDER = '{{IDEA_CONTEXT}}';
 
 /**
  * Artifact summary for agent context.
@@ -458,4 +464,141 @@ export function buildSystemPrompt(
   }
 
   return prompt;
+}
+
+/**
+ * Format AgentContext as structured markdown for injection into system prompt.
+ *
+ * Output format:
+ * ## Current Idea: {title}
+ * Type: {type} | Phase: {phase} | Completion: {percent}%
+ *
+ * ### Progress
+ * - Complete: {list}
+ * - Missing: {list}
+ * - Next action: {recommendation}
+ *
+ * ### Core Documents
+ * #### README Summary
+ * {summary}
+ *
+ * #### Recent Q&A
+ * {qa_list}
+ *
+ * ### Available Documents
+ * {doc_list_with_summaries}
+ *
+ * @param context - The AgentContext to format
+ * @returns Formatted markdown string
+ */
+function formatIdeaContext(context: AgentContext): string {
+  const { idea, progress, coreDocs, availableDocuments } = context;
+
+  // Build the markdown output
+  const lines: string[] = [];
+
+  // Header with title (use ideaSlug as title since we don't have a separate title field)
+  const title = idea.ideaSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  lines.push(`## Current Idea: ${title}`);
+  lines.push(`Type: ${idea.type} | Phase: ${idea.currentPhase} | Completion: ${progress.completionPercent}%`);
+  lines.push('');
+
+  // Progress section
+  lines.push('### Progress');
+
+  // Complete documents
+  if (progress.documentsComplete.length > 0) {
+    lines.push(`- Complete: ${progress.documentsComplete.slice(0, 5).join(', ')}${progress.documentsComplete.length > 5 ? ` (+${progress.documentsComplete.length - 5} more)` : ''}`);
+  } else {
+    lines.push('- Complete: None yet');
+  }
+
+  // Missing documents
+  if (progress.documentsMissing.length > 0) {
+    lines.push(`- Missing: ${progress.documentsMissing.slice(0, 5).join(', ')}${progress.documentsMissing.length > 5 ? ` (+${progress.documentsMissing.length - 5} more)` : ''}`);
+  } else {
+    lines.push('- Missing: None');
+  }
+
+  // Next action
+  lines.push(`- Next action: ${progress.nextRecommendedAction}`);
+
+  // Blockers if any
+  if (progress.blockers.length > 0) {
+    lines.push(`- Blockers: ${progress.blockers.join('; ')}`);
+  }
+
+  lines.push('');
+
+  // Core Documents section
+  lines.push('### Core Documents');
+
+  // README Summary
+  lines.push('#### README Summary');
+  lines.push(coreDocs.readme.summary);
+  lines.push('');
+
+  // Recent Q&A
+  lines.push('#### Recent Q&A');
+  if (coreDocs.development.recentQA.length > 0) {
+    for (const qa of coreDocs.development.recentQA) {
+      lines.push(`- **Q:** ${qa.question}`);
+      lines.push(`  **A:** ${qa.answer}`);
+    }
+  } else {
+    lines.push('No Q&A entries yet.');
+  }
+
+  // Gaps if any
+  if (coreDocs.development.gaps.length > 0) {
+    lines.push('');
+    lines.push('#### Knowledge Gaps');
+    for (const gap of coreDocs.development.gaps.slice(0, 5)) {
+      lines.push(`- ${gap}`);
+    }
+    if (coreDocs.development.gaps.length > 5) {
+      lines.push(`- (+${coreDocs.development.gaps.length - 5} more)`);
+    }
+  }
+
+  lines.push('');
+
+  // Available Documents section
+  lines.push('### Available Documents');
+  if (availableDocuments.length > 0) {
+    for (const doc of availableDocuments.slice(0, 10)) {
+      lines.push(`- **${doc.path}**: ${doc.summary}`);
+    }
+    if (availableDocuments.length > 10) {
+      lines.push(`- (+${availableDocuments.length - 10} more documents available)`);
+    }
+  } else {
+    lines.push('No additional documents available.');
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Inject AgentContext into a system prompt template.
+ * Replaces the {{IDEA_CONTEXT}} placeholder with formatted context.
+ *
+ * @param systemPrompt - The system prompt template containing {{IDEA_CONTEXT}} placeholder
+ * @param context - The AgentContext to inject (can be null/undefined for empty context)
+ * @returns System prompt with placeholder replaced
+ */
+export function injectIdeaContext(systemPrompt: string, context: AgentContext | null | undefined): string {
+  // Handle empty/null context
+  if (!context) {
+    return systemPrompt.replace(
+      IDEA_CONTEXT_PLACEHOLDER,
+      'No idea context loaded. Start a new session or link to an existing idea.'
+    );
+  }
+
+  // Format the context as markdown
+  const formattedContext = formatIdeaContext(context);
+
+  // Replace the placeholder
+  return systemPrompt.replace(IDEA_CONTEXT_PLACEHOLDER, formattedContext);
 }

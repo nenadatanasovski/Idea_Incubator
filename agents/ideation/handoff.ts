@@ -7,7 +7,7 @@ import {
   ViabilityRisk,
 } from '../../types/ideation.js';
 import { sessionManager } from './session-manager.js';
-import { memoryManager, ViabilityRiskSummary } from './memory-manager.js';
+import { memoryManager } from './memory-manager.js';
 import { messageStore } from './message-store.js';
 
 /**

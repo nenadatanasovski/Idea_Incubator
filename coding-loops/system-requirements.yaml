@@ -1,0 +1,71 @@
+# System Requirements
+# Version: 1.0
+# Created: 2026-01-07
+#
+# Minimum and recommended requirements for running the coordination system.
+
+python:
+  minimum: "3.10"
+  recommended: "3.12"
+  notes: "Required for match statements and modern type hints"
+
+node:
+  minimum: "18.0.0"
+  recommended: "20.0.0"
+  notes: "Required for the Vibe platform being developed"
+
+claude_cli:
+  minimum: "2.0.0"
+  recommended: "latest"
+  notes: "Claude Code CLI for agent execution"
+
+git:
+  minimum: "2.30.0"
+  recommended: "2.40.0"
+  notes: "Required for branch-per-loop strategy"
+
+# Disk space requirements
+disk_space:
+  minimum: "10GB"
+  recommended: "20GB"
+  breakdown:
+    checkpoints: "5GB"
+    transcripts: "2GB"
+    database: "1GB"
+    working_space: "2GB"
+
+# Memory requirements
+memory:
+  minimum: "4GB"
+  recommended: "8GB"
+  notes: "Each loop + agents may use 1-2GB"
+
+# Network requirements
+network:
+  anthropic_api: true
+  github_api: false  # Optional, for PR creation
+  telegram_api: true  # For notifications
+  notes: "Stable internet for Claude API calls"
+
+# Operating system
+os:
+  supported:
+    - "macOS 12+"
+    - "Ubuntu 20.04+"
+    - "Windows 10+ with WSL2"
+  recommended: "macOS or Linux"
+  notes: "Windows native not tested"
+
+# Optional but recommended
+optional:
+  sqlite3_cli:
+    version: "3.35+"
+    reason: "For database inspection and debugging"
+
+  jq:
+    version: "1.6+"
+    reason: "For JSON inspection"
+
+  rich:
+    version: "13.0+"
+    reason: "Better CLI formatting"

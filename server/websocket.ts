@@ -26,7 +26,9 @@ export type IdeationEventType =
   | 'artifact:updating'    // Artifact edit in progress
   | 'artifact:updated'     // Artifact edit completed
   | 'artifact:created'     // New artifact created (e.g., by sub-agent)
+  | 'artifact:deleted'     // Artifact deleted
   | 'artifact:error'       // Artifact edit failed
+  | 'classifications:updated' // Classifications have been updated
   | 'subagent:spawn'       // When a sub-agent starts
   | 'subagent:status'      // When a sub-agent status changes (running/completed/failed)
   | 'subagent:result';     // When a sub-agent produces results

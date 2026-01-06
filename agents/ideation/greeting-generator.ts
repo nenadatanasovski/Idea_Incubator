@@ -18,6 +18,7 @@ export interface UserProfile {
     city?: string;
     country?: string;
   };
+  [key: string]: unknown;
 }
 
 export interface GreetingWithButtons {

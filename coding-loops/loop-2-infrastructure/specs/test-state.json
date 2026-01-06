@@ -1,0 +1,544 @@
+{
+  "version": "1.0",
+  "name": "Loop 2: Infrastructure (Auth → Credits → Hosting)",
+  "lastUpdated": "2026-01-07T00:00:00Z",
+  "summary": {
+    "total": 50,
+    "passed": 0,
+    "failed": 0,
+    "blocked": 0,
+    "pending": 50
+  },
+  "tests": [
+    {
+      "id": "INFRA-AUTH-001",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": null,
+      "automatable": true,
+      "notes": "Create users database table"
+    },
+    {
+      "id": "INFRA-AUTH-002",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-001",
+      "automatable": true,
+      "notes": "Create user_sessions database table"
+    },
+    {
+      "id": "INFRA-AUTH-003",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-002",
+      "automatable": true,
+      "notes": "Create password_reset_tokens database table"
+    },
+    {
+      "id": "INFRA-AUTH-004",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-003",
+      "automatable": true,
+      "notes": "Install bcrypt/argon2 and create utils/password.ts"
+    },
+    {
+      "id": "INFRA-AUTH-005",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-004",
+      "automatable": true,
+      "notes": "Create utils/jwt.ts for token handling"
+    },
+    {
+      "id": "INFRA-AUTH-006",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-005",
+      "automatable": true,
+      "notes": "Create server/middleware/auth.ts"
+    },
+    {
+      "id": "INFRA-AUTH-007",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-006",
+      "automatable": true,
+      "notes": "Create server/routes/auth.ts base file"
+    },
+    {
+      "id": "INFRA-AUTH-008",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-007",
+      "automatable": true,
+      "notes": "Implement POST /api/auth/register endpoint"
+    },
+    {
+      "id": "INFRA-AUTH-009",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-008",
+      "automatable": true,
+      "notes": "Implement POST /api/auth/login endpoint"
+    },
+    {
+      "id": "INFRA-AUTH-010",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-009",
+      "automatable": true,
+      "notes": "Implement POST /api/auth/logout endpoint"
+    },
+    {
+      "id": "INFRA-AUTH-011",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-010",
+      "automatable": true,
+      "notes": "Implement GET /api/auth/me endpoint"
+    },
+    {
+      "id": "INFRA-AUTH-012",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-011",
+      "automatable": true,
+      "notes": "Implement POST /api/auth/refresh endpoint"
+    },
+    {
+      "id": "INFRA-AUTH-013",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-012",
+      "automatable": true,
+      "notes": "Add auth middleware to protected routes"
+    },
+    {
+      "id": "INFRA-AUTH-014",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-013",
+      "automatable": true,
+      "notes": "Link user to user_slug and user_profiles"
+    },
+    {
+      "id": "INFRA-AUTH-015",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-014",
+      "automatable": true,
+      "notes": "Create frontend/src/components/AuthProvider.tsx"
+    },
+    {
+      "id": "INFRA-AUTH-016",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-015",
+      "automatable": true,
+      "notes": "Create frontend/src/hooks/useAuth.ts"
+    },
+    {
+      "id": "INFRA-AUTH-017",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-016",
+      "automatable": true,
+      "notes": "Create frontend/src/pages/Login.tsx"
+    },
+    {
+      "id": "INFRA-AUTH-018",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-017",
+      "automatable": true,
+      "notes": "Create frontend/src/pages/Register.tsx"
+    },
+    {
+      "id": "INFRA-AUTH-019",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-018",
+      "automatable": true,
+      "notes": "Create frontend/src/components/ProtectedRoute.tsx"
+    },
+    {
+      "id": "INFRA-AUTH-020",
+      "category": "auth",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-019",
+      "automatable": true,
+      "notes": "E2E test: Full registration → login → protected route flow"
+    },
+    {
+      "id": "INFRA-CRED-001",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-AUTH-020",
+      "automatable": true,
+      "notes": "Create credit_balances database table"
+    },
+    {
+      "id": "INFRA-CRED-002",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-001",
+      "automatable": true,
+      "notes": "Create credit_transactions database table"
+    },
+    {
+      "id": "INFRA-CRED-003",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-002",
+      "automatable": true,
+      "notes": "Create credit_packages table"
+    },
+    {
+      "id": "INFRA-CRED-004",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-003",
+      "automatable": true,
+      "notes": "Create utils/credit-manager.ts"
+    },
+    {
+      "id": "INFRA-CRED-005",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-004",
+      "automatable": true,
+      "notes": "Create server/routes/credits.ts base file"
+    },
+    {
+      "id": "INFRA-CRED-006",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-005",
+      "automatable": true,
+      "notes": "Implement GET /api/credits/balance endpoint"
+    },
+    {
+      "id": "INFRA-CRED-007",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-006",
+      "automatable": true,
+      "notes": "Implement POST /api/credits/consume endpoint (internal)"
+    },
+    {
+      "id": "INFRA-CRED-008",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-007",
+      "automatable": true,
+      "notes": "Implement GET /api/credits/history endpoint"
+    },
+    {
+      "id": "INFRA-CRED-009",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-008",
+      "automatable": true,
+      "notes": "Create server/middleware/credits.ts for credit checks"
+    },
+    {
+      "id": "INFRA-CRED-010",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-009",
+      "automatable": true,
+      "notes": "Add credit consumption to ideation message endpoint"
+    },
+    {
+      "id": "INFRA-CRED-011",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-010",
+      "automatable": true,
+      "notes": "Install stripe and create utils/stripe.ts"
+    },
+    {
+      "id": "INFRA-CRED-012",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-011",
+      "automatable": true,
+      "notes": "Implement POST /api/credits/purchase endpoint"
+    },
+    {
+      "id": "INFRA-CRED-013",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-012",
+      "automatable": true,
+      "notes": "Implement POST /api/credits/webhook endpoint"
+    },
+    {
+      "id": "INFRA-CRED-014",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-013",
+      "automatable": true,
+      "notes": "Create frontend/src/components/CreditBalance.tsx"
+    },
+    {
+      "id": "INFRA-CRED-015",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-014",
+      "automatable": true,
+      "notes": "Create frontend/src/pages/Credits.tsx"
+    },
+    {
+      "id": "INFRA-CRED-016",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-015",
+      "automatable": true,
+      "notes": "Create frontend/src/components/CreditUsageAlert.tsx"
+    },
+    {
+      "id": "INFRA-CRED-017",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-016",
+      "automatable": true,
+      "notes": "Implement free tier limits"
+    },
+    {
+      "id": "INFRA-CRED-018",
+      "category": "credits",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-017",
+      "automatable": true,
+      "notes": "E2E test: Credit purchase flow (Stripe test mode)"
+    },
+    {
+      "id": "INFRA-HOST-001",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-CRED-018",
+      "automatable": true,
+      "notes": "Create deployed_apps database table"
+    },
+    {
+      "id": "INFRA-HOST-002",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-001",
+      "automatable": true,
+      "notes": "Create app_deployments database table"
+    },
+    {
+      "id": "INFRA-HOST-003",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-002",
+      "automatable": true,
+      "notes": "Create app_configs database table"
+    },
+    {
+      "id": "INFRA-HOST-004",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-003",
+      "automatable": true,
+      "notes": "Create utils/hosting/railway.ts (or chosen provider)"
+    },
+    {
+      "id": "INFRA-HOST-005",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-004",
+      "automatable": true,
+      "notes": "Create server/routes/apps.ts base file"
+    },
+    {
+      "id": "INFRA-HOST-006",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-005",
+      "automatable": true,
+      "notes": "Implement GET /api/apps endpoint"
+    },
+    {
+      "id": "INFRA-HOST-007",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-006",
+      "automatable": true,
+      "notes": "Implement GET /api/apps/:id endpoint"
+    },
+    {
+      "id": "INFRA-HOST-008",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-007",
+      "automatable": true,
+      "notes": "Implement POST /api/apps/:id/deploy endpoint"
+    },
+    {
+      "id": "INFRA-HOST-009",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-008",
+      "automatable": true,
+      "notes": "Implement POST /api/apps/:id/stop endpoint"
+    },
+    {
+      "id": "INFRA-HOST-010",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-009",
+      "automatable": true,
+      "notes": "Implement GET /api/apps/:id/logs endpoint"
+    },
+    {
+      "id": "INFRA-HOST-011",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-010",
+      "automatable": true,
+      "notes": "Create frontend/src/pages/Apps.tsx"
+    },
+    {
+      "id": "INFRA-HOST-012",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-011",
+      "automatable": true,
+      "notes": "Create frontend/src/pages/AppDetail.tsx"
+    },
+    {
+      "id": "INFRA-HOST-013",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-012",
+      "automatable": true,
+      "notes": "Create frontend/src/components/DeploymentStatus.tsx"
+    },
+    {
+      "id": "INFRA-HOST-014",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-013",
+      "automatable": true,
+      "notes": "Create frontend/src/components/AppLogs.tsx"
+    },
+    {
+      "id": "INFRA-HOST-015",
+      "category": "hosting",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "INFRA-HOST-014",
+      "automatable": true,
+      "notes": "E2E test: Deploy simple app to hosting provider"
+    }
+  ]
+}

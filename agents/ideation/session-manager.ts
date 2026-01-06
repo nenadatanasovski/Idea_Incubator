@@ -121,7 +121,7 @@ export class SessionManager {
       UPDATE ideation_sessions
       SET ${updates.join(', ')}
       WHERE id = ?
-    `, values);
+    `, values as (string | number | null)[]);
 
     await saveDb();
 
@@ -178,8 +178,8 @@ export class SessionManager {
     if (results.length === 0) return [];
 
     const columns = results[0].columns;
-    return results[0].values.map(values => {
-      const row = columns.reduce((obj, col, i) => {
+    return results[0].values.map((values: unknown[]) => {
+      const row = columns.reduce((obj: Record<string, unknown>, col: string, i: number) => {
         obj[col] = values[i];
         return obj;
       }, {} as Record<string, unknown>) as IdeationSessionRow;

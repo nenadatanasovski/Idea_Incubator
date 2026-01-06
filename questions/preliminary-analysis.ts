@@ -15,7 +15,7 @@
  *    - Known patterns for idea categories
  */
 
-import { db, getOne, getAll } from '../database/db';
+import { getOne } from '../database/db.js';
 import { getAnswersForIdea, calculateReadiness, calculateCriterionCoverage } from './readiness';
 
 // Types for preliminary analysis
@@ -50,6 +50,7 @@ interface IdeaData {
   summary: string | null;
   idea_type: string;
   lifecycle_stage: string;
+  [key: string]: unknown;
 }
 
 // Challenge templates based on coverage gaps
@@ -142,7 +143,7 @@ const coverageGapChallenges: Record<string, (ideaTitle: string) => PreliminaryCh
       addressed: false
     }
   ],
-  risk: (title) => [
+  risk: (_title) => [
     {
       id: `prelim-first_principles-risk-1`,
       persona: 'first_principles',
@@ -176,7 +177,7 @@ const coverageGapChallenges: Record<string, (ideaTitle: string) => PreliminaryCh
       addressed: false
     }
   ],
-  business_model: (title) => [
+  business_model: (_title) => [
     {
       id: `prelim-skeptic-bm-1`,
       persona: 'skeptic',
@@ -318,8 +319,8 @@ export async function generatePreliminarySynthesis(ideaId: string): Promise<Prel
     weaknesses.push('Limited idea summary makes thorough evaluation difficult');
   }
 
-  // Handle NaN readiness
-  const readinessPercent = isNaN(readiness.readinessPercent) ? 0 : readiness.readinessPercent;
+  // Handle NaN readiness (use 'overall' property from ReadinessScore)
+  const readinessPercent = isNaN(readiness.overall) ? 0 : readiness.overall;
 
   // Generate recommendation
   const { recommendation, reasoning } = generateRecommendation(readinessPercent);
@@ -339,10 +340,8 @@ export async function generatePreliminarySynthesis(ideaId: string): Promise<Prel
     }
   }
 
-  // Generate unresolved questions from unanswered critical questions
-  const unresolvedQuestions = (readiness.unansweredCritical || []).slice(0, 5).map(
-    q => q.text
-  );
+  // Generate unresolved questions from blocking gaps
+  const unresolvedQuestions = (readiness.blockingGaps || []).slice(0, 5);
 
   // Calculate preliminary score (based on readiness)
   const preliminaryScore = Math.min(10, Math.max(1, readinessPercent / 10));

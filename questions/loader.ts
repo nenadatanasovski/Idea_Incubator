@@ -135,6 +135,7 @@ export async function getAllQuestions(): Promise<QuestionWithCategory[]> {
     lifecycle_stages: string | null;
     depends_on: string | null;
     follow_up_ids: string | null;
+    [key: string]: unknown;
   }
 
   const rows = await query<DBQuestion>(
@@ -170,6 +171,7 @@ export async function getQuestionsByCategory(
     lifecycle_stages: string | null;
     depends_on: string | null;
     follow_up_ids: string | null;
+    [key: string]: unknown;
   }
 
   const rows = await query<DBQuestion>(
@@ -228,6 +230,7 @@ export async function getQuestionById(
     lifecycle_stages: string | null;
     depends_on: string | null;
     follow_up_ids: string | null;
+    [key: string]: unknown;
   }
 
   const rows = await query<DBQuestion>(
@@ -269,6 +272,7 @@ export async function getQuestionsByIds(
     lifecycle_stages: string | null;
     depends_on: string | null;
     follow_up_ids: string | null;
+    [key: string]: unknown;
   }
 
   // Build placeholders for the IN clause
@@ -302,16 +306,19 @@ export async function getQuestionStats(): Promise<{
   interface CountResult {
     category: string;
     count: number;
+    [key: string]: unknown;
   }
 
   interface PriorityResult {
     priority: string;
     count: number;
+    [key: string]: unknown;
   }
 
   interface CriterionResult {
     criterion: string;
     count: number;
+    [key: string]: unknown;
   }
 
   const [totalResult, categoryResult, priorityResult, criterionResult] = await Promise.all([

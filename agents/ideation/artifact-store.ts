@@ -3,10 +3,29 @@
  *
  * Persists session artifacts (research results, diagrams, etc.) to the database
  * so they can be restored when resuming a session.
+ *
+ * @deprecated This module is deprecated. Use `unified-artifact-store.ts` for new code.
+ * The functions in this module continue to work but will log deprecation warnings.
+ * Migration path: Import from `./unified-artifact-store.js` instead.
  */
 
-import { v4 as uuidv4 } from 'uuid';
 import { query, run, saveDb } from '../../database/db.js';
+
+// Track if deprecation warnings have been logged (to avoid spam)
+const deprecationWarningsLogged: Record<string, boolean> = {};
+
+/**
+ * Log a deprecation warning (only once per function)
+ */
+function logDeprecation(functionName: string, alternative: string): void {
+  if (!deprecationWarningsLogged[functionName]) {
+    console.warn(
+      `[DEPRECATED] ${functionName} from artifact-store.ts is deprecated. ` +
+      `Use ${alternative} from unified-artifact-store.ts instead.`
+    );
+    deprecationWarningsLogged[functionName] = true;
+  }
+}
 
 export interface StoredArtifact {
   id: string;
@@ -36,10 +55,14 @@ interface ArtifactRow {
   error: string | null;
   created_at: string;
   updated_at: string | null;
+  [key: string]: unknown;
 }
 
 /**
  * Save an artifact to the database
+ *
+ * @deprecated Use `saveArtifact` from `unified-artifact-store.ts` instead.
+ * This function continues to work for backward compatibility.
  */
 export async function saveArtifact(artifact: {
   id: string;
@@ -53,6 +76,8 @@ export async function saveArtifact(artifact: {
   status?: string;
   error?: string;
 }): Promise<void> {
+  logDeprecation('saveArtifact', 'saveArtifact');
+
   const contentStr = typeof artifact.content === 'string'
     ? artifact.content
     : JSON.stringify(artifact.content);
@@ -86,8 +111,13 @@ export async function saveArtifact(artifact: {
 
 /**
  * Get all artifacts for a session
+ *
+ * @deprecated Use `listArtifacts` from `unified-artifact-store.ts` filtered by sessionId instead.
+ * This function continues to work for backward compatibility.
  */
 export async function getArtifactsBySession(sessionId: string): Promise<StoredArtifact[]> {
+  logDeprecation('getArtifactsBySession', 'listArtifacts (with sessionId filter)');
+
   const rows = await query<ArtifactRow>(
     `SELECT * FROM ideation_artifacts WHERE session_id = ? ORDER BY created_at ASC`,
     [sessionId]
@@ -111,20 +141,30 @@ export async function getArtifactsBySession(sessionId: string): Promise<StoredAr
 
 /**
  * Delete all artifacts for a session
+ *
+ * @deprecated Use `deleteSessionArtifacts` from `unified-artifact-store.ts` instead.
+ * This function continues to work for backward compatibility.
  */
 export async function deleteArtifactsBySession(sessionId: string): Promise<void> {
+  logDeprecation('deleteArtifactsBySession', 'deleteSessionArtifacts');
+
   await run('DELETE FROM ideation_artifacts WHERE session_id = ?', [sessionId]);
   await saveDb();
 }
 
 /**
  * Update an artifact's status
+ *
+ * @deprecated Use file-based artifacts with `unified-artifact-store.ts` instead.
+ * This function continues to work for backward compatibility.
  */
 export async function updateArtifactStatus(
   artifactId: string,
   status: 'pending' | 'loading' | 'ready' | 'error',
   error?: string
 ): Promise<void> {
+  logDeprecation('updateArtifactStatus', 'saveArtifact (file-based update)');
+
   await run(
     `UPDATE ideation_artifacts SET status = ?, error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
     [status, error || null, artifactId]
@@ -143,6 +183,18 @@ function tryParseJson(str: string): string | object {
   }
 }
 
+/**
+ * Legacy artifact store object for backward compatibility.
+ *
+ * @deprecated Import functions directly from `unified-artifact-store.ts` instead.
+ * All methods continue to work but will log deprecation warnings.
+ *
+ * Migration guide:
+ * - `artifactStore.save()` -> Use `saveArtifact()` from unified-artifact-store.ts
+ * - `artifactStore.getBySession()` -> Use `listArtifacts()` filtered by sessionId
+ * - `artifactStore.deleteBySession()` -> Use `deleteSessionArtifacts()`
+ * - `artifactStore.updateStatus()` -> Update artifact via `saveArtifact()` with new content
+ */
 export const artifactStore = {
   save: saveArtifact,
   getBySession: getArtifactsBySession,

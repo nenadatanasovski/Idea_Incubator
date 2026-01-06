@@ -57,6 +57,7 @@ export interface IdeationSessionRow {
   token_count: number;
   message_count: number;
   current_phase: string;
+  [key: string]: unknown;
 }
 
 export interface IdeationMessage {
@@ -85,6 +86,7 @@ export interface IdeationMessageRow {
   web_search_results: string | null;
   token_count: number;
   created_at: string;
+  [key: string]: unknown;
 }
 
 // ============================================================================
@@ -119,6 +121,7 @@ export interface IdeaCandidateRow {
   version: number;
   created_at: string;
   updated_at: string;
+  [key: string]: unknown;
 }
 
 export interface ViabilityRisk {
@@ -145,6 +148,7 @@ export interface ViabilityRiskRow {
   user_acknowledged: number;
   user_response: string | null;
   created_at: string;
+  [key: string]: unknown;
 }
 
 // ============================================================================
@@ -186,6 +190,7 @@ export interface FormDefinition {
   description?: string;
   fields: FormField[];
   submitLabel?: string;
+  [key: string]: unknown;
 }
 
 // ============================================================================
@@ -210,6 +215,7 @@ export interface MemoryFileRow {
   version: number;
   created_at: string;
   updated_at: string;
+  [key: string]: unknown;
 }
 
 // ============================================================================
@@ -248,6 +254,7 @@ export interface SelfDiscoveryState {
     capital: 'bootstrap' | 'seeking_funding' | 'have_funding' | null;
     riskTolerance: 'low' | 'medium' | 'high' | null;
   };
+  [key: string]: unknown;
 }
 
 export interface MarketDiscoveryState {
@@ -280,6 +287,7 @@ export interface MarketDiscoveryState {
     localOpportunities: string[];
     marketPresence: string | null;
   };
+  [key: string]: unknown;
 }
 
 export interface NarrowingState {
@@ -297,6 +305,7 @@ export interface NarrowingState {
     question: string;
     purpose: string;
   }>;
+  [key: string]: unknown;
 }
 
 // ============================================================================
@@ -343,4 +352,40 @@ export interface SignalRow {
   signal_value: string;
   confidence: number;
   created_at: string;
+  [key: string]: unknown;
+}
+
+// ============================================================================
+// IDEA TYPE SELECTION TYPES
+// ============================================================================
+
+/**
+ * Supported idea types for classification in the unified file system.
+ */
+export type IdeaTypeSelection = 'business' | 'feature_internal' | 'feature_external' | 'service' | 'pivot';
+
+/**
+ * Parent type for feature and pivot ideas.
+ */
+export type ParentType = 'internal' | 'external';
+
+/**
+ * State for tracking idea type selection during session.
+ * This is persisted in session memory to track the classification flow.
+ */
+export interface IdeaTypeSelectionState {
+  /** Whether the idea type has been selected */
+  ideaTypeSelected: boolean;
+  /** The selected idea type */
+  ideaType: IdeaTypeSelection | null;
+  /** Whether parent selection is needed (for feature_internal, feature_external, pivot) */
+  parentSelectionNeeded: boolean;
+  /** Whether parent has been selected */
+  parentSelected: boolean;
+  /** Parent type (internal = existing idea, external = platform name) */
+  parentType: ParentType | null;
+  /** Parent slug (for internal parents - existing idea slug) */
+  parentSlug: string | null;
+  /** Parent name (for external parents - platform name) */
+  parentName: string | null;
 }

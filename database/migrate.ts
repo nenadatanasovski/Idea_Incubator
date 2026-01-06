@@ -12,6 +12,7 @@ interface Migration {
   id: number;
   name: string;
   applied_at: string;
+  [key: string]: unknown;
 }
 
 /**

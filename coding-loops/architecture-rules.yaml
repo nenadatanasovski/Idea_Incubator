@@ -1,0 +1,135 @@
+# Architecture Rules
+# Version: 1.0
+# Created: 2026-01-07
+#
+# These rules are enforced by the SemanticAnalyzer to ensure consistency
+# across all loops and agents.
+
+# Naming conventions
+naming:
+  variables: camelCase
+  functions: camelCase
+  classes: PascalCase
+  constants: SCREAMING_SNAKE_CASE
+  files:
+    typescript: kebab-case
+    python: snake_case
+  directories: kebab-case
+
+# Code structure
+structure:
+  api_style: REST
+  state_management: React Context
+  database: SQLite
+  auth: JWT
+  testing:
+    unit: vitest
+    e2e: playwright
+    python: pytest
+
+# Module boundaries - violations are flagged
+boundaries:
+  # Frontend/backend separation
+  - pattern: "frontend/** cannot import from server/**"
+    severity: error
+  - pattern: "server/** cannot import from frontend/**"
+    severity: error
+
+  # Utils must be pure
+  - pattern: "utils/** must be pure functions"
+    severity: warning
+
+  # Agents use services, not direct DB
+  - pattern: "agents/** cannot import from database/**"
+    severity: error
+    exception: "agents/**/queries.py"
+
+  # Coordination system isolation
+  - pattern: "coding-loops/** cannot import from server/**"
+    severity: error
+  - pattern: "coding-loops/** cannot import from frontend/**"
+    severity: error
+
+# File ownership by loop
+# First creator owns the file; others must request changes
+ownership:
+  loop-1-critical-path:
+    - "types/ideation.ts"
+    - "types/specification.ts"
+    - "types/build.ts"
+    - "types/session.ts"  # Base session interface
+    - "server/routes/ideation.ts"
+    - "server/routes/specification.ts"
+    - "server/routes/build.ts"
+    - "database/migrations/0*_ideation_*.sql"
+    - "database/migrations/0*_spec_*.sql"
+    - "database/migrations/0*_build_*.sql"
+    - "package.json"  # Loop 1 owns dependencies
+    - "tsconfig.json"
+
+  loop-2-infrastructure:
+    - "types/auth.ts"
+    - "types/credits.ts"
+    - "types/hosting.ts"
+    - "server/routes/auth.ts"
+    - "server/routes/credits.ts"
+    - "server/routes/hosting.ts"
+    - "server/middleware/auth.ts"  # Auth middleware
+    - "database/migrations/0*_auth_*.sql"
+    - "database/migrations/0*_credits_*.sql"
+
+  loop-3-polish:
+    - "types/monitoring.ts"
+    - "types/testing.ts"
+    - "server/routes/health.ts"
+    - "tests/fixtures/**"
+    - "tests/helpers/**"
+    - "tests/e2e/**"
+
+# Prohibited patterns
+prohibited:
+  - pattern: "eval\\("
+    reason: "Security risk"
+    severity: error
+
+  - pattern: "document\\.write\\("
+    reason: "Security risk"
+    severity: error
+
+  - pattern: ": any(?![a-zA-Z])"
+    reason: "Avoid 'any' type without explicit comment"
+    severity: warning
+    exception: "// any: <reason>"
+
+  - pattern: "console\\.log\\("
+    reason: "Use proper logging"
+    severity: warning
+    exception: "// debug"
+
+  - pattern: "TODO:"
+    reason: "Track TODOs in issue tracker"
+    severity: info
+
+# Required patterns
+required:
+  - files: "**/*.ts"
+    pattern: "^// @ts-"
+    exclude: ["*.d.ts", "*.test.ts"]
+    reason: "TypeScript files should have strict mode"
+    severity: info
+
+  - files: "**/routes/*.ts"
+    pattern: "export (const|async function)"
+    reason: "Route files should export handlers"
+    severity: warning
+
+# Import ordering
+import_order:
+  - group: "node"
+    comment: "Node built-ins"
+  - group: "external"
+    comment: "npm packages"
+  - group: "internal"
+    comment: "Project imports"
+  - group: "relative"
+    comment: "Relative imports"

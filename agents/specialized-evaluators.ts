@@ -10,8 +10,7 @@ import { getConfig } from '../config/index.js';
 import {
   EVALUATION_CRITERIA,
   CATEGORIES,
-  type Category,
-  type CriterionDefinition
+  type Category
 } from './config.js';
 import { type EvaluationResult, type StructuredEvaluationContext, formatStructuredDataForPrompt } from './evaluator.js';
 import { type ProfileContext } from '../utils/schemas.js';
@@ -261,7 +260,7 @@ export async function runSpecializedEvaluator(
   ideaContent: string,
   costTracker: CostTracker,
   broadcaster?: Broadcaster,
-  roundNumber?: number,
+  _roundNumber?: number,
   profileContext?: ProfileContext | null,
   structuredContext?: StructuredEvaluationContext | null,
   research?: ResearchResult | null
@@ -381,7 +380,7 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
     // Escape unescaped quotes inside strings (rough heuristic)
     // This is tricky - try to find strings with unescaped internal quotes
     repaired = repaired.replace(/"([^"]*)":\s*"([^"]*)(?<!\\)"([^"]*)"(?=\s*[,}\]])/g,
-      (match, key, pre, post) => `"${key}": "${pre}\\"${post}"`
+      (_match, key, pre, post) => `"${key}": "${pre}\\"${post}"`
     );
 
     return repaired;
@@ -480,7 +479,7 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
  */
 export async function runAllSpecializedEvaluators(
   ideaSlug: string,
-  ideaId: string,
+  _ideaId: string,
   ideaContent: string,
   costTracker: CostTracker,
   broadcaster?: Broadcaster,

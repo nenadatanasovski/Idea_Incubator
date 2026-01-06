@@ -5,14 +5,13 @@
 import { CostTracker } from '../utils/cost-tracker.js';
 import { logInfo, logDebug, logWarning } from '../utils/logger.js';
 import { getConfig } from '../config/index.js';
-import { type CriterionDefinition, ALL_CRITERIA, CATEGORIES, type Category } from './config.js';
+import { type CriterionDefinition, CATEGORIES, type Category } from './config.js';
 import { type EvaluationResult } from './evaluator.js';
 import {
   generateAllChallenges,
   generateDefense,
   formatChallenges,
   type Challenge,
-  type Defense,
   PERSONA_DEFINITIONS
 } from './redteam.js';
 import {

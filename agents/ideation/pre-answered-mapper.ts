@@ -18,6 +18,7 @@ export interface IdeationSignals {
   narrowingState: Partial<NarrowingState>;
   candidateTitle?: string;
   candidateSummary?: string;
+  [key: string]: unknown;
 }
 
 // Development question IDs mapped to signal extraction logic

@@ -30,6 +30,7 @@ interface SubAgentRow {
   error: string | null;
   started_at: string;
   completed_at: string | null;
+  [key: string]: unknown;
 }
 
 /**

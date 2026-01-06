@@ -5,11 +5,10 @@ import { glob } from 'glob';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
 import { getConfig } from '../config/index.js';
-import { getDb, closeDb, query, run, insert, update, saveDb } from '../database/db.js';
+import { closeDb, query, run, insert, update, saveDb } from '../database/db.js';
 import { runMigrations } from '../database/migrate.js';
-import { parseMarkdown, computeHash, titleToSlug } from '../utils/parser.js';
+import { parseMarkdown } from '../utils/parser.js';
 import { logInfo, logSuccess, logError, logWarning, logDebug } from '../utils/logger.js';
-import { IdeaFrontmatter } from '../utils/schemas.js';
 import { parseDevlopmentMd } from '../questions/parser.js';
 import { classifyQuestionToId } from '../questions/classifier.js';
 import { saveAnswer } from '../questions/readiness.js';
@@ -142,7 +141,7 @@ export async function syncIdeasToDb(): Promise<SyncResult> {
     processedSlugs.add(slug);
 
     try {
-      const { frontmatter, content, hash: readmeHash } = parseMarkdown(fullPath);
+      const { frontmatter } = parseMarkdown(fullPath);
       const ideaFolder = path.dirname(fullPath);
 
       // Compute comprehensive hash including development.md
@@ -274,7 +273,7 @@ async function syncTags(ideaId: string, tags: string[]): Promise<void> {
 async function checkStaleness(
   ideaId: string,
   slug: string,
-  currentHash: string,
+  _currentHash: string,
   result: SyncResult
 ): Promise<void> {
   const config = getConfig();

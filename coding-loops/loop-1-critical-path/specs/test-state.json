@@ -1,0 +1,466 @@
+{
+  "version": "1.0",
+  "name": "Loop 1: Critical Path (UFS \u2192 Spec \u2192 Build)",
+  "lastUpdated": "2026-01-06T21:05:01.584918Z",
+  "summary": {
+    "total": 45,
+    "passed": 1,
+    "failed": 0,
+    "blocked": 0,
+    "pending": 44
+  },
+  "tests": [
+    {
+      "id": "CP-UFS-001",
+      "category": "ufs",
+      "status": "passed",
+      "attempts": 1,
+      "lastResult": "pass",
+      "dependsOn": null,
+      "automatable": true,
+      "notes": "Complete remaining SC-* tests from unified-fs spec",
+      "lastAttemptAt": "2026-01-06T21:02:29.313058Z",
+      "passedAt": "2026-01-06T21:05:01.584663Z"
+    },
+    {
+      "id": "CP-UFS-002",
+      "category": "ufs",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-UFS-001",
+      "automatable": true,
+      "notes": "Complete remaining PH-* tests from unified-fs spec"
+    },
+    {
+      "id": "CP-UFS-003",
+      "category": "ufs",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-UFS-002",
+      "automatable": true,
+      "notes": "Complete remaining UI-* tests from unified-fs spec"
+    },
+    {
+      "id": "CP-SPEC-001",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-UFS-003",
+      "automatable": true,
+      "notes": "Create spec_requirements database table"
+    },
+    {
+      "id": "CP-SPEC-002",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-001",
+      "automatable": true,
+      "notes": "Create spec_features database table"
+    },
+    {
+      "id": "CP-SPEC-003",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-002",
+      "automatable": true,
+      "notes": "Add phase column to ideation_sessions if not present"
+    },
+    {
+      "id": "CP-SPEC-004",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-003",
+      "automatable": true,
+      "notes": "Create agents/specification/ directory structure"
+    },
+    {
+      "id": "CP-SPEC-005",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-004",
+      "automatable": true,
+      "notes": "Create specification system prompt"
+    },
+    {
+      "id": "CP-SPEC-006",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-005",
+      "automatable": true,
+      "notes": "Implement feature extraction logic"
+    },
+    {
+      "id": "CP-SPEC-007",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-006",
+      "automatable": true,
+      "notes": "Implement requirement builder"
+    },
+    {
+      "id": "CP-SPEC-008",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-007",
+      "automatable": true,
+      "notes": "Implement acceptance criteria generator"
+    },
+    {
+      "id": "CP-SPEC-009",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-008",
+      "automatable": true,
+      "notes": "Create POST /api/specification/start endpoint"
+    },
+    {
+      "id": "CP-SPEC-010",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-009",
+      "automatable": true,
+      "notes": "Create POST /api/specification/message endpoint"
+    },
+    {
+      "id": "CP-SPEC-011",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-010",
+      "automatable": true,
+      "notes": "Create GET /api/specification/session/:id endpoint"
+    },
+    {
+      "id": "CP-SPEC-012",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-011",
+      "automatable": true,
+      "notes": "Create POST /api/specification/complete endpoint"
+    },
+    {
+      "id": "CP-SPEC-013",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-012",
+      "automatable": true,
+      "notes": "Create SpecificationPanel.tsx frontend component"
+    },
+    {
+      "id": "CP-SPEC-014",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-013",
+      "automatable": true,
+      "notes": "Create FeatureList.tsx frontend component"
+    },
+    {
+      "id": "CP-SPEC-015",
+      "category": "specification",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-014",
+      "automatable": true,
+      "notes": "Implement phase transition ideation \u2192 specification"
+    },
+    {
+      "id": "CP-BUILD-001",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-SPEC-015",
+      "automatable": true,
+      "notes": "Create build_sessions database table"
+    },
+    {
+      "id": "CP-BUILD-002",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-001",
+      "automatable": true,
+      "notes": "Create build_iterations database table"
+    },
+    {
+      "id": "CP-BUILD-003",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-002",
+      "automatable": true,
+      "notes": "Create build_artifacts database table"
+    },
+    {
+      "id": "CP-BUILD-004",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-003",
+      "automatable": true,
+      "notes": "Create build_errors database table"
+    },
+    {
+      "id": "CP-BUILD-005",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-004",
+      "automatable": true,
+      "notes": "Create agents/build/ directory structure"
+    },
+    {
+      "id": "CP-BUILD-006",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-005",
+      "automatable": true,
+      "notes": "Create build agent system prompt"
+    },
+    {
+      "id": "CP-BUILD-007",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-006",
+      "automatable": true,
+      "notes": "Implement code generator module"
+    },
+    {
+      "id": "CP-BUILD-008",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-007",
+      "automatable": true,
+      "notes": "Implement validator module"
+    },
+    {
+      "id": "CP-BUILD-009",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-008",
+      "automatable": true,
+      "notes": "Implement error handler module"
+    },
+    {
+      "id": "CP-BUILD-010",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-009",
+      "automatable": true,
+      "notes": "Create utils/git-manager.ts"
+    },
+    {
+      "id": "CP-BUILD-011",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-010",
+      "automatable": true,
+      "notes": "Create POST /api/build/start endpoint"
+    },
+    {
+      "id": "CP-BUILD-012",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-011",
+      "automatable": true,
+      "notes": "Create POST /api/build/iterate endpoint"
+    },
+    {
+      "id": "CP-BUILD-013",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-012",
+      "automatable": true,
+      "notes": "Create GET /api/build/session/:id endpoint"
+    },
+    {
+      "id": "CP-BUILD-014",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-013",
+      "automatable": true,
+      "notes": "Create POST /api/build/checkpoint endpoint"
+    },
+    {
+      "id": "CP-BUILD-015",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-014",
+      "automatable": true,
+      "notes": "Implement Ralph loop orchestrator"
+    },
+    {
+      "id": "CP-BUILD-016",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-015",
+      "automatable": true,
+      "notes": "Implement checkpoint/resume capability"
+    },
+    {
+      "id": "CP-BUILD-017",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-016",
+      "automatable": true,
+      "notes": "Implement error logging for SIA"
+    },
+    {
+      "id": "CP-BUILD-018",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-017",
+      "automatable": true,
+      "notes": "Implement human escalation triggers"
+    },
+    {
+      "id": "CP-BUILD-019",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-018",
+      "automatable": true,
+      "notes": "Create BuildPage.tsx frontend component"
+    },
+    {
+      "id": "CP-BUILD-020",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-019",
+      "automatable": true,
+      "notes": "Create BuildProgress.tsx frontend component"
+    },
+    {
+      "id": "CP-BUILD-021",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-020",
+      "automatable": true,
+      "notes": "Create IterationHistory.tsx frontend component"
+    },
+    {
+      "id": "CP-BUILD-022",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-021",
+      "automatable": true,
+      "notes": "Create ErrorDisplay.tsx frontend component"
+    },
+    {
+      "id": "CP-BUILD-023",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-022",
+      "automatable": true,
+      "notes": "Implement phase transition specification \u2192 build"
+    },
+    {
+      "id": "CP-BUILD-024",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-023",
+      "automatable": true,
+      "notes": "E2E test: Simple CRUD app build"
+    },
+    {
+      "id": "CP-BUILD-025",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-024",
+      "automatable": true,
+      "notes": "E2E test: App with authentication"
+    },
+    {
+      "id": "CP-BUILD-026",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-025",
+      "automatable": true,
+      "notes": "E2E test: App with database"
+    },
+    {
+      "id": "CP-BUILD-027",
+      "category": "build",
+      "status": "pending",
+      "attempts": 0,
+      "lastResult": null,
+      "dependsOn": "CP-BUILD-026",
+      "automatable": true,
+      "notes": "E2E test: Full ideation \u2192 spec \u2192 build journey"
+    }
+  ]
+}

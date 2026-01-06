@@ -333,6 +333,7 @@ export async function getIdeaProfile(ideaId: string): Promise<{
     relevant_skills: string | null;
     relevant_network: string | null;
     time_commitment: string | null;
+    [key: string]: unknown;
   }
 
   const link = await getOne<LinkRow>(
@@ -742,7 +743,9 @@ export async function captureProfileInteractive(): Promise<UserProfile> {
  */
 export function saveProfileToFile(profile: UserProfile, dir?: string): string {
   const config = getConfig();
-  const profilesDir = dir ?? path.join(config.paths.root, 'profiles');
+  // Use ideas directory parent as root since paths.root doesn't exist
+  const rootDir = path.dirname(config.paths.ideas);
+  const profilesDir = dir ?? path.join(rootDir, 'profiles');
 
   if (!fs.existsSync(profilesDir)) {
     fs.mkdirSync(profilesDir, { recursive: true });

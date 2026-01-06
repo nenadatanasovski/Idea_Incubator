@@ -5,7 +5,6 @@
  * Spawns agents concurrently, tracks their status, and emits events for UI updates.
  */
 
-import { getConfig } from '../../config/index.js';
 import { client as anthropicClient } from '../../utils/anthropic-client.js';
 
 /**

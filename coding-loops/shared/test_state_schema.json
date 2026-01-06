@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Test State",
+  "description": "Schema for test-state.json files in coding loops",
+  "type": "object",
+  "required": ["loopName", "summary", "tests"],
+  "properties": {
+    "loopName": {
+      "type": "string",
+      "description": "Name identifier for this loop",
+      "minLength": 1
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp of last update"
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total", "passed", "failed", "blocked", "pending"],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of tests"
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of passed tests"
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of failed tests"
+        },
+        "blocked": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of blocked tests"
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of pending tests"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tests": {
+      "type": "array",
+      "description": "Array of test definitions",
+      "items": {
+        "type": "object",
+        "required": ["id", "category", "status", "attempts", "notes"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique test identifier",
+            "pattern": "^[A-Z]+-[A-Z]+-[0-9]+$"
+          },
+          "category": {
+            "type": "string",
+            "description": "Test category",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "passed", "failed", "blocked"],
+            "description": "Current test status"
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of attempts made"
+          },
+          "lastResult": {
+            "type": ["string", "null"],
+            "enum": ["pass", "blocked", "continue", "error", null],
+            "description": "Result of last attempt"
+          },
+          "dependsOn": {
+            "type": ["string", "null"],
+            "description": "ID of test this depends on"
+          },
+          "automatable": {
+            "type": "boolean",
+            "description": "Whether test can be automated",
+            "default": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Description of what the test implements"
+          },
+          "passCriteria": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of criteria that must be met to pass"
+          },
+          "lastAttemptAt": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "Timestamp of last attempt"
+          },
+          "passedAt": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "Timestamp when test passed"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

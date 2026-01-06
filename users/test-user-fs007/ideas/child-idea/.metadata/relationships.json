@@ -1,0 +1,20 @@
+{
+  "idea_type": "feature_internal",
+  "parent": {
+    "type": "internal",
+    "slug": "parent-app",
+    "name": null
+  },
+  "integrates_with": [],
+  "evolved_from": null,
+  "forked_from": null,
+  "branched_from": null,
+  "collaboration": {
+    "contributors": [],
+    "ai_suggested_partners": []
+  },
+  "ai_detected": {
+    "competes_with": [],
+    "shares_audience_with": []
+  }
+}

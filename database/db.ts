@@ -1,8 +1,13 @@
-import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
+import initSqlJs, { Database as SqlJsDatabase, SqlValue } from 'sql.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getConfig } from '../config/index.js';
 import { DatabaseError } from '../utils/errors.js';
+
+// Convert boolean parameters to SQLite-compatible values (0/1)
+function toSqlParams(params: (string | number | null | boolean)[]): SqlValue[] {
+  return params.map(p => (typeof p === 'boolean' ? (p ? 1 : 0) : p));
+}
 
 let db: SqlJsDatabase | null = null;
 
@@ -104,13 +109,13 @@ export async function query<T extends Record<string, unknown>>(
   const database = await getDb();
 
   try {
-    const result = database.exec(sql, params);
+    const result = database.exec(sql, toSqlParams(params));
 
     if (result.length === 0) return [];
 
     const columns = result[0].columns;
-    return result[0].values.map(row =>
-      Object.fromEntries(columns.map((col, i) => [col, row[i]])) as T
+    return result[0].values.map((row: unknown[]) =>
+      Object.fromEntries(columns.map((col: string, i: number) => [col, row[i]])) as T
     );
   } catch (error) {
     throw new DatabaseError('query', (error as Error).message);
@@ -127,7 +132,7 @@ export async function run(
   const database = await getDb();
 
   try {
-    database.run(sql, params);
+    database.run(sql, toSqlParams(params));
   } catch (error) {
     throw new DatabaseError('run', (error as Error).message);
   }

@@ -23,6 +23,7 @@ interface EvaluationScore {
   reasoning: string;
   user_override: number | null;
   user_notes: string | null;
+  [key: string]: unknown;
 }
 
 program
@@ -187,7 +188,7 @@ program
 /**
  * Recalculate overall score after user overrides
  */
-async function recalculateOverallScore(sessionId: string, ideaId: string): Promise<void> {
+async function recalculateOverallScore(sessionId: string, _ideaId: string): Promise<void> {
   const config = getConfig();
 
   // Get all final scores by category

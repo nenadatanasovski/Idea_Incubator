@@ -1,4 +1,4 @@
-import { SelfDiscoveryState, MarketDiscoveryState, NarrowingState } from '../types/ideation.js';
+import { SelfDiscoveryState, MarketDiscoveryState, NarrowingState, IdeaTypeSelectionState } from '../types/ideation.js';
 
 export function createDefaultSelfDiscoveryState(): SelfDiscoveryState {
   return {
@@ -48,5 +48,21 @@ export function createDefaultNarrowingState(): NarrowingState {
     technicalDepth: { value: null, confidence: 0 },
     hypotheses: [],
     questionsNeeded: [],
+  };
+}
+
+/**
+ * Create a default IdeaTypeSelectionState.
+ * Used at the start of a new session before the user selects an idea type.
+ */
+export function createDefaultIdeaTypeSelectionState(): IdeaTypeSelectionState {
+  return {
+    ideaTypeSelected: false,
+    ideaType: null,
+    parentSelectionNeeded: false,
+    parentSelected: false,
+    parentType: null,
+    parentSlug: null,
+    parentName: null,
   };
 }

@@ -67,12 +67,13 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   let problemScore = 0;
 
   // Has frustration with specifics? (+10)
-  const frustrations = Array.isArray(selfDiscovery.frustrations) ? selfDiscovery.frustrations : [];
+  // Cast to unknown[] to handle legacy data that might be strings
+  const frustrations = Array.isArray(selfDiscovery.frustrations) ? selfDiscovery.frustrations as unknown[] : [];
   if (frustrations.length > 0) {
     // Handle both object format {severity: 'high'} and string format
     const highSeverity = frustrations.filter(f =>
-      (typeof f === 'object' && f?.severity === 'high') ||
-      (typeof f === 'string' && f.length > 20) // Longer descriptions = more severe
+      (typeof f === 'object' && (f as Record<string, unknown>)?.severity === 'high') ||
+      (typeof f === 'string' && (f as string).length > 20) // Longer descriptions = more severe
     );
     if (highSeverity.length > 0) {
       problemScore += 10;
@@ -84,12 +85,13 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   }
 
   // Market validates problem? (+10)
-  const gaps = Array.isArray(marketDiscovery.gaps) ? marketDiscovery.gaps : [];
+  // Cast to unknown[] to handle legacy data that might be strings
+  const gaps = Array.isArray(marketDiscovery.gaps) ? marketDiscovery.gaps as unknown[] : [];
   if (gaps.length > 0) {
     // Handle both object format {relevance: 'high'} and string format
     const highRelevance = gaps.filter(g =>
-      (typeof g === 'object' && g?.relevance === 'high') ||
-      (typeof g === 'string' && g.length > 0) // Any gap string counts
+      (typeof g === 'object' && (g as Record<string, unknown>)?.relevance === 'high') ||
+      (typeof g === 'string' && (g as string).length > 0) // Any gap string counts
     );
     if (highRelevance.length > 0) {
       problemScore += 10;
@@ -131,10 +133,11 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
 
   // Location context established? (+5)
   const locationContext = marketDiscovery.locationContext || {};
-  // Also check for location string in marketDiscovery
+  // Also check for location string in marketDiscovery (for legacy data compatibility)
+  const marketDiscoveryAny = marketDiscovery as Record<string, unknown>;
   const hasLocation = locationContext.city ||
-    (typeof marketDiscovery.location === 'string' && marketDiscovery.location.length > 0) ||
-    (typeof marketDiscovery.location_context === 'string' && marketDiscovery.location_context.length > 0);
+    (typeof marketDiscoveryAny.location === 'string' && (marketDiscoveryAny.location as string).length > 0) ||
+    (typeof marketDiscoveryAny.location_context === 'string' && (marketDiscoveryAny.location_context as string).length > 0);
   if (hasLocation) {
     targetScore += 5;
   }
@@ -250,14 +253,15 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   }
 
   // Constraints compatible? (+5)
-  // Handle both structured format and flat string fields
-  const constraints = selfDiscovery.constraints || {} as Record<string, unknown>;
+  // Handle both structured format and flat string fields (legacy data compatibility)
+  const constraints = selfDiscovery.constraints || {};
+  const constraintsAny = constraints as Record<string, unknown>;
   const hasConstraintsSet =
     (typeof constraints.location === 'object' && (constraints.location as Record<string, unknown>)?.target !== null) ||
-    (typeof constraints.location === 'string' && constraints.location.length > 0) ||
+    (typeof constraintsAny.location === 'string' && (constraintsAny.location as string).length > 0) ||
     constraints.timeHoursPerWeek !== null ||
-    constraints.budget !== undefined ||
-    constraints.runway !== undefined ||
+    constraintsAny.budget !== undefined ||
+    constraintsAny.runway !== undefined ||
     constraints.capital !== undefined;
   if (hasConstraintsSet) {
     fitScore += 5;

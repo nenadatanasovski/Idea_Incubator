@@ -1,6 +1,6 @@
 import { client } from '../utils/anthropic-client.js';
 import { CostTracker } from '../utils/cost-tracker.js';
-import { logDebug } from '../utils/logger.js';
+// logDebug import removed - not currently used
 import { getConfig } from '../config/index.js';
 import { EvaluationParseError } from '../utils/errors.js';
 

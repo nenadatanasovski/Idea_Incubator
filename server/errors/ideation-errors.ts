@@ -50,7 +50,7 @@ export class SessionNotActiveError extends IdeationError {
 }
 
 export class SessionAlreadyExistsError extends IdeationError {
-  constructor(profileId: string, existingSessionId: string) {
+  constructor(_profileId: string, existingSessionId: string) {
     super(
       'An active session already exists for this profile',
       'SESSION_ALREADY_EXISTS',

@@ -1,54 +1,81 @@
 // =============================================================================
 // FILE: frontend/src/components/ideation/IdeaArtifactPanel.tsx
-// Combined panel with tabs for Idea details and Artifacts
+// Redesigned artifact panel with table (20%) + preview (80%) layout
+// Implements TEST-UI-006 requirements with backwards compatibility
 // =============================================================================
 
-import React, { useState, useEffect } from 'react';
-import { Lightbulb, FileText, AlertTriangle, ArrowRight, ChevronLeft } from 'lucide-react';
-import { useCreateBlockNote } from '@blocknote/react';
-import { BlockNoteView } from '@blocknote/mantine';
-import '@blocknote/mantine/style.css';
+import React, { useState, useCallback, useEffect } from 'react';
+import { FileText, ChevronLeft, Lightbulb, AlertTriangle, ArrowRight } from 'lucide-react';
+import { ArtifactTable } from './ArtifactTable';
+import { ArtifactPreview } from './ArtifactPreview';
+import { SessionsView } from './SessionsView';
 import { ConfidenceMeter } from './ConfidenceMeter';
 import { ViabilityMeter } from './ViabilityMeter';
 import { RisksList } from './RisksList';
-import { ArtifactRenderer } from './ArtifactRenderer';
-import type { IdeaCandidate, ViabilityRisk, Artifact } from '../../types/ideation';
+import { ErrorBoundary, OfflineIndicator, useNetworkStatus } from './ErrorBoundary';
+import type { Artifact, IdeaCandidate, ViabilityRisk } from '../../types/ideation';
+import type { ClassificationInfo } from '../../types/ideation-state';
 
 // =============================================================================
 // Types
 // =============================================================================
 
 export interface IdeaArtifactPanelProps {
-  // Idea props
-  candidate: IdeaCandidate | null;
-  confidence: number;
-  viability: number;
-  risks: ViabilityRisk[];
-  showIntervention: boolean;
-  onContinue: () => void;
-  onDiscard: () => void;
+  // Idea props (for backwards compatibility)
+  candidate?: IdeaCandidate | null;
+  confidence?: number;
+  viability?: number;
+  risks?: ViabilityRisk[];
+  showIntervention?: boolean;
+  onContinue?: () => void;
+  onDiscard?: () => void;
   // Artifact props
   artifacts: Artifact[];
-  currentArtifact: Artifact | null;
+  currentArtifact?: Artifact | null;  // For backwards compatibility
+  selectedArtifactPath?: string | null; // New prop for selection
+  classifications?: Record<string, ClassificationInfo>;
   onSelectArtifact: (artifact: Artifact) => void;
-  onCloseArtifact: () => void;
-  onExpandArtifact: () => void;
+  onCloseArtifact?: () => void;  // For backwards compatibility
+  onExpandArtifact?: () => void;  // For backwards compatibility
+  onToggleFolder?: (folderPath: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onEditArtifact?: (...args: any[]) => void | Promise<void>;
   onDeleteArtifact?: (artifactId: string) => void;
-  onEditArtifact?: (artifactId: string, content: string) => Promise<void>;
   onRenameArtifact?: (artifactId: string, newTitle: string) => Promise<void>;
+  onCopyRef?: (artifactId: string) => void;
+  onDeleteSession?: (sessionId: string, artifactIds: string[]) => void;
   isArtifactLoading?: boolean;
+  isLoading?: boolean;
+  // View mode props (new for TEST-UI-006)
+  viewMode?: 'files' | 'sessions';
+  onViewModeChange?: (mode: 'files' | 'sessions') => void;
+  // Panel state
   isMinimized?: boolean;
+  onExpandPanel?: () => void;
+  onClosePanel?: () => void;
 }
 
 type TabType = 'idea' | 'artifacts';
 
 // =============================================================================
-// Icon Components
+// Icons
 // =============================================================================
 
 const CloseIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+const FilesIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+  </svg>
+);
+
+const SessionsIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 );
 
@@ -64,277 +91,48 @@ const CollapseIcon = () => (
   </svg>
 );
 
-const CopyIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-  </svg>
-);
-
-const EditIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-  </svg>
-);
-
-const LinkIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-  </svg>
-);
-
-const LoadingSpinner = () => (
-  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-    <path
-      className="opacity-75"
-      fill="currentColor"
-      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-    />
-  </svg>
-);
-
 // =============================================================================
-// Artifact Helpers
+// View Mode Toggle Component
 // =============================================================================
 
-const getArtifactIcon = (type: string) => {
-  switch (type) {
-    case 'code':
-      return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-        </svg>
-      );
-    case 'research':
-      return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      );
-    case 'mermaid':
-      return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-        </svg>
-      );
-    case 'markdown':
-    case 'text':
-      return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      );
-    case 'idea-summary':
-    case 'analysis':
-      return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-        </svg>
-      );
-    default:
-      return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-        </svg>
-      );
-  }
-};
-
-// Small pencil icon for tab rename
-const TabEditIcon = () => (
-  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-  </svg>
-);
-
-// =============================================================================
-// BlockNote Editor
-// =============================================================================
-
-interface BlockNoteMarkdownEditorProps {
-  content: string;
-  onContentChange: (markdown: string) => void;
+interface ViewModeToggleProps {
+  viewMode: 'files' | 'sessions';
+  onChange: (mode: 'files' | 'sessions') => void;
 }
 
-const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({ content, onContentChange }) => {
-  const [isReady, setIsReady] = useState(false);
-
-  const editor = useCreateBlockNote({
-    initialContent: undefined,
-  });
-
-  useEffect(() => {
-    const loadContent = async () => {
-      if (editor && content) {
-        try {
-          const blocks = await editor.tryParseMarkdownToBlocks(content);
-          editor.replaceBlocks(editor.document, blocks);
-          setIsReady(true);
-        } catch (err) {
-          console.error('[BlockNote] Failed to parse markdown:', err);
-          setIsReady(true);
-        }
-      } else {
-        setIsReady(true);
-      }
-    };
-    loadContent();
-  }, [editor]);
-
-  const handleChange = async () => {
-    if (editor && isReady) {
-      try {
-        const markdown = await editor.blocksToMarkdownLossy(editor.document);
-        onContentChange(markdown);
-      } catch (err) {
-        console.error('[BlockNote] Failed to convert to markdown:', err);
-      }
-    }
-  };
-
-  if (!editor) return null;
-
+const ViewModeToggle: React.FC<ViewModeToggleProps> = ({ viewMode, onChange }) => {
   return (
-    <div className="h-full overflow-auto blocknote-editor">
-      <BlockNoteView
-        editor={editor}
-        onChange={handleChange}
-        theme="light"
-      />
+    <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+      <button
+        data-testid="view-mode-files"
+        onClick={() => onChange('files')}
+        className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+          viewMode === 'files'
+            ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm active'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+        }`}
+      >
+        <FilesIcon />
+        <span>Files</span>
+      </button>
+      <button
+        data-testid="view-mode-sessions"
+        onClick={() => onChange('sessions')}
+        className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+          viewMode === 'sessions'
+            ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm active'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+        }`}
+      >
+        <SessionsIcon />
+        <span>Sessions</span>
+      </button>
     </div>
   );
 };
 
 // =============================================================================
-// Artifact Tab Component
-// =============================================================================
-
-interface ArtifactSubTabProps {
-  artifact: Artifact;
-  isSelected: boolean;
-  onSelect: () => void;
-  onRename?: (newTitle: string) => void;
-}
-
-const ArtifactSubTab: React.FC<ArtifactSubTabProps> = ({ artifact, isSelected, onSelect, onRename }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(artifact.title);
-  const [isHovered, setIsHovered] = useState(false);
-  const inputRef = React.useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
-
-  useEffect(() => {
-    setEditedTitle(artifact.title);
-  }, [artifact.title]);
-
-  const handleClick = (e: React.MouseEvent) => {
-    if (isEditing) return;
-    e.preventDefault();
-    onSelect();
-  };
-
-  const handleEditClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsEditing(true);
-  };
-
-  const handleSave = () => {
-    const trimmed = editedTitle.trim();
-    if (trimmed && trimmed !== artifact.title && onRename) {
-      onRename(trimmed);
-    } else {
-      setEditedTitle(artifact.title);
-    }
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSave();
-    } else if (e.key === 'Escape') {
-      setEditedTitle(artifact.title);
-      setIsEditing(false);
-    }
-  };
-
-  const isUpdating = artifact.status === 'updating';
-  const isLoading = artifact.status === 'loading';
-
-  return (
-    <div
-      className={`
-        relative flex items-center gap-2 px-4 py-1.5 text-sm rounded-md transition-all duration-150
-        cursor-pointer select-none group min-w-[200px]
-        ${isSelected
-          ? 'bg-blue-100 text-blue-700 font-medium'
-          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-        }
-        ${isUpdating ? 'animate-pulse bg-blue-50' : ''}
-      `}
-      onClick={handleClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {(isLoading || isUpdating) && (
-        <span className="flex-shrink-0">
-          <LoadingSpinner />
-        </span>
-      )}
-
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          type="text"
-          value={editedTitle}
-          onChange={(e) => setEditedTitle(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={handleKeyDown}
-          className="flex-1 px-1 py-0.5 text-sm bg-white border border-blue-400 rounded outline-none focus:ring-1 focus:ring-blue-500"
-          onClick={(e) => e.stopPropagation()}
-        />
-      ) : (
-        <>
-          <span className="truncate flex-1" title={artifact.title}>
-            {isUpdating ? (
-              <span className="text-blue-600 font-medium">Updating...</span>
-            ) : (
-              artifact.title
-            )}
-          </span>
-          {onRename && isHovered && !isUpdating && !isLoading && (
-            <button
-              type="button"
-              onClick={handleEditClick}
-              className="p-0.5 rounded hover:bg-gray-300 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
-              title="Rename artifact"
-            >
-              <TabEditIcon />
-            </button>
-          )}
-        </>
-      )}
-
-      {artifact.status === 'error' && (
-        <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" title="Error" />
-      )}
-    </div>
-  );
-};
-
-// =============================================================================
-// Idea Content Component
+// Idea Content Component (for tab view)
 // =============================================================================
 
 interface IdeaContentProps {
@@ -388,7 +186,6 @@ const IdeaContent: React.FC<IdeaContentProps> = ({
   if (showIntervention && viability < 50) {
     return (
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Warning Banner */}
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
           <div className="flex items-start gap-2">
             <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
@@ -401,18 +198,13 @@ const IdeaContent: React.FC<IdeaContentProps> = ({
           </div>
         </div>
 
-        {/* Title */}
         <div>
           <h3 className="font-semibold text-gray-900">{candidate.title}</h3>
         </div>
 
-        {/* Viability Meter */}
         <ViabilityMeter value={viability} risks={risks} showWarning size="lg" />
-
-        {/* Risks */}
         <RisksList risks={risks} maxDisplay={5} />
 
-        {/* Actions */}
         <div className="space-y-2 pt-2">
           <button
             onClick={onContinue}
@@ -438,7 +230,6 @@ const IdeaContent: React.FC<IdeaContentProps> = ({
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {/* Title & Summary */}
       <div>
         <h3 className="font-semibold text-gray-900">{candidate.title}</h3>
         {candidate.summary && (
@@ -446,296 +237,13 @@ const IdeaContent: React.FC<IdeaContentProps> = ({
         )}
       </div>
 
-      {/* Meters */}
       <div className="space-y-3">
         <ConfidenceMeter value={confidence} showLabel size="md" />
         <ViabilityMeter value={viability} risks={risks} showWarning={viability < 50} size="md" />
       </div>
 
-      {/* Risks */}
       {risks.length > 0 && (
         <RisksList risks={risks} maxDisplay={3} />
-      )}
-    </div>
-  );
-};
-
-// =============================================================================
-// Artifact Content Component
-// =============================================================================
-
-interface ArtifactContentProps {
-  artifacts: Artifact[];
-  currentArtifact: Artifact | null;
-  onSelectArtifact: (artifact: Artifact) => void;
-  onDeleteArtifact?: (artifactId: string) => void;
-  onEditArtifact?: (artifactId: string, content: string) => Promise<void>;
-  onRenameArtifact?: (artifactId: string, newTitle: string) => Promise<void>;
-  isLoading?: boolean;
-  isFullscreen: boolean;
-}
-
-const ArtifactContent: React.FC<ArtifactContentProps> = ({
-  artifacts,
-  currentArtifact,
-  onSelectArtifact,
-  onDeleteArtifact,
-  onEditArtifact,
-  onRenameArtifact,
-  isLoading,
-  isFullscreen,
-}) => {
-  const [copied, setCopied] = useState(false);
-  const [copiedId, setCopiedId] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    setIsEditing(false);
-    setEditedContent('');
-  }, [currentArtifact?.id]);
-
-  const getContentAsString = (artifact: Artifact | null): string => {
-    if (!artifact) return '';
-    if (typeof artifact.content === 'string') return artifact.content;
-    return JSON.stringify(artifact.content, null, 2);
-  };
-
-  const handleStartEdit = () => {
-    if (!currentArtifact) return;
-    setEditedContent(getContentAsString(currentArtifact));
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditedContent('');
-  };
-
-  const handleSaveEdit = async () => {
-    if (!currentArtifact || !onEditArtifact || !editedContent) return;
-
-    setIsSaving(true);
-    try {
-      await onEditArtifact(currentArtifact.id, editedContent);
-      setIsEditing(false);
-      setEditedContent('');
-    } catch (error) {
-      console.error('[ArtifactContent] Failed to save edit:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDelete = () => {
-    if (!currentArtifact || !onDeleteArtifact) return;
-    onDeleteArtifact(currentArtifact.id);
-    setShowDeleteConfirm(false);
-  };
-
-  const handleCopy = async () => {
-    if (!currentArtifact) return;
-    const content = typeof currentArtifact.content === 'string'
-      ? currentArtifact.content
-      : JSON.stringify(currentArtifact.content, null, 2);
-
-    await navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleCopyId = async () => {
-    if (!currentArtifact) return;
-    const reference = `@artifact:${currentArtifact.id}`;
-    await navigator.clipboard.writeText(reference);
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 2000);
-  };
-
-  if (artifacts.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="text-center py-8">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-gray-400" />
-          </div>
-          <p className="text-gray-500 font-medium">No artifacts yet</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Artifacts will appear here as you explore your idea
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Artifact sub-tabs */}
-      <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200 bg-gray-50">
-        {artifacts.map((artifact) => (
-          <ArtifactSubTab
-            key={artifact.id}
-            artifact={artifact}
-            isSelected={currentArtifact?.id === artifact.id}
-            onSelect={() => onSelectArtifact(artifact)}
-            onRename={onRenameArtifact ? (newTitle) => onRenameArtifact(artifact.id, newTitle) : undefined}
-          />
-        ))}
-      </div>
-
-      {/* Artifact content */}
-      <div className="flex-1 overflow-auto bg-white">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="flex flex-col items-center gap-3">
-              <LoadingSpinner />
-              <span className="text-sm text-gray-500">Loading artifact...</span>
-            </div>
-          </div>
-        ) : currentArtifact ? (
-          isEditing ? (
-            <BlockNoteMarkdownEditor
-              content={editedContent}
-              onContentChange={setEditedContent}
-            />
-          ) : (
-            <ArtifactRenderer artifact={currentArtifact} isFullscreen={isFullscreen} />
-          )
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-400">
-            Select an artifact to view
-          </div>
-        )}
-      </div>
-
-      {/* Footer with artifact actions */}
-      {currentArtifact && (
-        <div className="px-4 py-2 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span className="flex items-center gap-2">
-              {getArtifactIcon(currentArtifact.type)}
-              <span className="capitalize">{currentArtifact.type}</span>
-              {currentArtifact.language && (
-                <>
-                  <span className="text-gray-300">•</span>
-                  <span>{currentArtifact.language}</span>
-                </>
-              )}
-            </span>
-            <div className="flex items-center gap-2">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleCancelEdit}
-                    disabled={isSaving}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded text-sm font-medium text-gray-600 bg-gray-200 hover:bg-gray-300 transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveEdit}
-                    disabled={isSaving}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50"
-                  >
-                    {isSaving ? (
-                      <>
-                        <LoadingSpinner />
-                        Saving...
-                      </>
-                    ) : (
-                      'Save'
-                    )}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={handleCopy}
-                    className="p-1.5 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
-                    title={copied ? 'Copied!' : 'Copy content'}
-                  >
-                    {copied ? (
-                      <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <CopyIcon />
-                    )}
-                  </button>
-                  {onEditArtifact && (
-                    <button
-                      onClick={handleStartEdit}
-                      className="p-1.5 rounded hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors"
-                      title="Edit artifact"
-                    >
-                      <EditIcon />
-                    </button>
-                  )}
-                  {onDeleteArtifact && (
-                    <button
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="p-1.5 rounded hover:bg-red-100 text-gray-400 hover:text-red-600 transition-colors"
-                      title="Delete artifact"
-                    >
-                      <TrashIcon />
-                    </button>
-                  )}
-                  <button
-                    onClick={handleCopyId}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-gray-200 transition-colors group"
-                    title="Copy artifact reference to use in messages"
-                  >
-                    {copiedId ? (
-                      <>
-                        <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className="text-green-500">Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <LinkIcon />
-                        <span className="font-mono text-blue-500 group-hover:text-blue-400">
-                          @{currentArtifact.id.slice(0, 8)}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Dialog */}
-      {showDeleteConfirm && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 mx-4 max-w-sm shadow-xl">
-            <h4 className="text-lg font-medium text-gray-900 mb-2">
-              Delete Artifact?
-            </h4>
-            <p className="text-sm text-gray-600 mb-4">
-              Are you sure you want to delete "{currentArtifact?.title}"? This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
@@ -746,45 +254,147 @@ const ArtifactContent: React.FC<ArtifactContentProps> = ({
 // =============================================================================
 
 export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
-  candidate,
-  confidence,
-  viability,
-  risks,
-  showIntervention,
-  onContinue,
-  onDiscard,
+  // Idea props
+  candidate = null,
+  confidence = 0,
+  viability = 0,
+  risks = [],
+  showIntervention = false,
+  onContinue = () => {},
+  onDiscard = () => {},
+  // Artifact props
   artifacts,
   currentArtifact,
+  selectedArtifactPath,
+  classifications = {},
   onSelectArtifact,
   onCloseArtifact,
   onExpandArtifact,
-  onDeleteArtifact,
+  onToggleFolder,
   onEditArtifact,
-  onRenameArtifact,
-  isArtifactLoading,
+  onDeleteArtifact,
+  // onRenameArtifact - intentionally unused, kept for backwards compat
+  onCopyRef,
+  onDeleteSession,
+  isArtifactLoading = false,
+  isLoading = false,
+  // View mode props
+  viewMode: externalViewMode,
+  onViewModeChange: externalOnViewModeChange,
+  // Panel state
   isMinimized = false,
+  onExpandPanel,
+  onClosePanel,
 }) => {
+  // Internal state for tabs (for backwards compatibility)
   const [activeTab, setActiveTab] = useState<TabType>('idea');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Internal view mode state (if not provided externally)
+  const [internalViewMode, setInternalViewMode] = useState<'files' | 'sessions'>('files');
+  const viewMode = externalViewMode ?? internalViewMode;
+  const handleViewModeChange = externalOnViewModeChange ?? setInternalViewMode;
+
+  // Track selected artifact object
+  const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null);
+
+  // Compute effective selected path from either new prop or currentArtifact (backwards compat)
+  const effectiveSelectedPath = selectedArtifactPath ?? currentArtifact?.id ?? null;
+
+  // Update selected artifact when path or currentArtifact changes
+  useEffect(() => {
+    if (currentArtifact) {
+      // Use currentArtifact directly if provided (backwards compat)
+      setSelectedArtifact(currentArtifact);
+    } else if (effectiveSelectedPath) {
+      const artifact = artifacts.find(
+        a => a.id === effectiveSelectedPath ||
+             a.title === effectiveSelectedPath ||
+             a.identifier === effectiveSelectedPath
+      );
+      setSelectedArtifact(artifact || null);
+    } else {
+      setSelectedArtifact(null);
+    }
+  }, [effectiveSelectedPath, currentArtifact, artifacts]);
+
   // Auto-switch to artifacts tab when a new artifact is added
   useEffect(() => {
-    if (artifacts.length > 0 && currentArtifact) {
+    if (artifacts.length > 0 && selectedArtifact) {
       setActiveTab('artifacts');
     }
-  }, [artifacts.length, currentArtifact?.id]);
+  }, [artifacts.length, selectedArtifact?.id]);
 
-  // Minimized view
+  // Handle artifact selection
+  const handleSelectArtifact = useCallback((artifact: Artifact) => {
+    setSelectedArtifact(artifact);
+    onSelectArtifact(artifact);
+  }, [onSelectArtifact]);
+
+  // Handle folder toggle
+  const handleToggleFolder = useCallback((folderPath: string) => {
+    if (onToggleFolder) {
+      onToggleFolder(folderPath);
+    }
+  }, [onToggleFolder]);
+
+  // Handle edit (adapt old signature to new)
+  const handleEdit = useCallback((artifactId: string) => {
+    if (onEditArtifact) {
+      onEditArtifact(artifactId);
+    }
+  }, [onEditArtifact]);
+
+  // Handle delete
+  const handleDelete = useCallback((artifactId: string) => {
+    if (onDeleteArtifact) {
+      onDeleteArtifact(artifactId);
+      // Clear selection if deleted artifact was selected
+      if (selectedArtifact?.id === artifactId) {
+        setSelectedArtifact(null);
+      }
+    }
+  }, [onDeleteArtifact, selectedArtifact]);
+
+  // Handle copy ref
+  const handleCopyRef = useCallback((artifactId: string) => {
+    if (onCopyRef) {
+      onCopyRef(artifactId);
+    }
+  }, [onCopyRef]);
+
+  // Handle clear selection (for keyboard navigation Escape key)
+  const handleClearSelection = useCallback(() => {
+    setSelectedArtifact(null);
+  }, []);
+
+  // Handle close panel (backwards compat with onCloseArtifact)
+  const handleClosePanel = onClosePanel ?? onCloseArtifact;
+  const handleExpandPanel = onExpandPanel ?? onExpandArtifact;
+
+  // Determine loading state
+  const loading = isLoading || isArtifactLoading;
+
+  // Network status for offline indicator (TEST-UI-014)
+  const isOffline = useNetworkStatus();
+
+  // Minimized view - show expand button
   if (isMinimized) {
     return (
-      <div className="flex flex-col items-center w-10 h-full bg-gray-50 border-l border-gray-200">
+      <div
+        data-testid="artifact-panel-minimized"
+        className="flex flex-col items-center w-10 h-full bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700"
+      >
         <button
-          onClick={onExpandArtifact}
-          className="flex flex-col items-center gap-2 py-4 px-2 hover:bg-gray-100 transition-colors w-full"
+          onClick={handleExpandPanel}
+          className="flex flex-col items-center gap-2 py-4 px-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors w-full"
           title="Expand panel"
         >
-          <ChevronLeft className="w-5 h-5 text-gray-500" />
-          <span className="text-xs text-gray-500 writing-mode-vertical transform rotate-180" style={{ writingMode: 'vertical-rl' }}>
+          <ChevronLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          <span
+            className="text-xs text-gray-500 dark:text-gray-400 transform rotate-180"
+            style={{ writingMode: 'vertical-rl' }}
+          >
             {candidate ? candidate.title.slice(0, 15) : 'Panel'}
           </span>
         </button>
@@ -793,21 +403,26 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
   }
 
   return (
-    <div
-      className={`
-        flex flex-col bg-white border-l border-gray-200 relative
-        ${isFullscreen ? 'fixed inset-0 z-50' : 'w-1/2 h-full'}
-      `}
-    >
-      {/* Header with main tabs */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white">
+    <ErrorBoundary>
+      {/* Offline indicator (TEST-UI-014) */}
+      <OfflineIndicator isOffline={isOffline} />
+
+      <div
+        data-testid="artifact-panel"
+        className={`
+          flex flex-col bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 relative
+          ${isFullscreen ? 'fixed inset-0 z-50' : 'w-1/2 h-full'}
+        `}
+      >
+        {/* Header with main tabs */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
         <div className="flex gap-1">
           <button
             onClick={() => setActiveTab('idea')}
             className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
               ${activeTab === 'idea'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
           >
             <Lightbulb className="w-4 h-4" />
@@ -817,14 +432,14 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
             onClick={() => setActiveTab('artifacts')}
             className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
               ${activeTab === 'artifacts'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
           >
             <FileText className="w-4 h-4" />
             Artifacts
             {artifacts.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs bg-gray-200 text-gray-600 rounded-full">
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">
                 {artifacts.length}
               </span>
             )}
@@ -833,18 +448,20 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
         <div className="flex items-center gap-1">
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded hover:bg-gray-100 text-gray-500 transition-colors"
+            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
             title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           >
             {isFullscreen ? <CollapseIcon /> : <ExpandIcon />}
           </button>
-          <button
-            onClick={onCloseArtifact}
-            className="p-1.5 rounded hover:bg-gray-100 text-gray-500 transition-colors"
-            title="Minimize panel"
-          >
-            <CloseIcon />
-          </button>
+          {handleClosePanel && (
+            <button
+              onClick={handleClosePanel}
+              className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+              title="Minimize panel"
+            >
+              <CloseIcon />
+            </button>
+          )}
         </div>
       </div>
 
@@ -860,18 +477,76 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
           onDiscard={onDiscard}
         />
       ) : (
-        <ArtifactContent
-          artifacts={artifacts}
-          currentArtifact={currentArtifact}
-          onSelectArtifact={onSelectArtifact}
-          onDeleteArtifact={onDeleteArtifact}
-          onEditArtifact={onEditArtifact}
-          onRenameArtifact={onRenameArtifact}
-          isLoading={isArtifactLoading}
-          isFullscreen={isFullscreen}
-        />
+        /* Artifacts tab with 20/80 layout (TEST-UI-006) */
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* View mode toggle header for artifacts */}
+          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <ViewModeToggle viewMode={viewMode} onChange={handleViewModeChange} />
+          </div>
+
+          {/* Main content area with 20/80 split - stacks on mobile */}
+          <div className="flex-1 flex flex-col sm:flex-col overflow-hidden">
+            {/* Table container - 20% height on desktop, 33% on mobile */}
+            <div
+              data-testid="artifact-table-container"
+              className="h-1/3 sm:h-[20%] min-h-[100px] max-h-[200px] overflow-auto border-b border-gray-200 dark:border-gray-700 flex-shrink-0"
+              style={{ overflowY: 'auto' }}
+            >
+              {loading ? (
+                // Show skeleton loading state
+                <ArtifactTable
+                  artifacts={[]}
+                  selectedPath={null}
+                  onSelect={() => {}}
+                  onToggleFolder={() => {}}
+                  classifications={{}}
+                  isLoading={true}
+                />
+              ) : artifacts.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400 text-sm">
+                  No artifacts yet
+                </div>
+              ) : viewMode === 'files' ? (
+                <ArtifactTable
+                  artifacts={artifacts}
+                  selectedPath={effectiveSelectedPath}
+                  onSelect={handleSelectArtifact}
+                  onToggleFolder={handleToggleFolder}
+                  onDelete={handleDelete}
+                  onClearSelection={handleClearSelection}
+                  classifications={classifications}
+                  isLoading={false}
+                />
+              ) : (
+                // Sessions view - implemented in TEST-UI-007
+                <SessionsView
+                  artifacts={artifacts}
+                  selectedPath={effectiveSelectedPath}
+                  onSelect={handleSelectArtifact}
+                  onDeleteSession={onDeleteSession}
+                  classifications={classifications}
+                />
+              )}
+            </div>
+
+            {/* Preview container - 80% height on desktop */}
+            <div
+              data-testid="artifact-preview-container"
+              className="flex-1 sm:flex-1 overflow-hidden"
+            >
+              <ArtifactPreview
+                artifact={selectedArtifact}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onCopyRef={handleCopyRef}
+                isLoading={loading}
+              />
+            </div>
+          </div>
+        </div>
       )}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 
