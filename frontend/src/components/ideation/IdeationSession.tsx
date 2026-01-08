@@ -699,8 +699,18 @@ export function IdeationSession({
   }, [state.session.sessionId, api]);
 
   // Handle editing an artifact manually
-  const handleEditArtifact = useCallback(async (artifactId: string, content: string) => {
+  // Note: content is optional - if not provided, this is just an edit button click
+  // which we ignore since inline editing is not yet implemented in IdeaArtifactPanel
+  const handleEditArtifact = useCallback(async (artifactId: string, content?: string) => {
     console.log('[handleEditArtifact] Called with artifactId:', artifactId);
+
+    // If no content provided, this is just an edit button click - return early
+    // Inline editing is handled by the component's own state, not this callback
+    if (content === undefined) {
+      console.log('[handleEditArtifact] No content provided - edit mode not yet implemented');
+      return;
+    }
+
     console.log('[handleEditArtifact] Content length:', content.length);
 
     if (!state.session.sessionId) return;

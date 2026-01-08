@@ -7,9 +7,9 @@ Components (implemented):
 - RalphLoopRunner: Base class for execution loops
 - HealthCheck: Health heartbeat management
 - load_config, validate_json: Configuration utilities
+- MessageBus: Event bus for inter-agent communication
 
 Components (TODO - see TASKS.md):
-- MessageBus: Event bus for inter-agent communication
 - VerificationGate: Independent verification of agent claims
 - GitManager: Branch-per-loop strategy
 - CheckpointManager: Git-based checkpoints and rollback
@@ -38,7 +38,7 @@ from .ralph_loop_base import (
 )
 
 # New components - uncomment as implemented
-# from .message_bus import MessageBus
+from .message_bus import MessageBus, get_message_bus
 # from .verification_gate import VerificationGate, VerificationResult
 # from .git_manager import GitManager, RebaseResult
 # from .checkpoint_manager import CheckpointManager
@@ -64,7 +64,8 @@ __all__ = [
     "HealthCheck",
     "DEFAULT_CONFIG",
     # New - uncomment as implemented
-    # "MessageBus",
+    "MessageBus",
+    "get_message_bus",
     # "VerificationGate",
     # "VerificationResult",
     # "GitManager",

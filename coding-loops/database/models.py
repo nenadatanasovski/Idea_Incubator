@@ -12,7 +12,7 @@ Usage:
 """
 
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from enum import Enum
 import json
@@ -240,7 +240,11 @@ class FileLock:
         """Check if lock has expired."""
         if not self.expires_at:
             return False
-        return datetime.fromisoformat(self.expires_at) < datetime.utcnow()
+        expires = datetime.fromisoformat(self.expires_at)
+        # Handle both timezone-aware and naive datetimes
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return expires < datetime.now(timezone.utc)
 
 
 @dataclass

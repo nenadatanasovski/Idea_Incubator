@@ -49,6 +49,8 @@ If a file exceeds 500 lines:
 | Session | Date | Tasks Completed | Notes |
 |---------|------|-----------------|-------|
 | 1 | 2026-01-07 | Phase 0 COMPLETE | All docs, folders, schemas, configuration created |
+| 2 | 2026-01-07 | Phase 1 COMPLETE | Database layer: init_db.py, models.py, queries.py, migrate_from_json.py, 41 tests passing |
+| 2 | 2026-01-07 | Phase 2 COMPLETE | Message Bus: message_bus.py with pub/sub, locking, wait graph, 36 tests passing |
 
 ---
 
@@ -82,7 +84,7 @@ If a file exceeds 500 lines:
 - [x] Create `coding-loops/tests/` directory
 
 ### Skeleton Files (interfaces only, no implementation)
-- [ ] Create `coding-loops/shared/__init__.py` (update exports)
+- [x] Create `coding-loops/shared/__init__.py` (update exports)
 - [x] Create `coding-loops/agents/__init__.py`
 - [x] Create `coding-loops/database/__init__.py`
 - [x] Create `coding-loops/cli_commands/__init__.py`
@@ -94,60 +96,60 @@ If a file exceeds 500 lines:
 
 ---
 
-## Phase 1: Database Layer (Session 2)
+## Phase 1: Database Layer (Session 2) ✓ COMPLETE
 
 **Goal:** SQLite schema and query layer
 
 ### Schema
-- [ ] Create `coding-loops/database/schema.sql` (complete schema)
-- [ ] Create `coding-loops/database/init_db.py` (database initialization)
-- [ ] Create `coding-loops/database/queries.py` (common queries as functions)
-- [ ] Create `coding-loops/database/models.py` (dataclasses for rows)
+- [x] Create `coding-loops/database/schema.sql` (complete schema)
+- [x] Create `coding-loops/database/init_db.py` (database initialization)
+- [x] Create `coding-loops/database/queries.py` (common queries as functions)
+- [x] Create `coding-loops/database/models.py` (dataclasses for rows)
 
 ### Migration from test-state.json
-- [ ] Create `coding-loops/database/migrate_from_json.py`
-- [ ] Test migration with existing test-state.json files
+- [x] Create `coding-loops/database/migrate_from_json.py`
+- [x] Test migration with existing test-state.json files
 
 ### Tests
-- [ ] Create `coding-loops/tests/test_database.py`
-- [ ] Verify schema creation
-- [ ] Verify query functions
-- [ ] Verify migration
+- [x] Create `coding-loops/tests/test_database.py`
+- [x] Verify schema creation
+- [x] Verify query functions
+- [x] Verify migration
 
-**Exit Criteria:** `python -m pytest coding-loops/tests/test_database.py` passes
+**Exit Criteria:** `python -m pytest coding-loops/tests/test_database.py` passes ✓ (41 tests)
 
 ---
 
-## Phase 2: Message Bus (Session 3)
+## Phase 2: Message Bus (Session 3) ✓ COMPLETE
 
 **Goal:** Event bus for inter-agent communication
 
 ### Core Implementation
-- [ ] Create `coding-loops/shared/message_bus.py`
-  - [ ] `MessageBus.__init__` - Initialize with DB path
-  - [ ] `MessageBus.publish` - Publish event
-  - [ ] `MessageBus.subscribe` - Subscribe to event types
-  - [ ] `MessageBus.poll` - Poll for unacknowledged events
-  - [ ] `MessageBus.acknowledge` - Mark event acknowledged
-  - [ ] `MessageBus.get_timeline` - Query event history
-  - [ ] `MessageBus.lock_file` - Acquire file lock
-  - [ ] `MessageBus.unlock_file` - Release file lock
-  - [ ] `MessageBus.check_lock` - Check lock status
-  - [ ] `MessageBus.release_expired_locks` - Cleanup expired
-  - [ ] `MessageBus.release_all_locks` - Release by owner
+- [x] Create `coding-loops/shared/message_bus.py`
+  - [x] `MessageBus.__init__` - Initialize with DB path
+  - [x] `MessageBus.publish` - Publish event
+  - [x] `MessageBus.subscribe` - Subscribe to event types
+  - [x] `MessageBus.poll` - Poll for unacknowledged events
+  - [x] `MessageBus.acknowledge` - Mark event acknowledged
+  - [x] `MessageBus.get_timeline` - Query event history
+  - [x] `MessageBus.lock_file` - Acquire file lock
+  - [x] `MessageBus.unlock_file` - Release file lock
+  - [x] `MessageBus.check_lock` - Check lock status
+  - [x] `MessageBus.release_expired_locks` - Cleanup expired
+  - [x] `MessageBus.release_all_locks` - Release by owner
 
 ### Tests
-- [ ] Create `coding-loops/tests/test_message_bus.py`
-  - [ ] BUS-001: Publish event
-  - [ ] BUS-002: Subscribe to events
-  - [ ] BUS-003: Acknowledge event
-  - [ ] BUS-004: Timeline query
-  - [ ] BUS-005: File locking
-  - [ ] BUS-006: Lock expiry
-  - [ ] BUS-007: Concurrent access
-  - [ ] BUS-008: Integration test
+- [x] Create `coding-loops/tests/test_message_bus.py`
+  - [x] BUS-001: Publish event
+  - [x] BUS-002: Subscribe to events
+  - [x] BUS-003: Acknowledge event
+  - [x] BUS-004: Timeline query
+  - [x] BUS-005: File locking
+  - [x] BUS-006: Lock expiry
+  - [x] BUS-007: Concurrent access
+  - [x] BUS-008: Integration test
 
-**Exit Criteria:** All BUS-* tests pass
+**Exit Criteria:** All BUS-* tests pass ✓ (36 tests)
 
 ---
 
