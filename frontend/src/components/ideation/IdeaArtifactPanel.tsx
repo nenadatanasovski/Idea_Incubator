@@ -338,10 +338,10 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
     }
   }, [onToggleFolder]);
 
-  // Handle edit (adapt old signature to new)
-  const handleEdit = useCallback((artifactId: string) => {
+  // Handle edit with content
+  const handleEdit = useCallback((artifactId: string, content: string) => {
     if (onEditArtifact) {
-      onEditArtifact(artifactId);
+      onEditArtifact(artifactId, content);
     }
   }, [onEditArtifact]);
 

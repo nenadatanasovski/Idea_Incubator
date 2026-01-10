@@ -111,6 +111,7 @@ Default evaluation budget: $10
 
 ## Agent Types
 
+### Ideation & Evaluation Agents (Existing)
 1. **Orchestrator** - Routes inputs, manages flow
 2. **Classifier** - Auto-tags and detects relationships
 3. **Evaluator** - Scores against 30 criteria
@@ -118,3 +119,190 @@ Default evaluation budget: $10
 5. **Arbiter** - Judges debate rounds
 6. **Synthesizer** - Creates final evaluation documents
 7. **Development** - Asks clarifying questions
+
+### Build Pipeline Agents (New)
+8. **Specification Agent** - Transforms ideation artifacts into executable specs
+9. **Build Agent** - Executes atomic tasks from specs
+10. **Self-Improvement Agent (SIA)** - Learns from failures, improves system
+
+---
+
+## Unified File System
+
+Ideas are stored in a structured folder hierarchy:
+
+```
+users/{user-slug}/ideas/{idea-slug}/
+├── README.md                    # Core idea overview
+├── development.md               # Q&A from development sessions
+├── target-users.md              # User personas
+├── problem-solution.md          # Problem/solution framing
+├── research/
+│   ├── market.md                # Market research
+│   ├── competitive.md           # Competitive analysis
+│   └── technical.md             # Technical feasibility
+├── planning/
+│   ├── brief.md                 # Handoff brief (Ideation → Spec)
+│   ├── mvp-scope.md             # MVP definition
+│   └── architecture.md          # High-level architecture
+├── build/
+│   ├── spec.md                  # Technical specification
+│   ├── tasks.md                 # Atomic task breakdown
+│   └── decisions.md             # Architecture decisions
+└── analysis/
+    ├── redteam.md               # Red team challenges
+    └── risk-mitigation.md       # Risk responses
+```
+
+---
+
+## Specification Conventions
+
+When generating `build/spec.md`:
+
+1. **Always include context references** - List all documents the spec is derived from
+2. **Requirements must be testable** - Each FR should have acceptance criteria
+3. **Identify file ownership** - Note which files are owned by other agents/loops
+4. **Inject gotchas from Knowledge Base** - Query relevant gotchas by file pattern
+5. **Include validation commands** - How to verify the spec is implemented correctly
+
+---
+
+## Atomic Task Conventions
+
+When generating `build/tasks.md`:
+
+### Task Structure (PIV-style)
+```yaml
+id: T-001
+phase: database | types | api | ui | tests
+action: CREATE | UPDATE | ADD | DELETE | VERIFY
+file: "path/to/file.ts"
+status: pending | in_progress | complete | failed | blocked
+
+requirements:
+  - "Clear, actionable requirement"
+  - "Another requirement"
+
+gotchas:
+  - "Mistake to avoid (from Knowledge Base)"
+
+validation:
+  command: "npx tsc --noEmit"
+  expected: "exit code 0"
+
+code_template: |
+  // Template code to guide implementation
+
+depends_on: ["T-000"]  # Task dependencies
+```
+
+### Phase Order
+1. **database** - Migrations first (other phases depend on schema)
+2. **types** - TypeScript interfaces before implementation
+3. **api** - Server routes and endpoints
+4. **ui** - Frontend components
+5. **tests** - Unit and integration tests
+
+### Gotcha Sources
+- Knowledge Base entries tagged with file pattern
+- Previous failures for similar tasks
+- Common mistakes for the action type (CREATE, UPDATE, etc.)
+
+---
+
+## Build Agent Workflow
+
+The Build Agent follows the PIV Loop pattern:
+
+1. **Prime** - Load context (spec.md, tasks.md, CLAUDE.md, gotchas)
+2. **Execute** - For each task:
+   - Check file ownership (ResourceRegistry)
+   - Acquire file lock
+   - Create checkpoint
+   - Execute task
+   - Run validation command
+   - Record discoveries
+3. **Validate** - Run full verification suite
+4. **Report** - Generate execution summary, publish events
+
+---
+
+## Knowledge Base
+
+Cross-agent learning through shared knowledge:
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `gotcha` | Mistake to avoid | "Use TEXT for dates in SQLite" |
+| `pattern` | Reusable approach | "API route registration pattern" |
+| `decision` | Architecture choice | "Use sql.js not better-sqlite3" |
+
+### Recording Discoveries
+When Build Agent discovers a new gotcha or pattern:
+1. Record in Knowledge Base with confidence score
+2. Tag with file pattern (e.g., `*.sql`, `server/routes/*`)
+3. Tag with action type (CREATE, UPDATE, etc.)
+4. SIA reviews and propagates to CLAUDE.md if universal
+
+---
+
+## Database Conventions
+
+### SQLite Best Practices
+- Use `TEXT` for dates, not `DATETIME`
+- Always include `IF NOT EXISTS`
+- Foreign keys require `PRAGMA foreign_keys = ON`
+- Use `datetime('now')` for timestamps
+
+### TypeScript Types for DB
+- IDs are always `string` (UUIDs)
+- Dates are ISO strings (`createdAt: string`)
+- Boolean fields stored as `INTEGER` (0/1) in SQLite
+
+---
+
+## API Conventions
+
+### Route Patterns
+```typescript
+// Routes live in server/routes/{feature}.ts
+import { Router } from 'express';
+const router = Router();
+
+// GET /api/{feature}
+router.get('/', async (req, res) => { ... });
+
+// POST /api/{feature}
+router.post('/', async (req, res) => { ... });
+
+export default router;
+```
+
+### Error Handling
+- Return appropriate status codes (404, 400, 500)
+- Always validate input before database calls
+- Use `try/catch` with error logging
+
+---
+
+## Coding Loops Infrastructure
+
+The multi-agent coordination system lives in `coding-loops/`:
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| Message Bus | `shared/message_bus.py` | Inter-agent events, file locking |
+| Verification Gate | `shared/verification_gate.py` | Validate agent claims |
+| Knowledge Base | `shared/knowledge_base.py` | Cross-agent learning |
+| Resource Registry | `shared/resource_registry.py` | File ownership |
+| Git Manager | `shared/git_manager.py` | Branch management |
+| Checkpoint Manager | `shared/checkpoint_manager.py` | Rollback support |
+
+### Running Loops
+```bash
+# Always use python3
+python3 coding-loops/loop-1-critical-path/run_loop.py
+python3 coding-loops/loop-2-infrastructure/run_loop.py
+python3 coding-loops/loop-3-polish/run_loop.py
+```

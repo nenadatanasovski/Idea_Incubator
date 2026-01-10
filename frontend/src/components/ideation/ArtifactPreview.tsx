@@ -3,11 +3,14 @@
 // Preview component for viewing selected artifacts with metadata and actions
 // =============================================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useCreateBlockNote } from '@blocknote/react';
+import { BlockNoteView } from '@blocknote/mantine';
+import '@blocknote/mantine/style.css';
 import type { Artifact, ArtifactType } from '../../types/ideation';
 
 // -----------------------------------------------------------------------------
@@ -16,7 +19,7 @@ import type { Artifact, ArtifactType } from '../../types/ideation';
 
 export interface ArtifactPreviewProps {
   artifact: Artifact | null;
-  onEdit?: (artifactId: string) => void;
+  onEdit?: (artifactId: string, content: string) => void;
   onDelete?: (artifactId: string) => void;
   onCopyRef?: (artifactId: string) => void;
   isLoading?: boolean;
@@ -229,6 +232,67 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({ content }) => {
 };
 
 // -----------------------------------------------------------------------------
+// BlockNote WYSIWYG Markdown Editor
+// -----------------------------------------------------------------------------
+
+interface BlockNoteMarkdownEditorProps {
+  content: string;
+  onContentChange: (markdown: string) => void;
+}
+
+const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({ content, onContentChange }) => {
+  const [isReady, setIsReady] = useState(false);
+
+  // Create editor instance
+  const editor = useCreateBlockNote({
+    initialContent: undefined,
+  });
+
+  // Load initial markdown content
+  useEffect(() => {
+    const loadContent = async () => {
+      if (editor && content) {
+        try {
+          const blocks = await editor.tryParseMarkdownToBlocks(content);
+          editor.replaceBlocks(editor.document, blocks);
+          setIsReady(true);
+        } catch (err) {
+          console.error('[BlockNote] Failed to parse markdown:', err);
+          setIsReady(true);
+        }
+      } else {
+        setIsReady(true);
+      }
+    };
+    loadContent();
+  }, [editor]); // Only run once when editor is created
+
+  // Handle content changes - convert blocks back to markdown
+  const handleChange = async () => {
+    if (editor && isReady) {
+      try {
+        const markdown = await editor.blocksToMarkdownLossy(editor.document);
+        onContentChange(markdown);
+      } catch (err) {
+        console.error('[BlockNote] Failed to convert to markdown:', err);
+      }
+    }
+  };
+
+  if (!editor) return null;
+
+  return (
+    <div className="h-full overflow-auto blocknote-editor">
+      <BlockNoteView
+        editor={editor}
+        onChange={handleChange}
+        theme="light"
+      />
+    </div>
+  );
+};
+
+// -----------------------------------------------------------------------------
 // Main Component
 // -----------------------------------------------------------------------------
 
@@ -246,12 +310,33 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copiedRef, setCopiedRef] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState('');
 
-  const handleEdit = useCallback(() => {
-    if (artifact && onEdit) {
-      onEdit(artifact.id);
+  // Start editing mode
+  const handleEditStart = useCallback(() => {
+    if (artifact) {
+      const content = typeof artifact.content === 'string'
+        ? artifact.content
+        : JSON.stringify(artifact.content, null, 2);
+      setEditContent(content);
+      setIsEditing(true);
     }
-  }, [artifact, onEdit]);
+  }, [artifact]);
+
+  // Save edits
+  const handleEditSave = useCallback(() => {
+    if (artifact && onEdit) {
+      onEdit(artifact.id, editContent);
+      setIsEditing(false);
+    }
+  }, [artifact, onEdit, editContent]);
+
+  // Cancel editing
+  const handleEditCancel = useCallback(() => {
+    setIsEditing(false);
+    setEditContent('');
+  }, []);
 
   const handleDeleteClick = useCallback(() => {
     setShowDeleteConfirm(true);
@@ -430,10 +515,10 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
 
           <button
             data-testid="btn-edit"
-            onClick={handleEdit}
-            disabled={isSaving || isDeleting}
+            onClick={handleEditStart}
+            disabled={isSaving || isDeleting || isEditing}
             className={`p-2 rounded-lg transition-colors ${
-              isSaving || isDeleting
+              isSaving || isDeleting || isEditing
                 ? 'opacity-50 cursor-not-allowed text-gray-400'
                 : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
             }`}
@@ -485,9 +570,35 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
         </div>
       </div>
 
-      {/* Content area with markdown rendering */}
-      <div className="flex-1 overflow-auto">
-        <MarkdownContent content={contentString} />
+      {/* Content area with markdown rendering or WYSIWYG editor */}
+      <div className="flex-1 overflow-auto flex flex-col">
+        {isEditing ? (
+          <>
+            <div className="flex-1 overflow-auto">
+              <BlockNoteMarkdownEditor
+                content={editContent}
+                onContentChange={setEditContent}
+              />
+            </div>
+            <div className="flex justify-end gap-2 p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+              <button
+                onClick={handleEditCancel}
+                className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSave}
+                disabled={isSaving}
+                className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg transition-colors"
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <MarkdownContent content={contentString} />
+        )}
       </div>
 
       {/* Delete confirmation dialog */}
