@@ -202,7 +202,7 @@ User Idea
 
 | Event | Producer | Consumers | Payload |
 |-------|----------|-----------|---------|
-| `spec.generated` | Specification Agent | Build Agent, PM Agent | `{idea_slug, spec_path, task_count}` |
+| `tasklist.generated` | Specification Agent | Build Agent, PM Agent | `{idea_slug, spec_path, task_count}` |
 | `spec.approved` | User/Auto | Build Agent | `{idea_slug, approved_by}` |
 | `task.started` | Build Agent | Monitor, SIA | `{task_id, file_path}` |
 | `task.completed` | Build Agent | Monitor, SIA | `{task_id, duration, success}` |

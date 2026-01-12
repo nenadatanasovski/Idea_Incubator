@@ -443,7 +443,7 @@ export default function TaskListBrowser() {
   const filteredTasks = getFilteredTasks();
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900 text-gray-100 overflow-hidden">
+    <div className="h-[calc(100vh-5.5rem)] flex flex-col bg-gray-900 text-gray-100 overflow-hidden">
       {/* Fixed Header */}
       <div className="flex-shrink-0 bg-gray-800 border-b border-gray-700 px-4 py-3">
         <div className="flex items-center justify-between">

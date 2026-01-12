@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import Anthropic from '@anthropic-ai/sdk';
 import { getOne, query, saveDb } from '../../database/db.js';
+import { ideationRateLimiter, searchRateLimiter } from '../middleware/rate-limiter.js';
 import { sessionManager } from '../../agents/ideation/session-manager.js';
 import { messageStore } from '../../agents/ideation/message-store.js';
 import { memoryManager } from '../../agents/ideation/memory-manager.js';
@@ -329,7 +330,7 @@ ideationRouter.post('/start', async (req: Request, res: Response) => {
 // ============================================================================
 // Handles user message and returns agent response
 
-ideationRouter.post('/message', async (req: Request, res: Response) => {
+ideationRouter.post('/message', ideationRateLimiter, async (req: Request, res: Response) => {
   try {
     // Validate request
     const parseResult = SendMessageSchema.safeParse(req.body);
@@ -1058,7 +1059,7 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
 // ============================================================================
 // Handles button click as if it were a message
 
-ideationRouter.post('/button', async (req: Request, res: Response) => {
+ideationRouter.post('/button', ideationRateLimiter, async (req: Request, res: Response) => {
   try {
     // Validate request
     const parseResult = ButtonClickSchema.safeParse(req.body);
@@ -2329,7 +2330,7 @@ ideationRouter.post('/artifact/edit', async (req: Request, res: Response) => {
 // ============================================================================
 // Executes web searches asynchronously and returns results as artifacts
 
-ideationRouter.post('/search', async (req: Request, res: Response) => {
+ideationRouter.post('/search', searchRateLimiter, async (req: Request, res: Response) => {
   try {
     // Validate request
     const parseResult = WebSearchSchema.safeParse(req.body);

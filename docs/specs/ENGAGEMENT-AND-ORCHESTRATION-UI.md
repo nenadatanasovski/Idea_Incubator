@@ -1538,7 +1538,7 @@ Always structure questions as:
 | Component | Purpose | Status |
 |-----------|---------|--------|
 | **Questioning Framework** | Cross-cutting concern for all agents | New |
-| **Question Types by Agent** | Specific templates per agent | New (add to AGENT-SPECIFICATIONS.md) |
+| **Question Types by Agent** | Specific templates per agent | New (add to AGENT-SPECIFICATIONS-PIPELINE.md) |
 | **Question Queue** | Priority management, batching | New |
 | **Orchestration Panel** | Real-time agent visibility | New |
 | **Question Panel** | User input interface | New |

@@ -818,7 +818,7 @@ Session 1 Goal: Minimal Spec Agent Core
 Input:
   - templates/unified/build/spec.md
   - templates/unified/build/tasks.md
-  - docs/specs/AGENT-SPECIFICATIONS.md
+  - docs/specs/AGENT-SPECIFICATIONS-PIPELINE.md
   - docs/specs/E2E-SCENARIOS.md
 
 Tasks:
@@ -959,7 +959,8 @@ npm run bootstrap:status
 | `ideas/vibe/agents/*/spec.md` | Meta-specs for each agent |
 | `templates/unified/build/spec.md` | Spec template |
 | `templates/unified/build/tasks.md` | Tasks template |
-| `docs/specs/AGENT-SPECIFICATIONS.md` | Agent decision logic |
+| `docs/specs/AGENT-SPECIFICATIONS-PIPELINE.md` | Pipeline agent decision logic |
+| `docs/specs/AGENT-SPECIFICATIONS-INFRASTRUCTURE.md` | Support agent decision logic |
 | `docs/specs/E2E-SCENARIOS.md` | Expected behaviors |
 
 ---

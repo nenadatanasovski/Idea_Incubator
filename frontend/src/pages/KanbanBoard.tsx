@@ -14,6 +14,7 @@ import {
   Square,
   SkipForward,
   Upload,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface Task {

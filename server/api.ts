@@ -72,6 +72,7 @@ import { splitIdeationRouter } from './routes/ideation/index.js';
 import buildsRouter from './routes/builds.js';
 import statsRouter from './routes/stats.js';
 import { apiCounter } from './middleware/api-counter.js';
+import { apiRateLimiter, strictRateLimiter, ideationRateLimiter, searchRateLimiter } from './middleware/rate-limiter.js';
 import systemRouter from './routes/system.js';
 import ideasRouter from './routes/ideas.js';
 import profilesRouter from './routes/profiles.js';
@@ -101,6 +102,9 @@ app.use('/assets', express.static('assets'));
 
 // API call counter middleware - must be before routes
 app.use('/api', apiCounter);
+
+// Rate limiting middleware (SEC-004)
+app.use('/api', apiRateLimiter);
 
 // Mount split ideation routes FIRST (session + artifact routes)
 // These take precedence over the legacy routes in ideation.ts

@@ -105,7 +105,7 @@ Telegram → Email (ned.python@gmail.com) → Halt Behavior
 
 | ID | Task | Pri | Status |
 |----|------|-----|--------|
-| IDE-001 | Session persistence improvements | P2 | [~] |
+| IDE-001 | Session persistence improvements | P2 | [x] |
 | IDE-002 | Phase transition logic refinement | P2 | [x] |
 | IDE-003 | Signal extraction enhancement | P2 | [x] |
 | IDE-004 | Web search integration | P3 | [ ] |
@@ -478,7 +478,7 @@ Telegram → Email (ned.python@gmail.com) → Halt Behavior
 | SEC-001 | User authentication system | P1 | [x] |
 | SEC-002 | Session management | P1 | [x] |
 | SEC-003 | Signed deep links for questions | P2 | [x] |
-| SEC-004 | Rate limiting | P3 | [ ] |
+| SEC-004 | Rate limiting | P3 | [x] |
 | SEC-005 | Telegram auth integration | P2 | [x] |
 
 ---

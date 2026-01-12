@@ -218,7 +218,7 @@ agents/specification/
 | API-001 | POST /api/specs/generate | Generates spec + tasks |
 | API-002 | GET /api/specs/:id | Returns spec status |
 | API-003 | POST /api/specs/:id/approve | Triggers build |
-| API-004 | Publish spec.generated event | Event visible |
+| API-004 | Publish tasklist.generated event | Event visible |
 
 ---
 
@@ -411,7 +411,7 @@ class SelfImprovementAgent:
 
 | Task | Description | Exit Criteria |
 |------|-------------|---------------|
-| EVT-001 | Vibe publishes spec.generated | Event visible in coding-loops |
+| EVT-001 | Vibe publishes tasklist.generated | Event visible in coding-loops |
 | EVT-002 | User approves → spec.approved | Build Agent triggers |
 | EVT-003 | Build Agent publishes task events | Monitor sees them |
 | EVT-004 | build.completed → SIA triggers | Review runs |

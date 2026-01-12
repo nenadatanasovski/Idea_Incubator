@@ -1,1027 +1,69 @@
-# Agent Specifications
+# Agent Specifications: Infrastructure & Cross-cutting
+
+> 📍 **Navigation:** [Documentation Index](./DOCUMENTATION-INDEX.md) → Infrastructure Agents
 
 **Created:** 2026-01-10
-**Purpose:** Definitive reference for agent internals - triggers, context, decisions, skills
+**Updated:** 2026-01-12
+**Purpose:** Definitive reference for support agents (SIA, Monitor, PM) and cross-cutting concerns
 **Status:** Implementation Guide
 
 ---
 
 ## Table of Contents
 
-1. [Agent Overview](#1-agent-overview)
-2. [Routing & Orchestration](#2-routing--orchestration)
-3. [Ideation Agent](#3-ideation-agent)
-4. [Specification Agent](#4-specification-agent)
-5. [Build Agent](#5-build-agent)
-6. [Self-Improvement Agent (SIA)](#6-self-improvement-agent-sia)
-7. [Monitor Agent](#7-monitor-agent)
-8. [PM Agent](#8-pm-agent)
-9. [Context Loading Strategies](#9-context-loading-strategies)
-10. [Knowledge Base Integration](#10-knowledge-base-integration)
-11. [Proactive Questioning](#11-proactive-questioning)
+1. [Self-Improvement Agent (SIA)](#1-self-improvement-agent-sia)
+2. [Monitor Agent](#2-monitor-agent)
+3. [PM Agent](#3-pm-agent)
+4. [Context Loading Strategies](#4-context-loading-strategies)
+5. [Knowledge Base Integration](#5-knowledge-base-integration)
+6. [Proactive Questioning](#6-proactive-questioning)
+
+**See Also:** [AGENT-SPECIFICATIONS-PIPELINE.md](./AGENT-SPECIFICATIONS-PIPELINE.md) for Ideation, Task, Build agents.
 
 ---
 
-## 1. Agent Overview
+## 1. Self-Improvement Agent (SIA)
 
-### 1.1 Agent Registry
-
-| Agent | Location | Language | Trigger Type | Primary Role |
-|-------|----------|----------|--------------|--------------|
-| **Ideation Agent** | `agents/ideation/` | TypeScript | User message | Explore & develop ideas |
-| **Specification Agent** | `agents/specification/` | TypeScript | Event / API | Generate specs from ideas |
-| **Build Agent** | `coding-loops/agents/` | Python | Event | Execute code tasks |
-| **SIA** | `coding-loops/agents/` | Python | Event | Learn from outcomes |
-| **Monitor Agent** | `coding-loops/agents/` | Python | Timer | Watch system health |
-| **PM Agent** | `coding-loops/agents/` | Python | Event | Coordinate & resolve |
-
-### 1.2 Agent Lifecycle States
+### 1.1 Trigger
 
 ```
-┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
-│  IDLE   │────▶│ LOADING │────▶│ ACTIVE  │────▶│COMPLETE │
-└─────────┘     └─────────┘     └─────────┘     └─────────┘
-     ▲               │               │               │
-     │               │               ▼               │
-     │               │          ┌─────────┐          │
-     │               └─────────▶│  ERROR  │          │
-     │                          └─────────┘          │
-     └───────────────────────────────────────────────┘
+TRIGGER: Spawned by Task Agent when:
+         - Task has 3+ failed execution attempts AND
+         - No progress detected between attempts
+
+SPAWN CRITERIA ("No Progress" Definition):
+  - Same error message repeating
+  - No new Git commits between attempts
+  - No files modified
+  - Validation score not improving
+
+SECONDARY TRIGGERS (for learning, not failure recovery):
+  - Event "build.completed" (learn from successful builds)
+  - Event "ideation.completed" (learn from ideation patterns)
+
+NOTE: SIA is NOT a background service. It is spawned ON-DEMAND by Task Agent
+      specifically to analyze repeated failures and propose fixes.
 ```
 
----
-
-## 2. Routing & Orchestration
-
-### 2.1 How the System Knows Which Agent to Invoke
+### 1.1.1 SIA Spawn Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           ROUTING DECISION TREE                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  INPUT RECEIVED                                                              │
-│       │                                                                      │
-│       ▼                                                                      │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │ Is this a USER MESSAGE via chat interface?                          │    │
-│  └───────────────────────────┬─────────────────────────────────────────┘    │
-│                              │                                               │
-│              ┌───────────────┴───────────────┐                              │
-│              ▼                               ▼                              │
-│           YES                               NO                              │
-│              │                               │                              │
-│              ▼                               ▼                              │
-│  ┌─────────────────────┐        ┌─────────────────────────────────┐        │
-│  │ Check session state │        │ Is this an EVENT from MessageBus?│        │
-│  │ - Has active idea?  │        └─────────────────────────────────┘        │
-│  │ - Which phase?      │                     │                              │
-│  └──────────┬──────────┘        ┌────────────┴────────────┐                 │
-│             │                   ▼                         ▼                 │
-│             ▼                  YES                        NO                │
-│  ┌─────────────────────┐        │                         │                 │
-│  │  IDEATION AGENT     │        ▼                         ▼                 │
-│  │  (always for chat)  │   Route by event_type:      (Timer/Cron)          │
-│  └─────────────────────┘        │                         │                 │
-│                                 ├─ spec.approved         ▼                 │
-│                                 │  → BUILD AGENT    MONITOR AGENT          │
-│                                 │                                           │
-│                                 ├─ build.completed                          │
-│                                 │  → SIA                                    │
-│                                 │                                           │
-│                                 ├─ alert.*                                  │
-│                                 │  → PM AGENT                               │
-│                                 │                                           │
-│                                 └─ ideation.completed                       │
-│                                    → (wait for user action)                 │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+Task Agent monitors task_execution_log
+    ↓
+IF (task.attempts >= 3) AND (no_progress_detected):
+    ↓
+Task Agent spawns SIA Agent
+    ↓
+SIA analyzes: execution logs, error patterns, code state
+    ↓
+SIA proposes: fix approach OR task decomposition
+    ↓
+Task Agent creates follow-up tasks from SIA output
+    ↓
+Task Agent re-queues task list for Build Agent
 ```
 
-### 2.2 Event Subscriptions
-
-Each agent subscribes to specific events:
-
-```python
-# Agent Event Subscriptions
-
-AGENT_SUBSCRIPTIONS = {
-    "ideation-agent": [
-        # No event subscriptions - triggered by user messages only
-    ],
-
-    "specification-agent": [
-        "ideation.completed",      # Can auto-trigger spec generation
-        "spec.revision_requested"  # User requested changes
-    ],
-
-    "build-agent": [
-        "spec.approved",           # Start building
-        "build.resume",            # Resume interrupted build
-        "task.retry"               # Retry failed task
-    ],
-
-    "sia-agent": [
-        "build.completed",         # Review build outcome
-        "ideation.completed",      # Review ideation session
-        "spec.generated",          # Review spec quality
-        "task.failed"              # Immediate gotcha extraction
-    ],
-
-    "monitor-agent": [
-        # Timer-based, not event-based
-        # Polls every 2 minutes
-    ],
-
-    "pm-agent": [
-        "alert.stuck_task",        # Task timeout
-        "alert.deadlock",          # Circular wait detected
-        "alert.build_failed",      # Build failure
-        "conflict.detected",       # File ownership conflict
-        "decision.requested"       # Human decision needed
-    ]
-}
-```
-
-### 2.3 Handoff Conditions
-
-| From Agent | To Agent | Condition | Mechanism |
-|------------|----------|-----------|-----------|
-| Ideation → Spec | All 4 phases complete | `ideation.completed` event + user action |
-| Spec → Build | User approves spec | `spec.approved` event |
-| Build → SIA | Build completes (success or fail) | `build.completed` event |
-| Monitor → PM | Alert threshold exceeded | `alert.*` event |
-| PM → Build | Work reassigned | `work.assigned` event |
-| Any → Human | Decision needed | Telegram notification |
-
----
-
-## 3. Ideation Agent
-
-### 3.1 Trigger
-
-```
-TRIGGER: User sends message via /api/ideation/sessions/:id/messages
-         OR: User starts new session via /api/ideation/sessions
-```
-
-### 3.2 Context Loading
-
-```typescript
-// agents/ideation/orchestrator.ts
-
-async function loadContext(sessionId: string): Promise<IdeationContext> {
-
-  // 1. LOAD SESSION STATE
-  const session = await SessionManager.getSession(sessionId);
-  // Returns: { phase, userId, ideaSlug, status, createdAt }
-
-  // 2. LOAD CONVERSATION MEMORY
-  const memory = await MemoryManager.getRecentMessages(sessionId, {
-    limit: 20,           // Last 20 messages
-    includeSignals: true // Include extracted signals
-  });
-  // Returns: [{ role, content, signals, timestamp }]
-
-  // 3. LOAD EXTRACTED SIGNALS (from previous messages)
-  const signals = await SignalExtractor.getSessionSignals(sessionId);
-  // Returns: {
-  //   artifacts: [...],    // Extracted documents
-  //   decisions: [...],    // User decisions
-  //   risks: [...],        // Identified risks
-  //   confidence: 0.72     // Overall confidence
-  // }
-
-  // 4. LOAD IDEA ARTIFACTS (if idea exists)
-  let ideaContext = null;
-  if (session.ideaSlug) {
-    ideaContext = await IdeaContextBuilder.build(
-      session.userId,
-      session.ideaSlug
-    );
-    // Returns: {
-    //   readme: "...",
-    //   targetUsers: "...",
-    //   problemSolution: "...",
-    //   research: { market: "...", competitive: "..." }
-    // }
-  }
-
-  // 5. LOAD USER PROFILE (for Fit scoring)
-  const userProfile = await ProfileManager.getProfile(session.userId);
-  // Returns: { goals, skills, network, lifeStage }
-
-  // 6. LOAD PHASE-SPECIFIC INSTRUCTIONS
-  const phasePrompt = PHASE_PROMPTS[session.phase];
-  // Different prompts for EXPLORING, NARROWING, VALIDATING, REFINING
-
-  return {
-    session,
-    memory,
-    signals,
-    ideaContext,
-    userProfile,
-    phasePrompt
-  };
-}
-```
-
-### 3.3 Decision Logic
-
-```typescript
-// agents/ideation/phase-manager.ts
-
-class PhaseManager {
-
-  // DECISION: Should we transition to next phase?
-  async evaluateTransition(sessionId: string): Promise<TransitionDecision> {
-
-    const signals = await SignalExtractor.getSessionSignals(sessionId);
-    const currentPhase = await SessionManager.getPhase(sessionId);
-
-    switch (currentPhase) {
-
-      case 'EXPLORING':
-        // TRANSITION WHEN: Basic idea shape is clear
-        const hasTargetUser = signals.artifacts.some(a => a.type === 'target-user');
-        const hasProblem = signals.artifacts.some(a => a.type === 'problem');
-        const hasSolutionConcept = signals.artifacts.some(a => a.type === 'solution-concept');
-
-        if (hasTargetUser && hasProblem && hasSolutionConcept) {
-          return { shouldTransition: true, nextPhase: 'NARROWING' };
-        }
-        break;
-
-      case 'NARROWING':
-        // TRANSITION WHEN: Scope is defined
-        const hasMVPFeatures = signals.artifacts.some(a => a.type === 'mvp-features');
-        const hasDifferentiator = signals.artifacts.some(a => a.type === 'differentiator');
-        const avgConfidence = this.calculateAverageConfidence(signals);
-
-        if (hasMVPFeatures && hasDifferentiator && avgConfidence > 0.6) {
-          return { shouldTransition: true, nextPhase: 'VALIDATING' };
-        }
-        break;
-
-      case 'VALIDATING':
-        // TRANSITION WHEN: Key assumptions validated
-        const validatedAssumptions = signals.decisions.filter(d => d.type === 'validation');
-        const hasMarketValidation = validatedAssumptions.length >= 3;
-        const risksIdentified = signals.risks.length > 0;
-
-        if (hasMarketValidation && risksIdentified) {
-          return { shouldTransition: true, nextPhase: 'REFINING' };
-        }
-        break;
-
-      case 'REFINING':
-        // TRANSITION WHEN: Idea is ready for specification
-        const overallConfidence = signals.confidence;
-        const hasBrief = signals.artifacts.some(a => a.type === 'brief');
-
-        if (overallConfidence > 0.75 || hasBrief) {
-          return { shouldTransition: true, nextPhase: 'COMPLETE' };
-        }
-        break;
-    }
-
-    return { shouldTransition: false };
-  }
-}
-```
-
-### 3.4 Skills & Tools
-
-```typescript
-// Ideation Agent Skills
-
-const IDEATION_SKILLS = {
-
-  // CORE CONVERSATION
-  chat: {
-    description: "Respond to user messages with context-aware dialogue",
-    uses: ["Claude API"],
-    contextRequired: ["memory", "signals", "phasePrompt"]
-  },
-
-  // SIGNAL EXTRACTION
-  extractSignals: {
-    description: "Parse Claude response for artifacts, decisions, risks",
-    uses: ["Regex patterns", "Claude for complex extraction"],
-    triggers: "After every Claude response"
-  },
-
-  // ARTIFACT MANAGEMENT
-  saveArtifact: {
-    description: "Save extracted content to idea folder",
-    uses: ["File system", "UnifiedArtifactStore"],
-    triggers: "When high-confidence artifact detected"
-  },
-
-  // WEB SEARCH (optional)
-  webSearch: {
-    description: "Search web for market/competitive data",
-    uses: ["WebSearchService", "Tavily API"],
-    triggers: "User asks about market, competitors, or validation"
-  },
-
-  // HANDOFF
-  generateBrief: {
-    description: "Create handoff brief for Specification Agent",
-    uses: ["HandoffGenerator", "File system"],
-    triggers: "Phase = COMPLETE"
-  },
-
-  // CANDIDATE MANAGEMENT
-  createCandidate: {
-    description: "Create idea candidate record",
-    uses: ["CandidateManager", "Database"],
-    triggers: "First artifact saved"
-  }
-};
-```
-
-### 3.5 System Prompt Construction
-
-```typescript
-// agents/ideation/system-prompt.ts
-
-function buildSystemPrompt(context: IdeationContext): string {
-
-  const sections = [];
-
-  // 1. BASE ROLE
-  sections.push(`
-    You are an idea incubation assistant helping users develop and validate
-    business ideas. You guide them through discovery with thoughtful questions.
-  `);
-
-  // 2. PHASE-SPECIFIC INSTRUCTIONS
-  sections.push(PHASE_INSTRUCTIONS[context.session.phase]);
-  // EXPLORING: "Ask open-ended questions. Don't narrow too quickly."
-  // NARROWING: "Help define scope. Suggest MVP features."
-  // VALIDATING: "Challenge assumptions. Ask for evidence."
-  // REFINING: "Polish the concept. Identify gaps."
-
-  // 3. CURRENT SIGNALS (what we know so far)
-  if (context.signals.artifacts.length > 0) {
-    sections.push(`
-      ## What We Know So Far
-      ${context.signals.artifacts.map(a => `- ${a.type}: ${a.summary}`).join('\n')}
-    `);
-  }
-
-  // 4. IDEA CONTEXT (if exists)
-  if (context.ideaContext) {
-    sections.push(`
-      ## Idea Context
-      ${context.ideaContext.readme}
-
-      Target Users: ${context.ideaContext.targetUsers}
-    `);
-  }
-
-  // 5. USER PROFILE (for personalization)
-  if (context.userProfile) {
-    sections.push(`
-      ## About This User
-      Goals: ${context.userProfile.goals.join(', ')}
-      Skills: ${context.userProfile.skills.join(', ')}
-    `);
-  }
-
-  // 6. RESPONSE FORMAT INSTRUCTIONS
-  sections.push(`
-    ## Response Guidelines
-    - Ask 2-3 focused questions per response
-    - Summarize key insights when you learn something important
-    - Use **bold** for key concepts you want to capture
-    - Current confidence: ${Math.round(context.signals.confidence * 100)}%
-  `);
-
-  return sections.join('\n\n');
-}
-```
-
----
-
-## 4. Specification Agent
-
-### 4.1 Trigger
-
-```
-TRIGGER: POST /api/specifications/generate
-         OR: Event "ideation.completed" (if auto-generate enabled)
-
-REQUIRED INPUT:
-  - ideaSlug: string
-  - userSlug: string
-  - options: { targetComplexity: 'mvp' | 'full' }
-```
-
-### 4.2 Context Loading
-
-```typescript
-// agents/specification/context-loader.ts
-
-async function loadSpecContext(ideaSlug: string, userSlug: string): Promise<SpecContext> {
-
-  const ideaPath = `users/${userSlug}/ideas/${ideaSlug}`;
-
-  // 1. REQUIRED DOCUMENTS (must exist)
-  const required = {
-    readme: await readFile(`${ideaPath}/README.md`),
-    brief: await readFile(`${ideaPath}/planning/brief.md`),
-  };
-
-  if (!required.readme || !required.brief) {
-    throw new Error('Missing required documents for spec generation');
-  }
-
-  // 2. OPTIONAL DOCUMENTS (enhance spec quality)
-  const optional = {
-    targetUsers: await readFileIfExists(`${ideaPath}/target-users.md`),
-    problemSolution: await readFileIfExists(`${ideaPath}/problem-solution.md`),
-    development: await readFileIfExists(`${ideaPath}/development.md`),
-    marketResearch: await readFileIfExists(`${ideaPath}/research/market.md`),
-    competitiveResearch: await readFileIfExists(`${ideaPath}/research/competitive.md`),
-    technicalResearch: await readFileIfExists(`${ideaPath}/research/technical.md`),
-    mvpScope: await readFileIfExists(`${ideaPath}/planning/mvp-scope.md`),
-  };
-
-  // 3. PROJECT CONVENTIONS (from CLAUDE.md)
-  const conventions = await loadClaudeMdSections([
-    'Database Conventions',
-    'API Conventions',
-    'File Locations',
-    'Atomic Task Conventions'
-  ]);
-
-  // 4. KNOWLEDGE BASE QUERIES
-  const gotchas = await KnowledgeBase.query({
-    itemType: 'gotcha',
-    filePatterns: ['*.sql', 'server/routes/*', 'types/*'],
-    minConfidence: 0.7
-  });
-
-  const patterns = await KnowledgeBase.query({
-    itemType: 'pattern',
-    topics: extractTopics(required.readme), // e.g., ['habits', 'tracking', 'mobile']
-    minConfidence: 0.7
-  });
-
-  // 5. EXISTING CODEBASE ANALYSIS
-  const existingFiles = await analyzeCodebase({
-    patterns: ['server/routes/*.ts', 'types/*.ts', 'database/migrations/*.sql'],
-    purpose: 'understand existing patterns'
-  });
-
-  return {
-    required,
-    optional,
-    conventions,
-    gotchas,
-    patterns,
-    existingFiles
-  };
-}
-```
-
-### 4.3 Decision Logic
-
-```typescript
-// agents/specification/decisions.ts
-
-class SpecificationDecisions {
-
-  // DECISION: What files need to be created?
-  async identifyNewFiles(context: SpecContext): Promise<FileSpec[]> {
-
-    const features = this.extractFeatures(context.required.brief);
-    const newFiles: FileSpec[] = [];
-
-    for (const feature of features) {
-      // Database migration needed?
-      if (feature.requiresData) {
-        const migrationNumber = await MigrationAllocator.getNextNumber();
-        newFiles.push({
-          path: `database/migrations/${migrationNumber}_${feature.slug}.sql`,
-          purpose: `Create ${feature.name} table`,
-          owner: 'build-agent'
-        });
-      }
-
-      // Types needed?
-      if (feature.hasEntities) {
-        newFiles.push({
-          path: `types/${feature.slug}.ts`,
-          purpose: `Types for ${feature.name}`,
-          owner: 'build-agent'
-        });
-      }
-
-      // API routes needed?
-      if (feature.hasAPI) {
-        newFiles.push({
-          path: `server/routes/${feature.slug}.ts`,
-          purpose: `API endpoints for ${feature.name}`,
-          owner: 'build-agent'
-        });
-      }
-
-      // Tests needed?
-      newFiles.push({
-        path: `tests/${feature.slug}.test.ts`,
-        purpose: `Tests for ${feature.name}`,
-        owner: 'build-agent'
-      });
-    }
-
-    return newFiles;
-  }
-
-  // DECISION: What files need to be modified?
-  async identifyModifiedFiles(context: SpecContext, newFiles: FileSpec[]): Promise<FileModification[]> {
-
-    const modifications: FileModification[] = [];
-
-    // api.ts needs to import new routes
-    const newRoutes = newFiles.filter(f => f.path.includes('server/routes/'));
-    if (newRoutes.length > 0) {
-      modifications.push({
-        path: 'server/api.ts',
-        changes: `Import and mount: ${newRoutes.map(r => r.path).join(', ')}`,
-        owner: await ResourceRegistry.getOwner('server/api.ts')
-      });
-    }
-
-    // types/index.ts needs to export new types
-    const newTypes = newFiles.filter(f => f.path.includes('types/'));
-    if (newTypes.length > 0) {
-      modifications.push({
-        path: 'types/index.ts',
-        changes: `Export: ${newTypes.map(t => t.path).join(', ')}`,
-        owner: await ResourceRegistry.getOwner('types/index.ts')
-      });
-    }
-
-    return modifications;
-  }
-
-  // DECISION: What gotchas apply to each task?
-  async assignGotchas(tasks: AtomicTask[], gotchas: Gotcha[]): Promise<void> {
-
-    for (const task of tasks) {
-      // Match by file pattern
-      const fileGotchas = gotchas.filter(g =>
-        this.matchPattern(task.file, g.filePattern)
-      );
-
-      // Match by action type
-      const actionGotchas = gotchas.filter(g =>
-        g.actionType === task.action
-      );
-
-      // Combine and deduplicate
-      task.gotchas = [...new Set([...fileGotchas, ...actionGotchas])]
-        .sort((a, b) => b.confidence - a.confidence)
-        .slice(0, 5); // Max 5 gotchas per task
-    }
-  }
-
-  // DECISION: What order should tasks execute?
-  determineTaskOrder(tasks: AtomicTask[]): AtomicTask[] {
-
-    // Phase order priority
-    const phaseOrder = ['database', 'types', 'queries', 'api', 'ui', 'tests'];
-
-    return tasks.sort((a, b) => {
-      const phaseA = phaseOrder.indexOf(a.phase);
-      const phaseB = phaseOrder.indexOf(b.phase);
-
-      if (phaseA !== phaseB) return phaseA - phaseB;
-
-      // Within same phase, respect dependencies
-      if (a.dependsOn.includes(b.id)) return 1;
-      if (b.dependsOn.includes(a.id)) return -1;
-
-      return 0;
-    });
-  }
-}
-```
-
-### 4.4 Skills & Tools
-
-```typescript
-const SPECIFICATION_SKILLS = {
-
-  // DOCUMENT PARSING
-  parseIdeationArtifacts: {
-    description: "Extract requirements from ideation documents",
-    uses: ["File system", "Claude for interpretation"],
-    inputs: ["README.md", "brief.md", "development.md"]
-  },
-
-  // REQUIREMENT EXTRACTION
-  extractRequirements: {
-    description: "Convert natural language to formal requirements",
-    uses: ["Claude API"],
-    outputs: ["Functional requirements", "Non-functional requirements"]
-  },
-
-  // ARCHITECTURE DESIGN
-  designArchitecture: {
-    description: "Determine files, APIs, data models",
-    uses: ["Claude API", "Codebase analysis"],
-    outputs: ["New files list", "Modified files list", "Data models"]
-  },
-
-  // TASK GENERATION
-  generateTasks: {
-    description: "Break down into atomic tasks",
-    uses: ["Claude API", "Task templates"],
-    outputs: ["tasks.md with YAML task blocks"]
-  },
-
-  // GOTCHA INJECTION
-  injectGotchas: {
-    description: "Add relevant gotchas to each task",
-    uses: ["Knowledge Base queries"],
-    triggers: "During task generation"
-  },
-
-  // VALIDATION
-  validateSpec: {
-    description: "Check spec completeness and consistency",
-    uses: ["Schema validation", "Dependency checking"],
-    outputs: ["Validation report", "Missing inputs list"]
-  },
-
-  // OUTPUT GENERATION
-  renderSpec: {
-    description: "Generate spec.md and tasks.md files",
-    uses: ["Template rendering", "File system"],
-    outputs: ["build/spec.md", "build/tasks.md"]
-  }
-};
-```
-
----
-
-## 5. Build Agent
-
-### 5.1 Trigger
-
-```
-TRIGGER: Event "spec.approved"
-         OR: Event "build.resume" (for interrupted builds)
-         OR: Event "task.retry" (for failed task retry)
-
-REQUIRED INPUT (from event payload):
-  - spec_id: string
-  - idea_slug: string
-  - user_slug: string
-```
-
-### 5.2 Context Loading
-
-```python
-# coding-loops/agents/build_agent.py
-
-class BuildAgent:
-
-    async def prime(self, spec_id: str) -> PrimeResult:
-        """Load all context needed for build execution."""
-
-        # 1. LOAD SPEC METADATA
-        spec = await db.query(
-            "SELECT * FROM specifications WHERE id = ?",
-            [spec_id]
-        )
-
-        # 2. LOAD ATOMIC TASKS
-        tasks = await db.query(
-            "SELECT * FROM atomic_tasks WHERE spec_id = ? ORDER BY task_number",
-            [spec_id]
-        )
-
-        # 3. LOAD SPEC.MD FILE
-        spec_content = await read_file(
-            f"users/{spec.user_slug}/ideas/{spec.idea_slug}/build/spec.md"
-        )
-
-        # 4. LOAD TASKS.MD FILE
-        tasks_content = await read_file(
-            f"users/{spec.user_slug}/ideas/{spec.idea_slug}/build/tasks.md"
-        )
-
-        # 5. LOAD CLAUDE.MD (project conventions)
-        claude_md = await read_file("CLAUDE.md")
-        # Extract relevant sections:
-        conventions = extract_sections(claude_md, [
-            "Database Conventions",
-            "API Conventions",
-            "Build Agent Workflow"
-        ])
-
-        # 6. LOAD IDEA CONTEXT (for understanding)
-        idea_context = {
-            'readme': await read_file(f"users/.../README.md"),
-            'problem_solution': await read_file(f"users/.../problem-solution.md"),
-            'target_users': await read_file(f"users/.../target-users.md"),
-        }
-
-        # 7. QUERY KNOWLEDGE BASE FOR GOTCHAS
-        # Get gotchas for each unique file pattern in tasks
-        file_patterns = set(task.file for task in tasks)
-        gotchas = {}
-
-        for pattern in file_patterns:
-            gotchas[pattern] = await self.knowledge_base.query(
-                item_type='gotcha',
-                file_pattern=self.get_pattern(pattern),  # "*.sql" from "migrations/001.sql"
-                min_confidence=0.6
-            )
-
-        # 8. CHECK RESOURCE OWNERSHIP
-        ownership = {}
-        for task in tasks:
-            owner = await self.resource_registry.get_owner(task.file)
-            ownership[task.file] = owner
-
-            if owner and owner != self.loop_id:
-                # File owned by another loop - need to coordinate
-                task.requires_coordination = True
-
-        # 9. CREATE EXECUTION RECORD
-        execution_id = await db.insert("build_executions", {
-            'spec_id': spec_id,
-            'loop_id': self.loop_id,
-            'branch_name': f"build/{spec.idea_slug}",
-            'status': 'priming',
-            'tasks_total': len(tasks)
-        })
-
-        return PrimeResult(
-            spec=spec,
-            tasks=tasks,
-            spec_content=spec_content,
-            conventions=conventions,
-            idea_context=idea_context,
-            gotchas=gotchas,
-            ownership=ownership,
-            execution_id=execution_id
-        )
-```
-
-### 5.3 Decision Logic
-
-```python
-# coding-loops/agents/build_agent.py
-
-class BuildAgent:
-
-    # DECISION: Can we execute this task?
-    async def can_execute_task(self, task: AtomicTask) -> tuple[bool, str]:
-
-        # Check 1: Dependencies complete?
-        for dep_id in task.depends_on:
-            dep_task = await self.get_task(dep_id)
-            if dep_task.status != 'complete':
-                return False, f"Blocked by {dep_id}"
-
-        # Check 2: File ownership allowed?
-        owner = await self.resource_registry.get_owner(task.file)
-        if owner and owner != self.loop_id:
-            # Request permission or skip
-            return False, f"Owned by {owner}"
-
-        # Check 3: File not locked by another agent?
-        lock = await self.message_bus.check_lock(task.file)
-        if lock and lock.locked_by != self.loop_id:
-            return False, f"Locked by {lock.locked_by}"
-
-        return True, "Ready"
-
-    # DECISION: How to handle task failure?
-    async def handle_task_failure(
-        self,
-        task: AtomicTask,
-        error: Exception
-    ) -> FailureDecision:
-
-        # Classify error
-        error_type = self.classify_error(error)
-
-        if error_type == 'SYNTAX_ERROR':
-            # Self-correctable - retry with error context
-            if task.attempts < 3:
-                return FailureDecision(
-                    action='RETRY',
-                    reason='Syntax error - will retry with correction'
-                )
-
-        elif error_type == 'MISSING_DEPENDENCY':
-            # Need to install something
-            return FailureDecision(
-                action='INSTALL_AND_RETRY',
-                package=self.extract_package(error)
-            )
-
-        elif error_type == 'CONFLICT':
-            # File was modified by another agent
-            return FailureDecision(
-                action='REBASE_AND_RETRY',
-                reason='Merge conflict detected'
-            )
-
-        elif error_type == 'VALIDATION_FAILED':
-            # Code doesn't pass validation
-            if task.attempts < 2:
-                return FailureDecision(
-                    action='RETRY',
-                    reason='Validation failed - will fix'
-                )
-            else:
-                return FailureDecision(
-                    action='SKIP',
-                    reason='Validation failed after 2 attempts'
-                )
-
-        # Unknown error - escalate
-        return FailureDecision(
-            action='ESCALATE',
-            reason=f'Unknown error: {str(error)}'
-        )
-
-    # DECISION: Should we continue or stop?
-    async def should_continue(self) -> tuple[bool, str]:
-
-        # Check 1: Too many failures?
-        failed_tasks = [t for t in self.tasks if t.status == 'failed']
-        if len(failed_tasks) > 3:
-            return False, "Too many failures (>3)"
-
-        # Check 2: Critical task failed?
-        critical_failed = any(
-            t.phase == 'database' and t.status == 'failed'
-            for t in self.tasks
-        )
-        if critical_failed:
-            return False, "Critical database task failed"
-
-        # Check 3: Time limit exceeded?
-        if self.execution_time > timedelta(hours=2):
-            return False, "Time limit exceeded (2 hours)"
-
-        # Check 4: Received stop signal?
-        if await self.message_bus.has_event('build.stop', self.execution_id):
-            return False, "Stop signal received"
-
-        return True, "Continue"
-```
-
-### 5.4 Skills & Tools
-
-```python
-BUILD_AGENT_SKILLS = {
-
-    # CONTEXT LOADING
-    'prime': {
-        'description': 'Load all context for build execution',
-        'uses': ['Database', 'File system', 'Knowledge Base'],
-        'triggers': 'Start of build'
-    },
-
-    # CODE GENERATION
-    'generate_code': {
-        'description': 'Generate code for a task using Claude',
-        'uses': ['Claude API'],
-        'inputs': ['task definition', 'code template', 'gotchas', 'conventions'],
-        'outputs': ['generated code']
-    },
-
-    # FILE OPERATIONS
-    'write_file': {
-        'description': 'Write generated code to file',
-        'uses': ['File system', 'Git'],
-        'requires': ['File lock']
-    },
-
-    # VALIDATION
-    'run_validation': {
-        'description': 'Execute task validation command',
-        'uses': ['Shell execution'],
-        'commands': ['npx tsc', 'npm test', 'sqlite3']
-    },
-
-    # GIT OPERATIONS
-    'git_commit': {
-        'description': 'Commit task changes',
-        'uses': ['GitManager'],
-        'triggers': 'After successful validation'
-    },
-
-    # CHECKPOINT
-    'create_checkpoint': {
-        'description': 'Create rollback point before task',
-        'uses': ['CheckpointManager', 'Git'],
-        'triggers': 'Before each task'
-    },
-
-    'rollback': {
-        'description': 'Restore to checkpoint on failure',
-        'uses': ['CheckpointManager', 'Git'],
-        'triggers': 'On task failure'
-    },
-
-    # KNOWLEDGE
-    'record_discovery': {
-        'description': 'Record new pattern or gotcha',
-        'uses': ['Knowledge Base'],
-        'triggers': 'When learning something new'
-    },
-
-    # LOCKING
-    'acquire_lock': {
-        'description': 'Get exclusive file lock',
-        'uses': ['MessageBus'],
-        'blocks_if': 'File already locked'
-    },
-
-    'release_lock': {
-        'description': 'Release file lock',
-        'uses': ['MessageBus'],
-        'triggers': 'After task complete or failure'
-    }
-}
-```
-
-### 5.5 Claude Prompt Construction
-
-```python
-# coding-loops/agents/build_agent.py
-
-def build_task_prompt(
-    self,
-    task: AtomicTask,
-    context: PrimeResult
-) -> str:
-
-    prompt = f"""
-# BUILD TASK: {task.id}
-
-## Action
-{task.action} file: {task.file}
-
-## Requirements
-{chr(10).join(f'- {r}' for r in task.requirements)}
-
-## Gotchas (AVOID THESE MISTAKES)
-{chr(10).join(f'- {g.content}' for g in task.gotchas)}
-
-## Project Conventions (from CLAUDE.md)
-{context.conventions}
-
-## Code Template (use as starting point)
-```
-{task.code_template}
-```
-
-## Context: What This Idea Is About
-{context.idea_context['readme'][:500]}
-
-## Validation
-After generating the code, it will be validated with:
-```
-{task.validation_command}
-```
-Expected result: {task.expected_validation}
-
-## Instructions
-1. Generate ONLY the file content
-2. Follow all gotchas strictly
-3. Use the code template as guidance
-4. Ensure the validation command will pass
-"""
-
-    return prompt
-```
-
----
-
-## 6. Self-Improvement Agent (SIA)
-
-### 6.1 Trigger
-
-```
-TRIGGER: Event "build.completed" (primary)
-         Event "ideation.completed" (secondary)
-         Event "task.failed" (immediate gotcha extraction)
-```
-
-### 6.2 Context Loading
+### 1.2 Context Loading
 
 ```python
 # coding-loops/agents/sia_agent.py
@@ -1029,6 +71,11 @@ TRIGGER: Event "build.completed" (primary)
 class SIAAgent:
 
     async def load_review_context(self, execution_id: str) -> ReviewContext:
+        """Load context for analyzing a build execution.
+
+        NOTE: Execution records now link to task_list_id (not spec_id).
+        SIA loads spec/tasks files from idea folder path.
+        """
 
         # 1. LOAD EXECUTION RECORD
         execution = await db.query(
@@ -1036,30 +83,38 @@ class SIAAgent:
             [execution_id]
         )
 
-        # 2. LOAD ALL TASK RESULTS
-        tasks = await db.query(
-            "SELECT * FROM atomic_tasks WHERE execution_id = ?",
-            [execution_id]
+        # 2. LOAD ALL TASK RESULTS FROM EXECUTION LOG
+        task_results = await db.query("""
+            SELECT tel.* FROM task_execution_log tel
+            JOIN task_list_items tli ON tel.task_id = tli.task_id
+            WHERE tli.task_list_id = ?
+            AND tel.execution_id = ?
+            ORDER BY tel.started_at
+        """, [execution.task_list_id, execution_id])
+
+        # 3. LOAD TASK LIST (what was queued)
+        task_list = await db.query(
+            "SELECT * FROM task_lists WHERE id = ?",
+            [execution.task_list_id]
         )
 
-        # 3. LOAD SPEC (what was planned)
-        spec = await db.query(
-            "SELECT * FROM specifications WHERE id = ?",
-            [execution.spec_id]
-        )
-        spec_content = await read_file(spec.spec_path)
-        tasks_content = await read_file(spec.tasks_path)
+        # 4. LOAD SPEC & TASKS FILES (what was planned)
+        base_path = f"users/{execution.user_slug}/ideas/{execution.idea_slug}/build"
+        spec_content = await read_file(f"{base_path}/spec.md") if await file_exists(f"{base_path}/spec.md") else None
+        tasks_content = await read_file(f"{base_path}/tasks.md") if await file_exists(f"{base_path}/tasks.md") else None
 
-        # 4. LOAD GIT DIFF (what actually changed)
-        git_diff = await self.git.diff(
-            from_ref=execution.git_commits[0] + "^",  # Before first commit
-            to_ref=execution.git_commits[-1]          # After last commit
-        )
+        # 5. LOAD GIT DIFF (what actually changed)
+        git_diff = None
+        if execution.git_commits:
+            git_diff = await self.git.diff(
+                from_ref=execution.git_commits[0] + "^",  # Before first commit
+                to_ref=execution.git_commits[-1]          # After last commit
+            )
 
-        # 5. LOAD TEST RESULTS
-        test_results = json.loads(execution.final_validation)
+        # 6. LOAD TEST RESULTS
+        test_results = json.loads(execution.final_validation) if execution.final_validation else None
 
-        # 6. LOAD PREVIOUS SIMILAR REVIEWS (for pattern matching)
+        # 7. LOAD PREVIOUS SIMILAR REVIEWS (for pattern matching)
         similar_reviews = await db.query("""
             SELECT * FROM system_reviews
             WHERE agent_type = 'build'
@@ -1070,7 +125,8 @@ class SIAAgent:
 
         return ReviewContext(
             execution=execution,
-            tasks=tasks,
+            task_list=task_list,
+            task_results=task_results,
             spec_content=spec_content,
             tasks_content=tasks_content,
             git_diff=git_diff,
@@ -1079,7 +135,7 @@ class SIAAgent:
         )
 ```
 
-### 6.3 Decision Logic
+### 1.3 Decision Logic
 
 ```python
 # coding-loops/agents/sia_agent.py
@@ -1181,7 +237,7 @@ class SIAAgent:
         return metrics
 ```
 
-### 6.4 Skills & Tools
+### 1.4 Skills & Tools
 
 ```python
 SIA_SKILLS = {
@@ -1238,10 +294,9 @@ SIA_SKILLS = {
 ```
 
 ---
+## 2. Monitor Agent
 
-## 7. Monitor Agent
-
-### 7.1 Trigger
+### 2.1 Trigger
 
 ```
 TRIGGER: Timer-based (every 2 minutes)
@@ -1249,7 +304,7 @@ TRIGGER: Timer-based (every 2 minutes)
 NOT event-driven - continuously polls system state
 ```
 
-### 7.2 Context Loading
+### 2.2 Context Loading
 
 ```python
 # coding-loops/agents/monitor_agent.py
@@ -1266,7 +321,7 @@ class MonitorAgent:
         # 2. IN-PROGRESS TASKS
         active_tasks = await db.query("""
             SELECT t.*, l.name as loop_name
-            FROM atomic_tasks t
+            FROM tasks t
             JOIN build_executions e ON t.execution_id = e.id
             JOIN loops l ON e.loop_id = l.id
             WHERE t.status = 'in_progress'
@@ -1306,7 +361,7 @@ class MonitorAgent:
         )
 ```
 
-### 7.3 Decision Logic
+### 2.3 Decision Logic
 
 ```python
 # coding-loops/agents/monitor_agent.py
@@ -1391,9 +446,9 @@ class MonitorAgent:
 
 ---
 
-## 8. PM Agent
+## 3. PM Agent
 
-### 8.1 Trigger
+### 3.1 Trigger
 
 ```
 TRIGGER: Event "alert.*" (any alert from Monitor)
@@ -1401,7 +456,7 @@ TRIGGER: Event "alert.*" (any alert from Monitor)
          Event "decision.requested"
 ```
 
-### 8.2 Decision Logic
+### 3.2 Decision Logic
 
 ```python
 # coding-loops/agents/pm_agent.py
@@ -1481,7 +536,7 @@ class PMAgent:
 
         # Get pending tasks for failed loop
         pending_tasks = await db.query("""
-            SELECT * FROM atomic_tasks
+            SELECT * FROM tasks
             WHERE assigned_to = ? AND status IN ('pending', 'in_progress')
         """, [failed_loop])
 
@@ -1509,9 +564,9 @@ class PMAgent:
 
 ---
 
-## 9. Context Loading Strategies
+## 4. Context Loading Strategies
 
-### 9.1 Lazy Loading vs Eager Loading
+### 4.1 Lazy Loading vs Eager Loading
 
 ```python
 # When to use each strategy
@@ -1529,9 +584,10 @@ CONTEXT_LOADING_STRATEGIES = {
         '''
     },
 
-    'specification_agent': {
+    # NOTE: specification_agent is DEPRECATED - now Task Agent Phase 1
+    'task_agent_phase_1': {
         'strategy': 'EAGER',
-        'reason': 'Need full context for complete spec',
+        'reason': 'Need full context for complete spec (replaces specification_agent)',
         'approach': '''
             - Load ALL idea documents upfront
             - Query Knowledge Base for ALL relevant gotchas
@@ -1563,7 +619,7 @@ CONTEXT_LOADING_STRATEGIES = {
 }
 ```
 
-### 9.2 Context Prioritization
+### 4.2 Context Prioritization
 
 ```python
 # When context exceeds budget, what to keep?
@@ -1614,10 +670,9 @@ def prioritize_context(context: dict, budget: int) -> dict:
 ```
 
 ---
+## 5. Knowledge Base Integration
 
-## 10. Knowledge Base Integration
-
-### 10.1 How Agents Query Knowledge Base
+### 5.1 How Agents Query Knowledge Base
 
 ```python
 # Unified Knowledge Base interface
@@ -1711,7 +766,7 @@ class KnowledgeBase:
         """, [topics])
 ```
 
-### 10.2 Knowledge Lifecycle
+### 5.2 Knowledge Lifecycle
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -1747,27 +802,32 @@ class KnowledgeBase:
 
 ## Quick Reference: Agent Decision Matrix
 
-| Scenario | Ideation | Spec | Build | SIA | Monitor | PM |
-|----------|----------|------|-------|-----|---------|-----|
-| User sends message | ✓ Process | | | | | |
-| Ideation complete | | Can trigger | | Reviews | | |
-| Generate spec | | ✓ Execute | | | | |
-| Spec approved | | | ✓ Execute | | | |
-| Task starts | | | ✓ Execute | | Watches | |
-| Task fails | | | Retry/skip | Extracts gotcha | | |
-| Task stuck | | | | | ✓ Detects | Resolves |
-| Build complete | | | | ✓ Reviews | | |
-| Conflict detected | | | Waits | | | ✓ Resolves |
-| Deadlock detected | | | | | ✓ Detects | ✓ Resolves |
-| Component down | | | | | ✓ Alerts | Restarts |
+> **Note:** "Task (P1)" = Task Agent Phase 1 (spec generation), "Task (P2)" = Task Agent Phase 2 (orchestration)
+
+| Scenario | Ideation | Task (P1) | Build | Task (P2) | SIA | Monitor | PM |
+|----------|----------|-----------|-------|-----------|-----|---------|-----|
+| User sends message | ✓ Process | | | | | | |
+| Ideation complete | | ✓ Trigger | | | Reviews | | |
+| Generate spec | | ✓ Execute | | | | | |
+| Spec/tasks created | | | | ✓ Suggest | | | |
+| Task list approved | | | ✓ Execute | ✓ Dispatch | | Watches | |
+| Task starts | | | ✓ Execute | ✓ Track | | Watches | |
+| Task fails | | | Retry/skip | ✓ Escalate | Gotcha | | |
+| Task stuck | | | | ✓ Notify | | ✓ Detects | Resolves |
+| Build complete | | | | ✓ Report | ✓ Reviews | | |
+| Telegram command | | | | ✓ Handle | | | |
+| Stale task | | | | ✓ Detect | | | |
+| Duplicate detected | | | | ✓ Merge | | | |
+| Conflict detected | | | Waits | | | | ✓ Resolves |
+| Deadlock detected | | | | | | ✓ Detects | ✓ Resolves |
+| Component down | | | | | | ✓ Alerts | Restarts |
 
 ---
-
-## 11. Proactive Questioning
+## 6. Proactive Questioning
 
 > **See Also:** `ENGAGEMENT-AND-ORCHESTRATION-UI.md` for full UI/UX specifications
 
-### 11.1 Why Agents Ask Questions
+### 6.1 Why Agents Ask Questions
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -1790,7 +850,7 @@ class KnowledgeBase:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 11.2 Question Interface
+### 6.2 Question Interface
 
 ```typescript
 interface AgentQuestion {
@@ -1825,7 +885,7 @@ interface AgentQuestion {
 }
 ```
 
-### 11.3 Ideation Agent Questions
+### 6.3 Ideation Agent Questions
 
 ```yaml
 # agents/ideation/questions.yaml
@@ -1915,10 +975,12 @@ triggers:
           - label: "Skip research, I know the market"
 ```
 
-### 11.4 Specification Agent Questions
+### 6.4 Task Agent Phase 1 Questions (Specification)
+
+> **Note:** These questions were previously "Specification Agent Questions". Now handled by Task Agent Phase 1.
 
 ```yaml
-# agents/specification/questions.yaml
+# server/services/task-agent/phase1-questions.yaml
 
 triggers:
   - event: "requirement_ambiguous"
@@ -2020,7 +1082,7 @@ triggers:
           - label: "I have questions..."
 ```
 
-### 11.5 Build Agent Questions
+### 6.5 Build Agent Questions
 
 ```yaml
 # agents/build/questions.yaml
@@ -2130,7 +1192,7 @@ triggers:
         allowFreeText: true
 ```
 
-### 11.6 Validation Agent Questions
+### 6.6 Validation Agent Questions
 
 ```yaml
 # agents/validation/questions.yaml
@@ -2235,7 +1297,7 @@ triggers:
           - label: "Show me the details first"
 ```
 
-### 11.7 UX Agent Questions
+### 6.7 UX Agent Questions
 
 ```yaml
 # agents/ux/questions.yaml
@@ -2329,7 +1391,7 @@ triggers:
           - label: "Let's discuss the results"
 ```
 
-### 11.8 SIA Agent Questions
+### 6.8 SIA Agent Questions
 
 ```yaml
 # agents/sia/questions.yaml
@@ -2416,7 +1478,7 @@ triggers:
           - label: "Looks good, continue"
 ```
 
-### 11.9 System Prompt Addition for All Agents
+### 6.9 System Prompt Addition for All Agents
 
 Every agent's system prompt should include this questioning module:
 
@@ -2476,7 +1538,7 @@ Structure questions as JSON in your response:
 `;
 ```
 
-### 11.10 Question Flow in Orchestration
+### 6.10 Question Flow in Orchestration
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -2516,3 +1578,8 @@ Structure questions as JSON in your response:
 ---
 
 *This document is the definitive reference for understanding agent internals. For E2E flows, see E2E-SCENARIOS.md. For implementation, see IMPLEMENTATION-PLAN.md. For UI/UX of questioning and orchestration, see ENGAGEMENT-AND-ORCHESTRATION-UI.md.*
+
+---
+
+*This document covers infrastructure agents and cross-cutting concerns. For pipeline agents (Ideation, Task, Build), see [AGENT-SPECIFICATIONS-PIPELINE.md](./AGENT-SPECIFICATIONS-PIPELINE.md).*
+
