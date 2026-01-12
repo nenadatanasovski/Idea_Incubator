@@ -155,7 +155,16 @@ This plan implements three new agents using concepts from the PIV Loop analysis 
 
 ## Phase 2: Specification Agent (Vibe)
 
-**Location:** `agents/specification/`
+> **⚠️ SUPERSEDED (2026-01-12)**
+>
+> This phase has been superseded by the **Task Agent** design. The Specification Agent's
+> functionality is now part of Task Agent Phase 1 (Spec Generation).
+>
+> **See:** `docs/architecture/TASK-AGENT-TASKS.md` for the current implementation plan.
+>
+> The content below is retained for historical reference only.
+
+**Location:** `agents/specification/` *(deprecated - now `server/services/task-agent/`)*
 **Prerequisites:** Phase 1.5 (Knowledge Base)
 **Sessions:** 4-5
 

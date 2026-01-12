@@ -806,10 +806,44 @@ Full graph with filtering:
 
 ---
 
+## Service Layer Architecture
+
+The Task Agent is implemented as a collection of specialized services:
+
+```
+server/services/task-agent/
+├── task-agent.ts           # Main orchestrator, coordinates all services
+├── validation-gate.ts      # Validates tasks before execution
+├── deduplication-engine.ts # Detects duplicate/similar tasks
+├── classification-engine.ts # Auto-categorizes tasks
+├── test-generator.ts       # Generates API/UI test scaffolds
+├── lifecycle-manager.ts    # Manages task state transitions
+├── dependency-manager.ts   # Handles task relationships
+├── completion-detector.ts  # Proactively detects completed work
+├── test-executor.ts        # Runs API/UI tests via MCP Puppeteer
+├── priority-calculator.ts  # Calculates task priority scores
+├── suggestion-engine.ts    # Continuous suggestion loop
+├── task-list-manager.ts    # Manages task lists and Telegram linking
+└── telegram-handler.ts     # Handles all Telegram commands
+```
+
+**API Routes:** `server/routes/task-agent.ts` mounted at `/api/task-agent`
+
+**Frontend Components:**
+- `TaskAgentDashboard.tsx` - Main dashboard
+- `TaskCard.tsx` - Task summary card
+- `TaskCreateForm.tsx` - Multi-step creation form
+- `ValidationResult.tsx` - Validation feedback
+- `DependencyGraph.tsx` - Task relationship visualization
+- `TaskTestResults.tsx` - Test execution results
+
+---
+
 ## Related Documents
 
-- `task-data-model.md` - Database schema and types
-- `TAK-TASK-AGENT.md` - Implementation task breakdown
-- `task-agent-test-plan.md` - Human-in-loop test scenarios
+- `task-data-model.md` - Database schema and types (13 tables)
+- `../bootstrap/tasks/TAK-TASK-AGENT.md` - **Implementation tasks (53 tasks with YAML specs, code templates, gotchas)**
+- `task-agent-test-plan.md` - Human-in-loop test scenarios (10 flows)
+- `TASK-AGENT-QUESTIONS.md` - Design decisions Q&A (30 questions)
 - `AGENT-SPECIFICATIONS-PIPELINE.md` - Pipeline agents (Ideation, Task, Build)
 - `AGENT-SPECIFICATIONS-INFRASTRUCTURE.md` - Support agents (SIA, Monitor, PM)

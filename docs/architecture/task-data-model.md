@@ -923,10 +923,30 @@ interface GraphFilter {
 
 ---
 
+## Migration Files
+
+The database schema is implemented via migrations 050-058:
+
+| Migration | File | Creates |
+|-----------|------|---------|
+| 050 | `050_tasks_schema.sql` | `tasks` table |
+| 051 | `051_task_relationships.sql` | `task_relationships` table |
+| 052 | `052_task_state_history.sql` | `task_state_history` table |
+| 053 | `053_task_test_results.sql` | `task_test_results` table |
+| 054 | `054_task_blocks.sql` | `task_blocks` table |
+| 055 | `055_validation_rules.sql` | `validation_rules` table + default rules |
+| 056 | `056_task_lists.sql` | `task_lists` table |
+| 057 | `057_task_list_items.sql` | `task_list_items` junction table |
+| 058 | `058_questions.sql` | `questions` table (Task Agent → User) |
+
+**Full implementation specs:** See `docs/bootstrap/tasks/TAK-TASK-AGENT.md` for detailed YAML specs with code templates.
+
+---
+
 ## Next Steps
 
-1. Create migration scripts
-2. Update frontend components
-3. Update API routes
-4. Create graph visualization component
-5. Integrate with Telegram bot
+1. ~~Create migration scripts~~ → See TAK-001 through TAK-006c
+2. Update frontend components → See TAK-022 through TAK-027
+3. Update API routes → See TAK-017, TAK-018
+4. Create graph visualization component → See TAK-026
+5. Integrate with Telegram bot → See TAK-019, TAK-020

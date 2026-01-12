@@ -29,9 +29,12 @@ docs/specs/
 │   └── SELF-BUILDING-BOOTSTRAP.md          # Bootstrap process
 │
 └── Task Agent Design/
+    ├── ../bootstrap/tasks/
+    │   └── TAK-TASK-AGENT.md        # Implementation tasks (53 tasks, YAML specs)
     └── ../architecture/
         ├── task-agent-arch.md       # Task Agent architecture
         ├── task-data-model.md       # Database schema for tasks
+        ├── task-agent-test-plan.md  # 10 human-in-loop test flows
         └── TASK-AGENT-QUESTIONS.md  # Design decisions Q&A
 ```
 
