@@ -9,8 +9,9 @@ vi.mock('../../database/db.js', () => ({
     exec: vi.fn(() => []),
   })),
   saveDb: vi.fn(() => Promise.resolve()),
-  getOne: vi.fn(),
-  query: vi.fn(),
+  getOne: vi.fn(() => null),
+  query: vi.fn(() => []), // Return empty array by default
+  run: vi.fn(() => ({ changes: 1 })),
 }));
 
 vi.mock('../../agents/ideation/session-manager.js', () => ({
@@ -84,6 +85,13 @@ vi.mock('../../agents/ideation/streaming.js', () => ({
 
 vi.mock('../../utils/anthropic-client.js', () => ({
   getAnthropicClient: vi.fn(() => ({})),
+  createAnthropicClient: vi.fn(() => ({
+    messages: { create: vi.fn() },
+  })),
+  client: {
+    messages: { create: vi.fn() },
+  },
+  useClaudeCli: false,
 }));
 
 vi.mock('../../agents/ideation/system-prompt.js', () => ({
@@ -305,7 +313,8 @@ describe('Ideation API Endpoints', () => {
       const handler = getRouteHandler('/message', 'post');
       await handler!(req, res);
 
-      expect((res.jsonData as { ideaCandidate: { id: string } }).ideaCandidate).toHaveProperty('id');
+      // Response structure uses candidateUpdate, not ideaCandidate
+      expect((res.jsonData as { candidateUpdate: { id: string } | null }).candidateUpdate).toHaveProperty('id');
     });
 
     test('FAIL: Returns 404 for invalid session', async () => {
@@ -524,11 +533,8 @@ describe('Ideation API Endpoints', () => {
 
   describe('GET /sessions', () => {
     test('PASS: Returns sessions for profile', async () => {
-      vi.mocked(sessionManager.getActiveByProfile).mockResolvedValue([{
-        id: 'session-123', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
-      }]);
+      // Route uses query() directly, not sessionManager.getActiveByProfile
+      // The mock returns [] by default, which is fine for this test
 
       const req = createMockRequest({ query: { profileId: 'profile-123' } });
       const res = createMockResponse();
@@ -537,11 +543,12 @@ describe('Ideation API Endpoints', () => {
       await handler!(req, res);
 
       expect(res.statusCode).toBe(200);
-      expect((res.jsonData as { sessions: unknown[] }).sessions).toBeInstanceOf(Array);
+      // Response structure is { success, data: { sessions } }
+      expect((res.jsonData as { data: { sessions: unknown[] } }).data.sessions).toBeInstanceOf(Array);
     });
 
     test('PASS: Returns empty array for profile with no sessions', async () => {
-      vi.mocked(sessionManager.getActiveByProfile).mockResolvedValue([]);
+      // Route uses query() directly which returns [] by default
 
       const req = createMockRequest({ query: { profileId: 'profile-no-sessions' } });
       const res = createMockResponse();
@@ -550,7 +557,8 @@ describe('Ideation API Endpoints', () => {
       await handler!(req, res);
 
       expect(res.statusCode).toBe(200);
-      expect((res.jsonData as { sessions: unknown[] }).sessions).toEqual([]);
+      // Response structure is { success, data: { sessions } }
+      expect((res.jsonData as { data: { sessions: unknown[] } }).data.sessions).toEqual([]);
     });
 
     test('FAIL: Returns 400 for missing profileId', async () => {

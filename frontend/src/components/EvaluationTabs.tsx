@@ -84,22 +84,23 @@ export default function EvaluationTabs({
       </div>
 
       {/* Tab Content with dynamic height scrolling */}
+      {/* All tabs stay mounted to preserve data - CSS controls visibility */}
       <div className="p-6 overflow-y-auto flex-1 min-h-0">
-        {activeTab === 'scorecard' && (
+        <div className={activeTab === 'scorecard' ? '' : 'hidden'}>
           <EvaluationScorecard slug={slug} runId={runId} profile={profile} />
-        )}
-        {activeTab === 'dashboard' && (
+        </div>
+        <div className={activeTab === 'dashboard' ? '' : 'hidden'}>
           <EvaluationDashboard slug={slug} runId={runId} />
-        )}
-        {activeTab === 'redteam' && (
+        </div>
+        <div className={activeTab === 'redteam' ? '' : 'hidden'}>
           <RedTeamView
             slug={slug}
             runId={runId}
             riskResponses={riskResponses}
             riskResponseStats={riskResponseStats}
           />
-        )}
-        {activeTab === 'synthesis' && (
+        </div>
+        <div className={activeTab === 'synthesis' ? '' : 'hidden'}>
           <SynthesisView
             synthesis={synthesis}
             weakCriteria={weakCriteria}
@@ -107,7 +108,7 @@ export default function EvaluationTabs({
             recommendation={recommendation}
             onDecision={onDecision}
           />
-        )}
+        </div>
       </div>
     </div>
   )

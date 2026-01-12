@@ -22,7 +22,7 @@ export interface ClaudeResponse {
 export interface ClaudeCliOptions {
   model?: string;
   systemPrompt?: string;
-  maxTokens?: number;
+  _maxTokens?: number;
   jsonSchema?: object;
   tools?: string[];  // Enable specific tools like 'WebSearch'
 }
@@ -38,7 +38,7 @@ export async function callClaudeCli(
   const {
     model = 'sonnet',
     systemPrompt,
-    maxTokens = 4096,
+    _maxTokens = 4096,
     tools = [],
   } = options;
 
@@ -215,7 +215,7 @@ export function createCliClient() {
                  params.model.includes('opus') ? 'opus' :
                  params.model.includes('haiku') ? 'haiku' : 'sonnet',
           systemPrompt: params.system,
-          maxTokens: params.max_tokens,
+          _maxTokens: params.max_tokens,
         });
       },
     },

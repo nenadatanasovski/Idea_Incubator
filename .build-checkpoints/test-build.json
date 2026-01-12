@@ -1,0 +1,23 @@
+[
+  {
+    "id": "cp-1768126667774-72792c",
+    "buildId": "test-build",
+    "taskId": "T-007",
+    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-007\"],\"currentTaskIndex\":7,\"context\":{}}",
+    "createdAt": "2026-01-11T10:17:47.774Z"
+  },
+  {
+    "id": "cp-1768126667774-3dplim",
+    "buildId": "test-build",
+    "taskId": "T-008",
+    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-008\"],\"currentTaskIndex\":8,\"context\":{}}",
+    "createdAt": "2026-01-11T10:17:47.774Z"
+  },
+  {
+    "id": "cp-1768126667775-m56d76",
+    "buildId": "test-build",
+    "taskId": "T-009",
+    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-009\"],\"currentTaskIndex\":9,\"context\":{}}",
+    "createdAt": "2026-01-11T10:17:47.775Z"
+  }
+]

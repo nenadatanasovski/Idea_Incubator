@@ -412,22 +412,52 @@ export function IdeationSession({
       console.error('[WebSocket] Error:', error);
     };
 
+    // Reconnection logic (WSK-004)
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 10;
+    const baseDelay = 1000;
+    let reconnectTimeout: ReturnType<typeof setTimeout>;
+    let mounted = true;
+
     ws.onclose = () => {
       console.log('[WebSocket] Connection closed');
+      if (!mounted) return;
+
+      // Attempt reconnection with exponential backoff
+      if (reconnectAttempts < maxReconnectAttempts) {
+        const delay = Math.min(baseDelay * Math.pow(2, reconnectAttempts), 30000);
+        console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})...`);
+        reconnectTimeout = setTimeout(() => {
+          if (!mounted) return;
+          reconnectAttempts++;
+          const newWs = new WebSocket(wsUrl);
+          wsRef.current = newWs;
+          (window as unknown as { __IDEATION_WS__: WebSocket | null }).__IDEATION_WS__ = newWs;
+          // Copy event handlers to new WebSocket
+          newWs.onopen = ws.onopen;
+          newWs.onmessage = ws.onmessage;
+          newWs.onerror = ws.onerror;
+          newWs.onclose = ws.onclose;
+        }, delay);
+      } else {
+        console.error('[WebSocket] Max reconnection attempts reached');
+      }
     };
 
     // Heartbeat to keep connection alive
     const heartbeat = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'ping' }));
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'ping' }));
       }
     }, 30000);
 
     // Cleanup
     return () => {
+      mounted = false;
       clearInterval(heartbeat);
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
+      clearTimeout(reconnectTimeout);
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
       }
       wsRef.current = null;
       // Clean up test reference

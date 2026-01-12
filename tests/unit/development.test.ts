@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach as _beforeEach } from 'vitest';
 import { getQuestionBank } from '../../agents/development.js';
 import { createMockAnthropicClient, mockDevelopmentResponse } from '../mocks/anthropic.js';
 

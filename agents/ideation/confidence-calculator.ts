@@ -254,15 +254,16 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
 
   // Constraints compatible? (+5)
   // Handle both structured format and flat string fields (legacy data compatibility)
+  // Use != null to properly check for both null and undefined
   const constraints = selfDiscovery.constraints || {};
   const constraintsAny = constraints as Record<string, unknown>;
   const hasConstraintsSet =
-    (typeof constraints.location === 'object' && (constraints.location as Record<string, unknown>)?.target !== null) ||
+    (typeof constraints.location === 'object' && (constraints.location as Record<string, unknown>)?.target != null) ||
     (typeof constraintsAny.location === 'string' && (constraintsAny.location as string).length > 0) ||
-    constraints.timeHoursPerWeek !== null ||
-    constraintsAny.budget !== undefined ||
-    constraintsAny.runway !== undefined ||
-    constraints.capital !== undefined;
+    constraints.timeHoursPerWeek != null ||
+    constraintsAny.budget != null ||
+    constraintsAny.runway != null ||
+    constraints.capital != null;
   if (hasConstraintsSet) {
     fitScore += 5;
   }

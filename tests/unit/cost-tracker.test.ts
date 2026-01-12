@@ -38,17 +38,20 @@ describe('CostTracker', () => {
   });
 
   it('should calculate estimated cost correctly', () => {
-    // 1M input tokens = $15, 1M output tokens = $75
-    // 100k input = $1.50, 100k output = $7.50
+    // Default is Sonnet 4 pricing: $3/1M input, $15/1M output
+    // 100k input = $0.30, 100k output = $1.50
     tracker.track({ input_tokens: 100000, output_tokens: 100000 }, 'test');
 
     const cost = tracker.getEstimatedCost();
-    expect(cost).toBeCloseTo(9.00, 2); // $1.50 + $7.50 = $9.00
+    expect(cost).toBeCloseTo(1.80, 2); // $0.30 + $1.50 = $1.80
   });
 
   it('should check budget and throw when exceeded', () => {
-    tracker.track({ input_tokens: 100000, output_tokens: 100000 }, 'test1');
-    tracker.track({ input_tokens: 100000, output_tokens: 100000 }, 'test2');
+    // Need to exceed $10 budget with Sonnet 4 pricing ($3/1M input, $15/1M output)
+    // 500k input = $1.50, 500k output = $7.50 = $9.00 per call
+    // 2 calls = $18.00 which exceeds $10
+    tracker.track({ input_tokens: 500000, output_tokens: 500000 }, 'test1');
+    tracker.track({ input_tokens: 500000, output_tokens: 500000 }, 'test2');
 
     expect(() => tracker.checkBudget()).toThrow(BudgetExceededError);
   });
@@ -59,9 +62,11 @@ describe('CostTracker', () => {
   });
 
   it('should return remaining budget', () => {
+    // 100k input = $0.30, 100k output = $1.50, total = $1.80
+    // Budget $10 - $1.80 = $8.20 remaining
     tracker.track({ input_tokens: 100000, output_tokens: 100000 }, 'test');
 
-    expect(tracker.getBudgetRemaining()).toBeCloseTo(1.00, 2);
+    expect(tracker.getBudgetRemaining()).toBeCloseTo(8.20, 2);
   });
 
   it('should return zero for remaining budget when exceeded', () => {
@@ -102,7 +107,8 @@ describe('CostTracker', () => {
   });
 
   it('should estimate cost statically', () => {
+    // Uses default Sonnet 4 pricing: 100k input = $0.30, 100k output = $1.50
     const estimate = CostTracker.estimateCost(100000, 100000);
-    expect(estimate).toBeCloseTo(9.00, 2);
+    expect(estimate).toBeCloseTo(1.80, 2);
   });
 });

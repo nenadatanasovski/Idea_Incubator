@@ -40,7 +40,7 @@ sessionRouter.get('/:sessionId', async (req: Request, res: Response) => {
 
     let session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Reactivate abandoned sessions when resumed
@@ -60,7 +60,7 @@ sessionRouter.get('/:sessionId', async (req: Request, res: Response) => {
       console.log(`  - ${a.id}: "${a.title}" (${contentLen} chars)`);
     });
 
-    res.json({
+    return res.json({
       session,
       messages,
       candidate,
@@ -70,7 +70,7 @@ sessionRouter.get('/:sessionId', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error getting session:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -85,20 +85,20 @@ sessionRouter.post('/:sessionId/abandon', async (req: Request, res: Response) =>
 
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     if (session.status !== 'active') {
-      return res.status(400).json({ error: 'Session is not active' });
+     return res.status(400).json({ error: 'Session is not active' });
     }
 
     await sessionManager.abandon(sessionId);
 
-    res.json({ success: true });
+    return res.json({ success: true });
 
   } catch (error) {
     console.error('Error abandoning session:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -118,7 +118,7 @@ sessionRouter.patch('/:sessionId/link-idea', async (req: Request, res: Response)
 
     const parseResult = LinkIdeaSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -128,11 +128,11 @@ sessionRouter.patch('/:sessionId/link-idea', async (req: Request, res: Response)
 
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     if (!ideaFolderExists(userSlug, ideaSlug)) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Idea folder not found',
         message: `No idea folder exists at users/${userSlug}/ideas/${ideaSlug}`,
       });
@@ -158,7 +158,7 @@ sessionRouter.patch('/:sessionId/link-idea', async (req: Request, res: Response)
 
   } catch (error) {
     console.error('Error linking idea to session:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+   return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -183,7 +183,7 @@ sessionRouter.post('/:sessionId/name-idea', async (req: Request, res: Response) 
 
     const parseResult = NameIdeaSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -203,18 +203,18 @@ sessionRouter.post('/:sessionId/name-idea', async (req: Request, res: Response) 
     );
 
     if (!sessionRow) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     if (!sessionRow.idea_slug || !sessionRow.idea_slug.startsWith('draft_')) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Session not linked to draft',
         message: 'This session is not linked to a draft folder. Only sessions with draft folders can be named.',
       });
     }
 
     if (!sessionRow.user_slug) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Session missing user',
         message: 'This session does not have a user_slug set.',
       });
@@ -228,7 +228,7 @@ sessionRouter.post('/:sessionId/name-idea', async (req: Request, res: Response) 
       .slice(0, 50);
 
     if (ideaFolderExists(sessionRow.user_slug, ideaSlug)) {
-      return res.status(409).json({
+     return res.status(409).json({
         error: 'Idea slug already exists',
         message: `An idea with slug '${ideaSlug}' already exists for this user.`,
       });
@@ -269,20 +269,20 @@ sessionRouter.post('/:sessionId/name-idea', async (req: Request, res: Response) 
 
     if (error instanceof Error) {
       if (error.message.includes('already exists')) {
-        return res.status(409).json({
+       return res.status(409).json({
           error: 'Idea slug already exists',
           message: error.message,
         });
       }
       if (error.message.includes('does not exist')) {
-        return res.status(400).json({
+       return res.status(400).json({
           error: 'Draft folder not found',
           message: error.message,
         });
       }
     }
 
-    return res.status(500).json({ error: 'Internal server error' });
+   return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -296,7 +296,7 @@ sessionRouter.get('/', async (req: Request, res: Response) => {
     const { profileId, status, includeAll } = req.query;
 
     if (!profileId) {
-      return res.status(400).json({ error: 'profileId is required' });
+     return res.status(400).json({ error: 'profileId is required' });
     }
 
     const allSessions = await query<{
@@ -350,11 +350,11 @@ sessionRouter.get('/', async (req: Request, res: Response) => {
       filteredSessions = sessionsWithDetails.filter(s => s.status !== 'abandoned');
     }
 
-    res.json({ success: true, data: { sessions: filteredSessions } });
+    return res.json({ success: true, data: { sessions: filteredSessions } });
 
   } catch (error) {
     console.error('Error listing sessions:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
@@ -369,7 +369,7 @@ sessionRouter.delete('/:sessionId', async (req: Request, res: Response) => {
 
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     await query('DELETE FROM ideation_artifacts WHERE session_id = ?', [sessionId]);
@@ -382,11 +382,11 @@ sessionRouter.delete('/:sessionId', async (req: Request, res: Response) => {
 
     await saveDb();
 
-    res.json({ success: true, message: 'Session deleted' });
+    return res.json({ success: true, message: 'Session deleted' });
 
   } catch (error) {
     console.error('Error deleting session:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -405,7 +405,7 @@ sessionRouter.post('/', async (req: Request, res: Response) => {
   try {
     const parseResult = CreateSessionWithUserSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -422,7 +422,7 @@ sessionRouter.post('/', async (req: Request, res: Response) => {
       console.log(`[Session] Created draft folder: ${draftResult.draftId} at ${draftResult.path}`);
     } else {
       if (!ideaFolderExists(userSlug, ideaSlug)) {
-        return res.status(400).json({
+       return res.status(400).json({
           error: 'Idea folder not found',
           message: `No idea folder exists at users/${userSlug}/ideas/${ideaSlug}`,
         });
@@ -440,11 +440,11 @@ sessionRouter.post('/', async (req: Request, res: Response) => {
         handoff_count, token_count, message_count
       )
       VALUES (?, ?, ?, ?, 'active', 'exploring', 'discover', ?, ?, 0, 0, 0)
-    `, [sessionId, profileId ?? null, userSlug, finalIdeaSlug, now, now]);
+    `, [sessionId, (profileId ?? null), userSlug, finalIdeaSlug, now, now] as (string | number | boolean | null)[]);
 
     await db.saveDb();
 
-    return res.status(201).json({
+   return res.status(201).json({
       success: true,
       id: sessionId,
       userSlug,
@@ -458,7 +458,7 @@ sessionRouter.post('/', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('[Session] Error creating session:', error);
-    return res.status(500).json({
+   return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     });

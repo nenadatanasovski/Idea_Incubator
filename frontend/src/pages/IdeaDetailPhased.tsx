@@ -132,12 +132,30 @@ export default function IdeaDetailPhased() {
     }
   }, [derivedPhase, optimisticPhase])
 
-  // Calculate completed phases
+  // Infer the furthest phase reached based on actual data, not just DB value
+  // This handles cases where phase wasn't updated in DB but user progressed
+  const inferredFurthestPhase = useMemo((): IncubationPhase => {
+    // Check what data exists to infer how far user has progressed
+    // Order: capture → clarify → position → update → evaluate → iterate
+    if (synthesis) return 'evaluate'  // Has evaluation = reached evaluate
+    if (positioningDecision) return 'position'  // Has positioning = reached position
+    if (readiness && readiness.overall > 0) return 'clarify'  // Has answered questions = reached clarify
+    if (idea?.title && (idea?.summary || idea?.content)) return 'capture'
+    return 'capture'
+  }, [synthesis, positioningDecision, readiness, idea])
+
+  // Calculate completed phases - all phases up to the inferred furthest, excluding current
   const completedPhases = useMemo(() => {
     const phaseOrder = incubationPhases.map(p => p.id)
     const currentIdx = phaseOrder.indexOf(currentPhase)
-    return phaseOrder.slice(0, currentIdx) as IncubationPhase[]
-  }, [currentPhase])
+    const inferredIdx = phaseOrder.indexOf(inferredFurthestPhase)
+    // Use the max of current position and inferred position
+    const furthestIdx = Math.max(currentIdx, inferredIdx)
+    // Include all phases up to furthest, excluding current
+    return phaseOrder
+      .slice(0, furthestIdx + 1)
+      .filter((_, idx) => idx !== currentIdx) as IncubationPhase[]
+  }, [currentPhase, inferredFurthestPhase])
 
   // Build lookup map for previous scores by criterion (from previous evaluation run)
   // Must be defined before any early returns to satisfy React's Rules of Hooks

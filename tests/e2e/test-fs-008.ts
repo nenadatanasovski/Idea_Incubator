@@ -41,7 +41,7 @@ async function runTest() {
     console.log('Added test.md to draft folder');
 
     // Insert test data into database
-    const db = await getDb();
+    const _db = await getDb();
     const sessionId = `test-session-${Date.now()}`;
     const artifactId = `test-artifact-${Date.now()}`;
 

@@ -7,7 +7,7 @@ import {
   getSpecializedEvaluator,
   listSpecializedEvaluators,
 } from '../../../agents/specialized-evaluators.js';
-import { CATEGORIES, type Category } from '../../../agents/config.js';
+import { CATEGORIES, type Category as _Category } from '../../../agents/config.js';
 
 describe('Specialized Evaluators', () => {
   describe('SPECIALIZED_EVALUATORS', () => {

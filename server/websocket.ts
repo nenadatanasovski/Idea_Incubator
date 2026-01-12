@@ -33,6 +33,24 @@ export type IdeationEventType =
   | 'subagent:status'      // When a sub-agent status changes (running/completed/failed)
   | 'subagent:result';     // When a sub-agent produces results
 
+// Event types for agent/monitoring system (WSK-001)
+export type AgentEventType =
+  | 'agent:registered'     // Agent registered with Communication Hub
+  | 'agent:started'        // Agent started working
+  | 'agent:heartbeat'      // Agent heartbeat
+  | 'agent:blocked'        // Agent blocked waiting for answer
+  | 'agent:unblocked'      // Agent unblocked (answer received)
+  | 'agent:completed'      // Agent completed work
+  | 'agent:error'          // Agent encountered error
+  | 'agent:halted'         // Agent halted (timeout/error)
+  | 'question:created'     // New question created
+  | 'question:delivered'   // Question delivered to user
+  | 'question:answered'    // Question answered
+  | 'question:timeout'     // Question timed out
+  | 'notification:sent'    // Notification sent
+  | 'system:health'        // System health update
+  | 'system:alert';        // System alert
+
 // Sub-agent status types
 export type SubAgentStatus = 'spawning' | 'running' | 'completed' | 'failed';
 
@@ -99,11 +117,40 @@ export interface DebateEvent {
   };
 }
 
+// Agent/Monitoring event interface (WSK-001)
+export interface AgentEvent {
+  type: AgentEventType;
+  timestamp: string;
+  agentId?: string;
+  agentType?: string;
+  sessionId?: string;
+  data: {
+    status?: string;
+    message?: string;
+    questionId?: string;
+    questionType?: string;
+    notificationId?: string;
+    severity?: 'info' | 'warning' | 'error' | 'critical';
+    metrics?: Record<string, number>;
+    error?: string;
+    [key: string]: unknown;
+  };
+}
+
 // Track connected clients by idea slug (for debates)
 const debateRooms = new Map<string, Set<WebSocket>>();
 
 // Track connected clients by session ID (for ideation)
 const sessionRooms = new Map<string, Set<WebSocket>>();
+
+// Track connected clients for agent/monitoring dashboard (WSK-002)
+const agentMonitorClients = new Set<WebSocket>();
+
+// Track connected clients by user ID (for notifications)
+const userConnections = new Map<string, Set<WebSocket>>();
+
+// Event handlers for user-specific events (notifications)
+const userEventHandlers = new Map<string, (userId: string, data: Record<string, unknown>) => void>();
 
 // WebSocket server instance
 let wss: WebSocketServer | null = null;
@@ -118,15 +165,58 @@ export function initWebSocket(server: Server): WebSocketServer {
     const url = new URL(req.url || '', `http://${req.headers.host}`);
     const ideaSlug = url.searchParams.get('idea');
     const sessionId = url.searchParams.get('session');
+    const monitor = url.searchParams.get('monitor'); // WSK-002: agent monitoring
+    const userId = url.searchParams.get('user'); // User ID for notifications
+    const executor = url.searchParams.get('executor'); // Task executor monitoring
 
-    // Must have either idea or session parameter
-    if (!ideaSlug && !sessionId) {
-      ws.close(4000, 'Missing idea or session parameter');
+    // Must have either idea, session, monitor, user, or executor parameter
+    if (!ideaSlug && !sessionId && monitor !== 'agents' && !userId && executor !== 'tasks') {
+      ws.close(4000, 'Missing idea, session, monitor, user, or executor parameter');
       return;
     }
 
     // Join the appropriate room
-    if (sessionId) {
+    if (executor === 'tasks') {
+      // Task executor monitoring
+      taskExecutorClients.add(ws);
+      console.log(`Client joined task executor (${taskExecutorClients.size} connected)`);
+
+      ws.send(
+        JSON.stringify({
+          type: 'connected',
+          timestamp: new Date().toISOString(),
+          data: { message: 'Connected to task executor', clientCount: taskExecutorClients.size },
+        })
+      );
+    } else if (userId) {
+      // User notifications connection
+      if (!userConnections.has(userId)) {
+        userConnections.set(userId, new Set());
+      }
+      userConnections.get(userId)!.add(ws);
+      console.log(`User ${userId} connected for notifications (${userConnections.get(userId)!.size} connections)`);
+
+      ws.send(
+        JSON.stringify({
+          type: 'connected',
+          timestamp: new Date().toISOString(),
+          userId,
+          data: { message: 'Connected for notifications' },
+        })
+      );
+    } else if (monitor === 'agents') {
+      // Agent monitoring dashboard (WSK-002)
+      agentMonitorClients.add(ws);
+      console.log(`Client joined agent monitoring (${agentMonitorClients.size} connected)`);
+
+      ws.send(
+        JSON.stringify({
+          type: 'connected',
+          timestamp: new Date().toISOString(),
+          data: { message: 'Connected to agent monitoring', clientCount: agentMonitorClients.size },
+        })
+      );
+    } else if (sessionId) {
       // Ideation session room
       if (!sessionRooms.has(sessionId)) {
         sessionRooms.set(sessionId, new Set());
@@ -160,12 +250,18 @@ export function initWebSocket(server: Server): WebSocketServer {
       );
     }
 
-    // Handle client messages (e.g., ping/pong)
+    // Handle client messages (e.g., ping/pong, notification events)
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
         if (data.type === 'ping') {
           ws.send(JSON.stringify({ type: 'pong', timestamp: new Date().toISOString() }));
+        } else if (userId && data.event) {
+          // Route notification-related events to handlers
+          const handler = userEventHandlers.get(data.event);
+          if (handler) {
+            handler(userId, data.data || {});
+          }
         }
       } catch {
         // Ignore invalid messages
@@ -174,7 +270,22 @@ export function initWebSocket(server: Server): WebSocketServer {
 
     // Clean up on disconnect
     ws.on('close', () => {
-      if (sessionId) {
+      if (executor === 'tasks') {
+        taskExecutorClients.delete(ws);
+        console.log(`Client left task executor (${taskExecutorClients.size} connected)`);
+      } else if (userId) {
+        const connections = userConnections.get(userId);
+        if (connections) {
+          connections.delete(ws);
+          if (connections.size === 0) {
+            userConnections.delete(userId);
+          }
+        }
+        console.log(`User ${userId} disconnected (${userConnections.get(userId)?.size || 0} connections remaining)`);
+      } else if (monitor === 'agents') {
+        agentMonitorClients.delete(ws);
+        console.log(`Client left agent monitoring (${agentMonitorClients.size} connected)`);
+      } else if (sessionId) {
         const room = sessionRooms.get(sessionId);
         if (room) {
           room.delete(ws);
@@ -347,6 +458,465 @@ export function emitSubAgentResult(
     subAgentStatus: 'completed' as SubAgentStatus,
     result,
   });
+}
+
+// ============================================
+// Agent Monitoring Functions (WSK-003)
+// ============================================
+
+/**
+ * Broadcast an agent event to all monitoring clients
+ */
+export function broadcastAgentEvent(event: AgentEvent): void {
+  if (agentMonitorClients.size === 0) {
+    return;
+  }
+
+  const message = JSON.stringify(event);
+
+  for (const client of agentMonitorClients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
+}
+
+/**
+ * Helper to emit an agent event
+ */
+export function emitAgentEvent(
+  type: AgentEventType,
+  agentId?: string,
+  agentType?: string,
+  data: AgentEvent['data'] = {}
+): void {
+  broadcastAgentEvent({
+    type,
+    timestamp: new Date().toISOString(),
+    agentId,
+    agentType,
+    data,
+  });
+}
+
+/**
+ * Emit agent registration event
+ */
+export function emitAgentRegistered(agentId: string, agentType: string): void {
+  emitAgentEvent('agent:registered', agentId, agentType, {
+    status: 'registered',
+    message: `Agent ${agentId} registered`,
+  });
+}
+
+/**
+ * Emit agent started event
+ */
+export function emitAgentStarted(agentId: string, agentType: string, sessionId?: string): void {
+  broadcastAgentEvent({
+    type: 'agent:started',
+    timestamp: new Date().toISOString(),
+    agentId,
+    agentType,
+    sessionId,
+    data: { status: 'working' },
+  });
+}
+
+/**
+ * Emit agent blocked event (waiting for user input)
+ */
+export function emitAgentBlocked(agentId: string, agentType: string, questionId: string): void {
+  emitAgentEvent('agent:blocked', agentId, agentType, {
+    status: 'blocked',
+    questionId,
+    message: 'Waiting for user input',
+  });
+}
+
+/**
+ * Emit agent unblocked event
+ */
+export function emitAgentUnblocked(agentId: string, agentType: string, questionId: string): void {
+  emitAgentEvent('agent:unblocked', agentId, agentType, {
+    status: 'working',
+    questionId,
+    message: 'User input received',
+  });
+}
+
+/**
+ * Emit question created event
+ */
+export function emitQuestionCreated(
+  questionId: string,
+  questionType: string,
+  agentId: string,
+  agentType: string
+): void {
+  emitAgentEvent('question:created', agentId, agentType, {
+    questionId,
+    questionType,
+  });
+}
+
+/**
+ * Emit question answered event
+ */
+export function emitQuestionAnswered(questionId: string, agentId: string, agentType: string): void {
+  emitAgentEvent('question:answered', agentId, agentType, {
+    questionId,
+  });
+}
+
+/**
+ * Emit system health event
+ */
+export function emitSystemHealth(metrics: Record<string, number>): void {
+  emitAgentEvent('system:health', undefined, undefined, {
+    metrics,
+  });
+}
+
+/**
+ * Emit system alert event
+ */
+export function emitSystemAlert(
+  message: string,
+  severity: 'info' | 'warning' | 'error' | 'critical'
+): void {
+  emitAgentEvent('system:alert', undefined, undefined, {
+    message,
+    severity,
+  });
+}
+
+/**
+ * Get count of connected monitoring clients
+ */
+export function getMonitorClientCount(): number {
+  return agentMonitorClients.size;
+}
+
+// ============================================
+// Build Agent Functions
+// ============================================
+
+// Build event types
+export type BuildEventType =
+  | 'build:created'      // Build execution created
+  | 'build:started'      // Build execution started
+  | 'build:paused'       // Build execution paused
+  | 'build:resumed'      // Build execution resumed
+  | 'build:completed'    // Build execution completed successfully
+  | 'build:failed'       // Build execution failed
+  | 'build:cancelled'    // Build execution cancelled
+  | 'task:started'       // Task execution started
+  | 'task:completed'     // Task execution completed
+  | 'task:failed'        // Task execution failed
+  | 'task:skipped'       // Task execution skipped
+  | 'task:validating'    // Task validation in progress
+  | 'build:progress';    // Build progress update
+
+export interface BuildEvent {
+  type: BuildEventType;
+  timestamp: string;
+  buildId: string;
+  data: {
+    specId?: string;
+    specPath?: string;
+    taskId?: string;
+    phase?: string;
+    action?: string;
+    filePath?: string;
+    status?: string;
+    tasksTotal?: number;
+    tasksCompleted?: number;
+    tasksFailed?: number;
+    progressPct?: number;
+    error?: string;
+    fromCheckpoint?: string | null;
+    [key: string]: unknown;
+  };
+}
+
+// Track connected clients for build monitoring
+const buildMonitorClients = new Map<string, Set<WebSocket>>();
+
+/**
+ * Broadcast a build event to clients watching a specific build
+ */
+export function broadcastBuildEvent(event: BuildEvent): void {
+  const room = buildMonitorClients.get(event.buildId);
+  if (!room || room.size === 0) {
+    return;
+  }
+
+  const message = JSON.stringify(event);
+
+  for (const client of room) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
+}
+
+/**
+ * Helper to emit a build event
+ */
+export function emitBuildEvent(
+  type: BuildEventType,
+  buildId: string,
+  data: BuildEvent['data'] = {}
+): void {
+  broadcastBuildEvent({
+    type,
+    timestamp: new Date().toISOString(),
+    buildId,
+    data,
+  });
+}
+
+/**
+ * Emit task started event
+ */
+export function emitTaskStarted(
+  buildId: string,
+  taskId: string,
+  phase: string,
+  action: string,
+  filePath: string
+): void {
+  emitBuildEvent('task:started', buildId, {
+    taskId,
+    phase,
+    action,
+    filePath,
+    status: 'running'
+  });
+}
+
+/**
+ * Emit task completed event
+ */
+export function emitTaskCompleted(
+  buildId: string,
+  taskId: string,
+  tasksCompleted: number,
+  tasksTotal: number
+): void {
+  emitBuildEvent('task:completed', buildId, {
+    taskId,
+    status: 'completed',
+    tasksCompleted,
+    tasksTotal,
+    progressPct: Math.round((tasksCompleted / tasksTotal) * 100)
+  });
+}
+
+/**
+ * Emit task failed event
+ */
+export function emitTaskFailed(
+  buildId: string,
+  taskId: string,
+  error: string
+): void {
+  emitBuildEvent('task:failed', buildId, {
+    taskId,
+    status: 'failed',
+    error
+  });
+}
+
+/**
+ * Emit build progress event
+ */
+export function emitBuildProgress(
+  buildId: string,
+  tasksCompleted: number,
+  tasksTotal: number,
+  tasksFailed: number,
+  currentTaskId?: string
+): void {
+  emitBuildEvent('build:progress', buildId, {
+    taskId: currentTaskId,
+    tasksCompleted,
+    tasksTotal,
+    tasksFailed,
+    progressPct: Math.round((tasksCompleted / tasksTotal) * 100)
+  });
+}
+
+/**
+ * Get count of clients watching a build
+ */
+export function getBuildClientCount(buildId: string): number {
+  return buildMonitorClients.get(buildId)?.size || 0;
+}
+
+// ============================================
+// User Notification Functions
+// ============================================
+
+/**
+ * Broadcast an event to all connections for a specific user
+ */
+export function broadcastToUser(userId: string, event: string, data: unknown): void {
+  const connections = userConnections.get(userId);
+  if (!connections || connections.size === 0) {
+    return;
+  }
+
+  const message = JSON.stringify({ event, data });
+
+  for (const ws of connections) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(message);
+    }
+  }
+}
+
+/**
+ * Register a handler for user-specific events
+ * Used by notification system to handle mark-read, archive, etc.
+ */
+export function onUserEvent(
+  event: string,
+  handler: (userId: string, data: Record<string, unknown>) => void
+): void {
+  userEventHandlers.set(event, handler);
+}
+
+/**
+ * Remove a handler for a user event
+ */
+export function offUserEvent(event: string): void {
+  userEventHandlers.delete(event);
+}
+
+/**
+ * Get count of connections for a user
+ */
+export function getUserConnectionCount(userId: string): number {
+  return userConnections.get(userId)?.size || 0;
+}
+
+/**
+ * Get all connected user IDs
+ */
+export function getConnectedUsers(): string[] {
+  return Array.from(userConnections.keys());
+}
+
+/**
+ * Check if a user has any active connections
+ */
+export function isUserConnected(userId: string): boolean {
+  const connections = userConnections.get(userId);
+  return !!(connections && connections.size > 0);
+}
+
+// ============================================
+// Task Executor Functions
+// ============================================
+
+// Task executor event types
+export type TaskExecutorEventType =
+  | 'executor:started'    // Executor started autonomous execution
+  | 'executor:paused'     // Executor paused
+  | 'executor:resumed'    // Executor resumed
+  | 'executor:stopped'    // Executor stopped
+  | 'executor:complete'   // All tasks completed
+  | 'task:queued'         // Task added to queue
+  | 'task:started'        // Task execution started
+  | 'task:completed'      // Task execution completed
+  | 'task:failed'         // Task execution failed
+  | 'task:skipped'        // Task skipped
+  | 'task:requeued'       // Task requeued
+  | 'task:blocked'        // Task blocked waiting for user input
+  | 'task:resumed'        // Task resumed after user input
+  | 'task:claimed'        // Task claimed by an agent
+  | 'task:released'       // Task released back to queue
+  | 'tasklist:loaded';    // Task list loaded
+
+export interface TaskExecutorEvent {
+  type: TaskExecutorEventType;
+  timestamp: string;
+  data: {
+    taskId?: string;
+    description?: string;
+    priority?: string;
+    status?: string;
+    agent?: string;
+    output?: string;
+    error?: string;
+    attempts?: number;
+    taskListPath?: string;
+    pendingTasks?: number;
+    completedTasks?: number;
+    failedTasks?: number;
+    totalTasks?: number;
+    [key: string]: unknown;
+  };
+}
+
+// Track connected task executor clients
+const taskExecutorClients = new Set<WebSocket>();
+
+/**
+ * Add a client to the task executor room
+ */
+export function addTaskExecutorClient(ws: WebSocket): void {
+  taskExecutorClients.add(ws);
+  console.log(`Client joined task executor (${taskExecutorClients.size} connected)`);
+}
+
+/**
+ * Remove a client from the task executor room
+ */
+export function removeTaskExecutorClient(ws: WebSocket): void {
+  taskExecutorClients.delete(ws);
+  console.log(`Client left task executor (${taskExecutorClients.size} connected)`);
+}
+
+/**
+ * Broadcast an event to all task executor clients
+ */
+export function broadcastTaskExecutorEvent(event: TaskExecutorEvent): void {
+  if (taskExecutorClients.size === 0) {
+    return;
+  }
+
+  const message = JSON.stringify(event);
+  console.log(`[WS] Broadcasting ${event.type} to ${taskExecutorClients.size} task executor clients`);
+
+  for (const client of taskExecutorClients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
+}
+
+/**
+ * Helper to emit a task executor event
+ */
+export function emitTaskExecutorEvent(
+  type: TaskExecutorEventType,
+  data: TaskExecutorEvent['data'] = {}
+): void {
+  broadcastTaskExecutorEvent({
+    type,
+    timestamp: new Date().toISOString(),
+    data,
+  });
+}
+
+/**
+ * Get count of connected task executor clients
+ */
+export function getTaskExecutorClientCount(): number {
+  return taskExecutorClients.size;
 }
 
 export { wss };

@@ -32,7 +32,7 @@ artifactRouter.get('/:userSlug/:ideaSlug/artifacts', async (req: Request, res: R
     const { userSlug, ideaSlug } = req.params;
 
     if (!userSlug || !ideaSlug) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         message: 'userSlug and ideaSlug are required',
       });
@@ -44,7 +44,7 @@ artifactRouter.get('/:userSlug/:ideaSlug/artifacts', async (req: Request, res: R
 
     console.log(`[IdeaArtifacts] Found ${artifacts.length} artifacts`);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         artifacts,
@@ -54,7 +54,7 @@ artifactRouter.get('/:userSlug/:ideaSlug/artifacts', async (req: Request, res: R
 
   } catch (error) {
     console.error('[IdeaArtifacts] Error listing artifacts:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -82,7 +82,7 @@ artifactRouter.post('/:userSlug/:ideaSlug/artifacts', async (req: Request, res: 
     const { userSlug, ideaSlug } = req.params;
 
     if (!userSlug || !ideaSlug) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         message: 'userSlug and ideaSlug are required',
       });
@@ -90,7 +90,7 @@ artifactRouter.post('/:userSlug/:ideaSlug/artifacts', async (req: Request, res: 
 
     const parseResult = CreateIdeaArtifactSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -115,7 +115,7 @@ artifactRouter.post('/:userSlug/:ideaSlug/artifacts', async (req: Request, res: 
 
     console.log(`[IdeaArtifacts] Created artifact ${artifact.id} at ${artifact.filePath}`);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: {
         artifact,
@@ -124,7 +124,7 @@ artifactRouter.post('/:userSlug/:ideaSlug/artifacts', async (req: Request, res: 
 
   } catch (error) {
     console.error('[IdeaArtifacts] Error creating artifact:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -141,7 +141,7 @@ artifactRouter.get('/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (req: Re
     const { userSlug, ideaSlug, filePath } = req.params;
 
     if (!userSlug || !ideaSlug || !filePath) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         message: 'userSlug, ideaSlug, and filePath are required',
       });
@@ -152,7 +152,7 @@ artifactRouter.get('/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (req: Re
     const artifact = await loadUnifiedArtifact(userSlug, ideaSlug, filePath);
 
     if (!artifact) {
-      return res.status(404).json({
+     return res.status(404).json({
         error: 'Not found',
         message: `Artifact not found: ${filePath}`,
       });
@@ -160,7 +160,7 @@ artifactRouter.get('/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (req: Re
 
     console.log(`[IdeaArtifacts] Loaded artifact ${artifact.id}`);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         artifact,
@@ -169,7 +169,7 @@ artifactRouter.get('/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (req: Re
 
   } catch (error) {
     console.error('[IdeaArtifacts] Error loading artifact:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -186,7 +186,7 @@ artifactRouter.delete('/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (req:
     const { userSlug, ideaSlug, filePath } = req.params;
 
     if (!userSlug || !ideaSlug || !filePath) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         message: 'userSlug, ideaSlug, and filePath are required',
       });
@@ -197,7 +197,7 @@ artifactRouter.delete('/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (req:
     const deleted = await deleteUnifiedArtifact(userSlug, ideaSlug, filePath);
 
     if (!deleted) {
-      return res.status(404).json({
+     return res.status(404).json({
         error: 'Not found',
         message: `Artifact not found: ${filePath}`,
       });
@@ -205,14 +205,14 @@ artifactRouter.delete('/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (req:
 
     console.log(`[IdeaArtifacts] Deleted artifact ${filePath}`);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Artifact deleted',
     });
 
   } catch (error) {
     console.error('[IdeaArtifacts] Error deleting artifact:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     });

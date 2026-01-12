@@ -21,7 +21,7 @@ async function runTest() {
   console.log('TEST-AS-012: Testing renameIdeaFolder implementation\n');
 
   // Import the function dynamically
-  const { createIdeaFolder, renameIdeaFolder, parseFrontmatter, loadArtifact } = await import(
+  const { createIdeaFolder, renameIdeaFolder, parseFrontmatter, _loadArtifact } = await import(
     '../../agents/ideation/unified-artifact-store.js'
   );
 
@@ -110,10 +110,10 @@ async function runTest() {
     }
 
     // 7. Check relationships.json was updated (if needed)
-    const relationshipsPath = path.join(newPath, '.metadata', 'relationships.json');
+    const _relationshipsPath = path.join(newPath, '.metadata', 'relationships.json');
     if (fs.existsSync(relationshipsPath)) {
       const relContent = fs.readFileSync(relationshipsPath, 'utf-8');
-      const relationships = JSON.parse(relContent);
+      const _relationships = JSON.parse(relContent);
       // Just check it exists and is valid JSON - actual update testing
       // would require setting up a self-referencing relationship
       console.log('✓ Relationships JSON exists and is valid');

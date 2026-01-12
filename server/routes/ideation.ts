@@ -119,7 +119,7 @@ const timeoutMiddleware = (req: Request, res: Response, next: NextFunction) => {
   // Track if response has been sent
   let responded = false;
 
-  const timeout = setTimeout(() => {
+  const timeout = setTimeout((): void => {
     if (!responded && !res.headersSent) {
       responded = true;
       console.error(`[Timeout] Request to ${req.path} timed out after ${REQUEST_TIMEOUT_MS}ms`);
@@ -279,7 +279,7 @@ ideationRouter.post('/start', async (req: Request, res: Response) => {
     // Validate request
     const parseResult = StartSessionSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -290,7 +290,7 @@ ideationRouter.post('/start', async (req: Request, res: Response) => {
     // Load profile
     const profile = await getProfileById(profileId);
     if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+     return res.status(404).json({ error: 'Profile not found' });
     }
 
     // Create session
@@ -312,7 +312,7 @@ ideationRouter.post('/start', async (req: Request, res: Response) => {
     await sessionManager.update(session.id, { messageCount: 1 });
 
     // Return response
-    res.json({
+    return res.json({
       sessionId: session.id,
       greeting: greeting.text,
       buttons: greeting.buttons,
@@ -320,7 +320,7 @@ ideationRouter.post('/start', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error starting ideation session:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -334,7 +334,7 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     // Validate request
     const parseResult = SendMessageSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -345,7 +345,7 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     // Load session
     let session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Reactivate abandoned sessions when user sends a message
@@ -354,14 +354,15 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
       session = await sessionManager.load(sessionId);
     }
 
-    if (session!.status !== 'active') {
-      return res.status(400).json({ error: 'Session is not active' });
+    if (!session || session.status !== 'active') {
+     return res.status(400).json({ error: 'Session is not active' });
     }
 
     // Load profile
+    if (!session) { return res.status(404).json({ error: "Session not found" }); }
     const profile = await getProfileById(session.profileId);
     if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+     return res.status(404).json({ error: 'Profile not found' });
     }
 
     // Check for artifact edit request - delegate to sub-agent for async processing
@@ -465,6 +466,7 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     }
 
     // Process message through orchestrator
+    if (!session) { return res.status(404).json({ error: "Session not found" }); }
     const response = await agentOrchestrator.processMessage(session, message, profile as Record<string, unknown>);
 
     // Update session
@@ -574,7 +576,7 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     }
 
     // Return response
-    res.json({
+    return res.json({
       userMessageId: response.userMessageId,
       messageId: response.assistantMessageId,
       reply: response.reply,
@@ -605,8 +607,8 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     });
 
     // If this was a quick-ack response with sub-agent tasks, execute them asynchronously
-    if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks.length > 0) {
-      console.log(`[Routes/Message] Quick-ack detected, spawning ${response.subAgentTasks.length} sub-agents`);
+    if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks!.length > 0) {
+      console.log(`[Routes/Message] Quick-ack detected, spawning ${response.subAgentTasks!.length} sub-agents`);
 
       // Build context for sub-agents from memory files
       const memoryFiles = await memoryManager.getAll(sessionId);
@@ -615,9 +617,9 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
       // Add candidate info
       const candidate = await candidateManager.getActiveForSession(sessionId);
       if (candidate) {
-        contextParts.push(`## Current Idea: ${candidate.title}`);
-        if (candidate.summary) {
-          contextParts.push(`Summary: ${candidate.summary}`);
+        contextParts.push(`## Current Idea: ${candidate!.title}`);
+        if (candidate!.summary) {
+          contextParts.push(`Summary: ${candidate!.summary}`);
         }
       }
 
@@ -632,7 +634,7 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
       await subAgentStore.clearCompleted(sessionId);
 
       // Emit initial spawn events for UI and persist to database
-      for (const task of response.subAgentTasks) {
+      for (const task of response.subAgentTasks!) {
         emitSubAgentSpawn(sessionId, task.id, task.type, task.label);
         // Save initial state to database
         await subAgentStore.save({
@@ -648,7 +650,7 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
       // This prevents race condition where WebSocket 'running' arrives before frontend creates agents
       setTimeout(() => {
         subAgentManager.spawnAgents(
-          response.subAgentTasks.map(t => ({
+          response.subAgentTasks!.map(t => ({
             id: t.id,
             type: t.type,
             label: t.label,
@@ -667,7 +669,7 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error processing ideation message:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -682,7 +684,7 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
     // Validate request
     const parseResult = EditMessageSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -693,7 +695,7 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
     // Load session
     let session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Reactivate abandoned sessions when user edits a message
@@ -703,19 +705,19 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
     }
 
     if (session!.status !== 'active') {
-      return res.status(400).json({ error: 'Session is not active' });
+     return res.status(400).json({ error: 'Session is not active' });
     }
 
     // Verify the message exists and belongs to this session
     const messageToEdit = await messageStore.get(messageId);
     if (!messageToEdit) {
-      return res.status(404).json({ error: 'Message not found' });
+     return res.status(404).json({ error: 'Message not found' });
     }
     if (messageToEdit.sessionId !== sessionId) {
-      return res.status(400).json({ error: 'Message does not belong to this session' });
+     return res.status(400).json({ error: 'Message does not belong to this session' });
     }
     if (messageToEdit.role !== 'user') {
-      return res.status(400).json({ error: 'Only user messages can be edited' });
+     return res.status(400).json({ error: 'Only user messages can be edited' });
     }
 
     // Delete the message and all messages after it
@@ -725,9 +727,10 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
     await memoryManager.resetState(sessionId);
 
     // Load profile
+    if (!session) { return res.status(404).json({ error: "Session not found" }); }
     const profile = await getProfileById(session.profileId);
     if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+     return res.status(404).json({ error: 'Profile not found' });
     }
 
     // Check for artifact edit request - delegate to sub-agent for async processing
@@ -831,6 +834,9 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
     }
 
     // Process the new message through orchestrator (same as /message endpoint)
+    if (!session) { return res.status(404).json({ error: "Session not found" }); }
+
+    if (!session) { return res.status(404).json({ error: "Session not found" }); }
     const response = await agentOrchestrator.processMessage(session, newContent, profile as Record<string, unknown>);
 
     // Update session
@@ -950,7 +956,7 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
     }
 
     // Return response
-    res.json({
+    return res.json({
       deletedCount,
       userMessageId: response.userMessageId,
       messageId: response.assistantMessageId,
@@ -982,8 +988,8 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
     });
 
     // If this was a quick-ack response with sub-agent tasks, execute them asynchronously
-    if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks.length > 0) {
-      console.log(`[Routes/MessageEdit] Quick-ack detected, spawning ${response.subAgentTasks.length} sub-agents`);
+    if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks!.length > 0) {
+      console.log(`[Routes/MessageEdit] Quick-ack detected, spawning ${response.subAgentTasks!.length} sub-agents`);
 
       // Build context for sub-agents from memory files
       const memoryState = await memoryManager.loadState(sessionId);
@@ -1008,7 +1014,7 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
       await subAgentStore.clearCompleted(sessionId);
 
       // Emit initial spawn events for UI and persist to database
-      for (const task of response.subAgentTasks) {
+      for (const task of response.subAgentTasks!) {
         emitSubAgentSpawn(sessionId, task.id, task.type, task.label);
         // Save initial state to database
         await subAgentStore.save({
@@ -1024,7 +1030,7 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
       // This prevents race condition where WebSocket 'running' arrives before frontend creates agents
       setTimeout(() => {
         subAgentManager.spawnAgents(
-          response.subAgentTasks.map(t => ({
+          response.subAgentTasks!.map(t => ({
             id: t.id,
             type: t.type,
             label: t.label,
@@ -1043,7 +1049,7 @@ ideationRouter.post('/message/edit', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error editing ideation message:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1057,7 +1063,7 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
     // Validate request
     const parseResult = ButtonClickSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -1068,7 +1074,7 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
     // Load session
     let session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Reactivate abandoned sessions when user clicks a button
@@ -1078,7 +1084,7 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
     }
 
     if (session!.status !== 'active') {
-      return res.status(400).json({ error: 'Session is not active' });
+     return res.status(400).json({ error: 'Session is not active' });
     }
 
     // Get last assistant message and record button click
@@ -1089,9 +1095,10 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
     }
 
     // Load profile
+    if (!session) { return res.status(404).json({ error: "Session not found" }); }
     const profile = await getProfileById(session.profileId);
     if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+     return res.status(404).json({ error: 'Profile not found' });
     }
 
     // Use label for display, value for processing
@@ -1099,6 +1106,7 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
 
     // Process button value as message through orchestrator
     // Pass displayMessage so it gets stored correctly, but the LLM sees the semantic value
+    if (!session) { return res.status(404).json({ error: "Session not found" }); }
     const response = await agentOrchestrator.processMessage(session, buttonValue, profile as Record<string, unknown>, displayMessage);
 
     // Update session
@@ -1127,7 +1135,7 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
     const shouldHandoff = percentUsed >= 80;
 
     // Return response
-    res.json({
+    return res.json({
       userMessageId: response.userMessageId,
       messageId: response.assistantMessageId,
       reply: response.reply,
@@ -1155,8 +1163,8 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
     });
 
     // If this was a quick-ack response with sub-agent tasks, execute them asynchronously
-    if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks.length > 0) {
-      console.log(`[Routes/Button] Quick-ack detected, spawning ${response.subAgentTasks.length} sub-agents`);
+    if (response.isQuickAck && response.subAgentTasks && response.subAgentTasks!.length > 0) {
+      console.log(`[Routes/Button] Quick-ack detected, spawning ${response.subAgentTasks!.length} sub-agents`);
 
       // Build context for sub-agents from memory files
       const memoryFiles = await memoryManager.getAll(sessionId);
@@ -1165,9 +1173,9 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
       // Add candidate info
       const candidate = await candidateManager.getActiveForSession(sessionId);
       if (candidate) {
-        contextParts.push(`## Current Idea: ${candidate.title}`);
-        if (candidate.summary) {
-          contextParts.push(`Summary: ${candidate.summary}`);
+        contextParts.push(`## Current Idea: ${candidate!.title}`);
+        if (candidate!.summary) {
+          contextParts.push(`Summary: ${candidate!.summary}`);
         }
       }
 
@@ -1182,7 +1190,7 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
       await subAgentStore.clearCompleted(sessionId);
 
       // Emit initial spawn events for UI and persist to database
-      for (const task of response.subAgentTasks) {
+      for (const task of response.subAgentTasks!) {
         emitSubAgentSpawn(sessionId, task.id, task.type, task.label);
         // Save initial state to database
         await subAgentStore.save({
@@ -1198,7 +1206,7 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
       // This prevents race condition where WebSocket 'running' arrives before frontend creates agents
       setTimeout(() => {
         subAgentManager.spawnAgents(
-          response.subAgentTasks.map(t => ({
+          response.subAgentTasks!.map(t => ({
             id: t.id,
             type: t.type,
             label: t.label,
@@ -1215,7 +1223,7 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error processing button click:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1229,7 +1237,7 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
     // Validate request
     const parseResult = FormSubmitSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -1240,7 +1248,7 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
     // Load session
     let session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Reactivate abandoned sessions when user submits a form
@@ -1251,7 +1259,7 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
 
     // Check session state
     if (session!.status !== 'active') {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Session is not active',
         status: session!.status,
       });
@@ -1277,6 +1285,7 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
     });
 
     // Get profile for context
+    if (!session) { return res.status(404).json({ error: "Session not found" }); }
     const profile = await getProfileById(session.profileId);
 
     // Process through agent
@@ -1307,7 +1316,7 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
       }
     }
 
-    res.json({
+    return res.json({
       reply: agentResponse.reply,
       buttons: agentResponse.buttons,
       form: agentResponse.form,
@@ -1316,7 +1325,7 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error processing form:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1330,7 +1339,7 @@ ideationRouter.post('/capture', async (req: Request, res: Response) => {
     // Validate request
     const parseResult = CaptureIdeaSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -1341,13 +1350,13 @@ ideationRouter.post('/capture', async (req: Request, res: Response) => {
     // Load session
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Get current candidate
     const candidate = await candidateManager.getActiveForSession(sessionId);
     if (!candidate) {
-      return res.status(400).json({ error: 'No idea candidate to capture' });
+     return res.status(400).json({ error: 'No idea candidate to capture' });
     }
 
     // Create idea in system
@@ -1368,7 +1377,7 @@ ideationRouter.post('/capture', async (req: Request, res: Response) => {
     await sessionManager.complete(sessionId);
 
     // Return response
-    res.json({
+    return res.json({
       ideaId: idea.id,
       ideaSlug: idea.slug,
       prePopulatedFields: {
@@ -1385,7 +1394,7 @@ ideationRouter.post('/capture', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error capturing idea:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1399,7 +1408,7 @@ ideationRouter.post('/save', async (req: Request, res: Response) => {
     // Validate request
     const parseResult = SaveForLaterSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -1410,7 +1419,7 @@ ideationRouter.post('/save', async (req: Request, res: Response) => {
     // Load session
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Get candidate (use provided or active)
@@ -1422,7 +1431,7 @@ ideationRouter.post('/save', async (req: Request, res: Response) => {
     }
 
     if (!candidate) {
-      return res.status(404).json({ error: 'No candidate to save' });
+     return res.status(404).json({ error: 'No candidate to save' });
     }
 
     // Update candidate status
@@ -1444,7 +1453,7 @@ ideationRouter.post('/save', async (req: Request, res: Response) => {
 ${notes ? `**Notes**: ${notes}` : ''}
 `);
 
-    res.json({
+    return res.json({
       success: true,
       candidate: await candidateManager.getById(candidate.id),
       message: 'Idea saved for later. You can resume this session anytime.',
@@ -1452,7 +1461,7 @@ ${notes ? `**Notes**: ${notes}` : ''}
 
   } catch (error) {
     console.error('Error saving for later:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1472,7 +1481,7 @@ ideationRouter.post('/candidate/update', async (req: Request, res: Response) => 
     // Validate request
     const parseResult = UpdateCandidateSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -1483,13 +1492,13 @@ ideationRouter.post('/candidate/update', async (req: Request, res: Response) => 
     // Load session
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Get active candidate
     const candidate = await candidateManager.getActiveForSession(sessionId);
     if (!candidate) {
-      return res.status(404).json({ error: 'No active candidate for this session' });
+     return res.status(404).json({ error: 'No active candidate for this session' });
     }
 
     // Build update object
@@ -1503,14 +1512,14 @@ ideationRouter.post('/candidate/update', async (req: Request, res: Response) => 
     // Get updated candidate
     const updatedCandidate = await candidateManager.getById(candidate.id);
 
-    res.json({
+    return res.json({
       success: true,
       candidate: updatedCandidate,
     });
 
   } catch (error) {
     console.error('Error updating candidate:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1524,7 +1533,7 @@ ideationRouter.post('/discard', async (req: Request, res: Response) => {
     // Validate request
     const parseResult = DiscardAndRestartSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -1535,7 +1544,7 @@ ideationRouter.post('/discard', async (req: Request, res: Response) => {
     // Load session
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Discard any active candidates
@@ -1561,6 +1570,7 @@ ideationRouter.post('/discard', async (req: Request, res: Response) => {
     await sessionManager.abandon(sessionId);
 
     // Create new session for restart
+    if (!session) { return res.status(404).json({ error: "Session not found" }); }
     const profile = await getProfileById(session.profileId);
     const newSession = await sessionManager.create({
       profileId: session.profileId,
@@ -1578,7 +1588,7 @@ ideationRouter.post('/discard', async (req: Request, res: Response) => {
       tokenCount: Math.ceil(greeting.text.length / 4),
     });
 
-    res.json({
+    return res.json({
       success: true,
       newSessionId: newSession.id,
       greeting: greeting.text,
@@ -1587,7 +1597,7 @@ ideationRouter.post('/discard', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error discarding session:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1602,7 +1612,7 @@ ideationRouter.get('/session/:sessionId', async (req: Request, res: Response) =>
 
     let session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Reactivate abandoned sessions when resumed
@@ -1623,7 +1633,7 @@ ideationRouter.get('/session/:sessionId', async (req: Request, res: Response) =>
       console.log(`  - ${a.id}: "${a.title}" (${contentLen} chars)`);
     });
 
-    res.json({
+    return res.json({
       session,
       messages,
       candidate,
@@ -1633,7 +1643,7 @@ ideationRouter.get('/session/:sessionId', async (req: Request, res: Response) =>
 
   } catch (error) {
     console.error('Error getting session:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1648,20 +1658,20 @@ ideationRouter.post('/session/:sessionId/abandon', async (req: Request, res: Res
 
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     if (session.status !== 'active') {
-      return res.status(400).json({ error: 'Session is not active' });
+     return res.status(400).json({ error: 'Session is not active' });
     }
 
     await sessionManager.abandon(sessionId);
 
-    res.json({ success: true });
+    return res.json({ success: true });
 
   } catch (error) {
     console.error('Error abandoning session:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1682,7 +1692,7 @@ ideationRouter.patch('/session/:sessionId/link-idea', async (req: Request, res: 
     // Validate request body
     const parseResult = LinkIdeaSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -1693,12 +1703,12 @@ ideationRouter.patch('/session/:sessionId/link-idea', async (req: Request, res: 
     // Load session
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Validate that idea folder exists before linking
     if (!ideaFolderExists(userSlug, ideaSlug)) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Idea folder not found',
         message: `No idea folder exists at users/${userSlug}/ideas/${ideaSlug}`,
       });
@@ -1727,7 +1737,7 @@ ideationRouter.patch('/session/:sessionId/link-idea', async (req: Request, res: 
 
   } catch (error) {
     console.error('Error linking idea to session:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+   return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1753,7 +1763,7 @@ ideationRouter.post('/session/:sessionId/name-idea', async (req: Request, res: R
     // Validate request body
     const parseResult = NameIdeaSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -1774,19 +1784,19 @@ ideationRouter.post('/session/:sessionId/name-idea', async (req: Request, res: R
     );
 
     if (!sessionRow) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Verify session is linked to a draft
     if (!sessionRow.idea_slug || !sessionRow.idea_slug.startsWith('draft_')) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Session not linked to draft',
         message: 'This session is not linked to a draft folder. Only sessions with draft folders can be named.',
       });
     }
 
     if (!sessionRow.user_slug) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Session missing user',
         message: 'This session does not have a user_slug set.',
       });
@@ -1802,7 +1812,7 @@ ideationRouter.post('/session/:sessionId/name-idea', async (req: Request, res: R
 
     // Check if target slug already exists
     if (ideaFolderExists(sessionRow.user_slug, ideaSlug)) {
-      return res.status(409).json({
+     return res.status(409).json({
         error: 'Idea slug already exists',
         message: `An idea with slug '${ideaSlug}' already exists for this user.`,
       });
@@ -1849,20 +1859,20 @@ ideationRouter.post('/session/:sessionId/name-idea', async (req: Request, res: R
     // Handle specific errors
     if (error instanceof Error) {
       if (error.message.includes('already exists')) {
-        return res.status(409).json({
+       return res.status(409).json({
           error: 'Idea slug already exists',
           message: error.message,
         });
       }
       if (error.message.includes('does not exist')) {
-        return res.status(400).json({
+       return res.status(400).json({
           error: 'Draft folder not found',
           message: error.message,
         });
       }
     }
 
-    return res.status(500).json({ error: 'Internal server error' });
+   return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1876,7 +1886,7 @@ ideationRouter.get('/sessions', async (req: Request, res: Response) => {
     const { profileId, status, includeAll } = req.query;
 
     if (!profileId) {
-      return res.status(400).json({ error: 'profileId is required' });
+     return res.status(400).json({ error: 'profileId is required' });
     }
 
     // Get all sessions for the profile
@@ -1934,11 +1944,11 @@ ideationRouter.get('/sessions', async (req: Request, res: Response) => {
       filteredSessions = sessionsWithDetails.filter(s => s.status !== 'abandoned');
     }
 
-    res.json({ success: true, data: { sessions: filteredSessions } });
+    return res.json({ success: true, data: { sessions: filteredSessions } });
 
   } catch (error) {
     console.error('Error listing sessions:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
@@ -1954,7 +1964,7 @@ ideationRouter.delete('/session/:sessionId', async (req: Request, res: Response)
     // Check session exists
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Delete in correct order (respecting foreign key constraints)
@@ -1983,11 +1993,11 @@ ideationRouter.delete('/session/:sessionId', async (req: Request, res: Response)
 
     await saveDb();
 
-    res.json({ success: true, message: 'Session deleted' });
+    return res.json({ success: true, message: 'Session deleted' });
 
   } catch (error) {
     console.error('Error deleting session:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2001,7 +2011,7 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
     // Validate request
     const parseResult = SendMessageSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -2012,7 +2022,7 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
     // Load session
     let session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Reactivate abandoned sessions when user sends a streaming message
@@ -2023,7 +2033,7 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
 
     // Check session state
     if (session!.status !== 'active') {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Session is not active',
         status: session!.status,
       });
@@ -2042,6 +2052,7 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
 
     // Get context
     const messages = await messageStore.getBySession(sessionId);
+    if (!session) { return res.status(404).json({ error: "Session not found" }); }
     const profile = await getProfileById(session.profileId);
     const candidate = await candidateManager.getActiveForSession(sessionId);
 
@@ -2108,11 +2119,15 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
       systemPrompt
     );
 
+    // Streaming response sent via SSE
+    return;
+
   } catch (error) {
     console.error('Error in streaming message:', error);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
+    return;
   }
 });
 
@@ -2138,7 +2153,7 @@ ideationRouter.post('/artifact', async (req: Request, res: Response) => {
     const parseResult = SaveArtifactSchema.safeParse(req.body);
     if (!parseResult.success) {
       console.error('[SaveArtifact] Validation error:', parseResult.error.issues);
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -2151,7 +2166,7 @@ ideationRouter.post('/artifact', async (req: Request, res: Response) => {
     const session = await sessionManager.load(sessionId);
     if (!session) {
       console.error(`[SaveArtifact] Session ${sessionId} not found`);
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Save artifact
@@ -2181,10 +2196,10 @@ ideationRouter.post('/artifact', async (req: Request, res: Response) => {
       console.error(`[SaveArtifact] WARNING: Artifact ${artifact.id} not found after save!`);
     }
 
-    res.json({ success: true, artifactId: artifact.id });
+    return res.json({ success: true, artifactId: artifact.id });
   } catch (error) {
     console.error('[SaveArtifact] Error saving artifact:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2199,13 +2214,13 @@ ideationRouter.delete('/artifact/:artifactId', async (req: Request, res: Respons
     const { sessionId } = req.body;
 
     if (!sessionId) {
-      return res.status(400).json({ error: 'sessionId is required' });
+     return res.status(400).json({ error: 'sessionId is required' });
     }
 
     // Verify session exists
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Delete the artifact
@@ -2219,10 +2234,10 @@ ideationRouter.delete('/artifact/:artifactId', async (req: Request, res: Respons
       artifactId,
     });
 
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error) {
     console.error('[DeleteArtifact] Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2242,7 +2257,7 @@ ideationRouter.post('/artifact/edit', async (req: Request, res: Response) => {
   try {
     const parseResult = EditArtifactSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -2254,14 +2269,14 @@ ideationRouter.post('/artifact/edit', async (req: Request, res: Response) => {
     // Verify session exists
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Verify artifact exists
     const artifacts = await artifactStore.getBySession(sessionId);
     const artifact = artifacts.find(a => a.id === artifactId);
     if (!artifact) {
-      return res.status(404).json({ error: 'Artifact not found' });
+     return res.status(404).json({ error: 'Artifact not found' });
     }
 
     // Notify clients that edit is starting
@@ -2271,7 +2286,7 @@ ideationRouter.post('/artifact/edit', async (req: Request, res: Response) => {
     });
 
     // Return immediately - edit happens asynchronously
-    res.json({
+    return res.json({
       success: true,
       status: 'pending',
       message: 'Artifact edit started. You will be notified when complete.',
@@ -2305,7 +2320,7 @@ ideationRouter.post('/artifact/edit', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('[ArtifactEdit] Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2319,7 +2334,7 @@ ideationRouter.post('/search', async (req: Request, res: Response) => {
     // Validate request
     const parseResult = WebSearchSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -2330,7 +2345,7 @@ ideationRouter.post('/search', async (req: Request, res: Response) => {
     // Load session to verify it exists
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+     return res.status(404).json({ error: 'Session not found' });
     }
 
     // Execute searches in parallel
@@ -2393,7 +2408,7 @@ ideationRouter.post('/search', async (req: Request, res: Response) => {
     });
 
     // Return synthesized research artifact
-    res.json({
+    return res.json({
       success: true,
       artifact,
     });
@@ -2401,8 +2416,9 @@ ideationRouter.post('/search', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error executing web search:', error);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Web search failed' });
+      return res.status(500).json({ error: 'Web search failed' });
     }
+    return;
   }
 });
 
@@ -2416,7 +2432,7 @@ ideationRouter.get('/ideas/:userSlug', async (req: Request, res: Response) => {
     const { userSlug } = req.params;
 
     if (!userSlug) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         message: 'userSlug is required',
       });
@@ -2428,7 +2444,7 @@ ideationRouter.get('/ideas/:userSlug', async (req: Request, res: Response) => {
 
     console.log(`[IdeaSelector] Found ${ideas.length} ideas for user ${userSlug}`);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         ideas,
@@ -2438,7 +2454,7 @@ ideationRouter.get('/ideas/:userSlug', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('[IdeaSelector] Error listing ideas:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -2455,7 +2471,7 @@ ideationRouter.get('/ideas/:userSlug/:ideaSlug/artifacts', async (req: Request, 
     const { userSlug, ideaSlug } = req.params;
 
     if (!userSlug || !ideaSlug) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         message: 'userSlug and ideaSlug are required',
       });
@@ -2468,7 +2484,7 @@ ideationRouter.get('/ideas/:userSlug/:ideaSlug/artifacts', async (req: Request, 
 
     console.log(`[IdeaArtifacts] Found ${artifacts.length} artifacts`);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         artifacts,
@@ -2478,7 +2494,7 @@ ideationRouter.get('/ideas/:userSlug/:ideaSlug/artifacts', async (req: Request, 
 
   } catch (error) {
     console.error('[IdeaArtifacts] Error listing artifacts:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -2506,7 +2522,7 @@ ideationRouter.post('/ideas/:userSlug/:ideaSlug/artifacts', async (req: Request,
     const { userSlug, ideaSlug } = req.params;
 
     if (!userSlug || !ideaSlug) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         message: 'userSlug and ideaSlug are required',
       });
@@ -2515,7 +2531,7 @@ ideationRouter.post('/ideas/:userSlug/:ideaSlug/artifacts', async (req: Request,
     // Validate request body
     const parseResult = CreateIdeaArtifactSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -2542,7 +2558,7 @@ ideationRouter.post('/ideas/:userSlug/:ideaSlug/artifacts', async (req: Request,
 
     console.log(`[IdeaArtifacts] Created artifact ${artifact.id} at ${artifact.filePath}`);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: {
         artifact,
@@ -2551,7 +2567,7 @@ ideationRouter.post('/ideas/:userSlug/:ideaSlug/artifacts', async (req: Request,
 
   } catch (error) {
     console.error('[IdeaArtifacts] Error creating artifact:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -2568,7 +2584,7 @@ ideationRouter.get('/ideas/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (r
     const { userSlug, ideaSlug, filePath } = req.params;
 
     if (!userSlug || !ideaSlug || !filePath) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         message: 'userSlug, ideaSlug, and filePath are required',
       });
@@ -2580,7 +2596,7 @@ ideationRouter.get('/ideas/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (r
     const artifact = await loadUnifiedArtifact(userSlug, ideaSlug, filePath);
 
     if (!artifact) {
-      return res.status(404).json({
+     return res.status(404).json({
         error: 'Not found',
         message: `Artifact not found: ${filePath}`,
       });
@@ -2588,7 +2604,7 @@ ideationRouter.get('/ideas/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (r
 
     console.log(`[IdeaArtifacts] Loaded artifact ${artifact.id}`);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         artifact,
@@ -2597,7 +2613,7 @@ ideationRouter.get('/ideas/:userSlug/:ideaSlug/artifacts/:filePath(*)', async (r
 
   } catch (error) {
     console.error('[IdeaArtifacts] Error loading artifact:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -2614,7 +2630,7 @@ ideationRouter.delete('/ideas/:userSlug/:ideaSlug/artifacts/:filePath(*)', async
     const { userSlug, ideaSlug, filePath } = req.params;
 
     if (!userSlug || !ideaSlug || !filePath) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         message: 'userSlug, ideaSlug, and filePath are required',
       });
@@ -2626,7 +2642,7 @@ ideationRouter.delete('/ideas/:userSlug/:ideaSlug/artifacts/:filePath(*)', async
     const deleted = await deleteUnifiedArtifact(userSlug, ideaSlug, filePath);
 
     if (!deleted) {
-      return res.status(404).json({
+     return res.status(404).json({
         error: 'Not found',
         message: `Artifact not found: ${filePath}`,
       });
@@ -2634,14 +2650,14 @@ ideationRouter.delete('/ideas/:userSlug/:ideaSlug/artifacts/:filePath(*)', async
 
     console.log(`[IdeaArtifacts] Deleted artifact ${filePath}`);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Artifact deleted',
     });
 
   } catch (error) {
     console.error('[IdeaArtifacts] Error deleting artifact:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -2665,7 +2681,7 @@ ideationRouter.post('/session', async (req: Request, res: Response) => {
     // Validate request body
     const parseResult = CreateSessionWithUserSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
+     return res.status(400).json({
         error: 'Validation error',
         details: parseResult.error.issues,
       });
@@ -2684,7 +2700,7 @@ ideationRouter.post('/session', async (req: Request, res: Response) => {
     } else {
       // Validate that idea folder exists if ideaSlug is provided
       if (!ideaFolderExists(userSlug, ideaSlug)) {
-        return res.status(400).json({
+       return res.status(400).json({
           error: 'Idea folder not found',
           message: `No idea folder exists at users/${userSlug}/ideas/${ideaSlug}`,
         });
@@ -2703,12 +2719,12 @@ ideationRouter.post('/session', async (req: Request, res: Response) => {
         handoff_count, token_count, message_count
       )
       VALUES (?, ?, ?, ?, 'active', 'exploring', 'discover', ?, ?, 0, 0, 0)
-    `, [sessionId, profileId || null, userSlug, finalIdeaSlug, now, now]);
+    `, [sessionId, (profileId ?? null), userSlug, finalIdeaSlug, now, now] as (string | number | boolean | null)[]);
 
     await db.saveDb();
 
     // Return session details
-    return res.status(201).json({
+   return res.status(201).json({
       success: true,
       id: sessionId,
       userSlug,
@@ -2722,7 +2738,7 @@ ideationRouter.post('/session', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('[Session] Error creating session:', error);
-    return res.status(500).json({
+   return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     });

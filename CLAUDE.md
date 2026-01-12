@@ -306,3 +306,116 @@ python3 coding-loops/loop-1-critical-path/run_loop.py
 python3 coding-loops/loop-2-infrastructure/run_loop.py
 python3 coding-loops/loop-3-polish/run_loop.py
 ```
+
+---
+
+## Agent Monitoring Dashboard
+
+The Agent Dashboard at `/agents` provides real-time monitoring:
+
+| Feature | Description |
+|---------|-------------|
+| Agent Status Cards | Shows all 6 agents with status, metrics, current task |
+| Question Queue | Priority-sorted blocking questions requiring answers |
+| Activity Timeline | Recent agent activities (tasks, questions) |
+| Task Executor Controls | Start/stop/pause task execution |
+
+### Agent Types in Dashboard
+- `spec-agent` - Specification generation
+- `build-agent` - Task execution
+- `validation-agent` - Quality validation
+- `sia` - Self-Improvement Agent
+- `ux-agent` - UX optimization
+- `monitoring-agent` - System health
+
+---
+
+## Task Execution System
+
+### Task Lists
+Task lists are markdown files with YAML frontmatter containing executable tasks.
+
+```bash
+# Browse available task lists
+# Frontend: /task-lists
+
+# Execute tasks via API
+POST /api/executor/start { taskListPath: "path/to/tasks.md" }
+POST /api/executor/pause
+POST /api/executor/resume
+POST /api/executor/stop
+```
+
+### Kanban Board
+Available at `/kanban` - shows tasks by status (pending, in_progress, complete, failed, blocked).
+
+---
+
+## WebSocket Connections
+
+All WebSocket connections use automatic reconnection with exponential backoff.
+
+```typescript
+// Connection URL patterns
+ws://localhost:3001/ws?executor=tasks  // Task executor events
+ws://localhost:3001/ws?session={id}    // Ideation session
+ws://localhost:3001/ws?idea={slug}     // Debate stream
+ws://localhost:3001/ws?monitor=agents  // Agent monitoring
+```
+
+### Event Types
+- `task:started`, `task:completed`, `task:failed`, `task:skipped`
+- `executor:started`, `executor:paused`, `executor:resumed`, `executor:stopped`
+- `question:new`, `question:answered`, `question:expired`
+- `agent:registered`, `agent:blocked`, `agent:unblocked`, `agent:error`
+
+---
+
+## Question Queue System
+
+Blocking questions halt agent execution until answered.
+
+| Priority | Type | Description |
+|----------|------|-------------|
+| 100 | BLOCKING | Must answer to continue |
+| 80 | APPROVAL | Needs user sign-off |
+| 60 | ESCALATION | Agent needs human help |
+| 40 | DECISION | Multiple valid choices |
+
+### API Endpoints
+```bash
+GET  /api/questions/pending          # Get pending questions
+POST /api/questions/:id/answer       # Submit answer
+POST /api/questions/:id/skip         # Skip with reason
+```
+
+---
+
+## Monitoring Agent (System Soul)
+
+The Monitoring Agent tracks system health with configurable thresholds:
+
+```typescript
+alertThresholds: {
+  pendingQuestions: 10,    // Alert if > 10 pending
+  blockedAgents: 3,        // Alert if > 3 blocked
+  errorRate: 10,           // Alert if > 10% errors
+  responseTimeMs: 60000,   // Alert if avg > 1 min
+}
+```
+
+Issues detected: `timeout`, `error`, `drift`, `anomaly`, `threshold`
+
+---
+
+## New API Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/api/agents` | Agent status and metrics |
+| `/api/agents/:id/heartbeat` | Record agent heartbeat |
+| `/api/executor/*` | Task execution control |
+| `/api/task-lists` | Browse/manage task lists |
+| `/api/questions/*` | Question queue management |
+| `/api/notifications/*` | Notification system |
+| `/api/knowledge/*` | Knowledge base queries |

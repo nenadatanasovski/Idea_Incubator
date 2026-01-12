@@ -255,7 +255,7 @@ describe('Database Schema', () => {
     });
   });
 
-  describe('ideation_memory table', () => {
+  describe('ideation_memory_files table', () => {
     test('PASS: Unique constraint on session_id + file_type', async () => {
       const sessionId = `test_session_mem_${Date.now()}`;
       const memoryId1 = `memory_1_${Date.now()}`;
@@ -267,14 +267,14 @@ describe('Database Schema', () => {
       `, [sessionId]);
 
       db.run(`
-        INSERT INTO ideation_memory (id, session_id, file_type, content)
+        INSERT INTO ideation_memory_files (id, session_id, file_type, content)
         VALUES (?, ?, 'self_discovery', '# Self Discovery')
       `, [memoryId1, sessionId]);
 
       // Second insert with same file_type should fail
       expect(() => {
         db.run(`
-          INSERT INTO ideation_memory (id, session_id, file_type, content)
+          INSERT INTO ideation_memory_files (id, session_id, file_type, content)
           VALUES (?, ?, 'self_discovery', '# Updated')
         `, [memoryId2, sessionId]);
       }).toThrow();

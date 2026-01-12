@@ -49,7 +49,7 @@ async function runTests(): Promise<void> {
 
   // Test 2: Creates file at correct path
   try {
-    const artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
+    const _artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
       type: 'markdown',
       title: 'Test Doc',
       content: '# Test\nContent here',
@@ -118,7 +118,7 @@ async function runTests(): Promise<void> {
 
     if (fs.existsSync(indexPath)) {
       const cache = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
-      const artifactCount = Object.keys(cache.artifacts || {}).length;
+      const _artifactCount = Object.keys(cache.artifacts || {}).length;
 
       if (artifactCount > 0) {
         console.log('✓ PASS: .metadata/index.json updated with new artifact entry');
@@ -137,7 +137,7 @@ async function runTests(): Promise<void> {
   // Test 6: Returns UnifiedArtifact with all fields populated
   try {
     cleanupTestDir();
-    const artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
+    const _artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
       type: 'research',
       title: 'Market Analysis',
       content: '## Market Research',
@@ -164,7 +164,7 @@ async function runTests(): Promise<void> {
 
   // Test 7: Handles nested paths (e.g., research/market.md)
   try {
-    const artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
+    const _artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
       type: 'research',
       title: 'Nested Test',
       content: '# Nested Content',
@@ -187,7 +187,7 @@ async function runTests(): Promise<void> {
 
   // Test 8: Creates parent directories if needed
   try {
-    const artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
+    const _artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
       type: 'markdown',
       title: 'Deep Nested',
       content: '# Deep Content',
@@ -213,7 +213,7 @@ async function runTests(): Promise<void> {
     const filePath = 'idempotent-test.md';
 
     // First call
-    const artifact1 = await saveArtifact(TEST_USER, TEST_IDEA, {
+    const _artifact1 = await saveArtifact(TEST_USER, TEST_IDEA, {
       type: 'markdown',
       title: 'Idempotent Test',
       content: '# Original Content',
@@ -221,7 +221,7 @@ async function runTests(): Promise<void> {
     });
 
     // Second call with same file path
-    const artifact2 = await saveArtifact(TEST_USER, TEST_IDEA, {
+    const _artifact2 = await saveArtifact(TEST_USER, TEST_IDEA, {
       type: 'markdown',
       title: 'Idempotent Test Updated',
       content: '# Updated Content',

@@ -12,7 +12,12 @@ import DebateSession from './pages/DebateSession'
 import DebateViewer from './pages/DebateViewer'
 import EventLog from './pages/EventLog'
 import Profile from './pages/Profile'
+import AgentDashboard from './pages/AgentDashboard'
+import AgentDetailPage from './pages/AgentDetailPage'
+import KanbanBoard from './pages/KanbanBoard'
+import TaskListBrowser from './pages/TaskListBrowser'
 import IdeationPageWrapper from './pages/IdeationPageWrapper'
+import NotificationPreferences from './pages/NotificationPreferences'
 import NotFound from './pages/NotFound'
 
 // Feature flag: Set to true to use the new phase-based UI
@@ -37,6 +42,11 @@ function App() {
         <Route path="/debate/session/:runId" element={<DebateSession />} />
         <Route path="/events" element={<EventLog />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/settings/notifications" element={<NotificationPreferences />} />
+        <Route path="/agents" element={<AgentDashboard />} />
+        <Route path="/agents/:agentId" element={<AgentDetailPage />} />
+        <Route path="/tasks" element={<TaskListBrowser />} />
+        <Route path="/tasks/kanban" element={<KanbanBoard />} />
         <Route path="/ideate" element={<IdeationPageWrapper />} />
         <Route path="/ideate/:sessionId" element={<IdeationPageWrapper />} />
         <Route path="*" element={<NotFound />} />

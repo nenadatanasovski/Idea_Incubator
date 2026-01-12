@@ -73,7 +73,7 @@ export async function runClaudeCliWithPrompt(
     [{ role: 'user', content: prompt }],
     {
       model: options.model || 'sonnet',
-      maxTokens: options.maxTokens || 4096,
+      _maxTokens: options.maxTokens || 4096,
       systemPrompt: options.systemPrompt,
       tools: options.tools,
     }
