@@ -102,7 +102,7 @@ export async function reloadDb(): Promise<void> {
 /**
  * Execute SQL and return results
  */
-export async function query<T extends Record<string, unknown>>(
+export async function query<T>(
   sql: string,
   params: (string | number | null | boolean)[] = []
 ): Promise<T[]> {
@@ -154,7 +154,7 @@ export async function exec(sql: string): Promise<void> {
 /**
  * Get single row
  */
-export async function getOne<T extends Record<string, unknown>>(
+export async function getOne<T>(
   sql: string,
   params: (string | number | null | boolean)[] = []
 ): Promise<T | null> {

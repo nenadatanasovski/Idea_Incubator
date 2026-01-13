@@ -28,6 +28,10 @@ docs/specs/
 │   ├── ENGAGEMENT-AND-ORCHESTRATION-UI.md  # UI/UX specifications
 │   └── SELF-BUILDING-BOOTSTRAP.md          # Bootstrap process
 │
+├── Parallel Execution/                      # NEW (2026-01-13)
+│   ├── PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md  # 117 tasks, 10 phases
+│   └── task-example-reference.md            # Canonical task format
+│
 └── Task Agent Design/
     ├── ../bootstrap/tasks/
     │   └── TAK-TASK-AGENT.md        # Implementation tasks (53 tasks, YAML specs)
@@ -65,8 +69,12 @@ docs/specs/
 | Add agent questions | INFRASTRUCTURE.md §6 (Proactive Questioning) |
 | Query the Knowledge Base | INFRASTRUCTURE.md §5 |
 | Handle stuck/failing tasks | E2E-SCENARIOS-CORE.md §3, INFRASTRUCTURE.md §2-3 |
-| Implement parallel execution | E2E-SCENARIOS-ADVANCED.md §4 |
+| Implement parallel execution | PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md |
 | Decommission a feature | E2E-SCENARIOS-ADVANCED.md §5 |
+| Create listless tasks | PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md Phase 3 |
+| Understand task format | task-example-reference.md |
+| Add file impact analysis | PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md Phase 4 |
+| Configure auto-grouping | PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md Phase 7 |
 
 ---
 
@@ -155,6 +163,43 @@ docs/specs/
 
 ---
 
+### PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md (NEW)
+**When:** Implementing parallel execution, listless tasks, auto-grouping
+**Contains:**
+- 10 implementation phases (117 tasks total)
+- Database migrations (070-073)
+- Evaluation Queue system
+- File impact analysis
+- Parallelism engine with SQL queries
+- Build Agent orchestration (1:1 agent:task model)
+- Auto-grouping with configurable weights
+- Circular dependency prevention
+- UI components (Quick Add, Kanban, Parallelism View)
+- Telegram commands (/newtask, natural language)
+- E2E scenarios
+
+**Key Concepts:**
+- **Listless Tasks:** Tasks can exist without a task list (Evaluation Queue)
+- **Flat Task IDs:** UUID + display_id (no hierarchical limits)
+- **1:1 Agent:Task:** Each Build Agent handles exactly one task
+- **Unlimited Parallelism:** Spawn as many Build Agents as file conflicts allow
+- **Proactive Grouping:** Task Agent suggests task list groupings automatically
+
+---
+
+### task-example-reference.md (NEW)
+**When:** Creating or validating task format
+**Contains:**
+- Complete task format with all fields
+- Category reference (16 categories)
+- Status reference (8 statuses)
+- Relationship type reference (11 types)
+- File operation reference (4 operations)
+- Minimal task format for quick creation
+- Full example task
+
+---
+
 ## Key Data Models
 
 ### Tables (New Schema)
@@ -163,6 +208,17 @@ task_lists          # Grouped collections of tasks
 ├── tasks           # Individual atomic work units
 ├── task_list_items # Links tasks to lists (with position)
 └── task_relationships # Dependencies between tasks
+```
+
+### Tables (Parallel Execution - Migration 070-073)
+```
+task_file_impacts       # Which files each task affects (CREATE/UPDATE/DELETE/READ)
+parallelism_analysis    # Can task A run parallel with task B?
+parallel_execution_waves # Groups of tasks that execute together
+wave_tasks              # Links tasks to waves
+build_agent_instances   # Active Build Agent workers (1:1 with tasks)
+grouping_suggestions    # Auto-generated task list suggestions
+grouping_criteria_weights # User-configurable grouping weights per project
 ```
 
 ### Tables (Legacy - being migrated)
@@ -182,13 +238,45 @@ Task Agent Phase 1 (spec generation)
 tasklist.generated ─────► User reviews in UI
     │
     ▼
-tasklist.ready ─────────► Build Agent starts
+tasklist.ready ─────────► Task Agent spawns Build Agents
     │
+    ├─────────────────────────────────────────────────────┐
+    │                                                      │
+    ▼                                                      ▼
+task.ready ────────────► Build Agent #1           task.ready ────────────► Build Agent #2
+    │                          │                          │
+    ▼                          ▼                          ▼
+task.started              task.started               task.started
+    │                          │                          │
+    ▼                          ▼                          ▼
+task.completed            task.completed             task.failed
+    │                          │                          │
+    │                          └──────────────────────────┘
     ▼
-task.started / task.completed / task.failed
+Next wave spawns (unblocked tasks)
     │
     ▼
 build.completed ────────► SIA reviews
+```
+
+### Listless Task Flow (NEW)
+```
+task.created (no task_list_id)
+    │
+    ▼
+Evaluation Queue (queue='evaluation')
+    │
+    ▼
+Task Agent analyzes (file impacts, relationships, duplicates)
+    │
+    ▼
+grouping.suggested ─────► User reviews suggestion
+    │
+    ▼
+grouping.accepted ──────► Tasks moved to new task list
+    │
+    ▼
+(Standard task list flow continues)
 ```
 
 ---
@@ -239,6 +327,13 @@ build.completed ────────► SIA reviews
 | **Gotcha** | Known mistake to avoid (from Knowledge Base) | INFRASTRUCTURE.md §5 |
 | **Pattern** | Reusable approach (from Knowledge Base) | INFRASTRUCTURE.md §5 |
 | **PIV Loop** | Prime → Iterate → Validate (Build Agent workflow) | PIPELINE.md §5 |
+| **Listless Task** | Task without a task_list_id, stored in Evaluation Queue | PARALLEL-PLAN Phase 3 |
+| **Evaluation Queue** | Staging area for ungrouped tasks | PARALLEL-PLAN Phase 3 |
+| **Display ID** | Human-readable task ID (e.g., TU-PROJ-FEA-042) | task-example-reference.md |
+| **File Impact** | Estimated file changes (CREATE/UPDATE/DELETE/READ) | PARALLEL-PLAN Phase 4 |
+| **Execution Wave** | Group of tasks that can run in parallel | PARALLEL-PLAN Phase 5 |
+| **Build Agent Instance** | Single agent handling exactly one task | PARALLEL-PLAN Phase 6 |
+| **Auto-Grouping** | Task Agent suggests task list groupings | PARALLEL-PLAN Phase 7 |
 
 ---
 
@@ -266,6 +361,23 @@ build.completed ────────► SIA reviews
 3. Note the DATABASE WRITES and EVENTS
 4. Cross-reference with agent specs for implementation details
 
+### "How do I create a task without a task list?"
+
+1. UI: Click "Quick Add" button, or add from Evaluation Queue lane
+2. Telegram: Use `/newtask <description>` or natural language
+3. API: POST /api/tasks (without task_list_id)
+4. Task appears in Evaluation Queue with status='evaluating'
+5. Task Agent analyzes and suggests groupings
+6. Read: PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md Phase 3
+
+### "How do I configure parallel execution?"
+
+1. Check file impacts: `task_file_impacts` table
+2. View parallelism analysis: `parallelism_analysis` table
+3. Configure grouping weights: `grouping_criteria_weights` table
+4. Monitor Build Agents: `build_agent_instances` table
+5. Read: PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md Phases 4-6
+
 ---
 
 ## Version History
@@ -276,6 +388,9 @@ build.completed ────────► SIA reviews
 | 2026-01-12 | Added Task Agent Phase 1/Phase 2 clarification |
 | 2026-01-12 | Standardized table names (tasks, not atomic_tasks) |
 | 2026-01-12 | Renamed spec.generated → tasklist.generated |
+| 2026-01-13 | Added Parallel Execution section with implementation plan |
+| 2026-01-13 | Added task-example-reference.md (canonical task format) |
+| 2026-01-13 | Added PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md (117 tasks) |
 
 ---
 

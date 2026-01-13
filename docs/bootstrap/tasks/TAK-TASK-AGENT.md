@@ -474,25 +474,27 @@ depends_on: ["TAK-001", "TAK-006a"]
 id: TAK-006c
 phase: database
 action: CREATE
-file: "database/migrations/058_questions.sql"
+file: "database/migrations/058_task_questions.sql"
 status: pending
 priority: P1
 category: infrastructure
 
 requirements:
-  - "Create questions table for Task Agent to ask user"
+  - "Create task_questions table for Task Agent to ask user"
   - "Support question types: approval, clarification, decision"
   - "Track answer and resolution"
   - "Link to task or task list"
+  - "NOTE: Named task_questions to avoid conflict with existing questions table (migration 030)"
 
 validation:
-  command: "sqlite3 :memory: < database/migrations/058_questions.sql && echo 'OK'"
+  command: "sqlite3 :memory: < database/migrations/058_task_questions.sql && echo 'OK'"
   expected: "exit code 0"
 
 code_template: |
-  -- Migration 058: Questions (Task Agent → User)
+  -- Migration 058: Task Questions (Task Agent → User)
+  -- NOTE: Named task_questions to avoid conflict with questions table (migration 030)
 
-  CREATE TABLE IF NOT EXISTS questions (
+  CREATE TABLE IF NOT EXISTS task_questions (
     id TEXT PRIMARY KEY,
     task_id TEXT,
     task_list_id TEXT,
@@ -515,9 +517,9 @@ code_template: |
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
-  CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status);
-  CREATE INDEX IF NOT EXISTS idx_questions_task ON questions(task_id);
-  CREATE INDEX IF NOT EXISTS idx_questions_list ON questions(task_list_id);
+  CREATE INDEX IF NOT EXISTS idx_task_questions_status ON task_questions(status);
+  CREATE INDEX IF NOT EXISTS idx_task_questions_task ON task_questions(task_id);
+  CREATE INDEX IF NOT EXISTS idx_task_questions_list ON task_questions(task_list_id);
 
 depends_on: []
 ```
@@ -2039,6 +2041,147 @@ requirements:
 
 depends_on: ["TAK-011"]
 ```
+
+---
+
+## Quick Reference
+
+**Location:** `server/services/task-agent/`
+
+**Events (Subscribes):**
+- `ideation.completed` - Trigger spec generation
+- `task.completed` - Auto-unblock dependents
+- `task.failed` - Handle failure flows
+- `build.completed` - Update task status
+
+**Events (Publishes):**
+- `tasklist.generated` - New task list created
+- `tasklist.ready` - Approved for execution
+- `task.started` - Task execution began
+- `task:created`, `task:updated`, `task:deleted`
+- `task:status_changed`, `task:blocked`, `task:unblocked`
+- `task:validation_passed`, `task:validation_failed`
+- `task:test_started`, `task:test_passed`, `task:test_failed`
+- `task:duplicate_detected`, `task:completion_detected`
+
+**APIs:**
+- `POST /api/task-agent/tasks` - Create task
+- `GET /api/task-agent/tasks` - List tasks
+- `GET /api/task-agent/tasks/:id` - Get task details
+- `PUT /api/task-agent/tasks/:id` - Update task
+- `DELETE /api/task-agent/tasks/:id` - Delete task
+- `POST /api/task-agent/tasks/:id/validate` - Validate task
+- `POST /api/task-agent/tasks/:id/execute-tests` - Run tests
+- `POST /api/task-agent/task-lists` - Create task list
+- `GET /api/task-agent/task-lists` - List task lists
+- `POST /api/task-agent/task-lists/:id/approve` - Approve for execution
+
+**Telegram Commands:**
+```
+/start      - Link chat to task list
+/status     - Show current execution status
+/lists      - Show active task lists
+/suggest    - Get next suggested action
+/execute    - Start execution of suggested list
+/pause      - Pause current execution
+/resume     - Resume paused execution
+/questions  - Show pending questions
+/help       - Show available commands
+```
+
+---
+
+## Dependency Graph
+
+```
+Phase 1 (Database) ─────────────────────────────────────────────────┐
+    │                                                                │
+    ▼                                                                │
+Phase 2 (Types) ───────────────────────────────────────────────────┤
+    │                                                                │
+    ▼                                                                │
+Phase 3 (Core Services) ◄──────────────────────────────────────────┤
+    │                                                                │
+    ├───► Validation Gate (TAK-008)                                 │
+    ├───► Deduplication Engine (TAK-009)                            │
+    ├───► Classification Engine (TAK-010)                           │
+    ├───► Test Generator (TAK-011)                                  │
+    ├───► Lifecycle Manager (TAK-012)                               │
+    ├───► Dependency Manager (TAK-013)                              │
+    ├───► Completion Detector (TAK-014)                             │
+    ├───► Test Executor (TAK-015)                                   │
+    ├───► Priority Calculator (TAK-015a)                            │
+    ├───► Suggestion Engine (TAK-015b)                              │
+    ├───► Task List Manager (TAK-015c)                              │
+    └───► Task Agent Main (TAK-016) ◄── All services                │
+                │                                                    │
+                ▼                                                    │
+Phase 4 (API Routes) ◄─────────────────────────────────────────────┤
+    │                                                                │
+    ▼                                                                │
+Phase 5 (Telegram Integration) ◄───────────────────────────────────┤
+    │                                                                │
+    ▼                                                                │
+Phase 6 (WebSocket Events) ◄───────────────────────────────────────┤
+    │                                                                │
+    ▼                                                                │
+Phase 7 (Frontend Components) ◄────────────────────────────────────┤
+    │                                                                │
+    ▼                                                                │
+Phase 8-11 (Tests: Unit → API → UI → E2E) ◄────────────────────────┤
+    │                                                                │
+    ▼                                                                │
+Phase 12 (Documentation) ◄─────────────────────────────────────────┘
+```
+
+---
+
+## Exit Criteria by Phase
+
+### Phase 1: Database
+- [ ] All 9 tables created in SQLite (migrations 050-058)
+- [ ] Foreign key relationships work correctly
+- [ ] Indexes created for performance
+
+### Phase 2: Types
+- [ ] TypeScript types compile without errors
+- [ ] All interfaces match database schema
+- [ ] Types exported for use by other modules
+
+### Phase 3: Core Services
+- [ ] ValidationGate blocks tasks without required fields/tests
+- [ ] DeduplicationEngine finds similar tasks (>0.8 threshold)
+- [ ] DependencyManager prevents circular dependencies
+- [ ] CompletionDetector identifies task completion signals
+- [ ] PriorityCalculator implements formula correctly
+- [ ] SuggestionEngine returns prioritized next actions
+- [ ] TaskAgent starts and registers with CommunicationHub
+
+### Phase 4: API Routes
+- [ ] All CRUD operations work
+- [ ] Validation endpoint returns blocking/non-blocking issues
+- [ ] Test execution endpoint runs tests correctly
+
+### Phase 5: Telegram
+- [ ] All commands documented work
+- [ ] Proactive notifications sent (5 min minimum interval)
+- [ ] Questions block execution until answered
+- [ ] Inline buttons work (Execute Now / Later / Details)
+
+### Phase 6: WebSocket
+- [ ] All task:* events broadcast to subscribers
+- [ ] Real-time updates work in dashboard
+
+### Phase 7: Frontend
+- [ ] Dashboard shows task stats
+- [ ] Task creation form validates input
+- [ ] Dependency graph renders correctly
+
+### Phase 8-11: Tests
+- [ ] Unit tests pass for all core services
+- [ ] API tests cover all endpoints
+- [ ] UI tests pass for dashboard and forms
+- [ ] E2E tests validate complete workflows
 
 ---
 

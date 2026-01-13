@@ -446,7 +446,7 @@ https://vibe.local/settings            # Notification preferences
 │          │ fails                                                             │
 │          ▼                                                                   │
 │   ┌─────────────┐   success   ┌─────────────────────────────────────┐       │
-│   │   EMAIL     │────────────▶│ Delivered to ned.python@gmail.com   │       │
+│   │   EMAIL     │────────────▶│ Delivered to configured PRIMARY_EMAIL│       │
 │   │  (fallback) │             │ Reply with number or text.          │       │
 │   └──────┬──────┘             └─────────────────────────────────────┘       │
 │          │ fails                                                             │

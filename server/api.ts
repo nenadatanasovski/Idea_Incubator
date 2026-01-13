@@ -88,6 +88,7 @@ import taskListsRouter from './routes/task-lists.js';
 import executorRouter from './routes/executor.js';
 import taskAssignmentRouter from './routes/task-assignment.js';
 import questionsRouter, { startExpiryChecker } from './routes/questions.js';
+import taskAgentRouter from './routes/task-agent.js';
 import { initNotificationSystem } from './notifications/index.js';
 
 const app = express();
@@ -163,6 +164,9 @@ app.use('/api/task-assignment', taskAssignmentRouter);
 
 // Mount questions (blocking questions, answers) routes
 app.use('/api/questions', questionsRouter);
+
+// Mount task agent (parallel execution, evaluation queue) routes
+app.use('/api/task-agent', taskAgentRouter);
 
 // Initialize notification system
 initNotificationSystem();

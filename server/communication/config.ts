@@ -71,7 +71,7 @@ export interface CommunicationConfig {
 export function loadConfig(): CommunicationConfig {
   return {
     primaryUserId: process.env.PRIMARY_USER_ID || 'default-user',
-    primaryEmail: process.env.PRIMARY_EMAIL || 'ned.python@gmail.com',
+    primaryEmail: process.env.PRIMARY_EMAIL || '',
     smtpEmail: process.env.SMTP_EMAIL || '',
     smtpPassword: process.env.SMTP_PASSWORD || '',
     healthCheckIntervalMs: parseInt(process.env.HEALTH_CHECK_INTERVAL_MS || '300000', 10), // 5 min

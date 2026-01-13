@@ -28,7 +28,7 @@ Each agent type has its own Telegram bot for clear communication:
 ### Fallback Chain
 
 ```
-Telegram → Email (ned.python@gmail.com) → Halt Behavior
+Telegram → Email (your-email@example.com) → Halt Behavior
 ```
 
 | ID | Task | Pri | Status |

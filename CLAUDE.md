@@ -419,3 +419,114 @@ Issues detected: `timeout`, `error`, `drift`, `anomaly`, `threshold`
 | `/api/questions/*` | Question queue management |
 | `/api/notifications/*` | Notification system |
 | `/api/knowledge/*` | Knowledge base queries |
+| `/api/task-agent/*` | Task Agent (parallel execution) routes |
+
+---
+
+## Parallel Task Execution System
+
+The Task Agent manages parallel task execution with these key features:
+
+### Core Concepts
+
+| Concept | Description |
+|---------|-------------|
+| **Evaluation Queue** | Staging area for listless tasks awaiting analysis and grouping |
+| **Display ID** | Human-readable task ID format: `TU-PROJ-CAT-###` (e.g., `TU-IDEA-FEA-042`) |
+| **Execution Waves** | Groups of tasks that can run in parallel without conflicts |
+| **Build Agent** | 1 agent = 1 task, spawned dynamically based on parallelism |
+
+### Task Lifecycle
+
+```
+Task Creation → Evaluation Queue → Analysis → Auto-Grouping → Task List → Parallel Execution
+```
+
+### Task ID Format
+
+```
+TU-{PROJECT_CODE}-{CATEGORY_CODE}-{SEQUENCE}
+Examples:
+  TU-IDEA-FEA-042  - Feature task for IDEA project
+  TU-INCU-BUG-007  - Bug fix for INCU project
+  TU-TASK-REF-003  - Refactor task
+```
+
+### Category Codes
+
+| Code | Category |
+|------|----------|
+| FEA | Feature |
+| BUG | Bug Fix |
+| ENH | Enhancement |
+| REF | Refactor |
+| DOC | Documentation |
+| TST | Test |
+| INF | Infrastructure |
+| RES | Research |
+| SEC | Security |
+| PRF | Performance |
+
+### Task Agent API Routes
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/task-agent/tasks` | POST | Create task (listless or in list) |
+| `/api/task-agent/evaluation-queue` | GET | Get tasks in Evaluation Queue |
+| `/api/task-agent/evaluation-queue/stats` | GET | Get queue statistics |
+| `/api/task-agent/tasks/:id/move` | POST | Move task to task list |
+| `/api/task-agent/grouping-suggestions` | GET | Get auto-grouping suggestions |
+| `/api/task-agent/grouping-suggestions/:id/accept` | POST | Accept suggestion |
+| `/api/task-agent/grouping-suggestions/:id/reject` | POST | Reject suggestion |
+| `/api/task-agent/task-lists/:id/parallelism` | GET | Get parallelism analysis |
+| `/api/task-agent/task-lists/:id/execute` | POST | Start parallel execution |
+| `/api/task-agent/agents` | GET | Get active Build Agents |
+| `/api/task-agent/dependencies/check-cycle` | POST | Check for circular dependencies |
+
+### File Conflict Matrix
+
+Tasks cannot run in parallel if they have conflicting file operations:
+
+| Task A | Task B | Conflict? | Reason |
+|--------|--------|-----------|--------|
+| CREATE | CREATE | YES | Same file cannot be created twice |
+| UPDATE | UPDATE | YES | Concurrent modification |
+| UPDATE | DELETE | YES | File may not exist |
+| DELETE | DELETE | YES | Double delete |
+| DELETE | READ | YES | File may not exist |
+| READ | READ | NO | Safe |
+
+### Telegram Commands
+
+| Command | Description |
+|---------|-------------|
+| `/newtask <desc>` | Create task in Evaluation Queue |
+| `/queue` | Show Evaluation Queue status |
+| `/suggest` | Get grouping suggestions |
+| `/parallel [id]` | Show parallelism status |
+| `/agents` | Show active Build Agents |
+
+### Service Locations
+
+| Service | Path |
+|---------|------|
+| Evaluation Queue Manager | `server/services/task-agent/evaluation-queue-manager.ts` |
+| Task Creation Service | `server/services/task-agent/task-creation-service.ts` |
+| File Impact Analyzer | `server/services/task-agent/file-impact-analyzer.ts` |
+| Parallelism Calculator | `server/services/task-agent/parallelism-calculator.ts` |
+| Build Agent Orchestrator | `server/services/task-agent/build-agent-orchestrator.ts` |
+| Auto-Grouping Engine | `server/services/task-agent/auto-grouping-engine.ts` |
+| Circular Dep Prevention | `server/services/task-agent/circular-dependency-prevention.ts` |
+
+### Database Tables
+
+| Table | Purpose |
+|-------|---------|
+| `tasks` | Task records with display_id and queue |
+| `task_lists_v2` | Task list containers |
+| `task_relationships` | Dependencies between tasks |
+| `task_file_impacts` | Predicted file operations |
+| `parallelism_analysis` | Task pair analysis cache |
+| `parallel_execution_waves` | Execution wave tracking |
+| `build_agent_instances` | Active Build Agents |
+| `grouping_suggestions` | Auto-grouping suggestions |
