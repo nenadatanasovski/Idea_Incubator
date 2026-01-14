@@ -18,6 +18,7 @@ import { HaltController, HaltReason, HaltEvent } from './halt-controller';
 import { AgentHandshake, AgentRegistration, HandshakeSession } from './agent-handshake';
 import { MessageTemplates } from './message-templates';
 import { loadConfig, CommunicationConfig } from './config';
+import TaskAgentTelegramHandler from './task-agent-telegram-handler';
 
 interface Database {
   run(sql: string, params?: unknown[]): Promise<{ lastID: number; changes: number }>;
@@ -73,6 +74,7 @@ export class CommunicationHub extends EventEmitter {
   private haltController: HaltController;
   private agentHandshake: AgentHandshake;
   private messageTemplates: MessageTemplates;
+  private taskAgentHandler: TaskAgentTelegramHandler;
 
   // Optional email components
   private emailSender: EmailSender | null = null;
@@ -86,9 +88,11 @@ export class CommunicationHub extends EventEmitter {
     emailTransport?: EmailTransport
   ) {
     super();
+    console.log('[CommunicationHub] Constructor starting...');
     this.db = db;
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.commConfig = loadConfig();
+    console.log('[CommunicationHub] Config loaded');
 
     // Initialize components (bot registry initialization is deferred to start())
     this.botRegistry = getBotRegistry();
@@ -102,6 +106,11 @@ export class CommunicationHub extends EventEmitter {
     this.questionDelivery = new QuestionDelivery(this.telegramSender);
     this.answerProcessor = new AnswerProcessor(db);
     this.messageTemplates = new MessageTemplates();
+    this.taskAgentHandler = new TaskAgentTelegramHandler(
+      this.botRegistry,
+      this.chatLinker,
+      this.config.primaryUserId
+    );
 
     // Initialize email if transport provided
     if (emailTransport && this.config.enableEmail) {
@@ -133,7 +142,9 @@ export class CommunicationHub extends EventEmitter {
     this.agentHandshake = new AgentHandshake(db);
 
     // Wire up event handlers
+    console.log('[CommunicationHub] Setting up event handlers...');
     this.setupEventHandlers();
+    console.log('[CommunicationHub] Constructor complete');
   }
 
   /**
@@ -561,27 +572,167 @@ export class CommunicationHub extends EventEmitter {
     });
 
     this.telegramReceiver.on('command:status', async (msg: ReceivedMessage) => {
-      const status = this.getStatus();
-      const text = this.messageTemplates.renderTelegram('status.agent_started', {
-        agentType: msg.botType,
-        sessionId: 'current',
-        ideaName: 'Active Ideas',
-      }) || `Status: ${status.readyAgents} agents ready, ${status.pendingQuestions} pending questions`;
+      console.log('[CommunicationHub] Handling /status command for chatId:', msg.chatId);
+      try {
+        const status = this.getStatus();
+        const text = `📊 *System Status*
 
-      await this.telegramSender.sendMessage({
-        agentType: msg.botType,
-        text,
-        parseMode: 'Markdown',
-      });
+🤖 *Bots:* ${status.healthyBots}/${status.botCount} healthy
+👥 *Agents:* ${status.readyAgents} ready, ${status.blockedAgents} blocked, ${status.haltedAgents} halted
+❓ *Pending Questions:* ${status.pendingQuestions}
+🔄 *Running:* ${status.running ? 'Yes' : 'No'}
+
+Use \`/help\` for available commands.`;
+
+        const result = await this.telegramSender.sendToChatId(msg.botType, msg.chatId, text);
+        console.log('[CommunicationHub] /status send result:', result);
+      } catch (error) {
+        console.error('[CommunicationHub] Error in /status handler:', error);
+      }
     });
 
     this.telegramReceiver.on('command:help', async (msg: ReceivedMessage) => {
-      const text = this.messageTemplates.renderTelegram('help.commands', {}) || 'Use /status, /summary, or /start';
-      await this.telegramSender.sendMessage({
-        agentType: msg.botType,
-        text,
-        parseMode: 'Markdown',
-      });
+      console.log('[CommunicationHub] Handling /help command for chatId:', msg.chatId);
+      try {
+      const text = `📖 *Available Commands*
+
+*System Commands:*
+• \`/start\` - Initialize bot chat linking
+• \`/link\` - Link this chat to your user ID
+• \`/status\` - Show system status
+• \`/summary\` - Show activity summary
+• \`/help\` - Show this help message
+
+*Task Management:*
+• \`/newtask <desc>\` - Create task in Evaluation Queue
+• \`/task <id>\` - View task details
+• \`/edit <id>\` - Edit task properties
+• \`/queue\` - Show Evaluation Queue status
+• \`/lists\` - View all task lists
+
+*Task Grouping:*
+• \`/suggest\` - Get grouping suggestions
+• \`/accept <id>\` - Accept grouping suggestion
+• \`/reject <id>\` - Reject grouping suggestion
+
+*File Impacts:*
+• \`/override <id>\` - View/set file impacts
+
+*Execution Control:*
+• \`/parallel [id]\` - Show parallelism status
+• \`/execute <id>\` - Start task list execution
+• \`/pause <id>\` - Pause execution
+• \`/resume <id>\` - Resume execution
+• \`/agents\` - List active Build Agents
+• \`/stop <agent_id>\` - Terminate a Build Agent`;
+
+      const result = await this.telegramSender.sendToChatId(msg.botType, msg.chatId, text);
+      console.log('[CommunicationHub] /help send result:', result);
+      } catch (error) {
+        console.error('[CommunicationHub] Error in /help handler:', error);
+      }
+    });
+
+    this.telegramReceiver.on('command:link', async (msg: ReceivedMessage) => {
+      console.log('[CommunicationHub] Handling /link command for chatId:', msg.chatId);
+      try {
+        const response = await this.chatLinker.handleStartCommand(
+          msg.botType,
+          msg.chatId,
+          this.config.primaryUserId
+        );
+        const result = await this.telegramSender.sendToChatId(msg.botType, msg.chatId, response);
+        console.log('[CommunicationHub] /link send result:', result);
+      } catch (error) {
+        console.error('[CommunicationHub] Error in /link handler:', error);
+      }
+    });
+
+    this.telegramReceiver.on('command:summary', async (msg: ReceivedMessage) => {
+      console.log('[CommunicationHub] Handling /summary command for chatId:', msg.chatId);
+      try {
+        const status = this.getStatus();
+        const text = `📈 *Activity Summary*
+
+*Communication Status:*
+• ${status.healthyBots} bots online
+• ${status.readyAgents} agents ready
+• ${status.blockedAgents} agents blocked
+• ${status.pendingQuestions} pending questions
+
+*Recent Activity:*
+System is ${status.running ? 'running' : 'stopped'}.
+
+Use \`/status\` for detailed system status.
+Use \`/queue\` to see tasks in Evaluation Queue.
+Use \`/parallel\` to see execution status.`;
+
+        const result = await this.telegramSender.sendToChatId(msg.botType, msg.chatId, text);
+        console.log('[CommunicationHub] /summary send result:', result);
+      } catch (error) {
+        console.error('[CommunicationHub] Error in /summary handler:', error);
+      }
+    });
+
+    // Task Agent command handlers (PTE-096 to PTE-103, BA-065 to BA-076)
+    this.telegramReceiver.on('command:newtask', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleNewTask(msg);
+    });
+
+    this.telegramReceiver.on('command:edit', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleEdit(msg);
+    });
+
+    this.telegramReceiver.on('command:override', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleOverride(msg);
+    });
+
+    this.telegramReceiver.on('command:queue', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleQueue(msg);
+    });
+
+    this.telegramReceiver.on('command:suggest', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleSuggest(msg);
+    });
+
+    this.telegramReceiver.on('command:accept', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleAccept(msg);
+    });
+
+    this.telegramReceiver.on('command:reject', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleReject(msg);
+    });
+
+    this.telegramReceiver.on('command:parallel', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleParallel(msg);
+    });
+
+    this.telegramReceiver.on('command:execute', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleExecute(msg);
+    });
+
+    this.telegramReceiver.on('command:pause', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handlePause(msg);
+    });
+
+    this.telegramReceiver.on('command:resume', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleResume(msg);
+    });
+
+    this.telegramReceiver.on('command:stop', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleStop(msg);
+    });
+
+    this.telegramReceiver.on('command:agents', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleAgents(msg);
+    });
+
+    this.telegramReceiver.on('command:lists', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleLists(msg);
+    });
+
+    this.telegramReceiver.on('command:task', async (msg: ReceivedMessage) => {
+      await this.taskAgentHandler.handleTask(msg);
     });
 
     // Forward important events

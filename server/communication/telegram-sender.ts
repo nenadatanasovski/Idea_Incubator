@@ -210,6 +210,40 @@ export class TelegramSender {
   }
 
   /**
+   * Send a message to a specific chat ID (used by command handlers).
+   */
+  async sendToChatId(
+    agentType: AgentType,
+    chatId: string,
+    text: string,
+    parseMode: 'Markdown' | 'HTML' = 'Markdown'
+  ): Promise<SendResult> {
+    const bot = this.botRegistry.getBot(agentType);
+    if (!bot) {
+      return { success: false, error: 'No bot available for agent type: ' + agentType };
+    }
+
+    return this.doSend(bot, chatId, { agentType, text, parseMode });
+  }
+
+  /**
+   * Send a message with inline keyboard buttons to a specific chat ID.
+   */
+  async sendWithButtonsToChatId(
+    agentType: AgentType,
+    chatId: string,
+    text: string,
+    buttons: InlineButton[][]
+  ): Promise<SendResult> {
+    const bot = this.botRegistry.getBot(agentType);
+    if (!bot) {
+      return { success: false, error: 'No bot available for agent type: ' + agentType };
+    }
+
+    return this.doSend(bot, chatId, { agentType, text, parseMode: 'Markdown', buttons });
+  }
+
+  /**
    * Internal method to send a message.
    */
   private async doSend(

@@ -90,6 +90,7 @@ import taskAssignmentRouter from './routes/task-assignment.js';
 import questionsRouter, { startExpiryChecker } from './routes/questions.js';
 import taskAgentRouter from './routes/task-agent.js';
 import { initNotificationSystem } from './notifications/index.js';
+import { getCommunicationHub } from './communication/communication-hub.js';
 
 const app = express();
 const PORT = process.env.API_PORT || 3001;
@@ -3160,12 +3161,25 @@ app.post('/api/ideas/:slug/position', asyncHandler(async (req, res) => {
 }));
 
 // Start server with WebSocket support
-export function startServer(): void {
+export async function startServer(): Promise<void> {
   const server = createServer(app);
   initWebSocket(server);
 
   // Start background jobs
   startExpiryChecker(); // QUE-004: Check for expired questions every 5 minutes
+
+  // Start Communication Hub for Telegram integration
+  try {
+    const hub = getCommunicationHub({
+      run: async () => ({ lastID: 0, changes: 0 }),
+      get: async () => undefined,
+      all: async () => [],
+    });
+    await hub.start();
+    console.log('[TaskAgent] Communication hub started - Telegram polling enabled');
+  } catch (error) {
+    console.error('[TaskAgent] Failed to start communication hub:', error);
+  }
 
   server.listen(PORT, () => {
     console.log(`API server running on http://localhost:${PORT}`);

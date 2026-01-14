@@ -9,7 +9,13 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { spawn, ChildProcess } from 'child_process';
+import { EventEmitter } from 'events';
 import { query, run, getOne, saveDb } from '../../../database/db.js';
+
+/**
+ * Orchestrator event emitter for execution events
+ */
+export const orchestratorEvents = new EventEmitter();
 import {
   BuildAgentInstance,
   BuildAgentStatus,
@@ -694,6 +700,81 @@ export async function resumeExecution(taskListId: string): Promise<void> {
   await handleAgentCompletion('resume', taskListId);
 }
 
+/**
+ * Get tasks that are blocked by a specific failed task
+ *
+ * @param failedTaskId The failed task ID
+ * @returns List of blocked tasks
+ */
+export async function getBlockedTasks(
+  failedTaskId: string
+): Promise<Array<{ id: string; displayId: string }>> {
+  const tasks = await query<{ id: string; display_id: string }>(
+    `WITH RECURSIVE dependent_chain AS (
+      SELECT source_task_id AS task_id
+      FROM task_relationships
+      WHERE target_task_id = ?
+        AND relationship_type = 'depends_on'
+
+      UNION ALL
+
+      SELECT tr.source_task_id
+      FROM task_relationships tr
+      JOIN dependent_chain dc ON tr.target_task_id = dc.task_id
+      WHERE tr.relationship_type = 'depends_on'
+    )
+    SELECT t.id, t.display_id
+    FROM tasks t
+    JOIN dependent_chain dc ON t.id = dc.task_id`,
+    [failedTaskId]
+  );
+
+  return tasks.map(t => ({ id: t.id, displayId: t.display_id }));
+}
+
+/**
+ * Get orchestrator status
+ *
+ * @returns Orchestrator status with agent counts and task metrics
+ */
+export async function getOrchestratorStatus(): Promise<{
+  activeListCount: number;
+  runningAgentCount: number;
+  totalTasksToday: number;
+  completedToday: number;
+  failedToday: number;
+}> {
+  // Get active task lists
+  const activeLists = await getOne<{ count: number }>(
+    `SELECT COUNT(*) as count FROM task_lists_v2 WHERE status = 'in_progress'`
+  );
+
+  // Get running agents
+  const runningAgents = await getOne<{ count: number }>(
+    `SELECT COUNT(*) as count FROM build_agent_instances WHERE status = 'running'`
+  );
+
+  // Get tasks from today
+  const today = new Date().toISOString().split('T')[0];
+  const tasksToday = await getOne<{ total: number; completed: number; failed: number }>(
+    `SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+     FROM tasks
+     WHERE date(updated_at) = date(?)`,
+    [today]
+  );
+
+  return {
+    activeListCount: activeLists?.count || 0,
+    runningAgentCount: runningAgents?.count || 0,
+    totalTasksToday: tasksToday?.total || 0,
+    completedToday: tasksToday?.completed || 0,
+    failedToday: tasksToday?.failed || 0,
+  };
+}
+
 export default {
   spawnBuildAgent,
   assignTaskToAgent,
@@ -707,4 +788,6 @@ export default {
   startExecution,
   pauseExecution,
   resumeExecution,
+  getBlockedTasks,
+  getOrchestratorStatus,
 };

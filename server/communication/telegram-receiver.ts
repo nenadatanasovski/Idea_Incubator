@@ -215,6 +215,82 @@ export class TelegramReceiver extends EventEmitter {
       return;
     }
 
+    // Task Agent commands (PTE-096 to PTE-103, BA-065 to BA-076)
+    if (text.startsWith('/newtask')) {
+      this.emit('command:newtask', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/edit')) {
+      this.emit('command:edit', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/override')) {
+      this.emit('command:override', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/queue')) {
+      this.emit('command:queue', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/suggest')) {
+      this.emit('command:suggest', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/accept')) {
+      this.emit('command:accept', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/reject')) {
+      this.emit('command:reject', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/parallel')) {
+      this.emit('command:parallel', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/execute')) {
+      this.emit('command:execute', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/pause')) {
+      this.emit('command:pause', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/resume')) {
+      this.emit('command:resume', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/stop')) {
+      this.emit('command:stop', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/agents')) {
+      this.emit('command:agents', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/lists')) {
+      this.emit('command:lists', receivedMessage);
+      return;
+    }
+
+    if (text.startsWith('/task')) {
+      this.emit('command:task', receivedMessage);
+      return;
+    }
+
     // Check if it's a verification code (6 digits)
     if (/^\d{6}$/.test(text.trim())) {
       this.emit('verification:code', receivedMessage);
