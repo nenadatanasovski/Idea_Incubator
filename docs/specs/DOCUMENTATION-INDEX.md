@@ -30,7 +30,8 @@ docs/specs/
 │
 ├── Parallel Execution/                      # NEW (2026-01-13)
 │   ├── PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md  # 117 tasks, 10 phases
-│   └── task-example-reference.md            # Canonical task format
+│   ├── task-example-reference.md            # Canonical task format
+│   └── TASK-SYSTEM-V2-IMPLEMENTATION-PLAN.md # Developer implementation guide (62 items, 8 phases)
 │
 └── Task Agent Design/
     ├── ../bootstrap/tasks/
@@ -73,8 +74,17 @@ docs/specs/
 | Decommission a feature | E2E-SCENARIOS-ADVANCED.md §5 |
 | Create listless tasks | PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md Phase 3 |
 | Understand task format | task-example-reference.md |
+| Understand task anatomy (comprehensive) | TASK-ATOMIC-ANATOMY.md |
 | Add file impact analysis | PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md Phase 4 |
 | Configure auto-grouping | PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md Phase 7 |
+| Understand PRD structure | TASK-ATOMIC-ANATOMY.md §6 |
+| Understand task impacts (CRUD) | TASK-ATOMIC-ANATOMY.md §3 |
+| Understand task appendices | TASK-ATOMIC-ANATOMY.md §5 |
+| Task Agent decision interfaces | TASK-ATOMIC-ANATOMY.md §10 |
+| Implement Task System V2 | TASK-SYSTEM-V2-IMPLEMENTATION-PLAN.md |
+| Database migrations for new entities | TASK-SYSTEM-V2-IMPLEMENTATION-PLAN.md Phase 1 |
+| Create PRD services | TASK-SYSTEM-V2-IMPLEMENTATION-PLAN.md Phase 3 |
+| Build cascade system | TASK-SYSTEM-V2-IMPLEMENTATION-PLAN.md IMPL-3.7, IMPL-3.8 |
 
 ---
 
@@ -187,7 +197,7 @@ docs/specs/
 
 ---
 
-### task-example-reference.md (NEW)
+### task-example-reference.md
 **When:** Creating or validating task format
 **Contains:**
 - Complete task format with all fields
@@ -197,6 +207,62 @@ docs/specs/
 - File operation reference (4 operations)
 - Minimal task format for quick creation
 - Full example task
+
+---
+
+### TASK-ATOMIC-ANATOMY.md (NEW - 2026-01-14)
+**When:** Understanding task structure, PRDs, impacts, or appendices
+**Audience:** Developers implementing the system + AI agents consuming tasks
+**Contains:**
+- §1: First Principles - What is a task, Task Agent's role, database as truth
+- §2: Core Task Schema - ER diagram, TypeScript interfaces, field definitions
+- §3: Task Impact Model - Files/APIs/functions/DB/types with CRUD operations
+- §4: Task Relationships - 11 relationship types, versioning cascade logic
+- §5: Task Appendices - PRD reference, code context, gotchas, test data
+- §6: PRD Integration - PRD schema, hierarchy, visualization model
+- §7: Task Creation Pipeline - Instruction intake, questioning style, decomposition
+- §8: Effort & Priority Model - Bucket definitions, priority calculation
+- §9: Testing Integration - 3-level test framework, requirements by category
+- §10: Task Agent Decision Interfaces - Estimation, conflict, atomicity, cascade
+
+**Key Concepts:**
+- Tasks are **created by Task Agent**, not users (removes cognitive burden)
+- Tasks live in **database**, not files
+- **PRDs** are product descriptions that group task lists and tasks
+- **Impacts** capture files/APIs/functions/DB/types with CRUD operations
+- **Appendices** are optional attachments to brief the Build Agent
+- **Versioning** creates new versions; changes may cascade to related tasks
+- **auto_approve_reviews** flag on task_lists controls cascade approval
+
+---
+
+### TASK-SYSTEM-V2-IMPLEMENTATION-PLAN.md (NEW - 2026-01-14)
+**When:** Implementing the Task System V2 features from TASK-ATOMIC-ANATOMY.md
+**Audience:** Developers building the system
+**Contains:**
+- Phase 1: Database Schema (9 migrations)
+- Phase 2: TypeScript Types (7 type files)
+- Phase 3: Core Services (10 CRUD services)
+- Phase 4: Task Agent Services (8 AI/analysis services)
+- Phase 5: API Routes (11 route files)
+- Phase 6: Telegram Integration (5 command groups)
+- Phase 7: UI Components (15 React components)
+- Phase 8: Testing & Validation (11 test files)
+
+**Key Features:**
+- 62 implementation items with unique IDs (IMPL-X.X)
+- Full SQL schemas with indexes and constraints
+- Complete TypeScript interface definitions
+- Function signatures for all services
+- API route tables with HTTP methods
+- File checklist (~70 files to create)
+- Risk mitigation and rollout strategy
+
+**How to Use:**
+1. Follow phases in order (Phase 1 blocks 2-4)
+2. Each IMPL item has acceptance criteria
+3. Check off items as completed
+4. Run verification commands between phases
 
 ---
 
@@ -334,6 +400,12 @@ grouping.accepted ──────► Tasks moved to new task list
 | **Execution Wave** | Group of tasks that can run in parallel | PARALLEL-PLAN Phase 5 |
 | **Build Agent Instance** | Single agent handling exactly one task | PARALLEL-PLAN Phase 6 |
 | **Auto-Grouping** | Task Agent suggests task list groupings | PARALLEL-PLAN Phase 7 |
+| **PRD** | Product Requirements Document - product description from functional perspective | TASK-ATOMIC-ANATOMY §6 |
+| **Task Impact** | What a task touches: files, APIs, functions, DB, types with CRUD | TASK-ATOMIC-ANATOMY §3 |
+| **Task Appendix** | Optional attachment to brief agent (PRD ref, code context, gotchas) | TASK-ATOMIC-ANATOMY §5 |
+| **Cascade** | Version changes propagating to related tasks | TASK-ATOMIC-ANATOMY §4.4 |
+| **auto_approve_reviews** | Task list flag for automatic cascade approval | TASK-ATOMIC-ANATOMY §4.4 |
+| **Atomicity** | Task property: single concern, bounded files, testable, independent | TASK-ATOMIC-ANATOMY §7.4 |
 
 ---
 
@@ -391,6 +463,8 @@ grouping.accepted ──────► Tasks moved to new task list
 | 2026-01-13 | Added Parallel Execution section with implementation plan |
 | 2026-01-13 | Added task-example-reference.md (canonical task format) |
 | 2026-01-13 | Added PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md (117 tasks) |
+| 2026-01-14 | Added TASK-ATOMIC-ANATOMY.md (comprehensive task structure, PRDs, impacts) |
+| 2026-01-14 | Added TASK-SYSTEM-V2-IMPLEMENTATION-PLAN.md (62 items, 8 phases, developer guide) |
 
 ---
 

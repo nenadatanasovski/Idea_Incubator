@@ -32,6 +32,11 @@ import autoGroupingEngine from '../services/task-agent/auto-grouping-engine.js';
 import parallelismCalculator from '../services/task-agent/parallelism-calculator.js';
 import buildAgentOrchestrator, { orchestratorEvents } from '../services/task-agent/build-agent-orchestrator.js';
 import fileImpactAnalyzer from '../services/task-agent/file-impact-analyzer.js';
+import { prdService } from '../services/prd-service.js';
+import { prdLinkService } from '../services/prd-link-service.js';
+import { prdCoverageService } from '../services/prd-coverage-service.js';
+import { taskImpactService } from '../services/task-agent/task-impact-service.js';
+import fileConflictDetector from '../services/task-agent/file-conflict-detector.js';
 
 /**
  * Standard recommendation footer for actionable messages (PTE-135)
@@ -57,6 +62,7 @@ export class TaskAgentTelegramHandler {
   /**
    * Handle /newtask command
    * Creates a new task in the Evaluation Queue
+   * Enhanced with auto-impact estimation and conflict warnings (IMPL-6.3)
    */
   async handleNewTask(message: ReceivedMessage): Promise<void> {
     const chatId = message.chatId;
@@ -79,17 +85,74 @@ Example: \`/newtask Add user authentication to API\``,
         title: args,
       });
 
-      await this.sendWithRecommendation(
-        message.botType,
-        chatId,
-        `✅ *Task Created!*
+      // Auto-estimate impacts based on task title/description
+      let impactEstimates: { filePath: string; operation: string; confidence: number }[] = [];
+      try {
+        const estimates = await fileImpactAnalyzer.estimateFileImpacts(result.task.id, args, '', 'feature');
+        impactEstimates = estimates.map(e => ({
+          filePath: e.filePath,
+          operation: e.operation,
+          confidence: e.confidence,
+        }));
+
+        // Store estimated impacts
+        for (const est of impactEstimates.slice(0, 5)) {
+          await fileImpactAnalyzer.setFileImpact(result.task.id, {
+            filePath: est.filePath,
+            operation: est.operation as any,
+            confidence: est.confidence,
+            source: 'ai_estimate',
+          });
+        }
+      } catch {
+        // Impact estimation is optional, continue without it
+      }
+
+      // Check for conflicts with existing tasks
+      let conflictWarnings: string[] = [];
+      try {
+        const conflictingTasks = await fileConflictDetector.getConflictingTasks(result.task.id);
+        for (const conflictTask of conflictingTasks.slice(0, 3)) {
+          for (const conflict of conflictTask.conflicts.slice(0, 1)) {
+            conflictWarnings.push(
+              `⚠️ Potential ${conflict.conflictType} conflict with task \`${conflictTask.displayId}\` on \`${conflict.filePath}\``
+            );
+          }
+        }
+      } catch {
+        // Conflict detection is optional, continue without it
+      }
+
+      // Build response message
+      let responseMessage = `✅ *Task Created!*
 
 📋 *ID:* \`${result.task.displayId}\`
 📝 *Title:* ${result.task.title}
 📊 *Status:* ${result.task.status}
-📂 *Queue:* Evaluation Queue
+📂 *Queue:* Evaluation Queue`;
 
-The task will be analyzed for file impacts and grouping suggestions.`,
+      // Add estimated impacts if any
+      if (impactEstimates.length > 0) {
+        responseMessage += `
+
+📁 *Estimated Impacts:*
+${impactEstimates.slice(0, 3).map(i =>
+  `• ${i.operation} \`${i.filePath}\` (${Math.round(i.confidence * 100)}%)`
+).join('\n')}
+${impactEstimates.length > 3 ? `• ... and ${impactEstimates.length - 3} more` : ''}`;
+      }
+
+      // Add conflict warnings if any
+      if (conflictWarnings.length > 0) {
+        responseMessage += `
+
+${conflictWarnings.join('\n')}`;
+      }
+
+      await this.sendWithRecommendation(
+        message.botType,
+        chatId,
+        responseMessage,
         true
       );
     } catch (error) {
@@ -726,6 +789,444 @@ The tasks have been grouped into a new task list.`,
     } catch (error) {
       await this.sendError(botType, chatId, `${action} suggestion`, error);
     }
+  }
+
+  /**
+   * Handle /prd command
+   * PRD management commands
+   */
+  async handlePrd(message: ReceivedMessage): Promise<void> {
+    const chatId = message.chatId;
+    const args = message.text.replace('/prd', '').trim();
+    const parts = args.split(/\s+/);
+    const subcommand = parts[0]?.toLowerCase();
+
+    if (!subcommand) {
+      await this.sendWithRecommendation(
+        message.botType,
+        chatId,
+        `📋 *PRD Commands*
+
+\`/prd create <title>\` - Create a new PRD
+\`/prd list\` - List all PRDs
+\`/prd show <id>\` - Show PRD details
+\`/prd link <prd_id> <task_list_id>\` - Link PRD to task list
+\`/prd coverage <id>\` - Show coverage statistics
+\`/prd approve <id>\` - Approve a PRD`,
+        false
+      );
+      return;
+    }
+
+    try {
+      switch (subcommand) {
+        case 'create': {
+          const title = parts.slice(1).join(' ');
+          if (!title) {
+            await this.sender.sendToChatId(
+              message.botType,
+              chatId,
+              `❌ *Usage:* \`/prd create <title>\``
+            );
+            return;
+          }
+          const prd = await prdService.create({
+            title,
+            problemStatement: '',
+          }, 'telegram-user');
+          await this.sendWithRecommendation(
+            message.botType,
+            chatId,
+            `✅ *PRD Created!*
+
+📋 *ID:* \`${prd.id.slice(0, 8)}\`
+📝 *Title:* ${title}
+📊 *Status:* draft`,
+            true
+          );
+          break;
+        }
+
+        case 'list': {
+          const prds = await prdService.list();
+          if (prds.length === 0) {
+            await this.sendWithRecommendation(
+              message.botType,
+              chatId,
+              `📭 *No PRDs*
+
+Use \`/prd create <title>\` to create one.`,
+              true
+            );
+            return;
+          }
+          await this.sendWithRecommendation(
+            message.botType,
+            chatId,
+            `📋 *PRDs (${prds.length})*
+
+${prds.slice(0, 10).map(p =>
+  `• \`${p.id.slice(0, 8)}\` ${p.title.substring(0, 40)}${p.title.length > 40 ? '...' : ''}
+    ↳ Status: ${p.status}`
+).join('\n')}
+${prds.length > 10 ? `\n... and ${prds.length - 10} more` : ''}`,
+            true
+          );
+          break;
+        }
+
+        case 'show': {
+          const prdId = parts[1];
+          if (!prdId) {
+            await this.sender.sendToChatId(
+              message.botType,
+              chatId,
+              `❌ *Usage:* \`/prd show <id>\``
+            );
+            return;
+          }
+          const prd = await prdService.getById(prdId);
+          if (!prd) {
+            await this.sender.sendToChatId(
+              message.botType,
+              chatId,
+              `❌ PRD \`${prdId}\` not found.`
+            );
+            return;
+          }
+          const coverage = await prdCoverageService.calculateCoverage(prd.id);
+          await this.sendWithRecommendation(
+            message.botType,
+            chatId,
+            `📋 *PRD: ${prd.title}*
+
+📝 *ID:* \`${prd.id.slice(0, 8)}\`
+📊 *Status:* ${prd.status}
+${prd.problemStatement ? `📄 *Problem:* ${prd.problemStatement.substring(0, 200)}${prd.problemStatement.length > 200 ? '...' : ''}\n` : ''}
+📈 *Coverage:*
+• Total requirements: ${coverage.totalRequirements}
+• Covered: ${coverage.coveredRequirements}
+• Percentage: ${Math.round(coverage.coveragePercent)}%`,
+            true
+          );
+          break;
+        }
+
+        case 'link': {
+          const prdId = parts[1];
+          const taskListId = parts[2];
+          if (!prdId || !taskListId) {
+            await this.sender.sendToChatId(
+              message.botType,
+              chatId,
+              `❌ *Usage:* \`/prd link <prd_id> <task_list_id>\``
+            );
+            return;
+          }
+          await prdLinkService.linkTaskList(prdId, taskListId);
+          await this.sendWithRecommendation(
+            message.botType,
+            chatId,
+            `✅ *PRD Linked!*
+
+📋 PRD \`${prdId.slice(0, 8)}\` linked to Task List \`${taskListId.slice(0, 8)}\``,
+            true
+          );
+          break;
+        }
+
+        case 'coverage': {
+          const prdId = parts[1];
+          if (!prdId) {
+            await this.sender.sendToChatId(
+              message.botType,
+              chatId,
+              `❌ *Usage:* \`/prd coverage <id>\``
+            );
+            return;
+          }
+          const coverage = await prdCoverageService.calculateCoverage(prdId);
+          const progress = await prdCoverageService.getCompletionProgress(prdId);
+          const uncovered = coverage.totalRequirements - coverage.coveredRequirements;
+          await this.sendWithRecommendation(
+            message.botType,
+            chatId,
+            `📈 *PRD Coverage: \`${prdId.slice(0, 8)}\`*
+
+📊 *Requirements:*
+• Total: ${coverage.totalRequirements}
+• Covered: ${coverage.coveredRequirements}
+• Uncovered: ${uncovered}
+• Coverage: ${Math.round(coverage.coveragePercent)}%
+
+📋 *Task Progress:*
+• Total tasks: ${progress.total}
+• Completed: ${progress.completed}
+• Progress: ${Math.round(progress.percentage)}%`,
+            true
+          );
+          break;
+        }
+
+        case 'approve': {
+          const prdId = parts[1];
+          if (!prdId) {
+            await this.sender.sendToChatId(
+              message.botType,
+              chatId,
+              `❌ *Usage:* \`/prd approve <id>\``
+            );
+            return;
+          }
+          const prd = await prdService.approve(prdId, 'telegram-user');
+          await this.sendWithRecommendation(
+            message.botType,
+            chatId,
+            `✅ *PRD Approved!*
+
+📋 PRD \`${prdId.slice(0, 8)}\` is now approved.`,
+            true
+          );
+          break;
+        }
+
+        default:
+          await this.sender.sendToChatId(
+            message.botType,
+            chatId,
+            `❌ Unknown PRD subcommand: \`${subcommand}\`
+
+Use \`/prd\` to see available commands.`
+          );
+      }
+    } catch (error) {
+      await this.sendError(message.botType, chatId, `prd ${subcommand}`, error);
+    }
+  }
+
+  /**
+   * Handle /impact command
+   * Task impact management commands
+   */
+  async handleImpact(message: ReceivedMessage): Promise<void> {
+    const chatId = message.chatId;
+    const args = message.text.replace('/impact', '').trim();
+    const parts = args.split(/\s+/);
+
+    // If no args, show help
+    if (!args) {
+      await this.sendWithRecommendation(
+        message.botType,
+        chatId,
+        `📁 *Impact Commands*
+
+\`/impact <task_id>\` - Show task impacts
+\`/impact add <task_id> <type> <operation> <target>\` - Add impact
+\`/impact remove <task_id> <impact_id>\` - Remove impact
+\`/impact conflicts <task_id>\` - Check for conflicts
+
+*Types:* file, api, function, database, type
+*Operations:* create, read, update, delete`,
+        false
+      );
+      return;
+    }
+
+    const firstArg = parts[0].toLowerCase();
+
+    try {
+      // Check if first arg is a subcommand
+      if (firstArg === 'add') {
+        // /impact add <task_id> <type> <operation> <target>
+        const taskId = parts[1];
+        const impactType = parts[2];
+        const operation = parts[3];
+        const target = parts.slice(4).join(' ');
+
+        if (!taskId || !impactType || !operation || !target) {
+          await this.sender.sendToChatId(
+            message.botType,
+            chatId,
+            `❌ *Usage:* \`/impact add <task_id> <type> <operation> <target>\`
+
+Example: \`/impact add TU-PROJ-FEA-042 file update server/routes/api.ts\``
+          );
+          return;
+        }
+
+        const task = await this.findTask(taskId);
+        if (!task) {
+          await this.sender.sendToChatId(
+            message.botType,
+            chatId,
+            `❌ Task \`${taskId}\` not found.`
+          );
+          return;
+        }
+
+        await taskImpactService.create({
+          taskId: task.id,
+          impactType: impactType as any,
+          operation: operation.toUpperCase() as any,
+          targetPath: target,
+          confidence: 1.0,
+          source: 'user',
+        });
+
+        await this.sendWithRecommendation(
+          message.botType,
+          chatId,
+          `✅ *Impact Added!*
+
+📋 Task: \`${task.displayId}\`
+📁 Type: ${impactType}
+⚡ Operation: ${operation.toUpperCase()}
+🎯 Target: ${target}`,
+          true
+        );
+        return;
+      }
+
+      if (firstArg === 'remove') {
+        // /impact remove <task_id> <impact_id>
+        const taskId = parts[1];
+        const impactId = parts[2];
+
+        if (!taskId || !impactId) {
+          await this.sender.sendToChatId(
+            message.botType,
+            chatId,
+            `❌ *Usage:* \`/impact remove <task_id> <impact_id>\``
+          );
+          return;
+        }
+
+        const task = await this.findTask(taskId);
+        if (!task) {
+          await this.sender.sendToChatId(
+            message.botType,
+            chatId,
+            `❌ Task \`${taskId}\` not found.`
+          );
+          return;
+        }
+
+        await taskImpactService.delete(impactId);
+        await this.sendWithRecommendation(
+          message.botType,
+          chatId,
+          `✅ Impact removed from task \`${task.displayId}\`.`,
+          true
+        );
+        return;
+      }
+
+      if (firstArg === 'conflicts') {
+        // /impact conflicts <task_id>
+        const taskId = parts[1];
+        if (!taskId) {
+          await this.sender.sendToChatId(
+            message.botType,
+            chatId,
+            `❌ *Usage:* \`/impact conflicts <task_id>\``
+          );
+          return;
+        }
+
+        const task = await this.findTask(taskId);
+        if (!task) {
+          await this.sender.sendToChatId(
+            message.botType,
+            chatId,
+            `❌ Task \`${taskId}\` not found.`
+          );
+          return;
+        }
+
+        const conflictingTasks = await fileConflictDetector.getConflictingTasks(task.id);
+        if (conflictingTasks.length === 0) {
+          await this.sendWithRecommendation(
+            message.botType,
+            chatId,
+            `✅ *No Conflicts!*
+
+Task \`${task.displayId}\` has no detected conflicts with other tasks.`,
+            true
+          );
+          return;
+        }
+
+        const conflictLines: string[] = [];
+        for (const ct of conflictingTasks.slice(0, 5)) {
+          for (const conflict of ct.conflicts.slice(0, 2)) {
+            conflictLines.push(`• ${conflict.conflictType} conflict with task ${ct.displayId}\n    ↳ File: ${conflict.filePath}`);
+          }
+        }
+
+        await this.sendWithRecommendation(
+          message.botType,
+          chatId,
+          `⚠️ *Conflicts Detected for \`${task.displayId}\`*
+
+${conflictLines.join('\n')}
+${conflictingTasks.length > 5 ? `\n... and more conflicts` : ''}`,
+          true
+        );
+        return;
+      }
+
+      // Default: show impacts for task
+      const taskId = firstArg;
+      const task = await this.findTask(taskId);
+      if (!task) {
+        await this.sender.sendToChatId(
+          message.botType,
+          chatId,
+          `❌ Task \`${taskId}\` not found.`
+        );
+        return;
+      }
+
+      const impacts = await taskImpactService.getByTaskId(task.id);
+      if (impacts.length === 0) {
+        await this.sendWithRecommendation(
+          message.botType,
+          chatId,
+          `📁 *No Impacts for \`${task.displayId}\`*
+
+Use \`/impact add ${task.displayId} <type> <operation> <target>\` to add impacts.`,
+          true
+        );
+        return;
+      }
+
+      await this.sendWithRecommendation(
+        message.botType,
+        chatId,
+        `📁 *Impacts for \`${task.displayId}\` (${impacts.length})*
+
+${impacts.map((i: { id: string; impactType: string; operation: string; targetPath: string; confidence: number; source: string }) =>
+  `• \`${i.id.slice(0, 6)}\` ${i.impactType} ${i.operation}
+    ↳ ${i.targetPath}
+    ↳ ${Math.round(i.confidence * 100)}% (${i.source})`
+).join('\n')}`,
+        true
+      );
+
+    } catch (error) {
+      await this.sendError(message.botType, chatId, 'impact', error);
+    }
+  }
+
+  /**
+   * Helper to find task by display ID or UUID
+   */
+  private async findTask(taskId: string) {
+    let task = await taskCreationService.getTaskByDisplayId(taskId);
+    if (!task) {
+      task = await taskCreationService.getTaskById(taskId);
+    }
+    return task;
   }
 
   /**

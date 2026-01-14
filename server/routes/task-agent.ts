@@ -28,7 +28,23 @@ import parallelismCalculator from '../services/task-agent/parallelism-calculator
 import buildAgentOrchestrator from '../services/task-agent/build-agent-orchestrator.js';
 import circularDependencyPrevention from '../services/task-agent/circular-dependency-prevention.js';
 
+// Import sub-routers (Task System V2)
+import taskImpactsRouter from './task-agent/task-impacts.js';
+import taskAppendicesRouter from './task-agent/task-appendices.js';
+import taskVersionsRouter from './task-agent/task-versions.js';
+import taskCascadeRouter from './task-agent/task-cascade.js';
+import taskTestsRouter from './task-agent/task-tests.js';
+import taskHistoryRouter from './task-agent/task-history.js';
+
 const router = Router();
+
+// Mount sub-routers
+router.use('/tasks', taskImpactsRouter);      // /api/task-agent/tasks/:taskId/impacts
+router.use('/tasks', taskAppendicesRouter);   // /api/task-agent/tasks/:taskId/appendices
+router.use('/tasks', taskVersionsRouter);     // /api/task-agent/tasks/:taskId/versions
+router.use('/tasks', taskCascadeRouter);      // /api/task-agent/tasks/:taskId/cascade
+router.use('/tasks', taskTestsRouter);        // /api/task-agent/tasks/:taskId/tests
+router.use('/tasks', taskHistoryRouter);      // /api/task-agent/tasks/:taskId/history
 
 /**
  * Create a new task

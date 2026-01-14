@@ -89,6 +89,9 @@ import executorRouter from './routes/executor.js';
 import taskAssignmentRouter from './routes/task-assignment.js';
 import questionsRouter, { startExpiryChecker } from './routes/questions.js';
 import taskAgentRouter from './routes/task-agent.js';
+import prdsRouter from './routes/prds.js';
+import prdLinksRouter from './routes/prd-links.js';
+import prdCoverageRouter from './routes/prd-coverage.js';
 import { initNotificationSystem } from './notifications/index.js';
 import { getCommunicationHub } from './communication/communication-hub.js';
 
@@ -168,6 +171,11 @@ app.use('/api/questions', questionsRouter);
 
 // Mount task agent (parallel execution, evaluation queue) routes
 app.use('/api/task-agent', taskAgentRouter);
+
+// Mount PRD routes (Task System V2)
+app.use('/api/prds', prdsRouter);
+app.use('/api/prd-links', prdLinksRouter);
+app.use('/api/prd-coverage', prdCoverageRouter);
 
 // Initialize notification system
 initNotificationSystem();

@@ -718,3 +718,40 @@ export interface WebSocketEvent<T = unknown> {
   payload: T;
   timestamp: string;
 }
+
+// ============================================
+// Task System V2 Types (IMPL-2.7)
+// ============================================
+
+// Re-export types from Task System V2
+import type { TaskImpact } from './task-impact.js';
+import type { TaskAppendix } from './task-appendix.js';
+import type { TaskTestResult } from './task-test.js';
+import type { TaskStateHistoryEntry, TaskVersion } from './task-version.js';
+
+/**
+ * Task with all related entities loaded
+ */
+export interface TaskWithRelations extends Task {
+  impacts: TaskImpact[];
+  appendices: TaskAppendix[];
+  testResults: TaskTestResult[];
+  stateHistory: TaskStateHistoryEntry[];
+  versions: TaskVersion[];
+
+  // PRD linkage (if any)
+  linkedPrds: {
+    prdId: string;
+    prdTitle: string;
+    requirementRef?: string;
+  }[];
+}
+
+// Re-export for convenience
+export type {
+  TaskImpact,
+  TaskAppendix,
+  TaskTestResult,
+  TaskStateHistoryEntry,
+  TaskVersion,
+};
