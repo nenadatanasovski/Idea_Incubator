@@ -503,46 +503,45 @@ ${agents.map(a =>
    */
   async handleLists(message: ReceivedMessage): Promise<void> {
     const chatId = message.chatId;
+    console.log('[TaskAgentHandler] handleLists called for chatId:', chatId);
 
     try {
+      console.log('[TaskAgentHandler] Importing task-list-orchestrator...');
       const taskListOrchestrator = (await import('../services/task-agent/task-list-orchestrator.js')).default;
+      console.log('[TaskAgentHandler] Getting orchestrator status...');
       const status = await taskListOrchestrator.getOrchestratorStatus();
+      console.log('[TaskAgentHandler] Got status with', status.activeLists.length, 'lists');
 
       if (status.activeLists.length === 0) {
-        // Use plain text to avoid markdown parsing issues
-        await this.sender.sendToChatId(
+        console.log('[TaskAgentHandler] No active lists, sending empty message');
+        await this.sendWithRecommendation(
           message.botType,
           chatId,
-          `📋 No Task Lists
+          `📋 *No Task Lists*
 
-Create tasks with /newtask and use /suggest to group them into lists.
-
----
-💡 Tip: Use /help for all commands`,
-          'HTML' // Use HTML mode to avoid markdown parsing issues
+Create tasks with \`/newtask\` and use \`/suggest\` to group them into lists.`,
+          true
         );
         return;
       }
 
-      // Build list text as plain text (avoid markdown)
+      // Build list text - escape markdown chars in names
       const listItems = status.activeLists.map(l => {
-        const name = (l.name || 'Unnamed').replace(/[<>&]/g, '');  // Remove HTML chars
+        const name = this.escapeMarkdown(l.name || 'Unnamed');
         const id = l.id?.slice(0, 8) || 'N/A';
-        return `• ${name}\n  Progress: ${l.completedTasks}/${l.totalTasks}\n  ID: ${id}`;
+        return `• *${name}*\n  Progress: ${l.completedTasks}/${l.totalTasks}\n  ID: \`${id}\``;
       }).join('\n\n');
 
-      await this.sender.sendToChatId(
+      await this.sendWithRecommendation(
         message.botType,
         chatId,
-        `📋 Task Lists (${status.activeLists.length})
+        `📋 *Task Lists (${status.activeLists.length})*
 
-${listItems}
-
----
-💡 Tip: Use /task [id] to see task details, /help for all commands`,
-        'HTML'
+${listItems}`,
+        true
       );
     } catch (error) {
+      console.error('[TaskAgentHandler] Error in handleLists:', error);
       await this.sendError(message.botType, chatId, 'get task lists', error);
     }
   }

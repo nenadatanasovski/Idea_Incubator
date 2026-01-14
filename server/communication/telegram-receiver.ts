@@ -113,6 +113,10 @@ export class TelegramReceiver extends EventEmitter {
     try {
       const updates = await this.getUpdates(bot);
 
+      if (updates.length > 0) {
+        console.log(`[TelegramReceiver] Got ${updates.length} updates for ${bot.agentType}`);
+      }
+
       for (const update of updates) {
         await this.processUpdate(bot.agentType, update);
         this.offsets.set(bot.agentType, update.update_id + 1);
