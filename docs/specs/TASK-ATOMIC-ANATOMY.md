@@ -1922,115 +1922,115 @@ This checklist covers all implementation work required to realize the task syste
 
 ### Phase 1: Database Migrations
 
-- [ ] **1.1** Create `task_impacts` table
+- [x] **1.1** Create `task_impacts` table (`database/migrations/078_create_task_impacts.sql`)
   - Columns: id, task_id, impact_type, operation, target_path, target_name, target_signature, confidence, source, created_at
   - Foreign key to tasks(id)
   - Index on (task_id, impact_type)
 
-- [ ] **1.2** Create `task_appendices` table
+- [x] **1.2** Create `task_appendices` table (`database/migrations/079_create_task_appendices.sql`)
   - Columns: id, task_id, appendix_type, content_type, content, reference_id, reference_table, position, created_at
   - Foreign key to tasks(id)
   - Index on (task_id, appendix_type)
 
-- [ ] **1.3** Create `prds` table
+- [x] **1.3** Create `prds` table (`database/migrations/080_create_prds.sql`)
   - Columns: id, slug, title, user_id, project_id, parent_prd_id, problem_statement, target_users, functional_description, success_criteria (JSON), constraints (JSON), out_of_scope (JSON), status, created_at, updated_at, approved_at, approved_by
   - Self-referential FK for parent_prd_id
   - Unique constraint on slug
 
-- [ ] **1.4** Create `prd_task_lists` junction table
+- [x] **1.4** Create `prd_task_lists` junction table (`database/migrations/081_create_prd_task_lists.sql`)
   - Columns: id, prd_id, task_list_id, position, created_at
   - Foreign keys to prds(id) and task_lists_v2(id)
 
-- [ ] **1.5** Create `prd_tasks` junction table
+- [x] **1.5** Create `prd_tasks` junction table (`database/migrations/082_create_prd_tasks.sql`)
   - Columns: id, prd_id, task_id, requirement_ref, link_type, created_at
   - Foreign keys to prds(id) and tasks(id)
 
-- [ ] **1.6** Create `task_test_results` table
+- [x] **1.6** Create `task_test_results` table (`database/migrations/083_create_task_test_results.sql`)
   - Columns: id, task_id, level (1/2/3), command, exit_code, output, duration_ms, passed, created_at
   - Foreign key to tasks(id)
 
-- [ ] **1.7** Create `task_state_history` table
+- [x] **1.7** Create `task_state_history` table (`database/migrations/084_create_task_state_history.sql`)
   - Columns: id, task_id, from_status, to_status, changed_by, reason, created_at
   - Foreign key to tasks(id)
   - Index on (task_id, created_at)
 
-- [ ] **1.8** Add `auto_approve_reviews` column to `task_lists_v2`
+- [x] **1.8** Add `auto_approve_reviews` column to `task_lists_v2` (`database/migrations/086_add_auto_approve_reviews.sql`)
   - Type: INTEGER NOT NULL DEFAULT 0
 
 ### Phase 2: TypeScript Types
 
-- [ ] **2.1** Create `types/task-impact.ts` with TaskImpact interface
-- [ ] **2.2** Create `types/task-appendix.ts` with TaskAppendix interface
-- [ ] **2.3** Create `types/prd.ts` with PRD and junction interfaces
-- [ ] **2.4** Create `types/task-test.ts` with test level interfaces
-- [ ] **2.5** Update `types/task.ts` with new fields and relationships
-- [ ] **2.6** Create `types/cascade.ts` with cascade effect types
+- [x] **2.1** Create `types/task-impact.ts` with TaskImpact interface
+- [x] **2.2** Create `types/task-appendix.ts` with TaskAppendix interface
+- [x] **2.3** Create `types/prd.ts` with PRD and junction interfaces
+- [x] **2.4** Create `types/task-test.ts` with test level interfaces
+- [x] **2.5** Update `types/task.ts` with new fields and relationships (via `types/task-agent.ts`)
+- [x] **2.6** Create `types/cascade.ts` with cascade effect types
 
 ### Phase 3: Core Services
 
-- [ ] **3.1** `task-impact-service.ts` - CRUD for task impacts
-- [ ] **3.2** `task-appendix-service.ts` - CRUD for appendices
-- [ ] **3.3** `prd-service.ts` - PRD creation and management
-- [ ] **3.4** `prd-link-service.ts` - Junction table management
-- [ ] **3.5** `prd-coverage-calculator.ts` - Coverage tracking
-- [ ] **3.6** `task-version-service.ts` - Versioning and history
-- [ ] **3.7** `cascade-analyzer.ts` - Cascade effect detection
-- [ ] **3.8** `cascade-executor.ts` - Apply cascade changes
-- [ ] **3.9** `task-test-service.ts` - Test execution and results
+- [x] **3.1** `task-impact-service.ts` - CRUD for task impacts (`server/services/task-agent/task-impact-service.ts`)
+- [x] **3.2** `task-appendix-service.ts` - CRUD for appendices (`server/services/task-agent/task-appendix-service.ts`)
+- [x] **3.3** `prd-service.ts` - PRD creation and management (`server/services/prd-service.ts`)
+- [x] **3.4** `prd-link-service.ts` - Junction table management (`server/services/prd-link-service.ts`)
+- [x] **3.5** `prd-coverage-calculator.ts` - Coverage tracking (`server/services/prd-coverage-service.ts`)
+- [x] **3.6** `task-version-service.ts` - Versioning and history (`server/services/task-agent/task-version-service.ts`)
+- [x] **3.7** `cascade-analyzer.ts` - Cascade effect detection (`server/services/task-agent/cascade-analyzer-service.ts`)
+- [x] **3.8** `cascade-executor.ts` - Apply cascade changes (`server/services/task-agent/cascade-executor-service.ts`)
+- [x] **3.9** `task-test-service.ts` - Test execution and results (`server/services/task-agent/task-test-service.ts`)
 
 ### Phase 4: Task Agent Services
 
-- [ ] **4.1** `file-impact-analyzer.ts` - AI-powered impact estimation
-- [ ] **4.2** `file-conflict-detector.ts` - Conflict matrix implementation
-- [ ] **4.3** `atomicity-validator.ts` - 6 atomicity rules
-- [ ] **4.4** `task-decomposer.ts` - Break large tasks into atomic ones
-- [ ] **4.5** `nlp-parser.ts` - Natural language task parsing
-- [ ] **4.6** `display-id-generator.ts` - TU-PROJ-CAT-### generation
-- [ ] **4.7** `question-engine.ts` - Extensive questioning system
-- [ ] **4.8** `priority-calculator.ts` - Priority formula implementation
+- [x] **4.1** `file-impact-analyzer.ts` - AI-powered impact estimation (`server/services/task-agent/file-impact-analyzer.ts`)
+- [x] **4.2** `file-conflict-detector.ts` - Conflict matrix implementation (`server/services/task-agent/file-conflict-detector.ts`)
+- [x] **4.3** `atomicity-validator.ts` - 6 atomicity rules (`server/services/task-agent/atomicity-validator.ts`)
+- [x] **4.4** `task-decomposer.ts` - Break large tasks into atomic ones (`server/services/task-agent/task-decomposer.ts`)
+- [x] **4.5** `nlp-parser.ts` - Natural language task parsing (`server/services/task-agent/natural-language-parser.ts`)
+- [x] **4.6** `display-id-generator.ts` - TU-PROJ-CAT-### generation (`server/services/task-agent/display-id-generator.ts`)
+- [x] **4.7** `question-engine.ts` - Extensive questioning system (`server/services/task-agent/question-engine.ts`)
+- [x] **4.8** `priority-calculator.ts` - Priority formula implementation (`server/services/task-agent/priority-calculator.ts`)
 
 ### Phase 5: API Routes
 
-- [ ] **5.1** `POST /api/task-agent/tasks/:id/impacts` - Add/update impacts
-- [ ] **5.2** `GET /api/task-agent/tasks/:id/impacts` - Get task impacts
-- [ ] **5.3** `POST /api/task-agent/tasks/:id/appendices` - Attach appendix
-- [ ] **5.4** `GET /api/task-agent/tasks/:id/appendices` - Get appendices
-- [ ] **5.5** `POST /api/prds` - Create PRD
-- [ ] **5.6** `GET /api/prds/:id` - Get PRD with linked items
-- [ ] **5.7** `POST /api/prds/:id/link-list` - Link task list
-- [ ] **5.8** `POST /api/prds/:id/link-task` - Link task
-- [ ] **5.9** `GET /api/prds/:id/coverage` - Get coverage report
-- [ ] **5.10** `POST /api/prds/:id/decompose` - Extract tasks from PRD
-- [ ] **5.11** `GET /api/task-agent/tasks/:id/versions` - Get version history
-- [ ] **5.12** `POST /api/task-agent/tasks/:id/cascade/analyze` - Analyze cascade
-- [ ] **5.13** `POST /api/task-agent/tasks/:id/tests/validate` - Run validation
+- [x] **5.1** `POST /api/task-agent/tasks/:id/impacts` - Add/update impacts (`server/routes/task-agent/task-impacts.ts`)
+- [x] **5.2** `GET /api/task-agent/tasks/:id/impacts` - Get task impacts (`server/routes/task-agent/task-impacts.ts`)
+- [x] **5.3** `POST /api/task-agent/tasks/:id/appendices` - Attach appendix (`server/routes/task-agent/task-appendices.ts`)
+- [x] **5.4** `GET /api/task-agent/tasks/:id/appendices` - Get appendices (`server/routes/task-agent/task-appendices.ts`)
+- [x] **5.5** `POST /api/prds` - Create PRD (`server/routes/prds.ts`)
+- [x] **5.6** `GET /api/prds/:id` - Get PRD with linked items (`server/routes/prds.ts`)
+- [x] **5.7** `POST /api/prds/:id/link-list` - Link task list (`server/routes/prd-links.ts`)
+- [x] **5.8** `POST /api/prds/:id/link-task` - Link task (`server/routes/prd-links.ts`)
+- [x] **5.9** `GET /api/prds/:id/coverage` - Get coverage report (`server/routes/prd-coverage.ts`)
+- [x] **5.10** `POST /api/prds/:id/decompose` - Extract tasks from PRD (`server/routes/prd-decompose.ts`)
+- [x] **5.11** `GET /api/task-agent/tasks/:id/versions` - Get version history (`server/routes/task-agent/task-versions.ts`)
+- [x] **5.12** `POST /api/task-agent/tasks/:id/cascade/analyze` - Analyze cascade (`server/routes/task-agent/task-cascade.ts`)
+- [x] **5.13** `POST /api/task-agent/tasks/:id/tests/validate` - Run validation (`server/routes/task-agent/task-tests.ts`)
 
 ### Phase 6: Telegram Commands
 
-- [ ] **6.1** `/prd create` - Create new PRD via Telegram
-- [ ] **6.2** `/prd link` - Link PRD to tasks/lists
-- [ ] **6.3** `/prd status` - Show PRD coverage
-- [ ] **6.4** `/task impact` - Show/manage task impacts
-- [ ] **6.5** Enhanced `/newtask` with impact detection
+- [x] **6.1** `/prd create` - Create new PRD via Telegram (`server/communication/task-agent-telegram-handler.ts`)
+- [x] **6.2** `/prd link` - Link PRD to tasks/lists (`server/communication/task-agent-telegram-handler.ts`)
+- [x] **6.3** `/prd status` - Show PRD coverage (`server/communication/task-agent-telegram-handler.ts`)
+- [x] **6.4** `/task impact` - Show/manage task impacts (`server/communication/task-agent-telegram-handler.ts`)
+- [x] **6.5** Enhanced `/newtask` with impact detection (`server/communication/task-agent-telegram-handler.ts`)
 
 ### Phase 7: UI Components
 
-- [ ] **7.1** PRD creation form
-- [ ] **7.2** PRD detail view with linked tasks
-- [ ] **7.3** Coverage visualization
-- [ ] **7.4** Task impact editor
-- [ ] **7.5** Appendix attachment UI
-- [ ] **7.6** Version history timeline
-- [ ] **7.7** Cascade preview modal
+- [x] **7.1** PRD creation form (`frontend/src/components/task-agent/PRDList.tsx`)
+- [x] **7.2** PRD detail view with linked tasks (`frontend/src/components/task-agent/PRDDetail.tsx`)
+- [x] **7.3** Coverage visualization (`frontend/src/components/task-agent/PRDCoverageChart.tsx`)
+- [x] **7.4** Task impact editor (`frontend/src/components/task-agent/TaskImpactViewer.tsx`)
+- [x] **7.5** Appendix attachment UI (`frontend/src/components/task-agent/TaskAppendixEditor.tsx`)
+- [x] **7.6** Version history timeline (`frontend/src/components/task-agent/TaskVersionViewer.tsx`)
+- [x] **7.7** Cascade preview modal (`frontend/src/components/task-agent/CascadeEffectViewer.tsx`)
 
 ### Phase 8: Integration & Testing
 
-- [ ] **8.1** E2E test: PRD → Task extraction → Execution
-- [ ] **8.2** E2E test: Impact conflict detection
-- [ ] **8.3** E2E test: Cascade propagation
-- [ ] **8.4** E2E test: Versioning and rollback
-- [ ] **8.5** Unit tests for all new services
-- [ ] **8.6** Integration tests for API routes
+- [x] **8.1** E2E test: PRD → Task extraction → Execution (`tests/e2e/task-atomic-anatomy.test.ts`)
+- [x] **8.2** E2E test: Impact conflict detection (`tests/e2e/task-atomic-anatomy.test.ts`)
+- [x] **8.3** E2E test: Cascade propagation (`tests/e2e/task-atomic-anatomy.test.ts`)
+- [x] **8.4** E2E test: Versioning and rollback (`tests/e2e/task-atomic-anatomy.test.ts`)
+- [x] **8.5** Unit tests for all new services (`tests/task-agent/*.test.ts`)
+- [x] **8.6** Integration tests for API routes (`tests/integration/*.test.ts`)
 
 ---
 
@@ -2044,6 +2044,6 @@ This checklist covers all implementation work required to realize the task syste
 
 ---
 
-**Document Version:** 1.0.0
-**Last Updated:** 2026-01-14
+**Document Version:** 1.1.0
+**Last Updated:** 2026-01-15
 **Maintainer:** Task Agent System

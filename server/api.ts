@@ -92,6 +92,7 @@ import taskAgentRouter from './routes/task-agent.js';
 import prdsRouter from './routes/prds.js';
 import prdLinksRouter from './routes/prd-links.js';
 import prdCoverageRouter from './routes/prd-coverage.js';
+import prdDecomposeRouter from './routes/prd-decompose.js';
 import { initNotificationSystem } from './notifications/index.js';
 import { getCommunicationHub } from './communication/communication-hub.js';
 
@@ -176,6 +177,7 @@ app.use('/api/task-agent', taskAgentRouter);
 app.use('/api/prds', prdsRouter);
 app.use('/api/prd-links', prdLinksRouter);
 app.use('/api/prd-coverage', prdCoverageRouter);
+app.use('/api/prds', prdDecomposeRouter);  // Task System V2 - PRD decompose routes
 
 // Initialize notification system
 initNotificationSystem();
