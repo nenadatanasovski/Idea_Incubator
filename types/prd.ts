@@ -8,12 +8,12 @@
 /**
  * PRD status lifecycle
  */
-export type PrdStatus = 'draft' | 'review' | 'approved' | 'archived';
+export type PrdStatus = "draft" | "review" | "approved" | "archived";
 
 /**
  * PRD link types for task relationships
  */
-export type PrdLinkType = 'implements' | 'tests' | 'related';
+export type PrdLinkType = "implements" | "tests" | "related";
 
 /**
  * Product Requirements Document entity
@@ -82,7 +82,7 @@ export interface PrdTaskLink {
  */
 export interface CreatePrdInput {
   title: string;
-  slug?: string;  // Auto-generated if not provided
+  slug?: string; // Auto-generated if not provided
   projectId?: string;
   parentPrdId?: string;
   problemStatement?: string;
@@ -141,9 +141,9 @@ export interface PrdRow {
   problem_statement: string | null;
   target_users: string | null;
   functional_description: string | null;
-  success_criteria: string;  // JSON array
-  constraints: string;  // JSON array
-  out_of_scope: string;  // JSON array
+  success_criteria: string; // JSON array
+  constraints: string; // JSON array
+  out_of_scope: string; // JSON array
   status: string;
   approved_at: string | null;
   approved_by: string | null;
@@ -190,7 +190,9 @@ export interface PrdTaskListLinkRow {
 /**
  * Map database row to PrdTaskListLink
  */
-export function mapPrdTaskListLinkRow(row: PrdTaskListLinkRow): PrdTaskListLink {
+export function mapPrdTaskListLinkRow(
+  row: PrdTaskListLinkRow,
+): PrdTaskListLink {
   return {
     id: row.id,
     prdId: row.prd_id,

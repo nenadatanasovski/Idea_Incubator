@@ -5,6 +5,7 @@
 This specification covers all React frontend components for the Ideation Agent system. It includes the component tree, TypeScript interfaces, state management, SSE streaming implementation, and comprehensive test plans.
 
 **Dependencies:**
+
 - Spec 1: Database & Data Models (TypeScript types)
 - Spec 7: API Endpoints (API client functions)
 
@@ -73,7 +74,7 @@ import type {
   ButtonOption,
   FormDefinition,
   WebSearchResult,
-} from './index';
+} from "./index";
 
 // -----------------------------------------------------------------------------
 // Page Level
@@ -85,7 +86,7 @@ export interface IdeationPageProps {
   onExit: () => void;
 }
 
-export type EntryMode = 'have_idea' | 'discover' | null;
+export type EntryMode = "have_idea" | "discover" | null;
 
 export interface IdeationEntryModalProps {
   isOpen: boolean;
@@ -197,7 +198,7 @@ export interface FormFieldProps {
 
 export interface FormField {
   name: string;
-  type: 'text' | 'radio' | 'checkbox' | 'slider' | 'select';
+  type: "text" | "radio" | "checkbox" | "slider" | "select";
   label: string;
   options?: string[];
   min?: number;
@@ -281,16 +282,16 @@ export interface WarningStateProps {
 // -----------------------------------------------------------------------------
 
 export interface ConfidenceMeterProps {
-  value: number;  // 0-100
+  value: number; // 0-100
   showLabel: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 
 export interface ViabilityMeterProps {
-  value: number;  // 0-100
+  value: number; // 0-100
   risks: ViabilityRisk[];
   showWarning: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 
 export interface RisksListProps {
@@ -329,12 +330,8 @@ export interface InterventionOptionsProps {
 // FILE: frontend/src/types/ideation-state.ts
 // =============================================================================
 
-import type {
-  IdeationMessage,
-  IdeaCandidate,
-  ViabilityRisk,
-} from './index';
-import type { TokenUsageInfo, EntryMode } from './ideation';
+import type { IdeationMessage, IdeaCandidate, ViabilityRisk } from "./index";
+import type { TokenUsageInfo, EntryMode } from "./ideation";
 
 // -----------------------------------------------------------------------------
 // Session State
@@ -343,7 +340,7 @@ import type { TokenUsageInfo, EntryMode } from './ideation';
 export interface IdeationSessionState {
   sessionId: string | null;
   profileId: string;
-  status: 'idle' | 'loading' | 'active' | 'completed' | 'abandoned' | 'error';
+  status: "idle" | "loading" | "active" | "completed" | "abandoned" | "error";
   entryMode: EntryMode;
   error: string | null;
 }
@@ -362,7 +359,7 @@ export interface CandidateState {
   viability: number;
   risks: ViabilityRisk[];
   showIntervention: boolean;
-  interventionType: 'warning' | 'critical' | null;
+  interventionType: "warning" | "critical" | null;
 }
 
 export interface TokenState {
@@ -387,28 +384,40 @@ export interface IdeationStore {
 // -----------------------------------------------------------------------------
 
 export type IdeationAction =
-  | { type: 'SESSION_START'; payload: { profileId: string; entryMode: EntryMode } }
-  | { type: 'SESSION_CREATED'; payload: { sessionId: string; greeting: string } }
-  | { type: 'SESSION_ERROR'; payload: { error: string } }
-  | { type: 'SESSION_COMPLETE'; payload: { ideaId: string } }
-  | { type: 'SESSION_ABANDON' }
-  | { type: 'MESSAGE_SEND'; payload: { content: string } }
-  | { type: 'MESSAGE_STREAM_START' }
-  | { type: 'MESSAGE_STREAM_CHUNK'; payload: { chunk: string } }
-  | { type: 'MESSAGE_STREAM_END'; payload: { message: IdeationMessage } }
-  | { type: 'MESSAGE_RECEIVED'; payload: { message: IdeationMessage } }
-  | { type: 'MESSAGE_ERROR'; payload: { error: string } }
-  | { type: 'BUTTON_CLICK'; payload: { buttonId: string; buttonValue: string } }
-  | { type: 'FORM_SUBMIT'; payload: { formId: string; answers: Record<string, unknown> } }
-  | { type: 'CANDIDATE_UPDATE'; payload: { candidate: IdeaCandidate } }
-  | { type: 'CANDIDATE_CLEAR' }
-  | { type: 'CONFIDENCE_UPDATE'; payload: { confidence: number } }
-  | { type: 'VIABILITY_UPDATE'; payload: { viability: number; risks: ViabilityRisk[] } }
-  | { type: 'INTERVENTION_SHOW'; payload: { type: 'warning' | 'critical' } }
-  | { type: 'INTERVENTION_DISMISS' }
-  | { type: 'TOKEN_UPDATE'; payload: { usage: TokenUsageInfo } }
-  | { type: 'HANDOFF_PENDING' }
-  | { type: 'HANDOFF_COMPLETE' };
+  | {
+      type: "SESSION_START";
+      payload: { profileId: string; entryMode: EntryMode };
+    }
+  | {
+      type: "SESSION_CREATED";
+      payload: { sessionId: string; greeting: string };
+    }
+  | { type: "SESSION_ERROR"; payload: { error: string } }
+  | { type: "SESSION_COMPLETE"; payload: { ideaId: string } }
+  | { type: "SESSION_ABANDON" }
+  | { type: "MESSAGE_SEND"; payload: { content: string } }
+  | { type: "MESSAGE_STREAM_START" }
+  | { type: "MESSAGE_STREAM_CHUNK"; payload: { chunk: string } }
+  | { type: "MESSAGE_STREAM_END"; payload: { message: IdeationMessage } }
+  | { type: "MESSAGE_RECEIVED"; payload: { message: IdeationMessage } }
+  | { type: "MESSAGE_ERROR"; payload: { error: string } }
+  | { type: "BUTTON_CLICK"; payload: { buttonId: string; buttonValue: string } }
+  | {
+      type: "FORM_SUBMIT";
+      payload: { formId: string; answers: Record<string, unknown> };
+    }
+  | { type: "CANDIDATE_UPDATE"; payload: { candidate: IdeaCandidate } }
+  | { type: "CANDIDATE_CLEAR" }
+  | { type: "CONFIDENCE_UPDATE"; payload: { confidence: number } }
+  | {
+      type: "VIABILITY_UPDATE";
+      payload: { viability: number; risks: ViabilityRisk[] };
+    }
+  | { type: "INTERVENTION_SHOW"; payload: { type: "warning" | "critical" } }
+  | { type: "INTERVENTION_DISMISS" }
+  | { type: "TOKEN_UPDATE"; payload: { usage: TokenUsageInfo } }
+  | { type: "HANDOFF_PENDING" }
+  | { type: "HANDOFF_COMPLETE" };
 ```
 
 ---

@@ -9,13 +9,13 @@
 
 The AI resume screening market is **validated as a real, growing opportunity** with significant pain points that existing solutions fail to address. However, this is a **crowded, well-funded space** with regulatory headwinds that require strategic differentiation.
 
-| Dimension | Assessment | Confidence |
-|-----------|------------|------------|
-| Market Size | $3.1B (2024) → $10.3B (2033) | High |
-| Pain Points | Real & Severe | High |
-| Competition | Intense but fragmented | High |
-| Timing | Good (with regulatory caution) | Medium |
-| Entry Barriers | Moderate-High | Medium |
+| Dimension      | Assessment                     | Confidence |
+| -------------- | ------------------------------ | ---------- |
+| Market Size    | $3.1B (2024) → $10.3B (2033)   | High       |
+| Pain Points    | Real & Severe                  | High       |
+| Competition    | Intense but fragmented         | High       |
+| Timing         | Good (with regulatory caution) | Medium     |
+| Entry Barriers | Moderate-High                  | Medium     |
 
 **Revised Viability Score: 72%** (down from 75% due to competition intensity and regulatory complexity)
 
@@ -25,12 +25,12 @@ The AI resume screening market is **validated as a real, growing opportunity** w
 
 ### Validated Market Data
 
-| Metric | Value | Source |
-|--------|-------|--------|
-| AI Recruiting Software Market (2024) | $3.1 billion | Verified Market Reports |
-| Projected Market (2033) | $10.3 billion | Verified Market Reports |
-| CAGR (2026-2033) | 15.5% | Industry Analysis |
-| AI-Powered Resume Builders (2024) | $400 million | FutureDataStats |
+| Metric                               | Value         | Source                  |
+| ------------------------------------ | ------------- | ----------------------- |
+| AI Recruiting Software Market (2024) | $3.1 billion  | Verified Market Reports |
+| Projected Market (2033)              | $10.3 billion | Verified Market Reports |
+| CAGR (2026-2033)                     | 15.5%         | Industry Analysis       |
+| AI-Powered Resume Builders (2024)    | $400 million  | FutureDataStats         |
 
 ### Adoption Statistics (2025)
 
@@ -53,12 +53,12 @@ The AI resume screening market is **validated as a real, growing opportunity** w
 
 ### Tier 1: Enterprise Players (>$5,000/year)
 
-| Competitor | Pricing | Strengths | Weaknesses |
-|------------|---------|-----------|------------|
-| **Greenhouse** | $5,000+/year | 530+ integrations, structured hiring | Complex UI, requires training |
-| **Lever** | Custom | ATS + CRM, DEI tools | Limited customization, API fees |
-| **HireVue** | $35,000+/year | Video AI, game-based assessments | Expensive, accessibility issues |
-| **Workday** | Enterprise | Fortune 500 market share | 3.19/5 satisfaction, complex |
+| Competitor     | Pricing       | Strengths                            | Weaknesses                      |
+| -------------- | ------------- | ------------------------------------ | ------------------------------- |
+| **Greenhouse** | $5,000+/year  | 530+ integrations, structured hiring | Complex UI, requires training   |
+| **Lever**      | Custom        | ATS + CRM, DEI tools                 | Limited customization, API fees |
+| **HireVue**    | $35,000+/year | Video AI, game-based assessments     | Expensive, accessibility issues |
+| **Workday**    | Enterprise    | Fortune 500 market share             | 3.19/5 satisfaction, complex    |
 
 ### Tier 2: Mid-Market ($1,000-$5,000/year)
 
@@ -75,15 +75,16 @@ The AI resume screening market is **validated as a real, growing opportunity** w
 
 ### Well-Funded New Entrants
 
-| Startup | Funding | Differentiator |
-|---------|---------|----------------|
-| **Mercor** | $100M Series B @ $2B valuation | AI-first matching |
-| **Tezi (Max)** | Funded | "Fully autonomous" AI recruiter |
-| **Job&Talent** | ~$1B total | Local job matching |
+| Startup        | Funding                        | Differentiator                  |
+| -------------- | ------------------------------ | ------------------------------- |
+| **Mercor**     | $100M Series B @ $2B valuation | AI-first matching               |
+| **Tezi (Max)** | Funded                         | "Fully autonomous" AI recruiter |
+| **Job&Talent** | ~$1B total                     | Local job matching              |
 
 ### Competitive Gap Analysis
 
 **Underserved Segments:**
+
 1. **SMBs that hire 20-100 people/year** - Too big for spreadsheets, can't afford enterprise
 2. **Compliance-first buyers** - Illinois, NYC, Colorado regulations create demand for auditable AI
 3. **Integration-obsessed mid-market** - 40% of applicants lost due to system silos
@@ -96,13 +97,13 @@ The AI resume screening market is **validated as a real, growing opportunity** w
 
 ### Accuracy & Bias Problems
 
-| Issue | Evidence | Severity |
-|-------|----------|----------|
-| AI rejects qualified candidates | Harvard: 10M+ qualified candidates rejected due to rigid filtering | Critical |
-| Gender bias | Stanford (Oct 2025): AI favored older males over females | Critical |
-| Racial bias | U of Hong Kong (May 2025): LLMs scored Black males lower than white males | Critical |
-| Disability discrimination | ACLU complaint: 22% error rate for non-native speakers | High |
-| Employer acknowledgment | 79% of employers believe AI screens out worthy candidates | High |
+| Issue                           | Evidence                                                                  | Severity |
+| ------------------------------- | ------------------------------------------------------------------------- | -------- |
+| AI rejects qualified candidates | Harvard: 10M+ qualified candidates rejected due to rigid filtering        | Critical |
+| Gender bias                     | Stanford (Oct 2025): AI favored older males over females                  | Critical |
+| Racial bias                     | U of Hong Kong (May 2025): LLMs scored Black males lower than white males | Critical |
+| Disability discrimination       | ACLU complaint: 22% error rate for non-native speakers                    | High     |
+| Employer acknowledgment         | 79% of employers believe AI screens out worthy candidates                 | High     |
 
 ### Trust Gap
 
@@ -131,24 +132,28 @@ The AI resume screening market is **validated as a real, growing opportunity** w
 ### Confirmed Segments
 
 #### 1. SMB Recruiters (20-500 employees)
+
 - **Need:** Affordable ATS that works
 - **Budget:** $25-500/month
 - **Pain:** Competing with big company salaries AND recruiter time
 - **Validation:** 63% cite lack of qualified candidates as #1 challenge
 
 #### 2. Growing In-House HR Teams
+
 - **Need:** Scale hiring without adding headcount
 - **Budget:** $1,000-5,000/year
 - **Pain:** Prolonged hiring causing burnout and turnover
 - **Validation:** Nearly half of SMB managers experience higher turnover from slow hiring
 
 #### 3. Staffing Agencies (Mid-Market)
+
 - **Need:** High-volume processing with accuracy
 - **Budget:** Per-placement or monthly subscription
 - **Pain:** Candidate matching accuracy, client integrations
 - **Validation:** Bullhorn, Vincere serve this segment, but gaps exist
 
 #### 4. Compliance-Conscious Enterprises
+
 - **Need:** Auditable AI, bias documentation
 - **Budget:** Premium for compliance
 - **Pain:** Illinois, NYC, Colorado laws require annual audits
@@ -162,12 +167,12 @@ The AI resume screening market is **validated as a real, growing opportunity** w
 
 ### Active/Upcoming Laws
 
-| Jurisdiction | Effective Date | Key Requirements |
-|--------------|----------------|------------------|
-| **NYC Local Law 144** | Jan 1, 2023 | Annual bias audits, candidate notice |
-| **Illinois HB 3773** | Jan 1, 2026 | Notice, prohibition on discriminatory AI |
-| **Colorado SB 24-205** | June 30, 2026 | Impact assessments, transparency |
-| **California** | Pending | Similar to Colorado |
+| Jurisdiction           | Effective Date | Key Requirements                         |
+| ---------------------- | -------------- | ---------------------------------------- |
+| **NYC Local Law 144**  | Jan 1, 2023    | Annual bias audits, candidate notice     |
+| **Illinois HB 3773**   | Jan 1, 2026    | Notice, prohibition on discriminatory AI |
+| **Colorado SB 24-205** | June 30, 2026  | Impact assessments, transparency         |
+| **California**         | Pending        | Similar to Colorado                      |
 
 ### Federal Landscape
 
@@ -205,6 +210,7 @@ The AI resume screening market is **validated as a real, growing opportunity** w
 ### Timing Verdict
 
 **Window:** 12-18 months to establish position before:
+
 1. Enterprise players fully integrate AI
 2. Regulations become standardized
 3. Consolidation wave begins
@@ -217,26 +223,26 @@ The AI resume screening market is **validated as a real, growing opportunity** w
 
 ### High Severity
 
-| Risk | Description | Mitigation |
-|------|-------------|------------|
-| **Competition** | $100M+ funded competitors | Niche focus (compliance, SMB, vertical) |
-| **Bias liability** | Class actions happening now | Build explainable AI from day one |
-| **Regulatory fragmentation** | Different rules per state | Compliance-as-feature strategy |
+| Risk                         | Description                 | Mitigation                              |
+| ---------------------------- | --------------------------- | --------------------------------------- |
+| **Competition**              | $100M+ funded competitors   | Niche focus (compliance, SMB, vertical) |
+| **Bias liability**           | Class actions happening now | Build explainable AI from day one       |
+| **Regulatory fragmentation** | Different rules per state   | Compliance-as-feature strategy          |
 
 ### Medium Severity
 
-| Risk | Description | Mitigation |
-|------|-------------|------------|
-| **Trust gap** | Candidates distrust AI screening | Hybrid human-AI approach |
-| **Integration complexity** | HRIS/ATS ecosystem fragmented | Focus on top 10 integrations first |
-| **Enterprise incumbents** | May add SMB tiers | Move fast, build community |
+| Risk                       | Description                      | Mitigation                         |
+| -------------------------- | -------------------------------- | ---------------------------------- |
+| **Trust gap**              | Candidates distrust AI screening | Hybrid human-AI approach           |
+| **Integration complexity** | HRIS/ATS ecosystem fragmented    | Focus on top 10 integrations first |
+| **Enterprise incumbents**  | May add SMB tiers                | Move fast, build community         |
 
 ### Low Severity
 
-| Risk | Description | Mitigation |
-|------|-------------|------------|
-| **Technical feasibility** | AI accuracy is solvable | Focus on accuracy metrics |
-| **Market awareness** | SMBs know they need help | Content marketing |
+| Risk                      | Description              | Mitigation                |
+| ------------------------- | ------------------------ | ------------------------- |
+| **Technical feasibility** | AI accuracy is solvable  | Focus on accuracy metrics |
+| **Market awareness**      | SMBs know they need help | Content marketing         |
 
 ---
 
@@ -276,14 +282,14 @@ The AI resume screening market is **validated as a real, growing opportunity** w
 
 ## 9. Viability Score Update
 
-| Factor | Previous | Updated | Rationale |
-|--------|----------|---------|-----------|
-| Market Size | 8/10 | 9/10 | Larger than initially estimated |
-| Competition | 5/10 | 4/10 | More intense than expected |
-| Pain Points | 7/10 | 9/10 | Strongly validated |
-| Target Customer | 5/10 | 8/10 | Clear segments identified |
-| Timing | 7/10 | 6/10 | Urgent, regulatory complexity |
-| Execution Risk | 6/10 | 5/10 | Bias liability is real |
+| Factor          | Previous | Updated | Rationale                       |
+| --------------- | -------- | ------- | ------------------------------- |
+| Market Size     | 8/10     | 9/10    | Larger than initially estimated |
+| Competition     | 5/10     | 4/10    | More intense than expected      |
+| Pain Points     | 7/10     | 9/10    | Strongly validated              |
+| Target Customer | 5/10     | 8/10    | Clear segments identified       |
+| Timing          | 7/10     | 6/10    | Urgent, regulatory complexity   |
+| Execution Risk  | 6/10     | 5/10    | Bias liability is real          |
 
 **Overall Viability: 72%** (was 75%)
 
@@ -296,6 +302,7 @@ The AI resume screening market is **validated as a real, growing opportunity** w
 The AI Resume Screening Tool idea is **validated as a real market opportunity**. The pain points are genuine, the market is large and growing, and clear gaps exist for differentiated positioning.
 
 **Key insight:** This is not a "build it and they will come" market. Success requires:
+
 1. **Clear positioning** in a crowded space
 2. **Compliance-first architecture** given regulatory trends
 3. **Accuracy metrics** that prove value over speed

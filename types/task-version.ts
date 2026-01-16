@@ -5,7 +5,7 @@
  * Part of: Task System V2 Implementation Plan (IMPL-2.6)
  */
 
-import { Task, TaskStatus } from './task-agent.js';
+import { Task, TaskStatus } from "./task-agent.js";
 
 /**
  * Task version entity
@@ -15,7 +15,7 @@ export interface TaskVersion {
   taskId: string;
   version: number;
 
-  snapshot: Record<string, unknown>;  // Full task state
+  snapshot: Record<string, unknown>; // Full task state
   changedFields: string[];
   changeReason?: string;
 
@@ -65,8 +65,8 @@ export interface TaskVersionRow {
   id: string;
   task_id: string;
   version: number;
-  snapshot: string;  // JSON
-  changed_fields: string;  // JSON array
+  snapshot: string; // JSON
+  changed_fields: string; // JSON array
   change_reason: string | null;
   is_checkpoint: number;
   checkpoint_name: string | null;
@@ -101,7 +101,7 @@ export interface TaskStateHistoryEntry {
   fromStatus: TaskStatus | null;
   toStatus: TaskStatus;
   changedBy: string;
-  actorType: 'user' | 'agent' | 'system';
+  actorType: "user" | "agent" | "system";
   reason?: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
@@ -118,21 +118,23 @@ export interface TaskStateHistoryRow {
   changed_by: string;
   actor_type: string;
   reason: string | null;
-  metadata: string | null;  // JSON
+  metadata: string | null; // JSON
   created_at: string;
 }
 
 /**
  * Map database row to TaskStateHistoryEntry
  */
-export function mapTaskStateHistoryRow(row: TaskStateHistoryRow): TaskStateHistoryEntry {
+export function mapTaskStateHistoryRow(
+  row: TaskStateHistoryRow,
+): TaskStateHistoryEntry {
   return {
     id: row.id,
     taskId: row.task_id,
     fromStatus: row.from_status as TaskStatus | null,
     toStatus: row.to_status as TaskStatus,
     changedBy: row.changed_by,
-    actorType: row.actor_type as 'user' | 'agent' | 'system',
+    actorType: row.actor_type as "user" | "agent" | "system",
     reason: row.reason || undefined,
     metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
     createdAt: row.created_at,
@@ -144,7 +146,7 @@ export function mapTaskStateHistoryRow(row: TaskStateHistoryRow): TaskStateHisto
  */
 export interface TaskTimeAnalytics {
   taskId: string;
-  timeInStatus: Record<TaskStatus, number>;  // milliseconds per status
+  timeInStatus: Record<TaskStatus, number>; // milliseconds per status
   totalTransitions: number;
   averageTimePerStatus: number;
   longestStatus: TaskStatus;

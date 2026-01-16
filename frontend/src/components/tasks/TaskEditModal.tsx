@@ -13,7 +13,7 @@
  * Part of: PTE-137, PTE-138
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   X,
   Save,
@@ -25,15 +25,15 @@ import {
   Flag,
   Clock,
   RefreshCw,
-} from 'lucide-react';
+} from "lucide-react";
 import type {
   Task,
   TaskCategory,
   TaskPriority,
   TaskEffort,
   ComponentType,
-} from '../../types/task-agent';
-import FileImpactEditor from './FileImpactEditor';
+} from "../../types/task-agent";
+import FileImpactEditor from "./FileImpactEditor";
 
 interface TaskEditModalProps {
   /** Task to edit (null to close) */
@@ -46,53 +46,61 @@ interface TaskEditModalProps {
 
 // Category options
 const CATEGORY_OPTIONS: Array<{ value: TaskCategory; label: string }> = [
-  { value: 'feature', label: 'Feature' },
-  { value: 'bug', label: 'Bug' },
-  { value: 'task', label: 'Task' },
-  { value: 'story', label: 'Story' },
-  { value: 'epic', label: 'Epic' },
-  { value: 'spike', label: 'Spike' },
-  { value: 'improvement', label: 'Improvement' },
-  { value: 'documentation', label: 'Documentation' },
-  { value: 'test', label: 'Test' },
-  { value: 'devops', label: 'DevOps' },
-  { value: 'design', label: 'Design' },
-  { value: 'research', label: 'Research' },
-  { value: 'infrastructure', label: 'Infrastructure' },
-  { value: 'security', label: 'Security' },
-  { value: 'performance', label: 'Performance' },
-  { value: 'other', label: 'Other' },
+  { value: "feature", label: "Feature" },
+  { value: "bug", label: "Bug" },
+  { value: "task", label: "Task" },
+  { value: "story", label: "Story" },
+  { value: "epic", label: "Epic" },
+  { value: "spike", label: "Spike" },
+  { value: "improvement", label: "Improvement" },
+  { value: "documentation", label: "Documentation" },
+  { value: "test", label: "Test" },
+  { value: "devops", label: "DevOps" },
+  { value: "design", label: "Design" },
+  { value: "research", label: "Research" },
+  { value: "infrastructure", label: "Infrastructure" },
+  { value: "security", label: "Security" },
+  { value: "performance", label: "Performance" },
+  { value: "other", label: "Other" },
 ];
 
 // Priority options
-const PRIORITY_OPTIONS: Array<{ value: TaskPriority; label: string; color: string }> = [
-  { value: 'P1', label: 'Critical (P1)', color: 'text-red-600' },
-  { value: 'P2', label: 'High (P2)', color: 'text-orange-600' },
-  { value: 'P3', label: 'Medium (P3)', color: 'text-yellow-600' },
-  { value: 'P4', label: 'Low (P4)', color: 'text-green-600' },
+const PRIORITY_OPTIONS: Array<{
+  value: TaskPriority;
+  label: string;
+  color: string;
+}> = [
+  { value: "P1", label: "Critical (P1)", color: "text-red-600" },
+  { value: "P2", label: "High (P2)", color: "text-orange-600" },
+  { value: "P3", label: "Medium (P3)", color: "text-yellow-600" },
+  { value: "P4", label: "Low (P4)", color: "text-green-600" },
 ];
 
 // Effort options
 const EFFORT_OPTIONS: Array<{ value: TaskEffort; label: string }> = [
-  { value: 'trivial', label: 'Trivial (< 1 hour)' },
-  { value: 'small', label: 'Small (1-4 hours)' },
-  { value: 'medium', label: 'Medium (1-2 days)' },
-  { value: 'large', label: 'Large (3-5 days)' },
-  { value: 'epic', label: 'Epic (1+ weeks)' },
+  { value: "trivial", label: "Trivial (< 1 hour)" },
+  { value: "small", label: "Small (1-4 hours)" },
+  { value: "medium", label: "Medium (1-2 days)" },
+  { value: "large", label: "Large (3-5 days)" },
+  { value: "epic", label: "Epic (1+ weeks)" },
 ];
 
 // Component type options (PTE-138)
-const COMPONENT_OPTIONS: Array<{ value: ComponentType; label: string; icon: string }> = [
-  { value: 'database', label: 'Database', icon: '💾' },
-  { value: 'types', label: 'Types', icon: '📝' },
-  { value: 'api', label: 'API', icon: '🔌' },
-  { value: 'service', label: 'Service', icon: '⚙️' },
-  { value: 'ui', label: 'UI', icon: '🎨' },
-  { value: 'test', label: 'Test', icon: '🧪' },
-  { value: 'config', label: 'Config', icon: '⚡' },
-  { value: 'documentation', label: 'Documentation', icon: '📚' },
-  { value: 'infrastructure', label: 'Infrastructure', icon: '🏗️' },
-  { value: 'other', label: 'Other', icon: '📦' },
+const COMPONENT_OPTIONS: Array<{
+  value: ComponentType;
+  label: string;
+  icon: string;
+}> = [
+  { value: "database", label: "Database", icon: "💾" },
+  { value: "types", label: "Types", icon: "📝" },
+  { value: "api", label: "API", icon: "🔌" },
+  { value: "service", label: "Service", icon: "⚙️" },
+  { value: "ui", label: "UI", icon: "🎨" },
+  { value: "test", label: "Test", icon: "🧪" },
+  { value: "config", label: "Config", icon: "⚡" },
+  { value: "documentation", label: "Documentation", icon: "📚" },
+  { value: "infrastructure", label: "Infrastructure", icon: "🏗️" },
+  { value: "other", label: "Other", icon: "📦" },
 ];
 
 export default function TaskEditModal({
@@ -101,11 +109,11 @@ export default function TaskEditModal({
   onSave,
 }: TaskEditModalProps): JSX.Element | null {
   // Form state
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<TaskCategory>('task');
-  const [priority, setPriority] = useState<TaskPriority>('P2');
-  const [effort, setEffort] = useState<TaskEffort>('medium');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<TaskCategory>("task");
+  const [priority, setPriority] = useState<TaskPriority>("P2");
+  const [effort, setEffort] = useState<TaskEffort>("medium");
   const [componentTypes, setComponentTypes] = useState<ComponentType[]>([]);
 
   // UI state
@@ -118,7 +126,7 @@ export default function TaskEditModal({
   useEffect(() => {
     if (task) {
       setTitle(task.title);
-      setDescription(task.description || '');
+      setDescription(task.description || "");
       setCategory(task.category);
       setPriority(task.priority);
       setEffort(task.effort);
@@ -132,7 +140,7 @@ export default function TaskEditModal({
 
     const hasSignificantChange =
       title !== task.title ||
-      description !== (task.description || '') ||
+      description !== (task.description || "") ||
       category !== task.category;
 
     setWillReanalyze(hasSignificantChange);
@@ -156,8 +164,8 @@ export default function TaskEditModal({
       setError(null);
 
       const response = await fetch(`/api/task-agent/tasks/${task.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
           description: description || null,
@@ -170,14 +178,14 @@ export default function TaskEditModal({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to save task');
+        throw new Error(data.error || "Failed to save task");
       }
 
       const result = await response.json();
       onSave(result.task);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(false);
     }
@@ -189,10 +197,7 @@ export default function TaskEditModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -332,8 +337,8 @@ export default function TaskEditModal({
                   onClick={() => toggleComponentType(opt.value)}
                   className={`px-3 py-1.5 rounded-lg border text-sm transition-colors flex items-center gap-1.5 ${
                     componentTypes.includes(opt.value)
-                      ? 'bg-primary-100 border-primary-400 text-primary-700'
-                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
+                      ? "bg-primary-100 border-primary-400 text-primary-700"
+                      : "bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300"
                   }`}
                 >
                   <span>{opt.icon}</span>

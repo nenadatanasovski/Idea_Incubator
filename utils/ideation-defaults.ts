@@ -1,4 +1,9 @@
-import { SelfDiscoveryState, MarketDiscoveryState, NarrowingState, IdeaTypeSelectionState } from '../types/ideation.js';
+import {
+  SelfDiscoveryState,
+  MarketDiscoveryState,
+  NarrowingState,
+  IdeaTypeSelectionState,
+} from "../types/ideation.js";
 
 export function createDefaultSelfDiscoveryState(): SelfDiscoveryState {
   return {

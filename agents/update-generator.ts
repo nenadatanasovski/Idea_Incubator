@@ -9,12 +9,16 @@
  * - Financial allocation (Position phase)
  */
 
-import { client } from '../utils/anthropic-client.js';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { logInfo } from '../utils/logger.js';
-import { getConfig } from '../config/index.js';
-import { EvaluationParseError } from '../utils/errors.js';
-import type { DifferentiationAnalysis, ProfileContext, StrategicApproach } from '../types/incubation.js';
+import { client } from "../utils/anthropic-client.js";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { logInfo } from "../utils/logger.js";
+import { getConfig } from "../config/index.js";
+import { EvaluationParseError } from "../utils/errors.js";
+import type {
+  DifferentiationAnalysis,
+  ProfileContext,
+  StrategicApproach,
+} from "../types/incubation.js";
 
 const UPDATE_GENERATOR_SYSTEM_PROMPT = `You are an Idea Refinement Agent for idea incubation.
 
@@ -68,8 +72,8 @@ export interface QAContext {
 export interface RiskResponseContext {
   riskId: string;
   riskDescription: string;
-  riskSeverity: 'high' | 'medium' | 'low';
-  response: 'mitigate' | 'accept' | 'monitor' | 'disagree' | 'skip';
+  riskSeverity: "high" | "medium" | "low";
+  response: "mitigate" | "accept" | "monitor" | "disagree" | "skip";
   disagreeReason?: string;
   reasoning?: string;
   mitigationPlan?: string;
@@ -80,7 +84,7 @@ export interface PositioningContext {
   primaryStrategyId?: string;
   primaryStrategyName?: string;
   secondaryStrategyName?: string;
-  timingDecision?: 'proceed_now' | 'wait' | 'urgent';
+  timingDecision?: "proceed_now" | "wait" | "urgent";
   timingRationale?: string;
   strategicApproach?: StrategicApproach;
   notes?: string;
@@ -93,7 +97,12 @@ export interface FinancialContext {
   allocatedRunwayMonths?: number;
   targetIncome?: number;
   incomeTimelineMonths?: number;
-  incomeType?: 'full_replacement' | 'partial_replacement' | 'supplement' | 'wealth_building' | 'learning';
+  incomeType?:
+    | "full_replacement"
+    | "partial_replacement"
+    | "supplement"
+    | "wealth_building"
+    | "learning";
   validationBudget?: number;
   killCriteria?: string;
   strategicApproach?: StrategicApproach;
@@ -117,32 +126,34 @@ export interface ExtendedAnalysisContext {
 /**
  * Format risk responses for inclusion in the update prompt
  */
-function formatRiskResponseContext(riskResponses: RiskResponseContext[]): string {
-  if (!riskResponses || riskResponses.length === 0) return '';
+function formatRiskResponseContext(
+  riskResponses: RiskResponseContext[],
+): string {
+  if (!riskResponses || riskResponses.length === 0) return "";
 
   const formatted = riskResponses
-    .filter(r => r.response !== 'skip')
-    .map(r => {
+    .filter((r) => r.response !== "skip")
+    .map((r) => {
       switch (r.response) {
-        case 'mitigate':
+        case "mitigate":
           return `USER WILL MITIGATE: "${r.riskDescription}"
-  Plan: ${r.mitigationPlan || 'Not specified'}
+  Plan: ${r.mitigationPlan || "Not specified"}
   → Suggest content that supports this mitigation strategy`;
 
-        case 'disagree':
+        case "disagree":
           return `USER DISAGREES WITH RISK: "${r.riskDescription}"
-  Reason: ${r.disagreeReason || 'Not specified'}
-  Explanation: ${r.reasoning || 'None provided'}
+  Reason: ${r.disagreeReason || "Not specified"}
+  Explanation: ${r.reasoning || "None provided"}
   → Do NOT emphasize this risk in updates. User has context we don't.`;
 
-        case 'monitor':
+        case "monitor":
           return `USER WILL MONITOR: "${r.riskDescription}"
-  ${r.mitigationPlan ? `Notes: ${r.mitigationPlan}` : ''}
+  ${r.mitigationPlan ? `Notes: ${r.mitigationPlan}` : ""}
   → Include monitoring checkpoints in suggested timeline`;
 
-        case 'accept':
+        case "accept":
           return `USER ACCEPTS RISK: "${r.riskDescription}"
-  ${r.reasoning ? `Notes: ${r.reasoning}` : ''}
+  ${r.reasoning ? `Notes: ${r.reasoning}` : ""}
   → Acknowledge but don't over-emphasize`;
 
         default:
@@ -151,13 +162,13 @@ function formatRiskResponseContext(riskResponses: RiskResponseContext[]): string
     })
     .filter(Boolean);
 
-  if (formatted.length === 0) return '';
+  if (formatted.length === 0) return "";
 
   return `
 USER'S RISK ASSESSMENT:
 The user has reviewed the competitive risks and provided their perspective:
 
-${formatted.join('\n\n')}
+${formatted.join("\n\n")}
 
 Use this context to tailor your update suggestions. Respect user's insider
 knowledge when they disagree with AI-identified risks.`;
@@ -167,7 +178,7 @@ knowledge when they disagree with AI-identified risks.`;
  * Format positioning decisions for the prompt
  */
 function formatPositioningContext(ctx: PositioningContext | undefined): string {
-  if (!ctx) return '';
+  if (!ctx) return "";
 
   const parts: string[] = [];
 
@@ -180,9 +191,9 @@ function formatPositioningContext(ctx: PositioningContext | undefined): string {
 
   if (ctx.timingDecision) {
     const timingLabels = {
-      proceed_now: 'PROCEED NOW - User is ready to execute',
-      wait: 'WAIT - User wants to delay execution',
-      urgent: 'URGENT - Time-sensitive opportunity'
+      proceed_now: "PROCEED NOW - User is ready to execute",
+      wait: "WAIT - User wants to delay execution",
+      urgent: "URGENT - Time-sensitive opportunity",
     };
     parts.push(`TIMING DECISION: ${timingLabels[ctx.timingDecision]}`);
     if (ctx.timingRationale) {
@@ -192,25 +203,29 @@ function formatPositioningContext(ctx: PositioningContext | undefined): string {
 
   if (ctx.strategicApproach) {
     const approachLabels: Record<string, string> = {
-      create: 'CREATE - Building something genuinely new (high risk, long timeline)',
-      copy_improve: 'COPY & IMPROVE - Take proven model, execute better (low risk, fast)',
-      combine: 'COMBINE - Merge two validated concepts (medium risk)',
-      localize: 'LOCALIZE - Proven model, new geography/segment (low risk)',
-      specialize: 'SPECIALIZE - Narrow general solution to niche (low risk)',
-      time: 'TIME - Retry failed concept, market now ready (variable)'
+      create:
+        "CREATE - Building something genuinely new (high risk, long timeline)",
+      copy_improve:
+        "COPY & IMPROVE - Take proven model, execute better (low risk, fast)",
+      combine: "COMBINE - Merge two validated concepts (medium risk)",
+      localize: "LOCALIZE - Proven model, new geography/segment (low risk)",
+      specialize: "SPECIALIZE - Narrow general solution to niche (low risk)",
+      time: "TIME - Retry failed concept, market now ready (variable)",
     };
-    parts.push(`STRATEGIC APPROACH: ${approachLabels[ctx.strategicApproach] || ctx.strategicApproach}`);
+    parts.push(
+      `STRATEGIC APPROACH: ${approachLabels[ctx.strategicApproach] || ctx.strategicApproach}`,
+    );
   }
 
   if (ctx.notes) {
     parts.push(`USER NOTES: ${ctx.notes}`);
   }
 
-  if (parts.length === 0) return '';
+  if (parts.length === 0) return "";
 
   return `
 USER'S POSITIONING DECISIONS:
-${parts.join('\n')}
+${parts.join("\n")}
 
 Frame the idea according to these decisions. The selected strategy and timing are the user's choices.`;
 }
@@ -219,7 +234,7 @@ Frame the idea according to these decisions. The selected strategy and timing ar
  * Format financial context for the prompt
  */
 function formatFinancialContext(ctx: FinancialContext | undefined): string {
-  if (!ctx) return '';
+  if (!ctx) return "";
 
   const parts: string[] = [];
 
@@ -230,39 +245,51 @@ function formatFinancialContext(ctx: FinancialContext | undefined): string {
   if (ctx.allocatedWeeklyHours !== undefined && ctx.allocatedWeeklyHours > 0) {
     parts.push(`- Weekly Hours: ${ctx.allocatedWeeklyHours}h/week`);
   }
-  if (ctx.allocatedRunwayMonths !== undefined && ctx.allocatedRunwayMonths > 0) {
+  if (
+    ctx.allocatedRunwayMonths !== undefined &&
+    ctx.allocatedRunwayMonths > 0
+  ) {
     parts.push(`- Runway: ${ctx.allocatedRunwayMonths} months`);
   }
 
   // Income goals
   if (ctx.targetIncome !== undefined && ctx.targetIncome > 0) {
-    const timeline = ctx.incomeTimelineMonths ? ` within ${ctx.incomeTimelineMonths} months` : '';
-    parts.push(`- Target Income: $${ctx.targetIncome.toLocaleString()}/year${timeline}`);
+    const timeline = ctx.incomeTimelineMonths
+      ? ` within ${ctx.incomeTimelineMonths} months`
+      : "";
+    parts.push(
+      `- Target Income: $${ctx.targetIncome.toLocaleString()}/year${timeline}`,
+    );
   }
   if (ctx.incomeType) {
     const incomeLabels: Record<string, string> = {
-      full_replacement: 'Full income replacement (must generate living wage)',
-      partial_replacement: 'Partial income replacement (supplementing other income)',
-      supplement: 'Supplemental income (extra money)',
-      wealth_building: 'Wealth building (equity play, income later)',
-      learning: 'Learning focused (income not primary goal)'
+      full_replacement: "Full income replacement (must generate living wage)",
+      partial_replacement:
+        "Partial income replacement (supplementing other income)",
+      supplement: "Supplemental income (extra money)",
+      wealth_building: "Wealth building (equity play, income later)",
+      learning: "Learning focused (income not primary goal)",
     };
-    parts.push(`- Income Type: ${incomeLabels[ctx.incomeType] || ctx.incomeType}`);
+    parts.push(
+      `- Income Type: ${incomeLabels[ctx.incomeType] || ctx.incomeType}`,
+    );
   }
 
   // Validation constraints
   if (ctx.validationBudget !== undefined && ctx.validationBudget > 0) {
-    parts.push(`- Validation Budget: $${ctx.validationBudget.toLocaleString()}`);
+    parts.push(
+      `- Validation Budget: $${ctx.validationBudget.toLocaleString()}`,
+    );
   }
   if (ctx.killCriteria) {
     parts.push(`- Kill Criteria: ${ctx.killCriteria}`);
   }
 
-  if (parts.length === 0) return '';
+  if (parts.length === 0) return "";
 
   return `
 FINANCIAL CONSTRAINTS:
-${parts.join('\n')}
+${parts.join("\n")}
 
 IMPORTANT: Tailor suggestions to fit within these constraints. Don't suggest
 approaches that exceed budget or time allocation. Kill criteria should inform
@@ -272,8 +299,10 @@ success metrics and go/no-go decision points.`;
 /**
  * Format extended analysis (market timing, roadmap)
  */
-function formatExtendedAnalysis(ctx: ExtendedAnalysisContext | undefined): string {
-  if (!ctx) return '';
+function formatExtendedAnalysis(
+  ctx: ExtendedAnalysisContext | undefined,
+): string {
+  if (!ctx) return "";
 
   const parts: string[] = [];
 
@@ -287,8 +316,10 @@ function formatExtendedAnalysis(ctx: ExtendedAnalysisContext | undefined): strin
       parts.push(`MARKET TIMING:`);
       if (mt.currentWindow) parts.push(`  Window: ${mt.currentWindow}`);
       if (mt.urgency) parts.push(`  Urgency: ${mt.urgency}`);
-      if (mt.keyTrends?.length) parts.push(`  Trends: ${mt.keyTrends.join(', ')}`);
-      if (mt.recommendation) parts.push(`  Recommendation: ${mt.recommendation}`);
+      if (mt.keyTrends?.length)
+        parts.push(`  Trends: ${mt.keyTrends.join(", ")}`);
+      if (mt.recommendation)
+        parts.push(`  Recommendation: ${mt.recommendation}`);
     }
   }
 
@@ -299,11 +330,11 @@ function formatExtendedAnalysis(ctx: ExtendedAnalysisContext | undefined): strin
     });
   }
 
-  if (parts.length === 0) return '';
+  if (parts.length === 0) return "";
 
   return `
 EXTENDED ANALYSIS:
-${parts.join('\n')}`;
+${parts.join("\n")}`;
 }
 
 /**
@@ -323,24 +354,31 @@ export async function generateUpdateSuggestions(
   riskResponses?: RiskResponseContext[],
   positioningContext?: PositioningContext,
   financialContext?: FinancialContext,
-  extendedAnalysis?: ExtendedAnalysisContext
+  extendedAnalysis?: ExtendedAnalysisContext,
 ): Promise<UpdateSuggestion> {
   const config = getConfig();
 
-  logInfo('Generating idea update suggestions...');
+  logInfo("Generating idea update suggestions...");
 
   // Get the selected strategy - prioritize user's stored selection over index
   const strategies = differentiationAnalysis.differentiationStrategies || [];
   if (strategies.length === 0) {
-    throw new EvaluationParseError('No differentiation strategies available. Run differentiation analysis first.');
+    throw new EvaluationParseError(
+      "No differentiation strategies available. Run differentiation analysis first.",
+    );
   }
 
   // Find strategy by ID if user selected one in Position phase, otherwise use index or first
   let selectedStrategy = strategies[0];
   if (positioningContext?.primaryStrategyId) {
-    const byId = strategies.find((s: any) => s.id === positioningContext.primaryStrategyId);
+    const byId = strategies.find(
+      (s: any) => s.id === positioningContext.primaryStrategyId,
+    );
     if (byId) selectedStrategy = byId;
-  } else if (selectedStrategyIndex !== null && selectedStrategyIndex < strategies.length) {
+  } else if (
+    selectedStrategyIndex !== null &&
+    selectedStrategyIndex < strategies.length
+  ) {
     selectedStrategy = strategies[selectedStrategyIndex];
   }
 
@@ -348,37 +386,50 @@ export async function generateUpdateSuggestions(
   const opportunities = differentiationAnalysis.marketOpportunities || [];
   const topOpportunities = opportunities
     .slice(0, 3)
-    .map(o => `${o.targetSegment || (o as any).segment || 'Unknown segment'}: ${o.description || 'No description'}`);
+    .map(
+      (o) =>
+        `${o.targetSegment || (o as any).segment || "Unknown segment"}: ${o.description || "No description"}`,
+    );
 
   const hasBasicProfile = profile.goals?.length || profile.skills?.length;
-  const hasExtendedProfile = profile.motivations || profile.domainConnection || profile.riskTolerance;
+  const hasExtendedProfile =
+    profile.motivations || profile.domainConnection || profile.riskTolerance;
 
-  const profileText = hasBasicProfile || hasExtendedProfile
-    ? `
+  const profileText =
+    hasBasicProfile || hasExtendedProfile
+      ? `
 USER PROFILE CONTEXT:
-${profile.goals?.length ? `- Goals: ${profile.goals.join(', ')}` : ''}
-${profile.successDefinition ? `- Success Definition: ${profile.successDefinition}` : ''}
-${profile.skills?.length ? `- Technical Skills: ${profile.skills.join(', ')}` : ''}
-${profile.domainExpertise?.length ? `- Domain Expertise: ${profile.domainExpertise.join(', ')}` : ''}
-${profile.interests?.length ? `- Interests: ${profile.interests.join(', ')}` : ''}
-${profile.motivations ? `- Motivations: ${profile.motivations}` : ''}
-${profile.domainConnection ? `- Domain Connection: ${profile.domainConnection}` : ''}
-${profile.professionalExperience ? `- Experience: ${profile.professionalExperience}` : ''}
-${profile.knownGaps ? `- Known Gaps: ${profile.knownGaps}` : ''}
-${profile.industryConnections?.length ? `- Industry Connections: ${profile.industryConnections.join(', ')}` : ''}
-${profile.professionalNetwork ? `- Network: ${profile.professionalNetwork}` : ''}
-${profile.employmentStatus ? `- Employment: ${profile.employmentStatus}` : ''}
-${profile.weeklyHoursAvailable ? `- Available Hours/Week: ${profile.weeklyHoursAvailable}` : ''}
-${profile.riskTolerance ? `- Risk Tolerance: ${profile.riskTolerance}` : ''}`.split('\n').filter(line => line.trim() && !line.trim().startsWith('-:')).join('\n')
-    : '';
+${profile.goals?.length ? `- Goals: ${profile.goals.join(", ")}` : ""}
+${profile.successDefinition ? `- Success Definition: ${profile.successDefinition}` : ""}
+${profile.skills?.length ? `- Technical Skills: ${profile.skills.join(", ")}` : ""}
+${profile.domainExpertise?.length ? `- Domain Expertise: ${profile.domainExpertise.join(", ")}` : ""}
+${profile.interests?.length ? `- Interests: ${profile.interests.join(", ")}` : ""}
+${profile.motivations ? `- Motivations: ${profile.motivations}` : ""}
+${profile.domainConnection ? `- Domain Connection: ${profile.domainConnection}` : ""}
+${profile.professionalExperience ? `- Experience: ${profile.professionalExperience}` : ""}
+${profile.knownGaps ? `- Known Gaps: ${profile.knownGaps}` : ""}
+${profile.industryConnections?.length ? `- Industry Connections: ${profile.industryConnections.join(", ")}` : ""}
+${profile.professionalNetwork ? `- Network: ${profile.professionalNetwork}` : ""}
+${profile.employmentStatus ? `- Employment: ${profile.employmentStatus}` : ""}
+${profile.weeklyHoursAvailable ? `- Available Hours/Week: ${profile.weeklyHoursAvailable}` : ""}
+${profile.riskTolerance ? `- Risk Tolerance: ${profile.riskTolerance}` : ""}`
+          .split("\n")
+          .filter((line) => line.trim() && !line.trim().startsWith("-:"))
+          .join("\n")
+      : "";
 
   // Build Q&A context from Clarify phase
-  const qaText = qaContext.length > 0
-    ? `
+  const qaText =
+    qaContext.length > 0
+      ? `
 CLARIFICATION Q&A (from discovery phase):
-${qaContext.map((qa, i) => `Q${i + 1}: ${qa.question}
-A${i + 1}: ${qa.answer}`).join('\n\n')}`
-    : '';
+${qaContext
+  .map(
+    (qa, i) => `Q${i + 1}: ${qa.question}
+A${i + 1}: ${qa.answer}`,
+  )
+  .join("\n\n")}`
+      : "";
 
   // Build context from Position phase
   const riskContext = formatRiskResponseContext(riskResponses || []);
@@ -390,37 +441,42 @@ A${i + 1}: ${qa.answer}`).join('\n\n')}`
     model: config.model,
     max_tokens: 4000,
     system: UPDATE_GENERATOR_SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `Generate an updated version of this idea incorporating ALL context from previous phases:
+    messages: [
+      {
+        role: "user",
+        content: `Generate an updated version of this idea incorporating ALL context from previous phases:
 
 === ORIGINAL IDEA (from Capture) ===
 Title: ${originalIdea.title}
-Summary: ${originalIdea.summary || 'None provided'}
+Summary: ${originalIdea.summary || "None provided"}
 Content:
-${originalIdea.content || 'None provided'}
+${originalIdea.content || "None provided"}
 
 === DIFFERENTIATION ANALYSIS (AI-generated insights) ===
 Summary: ${differentiationAnalysis.summary}
 
 SELECTED POSITIONING STRATEGY:
-Name: ${selectedStrategy.name || (selectedStrategy as any).approach || 'Unnamed Strategy'}
-Description: ${selectedStrategy.description || 'No description'}
-Key Differentiators: ${(selectedStrategy.differentiators || (selectedStrategy as any).alignedWith || []).join(', ') || 'Not specified'}
-Fit Score: ${selectedStrategy.fitWithProfile || 'N/A'}/10
-${selectedStrategy.fiveWH ? `
+Name: ${selectedStrategy.name || (selectedStrategy as any).approach || "Unnamed Strategy"}
+Description: ${selectedStrategy.description || "No description"}
+Key Differentiators: ${(selectedStrategy.differentiators || (selectedStrategy as any).alignedWith || []).join(", ") || "Not specified"}
+Fit Score: ${selectedStrategy.fitWithProfile || "N/A"}/10
+${
+  selectedStrategy.fiveWH
+    ? `
 Implementation Details (5W+H):
-- What: ${selectedStrategy.fiveWH.what || 'Not specified'}
-- Why: ${selectedStrategy.fiveWH.why || 'Not specified'}
-- How: ${selectedStrategy.fiveWH.how || 'Not specified'}
-- When: ${selectedStrategy.fiveWH.when || 'Not specified'}
-- Where: ${selectedStrategy.fiveWH.where || 'Not specified'}
-- Resources: ${selectedStrategy.fiveWH.howMuch || 'Not specified'}
-` : ''}
-${selectedStrategy.tradeoffs?.length ? `Tradeoffs: ${selectedStrategy.tradeoffs.join('; ')}` : ''}
+- What: ${selectedStrategy.fiveWH.what || "Not specified"}
+- Why: ${selectedStrategy.fiveWH.why || "Not specified"}
+- How: ${selectedStrategy.fiveWH.how || "Not specified"}
+- When: ${selectedStrategy.fiveWH.when || "Not specified"}
+- Where: ${selectedStrategy.fiveWH.where || "Not specified"}
+- Resources: ${selectedStrategy.fiveWH.howMuch || "Not specified"}
+`
+    : ""
+}
+${selectedStrategy.tradeoffs?.length ? `Tradeoffs: ${selectedStrategy.tradeoffs.join("; ")}` : ""}
 
 TOP MARKET OPPORTUNITIES:
-${topOpportunities.map((o, i) => `${i + 1}. ${o}`).join('\n')}
+${topOpportunities.map((o, i) => `${i + 1}. ${o}`).join("\n")}
 ${extendedText}
 ${positioningText}
 ${financialText}
@@ -432,9 +488,9 @@ ${qaText}
 Create an improved version that:
 1. Reflects the USER'S SELECTED STRATEGY (not just AI recommendations)
 2. Fits within FINANCIAL CONSTRAINTS (budget, hours, runway)
-3. Honors TIMING DECISION (${positioningContext?.timingDecision || 'not specified'})
+3. Honors TIMING DECISION (${positioningContext?.timingDecision || "not specified"})
 4. Incorporates KILL CRITERIA as success/failure metrics
-5. Aligns with STRATEGIC APPROACH (${positioningContext?.strategicApproach || financialContext?.strategicApproach || 'not specified'})
+5. Aligns with STRATEGIC APPROACH (${positioningContext?.strategicApproach || financialContext?.strategicApproach || "not specified"})
 6. Addresses RISK RESPONSES appropriately
 7. Leverages insights from Q&A DISCOVERY
 8. Matches USER PROFILE (goals, skills, constraints)
@@ -453,30 +509,37 @@ Respond in JSON:
   "keyInsightsIncorporated": ["Specific insight 1 from Position/Clarify phases", "Insight 2", "..."],
   "positioningStrategy": "The positioning strategy being adopted",
   "targetSegment": "The primary target segment"
-}`
-    }]
+}`,
+      },
+    ],
   });
 
-  costTracker.track(response.usage, 'update-generation');
+  costTracker.track(response.usage, "update-generation");
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response type from update generator');
+  if (content.type !== "text") {
+    throw new EvaluationParseError(
+      "Unexpected response type from update generator",
+    );
   }
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError('Could not parse update suggestion response');
+    throw new EvaluationParseError(
+      "Could not parse update suggestion response",
+    );
   }
 
   let parsed: UpdateSuggestion;
   try {
     parsed = JSON.parse(jsonMatch[0]);
   } catch {
-    throw new EvaluationParseError('Invalid JSON in update suggestion response');
+    throw new EvaluationParseError(
+      "Invalid JSON in update suggestion response",
+    );
   }
 
-  logInfo('Update suggestions generated successfully');
+  logInfo("Update suggestions generated successfully");
 
   return parsed;
 }

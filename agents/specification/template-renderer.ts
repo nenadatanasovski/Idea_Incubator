@@ -5,9 +5,9 @@
  * Supports {{variable}} placeholders, conditional sections, and YAML frontmatter.
  */
 
-import { readFile } from 'fs/promises';
-import { existsSync } from 'fs';
-import * as yaml from 'yaml';
+import { readFile } from "fs/promises";
+import { existsSync } from "fs";
+import * as yaml from "yaml";
 
 export interface TemplateSection {
   name: string;
@@ -40,29 +40,29 @@ export interface FrontmatterData {
  * Required sections for spec.md
  */
 const REQUIRED_SPEC_SECTIONS = [
-  'Overview',
-  'Functional Requirements',
-  'Architecture',
-  'API Design',
-  'Data Models',
-  'Known Gotchas',
-  'Validation Strategy'
+  "Overview",
+  "Functional Requirements",
+  "Architecture",
+  "API Design",
+  "Data Models",
+  "Known Gotchas",
+  "Validation Strategy",
 ];
 
 /**
  * Required sections for tasks.md
  */
 const REQUIRED_TASKS_SECTIONS = [
-  'Summary',
-  'Context Loading',
-  'Phase 1',
-  'Execution Log',
-  'Completion Checklist'
+  "Summary",
+  "Context Loading",
+  "Phase 1",
+  "Execution Log",
+  "Completion Checklist",
 ];
 
 export class TemplateRenderer {
-  private template: string = '';
-  private templateType: 'spec' | 'tasks' = 'spec';
+  private template: string = "";
+  private templateType: "spec" | "tasks" = "spec";
 
   constructor(templateContent?: string) {
     if (templateContent) {
@@ -79,7 +79,7 @@ export class TemplateRenderer {
       throw new Error(`Template not found: ${templatePath}`);
     }
 
-    this.template = await readFile(templatePath, 'utf-8');
+    this.template = await readFile(templatePath, "utf-8");
     this.detectTemplateType();
   }
 
@@ -87,10 +87,13 @@ export class TemplateRenderer {
    * Detect if this is a spec or tasks template
    */
   private detectTemplateType(): void {
-    if (this.template.includes('total_tasks') || this.template.includes('Phase 1:')) {
-      this.templateType = 'tasks';
+    if (
+      this.template.includes("total_tasks") ||
+      this.template.includes("Phase 1:")
+    ) {
+      this.templateType = "tasks";
     } else {
-      this.templateType = 'spec';
+      this.templateType = "spec";
     }
   }
 
@@ -114,18 +117,20 @@ export class TemplateRenderer {
     content = this.renderNestedPlaceholders(content, data, warnings);
 
     // Extract and validate sections
-    const requiredSections = this.templateType === 'spec'
-      ? REQUIRED_SPEC_SECTIONS
-      : REQUIRED_TASKS_SECTIONS;
+    const requiredSections =
+      this.templateType === "spec"
+        ? REQUIRED_SPEC_SECTIONS
+        : REQUIRED_TASKS_SECTIONS;
 
     for (const sectionName of requiredSections) {
-      const hasSection = content.includes(`## ${sectionName}`) ||
-                        content.includes(`# ${sectionName}`);
+      const hasSection =
+        content.includes(`## ${sectionName}`) ||
+        content.includes(`# ${sectionName}`);
       sections.push({
         name: sectionName,
-        content: '', // Would need to extract actual content
+        content: "", // Would need to extract actual content
         required: true,
-        filled: hasSection
+        filled: hasSection,
       });
 
       if (!hasSection) {
@@ -149,7 +154,7 @@ export class TemplateRenderer {
       valid,
       errors,
       warnings,
-      sections
+      sections,
     };
   }
 
@@ -159,7 +164,7 @@ export class TemplateRenderer {
   private renderFrontmatter(
     content: string,
     data: Record<string, unknown>,
-    errors: string[]
+    errors: string[],
   ): string {
     const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 
@@ -172,8 +177,8 @@ export class TemplateRenderer {
 
       // Replace placeholders in frontmatter
       for (const [key, value] of Object.entries(data)) {
-        if (typeof value === 'string' || typeof value === 'number') {
-          const placeholder = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+        if (typeof value === "string" || typeof value === "number") {
+          const placeholder = new RegExp(`\\{\\{${key}\\}\\}`, "g");
           frontmatter = frontmatter.replace(placeholder, String(value));
         }
       }
@@ -194,18 +199,22 @@ export class TemplateRenderer {
   private renderPlaceholders(
     content: string,
     data: Record<string, unknown>,
-    warnings: string[]
+    warnings: string[],
   ): string {
     return content.replace(/\{\{(\w+)\}\}/g, (match, key) => {
       if (key in data) {
         const value = data[key];
-        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        if (
+          typeof value === "string" ||
+          typeof value === "number" ||
+          typeof value === "boolean"
+        ) {
           return String(value);
         }
         if (Array.isArray(value)) {
-          return value.join('\n');
+          return value.join("\n");
         }
-        if (typeof value === 'object' && value !== null) {
+        if (typeof value === "object" && value !== null) {
           return JSON.stringify(value, null, 2);
         }
       }
@@ -219,18 +228,22 @@ export class TemplateRenderer {
   private renderNestedPlaceholders(
     content: string,
     data: Record<string, unknown>,
-    warnings: string[]
+    warnings: string[],
   ): string {
     return content.replace(/\{\{(\w+(?:\.\w+)+)\}\}/g, (match, path) => {
       const value = this.getNestedValue(data, path);
       if (value !== undefined) {
-        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        if (
+          typeof value === "string" ||
+          typeof value === "number" ||
+          typeof value === "boolean"
+        ) {
           return String(value);
         }
         if (Array.isArray(value)) {
-          return value.join('\n');
+          return value.join("\n");
         }
-        if (typeof value === 'object' && value !== null) {
+        if (typeof value === "object" && value !== null) {
           return JSON.stringify(value, null, 2);
         }
       }
@@ -242,14 +255,14 @@ export class TemplateRenderer {
    * Get nested value from object using dot notation
    */
   private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-    const keys = path.split('.');
+    const keys = path.split(".");
     let current: unknown = obj;
 
     for (const key of keys) {
       if (current === null || current === undefined) {
         return undefined;
       }
-      if (typeof current === 'object') {
+      if (typeof current === "object") {
         current = (current as Record<string, unknown>)[key];
       } else {
         return undefined;
@@ -272,25 +285,29 @@ export class TemplateRenderer {
       try {
         const frontmatter = yaml.parse(frontmatterMatch[1]);
         if (!frontmatter.id) {
-          errors.push('Frontmatter missing required field: id');
+          errors.push("Frontmatter missing required field: id");
         }
         if (!frontmatter.title) {
-          errors.push('Frontmatter missing required field: title');
+          errors.push("Frontmatter missing required field: title");
         }
       } catch (error) {
         errors.push(`Invalid YAML frontmatter: ${error}`);
       }
     } else {
-      errors.push('Missing YAML frontmatter');
+      errors.push("Missing YAML frontmatter");
     }
 
     // Check required sections exist
-    const requiredSections = this.templateType === 'spec'
-      ? REQUIRED_SPEC_SECTIONS
-      : REQUIRED_TASKS_SECTIONS;
+    const requiredSections =
+      this.templateType === "spec"
+        ? REQUIRED_SPEC_SECTIONS
+        : REQUIRED_TASKS_SECTIONS;
 
     for (const section of requiredSections) {
-      if (!rendered.includes(`## ${section}`) && !rendered.includes(`# ${section}`)) {
+      if (
+        !rendered.includes(`## ${section}`) &&
+        !rendered.includes(`# ${section}`)
+      ) {
         errors.push(`Missing required section: ${section}`);
       }
     }
@@ -305,24 +322,24 @@ export class TemplateRenderer {
     }
 
     // Additional spec-specific validations
-    if (this.templateType === 'spec') {
+    if (this.templateType === "spec") {
       // Check for code blocks
-      if (!rendered.includes('```sql') && !rendered.includes('```typescript')) {
-        warnings.push('Spec may be missing code examples');
+      if (!rendered.includes("```sql") && !rendered.includes("```typescript")) {
+        warnings.push("Spec may be missing code examples");
       }
 
       // Check for tables
-      if (!rendered.includes('| ')) {
-        warnings.push('Spec may be missing tables');
+      if (!rendered.includes("| ")) {
+        warnings.push("Spec may be missing tables");
       }
     }
 
     // Additional tasks-specific validations
-    if (this.templateType === 'tasks') {
+    if (this.templateType === "tasks") {
       // Check for task YAML blocks
       const taskBlocks = rendered.match(/```yaml\nid: T-/g);
       if (!taskBlocks || taskBlocks.length === 0) {
-        errors.push('Tasks file missing task YAML blocks');
+        errors.push("Tasks file missing task YAML blocks");
       }
 
       // Check total_tasks matches actual tasks
@@ -330,7 +347,9 @@ export class TemplateRenderer {
       if (frontmatter && taskBlocks) {
         const totalTasks = frontmatter.total_tasks;
         if (totalTasks && totalTasks !== taskBlocks.length) {
-          warnings.push(`total_tasks (${totalTasks}) doesn't match actual tasks (${taskBlocks.length})`);
+          warnings.push(
+            `total_tasks (${totalTasks}) doesn't match actual tasks (${taskBlocks.length})`,
+          );
         }
       }
     }
@@ -338,7 +357,7 @@ export class TemplateRenderer {
     return {
       valid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -371,14 +390,14 @@ export class TemplateRenderer {
   /**
    * Get template type
    */
-  getTemplateType(): 'spec' | 'tasks' {
+  getTemplateType(): "spec" | "tasks" {
     return this.templateType;
   }
 
   /**
    * Set template type explicitly
    */
-  setTemplateType(type: 'spec' | 'tasks'): void {
+  setTemplateType(type: "spec" | "tasks"): void {
     this.templateType = type;
   }
 }

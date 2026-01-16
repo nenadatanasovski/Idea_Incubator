@@ -303,7 +303,7 @@
 
 **Example:** Gotcha discovered in one build helps prevent error in another
 
-```
+````
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ KNOWLEDGE PROPAGATION                                                        │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -455,22 +455,22 @@
 │    └────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+````
 
 ---
 
 ## Summary: Key Mechanisms
 
-| Mechanism | Purpose | Tables/Events Involved |
-|-----------|---------|------------------------|
-| **Phase Transitions** | Guide ideation through discovery | `ideation_sessions.phase`, `ideation_artifacts` |
-| **Handoff Brief** | Transfer context between agents | `planning/brief.md`, `ideation.completed` event |
-| **Gotcha Injection** | Prevent repeated failures | `knowledge` table, Task Agent queries |
-| **File Locking** | Prevent concurrent edits | `file_locks` table, `wait_graph` |
-| **Checkpoints** | Enable rollback on failure | `checkpoints` table, Git refs |
-| **Event Bus** | Coordinate between agents | `events` table, pub/sub |
-| **Knowledge Propagation** | Learn from failures | `knowledge`, `improvement_metrics` |
-| **System Review** | Extract learnings | `system_reviews`, SIA analysis |
+| Mechanism                 | Purpose                          | Tables/Events Involved                          |
+| ------------------------- | -------------------------------- | ----------------------------------------------- |
+| **Phase Transitions**     | Guide ideation through discovery | `ideation_sessions.phase`, `ideation_artifacts` |
+| **Handoff Brief**         | Transfer context between agents  | `planning/brief.md`, `ideation.completed` event |
+| **Gotcha Injection**      | Prevent repeated failures        | `knowledge` table, Task Agent queries           |
+| **File Locking**          | Prevent concurrent edits         | `file_locks` table, `wait_graph`                |
+| **Checkpoints**           | Enable rollback on failure       | `checkpoints` table, Git refs                   |
+| **Event Bus**             | Coordinate between agents        | `events` table, pub/sub                         |
+| **Knowledge Propagation** | Learn from failures              | `knowledge`, `improvement_metrics`              |
+| **System Review**         | Extract learnings                | `system_reviews`, SIA analysis                  |
 
 ---
 
@@ -482,4 +482,4 @@
 
 ---
 
-*This document provides concrete examples of advanced system flows. For core flows, see E2E-SCENARIOS-CORE.md.*
+_This document provides concrete examples of advanced system flows. For core flows, see E2E-SCENARIOS-CORE.md._

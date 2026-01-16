@@ -1,6 +1,6 @@
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, getOne, saveDb } from '../database/db.js';
-import { getRelevantQuestions } from './loader.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, getOne, saveDb } from "../database/db.js";
+import { getRelevantQuestions } from "./loader.js";
 import {
   QuestionWithCategory,
   QuestionCategory,
@@ -13,8 +13,8 @@ import {
   CATEGORY_WEIGHTS,
   READINESS_THRESHOLDS,
   IdeaTypeFilter,
-  LifecycleStageFilter
-} from './types.js';
+  LifecycleStageFilter,
+} from "./types.js";
 
 // Database row interfaces
 interface DBAnswer {
@@ -65,11 +65,11 @@ interface DBIdeaProfile {
 // Get all answers for an idea
 export async function getAnswersForIdea(ideaId: string): Promise<Answer[]> {
   const rows = await query<DBAnswer>(
-    'SELECT * FROM idea_answers WHERE idea_id = ? ORDER BY answered_at',
-    [ideaId]
+    "SELECT * FROM idea_answers WHERE idea_id = ? ORDER BY answered_at",
+    [ideaId],
   );
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     id: row.id,
     ideaId: row.idea_id,
     questionId: row.question_id,
@@ -77,18 +77,18 @@ export async function getAnswersForIdea(ideaId: string): Promise<Answer[]> {
     answerSource: row.answer_source as AnswerSource,
     confidence: row.confidence,
     answeredAt: row.answered_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
   }));
 }
 
 // Get answer for a specific question
 export async function getAnswer(
   ideaId: string,
-  questionId: string
+  questionId: string,
 ): Promise<Answer | null> {
   const row = await getOne<DBAnswer>(
-    'SELECT * FROM idea_answers WHERE idea_id = ? AND question_id = ?',
-    [ideaId, questionId]
+    "SELECT * FROM idea_answers WHERE idea_id = ? AND question_id = ?",
+    [ideaId, questionId],
   );
 
   if (!row) return null;
@@ -101,7 +101,7 @@ export async function getAnswer(
     answerSource: row.answer_source as AnswerSource,
     confidence: row.confidence,
     answeredAt: row.answered_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
   };
 }
 
@@ -110,8 +110,8 @@ export async function saveAnswer(
   ideaId: string,
   questionId: string,
   answer: string,
-  source: AnswerSource = 'user',
-  confidence: number = 1.0
+  source: AnswerSource = "user",
+  confidence: number = 1.0,
 ): Promise<Answer> {
   const existing = await getAnswer(ideaId, questionId);
   const now = new Date().toISOString();
@@ -122,7 +122,7 @@ export async function saveAnswer(
       `UPDATE idea_answers
        SET answer = ?, answer_source = ?, confidence = ?, updated_at = ?
        WHERE idea_id = ? AND question_id = ?`,
-      [answer, source, confidence, now, ideaId, questionId]
+      [answer, source, confidence, now, ideaId, questionId],
     );
 
     await saveDb();
@@ -135,7 +135,7 @@ export async function saveAnswer(
       answer,
       answerSource: source,
       confidence,
-      updatedAt: now
+      updatedAt: now,
     };
   } else {
     // Insert new answer
@@ -144,7 +144,7 @@ export async function saveAnswer(
       `INSERT INTO idea_answers
        (id, idea_id, question_id, answer, answer_source, confidence, answered_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, ideaId, questionId, answer, source, confidence, now, now]
+      [id, ideaId, questionId, answer, source, confidence, now, now],
     );
 
     await saveDb();
@@ -160,17 +160,20 @@ export async function saveAnswer(
       answerSource: source,
       confidence,
       answeredAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
   }
 }
 
 // Delete an answer
-export async function deleteAnswer(ideaId: string, questionId: string): Promise<boolean> {
-  await run(
-    'DELETE FROM idea_answers WHERE idea_id = ? AND question_id = ?',
-    [ideaId, questionId]
-  );
+export async function deleteAnswer(
+  ideaId: string,
+  questionId: string,
+): Promise<boolean> {
+  await run("DELETE FROM idea_answers WHERE idea_id = ? AND question_id = ?", [
+    ideaId,
+    questionId,
+  ]);
   await saveDb();
 
   // Recalculate readiness after deletion
@@ -185,26 +188,26 @@ export async function deleteAnswer(ideaId: string, questionId: string): Promise<
 
 // Get idea by ID
 async function getIdeaById(ideaId: string): Promise<DBIdea | null> {
-  return await getOne<DBIdea>('SELECT * FROM ideas WHERE id = ?', [ideaId]);
+  return await getOne<DBIdea>("SELECT * FROM ideas WHERE id = ?", [ideaId]);
 }
 
 // Get idea by slug
 export async function getIdeaBySlug(slug: string): Promise<DBIdea | null> {
-  return await getOne<DBIdea>('SELECT * FROM ideas WHERE slug = ?', [slug]);
+  return await getOne<DBIdea>("SELECT * FROM ideas WHERE slug = ?", [slug]);
 }
 
 // Check if idea has linked profile (for fit coverage)
 async function hasLinkedProfile(ideaId: string): Promise<boolean> {
   const row = await getOne<DBIdeaProfile>(
-    'SELECT * FROM idea_profiles WHERE idea_id = ?',
-    [ideaId]
+    "SELECT * FROM idea_profiles WHERE idea_id = ?",
+    [ideaId],
   );
   return row !== null;
 }
 
 // Calculate criterion coverage for an idea
 export async function calculateCriterionCoverage(
-  ideaId: string
+  ideaId: string,
 ): Promise<CriterionCoverage[]> {
   const idea = await getIdeaById(ideaId);
   if (!idea) return [];
@@ -217,7 +220,7 @@ export async function calculateCriterionCoverage(
 
   // Get all answers for this idea
   const answers = await getAnswersForIdea(ideaId);
-  const answeredIds = new Set(answers.map(a => a.questionId));
+  const answeredIds = new Set(answers.map((a) => a.questionId));
 
   // Group questions by criterion
   const criterionGroups = new Map<string, QuestionWithCategory[]>();
@@ -230,14 +233,14 @@ export async function calculateCriterionCoverage(
   // Calculate coverage per criterion
   const coverages: CriterionCoverage[] = [];
   for (const [criterion, qs] of criterionGroups) {
-    const answered = qs.filter(q => answeredIds.has(q.id)).length;
+    const answered = qs.filter((q) => answeredIds.has(q.id)).length;
     const total = qs.length;
     coverages.push({
       criterion,
       category: qs[0].category,
       answered,
       total,
-      coverage: total > 0 ? answered / total : 0
+      coverage: total > 0 ? answered / total : 0,
     });
   }
 
@@ -245,7 +248,9 @@ export async function calculateCriterionCoverage(
 }
 
 // Calculate weighted readiness score
-export async function calculateReadiness(ideaId: string): Promise<ReadinessScore> {
+export async function calculateReadiness(
+  ideaId: string,
+): Promise<ReadinessScore> {
   const idea = await getIdeaById(ideaId);
   if (!idea) {
     return {
@@ -257,11 +262,11 @@ export async function calculateReadiness(ideaId: string): Promise<ReadinessScore
         fit: 0,
         market: 0,
         risk: 0,
-        business_model: 0
+        business_model: 0,
       },
       readyForEvaluation: false,
-      readinessLevel: 'SPARK',
-      blockingGaps: ['Idea not found']
+      readinessLevel: "SPARK",
+      blockingGaps: ["Idea not found"],
     };
   }
 
@@ -273,17 +278,20 @@ export async function calculateReadiness(ideaId: string): Promise<ReadinessScore
 
   // Get answers
   const answers = await getAnswersForIdea(ideaId);
-  const answeredIds = new Set(answers.map(a => a.questionId));
+  const answeredIds = new Set(answers.map((a) => a.questionId));
 
   // Calculate weighted scores per category
-  const categoryScores: Record<QuestionCategory, { weight: number; answered: number }> = {
+  const categoryScores: Record<
+    QuestionCategory,
+    { weight: number; answered: number }
+  > = {
     problem: { weight: 0, answered: 0 },
     solution: { weight: 0, answered: 0 },
     feasibility: { weight: 0, answered: 0 },
     fit: { weight: 0, answered: 0 },
     market: { weight: 0, answered: 0 },
     risk: { weight: 0, answered: 0 },
-    business_model: { weight: 0, answered: 0 }
+    business_model: { weight: 0, answered: 0 },
   };
 
   // Calculate weighted coverage
@@ -297,35 +305,43 @@ export async function calculateReadiness(ideaId: string): Promise<ReadinessScore
 
   // Calculate category percentages
   const byCategory = {
-    problem: categoryScores.problem.weight > 0
-      ? categoryScores.problem.answered / categoryScores.problem.weight
-      : 0,
-    solution: categoryScores.solution.weight > 0
-      ? categoryScores.solution.answered / categoryScores.solution.weight
-      : 0,
-    feasibility: categoryScores.feasibility.weight > 0
-      ? categoryScores.feasibility.answered / categoryScores.feasibility.weight
-      : 0,
-    fit: await hasLinkedProfile(ideaId) ? 1.0 : 0,
-    market: categoryScores.market.weight > 0
-      ? categoryScores.market.answered / categoryScores.market.weight
-      : 0,
-    risk: categoryScores.risk.weight > 0
-      ? categoryScores.risk.answered / categoryScores.risk.weight
-      : 0,
-    business_model: categoryScores.business_model.weight > 0
-      ? categoryScores.business_model.answered / categoryScores.business_model.weight
-      : 0
+    problem:
+      categoryScores.problem.weight > 0
+        ? categoryScores.problem.answered / categoryScores.problem.weight
+        : 0,
+    solution:
+      categoryScores.solution.weight > 0
+        ? categoryScores.solution.answered / categoryScores.solution.weight
+        : 0,
+    feasibility:
+      categoryScores.feasibility.weight > 0
+        ? categoryScores.feasibility.answered /
+          categoryScores.feasibility.weight
+        : 0,
+    fit: (await hasLinkedProfile(ideaId)) ? 1.0 : 0,
+    market:
+      categoryScores.market.weight > 0
+        ? categoryScores.market.answered / categoryScores.market.weight
+        : 0,
+    risk:
+      categoryScores.risk.weight > 0
+        ? categoryScores.risk.answered / categoryScores.risk.weight
+        : 0,
+    business_model:
+      categoryScores.business_model.weight > 0
+        ? categoryScores.business_model.answered /
+          categoryScores.business_model.weight
+        : 0,
   };
 
   // Calculate overall weighted average
   // Adjust weights based on idea type
   let adjustedWeights = { ...CATEGORY_WEIGHTS };
-  if (ideaType === 'business') {
+  if (ideaType === "business") {
     // Business ideas should include business model
-    adjustedWeights.business_model = 0.10;
+    adjustedWeights.business_model = 0.1;
     // Reduce other weights proportionally
-    const reduction = 0.10 / 5;
+    const reduction = 0.1 / 5;
     adjustedWeights.problem -= reduction;
     adjustedWeights.solution -= reduction;
     adjustedWeights.feasibility -= reduction;
@@ -343,19 +359,19 @@ export async function calculateReadiness(ideaId: string): Promise<ReadinessScore
   const overall = totalWeight > 0 ? weightedSum / totalWeight : 0;
 
   // Determine readiness level
-  let readinessLevel: 'SPARK' | 'CLARIFY' | 'READY' | 'CONFIDENT' = 'SPARK';
+  let readinessLevel: "SPARK" | "CLARIFY" | "READY" | "CONFIDENT" = "SPARK";
   if (overall >= READINESS_THRESHOLDS.READY) {
-    readinessLevel = 'CONFIDENT';
+    readinessLevel = "CONFIDENT";
   } else if (overall >= READINESS_THRESHOLDS.CLARIFY) {
-    readinessLevel = 'READY';
+    readinessLevel = "READY";
   } else if (overall >= READINESS_THRESHOLDS.SPARK) {
-    readinessLevel = 'CLARIFY';
+    readinessLevel = "CLARIFY";
   }
 
   // Identify blocking gaps (critical questions not answered)
   const blockingGaps: string[] = [];
   for (const q of questions) {
-    if (q.priority === 'critical' && !answeredIds.has(q.id)) {
+    if (q.priority === "critical" && !answeredIds.has(q.id)) {
       blockingGaps.push(`${q.criterion}: ${q.text}`);
     }
   }
@@ -368,19 +384,21 @@ export async function calculateReadiness(ideaId: string): Promise<ReadinessScore
     byCategory,
     readyForEvaluation: overall >= READINESS_THRESHOLDS.CLARIFY,
     readinessLevel,
-    blockingGaps: topGaps
+    blockingGaps: topGaps,
   };
 }
 
 // Calculate and persist readiness to database
-export async function calculateAndSaveReadiness(ideaId: string): Promise<ReadinessScore> {
+export async function calculateAndSaveReadiness(
+  ideaId: string,
+): Promise<ReadinessScore> {
   const readiness = await calculateReadiness(ideaId);
   const now = new Date().toISOString();
 
   // Check if record exists
   const existing = await getOne<DBReadiness>(
-    'SELECT * FROM idea_readiness WHERE idea_id = ?',
-    [ideaId]
+    "SELECT * FROM idea_readiness WHERE idea_id = ?",
+    [ideaId],
   );
 
   if (existing) {
@@ -406,8 +424,8 @@ export async function calculateAndSaveReadiness(ideaId: string): Promise<Readine
         readiness.byCategory.risk,
         readiness.byCategory.business_model || 0,
         now,
-        ideaId
-      ]
+        ideaId,
+      ],
     );
   } else {
     await run(
@@ -426,8 +444,8 @@ export async function calculateAndSaveReadiness(ideaId: string): Promise<Readine
         readiness.byCategory.market,
         readiness.byCategory.risk,
         readiness.byCategory.business_model || 0,
-        now
-      ]
+        now,
+      ],
     );
   }
 
@@ -436,10 +454,12 @@ export async function calculateAndSaveReadiness(ideaId: string): Promise<Readine
 }
 
 // Get cached readiness (from database)
-export async function getCachedReadiness(ideaId: string): Promise<ReadinessScore | null> {
+export async function getCachedReadiness(
+  ideaId: string,
+): Promise<ReadinessScore | null> {
   const row = await getOne<DBReadiness>(
-    'SELECT * FROM idea_readiness WHERE idea_id = ?',
-    [ideaId]
+    "SELECT * FROM idea_readiness WHERE idea_id = ?",
+    [ideaId],
   );
 
   if (!row) return null;
@@ -456,17 +476,18 @@ export async function getCachedReadiness(ideaId: string): Promise<ReadinessScore
       fit: row.fit_coverage,
       market: row.market_coverage,
       risk: row.risk_coverage,
-      business_model: row.business_model_coverage
+      business_model: row.business_model_coverage,
     },
     readyForEvaluation: row.overall_readiness >= READINESS_THRESHOLDS.CLARIFY,
-    readinessLevel: row.overall_readiness >= READINESS_THRESHOLDS.READY
-      ? 'CONFIDENT'
-      : row.overall_readiness >= READINESS_THRESHOLDS.CLARIFY
-        ? 'READY'
-        : row.overall_readiness >= READINESS_THRESHOLDS.SPARK
-          ? 'CLARIFY'
-          : 'SPARK',
-    blockingGaps: readiness.blockingGaps
+    readinessLevel:
+      row.overall_readiness >= READINESS_THRESHOLDS.READY
+        ? "CONFIDENT"
+        : row.overall_readiness >= READINESS_THRESHOLDS.CLARIFY
+          ? "READY"
+          : row.overall_readiness >= READINESS_THRESHOLDS.SPARK
+            ? "CLARIFY"
+            : "SPARK",
+    blockingGaps: readiness.blockingGaps,
   };
 }
 
@@ -475,7 +496,9 @@ export async function getCachedReadiness(ideaId: string): Promise<ReadinessScore
 // ==========================================
 
 // Start a new development session
-export async function startDevelopmentSession(ideaId: string): Promise<DevelopmentSession> {
+export async function startDevelopmentSession(
+  ideaId: string,
+): Promise<DevelopmentSession> {
   const id = uuidv4();
   const now = new Date().toISOString();
   const readiness = await calculateReadiness(ideaId);
@@ -484,7 +507,7 @@ export async function startDevelopmentSession(ideaId: string): Promise<Developme
     `INSERT INTO development_sessions
      (id, idea_id, started_at, readiness_before)
      VALUES (?, ?, ?, ?)`,
-    [id, ideaId, now, readiness.overall]
+    [id, ideaId, now, readiness.overall],
   );
 
   await saveDb();
@@ -497,13 +520,13 @@ export async function startDevelopmentSession(ideaId: string): Promise<Developme
     questionsAsked: 0,
     questionsAnswered: 0,
     readinessBefore: readiness.overall,
-    readinessAfter: null
+    readinessAfter: null,
   };
 }
 
 // Complete a development session
 export async function completeDevelopmentSession(
-  sessionId: string
+  sessionId: string,
 ): Promise<DevelopmentSession | null> {
   interface DBSession {
     id: string;
@@ -518,8 +541,8 @@ export async function completeDevelopmentSession(
   }
 
   const session = await getOne<DBSession>(
-    'SELECT * FROM development_sessions WHERE id = ?',
-    [sessionId]
+    "SELECT * FROM development_sessions WHERE id = ?",
+    [sessionId],
   );
 
   if (!session) return null;
@@ -532,7 +555,7 @@ export async function completeDevelopmentSession(
       completed_at = ?,
       readiness_after = ?
      WHERE id = ?`,
-    [now, readiness.overall, sessionId]
+    [now, readiness.overall, sessionId],
   );
 
   await saveDb();
@@ -545,7 +568,7 @@ export async function completeDevelopmentSession(
     questionsAsked: session.questions_asked,
     questionsAnswered: session.questions_answered,
     readinessBefore: session.readiness_before,
-    readinessAfter: readiness.overall
+    readinessAfter: readiness.overall,
   };
 }
 
@@ -553,20 +576,22 @@ export async function completeDevelopmentSession(
 export async function updateSessionProgress(
   sessionId: string,
   asked: number,
-  answered: number
+  answered: number,
 ): Promise<void> {
   await run(
     `UPDATE development_sessions SET
       questions_asked = questions_asked + ?,
       questions_answered = questions_answered + ?
      WHERE id = ?`,
-    [asked, answered, sessionId]
+    [asked, answered, sessionId],
   );
   await saveDb();
 }
 
 // Get session history for an idea
-export async function getSessionHistory(ideaId: string): Promise<DevelopmentSession[]> {
+export async function getSessionHistory(
+  ideaId: string,
+): Promise<DevelopmentSession[]> {
   interface DBSession {
     id: string;
     idea_id: string;
@@ -580,11 +605,11 @@ export async function getSessionHistory(ideaId: string): Promise<DevelopmentSess
   }
 
   const rows = await query<DBSession>(
-    'SELECT * FROM development_sessions WHERE idea_id = ? ORDER BY started_at DESC',
-    [ideaId]
+    "SELECT * FROM development_sessions WHERE idea_id = ? ORDER BY started_at DESC",
+    [ideaId],
   );
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     id: row.id,
     ideaId: row.idea_id,
     startedAt: row.started_at,
@@ -592,7 +617,7 @@ export async function getSessionHistory(ideaId: string): Promise<DevelopmentSess
     questionsAsked: row.questions_asked,
     questionsAnswered: row.questions_answered,
     readinessBefore: row.readiness_before,
-    readinessAfter: row.readiness_after
+    readinessAfter: row.readiness_after,
   }));
 }
 
@@ -628,7 +653,7 @@ interface SelectionOptions {
  */
 export async function selectNextQuestions(
   ideaId: string,
-  options: SelectionOptions = {}
+  options: SelectionOptions = {},
 ): Promise<QuestionWithCategory[]> {
   const {
     focusCategory,
@@ -636,7 +661,7 @@ export async function selectNextQuestions(
     lastAnsweredQuestionId,
     limit = 5,
     includeFollowUps = true,
-    skipDependencies = false
+    skipDependencies = false,
   } = options;
 
   const idea = await getIdeaById(ideaId);
@@ -650,30 +675,36 @@ export async function selectNextQuestions(
 
   // Get existing answers
   const answers = await getAnswersForIdea(ideaId);
-  const answeredIds = new Set(answers.map(a => a.questionId));
+  const answeredIds = new Set(answers.map((a) => a.questionId));
 
   // Get answer type distribution
   const answeredByType = {
     factual: 0,
     analytical: 0,
-    reflective: 0
+    reflective: 0,
   };
   for (const q of allQuestions) {
     if (answeredIds.has(q.id)) {
       answeredByType[q.type]++;
     }
   }
-  const totalAnswered = answeredByType.factual + answeredByType.analytical + answeredByType.reflective;
+  const totalAnswered =
+    answeredByType.factual +
+    answeredByType.analytical +
+    answeredByType.reflective;
 
   // Calculate category coverage
-  const categoryCoverage: Record<QuestionCategory, { answered: number; total: number }> = {
+  const categoryCoverage: Record<
+    QuestionCategory,
+    { answered: number; total: number }
+  > = {
     problem: { answered: 0, total: 0 },
     solution: { answered: 0, total: 0 },
     feasibility: { answered: 0, total: 0 },
     fit: { answered: 0, total: 0 },
     market: { answered: 0, total: 0 },
     risk: { answered: 0, total: 0 },
-    business_model: { answered: 0, total: 0 }
+    business_model: { answered: 0, total: 0 },
   };
   for (const q of allQuestions) {
     categoryCoverage[q.category].total++;
@@ -685,7 +716,7 @@ export async function selectNextQuestions(
   // Get follow-ups from last answered question
   let lastQuestionFollowUps = new Set<string>();
   if (includeFollowUps && lastAnsweredQuestionId) {
-    const lastQ = allQuestions.find(q => q.id === lastAnsweredQuestionId);
+    const lastQ = allQuestions.find((q) => q.id === lastAnsweredQuestionId);
     if (lastQ?.follow_ups) {
       lastQuestionFollowUps = new Set(lastQ.follow_ups);
     }
@@ -700,25 +731,28 @@ export async function selectNextQuestions(
 
     // Check dependencies - skip if not satisfied (unless skipDependencies is true)
     if (!skipDependencies && q.depends_on && q.depends_on.length > 0) {
-      const allDependenciesMet = q.depends_on.every(depId => answeredIds.has(depId));
+      const allDependenciesMet = q.depends_on.every((depId) =>
+        answeredIds.has(depId),
+      );
       if (!allDependenciesMet) continue;
     }
 
     let score = 0;
-    let reason = '';
+    let reason = "";
 
     // 1. Priority scoring (base score)
     const priorityScores = {
       critical: 100,
       important: 50,
-      'nice-to-have': 20
+      "nice-to-have": 20,
     };
     score += priorityScores[q.priority];
     reason = `Priority: ${q.priority}`;
 
     // 2. Category coverage bonus (lower coverage = higher bonus)
     const catCov = categoryCoverage[q.category];
-    const coveragePercent = catCov.total > 0 ? catCov.answered / catCov.total : 0;
+    const coveragePercent =
+      catCov.total > 0 ? catCov.answered / catCov.total : 0;
     const coverageBonus = Math.round((1 - coveragePercent) * 50);
     if (coverageBonus > 0) {
       score += coverageBonus;
@@ -728,7 +762,7 @@ export async function selectNextQuestions(
     // 3. Follow-up bonus
     if (lastQuestionFollowUps.has(q.id)) {
       score += 30;
-      reason += ', Follow-up to previous';
+      reason += ", Follow-up to previous";
     }
 
     // 4. Question type balancing
@@ -736,7 +770,7 @@ export async function selectNextQuestions(
       const typePercent = {
         factual: answeredByType.factual / totalAnswered,
         analytical: answeredByType.analytical / totalAnswered,
-        reflective: answeredByType.reflective / totalAnswered
+        reflective: answeredByType.reflective / totalAnswered,
       };
       // Boost underrepresented types (target is ~33% each)
       if (typePercent[q.type] < 0.25) {
@@ -748,11 +782,11 @@ export async function selectNextQuestions(
     // 5. Focus area bonus
     if (focusCategory && q.category === focusCategory) {
       score += 40;
-      reason += ', Focus category match';
+      reason += ", Focus category match";
     }
     if (focusCriterion && q.criterion === focusCriterion) {
       score += 40;
-      reason += ', Focus criterion match';
+      reason += ", Focus criterion match";
     }
 
     scored.push({ question: q, score, reason });
@@ -762,7 +796,7 @@ export async function selectNextQuestions(
   scored.sort((a, b) => b.score - a.score);
 
   // Return top questions
-  return scored.slice(0, limit).map(s => s.question);
+  return scored.slice(0, limit).map((s) => s.question);
 }
 
 /**
@@ -772,21 +806,23 @@ export async function selectNextQuestions(
 export async function getNextQuestionsAfterAnswer(
   ideaId: string,
   answeredQuestionId: string,
-  limit: number = 3
+  limit: number = 3,
 ): Promise<QuestionWithCategory[]> {
   // First, try to get follow-up questions
   const allQuestions = await getRelevantQuestions(null, null);
-  const answeredQuestion = allQuestions.find(q => q.id === answeredQuestionId);
+  const answeredQuestion = allQuestions.find(
+    (q) => q.id === answeredQuestionId,
+  );
 
   const answers = await getAnswersForIdea(ideaId);
-  const answeredIds = new Set(answers.map(a => a.questionId));
+  const answeredIds = new Set(answers.map((a) => a.questionId));
 
   const followUps: QuestionWithCategory[] = [];
   if (answeredQuestion?.follow_ups) {
     for (const followUpId of answeredQuestion.follow_ups) {
       // Only include if not already answered
       if (!answeredIds.has(followUpId)) {
-        const followUp = allQuestions.find(q => q.id === followUpId);
+        const followUp = allQuestions.find((q) => q.id === followUpId);
         if (followUp) {
           followUps.push(followUp);
         }
@@ -804,12 +840,12 @@ export async function getNextQuestionsAfterAnswer(
   const smartSelection = await selectNextQuestions(ideaId, {
     lastAnsweredQuestionId: answeredQuestionId,
     limit: remaining + 5, // Get extras in case of overlap
-    includeFollowUps: false // We already handled follow-ups
+    includeFollowUps: false, // We already handled follow-ups
   });
 
   // Filter out any that are already in followUps
-  const followUpIds = new Set(followUps.map(f => f.id));
-  const filtered = smartSelection.filter(q => !followUpIds.has(q.id));
+  const followUpIds = new Set(followUps.map((f) => f.id));
+  const filtered = smartSelection.filter((q) => !followUpIds.has(q.id));
 
   return [...followUps, ...filtered.slice(0, remaining)];
 }
@@ -820,7 +856,7 @@ export async function getNextQuestionsAfterAnswer(
 export async function getQuestionsForCriterion(
   ideaId: string,
   criterion: string,
-  limit: number = 5
+  limit: number = 5,
 ): Promise<QuestionWithCategory[]> {
   const idea = await getIdeaById(ideaId);
   if (!idea) return [];
@@ -830,19 +866,22 @@ export async function getQuestionsForCriterion(
 
   const allQuestions = await getRelevantQuestions(ideaType, lifecycleStage);
   const answers = await getAnswersForIdea(ideaId);
-  const answeredIds = new Set(answers.map(a => a.questionId));
+  const answeredIds = new Set(answers.map((a) => a.questionId));
 
   // Filter to criterion, unanswered, dependencies met
-  const eligible = allQuestions.filter(q => {
+  const eligible = allQuestions.filter((q) => {
     if (q.criterion !== criterion) return false;
     if (answeredIds.has(q.id)) return false;
-    if (q.depends_on && !q.depends_on.every(d => answeredIds.has(d))) return false;
+    if (q.depends_on && !q.depends_on.every((d) => answeredIds.has(d)))
+      return false;
     return true;
   });
 
   // Sort by priority
-  const priorityOrder = { critical: 0, important: 1, 'nice-to-have': 2 };
-  eligible.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+  const priorityOrder = { critical: 0, important: 1, "nice-to-have": 2 };
+  eligible.sort(
+    (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority],
+  );
 
   return eligible.slice(0, limit);
 }
@@ -854,7 +893,7 @@ export async function getQuestionsForCriterion(
 export async function getBalancedQuestions(
   ideaId: string,
   questionsPerCategory: number = 2,
-  skipDependencies: boolean = false
+  skipDependencies: boolean = false,
 ): Promise<QuestionWithCategory[]> {
   const idea = await getIdeaById(ideaId);
   if (!idea) return [];
@@ -864,31 +903,40 @@ export async function getBalancedQuestions(
 
   const allQuestions = await getRelevantQuestions(ideaType, lifecycleStage);
   const answers = await getAnswersForIdea(ideaId);
-  const answeredIds = new Set(answers.map(a => a.questionId));
+  const answeredIds = new Set(answers.map((a) => a.questionId));
 
   const categories: QuestionCategory[] = [
-    'problem', 'solution', 'feasibility', 'market', 'risk'
+    "problem",
+    "solution",
+    "feasibility",
+    "market",
+    "risk",
   ];
 
   // Add business_model for business ideas
-  if (ideaType === 'business') {
-    categories.push('business_model');
+  if (ideaType === "business") {
+    categories.push("business_model");
   }
 
   const result: QuestionWithCategory[] = [];
 
   for (const category of categories) {
     const categoryQuestions = allQuestions
-      .filter(q => {
+      .filter((q) => {
         if (q.category !== category) return false;
         if (answeredIds.has(q.id)) return false;
         // Check dependencies unless skipDependencies is true
-        if (!skipDependencies && q.depends_on && !q.depends_on.every(d => answeredIds.has(d))) return false;
+        if (
+          !skipDependencies &&
+          q.depends_on &&
+          !q.depends_on.every((d) => answeredIds.has(d))
+        )
+          return false;
         return true;
       })
       .sort((a, b) => {
         // Critical first, then important, then nice-to-have
-        const priorityOrder = { critical: 0, important: 1, 'nice-to-have': 2 };
+        const priorityOrder = { critical: 0, important: 1, "nice-to-have": 2 };
         return priorityOrder[a.priority] - priorityOrder[b.priority];
       });
 

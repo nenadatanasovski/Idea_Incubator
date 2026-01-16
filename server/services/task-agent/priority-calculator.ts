@@ -5,15 +5,15 @@
  * Part of: Task System V2 Implementation Plan (IMPL-4.8)
  */
 
-import { query, getOne } from '../../../database/db.js';
-import { Task, TaskPriority } from '../../../types/task-agent.js';
+import { query, getOne } from "../../../database/db.js";
+import { Task, TaskPriority } from "../../../types/task-agent.js";
 
 /**
  * Priority calculation result
  */
 export interface PriorityResult {
   taskId: string;
-  score: number;  // 0-100
+  score: number; // 0-100
   factors: {
     blockingCount: number;
     dependencyDepth: number;
@@ -65,10 +65,9 @@ export class PriorityCalculator {
    * Calculate priority for a single task
    */
   async calculate(taskId: string): Promise<PriorityResult> {
-    const task = await getOne<Task>(
-      'SELECT * FROM tasks WHERE id = ?',
-      [taskId]
-    );
+    const task = await getOne<Task>("SELECT * FROM tasks WHERE id = ?", [
+      taskId,
+    ]);
 
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -83,16 +82,22 @@ export class PriorityCalculator {
 
     // Calculate total score using formula:
     // score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinBonus + (userPriority * 2)
-    const depthFactor = dependencyDepth > 0 ? (1 / dependencyDepth) * WEIGHTS.dependencyDepth : WEIGHTS.dependencyDepth;
+    const depthFactor =
+      dependencyDepth > 0
+        ? (1 / dependencyDepth) * WEIGHTS.dependencyDepth
+        : WEIGHTS.dependencyDepth;
     const quickWinBonus = quickWinScore > 7 ? WEIGHTS.quickWin : 0;
 
-    const score = Math.min(100, Math.round(
-      (blockingCount * WEIGHTS.blocking) +
-      depthFactor +
-      effortScore +
-      quickWinBonus +
-      (userPriority * WEIGHTS.userPriority)
-    ));
+    const score = Math.min(
+      100,
+      Math.round(
+        blockingCount * WEIGHTS.blocking +
+          depthFactor +
+          effortScore +
+          quickWinBonus +
+          userPriority * WEIGHTS.userPriority,
+      ),
+    );
 
     // Determine if this is a quick win
     const isQuickWin = quickWinScore > 7;
@@ -118,10 +123,12 @@ export class PriorityCalculator {
   /**
    * Calculate priorities for all tasks in a list
    */
-  async calculateForList(taskListId: string): Promise<Map<string, PriorityResult>> {
+  async calculateForList(
+    taskListId: string,
+  ): Promise<Map<string, PriorityResult>> {
     const tasks = await query<{ id: string }>(
-      'SELECT id FROM tasks WHERE task_list_id = ?',
-      [taskListId]
+      "SELECT id FROM tasks WHERE task_list_id = ?",
+      [taskListId],
     );
 
     const results = new Map<string, PriorityResult>();
@@ -140,7 +147,7 @@ export class PriorityCalculator {
     const result = await getOne<{ count: number }>(
       `SELECT COUNT(*) as count FROM task_relationships
        WHERE target_task_id = ? AND relationship_type = 'depends_on'`,
-      [taskId]
+      [taskId],
     );
     return result?.count || 0;
   }
@@ -163,7 +170,7 @@ export class PriorityCalculator {
         const deps = await query<{ target_task_id: string }>(
           `SELECT target_task_id FROM task_relationships
            WHERE source_task_id = ? AND relationship_type = 'depends_on'`,
-          [id]
+          [id],
         );
 
         for (const dep of deps) {
@@ -196,8 +203,10 @@ export class PriorityCalculator {
    */
   async getQuickWinScore(task: Task): Promise<number> {
     // Quick win = trivial/small effort + high priority
-    const effortBonus = task.effort === 'trivial' ? 5 : task.effort === 'small' ? 3 : 0;
-    const priorityBonus = task.priority === 'P1' ? 5 : task.priority === 'P2' ? 3 : 0;
+    const effortBonus =
+      task.effort === "trivial" ? 5 : task.effort === "small" ? 3 : 0;
+    const priorityBonus =
+      task.priority === "P1" ? 5 : task.priority === "P2" ? 3 : 0;
 
     return effortBonus + priorityBonus;
   }
@@ -217,19 +226,17 @@ export class PriorityCalculator {
       }
     }
 
-    return results
-      .sort((a, b) => b.score - a.score)
-      .map(r => r.id);
+    return results.sort((a, b) => b.score - a.score).map((r) => r.id);
   }
 
   /**
    * Convert score to suggested priority
    */
   private scoreToSuggestedPriority(score: number): TaskPriority {
-    if (score >= 70) return 'P1';
-    if (score >= 50) return 'P2';
-    if (score >= 30) return 'P3';
-    return 'P4';
+    if (score >= 70) return "P1";
+    if (score >= 50) return "P2";
+    if (score >= 30) return "P3";
+    return "P4";
   }
 
   /**
@@ -240,8 +247,8 @@ export class PriorityCalculator {
 
     // Get tasks that should be reordered
     const tasks = await query<{ id: string; position: number }>(
-      'SELECT id, position FROM tasks WHERE task_list_id = ? ORDER BY position',
-      [taskListId]
+      "SELECT id, position FROM tasks WHERE task_list_id = ? ORDER BY position",
+      [taskListId],
     );
 
     // Sort by calculated priority
@@ -263,7 +270,12 @@ export class PriorityCalculator {
     avgScore: number;
   }> {
     const priorities = await this.calculateForList(taskListId);
-    const byPriority: Record<TaskPriority, number> = { P1: 0, P2: 0, P3: 0, P4: 0 };
+    const byPriority: Record<TaskPriority, number> = {
+      P1: 0,
+      P2: 0,
+      P3: 0,
+      P4: 0,
+    };
     let quickWins = 0;
     let totalScore = 0;
 
@@ -277,7 +289,8 @@ export class PriorityCalculator {
       total: priorities.size,
       byPriority,
       quickWins,
-      avgScore: priorities.size > 0 ? Math.round(totalScore / priorities.size) : 0,
+      avgScore:
+        priorities.size > 0 ? Math.round(totalScore / priorities.size) : 0,
     };
   }
 }

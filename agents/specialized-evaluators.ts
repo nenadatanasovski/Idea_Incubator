@@ -2,23 +2,25 @@
  * Specialized Evaluator Agents (Phase 7 / v2)
  * 6 category-specific evaluators that run in parallel
  */
-import { client } from '../utils/anthropic-client.js';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { EvaluationParseError } from '../utils/errors.js';
-import { logDebug, logInfo } from '../utils/logger.js';
-import { getConfig } from '../config/index.js';
+import { client } from "../utils/anthropic-client.js";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { EvaluationParseError } from "../utils/errors.js";
+import { logDebug, logInfo } from "../utils/logger.js";
+import { getConfig } from "../config/index.js";
+import { EVALUATION_CRITERIA, CATEGORIES, type Category } from "./config.js";
 import {
-  EVALUATION_CRITERIA,
-  CATEGORIES,
-  type Category
-} from './config.js';
-import { type EvaluationResult, type StructuredEvaluationContext, formatStructuredDataForPrompt } from './evaluator.js';
-import { type ProfileContext } from '../utils/schemas.js';
-import { formatProfileForCategory } from '../utils/profile-context.js';
-import { type ResearchResult, formatResearchForCategory } from './research.js';
+  type EvaluationResult,
+  type StructuredEvaluationContext,
+  formatStructuredDataForPrompt,
+} from "./evaluator.js";
+import { type ProfileContext } from "../utils/schemas.js";
+import { formatProfileForCategory } from "../utils/profile-context.js";
+import { type ResearchResult, formatResearchForCategory } from "./research.js";
 
 // Broadcaster type for WebSocket events
-type Broadcaster = ReturnType<typeof import('../utils/broadcast.js').createBroadcaster>;
+type Broadcaster = ReturnType<
+  typeof import("../utils/broadcast.js").createBroadcaster
+>;
 
 /**
  * Specialized evaluator definition
@@ -36,10 +38,10 @@ export interface SpecializedEvaluator {
  */
 export const SPECIALIZED_EVALUATORS: Record<Category, SpecializedEvaluator> = {
   problem: {
-    id: 'evaluator-problem',
-    name: 'Problem Expert',
-    category: 'problem',
-    expertise: 'Problem definition, user pain points, market validation',
+    id: "evaluator-problem",
+    name: "Problem Expert",
+    category: "problem",
+    expertise: "Problem definition, user pain points, market validation",
     systemPrompt: `You are a Problem Analysis Expert evaluating ideas.
 
 Your specialization:
@@ -68,14 +70,15 @@ Key questions you explore:
 - 2-3: Poor - Problem seems manufactured or trivial
 - 1: Nonexistent - No discernible problem
 
-Be rigorous. Demand evidence. A score of 7+ means the problem has been validated, not assumed.`
+Be rigorous. Demand evidence. A score of 7+ means the problem has been validated, not assumed.`,
   },
 
   solution: {
-    id: 'evaluator-solution',
-    name: 'Solution Architect',
-    category: 'solution',
-    expertise: 'Solution design, technical architecture, competitive differentiation',
+    id: "evaluator-solution",
+    name: "Solution Architect",
+    category: "solution",
+    expertise:
+      "Solution design, technical architecture, competitive differentiation",
     systemPrompt: `You are a Solution Architecture Expert evaluating ideas.
 
 Your specialization:
@@ -104,14 +107,14 @@ Key questions you explore:
 - 2-3: Poor - Unclear or impractical
 - 1: Nonexistent - No coherent solution proposed
 
-Be rigorous. Challenge vaporware. A 7+ solution has concrete technical details and clear differentiation.`
+Be rigorous. Challenge vaporware. A 7+ solution has concrete technical details and clear differentiation.`,
   },
 
   feasibility: {
-    id: 'evaluator-feasibility',
-    name: 'Feasibility Analyst',
-    category: 'feasibility',
-    expertise: 'Resource planning, technical complexity, execution assessment',
+    id: "evaluator-feasibility",
+    name: "Feasibility Analyst",
+    category: "feasibility",
+    expertise: "Resource planning, technical complexity, execution assessment",
     systemPrompt: `You are a Feasibility Analysis Expert evaluating ideas.
 
 Your specialization:
@@ -140,14 +143,14 @@ Key questions you explore:
 - 2-3: Poor - Likely to fail in execution
 - 1: Impossible - Cannot be built with current technology/resources
 
-Be practical. Consider real-world constraints. A 7+ feasibility means a realistic path to completion exists.`
+Be practical. Consider real-world constraints. A 7+ feasibility means a realistic path to completion exists.`,
   },
 
   fit: {
-    id: 'evaluator-fit',
-    name: 'Strategic Fit Analyst',
-    category: 'fit',
-    expertise: 'Personal alignment, strategic positioning, opportunity cost',
+    id: "evaluator-fit",
+    name: "Strategic Fit Analyst",
+    category: "fit",
+    expertise: "Personal alignment, strategic positioning, opportunity cost",
     systemPrompt: `You are a Strategic Fit Expert evaluating ideas.
 
 Your specialization:
@@ -176,14 +179,14 @@ Key questions you explore:
 - 2-3: Poor - Wrong person or wrong time
 - 1: Terrible - Complete mismatch
 
-Be honest about fit. Passion without skill or timing is insufficient. A 7+ fit means genuine alignment.`
+Be honest about fit. Passion without skill or timing is insufficient. A 7+ fit means genuine alignment.`,
   },
 
   market: {
-    id: 'evaluator-market',
-    name: 'Market Analyst',
-    category: 'market',
-    expertise: 'Market sizing, competitive dynamics, timing analysis',
+    id: "evaluator-market",
+    name: "Market Analyst",
+    category: "market",
+    expertise: "Market sizing, competitive dynamics, timing analysis",
     systemPrompt: `You are a Market Analysis Expert evaluating ideas.
 
 Your specialization:
@@ -212,14 +215,14 @@ Key questions you explore:
 - 2-3: Poor - Declining market or fortress competition
 - 1: Dead - No viable market exists
 
-Be realistic about market dynamics. A 7+ market score requires evidence of market size and timing.`
+Be realistic about market dynamics. A 7+ market score requires evidence of market size and timing.`,
   },
 
   risk: {
-    id: 'evaluator-risk',
-    name: 'Risk Analyst',
-    category: 'risk',
-    expertise: 'Risk assessment, failure mode analysis, mitigation strategies',
+    id: "evaluator-risk",
+    name: "Risk Analyst",
+    category: "risk",
+    expertise: "Risk assessment, failure mode analysis, mitigation strategies",
     systemPrompt: `You are a Risk Analysis Expert evaluating ideas.
 
 Your specialization:
@@ -248,8 +251,8 @@ Key questions you explore:
 - 2-3: Poor - High probability of failure
 - 1: Fatal - Near-certain failure
 
-Be thorough in risk identification. A 7+ risk score means risks are acknowledged and mitigated.`
-  }
+Be thorough in risk identification. A 7+ risk score means risks are acknowledged and mitigated.`,
+  },
 };
 
 /**
@@ -263,24 +266,33 @@ export async function runSpecializedEvaluator(
   _roundNumber?: number,
   profileContext?: ProfileContext | null,
   structuredContext?: StructuredEvaluationContext | null,
-  research?: ResearchResult | null
+  research?: ResearchResult | null,
 ): Promise<EvaluationResult[]> {
   const config = getConfig();
   const evaluator = SPECIALIZED_EVALUATORS[category];
   const criteria = EVALUATION_CRITERIA[category];
 
-  const criteriaPrompt = criteria.map(c =>
-    `${c.id}. ${c.name}
+  const criteriaPrompt = criteria
+    .map(
+      (c) =>
+        `${c.id}. ${c.name}
     Question: ${c.question}
     10 = ${c.highScoreDescription}
-    1 = ${c.lowScoreDescription}`
-  ).join('\n\n');
+    1 = ${c.lowScoreDescription}`,
+    )
+    .join("\n\n");
 
   // Add category-relevant profile context (not just for fit)
-  const profileSection = formatProfileForCategory(profileContext ?? null, category);
+  const profileSection = formatProfileForCategory(
+    profileContext ?? null,
+    category,
+  );
 
   // Add structured answers context (from dynamic questioning)
-  const structuredSection = formatStructuredDataForPrompt(structuredContext ?? null, category);
+  const structuredSection = formatStructuredDataForPrompt(
+    structuredContext ?? null,
+    category,
+  );
 
   // Add research context (for market and solution categories)
   const researchSection = formatResearchForCategory(research ?? null, category);
@@ -290,7 +302,9 @@ export async function runSpecializedEvaluator(
   // Note: We don't broadcast roundStarted at category level - only per criterion via evaluatorSpeaking
 
   // Build request for API call logging
-  const systemPrompt = evaluator.systemPrompt + `
+  const systemPrompt =
+    evaluator.systemPrompt +
+    `
 
 ## Response Format
 
@@ -328,12 +342,14 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
     model: config.model,
     max_tokens: 2048,
     system: systemPrompt,
-    messages: [{ role: 'user', content: userContent }]
+    messages: [{ role: "user", content: userContent }],
   });
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError(`Unexpected response type from ${evaluator.name}`);
+  if (content.type !== "text") {
+    throw new EvaluationParseError(
+      `Unexpected response type from ${evaluator.name}`,
+    );
   }
 
   // Track with request/response data for API logging
@@ -343,19 +359,21 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
     {
       model: config.model,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userContent }],
+      messages: [{ role: "user", content: userContent }],
       max_tokens: 2048,
     },
     {
       content: content.text,
       stop_reason: response.stop_reason,
-    }
+    },
   );
   logDebug(`${evaluator.name} completed evaluation`);
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError(`Could not parse ${evaluator.name} response`);
+    throw new EvaluationParseError(
+      `Could not parse ${evaluator.name} response`,
+    );
   }
 
   // Try to repair common JSON issues from LLM output
@@ -363,24 +381,26 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
     let repaired = json;
 
     // Remove trailing commas before ] or }
-    repaired = repaired.replace(/,\s*([\]}])/g, '$1');
+    repaired = repaired.replace(/,\s*([\]}])/g, "$1");
 
     // Fix missing commas between array elements (common LLM error)
     // Look for }" followed by { without a comma
-    repaired = repaired.replace(/\}\s*\{/g, '}, {');
-    repaired = repaired.replace(/\]\s*\[/g, '], [');
+    repaired = repaired.replace(/\}\s*\{/g, "}, {");
+    repaired = repaired.replace(/\]\s*\[/g, "], [");
     repaired = repaired.replace(/"\s*\{/g, '", {');
     repaired = repaired.replace(/\}\s*"/g, '}, "');
 
     // Try to escape unescaped newlines in strings
-    repaired = repaired.replace(/:\s*"([^"]*?)(\n)([^"]*?)"/g, (_, pre, _nl, post) =>
-      `: "${pre}\\n${post}"`
+    repaired = repaired.replace(
+      /:\s*"([^"]*?)(\n)([^"]*?)"/g,
+      (_, pre, _nl, post) => `: "${pre}\\n${post}"`,
     );
 
     // Escape unescaped quotes inside strings (rough heuristic)
     // This is tricky - try to find strings with unescaped internal quotes
-    repaired = repaired.replace(/"([^"]*)":\s*"([^"]*)(?<!\\)"([^"]*)"(?=\s*[,}\]])/g,
-      (_match, key, pre, post) => `"${key}": "${pre}\\"${post}"`
+    repaired = repaired.replace(
+      /"([^"]*)":\s*"([^"]*)(?<!\\)"([^"]*)"(?=\s*[,}\]])/g,
+      (_match, key, pre, post) => `"${key}": "${pre}\\"${post}"`,
     );
 
     return repaired;
@@ -391,7 +411,8 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
     const evaluations: any[] = [];
 
     // Try to find individual evaluation objects
-    const evalPattern = /\{\s*"criterion"\s*:\s*"([^"]+)"\s*,\s*"score"\s*:\s*(\d+)\s*,\s*"confidence"\s*:\s*([\d.]+)\s*,\s*"reasoning"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/g;
+    const evalPattern =
+      /\{\s*"criterion"\s*:\s*"([^"]+)"\s*,\s*"score"\s*:\s*(\d+)\s*,\s*"confidence"\s*:\s*([\d.]+)\s*,\s*"reasoning"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/g;
 
     let match;
     while ((match = evalPattern.exec(text)) !== null) {
@@ -399,9 +420,9 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
         criterion: match[1],
         score: parseInt(match[2]),
         confidence: parseFloat(match[3]),
-        reasoning: match[4].replace(/\\n/g, '\n').replace(/\\"/g, '"'),
+        reasoning: match[4].replace(/\\n/g, "\n").replace(/\\"/g, '"'),
         evidenceCited: [],
-        gapsIdentified: []
+        gapsIdentified: [],
       });
     }
 
@@ -422,7 +443,9 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
         const extracted = extractEvaluations(jsonMatch[0]);
         if (extracted.length > 0) {
           parsed = { evaluations: extracted };
-          logDebug(`Recovered ${extracted.length} evaluations from malformed JSON`);
+          logDebug(
+            `Recovered ${extracted.length} evaluations from malformed JSON`,
+          );
         } else {
           throw firstError;
         }
@@ -431,12 +454,13 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
 
     const results = parsed.evaluations.map((eval_: any) => {
       // Normalize criterion name - handle formats like "R1. Execution Risk" or just "Execution Risk"
-      const criterionStr = String(eval_.criterion || '').trim();
-      const criterion = criteria.find(c =>
-        c.name === criterionStr ||
-        c.id === criterionStr ||
-        criterionStr.includes(c.name) ||
-        criterionStr.endsWith(c.name)
+      const criterionStr = String(eval_.criterion || "").trim();
+      const criterion = criteria.find(
+        (c) =>
+          c.name === criterionStr ||
+          c.id === criterionStr ||
+          criterionStr.includes(c.name) ||
+          criterionStr.endsWith(c.name),
       );
 
       if (!criterion) {
@@ -447,9 +471,9 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
         criterion,
         score: Math.min(10, Math.max(1, eval_.score)),
         confidence: Math.min(1, Math.max(0, eval_.confidence)),
-        reasoning: eval_.reasoning || '',
+        reasoning: eval_.reasoning || "",
         evidenceCited: eval_.evidenceCited || [],
-        gapsIdentified: eval_.gapsIdentified || []
+        gapsIdentified: eval_.gapsIdentified || [],
       };
     });
 
@@ -460,7 +484,7 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
           result.criterion.name,
           result.criterion.category,
           result.reasoning,
-          result.score
+          result.score,
         );
       }
       // Note: Category-level roundComplete is not broadcast here
@@ -470,7 +494,9 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
     return results;
   } catch (error) {
     if (error instanceof EvaluationParseError) throw error;
-    throw new EvaluationParseError(`Invalid JSON from ${evaluator.name}: ${error}`);
+    throw new EvaluationParseError(
+      `Invalid JSON from ${evaluator.name}: ${error}`,
+    );
   }
 }
 
@@ -485,7 +511,7 @@ export async function runAllSpecializedEvaluators(
   broadcaster?: Broadcaster,
   profileContext?: ProfileContext | null,
   structuredContext?: StructuredEvaluationContext | null,
-  research?: ResearchResult | null
+  research?: ResearchResult | null,
 ): Promise<{
   evaluations: EvaluationResult[];
   categoryScores: Record<Category, number>;
@@ -498,16 +524,27 @@ export async function runAllSpecializedEvaluators(
   logInfo(`Starting parallel evaluation for idea: ${ideaSlug}`);
 
   if (profileContext) {
-    logInfo('User profile context will be used for Fit evaluation');
+    logInfo("User profile context will be used for Fit evaluation");
   }
 
   if (structuredContext && structuredContext.coverage.overall > 0) {
-    logInfo(`Structured answers will be used - Coverage: ${Math.round(structuredContext.coverage.overall * 100)}%`);
+    logInfo(
+      `Structured answers will be used - Coverage: ${Math.round(structuredContext.coverage.overall * 100)}%`,
+    );
   }
 
   // Run all 6 evaluators in parallel
   const evaluationPromises = CATEGORIES.map((category, index) =>
-    runSpecializedEvaluator(category, ideaContent, costTracker, broadcaster, index + 1, profileContext, structuredContext, research)
+    runSpecializedEvaluator(
+      category,
+      ideaContent,
+      costTracker,
+      broadcaster,
+      index + 1,
+      profileContext,
+      structuredContext,
+      research,
+    ),
   );
 
   const results = await Promise.all(evaluationPromises);
@@ -520,12 +557,15 @@ export async function runAllSpecializedEvaluators(
     feasibility: 0,
     fit: 0,
     market: 0,
-    risk: 0
+    risk: 0,
   };
 
   for (const category of CATEGORIES) {
-    const categoryEvals = allEvaluations.filter(e => e.criterion.category === category);
-    categoryScores[category] = categoryEvals.reduce((sum, e) => sum + e.score, 0) / categoryEvals.length;
+    const categoryEvals = allEvaluations.filter(
+      (e) => e.criterion.category === category,
+    );
+    categoryScores[category] =
+      categoryEvals.reduce((sum, e) => sum + e.score, 0) / categoryEvals.length;
   }
 
   // Calculate weighted overall score
@@ -539,11 +579,15 @@ export async function runAllSpecializedEvaluators(
     categoryScores.risk * weights.risk;
 
   // Calculate overall confidence
-  const overallConfidence = allEvaluations.reduce((sum, e) => sum + e.confidence, 0) / allEvaluations.length;
+  const overallConfidence =
+    allEvaluations.reduce((sum, e) => sum + e.confidence, 0) /
+    allEvaluations.length;
 
   const report = costTracker.getReport();
 
-  logInfo(`Parallel evaluation complete for ${ideaSlug}: Overall score ${overallScore.toFixed(2)}`);
+  logInfo(
+    `Parallel evaluation complete for ${ideaSlug}: Overall score ${overallScore.toFixed(2)}`,
+  );
 
   return {
     evaluations: allEvaluations,
@@ -552,16 +596,18 @@ export async function runAllSpecializedEvaluators(
     overallConfidence,
     tokensUsed: {
       input: report.inputTokens,
-      output: report.outputTokens
+      output: report.outputTokens,
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 }
 
 /**
  * Get specialized evaluator by category
  */
-export function getSpecializedEvaluator(category: Category): SpecializedEvaluator {
+export function getSpecializedEvaluator(
+  category: Category,
+): SpecializedEvaluator {
   return SPECIALIZED_EVALUATORS[category];
 }
 

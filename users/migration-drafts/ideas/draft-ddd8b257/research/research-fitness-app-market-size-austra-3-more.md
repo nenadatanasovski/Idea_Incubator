@@ -14,6 +14,7 @@ queries:
   - anti-gym fitness movement trends
 identifier: research_fitness_app_market_s
 ---
+
 ## Fitness App Market Size - Australia 2024/2025
 
 ### Key Findings
@@ -48,7 +49,6 @@ identifier: research_fitness_app_market_s
 - **Gym-alternative positioning** aligns with digital-first consumer trends post-pandemic
 - **Move-to-earn segment** growing at 18.5% CAGR - potential gamification angle
 - **Personalization demand**: Consumers want apps addressing "personal health needs at various lifestyle levels" - niche targeting possible
-
 
 ---
 
@@ -91,7 +91,6 @@ identifier: research_fitness_app_market_s
 - **Emerging market expansion**: High internet penetration + growing young population in developing regions
 - **VR/AR integration**: Growing 22% CAGR—early movers in immersive fitness could capture emerging demand
 - **Hybrid models**: Combining app-based workouts with occasional in-person or live coaching could differentiate from pure-play apps
-
 
 ---
 

@@ -8,6 +8,7 @@ sessionId: afda70d2-5ae0-497e-9ab2-8e7596c9da07
 createdAt: 2026-01-05 21:49:57
 updatedAt: 2026-01-05 21:49:57
 ---
+
 Now I have a comprehensive understanding of the Vibe platform. Let me create a detailed architecture exploration document that synthesizes and extends what exists, focusing on practical trade-offs and decisions.
 
 ---
@@ -30,12 +31,12 @@ The existing architecture documentation is comprehensive and well-thought-out. T
 
 **Simplified MVP Approach:**
 
-| Component | MVP Implementation | Why |
-|-----------|-------------------|-----|
-| **Context Manager** | Store conversation as JSON in PostgreSQL | Avoid vector DB complexity early |
-| **Session State** | Redis (Upstash) or even localStorage | Fast, simple, cheap |
-| **Memory** | PostgreSQL JSONB column on `users` table | One database to manage |
-| **UI State Controller** | React Context/Zustand | Client-side state is sufficient |
+| Component               | MVP Implementation                       | Why                              |
+| ----------------------- | ---------------------------------------- | -------------------------------- |
+| **Context Manager**     | Store conversation as JSON in PostgreSQL | Avoid vector DB complexity early |
+| **Session State**       | Redis (Upstash) or even localStorage     | Fast, simple, cheap              |
+| **Memory**              | PostgreSQL JSONB column on `users` table | One database to manage           |
+| **UI State Controller** | React Context/Zustand                    | Client-side state is sufficient  |
 
 **Trade-off:** The existing design shows Vector Store (Pinecone) for semantic search. **Recommendation: Defer until network features are built.** For MVP, keyword matching and structured data queries are sufficient.
 
@@ -47,11 +48,11 @@ The existing architecture documentation is comprehensive and well-thought-out. T
 
 **Phased Implementation:**
 
-| Phase | What to Build | What to Skip |
-|-------|--------------|--------------|
-| **MVP** | Single orchestrator function that routes to hardcoded agent types | Dynamic agent creation, full registry |
-| **Post-MVP** | Agent registry in database, versioned prompts | Dynamic spawning |
-| **Scale** | Full autonomous agent creation, SIA improving all agents | — |
+| Phase        | What to Build                                                     | What to Skip                          |
+| ------------ | ----------------------------------------------------------------- | ------------------------------------- |
+| **MVP**      | Single orchestrator function that routes to hardcoded agent types | Dynamic agent creation, full registry |
+| **Post-MVP** | Agent registry in database, versioned prompts                     | Dynamic spawning                      |
+| **Scale**    | Full autonomous agent creation, SIA improving all agents          | —                                     |
 
 **Practical Orchestrator (MVP):**
 
@@ -59,12 +60,16 @@ The existing architecture documentation is comprehensive and well-thought-out. T
 // Simplified orchestrator - no registry, just routing
 async function orchestrate(request: UserRequest): Promise<AgentResponse> {
   const agentType = classifyRequest(request); // Simple classifier
-  
-  switch(agentType) {
-    case 'ideation': return await ideationAgent(request);
-    case 'specification': return await specAgent(request);
-    case 'build': return await buildAgent(request);
-    default: return await fallbackAgent(request);
+
+  switch (agentType) {
+    case "ideation":
+      return await ideationAgent(request);
+    case "specification":
+      return await specAgent(request);
+    case "build":
+      return await buildAgent(request);
+    default:
+      return await fallbackAgent(request);
   }
 }
 ```
@@ -81,11 +86,11 @@ async function orchestrate(request: UserRequest): Promise<AgentResponse> {
 
 **Build Strategy:**
 
-| Approach | Pros | Cons | Recommendation |
-|----------|------|------|----------------|
-| **Claude Code / Aider** | Proven, actively maintained | Less control | **Use for MVP** |
-| **Custom with Claude API** | Full control, integrated | Time to build | Post-MVP |
-| **Bolt.new approach** | Fast, open source | Inconsistent | Don't reinvent |
+| Approach                   | Pros                        | Cons          | Recommendation  |
+| -------------------------- | --------------------------- | ------------- | --------------- |
+| **Claude Code / Aider**    | Proven, actively maintained | Less control  | **Use for MVP** |
+| **Custom with Claude API** | Full control, integrated    | Time to build | Post-MVP        |
+| **Bolt.new approach**      | Fast, open source           | Inconsistent  | Don't reinvent  |
 
 **Recommended Build Flow (MVP):**
 
@@ -105,16 +110,17 @@ User Spec → Claude Code Session → Git Repo → Vercel/Railway Auto-Deploy
 
 **MVP Hosting Options:**
 
-| Provider | Complexity | Cost (10 apps) | Auto-Scale | Best For |
-|----------|------------|----------------|------------|----------|
-| **Railway** | Low | ~$50/mo | Yes | Container apps |
-| **Render** | Low | ~$70/mo | Yes | Full-stack |
-| **Fly.io** | Medium | ~$30/mo | Yes | Global edge |
-| **Vercel** | Very Low | Free-$40/mo | Yes | Next.js apps |
+| Provider    | Complexity | Cost (10 apps) | Auto-Scale | Best For       |
+| ----------- | ---------- | -------------- | ---------- | -------------- |
+| **Railway** | Low        | ~$50/mo        | Yes        | Container apps |
+| **Render**  | Low        | ~$70/mo        | Yes        | Full-stack     |
+| **Fly.io**  | Medium     | ~$30/mo        | Yes        | Global edge    |
+| **Vercel**  | Very Low   | Free-$40/mo    | Yes        | Next.js apps   |
 
 **Recommendation: Start with Railway or Render.** They handle:
+
 - Per-app isolation
-- Database provisioning  
+- Database provisioning
 - Auto-scaling
 - SSL/domains
 - Zero DevOps required
@@ -162,15 +168,15 @@ User Spec → Claude Code Session → Git Repo → Vercel/Railway Auto-Deploy
 
 ### Data Persistence Strategy
 
-| Data Type | Storage | Retention | Why |
-|-----------|---------|-----------|-----|
-| **Conversations** | PostgreSQL (JSONB) | Forever | Core asset, enables resumption |
-| **User Profiles** | PostgreSQL | Forever | Personalization |
-| **Specifications** | PostgreSQL (JSONB) | Forever | Build instructions |
-| **Generated Code** | GitHub (private repos) | Forever | Version control is free |
-| **App Runtime Data** | Per-app Postgres | User controls | Tenant isolation |
-| **Agent Transcripts** | PostgreSQL | 90 days | Debugging, SIA learning |
-| **Analytics Events** | PostHog | 12 months | Product insights |
+| Data Type             | Storage                | Retention     | Why                            |
+| --------------------- | ---------------------- | ------------- | ------------------------------ |
+| **Conversations**     | PostgreSQL (JSONB)     | Forever       | Core asset, enables resumption |
+| **User Profiles**     | PostgreSQL             | Forever       | Personalization                |
+| **Specifications**    | PostgreSQL (JSONB)     | Forever       | Build instructions             |
+| **Generated Code**    | GitHub (private repos) | Forever       | Version control is free        |
+| **App Runtime Data**  | Per-app Postgres       | User controls | Tenant isolation               |
+| **Agent Transcripts** | PostgreSQL             | 90 days       | Debugging, SIA learning        |
+| **Analytics Events**  | PostHog                | 12 months     | Product insights               |
 
 ---
 
@@ -178,33 +184,33 @@ User Spec → Claude Code Session → Git Repo → Vercel/Railway Auto-Deploy
 
 ### Recommended Stack (MVP)
 
-| Layer | Technology | Why | Monthly Cost |
-|-------|------------|-----|--------------|
-| **Frontend** | Next.js 15 + TailwindCSS | Fast, good DX, Vercel native | $0-20 |
-| **API** | Next.js API Routes + tRPC | Type-safe, minimal setup | Included |
-| **Database** | Supabase (Postgres) | Managed, has auth, generous free tier | $0-25 |
-| **Cache** | Upstash Redis | Serverless Redis, simple | $0-10 |
-| **AI** | Anthropic Claude API | Best for coding tasks | $50-150 |
-| **Hosting (Platform)** | Vercel | Zero-config for Next.js | $0-20 |
-| **Hosting (User Apps)** | Railway | Simple container deployment | $5-50 |
-| **Email** | Resend | Modern, good DX | $0-20 |
-| **Payments** | Stripe | Industry standard | % of revenue |
-| **Analytics** | PostHog | Self-hostable, feature flags | $0 |
-| **Error Tracking** | Sentry | Standard, good Next.js support | $0-29 |
+| Layer                   | Technology                | Why                                   | Monthly Cost |
+| ----------------------- | ------------------------- | ------------------------------------- | ------------ |
+| **Frontend**            | Next.js 15 + TailwindCSS  | Fast, good DX, Vercel native          | $0-20        |
+| **API**                 | Next.js API Routes + tRPC | Type-safe, minimal setup              | Included     |
+| **Database**            | Supabase (Postgres)       | Managed, has auth, generous free tier | $0-25        |
+| **Cache**               | Upstash Redis             | Serverless Redis, simple              | $0-10        |
+| **AI**                  | Anthropic Claude API      | Best for coding tasks                 | $50-150      |
+| **Hosting (Platform)**  | Vercel                    | Zero-config for Next.js               | $0-20        |
+| **Hosting (User Apps)** | Railway                   | Simple container deployment           | $5-50        |
+| **Email**               | Resend                    | Modern, good DX                       | $0-20        |
+| **Payments**            | Stripe                    | Industry standard                     | % of revenue |
+| **Analytics**           | PostHog                   | Self-hostable, feature flags          | $0           |
+| **Error Tracking**      | Sentry                    | Standard, good Next.js support        | $0-29        |
 
 **Estimated MVP Monthly Cost: $55-350 AUD** depending on usage
 
 ### Build vs. Buy Decisions
 
-| Capability | Build | Buy/Use | Recommendation |
-|------------|-------|---------|----------------|
-| **Auth** | Custom JWT | Supabase Auth, Clerk, or Auth.js | **Buy** — Auth is solved |
-| **AI Orchestration** | Custom function | LangChain, Vercel AI SDK | **Build simple** — Over-abstraction hurts |
-| **Code Generation** | Custom prompts | Claude Code, Cursor, Aider | **Buy/Wrap** — Use Claude Code |
-| **App Hosting** | Kubernetes | Railway, Render | **Buy** — Zero DevOps burden |
-| **Payments** | — | Stripe | **Buy** — Never build payments |
-| **Real-time** | WebSockets | Supabase Realtime, Pusher | **Buy** — Managed is easier |
-| **Vector Search** | Build | Pinecone, Supabase pgvector | **Defer** — Not needed MVP |
+| Capability           | Build           | Buy/Use                          | Recommendation                            |
+| -------------------- | --------------- | -------------------------------- | ----------------------------------------- |
+| **Auth**             | Custom JWT      | Supabase Auth, Clerk, or Auth.js | **Buy** — Auth is solved                  |
+| **AI Orchestration** | Custom function | LangChain, Vercel AI SDK         | **Build simple** — Over-abstraction hurts |
+| **Code Generation**  | Custom prompts  | Claude Code, Cursor, Aider       | **Buy/Wrap** — Use Claude Code            |
+| **App Hosting**      | Kubernetes      | Railway, Render                  | **Buy** — Zero DevOps burden              |
+| **Payments**         | —               | Stripe                           | **Buy** — Never build payments            |
+| **Real-time**        | WebSockets      | Supabase Realtime, Pusher        | **Buy** — Managed is easier               |
+| **Vector Search**    | Build           | Pinecone, Supabase pgvector      | **Defer** — Not needed MVP                |
 
 ---
 
@@ -248,15 +254,15 @@ User Spec → Claude Code Session → Git Repo → Vercel/Railway Auto-Deploy
 
 Keep it simple. REST for basic CRUD, WebSocket for real-time agent responses.
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/auth/*` | Various | Supabase handles this |
-| `/api/ideas` | GET, POST | List/create ideas |
-| `/api/ideas/[id]` | GET, PATCH | Get/update idea |
-| `/api/ideas/[id]/chat` | POST | Send message to agent |
-| `/api/apps` | GET | List user's apps |
-| `/api/apps/[id]/deploy` | POST | Trigger deployment |
-| `/api/credits` | GET | Check credit balance |
+| Endpoint                | Method     | Purpose               |
+| ----------------------- | ---------- | --------------------- |
+| `/api/auth/*`           | Various    | Supabase handles this |
+| `/api/ideas`            | GET, POST  | List/create ideas     |
+| `/api/ideas/[id]`       | GET, PATCH | Get/update idea       |
+| `/api/ideas/[id]/chat`  | POST       | Send message to agent |
+| `/api/apps`             | GET        | List user's apps      |
+| `/api/apps/[id]/deploy` | POST       | Trigger deployment    |
+| `/api/credits`          | GET        | Check credit balance  |
 
 **WebSocket:** Single connection for all real-time updates (agent messages, build progress, notifications).
 
@@ -266,12 +272,12 @@ Keep it simple. REST for basic CRUD, WebSocket for real-time agent responses.
 
 ### Authentication & Authorization
 
-| Concern | MVP Solution | Why |
-|---------|-------------|-----|
-| **User Auth** | Supabase Auth (magic link + OAuth) | Handled, secure, easy |
-| **API Auth** | Supabase JWT validation | Built-in |
-| **Row-Level Security** | Supabase RLS policies | Users only see their data |
-| **App Isolation** | Separate Railway projects per app | Physical separation |
+| Concern                | MVP Solution                       | Why                       |
+| ---------------------- | ---------------------------------- | ------------------------- |
+| **User Auth**          | Supabase Auth (magic link + OAuth) | Handled, secure, easy     |
+| **API Auth**           | Supabase JWT validation            | Built-in                  |
+| **Row-Level Security** | Supabase RLS policies              | Users only see their data |
+| **App Isolation**      | Separate Railway projects per app  | Physical separation       |
 
 ### Data Protection Checklist
 
@@ -329,6 +335,7 @@ Railway projects are completely isolated by default. This is simpler and more se
 ```
 
 **What's included:**
+
 - Single Next.js app (UI + API)
 - Supabase for data + auth
 - Hardcoded agents (Ideation, Spec, Build)
@@ -336,6 +343,7 @@ Railway projects are completely isolated by default. This is simpler and more se
 - Basic credit tracking
 
 **What's deferred:**
+
 - Agent registry
 - SIA
 - Testing agents
@@ -365,6 +373,7 @@ Railway projects are completely isolated by default. This is simpler and more se
 ```
 
 **New capabilities:**
+
 - Agent registry in database
 - Background job processing (builds, notifications)
 - SIA v1 (build loop only)
@@ -399,6 +408,7 @@ Railway projects are completely isolated by default. This is simpler and more se
 ```
 
 **New capabilities:**
+
 - Agent service extracted (for scale/isolation)
 - Network matching with vector search
 - Testing agent system running continuously
@@ -452,10 +462,12 @@ Running App on Railway
 ### Decision 3: User App Database Strategy
 
 **Option A: Shared multi-tenant database**
+
 - Pros: Cheaper, easier to manage
 - Cons: Risk of data leaks, complex RLS, scaling issues
 
 **Option B: Per-app database (Railway default)**
+
 - Pros: Complete isolation, simple mental model, can offer to users
 - Cons: More expensive at scale, more to manage
 
@@ -484,8 +496,8 @@ CREATE TABLE credit_transactions (
 -- Simple function to check balance
 CREATE FUNCTION get_credit_balance(user_uuid UUID)
 RETURNS INTEGER AS $$
-  SELECT COALESCE(SUM(amount), 0) 
-  FROM credit_transactions 
+  SELECT COALESCE(SUM(amount), 0)
+  FROM credit_transactions
   WHERE user_id = user_uuid;
 $$ LANGUAGE SQL;
 ```
@@ -499,6 +511,7 @@ $$ LANGUAGE SQL;
 | Deployment | 5 |
 
 **Pricing (example):**
+
 - Free tier: 100 credits
 - $10 pack: 500 credits
 - $25 pack: 1500 credits
@@ -509,20 +522,20 @@ $$ LANGUAGE SQL;
 
 ### Technical Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| **AI API costs explode** | Medium | High | Credit limits, caching, fallback to smaller models |
-| **Claude Code breaks** | Low | High | Maintain ability to switch to manual prompts |
-| **Supabase outage** | Low | High | Regular backups, can migrate to self-hosted Postgres |
-| **Railway limits hit** | Medium | Medium | Have Render as backup, user apps are portable |
+| Risk                     | Likelihood | Impact | Mitigation                                           |
+| ------------------------ | ---------- | ------ | ---------------------------------------------------- |
+| **AI API costs explode** | Medium     | High   | Credit limits, caching, fallback to smaller models   |
+| **Claude Code breaks**   | Low        | High   | Maintain ability to switch to manual prompts         |
+| **Supabase outage**      | Low        | High   | Regular backups, can migrate to self-hosted Postgres |
+| **Railway limits hit**   | Medium     | Medium | Have Render as backup, user apps are portable        |
 
 ### Business Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| **No users come** | Medium | Critical | Build in public, get feedback early |
-| **Users can't complete builds** | High | High | Start simple (CRUD apps), expand capability |
-| **Credit system confusing** | Medium | Medium | Clear pricing page, usage dashboard |
+| Risk                            | Likelihood | Impact   | Mitigation                                  |
+| ------------------------------- | ---------- | -------- | ------------------------------------------- |
+| **No users come**               | Medium     | Critical | Build in public, get feedback early         |
+| **Users can't complete builds** | High       | High     | Start simple (CRUD apps), expand capability |
+| **Credit system confusing**     | Medium     | Medium   | Clear pricing page, usage dashboard         |
 
 ---
 

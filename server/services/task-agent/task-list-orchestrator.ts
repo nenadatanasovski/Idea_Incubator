@@ -7,15 +7,19 @@
  * Part of: PTE-125 to PTE-128
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   TaskListV2,
   FileConflict,
   BuildAgentInstance,
   FileOperation,
-} from '../../../types/task-agent.js';
-import { getActiveAgents, startExecution, pauseExecution } from './build-agent-orchestrator.js';
+} from "../../../types/task-agent.js";
+import {
+  getActiveAgents,
+  startExecution,
+  pauseExecution,
+} from "./build-agent-orchestrator.js";
 
 /**
  * Configuration for the orchestrator
@@ -76,7 +80,7 @@ export async function getConfig(): Promise<OrchestratorConfig> {
     max_concurrent_lists: number;
     max_global_agents: number;
     enable_cross_list_conflict_detection: number;
-  }>('SELECT * FROM orchestrator_config LIMIT 1');
+  }>("SELECT * FROM orchestrator_config LIMIT 1");
 
   if (!row) {
     return DEFAULT_CONFIG;
@@ -85,7 +89,8 @@ export async function getConfig(): Promise<OrchestratorConfig> {
   return {
     maxConcurrentLists: row.max_concurrent_lists,
     maxGlobalAgents: row.max_global_agents,
-    enableCrossListConflictDetection: row.enable_cross_list_conflict_detection === 1,
+    enableCrossListConflictDetection:
+      row.enable_cross_list_conflict_detection === 1,
   };
 }
 
@@ -95,7 +100,7 @@ export async function getConfig(): Promise<OrchestratorConfig> {
  * Part of: PTE-128
  */
 export async function updateConfig(
-  updates: Partial<OrchestratorConfig>
+  updates: Partial<OrchestratorConfig>,
 ): Promise<OrchestratorConfig> {
   const current = await getConfig();
   const updated = { ...current, ...updates };
@@ -110,11 +115,11 @@ export async function updateConfig(
       enable_cross_list_conflict_detection = excluded.enable_cross_list_conflict_detection,
       updated_at = datetime('now')`,
     [
-      'default',
+      "default",
       updated.maxConcurrentLists,
       updated.maxGlobalAgents,
       updated.enableCrossListConflictDetection ? 1 : 0,
-    ]
+    ],
   );
 
   await saveDb();
@@ -143,7 +148,7 @@ export async function getActiveTaskLists(): Promise<TaskListV2[]> {
   }>(
     `SELECT * FROM task_lists_v2
      WHERE status = 'in_progress'
-     ORDER BY started_at ASC`
+     ORDER BY started_at ASC`,
   );
 
   return rows.map((row) => ({
@@ -151,7 +156,7 @@ export async function getActiveTaskLists(): Promise<TaskListV2[]> {
     name: row.name,
     description: row.description || undefined,
     projectId: row.project_id || undefined,
-    status: row.status as TaskListV2['status'],
+    status: row.status as TaskListV2["status"],
     maxParallelAgents: row.max_parallel_agents,
     autoExecute: row.auto_execute === 1,
     totalTasks: row.total_tasks,
@@ -213,7 +218,7 @@ export async function canStartExecution(taskListId: string): Promise<{
  * Part of: PTE-126
  */
 export async function detectCrossListConflicts(
-  taskListId: string
+  taskListId: string,
 ): Promise<CrossListConflict[]> {
   // Get file impacts for the new task list
   const newListImpacts = await query<{
@@ -236,7 +241,7 @@ export async function detectCrossListConflicts(
     JOIN task_lists_v2 tl ON t.task_list_id = tl.id
     WHERE t.task_list_id = ?
       AND t.status IN ('pending', 'in_progress')`,
-    [taskListId]
+    [taskListId],
   );
 
   if (newListImpacts.length === 0) {
@@ -263,7 +268,7 @@ export async function detectCrossListConflicts(
     JOIN tasks t ON tfi.task_id = t.id
     JOIN task_lists_v2 tl ON t.task_list_id = tl.id
     WHERE tl.status = 'in_progress'
-      AND t.status IN ('pending', 'in_progress')`
+      AND t.status IN ('pending', 'in_progress')`,
   );
 
   const conflicts: CrossListConflict[] = [];
@@ -277,17 +282,20 @@ export async function detectCrossListConflicts(
       }
 
       // Check if same file
-      if (normalizeFilePath(newImpact.file_path) !== normalizeFilePath(activeImpact.file_path)) {
+      if (
+        normalizeFilePath(newImpact.file_path) !==
+        normalizeFilePath(activeImpact.file_path)
+      ) {
         continue;
       }
 
       // Check for conflict based on operation types
       const conflictType = getConflictType(
         newImpact.operation as FileOperation,
-        activeImpact.operation as FileOperation
+        activeImpact.operation as FileOperation,
       );
 
-      if (conflictType !== 'no_conflict') {
+      if (conflictType !== "no_conflict") {
         conflicts.push({
           listAId: newImpact.list_id,
           listAName: newImpact.list_name,
@@ -314,10 +322,10 @@ export async function detectCrossListConflicts(
  */
 function normalizeFilePath(path: string): string {
   return path
-    .replace(/\*\*/g, '')
-    .replace(/\*/g, '')
-    .replace(/\/+/g, '/')
-    .replace(/\/$/, '')
+    .replace(/\*\*/g, "")
+    .replace(/\*/g, "")
+    .replace(/\/+/g, "/")
+    .replace(/\/$/, "")
     .toLowerCase();
 }
 
@@ -328,32 +336,32 @@ function getConflictType(opA: FileOperation, opB: FileOperation): string {
   // Conflict matrix
   const conflicts: Record<string, Record<string, string>> = {
     CREATE: {
-      CREATE: 'create_create',
-      UPDATE: 'no_conflict',
-      DELETE: 'create_delete',
-      READ: 'no_conflict',
+      CREATE: "create_create",
+      UPDATE: "no_conflict",
+      DELETE: "create_delete",
+      READ: "no_conflict",
     },
     UPDATE: {
-      CREATE: 'no_conflict',
-      UPDATE: 'write_write',
-      DELETE: 'write_delete',
-      READ: 'no_conflict',
+      CREATE: "no_conflict",
+      UPDATE: "write_write",
+      DELETE: "write_delete",
+      READ: "no_conflict",
     },
     DELETE: {
-      CREATE: 'create_delete',
-      UPDATE: 'write_delete',
-      DELETE: 'delete_delete',
-      READ: 'read_delete',
+      CREATE: "create_delete",
+      UPDATE: "write_delete",
+      DELETE: "delete_delete",
+      READ: "read_delete",
     },
     READ: {
-      CREATE: 'no_conflict',
-      UPDATE: 'no_conflict',
-      DELETE: 'read_delete',
-      READ: 'no_conflict',
+      CREATE: "no_conflict",
+      UPDATE: "no_conflict",
+      DELETE: "read_delete",
+      READ: "no_conflict",
     },
   };
 
-  return conflicts[opA]?.[opB] || 'no_conflict';
+  return conflicts[opA]?.[opB] || "no_conflict";
 }
 
 /**
@@ -363,7 +371,11 @@ function getConflictType(opA: FileOperation, opB: FileOperation): string {
  */
 export async function getGlobalAgentPool(): Promise<{
   totalActive: number;
-  byTaskList: Array<{ taskListId: string; taskListName: string; agentCount: number }>;
+  byTaskList: Array<{
+    taskListId: string;
+    taskListName: string;
+    agentCount: number;
+  }>;
   availableSlots: number;
 }> {
   const config = await getConfig();
@@ -381,10 +393,13 @@ export async function getGlobalAgentPool(): Promise<{
     FROM build_agent_instances ba
     LEFT JOIN task_lists_v2 tl ON ba.task_list_id = tl.id
     WHERE ba.status NOT IN ('terminated')
-    GROUP BY ba.task_list_id`
+    GROUP BY ba.task_list_id`,
   );
 
-  const totalActive = agentsByList.reduce((sum, row) => sum + row.agent_count, 0);
+  const totalActive = agentsByList.reduce(
+    (sum, row) => sum + row.agent_count,
+    0,
+  );
 
   return {
     totalActive,
@@ -401,15 +416,15 @@ export async function getGlobalAgentPool(): Promise<{
  * Calculate how many agents can be allocated to a task list
  */
 export async function calculateAgentAllocation(
-  taskListId: string
+  taskListId: string,
 ): Promise<number> {
   const config = await getConfig();
   const pool = await getGlobalAgentPool();
 
   // Get the task list's configured max
   const taskList = await getOne<{ max_parallel_agents: number }>(
-    'SELECT max_parallel_agents FROM task_lists_v2 WHERE id = ?',
-    [taskListId]
+    "SELECT max_parallel_agents FROM task_lists_v2 WHERE id = ?",
+    [taskListId],
   );
 
   if (!taskList) {
@@ -421,13 +436,13 @@ export async function calculateAgentAllocation(
     `SELECT COUNT(*) as count FROM tasks
      WHERE task_list_id = ?
        AND status IN ('pending', 'evaluating')`,
-    [taskListId]
+    [taskListId],
   );
 
   return Math.min(
     pool.availableSlots,
     taskList.max_parallel_agents,
-    remainingTasks?.count || 0
+    remainingTasks?.count || 0,
   );
 }
 
@@ -436,7 +451,7 @@ export async function calculateAgentAllocation(
  */
 export async function orchestratedStart(
   taskListId: string,
-  maxAgents?: number
+  maxAgents?: number,
 ): Promise<{
   started: boolean;
   reason?: string;
@@ -460,7 +475,7 @@ export async function orchestratedStart(
   if (allocation === 0) {
     return {
       started: false,
-      reason: 'No agents available for allocation',
+      reason: "No agents available for allocation",
     };
   }
 
@@ -536,7 +551,7 @@ export async function rebalanceAgents(): Promise<void> {
     if (allocation > 0) {
       // This list can use more agents - startExecution will spawn them
       console.log(
-        `[TaskListOrchestrator] Rebalancing: allocating ${allocation} agents to ${list.name}`
+        `[TaskListOrchestrator] Rebalancing: allocating ${allocation} agents to ${list.name}`,
       );
       // Trigger agent spawning by checking for ready tasks
       // The buildAgentOrchestrator.handleAgentCompletion will handle this

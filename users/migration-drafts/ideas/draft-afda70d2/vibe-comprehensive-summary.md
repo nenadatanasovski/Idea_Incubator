@@ -8,6 +8,7 @@ sessionId: afda70d2-5ae0-497e-9ab2-8e7596c9da07
 createdAt: 2026-01-04 08:23:01
 updatedAt: 2026-01-04 08:23:01
 ---
+
 # Vibe — Complete Idea Summary
 
 **One-liner:** An AI-powered platform that transforms ideas into AI-managed SaaS products through guided ideation, automated building, and proactive networking.
@@ -28,23 +29,23 @@ Vibe democratizes entrepreneurship by removing technical barriers between having
 
 ## The Three Pillars
 
-| Pillar | What It Does | AI Role |
-|--------|--------------|--------|
-| **Ideation** | Vague idea → validated, spec'd concept | Ask → Analyze → Clarify → Guide |
-| **Building** | AI generates apps with full ideation context | Ralph loop + human-in-the-loop |
-| **Network** | Proactive connections, collaborators, opportunities | Continuous engagement across channels |
+| Pillar       | What It Does                                        | AI Role                               |
+| ------------ | --------------------------------------------------- | ------------------------------------- |
+| **Ideation** | Vague idea → validated, spec'd concept              | Ask → Analyze → Clarify → Guide       |
+| **Building** | AI generates apps with full ideation context        | Ralph loop + human-in-the-loop        |
+| **Network**  | Proactive connections, collaborators, opportunities | Continuous engagement across channels |
 
 ---
 
 ## Revenue Model
 
-| Stream | Mechanism |
-|--------|----------|
-| Hosting + DB | Base cost + margin |
-| Feature Garden | Monthly fee per feature |
-| Custom Features | Credits for AI work |
-| Revenue Share | Optional (Vibe Payments only) |
-| Paid Testing | Creators pay testers, Vibe takes fee |
+| Stream          | Mechanism                            |
+| --------------- | ------------------------------------ |
+| Hosting + DB    | Base cost + margin                   |
+| Feature Garden  | Monthly fee per feature              |
+| Custom Features | Credits for AI work                  |
+| Revenue Share   | Optional (Vibe Payments only)        |
+| Paid Testing    | Creators pay testers, Vibe takes fee |
 
 **No escape hatch:** Users own app, not code. Platform Continuity clause allows code purchase if shutdown.
 
@@ -59,6 +60,7 @@ Vibe democratizes entrepreneurship by removing technical barriers between having
 ## Autonomous Agent System (Core Differentiator)
 
 ### Key Components
+
 - **Agents as Vehicles** — Containerized instances, replicable as needed
 - **Self-Learning** — Track records inform future behavior
 - **Self-Improvement Agent (SIA)** — Meta-agent that improves other agents
@@ -66,11 +68,13 @@ Vibe democratizes entrepreneurship by removing technical barriers between having
 - **Deterministic Pipelines** — Stage gates with pass/fail criteria
 
 ### Circuit Breakers
+
 - Max attempts before human escalation
 - Credit limits prevent runaway costs
 - Impossible task detection at assignment
 
 ### Self-Optimization Engine
+
 Testing agents with browser control simulate users, capture friction, auto-fix simple issues.
 
 ---
@@ -82,6 +86,7 @@ Testing agents with browser control simulate users, capture friction, auto-fix s
 **Whitespace:** All competitors assume user knows what to build. None guide ideation → build → network as unified experience.
 
 **Moat:**
+
 1. Business intelligence in conversation (invisible)
 2. Context handoff ideation → build
 3. Proactive continuous AI
@@ -93,14 +98,14 @@ Testing agents with browser control simulate users, capture friction, auto-fix s
 
 ## Skeptic Challenges Addressed
 
-| Challenge | Response |
-|-----------|----------|
-| SIA improvements hallucinated | Deterministic pass/fail criteria |
-| Context handoffs lose nuance | Git history + transcripts |
-| Lock-in is predatory | Liberation + Platform Continuity clause |
-| Revenue share unenforceable | Optional Vibe Payments only |
+| Challenge                      | Response                                 |
+| ------------------------------ | ---------------------------------------- |
+| SIA improvements hallucinated  | Deterministic pass/fail criteria         |
+| Context handoffs lose nuance   | Git history + transcripts                |
+| Lock-in is predatory           | Liberation + Platform Continuity clause  |
+| Revenue share unenforceable    | Optional Vibe Payments only              |
 | Network requires critical mass | Feature Garden provides standalone value |
-| AI can't solve everything | Human-in-the-loop for edge cases |
+| AI can't solve everything      | Human-in-the-loop for edge cases         |
 
 ---
 
@@ -122,6 +127,7 @@ Testing agents with browser control simulate users, capture friction, auto-fix s
 **Channels:** Twitter/X, Reddit, Indie Hackers, Product Hunt, Referrals
 
 **Sequence:**
+
 1. Bootstrap MVP (2-4 months)
 2. Private beta (friends/family)
 3. Soft launch (organic channels)
@@ -136,16 +142,19 @@ Testing agents with browser control simulate users, capture friction, auto-fix s
 ## Immediate Priorities
 
 ### Next 30 Days
+
 1. Ideation agent system
 2. Multi-agent orchestration
 3. Hosting capability (if time permits)
 
 ### 60-Day Horizon
+
 - Specification agent
 - Build agent with Ralph loop
 - First external users
 
 ### 90-Day Horizon
+
 - End-to-end demo
 - 10-20 users beyond inner circle
 - Product Hunt preparation
@@ -157,6 +166,7 @@ Testing agents with browser control simulate users, capture friction, auto-fix s
 **Viable idea with significant execution risk.**
 
 **Critical success factors:**
+
 1. Execute fast (6-12 month window)
 2. Learn faster than well-funded competitors
 3. Find co-founder soon
@@ -168,4 +178,4 @@ Testing agents with browser control simulate users, capture friction, auto-fix s
 
 ---
 
-*Updated: January 4, 2025*
+_Updated: January 4, 2025_

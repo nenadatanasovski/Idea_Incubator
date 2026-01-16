@@ -3,17 +3,23 @@
 // Frontend-specific types for Ideation Agent UI
 // =============================================================================
 
-import type React from 'react';
+import type React from "react";
 import type {
   IdeaCandidate,
   ViabilityRisk,
   ButtonOption,
   FormDefinition,
   WebSearchResult,
-} from './index';
+} from "./index";
 
 // Re-export base types
-export type { IdeaCandidate, ViabilityRisk, ButtonOption, FormDefinition, WebSearchResult };
+export type {
+  IdeaCandidate,
+  ViabilityRisk,
+  ButtonOption,
+  FormDefinition,
+  WebSearchResult,
+};
 
 // -----------------------------------------------------------------------------
 // Page Level
@@ -25,7 +31,7 @@ export interface IdeationPageProps {
   onExit: () => void;
 }
 
-export type EntryMode = 'have_idea' | 'discover' | null;
+export type EntryMode = "have_idea" | "discover" | null;
 
 export interface IdeationEntryModalProps {
   isOpen: boolean;
@@ -74,7 +80,7 @@ export interface TokenUsageIndicatorProps {
 export interface IdeationMessage {
   id: string;
   sessionId: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   buttons: ButtonOption[] | null;
   form: FormDefinition | null;
@@ -95,7 +101,11 @@ export interface ConversationPanelProps {
   subAgents?: SubAgent[];
   onSendMessage: (message: string) => void;
   onStopGeneration?: () => void;
-  onButtonClick: (buttonId: string, buttonValue: string, buttonLabel: string) => void;
+  onButtonClick: (
+    buttonId: string,
+    buttonValue: string,
+    buttonLabel: string,
+  ) => void;
   onFormSubmit: (formId: string, answers: Record<string, unknown>) => void;
   onEditMessage?: (messageId: string, newContent: string) => void;
   onArtifactClick?: (artifactId: string) => void;
@@ -105,7 +115,11 @@ export interface ConversationPanelProps {
 
 export interface MessageListProps {
   messages: IdeationMessage[];
-  onButtonClick: (buttonId: string, buttonValue: string, buttonLabel: string) => void;
+  onButtonClick: (
+    buttonId: string,
+    buttonValue: string,
+    buttonLabel: string,
+  ) => void;
   onFormSubmit: (formId: string, answers: Record<string, unknown>) => void;
   onEditMessage?: (messageId: string, newContent: string) => void;
   onArtifactClick?: (artifactId: string) => void;
@@ -115,7 +129,11 @@ export interface MessageListProps {
 
 export interface AgentMessageProps {
   message: IdeationMessage;
-  onButtonClick: (buttonId: string, buttonValue: string, buttonLabel: string) => void;
+  onButtonClick: (
+    buttonId: string,
+    buttonValue: string,
+    buttonLabel: string,
+  ) => void;
   onFormSubmit: (formId: string, answers: Record<string, unknown>) => void;
   isLatest: boolean;
   onArtifactClick?: (artifactId: string) => void;
@@ -144,15 +162,15 @@ export interface TypingIndicatorProps {
 // Sub-Agents
 // -----------------------------------------------------------------------------
 
-export type SubAgentStatus = 'spawning' | 'running' | 'completed' | 'failed';
+export type SubAgentStatus = "spawning" | "running" | "completed" | "failed";
 
 export type SubAgentType =
-  | 'research'      // Web research agent
-  | 'evaluator'     // Idea evaluation agent
-  | 'redteam'       // Red team challenge agent
-  | 'development'   // Idea development agent
-  | 'synthesis'     // Synthesis agent
-  | 'custom';       // Custom/fallback type for race condition handling
+  | "research" // Web research agent
+  | "evaluator" // Idea evaluation agent
+  | "redteam" // Red team challenge agent
+  | "development" // Idea development agent
+  | "synthesis" // Synthesis agent
+  | "custom"; // Custom/fallback type for race condition handling
 
 export interface SubAgent {
   id: string;
@@ -181,7 +199,11 @@ export interface SubAgentsPanelProps {
 
 export interface ButtonGroupProps {
   buttons: ButtonOption[];
-  onSelect: (buttonId: string, buttonValue: string, buttonLabel: string) => void;
+  onSelect: (
+    buttonId: string,
+    buttonValue: string,
+    buttonLabel: string,
+  ) => void;
   disabled: boolean;
   selectedId?: string;
 }
@@ -203,7 +225,15 @@ export interface FormFieldProps {
 export interface FormField {
   id?: string;
   name: string;
-  type: 'text' | 'radio' | 'checkbox' | 'slider' | 'select' | 'textarea' | 'dropdown' | 'date';
+  type:
+    | "text"
+    | "radio"
+    | "checkbox"
+    | "slider"
+    | "select"
+    | "textarea"
+    | "dropdown"
+    | "date";
   label: string;
   options?: string[];
   min?: number;
@@ -221,19 +251,24 @@ export interface SourceCitationsProps {
 // -----------------------------------------------------------------------------
 
 export type ArtifactType =
-  | 'code'
-  | 'html'
-  | 'svg'
-  | 'mermaid'
-  | 'react'
-  | 'text'
-  | 'markdown'
-  | 'research'
-  | 'idea-summary'
-  | 'analysis'
-  | 'comparison';
+  | "code"
+  | "html"
+  | "svg"
+  | "mermaid"
+  | "react"
+  | "text"
+  | "markdown"
+  | "research"
+  | "idea-summary"
+  | "analysis"
+  | "comparison";
 
-export type ArtifactStatus = 'pending' | 'loading' | 'ready' | 'error' | 'updating';
+export type ArtifactStatus =
+  | "pending"
+  | "loading"
+  | "ready"
+  | "error"
+  | "updating";
 
 export interface Artifact {
   id: string;
@@ -382,16 +417,16 @@ export interface WarningStateProps {
 // -----------------------------------------------------------------------------
 
 export interface ConfidenceMeterProps {
-  value: number;  // 0-100
+  value: number; // 0-100
   showLabel: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 
 export interface ViabilityMeterProps {
-  value: number;  // 0-100
+  value: number; // 0-100
   risks: ViabilityRisk[];
   showWarning: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 
 export interface RisksListProps {

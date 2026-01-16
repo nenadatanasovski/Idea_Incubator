@@ -10,11 +10,12 @@ updated: "{{updated}}"
 # Assumptions Log: {{title}}
 
 ## Core Assumptions
+
 <!-- Agent fills after assumption identification -->
 
 - [ ] Defined: No
 
-*Critical assumptions that must be true for this idea to succeed.*
+_Critical assumptions that must be true for this idea to succeed._
 
 ### Assumption 1
 
@@ -40,26 +41,28 @@ updated: "{{updated}}"
 ---
 
 ## Risk Level
+
 <!-- Agent fills after risk assessment -->
 
 - [ ] Defined: No
 
-*Overall risk categorization of assumptions.*
+_Overall risk categorization of assumptions._
 
 | Risk Level | Count | Most Critical |
-|------------|-------|---------------|
-| High | | |
-| Medium | | |
-| Low | | |
+| ---------- | ----- | ------------- |
+| High       |       |               |
+| Medium     |       |               |
+| Low        |       |               |
 
 ---
 
 ## Validation Method
+
 <!-- Agent fills after validation planning -->
 
 - [ ] Defined: No
 
-*Methods available for validating assumptions.*
+_Methods available for validating assumptions._
 
 - [ ] Customer Interviews
 - [ ] Surveys
@@ -73,15 +76,16 @@ updated: "{{updated}}"
 ---
 
 ## Status
+
 <!-- Agent fills after validation tracking -->
 
 - [ ] Defined: No
 
-*Current validation progress summary.*
+_Current validation progress summary._
 
-| Status | Count |
-|--------|-------|
-| Not Started | |
-| In Progress | |
-| Validated | |
-| Invalidated | |
+| Status      | Count |
+| ----------- | ----- |
+| Not Started |       |
+| In Progress |       |
+| Validated   |       |
+| Invalidated |       |

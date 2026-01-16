@@ -1,24 +1,30 @@
-import { User, AlertTriangle, Link as LinkIcon } from 'lucide-react'
-import type { UserProfileSummary } from '../types'
+import { User, AlertTriangle, Link as LinkIcon } from "lucide-react";
+import type { UserProfileSummary } from "../types";
 
 interface ProfileStatusCardProps {
-  profile: UserProfileSummary | null
-  loading: boolean
-  onLink: () => void
-  onUnlink: () => void
-  compact?: boolean
+  profile: UserProfileSummary | null;
+  loading: boolean;
+  onLink: () => void;
+  onUnlink: () => void;
+  compact?: boolean;
 }
 
 function parseGoals(goalsJson: string): string[] {
   try {
-    const parsed = JSON.parse(goalsJson)
-    return Array.isArray(parsed) ? parsed : []
+    const parsed = JSON.parse(goalsJson);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return []
+    return [];
   }
 }
 
-export default function ProfileStatusCard({ profile, loading, onLink, onUnlink, compact = false }: ProfileStatusCardProps) {
+export default function ProfileStatusCard({
+  profile,
+  loading,
+  onLink,
+  onUnlink,
+  compact = false,
+}: ProfileStatusCardProps) {
   if (loading) {
     return compact ? (
       <div className="inline-flex items-center px-2 py-1 bg-gray-100 rounded animate-pulse">
@@ -28,7 +34,7 @@ export default function ProfileStatusCard({ profile, loading, onLink, onUnlink, 
       <div className="p-3 bg-gray-50 rounded-lg animate-pulse">
         <div className="h-8 bg-gray-200 rounded" />
       </div>
-    )
+    );
   }
 
   // Compact variant - inline badge style
@@ -42,7 +48,7 @@ export default function ProfileStatusCard({ profile, loading, onLink, onUnlink, 
           <AlertTriangle className="h-3 w-3" />
           <span>No profile</span>
         </button>
-      )
+      );
     }
     return (
       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-full text-xs">
@@ -56,7 +62,7 @@ export default function ProfileStatusCard({ profile, loading, onLink, onUnlink, 
           <LinkIcon className="h-3 w-3" />
         </button>
       </div>
-    )
+    );
   }
 
   // Full display when no profile - inline alert
@@ -77,10 +83,10 @@ export default function ProfileStatusCard({ profile, loading, onLink, onUnlink, 
           Link
         </button>
       </div>
-    )
+    );
   }
 
-  const goals = parseGoals(profile.primary_goals)
+  const goals = parseGoals(profile.primary_goals);
 
   // Full display when profile is linked - single line with details on hover
   return (
@@ -91,7 +97,11 @@ export default function ProfileStatusCard({ profile, loading, onLink, onUnlink, 
           <span className="font-medium">{profile.name}</span>
           {goals.length > 0 && (
             <span className="text-green-600 ml-2">
-              · {goals.slice(0, 2).map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(', ')}
+              ·{" "}
+              {goals
+                .slice(0, 2)
+                .map((g) => g.charAt(0).toUpperCase() + g.slice(1))
+                .join(", ")}
               {goals.length > 2 && ` +${goals.length - 2}`}
             </span>
           )}
@@ -112,5 +122,5 @@ export default function ProfileStatusCard({ profile, loading, onLink, onUnlink, 
         </button>
       </div>
     </div>
-  )
+  );
 }

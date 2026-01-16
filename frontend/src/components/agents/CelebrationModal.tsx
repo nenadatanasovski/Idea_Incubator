@@ -1,13 +1,20 @@
-import { useState, useEffect } from 'react';
-import { PartyPopper, Trophy, Rocket, Star, CheckCircle, X } from 'lucide-react';
+import { useState, useEffect } from "react";
+import {
+  PartyPopper,
+  Trophy,
+  Rocket,
+  Star,
+  CheckCircle,
+  X,
+} from "lucide-react";
 
 export type MilestoneType =
-  | 'build_complete'
-  | 'all_tests_pass'
-  | 'first_task'
-  | 'streak'
-  | 'spec_approved'
-  | 'deployment_ready';
+  | "build_complete"
+  | "all_tests_pass"
+  | "first_task"
+  | "streak"
+  | "spec_approved"
+  | "deployment_ready";
 
 interface MilestoneConfig {
   icon: typeof PartyPopper;
@@ -19,39 +26,39 @@ interface MilestoneConfig {
 const MILESTONE_CONFIG: Record<MilestoneType, MilestoneConfig> = {
   build_complete: {
     icon: Trophy,
-    title: 'Build Complete!',
-    color: 'text-yellow-500',
-    bgGradient: 'from-yellow-400 to-amber-500',
+    title: "Build Complete!",
+    color: "text-yellow-500",
+    bgGradient: "from-yellow-400 to-amber-500",
   },
   all_tests_pass: {
     icon: CheckCircle,
-    title: 'All Tests Passing!',
-    color: 'text-green-500',
-    bgGradient: 'from-green-400 to-emerald-500',
+    title: "All Tests Passing!",
+    color: "text-green-500",
+    bgGradient: "from-green-400 to-emerald-500",
   },
   first_task: {
     icon: Star,
-    title: 'First Task Complete!',
-    color: 'text-blue-500',
-    bgGradient: 'from-blue-400 to-indigo-500',
+    title: "First Task Complete!",
+    color: "text-blue-500",
+    bgGradient: "from-blue-400 to-indigo-500",
   },
   streak: {
     icon: PartyPopper,
-    title: 'On a Roll!',
-    color: 'text-purple-500',
-    bgGradient: 'from-purple-400 to-pink-500',
+    title: "On a Roll!",
+    color: "text-purple-500",
+    bgGradient: "from-purple-400 to-pink-500",
   },
   spec_approved: {
     icon: CheckCircle,
-    title: 'Spec Approved!',
-    color: 'text-teal-500',
-    bgGradient: 'from-teal-400 to-cyan-500',
+    title: "Spec Approved!",
+    color: "text-teal-500",
+    bgGradient: "from-teal-400 to-cyan-500",
   },
   deployment_ready: {
     icon: Rocket,
-    title: 'Ready to Deploy!',
-    color: 'text-orange-500',
-    bgGradient: 'from-orange-400 to-red-500',
+    title: "Ready to Deploy!",
+    color: "text-orange-500",
+    bgGradient: "from-orange-400 to-red-500",
   },
 };
 
@@ -91,18 +98,20 @@ export default function CelebrationModal({
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 transition-opacity duration-300 ${
-        isClosing ? 'opacity-0' : 'opacity-100'
+        isClosing ? "opacity-0" : "opacity-100"
       }`}
       onClick={handleClose}
     >
       <div
         className={`relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden transform transition-all duration-300 ${
-          isClosing ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
+          isClosing ? "scale-95 opacity-0" : "scale-100 opacity-100"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Gradient header */}
-        <div className={`bg-gradient-to-r ${config.bgGradient} p-6 text-white text-center`}>
+        <div
+          className={`bg-gradient-to-r ${config.bgGradient} p-6 text-white text-center`}
+        >
           <button
             onClick={handleClose}
             className="absolute top-3 right-3 text-white/80 hover:text-white transition-colors"
@@ -139,8 +148,14 @@ export default function CelebrationModal({
               className="absolute w-2 h-2 rounded-full animate-confetti"
               style={{
                 left: `${Math.random() * 100}%`,
-                top: '-10px',
-                backgroundColor: ['#fbbf24', '#34d399', '#60a5fa', '#f472b6', '#a78bfa'][i % 5],
+                top: "-10px",
+                backgroundColor: [
+                  "#fbbf24",
+                  "#34d399",
+                  "#60a5fa",
+                  "#f472b6",
+                  "#a78bfa",
+                ][i % 5],
                 animationDelay: `${Math.random() * 2}s`,
                 animationDuration: `${2 + Math.random() * 2}s`,
               }}
@@ -160,7 +175,11 @@ export function useCelebration() {
     details?: string;
   } | null>(null);
 
-  function celebrate(milestone: MilestoneType, message: string, details?: string): void {
+  function celebrate(
+    milestone: MilestoneType,
+    message: string,
+    details?: string,
+  ): void {
     setCelebration({ milestone, message, details });
   }
 

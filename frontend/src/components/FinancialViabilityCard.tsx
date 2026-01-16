@@ -5,7 +5,7 @@
  * including revenue estimates, goal alignment, and investment requirements.
  */
 
-import type { EnhancedStrategy, IdeaFinancialAllocation } from '../types';
+import type { EnhancedStrategy, IdeaFinancialAllocation } from "../types";
 
 interface Props {
   strategy: EnhancedStrategy;
@@ -25,20 +25,24 @@ const formatCurrency = (value: number): string => {
 
 const getTimelineColor = (alignment: string) => {
   switch (alignment) {
-    case 'faster':
-      return 'text-green-600 bg-green-50';
-    case 'aligned':
-      return 'text-blue-600 bg-blue-50';
-    case 'slower':
-      return 'text-yellow-600 bg-yellow-50';
-    case 'unlikely':
-      return 'text-red-600 bg-red-50';
+    case "faster":
+      return "text-green-600 bg-green-50";
+    case "aligned":
+      return "text-blue-600 bg-blue-50";
+    case "slower":
+      return "text-yellow-600 bg-yellow-50";
+    case "unlikely":
+      return "text-red-600 bg-red-50";
     default:
-      return 'text-gray-600 bg-gray-50';
+      return "text-gray-600 bg-gray-50";
   }
 };
 
-export default function FinancialViabilityCard({ strategy, allocation, className = '' }: Props) {
+export default function FinancialViabilityCard({
+  strategy,
+  allocation,
+  className = "",
+}: Props) {
   const { revenueEstimates, goalAlignment } = strategy;
 
   if (!revenueEstimates && !goalAlignment) {
@@ -46,10 +50,20 @@ export default function FinancialViabilityCard({ strategy, allocation, className
   }
 
   return (
-    <div className={`bg-white border border-gray-200 rounded-lg p-4 ${className}`}>
+    <div
+      className={`bg-white border border-gray-200 rounded-lg p-4 ${className}`}
+    >
       <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+        <svg
+          className="w-4 h-4 text-green-600"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path
+            fillRule="evenodd"
+            d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+            clipRule="evenodd"
+          />
         </svg>
         Financial Viability
       </h4>
@@ -69,7 +83,8 @@ export default function FinancialViabilityCard({ strategy, allocation, className
                     {formatCurrency(revenueEstimates.year1.mid)}
                   </span>
                   <span className="text-xs text-gray-500 ml-1">
-                    ({formatCurrency(revenueEstimates.year1.low)} - {formatCurrency(revenueEstimates.year1.high)})
+                    ({formatCurrency(revenueEstimates.year1.low)} -{" "}
+                    {formatCurrency(revenueEstimates.year1.high)})
                   </span>
                 </div>
               </div>
@@ -80,21 +95,23 @@ export default function FinancialViabilityCard({ strategy, allocation, className
                     {formatCurrency(revenueEstimates.year3.mid)}
                   </span>
                   <span className="text-xs text-gray-500 ml-1">
-                    ({formatCurrency(revenueEstimates.year3.low)} - {formatCurrency(revenueEstimates.year3.high)})
+                    ({formatCurrency(revenueEstimates.year3.low)} -{" "}
+                    {formatCurrency(revenueEstimates.year3.high)})
                   </span>
                 </div>
               </div>
             </div>
-            {revenueEstimates.assumptions && revenueEstimates.assumptions.length > 0 && (
-              <div className="mt-2 text-xs text-gray-500">
-                <span className="font-medium">Key assumptions:</span>
-                <ul className="mt-1 list-disc list-inside">
-                  {revenueEstimates.assumptions.slice(0, 2).map((a, i) => (
-                    <li key={i}>{a}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {revenueEstimates.assumptions &&
+              revenueEstimates.assumptions.length > 0 && (
+                <div className="mt-2 text-xs text-gray-500">
+                  <span className="font-medium">Key assumptions:</span>
+                  <ul className="mt-1 list-disc list-inside">
+                    {revenueEstimates.assumptions.slice(0, 2).map((a, i) => (
+                      <li key={i}>{a}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
           </div>
         )}
 
@@ -107,26 +124,36 @@ export default function FinancialViabilityCard({ strategy, allocation, className
             <div className="space-y-2">
               {/* Income Target */}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Meets Income Target</span>
-                <span className={`text-sm font-medium ${goalAlignment.meetsIncomeTarget ? 'text-green-600' : 'text-red-600'}`}>
-                  {goalAlignment.meetsIncomeTarget ? 'Yes' : 'No'}
+                <span className="text-sm text-gray-600">
+                  Meets Income Target
+                </span>
+                <span
+                  className={`text-sm font-medium ${goalAlignment.meetsIncomeTarget ? "text-green-600" : "text-red-600"}`}
+                >
+                  {goalAlignment.meetsIncomeTarget ? "Yes" : "No"}
                 </span>
               </div>
 
               {/* Gap to Target */}
-              {goalAlignment.gapToTarget !== null && goalAlignment.gapToTarget !== 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Gap to Target</span>
-                  <span className={`text-sm font-medium ${goalAlignment.gapToTarget > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {goalAlignment.gapToTarget > 0 ? '+' : ''}{formatCurrency(goalAlignment.gapToTarget)}
-                  </span>
-                </div>
-              )}
+              {goalAlignment.gapToTarget !== null &&
+                goalAlignment.gapToTarget !== 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Gap to Target</span>
+                    <span
+                      className={`text-sm font-medium ${goalAlignment.gapToTarget > 0 ? "text-green-600" : "text-red-600"}`}
+                    >
+                      {goalAlignment.gapToTarget > 0 ? "+" : ""}
+                      {formatCurrency(goalAlignment.gapToTarget)}
+                    </span>
+                  </div>
+                )}
 
               {/* Timeline Alignment */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Timeline</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getTimelineColor(goalAlignment.timelineAlignment)}`}>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${getTimelineColor(goalAlignment.timelineAlignment)}`}
+                >
                   {goalAlignment.timelineAlignment}
                 </span>
               </div>
@@ -134,16 +161,22 @@ export default function FinancialViabilityCard({ strategy, allocation, className
               {/* Runway Sufficient */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Runway Sufficient</span>
-                <span className={`text-sm font-medium ${goalAlignment.runwaySufficient ? 'text-green-600' : 'text-red-600'}`}>
-                  {goalAlignment.runwaySufficient ? 'Yes' : 'No'}
+                <span
+                  className={`text-sm font-medium ${goalAlignment.runwaySufficient ? "text-green-600" : "text-red-600"}`}
+                >
+                  {goalAlignment.runwaySufficient ? "Yes" : "No"}
                 </span>
               </div>
 
               {/* Investment Feasible */}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Investment Feasible</span>
-                <span className={`text-sm font-medium ${goalAlignment.investmentFeasible ? 'text-green-600' : 'text-red-600'}`}>
-                  {goalAlignment.investmentFeasible ? 'Yes' : 'No'}
+                <span className="text-sm text-gray-600">
+                  Investment Feasible
+                </span>
+                <span
+                  className={`text-sm font-medium ${goalAlignment.investmentFeasible ? "text-green-600" : "text-red-600"}`}
+                >
+                  {goalAlignment.investmentFeasible ? "Yes" : "No"}
                 </span>
               </div>
             </div>
@@ -159,11 +192,15 @@ export default function FinancialViabilityCard({ strategy, allocation, className
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
                 <span className="text-gray-500">Allocated:</span>
-                <span className="font-medium ml-1">{formatCurrency(allocation.allocatedBudget || 0)}</span>
+                <span className="font-medium ml-1">
+                  {formatCurrency(allocation.allocatedBudget || 0)}
+                </span>
               </div>
               <div>
                 <span className="text-gray-500">Target:</span>
-                <span className="font-medium ml-1">{formatCurrency(allocation.targetIncomeFromIdea || 0)}/yr</span>
+                <span className="font-medium ml-1">
+                  {formatCurrency(allocation.targetIncomeFromIdea || 0)}/yr
+                </span>
               </div>
             </div>
           </div>

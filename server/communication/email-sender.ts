@@ -1,9 +1,9 @@
 // server/communication/email-sender.ts
 // COM-008: Email Sender - Fallback channel when Telegram fails
 
-import { AgentType } from './types.js';
-import { QuestionType } from './question-delivery.js';
-import { createSignedAnswerUrl } from '../../utils/url-signer.js';
+import { AgentType } from "./types.js";
+import { QuestionType } from "./question-delivery.js";
+import { createSignedAnswerUrl } from "../../utils/url-signer.js";
 
 interface EmailTransport {
   sendMail(options: {
@@ -41,22 +41,22 @@ export interface EmailQuestion {
 }
 
 const TYPE_LABELS: Record<QuestionType, string> = {
-  ALERT: 'Alert',
-  CLARIFYING: 'Clarifying Question',
-  CONFIRMING: 'Confirmation Needed',
-  PREFERENCE: 'Your Preference?',
-  BLOCKING: 'Blocking Question',
-  DECISION: 'Decision Required',
-  ESCALATION: 'Escalation',
-  APPROVAL: 'Approval Required',
+  ALERT: "Alert",
+  CLARIFYING: "Clarifying Question",
+  CONFIRMING: "Confirmation Needed",
+  PREFERENCE: "Your Preference?",
+  BLOCKING: "Blocking Question",
+  DECISION: "Decision Required",
+  ESCALATION: "Escalation",
+  APPROVAL: "Approval Required",
 };
 
 const PRIORITY_LABELS: Record<number, string> = {
-  1: 'Low',
-  2: 'Normal',
-  3: 'High',
-  4: 'Urgent',
-  5: 'Critical',
+  1: "Low",
+  2: "Normal",
+  3: "High",
+  4: "Urgent",
+  5: "Critical",
 };
 
 export class EmailSender {
@@ -64,7 +64,11 @@ export class EmailSender {
   private config: EmailConfig;
   private baseUrl: string;
 
-  constructor(transport: EmailTransport, config: EmailConfig, baseUrl: string = 'http://localhost:3000') {
+  constructor(
+    transport: EmailTransport,
+    config: EmailConfig,
+    baseUrl: string = "http://localhost:3000",
+  ) {
     this.transport = transport;
     this.config = config;
     this.baseUrl = baseUrl;
@@ -86,13 +90,13 @@ export class EmailSender {
   async sendNotification(
     title: string,
     message: string,
-    severity: 'info' | 'warning' | 'error' | 'critical' = 'info'
+    severity: "info" | "warning" | "error" | "critical" = "info",
   ): Promise<EmailSendResult> {
     const severityEmoji = {
-      info: 'ℹ️',
-      warning: '⚠️',
-      error: '❌',
-      critical: '🚨',
+      info: "ℹ️",
+      warning: "⚠️",
+      error: "❌",
+      critical: "🚨",
     }[severity];
 
     const subject = `[Vibe ${severity.toUpperCase()}] ${title}`;
@@ -100,7 +104,7 @@ export class EmailSender {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: ${this.getSeverityColor(severity)};">${severityEmoji} ${title}</h2>
-        <p style="font-size: 16px; line-height: 1.5;">${message.replace(/\n/g, '<br>')}</p>
+        <p style="font-size: 16px; line-height: 1.5;">${message.replace(/\n/g, "<br>")}</p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
         <p style="color: #666; font-size: 12px;">Sent by Vibe Communication System</p>
       </div>
@@ -116,7 +120,7 @@ export class EmailSender {
     approvalId: string,
     title: string,
     description: string,
-    details?: string
+    details?: string,
   ): Promise<EmailSendResult> {
     const subject = `[Vibe APPROVAL] ${title}`;
 
@@ -129,7 +133,7 @@ ${title}
 
 ${description}
 
-${details ? `Details:\n${details}\n` : ''}
+${details ? `Details:\n${details}\n` : ""}
 To approve: ${approveUrl}
 To reject: ${rejectUrl}
 
@@ -142,13 +146,17 @@ Or reply to this email with "APPROVE" or "REJECT".`;
         </div>
         <div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px;">
           <h3 style="margin-top: 0;">${title}</h3>
-          <p style="font-size: 16px; line-height: 1.5;">${description.replace(/\n/g, '<br>')}</p>
-          ${details ? `
+          <p style="font-size: 16px; line-height: 1.5;">${description.replace(/\n/g, "<br>")}</p>
+          ${
+            details
+              ? `
             <div style="background: #e9ecef; padding: 10px; border-radius: 4px; margin: 15px 0;">
               <strong>Details:</strong>
               <pre style="margin: 10px 0 0 0; white-space: pre-wrap;">${details}</pre>
             </div>
-          ` : ''}
+          `
+              : ""
+          }
           <div style="margin-top: 20px; text-align: center;">
             <a href="${approveUrl}" style="display: inline-block; background: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-right: 10px;">✅ Approve</a>
             <a href="${rejectUrl}" style="display: inline-block; background: #dc3545; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">❌ Reject</a>
@@ -171,10 +179,10 @@ Or reply to this email with "APPROVE" or "REJECT".`;
       return { success: true };
     }
 
-    const blocking = questions.filter(q => q.blocking);
-    const nonBlocking = questions.filter(q => !q.blocking);
+    const blocking = questions.filter((q) => q.blocking);
+    const nonBlocking = questions.filter((q) => !q.blocking);
 
-    const subject = `[Vibe] ${questions.length} pending question${questions.length > 1 ? 's' : ''} - ${blocking.length} blocking`;
+    const subject = `[Vibe] ${questions.length} pending question${questions.length > 1 ? "s" : ""} - ${blocking.length} blocking`;
 
     let text = `You have ${questions.length} pending questions from Vibe agents.\n\n`;
 
@@ -183,7 +191,7 @@ Or reply to this email with "APPROVE" or "REJECT".`;
       for (const q of blocking) {
         text += `\n- [${q.agentType}] ${q.content.substring(0, 100)}...\n`;
       }
-      text += '\n';
+      text += "\n";
     }
 
     if (nonBlocking.length > 0) {
@@ -204,8 +212,8 @@ Or reply to this email with "APPROVE" or "REJECT".`;
    * Build email subject for a question.
    */
   private buildSubject(question: EmailQuestion): string {
-    const priority = question.priority >= 4 ? '[URGENT] ' : '';
-    const blocking = question.blocking ? '[BLOCKING] ' : '';
+    const priority = question.priority >= 4 ? "[URGENT] " : "";
+    const blocking = question.blocking ? "[BLOCKING] " : "";
     const type = TYPE_LABELS[question.type] || question.type;
 
     return `${priority}${blocking}[Vibe ${question.agentType}] ${type}`;
@@ -214,29 +222,32 @@ Or reply to this email with "APPROVE" or "REJECT".`;
   /**
    * Build email body for a question.
    */
-  private buildQuestionBody(question: EmailQuestion): { text: string; html: string } {
+  private buildQuestionBody(question: EmailQuestion): {
+    text: string;
+    html: string;
+  } {
     const typeLabel = TYPE_LABELS[question.type] || question.type;
-    const priorityLabel = PRIORITY_LABELS[question.priority] || 'Normal';
+    const priorityLabel = PRIORITY_LABELS[question.priority] || "Normal";
 
     // Plain text version
-    let text = `${typeLabel}\n${'='.repeat(typeLabel.length)}\n\n`;
+    let text = `${typeLabel}\n${"=".repeat(typeLabel.length)}\n\n`;
     text += `${question.content}\n\n`;
 
     if (question.options.length > 0) {
-      text += 'Options:\n';
+      text += "Options:\n";
       question.options.forEach((opt, i) => {
         text += `  ${i + 1}. ${opt.label}`;
         if (opt.description) {
           text += ` - ${opt.description}`;
         }
-        text += '\n';
+        text += "\n";
       });
-      text += '\n';
+      text += "\n";
     }
 
     text += `Agent: ${question.agentId}\n`;
     text += `Priority: ${priorityLabel}\n`;
-    text += `Blocking: ${question.blocking ? 'Yes' : 'No'}\n\n`;
+    text += `Blocking: ${question.blocking ? "Yes" : "No"}\n\n`;
 
     text += `To respond, visit: ${this.baseUrl}/questions/${question.id}\n`;
     text += `Or reply to this email with your choice (number or text).`;
@@ -245,7 +256,7 @@ Or reply to this email with "APPROVE" or "REJECT".`;
     const priorityColor = this.getPriorityColor(question.priority);
     const blockingBadge = question.blocking
       ? '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px;">BLOCKING</span>'
-      : '';
+      : "";
 
     let html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -254,21 +265,25 @@ Or reply to this email with "APPROVE" or "REJECT".`;
           <p style="margin: 5px 0 0 0; opacity: 0.9;">${question.agentType} agent</p>
         </div>
         <div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px;">
-          <p style="font-size: 16px; line-height: 1.5;">${question.content.replace(/\n/g, '<br>')}</p>
+          <p style="font-size: 16px; line-height: 1.5;">${question.content.replace(/\n/g, "<br>")}</p>
     `;
 
     if (question.options.length > 0) {
       html += '<div style="margin: 20px 0;">';
       question.options.forEach((opt, i) => {
-        const answerUrl = createSignedAnswerUrl(this.baseUrl, question.id, opt.action);
+        const answerUrl = createSignedAnswerUrl(
+          this.baseUrl,
+          question.id,
+          opt.action,
+        );
         html += `
           <a href="${answerUrl}" style="display: block; background: white; border: 1px solid #ddd; padding: 12px 15px; margin: 8px 0; border-radius: 5px; text-decoration: none; color: #333;">
             <strong>${i + 1}. ${opt.label}</strong>
-            ${opt.description ? `<br><span style="color: #666; font-size: 14px;">${opt.description}</span>` : ''}
+            ${opt.description ? `<br><span style="color: #666; font-size: 14px;">${opt.description}</span>` : ""}
           </a>
         `;
       });
-      html += '</div>';
+      html += "</div>";
     }
 
     html += `
@@ -292,7 +307,10 @@ Or reply to this email with "APPROVE" or "REJECT".`;
   /**
    * Build digest HTML.
    */
-  private buildDigestHtml(blocking: EmailQuestion[], nonBlocking: EmailQuestion[]): string {
+  private buildDigestHtml(
+    blocking: EmailQuestion[],
+    nonBlocking: EmailQuestion[],
+  ): string {
     let html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #4a90d9; color: white; padding: 15px; border-radius: 8px 8px 0 0;">
@@ -340,10 +358,10 @@ Or reply to this email with "APPROVE" or "REJECT".`;
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-weight: bold;">${question.agentType}</span>
           <span style="background: ${this.getPriorityColor(question.priority)}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px;">
-            ${PRIORITY_LABELS[question.priority] || 'Normal'}
+            ${PRIORITY_LABELS[question.priority] || "Normal"}
           </span>
         </div>
-        <p style="margin: 10px 0;">${question.content.substring(0, 150)}${question.content.length > 150 ? '...' : ''}</p>
+        <p style="margin: 10px 0;">${question.content.substring(0, 150)}${question.content.length > 150 ? "..." : ""}</p>
         <a href="${this.baseUrl}/questions/${question.id}" style="color: #4a90d9; text-decoration: none; font-size: 14px;">View & Respond →</a>
       </div>
     `;
@@ -354,11 +372,16 @@ Or reply to this email with "APPROVE" or "REJECT".`;
    */
   private getPriorityColor(priority: number): string {
     switch (priority) {
-      case 5: return '#dc3545'; // Critical - red
-      case 4: return '#fd7e14'; // Urgent - orange
-      case 3: return '#ffc107'; // High - yellow
-      case 2: return '#4a90d9'; // Normal - blue
-      default: return '#6c757d'; // Low - gray
+      case 5:
+        return "#dc3545"; // Critical - red
+      case 4:
+        return "#fd7e14"; // Urgent - orange
+      case 3:
+        return "#ffc107"; // High - yellow
+      case 2:
+        return "#4a90d9"; // Normal - blue
+      default:
+        return "#6c757d"; // Low - gray
     }
   }
 
@@ -367,17 +390,25 @@ Or reply to this email with "APPROVE" or "REJECT".`;
    */
   private getSeverityColor(severity: string): string {
     switch (severity) {
-      case 'critical': return '#dc3545';
-      case 'error': return '#dc3545';
-      case 'warning': return '#fd7e14';
-      default: return '#17a2b8';
+      case "critical":
+        return "#dc3545";
+      case "error":
+        return "#dc3545";
+      case "warning":
+        return "#fd7e14";
+      default:
+        return "#17a2b8";
     }
   }
 
   /**
    * Send an email.
    */
-  private async send(subject: string, text: string, html: string): Promise<EmailSendResult> {
+  private async send(
+    subject: string,
+    text: string,
+    html: string,
+  ): Promise<EmailSendResult> {
     try {
       const result = await this.transport.sendMail({
         from: `"${this.config.fromName}" <${this.config.fromAddress}>`,

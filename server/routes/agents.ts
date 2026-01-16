@@ -4,9 +4,9 @@
  * REST API for monitoring and managing build pipeline agents.
  */
 
-import { Router, Request, Response } from 'express';
-import { query, getOne, run } from '../../database/db.js';
-import { getTaskExecutor } from '../services/task-executor.js';
+import { Router, Request, Response } from "express";
+import { query, getOne, run } from "../../database/db.js";
+import { getTaskExecutor } from "../services/task-executor.js";
 
 const router = Router();
 
@@ -15,7 +15,7 @@ export interface AgentInfo {
   id: string;
   name: string;
   type: string;
-  status: 'idle' | 'running' | 'error' | 'waiting' | 'halted';
+  status: "idle" | "running" | "error" | "waiting" | "halted";
   lastHeartbeat: string;
   currentTask?: string;
   currentTaskListName?: string;
@@ -37,16 +37,16 @@ export interface AgentInfo {
 function extractProjectName(filePath: string | undefined): string | undefined {
   if (!filePath) return undefined;
 
-  const parts = filePath.split('/');
+  const parts = filePath.split("/");
 
   // Look for ideas/{project-name}/...
-  const ideasIndex = parts.indexOf('ideas');
+  const ideasIndex = parts.indexOf("ideas");
   if (ideasIndex !== -1 && parts[ideasIndex + 1]) {
     return parts[ideasIndex + 1];
   }
 
   // Look for docs/{project-name}/...
-  const docsIndex = parts.indexOf('docs');
+  const docsIndex = parts.indexOf("docs");
   if (docsIndex !== -1 && parts[docsIndex + 1]) {
     return parts[docsIndex + 1];
   }
@@ -60,10 +60,10 @@ function extractProjectName(filePath: string | undefined): string | undefined {
 function extractTaskListName(filePath: string | undefined): string | undefined {
   if (!filePath) return undefined;
 
-  const parts = filePath.split('/');
+  const parts = filePath.split("/");
   const fileName = parts[parts.length - 1];
   if (fileName) {
-    return fileName.replace(/\.(md|txt)$/i, '');
+    return fileName.replace(/\.(md|txt)$/i, "");
   }
   return undefined;
 }
@@ -73,30 +73,32 @@ function extractTaskListName(filePath: string | undefined): string | undefined {
  * Database: 'working', 'idle', 'blocked', 'error'
  * Frontend: 'running', 'idle', 'waiting', 'error', 'halted'
  */
-function mapAgentStatus(dbStatus: string | undefined): AgentInfo['status'] {
-  if (!dbStatus) return 'idle';
+function mapAgentStatus(dbStatus: string | undefined): AgentInfo["status"] {
+  if (!dbStatus) return "idle";
 
   switch (dbStatus) {
-    case 'working':
-      return 'running';
-    case 'blocked':
-      return 'waiting';
-    case 'idle':
-      return 'idle';
-    case 'error':
-      return 'error';
-    case 'halted':
-      return 'halted';
+    case "working":
+      return "running";
+    case "blocked":
+      return "waiting";
+    case "idle":
+      return "idle";
+    case "error":
+      return "error";
+    case "halted":
+      return "halted";
     default:
-      console.warn(`[AgentsAPI] Unknown status: ${dbStatus}, defaulting to idle`);
-      return 'idle';
+      console.warn(
+        `[AgentsAPI] Unknown status: ${dbStatus}, defaulting to idle`,
+      );
+      return "idle";
   }
 }
 
 export interface AgentLog {
   id: string;
   agentId: string;
-  level: 'debug' | 'info' | 'warn' | 'error';
+  level: "debug" | "info" | "warn" | "error";
   message: string;
   context?: Record<string, unknown>;
   timestamp: string;
@@ -104,19 +106,19 @@ export interface AgentLog {
 
 // Default agents configuration
 const AGENT_CONFIGS = [
-  { id: 'spec-agent', name: 'Spec Agent', type: 'specification' },
-  { id: 'build-agent', name: 'Build Agent', type: 'build' },
-  { id: 'validation-agent', name: 'Validation Agent', type: 'validation' },
-  { id: 'sia', name: 'Self-Improvement Agent', type: 'sia' },
-  { id: 'ux-agent', name: 'UX Agent', type: 'ux' },
-  { id: 'monitoring-agent', name: 'Monitoring Agent', type: 'monitoring' },
+  { id: "spec-agent", name: "Spec Agent", type: "specification" },
+  { id: "build-agent", name: "Build Agent", type: "build" },
+  { id: "validation-agent", name: "Validation Agent", type: "validation" },
+  { id: "sia", name: "Self-Improvement Agent", type: "sia" },
+  { id: "ux-agent", name: "UX Agent", type: "ux" },
+  { id: "monitoring-agent", name: "Monitoring Agent", type: "monitoring" },
 ];
 
 /**
  * GET /api/agents
  * List all agents with their current status
  */
-router.get('/', async (_req: Request, res: Response): Promise<void> => {
+router.get("/", async (_req: Request, res: Response): Promise<void> => {
   try {
     // Get agent states from database
     let agentStates: Array<{
@@ -136,7 +138,9 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
         session_id: string | null;
         current_task: string | null;
         last_activity: string;
-      }>(`SELECT agent_id, agent_type, status, session_id, current_task, last_activity FROM agent_states`);
+      }>(
+        `SELECT agent_id, agent_type, status, session_id, current_task, last_activity FROM agent_states`,
+      );
     } catch {
       // Table may not exist yet
     }
@@ -192,7 +196,13 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
     }
 
     // Get task executor status for Build Agent metrics
-    let executorStatus: { running: boolean; completedTasks: number; failedTasks: number; taskListPath: string; currentTask?: { id: string; description: string } } | null = null;
+    let executorStatus: {
+      running: boolean;
+      completedTasks: number;
+      failedTasks: number;
+      taskListPath: string;
+      currentTask?: { id: string; description: string };
+    } | null = null;
     try {
       const executor = getTaskExecutor();
       const status = executor.getStatus();
@@ -200,30 +210,45 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
         running: status.running,
         completedTasks: status.completedTasks,
         failedTasks: status.failedTasks,
-        taskListPath: status.taskListPath || '',
-        currentTask: status.currentTask ? { id: status.currentTask.id, description: status.currentTask.description } : undefined,
+        taskListPath: status.taskListPath || "",
+        currentTask: status.currentTask
+          ? {
+              id: status.currentTask.id,
+              description: status.currentTask.description,
+            }
+          : undefined,
       };
     } catch {
       // Executor may not be initialized yet
     }
 
     // Build agent list
-    const agents: AgentInfo[] = AGENT_CONFIGS.map(config => {
-      const state = agentStates.find(s => s.agent_id === config.id);
-      const metrics = taskMetrics.find(m => m.agent_id === config.id);
-      const questions = questionMetrics.find(q => q.agent_id === config.id);
+    const agents: AgentInfo[] = AGENT_CONFIGS.map((config) => {
+      const state = agentStates.find((s) => s.agent_id === config.id);
+      const metrics = taskMetrics.find((m) => m.agent_id === config.id);
+      const questions = questionMetrics.find((q) => q.agent_id === config.id);
 
       // Special handling for build-agent: use executor status for accurate metrics
-      const isBuildAgent = config.id === 'build-agent';
-      const buildAgentStatus = isBuildAgent && executorStatus?.running ? 'running' : mapAgentStatus(state?.status);
-      const buildAgentCurrentTask = isBuildAgent && executorStatus?.currentTask
-        ? `${executorStatus.currentTask.id}: ${executorStatus.currentTask.description}`
-        : state?.current_task || undefined;
+      const isBuildAgent = config.id === "build-agent";
+      const buildAgentStatus =
+        isBuildAgent && executorStatus?.running
+          ? "running"
+          : mapAgentStatus(state?.status);
+      const buildAgentCurrentTask =
+        isBuildAgent && executorStatus?.currentTask
+          ? `${executorStatus.currentTask.id}: ${executorStatus.currentTask.description}`
+          : state?.current_task || undefined;
 
       // Extract project and task list context for build-agent
-      const taskListPath = isBuildAgent ? executorStatus?.taskListPath : undefined;
-      const projectName = isBuildAgent ? extractProjectName(taskListPath) : undefined;
-      const taskListName = isBuildAgent ? extractTaskListName(taskListPath) : undefined;
+      const taskListPath = isBuildAgent
+        ? executorStatus?.taskListPath
+        : undefined;
+      const projectName = isBuildAgent
+        ? extractProjectName(taskListPath)
+        : undefined;
+      const taskListName = isBuildAgent
+        ? extractTaskListName(taskListPath)
+        : undefined;
 
       return {
         id: config.id,
@@ -231,14 +256,22 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
         type: config.type,
         status: isBuildAgent ? buildAgentStatus : mapAgentStatus(state?.status),
         lastHeartbeat: state?.last_activity || new Date().toISOString(),
-        currentTask: isBuildAgent ? buildAgentCurrentTask : (state?.current_task || undefined),
+        currentTask: isBuildAgent
+          ? buildAgentCurrentTask
+          : state?.current_task || undefined,
         currentTaskListName: taskListName,
         currentProjectName: projectName,
         sessionId: state?.session_id || undefined,
         metrics: {
           // For build-agent, prioritize executor metrics over database metrics
-          tasksCompleted: isBuildAgent && executorStatus ? executorStatus.completedTasks : (metrics?.completed_tasks || 0),
-          tasksFailed: isBuildAgent && executorStatus ? executorStatus.failedTasks : (metrics?.failed_tasks || 0),
+          tasksCompleted:
+            isBuildAgent && executorStatus
+              ? executorStatus.completedTasks
+              : metrics?.completed_tasks || 0,
+          tasksFailed:
+            isBuildAgent && executorStatus
+              ? executorStatus.failedTasks
+              : metrics?.failed_tasks || 0,
           avgDuration: metrics?.avg_duration_ms || 0,
           questionsAsked: questions?.asked || 0,
           questionsAnswered: questions?.answered || 0,
@@ -248,8 +281,8 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
 
     res.json(agents);
   } catch (error) {
-    console.error('[AgentsAPI] Error listing agents:', error);
-    res.status(500).json({ error: 'Failed to list agents' });
+    console.error("[AgentsAPI] Error listing agents:", error);
+    res.status(500).json({ error: "Failed to list agents" });
   }
 });
 
@@ -257,13 +290,13 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
  * GET /api/agents/:id
  * Get detailed agent information
  */
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+router.get("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    const config = AGENT_CONFIGS.find(c => c.id === id);
+    const config = AGENT_CONFIGS.find((c) => c.id === id);
     if (!config) {
-      res.status(404).json({ error: 'Agent not found' });
+      res.status(404).json({ error: "Agent not found" });
       return;
     }
 
@@ -338,11 +371,14 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
         priority: number;
         blocking: number;
         created_at: string;
-      }>(`
+      }>(
+        `
         SELECT * FROM questions
         WHERE agent_id = ? AND status = 'pending'
         ORDER BY priority DESC, created_at ASC
-      `, [id]);
+      `,
+        [id],
+      );
     } catch {
       // Table may not exist yet
     }
@@ -360,8 +396,8 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       pendingQuestions,
     });
   } catch (error) {
-    console.error('[AgentsAPI] Error getting agent:', error);
-    res.status(500).json({ error: 'Failed to get agent' });
+    console.error("[AgentsAPI] Error getting agent:", error);
+    res.status(500).json({ error: "Failed to get agent" });
   }
 });
 
@@ -369,9 +405,9 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
  * GET /api/agents/:id/tasks
  * Get tasks assigned to or executed by an agent
  */
-router.get('/:id/tasks', async (req: Request, res: Response): Promise<void> => {
+router.get("/:id/tasks", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { status, limit = '50' } = req.query;
+    const { status, limit = "50" } = req.query;
 
     let sql = `
       SELECT te.*, be.spec_path, be.status as build_status
@@ -398,8 +434,8 @@ router.get('/:id/tasks', async (req: Request, res: Response): Promise<void> => {
 
     res.json(tasks);
   } catch (error) {
-    console.error('[AgentsAPI] Error getting agent tasks:', error);
-    res.status(500).json({ error: 'Failed to get agent tasks' });
+    console.error("[AgentsAPI] Error getting agent tasks:", error);
+    res.status(500).json({ error: "Failed to get agent tasks" });
   }
 });
 
@@ -407,10 +443,10 @@ router.get('/:id/tasks', async (req: Request, res: Response): Promise<void> => {
  * GET /api/agents/:id/logs
  * Get execution logs for an agent
  */
-router.get('/:id/logs', async (req: Request, res: Response): Promise<void> => {
+router.get("/:id/logs", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { level, limit = '100', since } = req.query;
+    const { level, limit = "100", since } = req.query;
 
     let sql = `
       SELECT * FROM agent_logs
@@ -440,8 +476,8 @@ router.get('/:id/logs', async (req: Request, res: Response): Promise<void> => {
 
     res.json(logs);
   } catch (error) {
-    console.error('[AgentsAPI] Error getting agent logs:', error);
-    res.status(500).json({ error: 'Failed to get agent logs' });
+    console.error("[AgentsAPI] Error getting agent logs:", error);
+    res.status(500).json({ error: "Failed to get agent logs" });
   }
 });
 
@@ -449,13 +485,16 @@ router.get('/:id/logs', async (req: Request, res: Response): Promise<void> => {
  * POST /api/agents/:id/heartbeat
  * Record agent heartbeat
  */
-router.post('/:id/heartbeat', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { status, currentTask, sessionId } = req.body;
-
+router.post(
+  "/:id/heartbeat",
+  async (req: Request, res: Response): Promise<void> => {
     try {
-      await run(`
+      const { id } = req.params;
+      const { status, currentTask, sessionId } = req.body;
+
+      try {
+        await run(
+          `
         INSERT INTO agent_states (agent_id, agent_type, status, session_id, current_task, last_activity, updated_at)
         VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
         ON CONFLICT(agent_id) DO UPDATE SET
@@ -464,65 +503,83 @@ router.post('/:id/heartbeat', async (req: Request, res: Response): Promise<void>
           current_task = excluded.current_task,
           last_activity = excluded.last_activity,
           updated_at = excluded.updated_at
-      `, [id, AGENT_CONFIGS.find(c => c.id === id)?.type || 'unknown', status || 'idle', sessionId || null, currentTask || null]);
-    } catch {
-      // Table may not exist yet - that's okay for heartbeats
-    }
+      `,
+          [
+            id,
+            AGENT_CONFIGS.find((c) => c.id === id)?.type || "unknown",
+            status || "idle",
+            sessionId || null,
+            currentTask || null,
+          ],
+        );
+      } catch {
+        // Table may not exist yet - that's okay for heartbeats
+      }
 
-    res.json({ success: true });
-  } catch (error) {
-    console.error('[AgentsAPI] Error recording heartbeat:', error);
-    res.status(500).json({ error: 'Failed to record heartbeat' });
-  }
-});
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[AgentsAPI] Error recording heartbeat:", error);
+      res.status(500).json({ error: "Failed to record heartbeat" });
+    }
+  },
+);
 
 /**
  * POST /api/agents/:id/start
  * Start an agent
  */
-router.post('/:id/start', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-
+router.post(
+  "/:id/start",
+  async (req: Request, res: Response): Promise<void> => {
     try {
-      await run(`
+      const { id } = req.params;
+
+      try {
+        await run(
+          `
         UPDATE agent_states
         SET status = 'running', last_activity = datetime('now'), updated_at = datetime('now')
         WHERE agent_id = ?
-      `, [id]);
-    } catch {
-      // Table may not exist yet
-    }
+      `,
+          [id],
+        );
+      } catch {
+        // Table may not exist yet
+      }
 
-    res.json({ success: true, message: `Agent ${id} started` });
-  } catch (error) {
-    console.error('[AgentsAPI] Error starting agent:', error);
-    res.status(500).json({ error: 'Failed to start agent' });
-  }
-});
+      res.json({ success: true, message: `Agent ${id} started` });
+    } catch (error) {
+      console.error("[AgentsAPI] Error starting agent:", error);
+      res.status(500).json({ error: "Failed to start agent" });
+    }
+  },
+);
 
 /**
  * POST /api/agents/:id/stop
  * Stop an agent
  */
-router.post('/:id/stop', async (req: Request, res: Response): Promise<void> => {
+router.post("/:id/stop", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
     try {
-      await run(`
+      await run(
+        `
         UPDATE agent_states
         SET status = 'idle', current_task = NULL, last_activity = datetime('now'), updated_at = datetime('now')
         WHERE agent_id = ?
-      `, [id]);
+      `,
+        [id],
+      );
     } catch {
       // Table may not exist yet
     }
 
     res.json({ success: true, message: `Agent ${id} stopped` });
   } catch (error) {
-    console.error('[AgentsAPI] Error stopping agent:', error);
-    res.status(500).json({ error: 'Failed to stop agent' });
+    console.error("[AgentsAPI] Error stopping agent:", error);
+    res.status(500).json({ error: "Failed to stop agent" });
   }
 });
 
@@ -530,84 +587,99 @@ router.post('/:id/stop', async (req: Request, res: Response): Promise<void> => {
  * GET /api/agents/activities
  * Get recent activities across all agents
  */
-router.get('/activities/recent', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { limit = '20' } = req.query;
-
-    let activities: Array<{
-      id: number;
-      agent_id: string;
-      type: string;
-      description: string;
-      metadata: string | null;
-      created_at: string;
-    }> = [];
-
+router.get(
+  "/activities/recent",
+  async (req: Request, res: Response): Promise<void> => {
     try {
-      activities = await query<{
+      const { limit = "20" } = req.query;
+
+      let activities: Array<{
         id: number;
         agent_id: string;
         type: string;
         description: string;
         metadata: string | null;
         created_at: string;
-      }>(`
+      }> = [];
+
+      try {
+        activities = await query<{
+          id: number;
+          agent_id: string;
+          type: string;
+          description: string;
+          metadata: string | null;
+          created_at: string;
+        }>(
+          `
         SELECT id, agent_id, type, description, metadata, created_at
         FROM activity_log
         ORDER BY created_at DESC
         LIMIT ?
-      `, [parseInt(limit as string, 10)]);
-    } catch {
-      // Table may not exist yet
+      `,
+          [parseInt(limit as string, 10)],
+        );
+      } catch {
+        // Table may not exist yet
+      }
+
+      // Map to frontend format
+      const mappedActivities = activities.map((act) => {
+        const metadata = act.metadata ? JSON.parse(act.metadata) : {};
+        const agentConfig = AGENT_CONFIGS.find((c) => c.id === act.agent_id);
+
+        return {
+          id: `act-${act.id}`,
+          agentId: act.agent_id || "unknown",
+          agentName: agentConfig?.name || act.agent_id || "Unknown Agent",
+          type: mapActivityType(act.type),
+          description: act.description,
+          timestamp: act.created_at,
+          taskListName:
+            metadata.taskListName || extractTaskListName(metadata.taskListPath),
+          projectName:
+            metadata.projectName || extractProjectName(metadata.taskListPath),
+          taskId: metadata.taskId,
+        };
+      });
+
+      res.json({ activities: mappedActivities });
+    } catch (error) {
+      console.error("[AgentsAPI] Error fetching activities:", error);
+      res.status(500).json({ error: "Failed to fetch activities" });
     }
-
-    // Map to frontend format
-    const mappedActivities = activities.map(act => {
-      const metadata = act.metadata ? JSON.parse(act.metadata) : {};
-      const agentConfig = AGENT_CONFIGS.find(c => c.id === act.agent_id);
-
-      return {
-        id: `act-${act.id}`,
-        agentId: act.agent_id || 'unknown',
-        agentName: agentConfig?.name || act.agent_id || 'Unknown Agent',
-        type: mapActivityType(act.type),
-        description: act.description,
-        timestamp: act.created_at,
-        taskListName: metadata.taskListName || extractTaskListName(metadata.taskListPath),
-        projectName: metadata.projectName || extractProjectName(metadata.taskListPath),
-        taskId: metadata.taskId,
-      };
-    });
-
-    res.json({ activities: mappedActivities });
-  } catch (error) {
-    console.error('[AgentsAPI] Error fetching activities:', error);
-    res.status(500).json({ error: 'Failed to fetch activities' });
-  }
-});
+  },
+);
 
 /**
  * Map activity type string to frontend ActivityEventType
  */
-function mapActivityType(type: string): 'task_started' | 'task_completed' | 'task_failed' | 'question_asked' | 'question_answered' {
+function mapActivityType(
+  type: string,
+):
+  | "task_started"
+  | "task_completed"
+  | "task_failed"
+  | "question_asked"
+  | "question_answered" {
   switch (type) {
-    case 'task_started':
-    case 'task:started':
-      return 'task_started';
-    case 'task_completed':
-    case 'task:completed':
-      return 'task_completed';
-    case 'task_failed':
-    case 'task:failed':
-      return 'task_failed';
-    case 'question_asked':
-    case 'question:asked':
-      return 'question_asked';
-    case 'question_answered':
-    case 'question:answered':
-      return 'question_answered';
+    case "task_started":
+    case "task:started":
+      return "task_started";
+    case "task_completed":
+    case "task:completed":
+      return "task_completed";
+    case "task_failed":
+    case "task:failed":
+      return "task_failed";
+    case "question_asked":
+    case "question:asked":
+      return "question_asked";
+    case "question_answered":
+    case "question:answered":
+      return "question_answered";
     default:
-      return 'task_started';
+      return "task_started";
   }
 }
 

@@ -84,36 +84,36 @@ The dream we're enabling: everyone who wants to build something for themselves f
 
 ## Taglines
 
-| Context | Tagline |
-|---------|---------|
-| **General** | "Turn your idea into reality" |
-| **For dreamers** | "Finally build what you've been imagining" |
-| **For entrepreneurs** | "From idea to income, AI-powered" |
-| **Technical** | "The AI that builds what you're thinking" |
-| **Vision** | "Making entrepreneurship accessible to everyone" |
+| Context               | Tagline                                          |
+| --------------------- | ------------------------------------------------ |
+| **General**           | "Turn your idea into reality"                    |
+| **For dreamers**      | "Finally build what you've been imagining"       |
+| **For entrepreneurs** | "From idea to income, AI-powered"                |
+| **Technical**         | "The AI that builds what you're thinking"        |
+| **Vision**            | "Making entrepreneurship accessible to everyone" |
 
 ---
 
 ## One-Sentence Variants
 
-| Audience | Sentence |
-|----------|----------|
+| Audience      | Sentence                                                                                                                                                  |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Investors** | "Vibe is an AI platform that transforms non-technical dreamers into founders by guiding them from vague idea to live app — we succeed when they succeed." |
-| **Users** | "Vibe helps you build the app you've been dreaming about — just tell us what you're passionate about, and we'll handle everything else." |
-| **Technical** | "Vibe connects AI-guided ideation to AI-powered building to proactive networking — the first end-to-end platform for non-technical founders." |
-| **Press** | "Vibe is riding the 'vibe coding' wave to democratize entrepreneurship — anyone can now go from idea to running business without writing a line of code." |
+| **Users**     | "Vibe helps you build the app you've been dreaming about — just tell us what you're passionate about, and we'll handle everything else."                  |
+| **Technical** | "Vibe connects AI-guided ideation to AI-powered building to proactive networking — the first end-to-end platform for non-technical founders."             |
+| **Press**     | "Vibe is riding the 'vibe coding' wave to democratize entrepreneurship — anyone can now go from idea to running business without writing a line of code." |
 
 ---
 
 ## Objection Handlers
 
-| Objection | Response |
-|-----------|----------|
-| "Isn't this just another AI builder?" | "AI builders assume you know what to build. 42% of startups fail because they build the wrong thing. We solve that by starting with ideation, not just building." |
-| "What if I want my code?" | "You own your app, not the code — but you also never have to worry about code. Most founders don't want to manage servers and deployments. We handle it forever." |
+| Objection                               | Response                                                                                                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Isn't this just another AI builder?"   | "AI builders assume you know what to build. 42% of startups fail because they build the wrong thing. We solve that by starting with ideation, not just building."   |
+| "What if I want my code?"               | "You own your app, not the code — but you also never have to worry about code. Most founders don't want to manage servers and deployments. We handle it forever."   |
 | "Why would I trust an AI with my idea?" | "You control what's shared. Our platform includes confidentiality protections, and frankly — having an idea is easy. Executing it is hard. We help with execution." |
-| "The no-code space is crowded" | "For builders, yes. For dreamers — people who don't even know where to start — it's empty. We serve the huge market that current tools ignore." |
+| "The no-code space is crowded"          | "For builders, yes. For dreamers — people who don't even know where to start — it's empty. We serve the huge market that current tools ignore."                     |
 
 ---
 
-*Last updated: January 4, 2025*
+_Last updated: January 4, 2025_

@@ -25,13 +25,13 @@ Current state: Build Agent runs `npx tsc`, `npm test`, `npm run lint` after task
 
 **What's missing:**
 
-| Gap | Risk |
-|-----|------|
-| No test generation | Code ships with minimal coverage |
-| No edge case testing | Bugs in boundary conditions |
-| No integration testing | Components work alone but fail together |
-| No performance testing | Slow code ships to production |
-| No security testing | Vulnerabilities reach production |
+| Gap                    | Risk                                     |
+| ---------------------- | ---------------------------------------- |
+| No test generation     | Code ships with minimal coverage         |
+| No edge case testing   | Bugs in boundary conditions              |
+| No integration testing | Components work alone but fail together  |
+| No performance testing | Slow code ships to production            |
+| No security testing    | Vulnerabilities reach production         |
 | No regression analysis | Can't pinpoint which change broke things |
 
 ### 1.2 Validation Agent Specification
@@ -125,7 +125,7 @@ VALIDATION_CHECKS = {
 
 ### 1.4 Test Generation
 
-```python
+````python
 class TestGenerator:
     """
     Generate test cases from code and specifications.
@@ -186,7 +186,7 @@ class TestGenerator:
         validated = await self.validate_tests(generated)
 
         return validated
-```
+````
 
 ### 1.5 Security Scanning
 
@@ -358,14 +358,14 @@ Current state: No automated UX testing. We test if code works, not if it's usabl
 
 **What's missing:**
 
-| Gap | Risk |
-|-----|------|
-| No usability testing | Confusing UI ships |
-| No first-time user simulation | Onboarding issues missed |
-| No performance perception | Slow feels even if fast |
-| No accessibility testing | Excludes users with disabilities |
-| No mobile testing | Broken on small screens |
-| No error experience | Poor error messages |
+| Gap                           | Risk                             |
+| ----------------------------- | -------------------------------- |
+| No usability testing          | Confusing UI ships               |
+| No first-time user simulation | Onboarding issues missed         |
+| No performance perception     | Slow feels even if fast          |
+| No accessibility testing      | Excludes users with disabilities |
+| No mobile testing             | Broken on small screens          |
+| No error experience           | Poor error messages              |
 
 ### 2.2 UX Testing Agent Specification
 
@@ -944,4 +944,4 @@ class UXReport:
 
 ---
 
-*See SELF-BUILDING-BOOTSTRAP.md for how this system builds itself.*
+_See SELF-BUILDING-BOOTSTRAP.md for how this system builds itself._

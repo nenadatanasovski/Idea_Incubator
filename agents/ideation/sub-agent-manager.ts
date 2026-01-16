@@ -5,17 +5,21 @@
  * Spawns agents concurrently, tracks their status, and emits events for UI updates.
  */
 
-import { client as anthropicClient } from '../../utils/anthropic-client.js';
+import { client as anthropicClient } from "../../utils/anthropic-client.js";
 
 /**
  * Task types supported by the sub-agent manager.
  */
-export type SubAgentTaskType = 'action-plan' | 'pitch-refine' | 'architecture-explore' | 'custom';
+export type SubAgentTaskType =
+  | "action-plan"
+  | "pitch-refine"
+  | "architecture-explore"
+  | "custom";
 
 /**
  * Status of a sub-agent task.
  */
-export type SubAgentTaskStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type SubAgentTaskStatus = "pending" | "running" | "completed" | "failed";
 
 /**
  * Represents a task to be executed by a sub-agent.
@@ -23,7 +27,7 @@ export type SubAgentTaskStatus = 'pending' | 'running' | 'completed' | 'failed';
 export interface SubAgentTask {
   id: string;
   type: SubAgentTaskType;
-  label: string;  // e.g., "Creating 30/60/90 day action plan..."
+  label: string; // e.g., "Creating 30/60/90 day action plan..."
   status: SubAgentTaskStatus;
   result?: string;
   error?: string;
@@ -38,7 +42,7 @@ export interface SubAgentTaskConfig {
   id: string;
   type: SubAgentTaskType;
   label: string;
-  prompt?: string;  // Custom prompt for 'custom' type tasks
+  prompt?: string; // Custom prompt for 'custom' type tasks
 }
 
 /**
@@ -50,7 +54,7 @@ export type StatusChangeCallback = (tasks: SubAgentTask[]) => void;
  * System prompts for each task type.
  */
 const TASK_SYSTEM_PROMPTS: Record<SubAgentTaskType, string> = {
-  'action-plan': `You are an action planning specialist. Your job is to create detailed, actionable plans.
+  "action-plan": `You are an action planning specialist. Your job is to create detailed, actionable plans.
 
 ## OUTPUT FORMAT
 Create a structured action plan with the following sections:
@@ -78,7 +82,7 @@ For each goal, include:
 
 Be specific, actionable, and realistic.`,
 
-  'pitch-refine': `You are a pitch refinement specialist. Your job is to craft compelling, concise pitches.
+  "pitch-refine": `You are a pitch refinement specialist. Your job is to craft compelling, concise pitches.
 
 ## OUTPUT FORMAT
 Create a refined pitch with the following components:
@@ -103,7 +107,7 @@ What you want the listener to do next
 
 Focus on clarity, emotional resonance, and memorability.`,
 
-  'architecture-explore': `You are a technical architecture specialist. Your job is to explore and document system designs.
+  "architecture-explore": `You are a technical architecture specialist. Your job is to explore and document system designs.
 
 ## OUTPUT FORMAT
 Create an architecture exploration with:
@@ -141,7 +145,7 @@ How data moves through the system
 
 Be practical and consider real-world constraints.`,
 
-  'custom': `You are a versatile AI assistant. Execute the task as specified by the user.
+  custom: `You are a versatile AI assistant. Execute the task as specified by the user.
 
 ## GUIDELINES
 - Be thorough and detailed
@@ -156,8 +160,11 @@ Adapt your response format to best suit the task at hand.`,
 /**
  * Default prompts for generating content based on context.
  */
-const TASK_DEFAULT_PROMPTS: Record<Exclude<SubAgentTaskType, 'custom'>, string> = {
-  'action-plan': `Based on the provided context about this idea, create a comprehensive 30/60/90 day action plan.
+const TASK_DEFAULT_PROMPTS: Record<
+  Exclude<SubAgentTaskType, "custom">,
+  string
+> = {
+  "action-plan": `Based on the provided context about this idea, create a comprehensive 30/60/90 day action plan.
 
 Consider:
 - Current stage of the idea
@@ -166,7 +173,7 @@ Consider:
 - Learning opportunities at each phase
 - Clear success criteria for each milestone`,
 
-  'pitch-refine': `Based on the provided context, create a refined and compelling pitch.
+  "pitch-refine": `Based on the provided context, create a refined and compelling pitch.
 
 Focus on:
 - Clarity and conciseness
@@ -175,7 +182,7 @@ Focus on:
 - Addressing potential objections
 - Creating urgency or interest`,
 
-  'architecture-explore': `Based on the provided context, explore potential technical architectures.
+  "architecture-explore": `Based on the provided context, explore potential technical architectures.
 
 Consider:
 - Simplicity vs. capability trade-offs
@@ -209,14 +216,14 @@ export class SubAgentManager {
   async spawnAgents(
     tasks: SubAgentTaskConfig[],
     context: string,
-    onStatusChange?: StatusChangeCallback
+    onStatusChange?: StatusChangeCallback,
   ): Promise<SubAgentTask[]> {
     // Initialize all tasks as pending
     const taskStates: SubAgentTask[] = tasks.map((config) => ({
       id: config.id,
       type: config.type,
       label: config.label,
-      status: 'pending' as SubAgentTaskStatus,
+      status: "pending" as SubAgentTaskStatus,
     }));
 
     // Emit initial state
@@ -228,7 +235,7 @@ export class SubAgentManager {
       const taskState = taskStates[index];
 
       // Mark as running
-      taskState.status = 'running';
+      taskState.status = "running";
       taskState.startedAt = new Date();
       onStatusChange?.(this.cloneTasks(taskStates));
 
@@ -237,14 +244,15 @@ export class SubAgentManager {
         const result = await this.executeSubAgent(taskConfig, context);
 
         // Mark as completed
-        taskState.status = 'completed';
+        taskState.status = "completed";
         taskState.result = result;
         taskState.completedAt = new Date();
         onStatusChange?.(this.cloneTasks(taskStates));
       } catch (error) {
         // Mark as failed
-        taskState.status = 'failed';
-        taskState.error = error instanceof Error ? error.message : 'Unknown error';
+        taskState.status = "failed";
+        taskState.error =
+          error instanceof Error ? error.message : "Unknown error";
         taskState.completedAt = new Date();
         onStatusChange?.(this.cloneTasks(taskStates));
       }
@@ -253,7 +261,7 @@ export class SubAgentManager {
     // Execute tasks with concurrency control
     await this.executeWithConcurrency(
       tasks.map((_, index) => () => executeTask(index)),
-      this.maxConcurrency
+      this.maxConcurrency,
     );
 
     return this.cloneTasks(taskStates);
@@ -264,20 +272,25 @@ export class SubAgentManager {
    */
   private async executeSubAgent(
     taskConfig: SubAgentTaskConfig,
-    context: string
+    context: string,
   ): Promise<string> {
     const systemPrompt = TASK_SYSTEM_PROMPTS[taskConfig.type];
 
     // Build the user message
     let userPrompt: string;
-    if (taskConfig.type === 'custom' && taskConfig.prompt) {
+    if (taskConfig.type === "custom" && taskConfig.prompt) {
       userPrompt = `## CONTEXT\n${context}\n\n## TASK\n${taskConfig.prompt}`;
     } else {
-      const defaultPrompt = TASK_DEFAULT_PROMPTS[taskConfig.type as Exclude<SubAgentTaskType, 'custom'>];
+      const defaultPrompt =
+        TASK_DEFAULT_PROMPTS[
+          taskConfig.type as Exclude<SubAgentTaskType, "custom">
+        ];
       userPrompt = `## CONTEXT\n${context}\n\n## TASK\n${defaultPrompt}`;
     }
 
-    console.log(`[SubAgentManager] Starting task: ${taskConfig.id} (${taskConfig.type})`);
+    console.log(
+      `[SubAgentManager] Starting task: ${taskConfig.id} (${taskConfig.type})`,
+    );
     console.log(`[SubAgentManager] Label: ${taskConfig.label}`);
 
     // Retry configuration
@@ -289,53 +302,66 @@ export class SubAgentManager {
       if (attempt > 0) {
         // Exponential backoff: 3s, 9s (base 3 instead of 2 for more recovery time)
         const backoffMs = Math.pow(3, attempt) * 1000;
-        console.log(`[SubAgentManager] Retry ${attempt}/${MAX_RETRIES} for ${taskConfig.id} after ${backoffMs}ms`);
-        await new Promise(resolve => setTimeout(resolve, backoffMs));
+        console.log(
+          `[SubAgentManager] Retry ${attempt}/${MAX_RETRIES} for ${taskConfig.id} after ${backoffMs}ms`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
       }
 
       try {
         // Create timeout promise
         const timeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(() => {
-            reject(new Error(`Sub-agent task timed out after ${TIMEOUT_MS / 1000}s: ${taskConfig.label}`));
+            reject(
+              new Error(
+                `Sub-agent task timed out after ${TIMEOUT_MS / 1000}s: ${taskConfig.label}`,
+              ),
+            );
           }, TIMEOUT_MS);
         });
 
         // Race the API call against timeout
         const response = await Promise.race([
           this.client.messages.create({
-            model: 'claude-opus-4-5-20251101',
+            model: "claude-opus-4-5-20251101",
             max_tokens: 8192,
             system: systemPrompt,
-            messages: [{ role: 'user', content: userPrompt }],
+            messages: [{ role: "user", content: userPrompt }],
           }),
           timeoutPromise,
         ]);
 
         // Extract text content
-        const textContent = response.content.find((c) => c.type === 'text');
-        if (!textContent || textContent.type !== 'text') {
-          throw new Error('No text response from sub-agent');
+        const textContent = response.content.find((c) => c.type === "text");
+        if (!textContent || textContent.type !== "text") {
+          throw new Error("No text response from sub-agent");
         }
 
         console.log(`[SubAgentManager] Completed task: ${taskConfig.id}`);
-        console.log(`[SubAgentManager] Result length: ${textContent.text.length} chars`);
+        console.log(
+          `[SubAgentManager] Result length: ${textContent.text.length} chars`,
+        );
 
         return textContent.text;
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Unknown error');
-        console.error(`[SubAgentManager] Attempt ${attempt + 1} failed for ${taskConfig.id}:`, lastError.message);
+        lastError = error instanceof Error ? error : new Error("Unknown error");
+        console.error(
+          `[SubAgentManager] Attempt ${attempt + 1} failed for ${taskConfig.id}:`,
+          lastError.message,
+        );
 
         // Don't retry on certain errors
-        if (lastError.message.includes('invalid_api_key') ||
-            lastError.message.includes('authentication')) {
+        if (
+          lastError.message.includes("invalid_api_key") ||
+          lastError.message.includes("authentication")
+        ) {
           throw lastError;
         }
       }
     }
 
     // All retries exhausted
-    throw lastError || new Error('Sub-agent task failed after retries');
+    throw lastError || new Error("Sub-agent task failed after retries");
   }
 
   /**
@@ -343,7 +369,7 @@ export class SubAgentManager {
    */
   private async executeWithConcurrency(
     taskFns: (() => Promise<void>)[],
-    limit: number
+    limit: number,
   ): Promise<void> {
     const executing = new Set<Promise<void>>();
     const STAGGER_DELAY_MS = 1000; // 1 second delay between task starts to avoid rate limiting
@@ -353,7 +379,7 @@ export class SubAgentManager {
 
       // Stagger task starts to avoid API rate limiting
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, STAGGER_DELAY_MS));
+        await new Promise((resolve) => setTimeout(resolve, STAGGER_DELAY_MS));
       }
 
       // Start the task
@@ -389,7 +415,7 @@ export class SubAgentManager {
   static createTask(
     type: SubAgentTaskType,
     label: string,
-    prompt?: string
+    prompt?: string,
   ): SubAgentTaskConfig {
     const id = `task_${type}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     return { id, type, label, prompt };
@@ -400,9 +426,15 @@ export class SubAgentManager {
    */
   static createDevelopmentBatch(): SubAgentTaskConfig[] {
     return [
-      SubAgentManager.createTask('action-plan', 'Creating 30/60/90 day action plan...'),
-      SubAgentManager.createTask('pitch-refine', 'Refining elevator pitch...'),
-      SubAgentManager.createTask('architecture-explore', 'Exploring technical architecture...'),
+      SubAgentManager.createTask(
+        "action-plan",
+        "Creating 30/60/90 day action plan...",
+      ),
+      SubAgentManager.createTask("pitch-refine", "Refining elevator pitch..."),
+      SubAgentManager.createTask(
+        "architecture-explore",
+        "Exploring technical architecture...",
+      ),
     ];
   }
 
@@ -410,14 +442,16 @@ export class SubAgentManager {
    * Check if all tasks in a batch are complete (success or failure).
    */
   static isComplete(tasks: SubAgentTask[]): boolean {
-    return tasks.every((t) => t.status === 'completed' || t.status === 'failed');
+    return tasks.every(
+      (t) => t.status === "completed" || t.status === "failed",
+    );
   }
 
   /**
    * Check if any tasks failed.
    */
   static hasFailures(tasks: SubAgentTask[]): boolean {
-    return tasks.some((t) => t.status === 'failed');
+    return tasks.some((t) => t.status === "failed");
   }
 
   /**
@@ -426,7 +460,7 @@ export class SubAgentManager {
   static getResults(tasks: SubAgentTask[]): Map<string, string> {
     const results = new Map<string, string>();
     for (const task of tasks) {
-      if (task.status === 'completed' && task.result) {
+      if (task.status === "completed" && task.result) {
         results.set(task.id, task.result);
       }
     }
@@ -436,16 +470,18 @@ export class SubAgentManager {
   /**
    * Get results grouped by task type.
    */
-  static getResultsByType(tasks: SubAgentTask[]): Record<SubAgentTaskType, string | undefined> {
+  static getResultsByType(
+    tasks: SubAgentTask[],
+  ): Record<SubAgentTaskType, string | undefined> {
     const results: Record<SubAgentTaskType, string | undefined> = {
-      'action-plan': undefined,
-      'pitch-refine': undefined,
-      'architecture-explore': undefined,
-      'custom': undefined,
+      "action-plan": undefined,
+      "pitch-refine": undefined,
+      "architecture-explore": undefined,
+      custom: undefined,
     };
 
     for (const task of tasks) {
-      if (task.status === 'completed' && task.result) {
+      if (task.status === "completed" && task.result) {
         results[task.type] = task.result;
       }
     }

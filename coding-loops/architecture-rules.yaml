@@ -57,14 +57,14 @@ ownership:
     - "types/ideation.ts"
     - "types/specification.ts"
     - "types/build.ts"
-    - "types/session.ts"  # Base session interface
+    - "types/session.ts" # Base session interface
     - "server/routes/ideation.ts"
     - "server/routes/specification.ts"
     - "server/routes/build.ts"
     - "database/migrations/0*_ideation_*.sql"
     - "database/migrations/0*_spec_*.sql"
     - "database/migrations/0*_build_*.sql"
-    - "package.json"  # Loop 1 owns dependencies
+    - "package.json" # Loop 1 owns dependencies
     - "tsconfig.json"
 
   loop-2-infrastructure:
@@ -74,7 +74,7 @@ ownership:
     - "server/routes/auth.ts"
     - "server/routes/credits.ts"
     - "server/routes/hosting.ts"
-    - "server/middleware/auth.ts"  # Auth middleware
+    - "server/middleware/auth.ts" # Auth middleware
     - "database/migrations/0*_auth_*.sql"
     - "database/migrations/0*_credits_*.sql"
 

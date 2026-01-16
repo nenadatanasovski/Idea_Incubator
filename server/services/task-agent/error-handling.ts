@@ -5,17 +5,17 @@
  * Implements BA-041 to BA-052 from the Build Agent spec.
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
-import { orchestratorEvents } from './build-agent-orchestrator.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
+import { orchestratorEvents } from "./build-agent-orchestrator.js";
 
 // ============================================================
 // Types
 // ============================================================
 
-export type ErrorType = 'transient' | 'permanent' | 'unknown';
+export type ErrorType = "transient" | "permanent" | "unknown";
 
-export type FailureDecision = 'retry' | 'skip' | 'escalate' | 'abort';
+export type FailureDecision = "retry" | "skip" | "escalate" | "abort";
 
 export interface ClassifiedError {
   type: ErrorType;
@@ -73,7 +73,7 @@ const TRANSIENT_PATTERNS = [
   /temporarily.?unavailable/i,
   /connection.?refused/i,
   /network.?error/i,
-  /SIGTERM/i,  // Process killed
+  /SIGTERM/i, // Process killed
   /SIGKILL/i,
   /out.?of.?memory/i,
   /OOM/i,
@@ -108,15 +108,15 @@ const PERMANENT_PATTERNS = [
  * Error categories for analytics
  */
 const ERROR_CATEGORIES: Record<string, RegExp[]> = {
-  'network': [/ETIMEDOUT/i, /ECONNRESET/i, /network/i, /connection/i],
-  'validation': [/validation/i, /lint/i, /type.?check/i],
-  'compilation': [/compile/i, /syntax/i, /parse/i, /tsc/i],
-  'test': [/test/i, /assertion/i, /expect/i],
-  'filesystem': [/ENOENT/i, /EACCES/i, /file/i, /directory/i],
-  'database': [/sqlite/i, /constraint/i, /duplicate/i, /sql/i],
-  'timeout': [/timeout/i, /ETIMEDOUT/i],
-  'memory': [/memory/i, /OOM/i, /heap/i],
-  'process': [/SIGTERM/i, /SIGKILL/i, /exit.?code/i],
+  network: [/ETIMEDOUT/i, /ECONNRESET/i, /network/i, /connection/i],
+  validation: [/validation/i, /lint/i, /type.?check/i],
+  compilation: [/compile/i, /syntax/i, /parse/i, /tsc/i],
+  test: [/test/i, /assertion/i, /expect/i],
+  filesystem: [/ENOENT/i, /EACCES/i, /file/i, /directory/i],
+  database: [/sqlite/i, /constraint/i, /duplicate/i, /sql/i],
+  timeout: [/timeout/i, /ETIMEDOUT/i],
+  memory: [/memory/i, /OOM/i, /heap/i],
+  process: [/SIGTERM/i, /SIGKILL/i, /exit.?code/i],
 };
 
 /**
@@ -124,19 +124,19 @@ const ERROR_CATEGORIES: Record<string, RegExp[]> = {
  */
 export function classifyError(
   errorMessage: string,
-  exitCode?: number | null
+  exitCode?: number | null,
 ): ClassifiedError {
-  const message = errorMessage || 'Unknown error';
+  const message = errorMessage || "Unknown error";
 
   // Check for transient patterns
   for (const pattern of TRANSIENT_PATTERNS) {
     if (pattern.test(message)) {
       return {
-        type: 'transient',
+        type: "transient",
         category: detectCategory(message),
         message,
         isRetryable: true,
-        suggestedAction: 'retry',
+        suggestedAction: "retry",
       };
     }
   }
@@ -145,11 +145,11 @@ export function classifyError(
   for (const pattern of PERMANENT_PATTERNS) {
     if (pattern.test(message)) {
       return {
-        type: 'permanent',
+        type: "permanent",
         category: detectCategory(message),
         message,
         isRetryable: false,
-        suggestedAction: 'escalate',
+        suggestedAction: "escalate",
       };
     }
   }
@@ -159,11 +159,11 @@ export function classifyError(
     // Exit code 0 means success, shouldn't be here
     if (exitCode === 0) {
       return {
-        type: 'unknown',
-        category: 'unexpected',
+        type: "unknown",
+        category: "unexpected",
         message,
         isRetryable: false,
-        suggestedAction: 'skip',
+        suggestedAction: "skip",
       };
     }
 
@@ -171,33 +171,33 @@ export function classifyError(
     if (exitCode === 1) {
       // Generic error - could be anything
       return {
-        type: 'unknown',
+        type: "unknown",
         category: detectCategory(message),
         message,
-        isRetryable: true,  // Give it one retry
-        suggestedAction: 'retry',
+        isRetryable: true, // Give it one retry
+        suggestedAction: "retry",
       };
     }
 
     if (exitCode === 137 || exitCode === 139) {
       // SIGKILL (137) or SIGSEGV (139) - usually memory issues
       return {
-        type: 'transient',
-        category: 'memory',
+        type: "transient",
+        category: "memory",
         message,
         isRetryable: true,
-        suggestedAction: 'retry',
+        suggestedAction: "retry",
       };
     }
   }
 
   // Default: unknown, give it a retry
   return {
-    type: 'unknown',
+    type: "unknown",
     category: detectCategory(message),
     message,
     isRetryable: true,
-    suggestedAction: 'retry',
+    suggestedAction: "retry",
   };
 }
 
@@ -212,7 +212,7 @@ function detectCategory(message: string): string {
       }
     }
   }
-  return 'general';
+  return "general";
 }
 
 // ============================================================
@@ -231,9 +231,10 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
  */
 export function calculateBackoffDelay(
   attempt: number,
-  config: RetryConfig = DEFAULT_RETRY_CONFIG
+  config: RetryConfig = DEFAULT_RETRY_CONFIG,
 ): number {
-  const delay = config.baseDelayMs * Math.pow(config.backoffMultiplier, attempt - 1);
+  const delay =
+    config.baseDelayMs * Math.pow(config.backoffMultiplier, attempt - 1);
   // Add jitter (±10%)
   const jitter = delay * 0.1 * (Math.random() * 2 - 1);
   return Math.min(delay + jitter, config.maxDelayMs);
@@ -244,7 +245,7 @@ export function calculateBackoffDelay(
  */
 export async function retryTaskWithBackoff(
   taskId: string,
-  config: RetryConfig = DEFAULT_RETRY_CONFIG
+  config: RetryConfig = DEFAULT_RETRY_CONFIG,
 ): Promise<{ shouldRetry: boolean; delayMs: number; reason: string }> {
   // Get task retry info
   const task = await getOne<{
@@ -257,11 +258,11 @@ export async function retryTaskWithBackoff(
   }>(
     `SELECT id, display_id, retry_count, max_retries, consecutive_failures, last_error_type
      FROM tasks WHERE id = ?`,
-    [taskId]
+    [taskId],
   );
 
   if (!task) {
-    return { shouldRetry: false, delayMs: 0, reason: 'Task not found' };
+    return { shouldRetry: false, delayMs: 0, reason: "Task not found" };
   }
 
   const maxRetries = task.max_retries || config.maxRetries;
@@ -277,11 +278,11 @@ export async function retryTaskWithBackoff(
   }
 
   // Check if error type is permanent
-  if (task.last_error_type === 'permanent') {
+  if (task.last_error_type === "permanent") {
     return {
       shouldRetry: false,
       delayMs: 0,
-      reason: 'Error classified as permanent (non-retryable)',
+      reason: "Error classified as permanent (non-retryable)",
     };
   }
 
@@ -295,7 +296,7 @@ export async function retryTaskWithBackoff(
          status = 'pending',
          updated_at = datetime('now')
      WHERE id = ?`,
-    [taskId]
+    [taskId],
   );
   await saveDb();
 
@@ -316,7 +317,7 @@ export async function retryTaskWithBackoff(
 export async function incrementConsecutiveFailures(
   taskId: string,
   errorType: ErrorType,
-  errorMessage: string
+  errorMessage: string,
 ): Promise<number> {
   await run(
     `UPDATE tasks
@@ -325,13 +326,13 @@ export async function incrementConsecutiveFailures(
          last_error_message = ?,
          updated_at = datetime('now')
      WHERE id = ?`,
-    [errorType, errorMessage, taskId]
+    [errorType, errorMessage, taskId],
   );
   await saveDb();
 
   const task = await getOne<{ consecutive_failures: number }>(
-    'SELECT consecutive_failures FROM tasks WHERE id = ?',
-    [taskId]
+    "SELECT consecutive_failures FROM tasks WHERE id = ?",
+    [taskId],
   );
 
   return task?.consecutive_failures || 0;
@@ -348,7 +349,7 @@ export async function resetConsecutiveFailures(taskId: string): Promise<void> {
          last_error_message = NULL,
          updated_at = datetime('now')
      WHERE id = ?`,
-    [taskId]
+    [taskId],
   );
   await saveDb();
 }
@@ -357,7 +358,7 @@ export async function resetConsecutiveFailures(taskId: string): Promise<void> {
 // SIA Escalation (BA-044)
 // ============================================================
 
-const SIA_ESCALATION_THRESHOLD = 3;  // Consecutive failures before escalation
+const SIA_ESCALATION_THRESHOLD = 3; // Consecutive failures before escalation
 
 /**
  * Check if task should be escalated to SIA (BA-044)
@@ -375,7 +376,7 @@ export async function checkSIAEscalation(taskId: string): Promise<{
   }>(
     `SELECT consecutive_failures, escalated_to_sia, task_list_id, display_id, title
      FROM tasks WHERE id = ?`,
-    [taskId]
+    [taskId],
   );
 
   if (!task) {
@@ -384,7 +385,7 @@ export async function checkSIAEscalation(taskId: string): Promise<{
 
   // Already escalated
   if (task.escalated_to_sia === 1) {
-    return { shouldEscalate: false, reason: 'Already escalated to SIA' };
+    return { shouldEscalate: false, reason: "Already escalated to SIA" };
   }
 
   // Check for "no progress" - same error repeated (BA-045)
@@ -393,15 +394,17 @@ export async function checkSIAEscalation(taskId: string): Promise<{
      WHERE task_id = ?
      ORDER BY failed_at DESC
      LIMIT 3`,
-    [taskId]
+    [taskId],
   );
 
   if (recentErrors.length >= 3) {
-    const allSame = recentErrors.every(e => e.error_message === recentErrors[0].error_message);
+    const allSame = recentErrors.every(
+      (e) => e.error_message === recentErrors[0].error_message,
+    );
     if (allSame) {
       return {
         shouldEscalate: true,
-        reason: 'No progress: same error repeated 3 times',
+        reason: "No progress: same error repeated 3 times",
       };
     }
   }
@@ -423,7 +426,7 @@ export async function checkSIAEscalation(taskId: string): Promise<{
 export async function escalateToSIA(
   taskId: string,
   reason: string,
-  context: FailureContext
+  context: FailureContext,
 ): Promise<string> {
   const escalationId = uuidv4();
 
@@ -434,7 +437,7 @@ export async function escalateToSIA(
          escalated_at = datetime('now'),
          updated_at = datetime('now')
      WHERE id = ?`,
-    [taskId]
+    [taskId],
   );
 
   // Create SIA escalation record
@@ -446,24 +449,28 @@ export async function escalateToSIA(
       escalationId,
       taskId,
       context.taskListId || null,
-      reason === 'No progress: same error repeated 3 times' ? 'no_progress' :
-      reason.includes('consecutive failures') ? 'max_retries_exceeded' :
-      'repeated_failure',
+      reason === "No progress: same error repeated 3 times"
+        ? "no_progress"
+        : reason.includes("consecutive failures")
+          ? "max_retries_exceeded"
+          : "repeated_failure",
       JSON.stringify(context),
-    ]
+    ],
   );
   await saveDb();
 
   // Emit build.stuck event (BA-046)
-  orchestratorEvents.emit('build.stuck', {
+  orchestratorEvents.emit("build.stuck", {
     taskId,
     taskListId: context.taskListId,
     consecutiveFailures: context.consecutiveFailures,
-    lastErrors: context.recentErrors.map(e => e.errorMessage),
+    lastErrors: context.recentErrors.map((e) => e.errorMessage),
     noProgressReason: reason,
   });
 
-  console.log(`[ErrorHandling] Task ${context.taskDisplayId} escalated to SIA: ${reason}`);
+  console.log(
+    `[ErrorHandling] Task ${context.taskDisplayId} escalated to SIA: ${reason}`,
+  );
 
   return escalationId;
 }
@@ -482,7 +489,7 @@ export async function gatherFailureContext(
   filePath?: string,
   stackTrace?: string,
   stdoutTail?: string,
-  stderrTail?: string
+  stderrTail?: string,
 ): Promise<FailureContext> {
   // Get task info
   const task = await getOne<{
@@ -495,7 +502,7 @@ export async function gatherFailureContext(
   }>(
     `SELECT id, display_id, title, task_list_id, consecutive_failures, retry_count
      FROM tasks WHERE id = ?`,
-    [taskId]
+    [taskId],
   );
 
   if (!task) {
@@ -513,7 +520,7 @@ export async function gatherFailureContext(
      WHERE task_id = ?
      ORDER BY failed_at DESC
      LIMIT 5`,
-    [taskId]
+    [taskId],
   );
 
   return {
@@ -524,7 +531,7 @@ export async function gatherFailureContext(
     agentId,
     attemptNumber: (task.retry_count || 0) + 1,
     consecutiveFailures: task.consecutive_failures,
-    recentErrors: recentErrors.map(e => ({
+    recentErrors: recentErrors.map((e) => ({
       errorType: e.error_type,
       errorMessage: e.error_message,
       failedAt: e.failed_at,
@@ -553,15 +560,15 @@ export async function recordFailure(
   filePath?: string,
   stackTrace?: string,
   stdoutTail?: string,
-  stderrTail?: string
+  stderrTail?: string,
 ): Promise<void> {
   // Classify the error
   const classified = classifyError(errorMessage, exitCode);
 
   // Get current attempt number
   const task = await getOne<{ retry_count: number }>(
-    'SELECT retry_count FROM tasks WHERE id = ?',
-    [taskId]
+    "SELECT retry_count FROM tasks WHERE id = ?",
+    [taskId],
   );
   const attemptNumber = (task?.retry_count || 0) + 1;
 
@@ -584,11 +591,15 @@ export async function recordFailure(
       stackTrace || null,
       stdoutTail || null,
       stderrTail || null,
-    ]
+    ],
   );
 
   // Increment consecutive failures
-  await incrementConsecutiveFailures(taskId, classified.type, classified.message);
+  await incrementConsecutiveFailures(
+    taskId,
+    classified.type,
+    classified.message,
+  );
 
   await saveDb();
 }
@@ -603,7 +614,7 @@ export async function recordFailure(
 export async function makeFailureDecision(
   taskId: string,
   errorMessage: string,
-  exitCode?: number | null
+  exitCode?: number | null,
 ): Promise<{
   decision: FailureDecision;
   reason: string;
@@ -614,26 +625,26 @@ export async function makeFailureDecision(
   const classified = classifyError(errorMessage, exitCode);
 
   // Check if permanent error
-  if (classified.type === 'permanent') {
+  if (classified.type === "permanent") {
     // Check if should escalate to SIA
     const escalationCheck = await checkSIAEscalation(taskId);
     if (escalationCheck.shouldEscalate) {
       const context = await gatherFailureContext(taskId);
       const escalationId = await escalateToSIA(
         taskId,
-        escalationCheck.reason || 'Permanent error',
-        context
+        escalationCheck.reason || "Permanent error",
+        context,
       );
       return {
-        decision: 'escalate',
-        reason: escalationCheck.reason || 'Error classified as permanent',
+        decision: "escalate",
+        reason: escalationCheck.reason || "Error classified as permanent",
         escalationId,
       };
     }
 
     return {
-      decision: 'skip',
-      reason: 'Error classified as permanent (non-retryable)',
+      decision: "skip",
+      reason: "Error classified as permanent (non-retryable)",
     };
   }
 
@@ -642,7 +653,7 @@ export async function makeFailureDecision(
 
   if (retryResult.shouldRetry) {
     return {
-      decision: 'retry',
+      decision: "retry",
       reason: retryResult.reason,
       delayMs: retryResult.delayMs,
     };
@@ -655,17 +666,17 @@ export async function makeFailureDecision(
     const escalationId = await escalateToSIA(
       taskId,
       escalationCheck.reason || retryResult.reason,
-      context
+      context,
     );
     return {
-      decision: 'escalate',
+      decision: "escalate",
       reason: escalationCheck.reason || retryResult.reason,
       escalationId,
     };
   }
 
   return {
-    decision: 'skip',
+    decision: "skip",
     reason: retryResult.reason,
   };
 }

@@ -8,6 +8,7 @@ sessionId: 7cdb645c-6409-43c9-8a93-f0b6274a863f
 createdAt: 2026-01-04 09:55:48
 updatedAt: 2026-01-04 09:55:48
 ---
+
 # FridgeScan - Complete Strategy Package
 
 ---
@@ -27,6 +28,7 @@ Unlike recipe apps that start with recipes, we start with YOUR ingredients. Our 
 We're looking for [investment/partners/beta users] to help us reduce food waste one fridge at a time.
 
 **30-Second Version:**
+
 > "FridgeScan scans your fridge with AI and tells you exactly what you can cook tonight. No more wasted groceries, no more decision fatigue. We turn 'I have nothing to eat' into a home-cooked meal in under 30 seconds."
 
 ---
@@ -77,15 +79,16 @@ We're looking for [investment/partners/beta users] to help us reduce food waste 
 
 **Key Technical Decisions:**
 
-| Component | Recommendation | Rationale |
-|-----------|---------------|------------|
-| CV Model | Fine-tuned YOLO or custom CNN | Fast inference, good for mobile |
+| Component     | Recommendation                      | Rationale                          |
+| ------------- | ----------------------------------- | ---------------------------------- |
+| CV Model      | Fine-tuned YOLO or custom CNN       | Fast inference, good for mobile    |
 | Model Hosting | On-device (Core ML/TensorFlow Lite) | Privacy, speed, offline capability |
-| Backend | Node.js or Python FastAPI | Your experience + ML ecosystem |
-| Database | PostgreSQL + Redis | Reliable, scalable, fast caching |
-| App Framework | React Native | Cross-platform, large ecosystem |
+| Backend       | Node.js or Python FastAPI           | Your experience + ML ecosystem     |
+| Database      | PostgreSQL + Redis                  | Reliable, scalable, fast caching   |
+| App Framework | React Native                        | Cross-platform, large ecosystem    |
 
 **CV Training Approach:**
+
 1. Start with pre-trained food recognition model
 2. Fine-tune on fridge-specific dataset (lighting, angles, partial occlusion)
 3. Build confidence thresholds for "ask user to confirm" edge cases
@@ -98,24 +101,28 @@ We're looking for [investment/partners/beta users] to help us reduce food waste 
 ### DAYS 1-30: VALIDATION & FOUNDATION
 
 **Week 1: Problem Validation**
+
 - [ ] Interview 20 target users (5 from each segment)
 - [ ] Document top 5 pain points and frequency
 - [ ] Competitive analysis deep-dive
 - [ ] Define MVP feature set (ruthlessly minimal)
 
 **Week 2: Technical Spike**
+
 - [ ] Test 3 pre-trained food recognition models
 - [ ] Build proof-of-concept: photo → ingredient list
 - [ ] Measure accuracy on 100 test fridge photos
 - [ ] Identify the 50 most common fridge items to nail first
 
 **Week 3: Recipe Engine Prototype**
+
 - [ ] Source recipe database (Spoonacular API or similar)
 - [ ] Build basic matching algorithm
 - [ ] Test: given 5 ingredients, return 3 recipes
 - [ ] Add dietary filter logic
 
 **Week 4: End-to-End Prototype**
+
 - [ ] Connect CV output to recipe engine
 - [ ] Basic mobile UI (camera → results)
 - [ ] Test with 10 friendly users
@@ -128,6 +135,7 @@ We're looking for [investment/partners/beta users] to help us reduce food waste 
 ### DAYS 31-60: MVP BUILD
 
 **Week 5-6: Core App Development**
+
 - [ ] User authentication & profiles
 - [ ] Dietary preferences setup
 - [ ] Improved camera UX with guidance overlay
@@ -135,12 +143,14 @@ We're looking for [investment/partners/beta users] to help us reduce food waste 
 - [ ] Ingredient confirmation/correction flow
 
 **Week 7: CV Model Improvement**
+
 - [ ] Collect 500+ labeled fridge images
 - [ ] Fine-tune model on edge cases
 - [ ] Add "unsure" handling (ask user)
 - [ ] Target: 85% accuracy on common items
 
 **Week 8: Polish & Test**
+
 - [ ] Beta release to 50 users
 - [ ] Analytics implementation
 - [ ] Bug fixes and performance optimization
@@ -153,18 +163,21 @@ We're looking for [investment/partners/beta users] to help us reduce food waste 
 ### DAYS 61-90: LAUNCH PREP
 
 **Week 9-10: Growth Features**
+
 - [ ] Implement one retention feature (meal planning OR shopping list OR favorites)
 - [ ] Push notification strategy
 - [ ] Onboarding optimization
 - [ ] Referral mechanism
 
 **Week 11: Launch Prep**
+
 - [ ] App Store submission (iOS first)
 - [ ] Landing page with waitlist
 - [ ] Press kit / launch materials
 - [ ] Identify 5 food bloggers/influencers for outreach
 
 **Week 12: Soft Launch**
+
 - [ ] Launch to waitlist (target: 500 downloads)
 - [ ] Monitor metrics: DAU, scans/user, recipes viewed
 - [ ] Rapid iteration based on feedback
@@ -176,18 +189,19 @@ We're looking for [investment/partners/beta users] to help us reduce food waste 
 
 ## 4. COMPETITIVE LANDSCAPE
 
-| Competitor | Approach | Strengths | Weaknesses | Your Edge |
-|------------|----------|-----------|------------|----------|
-| **Supercook** | Manual ingredient input | Large recipe DB, free | Tedious input, no AI | Camera scanning |
-| **Whisk** | Recipe aggregation | Good UX, meal planning | Doesn't start from ingredients | Fridge-first approach |
-| **Yummly** | Preference learning | Strong personalization | Recipe-first, not pantry-aware | Ingredient reality |
-| **Samsung Family Hub** | Built-in fridge camera | Hardware integration | Expensive, closed ecosystem | Works with any fridge |
-| **Fridge AI startups** | Similar CV approach | First-mover in some markets | Often poor accuracy, clunky UX | Your 10yr app experience |
+| Competitor             | Approach                | Strengths                   | Weaknesses                     | Your Edge                |
+| ---------------------- | ----------------------- | --------------------------- | ------------------------------ | ------------------------ |
+| **Supercook**          | Manual ingredient input | Large recipe DB, free       | Tedious input, no AI           | Camera scanning          |
+| **Whisk**              | Recipe aggregation      | Good UX, meal planning      | Doesn't start from ingredients | Fridge-first approach    |
+| **Yummly**             | Preference learning     | Strong personalization      | Recipe-first, not pantry-aware | Ingredient reality       |
+| **Samsung Family Hub** | Built-in fridge camera  | Hardware integration        | Expensive, closed ecosystem    | Works with any fridge    |
+| **Fridge AI startups** | Similar CV approach     | First-mover in some markets | Often poor accuracy, clunky UX | Your 10yr app experience |
 
 **Positioning Statement:**
 "The only recipe app that starts with what you actually have, not what you wish you had."
 
 **Competitive Moat (over time):**
+
 1. **Data flywheel**: Every scan improves CV model
 2. **Personalization**: Learn user's actual cooking patterns
 3. **Network effects**: Community recipes optimized for common ingredient combos
@@ -198,19 +212,19 @@ We're looking for [investment/partners/beta users] to help us reduce food waste 
 
 ### HIGH PRIORITY RISKS
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| **CV accuracy frustrates users** | Medium | High | Start with confirmation step; improve model with user corrections; focus on top 100 items first |
-| **Recipe matching feels irrelevant** | Medium | High | Add "missing 1-2 ingredients" flexibility; learn preferences quickly; manual override |
-| **Retention drops after novelty** | High | High | Build habit loop (daily meal suggestion); add meal planning; gamify waste reduction |
+| Risk                                 | Likelihood | Impact | Mitigation                                                                                      |
+| ------------------------------------ | ---------- | ------ | ----------------------------------------------------------------------------------------------- |
+| **CV accuracy frustrates users**     | Medium     | High   | Start with confirmation step; improve model with user corrections; focus on top 100 items first |
+| **Recipe matching feels irrelevant** | Medium     | High   | Add "missing 1-2 ingredients" flexibility; learn preferences quickly; manual override           |
+| **Retention drops after novelty**    | High       | High   | Build habit loop (daily meal suggestion); add meal planning; gamify waste reduction             |
 
 ### MEDIUM PRIORITY RISKS
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| **Difficult to monetize** | Medium | Medium | Test multiple models early: freemium, subscription, affiliate grocery links |
-| **Privacy concerns (fridge photos)** | Low | Medium | On-device processing; clear privacy policy; never store raw images |
-| **App Store rejection** | Low | Medium | Follow guidelines strictly; have web fallback |
+| Risk                                 | Likelihood | Impact | Mitigation                                                                  |
+| ------------------------------------ | ---------- | ------ | --------------------------------------------------------------------------- |
+| **Difficult to monetize**            | Medium     | Medium | Test multiple models early: freemium, subscription, affiliate grocery links |
+| **Privacy concerns (fridge photos)** | Low        | Medium | On-device processing; clear privacy policy; never store raw images          |
+| **App Store rejection**              | Low        | Medium | Follow guidelines strictly; have web fallback                               |
 
 ### ASSUMPTIONS TO VALIDATE
 
@@ -225,6 +239,7 @@ We're looking for [investment/partners/beta users] to help us reduce food waste 
 ## NEXT ACTIONS
 
 **This week:**
+
 1. Schedule 5 user interviews
 2. Download and test Spoonacular API
 3. Collect 20 fridge photos from friends/family

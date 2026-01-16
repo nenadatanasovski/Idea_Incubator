@@ -5,9 +5,9 @@
  * Gets clean context with just the artifact and edit request.
  */
 
-import { getConfig } from '../../config/index.js';
-import { client as anthropicClient } from '../../utils/anthropic-client.js';
-import { artifactStore } from './artifact-store.js';
+import { getConfig } from "../../config/index.js";
+import { client as anthropicClient } from "../../utils/anthropic-client.js";
+import { artifactStore } from "./artifact-store.js";
 
 const ARTIFACT_EDITOR_SYSTEM_PROMPT = `You are an artifact editor. Your ONLY job is to edit artifact content based on user requests.
 
@@ -62,7 +62,9 @@ export interface ArtifactEditResult {
  * Edit an artifact using a dedicated sub-agent.
  * Runs asynchronously with clean context.
  */
-export async function editArtifact(request: ArtifactEditRequest): Promise<ArtifactEditResult> {
+export async function editArtifact(
+  request: ArtifactEditRequest,
+): Promise<ArtifactEditResult> {
   const { sessionId, artifactId, editRequest } = request;
 
   console.log(`[ArtifactEditor] Starting edit for artifact ${artifactId}`);
@@ -70,10 +72,12 @@ export async function editArtifact(request: ArtifactEditRequest): Promise<Artifa
 
   // Load artifacts from database and find the one we need
   const artifacts = await artifactStore.getBySession(sessionId);
-  const artifact = artifacts.find(a => a.id === artifactId);
+  const artifact = artifacts.find((a) => a.id === artifactId);
 
   if (!artifact) {
-    console.error(`[ArtifactEditor] Artifact ${artifactId} not found in session ${sessionId}`);
+    console.error(
+      `[ArtifactEditor] Artifact ${artifactId} not found in session ${sessionId}`,
+    );
     return {
       success: false,
       artifactId,
@@ -81,12 +85,15 @@ export async function editArtifact(request: ArtifactEditRequest): Promise<Artifa
     };
   }
 
-  console.log(`[ArtifactEditor] Loaded artifact: "${artifact.title}" (${typeof artifact.content === 'string' ? artifact.content.length : 0} chars)`);
+  console.log(
+    `[ArtifactEditor] Loaded artifact: "${artifact.title}" (${typeof artifact.content === "string" ? artifact.content.length : 0} chars)`,
+  );
 
   // Prepare the content for the agent
-  const artifactContent = typeof artifact.content === 'string'
-    ? artifact.content
-    : JSON.stringify(artifact.content, null, 2);
+  const artifactContent =
+    typeof artifact.content === "string"
+      ? artifact.content
+      : JSON.stringify(artifact.content, null, 2);
 
   // Build the user message with artifact content and edit request
   const userMessage = `## CURRENT ARTIFACT CONTENT
@@ -105,62 +112,68 @@ Please apply the requested changes and return the complete updated content.`;
   try {
     // Call Claude with dedicated artifact editor context
     const response = await anthropicClient.messages.create({
-      model: getConfig().model || 'claude-sonnet-4-20250514',
+      model: getConfig().model || "claude-sonnet-4-20250514",
       max_tokens: 16384, // Large limit for full artifact content
       system: ARTIFACT_EDITOR_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
+      messages: [{ role: "user", content: userMessage }],
     });
 
     // Parse response
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
+    const textContent = response.content.find((c) => c.type === "text");
+    if (!textContent || textContent.type !== "text") {
       return {
         success: false,
         artifactId,
-        error: 'No text response from editor agent',
+        error: "No text response from editor agent",
       };
     }
 
     const text = textContent.text;
-    console.log(`[ArtifactEditor] Raw response (first 500 chars): ${text.slice(0, 500)}`);
+    console.log(
+      `[ArtifactEditor] Raw response (first 500 chars): ${text.slice(0, 500)}`,
+    );
 
     // Parse delimiter-based response
     const statusMatch = text.match(/===STATUS===\s*(SUCCESS|ERROR)/i);
-    const summaryMatch = text.match(/===SUMMARY===\s*([\s\S]*?)(?====CONTENT===|===END===)/);
+    const summaryMatch = text.match(
+      /===SUMMARY===\s*([\s\S]*?)(?====CONTENT===|===END===)/,
+    );
     const contentMatch = text.match(/===CONTENT===\s*([\s\S]*?)===END===/);
 
     if (!statusMatch) {
-      console.error('[ArtifactEditor] Could not parse status from response');
+      console.error("[ArtifactEditor] Could not parse status from response");
       return {
         success: false,
         artifactId,
-        error: 'Could not parse editor response - missing STATUS',
+        error: "Could not parse editor response - missing STATUS",
       };
     }
 
     const status = statusMatch[1].toUpperCase();
-    const summary = summaryMatch ? summaryMatch[1].trim() : 'Edit completed';
+    const summary = summaryMatch ? summaryMatch[1].trim() : "Edit completed";
 
-    if (status === 'ERROR') {
+    if (status === "ERROR") {
       return {
         success: false,
         artifactId,
-        error: summary || 'Edit failed',
+        error: summary || "Edit failed",
       };
     }
 
     if (!contentMatch) {
-      console.error('[ArtifactEditor] Could not parse content from response');
+      console.error("[ArtifactEditor] Could not parse content from response");
       return {
         success: false,
         artifactId,
-        error: 'Editor did not return updated content',
+        error: "Editor did not return updated content",
       };
     }
 
     const updatedContent = contentMatch[1].trim();
 
-    console.log(`[ArtifactEditor] Edit successful, new content length: ${updatedContent.length}`);
+    console.log(
+      `[ArtifactEditor] Edit successful, new content length: ${updatedContent.length}`,
+    );
     console.log(`[ArtifactEditor] Summary: ${summary}`);
 
     // Save the updated artifact to database by re-saving with new content
@@ -171,7 +184,7 @@ Please apply the requested changes and return the complete updated content.`;
       title: artifact.title,
       content: updatedContent,
       identifier: artifact.identifier,
-      status: 'ready',
+      status: "ready",
     });
 
     console.log(`[ArtifactEditor] Saved updated artifact to database`);
@@ -182,13 +195,12 @@ Please apply the requested changes and return the complete updated content.`;
       content: updatedContent,
       summary,
     };
-
   } catch (error) {
     console.error(`[ArtifactEditor] Error:`, error);
     return {
       success: false,
       artifactId,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -197,7 +209,9 @@ Please apply the requested changes and return the complete updated content.`;
  * Check if a user message is requesting an artifact edit.
  * Returns the artifact ID if found, null otherwise.
  */
-export function detectArtifactEditRequest(message: string): { artifactId: string; editRequest: string } | null {
+export function detectArtifactEditRequest(
+  message: string,
+): { artifactId: string; editRequest: string } | null {
   // Look for @artifact:id references followed by edit-like language
   const artifactMatch = message.match(/@artifact:([a-zA-Z0-9_-]+)/);
   if (!artifactMatch) {
@@ -208,20 +222,36 @@ export function detectArtifactEditRequest(message: string): { artifactId: string
 
   // Check if the message contains edit-related keywords
   const editKeywords = [
-    'edit', 'update', 'change', 'modify', 'remove', 'delete',
-    'add', 'fix', 'correct', 'revise', 'adjust', 'rewrite',
-    'shorten', 'expand', 'summarize', 'reformat', 'clean up'
+    "edit",
+    "update",
+    "change",
+    "modify",
+    "remove",
+    "delete",
+    "add",
+    "fix",
+    "correct",
+    "revise",
+    "adjust",
+    "rewrite",
+    "shorten",
+    "expand",
+    "summarize",
+    "reformat",
+    "clean up",
   ];
 
   const lowerMessage = message.toLowerCase();
-  const hasEditKeyword = editKeywords.some(keyword => lowerMessage.includes(keyword));
+  const hasEditKeyword = editKeywords.some((keyword) =>
+    lowerMessage.includes(keyword),
+  );
 
   if (!hasEditKeyword) {
     return null;
   }
 
   // Extract the edit request (the message without the artifact reference)
-  const editRequest = message.replace(/@artifact:[a-zA-Z0-9_-]+/g, '').trim();
+  const editRequest = message.replace(/@artifact:[a-zA-Z0-9_-]+/g, "").trim();
 
   return { artifactId, editRequest };
 }

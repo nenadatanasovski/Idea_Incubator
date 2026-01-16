@@ -12,12 +12,14 @@ updated: 2026-01-10
 ## Problem
 
 The Vibe platform lacks a comprehensive user profile system. Users cannot:
+
 - Store personal information (bio, avatar, preferences)
 - Set notification preferences
 - Link social accounts for OAuth
 - Manage their account settings
 
 Additionally, the platform cannot:
+
 - Personalize the experience based on user preferences
 - Display user information in collaborative features
 - Support profile-based features like @mentions
@@ -25,6 +27,7 @@ Additionally, the platform cannot:
 ## Solution
 
 Implement a user profiles system that:
+
 1. Stores extended user information beyond basic auth
 2. Supports avatar upload and storage
 3. Manages user preferences (theme, notifications, etc.)

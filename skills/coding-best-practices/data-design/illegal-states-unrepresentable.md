@@ -1,6 +1,7 @@
 # SKILL: Make Illegal States Unrepresentable
 
 ## When to Load
+
 - Modeling domain concepts
 - Fixing state-related bugs
 - Reviewing data structures
@@ -30,11 +31,11 @@ AVOID boolean flags that create impossible combinations
 ```typescript
 // BAD - 4 possible states, only 3 are valid
 type Request = {
-  isLoading: boolean
-  isError: boolean
-  data?: User
-  error?: Error
-}
+  isLoading: boolean;
+  isError: boolean;
+  data?: User;
+  error?: Error;
+};
 
 // Invalid states possible:
 // { isLoading: true, isError: true }  - loading AND error?
@@ -47,9 +48,9 @@ type Request = {
 ```typescript
 // GOOD - only 3 valid states exist
 type Request =
-  | { status: 'loading' }
-  | { status: 'error'; error: Error }
-  | { status: 'success'; data: User }
+  | { status: "loading" }
+  | { status: "error"; error: Error }
+  | { status: "success"; data: User };
 
 // Impossible to create invalid combinations
 // data only exists when status is 'success'
@@ -59,72 +60,76 @@ type Request =
 ## More Examples
 
 ### User Authentication State
+
 ```typescript
 // BAD - flags create invalid states
 type User = {
-  isLoggedIn: boolean
-  isGuest: boolean
-  userId?: string
-  guestToken?: string
-}
+  isLoggedIn: boolean;
+  isGuest: boolean;
+  userId?: string;
+  guestToken?: string;
+};
 
 // GOOD - only valid states
 type User =
-  | { type: 'anonymous' }
-  | { type: 'guest'; guestToken: string }
-  | { type: 'authenticated'; userId: string }
+  | { type: "anonymous" }
+  | { type: "guest"; guestToken: string }
+  | { type: "authenticated"; userId: string };
 ```
 
 ### Form State
+
 ```typescript
 // BAD - when is touched but not dirty?
 type Field = {
-  value: string
-  isDirty: boolean
-  isTouched: boolean
-  isValid: boolean
-  error?: string
-}
+  value: string;
+  isDirty: boolean;
+  isTouched: boolean;
+  isValid: boolean;
+  error?: string;
+};
 
 // GOOD - states are explicit
 type Field =
-  | { state: 'pristine'; value: string }
-  | { state: 'touched'; value: string }
-  | { state: 'valid'; value: string }
-  | { state: 'invalid'; value: string; error: string }
+  | { state: "pristine"; value: string }
+  | { state: "touched"; value: string }
+  | { state: "valid"; value: string }
+  | { state: "invalid"; value: string; error: string };
 ```
 
 ### Connection State
+
 ```typescript
 // BAD - what does connected + connecting mean?
 type Connection = {
-  isConnected: boolean
-  isConnecting: boolean
-  socket?: WebSocket
-  error?: Error
-}
+  isConnected: boolean;
+  isConnecting: boolean;
+  socket?: WebSocket;
+  error?: Error;
+};
 
 // GOOD - clear state machine
 type Connection =
-  | { state: 'disconnected' }
-  | { state: 'connecting' }
-  | { state: 'connected'; socket: WebSocket }
-  | { state: 'failed'; error: Error; retryCount: number }
+  | { state: "disconnected" }
+  | { state: "connecting" }
+  | { state: "connected"; socket: WebSocket }
+  | { state: "failed"; error: Error; retryCount: number };
 ```
 
 ### Email Verification
+
 ```typescript
 // BAD - verified email without email?
 type User = {
-  email?: string
-  isEmailVerified: boolean
-}
+  email?: string;
+  isEmailVerified: boolean;
+};
 
 // GOOD - verification requires email
 type EmailStatus =
-  | { status: 'none' }
-  | { status: 'unverified'; email: string }
-  | { status: 'verified'; email: string; verifiedAt: Date }
+  | { status: "none" }
+  | { status: "unverified"; email: string }
+  | { status: "verified"; email: string; verifiedAt: Date };
 ```
 
 ## Refactoring Strategy

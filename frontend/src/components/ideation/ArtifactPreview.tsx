@@ -3,15 +3,15 @@
 // Preview component for viewing selected artifacts with metadata and actions
 // =============================================================================
 
-import React, { useState, useCallback, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { useCreateBlockNote } from '@blocknote/react';
-import { BlockNoteView } from '@blocknote/mantine';
-import '@blocknote/mantine/style.css';
-import type { Artifact, ArtifactType } from '../../types/ideation';
+import React, { useState, useCallback, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
+import "@blocknote/mantine/style.css";
+import type { Artifact, ArtifactType } from "../../types/ideation";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -35,32 +35,84 @@ export interface ArtifactPreviewProps {
 // -----------------------------------------------------------------------------
 
 const EditIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+    />
   </svg>
 );
 
 const TrashIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
   </svg>
 );
 
 const LinkIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+    />
   </svg>
 );
 
 const FileIcon = () => (
-  <svg className="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  <svg
+    className="w-16 h-16 text-gray-300"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.5}
+      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+    />
   </svg>
 );
 
 const LoadingSpinner = () => (
-  <svg className="w-8 h-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24" data-testid="loading-spinner">
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+  <svg
+    className="w-8 h-8 animate-spin text-blue-500"
+    fill="none"
+    viewBox="0 0 24 24"
+    data-testid="loading-spinner"
+  >
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    />
     <path
       className="opacity-75"
       fill="currentColor"
@@ -69,9 +121,21 @@ const LoadingSpinner = () => (
   </svg>
 );
 
-const SmallSpinner = ({ className = '' }: { className?: string }) => (
-  <svg className={`w-4 h-4 animate-spin ${className}`} fill="none" viewBox="0 0 24 24" data-testid="save-progress">
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+const SmallSpinner = ({ className = "" }: { className?: string }) => (
+  <svg
+    className={`w-4 h-4 animate-spin ${className}`}
+    fill="none"
+    viewBox="0 0 24 24"
+    data-testid="save-progress"
+  >
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    />
     <path
       className="opacity-75"
       fill="currentColor"
@@ -89,18 +153,30 @@ const SmallSpinner = ({ className = '' }: { className?: string }) => (
  */
 function getTypeDisplayName(type: ArtifactType): string {
   switch (type) {
-    case 'code': return 'Code';
-    case 'html': return 'HTML';
-    case 'svg': return 'SVG';
-    case 'mermaid': return 'Diagram';
-    case 'react': return 'React';
-    case 'text': return 'Text';
-    case 'markdown': return 'Markdown';
-    case 'research': return 'Research';
-    case 'idea-summary': return 'Summary';
-    case 'analysis': return 'Analysis';
-    case 'comparison': return 'Comparison';
-    default: return type;
+    case "code":
+      return "Code";
+    case "html":
+      return "HTML";
+    case "svg":
+      return "SVG";
+    case "mermaid":
+      return "Diagram";
+    case "react":
+      return "React";
+    case "text":
+      return "Text";
+    case "markdown":
+      return "Markdown";
+    case "research":
+      return "Research";
+    case "idea-summary":
+      return "Summary";
+    case "analysis":
+      return "Analysis";
+    case "comparison":
+      return "Comparison";
+    default:
+      return type;
   }
 }
 
@@ -116,18 +192,18 @@ function formatDate(dateString: string): string {
   const diffDays = Math.floor(diffHours / 24);
 
   if (diffMins < 1) {
-    return 'just now';
+    return "just now";
   } else if (diffMins < 60) {
-    return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
   } else if (diffHours < 24) {
-    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
   } else if (diffDays < 7) {
-    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
   } else {
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
     });
   }
 }
@@ -136,8 +212,8 @@ function formatDate(dateString: string): string {
  * Extract filename from artifact title
  */
 function extractFileName(title: string): string {
-  if (title.includes('/')) {
-    const parts = title.split('/');
+  if (title.includes("/")) {
+    const parts = title.split("/");
     return parts[parts.length - 1];
   }
   return title;
@@ -206,16 +282,16 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({ content }) => {
         remarkPlugins={[remarkGfm]}
         components={{
           code({ node, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '');
+            const match = /language-(\w+)/.exec(className || "");
             const inline = !match;
             return !inline && match ? (
               <SyntaxHighlighter
                 style={oneDark}
                 language={match[1]}
                 PreTag="div"
-                customStyle={{ fontSize: '12px' }}
+                customStyle={{ fontSize: "12px" }}
               >
-                {String(children).replace(/\n$/, '')}
+                {String(children).replace(/\n$/, "")}
               </SyntaxHighlighter>
             ) : (
               <code className={className} {...props}>
@@ -240,7 +316,10 @@ interface BlockNoteMarkdownEditorProps {
   onContentChange: (markdown: string) => void;
 }
 
-const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({ content, onContentChange }) => {
+const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({
+  content,
+  onContentChange,
+}) => {
   const [isReady, setIsReady] = useState(false);
 
   // Create editor instance
@@ -257,7 +336,7 @@ const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({ conte
           editor.replaceBlocks(editor.document, blocks);
           setIsReady(true);
         } catch (err) {
-          console.error('[BlockNote] Failed to parse markdown:', err);
+          console.error("[BlockNote] Failed to parse markdown:", err);
           setIsReady(true);
         }
       } else {
@@ -274,7 +353,7 @@ const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({ conte
         const markdown = await editor.blocksToMarkdownLossy(editor.document);
         onContentChange(markdown);
       } catch (err) {
-        console.error('[BlockNote] Failed to convert to markdown:', err);
+        console.error("[BlockNote] Failed to convert to markdown:", err);
       }
     }
   };
@@ -283,11 +362,7 @@ const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({ conte
 
   return (
     <div className="h-full overflow-auto blocknote-editor">
-      <BlockNoteView
-        editor={editor}
-        onChange={handleChange}
-        theme="light"
-      />
+      <BlockNoteView editor={editor} onChange={handleChange} theme="light" />
     </div>
   );
 };
@@ -311,14 +386,15 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copiedRef, setCopiedRef] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState('');
+  const [editContent, setEditContent] = useState("");
 
   // Start editing mode
   const handleEditStart = useCallback(() => {
     if (artifact) {
-      const content = typeof artifact.content === 'string'
-        ? artifact.content
-        : JSON.stringify(artifact.content, null, 2);
+      const content =
+        typeof artifact.content === "string"
+          ? artifact.content
+          : JSON.stringify(artifact.content, null, 2);
       setEditContent(content);
       setIsEditing(true);
     }
@@ -335,7 +411,7 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   // Cancel editing
   const handleEditCancel = useCallback(() => {
     setIsEditing(false);
-    setEditContent('');
+    setEditContent("");
   }, []);
 
   const handleDeleteClick = useCallback(() => {
@@ -368,14 +444,14 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
         onCopyRef(artifact.id);
       }
     } catch (err) {
-      console.error('Failed to copy reference:', err);
+      console.error("Failed to copy reference:", err);
     }
   }, [artifact, onCopyRef]);
 
   // Error state (TEST-UI-014)
   if (error) {
     const errorMessage = error instanceof Error ? error.message : error;
-    console.error('Artifact load error:', error);
+    console.error("Artifact load error:", error);
 
     return (
       <div
@@ -417,7 +493,12 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
                 onClick={onRetry}
                 className="mt-3 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -478,9 +559,10 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   }
 
   // Get content as string
-  const contentString = typeof artifact.content === 'string'
-    ? artifact.content
-    : JSON.stringify(artifact.content, null, 2);
+  const contentString =
+    typeof artifact.content === "string"
+      ? artifact.content
+      : JSON.stringify(artifact.content, null, 2);
 
   return (
     <div
@@ -497,9 +579,13 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
             {artifact.title}
           </h3>
           <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
-            <span className="capitalize">{getTypeDisplayName(artifact.type)}</span>
+            <span className="capitalize">
+              {getTypeDisplayName(artifact.type)}
+            </span>
             <span className="text-gray-300 dark:text-gray-600">•</span>
-            <span>Updated {formatDate(artifact.updatedAt || artifact.createdAt)}</span>
+            <span>
+              Updated {formatDate(artifact.updatedAt || artifact.createdAt)}
+            </span>
           </div>
         </div>
 
@@ -519,8 +605,8 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
             disabled={isSaving || isDeleting || isEditing}
             className={`p-2 rounded-lg transition-colors ${
               isSaving || isDeleting || isEditing
-                ? 'opacity-50 cursor-not-allowed text-gray-400'
-                : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
+                ? "opacity-50 cursor-not-allowed text-gray-400"
+                : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
             }`}
             title="Edit artifact"
           >
@@ -533,14 +619,18 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
             disabled={isSaving || isDeleting}
             className={`p-2 rounded-lg transition-colors ${
               isDeleting
-                ? 'opacity-50 cursor-not-allowed'
+                ? "opacity-50 cursor-not-allowed"
                 : isSaving
-                ? 'opacity-50 cursor-not-allowed text-gray-400'
-                : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400'
+                  ? "opacity-50 cursor-not-allowed text-gray-400"
+                  : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
             }`}
             title="Delete artifact"
           >
-            {isDeleting ? <SmallSpinner className="text-red-500" /> : <TrashIcon />}
+            {isDeleting ? (
+              <SmallSpinner className="text-red-500" />
+            ) : (
+              <TrashIcon />
+            )}
           </button>
 
           <button
@@ -548,15 +638,25 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
             onClick={handleCopyRef}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors ${
               copiedRef
-                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
+                ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
             }`}
             title="Copy @ref to clipboard"
           >
             {copiedRef ? (
               <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
                 <span className="text-xs font-medium">Copied!</span>
               </>
@@ -592,7 +692,7 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
                 disabled={isSaving}
                 className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg transition-colors"
               >
-                {isSaving ? 'Saving...' : 'Save'}
+                {isSaving ? "Saving..." : "Save"}
               </button>
             </div>
           </>

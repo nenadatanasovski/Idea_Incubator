@@ -15,13 +15,13 @@ The implementation unifies the artifact system (session-scoped, database-stored)
 
 ## Specs
 
-| Spec | Tests | Description |
-|------|-------|-------------|
+| Spec                                                                   | Tests                      | Description                                                  |
+| ---------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------ |
 | [01-folder-structure-idea-types.md](01-folder-structure-idea-types.md) | TEST-FS-001 to TEST-FS-015 | Database migrations, folder utilities, templates, idea types |
-| [02-unified-artifact-store.md](02-unified-artifact-store.md) | TEST-AS-001 to TEST-AS-015 | Filesystem-based artifact storage, cache management |
-| [03-session-context-management.md](03-session-context-management.md) | TEST-SC-001 to TEST-SC-015 | Session linking, context loading, priority management |
-| [04-phase-transitions-handoffs.md](04-phase-transitions-handoffs.md) | TEST-PH-001 to TEST-PH-015 | Classification rules, phase management, handoff briefs |
-| [05-ui-components.md](05-ui-components.md) | TEST-UI-001 to TEST-UI-015 | State management, artifact panel, idea selector |
+| [02-unified-artifact-store.md](02-unified-artifact-store.md)           | TEST-AS-001 to TEST-AS-015 | Filesystem-based artifact storage, cache management          |
+| [03-session-context-management.md](03-session-context-management.md)   | TEST-SC-001 to TEST-SC-015 | Session linking, context loading, priority management        |
+| [04-phase-transitions-handoffs.md](04-phase-transitions-handoffs.md)   | TEST-PH-001 to TEST-PH-015 | Classification rules, phase management, handoff briefs       |
+| [05-ui-components.md](05-ui-components.md)                             | TEST-UI-001 to TEST-UI-015 | State management, artifact panel, idea selector              |
 
 ## Total Tests: 75
 
@@ -47,6 +47,7 @@ python3 tests/e2e/unified-fs-ralph-loop.py --model claude-sonnet-4-20250514
 ```
 
 The loop will:
+
 1. Read `docs/specs/unified-file-system/test-state.json` for pending tests
 2. Find the next test with met dependencies
 3. Load the corresponding spec file
@@ -124,37 +125,37 @@ TEST-PH-015 ── TEST-UI-001 ── ... ── TEST-UI-015
 
 ### New Files
 
-| Path | Purpose |
-|------|---------|
-| `utils/folder-structure.ts` | User/idea folder utilities |
-| `agents/ideation/unified-artifact-store.ts` | Filesystem-based artifact storage |
-| `agents/ideation/idea-context-builder.ts` | Layered context builder |
-| `agents/ideation/priority-manager.ts` | Document priority management |
-| `agents/ideation/classification-rules.ts` | Phase-document rules |
-| `agents/ideation/document-classifier.ts` | Document classification engine |
-| `agents/ideation/phase-manager.ts` | Phase transition management |
-| `agents/ideation/handoff-generator.ts` | Handoff brief generation |
-| `scripts/migrate-artifacts-to-files.ts` | Migration script |
-| `templates/unified/*` | All guided templates |
-| `frontend/src/selectors/ideationSelectors.ts` | State selectors |
-| `frontend/src/components/ideation/ArtifactTable.tsx` | Table component |
-| `frontend/src/components/ideation/ArtifactPreview.tsx` | Preview component |
-| `frontend/src/components/ideation/SessionsView.tsx` | Sessions view |
-| `frontend/src/components/ideation/IdeaSelector.tsx` | Idea dropdown |
-| `frontend/src/components/ideation/IdeaTypeModal.tsx` | New idea flow |
+| Path                                                   | Purpose                           |
+| ------------------------------------------------------ | --------------------------------- |
+| `utils/folder-structure.ts`                            | User/idea folder utilities        |
+| `agents/ideation/unified-artifact-store.ts`            | Filesystem-based artifact storage |
+| `agents/ideation/idea-context-builder.ts`              | Layered context builder           |
+| `agents/ideation/priority-manager.ts`                  | Document priority management      |
+| `agents/ideation/classification-rules.ts`              | Phase-document rules              |
+| `agents/ideation/document-classifier.ts`               | Document classification engine    |
+| `agents/ideation/phase-manager.ts`                     | Phase transition management       |
+| `agents/ideation/handoff-generator.ts`                 | Handoff brief generation          |
+| `scripts/migrate-artifacts-to-files.ts`                | Migration script                  |
+| `templates/unified/*`                                  | All guided templates              |
+| `frontend/src/selectors/ideationSelectors.ts`          | State selectors                   |
+| `frontend/src/components/ideation/ArtifactTable.tsx`   | Table component                   |
+| `frontend/src/components/ideation/ArtifactPreview.tsx` | Preview component                 |
+| `frontend/src/components/ideation/SessionsView.tsx`    | Sessions view                     |
+| `frontend/src/components/ideation/IdeaSelector.tsx`    | Idea dropdown                     |
+| `frontend/src/components/ideation/IdeaTypeModal.tsx`   | New idea flow                     |
 
 ### Modified Files
 
-| Path | Changes |
-|------|---------|
-| `database/migrations/*` | New tables and columns |
-| `agents/ideation/artifact-store.ts` | Deprecated, wraps new store |
-| `agents/ideation/system-prompt.ts` | Add IDEA_CONTEXT placeholder |
-| `agents/ideation/orchestrator.ts` | Idea type flow, context loading |
-| `server/routes/ideation.ts` | New endpoints |
-| `frontend/src/reducers/ideationReducer.ts` | New state fields |
-| `frontend/src/components/ideation/IdeaArtifactPanel.tsx` | Redesigned layout |
-| `frontend/src/components/ideation/SessionHeader.tsx` | Idea selector |
+| Path                                                     | Changes                         |
+| -------------------------------------------------------- | ------------------------------- |
+| `database/migrations/*`                                  | New tables and columns          |
+| `agents/ideation/artifact-store.ts`                      | Deprecated, wraps new store     |
+| `agents/ideation/system-prompt.ts`                       | Add IDEA_CONTEXT placeholder    |
+| `agents/ideation/orchestrator.ts`                        | Idea type flow, context loading |
+| `server/routes/ideation.ts`                              | New endpoints                   |
+| `frontend/src/reducers/ideationReducer.ts`               | New state fields                |
+| `frontend/src/components/ideation/IdeaArtifactPanel.tsx` | Redesigned layout               |
+| `frontend/src/components/ideation/SessionHeader.tsx`     | Idea selector                   |
 
 ## Implementation Order
 

@@ -1,20 +1,25 @@
-import { generateHandoffBrief } from '../../agents/ideation/handoff-generator.js';
+import { generateHandoffBrief } from "../../agents/ideation/handoff-generator.js";
 
 async function verify() {
   console.log("=== TEST-PH-011 Verification ===\n");
 
   // Check 1: Function exists and is exported
   console.log("1. Checking generateHandoffBrief function exists...");
-  if (typeof generateHandoffBrief !== 'function') {
+  if (typeof generateHandoffBrief !== "function") {
     throw new Error("generateHandoffBrief is not a function");
   }
   console.log("   OK: generateHandoffBrief is exported\n");
 
   // Check 2: Generate a handoff brief
   console.log("2. Generating handoff brief...");
-  const brief = await generateHandoffBrief('test-user', 'test-idea', 'RESEARCH', 'EVALUATE');
+  const brief = await generateHandoffBrief(
+    "test-user",
+    "test-idea",
+    "RESEARCH",
+    "EVALUATE",
+  );
 
-  if (typeof brief !== 'string') {
+  if (typeof brief !== "string") {
     throw new Error("generateHandoffBrief did not return a string");
   }
   console.log("   OK: Returns a string\n");
@@ -28,7 +33,10 @@ async function verify() {
     { pattern: /EVALUATE/, name: "toPhase mentioned" },
     { pattern: /What's Complete/i, name: "What's Complete section" },
     { pattern: /What's Incomplete/i, name: "What's Incomplete section" },
-    { pattern: /Key Insights for Next Phase/i, name: "Key Insights for Next Phase" },
+    {
+      pattern: /Key Insights for Next Phase/i,
+      name: "Key Insights for Next Phase",
+    },
     { pattern: /AI Recommendation/i, name: "AI Recommendation" },
     { pattern: /Confidence Score/i, name: "Confidence score" },
     { pattern: /\[ \]/i, name: "Decision checkboxes" },

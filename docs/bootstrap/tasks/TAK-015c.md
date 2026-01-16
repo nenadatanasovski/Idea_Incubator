@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **Phase** | 3 - Core Services |
-| **Depends On** | TAK-006a, TAK-006b, TAK-007 |
-| **Blocks** | TAK-016 (TaskAgent), TAK-019 (TelegramHandler) |
-| **Priority** | P1 |
-| **Owner** | Build Agent |
+| Field          | Value                                          |
+| -------------- | ---------------------------------------------- |
+| **Phase**      | 3 - Core Services                              |
+| **Depends On** | TAK-006a, TAK-006b, TAK-007                    |
+| **Blocks**     | TAK-016 (TaskAgent), TAK-019 (TelegramHandler) |
+| **Priority**   | P1                                             |
+| **Owner**      | Build Agent                                    |
 
 ---
 
@@ -49,14 +49,14 @@ Implement the TaskListManager class that creates and manages task lists, links t
 
 **PASS** when ALL of the following are true:
 
-| # | Criterion | How to Verify |
-|---|-----------|---------------|
-| 1 | File exists | `test -f server/services/task-agent/task-list-manager.ts` returns 0 |
-| 2 | Exports TaskListManager | `grep -q "export class TaskListManager" server/services/task-agent/task-list-manager.ts` returns 0 |
-| 3 | Has create method | `grep -q "async create" server/services/task-agent/task-list-manager.ts` returns 0 |
-| 4 | Has linkTelegram | `grep -q "linkTelegram" server/services/task-agent/task-list-manager.ts` returns 0 |
-| 5 | Has updateProgress | `grep -q "updateProgress" server/services/task-agent/task-list-manager.ts` returns 0 |
-| 6 | TypeScript compiles | `npx tsc --noEmit server/services/task-agent/task-list-manager.ts` returns 0 |
+| #   | Criterion               | How to Verify                                                                                      |
+| --- | ----------------------- | -------------------------------------------------------------------------------------------------- |
+| 1   | File exists             | `test -f server/services/task-agent/task-list-manager.ts` returns 0                                |
+| 2   | Exports TaskListManager | `grep -q "export class TaskListManager" server/services/task-agent/task-list-manager.ts` returns 0 |
+| 3   | Has create method       | `grep -q "async create" server/services/task-agent/task-list-manager.ts` returns 0                 |
+| 4   | Has linkTelegram        | `grep -q "linkTelegram" server/services/task-agent/task-list-manager.ts` returns 0                 |
+| 5   | Has updateProgress      | `grep -q "updateProgress" server/services/task-agent/task-list-manager.ts` returns 0               |
+| 6   | TypeScript compiles     | `npx tsc --noEmit server/services/task-agent/task-list-manager.ts` returns 0                       |
 
 **FAIL** if any criterion is not met.
 

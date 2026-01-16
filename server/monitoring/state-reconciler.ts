@@ -1,7 +1,7 @@
 // server/monitoring/state-reconciler.ts
 // MON-004: State Reconciler - Compares data sources and detects drift
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
 /**
  * A data source that can provide state for reconciliation.
@@ -9,7 +9,7 @@ import { EventEmitter } from 'events';
 export interface StateSource {
   id: string;
   name: string;
-  type: 'database' | 'api' | 'event_bus' | 'ui' | 'file_system' | 'cache';
+  type: "database" | "api" | "event_bus" | "ui" | "file_system" | "cache";
   priority: number; // Higher = more authoritative (source of truth)
   fetchState: () => Promise<Record<string, unknown>>;
 }
@@ -22,7 +22,12 @@ export interface FieldComparison {
   sourceA: { id: string; value: unknown };
   sourceB: { id: string; value: unknown };
   match: boolean;
-  drift: 'missing_a' | 'missing_b' | 'value_mismatch' | 'type_mismatch' | 'none';
+  drift:
+    | "missing_a"
+    | "missing_b"
+    | "value_mismatch"
+    | "type_mismatch"
+    | "none";
 }
 
 /**
@@ -79,7 +84,8 @@ export class StateReconciler extends EventEmitter {
   private config: StateReconcilerConfig;
   private domains: Map<string, ReconciliationDomain> = new Map();
   private results: ReconciliationResult[] = [];
-  private intervalTimers: Map<string, ReturnType<typeof setInterval>> = new Map();
+  private intervalTimers: Map<string, ReturnType<typeof setInterval>> =
+    new Map();
   private running: boolean = false;
 
   constructor(config: Partial<StateReconcilerConfig> = {}) {
@@ -92,7 +98,9 @@ export class StateReconciler extends EventEmitter {
    */
   registerDomain(domain: ReconciliationDomain): void {
     this.domains.set(domain.id, domain);
-    console.log(`[StateReconciler] Registered domain: ${domain.name} (${domain.sources.length} sources)`);
+    console.log(
+      `[StateReconciler] Registered domain: ${domain.name} (${domain.sources.length} sources)`,
+    );
 
     // Start monitoring if already running
     if (this.running && domain.enabled) {
@@ -119,7 +127,7 @@ export class StateReconciler extends EventEmitter {
     if (this.running) return;
     this.running = true;
 
-    console.log('[StateReconciler] Starting state reconciliation...');
+    console.log("[StateReconciler] Starting state reconciliation...");
 
     for (const domain of this.domains.values()) {
       if (domain.enabled) {
@@ -135,14 +143,20 @@ export class StateReconciler extends EventEmitter {
    */
   private startDomainMonitoring(domain: ReconciliationDomain): void {
     // Run immediately
-    this.reconcileDomain(domain.id).catch(err => {
-      console.error(`[StateReconciler] Initial reconciliation failed for ${domain.id}:`, err);
+    this.reconcileDomain(domain.id).catch((err) => {
+      console.error(
+        `[StateReconciler] Initial reconciliation failed for ${domain.id}:`,
+        err,
+      );
     });
 
     // Set up periodic checks
     const timer = setInterval(() => {
-      this.reconcileDomain(domain.id).catch(err => {
-        console.error(`[StateReconciler] Periodic reconciliation failed for ${domain.id}:`, err);
+      this.reconcileDomain(domain.id).catch((err) => {
+        console.error(
+          `[StateReconciler] Periodic reconciliation failed for ${domain.id}:`,
+          err,
+        );
       });
     }, domain.interval);
 
@@ -161,7 +175,7 @@ export class StateReconciler extends EventEmitter {
       this.intervalTimers.delete(domainId);
     }
 
-    console.log('[StateReconciler] Stopped');
+    console.log("[StateReconciler] Stopped");
   }
 
   /**
@@ -177,7 +191,7 @@ export class StateReconciler extends EventEmitter {
       id: `${domainId}_${Date.now()}`,
       timestamp: new Date(),
       domain: domain.name,
-      sources: domain.sources.map(s => s.id),
+      sources: domain.sources.map((s) => s.id),
       consistent: true,
       comparisons: [],
       driftCount: 0,
@@ -194,14 +208,15 @@ export class StateReconciler extends EventEmitter {
       }
 
       // Calculate drift count
-      result.driftCount = result.comparisons.filter(c => c.drift !== 'none').length;
+      result.driftCount = result.comparisons.filter(
+        (c) => c.drift !== "none",
+      ).length;
       result.consistent = result.driftCount === 0;
 
       // Suggest action if drift detected
       if (!result.consistent) {
         result.suggestedAction = this.suggestAction(domain, result);
       }
-
     } catch (error) {
       result.consistent = false;
       result.suggestedAction = `Reconciliation error: ${error instanceof Error ? error.message : String(error)}`;
@@ -212,15 +227,18 @@ export class StateReconciler extends EventEmitter {
 
     // Emit events
     if (result.consistent) {
-      this.emit('reconciliation:success', result);
+      this.emit("reconciliation:success", result);
     } else {
-      this.emit('reconciliation:drift', result);
+      this.emit("reconciliation:drift", result);
 
       // Emit issue for Response Escalator if drift exceeds threshold
       if (result.driftCount >= this.config.driftThreshold) {
-        this.emit('issue:detected', {
-          type: 'state_drift',
-          severity: result.driftCount >= this.config.driftThreshold * 2 ? 'high' : 'medium',
+        this.emit("issue:detected", {
+          type: "state_drift",
+          severity:
+            result.driftCount >= this.config.driftThreshold * 2
+              ? "high"
+              : "medium",
           description: `State drift detected in ${domain.name}: ${result.driftCount} inconsistencies`,
           evidence: result,
         });
@@ -234,7 +252,7 @@ export class StateReconciler extends EventEmitter {
    * Fetch state from all sources.
    */
   private async fetchAllStates(
-    sources: StateSource[]
+    sources: StateSource[],
   ): Promise<Map<string, Record<string, unknown>>> {
     const states = new Map<string, Record<string, unknown>>();
 
@@ -243,7 +261,10 @@ export class StateReconciler extends EventEmitter {
         const state = await source.fetchState();
         states.set(source.id, state);
       } catch (error) {
-        console.error(`[StateReconciler] Failed to fetch state from ${source.id}:`, error);
+        console.error(
+          `[StateReconciler] Failed to fetch state from ${source.id}:`,
+          error,
+        );
         states.set(source.id, { __error: String(error) });
       }
     }
@@ -257,7 +278,7 @@ export class StateReconciler extends EventEmitter {
   private compareField(
     field: string,
     sources: StateSource[],
-    states: Map<string, Record<string, unknown>>
+    states: Map<string, Record<string, unknown>>,
   ): FieldComparison[] {
     const comparisons: FieldComparison[] = [];
 
@@ -277,18 +298,18 @@ export class StateReconciler extends EventEmitter {
           sourceA: { id: sourceA.id, value: valueA },
           sourceB: { id: sourceB.id, value: valueB },
           match: false,
-          drift: 'none',
+          drift: "none",
         };
 
         // Check for drift
         if (valueA === undefined && valueB !== undefined) {
-          comparison.drift = 'missing_a';
+          comparison.drift = "missing_a";
         } else if (valueA !== undefined && valueB === undefined) {
-          comparison.drift = 'missing_b';
+          comparison.drift = "missing_b";
         } else if (typeof valueA !== typeof valueB) {
-          comparison.drift = 'type_mismatch';
+          comparison.drift = "type_mismatch";
         } else if (!this.deepEqual(valueA, valueB)) {
-          comparison.drift = 'value_mismatch';
+          comparison.drift = "value_mismatch";
         } else {
           comparison.match = true;
         }
@@ -304,14 +325,14 @@ export class StateReconciler extends EventEmitter {
    * Get a nested value using dot notation.
    */
   private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-    const parts = path.split('.');
+    const parts = path.split(".");
     let current: unknown = obj;
 
     for (const part of parts) {
       if (current === null || current === undefined) {
         return undefined;
       }
-      if (typeof current !== 'object') {
+      if (typeof current !== "object") {
         return undefined;
       }
       current = (current as Record<string, unknown>)[part];
@@ -328,7 +349,7 @@ export class StateReconciler extends EventEmitter {
     if (a === null || b === null) return false;
     if (typeof a !== typeof b) return false;
 
-    if (typeof a === 'object') {
+    if (typeof a === "object") {
       const aObj = a as Record<string, unknown>;
       const bObj = b as Record<string, unknown>;
       const aKeys = Object.keys(aObj);
@@ -349,10 +370,13 @@ export class StateReconciler extends EventEmitter {
   /**
    * Suggest a corrective action based on drift.
    */
-  private suggestAction(domain: ReconciliationDomain, result: ReconciliationResult): string {
+  private suggestAction(
+    domain: ReconciliationDomain,
+    result: ReconciliationResult,
+  ): string {
     const driftTypes = new Map<string, number>();
     for (const comp of result.comparisons) {
-      if (comp.drift !== 'none') {
+      if (comp.drift !== "none") {
         driftTypes.set(comp.drift, (driftTypes.get(comp.drift) || 0) + 1);
       }
     }
@@ -361,16 +385,16 @@ export class StateReconciler extends EventEmitter {
 
     // Find highest priority source (source of truth)
     const sourceOfTruth = domain.sources.reduce((a, b) =>
-      a.priority > b.priority ? a : b
+      a.priority > b.priority ? a : b,
     );
 
     switch (dominant?.[0]) {
-      case 'value_mismatch':
+      case "value_mismatch":
         return `Sync values from ${sourceOfTruth.name} (source of truth) to other sources`;
-      case 'missing_a':
-      case 'missing_b':
+      case "missing_a":
+      case "missing_b":
         return `Propagate missing fields from ${sourceOfTruth.name}`;
-      case 'type_mismatch':
+      case "type_mismatch":
         return `Investigate type inconsistencies - manual review recommended`;
       default:
         return `Review drift in ${domain.name}`;
@@ -393,7 +417,7 @@ export class StateReconciler extends EventEmitter {
    */
   getResults(domainId?: string): ReconciliationResult[] {
     if (domainId) {
-      return this.results.filter(r => r.domain === domainId);
+      return this.results.filter((r) => r.domain === domainId);
     }
     return [...this.results];
   }
@@ -426,7 +450,10 @@ export class StateReconciler extends EventEmitter {
           const result = await this.reconcileDomain(domain.id);
           results.push(result);
         } catch (error) {
-          console.error(`[StateReconciler] Failed to reconcile ${domain.id}:`, error);
+          console.error(
+            `[StateReconciler] Failed to reconcile ${domain.id}:`,
+            error,
+          );
         }
       }
     }
@@ -452,7 +479,7 @@ export class StateReconciler extends EventEmitter {
   } {
     const recentCutoff = Date.now() - 5 * 60 * 1000; // Last 5 minutes
     const recentDrift = this.results.filter(
-      r => !r.consistent && r.timestamp.getTime() > recentCutoff
+      (r) => !r.consistent && r.timestamp.getTime() > recentCutoff,
     ).length;
 
     return {
@@ -471,18 +498,18 @@ export function createDefaultDomains(): ReconciliationDomain[] {
   return [
     // Example: Database vs API state
     {
-      id: 'session-state',
-      name: 'Session State Consistency',
+      id: "session-state",
+      name: "Session State Consistency",
       sources: [], // Will be populated at runtime
-      fields: ['session.status', 'session.phase', 'session.ideaId'],
+      fields: ["session.status", "session.phase", "session.ideaId"],
       interval: 30000, // Check every 30 seconds
       enabled: false, // Enable when sources are registered
     },
     {
-      id: 'agent-state',
-      name: 'Agent State Consistency',
+      id: "agent-state",
+      name: "Agent State Consistency",
       sources: [],
-      fields: ['agent.status', 'agent.taskCount', 'agent.lastActivity'],
+      fields: ["agent.status", "agent.taskCount", "agent.lastActivity"],
       interval: 15000,
       enabled: false,
     },

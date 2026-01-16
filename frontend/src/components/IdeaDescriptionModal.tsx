@@ -1,12 +1,12 @@
-import { X, FileText } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
+import { X, FileText } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface IdeaDescriptionModalProps {
-  isOpen: boolean
-  onClose: () => void
-  title: string
-  summary: string | null
-  content: string | null
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  summary: string | null;
+  content: string | null;
 }
 
 export default function IdeaDescriptionModal({
@@ -14,9 +14,9 @@ export default function IdeaDescriptionModal({
   onClose,
   title,
   summary,
-  content
+  content,
 }: IdeaDescriptionModalProps) {
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -49,7 +49,9 @@ export default function IdeaDescriptionModal({
               <ReactMarkdown>{content}</ReactMarkdown>
             </div>
           ) : (
-            <p className="text-gray-500 italic">No detailed description available.</p>
+            <p className="text-gray-500 italic">
+              No detailed description available.
+            </p>
           )}
         </div>
 
@@ -64,5 +66,5 @@ export default function IdeaDescriptionModal({
         </div>
       </div>
     </div>
-  )
+  );
 }

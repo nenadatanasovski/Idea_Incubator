@@ -9,7 +9,7 @@ import type {
   StrategicApproach,
   CompetitiveRisk,
   EnhancedStrategy,
-} from '../types';
+} from "../types";
 
 interface Props {
   approach?: StrategicApproach;
@@ -21,7 +21,7 @@ interface Props {
 interface CompetitiveScenario {
   id: string;
   title: string;
-  likelihood: 'low' | 'medium' | 'high';
+  likelihood: "low" | "medium" | "high";
   timeframe: string;
   description: string;
   preparation: string[];
@@ -30,143 +30,162 @@ interface CompetitiveScenario {
 
 const COMPETITIVE_SCENARIOS: CompetitiveScenario[] = [
   {
-    id: 'incumbent_copy',
-    title: 'Incumbents Copy Your Feature',
-    likelihood: 'high',
-    timeframe: '6-12 months',
-    description: 'Established players add your innovation to their product, leveraging their existing user base.',
+    id: "incumbent_copy",
+    title: "Incumbents Copy Your Feature",
+    likelihood: "high",
+    timeframe: "6-12 months",
+    description:
+      "Established players add your innovation to their product, leveraging their existing user base.",
     preparation: [
-      'Build deep customer relationships before they can react',
-      'Focus on execution speed and quality',
-      'Create switching costs through integrations',
-      'Build brand loyalty in your niche',
+      "Build deep customer relationships before they can react",
+      "Focus on execution speed and quality",
+      "Create switching costs through integrations",
+      "Build brand loyalty in your niche",
     ],
-    approaches: ['create', 'copy_improve', 'combine'],
+    approaches: ["create", "copy_improve", "combine"],
   },
   {
-    id: 'price_war',
-    title: 'Price Competition Begins',
-    likelihood: 'medium',
-    timeframe: '3-6 months',
-    description: 'Competitors lower prices to prevent you from gaining market share.',
+    id: "price_war",
+    title: "Price Competition Begins",
+    likelihood: "medium",
+    timeframe: "3-6 months",
+    description:
+      "Competitors lower prices to prevent you from gaining market share.",
     preparation: [
-      'Differentiate on value, not just price',
-      'Build operational efficiency from day one',
-      'Create premium tier with unique value',
-      'Focus on customer segments willing to pay',
+      "Differentiate on value, not just price",
+      "Build operational efficiency from day one",
+      "Create premium tier with unique value",
+      "Focus on customer segments willing to pay",
     ],
-    approaches: ['copy_improve', 'localize'],
+    approaches: ["copy_improve", "localize"],
   },
   {
-    id: 'fast_follower',
-    title: 'Fast Followers Enter',
-    likelihood: 'high',
-    timeframe: '3-9 months',
-    description: 'New competitors copy your approach after seeing initial traction.',
+    id: "fast_follower",
+    title: "Fast Followers Enter",
+    likelihood: "high",
+    timeframe: "3-9 months",
+    description:
+      "New competitors copy your approach after seeing initial traction.",
     preparation: [
-      'Move fast to capture market share early',
-      'Build defensible moats (network effects, data, brand)',
-      'Secure key partnerships before competitors',
-      'Document and protect innovations if possible',
+      "Move fast to capture market share early",
+      "Build defensible moats (network effects, data, brand)",
+      "Secure key partnerships before competitors",
+      "Document and protect innovations if possible",
     ],
-    approaches: ['create', 'time', 'localize'],
+    approaches: ["create", "time", "localize"],
   },
   {
-    id: 'niche_ignored',
-    title: 'Large Players Ignore You',
-    likelihood: 'high',
-    timeframe: 'Ongoing',
-    description: 'Your niche is too small for incumbents to care about, giving you room to grow.',
+    id: "niche_ignored",
+    title: "Large Players Ignore You",
+    likelihood: "high",
+    timeframe: "Ongoing",
+    description:
+      "Your niche is too small for incumbents to care about, giving you room to grow.",
     preparation: [
-      'Maximize this advantage while it lasts',
-      'Build strong position before expanding',
-      'Be careful not to attract attention prematurely',
-      'Plan eventual expansion strategy',
+      "Maximize this advantage while it lasts",
+      "Build strong position before expanding",
+      "Be careful not to attract attention prematurely",
+      "Plan eventual expansion strategy",
     ],
-    approaches: ['specialize'],
+    approaches: ["specialize"],
   },
   {
-    id: 'acquisition_interest',
-    title: 'Acquisition Interest',
-    likelihood: 'medium',
-    timeframe: '12-24 months',
-    description: 'Larger players may attempt to acquire you rather than compete.',
+    id: "acquisition_interest",
+    title: "Acquisition Interest",
+    likelihood: "medium",
+    timeframe: "12-24 months",
+    description:
+      "Larger players may attempt to acquire you rather than compete.",
     preparation: [
-      'Know your desired outcome (sell vs. keep building)',
-      'Build value in defensible ways',
-      'Maintain relationships with potential acquirers',
-      'Keep options open but stay focused',
+      "Know your desired outcome (sell vs. keep building)",
+      "Build value in defensible ways",
+      "Maintain relationships with potential acquirers",
+      "Keep options open but stay focused",
     ],
-    approaches: ['create', 'combine', 'specialize'],
+    approaches: ["create", "combine", "specialize"],
   },
   {
-    id: 'local_competition',
-    title: 'Local Competitors Emerge',
-    likelihood: 'medium',
-    timeframe: '6-18 months',
-    description: 'Other entrepreneurs see your success and start similar local ventures.',
+    id: "local_competition",
+    title: "Local Competitors Emerge",
+    likelihood: "medium",
+    timeframe: "6-18 months",
+    description:
+      "Other entrepreneurs see your success and start similar local ventures.",
     preparation: [
-      'Build strong local brand and relationships',
-      'Lock in key partnerships early',
-      'Create operational advantages',
-      'Consider expanding to adjacent areas',
+      "Build strong local brand and relationships",
+      "Lock in key partnerships early",
+      "Create operational advantages",
+      "Consider expanding to adjacent areas",
     ],
-    approaches: ['localize'],
+    approaches: ["localize"],
   },
   {
-    id: 'market_matures',
-    title: 'Market Matures Quickly',
-    likelihood: 'high',
-    timeframe: '12-24 months',
-    description: 'The timing window closes as the market becomes crowded and commoditized.',
+    id: "market_matures",
+    title: "Market Matures Quickly",
+    likelihood: "high",
+    timeframe: "12-24 months",
+    description:
+      "The timing window closes as the market becomes crowded and commoditized.",
     preparation: [
-      'Plan transition strategy before maturation',
-      'Build assets that transfer to next phase',
-      'Identify adjacent opportunities',
-      'Consider pivoting to related markets',
+      "Plan transition strategy before maturation",
+      "Build assets that transfer to next phase",
+      "Identify adjacent opportunities",
+      "Consider pivoting to related markets",
     ],
-    approaches: ['time'],
+    approaches: ["time"],
   },
 ];
 
-function getScenariosForApproach(approach?: StrategicApproach): CompetitiveScenario[] {
+function getScenariosForApproach(
+  approach?: StrategicApproach,
+): CompetitiveScenario[] {
   if (!approach) return COMPETITIVE_SCENARIOS.slice(0, 3);
-  return COMPETITIVE_SCENARIOS.filter(s => s.approaches.includes(approach));
+  return COMPETITIVE_SCENARIOS.filter((s) => s.approaches.includes(approach));
 }
 
 function enrichWithRisks(
   scenarios: CompetitiveScenario[],
-  risks?: CompetitiveRisk[]
+  risks?: CompetitiveRisk[],
 ): CompetitiveScenario[] {
   if (!risks || risks.length === 0) return scenarios;
 
-  return scenarios.map(scenario => {
+  return scenarios.map((scenario) => {
     // Boost likelihood if related risk is identified
-    const relatedRisk = risks.find(r => {
-      if (r.type === 'price_war' && scenario.id === 'price_war') return true;
-      if (r.type === 'feature_parity' && scenario.id === 'incumbent_copy') return true;
-      if (r.type === 'market_saturation' && scenario.id === 'fast_follower') return true;
+    const relatedRisk = risks.find((r) => {
+      if (r.type === "price_war" && scenario.id === "price_war") return true;
+      if (r.type === "feature_parity" && scenario.id === "incumbent_copy")
+        return true;
+      if (r.type === "market_saturation" && scenario.id === "fast_follower")
+        return true;
       return false;
     });
 
-    if (relatedRisk && relatedRisk.severity === 'high') {
-      return { ...scenario, likelihood: 'high' as const };
+    if (relatedRisk && relatedRisk.severity === "high") {
+      return { ...scenario, likelihood: "high" as const };
     }
     return scenario;
   });
 }
 
 const likelihoodStyles = {
-  low: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' },
-  medium: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200' },
-  high: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' },
+  low: {
+    bg: "bg-green-100",
+    text: "text-green-800",
+    border: "border-green-200",
+  },
+  medium: {
+    bg: "bg-yellow-100",
+    text: "text-yellow-800",
+    border: "border-yellow-200",
+  },
+  high: { bg: "bg-red-100", text: "text-red-800", border: "border-red-200" },
 };
 
 export default function CompetitiveResponseCard({
   approach,
   risks,
   strategy: _strategy,
-  className = '',
+  className = "",
 }: Props) {
   const baseScenarios = getScenariosForApproach(approach);
   const scenarios = enrichWithRisks(baseScenarios, risks);
@@ -174,7 +193,7 @@ export default function CompetitiveResponseCard({
   // Sort by likelihood
   const likelihoodOrder = { high: 0, medium: 1, low: 2 };
   const sortedScenarios = [...scenarios].sort(
-    (a, b) => likelihoodOrder[a.likelihood] - likelihoodOrder[b.likelihood]
+    (a, b) => likelihoodOrder[a.likelihood] - likelihoodOrder[b.likelihood],
   );
 
   return (
@@ -189,7 +208,7 @@ export default function CompetitiveResponseCard({
       </div>
 
       <div className="divide-y divide-gray-100">
-        {sortedScenarios.map(scenario => {
+        {sortedScenarios.map((scenario) => {
           const styles = likelihoodStyles[scenario.likelihood];
 
           return (
@@ -197,14 +216,18 @@ export default function CompetitiveResponseCard({
               <div className="flex items-start justify-between mb-3">
                 <h4 className="font-medium text-gray-900">{scenario.title}</h4>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className={`px-2 py-0.5 rounded-full ${styles.bg} ${styles.text} text-xs font-medium`}>
+                  <span
+                    className={`px-2 py-0.5 rounded-full ${styles.bg} ${styles.text} text-xs font-medium`}
+                  >
                     {scenario.likelihood} likelihood
                   </span>
                   <span className="text-gray-500">{scenario.timeframe}</span>
                 </div>
               </div>
 
-              <p className="text-sm text-gray-600 mb-4">{scenario.description}</p>
+              <p className="text-sm text-gray-600 mb-4">
+                {scenario.description}
+              </p>
 
               <div className="bg-gray-50 rounded-lg p-4">
                 <h5 className="text-xs font-medium text-gray-700 uppercase tracking-wide mb-2">
@@ -212,7 +235,10 @@ export default function CompetitiveResponseCard({
                 </h5>
                 <ul className="space-y-2">
                   {scenario.preparation.map((prep, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
+                    <li
+                      key={idx}
+                      className="flex items-start gap-2 text-sm text-gray-600"
+                    >
                       <svg
                         className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5"
                         fill="none"
@@ -243,13 +269,21 @@ export default function CompetitiveResponseCard({
           </h4>
           <ul className="space-y-1">
             {risks.slice(0, 3).map((risk, idx) => (
-              <li key={idx} className="text-sm text-amber-700 flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${
-                  risk.severity === 'high' ? 'bg-red-500' :
-                  risk.severity === 'medium' ? 'bg-yellow-500' :
-                  'bg-green-500'
-                }`} />
-                {risk.type.replace(/_/g, ' ')}: {risk.competitor || 'General market'}
+              <li
+                key={idx}
+                className="text-sm text-amber-700 flex items-center gap-2"
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    risk.severity === "high"
+                      ? "bg-red-500"
+                      : risk.severity === "medium"
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                  }`}
+                />
+                {risk.type.replace(/_/g, " ")}:{" "}
+                {risk.competitor || "General market"}
               </li>
             ))}
           </ul>
@@ -270,9 +304,9 @@ export default function CompetitiveResponseCard({
             />
           </svg>
           <p className="text-gray-600">
-            <strong className="text-gray-800">Remember:</strong> Competition validates
-            the market. Focus on serving customers better rather than worrying about
-            competitors. Build something people genuinely love.
+            <strong className="text-gray-800">Remember:</strong> Competition
+            validates the market. Focus on serving customers better rather than
+            worrying about competitors. Build something people genuinely love.
           </p>
         </div>
       </div>

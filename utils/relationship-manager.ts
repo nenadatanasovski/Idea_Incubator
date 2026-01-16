@@ -6,8 +6,8 @@
  * forking, branching, collaboration, and AI-detected relationships.
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, saveDb, getOne } from '../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, saveDb, getOne } from "../database/db.js";
 
 // ============================================================================
 // TYPES
@@ -17,15 +17,15 @@ import { query, run, saveDb, getOne } from '../database/db.js';
  * Valid relationship types as defined in the database schema.
  */
 export type RelationshipType =
-  | 'parent'
-  | 'child'
-  | 'integrates_with'
-  | 'evolved_from'
-  | 'forked_from'
-  | 'branched_from'
-  | 'collaboration'
-  | 'competes_with'
-  | 'shares_audience_with';
+  | "parent"
+  | "child"
+  | "integrates_with"
+  | "evolved_from"
+  | "forked_from"
+  | "branched_from"
+  | "collaboration"
+  | "competes_with"
+  | "shares_audience_with";
 
 /**
  * Relationship metadata structure.
@@ -99,18 +99,31 @@ export async function addRelationship(
   toIdea: string | null,
   type: RelationshipType,
   metadata: RelationshipMetadata = {},
-  createdBy?: string
+  createdBy?: string,
 ): Promise<string> {
   const id = uuidv4();
   const metadataJson = JSON.stringify(metadata);
 
   // Determine if this is an external relationship
-  const toExternal = toUser === null && toIdea === null ? (metadata.externalName as string) || null : null;
+  const toExternal =
+    toUser === null && toIdea === null
+      ? (metadata.externalName as string) || null
+      : null;
 
   await run(
     `INSERT INTO idea_relationships (id, from_user, from_idea, to_user, to_idea, to_external, relationship_type, metadata, created_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, fromUser, fromIdea, toUser, toIdea, toExternal, type, metadataJson, createdBy || null]
+    [
+      id,
+      fromUser,
+      fromIdea,
+      toUser,
+      toIdea,
+      toExternal,
+      type,
+      metadataJson,
+      createdBy || null,
+    ],
   );
 
   await saveDb();
@@ -127,14 +140,14 @@ export async function addRelationship(
  */
 export async function getRelationships(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<Relationship[]> {
   const rows = await query<RelationshipRow>(
     `SELECT * FROM idea_relationships
      WHERE (from_user = ? AND from_idea = ?)
         OR (to_user = ? AND to_idea = ?)
      ORDER BY created_at DESC`,
-    [userSlug, ideaSlug, userSlug, ideaSlug]
+    [userSlug, ideaSlug, userSlug, ideaSlug],
   );
 
   return rows.map(rowToRelationship);
@@ -149,7 +162,7 @@ export async function getRelationships(
  */
 export async function getChildren(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<Idea[]> {
   // Find relationships where this idea is the "to" (target) and type is "parent"
   // This means the "from" idea considers this idea its parent
@@ -157,10 +170,10 @@ export async function getChildren(
     `SELECT * FROM idea_relationships
      WHERE to_user = ? AND to_idea = ? AND relationship_type = 'parent'
      ORDER BY created_at DESC`,
-    [userSlug, ideaSlug]
+    [userSlug, ideaSlug],
   );
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     slug: row.from_idea,
     userSlug: row.from_user,
   }));
@@ -175,14 +188,14 @@ export async function getChildren(
  */
 export async function getParent(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<Idea | null> {
   // Find relationship where this idea has a parent relationship
   const row = await getOne<RelationshipRow>(
     `SELECT * FROM idea_relationships
      WHERE from_user = ? AND from_idea = ? AND relationship_type = 'parent'
      LIMIT 1`,
-    [userSlug, ideaSlug]
+    [userSlug, ideaSlug],
   );
 
   if (!row || !row.to_idea || !row.to_user) {
@@ -200,11 +213,10 @@ export async function getParent(
  *
  * @param relationshipId - The ID of the relationship to remove
  */
-export async function removeRelationship(relationshipId: string): Promise<void> {
-  await run(
-    `DELETE FROM idea_relationships WHERE id = ?`,
-    [relationshipId]
-  );
+export async function removeRelationship(
+  relationshipId: string,
+): Promise<void> {
+  await run(`DELETE FROM idea_relationships WHERE id = ?`, [relationshipId]);
   await saveDb();
 }
 
@@ -219,14 +231,14 @@ export async function removeRelationship(relationshipId: string): Promise<void> 
 export async function getRelationshipsByType(
   userSlug: string,
   ideaSlug: string,
-  type: RelationshipType
+  type: RelationshipType,
 ): Promise<Relationship[]> {
   const rows = await query<RelationshipRow>(
     `SELECT * FROM idea_relationships
      WHERE ((from_user = ? AND from_idea = ?) OR (to_user = ? AND to_idea = ?))
        AND relationship_type = ?
      ORDER BY created_at DESC`,
-    [userSlug, ideaSlug, userSlug, ideaSlug, type]
+    [userSlug, ideaSlug, userSlug, ideaSlug, type],
   );
 
   return rows.map(rowToRelationship);
@@ -268,9 +280,9 @@ function rowToRelationship(row: RelationshipRow): Relationship {
 // FILE SYNC FUNCTIONS
 // ============================================================================
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { getConfig } from '../config/index.js';
+import * as fs from "fs";
+import * as path from "path";
+import { getConfig } from "../config/index.js";
 
 /**
  * Get the path to the relationships.json file for an idea.
@@ -278,7 +290,15 @@ import { getConfig } from '../config/index.js';
 function getRelationshipsFilePath(userSlug: string, ideaSlug: string): string {
   const config = getConfig();
   const projectRoot = path.dirname(config.paths.ideas);
-  return path.join(projectRoot, 'users', userSlug, 'ideas', ideaSlug, '.metadata', 'relationships.json');
+  return path.join(
+    projectRoot,
+    "users",
+    userSlug,
+    "ideas",
+    ideaSlug,
+    ".metadata",
+    "relationships.json",
+  );
 }
 
 /**
@@ -338,7 +358,7 @@ function createDefaultRelationshipsData(): RelationshipsFileData {
  */
 export async function syncRelationshipsToFile(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<void> {
   const filePath = getRelationshipsFilePath(userSlug, ideaSlug);
   const metadataDir = path.dirname(filePath);
@@ -352,7 +372,7 @@ export async function syncRelationshipsToFile(
   let fileData: RelationshipsFileData;
   if (fs.existsSync(filePath)) {
     try {
-      const content = fs.readFileSync(filePath, 'utf-8');
+      const content = fs.readFileSync(filePath, "utf-8");
       fileData = JSON.parse(content);
     } catch {
       fileData = createDefaultRelationshipsData();
@@ -366,7 +386,7 @@ export async function syncRelationshipsToFile(
 
   // Filter to only relationships where this idea is the "from" side
   const outgoingRelationships = relationships.filter(
-    r => r.fromUser === userSlug && r.fromIdea === ideaSlug
+    (r) => r.fromUser === userSlug && r.fromIdea === ideaSlug,
   );
 
   // Reset file relationship arrays (keep idea_type and collaboration as is)
@@ -383,25 +403,25 @@ export async function syncRelationshipsToFile(
   // Populate from database relationships
   for (const rel of outgoingRelationships) {
     switch (rel.relationshipType) {
-      case 'parent':
+      case "parent":
         if (rel.toUser && rel.toIdea) {
           // Internal parent
           fileData.parent = {
-            type: 'internal',
+            type: "internal",
             slug: rel.toIdea,
             name: null,
           };
         } else if (rel.toExternal) {
           // External parent
           fileData.parent = {
-            type: 'external',
+            type: "external",
             slug: null,
             name: rel.toExternal,
           };
         }
         break;
 
-      case 'integrates_with':
+      case "integrates_with":
         if (rel.toUser && rel.toIdea) {
           fileData.integrates_with.push({ user: rel.toUser, slug: rel.toIdea });
         } else if (rel.toExternal) {
@@ -409,40 +429,46 @@ export async function syncRelationshipsToFile(
         }
         break;
 
-      case 'evolved_from':
+      case "evolved_from":
         if (rel.toUser && rel.toIdea) {
           fileData.evolved_from = { user: rel.toUser, slug: rel.toIdea };
         }
         break;
 
-      case 'forked_from':
+      case "forked_from":
         if (rel.toUser && rel.toIdea) {
           fileData.forked_from = { user: rel.toUser, slug: rel.toIdea };
         }
         break;
 
-      case 'branched_from':
+      case "branched_from":
         if (rel.toUser && rel.toIdea) {
           fileData.branched_from = { user: rel.toUser, slug: rel.toIdea };
         }
         break;
 
-      case 'competes_with':
+      case "competes_with":
         if (rel.toUser && rel.toIdea) {
-          fileData.ai_detected.competes_with.push({ user: rel.toUser, slug: rel.toIdea });
+          fileData.ai_detected.competes_with.push({
+            user: rel.toUser,
+            slug: rel.toIdea,
+          });
         }
         break;
 
-      case 'shares_audience_with':
+      case "shares_audience_with":
         if (rel.toUser && rel.toIdea) {
-          fileData.ai_detected.shares_audience_with.push({ user: rel.toUser, slug: rel.toIdea });
+          fileData.ai_detected.shares_audience_with.push({
+            user: rel.toUser,
+            slug: rel.toIdea,
+          });
         }
         break;
     }
   }
 
   // Write to file
-  fs.writeFileSync(filePath, JSON.stringify(fileData, null, 2), 'utf-8');
+  fs.writeFileSync(filePath, JSON.stringify(fileData, null, 2), "utf-8");
 }
 
 /**
@@ -456,7 +482,7 @@ export async function syncRelationshipsToFile(
  */
 export async function syncRelationshipsFromFile(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<void> {
   const filePath = getRelationshipsFilePath(userSlug, ideaSlug);
   const metadataDir = path.dirname(filePath);
@@ -470,25 +496,25 @@ export async function syncRelationshipsFromFile(
   let fileData: RelationshipsFileData;
   if (fs.existsSync(filePath)) {
     try {
-      const content = fs.readFileSync(filePath, 'utf-8');
+      const content = fs.readFileSync(filePath, "utf-8");
       fileData = JSON.parse(content);
     } catch {
       // Invalid JSON, create default file
       fileData = createDefaultRelationshipsData();
-      fs.writeFileSync(filePath, JSON.stringify(fileData, null, 2), 'utf-8');
+      fs.writeFileSync(filePath, JSON.stringify(fileData, null, 2), "utf-8");
       return; // Nothing to sync
     }
   } else {
     // File doesn't exist, create it with defaults
     fileData = createDefaultRelationshipsData();
-    fs.writeFileSync(filePath, JSON.stringify(fileData, null, 2), 'utf-8');
+    fs.writeFileSync(filePath, JSON.stringify(fileData, null, 2), "utf-8");
     return; // Nothing to sync
   }
 
   // Get current database relationships for this idea (where idea is source)
   const existingRelationships = await getRelationships(userSlug, ideaSlug);
   const outgoingRelationships = existingRelationships.filter(
-    r => r.fromUser === userSlug && r.fromIdea === ideaSlug
+    (r) => r.fromUser === userSlug && r.fromIdea === ideaSlug,
   );
 
   // Remove existing relationships from database (we'll re-add from file)
@@ -500,90 +526,100 @@ export async function syncRelationshipsFromFile(
 
   // Parent relationship
   if (fileData.parent) {
-    if (fileData.parent.type === 'internal' && fileData.parent.slug) {
+    if (fileData.parent.type === "internal" && fileData.parent.slug) {
       await addRelationship(
         userSlug,
         ideaSlug,
         userSlug, // Assume same user for internal
         fileData.parent.slug,
-        'parent',
-        {}
+        "parent",
+        {},
       );
-    } else if (fileData.parent.type === 'external' && fileData.parent.name) {
-      await addRelationship(
-        userSlug,
-        ideaSlug,
-        null,
-        null,
-        'parent',
-        { externalName: fileData.parent.name }
-      );
+    } else if (fileData.parent.type === "external" && fileData.parent.name) {
+      await addRelationship(userSlug, ideaSlug, null, null, "parent", {
+        externalName: fileData.parent.name,
+      });
     }
   }
 
   // Integrates_with relationships
   if (fileData.integrates_with && Array.isArray(fileData.integrates_with)) {
     for (const integration of fileData.integrates_with) {
-      if ('user' in integration && 'slug' in integration) {
+      if ("user" in integration && "slug" in integration) {
         await addRelationship(
           userSlug,
           ideaSlug,
           integration.user,
           integration.slug,
-          'integrates_with',
-          {}
+          "integrates_with",
+          {},
         );
-      } else if ('external' in integration) {
+      } else if ("external" in integration) {
         await addRelationship(
           userSlug,
           ideaSlug,
           null,
           null,
-          'integrates_with',
-          { externalName: integration.external }
+          "integrates_with",
+          { externalName: integration.external },
         );
       }
     }
   }
 
   // Evolved_from relationship
-  if (fileData.evolved_from && fileData.evolved_from.user && fileData.evolved_from.slug) {
+  if (
+    fileData.evolved_from &&
+    fileData.evolved_from.user &&
+    fileData.evolved_from.slug
+  ) {
     await addRelationship(
       userSlug,
       ideaSlug,
       fileData.evolved_from.user,
       fileData.evolved_from.slug,
-      'evolved_from',
-      {}
+      "evolved_from",
+      {},
     );
   }
 
   // Forked_from relationship
-  if (fileData.forked_from && fileData.forked_from.user && fileData.forked_from.slug) {
+  if (
+    fileData.forked_from &&
+    fileData.forked_from.user &&
+    fileData.forked_from.slug
+  ) {
     await addRelationship(
       userSlug,
       ideaSlug,
       fileData.forked_from.user,
       fileData.forked_from.slug,
-      'forked_from',
-      {}
+      "forked_from",
+      {},
     );
   }
 
   // Branched_from relationship
-  if (fileData.branched_from && fileData.branched_from.user && fileData.branched_from.slug) {
+  if (
+    fileData.branched_from &&
+    fileData.branched_from.user &&
+    fileData.branched_from.slug
+  ) {
     await addRelationship(
       userSlug,
       ideaSlug,
       fileData.branched_from.user,
       fileData.branched_from.slug,
-      'branched_from',
-      {}
+      "branched_from",
+      {},
     );
   }
 
   // AI detected: competes_with
-  if (fileData.ai_detected?.competes_with && Array.isArray(fileData.ai_detected.competes_with)) {
+  if (
+    fileData.ai_detected?.competes_with &&
+    Array.isArray(fileData.ai_detected.competes_with)
+  ) {
     for (const competitor of fileData.ai_detected.competes_with) {
       if (competitor.user && competitor.slug) {
         await addRelationship(
@@ -591,15 +627,18 @@ export async function syncRelationshipsFromFile(
           ideaSlug,
           competitor.user,
           competitor.slug,
-          'competes_with',
-          {}
+          "competes_with",
+          {},
         );
       }
     }
   }
 
   // AI detected: shares_audience_with
-  if (fileData.ai_detected?.shares_audience_with && Array.isArray(fileData.ai_detected.shares_audience_with)) {
+  if (
+    fileData.ai_detected?.shares_audience_with &&
+    Array.isArray(fileData.ai_detected.shares_audience_with)
+  ) {
     for (const shared of fileData.ai_detected.shares_audience_with) {
       if (shared.user && shared.slug) {
         await addRelationship(
@@ -607,8 +646,8 @@ export async function syncRelationshipsFromFile(
           ideaSlug,
           shared.user,
           shared.slug,
-          'shares_audience_with',
-          {}
+          "shares_audience_with",
+          {},
         );
       }
     }

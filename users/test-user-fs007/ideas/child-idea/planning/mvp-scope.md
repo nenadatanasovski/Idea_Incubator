@@ -12,6 +12,7 @@ updated: 2026-01-06T03:56:38.753Z
 - [ ] Defined: No
 
 ## Core Features
+
 <!-- Agent fills after feature prioritization -->
 
 1. Core feature 1
@@ -19,18 +20,21 @@ updated: 2026-01-06T03:56:38.753Z
 3. Core feature 3
 
 ## Nice-to-Have
+
 <!-- Agent fills after feature triage -->
 
 1. Nice-to-have 1
 2. Nice-to-have 2
 
 ## Out of Scope
+
 <!-- Agent fills after scope definition -->
 
 1. Out of scope 1
 2. Out of scope 2
 
 ## Success Criteria
+
 <!-- Agent fills after goal setting -->
 
 1. Success metric 1

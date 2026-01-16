@@ -5,8 +5,8 @@
  * Part of: Task System V2 Implementation Plan (IMPL-3.6)
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   TaskVersion,
   VersionDiff,
@@ -14,8 +14,8 @@ import {
   RestoreVersionInput,
   TaskVersionRow,
   mapTaskVersionRow,
-} from '../../../types/task-version.js';
-import { Task } from '../../../types/task-agent.js';
+} from "../../../types/task-version.js";
+import { Task } from "../../../types/task-agent.js";
 
 /**
  * Task Version Service class
@@ -28,12 +28,12 @@ export class TaskVersionService {
     taskId: string,
     changedFields: string[],
     reason?: string,
-    userId: string = 'system'
+    userId: string = "system",
   ): Promise<TaskVersion> {
     // Get current task state
     const task = await getOne<Record<string, unknown>>(
-      'SELECT * FROM tasks WHERE id = ?',
-      [taskId]
+      "SELECT * FROM tasks WHERE id = ?",
+      [taskId],
     );
 
     if (!task) {
@@ -61,17 +61,17 @@ export class TaskVersionService {
         null,
         userId,
         now,
-      ]
+      ],
     );
 
     await saveDb();
 
     const created = await getOne<TaskVersionRow>(
-      'SELECT * FROM task_versions WHERE id = ?',
-      [id]
+      "SELECT * FROM task_versions WHERE id = ?",
+      [id],
     );
     if (!created) {
-      throw new Error('Failed to create task version');
+      throw new Error("Failed to create task version");
     }
     return mapTaskVersionRow(created);
   }
@@ -81,8 +81,8 @@ export class TaskVersionService {
    */
   async getVersions(taskId: string): Promise<TaskVersion[]> {
     const rows = await query<TaskVersionRow>(
-      'SELECT * FROM task_versions WHERE task_id = ? ORDER BY version DESC',
-      [taskId]
+      "SELECT * FROM task_versions WHERE task_id = ? ORDER BY version DESC",
+      [taskId],
     );
     return rows.map(mapTaskVersionRow);
   }
@@ -90,10 +90,13 @@ export class TaskVersionService {
   /**
    * Get a specific version
    */
-  async getVersion(taskId: string, version: number): Promise<TaskVersion | null> {
+  async getVersion(
+    taskId: string,
+    version: number,
+  ): Promise<TaskVersion | null> {
     const row = await getOne<TaskVersionRow>(
-      'SELECT * FROM task_versions WHERE task_id = ? AND version = ?',
-      [taskId, version]
+      "SELECT * FROM task_versions WHERE task_id = ? AND version = ?",
+      [taskId, version],
     );
     return row ? mapTaskVersionRow(row) : null;
   }
@@ -103,8 +106,8 @@ export class TaskVersionService {
    */
   async getLatestVersion(taskId: string): Promise<TaskVersion | null> {
     const row = await getOne<TaskVersionRow>(
-      'SELECT * FROM task_versions WHERE task_id = ? ORDER BY version DESC LIMIT 1',
-      [taskId]
+      "SELECT * FROM task_versions WHERE task_id = ? ORDER BY version DESC LIMIT 1",
+      [taskId],
     );
     return row ? mapTaskVersionRow(row) : null;
   }
@@ -112,7 +115,11 @@ export class TaskVersionService {
   /**
    * Compare two versions
    */
-  async diff(taskId: string, fromVersion: number, toVersion: number): Promise<VersionDiff> {
+  async diff(
+    taskId: string,
+    fromVersion: number,
+    toVersion: number,
+  ): Promise<VersionDiff> {
     const from = await this.getVersion(taskId, fromVersion);
     const to = await this.getVersion(taskId, toVersion);
 
@@ -141,11 +148,14 @@ export class TaskVersionService {
   /**
    * Create a checkpoint
    */
-  async createCheckpoint(input: CreateCheckpointInput, userId: string): Promise<TaskVersion> {
+  async createCheckpoint(
+    input: CreateCheckpointInput,
+    userId: string,
+  ): Promise<TaskVersion> {
     // Get current task state
     const task = await getOne<Record<string, unknown>>(
-      'SELECT * FROM tasks WHERE id = ?',
-      [input.taskId]
+      "SELECT * FROM tasks WHERE id = ?",
+      [input.taskId],
     );
 
     if (!task) {
@@ -173,17 +183,17 @@ export class TaskVersionService {
         input.name,
         userId,
         now,
-      ]
+      ],
     );
 
     await saveDb();
 
     const created = await getOne<TaskVersionRow>(
-      'SELECT * FROM task_versions WHERE id = ?',
-      [id]
+      "SELECT * FROM task_versions WHERE id = ?",
+      [id],
     );
     if (!created) {
-      throw new Error('Failed to create checkpoint');
+      throw new Error("Failed to create checkpoint");
     }
     return mapTaskVersionRow(created);
   }
@@ -193,8 +203,8 @@ export class TaskVersionService {
    */
   async getCheckpoints(taskId: string): Promise<TaskVersion[]> {
     const rows = await query<TaskVersionRow>(
-      'SELECT * FROM task_versions WHERE task_id = ? AND is_checkpoint = 1 ORDER BY version DESC',
-      [taskId]
+      "SELECT * FROM task_versions WHERE task_id = ? AND is_checkpoint = 1 ORDER BY version DESC",
+      [taskId],
     );
     return rows.map(mapTaskVersionRow);
   }
@@ -203,15 +213,20 @@ export class TaskVersionService {
    * Restore a task to a previous version (creates new version)
    */
   async restore(input: RestoreVersionInput, userId: string): Promise<Task> {
-    const targetVersion = await this.getVersion(input.taskId, input.targetVersion);
+    const targetVersion = await this.getVersion(
+      input.taskId,
+      input.targetVersion,
+    );
     if (!targetVersion) {
-      throw new Error(`Version ${input.targetVersion} not found for task ${input.taskId}`);
+      throw new Error(
+        `Version ${input.targetVersion} not found for task ${input.taskId}`,
+      );
     }
 
     const snapshot = targetVersion.snapshot;
 
     // Build update query from snapshot (excluding id, created_at)
-    const excludeFields = ['id', 'created_at', 'display_id'];
+    const excludeFields = ["id", "created_at", "display_id"];
     const updateFields: string[] = [];
     const values: (string | number | null)[] = [];
 
@@ -226,27 +241,26 @@ export class TaskVersionService {
     values.push(input.taskId);
 
     await run(
-      `UPDATE tasks SET ${updateFields.join(', ')}, updated_at = ? WHERE id = ?`,
-      values
+      `UPDATE tasks SET ${updateFields.join(", ")}, updated_at = ? WHERE id = ?`,
+      values,
     );
 
     // Create a new version for the restore
     await this.createVersion(
       input.taskId,
-      Object.keys(snapshot).filter(k => !excludeFields.includes(k)),
+      Object.keys(snapshot).filter((k) => !excludeFields.includes(k)),
       input.reason || `Restored to version ${input.targetVersion}`,
-      userId
+      userId,
     );
 
     await saveDb();
 
     // Return updated task
-    const task = await getOne<Task>(
-      'SELECT * FROM tasks WHERE id = ?',
-      [input.taskId]
-    );
+    const task = await getOne<Task>("SELECT * FROM tasks WHERE id = ?", [
+      input.taskId,
+    ]);
     if (!task) {
-      throw new Error('Failed to restore task');
+      throw new Error("Failed to restore task");
     }
     return task;
   }
@@ -254,7 +268,10 @@ export class TaskVersionService {
   /**
    * Preview what would change if restoring to a version
    */
-  async previewRestore(taskId: string, targetVersion: number): Promise<VersionDiff> {
+  async previewRestore(
+    taskId: string,
+    targetVersion: number,
+  ): Promise<VersionDiff> {
     const latestVersion = await this.getLatestVersion(taskId);
     if (!latestVersion) {
       throw new Error(`No versions found for task ${taskId}`);

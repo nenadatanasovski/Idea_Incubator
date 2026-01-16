@@ -5,12 +5,12 @@
  * about an idea's identity, progress, relationships, and documents.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { getIdeaFolderPath } from '../../utils/folder-structure.js';
-import type { IdeaType } from '../../utils/folder-structure.js';
-import type { LifecycleStage } from '../../utils/schemas.js';
-import { query } from '../../database/db.js';
+import * as fs from "fs";
+import * as path from "path";
+import { getIdeaFolderPath } from "../../utils/folder-structure.js";
+import type { IdeaType } from "../../utils/folder-structure.js";
+import type { LifecycleStage } from "../../utils/schemas.js";
+import { query } from "../../database/db.js";
 
 // ============================================================================
 // LAYER 1: IDEA IDENTITY
@@ -29,7 +29,7 @@ export interface IdeaIdentity {
   type: IdeaType;
   /** Parent reference for child ideas (features, pivots) */
   parent?: {
-    type: 'internal' | 'external';
+    type: "internal" | "external";
     ref: string;
   };
   /** Current lifecycle phase */
@@ -72,7 +72,7 @@ export interface ProgressState {
 export interface RelationshipInfo {
   /** Parent idea reference (if this is a child idea) */
   parent?: {
-    type: 'internal' | 'external';
+    type: "internal" | "external";
     ref: string;
     title?: string;
   };
@@ -226,20 +226,24 @@ function parseFrontmatter(content: string): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   // Simple YAML parser for key: value pairs
-  const lines = frontmatterText.split('\n');
+  const lines = frontmatterText.split("\n");
   for (const line of lines) {
-    const colonIndex = line.indexOf(':');
+    const colonIndex = line.indexOf(":");
     if (colonIndex > 0) {
       const key = line.substring(0, colonIndex).trim();
       let value: unknown = line.substring(colonIndex + 1).trim();
 
       // Handle quoted strings
-      if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+      if (
+        typeof value === "string" &&
+        value.startsWith('"') &&
+        value.endsWith('"')
+      ) {
         value = value.slice(1, -1);
       }
 
       // Handle arrays (basic support for single-line arrays like [])
-      if (typeof value === 'string' && value === '[]') {
+      if (typeof value === "string" && value === "[]") {
         value = [];
       }
 
@@ -260,26 +264,36 @@ function parseFrontmatter(content: string): Record<string, unknown> {
  */
 export async function buildIdentityLayer(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<IdeaIdentity> {
   const ideaPath = getIdeaFolderPath(userSlug, ideaSlug);
-  const readmePath = path.join(ideaPath, 'README.md');
-  const relationshipsPath = path.join(ideaPath, '.metadata', 'relationships.json');
+  const readmePath = path.join(ideaPath, "README.md");
+  const relationshipsPath = path.join(
+    ideaPath,
+    ".metadata",
+    "relationships.json",
+  );
 
   // Default values
-  let type: IdeaType = 'business';
-  let currentPhase: LifecycleStage = 'SPARK';
-  let parent: IdeaIdentity['parent'] | undefined;
+  let type: IdeaType = "business";
+  let currentPhase: LifecycleStage = "SPARK";
+  let parent: IdeaIdentity["parent"] | undefined;
 
   // Read README.md for frontmatter
   if (fs.existsSync(readmePath)) {
     try {
-      const readmeContent = fs.readFileSync(readmePath, 'utf-8');
+      const readmeContent = fs.readFileSync(readmePath, "utf-8");
       const frontmatter = parseFrontmatter(readmeContent);
 
       // Read idea_type from frontmatter
-      if (frontmatter.idea_type && typeof frontmatter.idea_type === 'string') {
-        const validTypes: IdeaType[] = ['business', 'feature_internal', 'feature_external', 'service', 'pivot'];
+      if (frontmatter.idea_type && typeof frontmatter.idea_type === "string") {
+        const validTypes: IdeaType[] = [
+          "business",
+          "feature_internal",
+          "feature_external",
+          "service",
+          "pivot",
+        ];
         if (validTypes.includes(frontmatter.idea_type as IdeaType)) {
           type = frontmatter.idea_type as IdeaType;
         }
@@ -287,11 +301,27 @@ export async function buildIdentityLayer(
 
       // Read lifecycle_stage from frontmatter (or 'stage' for compatibility)
       const stageValue = frontmatter.lifecycle_stage || frontmatter.stage;
-      if (stageValue && typeof stageValue === 'string') {
+      if (stageValue && typeof stageValue === "string") {
         const validStages: LifecycleStage[] = [
-          'SPARK', 'CLARIFY', 'RESEARCH', 'IDEATE', 'EVALUATE', 'VALIDATE',
-          'DESIGN', 'PROTOTYPE', 'TEST', 'REFINE', 'BUILD', 'LAUNCH',
-          'GROW', 'MAINTAIN', 'PIVOT', 'PAUSE', 'SUNSET', 'ARCHIVE', 'ABANDONED'
+          "SPARK",
+          "CLARIFY",
+          "RESEARCH",
+          "IDEATE",
+          "EVALUATE",
+          "VALIDATE",
+          "DESIGN",
+          "PROTOTYPE",
+          "TEST",
+          "REFINE",
+          "BUILD",
+          "LAUNCH",
+          "GROW",
+          "MAINTAIN",
+          "PIVOT",
+          "PAUSE",
+          "SUNSET",
+          "ARCHIVE",
+          "ABANDONED",
         ];
         if (validStages.includes(stageValue as LifecycleStage)) {
           currentPhase = stageValue as LifecycleStage;
@@ -305,23 +335,29 @@ export async function buildIdentityLayer(
   // Read relationships.json for parent info
   if (fs.existsSync(relationshipsPath)) {
     try {
-      const relationshipsContent = fs.readFileSync(relationshipsPath, 'utf-8');
+      const relationshipsContent = fs.readFileSync(relationshipsPath, "utf-8");
       const relationships = JSON.parse(relationshipsContent);
 
       // Extract parent info if present
-      if (relationships.parent && typeof relationships.parent === 'object') {
+      if (relationships.parent && typeof relationships.parent === "object") {
         const parentData = relationships.parent;
         if (parentData.type && (parentData.slug || parentData.name)) {
           parent = {
-            type: parentData.type as 'internal' | 'external',
-            ref: parentData.slug || parentData.name
+            type: parentData.type as "internal" | "external",
+            ref: parentData.slug || parentData.name,
           };
         }
       }
 
       // Also check if idea_type is defined in relationships.json (as backup)
       if (!type && relationships.idea_type) {
-        const validTypes: IdeaType[] = ['business', 'feature_internal', 'feature_external', 'service', 'pivot'];
+        const validTypes: IdeaType[] = [
+          "business",
+          "feature_internal",
+          "feature_external",
+          "service",
+          "pivot",
+        ];
         if (validTypes.includes(relationships.idea_type as IdeaType)) {
           type = relationships.idea_type as IdeaType;
         }
@@ -336,7 +372,7 @@ export async function buildIdentityLayer(
     ideaSlug,
     type,
     parent,
-    currentPhase
+    currentPhase,
   };
 }
 
@@ -345,44 +381,50 @@ export async function buildIdentityLayer(
  * Used to track completion progress.
  */
 const CORE_DOCUMENTS = [
-  'README.md',
-  'development.md',
-  'problem-solution.md',
-  'target-users.md',
-  'business-model.md',
-  'team.md'
+  "README.md",
+  "development.md",
+  "problem-solution.md",
+  "target-users.md",
+  "business-model.md",
+  "team.md",
 ];
 
 /**
  * Phase-specific recommended actions based on lifecycle stage.
  */
 const PHASE_RECOMMENDATIONS: Record<LifecycleStage, string> = {
-  'SPARK': 'Capture initial idea details in README.md and define the problem statement',
-  'CLARIFY': 'Answer clarifying questions in development.md and identify knowledge gaps',
-  'RESEARCH': 'Complete market research and competitive analysis in research/ folder',
-  'IDEATE': 'Brainstorm features and solutions, document in development.md',
-  'EVALUATE': 'Run idea evaluation to score against criteria',
-  'VALIDATE': 'Document validation experiments and results in validation/ folder',
-  'DESIGN': 'Create architecture and MVP scope in planning/ folder',
-  'PROTOTYPE': 'Build initial prototype and document in build/ folder',
-  'TEST': 'Run user tests and document results in validation/results.md',
-  'REFINE': 'Iterate based on feedback, update relevant documents',
-  'BUILD': 'Implement full solution, track tasks in build/tasks.md',
-  'LAUNCH': 'Execute launch plan from marketing/launch-plan.md',
-  'GROW': 'Focus on growth metrics and optimization',
-  'MAINTAIN': 'Regular maintenance and incremental improvements',
-  'PIVOT': 'Re-evaluate direction, update README.md with new focus',
-  'PAUSE': 'Document pause reason and re-activation criteria',
-  'SUNSET': 'Document learnings and transition plan',
-  'ARCHIVE': 'Ensure all documentation is complete for reference',
-  'ABANDONED': 'Document why idea was abandoned for future learning'
+  SPARK:
+    "Capture initial idea details in README.md and define the problem statement",
+  CLARIFY:
+    "Answer clarifying questions in development.md and identify knowledge gaps",
+  RESEARCH:
+    "Complete market research and competitive analysis in research/ folder",
+  IDEATE: "Brainstorm features and solutions, document in development.md",
+  EVALUATE: "Run idea evaluation to score against criteria",
+  VALIDATE: "Document validation experiments and results in validation/ folder",
+  DESIGN: "Create architecture and MVP scope in planning/ folder",
+  PROTOTYPE: "Build initial prototype and document in build/ folder",
+  TEST: "Run user tests and document results in validation/results.md",
+  REFINE: "Iterate based on feedback, update relevant documents",
+  BUILD: "Implement full solution, track tasks in build/tasks.md",
+  LAUNCH: "Execute launch plan from marketing/launch-plan.md",
+  GROW: "Focus on growth metrics and optimization",
+  MAINTAIN: "Regular maintenance and incremental improvements",
+  PIVOT: "Re-evaluate direction, update README.md with new focus",
+  PAUSE: "Document pause reason and re-activation criteria",
+  SUNSET: "Document learnings and transition plan",
+  ARCHIVE: "Ensure all documentation is complete for reference",
+  ABANDONED: "Document why idea was abandoned for future learning",
 };
 
 /**
  * Check if a document section is complete by looking for checked checkboxes.
  * Returns number of completed sections and total sections.
  */
-function analyzeDocumentCompletion(content: string): { completed: number; total: number } {
+function analyzeDocumentCompletion(content: string): {
+  completed: number;
+  total: number;
+} {
   // Count sections marked as "- [x] Defined: Yes" vs "- [ ] Defined: No"
   const checkedPattern = /- \[x\] Defined: Yes/gi;
   const uncheckedPattern = /- \[ \] Defined: No/gi;
@@ -403,16 +445,16 @@ function analyzeDocumentCompletion(content: string): { completed: number; total:
 function isTemplateDocument(content: string): boolean {
   // Check for common template placeholders
   const templatePatterns = [
-    /\{\{[^}]+\}\}/,           // {{placeholder}}
-    /<!-- Agent fills/,        // Agent fill markers
-    /\*Brief description/,     // Default placeholder text
-    /\*What problem/,          // Default placeholder text
-    /\*How does this/,         // Default placeholder text
+    /\{\{[^}]+\}\}/, // {{placeholder}}
+    /<!-- Agent fills/, // Agent fill markers
+    /\*Brief description/, // Default placeholder text
+    /\*What problem/, // Default placeholder text
+    /\*How does this/, // Default placeholder text
   ];
 
   // If content has any template patterns and no completed sections, it's a template
   const { completed } = analyzeDocumentCompletion(content);
-  const hasTemplatePatterns = templatePatterns.some(p => p.test(content));
+  const hasTemplatePatterns = templatePatterns.some((p) => p.test(content));
 
   return hasTemplatePatterns && completed === 0;
 }
@@ -420,7 +462,7 @@ function isTemplateDocument(content: string): boolean {
 /**
  * Recursively get all markdown files in a directory.
  */
-function getAllMarkdownFiles(dirPath: string, basePath: string = ''): string[] {
+function getAllMarkdownFiles(dirPath: string, basePath: string = ""): string[] {
   const files: string[] = [];
 
   if (!fs.existsSync(dirPath)) {
@@ -435,10 +477,10 @@ function getAllMarkdownFiles(dirPath: string, basePath: string = ''): string[] {
 
     if (entry.isDirectory()) {
       // Skip hidden directories
-      if (!entry.name.startsWith('.')) {
+      if (!entry.name.startsWith(".")) {
         files.push(...getAllMarkdownFiles(fullPath, relativePath));
       }
-    } else if (entry.isFile() && entry.name.endsWith('.md')) {
+    } else if (entry.isFile() && entry.name.endsWith(".md")) {
       files.push(relativePath);
     }
   }
@@ -473,32 +515,44 @@ function getLatestModificationTime(ideaPath: string, files: string[]): Date {
 function identifyBlockers(
   phase: LifecycleStage,
   documentsMissing: string[],
-  completionPercent: number
+  completionPercent: number,
 ): string[] {
   const blockers: string[] = [];
 
   // Phase-specific blocker detection
-  if (phase === 'CLARIFY' && documentsMissing.includes('README.md')) {
-    blockers.push('README.md needs to be filled before moving to next phase');
+  if (phase === "CLARIFY" && documentsMissing.includes("README.md")) {
+    blockers.push("README.md needs to be filled before moving to next phase");
   }
 
-  if (phase === 'RESEARCH' && !documentsMissing.some(d => d.startsWith('research/'))) {
+  if (
+    phase === "RESEARCH" &&
+    !documentsMissing.some((d) => d.startsWith("research/"))
+  ) {
     // Research phase but no research docs - could be intentional
-  } else if (phase === 'RESEARCH' && documentsMissing.length > 3) {
-    blockers.push('Multiple core documents still need attention');
+  } else if (phase === "RESEARCH" && documentsMissing.length > 3) {
+    blockers.push("Multiple core documents still need attention");
   }
 
-  if (phase === 'VALIDATE' && documentsMissing.some(d => d.startsWith('validation/'))) {
-    blockers.push('Validation documents need to be completed');
+  if (
+    phase === "VALIDATE" &&
+    documentsMissing.some((d) => d.startsWith("validation/"))
+  ) {
+    blockers.push("Validation documents need to be completed");
   }
 
-  if (phase === 'BUILD' && documentsMissing.some(d => d.includes('planning/'))) {
-    blockers.push('Planning documents should be complete before building');
+  if (
+    phase === "BUILD" &&
+    documentsMissing.some((d) => d.includes("planning/"))
+  ) {
+    blockers.push("Planning documents should be complete before building");
   }
 
   // Generic blockers based on completion
-  if (completionPercent < 20 && !['SPARK', 'ABANDONED', 'ARCHIVE'].includes(phase)) {
-    blockers.push('Very low completion - consider filling core documents');
+  if (
+    completionPercent < 20 &&
+    !["SPARK", "ABANDONED", "ARCHIVE"].includes(phase)
+  ) {
+    blockers.push("Very low completion - consider filling core documents");
   }
 
   return blockers;
@@ -515,23 +569,39 @@ function identifyBlockers(
  */
 export async function buildProgressLayer(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<ProgressState> {
   const ideaPath = getIdeaFolderPath(userSlug, ideaSlug);
-  const readmePath = path.join(ideaPath, 'README.md');
+  const readmePath = path.join(ideaPath, "README.md");
 
   // Get current phase from README frontmatter
-  let phase: LifecycleStage = 'SPARK';
+  let phase: LifecycleStage = "SPARK";
   if (fs.existsSync(readmePath)) {
     try {
-      const readmeContent = fs.readFileSync(readmePath, 'utf-8');
+      const readmeContent = fs.readFileSync(readmePath, "utf-8");
       const frontmatter = parseFrontmatter(readmeContent);
       const stageValue = frontmatter.lifecycle_stage || frontmatter.stage;
-      if (stageValue && typeof stageValue === 'string') {
+      if (stageValue && typeof stageValue === "string") {
         const validStages: LifecycleStage[] = [
-          'SPARK', 'CLARIFY', 'RESEARCH', 'IDEATE', 'EVALUATE', 'VALIDATE',
-          'DESIGN', 'PROTOTYPE', 'TEST', 'REFINE', 'BUILD', 'LAUNCH',
-          'GROW', 'MAINTAIN', 'PIVOT', 'PAUSE', 'SUNSET', 'ARCHIVE', 'ABANDONED'
+          "SPARK",
+          "CLARIFY",
+          "RESEARCH",
+          "IDEATE",
+          "EVALUATE",
+          "VALIDATE",
+          "DESIGN",
+          "PROTOTYPE",
+          "TEST",
+          "REFINE",
+          "BUILD",
+          "LAUNCH",
+          "GROW",
+          "MAINTAIN",
+          "PIVOT",
+          "PAUSE",
+          "SUNSET",
+          "ARCHIVE",
+          "ABANDONED",
         ];
         if (validStages.includes(stageValue as LifecycleStage)) {
           phase = stageValue as LifecycleStage;
@@ -554,7 +624,7 @@ export async function buildProgressLayer(
   for (const file of allFiles) {
     const filePath = path.join(ideaPath, file);
     try {
-      const content = fs.readFileSync(filePath, 'utf-8');
+      const content = fs.readFileSync(filePath, "utf-8");
       const { completed, total } = analyzeDocumentCompletion(content);
 
       totalSections += total;
@@ -599,9 +669,10 @@ export async function buildProgressLayer(
     completionPercent = Math.round((completedSections / totalSections) * 100);
   } else {
     const totalDocs = documentsComplete.length + documentsMissing.length;
-    completionPercent = totalDocs > 0
-      ? Math.round((documentsComplete.length / totalDocs) * 100)
-      : 0;
+    completionPercent =
+      totalDocs > 0
+        ? Math.round((documentsComplete.length / totalDocs) * 100)
+        : 0;
   }
 
   // Ensure percentage is within bounds
@@ -614,13 +685,19 @@ export async function buildProgressLayer(
   const blockers = identifyBlockers(phase, documentsMissing, completionPercent);
 
   // Determine next recommended action
-  let nextRecommendedAction = PHASE_RECOMMENDATIONS[phase] || 'Continue developing your idea';
+  let nextRecommendedAction =
+    PHASE_RECOMMENDATIONS[phase] || "Continue developing your idea";
 
   // Override with more specific recommendations if needed
-  if (documentsMissing.includes('README.md')) {
-    nextRecommendedAction = 'Fill in the README.md with your idea overview and problem statement';
-  } else if (documentsMissing.includes('problem-solution.md') && ['SPARK', 'CLARIFY'].includes(phase)) {
-    nextRecommendedAction = 'Define the problem and solution in problem-solution.md';
+  if (documentsMissing.includes("README.md")) {
+    nextRecommendedAction =
+      "Fill in the README.md with your idea overview and problem statement";
+  } else if (
+    documentsMissing.includes("problem-solution.md") &&
+    ["SPARK", "CLARIFY"].includes(phase)
+  ) {
+    nextRecommendedAction =
+      "Define the problem and solution in problem-solution.md";
   } else if (blockers.length > 0) {
     nextRecommendedAction = `Address blocker: ${blockers[0]}`;
   }
@@ -632,7 +709,7 @@ export async function buildProgressLayer(
     documentsMissing,
     lastActivity,
     blockers,
-    nextRecommendedAction
+    nextRecommendedAction,
   };
 }
 
@@ -646,7 +723,7 @@ export async function buildProgressLayer(
 interface RelationshipsFile {
   idea_type?: string;
   parent?: {
-    type?: 'internal' | 'external';
+    type?: "internal" | "external";
     slug?: string;
     name?: string;
   } | null;
@@ -693,30 +770,34 @@ interface IdeaRelationshipRow extends Record<string, unknown> {
  */
 export async function buildRelationshipsLayer(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<RelationshipInfo> {
   const ideaPath = getIdeaFolderPath(userSlug, ideaSlug);
-  const relationshipsPath = path.join(ideaPath, '.metadata', 'relationships.json');
+  const relationshipsPath = path.join(
+    ideaPath,
+    ".metadata",
+    "relationships.json",
+  );
 
   // Default values
-  let parent: RelationshipInfo['parent'] | undefined;
-  const integrations: RelationshipInfo['integrations'] = [];
-  const collaborators: RelationshipInfo['collaborators'] = [];
+  let parent: RelationshipInfo["parent"] | undefined;
+  const integrations: RelationshipInfo["integrations"] = [];
+  const collaborators: RelationshipInfo["collaborators"] = [];
 
   // Read relationships.json file
   if (fs.existsSync(relationshipsPath)) {
     try {
-      const relationshipsContent = fs.readFileSync(relationshipsPath, 'utf-8');
+      const relationshipsContent = fs.readFileSync(relationshipsPath, "utf-8");
       const relationships: RelationshipsFile = JSON.parse(relationshipsContent);
 
       // Extract parent info
-      if (relationships.parent && typeof relationships.parent === 'object') {
+      if (relationships.parent && typeof relationships.parent === "object") {
         const parentData = relationships.parent;
         if (parentData.type && (parentData.slug || parentData.name)) {
           parent = {
             type: parentData.type,
-            ref: parentData.slug || parentData.name || '',
-            title: parentData.name
+            ref: parentData.slug || parentData.name || "",
+            title: parentData.name,
           };
         }
       }
@@ -724,23 +805,26 @@ export async function buildRelationshipsLayer(
       // Extract integrations
       if (Array.isArray(relationships.integrates_with)) {
         for (const integration of relationships.integrates_with) {
-          if (integration && typeof integration === 'object') {
+          if (integration && typeof integration === "object") {
             integrations.push({
-              name: integration.name || integration.slug || 'Unknown',
-              type: integration.type || 'external',
-              description: integration.description
+              name: integration.name || integration.slug || "Unknown",
+              type: integration.type || "external",
+              description: integration.description,
             });
           }
         }
       }
 
       // Extract collaborators
-      if (relationships.collaboration?.contributors && Array.isArray(relationships.collaboration.contributors)) {
+      if (
+        relationships.collaboration?.contributors &&
+        Array.isArray(relationships.collaboration.contributors)
+      ) {
         for (const contributor of relationships.collaboration.contributors) {
-          if (contributor && typeof contributor === 'object') {
+          if (contributor && typeof contributor === "object") {
             collaborators.push({
-              name: contributor.name || 'Unknown',
-              role: contributor.role
+              name: contributor.name || "Unknown",
+              role: contributor.role,
             });
           }
         }
@@ -751,7 +835,7 @@ export async function buildRelationshipsLayer(
   }
 
   // Query database for children (ideas that have this idea as parent)
-  const children: RelationshipInfo['children'] = [];
+  const children: RelationshipInfo["children"] = [];
 
   try {
     // Find relationships where this idea is the parent
@@ -759,14 +843,14 @@ export async function buildRelationshipsLayer(
       `SELECT to_user, to_idea, metadata
        FROM idea_relationships
        WHERE from_user = ? AND from_idea = ? AND relationship_type = 'parent'`,
-      [userSlug, ideaSlug]
+      [userSlug, ideaSlug],
     );
 
     for (const row of childRelationships) {
       if (row.to_idea) {
         // Try to get title from metadata or use slug
         let title = row.to_idea;
-        let type: IdeaType = 'feature_internal';
+        let type: IdeaType = "feature_internal";
 
         if (row.metadata) {
           try {
@@ -781,7 +865,7 @@ export async function buildRelationshipsLayer(
         children.push({
           slug: row.to_idea,
           title,
-          type
+          type,
         });
       }
     }
@@ -791,13 +875,13 @@ export async function buildRelationshipsLayer(
       `SELECT from_user, from_idea, metadata
        FROM idea_relationships
        WHERE to_user = ? AND to_idea = ? AND relationship_type = 'child'`,
-      [userSlug, ideaSlug]
+      [userSlug, ideaSlug],
     );
 
     for (const row of childRelationships2) {
-      if (row.from_idea && !children.some(c => c.slug === row.from_idea)) {
+      if (row.from_idea && !children.some((c) => c.slug === row.from_idea)) {
         let title = row.from_idea;
-        let type: IdeaType = 'feature_internal';
+        let type: IdeaType = "feature_internal";
 
         if (row.metadata) {
           try {
@@ -812,7 +896,7 @@ export async function buildRelationshipsLayer(
         children.push({
           slug: row.from_idea,
           title,
-          type
+          type,
         });
       }
     }
@@ -825,7 +909,7 @@ export async function buildRelationshipsLayer(
     parent,
     children,
     integrations,
-    collaborators
+    collaborators,
   };
 }
 
@@ -848,10 +932,12 @@ const README_SUMMARY_TOKEN_BUDGET = 500;
  */
 function extractReadmeSummary(content: string): string {
   // Remove frontmatter
-  let cleanContent = content.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, '');
+  let cleanContent = content.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, "");
 
   // Try to find Overview or Summary section
-  const overviewMatch = cleanContent.match(/##?\s*(?:Overview|Summary|About|Description)\s*\n([\s\S]*?)(?=\n##|$)/i);
+  const overviewMatch = cleanContent.match(
+    /##?\s*(?:Overview|Summary|About|Description)\s*\n([\s\S]*?)(?=\n##|$)/i,
+  );
 
   let summary: string;
 
@@ -870,20 +956,20 @@ function extractReadmeSummary(content: string): string {
 
   // Clean up markdown formatting for summary
   summary = summary
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // Remove links but keep text
-    .replace(/```[\s\S]*?```/g, '[code]')     // Replace code blocks
-    .replace(/`[^`]+`/g, (m) => m.slice(1, -1))  // Remove inline code backticks
-    .replace(/^\s*[-*+]\s*/gm, '• ')          // Standardize list items
-    .replace(/\n{3,}/g, '\n\n')               // Collapse multiple newlines
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Remove links but keep text
+    .replace(/```[\s\S]*?```/g, "[code]") // Replace code blocks
+    .replace(/`[^`]+`/g, (m) => m.slice(1, -1)) // Remove inline code backticks
+    .replace(/^\s*[-*+]\s*/gm, "• ") // Standardize list items
+    .replace(/\n{3,}/g, "\n\n") // Collapse multiple newlines
     .trim();
 
   // Truncate to fit token budget (~500 tokens = ~2000 chars)
   const maxChars = README_SUMMARY_TOKEN_BUDGET * 4;
   if (summary.length > maxChars) {
-    summary = summary.substring(0, maxChars - 3) + '...';
+    summary = summary.substring(0, maxChars - 3) + "...";
   }
 
-  return summary || 'No summary available.';
+  return summary || "No summary available.";
 }
 
 /**
@@ -894,27 +980,32 @@ function extractReadmeSummary(content: string): string {
  * @param maxEntries - Maximum number of entries to return
  * @returns Array of Q&A objects
  */
-function extractRecentQA(content: string, maxEntries: number = 5): Array<{ question: string; answer: string }> {
+function extractRecentQA(
+  content: string,
+  maxEntries: number = 5,
+): Array<{ question: string; answer: string }> {
   const qaEntries: Array<{ question: string; answer: string }> = [];
 
   // Pattern 1: **Q:** / **A:** format
-  const qaBoldPattern = /\*\*Q(?:uestion)?:\*\*\s*([^\n]+(?:\n(?!\*\*[QA]).*)*)\s*\*\*A(?:nswer)?:\*\*\s*([^\n]+(?:\n(?!\*\*Q).*)*)/gi;
+  const qaBoldPattern =
+    /\*\*Q(?:uestion)?:\*\*\s*([^\n]+(?:\n(?!\*\*[QA]).*)*)\s*\*\*A(?:nswer)?:\*\*\s*([^\n]+(?:\n(?!\*\*Q).*)*)/gi;
   let match;
 
   while ((match = qaBoldPattern.exec(content)) !== null) {
     qaEntries.push({
-      question: match[1].trim().replace(/\n+/g, ' '),
-      answer: match[2].trim().replace(/\n+/g, ' ')
+      question: match[1].trim().replace(/\n+/g, " "),
+      answer: match[2].trim().replace(/\n+/g, " "),
     });
   }
 
   // Pattern 2: ### Question heading followed by content
   if (qaEntries.length === 0) {
-    const questionHeadingPattern = /###\s*([^\n]+\?)\s*\n([\s\S]*?)(?=\n###|\n##|$)/gi;
+    const questionHeadingPattern =
+      /###\s*([^\n]+\?)\s*\n([\s\S]*?)(?=\n###|\n##|$)/gi;
     while ((match = questionHeadingPattern.exec(content)) !== null) {
       qaEntries.push({
         question: match[1].trim(),
-        answer: match[2].trim().replace(/\n+/g, ' ').substring(0, 500)
+        answer: match[2].trim().replace(/\n+/g, " ").substring(0, 500),
       });
     }
   }
@@ -925,7 +1016,7 @@ function extractRecentQA(content: string, maxEntries: number = 5): Array<{ quest
     while ((match = simpleQAPattern.exec(content)) !== null) {
       qaEntries.push({
         question: match[1].trim(),
-        answer: match[2].trim().replace(/\n+/g, ' ')
+        answer: match[2].trim().replace(/\n+/g, " "),
       });
     }
   }
@@ -979,9 +1070,9 @@ function extractGaps(content: string): string[] {
   }
 
   // Limit to reasonable number and truncate long entries
-  return gaps.slice(0, 20).map(gap =>
-    gap.length > 100 ? gap.substring(0, 97) + '...' : gap
-  );
+  return gaps
+    .slice(0, 20)
+    .map((gap) => (gap.length > 100 ? gap.substring(0, 97) + "..." : gap));
 }
 
 /**
@@ -1001,7 +1092,7 @@ function summarizeToFitBudget(content: string, tokenBudget: number): string {
 
   // Truncate to fit budget (~4 chars per token)
   const maxChars = tokenBudget * 4;
-  return content.substring(0, maxChars - 3) + '...';
+  return content.substring(0, maxChars - 3) + "...";
 }
 
 /**
@@ -1014,38 +1105,38 @@ function summarizeToFitBudget(content: string, tokenBudget: number): string {
  */
 export async function buildCoreDocsLayer(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<CoreDocs> {
   const ideaPath = getIdeaFolderPath(userSlug, ideaSlug);
-  const readmePath = path.join(ideaPath, 'README.md');
-  const developmentPath = path.join(ideaPath, 'development.md');
+  const readmePath = path.join(ideaPath, "README.md");
+  const developmentPath = path.join(ideaPath, "development.md");
 
   // Initialize with defaults
   const coreDocs: CoreDocs = {
     readme: {
-      summary: 'No README found.',
-      fullPath: readmePath
+      summary: "No README found.",
+      fullPath: readmePath,
     },
     development: {
       recentQA: [],
-      gaps: []
-    }
+      gaps: [],
+    },
   };
 
   // Read and process README.md
   if (fs.existsSync(readmePath)) {
     try {
-      const readmeContent = fs.readFileSync(readmePath, 'utf-8');
+      const readmeContent = fs.readFileSync(readmePath, "utf-8");
       coreDocs.readme.summary = extractReadmeSummary(readmeContent);
     } catch {
-      coreDocs.readme.summary = 'Error reading README.md';
+      coreDocs.readme.summary = "Error reading README.md";
     }
   }
 
   // Read and process development.md
   if (fs.existsSync(developmentPath)) {
     try {
-      const developmentContent = fs.readFileSync(developmentPath, 'utf-8');
+      const developmentContent = fs.readFileSync(developmentPath, "utf-8");
       coreDocs.development.recentQA = extractRecentQA(developmentContent, 5);
       coreDocs.development.gaps = extractGaps(developmentContent);
     } catch {
@@ -1059,7 +1150,10 @@ export async function buildCoreDocsLayer(
     // Trim README summary first
     const readmeTokens = estimateTokens(coreDocs.readme.summary);
     if (readmeTokens > README_SUMMARY_TOKEN_BUDGET) {
-      coreDocs.readme.summary = summarizeToFitBudget(coreDocs.readme.summary, README_SUMMARY_TOKEN_BUDGET);
+      coreDocs.readme.summary = summarizeToFitBudget(
+        coreDocs.readme.summary,
+        README_SUMMARY_TOKEN_BUDGET,
+      );
     }
 
     // Trim Q&A entries if still over budget
@@ -1101,30 +1195,39 @@ interface PriorityRules {
  * Default phase priority rules used when priority.json is missing.
  */
 const DEFAULT_PRIORITY_RULES: PriorityRules = {
-  always_show: ['README.md', 'development.md'],
+  always_show: ["README.md", "development.md"],
   by_phase: {
-    SPARK: ['README.md', 'development.md'],
-    CLARIFY: ['README.md', 'development.md', 'target-users.md', 'problem-solution.md'],
-    RESEARCH: ['research/market.md', 'research/competitive.md', 'research/user-personas.md'],
-    IDEATE: ['development.md', 'problem-solution.md'],
-    EVALUATE: ['analysis/redteam.md', 'analysis/risk-mitigation.md'],
-    VALIDATE: ['validation/assumptions.md', 'validation/results.md'],
-    DESIGN: ['planning/brief.md', 'planning/architecture.md'],
-    PROTOTYPE: ['planning/mvp-scope.md', 'build/spec.md'],
-    TEST: ['validation/results.md', 'build/tasks.md'],
-    REFINE: ['development.md', 'build/decisions.md'],
-    BUILD: ['build/spec.md', 'build/tasks.md', 'build/decisions.md'],
-    LAUNCH: ['marketing/launch-plan.md', 'marketing/gtm.md'],
-    GROW: ['marketing/channels.md', 'networking/opportunities.md'],
-    MAINTAIN: ['build/tasks.md', 'team.md'],
-    PIVOT: ['analysis/redteam.md', 'development.md'],
-    PAUSE: ['README.md'],
-    SUNSET: ['README.md'],
-    ARCHIVE: ['README.md'],
-    ABANDONED: ['README.md']
+    SPARK: ["README.md", "development.md"],
+    CLARIFY: [
+      "README.md",
+      "development.md",
+      "target-users.md",
+      "problem-solution.md",
+    ],
+    RESEARCH: [
+      "research/market.md",
+      "research/competitive.md",
+      "research/user-personas.md",
+    ],
+    IDEATE: ["development.md", "problem-solution.md"],
+    EVALUATE: ["analysis/redteam.md", "analysis/risk-mitigation.md"],
+    VALIDATE: ["validation/assumptions.md", "validation/results.md"],
+    DESIGN: ["planning/brief.md", "planning/architecture.md"],
+    PROTOTYPE: ["planning/mvp-scope.md", "build/spec.md"],
+    TEST: ["validation/results.md", "build/tasks.md"],
+    REFINE: ["development.md", "build/decisions.md"],
+    BUILD: ["build/spec.md", "build/tasks.md", "build/decisions.md"],
+    LAUNCH: ["marketing/launch-plan.md", "marketing/gtm.md"],
+    GROW: ["marketing/channels.md", "networking/opportunities.md"],
+    MAINTAIN: ["build/tasks.md", "team.md"],
+    PIVOT: ["analysis/redteam.md", "development.md"],
+    PAUSE: ["README.md"],
+    SUNSET: ["README.md"],
+    ARCHIVE: ["README.md"],
+    ABANDONED: ["README.md"],
   },
   recently_updated: [],
-  ai_recommended: []
+  ai_recommended: [],
 };
 
 /**
@@ -1140,17 +1243,17 @@ const PHASE_DOCS_TOKEN_BUDGET = 5000;
  * @returns Priority rules object
  */
 function loadPriorityRules(ideaPath: string): PriorityRules {
-  const priorityPath = path.join(ideaPath, '.metadata', 'priority.json');
+  const priorityPath = path.join(ideaPath, ".metadata", "priority.json");
 
   if (fs.existsSync(priorityPath)) {
     try {
-      const content = fs.readFileSync(priorityPath, 'utf-8');
+      const content = fs.readFileSync(priorityPath, "utf-8");
       const parsed = JSON.parse(content);
       return {
         always_show: parsed.always_show || DEFAULT_PRIORITY_RULES.always_show,
         by_phase: parsed.by_phase || DEFAULT_PRIORITY_RULES.by_phase,
         recently_updated: parsed.recently_updated || [],
-        ai_recommended: parsed.ai_recommended || []
+        ai_recommended: parsed.ai_recommended || [],
       };
     } catch {
       return DEFAULT_PRIORITY_RULES;
@@ -1168,7 +1271,10 @@ function loadPriorityRules(ideaPath: string): PriorityRules {
  * @param phase - Current lifecycle phase
  * @returns Ordered list of document paths
  */
-function getPrioritizedDocs(rules: PriorityRules, phase: LifecycleStage): string[] {
+function getPrioritizedDocs(
+  rules: PriorityRules,
+  phase: LifecycleStage,
+): string[] {
   const docs: string[] = [];
   const seen = new Set<string>();
 
@@ -1218,26 +1324,28 @@ function getPrioritizedDocs(rules: PriorityRules, phase: LifecycleStage): string
  */
 function generateDocSummary(content: string, maxTokens: number = 200): string {
   // Remove frontmatter
-  let cleanContent = content.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, '');
+  let cleanContent = content.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, "");
 
   // Extract title if present
   const titleMatch = cleanContent.match(/^#\s+([^\n]+)/);
-  const title = titleMatch ? titleMatch[1].trim() : '';
+  const title = titleMatch ? titleMatch[1].trim() : "";
 
   // Get first substantial paragraph after title
-  cleanContent = cleanContent.replace(/^#\s+[^\n]+\n/, '').trim();
+  cleanContent = cleanContent.replace(/^#\s+[^\n]+\n/, "").trim();
 
   // Find first non-empty paragraph
-  const paragraphs = cleanContent.split(/\n\n+/).filter(p => p.trim().length > 0);
-  let summary = paragraphs[0] || '';
+  const paragraphs = cleanContent
+    .split(/\n\n+/)
+    .filter((p) => p.trim().length > 0);
+  let summary = paragraphs[0] || "";
 
   // Clean markdown formatting
   summary = summary
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // Remove links but keep text
-    .replace(/```[\s\S]*?```/g, '')           // Remove code blocks
-    .replace(/`[^`]+`/g, (m) => m.slice(1, -1))  // Remove inline code backticks
-    .replace(/^\s*[-*+]\s*/gm, '')            // Remove list markers
-    .replace(/\n+/g, ' ')                      // Collapse newlines
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Remove links but keep text
+    .replace(/```[\s\S]*?```/g, "") // Remove code blocks
+    .replace(/`[^`]+`/g, (m) => m.slice(1, -1)) // Remove inline code backticks
+    .replace(/^\s*[-*+]\s*/gm, "") // Remove list markers
+    .replace(/\n+/g, " ") // Collapse newlines
     .trim();
 
   // Prepend title if available
@@ -1248,10 +1356,10 @@ function generateDocSummary(content: string, maxTokens: number = 200): string {
   // Truncate to fit token budget
   const maxChars = maxTokens * 4;
   if (summary.length > maxChars) {
-    summary = summary.substring(0, maxChars - 3) + '...';
+    summary = summary.substring(0, maxChars - 3) + "...";
   }
 
-  return summary || 'No content available.';
+  return summary || "No content available.";
 }
 
 /**
@@ -1267,7 +1375,7 @@ function generateDocSummary(content: string, maxTokens: number = 200): string {
 export async function buildPhaseDocsLayer(
   userSlug: string,
   ideaSlug: string,
-  phase: LifecycleStage
+  phase: LifecycleStage,
 ): Promise<PhaseDoc[]> {
   const ideaPath = getIdeaFolderPath(userSlug, ideaSlug);
   const phaseDocs: PhaseDoc[] = [];
@@ -1282,7 +1390,7 @@ export async function buildPhaseDocsLayer(
   // Determine which docs are "required" (always_show + by_phase)
   const requiredDocs = new Set<string>([
     ...rules.always_show,
-    ...(rules.by_phase[phase] || [])
+    ...(rules.by_phase[phase] || []),
   ]);
 
   // Load documents in priority order
@@ -1295,7 +1403,7 @@ export async function buildPhaseDocsLayer(
     }
 
     try {
-      const content = fs.readFileSync(fullPath, 'utf-8');
+      const content = fs.readFileSync(fullPath, "utf-8");
       const isRequired = requiredDocs.has(docPath);
 
       let docContent: string;
@@ -1314,13 +1422,16 @@ export async function buildPhaseDocsLayer(
           const maxChars = remainingBudget * 4;
           docContent = content.substring(0, maxChars);
           if (docContent.length < content.length) {
-            docContent += '\n\n[Content truncated due to token budget]';
+            docContent += "\n\n[Content truncated due to token budget]";
           }
           tokenCount = estimateTokens(docContent);
         }
       } else {
         // Recommended docs: load summary only
-        const summaryBudget = Math.min(200, PHASE_DOCS_TOKEN_BUDGET - totalTokens);
+        const summaryBudget = Math.min(
+          200,
+          PHASE_DOCS_TOKEN_BUDGET - totalTokens,
+        );
         if (summaryBudget <= 0) {
           continue; // No more budget
         }
@@ -1335,7 +1446,7 @@ export async function buildPhaseDocsLayer(
           const remainingBudget = PHASE_DOCS_TOKEN_BUDGET - totalTokens;
           if (remainingBudget > 100) {
             const maxChars = remainingBudget * 4;
-            docContent = docContent.substring(0, maxChars) + '\n\n[Truncated]';
+            docContent = docContent.substring(0, maxChars) + "\n\n[Truncated]";
             tokenCount = estimateTokens(docContent);
           } else {
             continue;
@@ -1348,7 +1459,7 @@ export async function buildPhaseDocsLayer(
       phaseDocs.push({
         path: docPath,
         content: docContent,
-        tokenCount
+        tokenCount,
       });
 
       totalTokens += tokenCount;
@@ -1385,31 +1496,33 @@ const AVAILABLE_DOC_SUMMARY_TOKEN_BUDGET = 50;
  */
 function generateBriefSummary(content: string): string {
   // Remove frontmatter
-  let cleanContent = content.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, '');
+  let cleanContent = content.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, "");
 
   // Extract title if present
   const titleMatch = cleanContent.match(/^#\s+([^\n]+)/);
-  const title = titleMatch ? titleMatch[1].trim() : '';
+  const title = titleMatch ? titleMatch[1].trim() : "";
 
   // Get first substantial paragraph after title
-  cleanContent = cleanContent.replace(/^#\s+[^\n]+\n/, '').trim();
+  cleanContent = cleanContent.replace(/^#\s+[^\n]+\n/, "").trim();
 
   // Find first non-empty paragraph
-  const paragraphs = cleanContent.split(/\n\n+/).filter(p => p.trim().length > 0);
-  let summary = paragraphs[0] || '';
+  const paragraphs = cleanContent
+    .split(/\n\n+/)
+    .filter((p) => p.trim().length > 0);
+  let summary = paragraphs[0] || "";
 
   // Clean markdown formatting
   summary = summary
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // Remove links but keep text
-    .replace(/```[\s\S]*?```/g, '')           // Remove code blocks
-    .replace(/`[^`]+`/g, (m) => m.slice(1, -1))  // Remove inline code backticks
-    .replace(/^\s*[-*+]\s*/gm, '')            // Remove list markers
-    .replace(/\n+/g, ' ')                      // Collapse newlines
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Remove links but keep text
+    .replace(/```[\s\S]*?```/g, "") // Remove code blocks
+    .replace(/`[^`]+`/g, (m) => m.slice(1, -1)) // Remove inline code backticks
+    .replace(/^\s*[-*+]\s*/gm, "") // Remove list markers
+    .replace(/\n+/g, " ") // Collapse newlines
     .trim();
 
   // Get just the first sentence or two
   const sentences = summary.match(/[^.!?]+[.!?]+/g) || [summary];
-  summary = sentences.slice(0, 2).join(' ').trim();
+  summary = sentences.slice(0, 2).join(" ").trim();
 
   // Prepend title if available and short enough
   if (title && title.length < 40) {
@@ -1419,10 +1532,10 @@ function generateBriefSummary(content: string): string {
   // Truncate to fit token budget (~50 tokens = ~200 chars)
   const maxChars = AVAILABLE_DOC_SUMMARY_TOKEN_BUDGET * 4;
   if (summary.length > maxChars) {
-    summary = summary.substring(0, maxChars - 3) + '...';
+    summary = summary.substring(0, maxChars - 3) + "...";
   }
 
-  return summary || 'Document with no summary available.';
+  return summary || "Document with no summary available.";
 }
 
 /**
@@ -1452,7 +1565,7 @@ function getFileModificationTime(filePath: string): Date {
 export async function buildAvailableDocsIndex(
   userSlug: string,
   ideaSlug: string,
-  excludePaths: string[] = []
+  excludePaths: string[] = [],
 ): Promise<AvailableDoc[]> {
   const ideaPath = getIdeaFolderPath(userSlug, ideaSlug);
   const availableDocs: AvailableDoc[] = [];
@@ -1474,7 +1587,7 @@ export async function buildAvailableDocsIndex(
 
     try {
       // Read file content for summary generation
-      const content = fs.readFileSync(fullPath, 'utf-8');
+      const content = fs.readFileSync(fullPath, "utf-8");
 
       // Generate brief summary
       const summary = generateBriefSummary(content);
@@ -1485,7 +1598,7 @@ export async function buildAvailableDocsIndex(
       availableDocs.push({
         path: filePath,
         summary,
-        lastUpdated
+        lastUpdated,
       });
     } catch {
       // Skip files that can't be read
@@ -1494,7 +1607,9 @@ export async function buildAvailableDocsIndex(
   }
 
   // Sort by lastUpdated (most recent first)
-  availableDocs.sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime());
+  availableDocs.sort(
+    (a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime(),
+  );
 
   return availableDocs;
 }
@@ -1520,7 +1635,7 @@ const TOTAL_CONTEXT_TOKEN_BUDGET = 22000;
  */
 export async function buildIdeaContext(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<AgentContext> {
   const startTime = Date.now();
 
@@ -1529,35 +1644,35 @@ export async function buildIdeaContext(
     idea: {
       userSlug,
       ideaSlug,
-      type: 'business',
-      currentPhase: 'SPARK'
+      type: "business",
+      currentPhase: "SPARK",
     },
     progress: {
-      phase: 'SPARK',
+      phase: "SPARK",
       completionPercent: 0,
       documentsComplete: [],
       documentsMissing: [],
       lastActivity: new Date(),
       blockers: [],
-      nextRecommendedAction: 'Start capturing your idea'
+      nextRecommendedAction: "Start capturing your idea",
     },
     relationships: {
       children: [],
       integrations: [],
-      collaborators: []
+      collaborators: [],
     },
     coreDocs: {
       readme: {
-        summary: 'No README found.',
-        fullPath: ''
+        summary: "No README found.",
+        fullPath: "",
       },
       development: {
         recentQA: [],
-        gaps: []
-      }
+        gaps: [],
+      },
     },
     phaseDocs: [],
-    availableDocuments: []
+    availableDocuments: [],
   };
 
   // Token tracking for logging
@@ -1584,10 +1699,16 @@ export async function buildIdeaContext(
   // Layer 3: Build relationships layer
   try {
     context.relationships = await buildRelationshipsLayer(userSlug, ideaSlug);
-    tokenBreakdown.relationships = estimateTokens(JSON.stringify(context.relationships));
+    tokenBreakdown.relationships = estimateTokens(
+      JSON.stringify(context.relationships),
+    );
   } catch (error) {
-    console.warn(`[buildIdeaContext] Failed to build relationships layer: ${error}`);
-    tokenBreakdown.relationships = estimateTokens(JSON.stringify(context.relationships));
+    console.warn(
+      `[buildIdeaContext] Failed to build relationships layer: ${error}`,
+    );
+    tokenBreakdown.relationships = estimateTokens(
+      JSON.stringify(context.relationships),
+    );
   }
 
   // Layer 4: Build core docs layer
@@ -1595,7 +1716,9 @@ export async function buildIdeaContext(
     context.coreDocs = await buildCoreDocsLayer(userSlug, ideaSlug);
     tokenBreakdown.coreDocs = estimateTokens(JSON.stringify(context.coreDocs));
   } catch (error) {
-    console.warn(`[buildIdeaContext] Failed to build core docs layer: ${error}`);
+    console.warn(
+      `[buildIdeaContext] Failed to build core docs layer: ${error}`,
+    );
     tokenBreakdown.coreDocs = estimateTokens(JSON.stringify(context.coreDocs));
   }
 
@@ -1604,46 +1727,72 @@ export async function buildIdeaContext(
     // Use currentPhase from identity layer (which may have been updated from README)
     const phase = context.idea.currentPhase;
     context.phaseDocs = await buildPhaseDocsLayer(userSlug, ideaSlug, phase);
-    tokenBreakdown.phaseDocs = context.phaseDocs.reduce((sum, doc) => sum + doc.tokenCount, 0);
+    tokenBreakdown.phaseDocs = context.phaseDocs.reduce(
+      (sum, doc) => sum + doc.tokenCount,
+      0,
+    );
   } catch (error) {
-    console.warn(`[buildIdeaContext] Failed to build phase docs layer: ${error}`);
+    console.warn(
+      `[buildIdeaContext] Failed to build phase docs layer: ${error}`,
+    );
     tokenBreakdown.phaseDocs = 0;
   }
 
   // Layer 6: Build available docs index
   try {
     // Exclude documents already loaded in phaseDocs
-    const loadedPaths = context.phaseDocs.map(doc => doc.path);
-    context.availableDocuments = await buildAvailableDocsIndex(userSlug, ideaSlug, loadedPaths);
-    tokenBreakdown.availableDocuments = estimateTokens(JSON.stringify(context.availableDocuments));
+    const loadedPaths = context.phaseDocs.map((doc) => doc.path);
+    context.availableDocuments = await buildAvailableDocsIndex(
+      userSlug,
+      ideaSlug,
+      loadedPaths,
+    );
+    tokenBreakdown.availableDocuments = estimateTokens(
+      JSON.stringify(context.availableDocuments),
+    );
   } catch (error) {
-    console.warn(`[buildIdeaContext] Failed to build available docs index: ${error}`);
+    console.warn(
+      `[buildIdeaContext] Failed to build available docs index: ${error}`,
+    );
     tokenBreakdown.availableDocuments = 0;
   }
 
   // Calculate total tokens
-  const totalTokens = Object.values(tokenBreakdown).reduce((sum, count) => sum + count, 0);
+  const totalTokens = Object.values(tokenBreakdown).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
   const elapsedTime = Date.now() - startTime;
 
   // Log token breakdown
   console.log(`[buildIdeaContext] Built context for ${userSlug}/${ideaSlug}:`);
   console.log(`  - Identity layer: ${tokenBreakdown.identity} tokens`);
   console.log(`  - Progress layer: ${tokenBreakdown.progress} tokens`);
-  console.log(`  - Relationships layer: ${tokenBreakdown.relationships} tokens`);
+  console.log(
+    `  - Relationships layer: ${tokenBreakdown.relationships} tokens`,
+  );
   console.log(`  - Core docs layer: ${tokenBreakdown.coreDocs} tokens`);
   console.log(`  - Phase docs layer: ${tokenBreakdown.phaseDocs} tokens`);
-  console.log(`  - Available docs index: ${tokenBreakdown.availableDocuments} tokens`);
-  console.log(`  Total: ${totalTokens} tokens (budget: ${TOTAL_CONTEXT_TOKEN_BUDGET})`);
+  console.log(
+    `  - Available docs index: ${tokenBreakdown.availableDocuments} tokens`,
+  );
+  console.log(
+    `  Total: ${totalTokens} tokens (budget: ${TOTAL_CONTEXT_TOKEN_BUDGET})`,
+  );
   console.log(`  Time: ${elapsedTime}ms`);
 
   // Warn if over budget
   if (totalTokens > TOTAL_CONTEXT_TOKEN_BUDGET) {
-    console.warn(`[buildIdeaContext] WARNING: Context exceeds token budget (${totalTokens} > ${TOTAL_CONTEXT_TOKEN_BUDGET})`);
+    console.warn(
+      `[buildIdeaContext] WARNING: Context exceeds token budget (${totalTokens} > ${TOTAL_CONTEXT_TOKEN_BUDGET})`,
+    );
   }
 
   // Warn if slow
   if (elapsedTime > 2000) {
-    console.warn(`[buildIdeaContext] WARNING: Context build took ${elapsedTime}ms (target: < 2000ms)`);
+    console.warn(
+      `[buildIdeaContext] WARNING: Context build took ${elapsedTime}ms (target: < 2000ms)`,
+    );
   }
 
   return context;

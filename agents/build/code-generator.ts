@@ -4,11 +4,11 @@
  * Generates code using Claude API based on task requirements and context.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-import { AtomicTask, TaskContext } from '../../types/build-agent.js';
-import { CodeGeneratorInterface } from './task-executor.js';
+import Anthropic from "@anthropic-ai/sdk";
+import { AtomicTask, TaskContext } from "../../types/build-agent.js";
+import { CodeGeneratorInterface } from "./task-executor.js";
 
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
+const DEFAULT_MODEL = "claude-sonnet-4-20250514";
 const DEFAULT_MAX_TOKENS = 8192;
 
 export interface CodeGeneratorOptions {
@@ -45,10 +45,10 @@ export class CodeGenerator implements CodeGeneratorInterface {
       max_tokens: this.maxTokens,
       messages: [
         {
-          role: 'user',
-          content: prompt
-        }
-      ]
+          role: "user",
+          content: prompt,
+        },
+      ],
     });
 
     return this.extractCode(response);
@@ -57,7 +57,10 @@ export class CodeGenerator implements CodeGeneratorInterface {
   /**
    * Generate code with full response details
    */
-  async generateWithDetails(task: AtomicTask, context: TaskContext): Promise<GeneratedCode> {
+  async generateWithDetails(
+    task: AtomicTask,
+    context: TaskContext,
+  ): Promise<GeneratedCode> {
     const prompt = this.buildPrompt(task, context);
 
     const response = await this.client.messages.create({
@@ -65,20 +68,22 @@ export class CodeGenerator implements CodeGeneratorInterface {
       max_tokens: this.maxTokens,
       messages: [
         {
-          role: 'user',
-          content: prompt
-        }
-      ]
+          role: "user",
+          content: prompt,
+        },
+      ],
     });
 
     const code = this.extractCode(response);
     const explanation = this.extractExplanation(response);
-    const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+    const tokensUsed =
+      (response.usage?.input_tokens || 0) +
+      (response.usage?.output_tokens || 0);
 
     return {
       code,
       explanation,
-      tokensUsed
+      tokensUsed,
     };
   }
 
@@ -89,93 +94,97 @@ export class CodeGenerator implements CodeGeneratorInterface {
     const parts: string[] = [];
 
     // System context
-    parts.push('You are a code generator for a build system. Generate ONLY the code requested, wrapped in a code block with the appropriate language tag.');
-    parts.push('');
+    parts.push(
+      "You are a code generator for a build system. Generate ONLY the code requested, wrapped in a code block with the appropriate language tag.",
+    );
+    parts.push("");
 
     // Task info
-    parts.push('## Task');
+    parts.push("## Task");
     parts.push(`- **ID:** ${task.id}`);
     parts.push(`- **Action:** ${task.action}`);
     parts.push(`- **File:** ${task.file}`);
     parts.push(`- **Phase:** ${task.phase}`);
-    parts.push('');
+    parts.push("");
 
     // Requirements
-    parts.push('## Requirements');
+    parts.push("## Requirements");
     for (const req of task.requirements) {
       parts.push(`- ${req}`);
     }
-    parts.push('');
+    parts.push("");
 
     // Gotchas
     if (context.gotchas.length > 0) {
-      parts.push('## Important Notes (Gotchas)');
+      parts.push("## Important Notes (Gotchas)");
       for (const gotcha of context.gotchas) {
         parts.push(`- ${gotcha.content}`);
       }
-      parts.push('');
+      parts.push("");
     }
 
     // Code template
     if (task.codeTemplate) {
-      parts.push('## Code Template');
-      parts.push('Use this as a starting point:');
-      parts.push('```');
+      parts.push("## Code Template");
+      parts.push("Use this as a starting point:");
+      parts.push("```");
       parts.push(task.codeTemplate);
-      parts.push('```');
-      parts.push('');
+      parts.push("```");
+      parts.push("");
     }
 
     // Conventions
     if (context.conventions) {
-      parts.push('## Project Conventions');
+      parts.push("## Project Conventions");
       parts.push(context.conventions);
-      parts.push('');
+      parts.push("");
     }
 
     // Dependency outputs
     if (Object.keys(context.dependencyOutputs).length > 0) {
-      parts.push('## Dependency Files (for reference)');
-      for (const [filePath, content] of Object.entries(context.dependencyOutputs)) {
+      parts.push("## Dependency Files (for reference)");
+      for (const [filePath, content] of Object.entries(
+        context.dependencyOutputs,
+      )) {
         parts.push(`### ${filePath}`);
-        parts.push('```');
+        parts.push("```");
         parts.push(content);
-        parts.push('```');
+        parts.push("```");
       }
-      parts.push('');
+      parts.push("");
     }
 
     // Related files
     if (Object.keys(context.relatedFiles).length > 0) {
-      parts.push('## Related Files (for context)');
+      parts.push("## Related Files (for context)");
       for (const [filePath, content] of Object.entries(context.relatedFiles)) {
         parts.push(`### ${filePath}`);
-        parts.push('```');
+        parts.push("```");
         parts.push(content);
-        parts.push('```');
+        parts.push("```");
       }
-      parts.push('');
+      parts.push("");
     }
 
     // Spec sections
     if (context.specSections.length > 0) {
-      parts.push('## Specification Sections');
+      parts.push("## Specification Sections");
       for (const section of context.specSections) {
         parts.push(section);
       }
-      parts.push('');
+      parts.push("");
     }
 
     // Instructions
-    parts.push('## Instructions');
+    parts.push("## Instructions");
     parts.push(`Generate the complete code for \`${task.file}\`.`);
-    parts.push('- Follow all requirements listed above');
-    parts.push('- Apply all gotchas and conventions');
-    parts.push('- Use the code template if provided');
-    parts.push('- Output ONLY the code wrapped in a code block');
-    parts.push('- After the code block, briefly explain any design decisions');
+    parts.push("- Follow all requirements listed above");
+    parts.push("- Apply all gotchas and conventions");
+    parts.push("- Use the code template if provided");
+    parts.push("- Output ONLY the code wrapped in a code block");
+    parts.push("- After the code block, briefly explain any design decisions");
 
-    return parts.join('\n');
+    return parts.join("\n");
   }
 
   /**
@@ -183,8 +192,8 @@ export class CodeGenerator implements CodeGeneratorInterface {
    */
   private extractCode(response: Anthropic.Message): string {
     const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude API');
+    if (content.type !== "text") {
+      throw new Error("Unexpected response type from Claude API");
     }
 
     const text = content.text;
@@ -204,8 +213,8 @@ export class CodeGenerator implements CodeGeneratorInterface {
    */
   private extractExplanation(response: Anthropic.Message): string {
     const content = response.content[0];
-    if (content.type !== 'text') {
-      return '';
+    if (content.type !== "text") {
+      return "";
     }
 
     const text = content.text;
@@ -216,7 +225,7 @@ export class CodeGenerator implements CodeGeneratorInterface {
       return parts[parts.length - 1].trim();
     }
 
-    return '';
+    return "";
   }
 
   /**
@@ -251,6 +260,8 @@ export class CodeGenerator implements CodeGeneratorInterface {
 /**
  * Create a code generator instance
  */
-export function createCodeGenerator(options?: CodeGeneratorOptions): CodeGenerator {
+export function createCodeGenerator(
+  options?: CodeGeneratorOptions,
+): CodeGenerator {
   return new CodeGenerator(options);
 }

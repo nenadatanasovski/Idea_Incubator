@@ -13,6 +13,7 @@ After analyzing the E2E testing agent log and comparing it to the `auto-build-ag
 ### 1. NO ROOT CAUSE ANALYSIS (Fatal Flaw)
 
 **What the agent does:**
+
 ```
 Let me wait a bit more and take another screenshot.
 [wait 3 seconds]
@@ -23,12 +24,14 @@ Still loading. Let me wait a bit more.
 ```
 
 **What it should do:**
+
 - When something fails, STOP and investigate WHY
 - Check server logs, console errors, network requests
 - Read the code to understand the flow
 - Form a hypothesis BEFORE retrying
 
 **From auto-build-agent's `coding_prompt.md`:**
+
 > "If you find ANY issues... Add issues to a list. Fix all issues BEFORE moving to new features."
 
 The current agent never builds this diagnostic mindset. It treats symptoms (page not loading) without investigating the disease (API timeout, session state loss, etc.).
@@ -38,6 +41,7 @@ The current agent never builds this diagnostic mindset. It treats symptoms (page
 ### 2. SCREENSHOT SPAM WITHOUT PURPOSE
 
 **Log excerpt:**
+
 ```
 [Tool: mcp__puppeteer__puppeteer_screenshot] test-cf-008-01-ideation-entry
 [Tool: mcp__puppeteer__puppeteer_screenshot] test-cf-008-02-session-starting
@@ -51,6 +55,7 @@ The current agent never builds this diagnostic mindset. It treats symptoms (page
 **Problem:** Screenshots are taken reflexively, not strategically. They don't inform decision-making.
 
 **What auto-build-agent prescribes:**
+
 > "Take screenshots at each step... Verify both functionality AND visual appearance."
 
 Screenshots should VERIFY outcomes, not just document the passage of time.
@@ -60,21 +65,23 @@ Screenshots should VERIFY outcomes, not just document the passage of time.
 ### 3. WAITING WITHOUT STRATEGY (Time-Based vs Event-Based)
 
 **Current approach:**
+
 ```javascript
-new Promise(resolve => setTimeout(resolve, 3000))
-new Promise(resolve => setTimeout(resolve, 5000))
-new Promise(resolve => setTimeout(resolve, 10000))
-new Promise(resolve => setTimeout(resolve, 15000))
+new Promise((resolve) => setTimeout(resolve, 3000));
+new Promise((resolve) => setTimeout(resolve, 5000));
+new Promise((resolve) => setTimeout(resolve, 10000));
+new Promise((resolve) => setTimeout(resolve, 15000));
 ```
 
 **Problem:** Arbitrary sleep timers with exponential backoff that never ends. This is cargo-cult programming.
 
 **What should happen:**
+
 ```javascript
 // Wait for specific element to appear
-await page.waitForSelector('.session-loaded', { timeout: 30000 });
+await page.waitForSelector(".session-loaded", { timeout: 30000 });
 // Or poll for condition
-await page.waitForFunction(() => !document.querySelector('.loading'));
+await page.waitForFunction(() => !document.querySelector(".loading"));
 ```
 
 The agent should wait for **events**, not **time**. If something takes longer than expected, that's diagnostic information - investigate it.
@@ -84,6 +91,7 @@ The agent should wait for **events**, not **time**. If something takes longer th
 ### 4. REPEATED SCHEMA ERRORS WITHOUT LEARNING
 
 **Log shows this pattern MULTIPLE times:**
+
 ```sql
 SELECT id, status, created_at FROM ideation_sessions...
 Error: no such column: created_at
@@ -93,18 +101,21 @@ Error: no such column: timestamp
 ```
 
 **Then later in SAME session:**
+
 ```sql
 SELECT id, status, created_at FROM ideation_sessions...
 Error: no such column: created_at  -- SAME ERROR AGAIN!
 ```
 
 **Critical failure:** The agent doesn't maintain a mental model of the schema. It:
+
 1. Hits an error
 2. Checks the schema
 3. Forgets what it learned
 4. Makes the SAME error again
 
 **Solution from auto-build-agent:**
+
 > "Step 1: GET YOUR BEARINGS (MANDATORY)... Read the project specification to understand what you're building."
 
 The agent should build understanding ONCE and retain it.
@@ -114,9 +125,11 @@ The agent should build understanding ONCE and retain it.
 ### 5. SESSION/TAB PROLIFERATION
 
 **From system prompt warning you shared:**
+
 > "What I've also noticed is new chrome tabs always being opened instead of just using one tab."
 
 **Log evidence:**
+
 ```
 Session started with ID b372096d
 [Later] Session started (7785d629)
@@ -125,6 +138,7 @@ Session started with ID b372096d
 ```
 
 **Problem:** The agent creates new sessions/tabs when existing ones fail, rather than diagnosing WHY they fail. This is:
+
 - Wasteful of resources
 - Avoiding root cause
 - Creating orphaned state
@@ -134,9 +148,11 @@ Session started with ID b372096d
 ### 6. NO VERIFICATION BEFORE CONTINUING
 
 **From auto-build-agent's prompt:**
+
 > "STEP 3: VERIFICATION TEST (CRITICAL!)... The previous session may have introduced bugs. Before implementing anything new, you MUST run verification tests."
 
 **Current agent behavior:**
+
 - Starts a session
 - Session fails
 - Immediately starts a NEW session
@@ -149,6 +165,7 @@ There's no "check if my previous action worked" step.
 ### 7. BLIND RETRIES (Same Action, Expecting Different Results)
 
 **Pattern in log:**
+
 ```
 [Click send button]
 "Failed to send message"
@@ -165,6 +182,7 @@ There's no "check if my previous action worked" step.
 **Einstein's definition of insanity.** The agent retries identical actions without changing anything.
 
 **What should happen:**
+
 1. First failure: Check console errors
 2. Second failure: Check network requests
 3. Third failure: Read the component code
@@ -177,11 +195,13 @@ There's no "check if my previous action worked" step.
 ### 8. WRONG ABSTRACTION LEVEL FOR DEBUGGING
 
 **When something fails, the agent:**
+
 - Takes more screenshots (UI level)
 - Adds more waits (timing level)
 - Starts new sessions (retry level)
 
 **But it should:**
+
 - Check API responses (network level)
 - Read console logs (runtime level)
 - Read source code (code level)
@@ -194,6 +214,7 @@ The agent stays at the "UI manipulation" level when problems require deeper inve
 ### 9. NO STATE PERSISTENCE BETWEEN ITERATIONS
 
 **Log shows:**
+
 ```
 ==================================================
 [ITERATION 3] 2025-12-31 16:58:27
@@ -202,6 +223,7 @@ I'll start by reading the test state and test plan...
 ```
 
 **Then in Iteration 4:**
+
 ```
 ==================================================
 [ITERATION 4] 2025-12-31 17:10:36
@@ -212,6 +234,7 @@ I'll start by reading the test state and E2E test plan...
 Both iterations start from scratch, re-reading the same files, with no learned context.
 
 **Auto-build-agent solution:**
+
 ```
 # 5. Read progress notes from previous sessions
 cat claude-progress.txt
@@ -224,6 +247,7 @@ The `claude-progress.txt` file is a handoff document that preserves understandin
 ### 10. MISSING "GET YOUR BEARINGS" DISCIPLINE
 
 **Auto-build-agent's MANDATORY first step:**
+
 ```bash
 # 1. See your working directory
 pwd
@@ -242,6 +266,7 @@ cat claude-progress.txt
 ```
 
 **Current agent:** Jumps directly into UI interaction without understanding:
+
 - What the codebase looks like
 - What changed since last run
 - What the current system state is
@@ -254,22 +279,24 @@ cat claude-progress.txt
 
 The agent is designed as a **test executor**, not a **problem solver**.
 
-| Test Executor | Problem Solver |
-|---------------|----------------|
-| Follow steps | Understand why |
-| Retry on failure | Diagnose on failure |
+| Test Executor         | Problem Solver            |
+| --------------------- | ------------------------- |
+| Follow steps          | Understand why            |
+| Retry on failure      | Diagnose on failure       |
 | Screenshot everything | Investigate strategically |
-| Time-based waits | Event-based waits |
-| Session per attempt | Fix then verify |
+| Time-based waits      | Event-based waits         |
+| Session per attempt   | Fix then verify           |
 
 ### The Architecture is Backwards
 
 **Current flow:**
+
 ```
 Test fails → Retry test → Test fails → Retry test → Give up
 ```
 
 **Correct flow (from auto-build-agent):**
+
 ```
 Test fails → Diagnose why → Fix root cause → Verify fix → Continue
 ```
@@ -281,8 +308,10 @@ Test fails → Diagnose why → Fix root cause → Verify fix → Continue
 ### 1. Implement Diagnostic Checkpoints
 
 Before any retry, mandate:
+
 ```markdown
 ## DIAGNOSTIC CHECKPOINT
+
 - [ ] Checked server logs
 - [ ] Checked browser console
 - [ ] Checked network requests
@@ -293,22 +322,26 @@ Before any retry, mandate:
 ### 2. Event-Based Waiting
 
 Replace:
+
 ```javascript
-setTimeout(resolve, 5000)
+setTimeout(resolve, 5000);
 ```
 
 With:
+
 ```javascript
-await page.waitForSelector('.expected-element', { timeout: 30000 });
+await page.waitForSelector(".expected-element", { timeout: 30000 });
 // Or for API completion:
-await page.waitForResponse(resp => resp.url().includes('/api/'));
+await page.waitForResponse((resp) => resp.url().includes("/api/"));
 ```
 
 ### 3. Schema Caching
 
 On first schema error, record the correct schema:
+
 ```markdown
 ## LEARNED SCHEMA
+
 ideation_sessions: id, status, started_at, message_count, profile_id, entry_mode
 ideation_messages: id, session_id, role, content, created_at, sequence
 ```
@@ -319,6 +352,7 @@ Reference this before writing queries.
 
 ```markdown
 ## TAB RULES
+
 - Reuse existing tab unless destroyed
 - On tab error: diagnose before creating new
 - Maximum 1 active tab per test
@@ -327,20 +361,26 @@ Reference this before writing queries.
 ### 5. Progress Handoff File
 
 Create `tests/e2e/agent-state.md`:
+
 ```markdown
 ## Last Action
+
 Attempted TEST-CF-008 message sending
 
 ## What Failed
+
 Send button click causes redirect to entry page
 
 ## Hypothesis
+
 Session state lost during message send - likely React state issue
 
 ## Next Action
+
 Read IdeationSession.tsx handleSendMessage function
 
 ## Schema Reference
+
 ideation_sessions: id, status, started_at...
 ```
 
@@ -348,7 +388,9 @@ ideation_sessions: id, status, started_at...
 
 ```markdown
 ### Bug-First Priority
+
 When a bug is discovered:
+
 1. Document the bug immediately
 2. Update test status to "blocked"
 3. Create handoff for BUG-FIXER agent (not continue testing)
@@ -361,15 +403,15 @@ The current agent keeps testing around bugs instead of fixing them.
 
 ## Comparison: What Auto-Build-Agent Does Right
 
-| Aspect | Auto-Build-Agent | Current Agent |
-|--------|------------------|---------------|
-| Orientation | Mandatory "Get Your Bearings" step | Jumps into action |
-| Verification | Verify previous work before continuing | Starts fresh each time |
-| Failures | Diagnose → Fix → Verify | Retry → Retry → Retry |
-| State | `claude-progress.txt` handoff | No persistent learning |
-| Testing | Test through UI like human | Screenshot spam |
-| Progress | Clear pass/fail criteria | Ambiguous outcomes |
-| One thing | Complete ONE feature perfectly | Partial attempts on many |
+| Aspect       | Auto-Build-Agent                       | Current Agent            |
+| ------------ | -------------------------------------- | ------------------------ |
+| Orientation  | Mandatory "Get Your Bearings" step     | Jumps into action        |
+| Verification | Verify previous work before continuing | Starts fresh each time   |
+| Failures     | Diagnose → Fix → Verify                | Retry → Retry → Retry    |
+| State        | `claude-progress.txt` handoff          | No persistent learning   |
+| Testing      | Test through UI like human             | Screenshot spam          |
+| Progress     | Clear pass/fail criteria               | Ambiguous outcomes       |
+| One thing    | Complete ONE feature perfectly         | Partial attempts on many |
 
 ---
 
@@ -378,6 +420,7 @@ The current agent keeps testing around bugs instead of fixing them.
 **No.**
 
 Evidence from the log:
+
 1. **TEST-CF-008** is attempted across iterations 3 and 4 - never completed
 2. Same bugs (redirect to entry page) occur repeatedly
 3. No code changes are made to fix identified issues
@@ -403,11 +446,12 @@ This is already in `RALPH-LOOP-AGENT.md` but not being followed.
 
 ```markdown
 ON_FAILURE:
-  1. Collect diagnostics (console, network, DB)
-  2. Read relevant source code
-  3. Form hypothesis
-  4. Write to handoff file
-  5. EXIT (let bug-fixer handle it)
+
+1. Collect diagnostics (console, network, DB)
+2. Read relevant source code
+3. Form hypothesis
+4. Write to handoff file
+5. EXIT (let bug-fixer handle it)
 ```
 
 ### 3. Learning Persistence
@@ -425,6 +469,7 @@ ON_FAILURE:
 ### 4. Action-Outcome Linking
 
 Every action should be:
+
 ```markdown
 ACTION: Click "Something frustrates me" button
 EXPECTED: Message appears in chat, await response
@@ -487,12 +532,12 @@ The agent is essentially a **logging system**, not a **problem-solving system**.
 
 ## Files Created/Updated
 
-| File | Purpose |
-|------|---------|
-| `tests/e2e/agent-memory.json` | Schema cache, patterns, known bugs |
-| `tests/e2e/prompts/E2E-AGENT.md` | Unified agent instructions |
-| `tests/e2e/prompts/DIAGNOSTIC-CHECKPOINT.md` | How to diagnose failures |
-| `tests/e2e/prompts/WAITING-PATTERNS.md` | Event-based waiting examples |
-| `tests/e2e/HANDOFF.md` | Inter-session context template |
-| `tests/e2e/ralph-loop.sh` | Updated orchestrator v2.0 |
-| `tests/e2e/RALPH-LOOP-AGENT.md` | Updated documentation |
+| File                                         | Purpose                            |
+| -------------------------------------------- | ---------------------------------- |
+| `tests/e2e/agent-memory.json`                | Schema cache, patterns, known bugs |
+| `tests/e2e/prompts/E2E-AGENT.md`             | Unified agent instructions         |
+| `tests/e2e/prompts/DIAGNOSTIC-CHECKPOINT.md` | How to diagnose failures           |
+| `tests/e2e/prompts/WAITING-PATTERNS.md`      | Event-based waiting examples       |
+| `tests/e2e/HANDOFF.md`                       | Inter-session context template     |
+| `tests/e2e/ralph-loop.sh`                    | Updated orchestrator v2.0          |
+| `tests/e2e/RALPH-LOOP-AGENT.md`              | Updated documentation              |

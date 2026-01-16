@@ -53,6 +53,7 @@ Before starting implementation, ensure:
 - [ ] Telegram bot is connected and responding
 
 **Verification Command:**
+
 ```bash
 npm run migrate:status
 ```
@@ -71,6 +72,7 @@ npm run migrate:status
 **File:** `server/db/migrations/YYYYMMDD_create_task_impacts.sql`
 
 **Schema:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS task_impacts (
   id TEXT PRIMARY KEY,
@@ -100,6 +102,7 @@ CREATE INDEX idx_task_impacts_target ON task_impacts(target_path);
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Table created successfully
 - [ ] Foreign key constraint enforced
 - [ ] Indexes created
@@ -113,6 +116,7 @@ CREATE INDEX idx_task_impacts_target ON task_impacts(target_path);
 **File:** `server/db/migrations/YYYYMMDD_create_task_appendices.sql`
 
 **Schema:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS task_appendices (
   id TEXT PRIMARY KEY,
@@ -152,6 +156,7 @@ CREATE INDEX idx_task_appendices_type ON task_appendices(appendix_type);
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Table created successfully
 - [ ] All 11 appendix types in CHECK constraint
 - [ ] Both inline and reference storage supported
@@ -164,6 +169,7 @@ CREATE INDEX idx_task_appendices_type ON task_appendices(appendix_type);
 **File:** `server/db/migrations/YYYYMMDD_create_prds.sql`
 
 **Schema:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS prds (
   id TEXT PRIMARY KEY,
@@ -206,6 +212,7 @@ CREATE INDEX idx_prds_status ON prds(status);
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Table created with all columns
 - [ ] Self-referential FK for hierarchy works
 - [ ] Slug uniqueness enforced
@@ -219,6 +226,7 @@ CREATE INDEX idx_prds_status ON prds(status);
 **File:** `server/db/migrations/YYYYMMDD_create_prd_task_lists.sql`
 
 **Schema:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS prd_task_lists (
   id TEXT PRIMARY KEY,
@@ -239,6 +247,7 @@ CREATE INDEX idx_prd_task_lists_list ON prd_task_lists(task_list_id);
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Junction table created
 - [ ] Unique constraint prevents duplicate links
 - [ ] Cascading deletes work correctly
@@ -251,6 +260,7 @@ CREATE INDEX idx_prd_task_lists_list ON prd_task_lists(task_list_id);
 **File:** `server/db/migrations/YYYYMMDD_create_prd_tasks.sql`
 
 **Schema:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS prd_tasks (
   id TEXT PRIMARY KEY,
@@ -272,6 +282,7 @@ CREATE INDEX idx_prd_tasks_task ON prd_tasks(task_id);
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Junction table created
 - [ ] Requirement reference supports traceability
 - [ ] Link types constrained correctly
@@ -283,6 +294,7 @@ CREATE INDEX idx_prd_tasks_task ON prd_tasks(task_id);
 **File:** `server/db/migrations/YYYYMMDD_create_task_test_results.sql`
 
 **Schema:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS task_test_results (
   id TEXT PRIMARY KEY,
@@ -316,6 +328,7 @@ CREATE INDEX idx_task_test_results_execution ON task_test_results(execution_id);
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Table created with all columns
 - [ ] Three test levels supported
 - [ ] Links to execution context work
@@ -328,6 +341,7 @@ CREATE INDEX idx_task_test_results_execution ON task_test_results(execution_id);
 **File:** `server/db/migrations/YYYYMMDD_create_task_state_history.sql`
 
 **Schema:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS task_state_history (
   id TEXT PRIMARY KEY,
@@ -355,6 +369,7 @@ CREATE INDEX idx_task_state_history_status ON task_state_history(to_status);
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Table created with all columns
 - [ ] Full audit trail preserved
 - [ ] Efficient time-range queries
@@ -367,6 +382,7 @@ CREATE INDEX idx_task_state_history_status ON task_state_history(to_status);
 **File:** `server/db/migrations/YYYYMMDD_create_task_versions.sql`
 
 **Schema:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS task_versions (
   id TEXT PRIMARY KEY,
@@ -398,6 +414,7 @@ CREATE INDEX idx_task_versions_checkpoint ON task_versions(is_checkpoint) WHERE 
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Table created with all columns
 - [ ] Version numbers auto-increment per task
 - [ ] Checkpoints queryable efficiently
@@ -410,12 +427,14 @@ CREATE INDEX idx_task_versions_checkpoint ON task_versions(is_checkpoint) WHERE 
 **File:** `server/db/migrations/YYYYMMDD_add_auto_approve_reviews.sql`
 
 **Schema:**
+
 ```sql
 ALTER TABLE task_lists_v2
 ADD COLUMN auto_approve_reviews INTEGER NOT NULL DEFAULT 0;
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Column added to existing table
 - [ ] Default value is 0 (false)
 - [ ] Existing rows have default value
@@ -425,12 +444,14 @@ ADD COLUMN auto_approve_reviews INTEGER NOT NULL DEFAULT 0;
 ### Phase 1 Verification
 
 **Run all migrations:**
+
 ```bash
 npm run migrate
 npm run migrate:status
 ```
 
 **Verify tables exist:**
+
 ```sql
 SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'task_%';
 SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'prd%';
@@ -453,17 +474,17 @@ SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'prd%';
 /**
  * Impact types representing what a task affects
  */
-export type ImpactType = 'file' | 'api' | 'function' | 'database' | 'type';
+export type ImpactType = "file" | "api" | "function" | "database" | "type";
 
 /**
  * CRUD operations for impacts
  */
-export type ImpactOperation = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE';
+export type ImpactOperation = "CREATE" | "READ" | "UPDATE" | "DELETE";
 
 /**
  * Source of impact prediction
  */
-export type ImpactSource = 'ai' | 'pattern' | 'user' | 'validated';
+export type ImpactSource = "ai" | "pattern" | "user" | "validated";
 
 /**
  * Task Impact entity
@@ -479,7 +500,7 @@ export interface TaskImpact {
   targetName?: string;
   targetSignature?: string;
 
-  confidence: number;  // 0.0 - 1.0
+  confidence: number; // 0.0 - 1.0
   source: ImpactSource;
 
   createdAt: string;
@@ -506,13 +527,18 @@ export interface CreateTaskImpactInput {
 export interface ImpactConflict {
   taskAId: string;
   taskBId: string;
-  conflictType: 'write-write' | 'write-delete' | 'delete-delete' | 'delete-read';
+  conflictType:
+    | "write-write"
+    | "write-delete"
+    | "delete-delete"
+    | "delete-read";
   targetPath: string;
-  severity: 'blocking' | 'warning';
+  severity: "blocking" | "warning";
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] All types exported correctly
 - [ ] Imports work in other files
 - [ ] Type guards work correctly
@@ -528,22 +554,22 @@ export interface ImpactConflict {
  * All supported appendix types
  */
 export type AppendixType =
-  | 'prd_reference'
-  | 'code_context'
-  | 'gotcha_list'
-  | 'rollback_plan'
-  | 'test_context'
-  | 'dependency_notes'
-  | 'architecture_decision'
-  | 'user_story'
-  | 'acceptance_criteria'
-  | 'research_notes'
-  | 'api_contract';
+  | "prd_reference"
+  | "code_context"
+  | "gotcha_list"
+  | "rollback_plan"
+  | "test_context"
+  | "dependency_notes"
+  | "architecture_decision"
+  | "user_story"
+  | "acceptance_criteria"
+  | "research_notes"
+  | "api_contract";
 
 /**
  * Storage type for appendix content
  */
-export type AppendixContentType = 'inline' | 'reference';
+export type AppendixContentType = "inline" | "reference";
 
 /**
  * Task Appendix entity
@@ -589,6 +615,7 @@ export interface ResolvedAppendix extends TaskAppendix {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] All 11 appendix types defined
 - [ ] Both storage types supported
 - [ ] ResolvedAppendix interface for loaded content
@@ -603,12 +630,12 @@ export interface ResolvedAppendix extends TaskAppendix {
 /**
  * PRD status lifecycle
  */
-export type PrdStatus = 'draft' | 'review' | 'approved' | 'archived';
+export type PrdStatus = "draft" | "review" | "approved" | "archived";
 
 /**
  * PRD link types for task relationships
  */
-export type PrdLinkType = 'implements' | 'tests' | 'related';
+export type PrdLinkType = "implements" | "tests" | "related";
 
 /**
  * Product Requirements Document entity
@@ -677,7 +704,7 @@ export interface PrdTaskLink {
  */
 export interface CreatePrdInput {
   title: string;
-  slug?: string;  // Auto-generated if not provided
+  slug?: string; // Auto-generated if not provided
   projectId?: string;
   parentPrdId?: string;
   problemStatement?: string;
@@ -709,6 +736,7 @@ export interface PrdCoverage {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] All PRD types defined
 - [ ] Coverage tracking types complete
 - [ ] Junction types match DB schema
@@ -783,13 +811,14 @@ export interface ValidationResult {
  */
 export interface RunValidationInput {
   taskId: string;
-  levels?: TestLevel[];  // Default: all levels
+  levels?: TestLevel[]; // Default: all levels
   executionId?: string;
   agentId?: string;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Three test levels defined
 - [ ] Configuration and result types complete
 - [ ] Validation summary type supports UI
@@ -805,14 +834,14 @@ export interface RunValidationInput {
  * Types of changes that trigger cascade
  */
 export type CascadeTrigger =
-  | 'file_impact_changed'
-  | 'api_impact_changed'
-  | 'function_impact_changed'
-  | 'database_impact_changed'
-  | 'type_impact_changed'
-  | 'status_changed'
-  | 'dependency_changed'
-  | 'priority_changed';
+  | "file_impact_changed"
+  | "api_impact_changed"
+  | "function_impact_changed"
+  | "database_impact_changed"
+  | "type_impact_changed"
+  | "status_changed"
+  | "dependency_changed"
+  | "priority_changed";
 
 /**
  * Cascade effect on a related task
@@ -824,10 +853,10 @@ export interface CascadeEffect {
   trigger: CascadeTrigger;
   reason: string;
 
-  impactType: 'direct' | 'transitive';
-  depth: number;  // 1 = direct, 2+ = transitive
+  impactType: "direct" | "transitive";
+  depth: number; // 1 = direct, 2+ = transitive
 
-  suggestedAction: 'review' | 'auto_update' | 'block' | 'notify';
+  suggestedAction: "review" | "auto_update" | "block" | "notify";
   autoApprovable: boolean;
 }
 
@@ -845,7 +874,7 @@ export interface CascadeAnalysis {
   requiresReview: number;
   autoApprovable: number;
 
-  taskListAutoApprove: boolean;  // From task_lists_v2.auto_approve_reviews
+  taskListAutoApprove: boolean; // From task_lists_v2.auto_approve_reviews
 }
 
 /**
@@ -860,7 +889,7 @@ export interface CascadeExecutionResult {
     success: boolean;
   }[];
 
-  flaggedForReview: string[];  // Task IDs
+  flaggedForReview: string[]; // Task IDs
   failed: {
     taskId: string;
     error: string;
@@ -869,6 +898,7 @@ export interface CascadeExecutionResult {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] All cascade trigger types defined
 - [ ] Effect depth tracking supports visualization
 - [ ] Execution result matches API needs
@@ -888,7 +918,7 @@ export interface TaskVersion {
   taskId: string;
   version: number;
 
-  snapshot: Record<string, unknown>;  // Full task state
+  snapshot: Record<string, unknown>; // Full task state
   changedFields: string[];
   changeReason?: string;
 
@@ -933,6 +963,7 @@ export interface RestoreVersionInput {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Version snapshot stores complete state
 - [ ] Diff calculation types support UI
 - [ ] Checkpoint and restore inputs defined
@@ -946,8 +977,8 @@ export interface RestoreVersionInput {
 Add the following to existing Task interface:
 
 ```typescript
-import { TaskImpact } from './task-impact';
-import { TaskAppendix } from './task-appendix';
+import { TaskImpact } from "./task-impact";
+import { TaskAppendix } from "./task-appendix";
 
 // Add to existing Task interface or create extended version
 export interface TaskWithRelations extends Task {
@@ -974,7 +1005,7 @@ export interface TaskStateHistoryEntry {
   fromStatus: string | null;
   toStatus: string;
   changedBy: string;
-  actorType: 'user' | 'agent' | 'system';
+  actorType: "user" | "agent" | "system";
   reason?: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
@@ -982,6 +1013,7 @@ export interface TaskStateHistoryEntry {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Existing types preserved
 - [ ] New relationships added
 - [ ] Imports work correctly
@@ -1010,31 +1042,49 @@ All type files should compile without errors.
 **File:** `server/services/task-agent/task-impact-service.ts`
 
 **Functions:**
+
 ```typescript
 export class TaskImpactService {
   // CRUD
-  async create(input: CreateTaskImpactInput): Promise<TaskImpact>
-  async getById(id: string): Promise<TaskImpact | null>
-  async getByTaskId(taskId: string): Promise<TaskImpact[]>
-  async update(id: string, updates: Partial<CreateTaskImpactInput>): Promise<TaskImpact>
-  async delete(id: string): Promise<void>
-  async deleteByTaskId(taskId: string): Promise<void>
+  async create(input: CreateTaskImpactInput): Promise<TaskImpact>;
+  async getById(id: string): Promise<TaskImpact | null>;
+  async getByTaskId(taskId: string): Promise<TaskImpact[]>;
+  async update(
+    id: string,
+    updates: Partial<CreateTaskImpactInput>,
+  ): Promise<TaskImpact>;
+  async delete(id: string): Promise<void>;
+  async deleteByTaskId(taskId: string): Promise<void>;
 
   // Bulk operations
-  async createBulk(taskId: string, impacts: CreateTaskImpactInput[]): Promise<TaskImpact[]>
-  async replaceAll(taskId: string, impacts: CreateTaskImpactInput[]): Promise<TaskImpact[]>
+  async createBulk(
+    taskId: string,
+    impacts: CreateTaskImpactInput[],
+  ): Promise<TaskImpact[]>;
+  async replaceAll(
+    taskId: string,
+    impacts: CreateTaskImpactInput[],
+  ): Promise<TaskImpact[]>;
 
   // Queries
-  async getByTargetPath(targetPath: string): Promise<TaskImpact[]>
-  async getByImpactType(impactType: ImpactType): Promise<TaskImpact[]>
+  async getByTargetPath(targetPath: string): Promise<TaskImpact[]>;
+  async getByImpactType(impactType: ImpactType): Promise<TaskImpact[]>;
 
   // Validation
-  async validateActualImpact(taskId: string, actualFiles: string[]): Promise<void>
-  async updateConfidence(id: string, newConfidence: number, source: ImpactSource): Promise<void>
+  async validateActualImpact(
+    taskId: string,
+    actualFiles: string[],
+  ): Promise<void>;
+  async updateConfidence(
+    id: string,
+    newConfidence: number,
+    source: ImpactSource,
+  ): Promise<void>;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] All CRUD operations work
 - [ ] Bulk operations are transactional
 - [ ] Validation updates confidence scores
@@ -1046,29 +1096,40 @@ export class TaskImpactService {
 **File:** `server/services/task-agent/task-appendix-service.ts`
 
 **Functions:**
+
 ```typescript
 export class TaskAppendixService {
   // CRUD
-  async create(input: CreateTaskAppendixInput): Promise<TaskAppendix>
-  async getById(id: string): Promise<TaskAppendix | null>
-  async getByTaskId(taskId: string): Promise<TaskAppendix[]>
-  async getByTaskIdAndType(taskId: string, type: AppendixType): Promise<TaskAppendix[]>
-  async update(id: string, updates: Partial<CreateTaskAppendixInput>): Promise<TaskAppendix>
-  async delete(id: string): Promise<void>
+  async create(input: CreateTaskAppendixInput): Promise<TaskAppendix>;
+  async getById(id: string): Promise<TaskAppendix | null>;
+  async getByTaskId(taskId: string): Promise<TaskAppendix[]>;
+  async getByTaskIdAndType(
+    taskId: string,
+    type: AppendixType,
+  ): Promise<TaskAppendix[]>;
+  async update(
+    id: string,
+    updates: Partial<CreateTaskAppendixInput>,
+  ): Promise<TaskAppendix>;
+  async delete(id: string): Promise<void>;
 
   // Resolution
-  async resolve(appendix: TaskAppendix): Promise<ResolvedAppendix>
-  async resolveAll(taskId: string): Promise<ResolvedAppendix[]>
+  async resolve(appendix: TaskAppendix): Promise<ResolvedAppendix>;
+  async resolveAll(taskId: string): Promise<ResolvedAppendix[]>;
 
   // Reordering
-  async reorder(taskId: string, appendixIds: string[]): Promise<void>
+  async reorder(taskId: string, appendixIds: string[]): Promise<void>;
 
   // Bulk
-  async attachFromKnowledgeBase(taskId: string, kbEntryIds: string[]): Promise<TaskAppendix[]>
+  async attachFromKnowledgeBase(
+    taskId: string,
+    kbEntryIds: string[],
+  ): Promise<TaskAppendix[]>;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Inline content stored directly
 - [ ] Reference content resolved from other tables
 - [ ] Ordering preserved and updatable
@@ -1080,32 +1141,38 @@ export class TaskAppendixService {
 **File:** `server/services/prd-service.ts`
 
 **Functions:**
+
 ```typescript
 export class PrdService {
   // CRUD
-  async create(input: CreatePrdInput, userId: string): Promise<PRD>
-  async getById(id: string): Promise<PRD | null>
-  async getBySlug(slug: string): Promise<PRD | null>
-  async getByUserId(userId: string): Promise<PRD[]>
-  async getByProjectId(projectId: string): Promise<PRD[]>
-  async update(id: string, updates: Partial<CreatePrdInput>): Promise<PRD>
-  async delete(id: string): Promise<void>
+  async create(input: CreatePrdInput, userId: string): Promise<PRD>;
+  async getById(id: string): Promise<PRD | null>;
+  async getBySlug(slug: string): Promise<PRD | null>;
+  async getByUserId(userId: string): Promise<PRD[]>;
+  async getByProjectId(projectId: string): Promise<PRD[]>;
+  async update(id: string, updates: Partial<CreatePrdInput>): Promise<PRD>;
+  async delete(id: string): Promise<void>;
 
   // Hierarchy
-  async getChildren(prdId: string): Promise<PRD[]>
-  async getParent(prdId: string): Promise<PRD | null>
-  async getHierarchy(prdId: string): Promise<PRDWithRelations>
+  async getChildren(prdId: string): Promise<PRD[]>;
+  async getParent(prdId: string): Promise<PRD | null>;
+  async getHierarchy(prdId: string): Promise<PRDWithRelations>;
 
   // Status
-  async updateStatus(id: string, status: PrdStatus, userId?: string): Promise<PRD>
-  async approve(id: string, userId: string): Promise<PRD>
+  async updateStatus(
+    id: string,
+    status: PrdStatus,
+    userId?: string,
+  ): Promise<PRD>;
+  async approve(id: string, userId: string): Promise<PRD>;
 
   // Slug generation
-  async generateSlug(title: string, projectId?: string): Promise<string>
+  async generateSlug(title: string, projectId?: string): Promise<string>;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Slug auto-generation works
 - [ ] Hierarchy traversal efficient
 - [ ] Approval workflow enforced
@@ -1117,31 +1184,50 @@ export class PrdService {
 **File:** `server/services/prd-link-service.ts`
 
 **Functions:**
+
 ```typescript
 export class PrdLinkService {
   // Task List links
-  async linkTaskList(prdId: string, taskListId: string, position?: number): Promise<PrdTaskListLink>
-  async unlinkTaskList(prdId: string, taskListId: string): Promise<void>
-  async getLinkedTaskLists(prdId: string): Promise<PrdTaskListLink[]>
-  async reorderTaskLists(prdId: string, taskListIds: string[]): Promise<void>
+  async linkTaskList(
+    prdId: string,
+    taskListId: string,
+    position?: number,
+  ): Promise<PrdTaskListLink>;
+  async unlinkTaskList(prdId: string, taskListId: string): Promise<void>;
+  async getLinkedTaskLists(prdId: string): Promise<PrdTaskListLink[]>;
+  async reorderTaskLists(prdId: string, taskListIds: string[]): Promise<void>;
 
   // Task links
-  async linkTask(prdId: string, taskId: string, requirementRef?: string, linkType?: PrdLinkType): Promise<PrdTaskLink>
-  async unlinkTask(prdId: string, taskId: string): Promise<void>
-  async getLinkedTasks(prdId: string): Promise<PrdTaskLink[]>
-  async getTasksByRequirement(prdId: string, requirementRef: string): Promise<PrdTaskLink[]>
+  async linkTask(
+    prdId: string,
+    taskId: string,
+    requirementRef?: string,
+    linkType?: PrdLinkType,
+  ): Promise<PrdTaskLink>;
+  async unlinkTask(prdId: string, taskId: string): Promise<void>;
+  async getLinkedTasks(prdId: string): Promise<PrdTaskLink[]>;
+  async getTasksByRequirement(
+    prdId: string,
+    requirementRef: string,
+  ): Promise<PrdTaskLink[]>;
 
   // Reverse lookups
-  async getPrdsForTaskList(taskListId: string): Promise<PRD[]>
-  async getPrdsForTask(taskId: string): Promise<PRD[]>
+  async getPrdsForTaskList(taskListId: string): Promise<PRD[]>;
+  async getPrdsForTask(taskId: string): Promise<PRD[]>;
 
   // Auto-linking
-  async suggestLinks(prdId: string): Promise<{ taskLists: string[]; tasks: string[] }>
-  async autoLink(prdId: string, minConfidence: number): Promise<{ linked: number; skipped: number }>
+  async suggestLinks(
+    prdId: string,
+  ): Promise<{ taskLists: string[]; tasks: string[] }>;
+  async autoLink(
+    prdId: string,
+    minConfidence: number,
+  ): Promise<{ linked: number; skipped: number }>;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Bidirectional linking works
 - [ ] Position ordering maintained
 - [ ] Auto-link suggestions based on content similarity
@@ -1153,25 +1239,35 @@ export class PrdLinkService {
 **File:** `server/services/prd-coverage-service.ts`
 
 **Functions:**
+
 ```typescript
 export class PrdCoverageService {
   // Coverage calculation
-  async calculateCoverage(prdId: string): Promise<PrdCoverage>
-  async getCoverageBySection(prdId: string): Promise<Record<string, number>>
+  async calculateCoverage(prdId: string): Promise<PrdCoverage>;
+  async getCoverageBySection(prdId: string): Promise<Record<string, number>>;
 
   // Requirement tracking
-  async getUncoveredRequirements(prdId: string): Promise<string[]>
-  async getRequirementCoverage(prdId: string, requirementRef: string): Promise<{ covered: boolean; tasks: string[] }>
+  async getUncoveredRequirements(prdId: string): Promise<string[]>;
+  async getRequirementCoverage(
+    prdId: string,
+    requirementRef: string,
+  ): Promise<{ covered: boolean; tasks: string[] }>;
 
   // Progress
-  async getCompletionProgress(prdId: string): Promise<{ total: number; completed: number; percentage: number }>
+  async getCompletionProgress(
+    prdId: string,
+  ): Promise<{ total: number; completed: number; percentage: number }>;
 
   // Notifications
-  async checkCoverageThreshold(prdId: string, threshold: number): Promise<boolean>
+  async checkCoverageThreshold(
+    prdId: string,
+    threshold: number,
+  ): Promise<boolean>;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Coverage calculated from linked tasks
 - [ ] Per-requirement tracking works
 - [ ] Progress updates in real-time
@@ -1183,30 +1279,50 @@ export class PrdCoverageService {
 **File:** `server/services/task-agent/task-version-service.ts`
 
 **Functions:**
+
 ```typescript
 export class TaskVersionService {
   // Version creation (called automatically on task changes)
-  async createVersion(taskId: string, changedFields: string[], reason?: string, userId?: string): Promise<TaskVersion>
+  async createVersion(
+    taskId: string,
+    changedFields: string[],
+    reason?: string,
+    userId?: string,
+  ): Promise<TaskVersion>;
 
   // Queries
-  async getVersions(taskId: string): Promise<TaskVersion[]>
-  async getVersion(taskId: string, version: number): Promise<TaskVersion | null>
-  async getLatestVersion(taskId: string): Promise<TaskVersion | null>
+  async getVersions(taskId: string): Promise<TaskVersion[]>;
+  async getVersion(
+    taskId: string,
+    version: number,
+  ): Promise<TaskVersion | null>;
+  async getLatestVersion(taskId: string): Promise<TaskVersion | null>;
 
   // Comparison
-  async diff(taskId: string, fromVersion: number, toVersion: number): Promise<VersionDiff>
+  async diff(
+    taskId: string,
+    fromVersion: number,
+    toVersion: number,
+  ): Promise<VersionDiff>;
 
   // Checkpoints
-  async createCheckpoint(input: CreateCheckpointInput, userId: string): Promise<TaskVersion>
-  async getCheckpoints(taskId: string): Promise<TaskVersion[]>
+  async createCheckpoint(
+    input: CreateCheckpointInput,
+    userId: string,
+  ): Promise<TaskVersion>;
+  async getCheckpoints(taskId: string): Promise<TaskVersion[]>;
 
   // Restoration
-  async restore(input: RestoreVersionInput, userId: string): Promise<Task>
-  async previewRestore(taskId: string, targetVersion: number): Promise<VersionDiff>
+  async restore(input: RestoreVersionInput, userId: string): Promise<Task>;
+  async previewRestore(
+    taskId: string,
+    targetVersion: number,
+  ): Promise<VersionDiff>;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Versions created automatically on changes
 - [ ] Checkpoints queryable separately
 - [ ] Restore creates new version (not overwrite)
@@ -1218,24 +1334,39 @@ export class TaskVersionService {
 **File:** `server/services/task-agent/task-state-history-service.ts`
 
 **Functions:**
+
 ```typescript
 export class TaskStateHistoryService {
   // Recording (called automatically on status changes)
-  async record(taskId: string, fromStatus: string | null, toStatus: string, changedBy: string, actorType: 'user' | 'agent' | 'system', reason?: string): Promise<TaskStateHistoryEntry>
+  async record(
+    taskId: string,
+    fromStatus: string | null,
+    toStatus: string,
+    changedBy: string,
+    actorType: "user" | "agent" | "system",
+    reason?: string,
+  ): Promise<TaskStateHistoryEntry>;
 
   // Queries
-  async getHistory(taskId: string): Promise<TaskStateHistoryEntry[]>
-  async getHistoryInRange(taskId: string, from: Date, to: Date): Promise<TaskStateHistoryEntry[]>
-  async getLastTransition(taskId: string): Promise<TaskStateHistoryEntry | null>
+  async getHistory(taskId: string): Promise<TaskStateHistoryEntry[]>;
+  async getHistoryInRange(
+    taskId: string,
+    from: Date,
+    to: Date,
+  ): Promise<TaskStateHistoryEntry[]>;
+  async getLastTransition(
+    taskId: string,
+  ): Promise<TaskStateHistoryEntry | null>;
 
   // Analytics
-  async getTimeInStatus(taskId: string, status: string): Promise<number>  // milliseconds
-  async getTransitionCount(taskId: string): Promise<number>
-  async getAverageTimeToComplete(taskListId: string): Promise<number>
+  async getTimeInStatus(taskId: string, status: string): Promise<number>; // milliseconds
+  async getTransitionCount(taskId: string): Promise<number>;
+  async getAverageTimeToComplete(taskListId: string): Promise<number>;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] All status changes recorded
 - [ ] Actor properly attributed
 - [ ] Analytics queries performant
@@ -1247,26 +1378,41 @@ export class TaskStateHistoryService {
 **File:** `server/services/task-agent/cascade-analyzer-service.ts`
 
 **Functions:**
+
 ```typescript
 export class CascadeAnalyzerService {
   // Analysis
-  async analyze(taskId: string, changeType: CascadeTrigger, changes: Record<string, unknown>): Promise<CascadeAnalysis>
+  async analyze(
+    taskId: string,
+    changeType: CascadeTrigger,
+    changes: Record<string, unknown>,
+  ): Promise<CascadeAnalysis>;
 
   // Direct effects
-  async findDirectlyAffected(taskId: string, changeType: CascadeTrigger): Promise<CascadeEffect[]>
+  async findDirectlyAffected(
+    taskId: string,
+    changeType: CascadeTrigger,
+  ): Promise<CascadeEffect[]>;
 
   // Transitive effects
-  async findTransitivelyAffected(directEffects: CascadeEffect[], maxDepth?: number): Promise<CascadeEffect[]>
+  async findTransitivelyAffected(
+    directEffects: CascadeEffect[],
+    maxDepth?: number,
+  ): Promise<CascadeEffect[]>;
 
   // Conflict detection
-  async detectFileConflicts(taskId: string, newImpacts: TaskImpact[]): Promise<ImpactConflict[]>
+  async detectFileConflicts(
+    taskId: string,
+    newImpacts: TaskImpact[],
+  ): Promise<ImpactConflict[]>;
 
   // Auto-approve check
-  async checkAutoApprove(taskId: string): Promise<boolean>
+  async checkAutoApprove(taskId: string): Promise<boolean>;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Direct effects identified by file/API overlap
 - [ ] Transitive effects follow dependency chain
 - [ ] Auto-approve respects task list setting
@@ -1278,24 +1424,32 @@ export class CascadeAnalyzerService {
 **File:** `server/services/task-agent/cascade-executor-service.ts`
 
 **Functions:**
+
 ```typescript
 export class CascadeExecutorService {
   // Execution
-  async execute(analysis: CascadeAnalysis, approveAll?: boolean): Promise<CascadeExecutionResult>
+  async execute(
+    analysis: CascadeAnalysis,
+    approveAll?: boolean,
+  ): Promise<CascadeExecutionResult>;
 
   // Selective execution
-  async executeSelected(analysis: CascadeAnalysis, selectedTaskIds: string[]): Promise<CascadeExecutionResult>
+  async executeSelected(
+    analysis: CascadeAnalysis,
+    selectedTaskIds: string[],
+  ): Promise<CascadeExecutionResult>;
 
   // Flagging
-  async flagForReview(taskIds: string[], reason: string): Promise<void>
-  async clearReviewFlag(taskId: string): Promise<void>
+  async flagForReview(taskIds: string[], reason: string): Promise<void>;
+  async clearReviewFlag(taskId: string): Promise<void>;
 
   // Notifications
-  async notifyAffectedTasks(analysis: CascadeAnalysis): Promise<void>
+  async notifyAffectedTasks(analysis: CascadeAnalysis): Promise<void>;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Changes applied atomically
 - [ ] Review flags visible in UI
 - [ ] Notifications sent to appropriate channels
@@ -1307,27 +1461,35 @@ export class CascadeExecutorService {
 **File:** `server/services/task-agent/task-test-service.ts`
 
 **Functions:**
+
 ```typescript
 export class TaskTestService {
   // Configuration
-  async setTestConfig(taskId: string, configs: TaskTestConfig[]): Promise<void>
-  async getTestConfig(taskId: string): Promise<TaskTestConfig[]>
+  async setTestConfig(taskId: string, configs: TaskTestConfig[]): Promise<void>;
+  async getTestConfig(taskId: string): Promise<TaskTestConfig[]>;
 
   // Execution
-  async runValidation(input: RunValidationInput): Promise<ValidationResult>
-  async runLevel(taskId: string, level: TestLevel, executionContext?: { executionId?: string; agentId?: string }): Promise<TaskTestResult>
+  async runValidation(input: RunValidationInput): Promise<ValidationResult>;
+  async runLevel(
+    taskId: string,
+    level: TestLevel,
+    executionContext?: { executionId?: string; agentId?: string },
+  ): Promise<TaskTestResult>;
 
   // Results
-  async getResults(taskId: string): Promise<TaskTestResult[]>
-  async getLatestResults(taskId: string): Promise<ValidationResult | null>
-  async getResultsByExecution(executionId: string): Promise<TaskTestResult[]>
+  async getResults(taskId: string): Promise<TaskTestResult[]>;
+  async getLatestResults(taskId: string): Promise<ValidationResult | null>;
+  async getResultsByExecution(executionId: string): Promise<TaskTestResult[]>;
 
   // Acceptance criteria
-  async checkAcceptanceCriteria(taskId: string): Promise<{ passed: boolean; criteria: { text: string; met: boolean }[] }>
+  async checkAcceptanceCriteria(
+    taskId: string,
+  ): Promise<{ passed: boolean; criteria: { text: string; met: boolean }[] }>;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Three test levels execute correctly
 - [ ] Results stored with full output
 - [ ] Acceptance criteria checked separately
@@ -1346,26 +1508,41 @@ export class TaskTestService {
 **File:** `server/services/task-agent/file-impact-analyzer.ts`
 
 **Functions:**
+
 ```typescript
 export class FileImpactAnalyzer {
   // AI estimation
-  async estimateImpacts(task: Task): Promise<TaskImpact[]>
+  async estimateImpacts(task: Task): Promise<TaskImpact[]>;
 
   // Pattern matching
-  async matchHistoricalPatterns(title: string, category: TaskCategory): Promise<TaskImpact[]>
+  async matchHistoricalPatterns(
+    title: string,
+    category: TaskCategory,
+  ): Promise<TaskImpact[]>;
 
   // Merging
-  async mergeEstimates(aiEstimates: TaskImpact[], patternEstimates: TaskImpact[]): Promise<TaskImpact[]>
+  async mergeEstimates(
+    aiEstimates: TaskImpact[],
+    patternEstimates: TaskImpact[],
+  ): Promise<TaskImpact[]>;
 
   // Validation
-  async validatePredictions(taskId: string, actualFiles: string[]): Promise<{ accuracy: number; missed: string[]; extra: string[] }>
+  async validatePredictions(
+    taskId: string,
+    actualFiles: string[],
+  ): Promise<{ accuracy: number; missed: string[]; extra: string[] }>;
 
   // Learning
-  async recordActualImpact(taskId: string, filePath: string, operation: ImpactOperation): Promise<void>
+  async recordActualImpact(
+    taskId: string,
+    filePath: string,
+    operation: ImpactOperation,
+  ): Promise<void>;
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] AI estimates have reasonable confidence
 - [ ] Patterns improve over time
 - [ ] Validation feedback loop works
@@ -1377,20 +1554,29 @@ export class FileImpactAnalyzer {
 **File:** `server/services/task-agent/file-conflict-detector.ts`
 
 **Functions:**
+
 ```typescript
 export class FileConflictDetector {
   // Conflict detection
-  async detectConflicts(taskAId: string, taskBId: string): Promise<ImpactConflict[]>
-  async canRunParallel(taskAId: string, taskBId: string): Promise<boolean>
+  async detectConflicts(
+    taskAId: string,
+    taskBId: string,
+  ): Promise<ImpactConflict[]>;
+  async canRunParallel(taskAId: string, taskBId: string): Promise<boolean>;
 
   // Conflict matrix
-  async getConflictMatrix(taskIds: string[]): Promise<Map<string, Map<string, ImpactConflict[]>>>
+  async getConflictMatrix(
+    taskIds: string[],
+  ): Promise<Map<string, Map<string, ImpactConflict[]>>>;
 
   // Conflict type determination
-  getConflictType(opA: ImpactOperation, opB: ImpactOperation): 'blocking' | 'warning' | null
+  getConflictType(
+    opA: ImpactOperation,
+    opB: ImpactOperation,
+  ): "blocking" | "warning" | null;
 
   // Batch check
-  async findAllConflicts(taskListId: string): Promise<ImpactConflict[]>
+  async findAllConflicts(taskListId: string): Promise<ImpactConflict[]>;
 }
 ```
 
@@ -1409,6 +1595,7 @@ export class FileConflictDetector {
 | READ | DELETE | blocking |
 
 **Acceptance Criteria:**
+
 - [ ] Conflict matrix implemented correctly
 - [ ] Parallel check fast for many tasks
 - [ ] Warnings vs blocking distinguished
@@ -1420,24 +1607,25 @@ export class FileConflictDetector {
 **File:** `server/services/task-agent/atomicity-validator.ts`
 
 **Functions:**
+
 ```typescript
 export class AtomicityValidator {
   // Validation
-  async validate(task: Task): Promise<AtomicityResult>
-  async validateAll(taskIds: string[]): Promise<Map<string, AtomicityResult>>
+  async validate(task: Task): Promise<AtomicityResult>;
+  async validateAll(taskIds: string[]): Promise<Map<string, AtomicityResult>>;
 
   // Individual rules
-  async checkSingleConcern(task: Task): Promise<RuleResult>
-  async checkBoundedFiles(task: Task, maxFiles?: number): Promise<RuleResult>
-  async checkTimeBounded(task: Task, maxHours?: number): Promise<RuleResult>
-  async checkTestable(task: Task): Promise<RuleResult>
-  async checkIndependent(task: Task): Promise<RuleResult>
-  async checkClearCompletion(task: Task): Promise<RuleResult>
+  async checkSingleConcern(task: Task): Promise<RuleResult>;
+  async checkBoundedFiles(task: Task, maxFiles?: number): Promise<RuleResult>;
+  async checkTimeBounded(task: Task, maxHours?: number): Promise<RuleResult>;
+  async checkTestable(task: Task): Promise<RuleResult>;
+  async checkIndependent(task: Task): Promise<RuleResult>;
+  async checkClearCompletion(task: Task): Promise<RuleResult>;
 }
 
 interface AtomicityResult {
   isAtomic: boolean;
-  score: number;  // 0-100
+  score: number; // 0-100
   rules: RuleResult[];
   suggestedSplits?: string[];
 }
@@ -1451,6 +1639,7 @@ interface RuleResult {
 ```
 
 **Six Atomicity Rules:**
+
 1. **Single Concern** - One logical change only
 2. **Bounded Files** - ≤5 files touched
 3. **Time Bounded** - Completable in <1 day
@@ -1459,6 +1648,7 @@ interface RuleResult {
 6. **Clear Completion** - Unambiguous done state
 
 **Acceptance Criteria:**
+
 - [ ] All 6 rules implemented
 - [ ] Scoring reflects severity
 - [ ] Split suggestions actionable
@@ -1470,17 +1660,23 @@ interface RuleResult {
 **File:** `server/services/task-agent/task-decomposer.ts`
 
 **Functions:**
+
 ```typescript
 export class TaskDecomposer {
   // Decomposition
-  async decompose(taskId: string): Promise<DecompositionResult>
-  async suggestSplits(task: Task): Promise<SplitSuggestion[]>
+  async decompose(taskId: string): Promise<DecompositionResult>;
+  async suggestSplits(task: Task): Promise<SplitSuggestion[]>;
 
   // Execution
-  async executeDecomposition(taskId: string, splits: SplitSuggestion[]): Promise<Task[]>
+  async executeDecomposition(
+    taskId: string,
+    splits: SplitSuggestion[],
+  ): Promise<Task[]>;
 
   // Decision tree
-  async shouldDecompose(task: Task): Promise<{ should: boolean; reasons: string[] }>
+  async shouldDecompose(
+    task: Task,
+  ): Promise<{ should: boolean; reasons: string[] }>;
 }
 
 interface DecompositionResult {
@@ -1495,12 +1691,13 @@ interface SplitSuggestion {
   description: string;
   category: TaskCategory;
   estimatedEffort: string;
-  dependencies: string[];  // References to other splits
+  dependencies: string[]; // References to other splits
   impacts: CreateTaskImpactInput[];
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Decomposition preserves all scope
 - [ ] Dependencies between splits set correctly
 - [ ] Original task marked as superseded
@@ -1512,24 +1709,41 @@ interface SplitSuggestion {
 **File:** `server/services/task-agent/nlp-parser.ts`
 
 **Functions:**
+
 ```typescript
 export class NlpParser {
   // Parsing
-  async parse(input: string): Promise<ParsedTask>
+  async parse(input: string): Promise<ParsedTask>;
 
   // Extraction
-  extractTitle(input: string): { title: string; confidence: number }
-  extractCategory(input: string): { category: TaskCategory; confidence: number; signals: string[] }
-  extractPriority(input: string): { priority: number; confidence: number; signals: string[] }
-  extractEntities(input: string): { files: string[]; components: string[]; functions: string[]; endpoints: string[] }
-  extractRelationships(input: string): { type: string; targetHint: string; confidence: number }[]
+  extractTitle(input: string): { title: string; confidence: number };
+  extractCategory(input: string): {
+    category: TaskCategory;
+    confidence: number;
+    signals: string[];
+  };
+  extractPriority(input: string): {
+    priority: number;
+    confidence: number;
+    signals: string[];
+  };
+  extractEntities(input: string): {
+    files: string[];
+    components: string[];
+    functions: string[];
+    endpoints: string[];
+  };
+  extractRelationships(
+    input: string,
+  ): { type: string; targetHint: string; confidence: number }[];
 
   // Questions
-  generateClarifyingQuestions(parsed: ParsedTask): string[]
+  generateClarifyingQuestions(parsed: ParsedTask): string[];
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Handles various input formats
 - [ ] Confidence scores accurate
 - [ ] Clarifying questions relevant
@@ -1541,28 +1755,40 @@ export class NlpParser {
 **File:** `server/services/task-agent/display-id-generator.ts`
 
 **Functions:**
+
 ```typescript
 export class DisplayIdGenerator {
   // Generation
-  async generate(projectCode: string, categoryCode: string): Promise<string>
-  async generateBatch(projectCode: string, categoryCode: string, count: number): Promise<string[]>
+  async generate(projectCode: string, categoryCode: string): Promise<string>;
+  async generateBatch(
+    projectCode: string,
+    categoryCode: string,
+    count: number,
+  ): Promise<string[]>;
 
   // Parsing
-  parse(displayId: string): { projectCode: string; categoryCode: string; sequence: number } | null
+  parse(
+    displayId: string,
+  ): { projectCode: string; categoryCode: string; sequence: number } | null;
 
   // Lookup
-  async getNextSequence(projectCode: string, categoryCode: string): Promise<number>
+  async getNextSequence(
+    projectCode: string,
+    categoryCode: string,
+  ): Promise<number>;
 
   // Project codes
-  async getProjectCode(projectId: string): Promise<string>
-  async createProjectCode(projectId: string, code: string): Promise<void>
+  async getProjectCode(projectId: string): Promise<string>;
+  async createProjectCode(projectId: string, code: string): Promise<void>;
 }
 ```
 
 **Format:** `TU-{PROJECT}-{CATEGORY}-{SEQUENCE}`
+
 - Example: `TU-IDEA-FEA-042`
 
 **Acceptance Criteria:**
+
 - [ ] Sequence numbers never duplicate
 - [ ] Batch generation atomic
 - [ ] Parse/format round-trip works
@@ -1574,22 +1800,33 @@ export class DisplayIdGenerator {
 **File:** `server/services/task-agent/question-engine.ts`
 
 **Functions:**
+
 ```typescript
 export class QuestionEngine {
   // Question generation
-  async generateQuestions(task: Task, maxQuestions?: number): Promise<Question[]>
-  async getNextQuestions(taskId: string, previousAnswers: Answer[]): Promise<Question[]>
+  async generateQuestions(
+    task: Task,
+    maxQuestions?: number,
+  ): Promise<Question[]>;
+  async getNextQuestions(
+    taskId: string,
+    previousAnswers: Answer[],
+  ): Promise<Question[]>;
 
   // Gap analysis
-  async analyzeGaps(task: Task): Promise<GapAnalysis>
-  async getCompletenessScore(task: Task): Promise<CompletenessScore>
+  async analyzeGaps(task: Task): Promise<GapAnalysis>;
+  async getCompletenessScore(task: Task): Promise<CompletenessScore>;
 
   // Answer processing
-  async processAnswer(taskId: string, questionId: string, answer: string): Promise<ProcessedAnswer>
-  async applyAnswers(taskId: string, answers: Answer[]): Promise<Task>
+  async processAnswer(
+    taskId: string,
+    questionId: string,
+    answer: string,
+  ): Promise<ProcessedAnswer>;
+  async applyAnswers(taskId: string, answers: Answer[]): Promise<Task>;
 
   // Categories
-  getQuestionCategories(): QuestionCategory[]
+  getQuestionCategories(): QuestionCategory[];
 }
 
 interface Question {
@@ -1600,10 +1837,19 @@ interface Question {
   targetField?: string;
 }
 
-type QuestionCategory = 'outcome' | 'scope' | 'implementation' | 'dependencies' | 'testing' | 'risks' | 'acceptance' | 'context';
+type QuestionCategory =
+  | "outcome"
+  | "scope"
+  | "implementation"
+  | "dependencies"
+  | "testing"
+  | "risks"
+  | "acceptance"
+  | "context";
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Questions prioritized by importance
 - [ ] No minimum - asks until complete
 - [ ] Answers update task appropriately
@@ -1615,20 +1861,23 @@ type QuestionCategory = 'outcome' | 'scope' | 'implementation' | 'dependencies' 
 **File:** `server/services/task-agent/priority-calculator.ts`
 
 **Functions:**
+
 ```typescript
 export class PriorityCalculator {
   // Calculation
-  async calculate(taskId: string): Promise<PriorityResult>
-  async calculateForList(taskListId: string): Promise<Map<string, PriorityResult>>
+  async calculate(taskId: string): Promise<PriorityResult>;
+  async calculateForList(
+    taskListId: string,
+  ): Promise<Map<string, PriorityResult>>;
 
   // Factors
-  async getBlockingCount(taskId: string): Promise<number>
-  async getDependencyDepth(taskId: string): Promise<number>
-  async getEffortScore(task: Task): Promise<number>
-  async getQuickWinScore(task: Task): Promise<number>
+  async getBlockingCount(taskId: string): Promise<number>;
+  async getDependencyDepth(taskId: string): Promise<number>;
+  async getEffortScore(task: Task): Promise<number>;
+  async getQuickWinScore(task: Task): Promise<number>;
 
   // Sorting
-  async sortByPriority(taskIds: string[]): Promise<string[]>
+  async sortByPriority(taskIds: string[]): Promise<string[]>;
 }
 
 interface PriorityResult {
@@ -1646,11 +1895,13 @@ interface PriorityResult {
 ```
 
 **Priority Formula:**
+
 ```
 score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinBonus + (userPriority * 2)
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Blocking tasks prioritized higher
 - [ ] Quick wins identified
 - [ ] User priority respected
@@ -1668,14 +1919,14 @@ score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinB
 
 **File:** `server/routes/task-agent/task-impacts.ts`
 
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/task-agent/tasks/:taskId/impacts` | Get all impacts for task |
-| POST | `/api/task-agent/tasks/:taskId/impacts` | Add impact(s) to task |
-| PUT | `/api/task-agent/tasks/:taskId/impacts/:impactId` | Update impact |
-| DELETE | `/api/task-agent/tasks/:taskId/impacts/:impactId` | Delete impact |
-| POST | `/api/task-agent/tasks/:taskId/impacts/estimate` | AI estimate impacts |
-| POST | `/api/task-agent/tasks/:taskId/impacts/validate` | Validate against actual |
+| Method | Path                                              | Handler                  |
+| ------ | ------------------------------------------------- | ------------------------ |
+| GET    | `/api/task-agent/tasks/:taskId/impacts`           | Get all impacts for task |
+| POST   | `/api/task-agent/tasks/:taskId/impacts`           | Add impact(s) to task    |
+| PUT    | `/api/task-agent/tasks/:taskId/impacts/:impactId` | Update impact            |
+| DELETE | `/api/task-agent/tasks/:taskId/impacts/:impactId` | Delete impact            |
+| POST   | `/api/task-agent/tasks/:taskId/impacts/estimate`  | AI estimate impacts      |
+| POST   | `/api/task-agent/tasks/:taskId/impacts/validate`  | Validate against actual  |
 
 ---
 
@@ -1683,14 +1934,14 @@ score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinB
 
 **File:** `server/routes/task-agent/task-appendices.ts`
 
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/task-agent/tasks/:taskId/appendices` | Get all appendices |
-| GET | `/api/task-agent/tasks/:taskId/appendices/resolved` | Get with content resolved |
-| POST | `/api/task-agent/tasks/:taskId/appendices` | Attach appendix |
-| PUT | `/api/task-agent/tasks/:taskId/appendices/:appendixId` | Update appendix |
-| DELETE | `/api/task-agent/tasks/:taskId/appendices/:appendixId` | Remove appendix |
-| POST | `/api/task-agent/tasks/:taskId/appendices/reorder` | Reorder appendices |
+| Method | Path                                                   | Handler                   |
+| ------ | ------------------------------------------------------ | ------------------------- |
+| GET    | `/api/task-agent/tasks/:taskId/appendices`             | Get all appendices        |
+| GET    | `/api/task-agent/tasks/:taskId/appendices/resolved`    | Get with content resolved |
+| POST   | `/api/task-agent/tasks/:taskId/appendices`             | Attach appendix           |
+| PUT    | `/api/task-agent/tasks/:taskId/appendices/:appendixId` | Update appendix           |
+| DELETE | `/api/task-agent/tasks/:taskId/appendices/:appendixId` | Remove appendix           |
+| POST   | `/api/task-agent/tasks/:taskId/appendices/reorder`     | Reorder appendices        |
 
 ---
 
@@ -1698,16 +1949,16 @@ score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinB
 
 **File:** `server/routes/prds.ts`
 
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/prds` | List PRDs (with filters) |
-| GET | `/api/prds/:id` | Get PRD by ID |
-| GET | `/api/prds/slug/:slug` | Get PRD by slug |
-| POST | `/api/prds` | Create PRD |
-| PUT | `/api/prds/:id` | Update PRD |
-| DELETE | `/api/prds/:id` | Delete PRD |
-| POST | `/api/prds/:id/approve` | Approve PRD |
-| GET | `/api/prds/:id/hierarchy` | Get PRD with parent/children |
+| Method | Path                      | Handler                      |
+| ------ | ------------------------- | ---------------------------- |
+| GET    | `/api/prds`               | List PRDs (with filters)     |
+| GET    | `/api/prds/:id`           | Get PRD by ID                |
+| GET    | `/api/prds/slug/:slug`    | Get PRD by slug              |
+| POST   | `/api/prds`               | Create PRD                   |
+| PUT    | `/api/prds/:id`           | Update PRD                   |
+| DELETE | `/api/prds/:id`           | Delete PRD                   |
+| POST   | `/api/prds/:id/approve`   | Approve PRD                  |
+| GET    | `/api/prds/:id/hierarchy` | Get PRD with parent/children |
 
 ---
 
@@ -1715,15 +1966,15 @@ score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinB
 
 **File:** `server/routes/prd-links.ts`
 
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/prds/:prdId/links` | Get all links |
-| POST | `/api/prds/:prdId/link-list` | Link task list |
-| DELETE | `/api/prds/:prdId/link-list/:taskListId` | Unlink task list |
-| POST | `/api/prds/:prdId/link-task` | Link task |
-| DELETE | `/api/prds/:prdId/link-task/:taskId` | Unlink task |
-| POST | `/api/prds/:prdId/links/reorder` | Reorder links |
-| POST | `/api/prds/:prdId/auto-link` | Auto-link by content |
+| Method | Path                                     | Handler              |
+| ------ | ---------------------------------------- | -------------------- |
+| GET    | `/api/prds/:prdId/links`                 | Get all links        |
+| POST   | `/api/prds/:prdId/link-list`             | Link task list       |
+| DELETE | `/api/prds/:prdId/link-list/:taskListId` | Unlink task list     |
+| POST   | `/api/prds/:prdId/link-task`             | Link task            |
+| DELETE | `/api/prds/:prdId/link-task/:taskId`     | Unlink task          |
+| POST   | `/api/prds/:prdId/links/reorder`         | Reorder links        |
+| POST   | `/api/prds/:prdId/auto-link`             | Auto-link by content |
 
 ---
 
@@ -1731,11 +1982,11 @@ score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinB
 
 **File:** `server/routes/prd-coverage.ts`
 
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/prds/:prdId/coverage` | Get coverage stats |
-| GET | `/api/prds/:prdId/coverage/gaps` | Get uncovered requirements |
-| GET | `/api/prds/:prdId/progress` | Get completion progress |
+| Method | Path                             | Handler                    |
+| ------ | -------------------------------- | -------------------------- |
+| GET    | `/api/prds/:prdId/coverage`      | Get coverage stats         |
+| GET    | `/api/prds/:prdId/coverage/gaps` | Get uncovered requirements |
+| GET    | `/api/prds/:prdId/progress`      | Get completion progress    |
 
 ---
 
@@ -1743,10 +1994,10 @@ score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinB
 
 **File:** `server/routes/prd-decompose.ts`
 
-| Method | Path | Handler |
-|--------|------|---------|
-| POST | `/api/prds/:prdId/decompose` | Preview task extraction |
-| POST | `/api/prds/:prdId/decompose/execute` | Create tasks from PRD |
+| Method | Path                                 | Handler                 |
+| ------ | ------------------------------------ | ----------------------- |
+| POST   | `/api/prds/:prdId/decompose`         | Preview task extraction |
+| POST   | `/api/prds/:prdId/decompose/execute` | Create tasks from PRD   |
 
 ---
 
@@ -1754,15 +2005,15 @@ score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinB
 
 **File:** `server/routes/task-agent/task-versions.ts`
 
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/task-agent/tasks/:taskId/versions` | Get version history |
-| GET | `/api/task-agent/tasks/:taskId/versions/:version` | Get specific version |
-| GET | `/api/task-agent/tasks/:taskId/versions/diff` | Compare versions |
-| POST | `/api/task-agent/tasks/:taskId/versions/checkpoint` | Create checkpoint |
-| GET | `/api/task-agent/tasks/:taskId/versions/checkpoints` | List checkpoints |
-| POST | `/api/task-agent/tasks/:taskId/versions/restore` | Restore version |
-| POST | `/api/task-agent/tasks/:taskId/versions/restore/preview` | Preview restore |
+| Method | Path                                                     | Handler              |
+| ------ | -------------------------------------------------------- | -------------------- |
+| GET    | `/api/task-agent/tasks/:taskId/versions`                 | Get version history  |
+| GET    | `/api/task-agent/tasks/:taskId/versions/:version`        | Get specific version |
+| GET    | `/api/task-agent/tasks/:taskId/versions/diff`            | Compare versions     |
+| POST   | `/api/task-agent/tasks/:taskId/versions/checkpoint`      | Create checkpoint    |
+| GET    | `/api/task-agent/tasks/:taskId/versions/checkpoints`     | List checkpoints     |
+| POST   | `/api/task-agent/tasks/:taskId/versions/restore`         | Restore version      |
+| POST   | `/api/task-agent/tasks/:taskId/versions/restore/preview` | Preview restore      |
 
 ---
 
@@ -1770,12 +2021,12 @@ score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinB
 
 **File:** `server/routes/task-agent/task-cascade.ts`
 
-| Method | Path | Handler |
-|--------|------|---------|
-| POST | `/api/task-agent/tasks/:taskId/cascade/analyze` | Analyze cascade effects |
-| POST | `/api/task-agent/tasks/:taskId/cascade/execute` | Apply cascade |
-| GET | `/api/task-agent/task-lists/:listId/auto-approve` | Get auto-approve setting |
-| PUT | `/api/task-agent/task-lists/:listId/auto-approve` | Set auto-approve |
+| Method | Path                                              | Handler                  |
+| ------ | ------------------------------------------------- | ------------------------ |
+| POST   | `/api/task-agent/tasks/:taskId/cascade/analyze`   | Analyze cascade effects  |
+| POST   | `/api/task-agent/tasks/:taskId/cascade/execute`   | Apply cascade            |
+| GET    | `/api/task-agent/task-lists/:listId/auto-approve` | Get auto-approve setting |
+| PUT    | `/api/task-agent/task-lists/:listId/auto-approve` | Set auto-approve         |
 
 ---
 
@@ -1783,13 +2034,13 @@ score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinB
 
 **File:** `server/routes/task-agent/task-tests.ts`
 
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/task-agent/tasks/:taskId/tests/config` | Get test configuration |
-| POST | `/api/task-agent/tasks/:taskId/tests/config` | Set test configuration |
-| POST | `/api/task-agent/tasks/:taskId/tests/validate` | Run validation |
-| GET | `/api/task-agent/tasks/:taskId/tests/results` | Get test results |
-| GET | `/api/task-agent/tasks/:taskId/tests/results/latest` | Get latest results |
+| Method | Path                                                 | Handler                |
+| ------ | ---------------------------------------------------- | ---------------------- |
+| GET    | `/api/task-agent/tasks/:taskId/tests/config`         | Get test configuration |
+| POST   | `/api/task-agent/tasks/:taskId/tests/config`         | Set test configuration |
+| POST   | `/api/task-agent/tasks/:taskId/tests/validate`       | Run validation         |
+| GET    | `/api/task-agent/tasks/:taskId/tests/results`        | Get test results       |
+| GET    | `/api/task-agent/tasks/:taskId/tests/results/latest` | Get latest results     |
 
 ---
 
@@ -1797,11 +2048,11 @@ score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinB
 
 **File:** `server/routes/task-agent/task-history.ts`
 
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/task-agent/tasks/:taskId/history` | Get full history |
-| GET | `/api/task-agent/tasks/:taskId/history/states` | Get state transitions |
-| GET | `/api/task-agent/tasks/:taskId/history/analytics` | Get time analytics |
+| Method | Path                                              | Handler               |
+| ------ | ------------------------------------------------- | --------------------- |
+| GET    | `/api/task-agent/tasks/:taskId/history`           | Get full history      |
+| GET    | `/api/task-agent/tasks/:taskId/history/states`    | Get state transitions |
+| GET    | `/api/task-agent/tasks/:taskId/history/analytics` | Get time analytics    |
 
 ---
 
@@ -1810,28 +2061,28 @@ score = (blockingCount * 10) + (1/dependencyDepth * 5) + effortScore + quickWinB
 **File:** `server/routes/index.ts` (update)
 
 ```typescript
-import taskImpactsRouter from './task-agent/task-impacts';
-import taskAppendicesRouter from './task-agent/task-appendices';
-import prdsRouter from './prds';
-import prdLinksRouter from './prd-links';
-import prdCoverageRouter from './prd-coverage';
-import prdDecomposeRouter from './prd-decompose';
-import taskVersionsRouter from './task-agent/task-versions';
-import taskCascadeRouter from './task-agent/task-cascade';
-import taskTestsRouter from './task-agent/task-tests';
-import taskHistoryRouter from './task-agent/task-history';
+import taskImpactsRouter from "./task-agent/task-impacts";
+import taskAppendicesRouter from "./task-agent/task-appendices";
+import prdsRouter from "./prds";
+import prdLinksRouter from "./prd-links";
+import prdCoverageRouter from "./prd-coverage";
+import prdDecomposeRouter from "./prd-decompose";
+import taskVersionsRouter from "./task-agent/task-versions";
+import taskCascadeRouter from "./task-agent/task-cascade";
+import taskTestsRouter from "./task-agent/task-tests";
+import taskHistoryRouter from "./task-agent/task-history";
 
 // Register routes
-app.use('/api/task-agent/tasks', taskImpactsRouter);
-app.use('/api/task-agent/tasks', taskAppendicesRouter);
-app.use('/api/prds', prdsRouter);
-app.use('/api/prds', prdLinksRouter);
-app.use('/api/prds', prdCoverageRouter);
-app.use('/api/prds', prdDecomposeRouter);
-app.use('/api/task-agent/tasks', taskVersionsRouter);
-app.use('/api/task-agent', taskCascadeRouter);
-app.use('/api/task-agent/tasks', taskTestsRouter);
-app.use('/api/task-agent/tasks', taskHistoryRouter);
+app.use("/api/task-agent/tasks", taskImpactsRouter);
+app.use("/api/task-agent/tasks", taskAppendicesRouter);
+app.use("/api/prds", prdsRouter);
+app.use("/api/prds", prdLinksRouter);
+app.use("/api/prds", prdCoverageRouter);
+app.use("/api/prds", prdDecomposeRouter);
+app.use("/api/task-agent/tasks", taskVersionsRouter);
+app.use("/api/task-agent", taskCascadeRouter);
+app.use("/api/task-agent/tasks", taskTestsRouter);
+app.use("/api/task-agent/tasks", taskHistoryRouter);
 ```
 
 ---
@@ -1847,14 +2098,14 @@ app.use('/api/task-agent/tasks', taskHistoryRouter);
 
 **File:** `server/communication/task-agent-telegram-handler.ts` (update)
 
-| Command | Description |
-|---------|-------------|
-| `/prd create <title>` | Start PRD creation flow |
-| `/prd list` | List user's PRDs |
-| `/prd show <slug>` | Show PRD details |
-| `/prd link <slug> <list>` | Link PRD to task list |
-| `/prd coverage <slug>` | Show coverage stats |
-| `/prd decompose <slug>` | Extract tasks from PRD |
+| Command                   | Description             |
+| ------------------------- | ----------------------- |
+| `/prd create <title>`     | Start PRD creation flow |
+| `/prd list`               | List user's PRDs        |
+| `/prd show <slug>`        | Show PRD details        |
+| `/prd link <slug> <list>` | Link PRD to task list   |
+| `/prd coverage <slug>`    | Show coverage stats     |
+| `/prd decompose <slug>`   | Extract tasks from PRD  |
 
 ---
 
@@ -1862,12 +2113,12 @@ app.use('/api/task-agent/tasks', taskHistoryRouter);
 
 **File:** `server/communication/task-agent-telegram-handler.ts` (update)
 
-| Command | Description |
-|---------|-------------|
-| `/impact <taskId>` | Show task impacts |
-| `/impact add <taskId> <file>` | Add file impact |
-| `/impact estimate <taskId>` | AI estimate impacts |
-| `/conflict <taskId>` | Check for conflicts |
+| Command                       | Description         |
+| ----------------------------- | ------------------- |
+| `/impact <taskId>`            | Show task impacts   |
+| `/impact add <taskId> <file>` | Add file impact     |
+| `/impact estimate <taskId>`   | AI estimate impacts |
+| `/conflict <taskId>`          | Check for conflicts |
 
 ---
 
@@ -1876,6 +2127,7 @@ app.use('/api/task-agent/tasks', taskHistoryRouter);
 **File:** `server/communication/task-agent-telegram-handler.ts` (update)
 
 Update existing `/newtask` to:
+
 - Auto-estimate impacts after creation
 - Show conflict warnings
 - Suggest PRD linking if context matches
@@ -1891,52 +2143,52 @@ Update existing `/newtask` to:
 
 ### IMPL-7.1: PRD Components
 
-| Component | File | Description |
-|-----------|------|-------------|
-| PrdList | `src/components/prd/PrdList.tsx` | List PRDs with filters |
-| PrdDetail | `src/components/prd/PrdDetail.tsx` | Full PRD view |
-| PrdForm | `src/components/prd/PrdForm.tsx` | Create/edit PRD |
+| Component    | File                                  | Description                |
+| ------------ | ------------------------------------- | -------------------------- |
+| PrdList      | `src/components/prd/PrdList.tsx`      | List PRDs with filters     |
+| PrdDetail    | `src/components/prd/PrdDetail.tsx`    | Full PRD view              |
+| PrdForm      | `src/components/prd/PrdForm.tsx`      | Create/edit PRD            |
 | PrdHierarchy | `src/components/prd/PrdHierarchy.tsx` | Tree view of PRD hierarchy |
-| PrdCoverage | `src/components/prd/PrdCoverage.tsx` | Coverage visualization |
+| PrdCoverage  | `src/components/prd/PrdCoverage.tsx`  | Coverage visualization     |
 
 ---
 
 ### IMPL-7.2: Task Impact Components
 
-| Component | File | Description |
-|-----------|------|-------------|
-| TaskImpactList | `src/components/task/TaskImpactList.tsx` | List impacts |
-| TaskImpactEditor | `src/components/task/TaskImpactEditor.tsx` | Add/edit impacts |
-| ImpactConflictWarning | `src/components/task/ImpactConflictWarning.tsx` | Conflict alert |
+| Component             | File                                            | Description      |
+| --------------------- | ----------------------------------------------- | ---------------- |
+| TaskImpactList        | `src/components/task/TaskImpactList.tsx`        | List impacts     |
+| TaskImpactEditor      | `src/components/task/TaskImpactEditor.tsx`      | Add/edit impacts |
+| ImpactConflictWarning | `src/components/task/ImpactConflictWarning.tsx` | Conflict alert   |
 
 ---
 
 ### IMPL-7.3: Task Appendix Components
 
-| Component | File | Description |
-|-----------|------|-------------|
-| AppendixList | `src/components/task/AppendixList.tsx` | List appendices |
-| AppendixAttacher | `src/components/task/AppendixAttacher.tsx` | Attach new appendix |
-| AppendixViewer | `src/components/task/AppendixViewer.tsx` | View resolved content |
+| Component        | File                                       | Description           |
+| ---------------- | ------------------------------------------ | --------------------- |
+| AppendixList     | `src/components/task/AppendixList.tsx`     | List appendices       |
+| AppendixAttacher | `src/components/task/AppendixAttacher.tsx` | Attach new appendix   |
+| AppendixViewer   | `src/components/task/AppendixViewer.tsx`   | View resolved content |
 
 ---
 
 ### IMPL-7.4: Version & History Components
 
-| Component | File | Description |
-|-----------|------|-------------|
-| VersionTimeline | `src/components/task/VersionTimeline.tsx` | Version history |
-| VersionDiff | `src/components/task/VersionDiff.tsx` | Side-by-side diff |
-| StateHistory | `src/components/task/StateHistory.tsx` | State transition log |
+| Component       | File                                      | Description          |
+| --------------- | ----------------------------------------- | -------------------- |
+| VersionTimeline | `src/components/task/VersionTimeline.tsx` | Version history      |
+| VersionDiff     | `src/components/task/VersionDiff.tsx`     | Side-by-side diff    |
+| StateHistory    | `src/components/task/StateHistory.tsx`    | State transition log |
 
 ---
 
 ### IMPL-7.5: Cascade Components
 
-| Component | File | Description |
-|-----------|------|-------------|
-| CascadePreview | `src/components/task/CascadePreview.tsx` | Preview cascade effects |
-| CascadeApproval | `src/components/task/CascadeApproval.tsx` | Approve/reject cascade |
+| Component       | File                                      | Description             |
+| --------------- | ----------------------------------------- | ----------------------- |
+| CascadePreview  | `src/components/task/CascadePreview.tsx`  | Preview cascade effects |
+| CascadeApproval | `src/components/task/CascadeApproval.tsx` | Approve/reject cascade  |
 
 ---
 
@@ -1949,64 +2201,69 @@ Update existing `/newtask` to:
 
 ### IMPL-8.1: Unit Tests
 
-| Test File | Coverage |
-|-----------|----------|
-| `task-impact-service.test.ts` | TaskImpactService |
-| `task-appendix-service.test.ts` | TaskAppendixService |
-| `prd-service.test.ts` | PrdService |
-| `prd-link-service.test.ts` | PrdLinkService |
-| `cascade-analyzer.test.ts` | CascadeAnalyzerService |
-| `atomicity-validator.test.ts` | AtomicityValidator |
-| `file-conflict-detector.test.ts` | FileConflictDetector |
-| `display-id-generator.test.ts` | DisplayIdGenerator |
+| Test File                        | Coverage               |
+| -------------------------------- | ---------------------- |
+| `task-impact-service.test.ts`    | TaskImpactService      |
+| `task-appendix-service.test.ts`  | TaskAppendixService    |
+| `prd-service.test.ts`            | PrdService             |
+| `prd-link-service.test.ts`       | PrdLinkService         |
+| `cascade-analyzer.test.ts`       | CascadeAnalyzerService |
+| `atomicity-validator.test.ts`    | AtomicityValidator     |
+| `file-conflict-detector.test.ts` | FileConflictDetector   |
+| `display-id-generator.test.ts`   | DisplayIdGenerator     |
 
 ---
 
 ### IMPL-8.2: Integration Tests
 
-| Test File | Coverage |
-|-----------|----------|
-| `prd-api.test.ts` | PRD REST API |
+| Test File                  | Coverage              |
+| -------------------------- | --------------------- |
+| `prd-api.test.ts`          | PRD REST API          |
 | `task-impacts-api.test.ts` | Task Impacts REST API |
-| `cascade-api.test.ts` | Cascade REST API |
-| `version-api.test.ts` | Version REST API |
+| `cascade-api.test.ts`      | Cascade REST API      |
+| `version-api.test.ts`      | Version REST API      |
 
 ---
 
 ### IMPL-8.3: E2E Tests
 
-| Test File | Scenario |
-|-----------|----------|
-| `prd-to-execution.e2e.ts` | PRD → Tasks → Execution |
-| `impact-conflicts.e2e.ts` | Conflict detection and resolution |
-| `cascade-propagation.e2e.ts` | Change cascade across tasks |
-| `version-restore.e2e.ts` | Version history and restore |
+| Test File                    | Scenario                          |
+| ---------------------------- | --------------------------------- |
+| `prd-to-execution.e2e.ts`    | PRD → Tasks → Execution           |
+| `impact-conflicts.e2e.ts`    | Conflict detection and resolution |
+| `cascade-propagation.e2e.ts` | Change cascade across tasks       |
+| `version-restore.e2e.ts`     | Version history and restore       |
 
 ---
 
 ## Rollout Strategy
 
 ### Stage 1: Database & Types (Week 1)
+
 - Run all migrations
 - Deploy types
 - Verify schema
 
 ### Stage 2: Core Services (Week 2)
+
 - Deploy services
 - Internal testing
 - Fix bugs
 
 ### Stage 3: API Routes (Week 3)
+
 - Deploy routes
 - API testing
 - Documentation
 
 ### Stage 4: Telegram & UI (Week 4)
+
 - Deploy Telegram commands
 - Deploy UI components
 - User acceptance testing
 
 ### Stage 5: Production (Week 5)
+
 - Feature flag rollout
 - Monitor metrics
 - Full release
@@ -2015,13 +2272,13 @@ Update existing `/newtask` to:
 
 ## Risk Mitigation
 
-| Risk | Mitigation |
-|------|------------|
-| Migration failure | Test on copy of production DB first |
-| Performance degradation | Add indexes, profile queries |
-| Breaking existing features | Comprehensive integration tests |
-| Data loss | Backup before migration, version snapshots |
-| Cascade loops | Max depth limit, cycle detection |
+| Risk                       | Mitigation                                 |
+| -------------------------- | ------------------------------------------ |
+| Migration failure          | Test on copy of production DB first        |
+| Performance degradation    | Add indexes, profile queries               |
+| Breaking existing features | Comprehensive integration tests            |
+| Data loss                  | Backup before migration, version snapshots |
+| Cascade loops              | Max depth limit, cycle detection           |
 
 ---
 
@@ -2030,6 +2287,7 @@ Update existing `/newtask` to:
 ### New Files to Create
 
 **Migrations (9 files):**
+
 - [ ] `server/db/migrations/YYYYMMDD_create_task_impacts.sql`
 - [ ] `server/db/migrations/YYYYMMDD_create_task_appendices.sql`
 - [ ] `server/db/migrations/YYYYMMDD_create_prds.sql`
@@ -2041,6 +2299,7 @@ Update existing `/newtask` to:
 - [ ] `server/db/migrations/YYYYMMDD_add_auto_approve_reviews.sql`
 
 **Types (7 files):**
+
 - [ ] `server/types/task-impact.ts`
 - [ ] `server/types/task-appendix.ts`
 - [ ] `server/types/prd.ts`
@@ -2050,6 +2309,7 @@ Update existing `/newtask` to:
 - [ ] `server/types/task.ts` (update)
 
 **Services (18 files):**
+
 - [ ] `server/services/task-agent/task-impact-service.ts`
 - [ ] `server/services/task-agent/task-appendix-service.ts`
 - [ ] `server/services/prd-service.ts`
@@ -2070,6 +2330,7 @@ Update existing `/newtask` to:
 - [ ] `server/services/task-agent/priority-calculator.ts`
 
 **Routes (10 files):**
+
 - [ ] `server/routes/task-agent/task-impacts.ts`
 - [ ] `server/routes/task-agent/task-appendices.ts`
 - [ ] `server/routes/prds.ts`
@@ -2082,6 +2343,7 @@ Update existing `/newtask` to:
 - [ ] `server/routes/task-agent/task-history.ts`
 
 **UI Components (15 files):**
+
 - [ ] `src/components/prd/PrdList.tsx`
 - [ ] `src/components/prd/PrdDetail.tsx`
 - [ ] `src/components/prd/PrdForm.tsx`
@@ -2099,6 +2361,7 @@ Update existing `/newtask` to:
 - [ ] `src/components/task/CascadePreview.tsx`
 
 **Tests (11 files):**
+
 - [ ] `tests/unit/task-impact-service.test.ts`
 - [ ] `tests/unit/task-appendix-service.test.ts`
 - [ ] `tests/unit/prd-service.test.ts`
@@ -2118,4 +2381,4 @@ Update existing `/newtask` to:
 
 ---
 
-*End of Implementation Plan*
+_End of Implementation Plan_

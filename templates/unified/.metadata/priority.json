@@ -2,8 +2,17 @@
   "always_show": ["README.md", "development.md"],
   "by_phase": {
     "SPARK": ["README.md", "development.md"],
-    "CLARIFY": ["README.md", "development.md", "target-users.md", "problem-solution.md"],
-    "RESEARCH": ["research/market.md", "research/competitive.md", "research/user-personas.md"],
+    "CLARIFY": [
+      "README.md",
+      "development.md",
+      "target-users.md",
+      "problem-solution.md"
+    ],
+    "RESEARCH": [
+      "research/market.md",
+      "research/competitive.md",
+      "research/user-personas.md"
+    ],
     "IDEATE": ["development.md", "problem-solution.md"],
     "EVALUATE": ["analysis/redteam.md", "analysis/risk-mitigation.md"],
     "VALIDATE": ["validation/assumptions.md", "validation/results.md"],

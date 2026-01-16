@@ -1,6 +1,7 @@
 # SKILL: Abstraction Pragmatism
 
 ## When to Load
+
 - Considering monads, functors, or category theory patterns
 - Evaluating "clever" vs "clear" code
 - Reviewing highly abstract code
@@ -33,20 +34,21 @@ Monads (flatMap/bind) are mathematically elegant but often unnecessary:
 ```typescript
 // ABSTRACT - requires understanding monads
 const result = fetchUser(id)
-  .flatMap(user => fetchOrders(user.id))
-  .flatMap(orders => calculateTotal(orders))
-  .map(total => formatCurrency(total))
+  .flatMap((user) => fetchOrders(user.id))
+  .flatMap((orders) => calculateTotal(orders))
+  .map((total) => formatCurrency(total));
 
 // EXPLICIT - anyone can read this
-const user = await fetchUser(id)
-if (!user) return null
-const orders = await fetchOrders(user.id)
-if (!orders) return null
-const total = calculateTotal(orders)
-return formatCurrency(total)
+const user = await fetchUser(id);
+if (!user) return null;
+const orders = await fetchOrders(user.id);
+if (!orders) return null;
+const total = calculateTotal(orders);
+return formatCurrency(total);
 ```
 
 Both achieve the same thing. The explicit version:
+
 - Is immediately readable
 - Has obvious control flow
 - Debugs easily (set breakpoint anywhere)
@@ -56,7 +58,7 @@ Both achieve the same thing. The explicit version:
 
 ```typescript
 // OVER-ABSTRACTED - monad transformer hell
-type AppM<A> = ReaderT<Config, EitherT<Error, StateT<AppState, IO, A>>>
+type AppM<A> = ReaderT<Config, EitherT<Error, StateT<AppState, IO, A>>>;
 
 // Nobody can read this. Nobody wants to debug this.
 // The error messages will be incomprehensible.
@@ -64,7 +66,7 @@ type AppM<A> = ReaderT<Config, EitherT<Error, StateT<AppState, IO, A>>>
 // BETTER - explicit dependencies
 async function doThing(
   config: Config,
-  state: AppState
+  state: AppState,
 ): Promise<Result<A, Error>> {
   // ...
 }
@@ -80,12 +82,12 @@ async function doThing(
 ```typescript
 // WORTH IT - map/filter/reduce are universal
 const total = items
-  .filter(item => item.active)
-  .map(item => item.price)
-  .reduce((sum, price) => sum + price, 0)
+  .filter((item) => item.active)
+  .map((item) => item.price)
+  .reduce((sum, price) => sum + price, 0);
 
 // NOT WORTH IT - custom abstraction for one use
-const total = items.foldMap(activeItemPrice, addMonoid)
+const total = items.foldMap(activeItemPrice, addMonoid);
 ```
 
 ## The "Rule of Three"

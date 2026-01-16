@@ -1,44 +1,64 @@
-import { useState } from 'react'
-import { ChevronDown, ChevronRight, Edit2, Trash2, Bot, User, Sparkles } from 'lucide-react'
-import { format } from 'date-fns'
-import type { Answer, QuestionCategory } from '../types'
-import { categoryNames, priorityMeta } from '../types'
+import { useState } from "react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Edit2,
+  Trash2,
+  Bot,
+  User,
+  Sparkles,
+} from "lucide-react";
+import { format } from "date-fns";
+import type { Answer, QuestionCategory } from "../types";
+import { categoryNames, priorityMeta } from "../types";
 
 interface AnswerHistoryProps {
-  answers: Answer[]
-  onEdit?: (questionId: string, currentAnswer: string) => void
-  onDelete?: (questionId: string) => void
-  groupByCategory?: boolean
+  answers: Answer[];
+  onEdit?: (questionId: string, currentAnswer: string) => void;
+  onDelete?: (questionId: string) => void;
+  groupByCategory?: boolean;
 }
 
-function SourceIcon({ source }: { source: Answer['answerSource'] }) {
+function SourceIcon({ source }: { source: Answer["answerSource"] }) {
   switch (source) {
-    case 'user':
-      return <span title="User provided"><User className="h-3 w-3" /></span>
-    case 'ai_extracted':
-      return <span title="AI extracted from content"><Bot className="h-3 w-3" /></span>
-    case 'ai_inferred':
-      return <span title="AI inferred"><Sparkles className="h-3 w-3" /></span>
+    case "user":
+      return (
+        <span title="User provided">
+          <User className="h-3 w-3" />
+        </span>
+      );
+    case "ai_extracted":
+      return (
+        <span title="AI extracted from content">
+          <Bot className="h-3 w-3" />
+        </span>
+      );
+    case "ai_inferred":
+      return (
+        <span title="AI inferred">
+          <Sparkles className="h-3 w-3" />
+        </span>
+      );
     default:
-      return null
+      return null;
   }
 }
 
 function AnswerCard({
   answer,
   onEdit,
-  onDelete
+  onDelete,
 }: {
-  answer: Answer
-  onEdit?: () => void
-  onDelete?: () => void
+  answer: Answer;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const question = answer.question
-  if (!question) return null
+  const question = answer.question;
+  if (!question) return null;
 
-  const priority = priorityMeta[question.priority]
+  const priority = priorityMeta[question.priority];
 
   return (
     <div className="border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors">
@@ -53,7 +73,7 @@ function AnswerCard({
             </span>
             <span className="text-xs text-gray-400 flex items-center gap-1">
               <SourceIcon source={answer.answerSource} />
-              {answer.answerSource === 'user' ? 'You' : 'AI'}
+              {answer.answerSource === "user" ? "You" : "AI"}
             </span>
             {answer.confidence < 1 && (
               <span className="text-xs text-amber-600">
@@ -73,15 +93,20 @@ function AnswerCard({
 
           {isExpanded && (
             <div className="mt-2 pt-2 border-t border-gray-100">
-              <p className="text-sm text-gray-600 whitespace-pre-wrap">{answer.answer}</p>
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                {answer.answer}
+              </p>
               <p className="text-xs text-gray-400 mt-2">
-                Answered {format(new Date(answer.answeredAt), 'MMM d, yyyy h:mm a')}
+                Answered{" "}
+                {format(new Date(answer.answeredAt), "MMM d, yyyy h:mm a")}
               </p>
             </div>
           )}
 
           {!isExpanded && (
-            <p className="text-sm text-gray-500 mt-1 line-clamp-1">{answer.answer}</p>
+            <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+              {answer.answer}
+            </p>
           )}
         </div>
 
@@ -117,21 +142,21 @@ function AnswerCard({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function CategorySection({
   category,
   answers,
   onEdit,
-  onDelete
+  onDelete,
 }: {
-  category: QuestionCategory
-  answers: Answer[]
-  onEdit?: (questionId: string, currentAnswer: string) => void
-  onDelete?: (questionId: string) => void
+  category: QuestionCategory;
+  answers: Answer[];
+  onEdit?: (questionId: string, currentAnswer: string) => void;
+  onDelete?: (questionId: string) => void;
 }) {
-  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(true);
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -149,83 +174,98 @@ function CategorySection({
             {categoryNames[category]}
           </span>
           <span className="text-sm text-gray-500">
-            ({answers.length} {answers.length === 1 ? 'answer' : 'answers'})
+            ({answers.length} {answers.length === 1 ? "answer" : "answers"})
           </span>
         </div>
       </button>
 
       {isExpanded && (
         <div className="p-3 space-y-2">
-          {answers.map(answer => (
+          {answers.map((answer) => (
             <AnswerCard
               key={answer.id}
               answer={answer}
-              onEdit={onEdit ? () => onEdit(answer.questionId, answer.answer) : undefined}
-              onDelete={onDelete ? () => onDelete(answer.questionId) : undefined}
+              onEdit={
+                onEdit
+                  ? () => onEdit(answer.questionId, answer.answer)
+                  : undefined
+              }
+              onDelete={
+                onDelete ? () => onDelete(answer.questionId) : undefined
+              }
             />
           ))}
         </div>
       )}
     </div>
-  )
+  );
 }
 
 export default function AnswerHistory({
   answers,
   onEdit,
   onDelete,
-  groupByCategory = true
+  groupByCategory = true,
 }: AnswerHistoryProps) {
   if (answers.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
         <p>No answers yet.</p>
-        <p className="text-sm mt-1">Start developing your idea to capture answers.</p>
+        <p className="text-sm mt-1">
+          Start developing your idea to capture answers.
+        </p>
       </div>
-    )
+    );
   }
 
   if (!groupByCategory) {
     return (
       <div className="space-y-2">
-        {answers.map(answer => (
+        {answers.map((answer) => (
           <AnswerCard
             key={answer.id}
             answer={answer}
-            onEdit={onEdit ? () => onEdit(answer.questionId, answer.answer) : undefined}
+            onEdit={
+              onEdit
+                ? () => onEdit(answer.questionId, answer.answer)
+                : undefined
+            }
             onDelete={onDelete ? () => onDelete(answer.questionId) : undefined}
           />
         ))}
       </div>
-    )
+    );
   }
 
   // Group answers by category
-  const groupedAnswers = answers.reduce((acc, answer) => {
-    const category = answer.question?.category || 'problem'
-    if (!acc[category]) {
-      acc[category] = []
-    }
-    acc[category].push(answer)
-    return acc
-  }, {} as Record<QuestionCategory, Answer[]>)
+  const groupedAnswers = answers.reduce(
+    (acc, answer) => {
+      const category = answer.question?.category || "problem";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(answer);
+      return acc;
+    },
+    {} as Record<QuestionCategory, Answer[]>,
+  );
 
   // Order categories
   const categoryOrder: QuestionCategory[] = [
-    'problem',
-    'solution',
-    'feasibility',
-    'fit',
-    'market',
-    'risk',
-    'business_model'
-  ]
+    "problem",
+    "solution",
+    "feasibility",
+    "fit",
+    "market",
+    "risk",
+    "business_model",
+  ];
 
   return (
     <div className="space-y-3">
-      {categoryOrder.map(category => {
-        const categoryAnswers = groupedAnswers[category]
-        if (!categoryAnswers || categoryAnswers.length === 0) return null
+      {categoryOrder.map((category) => {
+        const categoryAnswers = groupedAnswers[category];
+        if (!categoryAnswers || categoryAnswers.length === 0) return null;
 
         return (
           <CategorySection
@@ -235,8 +275,8 @@ export default function AnswerHistory({
             onEdit={onEdit}
             onDelete={onDelete}
           />
-        )
+        );
       })}
     </div>
-  )
+  );
 }

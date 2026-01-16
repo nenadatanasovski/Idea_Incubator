@@ -1,6 +1,7 @@
 # SKILL: Separation of Concerns
 
 ## When to Load
+
 - Designing system architecture
 - Refactoring coupled code
 - Reviewing module boundaries
@@ -27,18 +28,19 @@ IF explaining requires "and", split it
 
 ## Common Separations
 
-| Concern | Separate From | Why |
-|---------|--------------|-----|
-| Business logic | Data access | Logic doesn't change when DB changes |
-| Validation | Processing | Validation rules change independently |
-| Formatting | Calculation | Display changes independently |
-| I/O | Pure logic | Testability |
-| Error handling | Happy path | Error policies change independently |
-| Configuration | Code | Config changes without code changes |
+| Concern        | Separate From | Why                                   |
+| -------------- | ------------- | ------------------------------------- |
+| Business logic | Data access   | Logic doesn't change when DB changes  |
+| Validation     | Processing    | Validation rules change independently |
+| Formatting     | Calculation   | Display changes independently         |
+| I/O            | Pure logic    | Testability                           |
+| Error handling | Happy path    | Error policies change independently   |
+| Configuration  | Code          | Config changes without code changes   |
 
 ## Practical Patterns
 
 ### Layer Separation
+
 ```typescript
 // BAD - mixed concerns
 async function createOrder(req, res) {
@@ -79,6 +81,7 @@ async function createOrder(req, res) {
 ```
 
 ### Pure Core, Impure Shell
+
 ```typescript
 // CORE - pure business logic (testable)
 function calculateDiscount(order: Order, customer: Customer): number {
@@ -95,25 +98,27 @@ async function applyDiscount(orderId: string): Promise<void> {
 ```
 
 ### Configuration Separation
+
 ```typescript
 // BAD - hardcoded values
 function sendEmail(to: string) {
-  const smtp = new SMTPClient('smtp.example.com', 587)
+  const smtp = new SMTPClient("smtp.example.com", 587);
   // ...
 }
 
 // GOOD - configuration injected
 function createEmailSender(config: EmailConfig) {
   return (to: string) => {
-    const smtp = new SMTPClient(config.host, config.port)
+    const smtp = new SMTPClient(config.host, config.port);
     // ...
-  }
+  };
 }
 ```
 
 ## Anti-Pattern: Over-Separation
 
 Don't separate things that change together:
+
 ```typescript
 // OVER-SEPARATED - three files for one concept
 // user-name-validator.ts

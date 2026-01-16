@@ -2,83 +2,89 @@
  * Claude Client Tests
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ClaudeClient, AtomicTask } from '../../agents/specification/claude-client.js';
-import { ParsedBrief } from '../../agents/specification/brief-parser.js';
-import { LoadedContext, Gotcha } from '../../agents/specification/context-loader.js';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  ClaudeClient,
+  AtomicTask,
+} from "../../agents/specification/claude-client.js";
+import { ParsedBrief } from "../../agents/specification/brief-parser.js";
+import {
+  LoadedContext,
+  Gotcha,
+} from "../../agents/specification/context-loader.js";
 
 // Mock the Anthropic SDK
-vi.mock('@anthropic-ai/sdk', () => {
+vi.mock("@anthropic-ai/sdk", () => {
   return {
     default: vi.fn().mockImplementation(() => ({
       messages: {
         create: vi.fn().mockResolvedValue({
-          content: [{ type: 'text', text: '{}' }],
-          usage: { input_tokens: 100, output_tokens: 50 }
-        })
-      }
-    }))
+          content: [{ type: "text", text: "{}" }],
+          usage: { input_tokens: 100, output_tokens: 50 },
+        }),
+      },
+    })),
   };
 });
 
-describe('claude-client', () => {
+describe("claude-client", () => {
   let client: ClaudeClient;
 
   const mockBrief: ParsedBrief = {
-    id: 'test-feature',
-    title: 'Test Feature',
-    complexity: 'simple',
-    problem: 'Users need X',
-    solution: 'Implement Y',
+    id: "test-feature",
+    title: "Test Feature",
+    complexity: "simple",
+    problem: "Users need X",
+    solution: "Implement Y",
     mvpScope: {
-      inScope: ['Feature A'],
-      outOfScope: ['Feature B']
+      inScope: ["Feature A"],
+      outOfScope: ["Feature B"],
     },
     constraints: [],
-    successCriteria: ['Works correctly'],
-    rawContent: ''
+    successCriteria: ["Works correctly"],
+    rawContent: "",
   };
 
   const mockContext: LoadedContext = {
-    claude: '# Project Guide',
+    claude: "# Project Guide",
     templates: {
-      'spec.md': 'Template content',
-      'tasks.md': 'Tasks template'
+      "spec.md": "Template content",
+      "tasks.md": "Tasks template",
     },
     gotchas: [
       {
-        id: 'G-001',
-        content: 'Use TEXT for timestamps',
-        filePattern: '*.sql',
-        actionType: 'CREATE',
-        confidence: 'high',
-        source: 'knowledge_base'
-      }
+        id: "G-001",
+        content: "Use TEXT for timestamps",
+        filePattern: "*.sql",
+        actionType: "CREATE",
+        confidence: "high",
+        source: "knowledge_base",
+      },
     ],
-    tokenEstimate: 1000
+    tokenEstimate: 1000,
   };
 
   beforeEach(() => {
-    client = new ClaudeClient({ apiKey: 'test-key' });
+    client = new ClaudeClient({ apiKey: "test-key" });
   });
 
-  describe('constructor', () => {
-    it('should create client with default options', () => {
+  describe("constructor", () => {
+    it("should create client with default options", () => {
       const defaultClient = new ClaudeClient();
       expect(defaultClient).toBeDefined();
     });
 
-    it('should accept custom options', () => {
+    it("should accept custom options", () => {
       const customClient = new ClaudeClient({
-        model: 'claude-3-opus',
-        maxTokens: 4096
+        model: "claude-3-opus",
+        maxTokens: 4096,
       });
       expect(customClient).toBeDefined();
     });
   });
 
-  describe('parseTaskYaml', () => {
-    it('should parse valid task YAML', () => {
+  describe("parseTaskYaml", () => {
+    it("should parse valid task YAML", () => {
       const yamlContent = `id: T-001
 phase: database
 action: CREATE
@@ -98,15 +104,15 @@ depends_on: []`;
       const task = (client as any).parseTaskYaml(yamlContent);
 
       expect(task).toBeDefined();
-      expect(task.id).toBe('T-001');
-      expect(task.phase).toBe('database');
-      expect(task.action).toBe('CREATE');
-      expect(task.file).toBe('database/migrations/001.sql');
-      expect(task.requirements).toContain('Create table');
-      expect(task.gotchas).toContain('Use TEXT for dates');
+      expect(task.id).toBe("T-001");
+      expect(task.phase).toBe("database");
+      expect(task.action).toBe("CREATE");
+      expect(task.file).toBe("database/migrations/001.sql");
+      expect(task.requirements).toContain("Create table");
+      expect(task.gotchas).toContain("Use TEXT for dates");
     });
 
-    it('should handle task with code template', () => {
+    it("should handle task with code template", () => {
       const yamlContent = `id: T-002
 phase: types
 action: CREATE
@@ -129,12 +135,12 @@ depends_on:
       const task = (client as any).parseTaskYaml(yamlContent);
 
       expect(task).toBeDefined();
-      expect(task.id).toBe('T-002');
-      expect(task.codeTemplate).toContain('export interface Feature');
-      expect(task.dependsOn).toContain('T-001');
+      expect(task.id).toBe("T-002");
+      expect(task.codeTemplate).toContain("export interface Feature");
+      expect(task.dependsOn).toContain("T-001");
     });
 
-    it('should return null for invalid YAML', () => {
+    it("should return null for invalid YAML", () => {
       const invalidYaml = `some: invalid
 yaml: without
 required: fields`;
@@ -144,8 +150,8 @@ required: fields`;
     });
   });
 
-  describe('parseTasks', () => {
-    it('should extract multiple tasks from response', () => {
+  describe("parseTasks", () => {
+    it("should extract multiple tasks from response", () => {
       const response = `Here are the tasks:
 
 \`\`\`yaml
@@ -180,14 +186,14 @@ depends_on:
       const tasks = (client as any).parseTasks(response);
 
       expect(tasks).toHaveLength(2);
-      expect(tasks[0].id).toBe('T-001');
-      expect(tasks[1].id).toBe('T-002');
-      expect(tasks[1].dependsOn).toContain('T-001');
+      expect(tasks[0].id).toBe("T-001");
+      expect(tasks[1].id).toBe("T-002");
+      expect(tasks[1].dependsOn).toContain("T-001");
     });
   });
 
-  describe('parseRequirements', () => {
-    it('should parse JSON from code block', () => {
+  describe("parseRequirements", () => {
+    it("should parse JSON from code block", () => {
       const response = `Here's the analysis:
 
 \`\`\`json
@@ -205,12 +211,12 @@ depends_on:
       const reqs = (client as any).parseRequirements(response);
 
       expect(reqs.functionalRequirements).toHaveLength(1);
-      expect(reqs.functionalRequirements[0].id).toBe('FR-001');
-      expect(reqs.constraints).toContain('SQLite only');
+      expect(reqs.functionalRequirements[0].id).toBe("FR-001");
+      expect(reqs.constraints).toContain("SQLite only");
     });
 
-    it('should return empty requirements for invalid JSON', () => {
-      const response = 'Some text without JSON';
+    it("should return empty requirements for invalid JSON", () => {
+      const response = "Some text without JSON";
 
       const reqs = (client as any).parseRequirements(response);
 
@@ -218,8 +224,8 @@ depends_on:
     });
   });
 
-  describe('retry logic', () => {
-    it('should implement exponential backoff', () => {
+  describe("retry logic", () => {
+    it("should implement exponential backoff", () => {
       const delay0 = (client as any).calculateBackoff(0);
       const delay1 = (client as any).calculateBackoff(1);
       const delay2 = (client as any).calculateBackoff(2);
@@ -229,21 +235,23 @@ depends_on:
       expect(delay2).toBeGreaterThan(delay1);
     });
 
-    it('should cap backoff at 60 seconds', () => {
+    it("should cap backoff at 60 seconds", () => {
       const delay10 = (client as any).calculateBackoff(10);
       expect(delay10).toBeLessThanOrEqual(60000);
     });
 
-    it('should identify retryable errors', () => {
+    it("should identify retryable errors", () => {
       expect((client as any).isRetryableError({ status: 429 })).toBe(true);
       expect((client as any).isRetryableError({ status: 500 })).toBe(true);
-      expect((client as any).isRetryableError({ code: 'ECONNRESET' })).toBe(true);
+      expect((client as any).isRetryableError({ code: "ECONNRESET" })).toBe(
+        true,
+      );
       expect((client as any).isRetryableError({ status: 400 })).toBe(false);
     });
   });
 
-  describe('token tracking', () => {
-    it('should track tokens used', async () => {
+  describe("token tracking", () => {
+    it("should track tokens used", async () => {
       // The mock returns 150 tokens per call
       expect(client.getTokensUsed()).toBe(0);
 
@@ -252,7 +260,7 @@ depends_on:
       expect(client.getTokensUsed()).toBe(150);
     });
 
-    it('should reset token counter', async () => {
+    it("should reset token counter", async () => {
       await client.analyzeBrief(mockBrief, mockContext);
       expect(client.getTokensUsed()).toBeGreaterThan(0);
 

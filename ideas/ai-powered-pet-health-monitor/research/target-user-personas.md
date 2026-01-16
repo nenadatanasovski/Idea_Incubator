@@ -16,15 +16,15 @@ This document defines five primary user personas for the PetHealth AI mobile app
 
 ### Profile
 
-| Attribute | Details |
-|-----------|---------|
-| **Name** | Sarah Chen |
-| **Age** | 28 |
-| **Location** | Austin, TX |
-| **Occupation** | Marketing Manager |
-| **Household Income** | $85,000/year |
-| **Pet** | Golden Retriever puppy, "Maple" (8 months old) |
-| **Tech Savviness** | High |
+| Attribute            | Details                                        |
+| -------------------- | ---------------------------------------------- |
+| **Name**             | Sarah Chen                                     |
+| **Age**              | 28                                             |
+| **Location**         | Austin, TX                                     |
+| **Occupation**       | Marketing Manager                              |
+| **Household Income** | $85,000/year                                   |
+| **Pet**              | Golden Retriever puppy, "Maple" (8 months old) |
+| **Tech Savviness**   | High                                           |
 
 ### Background Story
 
@@ -85,15 +85,15 @@ Sarah adopted Maple as her first dog after moving into a pet-friendly apartment.
 
 ### Profile
 
-| Attribute | Details |
-|-----------|---------|
-| **Name** | Michael & Jennifer Rodriguez |
-| **Age** | 42 & 39 |
-| **Location** | Denver, CO |
-| **Occupation** | IT Director & Pediatric Nurse |
-| **Household Income** | $165,000/year |
-| **Pets** | 2 dogs (Lab mix, 7 yrs; Border Collie, 4 yrs) + 1 cat (Tabby, 10 yrs) |
-| **Tech Savviness** | Medium-High |
+| Attribute            | Details                                                               |
+| -------------------- | --------------------------------------------------------------------- |
+| **Name**             | Michael & Jennifer Rodriguez                                          |
+| **Age**              | 42 & 39                                                               |
+| **Location**         | Denver, CO                                                            |
+| **Occupation**       | IT Director & Pediatric Nurse                                         |
+| **Household Income** | $165,000/year                                                         |
+| **Pets**             | 2 dogs (Lab mix, 7 yrs; Border Collie, 4 yrs) + 1 cat (Tabby, 10 yrs) |
+| **Tech Savviness**   | Medium-High                                                           |
 
 ### Background Story
 
@@ -154,15 +154,15 @@ The Rodriguez family has always had pets. With two working parents and three kid
 
 ### Profile
 
-| Attribute | Details |
-|-----------|---------|
-| **Name** | Margaret "Maggie" Thompson |
-| **Age** | 67 |
-| **Location** | Portland, OR |
-| **Occupation** | Retired Teacher |
-| **Household Income** | $48,000/year (retirement) |
-| **Pet** | Mixed breed dog, "Biscuit" (12 years old, adopted together 10 years ago) |
-| **Tech Savviness** | Low-Medium |
+| Attribute            | Details                                                                  |
+| -------------------- | ------------------------------------------------------------------------ |
+| **Name**             | Margaret "Maggie" Thompson                                               |
+| **Age**              | 67                                                                       |
+| **Location**         | Portland, OR                                                             |
+| **Occupation**       | Retired Teacher                                                          |
+| **Household Income** | $48,000/year (retirement)                                                |
+| **Pet**              | Mixed breed dog, "Biscuit" (12 years old, adopted together 10 years ago) |
+| **Tech Savviness**   | Low-Medium                                                               |
 
 ### Background Story
 
@@ -223,15 +223,15 @@ Maggie and Biscuit have been inseparable since her husband passed away 10 years 
 
 ### Profile
 
-| Attribute | Details |
-|-----------|---------|
-| **Name** | Derek Kim |
-| **Age** | 34 |
-| **Location** | San Diego, CA |
-| **Occupation** | CrossFit Coach & Personal Trainer |
-| **Household Income** | $72,000/year |
-| **Pet** | Belgian Malinois, "Zeus" (3 years old) - competes in agility |
-| **Tech Savviness** | Very High |
+| Attribute            | Details                                                      |
+| -------------------- | ------------------------------------------------------------ |
+| **Name**             | Derek Kim                                                    |
+| **Age**              | 34                                                           |
+| **Location**         | San Diego, CA                                                |
+| **Occupation**       | CrossFit Coach & Personal Trainer                            |
+| **Household Income** | $72,000/year                                                 |
+| **Pet**              | Belgian Malinois, "Zeus" (3 years old) - competes in agility |
+| **Tech Savviness**   | Very High                                                    |
 
 ### Background Story
 
@@ -293,15 +293,15 @@ Derek is a fitness enthusiast who got Zeus specifically for dog sports. They tra
 
 ### Profile
 
-| Attribute | Details |
-|-----------|---------|
-| **Name** | Aisha Patel |
-| **Age** | 31 |
-| **Location** | Brooklyn, NY |
-| **Occupation** | UX Designer at Tech Startup |
-| **Household Income** | $115,000/year |
-| **Pet** | French Bulldog, "Bruno" (2 years old) |
-| **Tech Savviness** | Very High |
+| Attribute            | Details                               |
+| -------------------- | ------------------------------------- |
+| **Name**             | Aisha Patel                           |
+| **Age**              | 31                                    |
+| **Location**         | Brooklyn, NY                          |
+| **Occupation**       | UX Designer at Tech Startup           |
+| **Household Income** | $115,000/year                         |
+| **Pet**              | French Bulldog, "Bruno" (2 years old) |
+| **Tech Savviness**   | Very High                             |
 
 ### Background Story
 
@@ -360,27 +360,27 @@ Aisha adopted Bruno during the pandemic. She works from home but has an active s
 
 ## Persona Comparison Matrix
 
-| Attribute | Sarah (Anxious) | Rodriguez (Multi-Pet) | Maggie (Senior) | Derek (Athlete) | Aisha (Urban Pro) |
-|-----------|-----------------|----------------------|-----------------|-----------------|-------------------|
-| **Primary Need** | Peace of mind | Efficiency | Quality of life | Performance data | Breed health |
-| **Tech Comfort** | High | Medium-High | Low-Medium | Very High | Very High |
-| **Price Sensitivity** | Low | Medium | Medium-High | Low | Low |
-| **Subscription WTP** | $15/mo | $25/mo (family) | $8/mo | $20/mo | $12/mo |
-| **Key Feature** | Real-time alerts | Multi-pet dashboard | Simple interface | Advanced metrics | Temperature/respiratory |
-| **Acquisition** | Social media | Vet referral | Vet referral | Communities | Instagram |
-| **Support Needs** | Self-serve + chat | Family sharing | Phone support | API docs | In-app help |
+| Attribute             | Sarah (Anxious)   | Rodriguez (Multi-Pet) | Maggie (Senior)  | Derek (Athlete)  | Aisha (Urban Pro)       |
+| --------------------- | ----------------- | --------------------- | ---------------- | ---------------- | ----------------------- |
+| **Primary Need**      | Peace of mind     | Efficiency            | Quality of life  | Performance data | Breed health            |
+| **Tech Comfort**      | High              | Medium-High           | Low-Medium       | Very High        | Very High               |
+| **Price Sensitivity** | Low               | Medium                | Medium-High      | Low              | Low                     |
+| **Subscription WTP**  | $15/mo            | $25/mo (family)       | $8/mo            | $20/mo           | $12/mo                  |
+| **Key Feature**       | Real-time alerts  | Multi-pet dashboard   | Simple interface | Advanced metrics | Temperature/respiratory |
+| **Acquisition**       | Social media      | Vet referral          | Vet referral     | Communities      | Instagram               |
+| **Support Needs**     | Self-serve + chat | Family sharing        | Phone support    | API docs         | In-app help             |
 
 ---
 
 ## Market Sizing by Persona
 
-| Persona Type | Est. % of Target Market | Priority | Notes |
-|--------------|------------------------|----------|-------|
-| Anxious First-Time | 25% | **Primary** | High volume, high LTV, strong word-of-mouth |
-| Multi-Pet Household | 20% | **Primary** | High revenue per household, sticky |
-| Senior Pet Caregiver | 15% | Secondary | Growing segment, accessibility focus needed |
-| Performance/Athlete | 5% | Niche | Small but influential, power users |
-| Urban Professional | 35% | **Primary** | Largest segment, high disposable income |
+| Persona Type         | Est. % of Target Market | Priority    | Notes                                       |
+| -------------------- | ----------------------- | ----------- | ------------------------------------------- |
+| Anxious First-Time   | 25%                     | **Primary** | High volume, high LTV, strong word-of-mouth |
+| Multi-Pet Household  | 20%                     | **Primary** | High revenue per household, sticky          |
+| Senior Pet Caregiver | 15%                     | Secondary   | Growing segment, accessibility focus needed |
+| Performance/Athlete  | 5%                      | Niche       | Small but influential, power users          |
+| Urban Professional   | 35%                     | **Primary** | Largest segment, high disposable income     |
 
 ---
 
@@ -396,16 +396,16 @@ Aisha adopted Bruno during the pandemic. She works from home but has an active s
 
 ### Segment-Specific Features
 
-| Feature | Target Persona(s) |
-|---------|-------------------|
-| Multi-pet dashboard | Rodriguez |
-| Large text/simple mode | Maggie |
-| Advanced metrics/HRV | Derek |
-| Breed-specific baselines | Aisha, Derek |
-| Family/caregiver sharing | Rodriguez, Aisha |
-| Phone support option | Maggie |
-| API access | Derek |
-| Sleek hardware design | Aisha, Sarah |
+| Feature                  | Target Persona(s) |
+| ------------------------ | ----------------- |
+| Multi-pet dashboard      | Rodriguez         |
+| Large text/simple mode   | Maggie            |
+| Advanced metrics/HRV     | Derek             |
+| Breed-specific baselines | Aisha, Derek      |
+| Family/caregiver sharing | Rodriguez, Aisha  |
+| Phone support option     | Maggie            |
+| API access               | Derek             |
+| Sleek hardware design    | Aisha, Sarah      |
 
 ### Onboarding Paths
 
@@ -427,4 +427,4 @@ Aisha adopted Bruno during the pandemic. She works from home but has an active s
 
 ---
 
-*This document should be reviewed and updated quarterly based on user research and customer feedback.*
+_This document should be reviewed and updated quarterly based on user research and customer feedback._

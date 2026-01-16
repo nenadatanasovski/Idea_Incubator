@@ -5,12 +5,12 @@
  * phase information from README.md frontmatter and timeline metadata.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import matter from 'gray-matter';
-import { getConfig } from '../../config/index.js';
-import type { LifecycleStage } from '../../utils/schemas.js';
-import { LifecycleStageSchema } from '../../utils/schemas.js';
+import * as fs from "fs";
+import * as path from "path";
+import matter from "gray-matter";
+import { getConfig } from "../../config/index.js";
+import type { LifecycleStage } from "../../utils/schemas.js";
+import { LifecycleStageSchema } from "../../utils/schemas.js";
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -22,7 +22,7 @@ import { LifecycleStageSchema } from '../../utils/schemas.js';
 function getUsersRoot(): string {
   const config = getConfig();
   const projectRoot = path.dirname(config.paths.ideas);
-  return path.join(projectRoot, 'users');
+  return path.join(projectRoot, "users");
 }
 
 /**
@@ -30,7 +30,7 @@ function getUsersRoot(): string {
  */
 function getReadmePath(userSlug: string, ideaSlug: string): string {
   const usersRoot = getUsersRoot();
-  return path.join(usersRoot, userSlug, 'ideas', ideaSlug, 'README.md');
+  return path.join(usersRoot, userSlug, "ideas", ideaSlug, "README.md");
 }
 
 /**
@@ -57,24 +57,24 @@ function isValidLifecycleStage(stage: string): stage is LifecycleStage {
  */
 export async function getCurrentPhase(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<LifecycleStage> {
   const readmePath = getReadmePath(userSlug, ideaSlug);
 
   // Handle missing file gracefully
   if (!fs.existsSync(readmePath)) {
-    return 'SPARK';
+    return "SPARK";
   }
 
   try {
-    const raw = fs.readFileSync(readmePath, 'utf-8');
+    const raw = fs.readFileSync(readmePath, "utf-8");
     const { data } = matter(raw);
 
     // Check for lifecycle_stage first (preferred), then stage as fallback
     const stage = data.lifecycle_stage || data.stage;
 
     if (!stage) {
-      return 'SPARK';
+      return "SPARK";
     }
 
     // Validate the stage is a valid lifecycle stage
@@ -83,10 +83,10 @@ export async function getCurrentPhase(
     }
 
     // Invalid stage value - return default
-    return 'SPARK';
+    return "SPARK";
   } catch (error) {
     // Handle parsing errors gracefully
-    return 'SPARK';
+    return "SPARK";
   }
 }
 
@@ -99,7 +99,14 @@ export async function getCurrentPhase(
  */
 function getTimelinePath(userSlug: string, ideaSlug: string): string {
   const usersRoot = getUsersRoot();
-  return path.join(usersRoot, userSlug, 'ideas', ideaSlug, '.metadata', 'timeline.json');
+  return path.join(
+    usersRoot,
+    userSlug,
+    "ideas",
+    ideaSlug,
+    ".metadata",
+    "timeline.json",
+  );
 }
 
 /**
@@ -120,21 +127,21 @@ function readTimeline(userSlug: string, ideaSlug: string): Timeline {
   if (!fs.existsSync(timelinePath)) {
     // Return default timeline if file doesn't exist
     return {
-      current_phase: 'SPARK',
+      current_phase: "SPARK",
       phase_started: null,
-      target_dates: {}
+      target_dates: {},
     };
   }
 
   try {
-    const raw = fs.readFileSync(timelinePath, 'utf-8');
+    const raw = fs.readFileSync(timelinePath, "utf-8");
     return JSON.parse(raw) as Timeline;
   } catch {
     // Return default timeline on parse error
     return {
-      current_phase: 'SPARK',
+      current_phase: "SPARK",
       phase_started: null,
-      target_dates: {}
+      target_dates: {},
     };
   }
 }
@@ -142,7 +149,11 @@ function readTimeline(userSlug: string, ideaSlug: string): Timeline {
 /**
  * Write the timeline.json file for an idea
  */
-function writeTimeline(userSlug: string, ideaSlug: string, timeline: Timeline): void {
+function writeTimeline(
+  userSlug: string,
+  ideaSlug: string,
+  timeline: Timeline,
+): void {
   const timelinePath = getTimelinePath(userSlug, ideaSlug);
   const metadataDir = path.dirname(timelinePath);
 
@@ -151,7 +162,7 @@ function writeTimeline(userSlug: string, ideaSlug: string, timeline: Timeline): 
     fs.mkdirSync(metadataDir, { recursive: true });
   }
 
-  fs.writeFileSync(timelinePath, JSON.stringify(timeline, null, 2), 'utf-8');
+  fs.writeFileSync(timelinePath, JSON.stringify(timeline, null, 2), "utf-8");
 }
 
 // ============================================================================
@@ -172,7 +183,7 @@ function writeTimeline(userSlug: string, ideaSlug: string, timeline: Timeline): 
 export async function updatePhase(
   userSlug: string,
   ideaSlug: string,
-  newPhase: LifecycleStage
+  newPhase: LifecycleStage,
 ): Promise<void> {
   // Validate newPhase is a valid lifecycle stage
   if (!isValidLifecycleStage(newPhase)) {
@@ -183,7 +194,7 @@ export async function updatePhase(
 
   // Update README.md frontmatter
   if (fs.existsSync(readmePath)) {
-    const raw = fs.readFileSync(readmePath, 'utf-8');
+    const raw = fs.readFileSync(readmePath, "utf-8");
     const { data: frontmatter, content } = matter(raw);
 
     // Update lifecycle_stage while preserving other frontmatter fields
@@ -191,13 +202,13 @@ export async function updatePhase(
 
     // Write back the file with updated frontmatter
     const updatedContent = matter.stringify(content, frontmatter);
-    fs.writeFileSync(readmePath, updatedContent, 'utf-8');
+    fs.writeFileSync(readmePath, updatedContent, "utf-8");
   } else {
     // Create README.md with minimal frontmatter if it doesn't exist
     const minimalFrontmatter = {
-      lifecycle_stage: newPhase
+      lifecycle_stage: newPhase,
     };
-    const newContent = matter.stringify('', minimalFrontmatter);
+    const newContent = matter.stringify("", minimalFrontmatter);
 
     // Ensure the idea directory exists
     const ideaDir = path.dirname(readmePath);
@@ -205,7 +216,7 @@ export async function updatePhase(
       fs.mkdirSync(ideaDir, { recursive: true });
     }
 
-    fs.writeFileSync(readmePath, newContent, 'utf-8');
+    fs.writeFileSync(readmePath, newContent, "utf-8");
   }
 
   // Update timeline.json
@@ -215,7 +226,9 @@ export async function updatePhase(
   writeTimeline(userSlug, ideaSlug, timeline);
 
   // Log phase change
-  console.log(`[Phase Manager] Phase updated: ${userSlug}/${ideaSlug} -> ${newPhase}`);
+  console.log(
+    `[Phase Manager] Phase updated: ${userSlug}/${ideaSlug} -> ${newPhase}`,
+  );
 }
 
 // ============================================================================
@@ -261,20 +274,40 @@ export interface TransitionCheck {
  * Some transitions are non-linear (e.g., to PIVOT, PAUSE, SUNSET, ARCHIVE, ABANDONED).
  */
 const LIFECYCLE_ORDER: LifecycleStage[] = [
-  'SPARK', 'CLARIFY', 'RESEARCH', 'IDEATE', 'EVALUATE', 'VALIDATE',
-  'DESIGN', 'PROTOTYPE', 'TEST', 'REFINE', 'BUILD', 'LAUNCH',
-  'GROW', 'MAINTAIN'
+  "SPARK",
+  "CLARIFY",
+  "RESEARCH",
+  "IDEATE",
+  "EVALUATE",
+  "VALIDATE",
+  "DESIGN",
+  "PROTOTYPE",
+  "TEST",
+  "REFINE",
+  "BUILD",
+  "LAUNCH",
+  "GROW",
+  "MAINTAIN",
 ];
 
 /**
  * Special phases that can be transitioned to from any phase.
  */
-const SPECIAL_PHASES: LifecycleStage[] = ['PIVOT', 'PAUSE', 'SUNSET', 'ARCHIVE', 'ABANDONED'];
+const SPECIAL_PHASES: LifecycleStage[] = [
+  "PIVOT",
+  "PAUSE",
+  "SUNSET",
+  "ARCHIVE",
+  "ABANDONED",
+];
 
 /**
  * Check if a target phase is a valid transition from the current phase.
  */
-function isValidTransition(current: LifecycleStage, target: LifecycleStage): boolean {
+function isValidTransition(
+  current: LifecycleStage,
+  target: LifecycleStage,
+): boolean {
   // Special phases can always be transitioned to
   if (SPECIAL_PHASES.includes(target)) {
     return true;
@@ -287,7 +320,7 @@ function isValidTransition(current: LifecycleStage, target: LifecycleStage): boo
 
   // From special phases, can only go to other special phases or SPARK
   if (SPECIAL_PHASES.includes(current)) {
-    return target === 'SPARK' || SPECIAL_PHASES.includes(target);
+    return target === "SPARK" || SPECIAL_PHASES.includes(target);
   }
 
   // For normal phases, check ordering (can go forward, or back to earlier phases)
@@ -308,7 +341,7 @@ function isValidTransition(current: LifecycleStage, target: LifecycleStage): boo
  */
 function getIdeaFolderPath(userSlug: string, ideaSlug: string): string {
   const usersRoot = getUsersRoot();
-  return path.join(usersRoot, userSlug, 'ideas', ideaSlug);
+  return path.join(usersRoot, userSlug, "ideas", ideaSlug);
 }
 
 /**
@@ -322,7 +355,7 @@ function isDocumentComplete(ideaFolder: string, docPath: string): boolean {
   }
 
   try {
-    const content = fs.readFileSync(fullPath, 'utf-8');
+    const content = fs.readFileSync(fullPath, "utf-8");
     const { content: bodyContent } = matter(content);
 
     // Consider document complete if it has more than just whitespace in the body
@@ -336,8 +369,10 @@ function isDocumentComplete(ideaFolder: string, docPath: string): boolean {
 /**
  * Import PHASE_REQUIREMENTS dynamically to avoid circular dependency issues.
  */
-async function getPhaseRequirements(): Promise<Record<LifecycleStage, { required: string[]; recommended: string[] }>> {
-  const { PHASE_REQUIREMENTS } = await import('./classification-rules.js');
+async function getPhaseRequirements(): Promise<
+  Record<LifecycleStage, { required: string[]; recommended: string[] }>
+> {
+  const { PHASE_REQUIREMENTS } = await import("./classification-rules.js");
   return PHASE_REQUIREMENTS;
 }
 
@@ -357,7 +392,7 @@ async function getPhaseRequirements(): Promise<Record<LifecycleStage, { required
 export async function canTransitionTo(
   userSlug: string,
   ideaSlug: string,
-  targetPhase: LifecycleStage
+  targetPhase: LifecycleStage,
 ): Promise<TransitionCheck> {
   // Get current phase
   const currentPhase = await getCurrentPhase(userSlug, ideaSlug);
@@ -382,7 +417,9 @@ export async function canTransitionTo(
   // Check if transition is valid
   if (!isValidTransition(currentPhase, targetPhase)) {
     result.canTransition = false;
-    result.warnings.push(`Cannot transition from ${currentPhase} to ${targetPhase}`);
+    result.warnings.push(
+      `Cannot transition from ${currentPhase} to ${targetPhase}`,
+    );
     return result;
   }
 
@@ -419,7 +456,9 @@ export async function canTransitionTo(
 
   // Calculate completion percentage
   if (totalRequired > 0) {
-    result.completionPercent = Math.round((completedRequired / totalRequired) * 100);
+    result.completionPercent = Math.round(
+      (completedRequired / totalRequired) * 100,
+    );
   }
 
   // Set canTransition based on required documents
@@ -442,7 +481,7 @@ async function generateSimpleHandoffBrief(
   userSlug: string,
   ideaSlug: string,
   fromPhase: LifecycleStage,
-  toPhase: LifecycleStage
+  toPhase: LifecycleStage,
 ): Promise<string> {
   const timestamp = new Date().toISOString();
 
@@ -451,14 +490,22 @@ async function generateSimpleHandoffBrief(
   try {
     // Get the directory of current file using import.meta.url (ESM compatible)
     const currentFileUrl = import.meta.url;
-    const currentDir = path.dirname(currentFileUrl.replace('file://', ''));
-    const handoffGeneratorPath = path.join(currentDir, 'handoff-generator.js');
+    const currentDir = path.dirname(currentFileUrl.replace("file://", ""));
+    const handoffGeneratorPath = path.join(currentDir, "handoff-generator.js");
 
     if (fs.existsSync(handoffGeneratorPath)) {
       // Dynamic import using file URL for ESM compatibility
-      const handoffModule = await import('./handoff-generator.js' as string);
-      if (handoffModule && typeof handoffModule.generateHandoffBrief === 'function') {
-        return await handoffModule.generateHandoffBrief(userSlug, ideaSlug, fromPhase, toPhase);
+      const handoffModule = await import("./handoff-generator.js" as string);
+      if (
+        handoffModule &&
+        typeof handoffModule.generateHandoffBrief === "function"
+      ) {
+        return await handoffModule.generateHandoffBrief(
+          userSlug,
+          ideaSlug,
+          fromPhase,
+          toPhase,
+        );
       }
     }
   } catch {
@@ -518,7 +565,7 @@ export async function transitionPhase(
   userSlug: string,
   ideaSlug: string,
   targetPhase: LifecycleStage,
-  force?: boolean
+  force?: boolean,
 ): Promise<TransitionResult> {
   // Get current phase first
   const previousPhase = await getCurrentPhase(userSlug, ideaSlug);
@@ -532,12 +579,16 @@ export async function transitionPhase(
 
   // Check readiness unless force is true
   if (!force) {
-    const readinessCheck = await canTransitionTo(userSlug, ideaSlug, targetPhase);
+    const readinessCheck = await canTransitionTo(
+      userSlug,
+      ideaSlug,
+      targetPhase,
+    );
 
     if (!readinessCheck.canTransition) {
-      result.error = `Cannot transition to ${targetPhase}. Missing required documents: ${readinessCheck.missingRequired.join(', ') || 'Unknown reason'}`;
+      result.error = `Cannot transition to ${targetPhase}. Missing required documents: ${readinessCheck.missingRequired.join(", ") || "Unknown reason"}`;
       if (readinessCheck.warnings.length > 0) {
-        result.error += `. Warnings: ${readinessCheck.warnings.join(', ')}`;
+        result.error += `. Warnings: ${readinessCheck.warnings.join(", ")}`;
       }
       return result;
     }
@@ -552,7 +603,7 @@ export async function transitionPhase(
       userSlug,
       ideaSlug,
       previousPhase,
-      targetPhase
+      targetPhase,
     );
 
     // Update result on success
@@ -560,7 +611,9 @@ export async function transitionPhase(
     result.newPhase = targetPhase;
     result.handoffBrief = handoffBrief;
 
-    console.log(`[Phase Manager] Phase transition complete: ${userSlug}/${ideaSlug} ${previousPhase} -> ${targetPhase}`);
+    console.log(
+      `[Phase Manager] Phase transition complete: ${userSlug}/${ideaSlug} ${previousPhase} -> ${targetPhase}`,
+    );
 
     return result;
   } catch (error) {

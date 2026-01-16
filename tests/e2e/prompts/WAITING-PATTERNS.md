@@ -4,12 +4,13 @@
 
 ```javascript
 // BAD: Arbitrary waits that waste time and are unreliable
-new Promise(resolve => setTimeout(resolve, 3000))
-new Promise(resolve => setTimeout(resolve, 5000))
-new Promise(resolve => setTimeout(resolve, 10000))
+new Promise((resolve) => setTimeout(resolve, 3000));
+new Promise((resolve) => setTimeout(resolve, 5000));
+new Promise((resolve) => setTimeout(resolve, 10000));
 ```
 
 **Problems:**
+
 - Wastes time when action completes faster
 - Still fails when action takes longer
 - No feedback on what's actually happening
@@ -49,8 +50,8 @@ mcp__puppeteer__puppeteer_evaluate({
 
       return { success: false, error: 'timeout', waitedMs: timeout };
     })()
-  `
-})
+  `,
+});
 ```
 
 ### Pattern 2: Wait for Loading to Complete
@@ -79,8 +80,8 @@ mcp__puppeteer__puppeteer_evaluate({
 
       return { success: false, error: 'timeout waiting for loading', waitedMs: timeout };
     })()
-  `
-})
+  `,
+});
 ```
 
 ### Pattern 3: Wait for URL Change
@@ -107,8 +108,8 @@ mcp__puppeteer__puppeteer_evaluate({
 
       return { success: false, error: 'URL did not change', url: startUrl };
     })()
-  `
-})
+  `,
+});
 ```
 
 ### Pattern 4: Wait for Network Idle
@@ -156,8 +157,8 @@ mcp__puppeteer__puppeteer_evaluate({
         checkIdle();
       });
     })()
-  `
-})
+  `,
+});
 ```
 
 ### Pattern 5: Wait for Specific Message Count
@@ -192,33 +193,33 @@ mcp__puppeteer__puppeteer_evaluate({
         expected: targetCount
       };
     })()
-  `
-})
+  `,
+});
 ```
 
 ---
 
 ## When to Use Each Pattern
 
-| Scenario | Pattern to Use |
-|----------|----------------|
-| After clicking send | Wait for Element (new message) |
-| After starting session | Wait for Loading to Complete |
-| After clicking abandon | Wait for URL Change |
-| After multiple API calls | Wait for Network Idle |
-| Testing message persistence | Wait for Message Count |
+| Scenario                    | Pattern to Use                 |
+| --------------------------- | ------------------------------ |
+| After clicking send         | Wait for Element (new message) |
+| After starting session      | Wait for Loading to Complete   |
+| After clicking abandon      | Wait for URL Change            |
+| After multiple API calls    | Wait for Network Idle          |
+| Testing message persistence | Wait for Message Count         |
 
 ---
 
 ## Timeout Guidelines
 
-| Action | Recommended Timeout | Why |
-|--------|---------------------|-----|
-| Button click effect | 5 seconds | Simple UI update |
-| Send message + response | 30 seconds | AI generation takes time |
-| Session start | 15 seconds | API + greeting generation |
-| Page navigation | 10 seconds | Route change + render |
-| Full conversation load | 60 seconds | Multiple messages to render |
+| Action                  | Recommended Timeout | Why                         |
+| ----------------------- | ------------------- | --------------------------- |
+| Button click effect     | 5 seconds           | Simple UI update            |
+| Send message + response | 30 seconds          | AI generation takes time    |
+| Session start           | 15 seconds          | API + greeting generation   |
+| Page navigation         | 10 seconds          | Route change + render       |
+| Full conversation load  | 60 seconds          | Multiple messages to render |
 
 ---
 
@@ -228,21 +229,23 @@ Always check for error states during waits:
 
 ```javascript
 // Check for both success AND failure conditions
-const error = document.querySelector('.text-red-500, [role="alert"], .error-message');
+const error = document.querySelector(
+  '.text-red-500, [role="alert"], .error-message',
+);
 if (error) {
   return {
     success: false,
     error: error.textContent,
-    errorType: 'ui-error'
+    errorType: "ui-error",
   };
 }
 
-const unexpectedUrl = window.location.pathname === '/ideate';
+const unexpectedUrl = window.location.pathname === "/ideate";
 if (unexpectedUrl && !expectedHere) {
   return {
     success: false,
-    error: 'Unexpected navigation to entry page',
-    errorType: 'navigation'
+    error: "Unexpected navigation to entry page",
+    errorType: "navigation",
   };
 }
 ```
@@ -254,7 +257,7 @@ if (unexpectedUrl && !expectedHere) {
 If a wait times out, ALWAYS diagnose:
 
 ```javascript
-const result = await waitForElement('.expected-element');
+const result = await waitForElement(".expected-element");
 
 if (!result.success) {
   // DON'T just retry - diagnose first
@@ -266,7 +269,7 @@ if (!result.success) {
   const currentUrl = window.location.href;
 
   // 3. Check for error messages
-  const errors = document.querySelectorAll('.error, .text-red-500');
+  const errors = document.querySelectorAll(".error, .text-red-500");
 
   // 4. Return diagnostic info
   return {
@@ -274,9 +277,9 @@ if (!result.success) {
     diagnostic: {
       pageContent,
       currentUrl,
-      errors: [...errors].map(e => e.textContent),
-      expectedElement: '.expected-element'
-    }
+      errors: [...errors].map((e) => e.textContent),
+      expectedElement: ".expected-element",
+    },
   };
 }
 ```
@@ -297,7 +300,7 @@ await sleep(10000);
 
 ```javascript
 // RIGHT: Single wait with proper timeout and diagnostics
-const result = await waitForElement('.expected', { timeout: 30000 });
+const result = await waitForElement(".expected", { timeout: 30000 });
 if (!result.success) {
   // Collect diagnostics and decide next action
   const diagnostic = await collectDiagnostics();

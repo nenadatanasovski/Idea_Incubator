@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from 'uuid';
-import { getDb, saveDb } from '../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { getDb, saveDb } from "../../database/db.js";
 import {
   IdeationMessage,
   IdeationMessageRow,
@@ -7,8 +7,8 @@ import {
   ButtonOption,
   FormDefinition,
   WebSearchResult,
-} from '../../types/ideation.js';
-import { mapMessageRowToMessage } from '../../utils/ideation-mappers.js';
+} from "../../types/ideation.js";
+import { mapMessageRowToMessage } from "../../utils/ideation-mappers.js";
 
 /**
  * MESSAGE STORE
@@ -31,17 +31,26 @@ export interface AddMessageParams {
 /**
  * Helper to convert db result to objects
  */
-function resultsToObjects(result: { columns: string[]; values: unknown[][] }): Record<string, unknown>[] {
+function resultsToObjects(result: {
+  columns: string[];
+  values: unknown[][];
+}): Record<string, unknown>[] {
   const columns = result.columns;
-  return result.values.map(values => {
-    return columns.reduce((obj, col, i) => {
-      obj[col] = values[i];
-      return obj;
-    }, {} as Record<string, unknown>);
+  return result.values.map((values) => {
+    return columns.reduce(
+      (obj, col, i) => {
+        obj[col] = values[i];
+        return obj;
+      },
+      {} as Record<string, unknown>,
+    );
   });
 }
 
-function rowToObject(result: { columns: string[]; values: unknown[][] }): Record<string, unknown> {
+function rowToObject(result: {
+  columns: string[];
+  values: unknown[][];
+}): Record<string, unknown> {
   if (result.values.length === 0) {
     return {};
   }
@@ -57,7 +66,8 @@ export class MessageStore {
     const id = uuidv4();
     const now = new Date().toISOString();
 
-    db.run(`
+    db.run(
+      `
       INSERT INTO ideation_messages (
         id, session_id, role, content,
         buttons_shown, button_clicked,
@@ -65,19 +75,23 @@ export class MessageStore {
         web_search_results, token_count, created_at
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id,
-      params.sessionId,
-      params.role,
-      params.content,
-      params.buttonsShown ? JSON.stringify(params.buttonsShown) : null,
-      params.buttonClicked || null,
-      params.formShown ? JSON.stringify(params.formShown) : null,
-      params.formResponse ? JSON.stringify(params.formResponse) : null,
-      params.webSearchResults ? JSON.stringify(params.webSearchResults) : null,
-      params.tokenCount || 0,
-      now,
-    ]);
+    `,
+      [
+        id,
+        params.sessionId,
+        params.role,
+        params.content,
+        params.buttonsShown ? JSON.stringify(params.buttonsShown) : null,
+        params.buttonClicked || null,
+        params.formShown ? JSON.stringify(params.formShown) : null,
+        params.formResponse ? JSON.stringify(params.formResponse) : null,
+        params.webSearchResults
+          ? JSON.stringify(params.webSearchResults)
+          : null,
+        params.tokenCount || 0,
+        now,
+      ],
+    );
 
     await saveDb();
 
@@ -89,9 +103,12 @@ export class MessageStore {
    */
   async get(messageId: string): Promise<IdeationMessage | null> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_messages WHERE id = ?
-    `, [messageId]);
+    `,
+      [messageId],
+    );
 
     if (results.length === 0 || results[0].values.length === 0) {
       return null;
@@ -106,37 +123,46 @@ export class MessageStore {
    */
   async getBySession(sessionId: string): Promise<IdeationMessage[]> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_messages
       WHERE session_id = ?
       ORDER BY created_at ASC
-    `, [sessionId]);
+    `,
+      [sessionId],
+    );
 
     if (results.length === 0) return [];
 
-    return resultsToObjects(results[0]).map(row =>
-      mapMessageRowToMessage(row as IdeationMessageRow)
+    return resultsToObjects(results[0]).map((row) =>
+      mapMessageRowToMessage(row as IdeationMessageRow),
     );
   }
 
   /**
    * Get recent messages for a session (for context window).
    */
-  async getRecent(sessionId: string, limit: number = 50): Promise<IdeationMessage[]> {
+  async getRecent(
+    sessionId: string,
+    limit: number = 50,
+  ): Promise<IdeationMessage[]> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM (
         SELECT * FROM ideation_messages
         WHERE session_id = ?
         ORDER BY created_at DESC
         LIMIT ?
       ) ORDER BY created_at ASC
-    `, [sessionId, limit]);
+    `,
+      [sessionId, limit],
+    );
 
     if (results.length === 0) return [];
 
-    return resultsToObjects(results[0]).map(row =>
-      mapMessageRowToMessage(row as IdeationMessageRow)
+    return resultsToObjects(results[0]).map((row) =>
+      mapMessageRowToMessage(row as IdeationMessageRow),
     );
   }
 
@@ -146,11 +172,14 @@ export class MessageStore {
   async recordButtonClick(messageId: string, buttonId: string): Promise<void> {
     const db = await getDb();
 
-    db.run(`
+    db.run(
+      `
       UPDATE ideation_messages
       SET button_clicked = ?
       WHERE id = ?
-    `, [buttonId, messageId]);
+    `,
+      [buttonId, messageId],
+    );
 
     await saveDb();
   }
@@ -158,14 +187,20 @@ export class MessageStore {
   /**
    * Update message with form response.
    */
-  async recordFormResponse(messageId: string, response: Record<string, unknown>): Promise<void> {
+  async recordFormResponse(
+    messageId: string,
+    response: Record<string, unknown>,
+  ): Promise<void> {
     const db = await getDb();
 
-    db.run(`
+    db.run(
+      `
       UPDATE ideation_messages
       SET form_response = ?
       WHERE id = ?
-    `, [JSON.stringify(response), messageId]);
+    `,
+      [JSON.stringify(response), messageId],
+    );
 
     await saveDb();
   }
@@ -173,15 +208,21 @@ export class MessageStore {
   /**
    * Update message content (for async artifact edit completion).
    */
-  async update(messageId: string, updates: { content?: string }): Promise<void> {
+  async update(
+    messageId: string,
+    updates: { content?: string },
+  ): Promise<void> {
     const db = await getDb();
 
     if (updates.content) {
-      db.run(`
+      db.run(
+        `
         UPDATE ideation_messages
         SET content = ?
         WHERE id = ?
-      `, [updates.content, messageId]);
+      `,
+        [updates.content, messageId],
+      );
 
       await saveDb();
     }
@@ -192,11 +233,14 @@ export class MessageStore {
    */
   async getTotalTokens(sessionId: string): Promise<number> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT COALESCE(SUM(token_count), 0) as total
       FROM ideation_messages
       WHERE session_id = ?
-    `, [sessionId]);
+    `,
+      [sessionId],
+    );
 
     if (results.length === 0 || results[0].values.length === 0) {
       return 0;
@@ -210,11 +254,14 @@ export class MessageStore {
    */
   async count(sessionId: string): Promise<number> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT COUNT(*) as count
       FROM ideation_messages
       WHERE session_id = ?
-    `, [sessionId]);
+    `,
+      [sessionId],
+    );
 
     if (results.length === 0 || results[0].values.length === 0) {
       return 0;
@@ -226,13 +273,19 @@ export class MessageStore {
   /**
    * Get messages since a specific message (for partial handoff).
    */
-  async getSince(sessionId: string, sinceMessageId: string): Promise<IdeationMessage[]> {
+  async getSince(
+    sessionId: string,
+    sinceMessageId: string,
+  ): Promise<IdeationMessage[]> {
     const db = await getDb();
 
     // Get the created_at of the reference message
-    const refResults = db.exec(`
+    const refResults = db.exec(
+      `
       SELECT created_at FROM ideation_messages WHERE id = ?
-    `, [sinceMessageId]);
+    `,
+      [sinceMessageId],
+    );
 
     if (refResults.length === 0 || refResults[0].values.length === 0) {
       return [];
@@ -240,16 +293,19 @@ export class MessageStore {
 
     const refCreatedAt = refResults[0].values[0][0] as string;
 
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_messages
       WHERE session_id = ? AND created_at > ?
       ORDER BY created_at ASC
-    `, [sessionId, refCreatedAt]);
+    `,
+      [sessionId, refCreatedAt],
+    );
 
     if (results.length === 0) return [];
 
-    return resultsToObjects(results[0]).map(row =>
-      mapMessageRowToMessage(row as IdeationMessageRow)
+    return resultsToObjects(results[0]).map((row) =>
+      mapMessageRowToMessage(row as IdeationMessageRow),
     );
   }
 
@@ -257,13 +313,19 @@ export class MessageStore {
    * Delete a message and all messages after it (for message editing).
    * Returns the number of deleted messages.
    */
-  async deleteFromMessage(sessionId: string, messageId: string): Promise<number> {
+  async deleteFromMessage(
+    sessionId: string,
+    messageId: string,
+  ): Promise<number> {
     const db = await getDb();
 
     // Get the created_at of the reference message
-    const refResults = db.exec(`
+    const refResults = db.exec(
+      `
       SELECT created_at FROM ideation_messages WHERE id = ?
-    `, [messageId]);
+    `,
+      [messageId],
+    );
 
     if (refResults.length === 0 || refResults[0].values.length === 0) {
       return 0;
@@ -272,19 +334,26 @@ export class MessageStore {
     const refCreatedAt = refResults[0].values[0][0] as string;
 
     // Count messages to delete (including the reference message)
-    const countResults = db.exec(`
+    const countResults = db.exec(
+      `
       SELECT COUNT(*) as count
       FROM ideation_messages
       WHERE session_id = ? AND created_at >= ?
-    `, [sessionId, refCreatedAt]);
+    `,
+      [sessionId, refCreatedAt],
+    );
 
-    const deleteCount = countResults.length > 0 ? Number(countResults[0].values[0][0]) || 0 : 0;
+    const deleteCount =
+      countResults.length > 0 ? Number(countResults[0].values[0][0]) || 0 : 0;
 
     // Delete the messages (including the reference message and all after)
-    db.run(`
+    db.run(
+      `
       DELETE FROM ideation_messages
       WHERE session_id = ? AND created_at >= ?
-    `, [sessionId, refCreatedAt]);
+    `,
+      [sessionId, refCreatedAt],
+    );
 
     await saveDb();
 
@@ -294,13 +363,19 @@ export class MessageStore {
   /**
    * Delete messages older than a certain message (for cleanup after handoff).
    */
-  async deleteOlderThan(sessionId: string, keepFromMessageId: string): Promise<number> {
+  async deleteOlderThan(
+    sessionId: string,
+    keepFromMessageId: string,
+  ): Promise<number> {
     const db = await getDb();
 
     // Get the created_at of the reference message
-    const refResults = db.exec(`
+    const refResults = db.exec(
+      `
       SELECT created_at FROM ideation_messages WHERE id = ?
-    `, [keepFromMessageId]);
+    `,
+      [keepFromMessageId],
+    );
 
     if (refResults.length === 0 || refResults[0].values.length === 0) {
       return 0;
@@ -309,19 +384,26 @@ export class MessageStore {
     const refCreatedAt = refResults[0].values[0][0] as string;
 
     // Count messages to delete
-    const countResults = db.exec(`
+    const countResults = db.exec(
+      `
       SELECT COUNT(*) as count
       FROM ideation_messages
       WHERE session_id = ? AND created_at < ?
-    `, [sessionId, refCreatedAt]);
+    `,
+      [sessionId, refCreatedAt],
+    );
 
-    const deleteCount = countResults.length > 0 ? Number(countResults[0].values[0][0]) || 0 : 0;
+    const deleteCount =
+      countResults.length > 0 ? Number(countResults[0].values[0][0]) || 0 : 0;
 
     // Delete the messages
-    db.run(`
+    db.run(
+      `
       DELETE FROM ideation_messages
       WHERE session_id = ? AND created_at < ?
-    `, [sessionId, refCreatedAt]);
+    `,
+      [sessionId, refCreatedAt],
+    );
 
     await saveDb();
 

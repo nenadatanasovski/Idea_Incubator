@@ -5,14 +5,14 @@
  * Part of: Task System V2 Implementation Plan (IMPL-3.7)
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   TaskStateHistoryEntry,
   TaskStateHistoryRow,
   mapTaskStateHistoryRow,
-} from '../../../types/task-version.js';
-import { TaskStatus } from '../../../types/task-agent.js';
+} from "../../../types/task-version.js";
+import { TaskStatus } from "../../../types/task-agent.js";
 
 /**
  * Task State History Service class
@@ -26,9 +26,9 @@ export class TaskStateHistoryService {
     fromStatus: TaskStatus | null,
     toStatus: TaskStatus,
     changedBy: string,
-    actorType: 'user' | 'agent' | 'system',
+    actorType: "user" | "agent" | "system",
     reason?: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): Promise<TaskStateHistoryEntry> {
     const id = uuidv4();
     const now = new Date().toISOString();
@@ -46,17 +46,17 @@ export class TaskStateHistoryService {
         reason || null,
         metadata ? JSON.stringify(metadata) : null,
         now,
-      ]
+      ],
     );
 
     await saveDb();
 
     const created = await getOne<TaskStateHistoryRow>(
-      'SELECT * FROM task_state_history WHERE id = ?',
-      [id]
+      "SELECT * FROM task_state_history WHERE id = ?",
+      [id],
     );
     if (!created) {
-      throw new Error('Failed to record state history');
+      throw new Error("Failed to record state history");
     }
     return mapTaskStateHistoryRow(created);
   }
@@ -66,8 +66,8 @@ export class TaskStateHistoryService {
    */
   async getHistory(taskId: string): Promise<TaskStateHistoryEntry[]> {
     const rows = await query<TaskStateHistoryRow>(
-      'SELECT * FROM task_state_history WHERE task_id = ? ORDER BY created_at DESC',
-      [taskId]
+      "SELECT * FROM task_state_history WHERE task_id = ? ORDER BY created_at DESC",
+      [taskId],
     );
     return rows.map(mapTaskStateHistoryRow);
   }
@@ -75,12 +75,16 @@ export class TaskStateHistoryService {
   /**
    * Get history within a time range
    */
-  async getHistoryInRange(taskId: string, from: Date, to: Date): Promise<TaskStateHistoryEntry[]> {
+  async getHistoryInRange(
+    taskId: string,
+    from: Date,
+    to: Date,
+  ): Promise<TaskStateHistoryEntry[]> {
     const rows = await query<TaskStateHistoryRow>(
       `SELECT * FROM task_state_history
        WHERE task_id = ? AND created_at >= ? AND created_at <= ?
        ORDER BY created_at DESC`,
-      [taskId, from.toISOString(), to.toISOString()]
+      [taskId, from.toISOString(), to.toISOString()],
     );
     return rows.map(mapTaskStateHistoryRow);
   }
@@ -88,10 +92,12 @@ export class TaskStateHistoryService {
   /**
    * Get the last transition for a task
    */
-  async getLastTransition(taskId: string): Promise<TaskStateHistoryEntry | null> {
+  async getLastTransition(
+    taskId: string,
+  ): Promise<TaskStateHistoryEntry | null> {
     const row = await getOne<TaskStateHistoryRow>(
-      'SELECT * FROM task_state_history WHERE task_id = ? ORDER BY created_at DESC LIMIT 1',
-      [taskId]
+      "SELECT * FROM task_state_history WHERE task_id = ? ORDER BY created_at DESC LIMIT 1",
+      [taskId],
     );
     return row ? mapTaskStateHistoryRow(row) : null;
   }
@@ -137,8 +143,8 @@ export class TaskStateHistoryService {
    */
   async getTransitionCount(taskId: string): Promise<number> {
     const result = await getOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM task_state_history WHERE task_id = ?',
-      [taskId]
+      "SELECT COUNT(*) as count FROM task_state_history WHERE task_id = ?",
+      [taskId],
     );
     return result?.count || 0;
   }
@@ -150,7 +156,7 @@ export class TaskStateHistoryService {
     // Get all completed tasks in the list
     const completedTasks = await query<{ id: string }>(
       `SELECT id FROM tasks WHERE task_list_id = ? AND status = 'completed'`,
-      [taskListId]
+      [taskListId],
     );
 
     if (completedTasks.length === 0) {
@@ -166,14 +172,14 @@ export class TaskStateHistoryService {
         `SELECT * FROM task_state_history
          WHERE task_id = ? AND to_status = 'in_progress'
          ORDER BY created_at ASC LIMIT 1`,
-        [task.id]
+        [task.id],
       );
 
       const endEntry = await getOne<TaskStateHistoryRow>(
         `SELECT * FROM task_state_history
          WHERE task_id = ? AND to_status = 'completed'
          ORDER BY created_at DESC LIMIT 1`,
-        [task.id]
+        [task.id],
       );
 
       if (startEntry && endEntry) {
@@ -192,11 +198,11 @@ export class TaskStateHistoryService {
    */
   async getHistoryByActor(
     taskId: string,
-    actorType: 'user' | 'agent' | 'system'
+    actorType: "user" | "agent" | "system",
   ): Promise<TaskStateHistoryEntry[]> {
     const rows = await query<TaskStateHistoryRow>(
-      'SELECT * FROM task_state_history WHERE task_id = ? AND actor_type = ? ORDER BY created_at DESC',
-      [taskId, actorType]
+      "SELECT * FROM task_state_history WHERE task_id = ? AND actor_type = ? ORDER BY created_at DESC",
+      [taskId, actorType],
     );
     return rows.map(mapTaskStateHistoryRow);
   }
@@ -204,10 +210,12 @@ export class TaskStateHistoryService {
   /**
    * Get recent transitions across all tasks
    */
-  async getRecentTransitions(limit: number = 20): Promise<TaskStateHistoryEntry[]> {
+  async getRecentTransitions(
+    limit: number = 20,
+  ): Promise<TaskStateHistoryEntry[]> {
     const rows = await query<TaskStateHistoryRow>(
-      'SELECT * FROM task_state_history ORDER BY created_at DESC LIMIT ?',
-      [limit]
+      "SELECT * FROM task_state_history ORDER BY created_at DESC LIMIT ?",
+      [limit],
     );
     return rows.map(mapTaskStateHistoryRow);
   }

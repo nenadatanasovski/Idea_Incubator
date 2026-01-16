@@ -5,7 +5,16 @@ type: business
 stage: SPARK
 created: 2025-12-27
 updated: 2025-12-27
-tags: ["ai", "pet care", "wearable", "iot", "machine learning", "health tech", "mobile app"]
+tags:
+  [
+    "ai",
+    "pet care",
+    "wearable",
+    "iot",
+    "machine learning",
+    "health tech",
+    "mobile app",
+  ]
 related: []
 summary: "A wearable device and mobile app that uses AI to monitor pet vital signs, detect early health issues, and provide personalized care recommendations for dogs and cats."
 ---
@@ -19,12 +28,14 @@ Pet owners struggle to detect health issues in their pets early. By the time sym
 ## Solution
 
 PetHealth AI is a smart collar with embedded sensors that continuously monitors:
+
 - Heart rate and heart rate variability
 - Activity levels and sleep patterns
 - Temperature and respiratory rate
 - GPS location tracking
 
 The companion mobile app uses machine learning to analyze this data and:
+
 - Detect anomalies that may indicate illness
 - Provide personalized nutrition and exercise recommendations
 - Send alerts when veterinary attention may be needed

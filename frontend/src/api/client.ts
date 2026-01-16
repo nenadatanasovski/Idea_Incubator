@@ -18,9 +18,9 @@ import type {
   DevelopmentSession,
   QuestionsResponse,
   AnswerSubmitResponse,
-} from '../types';
+} from "../types";
 
-const API_BASE = '/api';
+const API_BASE = "/api";
 
 async function fetchApi<T>(endpoint: string): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`);
@@ -29,23 +29,25 @@ async function fetchApi<T>(endpoint: string): Promise<T> {
   }
   const data: ApiResponse<T> = await response.json();
   if (!data.success) {
-    throw new Error(data.error || 'Unknown error');
+    throw new Error(data.error || "Unknown error");
   }
   return data.data;
 }
 
 // Ideas
-export async function getIdeas(filters?: IdeaFilters): Promise<IdeaWithScores[]> {
+export async function getIdeas(
+  filters?: IdeaFilters,
+): Promise<IdeaWithScores[]> {
   const params = new URLSearchParams();
-  if (filters?.type) params.set('type', filters.type);
-  if (filters?.stage) params.set('stage', filters.stage);
-  if (filters?.tag) params.set('tag', filters.tag);
-  if (filters?.search) params.set('search', filters.search);
-  if (filters?.sortBy) params.set('sortBy', filters.sortBy);
-  if (filters?.sortOrder) params.set('sortOrder', filters.sortOrder);
+  if (filters?.type) params.set("type", filters.type);
+  if (filters?.stage) params.set("stage", filters.stage);
+  if (filters?.tag) params.set("tag", filters.tag);
+  if (filters?.search) params.set("search", filters.search);
+  if (filters?.sortBy) params.set("sortBy", filters.sortBy);
+  if (filters?.sortOrder) params.set("sortOrder", filters.sortOrder);
 
   const query = params.toString();
-  return fetchApi<IdeaWithScores[]>(`/ideas${query ? `?${query}` : ''}`);
+  return fetchApi<IdeaWithScores[]>(`/ideas${query ? `?${query}` : ""}`);
 }
 
 export async function getIdea(slug: string): Promise<IdeaWithScores> {
@@ -53,13 +55,19 @@ export async function getIdea(slug: string): Promise<IdeaWithScores> {
 }
 
 // Evaluations
-export async function getEvaluations(slug: string, runId?: string): Promise<Evaluation[]> {
-  const query = runId ? `?runId=${runId}` : '';
+export async function getEvaluations(
+  slug: string,
+  runId?: string,
+): Promise<Evaluation[]> {
+  const query = runId ? `?runId=${runId}` : "";
   return fetchApi<Evaluation[]>(`/ideas/${slug}/evaluations${query}`);
 }
 
-export async function getCategoryScores(slug: string, runId?: string): Promise<CategoryScore[]> {
-  const query = runId ? `?runId=${runId}` : '';
+export async function getCategoryScores(
+  slug: string,
+  runId?: string,
+): Promise<CategoryScore[]> {
+  const query = runId ? `?runId=${runId}` : "";
   return fetchApi<CategoryScore[]>(`/ideas/${slug}/category-scores${query}`);
 }
 
@@ -68,8 +76,11 @@ export async function getEvaluationRuns(slug: string): Promise<string[]> {
 }
 
 // Debates
-export async function getDebateRounds(slug: string, runId?: string): Promise<DebateRound[]> {
-  const query = runId ? `?runId=${runId}` : '';
+export async function getDebateRounds(
+  slug: string,
+  runId?: string,
+): Promise<DebateRound[]> {
+  const query = runId ? `?runId=${runId}` : "";
   return fetchApi<DebateRound[]>(`/ideas/${slug}/debates${query}`);
 }
 
@@ -84,7 +95,7 @@ export interface DebateSession {
   rounds_per_criterion: number;
   started_at: string;
   latest_at: string;
-  status?: 'complete' | 'in-progress' | 'evaluation-only' | 'data-loss';
+  status?: "complete" | "in-progress" | "evaluation-only" | "data-loss";
 }
 
 export interface DebateSessionDetail extends DebateSession {
@@ -101,32 +112,44 @@ export interface DebateSessionDetail extends DebateSession {
 }
 
 export async function getDebateSessions(): Promise<DebateSession[]> {
-  return fetchApi<DebateSession[]>('/debates');
+  return fetchApi<DebateSession[]>("/debates");
 }
 
-export async function getDebateSession(runId: string): Promise<DebateSessionDetail> {
+export async function getDebateSession(
+  runId: string,
+): Promise<DebateSessionDetail> {
   return fetchApi<DebateSessionDetail>(`/debates/${runId}`);
 }
 
 // Red Team
-export async function getRedTeamChallenges(slug: string, runId?: string): Promise<RedTeamChallenge[]> {
-  const query = runId ? `?runId=${runId}` : '';
+export async function getRedTeamChallenges(
+  slug: string,
+  runId?: string,
+): Promise<RedTeamChallenge[]> {
+  const query = runId ? `?runId=${runId}` : "";
   return fetchApi<RedTeamChallenge[]>(`/ideas/${slug}/redteam${query}`);
 }
 
 // Synthesis
-export async function getSynthesis(slug: string, runId?: string): Promise<Synthesis | null> {
-  const query = runId ? `?runId=${runId}` : '';
+export async function getSynthesis(
+  slug: string,
+  runId?: string,
+): Promise<Synthesis | null> {
+  const query = runId ? `?runId=${runId}` : "";
   return fetchApi<Synthesis | null>(`/ideas/${slug}/synthesis${query}`);
 }
 
 // Development
-export async function getDevelopmentLog(slug: string): Promise<DevelopmentEntry[]> {
+export async function getDevelopmentLog(
+  slug: string,
+): Promise<DevelopmentEntry[]> {
   return fetchApi<DevelopmentEntry[]>(`/ideas/${slug}/development`);
 }
 
 // Relationships
-export async function getRelationships(slug: string): Promise<IdeaRelationship[]> {
+export async function getRelationships(
+  slug: string,
+): Promise<IdeaRelationship[]> {
   return fetchApi<IdeaRelationship[]>(`/ideas/${slug}/relationships`);
 }
 
@@ -135,8 +158,12 @@ export async function getCosts(slug: string): Promise<CostEntry[]> {
   return fetchApi<CostEntry[]>(`/ideas/${slug}/costs`);
 }
 
-export async function getTotalCost(slug: string): Promise<{ total: number; byAgent: Record<string, number> }> {
-  return fetchApi<{ total: number; byAgent: Record<string, number> }>(`/ideas/${slug}/costs/total`);
+export async function getTotalCost(
+  slug: string,
+): Promise<{ total: number; byAgent: Record<string, number> }> {
+  return fetchApi<{ total: number; byAgent: Record<string, number> }>(
+    `/ideas/${slug}/costs/total`,
+  );
 }
 
 // Stats
@@ -164,7 +191,7 @@ export function getExportCsvUrl(): string {
 }
 
 export function downloadExport(url: string): void {
-  window.open(url, '_blank');
+  window.open(url, "_blank");
 }
 
 // Import functions
@@ -174,10 +201,12 @@ export interface ImportResult {
   errors: string[];
 }
 
-export async function importIdeas(data: { ideas: unknown[] }): Promise<ImportResult> {
+export async function importIdeas(data: {
+  ideas: unknown[];
+}): Promise<ImportResult> {
   const response = await fetch(`${API_BASE}/import`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) {
@@ -185,7 +214,7 @@ export async function importIdeas(data: { ideas: unknown[] }): Promise<ImportRes
   }
   const result: ApiResponse<ImportResult> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Import failed');
+    throw new Error(result.error || "Import failed");
   }
   return result.data;
 }
@@ -210,66 +239,83 @@ export interface UpdateIdeaInput {
   tags?: string[];
 }
 
-export async function createIdea(data: CreateIdeaInput): Promise<{ id: string; slug: string }> {
+export async function createIdea(
+  data: CreateIdeaInput,
+): Promise<{ id: string; slug: string }> {
   const response = await fetch(`${API_BASE}/ideas`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to create idea');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to create idea");
   }
-  const result: ApiResponse<{ id: string; slug: string }> = await response.json();
+  const result: ApiResponse<{ id: string; slug: string }> =
+    await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to create idea');
+    throw new Error(result.error || "Failed to create idea");
   }
   return result.data;
 }
 
-export async function updateIdea(slug: string, data: UpdateIdeaInput): Promise<void> {
+export async function updateIdea(
+  slug: string,
+  data: UpdateIdeaInput,
+): Promise<void> {
   const response = await fetch(`${API_BASE}/ideas/${slug}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to update idea');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to update idea");
   }
   const result: ApiResponse<{ success: boolean }> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to update idea');
+    throw new Error(result.error || "Failed to update idea");
   }
 }
 
 export async function deleteIdea(slug: string): Promise<void> {
   const response = await fetch(`${API_BASE}/ideas/${slug}`, {
-    method: 'DELETE',
+    method: "DELETE",
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to delete idea');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to delete idea");
   }
   const result: ApiResponse<{ success: boolean }> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to delete idea');
+    throw new Error(result.error || "Failed to delete idea");
   }
 }
 
-export async function updateIdeaStage(slug: string, lifecycle_stage: string): Promise<void> {
+export async function updateIdeaStage(
+  slug: string,
+  lifecycle_stage: string,
+): Promise<void> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/stage`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ lifecycle_stage }),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to update stage');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to update stage");
   }
   const result: ApiResponse<{ success: boolean }> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to update stage');
+    throw new Error(result.error || "Failed to update stage");
   }
 }
 
@@ -277,10 +323,10 @@ export async function updateIdeaStage(slug: string, lifecycle_stage: string): Pr
 
 export interface TriggerEvaluationInput {
   budget?: number;
-  mode?: 'v1' | 'v2';
+  mode?: "v1" | "v2";
   skipDebate?: boolean;
   unlimited?: boolean;
-  debateRounds?: number;  // Number of debate rounds per criterion (1-3)
+  debateRounds?: number; // Number of debate rounds per criterion (1-3)
 }
 
 export interface TriggerEvaluationResult {
@@ -291,20 +337,22 @@ export interface TriggerEvaluationResult {
 
 export async function triggerEvaluation(
   slug: string,
-  options?: TriggerEvaluationInput
+  options?: TriggerEvaluationInput,
 ): Promise<TriggerEvaluationResult> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/evaluate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(options || {}),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to start evaluation');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to start evaluation");
   }
   const result: ApiResponse<TriggerEvaluationResult> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to start evaluation');
+    throw new Error(result.error || "Failed to start evaluation");
   }
   return result.data;
 }
@@ -316,7 +364,9 @@ export interface EvaluationStatus {
   activeViewers: number;
 }
 
-export async function getEvaluationStatus(slug: string): Promise<EvaluationStatus> {
+export async function getEvaluationStatus(
+  slug: string,
+): Promise<EvaluationStatus> {
   return fetchApi<EvaluationStatus>(`/ideas/${slug}/evaluate/status`);
 }
 
@@ -324,29 +374,47 @@ export async function getEvaluationStatus(slug: string): Promise<EvaluationStatu
 
 // Get all profiles (for selector dropdown)
 export async function getProfiles(): Promise<UserProfileSummary[]> {
-  return fetchApi<UserProfileSummary[]>('/profiles');
+  return fetchApi<UserProfileSummary[]>("/profiles");
 }
 
 // Get profile linked to an idea
-export async function getIdeaProfile(slug: string): Promise<UserProfileSummary | null> {
+export async function getIdeaProfile(
+  slug: string,
+): Promise<UserProfileSummary | null> {
   return fetchApi<UserProfileSummary | null>(`/ideas/${slug}/profile`);
 }
 
 // Link profile to idea
-export async function linkProfileToIdea(profileId: string, ideaSlug: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/profiles/${profileId}/link/${ideaSlug}`, { method: 'POST' });
+export async function linkProfileToIdea(
+  profileId: string,
+  ideaSlug: string,
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE}/profiles/${profileId}/link/${ideaSlug}`,
+    { method: "POST" },
+  );
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to link profile');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to link profile");
   }
 }
 
 // Unlink profile from idea
-export async function unlinkProfileFromIdea(profileId: string, ideaSlug: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/profiles/${profileId}/link/${ideaSlug}`, { method: 'DELETE' });
+export async function unlinkProfileFromIdea(
+  profileId: string,
+  ideaSlug: string,
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE}/profiles/${profileId}/link/${ideaSlug}`,
+    { method: "DELETE" },
+  );
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to unlink profile');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to unlink profile");
   }
 }
 
@@ -361,31 +429,36 @@ export async function getQuestions(
     priority?: string;
     unansweredOnly?: boolean;
     limit?: number;
-  }
+  },
 ): Promise<QuestionsResponse> {
   const params = new URLSearchParams();
-  if (options?.category) params.set('category', options.category);
-  if (options?.criterion) params.set('criterion', options.criterion);
-  if (options?.priority) params.set('priority', options.priority);
-  if (options?.unansweredOnly) params.set('unansweredOnly', 'true');
-  if (options?.limit) params.set('limit', options.limit.toString());
+  if (options?.category) params.set("category", options.category);
+  if (options?.criterion) params.set("criterion", options.criterion);
+  if (options?.priority) params.set("priority", options.priority);
+  if (options?.unansweredOnly) params.set("unansweredOnly", "true");
+  if (options?.limit) params.set("limit", options.limit.toString());
 
   const query = params.toString();
-  return fetchApi<QuestionsResponse>(`/ideas/${slug}/questions${query ? `?${query}` : ''}`);
+  return fetchApi<QuestionsResponse>(
+    `/ideas/${slug}/questions${query ? `?${query}` : ""}`,
+  );
 }
 
 // Get all questions (for reference)
 export async function getAllQuestions(): Promise<Question[]> {
-  return fetchApi<Question[]>('/questions');
+  return fetchApi<Question[]>("/questions");
 }
 
 // Get answers for an idea
 export async function getAnswers(
   slug: string,
-  questionId?: string
+  questionId?: string,
 ): Promise<Answer[]> {
-  const query = questionId ? `?questionId=${questionId}` : '';
-  const result = await fetchApi<{ answers: Answer[]; coverage: CriterionCoverage[] }>(`/ideas/${slug}/answers${query}`);
+  const query = questionId ? `?questionId=${questionId}` : "";
+  const result = await fetchApi<{
+    answers: Answer[];
+    coverage: CriterionCoverage[];
+  }>(`/ideas/${slug}/answers${query}`);
   return result.answers;
 }
 
@@ -396,32 +469,42 @@ export async function submitAnswer(
     questionId: string;
     answer: string;
     sessionId?: string;
-  }
+  },
 ): Promise<AnswerSubmitResponse> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/answers`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to submit answer');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to submit answer");
   }
   const result: ApiResponse<AnswerSubmitResponse> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to submit answer');
+    throw new Error(result.error || "Failed to submit answer");
   }
   return result.data;
 }
 
 // Delete an answer
-export async function deleteAnswer(slug: string, questionId: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/ideas/${slug}/answers/${questionId}`, {
-    method: 'DELETE',
-  });
+export async function deleteAnswer(
+  slug: string,
+  questionId: string,
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE}/ideas/${slug}/answers/${questionId}`,
+    {
+      method: "DELETE",
+    },
+  );
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to delete answer');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to delete answer");
   }
 }
 
@@ -431,7 +514,9 @@ export async function getReadiness(slug: string): Promise<ReadinessScore> {
 }
 
 // Get criterion coverage for an idea
-export async function getCriterionCoverage(slug: string): Promise<CriterionCoverage[]> {
+export async function getCriterionCoverage(
+  slug: string,
+): Promise<CriterionCoverage[]> {
   return fetchApi<CriterionCoverage[]>(`/ideas/${slug}/readiness/coverage`);
 }
 
@@ -442,34 +527,49 @@ export async function startDevelopmentSession(
     focusCategory?: string;
     focusCriterion?: string;
     questionsPerSession?: number;
-  }
+  },
 ): Promise<DevelopmentSession> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/develop`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(options || {}),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to start development session');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to start development session");
   }
   const result: ApiResponse<DevelopmentSession> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to start development session');
+    throw new Error(result.error || "Failed to start development session");
   }
   return result.data;
 }
 
 // Get active development session
-export async function getDevelopmentSession(slug: string): Promise<DevelopmentSession | null> {
+export async function getDevelopmentSession(
+  slug: string,
+): Promise<DevelopmentSession | null> {
   return fetchApi<DevelopmentSession | null>(`/ideas/${slug}/develop`);
 }
 
 // ==================== Incubation Lifecycle ====================
 
 // Types for incubation lifecycle
-export type IdeaStatus = 'active' | 'paused' | 'abandoned' | 'completed' | 'archived';
-export type IncubationPhase = 'capture' | 'clarify' | 'position' | 'update' | 'evaluate' | 'iterate';
+export type IdeaStatus =
+  | "active"
+  | "paused"
+  | "abandoned"
+  | "completed"
+  | "archived";
+export type IncubationPhase =
+  | "capture"
+  | "clarify"
+  | "position"
+  | "update"
+  | "evaluate"
+  | "iterate";
 
 export interface IdeaVersion {
   id: string;
@@ -564,29 +664,41 @@ export async function getVersionHistory(slug: string): Promise<IdeaVersion[]> {
 }
 
 // Get specific version
-export async function getVersionSnapshot(slug: string, version: number): Promise<IdeaVersion> {
+export async function getVersionSnapshot(
+  slug: string,
+  version: number,
+): Promise<IdeaVersion> {
   return fetchApi<IdeaVersion>(`/ideas/${slug}/versions/${version}`);
 }
 
 // Compare two versions
-export async function compareVersions(slug: string, v1: number, v2: number): Promise<VersionDiff> {
+export async function compareVersions(
+  slug: string,
+  v1: number,
+  v2: number,
+): Promise<VersionDiff> {
   return fetchApi<VersionDiff>(`/ideas/${slug}/versions/compare/${v1}/${v2}`);
 }
 
 // Create manual snapshot
-export async function createSnapshot(slug: string, summary?: string): Promise<{ versionId: string }> {
+export async function createSnapshot(
+  slug: string,
+  summary?: string,
+): Promise<{ versionId: string }> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/snapshot`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ summary }),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to create snapshot');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to create snapshot");
   }
   const result: ApiResponse<{ versionId: string }> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to create snapshot');
+    throw new Error(result.error || "Failed to create snapshot");
   }
   return result.data;
 }
@@ -599,26 +711,34 @@ export async function getLineage(slug: string): Promise<IdeaLineage> {
 // Create branch
 export async function createBranch(
   slug: string,
-  data: { title: string; reason: string; parentAction?: 'keep_active' | 'pause' | 'abandon' }
+  data: {
+    title: string;
+    reason: string;
+    parentAction?: "keep_active" | "pause" | "abandon";
+  },
 ): Promise<{ slug: string }> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/branch`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to create branch');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to create branch");
   }
   const result: ApiResponse<{ slug: string }> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to create branch');
+    throw new Error(result.error || "Failed to create branch");
   }
   return result.data;
 }
 
 // Status history
-export async function getStatusHistory(slug: string): Promise<StatusHistoryEntry[]> {
+export async function getStatusHistory(
+  slug: string,
+): Promise<StatusHistoryEntry[]> {
   return fetchApi<StatusHistoryEntry[]>(`/ideas/${slug}/status-history`);
 }
 
@@ -626,20 +746,23 @@ export async function getStatusHistory(slug: string): Promise<StatusHistoryEntry
 export async function updateIdeaStatus(
   slug: string,
   status: IdeaStatus,
-  reason?: string
+  reason?: string,
 ): Promise<{ previousStatus: string; newStatus: string }> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/status`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status, reason }),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to update status');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to update status");
   }
-  const result: ApiResponse<{ previousStatus: string; newStatus: string }> = await response.json();
+  const result: ApiResponse<{ previousStatus: string; newStatus: string }> =
+    await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to update status');
+    throw new Error(result.error || "Failed to update status");
   }
   return result.data;
 }
@@ -662,20 +785,23 @@ export async function getGateDecisions(slug: string): Promise<GateDecision[]> {
 // Update incubation phase
 export async function updateIncubationPhase(
   slug: string,
-  phase: IncubationPhase
+  phase: IncubationPhase,
 ): Promise<{ previousPhase: string; newPhase: string }> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/phase`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ phase }),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to update phase');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to update phase");
   }
-  const result: ApiResponse<{ previousPhase: string; newPhase: string }> = await response.json();
+  const result: ApiResponse<{ previousPhase: string; newPhase: string }> =
+    await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to update phase');
+    throw new Error(result.error || "Failed to update phase");
   }
   return result.data;
 }
@@ -684,25 +810,27 @@ export async function updateIncubationPhase(
 export async function recordGateDecision(
   slug: string,
   data: {
-    gateType: 'viability' | 'evaluation';
+    gateType: "viability" | "evaluation";
     advisoryShown: string;
     userChoice: string;
     readinessScore?: number;
     overallScore?: number;
-  }
+  },
 ): Promise<{ id: string }> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/gates`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to record gate decision');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to record gate decision");
   }
   const result: ApiResponse<{ id: string }> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to record gate decision');
+    throw new Error(result.error || "Failed to record gate decision");
   }
   return result.data;
 }
@@ -722,7 +850,7 @@ export interface MarketOpportunity {
   id: string;
   segment: string;
   description: string;
-  fit: 'high' | 'medium' | 'low';
+  fit: "high" | "medium" | "low";
   confidence: number;
   reasons: string[];
   // Extended 5W+H fields
@@ -745,7 +873,7 @@ export interface DifferentiationStrategy {
 
 export interface MarketTiming {
   currentWindow: string;
-  urgency: 'high' | 'medium' | 'low';
+  urgency: "high" | "medium" | "low";
   keyTrends: string[];
   recommendation: string;
 }
@@ -754,7 +882,7 @@ export interface CompetitiveRisk {
   id: string;
   competitor: string;
   threat: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: "high" | "medium" | "low";
   mitigation?: string;
 }
 
@@ -769,19 +897,22 @@ export interface DifferentiationAnalysisResult {
 
 // Run differentiation analysis for an idea
 export async function runDifferentiationAnalysis(
-  slug: string
+  slug: string,
 ): Promise<DifferentiationAnalysisResult> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/differentiate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to run differentiation analysis');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to run differentiation analysis");
   }
-  const result: ApiResponse<DifferentiationAnalysisResult> = await response.json();
+  const result: ApiResponse<DifferentiationAnalysisResult> =
+    await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to run differentiation analysis');
+    throw new Error(result.error || "Failed to run differentiation analysis");
   }
   return result.data;
 }
@@ -797,9 +928,11 @@ export interface SavedDifferentiationResult extends DifferentiationAnalysisResul
 
 // Get saved differentiation results for an idea
 export async function getDifferentiationResults(
-  slug: string
+  slug: string,
 ): Promise<SavedDifferentiationResult | null> {
-  return fetchApi<SavedDifferentiationResult | null>(`/ideas/${slug}/differentiation`);
+  return fetchApi<SavedDifferentiationResult | null>(
+    `/ideas/${slug}/differentiation`,
+  );
 }
 
 // ==================== Update Suggestions ====================
@@ -826,27 +959,29 @@ export interface UpdateSuggestion {
 // Generate AI update suggestions based on differentiation analysis
 export async function generateUpdateSuggestion(
   slug: string,
-  selectedStrategyIndex?: number
+  selectedStrategyIndex?: number,
 ): Promise<UpdateSuggestion> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/generate-update`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ selectedStrategyIndex }),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to generate update suggestion');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to generate update suggestion");
   }
   const result: ApiResponse<UpdateSuggestion> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to generate update suggestion');
+    throw new Error(result.error || "Failed to generate update suggestion");
   }
   return result.data;
 }
 
 // Get saved update suggestion for an idea
 export async function getUpdateSuggestion(
-  slug: string
+  slug: string,
 ): Promise<UpdateSuggestion | null> {
   return fetchApi<UpdateSuggestion | null>(`/ideas/${slug}/update-suggestion`);
 }
@@ -855,20 +990,23 @@ export async function getUpdateSuggestion(
 export async function applyUpdateSuggestion(
   slug: string,
   suggestionId: string,
-  modified?: { title?: string; summary?: string; content?: string }
+  modified?: { title?: string; summary?: string; content?: string },
 ): Promise<{ success: boolean; message: string }> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/apply-update`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ suggestionId, modified }),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to apply update');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to apply update");
   }
-  const result: ApiResponse<{ success: boolean; message: string }> = await response.json();
+  const result: ApiResponse<{ success: boolean; message: string }> =
+    await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to apply update');
+    throw new Error(result.error || "Failed to apply update");
   }
   return result.data;
 }
@@ -881,46 +1019,58 @@ import type {
   IdeaFinancialAllocation,
   PositioningDecision,
   StrategicApproach,
-} from '../types';
+} from "../types";
 
 // Get financial allocation for an idea
-export async function getFinancialAllocation(slug: string): Promise<IdeaFinancialAllocation> {
+export async function getFinancialAllocation(
+  slug: string,
+): Promise<IdeaFinancialAllocation> {
   return fetchApi<IdeaFinancialAllocation>(`/ideas/${slug}/allocation`);
 }
 
 // Save financial allocation for an idea
 export async function saveFinancialAllocation(
   slug: string,
-  allocation: Partial<IdeaFinancialAllocation>
+  allocation: Partial<IdeaFinancialAllocation>,
 ): Promise<{ id: string; updated?: boolean; created?: boolean }> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/allocation`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(allocation),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to save allocation');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to save allocation");
   }
-  const result: ApiResponse<{ id: string; updated?: boolean; created?: boolean }> = await response.json();
+  const result: ApiResponse<{
+    id: string;
+    updated?: boolean;
+    created?: boolean;
+  }> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to save allocation');
+    throw new Error(result.error || "Failed to save allocation");
   }
   return result.data;
 }
 
 // Delete financial allocation for an idea
-export async function deleteFinancialAllocation(slug: string): Promise<{ deleted: boolean }> {
+export async function deleteFinancialAllocation(
+  slug: string,
+): Promise<{ deleted: boolean }> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/allocation`, {
-    method: 'DELETE',
+    method: "DELETE",
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to delete allocation');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to delete allocation");
   }
   const result: ApiResponse<{ deleted: boolean }> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to delete allocation');
+    throw new Error(result.error || "Failed to delete allocation");
   }
   return result.data;
 }
@@ -930,34 +1080,48 @@ export async function deleteFinancialAllocation(slug: string): Promise<{ deleted
 // ==========================================
 
 // Get the most recent positioning decision for an idea
-export async function getPositioningDecision(slug: string): Promise<PositioningDecision & { exists: boolean }> {
-  return fetchApi<PositioningDecision & { exists: boolean }>(`/ideas/${slug}/positioning-decision`);
+export async function getPositioningDecision(
+  slug: string,
+): Promise<PositioningDecision & { exists: boolean }> {
+  return fetchApi<PositioningDecision & { exists: boolean }>(
+    `/ideas/${slug}/positioning-decision`,
+  );
 }
 
 // Save a positioning decision for an idea
 export async function savePositioningDecision(
   slug: string,
-  decision: Partial<PositioningDecision>
+  decision: Partial<PositioningDecision>,
 ): Promise<{ id: string; created: boolean }> {
-  const response = await fetch(`${API_BASE}/ideas/${slug}/positioning-decision`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(decision),
-  });
+  const response = await fetch(
+    `${API_BASE}/ideas/${slug}/positioning-decision`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(decision),
+    },
+  );
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to save decision');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to save decision");
   }
-  const result: ApiResponse<{ id: string; created: boolean }> = await response.json();
+  const result: ApiResponse<{ id: string; created: boolean }> =
+    await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to save decision');
+    throw new Error(result.error || "Failed to save decision");
   }
   return result.data;
 }
 
 // Get all positioning decisions for an idea (history)
-export async function getPositioningDecisionHistory(slug: string): Promise<PositioningDecision[]> {
-  return fetchApi<PositioningDecision[]>(`/ideas/${slug}/positioning-decisions`);
+export async function getPositioningDecisionHistory(
+  slug: string,
+): Promise<PositioningDecision[]> {
+  return fetchApi<PositioningDecision[]>(
+    `/ideas/${slug}/positioning-decisions`,
+  );
 }
 
 // ==========================================
@@ -967,8 +1131,8 @@ export async function getPositioningDecisionHistory(slug: string): Promise<Posit
 export interface IdeationSessionSummary {
   id: string;
   profileId: string;
-  status: 'active' | 'completed' | 'abandoned';
-  entryMode: 'have_idea' | 'discover' | null;
+  status: "active" | "completed" | "abandoned";
+  entryMode: "have_idea" | "discover" | null;
   messageCount: number;
   tokenCount: number;
   startedAt: string;
@@ -981,13 +1145,15 @@ export interface IdeationSessionSummary {
 
 export async function getIdeationSessions(
   profileId: string,
-  options?: { status?: string; includeAll?: boolean }
+  options?: { status?: string; includeAll?: boolean },
 ): Promise<IdeationSessionSummary[]> {
   const params = new URLSearchParams({ profileId });
-  if (options?.status) params.set('status', options.status);
-  if (options?.includeAll) params.set('includeAll', 'true');
+  if (options?.status) params.set("status", options.status);
+  if (options?.includeAll) params.set("includeAll", "true");
 
-  const response = await fetch(`${API_BASE}/ideation/sessions?${params.toString()}`);
+  const response = await fetch(
+    `${API_BASE}/ideation/sessions?${params.toString()}`,
+  );
   if (!response.ok) {
     throw new Error(`API error: ${response.statusText}`);
   }
@@ -1001,11 +1167,13 @@ export async function getIdeationSessions(
 
 export async function deleteIdeationSession(sessionId: string): Promise<void> {
   const response = await fetch(`${API_BASE}/ideation/session/${sessionId}`, {
-    method: 'DELETE',
+    method: "DELETE",
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Failed to delete session');
+    const err = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+    throw new Error(err.error || "Failed to delete session");
   }
 }
 
@@ -1019,7 +1187,7 @@ export async function getIdeationSession(sessionId: string): Promise<{
   };
   messages: Array<{
     id: string;
-    role: 'user' | 'assistant';
+    role: "user" | "assistant";
     content: string;
     buttonsShown?: unknown[];
     formShown?: unknown;
@@ -1053,16 +1221,16 @@ export interface PositioningAnalysisResult {
     primaryOpportunity: {
       id: string;
       segment: string;
-      fit: 'high' | 'medium' | 'low';
+      fit: "high" | "medium" | "low";
     };
     criticalRisk: {
       id: string;
       description: string;
-      severity: 'high' | 'medium' | 'low';
+      severity: "high" | "medium" | "low";
       mitigation: string;
     };
     timingAssessment: {
-      urgency: 'high' | 'medium' | 'low';
+      urgency: "high" | "medium" | "low";
       window: string;
     };
     overallConfidence: number;
@@ -1071,8 +1239,8 @@ export interface PositioningAnalysisResult {
     id: string;
     description: string;
     targetSegment: string;
-    potentialImpact: 'high' | 'medium' | 'low';
-    feasibility: 'high' | 'medium' | 'low';
+    potentialImpact: "high" | "medium" | "low";
+    feasibility: "high" | "medium" | "low";
     why?: string;
     marketSize?: string;
     timing?: string;
@@ -1082,8 +1250,8 @@ export interface PositioningAnalysisResult {
   competitiveRisks: Array<{
     id: string;
     description: string;
-    likelihood: 'high' | 'medium' | 'low';
-    severity: 'high' | 'medium' | 'low';
+    likelihood: "high" | "medium" | "low";
+    severity: "high" | "medium" | "low";
     mitigation?: string;
     competitors?: string[];
     timeframe?: string;
@@ -1105,7 +1273,7 @@ export interface PositioningAnalysisResult {
     };
     addressesOpportunities: string[];
     mitigatesRisks: string[];
-    timingAlignment: 'favorable' | 'neutral' | 'challenging';
+    timingAlignment: "favorable" | "neutral" | "challenging";
     revenueEstimates?: {
       year1: { low: number; mid: number; high: number };
       year3: { low: number; mid: number; high: number };
@@ -1114,7 +1282,7 @@ export interface PositioningAnalysisResult {
     goalAlignment?: {
       meetsIncomeTarget: boolean;
       gapToTarget: number | null;
-      timelineAlignment: 'faster' | 'aligned' | 'slower' | 'unlikely';
+      timelineAlignment: "faster" | "aligned" | "slower" | "unlikely";
       runwaySufficient: boolean;
       investmentFeasible: boolean;
     };
@@ -1127,7 +1295,7 @@ export interface PositioningAnalysisResult {
   }>;
   marketTiming?: {
     currentWindow: string;
-    urgency: 'high' | 'medium' | 'low';
+    urgency: "high" | "medium" | "low";
     keyTrends: string[];
     recommendation: string;
   };
@@ -1142,29 +1310,33 @@ export interface PositioningAnalysisResult {
 // Run positioning analysis with a strategic approach
 export async function runPositioningAnalysis(
   slug: string,
-  approach: StrategicApproach
+  approach: StrategicApproach,
 ): Promise<PositioningAnalysisResult> {
   const response = await fetch(`${API_BASE}/ideas/${slug}/position`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ approach }),
   });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || `Positioning analysis failed: ${response.statusText}`);
+    throw new Error(
+      err.error || `Positioning analysis failed: ${response.statusText}`,
+    );
   }
 
   const result: ApiResponse<PositioningAnalysisResult> = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Positioning analysis failed');
+    throw new Error(result.error || "Positioning analysis failed");
   }
   return result.data;
 }
 
 // Get saved positioning analysis results for an idea
 export async function getPositioningResults(
-  slug: string
+  slug: string,
 ): Promise<PositioningAnalysisResult | null> {
-  return fetchApi<PositioningAnalysisResult | null>(`/ideas/${slug}/positioning`);
+  return fetchApi<PositioningAnalysisResult | null>(
+    `/ideas/${slug}/positioning`,
+  );
 }

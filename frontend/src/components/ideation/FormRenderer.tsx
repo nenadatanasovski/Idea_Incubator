@@ -3,15 +3,23 @@
 // Dynamic form renderer for structured input
 // =============================================================================
 
-import { useState, useCallback } from 'react';
-import type { FormRendererProps } from '../../types/ideation';
-import type { FormField as BaseFormField } from '../../types';
+import { useState, useCallback } from "react";
+import type { FormRendererProps } from "../../types/ideation";
+import type { FormField as BaseFormField } from "../../types";
 
 // Create a unified field type for the component
 interface FormFieldInput {
   id: string;
   name: string;
-  type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'slider' | 'dropdown' | 'date' | 'select';
+  type:
+    | "text"
+    | "textarea"
+    | "radio"
+    | "checkbox"
+    | "slider"
+    | "dropdown"
+    | "date"
+    | "select";
   label: string;
   options?: string[];
   min?: number;
@@ -25,9 +33,12 @@ function normalizeField(field: BaseFormField): FormFieldInput {
   return {
     id: field.id,
     name: field.id, // Use id as name
-    type: field.type === 'dropdown' ? 'select' : field.type as FormFieldInput['type'],
+    type:
+      field.type === "dropdown"
+        ? "select"
+        : (field.type as FormFieldInput["type"]),
     label: field.label,
-    options: field.options?.map(o => typeof o === 'string' ? o : o.value),
+    options: field.options?.map((o) => (typeof o === "string" ? o : o.value)),
     min: field.min,
     max: field.max,
     required: field.required,
@@ -47,10 +58,13 @@ export function FormRenderer({
     setValues((prev) => ({ ...prev, [fieldName]: value }));
   }, []);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(values);
-  }, [values, onSubmit]);
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      onSubmit(values);
+    },
+    [values, onSubmit],
+  );
 
   const normalizedFields = form.fields.map(normalizeField);
 
@@ -85,7 +99,7 @@ export function FormRenderer({
           className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700
                      disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
-          {form.submitLabel || 'Submit'}
+          {form.submitLabel || "Submit"}
         </button>
         <button
           type="button"
@@ -112,7 +126,7 @@ function FormFieldComponent({
   disabled: boolean;
 }) {
   switch (field.type) {
-    case 'text':
+    case "text":
       return (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -121,7 +135,7 @@ function FormFieldComponent({
           </label>
           <input
             type="text"
-            value={(value as string) || ''}
+            value={(value as string) || ""}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2
@@ -130,7 +144,7 @@ function FormFieldComponent({
         </div>
       );
 
-    case 'radio':
+    case "radio":
       return (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -139,7 +153,10 @@ function FormFieldComponent({
           </label>
           <div className="space-y-2">
             {field.options?.map((option) => (
-              <label key={option} className="flex items-center gap-2 cursor-pointer">
+              <label
+                key={option}
+                className="flex items-center gap-2 cursor-pointer"
+              >
                 <input
                   type="radio"
                   name={field.name}
@@ -156,7 +173,7 @@ function FormFieldComponent({
         </div>
       );
 
-    case 'checkbox':
+    case "checkbox":
       return (
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -170,11 +187,12 @@ function FormFieldComponent({
         </label>
       );
 
-    case 'slider':
+    case "slider":
       return (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {field.label}: {typeof value === 'number' ? value : (field.min ?? 0)}
+            {field.label}:{" "}
+            {typeof value === "number" ? value : (field.min ?? 0)}
           </label>
           <input
             type="range"
@@ -188,7 +206,7 @@ function FormFieldComponent({
         </div>
       );
 
-    case 'select':
+    case "select":
       return (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -196,7 +214,7 @@ function FormFieldComponent({
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           <select
-            value={(value as string) || ''}
+            value={(value as string) || ""}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2

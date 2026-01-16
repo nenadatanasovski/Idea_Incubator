@@ -32,6 +32,7 @@ Outdoor enthusiasts often run out of phone battery in remote areas where access 
 ## Proposed Solution
 
 A lightweight, foldable solar panel with integrated battery bank that can:
+
 - Charge a smartphone in 3-4 hours of direct sunlight
 - Store enough power for 2 full phone charges
 - Weigh less than 500g

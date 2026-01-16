@@ -4,11 +4,11 @@
  * Saves and restores build state for resumable execution.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { BuildCheckpoint } from '../../types/build-agent.js';
+import * as fs from "fs";
+import * as path from "path";
+import { BuildCheckpoint } from "../../types/build-agent.js";
 
-const DEFAULT_CHECKPOINT_DIR = '.build-checkpoints';
+const DEFAULT_CHECKPOINT_DIR = ".build-checkpoints";
 
 export interface BuildState {
   buildId: string;
@@ -49,7 +49,7 @@ export class CheckpointManager {
       buildId,
       taskId,
       stateJson: JSON.stringify(state),
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     // Load existing checkpoints
@@ -57,7 +57,11 @@ export class CheckpointManager {
     checkpoints.push(checkpoint);
 
     // Write checkpoints
-    fs.writeFileSync(checkpointPath, JSON.stringify(checkpoints, null, 2), 'utf-8');
+    fs.writeFileSync(
+      checkpointPath,
+      JSON.stringify(checkpoints, null, 2),
+      "utf-8",
+    );
 
     // Cleanup old checkpoints if needed
     this.cleanup(buildId, this.maxCheckpoints);
@@ -90,7 +94,7 @@ export class CheckpointManager {
    */
   loadById(buildId: string, checkpointId: string): BuildState | null {
     const checkpoints = this.loadCheckpoints(buildId);
-    const checkpoint = checkpoints.find(cp => cp.id === checkpointId);
+    const checkpoint = checkpoints.find((cp) => cp.id === checkpointId);
 
     if (!checkpoint) {
       return null;
@@ -114,7 +118,7 @@ export class CheckpointManager {
     }
 
     try {
-      const content = fs.readFileSync(checkpointPath, 'utf-8');
+      const content = fs.readFileSync(checkpointPath, "utf-8");
       return JSON.parse(content);
     } catch {
       return [];
@@ -126,7 +130,7 @@ export class CheckpointManager {
    */
   getCheckpointAtTask(buildId: string, taskId: string): BuildState | null {
     const checkpoints = this.loadCheckpoints(buildId);
-    const checkpoint = checkpoints.find(cp => cp.taskId === taskId);
+    const checkpoint = checkpoints.find((cp) => cp.taskId === taskId);
 
     if (!checkpoint) {
       return null;
@@ -150,9 +154,10 @@ export class CheckpointManager {
     }
 
     try {
-      return fs.readdirSync(dirPath)
-        .filter(f => f.endsWith('.json'))
-        .map(f => f.replace('.json', ''));
+      return fs
+        .readdirSync(dirPath)
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => f.replace(".json", ""));
     } catch {
       return [];
     }
@@ -172,7 +177,7 @@ export class CheckpointManager {
     const toKeep = checkpoints.slice(-keepLast);
     const removed = checkpoints.length - toKeep.length;
 
-    fs.writeFileSync(checkpointPath, JSON.stringify(toKeep, null, 2), 'utf-8');
+    fs.writeFileSync(checkpointPath, JSON.stringify(toKeep, null, 2), "utf-8");
 
     return removed;
   }
@@ -222,14 +227,18 @@ export class CheckpointManager {
       currentTaskIndex: 0,
       context: {},
       startedAt: new Date().toISOString(),
-      lastUpdatedAt: new Date().toISOString()
+      lastUpdatedAt: new Date().toISOString(),
     };
   }
 
   /**
    * Update state with task completion
    */
-  updateStateWithTask(state: BuildState, taskId: string, success: boolean): BuildState {
+  updateStateWithTask(
+    state: BuildState,
+    taskId: string,
+    success: boolean,
+  ): BuildState {
     const updatedState = { ...state };
 
     if (success) {
@@ -308,6 +317,8 @@ export class CheckpointManager {
 /**
  * Create a checkpoint manager instance
  */
-export function createCheckpointManager(options?: CheckpointManagerOptions): CheckpointManager {
+export function createCheckpointManager(
+  options?: CheckpointManagerOptions,
+): CheckpointManager {
   return new CheckpointManager(options);
 }

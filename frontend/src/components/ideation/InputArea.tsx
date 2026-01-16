@@ -3,18 +3,18 @@
 // Input area for sending messages
 // =============================================================================
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Send, Square } from 'lucide-react';
-import type { InputAreaProps } from '../../types/ideation';
+import { useState, useCallback, useRef, useEffect } from "react";
+import { Send, Square } from "lucide-react";
+import type { InputAreaProps } from "../../types/ideation";
 
 export function InputArea({
   onSend,
   onStop,
   disabled,
   isLoading = false,
-  placeholder = 'Type a message...',
+  placeholder = "Type a message...",
 }: InputAreaProps) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea
@@ -22,11 +22,11 @@ export function InputArea({
     const textarea = textareaRef.current;
     if (textarea) {
       // Reset to minimum height first to get accurate scrollHeight
-      textarea.style.height = '48px';
+      textarea.style.height = "48px";
       const newHeight = Math.min(Math.max(textarea.scrollHeight, 48), 150);
       textarea.style.height = `${newHeight}px`;
       // Only show scrollbar when at max height
-      textarea.style.overflowY = newHeight >= 150 ? 'auto' : 'hidden';
+      textarea.style.overflowY = newHeight >= 150 ? "auto" : "hidden";
     }
   }, [value]);
 
@@ -34,19 +34,22 @@ export function InputArea({
     const trimmed = value.trim();
     if (trimmed && !disabled) {
       onSend(trimmed);
-      setValue('');
+      setValue("");
       if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = "auto";
       }
     }
   }, [value, disabled, onSend]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  }, [handleSubmit]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    },
+    [handleSubmit],
+  );
 
   const isSubmitDisabled = disabled || !value.trim();
 
@@ -67,7 +70,7 @@ export function InputArea({
                      focus:ring-2 focus:ring-blue-500 focus:border-blue-500
                      disabled:bg-gray-100 disabled:text-gray-500
                      placeholder:text-gray-400"
-          style={{ height: '48px', overflowY: 'hidden' }}
+          style={{ height: "48px", overflowY: "hidden" }}
         />
         {isLoading && onStop ? (
           <button

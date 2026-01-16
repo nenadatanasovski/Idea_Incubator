@@ -5,7 +5,17 @@ type: business
 stage: EVALUATE
 created: 2025-12-28
 updated: 2025-12-29
-tags: ["australia", "coworking", "sydney", "mobile-app", "surry-hills", "same-day-booking", "no-code", "income-focused"]
+tags:
+  [
+    "australia",
+    "coworking",
+    "sydney",
+    "mobile-app",
+    "surry-hills",
+    "same-day-booking",
+    "no-code",
+    "income-focused",
+  ]
 related: []
 summary: "Surry Hills-first same-day coworking booking app for solo founders and freelancers. Sub-60-second booking, real-time availability, no advance reservations."
 ---
@@ -39,7 +49,7 @@ This is NOT a problem for everyone—it's a **weekly blocker for power users** w
 ### Evidence This Problem Exists
 
 - Informal interviews with 5-10 fellow remote workers confirmed 15-30 minute searches across multiple platforms
-- Common feedback: *"I waste 20 minutes calling around to find a desk"* and *"I just give up and work from a noisy café instead"*
+- Common feedback: _"I waste 20 minutes calling around to find a desk"_ and _"I just give up and work from a noisy café instead"_
 - 3 of 5 interviewed freelancers would pay $10-15/month for a reliable real-time aggregator
 
 ---
@@ -57,13 +67,13 @@ DeskNow is the **only** Sydney coworking platform that refuses advance bookings.
 
 ### Key Differentiators
 
-| What We Do | Why It Matters |
-|------------|----------------|
-| **Refuse advance bookings** (24hr max) | Forces real-time accuracy competitors can't match |
-| **Sub-60-second booking** | Respects users' billable time |
-| **Zero friction** (no account required) | Removes every excuse not to book |
-| **10% commission** (vs 15-20% industry standard) | Attracts space partners |
-| **Hyper-local density** | Creates network effects within walking distance |
+| What We Do                                       | Why It Matters                                    |
+| ------------------------------------------------ | ------------------------------------------------- |
+| **Refuse advance bookings** (24hr max)           | Forces real-time accuracy competitors can't match |
+| **Sub-60-second booking**                        | Respects users' billable time                     |
+| **Zero friction** (no account required)          | Removes every excuse not to book                  |
+| **10% commission** (vs 15-20% industry standard) | Attracts space partners                           |
+| **Hyper-local density**                          | Creates network effects within walking distance   |
 
 ### Technical Approach (No-Code MVP)
 
@@ -81,6 +91,7 @@ DeskNow is the **only** Sydney coworking platform that refuses advance bookings.
 ### Primary Segment
 
 **Solo founders and early-stage startup operators (1-5 person teams)** who:
+
 - Don't want long-term office leases
 - Need professional meeting spaces and hot desks on-demand
 - Are cost-conscious and time-poor
@@ -107,13 +118,13 @@ DeskNow is the **only** Sydney coworking platform that refuses advance bookings.
 
 ### We Don't Compete—We Serve the Ignored Segment
 
-| Dimension | DeskNow | WeWork/Hub | Spacely/Office Hub |
-|-----------|---------|------------|-------------------|
-| **Use Case** | "I need a desk NOW" | Monthly memberships | Longer-term rentals |
-| **Booking Time** | 60 seconds | Days (inquiry-based) | Request-based |
-| **Real-Time Accuracy** | ✅ 5-min updates | ❌ Request-based | ❌ Static listings |
-| **First-Time Friction** | Zero (no account) | High (contracts) | Medium |
-| **Commission** | 10% | N/A | 15-20% |
+| Dimension               | DeskNow             | WeWork/Hub           | Spacely/Office Hub  |
+| ----------------------- | ------------------- | -------------------- | ------------------- |
+| **Use Case**            | "I need a desk NOW" | Monthly memberships  | Longer-term rentals |
+| **Booking Time**        | 60 seconds          | Days (inquiry-based) | Request-based       |
+| **Real-Time Accuracy**  | ✅ 5-min updates    | ❌ Request-based     | ❌ Static listings  |
+| **First-Time Friction** | Zero (no account)   | High (contracts)     | Medium              |
+| **Commission**          | 10%                 | N/A                  | 15-20%              |
 
 ### Competitor Weaknesses to Exploit
 
@@ -147,6 +158,7 @@ DeskNow is the **only** Sydney coworking platform that refuses advance bookings.
 - Build reputation for real-time accuracy
 
 **Time Investment:** 10 hours/week
+
 - Week 1-2: MVP build (Glide/Airtable/Stripe)
 - Week 3-6: Space partner outreach (15-20 spaces → target 10)
 - Week 7-12: Launch, iterate, hit 100 bookings
@@ -167,19 +179,19 @@ DeskNow is the **only** Sydney coworking platform that refuses advance bookings.
 
 ## Revenue Model (Income-Focused)
 
-| Stream | Model | Projected Revenue |
-|--------|-------|------------------|
-| **Transaction Fee** | 10% per booking | 100 bookings × $30 avg × 10% = $300/month |
-| **Power User Sub** | $29/month | 20 subscribers = $580/month |
-| **Premium Features** | À la carte | Priority notifications, favorites = $100/month |
+| Stream               | Model           | Projected Revenue                              |
+| -------------------- | --------------- | ---------------------------------------------- |
+| **Transaction Fee**  | 10% per booking | 100 bookings × $30 avg × 10% = $300/month      |
+| **Power User Sub**   | $29/month       | 20 subscribers = $580/month                    |
+| **Premium Features** | À la carte      | Priority notifications, favorites = $100/month |
 
 ### Path to $12K/year Target
 
-| Scenario | Monthly Bookings | Power Users | Monthly Revenue | Annual |
-|----------|------------------|-------------|-----------------|--------|
-| Conservative | 200 | 10 | $890 | $10,680 |
-| **Target** | 300 | 20 | $1,480 | **$17,760** |
-| Stretch | 500 | 35 | $2,515 | $30,180 |
+| Scenario     | Monthly Bookings | Power Users | Monthly Revenue | Annual      |
+| ------------ | ---------------- | ----------- | --------------- | ----------- |
+| Conservative | 200              | 10          | $890            | $10,680     |
+| **Target**   | 300              | 20          | $1,480          | **$17,760** |
+| Stretch      | 500              | 35          | $2,515          | $30,180     |
 
 **Reality Check:** AI analysis suggests Year 1 mid-case of $9K may fall short of $12K target. Achieving target requires hitting 300+ bookings/month by Month 6.
 
@@ -189,24 +201,24 @@ DeskNow is the **only** Sydney coworking platform that refuses advance bookings.
 
 ### Budget Allocation ($2,000)
 
-| Item | Cost | Notes |
-|------|------|-------|
-| No-code MVP (Glide/FlutterFlow) | $800 | Annual subscription + setup |
-| Airtable Pro | $240 | Annual ($20/month) |
-| Stripe setup | $0 | Pay-per-transaction |
-| Domain + hosting | $100 | Annual |
-| Marketing/launch | $360 | Flyers, cafe partnerships |
-| Validation budget reserve | $500 | User interviews, ads testing |
-| **Total** | **$2,000** | Within constraint |
+| Item                            | Cost       | Notes                        |
+| ------------------------------- | ---------- | ---------------------------- |
+| No-code MVP (Glide/FlutterFlow) | $800       | Annual subscription + setup  |
+| Airtable Pro                    | $240       | Annual ($20/month)           |
+| Stripe setup                    | $0         | Pay-per-transaction          |
+| Domain + hosting                | $100       | Annual                       |
+| Marketing/launch                | $360       | Flyers, cafe partnerships    |
+| Validation budget reserve       | $500       | User interviews, ads testing |
+| **Total**                       | **$2,000** | Within constraint            |
 
 ### Time Allocation (10 hours/week)
 
-| Activity | Hours/Week |
-|----------|------------|
-| Space partner outreach | 3 |
-| Product iteration | 3 |
-| Customer support | 2 |
-| Marketing/growth | 2 |
+| Activity               | Hours/Week |
+| ---------------------- | ---------- |
+| Space partner outreach | 3          |
+| Product iteration      | 3          |
+| Customer support       | 2          |
+| Marketing/growth       | 2          |
 
 ### Skills I Bring
 
@@ -227,13 +239,13 @@ DeskNow is the **only** Sydney coworking platform that refuses advance bookings.
 
 ### Primary Success Metrics
 
-| Metric | Target | Timeframe | Kill Trigger |
-|--------|--------|-----------|-------------|
-| Space partners with real-time availability | 10+ | 3 months | <5 partners by Month 3 |
-| Paid bookings (validation) | 100 | 3 months | <50 bookings by Month 3 |
-| Average booking time | <60 seconds | Launch | >90 seconds |
-| Monthly active bookers | 500 | 6 months | <200 by Month 6 |
-| Monthly revenue | $1,000 | 6 months | <$500 by Month 6 |
+| Metric                                     | Target      | Timeframe | Kill Trigger            |
+| ------------------------------------------ | ----------- | --------- | ----------------------- |
+| Space partners with real-time availability | 10+         | 3 months  | <5 partners by Month 3  |
+| Paid bookings (validation)                 | 100         | 3 months  | <50 bookings by Month 3 |
+| Average booking time                       | <60 seconds | Launch    | >90 seconds             |
+| Monthly active bookers                     | 500         | 6 months  | <200 by Month 6         |
+| Monthly revenue                            | $1,000      | 6 months  | <$500 by Month 6        |
 
 ### Kill Conditions (Abandon If:)
 
@@ -251,6 +263,7 @@ DeskNow is the **only** Sydney coworking platform that refuses advance bookings.
 **Risk:** Independent coworking spaces may resist real-time data sharing or demand revenue splits that kill unit economics.
 
 **Mitigation:**
+
 - Lead with value: lower fees (10% vs 15-20%) + demand generation they can't get elsewhere
 - Start with 3-5 hungry independent operators, not chains
 - Offer simple dashboard (not complex API integration)
@@ -258,20 +271,20 @@ DeskNow is the **only** Sydney coworking platform that refuses advance bookings.
 
 ### Execution Risks
 
-| Risk | Mitigation |
-|------|------------|
-| Manual availability updates create operator fatigue | Keep dashboard dead simple; explore automation for Phase 2 |
-| Well-resourced competitor enters | First-mover advantage in niche; build switching costs early |
-| Users want advance booking | Stay disciplined—it destroys real-time accuracy (core differentiator) |
-| Customer support overwhelm at scale | Build self-service tools (FAQ, chatbot) before scaling |
+| Risk                                                | Mitigation                                                            |
+| --------------------------------------------------- | --------------------------------------------------------------------- |
+| Manual availability updates create operator fatigue | Keep dashboard dead simple; explore automation for Phase 2            |
+| Well-resourced competitor enters                    | First-mover advantage in niche; build switching costs early           |
+| Users want advance booking                          | Stay disciplined—it destroys real-time accuracy (core differentiator) |
+| Customer support overwhelm at scale                 | Build self-service tools (FAQ, chatbot) before scaling                |
 
 ### Financial Risks
 
-| Risk | Mitigation |
-|------|------------|
-| Revenue doesn't hit $12K target | Diversify revenue (subscriptions, premium features); adjust timeline expectations |
-| Validation budget exhausted early | Start with free/organic marketing; paid ads only after model proven |
-| Unit economics don't work | Kill at Month 3 if commission per booking < customer acquisition cost |
+| Risk                              | Mitigation                                                                        |
+| --------------------------------- | --------------------------------------------------------------------------------- |
+| Revenue doesn't hit $12K target   | Diversify revenue (subscriptions, premium features); adjust timeline expectations |
+| Validation budget exhausted early | Start with free/organic marketing; paid ads only after model proven               |
+| Unit economics don't work         | Kill at Month 3 if commission per booking < customer acquisition cost             |
 
 ---
 
@@ -307,15 +320,18 @@ DeskNow is the **only** Sydney coworking platform that refuses advance bookings.
 ## Decision Framework
 
 **Proceed if by Month 3:**
+
 - ✅ 10+ space partners
 - ✅ 100+ paid bookings
 - ✅ Revenue trajectory toward $500+/month
 
 **Pause/Pivot if by Month 3:**
+
 - ❌ <5 space partners (supply problem)
 - ❌ <50 bookings (demand problem)
 - ❌ Spaces demanding >15% commission (economics problem)
 
 **Kill if by Month 6:**
+
 - ❌ <$500/month revenue
 - ❌ Unable to see path to $1,000/month

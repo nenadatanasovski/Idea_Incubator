@@ -20,20 +20,24 @@ These documents provide context for understanding the specification.
 -->
 
 **Required Reading:**
+
 - [ ] `README.md` - Idea overview
 - [ ] `problem-solution.md` - Problem/solution framing
 - [ ] `target-users.md` - User personas
 - [ ] `planning/brief.md` - Handoff from ideation
 
 **Additional Context:**
+
 - [ ] `research/market.md` - Market context
 - [ ] `research/competitive.md` - Competitive landscape
 - [ ] `development.md` - Q&A insights
 
 **Patterns to Follow:**
+
 <!-- Reference CLAUDE.md sections -->
-- Section: "_____"
-- Section: "_____"
+
+- Section: "**\_**"
+- Section: "**\_**"
 
 ---
 
@@ -43,28 +47,26 @@ These documents provide context for understanding the specification.
 
 **Objective:**
 
-
 **Success Criteria:**
+
 1.
 2.
 3.
 
-**Out of Scope:**
--
--
+## **Out of Scope:**
 
----
+- ***
 
 ## Functional Requirements
 
 <!-- Each requirement should be testable and traceable -->
 
-| ID | Requirement | Priority | Acceptance Criteria | Source |
-|----|-------------|----------|---------------------|--------|
-| FR-001 | | Must | | |
-| FR-002 | | Must | | |
-| FR-003 | | Should | | |
-| FR-004 | | Could | | |
+| ID     | Requirement | Priority | Acceptance Criteria | Source |
+| ------ | ----------- | -------- | ------------------- | ------ |
+| FR-001 |             | Must     |                     |        |
+| FR-002 |             | Must     |                     |        |
+| FR-003 |             | Should   |                     |        |
+| FR-004 |             | Could    |                     |        |
 
 ### Detailed Requirements
 
@@ -75,6 +77,7 @@ These documents provide context for understanding the specification.
 **User Story:** As a [user type], I want [action] so that [benefit].
 
 **Acceptance Criteria:**
+
 - [ ]
 - [ ]
 - [ ]
@@ -83,13 +86,13 @@ These documents provide context for understanding the specification.
 
 ## Non-Functional Requirements
 
-| Category | Requirement | Target | Validation Method |
-|----------|-------------|--------|-------------------|
-| Performance | Response time | < 200ms | Load testing |
-| Scalability | Concurrent users | 100 | Stress testing |
-| Reliability | Uptime | 99% | Monitoring |
-| Security | Input validation | All user inputs | Security review |
-| Usability | Accessibility | WCAG 2.1 AA | Audit |
+| Category    | Requirement      | Target          | Validation Method |
+| ----------- | ---------------- | --------------- | ----------------- |
+| Performance | Response time    | < 200ms         | Load testing      |
+| Scalability | Concurrent users | 100             | Stress testing    |
+| Reliability | Uptime           | 99%             | Monitoring        |
+| Security    | Input validation | All user inputs | Security review   |
+| Usability   | Accessibility    | WCAG 2.1 AA     | Audit             |
 
 ---
 
@@ -110,24 +113,24 @@ These documents provide context for understanding the specification.
 ### New Files
 
 | File Path | Purpose | Owner |
-|-----------|---------|-------|
-| | | |
-| | | |
+| --------- | ------- | ----- |
+|           |         |       |
+|           |         |       |
 
 ### Modified Files
 
 | File Path | Changes | Owner |
-|-----------|---------|-------|
-| | | |
-| | | |
+| --------- | ------- | ----- |
+|           |         |       |
+|           |         |       |
 
 ### Files to Avoid
 
 <!-- Files owned by other agents/loops that should NOT be modified -->
 
 | File Path | Reason | Owner |
-|-----------|--------|-------|
-| | | |
+| --------- | ------ | ----- |
+|           |        |       |
 
 ---
 
@@ -136,24 +139,24 @@ These documents provide context for understanding the specification.
 ### Endpoints
 
 | Endpoint | Method | Description | Auth | Request | Response |
-|----------|--------|-------------|------|---------|----------|
-| | GET | | | | |
-| | POST | | | | |
+| -------- | ------ | ----------- | ---- | ------- | -------- |
+|          | GET    |             |      |         |          |
+|          | POST   |             |      |         |          |
 
 ### Request/Response Examples
 
 #### Endpoint:
 
 **Request:**
+
 ```json
-{
-}
+{}
 ```
 
 **Response:**
+
 ```json
-{
-}
+{}
 ```
 
 ---
@@ -188,14 +191,14 @@ interface  {
 ### Internal Dependencies
 
 | Dependency | Status | Blocks | Owner |
-|------------|--------|--------|-------|
-| | | | |
+| ---------- | ------ | ------ | ----- |
+|            |        |        |       |
 
 ### External Dependencies
 
 | Package | Version | Purpose |
-|---------|---------|---------|
-| | | |
+| ------- | ------- | ------- |
+|         |         |         |
 
 ---
 
@@ -206,10 +209,10 @@ IMPORTANT: Spec Agent should inject relevant gotchas from Knowledge Base.
 These are mistakes to avoid based on past experience.
 -->
 
-| ID | Gotcha | Source | Confidence |
-|----|--------|--------|------------|
-| G-001 | | Knowledge Base | High |
-| G-002 | | Knowledge Base | Medium |
+| ID    | Gotcha | Source         | Confidence |
+| ----- | ------ | -------------- | ---------- |
+| G-001 |        | Knowledge Base | High       |
+| G-002 |        | Knowledge Base | Medium     |
 
 ---
 
@@ -218,14 +221,14 @@ These are mistakes to avoid based on past experience.
 ### Unit Tests
 
 | Test File | Coverage Target | Priority |
-|-----------|-----------------|----------|
-| | 80% | High |
+| --------- | --------------- | -------- |
+|           | 80%             | High     |
 
 ### Integration Tests
 
 | Test File | Scope | Priority |
-|-----------|-------|----------|
-| | | |
+| --------- | ----- | -------- |
+|           |       |          |
 
 ### Validation Commands
 
@@ -250,8 +253,8 @@ npm run lint
 ## Risk Assessment
 
 | Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| | Medium | High | |
+| ---- | ---------- | ------ | ---------- |
+|      | Medium     | High   |            |
 
 ---
 
@@ -276,5 +279,5 @@ npm run lint
 
 ---
 
-*Generated by Specification Agent*
-*See `tasks.md` for implementation breakdown*
+_Generated by Specification Agent_
+_See `tasks.md` for implementation breakdown_

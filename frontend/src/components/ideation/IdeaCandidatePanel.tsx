@@ -3,12 +3,19 @@
 // Panel showing the current idea candidate
 // =============================================================================
 
-import 'react';
-import { Lightbulb, CheckCircle, Save, Trash2, AlertTriangle, ArrowRight } from 'lucide-react';
-import { ConfidenceMeter } from './ConfidenceMeter';
-import { ViabilityMeter } from './ViabilityMeter';
-import { RisksList } from './RisksList';
-import type { IdeaCandidatePanelProps } from '../../types/ideation';
+import "react";
+import {
+  Lightbulb,
+  CheckCircle,
+  Save,
+  Trash2,
+  AlertTriangle,
+  ArrowRight,
+} from "lucide-react";
+import { ConfidenceMeter } from "./ConfidenceMeter";
+import { ViabilityMeter } from "./ViabilityMeter";
+import { RisksList } from "./RisksList";
+import type { IdeaCandidatePanelProps } from "../../types/ideation";
 
 export function IdeaCandidatePanel({
   candidate,
@@ -104,8 +111,8 @@ function EmptyState({ confidence }: { confidence: number }) {
       <p className="text-gray-500 font-medium">No idea yet</p>
       <p className="text-sm text-gray-400 mt-1">
         {confidence > 0
-          ? 'Keep exploring to develop your idea'
-          : 'Start the conversation to explore ideas'}
+          ? "Keep exploring to develop your idea"
+          : "Start the conversation to explore ideas"}
       </p>
       {confidence > 0 && confidence < 30 && (
         <div className="mt-4">
@@ -128,10 +135,10 @@ function ActiveState({
   viability,
   risks,
 }: {
-  candidate: NonNullable<IdeaCandidatePanelProps['candidate']>;
+  candidate: NonNullable<IdeaCandidatePanelProps["candidate"]>;
   confidence: number;
   viability: number;
-  risks: IdeaCandidatePanelProps['risks'];
+  risks: IdeaCandidatePanelProps["risks"];
 }) {
   return (
     <div className="space-y-4">
@@ -146,13 +153,16 @@ function ActiveState({
       {/* Meters */}
       <div className="space-y-3">
         <ConfidenceMeter value={confidence} showLabel size="md" />
-        <ViabilityMeter value={viability} risks={risks} showWarning={viability < 50} size="md" />
+        <ViabilityMeter
+          value={viability}
+          risks={risks}
+          showWarning={viability < 50}
+          size="md"
+        />
       </div>
 
       {/* Risks */}
-      {risks.length > 0 && (
-        <RisksList risks={risks} maxDisplay={3} />
-      )}
+      {risks.length > 0 && <RisksList risks={risks} maxDisplay={3} />}
     </div>
   );
 }
@@ -164,9 +174,9 @@ function InterventionState({
   onContinue,
   onDiscard,
 }: {
-  candidate: NonNullable<IdeaCandidatePanelProps['candidate']>;
+  candidate: NonNullable<IdeaCandidatePanelProps["candidate"]>;
   viability: number;
-  risks: IdeaCandidatePanelProps['risks'];
+  risks: IdeaCandidatePanelProps["risks"];
   onContinue: () => void;
   onDiscard: () => void;
 }) {

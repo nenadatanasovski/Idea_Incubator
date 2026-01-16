@@ -16,17 +16,17 @@ The Idea Incubator is an impressive **AI-powered evaluation system** with sophis
 
 ### Critical Missing Fundamentals (Priority Order)
 
-| Priority | Gap | Impact |
-|----------|-----|--------|
-| 🔴 Critical | Evidence & Validation Tracking | Scores remain theoretical without reality feedback |
-| 🔴 Critical | Assumption Management | No systematic way to identify and test critical assumptions |
-| 🔴 Critical | Learning & Iteration Loop | No mechanism to evolve ideas through insights |
-| 🟠 High | Unit Economics & Business Model | No viability math beyond qualitative scores |
-| 🟠 High | First Customer & ICP Definition | No path from idea to actual customer |
-| 🟠 High | Decision & Progress Tracking | No accountability or momentum measurement |
-| 🟡 Medium | Portfolio & Resource Allocation | Can't optimize across multiple ideas |
-| 🟡 Medium | Exit Criteria & Pivot Logic | No principled framework for when to quit |
-| 🟡 Medium | External Event Monitoring | Ideas exist in vacuum without market context |
+| Priority    | Gap                             | Impact                                                      |
+| ----------- | ------------------------------- | ----------------------------------------------------------- |
+| 🔴 Critical | Evidence & Validation Tracking  | Scores remain theoretical without reality feedback          |
+| 🔴 Critical | Assumption Management           | No systematic way to identify and test critical assumptions |
+| 🔴 Critical | Learning & Iteration Loop       | No mechanism to evolve ideas through insights               |
+| 🟠 High     | Unit Economics & Business Model | No viability math beyond qualitative scores                 |
+| 🟠 High     | First Customer & ICP Definition | No path from idea to actual customer                        |
+| 🟠 High     | Decision & Progress Tracking    | No accountability or momentum measurement                   |
+| 🟡 Medium   | Portfolio & Resource Allocation | Can't optimize across multiple ideas                        |
+| 🟡 Medium   | Exit Criteria & Pivot Logic     | No principled framework for when to quit                    |
+| 🟡 Medium   | External Event Monitoring       | Ideas exist in vacuum without market context                |
 
 ---
 
@@ -35,6 +35,7 @@ The Idea Incubator is an impressive **AI-powered evaluation system** with sophis
 ### What is an Idea, Fundamentally?
 
 An idea is a **hypothesis about value creation**:
+
 - "If I build X..."
 - "...it will solve problem Y..."
 - "...for people Z..."
@@ -42,6 +43,7 @@ An idea is a **hypothesis about value creation**:
 - "...and I can capture value through V."
 
 Every idea is essentially a bundle of **untested assumptions** about:
+
 1. The problem (is it real? severe? widespread?)
 2. The solution (does it work? is it wanted? is it better?)
 3. The customer (who? where? how many? will they pay?)
@@ -51,6 +53,7 @@ Every idea is essentially a bundle of **untested assumptions** about:
 ### What is Incubation, Fundamentally?
 
 Incubation is the systematic process of:
+
 1. **Identifying assumptions** (what must be true for success?)
 2. **Prioritizing by risk** (which assumptions, if wrong, kill us?)
 3. **Designing experiments** (how can we test cheaply?)
@@ -60,6 +63,7 @@ Incubation is the systematic process of:
 7. **Making go/no-go decisions** (continue, pivot, or kill?)
 
 **The incubation loop:**
+
 ```
 IDEA → ASSUMPTIONS → EXPERIMENTS → EVIDENCE → INSIGHTS → UPDATED IDEA
          ↑                                                    |
@@ -81,11 +85,13 @@ The system produces scores based on AI reasoning about the idea's potential, but
 
 **Fundamental Need:**
 Every score should eventually be grounded in reality:
+
 - Problem severity (P2): validated by X customer interviews
 - Market size (M1): confirmed by Y data sources
 - Technical feasibility (F1): proven by Z prototype
 
 **Required Capabilities:**
+
 ```
 ├── Customer Discovery Tracking
 │   ├── Interview logs (who, when, what learned)
@@ -122,6 +128,7 @@ Without evidence tracking, evaluations remain **intellectual exercises**. An ide
 
 **What's Missing:**
 The synthesis mentions "critical assumptions" but there's no systematic framework to:
+
 - Extract all assumptions embedded in the idea
 - Prioritize by risk (which kill us if wrong?)
 - Design tests for each assumption
@@ -131,6 +138,7 @@ The synthesis mentions "critical assumptions" but there's no systematic framewor
 Ideas fail when critical assumptions prove false. The #1 job of incubation is to **test the riskiest assumptions as cheaply as possible**.
 
 **Required Capabilities:**
+
 ```
 ├── Assumption Extraction
 │   ├── Problem assumptions (the problem exists, is severe, etc.)
@@ -172,6 +180,7 @@ Many ideas fail because founders test the wrong assumptions (the ones they're co
 
 **What's Missing:**
 No mechanism exists to:
+
 - Track how an idea evolved over time
 - Capture insights from each evaluation cycle
 - See before/after comparisons
@@ -182,6 +191,7 @@ No mechanism exists to:
 Ideas aren't static—they should **evolve through insight**. Every customer conversation, experiment, and evaluation should potentially change the idea.
 
 **Required Capabilities:**
+
 ```
 ├── Idea Versioning
 │   ├── Version history (v1, v2, v3...)
@@ -225,6 +235,7 @@ Without iteration tracking, you can't tell if you're making progress. You might 
 
 **What's Missing:**
 The system evaluates market size and feasibility qualitatively but lacks:
+
 - Business model definition
 - Unit economics calculation
 - Break-even analysis
@@ -235,6 +246,7 @@ The system evaluates market size and feasibility qualitatively but lacks:
 An idea can score well on problem/solution/fit but still be **economically unviable**. Unit economics separate "good ideas" from "good businesses."
 
 **Required Capabilities:**
+
 ```
 ├── Business Model Canvas
 │   ├── Value proposition
@@ -286,6 +298,7 @@ Many passionate founders pursue ideas that are structurally unprofitable. Early 
 
 **What's Missing:**
 The system evaluates "target user clarity" (P3) but doesn't provide:
+
 - Structured ICP (Ideal Customer Profile) definition
 - Customer segment prioritization
 - Early adopter identification
@@ -296,6 +309,7 @@ The system evaluates "target user clarity" (P3) but doesn't provide:
 You can't validate an idea without talking to customers. You can't talk to customers without knowing **exactly who they are**.
 
 **Required Capabilities:**
+
 ```
 ├── ICP Definition Framework
 │   ├── Demographics/Firmographics
@@ -348,6 +362,7 @@ You can't validate an idea without talking to customers. You can't talk to custo
 
 **What's Missing:**
 No mechanism for:
+
 - Logging decisions and their rationale
 - Tracking progress against milestones
 - Measuring velocity/momentum
@@ -358,6 +373,7 @@ No mechanism for:
 Incubation requires hundreds of decisions. Without tracking, you can't learn from them, hold yourself accountable, or measure progress.
 
 **Required Capabilities:**
+
 ```
 ├── Decision Log
 │   ├── Decision statement
@@ -411,6 +427,7 @@ Without progress tracking, you can work for months without real advancement. Mil
 ### 🟡 Gap 7: Portfolio & Resource Allocation
 
 **What's Missing:**
+
 - No way to compare resource allocation across multiple ideas
 - No portfolio optimization (which ideas deserve focus?)
 - No opportunity cost analysis
@@ -420,6 +437,7 @@ Without progress tracking, you can work for months without real advancement. Mil
 Most founders/creators have multiple ideas. Choosing which to pursue is as important as evaluating individual ideas.
 
 **Required Capabilities:**
+
 - Portfolio dashboard showing all ideas with scores
 - Resource allocation visualization
 - Opportunity cost calculator
@@ -432,6 +450,7 @@ Most founders/creators have multiple ideas. Choosing which to pursue is as impor
 ### 🟡 Gap 8: Exit Criteria & Pivot Logic
 
 **What's Missing:**
+
 - No formal "when to quit" criteria
 - No pivot triggers
 - No sunk cost analysis
@@ -441,6 +460,7 @@ Most founders/creators have multiple ideas. Choosing which to pursue is as impor
 Knowing when to stop is as important as knowing when to start. Most ideas should be killed; knowing when prevents wasteful persistence.
 
 **Required Capabilities:**
+
 - Pre-defined kill criteria per idea
 - Pivot triggers (when to change, not quit)
 - Sunk cost analysis
@@ -453,6 +473,7 @@ Knowing when to stop is as important as knowing when to start. Most ideas should
 ### 🟡 Gap 9: External Event Monitoring
 
 **What's Missing:**
+
 - No market event tracking
 - No competitor monitoring over time
 - No regulatory change tracking
@@ -462,6 +483,7 @@ Knowing when to stop is as important as knowing when to start. Most ideas should
 Ideas don't exist in a vacuum. External events can make an idea suddenly viable or suddenly obsolete.
 
 **Required Capabilities:**
+
 - Market news monitoring
 - Competitor tracking dashboard
 - Regulatory alert system
@@ -474,16 +496,16 @@ Ideas don't exist in a vacuum. External events can make an idea suddenly viable 
 
 ### Lower Priority but Valuable
 
-| Gap | Description | Priority |
-|-----|-------------|----------|
-| **Go-to-Market Strategy** | No channel strategy, launch planning, or growth model | 🟡 |
-| **Team & Collaboration** | Single-user focused; no multi-person workflows | 🟡 |
-| **IP Strategy** | No patent/trademark tracking or prior art research | ⚪ |
-| **Funding Strategy** | No investor matching, term sheet considerations | ⚪ |
-| **Scenario Planning** | No "what if" modeling or contingency planning | 🟡 |
-| **Emotional/Energy Tracking** | No founder motivation or burnout monitoring | ⚪ |
-| **Prototype Versioning** | No MVP experiment tracking or A/B test logs | 🟡 |
-| **Ecosystem Dependencies** | No partner/vendor risk tracking | ⚪ |
+| Gap                           | Description                                           | Priority |
+| ----------------------------- | ----------------------------------------------------- | -------- |
+| **Go-to-Market Strategy**     | No channel strategy, launch planning, or growth model | 🟡       |
+| **Team & Collaboration**      | Single-user focused; no multi-person workflows        | 🟡       |
+| **IP Strategy**               | No patent/trademark tracking or prior art research    | ⚪       |
+| **Funding Strategy**          | No investor matching, term sheet considerations       | ⚪       |
+| **Scenario Planning**         | No "what if" modeling or contingency planning         | 🟡       |
+| **Emotional/Energy Tracking** | No founder motivation or burnout monitoring           | ⚪       |
+| **Prototype Versioning**      | No MVP experiment tracking or A/B test logs           | 🟡       |
+| **Ecosystem Dependencies**    | No partner/vendor risk tracking                       | ⚪       |
 
 ---
 
@@ -514,18 +536,19 @@ Ideas don't exist in a vacuum. External events can make an idea suddenly viable 
 ### 2. Add Reality-Grounding Layer
 
 Every AI-generated score should have a "reality grounding" dimension:
+
 - **Theoretical:** AI reasoning only (current state)
 - **Informed:** AI reasoning + research data
 - **Validated:** AI reasoning + direct evidence
 
 ```typescript
 interface Score {
-  value: number;           // 1-10
-  confidence: number;      // 0-1
-  grounding: 'theoretical' | 'informed' | 'validated';
-  evidence: Evidence[];    // What supports this score?
-  lastValidated: Date;     // When was this grounded in reality?
-  stale: boolean;          // Has context changed since validation?
+  value: number; // 1-10
+  confidence: number; // 0-1
+  grounding: "theoretical" | "informed" | "validated";
+  evidence: Evidence[]; // What supports this score?
+  lastValidated: Date; // When was this grounded in reality?
+  stale: boolean; // Has context changed since validation?
 }
 ```
 
@@ -590,24 +613,28 @@ FOLLOW-UP (3 months later):
 ## Part 6: Implementation Priorities
 
 ### Phase 1: Evidence Foundation (Critical)
+
 1. **Assumption Tracker** - Extract, prioritize, and track assumptions
 2. **Experiment Log** - Design, run, and record experiments
 3. **Evidence Store** - Link evidence to assumptions and scores
 4. **Reality-Grounded Scoring** - Add evidence dimension to scores
 
 ### Phase 2: Customer & Economics (High)
+
 5. **ICP Builder** - Structured ideal customer profile
 6. **Customer Discovery Log** - Interview tracking with insights
 7. **Unit Economics Calculator** - CAC, LTV, break-even analysis
 8. **Business Model Canvas** - Structured model definition
 
 ### Phase 3: Progress & Learning (High)
+
 9. **Idea Versioning** - Track idea evolution over time
 10. **Decision Log** - Record and learn from decisions
 11. **Milestone Tracker** - Progress against defined milestones
 12. **Weekly Check-in** - Structured reflection prompts
 
 ### Phase 4: Portfolio & Strategy (Medium)
+
 13. **Portfolio Dashboard** - Compare and prioritize ideas
 14. **Kill Criteria** - Pre-defined exit conditions
 15. **Pivot Framework** - When and how to pivot
@@ -620,6 +647,7 @@ FOLLOW-UP (3 months later):
 The Idea Incubator has built an impressive **evaluation engine**, but evaluation is only 10% of incubation. The remaining 90%—the messy, iterative process of testing assumptions, gathering evidence, learning from reality, and evolving the idea—lacks systematic support.
 
 **The fundamental shift needed:**
+
 - From **point-in-time assessment** → **continuous incubation cycle**
 - From **AI reasoning** → **reality-grounded evidence**
 - From **passive scoring** → **active experiment design**
@@ -629,4 +657,4 @@ The path forward is clear: build the infrastructure that connects ideas to reali
 
 ---
 
-*This analysis was generated through first-principles reasoning about what is fundamentally required to transform raw ideas into validated, viable ventures.*
+_This analysis was generated through first-principles reasoning about what is fundamentally required to transform raw ideas into validated, viable ventures._

@@ -15,6 +15,7 @@ This test plan covers all 10 test flows identified in Q13, with detailed scenari
 ## Prerequisites
 
 ### System Setup
+
 - [ ] SQLite database created with task-data-model.md schema
 - [ ] Task Agent service running
 - [ ] Telegram bot connected and verified
@@ -22,6 +23,7 @@ This test plan covers all 10 test flows identified in Q13, with detailed scenari
 - [ ] Test data seeded (projects, ideas, sample tasks)
 
 ### Test Environment
+
 - [ ] Test project created: `test-project`
 - [ ] Test idea created: `task-agent-test`
 - [ ] Telegram chat linked to test user
@@ -57,16 +59,16 @@ Create a new task, validate it, get approval, execute via Build Agent, and mark 
 
 ### Steps
 
-| Step | Action | Expected Result | Human Verification |
-|------|--------|-----------------|-------------------|
-| 1.1 | Create task via API | Task created in DB with `draft` status | [ ] Task appears in DB |
-| 1.2 | Add acceptance criteria | Criteria stored | [ ] Criteria visible in task details |
-| 1.3 | Add codebase tests | Tests stored | [ ] Tests visible |
-| 1.4 | Call `/api/tasks/:id/validate` | Validation runs, status → `pending` | [ ] No blocking issues |
-| 1.5 | Telegram: Receive suggestion | Task Agent suggests this task list | [ ] Message received with buttons |
-| 1.6 | Telegram: Click [Execute Now] | Task list execution starts | [ ] Build Agent spawned |
-| 1.7 | Observe Build Agent execution | Tasks executed, tests run | [ ] Progress updates in Telegram |
-| 1.8 | Build Agent completes | Status → `completed` | [ ] Completion message in Telegram |
+| Step | Action                         | Expected Result                        | Human Verification                   |
+| ---- | ------------------------------ | -------------------------------------- | ------------------------------------ |
+| 1.1  | Create task via API            | Task created in DB with `draft` status | [ ] Task appears in DB               |
+| 1.2  | Add acceptance criteria        | Criteria stored                        | [ ] Criteria visible in task details |
+| 1.3  | Add codebase tests             | Tests stored                           | [ ] Tests visible                    |
+| 1.4  | Call `/api/tasks/:id/validate` | Validation runs, status → `pending`    | [ ] No blocking issues               |
+| 1.5  | Telegram: Receive suggestion   | Task Agent suggests this task list     | [ ] Message received with buttons    |
+| 1.6  | Telegram: Click [Execute Now]  | Task list execution starts             | [ ] Build Agent spawned              |
+| 1.7  | Observe Build Agent execution  | Tasks executed, tests run              | [ ] Progress updates in Telegram     |
+| 1.8  | Build Agent completes          | Status → `completed`                   | [ ] Completion message in Telegram   |
 
 ### Test Task
 
@@ -120,17 +122,18 @@ Create a task similar to an existing one, verify duplicate detection, and test m
 
 ### Steps
 
-| Step | Action | Expected Result | Human Verification |
-|------|--------|-----------------|-------------------|
-| 2.1 | Ensure existing task exists | Task in DB | [ ] Task visible |
-| 2.2 | Create similar task | New task created | [ ] Task created |
-| 2.3 | Trigger validation | Duplicate detected | [ ] Warning shows potential duplicate |
-| 2.4 | Telegram: Receive duplicate alert | Message with merge options | [ ] Message received |
-| 2.5 | Click [Merge] | Tasks merged | [ ] One task remains, other archived |
+| Step | Action                            | Expected Result            | Human Verification                    |
+| ---- | --------------------------------- | -------------------------- | ------------------------------------- |
+| 2.1  | Ensure existing task exists       | Task in DB                 | [ ] Task visible                      |
+| 2.2  | Create similar task               | New task created           | [ ] Task created                      |
+| 2.3  | Trigger validation                | Duplicate detected         | [ ] Warning shows potential duplicate |
+| 2.4  | Telegram: Receive duplicate alert | Message with merge options | [ ] Message received                  |
+| 2.5  | Click [Merge]                     | Tasks merged               | [ ] One task remains, other archived  |
 
 ### Test Data
 
 **Existing Task:**
+
 ```json
 {
   "id": "TU-TEST-FEA-002",
@@ -140,6 +143,7 @@ Create a task similar to an existing one, verify duplicate detection, and test m
 ```
 
 **Duplicate Task:**
+
 ```json
 {
   "id": "TU-TEST-FEA-003",
@@ -183,21 +187,22 @@ Create a task list with multiple tasks, get approval, execute, and review result
 
 ### Steps
 
-| Step | Action | Expected Result | Human Verification |
-|------|--------|-----------------|-------------------|
-| 3.1 | Create task list | List created with `draft` status | [ ] List in DB |
-| 3.2 | Add 3 tasks to list | Tasks linked with positions | [ ] Junction table populated |
-| 3.3 | Validate all tasks | All pass validation | [ ] No blockers |
-| 3.4 | Change list status to `active` | Ready for suggestion | [ ] Status updated |
-| 3.5 | Telegram: Receive list suggestion | Full list summary | [ ] All tasks shown |
-| 3.6 | Click [Execute Now] | Build Agent spawns | [ ] Execution starts |
-| 3.7 | Monitor progress | Each task updates | [ ] Progress in Telegram |
-| 3.8 | All tasks complete | List marked `completed` | [ ] Summary with results |
-| 3.9 | Review detailed results | Test results accessible | [ ] Results in UI/API |
+| Step | Action                            | Expected Result                  | Human Verification           |
+| ---- | --------------------------------- | -------------------------------- | ---------------------------- |
+| 3.1  | Create task list                  | List created with `draft` status | [ ] List in DB               |
+| 3.2  | Add 3 tasks to list               | Tasks linked with positions      | [ ] Junction table populated |
+| 3.3  | Validate all tasks                | All pass validation              | [ ] No blockers              |
+| 3.4  | Change list status to `active`    | Ready for suggestion             | [ ] Status updated           |
+| 3.5  | Telegram: Receive list suggestion | Full list summary                | [ ] All tasks shown          |
+| 3.6  | Click [Execute Now]               | Build Agent spawns               | [ ] Execution starts         |
+| 3.7  | Monitor progress                  | Each task updates                | [ ] Progress in Telegram     |
+| 3.8  | All tasks complete                | List marked `completed`          | [ ] Summary with results     |
+| 3.9  | Review detailed results           | Test results accessible          | [ ] Results in UI/API        |
 
 ### Test Data
 
 **Task List:**
+
 ```json
 {
   "id": "list-001",
@@ -252,16 +257,16 @@ Create tasks with dependencies, verify blocking behavior, and test automatic unb
 
 ### Steps
 
-| Step | Action | Expected Result | Human Verification |
-|------|--------|-----------------|-------------------|
-| 4.1 | Create Task A (no deps) | Task A ready | [ ] Status: pending |
-| 4.2 | Create Task B (depends on A) | Task B blocked | [ ] Status: blocked |
-| 4.3 | Create Task C (depends on B) | Task C blocked | [ ] Status: blocked |
-| 4.4 | Telegram: Check suggestions | Only Task A suggested | [ ] B and C not shown |
-| 4.5 | Execute Task A | A completes | [ ] Status: completed |
-| 4.6 | Telegram: Check unblock message | Task B now unblocked | [ ] Notification received |
-| 4.7 | Verify Task B status | B now pending | [ ] Status changed |
-| 4.8 | Execute Task B | B completes | [ ] C unblocked automatically |
+| Step | Action                          | Expected Result       | Human Verification            |
+| ---- | ------------------------------- | --------------------- | ----------------------------- |
+| 4.1  | Create Task A (no deps)         | Task A ready          | [ ] Status: pending           |
+| 4.2  | Create Task B (depends on A)    | Task B blocked        | [ ] Status: blocked           |
+| 4.3  | Create Task C (depends on B)    | Task C blocked        | [ ] Status: blocked           |
+| 4.4  | Telegram: Check suggestions     | Only Task A suggested | [ ] B and C not shown         |
+| 4.5  | Execute Task A                  | A completes           | [ ] Status: completed         |
+| 4.6  | Telegram: Check unblock message | Task B now unblocked  | [ ] Notification received     |
+| 4.7  | Verify Task B status            | B now pending         | [ ] Status changed            |
+| 4.8  | Execute Task B                  | B completes           | [ ] C unblocked automatically |
 
 ### Test Data
 
@@ -320,16 +325,16 @@ Create a task that fails, verify Build Agent retry, and test escalation.
 
 ### Steps
 
-| Step | Action | Expected Result | Human Verification |
-|------|--------|-----------------|-------------------|
-| 5.1 | Create task with failing test | Task created | [ ] Has impossible test |
-| 5.2 | Execute task | Build Agent runs | [ ] Execution starts |
-| 5.3 | Test fails | Build Agent retry #1 | [ ] Retry message |
-| 5.4 | Test fails again | Build Agent retry #2 | [ ] Second retry |
-| 5.5 | Max retries exceeded | Escalation to user | [ ] Telegram alert |
-| 5.6 | Telegram: See failure details | Error info shown | [ ] Clear error message |
-| 5.7 | Click [Create Fix Task] | New task created | [ ] Follow-up task |
-| 5.8 | Original task marked failed | Status updated | [ ] Task failed |
+| Step | Action                        | Expected Result      | Human Verification      |
+| ---- | ----------------------------- | -------------------- | ----------------------- |
+| 5.1  | Create task with failing test | Task created         | [ ] Has impossible test |
+| 5.2  | Execute task                  | Build Agent runs     | [ ] Execution starts    |
+| 5.3  | Test fails                    | Build Agent retry #1 | [ ] Retry message       |
+| 5.4  | Test fails again              | Build Agent retry #2 | [ ] Second retry        |
+| 5.5  | Max retries exceeded          | Escalation to user   | [ ] Telegram alert      |
+| 5.6  | Telegram: See failure details | Error info shown     | [ ] Clear error message |
+| 5.7  | Click [Create Fix Task]       | New task created     | [ ] Follow-up task      |
+| 5.8  | Original task marked failed   | Status updated       | [ ] Task failed         |
 
 ### Test Data
 
@@ -379,13 +384,13 @@ Create a task and let it become stale, verify notification.
 
 ### Steps
 
-| Step | Action | Expected Result | Human Verification |
-|------|--------|-----------------|-------------------|
-| 6.1 | Create task | Task in pending | [ ] Created |
-| 6.2 | Set `updated_at` to 8 days ago | Artificially stale | [ ] Manual DB update |
-| 6.3 | Trigger stale check | Stale detection runs | [ ] Via cron or manual |
-| 6.4 | Telegram: Receive stale alert | Notification sent | [ ] Message received |
-| 6.5 | Click [Take Action] | Options shown | [ ] Can execute or archive |
+| Step | Action                         | Expected Result      | Human Verification         |
+| ---- | ------------------------------ | -------------------- | -------------------------- |
+| 6.1  | Create task                    | Task in pending      | [ ] Created                |
+| 6.2  | Set `updated_at` to 8 days ago | Artificially stale   | [ ] Manual DB update       |
+| 6.3  | Trigger stale check            | Stale detection runs | [ ] Via cron or manual     |
+| 6.4  | Telegram: Receive stale alert  | Notification sent    | [ ] Message received       |
+| 6.5  | Click [Take Action]            | Options shown        | [ ] Can execute or archive |
 
 ### Expected Telegram Interaction
 
@@ -419,12 +424,12 @@ Create tasks across two projects with dependencies.
 
 ### Steps
 
-| Step | Action | Expected Result | Human Verification |
-|------|--------|-----------------|-------------------|
-| 7.1 | Create Project A task | Task A in Project A | [ ] Created |
-| 7.2 | Create Project B task depending on A | Task B blocked | [ ] Cross-project dep |
-| 7.3 | Verify visualization | Graph shows cross-project | [ ] UI correct |
-| 7.4 | Complete Task A | B unblocks | [ ] Cross-project unblock |
+| Step | Action                               | Expected Result           | Human Verification        |
+| ---- | ------------------------------------ | ------------------------- | ------------------------- |
+| 7.1  | Create Project A task                | Task A in Project A       | [ ] Created               |
+| 7.2  | Create Project B task depending on A | Task B blocked            | [ ] Cross-project dep     |
+| 7.3  | Verify visualization                 | Graph shows cross-project | [ ] UI correct            |
+| 7.4  | Complete Task A                      | B unblocks                | [ ] Cross-project unblock |
 
 ### Verification Checkpoints
 
@@ -445,11 +450,11 @@ Create a large task, verify decomposition suggestion.
 
 ### Steps
 
-| Step | Action | Expected Result | Human Verification |
-|------|--------|-----------------|-------------------|
-| 8.1 | Create large/complex task | Task created | [ ] Effort: epic |
-| 8.2 | Trigger analysis | Decomposition suggested | [ ] Suggestion message |
-| 8.3 | Accept decomposition | Subtasks created | [ ] Parent-child links |
+| Step | Action                    | Expected Result         | Human Verification     |
+| ---- | ------------------------- | ----------------------- | ---------------------- |
+| 8.1  | Create large/complex task | Task created            | [ ] Effort: epic       |
+| 8.2  | Trigger analysis          | Decomposition suggested | [ ] Suggestion message |
+| 8.3  | Accept decomposition      | Subtasks created        | [ ] Parent-child links |
 
 ### Expected Telegram Interaction
 
@@ -488,21 +493,21 @@ Test all Telegram commands.
 
 ### Commands to Test
 
-| Command | Expected Result | Verified |
-|---------|-----------------|----------|
-| `/start` | Welcome message, verify connection | [ ] |
-| `/status` | System status summary | [ ] |
-| `/lists` | Show active task lists | [ ] |
-| `/list <id>` | Show specific list details | [ ] |
-| `/suggest` | Get next suggestion | [ ] |
-| `/execute <id>` | Start execution | [ ] |
-| `/pause <id>` | Pause execution | [ ] |
-| `/resume <id>` | Resume execution | [ ] |
-| `/questions` | Show pending questions | [ ] |
-| `/answer <id> <ans>` | Submit answer | [ ] |
-| `/parallel` | Show parallel opportunities | [ ] |
-| `/duplicates` | Show potential duplicates | [ ] |
-| `/help` | Show all commands | [ ] |
+| Command              | Expected Result                    | Verified |
+| -------------------- | ---------------------------------- | -------- |
+| `/start`             | Welcome message, verify connection | [ ]      |
+| `/status`            | System status summary              | [ ]      |
+| `/lists`             | Show active task lists             | [ ]      |
+| `/list <id>`         | Show specific list details         | [ ]      |
+| `/suggest`           | Get next suggestion                | [ ]      |
+| `/execute <id>`      | Start execution                    | [ ]      |
+| `/pause <id>`        | Pause execution                    | [ ]      |
+| `/resume <id>`       | Resume execution                   | [ ]      |
+| `/questions`         | Show pending questions             | [ ]      |
+| `/answer <id> <ans>` | Submit answer                      | [ ]      |
+| `/parallel`          | Show parallel opportunities        | [ ]      |
+| `/duplicates`        | Show potential duplicates          | [ ]      |
+| `/help`              | Show all commands                  | [ ]      |
 
 ### Verification Checkpoints
 
@@ -524,12 +529,12 @@ Trigger and review daily summary.
 
 ### Steps
 
-| Step | Action | Expected Result | Human Verification |
-|------|--------|-----------------|-------------------|
-| 10.1 | Ensure varied task states | Mix of pending, completed, failed | [ ] Test data ready |
-| 10.2 | Trigger daily summary | Summary generated | [ ] Via API or cron |
-| 10.3 | Telegram: Receive summary | Full summary message | [ ] All sections present |
-| 10.4 | Verify accuracy | Counts match DB | [ ] Numbers correct |
+| Step | Action                    | Expected Result                   | Human Verification       |
+| ---- | ------------------------- | --------------------------------- | ------------------------ |
+| 10.1 | Ensure varied task states | Mix of pending, completed, failed | [ ] Test data ready      |
+| 10.2 | Trigger daily summary     | Summary generated                 | [ ] Via API or cron      |
+| 10.3 | Telegram: Receive summary | Full summary message              | [ ] All sections present |
+| 10.4 | Verify accuracy           | Counts match DB                   | [ ] Numbers correct      |
 
 ### Expected Telegram Interaction
 
@@ -566,18 +571,21 @@ Stale (no activity 7+ days):
 ## Test Execution Checklist
 
 ### Pre-Test
+
 - [ ] All prerequisites met
 - [ ] Test data seeded
 - [ ] Telegram bot verified
 - [ ] Database backed up
 
 ### During Test
+
 - [ ] Document all Telegram messages received
 - [ ] Screenshot key interactions
 - [ ] Note any unexpected behavior
 - [ ] Record timing for each flow
 
 ### Post-Test
+
 - [ ] All 10 flows completed
 - [ ] All checkpoints verified
 - [ ] Issues documented
@@ -614,6 +622,7 @@ Overall Result: [ ] PASS [ ] FAIL [ ] PARTIAL
 ## Success Criteria
 
 **Litmus Test Passes If:**
+
 - All P1 flows (1-6) complete successfully
 - At least 3 of 4 P2 flows (7-10) complete successfully
 - No critical bugs blocking core functionality

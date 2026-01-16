@@ -1,6 +1,12 @@
-import { Link } from 'react-router-dom';
-import { Activity, AlertTriangle, Clock, Pause, ChevronRight } from 'lucide-react';
-import type { AgentInfo, AgentStatus } from '../../types/agent.js';
+import { Link } from "react-router-dom";
+import {
+  Activity,
+  AlertTriangle,
+  Clock,
+  Pause,
+  ChevronRight,
+} from "lucide-react";
+import type { AgentInfo, AgentStatus } from "../../types/agent.js";
 
 interface AgentStatusCardProps {
   agent: AgentInfo;
@@ -10,10 +16,30 @@ const STATUS_CONFIG: Record<
   AgentStatus,
   { icon: typeof Activity; color: string; bg: string; label: string }
 > = {
-  idle: { icon: Pause, color: 'text-gray-500', bg: 'bg-gray-100', label: 'Idle' },
-  running: { icon: Activity, color: 'text-green-600', bg: 'bg-green-100', label: 'Running' },
-  error: { icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100', label: 'Error' },
-  waiting: { icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100', label: 'Waiting' },
+  idle: {
+    icon: Pause,
+    color: "text-gray-500",
+    bg: "bg-gray-100",
+    label: "Idle",
+  },
+  running: {
+    icon: Activity,
+    color: "text-green-600",
+    bg: "bg-green-100",
+    label: "Running",
+  },
+  error: {
+    icon: AlertTriangle,
+    color: "text-red-600",
+    bg: "bg-red-100",
+    label: "Error",
+  },
+  waiting: {
+    icon: Clock,
+    color: "text-amber-600",
+    bg: "bg-amber-100",
+    label: "Waiting",
+  },
 };
 
 function formatDuration(ms: number): string {
@@ -24,28 +50,39 @@ function formatDuration(ms: number): string {
 
 function formatTimeSinceHeartbeat(lastHeartbeat: string): string {
   const diff = Date.now() - new Date(lastHeartbeat).getTime();
-  if (diff < 60000) return 'Just now';
+  if (diff < 60000) return "Just now";
   if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
   return `${Math.floor(diff / 3600000)}h ago`;
 }
 
-export default function AgentStatusCard({ agent }: AgentStatusCardProps): JSX.Element {
+export default function AgentStatusCard({
+  agent,
+}: AgentStatusCardProps): JSX.Element {
   const config = STATUS_CONFIG[agent.status];
   const StatusIcon = config.icon;
 
   return (
-    <Link to={`/agents/${agent.id}`} className="card hover:shadow-md transition-shadow block cursor-pointer group">
+    <Link
+      to={`/agents/${agent.id}`}
+      className="card hover:shadow-md transition-shadow block cursor-pointer group"
+    >
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">{agent.name}</h3>
+            <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+              {agent.name}
+            </h3>
             <ChevronRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
           <p className="text-xs text-gray-500">{agent.type}</p>
         </div>
-        <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${config.bg}`}>
+        <div
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${config.bg}`}
+        >
           <StatusIcon className={`h-3.5 w-3.5 ${config.color}`} />
-          <span className={`text-xs font-medium ${config.color}`}>{config.label}</span>
+          <span className={`text-xs font-medium ${config.color}`}>
+            {config.label}
+          </span>
         </div>
       </div>
 
@@ -65,28 +102,36 @@ export default function AgentStatusCard({ agent }: AgentStatusCardProps): JSX.El
               )}
             </div>
           )}
-          <span className="text-gray-500">Current:</span>{' '}
+          <span className="text-gray-500">Current:</span>{" "}
           <span className="text-gray-700">{agent.currentTask}</span>
         </div>
       )}
 
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
-          <p className="text-lg font-bold text-green-600">{agent.metrics.tasksCompleted}</p>
+          <p className="text-lg font-bold text-green-600">
+            {agent.metrics.tasksCompleted}
+          </p>
           <p className="text-xs text-gray-500">Completed</p>
         </div>
         <div>
-          <p className="text-lg font-bold text-red-600">{agent.metrics.tasksFailed}</p>
+          <p className="text-lg font-bold text-red-600">
+            {agent.metrics.tasksFailed}
+          </p>
           <p className="text-xs text-gray-500">Failed</p>
         </div>
         <div>
-          <p className="text-lg font-bold text-gray-700">{formatDuration(agent.metrics.avgDuration)}</p>
+          <p className="text-lg font-bold text-gray-700">
+            {formatDuration(agent.metrics.avgDuration)}
+          </p>
           <p className="text-xs text-gray-500">Avg Time</p>
         </div>
       </div>
 
       <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-gray-400">
-        <span>Last heartbeat: {formatTimeSinceHeartbeat(agent.lastHeartbeat)}</span>
+        <span>
+          Last heartbeat: {formatTimeSinceHeartbeat(agent.lastHeartbeat)}
+        </span>
         <div className="flex items-center gap-2">
           {agent.currentTaskListName && (
             <Link
@@ -97,8 +142,8 @@ export default function AgentStatusCard({ agent }: AgentStatusCardProps): JSX.El
               View Tasks
             </Link>
           )}
-          <span className={agent.status === 'running' ? 'text-green-500' : ''}>
-            {agent.status === 'running' ? '● Active' : '○ Inactive'}
+          <span className={agent.status === "running" ? "text-green-500" : ""}>
+            {agent.status === "running" ? "● Active" : "○ Inactive"}
           </span>
         </div>
       </div>

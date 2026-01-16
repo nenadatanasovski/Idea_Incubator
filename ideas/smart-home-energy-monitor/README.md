@@ -13,10 +13,13 @@ summary: "An IoT device that monitors household energy consumption in real-time 
 # Smart Home Energy Monitor
 
 ## Problem
+
 Homeowners waste 20-30% of their electricity due to inefficient appliances and poor usage habits. The average US household spends $1,500/year on electricity with no visibility into what's consuming energy.
 
 ## Solution
+
 A smart plug-in device that clips onto the main electrical panel and uses machine learning to:
+
 - Identify individual appliances by their electrical signatures
 - Track real-time consumption per device
 - Predict monthly bills
@@ -24,10 +27,13 @@ A smart plug-in device that clips onto the main electrical panel and uses machin
 - Recommend optimal usage times based on utility rates
 
 ## Technology
+
 Built with ESP32 microcontroller, current transformer sensors, and TensorFlow Lite for on-device ML. Mobile app in React Native.
 
 ## Market
+
 The smart home energy market is projected to reach $15B by 2027. Competitors include Sense, Emporia, and Neurio. Our differentiation is the AI-powered recommendations and lower price point ($99 vs $300+).
 
 ## Target Users
+
 Environmentally conscious homeowners aged 30-55 who want to reduce energy bills and carbon footprint.

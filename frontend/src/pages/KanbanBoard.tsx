@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   Activity,
   Clock,
@@ -15,7 +15,7 @@ import {
   SkipForward,
   Upload,
   ArrowLeft,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface Task {
   id: string;
@@ -30,11 +30,11 @@ interface Task {
   completedAt?: string;
   error?: string;
   buildId?: string;
-  projectName?: string;  // The idea/project this task belongs to
-  sourcePath?: string;   // Full path to the task list file
+  projectName?: string; // The idea/project this task belongs to
+  sourcePath?: string; // Full path to the task list file
 }
 
-type TaskStatus = 'pending' | 'in_progress' | 'complete' | 'failed' | 'blocked';
+type TaskStatus = "pending" | "in_progress" | "complete" | "failed" | "blocked";
 
 interface KanbanColumn {
   id: TaskStatus;
@@ -75,64 +75,99 @@ interface ExecutorStatus {
 interface ParsedTask {
   id: string;
   description: string;
-  priority: 'P1' | 'P2' | 'P3' | 'P4';
-  status: 'pending' | 'in_progress' | 'complete';
+  priority: "P1" | "P2" | "P3" | "P4";
+  status: "pending" | "in_progress" | "complete";
   section: string;
 }
 
-const columnConfig: Record<TaskStatus, { bg: string; border: string; icon: typeof Activity; iconColor: string }> = {
-  pending: { bg: 'bg-gray-50', border: 'border-gray-200', icon: Clock, iconColor: 'text-gray-500' },
-  in_progress: { bg: 'bg-blue-50', border: 'border-blue-200', icon: Activity, iconColor: 'text-blue-500' },
-  complete: { bg: 'bg-green-50', border: 'border-green-200', icon: CheckCircle, iconColor: 'text-green-500' },
-  failed: { bg: 'bg-red-50', border: 'border-red-200', icon: XCircle, iconColor: 'text-red-500' },
-  blocked: { bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle, iconColor: 'text-amber-500' },
+const columnConfig: Record<
+  TaskStatus,
+  { bg: string; border: string; icon: typeof Activity; iconColor: string }
+> = {
+  pending: {
+    bg: "bg-gray-50",
+    border: "border-gray-200",
+    icon: Clock,
+    iconColor: "text-gray-500",
+  },
+  in_progress: {
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    icon: Activity,
+    iconColor: "text-blue-500",
+  },
+  complete: {
+    bg: "bg-green-50",
+    border: "border-green-200",
+    icon: CheckCircle,
+    iconColor: "text-green-500",
+  },
+  failed: {
+    bg: "bg-red-50",
+    border: "border-red-200",
+    icon: XCircle,
+    iconColor: "text-red-500",
+  },
+  blocked: {
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+    icon: AlertTriangle,
+    iconColor: "text-amber-500",
+  },
 };
 
 const phaseColors: Record<string, string> = {
-  database: 'bg-purple-100 text-purple-700',
-  types: 'bg-blue-100 text-blue-700',
-  api: 'bg-green-100 text-green-700',
-  ui: 'bg-pink-100 text-pink-700',
-  tests: 'bg-orange-100 text-orange-700',
-  unknown: 'bg-gray-100 text-gray-700',
+  database: "bg-purple-100 text-purple-700",
+  types: "bg-blue-100 text-blue-700",
+  api: "bg-green-100 text-green-700",
+  ui: "bg-pink-100 text-pink-700",
+  tests: "bg-orange-100 text-orange-700",
+  unknown: "bg-gray-100 text-gray-700",
 };
 
 export default function KanbanBoard(): JSX.Element {
   const [kanbanData, setKanbanData] = useState<KanbanData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [collapsedColumns, setCollapsedColumns] = useState<Set<TaskStatus>>(new Set());
+  const [collapsedColumns, setCollapsedColumns] = useState<Set<TaskStatus>>(
+    new Set(),
+  );
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   // Executor and task list state
   const [taskLists, setTaskLists] = useState<TaskListSummary[]>([]);
-  const [selectedListPath, setSelectedListPath] = useState<string>('');
-  const [executorStatus, setExecutorStatus] = useState<ExecutorStatus | null>(null);
-  const selectedListPathRef = useRef<string>('');
+  const [selectedListPath, setSelectedListPath] = useState<string>("");
+  const [executorStatus, setExecutorStatus] = useState<ExecutorStatus | null>(
+    null,
+  );
+  const selectedListPathRef = useRef<string>("");
 
   // Fetch task lists
   const fetchTaskLists = useCallback(async () => {
     try {
-      const res = await fetch('/api/task-lists');
+      const res = await fetch("/api/task-lists");
       if (res.ok) {
         const data = await res.json();
         setTaskLists(data);
       }
     } catch (err) {
-      console.error('Failed to fetch task lists:', err);
+      console.error("Failed to fetch task lists:", err);
     }
   }, []);
 
   // Fetch executor status
   const fetchExecutorStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/executor/status');
+      const res = await fetch("/api/executor/status");
       if (res.ok) {
         const data = await res.json();
         setExecutorStatus(data);
         // Always sync with executor's active task list for proper dashboard sync
-        if (data.taskListPath && data.taskListPath !== selectedListPathRef.current) {
+        if (
+          data.taskListPath &&
+          data.taskListPath !== selectedListPathRef.current
+        ) {
           setSelectedListPath(data.taskListPath);
           selectedListPathRef.current = data.taskListPath;
         }
@@ -146,9 +181,9 @@ export default function KanbanBoard(): JSX.Element {
   const loadIntoExecutor = async () => {
     if (!selectedListPath) return;
     try {
-      const res = await fetch('/api/executor/load', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/executor/load", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: selectedListPath }),
       });
       if (res.ok) {
@@ -156,56 +191,56 @@ export default function KanbanBoard(): JSX.Element {
         await fetchKanbanFromTaskList();
       }
     } catch (err) {
-      setError('Failed to load task list');
+      setError("Failed to load task list");
     }
   };
 
   // Start executor
   const startExecutor = async () => {
     try {
-      const res = await fetch('/api/executor/start', { method: 'POST' });
+      const res = await fetch("/api/executor/start", { method: "POST" });
       if (res.ok) await fetchExecutorStatus();
     } catch (err) {
-      setError('Failed to start executor');
+      setError("Failed to start executor");
     }
   };
 
   // Pause executor
   const pauseExecutor = async () => {
     try {
-      const res = await fetch('/api/executor/pause', { method: 'POST' });
+      const res = await fetch("/api/executor/pause", { method: "POST" });
       if (res.ok) await fetchExecutorStatus();
     } catch (err) {
-      setError('Failed to pause executor');
+      setError("Failed to pause executor");
     }
   };
 
   // Resume executor
   const resumeExecutor = async () => {
     try {
-      const res = await fetch('/api/executor/resume', { method: 'POST' });
+      const res = await fetch("/api/executor/resume", { method: "POST" });
       if (res.ok) await fetchExecutorStatus();
     } catch (err) {
-      setError('Failed to resume executor');
+      setError("Failed to resume executor");
     }
   };
 
   // Stop executor
   const stopExecutor = async () => {
     try {
-      const res = await fetch('/api/executor/stop', { method: 'POST' });
+      const res = await fetch("/api/executor/stop", { method: "POST" });
       if (res.ok) await fetchExecutorStatus();
     } catch (err) {
-      setError('Failed to stop executor');
+      setError("Failed to stop executor");
     }
   };
 
   // Execute one task
   const executeOneTask = async () => {
     try {
-      const res = await fetch('/api/executor/execute-one', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/executor/execute-one", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
       if (res.ok) {
@@ -213,7 +248,7 @@ export default function KanbanBoard(): JSX.Element {
         await fetchKanbanFromTaskList();
       }
     } catch (err) {
-      setError('Failed to execute task');
+      setError("Failed to execute task");
     }
   };
 
@@ -227,7 +262,9 @@ export default function KanbanBoard(): JSX.Element {
     }
 
     try {
-      const res = await fetch(`/api/task-lists/parse?path=${encodeURIComponent(path)}`);
+      const res = await fetch(
+        `/api/task-lists/parse?path=${encodeURIComponent(path)}`,
+      );
       if (!res.ok) {
         await fetchKanbanData();
         return;
@@ -238,38 +275,38 @@ export default function KanbanBoard(): JSX.Element {
       // Extract project name from path
       // Patterns: users/{user}/ideas/{idea}/... or docs/{folder}/... or just filename
       const extractProjectName = (filePath: string): string => {
-        const parts = filePath.split('/');
+        const parts = filePath.split("/");
         // Check for ideas folder pattern
-        const ideasIndex = parts.indexOf('ideas');
+        const ideasIndex = parts.indexOf("ideas");
         if (ideasIndex !== -1 && parts[ideasIndex + 1]) {
           return parts[ideasIndex + 1]; // Return the idea slug
         }
         // Check for docs folder pattern
-        const docsIndex = parts.indexOf('docs');
+        const docsIndex = parts.indexOf("docs");
         if (docsIndex !== -1 && parts[docsIndex + 1]) {
           return parts[docsIndex + 1]; // Return the docs subfolder
         }
         // Fall back to file name without extension
         const fileName = parts[parts.length - 1];
-        return fileName.replace(/\.(md|txt)$/i, '');
+        return fileName.replace(/\.(md|txt)$/i, "");
       };
 
       const projectName = extractProjectName(path);
 
       // Convert task list to kanban format
       const columns: KanbanColumn[] = [
-        { id: 'pending', title: 'Pending', tasks: [], count: 0 },
-        { id: 'in_progress', title: 'In Progress', tasks: [], count: 0 },
-        { id: 'complete', title: 'Complete', tasks: [], count: 0 },
-        { id: 'failed', title: 'Failed', tasks: [], count: 0 },
-        { id: 'blocked', title: 'Blocked', tasks: [], count: 0 },
+        { id: "pending", title: "Pending", tasks: [], count: 0 },
+        { id: "in_progress", title: "In Progress", tasks: [], count: 0 },
+        { id: "complete", title: "Complete", tasks: [], count: 0 },
+        { id: "failed", title: "Failed", tasks: [], count: 0 },
+        { id: "blocked", title: "Blocked", tasks: [], count: 0 },
       ];
 
       taskList.tasks.forEach((task: ParsedTask) => {
         const kanbanTask: Task = {
           id: task.id,
           taskId: task.id,
-          phase: task.section || 'unknown',
+          phase: task.section || "unknown",
           action: task.priority,
           file: task.description,
           status: task.status as TaskStatus,
@@ -279,7 +316,7 @@ export default function KanbanBoard(): JSX.Element {
           sourcePath: path,
         };
 
-        const column = columns.find(c => c.id === task.status);
+        const column = columns.find((c) => c.id === task.status);
         if (column) {
           column.tasks.push(kanbanTask);
           column.count++;
@@ -287,7 +324,7 @@ export default function KanbanBoard(): JSX.Element {
       });
 
       setKanbanData({
-        buildId: path.split('/').pop() || null,
+        buildId: path.split("/").pop() || null,
         columns,
         totalTasks: taskList.tasks.length,
       });
@@ -329,7 +366,12 @@ export default function KanbanBoard(): JSX.Element {
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [autoRefresh, selectedListPath, fetchExecutorStatus, fetchKanbanFromTaskList]);
+  }, [
+    autoRefresh,
+    selectedListPath,
+    fetchExecutorStatus,
+    fetchKanbanFromTaskList,
+  ]);
 
   // WebSocket for real-time updates with reconnection (WSK-004)
   useEffect(() => {
@@ -343,20 +385,25 @@ export default function KanbanBoard(): JSX.Element {
     const connect = () => {
       if (!mounted) return;
 
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsHost = window.location.hostname;
-      const wsPort = '3001';
-      ws = new WebSocket(`${wsProtocol}//${wsHost}:${wsPort}/ws?executor=tasks`);
+      const wsPort = "3001";
+      ws = new WebSocket(
+        `${wsProtocol}//${wsHost}:${wsPort}/ws?executor=tasks`,
+      );
 
       ws.onopen = () => {
-        console.log('[KanbanBoard] WebSocket connected');
+        console.log("[KanbanBoard] WebSocket connected");
         reconnectAttempts = 0;
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type?.startsWith('task:') || data.type?.startsWith('executor:')) {
+          if (
+            data.type?.startsWith("task:") ||
+            data.type?.startsWith("executor:")
+          ) {
             fetchExecutorStatus();
             if (selectedListPathRef.current) {
               fetchKanbanFromTaskList();
@@ -364,30 +411,35 @@ export default function KanbanBoard(): JSX.Element {
               fetchKanbanData();
             }
           }
-          if (data.type === 'tasklist:loaded') {
+          if (data.type === "tasklist:loaded") {
             fetchTaskLists();
           }
         } catch (err) {
-          console.error('WebSocket parse error:', err);
+          console.error("WebSocket parse error:", err);
         }
       };
 
       ws.onerror = (error) => {
-        console.error('[KanbanBoard] WebSocket error:', error);
+        console.error("[KanbanBoard] WebSocket error:", error);
       };
 
       ws.onclose = () => {
         if (!mounted) return;
 
         if (reconnectAttempts < maxReconnectAttempts) {
-          const delay = Math.min(baseDelay * Math.pow(2, reconnectAttempts), 30000);
-          console.log(`[KanbanBoard] WebSocket closed, reconnecting in ${delay}ms...`);
+          const delay = Math.min(
+            baseDelay * Math.pow(2, reconnectAttempts),
+            30000,
+          );
+          console.log(
+            `[KanbanBoard] WebSocket closed, reconnecting in ${delay}ms...`,
+          );
           reconnectTimeout = setTimeout(() => {
             reconnectAttempts++;
             connect();
           }, delay);
         } else {
-          console.error('[KanbanBoard] Max reconnection attempts reached');
+          console.error("[KanbanBoard] Max reconnection attempts reached");
         }
       };
     };
@@ -405,15 +457,15 @@ export default function KanbanBoard(): JSX.Element {
 
   async function fetchKanbanData(): Promise<void> {
     try {
-      const response = await fetch('/api/tasks/kanban');
+      const response = await fetch("/api/tasks/kanban");
       if (!response.ok) {
-        throw new Error('Failed to fetch kanban data');
+        throw new Error("Failed to fetch kanban data");
       }
       const data = await response.json();
       setKanbanData(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
@@ -442,7 +494,10 @@ export default function KanbanBoard(): JSX.Element {
   if (error) {
     return (
       <div className="space-y-4">
-        <Link to="/agents" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+        <Link
+          to="/agents"
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+        >
           <ArrowLeft className="h-4 w-4" />
           Back to Agents
         </Link>
@@ -457,10 +512,15 @@ export default function KanbanBoard(): JSX.Element {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Task Kanban Board</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Task Kanban Board
+          </h1>
           <p className="mt-1 text-sm text-gray-500">
-            {kanbanData?.buildId ? `Build: ${kanbanData.buildId}` : 'No active build'}
-            {kanbanData?.totalTasks !== undefined && ` - ${kanbanData.totalTasks} total tasks`}
+            {kanbanData?.buildId
+              ? `Build: ${kanbanData.buildId}`
+              : "No active build"}
+            {kanbanData?.totalTasks !== undefined &&
+              ` - ${kanbanData.totalTasks} total tasks`}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -473,14 +533,25 @@ export default function KanbanBoard(): JSX.Element {
             />
             Auto-refresh
           </label>
-          <button onClick={() => selectedListPath ? fetchKanbanFromTaskList() : fetchKanbanData()} className="btn btn-secondary flex items-center gap-2">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <button
+            onClick={() =>
+              selectedListPath ? fetchKanbanFromTaskList() : fetchKanbanData()
+            }
+            className="btn btn-secondary flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </button>
-          <Link to="/tasks" className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+          <Link
+            to="/tasks"
+            className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
             Task Lists
           </Link>
-          <Link to="/agents" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <Link
+            to="/agents"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
             Agent Dashboard
           </Link>
         </div>
@@ -492,7 +563,9 @@ export default function KanbanBoard(): JSX.Element {
           <div className="flex items-center gap-4">
             {/* Task List Selector */}
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">Task List:</label>
+              <label className="text-sm font-medium text-gray-700">
+                Task List:
+              </label>
               <select
                 value={selectedListPath}
                 onChange={(e) => {
@@ -505,7 +578,7 @@ export default function KanbanBoard(): JSX.Element {
                 className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm min-w-[200px]"
               >
                 <option value="">Select a task list...</option>
-                {taskLists.map(list => (
+                {taskLists.map((list) => (
                   <option key={list.filePath} value={list.filePath}>
                     {list.title} ({list.pending} pending)
                   </option>
@@ -516,10 +589,14 @@ export default function KanbanBoard(): JSX.Element {
             {/* Executor Status */}
             <div className="flex items-center gap-2">
               {executorStatus?.running ? (
-                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                  executorStatus.paused ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                }`}>
-                  {executorStatus.paused ? 'Paused' : 'Running'}
+                <span
+                  className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                    executorStatus.paused
+                      ? "bg-yellow-100 text-yellow-800"
+                      : "bg-green-100 text-green-800"
+                  }`}
+                >
+                  {executorStatus.paused ? "Paused" : "Running"}
                 </span>
               ) : (
                 <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
@@ -528,8 +605,10 @@ export default function KanbanBoard(): JSX.Element {
               )}
               {executorStatus?.taskListPath && (
                 <span className="text-xs text-gray-500">
-                  {executorStatus.completedTasks}/{executorStatus.totalTasks} done
-                  {executorStatus.failedTasks > 0 && `, ${executorStatus.failedTasks} failed`}
+                  {executorStatus.completedTasks}/{executorStatus.totalTasks}{" "}
+                  done
+                  {executorStatus.failedTasks > 0 &&
+                    `, ${executorStatus.failedTasks} failed`}
                 </span>
               )}
             </div>
@@ -600,9 +679,9 @@ export default function KanbanBoard(): JSX.Element {
         {executorStatus?.currentTask && (
           <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-blue-700">
-              <span className="font-medium">Current Task:</span>{' '}
-              <span className="font-mono">{executorStatus.currentTask.id}</span> -{' '}
-              {executorStatus.currentTask.description}
+              <span className="font-medium">Current Task:</span>{" "}
+              <span className="font-mono">{executorStatus.currentTask.id}</span>{" "}
+              - {executorStatus.currentTask.description}
             </p>
           </div>
         )}
@@ -625,7 +704,9 @@ export default function KanbanBoard(): JSX.Element {
               >
                 <div className="flex items-center gap-2">
                   <Icon className={`h-5 w-5 ${config.iconColor}`} />
-                  <span className="font-semibold text-gray-900">{column.title}</span>
+                  <span className="font-semibold text-gray-900">
+                    {column.title}
+                  </span>
                   <span className="px-2 py-0.5 text-xs font-medium bg-white rounded-full text-gray-600">
                     {column.count}
                   </span>
@@ -640,7 +721,9 @@ export default function KanbanBoard(): JSX.Element {
               {!isCollapsed && (
                 <div className="p-2 space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto">
                   {column.tasks.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-gray-500">No tasks</div>
+                    <div className="p-4 text-center text-sm text-gray-500">
+                      No tasks
+                    </div>
                   ) : (
                     column.tasks.map((task) => (
                       <TaskCard
@@ -658,7 +741,10 @@ export default function KanbanBoard(): JSX.Element {
       </div>
 
       {selectedTask && (
-        <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
+        <TaskDetailModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+        />
       )}
     </div>
   );
@@ -686,16 +772,23 @@ function TaskCard({ task, onClick }: TaskCardProps): JSX.Element {
         </div>
       )}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <span className={`px-2 py-0.5 text-xs font-medium rounded ${phaseColor}`}>
+        <span
+          className={`px-2 py-0.5 text-xs font-medium rounded ${phaseColor}`}
+        >
           {task.phase}
         </span>
         <span className="text-xs text-gray-400">{task.action}</span>
       </div>
-      <p className="text-sm font-medium text-gray-900 truncate" title={task.file}>
-        {task.file.split('/').pop() || task.file}
+      <p
+        className="text-sm font-medium text-gray-900 truncate"
+        title={task.file}
+      >
+        {task.file.split("/").pop() || task.file}
       </p>
       {task.description && (
-        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description}</p>
+        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+          {task.description}
+        </p>
       )}
       {task.startedAt && (
         <p className="text-xs text-gray-400 mt-2">
@@ -703,7 +796,10 @@ function TaskCard({ task, onClick }: TaskCardProps): JSX.Element {
         </p>
       )}
       {task.error && (
-        <div className="mt-2 p-1.5 bg-red-50 rounded text-xs text-red-600 truncate" title={task.error}>
+        <div
+          className="mt-2 p-1.5 bg-red-50 rounded text-xs text-red-600 truncate"
+          title={task.error}
+        >
           {task.error}
         </div>
       )}
@@ -728,25 +824,36 @@ function TaskDetailModal({ task, onClose }: TaskDetailModalProps): JSX.Element {
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className={`px-2 py-0.5 text-xs font-medium rounded ${phaseColor}`}>
+                <span
+                  className={`px-2 py-0.5 text-xs font-medium rounded ${phaseColor}`}
+                >
                   {task.phase}
                 </span>
-                <span className={`px-2 py-0.5 text-xs font-medium rounded flex items-center gap-1 ${statusConfig.bg} ${statusConfig.iconColor}`}>
+                <span
+                  className={`px-2 py-0.5 text-xs font-medium rounded flex items-center gap-1 ${statusConfig.bg} ${statusConfig.iconColor}`}
+                >
                   <StatusIcon className="h-3 w-3" />
                   {task.status}
                 </span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">{task.file}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {task.file}
+              </h3>
               <p className="text-sm text-gray-500 mt-1">{task.action}</p>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-xl"
+            >
               &times;
             </button>
           </div>
 
           {task.description && (
             <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-1">Description</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-1">
+                Description
+              </h4>
               <p className="text-sm text-gray-600">{task.description}</p>
             </div>
           )}
@@ -765,7 +872,10 @@ function TaskDetailModal({ task, onClose }: TaskDetailModalProps): JSX.Element {
             {task.sourcePath && (
               <div className="col-span-2">
                 <span className="text-gray-500">Source File:</span>
-                <p className="font-mono text-xs text-gray-600 truncate" title={task.sourcePath}>
+                <p
+                  className="font-mono text-xs text-gray-600 truncate"
+                  title={task.sourcePath}
+                >
                   {task.sourcePath}
                 </p>
               </div>
@@ -773,13 +883,17 @@ function TaskDetailModal({ task, onClose }: TaskDetailModalProps): JSX.Element {
             {task.startedAt && (
               <div>
                 <span className="text-gray-500">Started:</span>
-                <p className="font-medium">{new Date(task.startedAt).toLocaleString()}</p>
+                <p className="font-medium">
+                  {new Date(task.startedAt).toLocaleString()}
+                </p>
               </div>
             )}
             {task.completedAt && (
               <div>
                 <span className="text-gray-500">Completed:</span>
-                <p className="font-medium">{new Date(task.completedAt).toLocaleString()}</p>
+                <p className="font-medium">
+                  {new Date(task.completedAt).toLocaleString()}
+                </p>
               </div>
             )}
             {task.buildId && (
@@ -793,7 +907,9 @@ function TaskDetailModal({ task, onClose }: TaskDetailModalProps): JSX.Element {
           {task.error && (
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
               <h4 className="text-sm font-medium text-red-800 mb-1">Error</h4>
-              <p className="text-sm text-red-700 font-mono whitespace-pre-wrap">{task.error}</p>
+              <p className="text-sm text-red-700 font-mono whitespace-pre-wrap">
+                {task.error}
+              </p>
             </div>
           )}
 

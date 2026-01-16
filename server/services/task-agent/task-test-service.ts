@@ -5,9 +5,9 @@
  * Part of: Task System V2 Implementation Plan (IMPL-3.10)
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { spawn } from 'child_process';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { spawn } from "child_process";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   TaskTestResult,
   TaskTestConfig,
@@ -18,7 +18,7 @@ import {
   TaskTestResultRow,
   mapTaskTestResultRow,
   AcceptanceCriteriaResult,
-} from '../../../types/task-test.js';
+} from "../../../types/task-test.js";
 
 /**
  * Task Test Service class
@@ -29,7 +29,10 @@ export class TaskTestService {
   /**
    * Set test configuration for a task
    */
-  async setTestConfig(taskId: string, configs: TaskTestConfig[]): Promise<void> {
+  async setTestConfig(
+    taskId: string,
+    configs: TaskTestConfig[],
+  ): Promise<void> {
     this.testConfigs.set(taskId, configs);
   }
 
@@ -56,7 +59,7 @@ export class TaskTestService {
    */
   async runValidation(input: RunValidationInput): Promise<ValidationResult> {
     const levels = input.levels || [1, 2, 3];
-    const results: ValidationResult['levels'] = [];
+    const results: ValidationResult["levels"] = [];
     let totalDuration = 0;
     let overallPassed = true;
 
@@ -101,15 +104,16 @@ export class TaskTestService {
   async runLevel(
     taskId: string,
     level: TestLevel,
-    context?: { executionId?: string; agentId?: string }
+    context?: { executionId?: string; agentId?: string },
   ): Promise<TaskTestResult> {
     const configs = await this.getTestConfig(taskId);
-    const config = configs.find(c => c.level === level) || DEFAULT_TEST_CONFIGS[level];
+    const config =
+      configs.find((c) => c.level === level) || DEFAULT_TEST_CONFIGS[level];
 
     const startTime = Date.now();
     let exitCode: number;
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
 
     try {
       const result = await this.executeCommand(config.command, config.timeout);
@@ -118,7 +122,7 @@ export class TaskTestService {
       stderr = result.stderr;
     } catch (error) {
       exitCode = -1;
-      stderr = error instanceof Error ? error.message : 'Unknown error';
+      stderr = error instanceof Error ? error.message : "Unknown error";
     }
 
     const durationMs = Date.now() - startTime;
@@ -147,8 +151,8 @@ export class TaskTestService {
    */
   async getResults(taskId: string): Promise<TaskTestResult[]> {
     const rows = await query<TaskTestResultRow>(
-      'SELECT * FROM task_test_results WHERE task_id = ? ORDER BY created_at DESC',
-      [taskId]
+      "SELECT * FROM task_test_results WHERE task_id = ? ORDER BY created_at DESC",
+      [taskId],
     );
     return rows.map(mapTaskTestResultRow);
   }
@@ -170,7 +174,7 @@ export class TaskTestService {
       byLevel.set(result.testLevel, existing);
     }
 
-    const levels: ValidationResult['levels'] = [];
+    const levels: ValidationResult["levels"] = [];
     let overallPassed = true;
     let totalDuration = 0;
 
@@ -200,8 +204,8 @@ export class TaskTestService {
    */
   async getResultsByExecution(executionId: string): Promise<TaskTestResult[]> {
     const rows = await query<TaskTestResultRow>(
-      'SELECT * FROM task_test_results WHERE execution_id = ? ORDER BY created_at',
-      [executionId]
+      "SELECT * FROM task_test_results WHERE execution_id = ? ORDER BY created_at",
+      [executionId],
     );
     return rows.map(mapTaskTestResultRow);
   }
@@ -209,19 +213,21 @@ export class TaskTestService {
   /**
    * Check acceptance criteria for a task
    */
-  async checkAcceptanceCriteria(taskId: string): Promise<AcceptanceCriteriaResult> {
+  async checkAcceptanceCriteria(
+    taskId: string,
+  ): Promise<AcceptanceCriteriaResult> {
     // Get acceptance criteria appendix if exists
     const appendix = await getOne<{ content: string }>(
       `SELECT content FROM task_appendices
        WHERE task_id = ? AND appendix_type = 'acceptance_criteria' AND content_type = 'inline'`,
-      [taskId]
+      [taskId],
     );
 
     const criteria: { id: string; text: string; met: boolean }[] = [];
 
     if (appendix && appendix.content) {
       // Parse acceptance criteria (assuming one per line)
-      const lines = appendix.content.split('\n').filter(l => l.trim());
+      const lines = appendix.content.split("\n").filter((l) => l.trim());
       for (const line of lines) {
         criteria.push({
           id: uuidv4(),
@@ -238,15 +244,15 @@ export class TaskTestService {
     if (criteria.length === 0) {
       // If no explicit criteria, use test results
       criteria.push({
-        id: 'tests',
-        text: 'All tests pass',
+        id: "tests",
+        text: "All tests pass",
         met: testsPass,
       });
     }
 
     return {
       taskId,
-      passed: testsPass && criteria.every(c => c.met),
+      passed: testsPass && criteria.every((c) => c.met),
       criteria,
       checkedAt: new Date().toISOString(),
     };
@@ -257,14 +263,14 @@ export class TaskTestService {
    */
   private executeCommand(
     command: string,
-    timeout: number
+    timeout: number,
   ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
     return new Promise((resolve, reject) => {
-      let stdout = '';
-      let stderr = '';
+      let stdout = "";
+      let stderr = "";
       let timedOut = false;
 
-      const [cmd, ...args] = command.split(' ');
+      const [cmd, ...args] = command.split(" ");
       const proc = spawn(cmd, args, {
         shell: true,
         cwd: process.cwd(),
@@ -272,18 +278,18 @@ export class TaskTestService {
 
       const timer = setTimeout(() => {
         timedOut = true;
-        proc.kill('SIGKILL');
+        proc.kill("SIGKILL");
       }, timeout);
 
-      proc.stdout.on('data', (data) => {
+      proc.stdout.on("data", (data) => {
         stdout += data.toString();
       });
 
-      proc.stderr.on('data', (data) => {
+      proc.stderr.on("data", (data) => {
         stderr += data.toString();
       });
 
-      proc.on('close', (code) => {
+      proc.on("close", (code) => {
         clearTimeout(timer);
         if (timedOut) {
           reject(new Error(`Command timed out after ${timeout}ms`));
@@ -296,7 +302,7 @@ export class TaskTestService {
         }
       });
 
-      proc.on('error', (error) => {
+      proc.on("error", (error) => {
         clearTimeout(timer);
         reject(error);
       });
@@ -306,7 +312,9 @@ export class TaskTestService {
   /**
    * Save test result to database
    */
-  private async saveResult(result: Omit<TaskTestResult, 'id' | 'createdAt'>): Promise<TaskTestResult> {
+  private async saveResult(
+    result: Omit<TaskTestResult, "id" | "createdAt">,
+  ): Promise<TaskTestResult> {
     const id = uuidv4();
     const now = new Date().toISOString();
 
@@ -327,7 +335,7 @@ export class TaskTestService {
         result.executionId || null,
         result.agentId || null,
         now,
-      ]
+      ],
     );
 
     await saveDb();

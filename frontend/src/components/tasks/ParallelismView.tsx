@@ -13,7 +13,7 @@
  * Part of: PTE-091 to PTE-095
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Layers,
   Activity,
@@ -29,7 +29,7 @@ import {
   Heart,
   AlertTriangle,
   Loader2,
-} from 'lucide-react';
+} from "lucide-react";
 import type {
   TaskListParallelism,
   ExecutionWave,
@@ -37,7 +37,7 @@ import type {
   TaskIdentity,
   waveStatusConfig,
   agentStatusConfig,
-} from '../../types/task-agent';
+} from "../../types/task-agent";
 
 interface ParallelismViewProps {
   /** Task list ID to show parallelism for */
@@ -55,19 +55,34 @@ interface ParallelismViewProps {
 }
 
 // Status configurations
-const WAVE_STATUS_CONFIG: Record<string, { bg: string; text: string; border: string }> = {
-  pending: { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-200' },
-  executing: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' },
-  completed: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
-  failed: { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300' },
+const WAVE_STATUS_CONFIG: Record<
+  string,
+  { bg: string; text: string; border: string }
+> = {
+  pending: {
+    bg: "bg-gray-100",
+    text: "text-gray-600",
+    border: "border-gray-200",
+  },
+  executing: {
+    bg: "bg-blue-100",
+    text: "text-blue-700",
+    border: "border-blue-300",
+  },
+  completed: {
+    bg: "bg-green-100",
+    text: "text-green-700",
+    border: "border-green-300",
+  },
+  failed: { bg: "bg-red-100", text: "text-red-700", border: "border-red-300" },
 };
 
 const AGENT_STATUS_CONFIG: Record<string, { color: string; pulse: boolean }> = {
-  spawning: { color: 'text-yellow-500', pulse: true },
-  running: { color: 'text-green-500', pulse: true },
-  completed: { color: 'text-blue-500', pulse: false },
-  failed: { color: 'text-red-500', pulse: false },
-  terminated: { color: 'text-gray-400', pulse: false },
+  spawning: { color: "text-yellow-500", pulse: true },
+  running: { color: "text-green-500", pulse: true },
+  completed: { color: "text-blue-500", pulse: false },
+  failed: { color: "text-red-500", pulse: false },
+  terminated: { color: "text-gray-400", pulse: false },
 };
 
 export default function ParallelismView({
@@ -78,7 +93,9 @@ export default function ParallelismView({
   onStartExecution,
   onPauseExecution,
 }: ParallelismViewProps): JSX.Element {
-  const [parallelism, setParallelism] = useState<TaskListParallelism | null>(null);
+  const [parallelism, setParallelism] = useState<TaskListParallelism | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedWave, setSelectedWave] = useState<ExecutionWave | null>(null);
@@ -87,15 +104,17 @@ export default function ParallelismView({
   // Fetch parallelism data
   const fetchParallelism = useCallback(async () => {
     try {
-      const response = await fetch(`/api/task-agent/task-lists/${taskListId}/parallelism`);
+      const response = await fetch(
+        `/api/task-agent/task-lists/${taskListId}/parallelism`,
+      );
       if (!response.ok) {
-        throw new Error('Failed to fetch parallelism data');
+        throw new Error("Failed to fetch parallelism data");
       }
       const data: TaskListParallelism = await response.json();
       setParallelism(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
+      setError(err instanceof Error ? err.message : "Failed to load");
     } finally {
       setLoading(false);
     }
@@ -122,7 +141,7 @@ export default function ParallelismView({
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
-        console.log('[ParallelismView] WebSocket connected');
+        console.log("[ParallelismView] WebSocket connected");
         reconnectAttempts = 0;
       };
 
@@ -130,14 +149,14 @@ export default function ParallelismView({
         try {
           const data = JSON.parse(event.data);
           if (
-            data.type?.startsWith('wave:') ||
-            data.type?.startsWith('agent:') ||
-            data.type?.startsWith('task:')
+            data.type?.startsWith("wave:") ||
+            data.type?.startsWith("agent:") ||
+            data.type?.startsWith("task:")
           ) {
             fetchParallelism();
           }
         } catch (err) {
-          console.error('WebSocket parse error:', err);
+          console.error("WebSocket parse error:", err);
         }
       };
 
@@ -163,7 +182,10 @@ export default function ParallelismView({
   const calculateProgress = () => {
     if (!parallelism) return { completed: 0, total: 0, percentage: 0 };
 
-    const completed = parallelism.waves.reduce((sum, w) => sum + w.completedCount, 0);
+    const completed = parallelism.waves.reduce(
+      (sum, w) => sum + w.completedCount,
+      0,
+    );
     const total = parallelism.totalTasks;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
@@ -222,7 +244,7 @@ export default function ParallelismView({
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             title="Refresh"
           >
-            <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
           </button>
           {onStartExecution && (
             <button
@@ -276,9 +298,12 @@ export default function ParallelismView({
       {/* Overall Progress */}
       <div className="bg-white rounded-lg border p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">Overall Progress</span>
+          <span className="text-sm font-medium text-gray-700">
+            Overall Progress
+          </span>
           <span className="text-sm text-gray-500">
-            {progress.completed} / {progress.total} tasks ({progress.percentage}%)
+            {progress.completed} / {progress.total} tasks ({progress.percentage}
+            %)
           </span>
         </div>
         <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -297,8 +322,12 @@ export default function ParallelismView({
             key={wave.id}
             wave={wave}
             isSelected={selectedWave?.id === wave.id}
-            onClick={() => setSelectedWave(selectedWave?.id === wave.id ? null : wave)}
-            agents={parallelism.activeAgents.filter((a) => a.waveId === wave.id)}
+            onClick={() =>
+              setSelectedWave(selectedWave?.id === wave.id ? null : wave)
+            }
+            agents={parallelism.activeAgents.filter(
+              (a) => a.waveId === wave.id,
+            )}
           />
         ))}
       </div>
@@ -329,7 +358,12 @@ interface SummaryCardProps {
   bg: string;
 }
 
-function SummaryCard({ icon, label, value, bg }: SummaryCardProps): JSX.Element {
+function SummaryCard({
+  icon,
+  label,
+  value,
+  bg,
+}: SummaryCardProps): JSX.Element {
   return (
     <div className={`${bg} rounded-lg p-4`}>
       <div className="flex items-center gap-3">
@@ -351,45 +385,53 @@ interface WaveCardProps {
   agents: BuildAgentInstance[];
 }
 
-function WaveCard({ wave, isSelected, onClick, agents }: WaveCardProps): JSX.Element {
+function WaveCard({
+  wave,
+  isSelected,
+  onClick,
+  agents,
+}: WaveCardProps): JSX.Element {
   const config = WAVE_STATUS_CONFIG[wave.status] || WAVE_STATUS_CONFIG.pending;
   const progressPercentage =
-    wave.taskCount > 0 ? Math.round((wave.completedCount / wave.taskCount) * 100) : 0;
+    wave.taskCount > 0
+      ? Math.round((wave.completedCount / wave.taskCount) * 100)
+      : 0;
 
   return (
     <div
       className={`rounded-lg border transition-all ${config.border} ${
-        isSelected ? 'ring-2 ring-primary-200 shadow-md' : 'hover:shadow'
+        isSelected ? "ring-2 ring-primary-200 shadow-md" : "hover:shadow"
       }`}
     >
-      <button
-        onClick={onClick}
-        className={`w-full p-4 text-left ${config.bg}`}
-      >
+      <button onClick={onClick} className={`w-full p-4 text-left ${config.bg}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${config.bg}`}>
-              {wave.status === 'executing' ? (
+              {wave.status === "executing" ? (
                 <Activity className={`h-5 w-5 ${config.text} animate-pulse`} />
-              ) : wave.status === 'completed' ? (
+              ) : wave.status === "completed" ? (
                 <CheckCircle className={`h-5 w-5 ${config.text}`} />
-              ) : wave.status === 'failed' ? (
+              ) : wave.status === "failed" ? (
                 <XCircle className={`h-5 w-5 ${config.text}`} />
               ) : (
                 <Clock className={`h-5 w-5 ${config.text}`} />
               )}
             </div>
             <div>
-              <h4 className="font-semibold text-gray-900">Wave {wave.waveNumber}</h4>
+              <h4 className="font-semibold text-gray-900">
+                Wave {wave.waveNumber}
+              </h4>
               <p className="text-sm text-gray-500">
-                {wave.taskCount} task{wave.taskCount !== 1 ? 's' : ''} •{' '}
-                {agents.length} agent{agents.length !== 1 ? 's' : ''}
+                {wave.taskCount} task{wave.taskCount !== 1 ? "s" : ""} •{" "}
+                {agents.length} agent{agents.length !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <span className={`px-2 py-1 rounded text-xs font-medium ${config.bg} ${config.text}`}>
+              <span
+                className={`px-2 py-1 rounded text-xs font-medium ${config.bg} ${config.text}`}
+              >
                 {wave.status}
               </span>
               <p className="text-xs text-gray-500 mt-1">
@@ -398,7 +440,7 @@ function WaveCard({ wave, isSelected, onClick, agents }: WaveCardProps): JSX.Ele
             </div>
             <ChevronRight
               className={`h-5 w-5 text-gray-400 transition-transform ${
-                isSelected ? 'rotate-90' : ''
+                isSelected ? "rotate-90" : ""
               }`}
             />
           </div>
@@ -408,11 +450,11 @@ function WaveCard({ wave, isSelected, onClick, agents }: WaveCardProps): JSX.Ele
         <div className="mt-3 h-2 bg-white/50 rounded-full overflow-hidden">
           <div
             className={`h-full transition-all duration-500 ${
-              wave.status === 'failed'
-                ? 'bg-red-500'
-                : wave.status === 'completed'
-                ? 'bg-green-500'
-                : 'bg-blue-500'
+              wave.status === "failed"
+                ? "bg-red-500"
+                : wave.status === "completed"
+                  ? "bg-green-500"
+                  : "bg-blue-500"
             }`}
             style={{ width: `${progressPercentage}%` }}
           />
@@ -423,7 +465,9 @@ function WaveCard({ wave, isSelected, onClick, agents }: WaveCardProps): JSX.Ele
       {isSelected && (
         <div className="px-4 pb-4 border-t border-gray-200 bg-white">
           <div className="pt-3 space-y-2">
-            <h5 className="text-xs font-medium text-gray-500 uppercase">Tasks in Wave</h5>
+            <h5 className="text-xs font-medium text-gray-500 uppercase">
+              Tasks in Wave
+            </h5>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
               {wave.tasks.map((task) => (
                 <TaskChip key={task.id} task={task} />
@@ -455,7 +499,8 @@ interface AgentCardProps {
 }
 
 function AgentCard({ agent }: AgentCardProps): JSX.Element {
-  const config = AGENT_STATUS_CONFIG[agent.status] || AGENT_STATUS_CONFIG.spawning;
+  const config =
+    AGENT_STATUS_CONFIG[agent.status] || AGENT_STATUS_CONFIG.spawning;
 
   // Calculate time since last heartbeat
   const heartbeatAge = agent.lastHeartbeat
@@ -477,11 +522,11 @@ function AgentCard({ agent }: AgentCardProps): JSX.Element {
         </div>
         <span
           className={`px-2 py-0.5 text-xs rounded ${
-            agent.status === 'running'
-              ? 'bg-green-100 text-green-700'
-              : agent.status === 'failed'
-              ? 'bg-red-100 text-red-700'
-              : 'bg-gray-100 text-gray-600'
+            agent.status === "running"
+              ? "bg-green-100 text-green-700"
+              : agent.status === "failed"
+                ? "bg-red-100 text-red-700"
+                : "bg-gray-100 text-gray-600"
           }`}
         >
           {agent.status}
@@ -497,20 +542,18 @@ function AgentCard({ agent }: AgentCardProps): JSX.Element {
           <div className="flex items-center gap-1 text-xs">
             <Heart
               className={`h-3 w-3 ${
-                isHealthy ? 'text-green-500' : 'text-red-500'
-              } ${config.pulse ? 'animate-pulse' : ''}`}
+                isHealthy ? "text-green-500" : "text-red-500"
+              } ${config.pulse ? "animate-pulse" : ""}`}
             />
-            <span className={isHealthy ? 'text-green-600' : 'text-red-600'}>
+            <span className={isHealthy ? "text-green-600" : "text-red-600"}>
               {heartbeatAge !== null
                 ? heartbeatAge < 60
                   ? `${heartbeatAge}s ago`
                   : `${Math.floor(heartbeatAge / 60)}m ago`
-                : 'No heartbeat'}
+                : "No heartbeat"}
             </span>
           </div>
-          {!isHealthy && (
-            <AlertTriangle className="h-3 w-3 text-amber-500" />
-          )}
+          {!isHealthy && <AlertTriangle className="h-3 w-3 text-amber-500" />}
         </div>
       </div>
 

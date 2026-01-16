@@ -63,34 +63,35 @@ generated: 2026-01-11
 
 ### Component Responsibilities
 
-| Component | Responsibility |
-|-----------|---------------|
-| Task Loader | Parse tasks.md, order by dependencies |
-| Context Primer | Load CLAUDE.md, related files, task gotchas |
-| Task Executor | Orchestrate task execution loop |
-| Code Generator | Call Claude API to generate code |
-| File Writer | Safe file operations with backup |
-| Validator | Run validation commands |
-| Checkpoint Manager | Save/restore execution state |
-| Retry Handler | Exponential backoff on failures |
-| Git Integration | Commit after successful tasks |
-| Comm Hub Link | Ask questions when blocked |
+| Component          | Responsibility                              |
+| ------------------ | ------------------------------------------- |
+| Task Loader        | Parse tasks.md, order by dependencies       |
+| Context Primer     | Load CLAUDE.md, related files, task gotchas |
+| Task Executor      | Orchestrate task execution loop             |
+| Code Generator     | Call Claude API to generate code            |
+| File Writer        | Safe file operations with backup            |
+| Validator          | Run validation commands                     |
+| Checkpoint Manager | Save/restore execution state                |
+| Retry Handler      | Exponential backoff on failures             |
+| Git Integration    | Commit after successful tasks               |
+| Comm Hub Link      | Ask questions when blocked                  |
 
 ## API Design
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /api/builds | GET | List all builds |
-| /api/builds | POST | Start new build from spec |
-| /api/builds/:id | GET | Get build status |
-| /api/builds/:id/tasks | GET | Get task execution history |
-| /api/builds/:id/resume | POST | Resume from checkpoint |
-| /api/builds/:id/cancel | POST | Cancel running build |
-| /api/builds/:id/retry/:taskId | POST | Retry failed task |
+| Endpoint                      | Method | Description                |
+| ----------------------------- | ------ | -------------------------- |
+| /api/builds                   | GET    | List all builds            |
+| /api/builds                   | POST   | Start new build from spec  |
+| /api/builds/:id               | GET    | Get build status           |
+| /api/builds/:id/tasks         | GET    | Get task execution history |
+| /api/builds/:id/resume        | POST   | Resume from checkpoint     |
+| /api/builds/:id/cancel        | POST   | Cancel running build       |
+| /api/builds/:id/retry/:taskId | POST   | Retry failed task          |
 
 ### Request/Response Examples
 
 **POST /api/builds**
+
 ```json
 {
   "specPath": "ideas/vibe/feature/build/tasks.md",
@@ -102,6 +103,7 @@ generated: 2026-01-11
 ```
 
 **GET /api/builds/:id**
+
 ```json
 {
   "id": "build_abc123",
@@ -131,7 +133,13 @@ export interface BuildExecution {
   errorMessage: string | null;
 }
 
-export type BuildStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+export type BuildStatus =
+  | "pending"
+  | "running"
+  | "paused"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
 export interface TaskExecution {
   id: string;
@@ -146,7 +154,13 @@ export interface TaskExecution {
   errorMessage: string | null;
 }
 
-export type TaskStatus = 'pending' | 'running' | 'validating' | 'completed' | 'failed' | 'skipped';
+export type TaskStatus =
+  | "pending"
+  | "running"
+  | "validating"
+  | "completed"
+  | "failed"
+  | "skipped";
 
 export interface BuildCheckpoint {
   id: string;
@@ -231,10 +245,10 @@ CREATE INDEX IF NOT EXISTS idx_checkpoints_build ON build_checkpoints(build_id);
 
 ### Test Scenarios
 
-| Scenario | Expected Outcome |
-|----------|-----------------|
-| Execute simple spec | All 5-8 tasks complete successfully |
-| Execute medium spec | All 10-15 tasks complete successfully |
-| Task validation fails | Retry up to 3 times, then ask human |
-| Interrupted build | Can resume from last checkpoint |
-| Invalid task file | Clear error message, build fails gracefully |
+| Scenario              | Expected Outcome                            |
+| --------------------- | ------------------------------------------- |
+| Execute simple spec   | All 5-8 tasks complete successfully         |
+| Execute medium spec   | All 10-15 tasks complete successfully       |
+| Task validation fails | Retry up to 3 times, then ask human         |
+| Interrupted build     | Can resume from last checkpoint             |
+| Invalid task file     | Clear error message, build fails gracefully |

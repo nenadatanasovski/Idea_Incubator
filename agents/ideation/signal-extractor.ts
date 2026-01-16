@@ -3,7 +3,7 @@ import {
   MarketDiscoveryState,
   NarrowingState,
   ButtonOption,
-} from '../../types/ideation.js';
+} from "../../types/ideation.js";
 
 /**
  * SIGNAL EXTRACTOR
@@ -14,7 +14,13 @@ import {
  */
 
 export interface AgentArtifact {
-  type: 'mermaid' | 'code' | 'markdown' | 'analysis' | 'comparison' | 'idea-summary';
+  type:
+    | "mermaid"
+    | "code"
+    | "markdown"
+    | "analysis"
+    | "comparison"
+    | "idea-summary";
   title: string;
   content: string;
   language?: string; // For code artifacts
@@ -61,7 +67,7 @@ export interface ExtractionContext {
 export function extractSignals(
   userMessage: string,
   agentResponse: ParsedAgentResponse,
-  currentState: ExtractionContext
+  currentState: ExtractionContext,
 ): ExtractedSignals {
   // Start with LLM-extracted signals if available
   const signals: ExtractedSignals = {
@@ -76,7 +82,10 @@ export function extractSignals(
   // Merge rule-based extractions (LLM takes precedence)
   return {
     selfDiscovery: { ...ruleExtracted.selfDiscovery, ...signals.selfDiscovery },
-    marketDiscovery: { ...ruleExtracted.marketDiscovery, ...signals.marketDiscovery },
+    marketDiscovery: {
+      ...ruleExtracted.marketDiscovery,
+      ...signals.marketDiscovery,
+    },
     narrowing: { ...ruleExtracted.narrowing, ...signals.narrowing },
   };
 }
@@ -86,7 +95,7 @@ export function extractSignals(
  */
 function extractWithRules(
   message: string,
-  _context: ExtractionContext
+  _context: ExtractionContext,
 ): ExtractedSignals {
   const signals: ExtractedSignals = {
     selfDiscovery: {},
@@ -106,7 +115,7 @@ function extractWithRules(
   const frustrations: Array<{
     description: string;
     source: string;
-    severity: 'high' | 'medium' | 'low';
+    severity: "high" | "medium" | "low";
   }> = [];
 
   for (const pattern of frustrationPatterns) {
@@ -116,7 +125,7 @@ function extractWithRules(
       if (description.length > 10) {
         frustrations.push({
           description,
-          source: 'user_message',
+          source: "user_message",
           severity: determineSeverity(match[0]),
         });
       }
@@ -169,25 +178,34 @@ function extractWithRules(
 /**
  * Determine severity based on language intensity.
  */
-function determineSeverity(text: string): 'high' | 'medium' | 'low' {
-  const highIntensity = ['hate', 'drives me crazy', "can't stand", 'absolutely', 'terrible'];
-  const lowIntensity = ['minor', 'small', 'little', 'somewhat', 'slightly'];
+function determineSeverity(text: string): "high" | "medium" | "low" {
+  const highIntensity = [
+    "hate",
+    "drives me crazy",
+    "can't stand",
+    "absolutely",
+    "terrible",
+  ];
+  const lowIntensity = ["minor", "small", "little", "somewhat", "slightly"];
 
   const lower = text.toLowerCase();
 
-  if (highIntensity.some(word => lower.includes(word))) {
-    return 'high';
+  if (highIntensity.some((word) => lower.includes(word))) {
+    return "high";
   }
-  if (lowIntensity.some(word => lower.includes(word))) {
-    return 'low';
+  if (lowIntensity.some((word) => lower.includes(word))) {
+    return "low";
   }
-  return 'medium';
+  return "medium";
 }
 
 /**
  * Extract customer type from message.
  */
-export function extractCustomerType(message: string): { value: string | null; confidence: number } {
+export function extractCustomerType(message: string): {
+  value: string | null;
+  confidence: number;
+} {
   const b2bPatterns = [
     /\b(?:business|businesses|companies|enterprise|enterprises|B2B|corporate|corporations)\b/i,
     /\b(?:for\s+companies|sell\s+to\s+businesses|business\s+customers)\b/i,
@@ -217,13 +235,13 @@ export function extractCustomerType(message: string): { value: string | null; co
   }
 
   if (marketplaceScore > 0) {
-    return { value: 'marketplace', confidence: 0.8 };
+    return { value: "marketplace", confidence: 0.8 };
   }
   if (b2bScore > b2cScore && b2bScore > 0) {
-    return { value: 'B2B', confidence: Math.min(0.9, 0.5 + b2bScore * 0.2) };
+    return { value: "B2B", confidence: Math.min(0.9, 0.5 + b2bScore * 0.2) };
   }
   if (b2cScore > b2bScore && b2cScore > 0) {
-    return { value: 'B2C', confidence: Math.min(0.9, 0.5 + b2cScore * 0.2) };
+    return { value: "B2C", confidence: Math.min(0.9, 0.5 + b2cScore * 0.2) };
   }
 
   return { value: null, confidence: 0 };
@@ -232,7 +250,10 @@ export function extractCustomerType(message: string): { value: string | null; co
 /**
  * Extract product type from message.
  */
-export function extractProductType(message: string): { value: string | null; confidence: number } {
+export function extractProductType(message: string): {
+  value: string | null;
+  confidence: number;
+} {
   const digitalPatterns = [
     /\b(?:app|software|SaaS|platform|website|digital|online|mobile)\b/i,
     /\b(?:API|dashboard|tool|automation)\b/i,
@@ -264,17 +285,24 @@ export function extractProductType(message: string): { value: string | null; con
 
   // Check for hybrid signals
   const scores = [
-    { type: 'digital', score: digitalScore },
-    { type: 'physical', score: physicalScore },
-    { type: 'service', score: serviceScore },
+    { type: "digital", score: digitalScore },
+    { type: "physical", score: physicalScore },
+    { type: "service", score: serviceScore },
   ].sort((a, b) => b.score - a.score);
 
-  if (scores[0].score > 0 && scores[1].score > 0 && scores[0].score === scores[1].score) {
-    return { value: 'hybrid', confidence: 0.6 };
+  if (
+    scores[0].score > 0 &&
+    scores[1].score > 0 &&
+    scores[0].score === scores[1].score
+  ) {
+    return { value: "hybrid", confidence: 0.6 };
   }
 
   if (scores[0].score > 0) {
-    return { value: scores[0].type, confidence: Math.min(0.9, 0.5 + scores[0].score * 0.15) };
+    return {
+      value: scores[0].type,
+      confidence: Math.min(0.9, 0.5 + scores[0].score * 0.15),
+    };
   }
 
   return { value: null, confidence: 0 };
@@ -283,7 +311,10 @@ export function extractProductType(message: string): { value: string | null; con
 /**
  * Extract geography from message.
  */
-export function extractGeography(message: string): { value: string | null; confidence: number } {
+export function extractGeography(message: string): {
+  value: string | null;
+  confidence: number;
+} {
   const localPatterns = [
     /\b(?:local|my\s+city|my\s+area|nearby|neighborhood|suburb)\b/i,
     /\b(?:Sydney|Melbourne|Brisbane|Perth|Adelaide)\b/i,
@@ -312,13 +343,22 @@ export function extractGeography(message: string): { value: string | null; confi
   }
 
   if (globalScore > Math.max(localScore, nationalScore)) {
-    return { value: 'global', confidence: Math.min(0.9, 0.5 + globalScore * 0.2) };
+    return {
+      value: "global",
+      confidence: Math.min(0.9, 0.5 + globalScore * 0.2),
+    };
   }
   if (nationalScore > Math.max(localScore, globalScore)) {
-    return { value: 'national', confidence: Math.min(0.9, 0.5 + nationalScore * 0.2) };
+    return {
+      value: "national",
+      confidence: Math.min(0.9, 0.5 + nationalScore * 0.2),
+    };
   }
   if (localScore > 0) {
-    return { value: 'local', confidence: Math.min(0.9, 0.5 + localScore * 0.2) };
+    return {
+      value: "local",
+      confidence: Math.min(0.9, 0.5 + localScore * 0.2),
+    };
   }
 
   return { value: null, confidence: 0 };
@@ -329,20 +369,37 @@ export function extractGeography(message: string): { value: string | null; confi
  */
 export function extractExpertise(message: string): Array<{
   area: string;
-  depth: 'expert' | 'competent' | 'novice';
+  depth: "expert" | "competent" | "novice";
   evidence: string;
 }> {
   const expertisePatterns = [
-    { pattern: /I(?:'ve| have)\s+(?:worked|been working)\s+(?:in|on|with)\s+(.+?)\s+for\s+(\d+)\s+years?/gi, depth: 'expert' as const },
-    { pattern: /I\s+know\s+a\s+lot\s+about\s+(.+?)(?:\.|,|$)/gi, depth: 'competent' as const },
-    { pattern: /I(?:'m| am)\s+(?:an?\s+)?expert\s+(?:in|at)\s+(.+?)(?:\.|,|$)/gi, depth: 'expert' as const },
-    { pattern: /I\s+specialize\s+in\s+(.+?)(?:\.|,|$)/gi, depth: 'expert' as const },
-    { pattern: /my\s+background\s+is\s+in\s+(.+?)(?:\.|,|$)/gi, depth: 'competent' as const },
+    {
+      pattern:
+        /I(?:'ve| have)\s+(?:worked|been working)\s+(?:in|on|with)\s+(.+?)\s+for\s+(\d+)\s+years?/gi,
+      depth: "expert" as const,
+    },
+    {
+      pattern: /I\s+know\s+a\s+lot\s+about\s+(.+?)(?:\.|,|$)/gi,
+      depth: "competent" as const,
+    },
+    {
+      pattern:
+        /I(?:'m| am)\s+(?:an?\s+)?expert\s+(?:in|at)\s+(.+?)(?:\.|,|$)/gi,
+      depth: "expert" as const,
+    },
+    {
+      pattern: /I\s+specialize\s+in\s+(.+?)(?:\.|,|$)/gi,
+      depth: "expert" as const,
+    },
+    {
+      pattern: /my\s+background\s+is\s+in\s+(.+?)(?:\.|,|$)/gi,
+      depth: "competent" as const,
+    },
   ];
 
   const expertise: Array<{
     area: string;
-    depth: 'expert' | 'competent' | 'novice';
+    depth: "expert" | "competent" | "novice";
     evidence: string;
   }> = [];
 
@@ -372,11 +429,23 @@ export function extractInterests(message: string): Array<{
   evidence: string;
 }> {
   const interestPatterns = [
-    { pattern: /I(?:'m| am)\s+(?:really\s+)?(?:interested|passionate|excited)\s+(?:in|about)\s+(.+?)(?=\.|,|!|$)/gi, genuine: true },
+    {
+      pattern:
+        /I(?:'m| am)\s+(?:really\s+)?(?:interested|passionate|excited)\s+(?:in|about)\s+(.+?)(?=\.|,|!|$)/gi,
+      genuine: true,
+    },
     { pattern: /I\s+love\s+(.+?)(?=\.|,|!|$)/gi, genuine: true },
     { pattern: /I\s+enjoy\s+(.+?)(?=\.|,|!|$)/gi, genuine: true },
-    { pattern: /I\s+want\s+to\s+(?:work\s+on|explore|learn|try)\s+(.+?)(?=\.|,|!|$)/gi, genuine: false },
-    { pattern: /I(?:'d| would)\s+like\s+to\s+(?:explore|learn|try)\s+(.+?)(?=\.|,|!|$)/gi, genuine: false },
+    {
+      pattern:
+        /I\s+want\s+to\s+(?:work\s+on|explore|learn|try)\s+(.+?)(?=\.|,|!|$)/gi,
+      genuine: false,
+    },
+    {
+      pattern:
+        /I(?:'d| would)\s+like\s+to\s+(?:explore|learn|try)\s+(.+?)(?=\.|,|!|$)/gi,
+      genuine: false,
+    },
   ];
 
   const interests: Array<{
@@ -406,7 +475,7 @@ export function extractInterests(message: string): Array<{
  * Extract impact vision from message.
  */
 export function extractImpactVision(message: string): {
-  level: 'world' | 'country' | 'city' | 'community' | null;
+  level: "world" | "country" | "city" | "community" | null;
   description: string | null;
   confidence: number;
 } | null {
@@ -430,28 +499,28 @@ export function extractImpactVision(message: string): {
   for (const pattern of worldPatterns) {
     const match = message.match(pattern);
     if (match) {
-      return { level: 'world', description: match[0], confidence: 0.7 };
+      return { level: "world", description: match[0], confidence: 0.7 };
     }
   }
 
   for (const pattern of countryPatterns) {
     const match = message.match(pattern);
     if (match) {
-      return { level: 'country', description: match[0], confidence: 0.7 };
+      return { level: "country", description: match[0], confidence: 0.7 };
     }
   }
 
   for (const pattern of cityPatterns) {
     const match = message.match(pattern);
     if (match) {
-      return { level: 'city', description: match[0], confidence: 0.7 };
+      return { level: "city", description: match[0], confidence: 0.7 };
     }
   }
 
   for (const pattern of communityPatterns) {
     const match = message.match(pattern);
     if (match) {
-      return { level: 'community', description: match[0], confidence: 0.7 };
+      return { level: "community", description: match[0], confidence: 0.7 };
     }
   }
 
@@ -461,12 +530,18 @@ export function extractImpactVision(message: string): {
 /**
  * Extract market data from web search results.
  */
-export function extractMarketData(searchResults: { title: string; url: string; snippet: string }[]): {
+export function extractMarketData(
+  searchResults: { title: string; url: string; snippet: string }[],
+): {
   competitors: Array<{ name: string; description: string; source: string }>;
   gaps: Array<{ description: string; source: string }>;
   timingSignals: Array<{ signal: string; source: string }>;
 } {
-  const competitors: Array<{ name: string; description: string; source: string }> = [];
+  const competitors: Array<{
+    name: string;
+    description: string;
+    source: string;
+  }> = [];
   const gaps: Array<{ description: string; source: string }> = [];
   const timingSignals: Array<{ signal: string; source: string }> = [];
 

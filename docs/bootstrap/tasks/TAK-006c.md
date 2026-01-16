@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **Phase** | 1 - Database Schema |
-| **Depends On** | None |
-| **Blocks** | TAK-020 (TelegramHandler) |
-| **Priority** | P1 |
-| **Owner** | Build Agent |
+| Field          | Value                     |
+| -------------- | ------------------------- |
+| **Phase**      | 1 - Database Schema       |
+| **Depends On** | None                      |
+| **Blocks**     | TAK-020 (TelegramHandler) |
+| **Priority**   | P1                        |
+| **Owner**      | Build Agent               |
 
 ---
 
@@ -24,20 +24,20 @@ Create the task_questions table for Task Agent to ask user questions. Named `tas
 
 ### Why Separate Table?
 
-| Reason | Description |
-|--------|-------------|
+| Reason              | Description                                           |
+| ------------------- | ----------------------------------------------------- |
 | **Different Scope** | Existing questions table links to agent_id/session_id |
-| **Task Linkage** | Task questions link to task_id/task_list_id |
-| **No Conflict** | Avoids modifying existing table used by other systems |
+| **Task Linkage**    | Task questions link to task_id/task_list_id           |
+| **No Conflict**     | Avoids modifying existing table used by other systems |
 
 ### Question Types
 
-| Type | Description |
-|------|-------------|
-| `approval` | Task list ready to execute, need user OK |
-| `clarification` | Need more info to proceed |
-| `decision` | Multiple valid options, user chooses |
-| `escalation` | Task Agent stuck, needs human help |
+| Type            | Description                              |
+| --------------- | ---------------------------------------- |
+| `approval`      | Task list ready to execute, need user OK |
+| `clarification` | Need more info to proceed                |
+| `decision`      | Multiple valid options, user chooses     |
+| `escalation`    | Task Agent stuck, needs human help       |
 
 ---
 
@@ -63,13 +63,13 @@ Create the task_questions table for Task Agent to ask user questions. Named `tas
 
 **PASS** when ALL of the following are true:
 
-| # | Criterion | How to Verify |
-|---|-----------|---------------|
-| 1 | Migration file exists | `test -f database/migrations/058_task_questions.sql` returns 0 |
-| 2 | Has table (task_questions NOT questions) | `grep -q "CREATE TABLE IF NOT EXISTS task_questions" database/migrations/058_task_questions.sql` returns 0 |
-| 3 | Has question types | `grep -q "approval.*clarification.*decision.*escalation" database/migrations/058_task_questions.sql` returns 0 |
-| 4 | Has answer columns | `grep -q "answered_by.*answered_at" database/migrations/058_task_questions.sql` returns 0 |
-| 5 | Migration runs | `sqlite3 :memory: < database/migrations/058_task_questions.sql && echo 'OK'` returns "OK" |
+| #   | Criterion                                | How to Verify                                                                                                  |
+| --- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 1   | Migration file exists                    | `test -f database/migrations/058_task_questions.sql` returns 0                                                 |
+| 2   | Has table (task_questions NOT questions) | `grep -q "CREATE TABLE IF NOT EXISTS task_questions" database/migrations/058_task_questions.sql` returns 0     |
+| 3   | Has question types                       | `grep -q "approval.*clarification.*decision.*escalation" database/migrations/058_task_questions.sql` returns 0 |
+| 4   | Has answer columns                       | `grep -q "answered_by.*answered_at" database/migrations/058_task_questions.sql` returns 0                      |
+| 5   | Migration runs                           | `sqlite3 :memory: < database/migrations/058_task_questions.sql && echo 'OK'` returns "OK"                      |
 
 **FAIL** if any criterion is not met.
 

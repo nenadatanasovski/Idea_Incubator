@@ -12,12 +12,14 @@ updated: 2026-01-10
 ## Problem
 
 The Vibe platform has no unified notification system. Users miss important events because:
+
 - There's no in-app notification center
 - Email notifications are inconsistent
 - Push notifications don't exist
 - Real-time updates require page refresh
 
 This leads to:
+
 - Missed agent questions that block progress
 - Delayed responses to important events
 - Poor user engagement
@@ -26,6 +28,7 @@ This leads to:
 ## Solution
 
 Implement a comprehensive notification system that:
+
 1. Centralizes all notifications in a unified queue
 2. Supports multiple delivery channels (in-app, email, push, Telegram)
 3. Provides real-time updates via WebSocket
@@ -238,10 +241,10 @@ CREATE INDEX idx_digest_scheduled ON notification_digest(scheduled_for) WHERE se
 
 ### Risks
 
-| Risk | Mitigation |
-|------|------------|
-| WebSocket disconnections | Fallback to polling, reconnection logic |
-| Email delivery failures | Retry queue, dead letter handling |
-| Notification spam | Rate limiting, digest batching |
-| Database growth | TTL on old notifications, archival |
-| Template changes break clients | Version templates, backward compat |
+| Risk                           | Mitigation                              |
+| ------------------------------ | --------------------------------------- |
+| WebSocket disconnections       | Fallback to polling, reconnection logic |
+| Email delivery failures        | Retry queue, dead letter handling       |
+| Notification spam              | Rate limiting, digest batching          |
+| Database growth                | TTL on old notifications, archival      |
+| Template changes break clients | Version templates, backward compat      |

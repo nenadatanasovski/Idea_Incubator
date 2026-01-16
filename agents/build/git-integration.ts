@@ -4,12 +4,12 @@
  * Handles git operations for automatic commits after successful tasks.
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { exec } from "child_process";
+import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-const DEFAULT_COMMIT_PREFIX = 'build(auto)';
+const DEFAULT_COMMIT_PREFIX = "build(auto)";
 
 export interface GitCommitResult {
   success: boolean;
@@ -45,21 +45,25 @@ export class GitIntegration {
   /**
    * Commit a file after successful task
    */
-  async commit(taskId: string, filePath: string, description?: string): Promise<GitCommitResult> {
+  async commit(
+    taskId: string,
+    filePath: string,
+    description?: string,
+  ): Promise<GitCommitResult> {
     try {
       // Check if git is available
-      if (!await this.isGitRepo()) {
+      if (!(await this.isGitRepo())) {
         return {
           success: false,
-          error: 'Not a git repository'
+          error: "Not a git repository",
         };
       }
 
       // Check if file has changes
-      if (!await this.hasChanges(filePath)) {
+      if (!(await this.hasChanges(filePath))) {
         return {
           success: false,
-          error: 'No changes to commit'
+          error: "No changes to commit",
         };
       }
 
@@ -72,9 +76,12 @@ export class GitIntegration {
       const message = this.formatCommitMessage(taskId, filePath, description);
 
       // Commit
-      const { stdout } = await execAsync(`git commit -m "${this.escapeQuotes(message)}"`, {
-        cwd: this.cwd
-      });
+      const { stdout } = await execAsync(
+        `git commit -m "${this.escapeQuotes(message)}"`,
+        {
+          cwd: this.cwd,
+        },
+      );
 
       // Extract commit hash
       const hashMatch = stdout.match(/\[.+ ([a-f0-9]+)\]/);
@@ -83,12 +90,12 @@ export class GitIntegration {
       return {
         success: true,
         commitHash,
-        message
+        message,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -96,10 +103,14 @@ export class GitIntegration {
   /**
    * Commit multiple files
    */
-  async commitMultiple(taskId: string, filePaths: string[], description?: string): Promise<GitCommitResult> {
+  async commitMultiple(
+    taskId: string,
+    filePaths: string[],
+    description?: string,
+  ): Promise<GitCommitResult> {
     try {
-      if (!await this.isGitRepo()) {
-        return { success: false, error: 'Not a git repository' };
+      if (!(await this.isGitRepo())) {
+        return { success: false, error: "Not a git repository" };
       }
 
       // Stage all files
@@ -114,27 +125,34 @@ export class GitIntegration {
       // Check if anything is staged
       const status = await this.getStatus();
       if (status.staged.length === 0) {
-        return { success: false, error: 'No changes to commit' };
+        return { success: false, error: "No changes to commit" };
       }
 
       // Create commit message
-      const message = this.formatCommitMessage(taskId, filePaths.join(', '), description);
+      const message = this.formatCommitMessage(
+        taskId,
+        filePaths.join(", "),
+        description,
+      );
 
-      const { stdout } = await execAsync(`git commit -m "${this.escapeQuotes(message)}"`, {
-        cwd: this.cwd
-      });
+      const { stdout } = await execAsync(
+        `git commit -m "${this.escapeQuotes(message)}"`,
+        {
+          cwd: this.cwd,
+        },
+      );
 
       const hashMatch = stdout.match(/\[.+ ([a-f0-9]+)\]/);
 
       return {
         success: true,
         commitHash: hashMatch?.[1],
-        message
+        message,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -144,7 +162,7 @@ export class GitIntegration {
    */
   async isGitRepo(): Promise<boolean> {
     try {
-      await execAsync('git rev-parse --is-inside-work-tree', { cwd: this.cwd });
+      await execAsync("git rev-parse --is-inside-work-tree", { cwd: this.cwd });
       return true;
     } catch {
       return false;
@@ -157,21 +175,34 @@ export class GitIntegration {
   async hasChanges(filePath: string): Promise<boolean> {
     try {
       // Check for unstaged changes
-      const { stdout: unstaged } = await execAsync(`git diff --name-only "${filePath}"`, {
-        cwd: this.cwd
-      });
+      const { stdout: unstaged } = await execAsync(
+        `git diff --name-only "${filePath}"`,
+        {
+          cwd: this.cwd,
+        },
+      );
 
       // Check for untracked files
-      const { stdout: untracked } = await execAsync(`git ls-files --others --exclude-standard "${filePath}"`, {
-        cwd: this.cwd
-      });
+      const { stdout: untracked } = await execAsync(
+        `git ls-files --others --exclude-standard "${filePath}"`,
+        {
+          cwd: this.cwd,
+        },
+      );
 
       // Check for staged changes
-      const { stdout: staged } = await execAsync(`git diff --cached --name-only "${filePath}"`, {
-        cwd: this.cwd
-      });
+      const { stdout: staged } = await execAsync(
+        `git diff --cached --name-only "${filePath}"`,
+        {
+          cwd: this.cwd,
+        },
+      );
 
-      return unstaged.trim() !== '' || untracked.trim() !== '' || staged.trim() !== '';
+      return (
+        unstaged.trim() !== "" ||
+        untracked.trim() !== "" ||
+        staged.trim() !== ""
+      );
     } catch {
       return false;
     }
@@ -206,34 +237,44 @@ export class GitIntegration {
    */
   async getStatus(): Promise<GitStatusResult> {
     try {
-      const { stdout: stagedOutput } = await execAsync('git diff --cached --name-only', {
-        cwd: this.cwd
-      });
+      const { stdout: stagedOutput } = await execAsync(
+        "git diff --cached --name-only",
+        {
+          cwd: this.cwd,
+        },
+      );
 
-      const { stdout: unstagedOutput } = await execAsync('git diff --name-only', {
-        cwd: this.cwd
-      });
+      const { stdout: unstagedOutput } = await execAsync(
+        "git diff --name-only",
+        {
+          cwd: this.cwd,
+        },
+      );
 
-      const { stdout: untrackedOutput } = await execAsync('git ls-files --others --exclude-standard', {
-        cwd: this.cwd
-      });
+      const { stdout: untrackedOutput } = await execAsync(
+        "git ls-files --others --exclude-standard",
+        {
+          cwd: this.cwd,
+        },
+      );
 
-      const staged = stagedOutput.trim().split('\n').filter(Boolean);
-      const unstaged = unstagedOutput.trim().split('\n').filter(Boolean);
-      const untracked = untrackedOutput.trim().split('\n').filter(Boolean);
+      const staged = stagedOutput.trim().split("\n").filter(Boolean);
+      const unstaged = unstagedOutput.trim().split("\n").filter(Boolean);
+      const untracked = untrackedOutput.trim().split("\n").filter(Boolean);
 
       return {
-        hasChanges: staged.length > 0 || unstaged.length > 0 || untracked.length > 0,
+        hasChanges:
+          staged.length > 0 || unstaged.length > 0 || untracked.length > 0,
         staged,
         unstaged,
-        untracked
+        untracked,
       };
     } catch {
       return {
         hasChanges: false,
         staged: [],
         unstaged: [],
-        untracked: []
+        untracked: [],
       };
     }
   }
@@ -243,8 +284,8 @@ export class GitIntegration {
    */
   async getCurrentBranch(): Promise<string | null> {
     try {
-      const { stdout } = await execAsync('git rev-parse --abbrev-ref HEAD', {
-        cwd: this.cwd
+      const { stdout } = await execAsync("git rev-parse --abbrev-ref HEAD", {
+        cwd: this.cwd,
       });
       return stdout.trim();
     } catch {
@@ -257,8 +298,8 @@ export class GitIntegration {
    */
   async getLastCommitHash(): Promise<string | null> {
     try {
-      const { stdout } = await execAsync('git rev-parse HEAD', {
-        cwd: this.cwd
+      const { stdout } = await execAsync("git rev-parse HEAD", {
+        cwd: this.cwd,
       });
       return stdout.trim();
     } catch {
@@ -269,7 +310,11 @@ export class GitIntegration {
   /**
    * Format commit message using conventional commit format
    */
-  formatCommitMessage(taskId: string, filePath: string, description?: string): string {
+  formatCommitMessage(
+    taskId: string,
+    filePath: string,
+    description?: string,
+  ): string {
     const desc = description || `complete ${taskId}`;
     return `${this.commitPrefix}: ${desc}\n\nTask: ${taskId}\nFile: ${filePath}`;
   }
@@ -327,6 +372,8 @@ export class GitIntegration {
 /**
  * Create a git integration instance
  */
-export function createGitIntegration(options?: GitIntegrationOptions): GitIntegration {
+export function createGitIntegration(
+  options?: GitIntegrationOptions,
+): GitIntegration {
   return new GitIntegration(options);
 }

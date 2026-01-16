@@ -3,12 +3,17 @@
 // Wrapper page for the Ideation Agent that handles routing and profile selection
 // =============================================================================
 
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
-import { Sparkles, AlertCircle, User, Home } from 'lucide-react';
-import { IdeationEntryModal } from '../components/ideation/IdeationEntryModal';
-import { IdeationSession } from '../components/ideation/IdeationSession';
-import type { EntryMode } from '../types/ideation';
+import { useState, useEffect, useCallback } from "react";
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+  Link,
+} from "react-router-dom";
+import { Sparkles, AlertCircle, User, Home } from "lucide-react";
+import { IdeationEntryModal } from "../components/ideation/IdeationEntryModal";
+import { IdeationSession } from "../components/ideation/IdeationSession";
+import type { EntryMode } from "../types/ideation";
 
 interface UserProfile {
   id: string;
@@ -21,9 +26,12 @@ export default function IdeationPageWrapper() {
   const { sessionId: routeSessionId } = useParams<{ sessionId?: string }>();
   const [searchParams] = useSearchParams();
   // Support both route params (/ideate/:sessionId) and query params (/ideate?sessionId=xxx)
-  const urlSessionId = routeSessionId || searchParams.get('sessionId') || undefined;
+  const urlSessionId =
+    routeSessionId || searchParams.get("sessionId") || undefined;
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
-  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
+    null,
+  );
   const [entryMode, setEntryMode] = useState<EntryMode>(null);
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
@@ -37,8 +45,8 @@ export default function IdeationPageWrapper() {
     async function init() {
       try {
         // Load profiles first
-        const response = await fetch('/api/profiles');
-        if (!response.ok) throw new Error('Failed to load profiles');
+        const response = await fetch("/api/profiles");
+        if (!response.ok) throw new Error("Failed to load profiles");
         const result = await response.json();
         const profileList = result.data || [];
         setProfiles(profileList);
@@ -50,7 +58,9 @@ export default function IdeationPageWrapper() {
 
         // If URL contains a session ID, validate it
         if (urlSessionId) {
-          const sessionResponse = await fetch(`/api/ideation/session/${urlSessionId}`);
+          const sessionResponse = await fetch(
+            `/api/ideation/session/${urlSessionId}`,
+          );
           if (!sessionResponse.ok) {
             setSessionNotFound(true);
           } else {
@@ -64,7 +74,9 @@ export default function IdeationPageWrapper() {
           }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load profiles');
+        setError(
+          err instanceof Error ? err.message : "Failed to load profiles",
+        );
       } finally {
         setLoading(false);
       }
@@ -74,44 +86,53 @@ export default function IdeationPageWrapper() {
 
   const handleStartIdeation = useCallback(() => {
     if (!selectedProfileId) {
-      setError('Please select a profile first');
+      setError("Please select a profile first");
       return;
     }
     setShowEntryModal(true);
   }, [selectedProfileId]);
 
-  const handleEntrySelect = useCallback((mode: EntryMode) => {
-    setEntryMode(mode);
-    setShowEntryModal(false);
-    setSessionStarted(true);
-    setResumeSessionId(null);
-    // Clear sessionId from URL when starting a new session
-    if (searchParams.has('sessionId')) {
-      navigate('/ideate', { replace: true });
-    }
-  }, [searchParams, navigate]);
+  const handleEntrySelect = useCallback(
+    (mode: EntryMode) => {
+      setEntryMode(mode);
+      setShowEntryModal(false);
+      setSessionStarted(true);
+      setResumeSessionId(null);
+      // Clear sessionId from URL when starting a new session
+      if (searchParams.has("sessionId")) {
+        navigate("/ideate", { replace: true });
+      }
+    },
+    [searchParams, navigate],
+  );
 
-  const handleResumeSession = useCallback((sessionId: string) => {
-    setResumeSessionId(sessionId);
-    setShowEntryModal(false);
-    setSessionStarted(true);
-    setEntryMode(null);
-    // Update URL to reflect resumed session
-    navigate(`/ideate?sessionId=${sessionId}`, { replace: true });
-  }, [navigate]);
+  const handleResumeSession = useCallback(
+    (sessionId: string) => {
+      setResumeSessionId(sessionId);
+      setShowEntryModal(false);
+      setSessionStarted(true);
+      setEntryMode(null);
+      // Update URL to reflect resumed session
+      navigate(`/ideate?sessionId=${sessionId}`, { replace: true });
+    },
+    [navigate],
+  );
 
-  const handleComplete = useCallback((ideaId: string) => {
-    // Navigate to the new idea
-    navigate(`/ideas/${ideaId}`);
-  }, [navigate]);
+  const handleComplete = useCallback(
+    (ideaId: string) => {
+      // Navigate to the new idea
+      navigate(`/ideas/${ideaId}`);
+    },
+    [navigate],
+  );
 
   const handleExit = useCallback(() => {
     setSessionStarted(false);
     setEntryMode(null);
     setResumeSessionId(null);
     // Clear sessionId from URL when exiting
-    if (searchParams.has('sessionId')) {
-      navigate('/ideate', { replace: true });
+    if (searchParams.has("sessionId")) {
+      navigate("/ideate", { replace: true });
     }
   }, [searchParams, navigate]);
 
@@ -134,9 +155,12 @@ export default function IdeationPageWrapper() {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Session Not Found</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Session Not Found
+          </h1>
           <p className="text-gray-600 mb-6" data-testid="error-message">
-            The ideation session "{urlSessionId}" doesn't exist or has been deleted.
+            The ideation session "{urlSessionId}" doesn't exist or has been
+            deleted.
           </p>
           <Link
             to="/ideate"
@@ -156,7 +180,7 @@ export default function IdeationPageWrapper() {
     return (
       <div className="fixed inset-0 z-50 bg-gray-50">
         <IdeationSession
-          sessionId={resumeSessionId || ''}
+          sessionId={resumeSessionId || ""}
           profileId={selectedProfileId}
           entryMode={entryMode}
           isResuming={!!resumeSessionId}
@@ -204,10 +228,11 @@ export default function IdeationPageWrapper() {
         {profiles.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500 mb-4">
-              No profiles found. Create a profile to get personalized idea recommendations.
+              No profiles found. Create a profile to get personalized idea
+              recommendations.
             </p>
             <button
-              onClick={() => navigate('/profile')}
+              onClick={() => navigate("/profile")}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Create Profile
@@ -221,8 +246,8 @@ export default function IdeationPageWrapper() {
                 onClick={() => setSelectedProfileId(profile.id)}
                 className={`w-full p-4 rounded-lg border-2 text-left transition-all focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none ${
                   selectedProfileId === profile.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                 }`}
               >
                 <p className="font-medium text-gray-900">{profile.name}</p>
@@ -273,7 +298,7 @@ export default function IdeationPageWrapper() {
       {/* Entry Modal */}
       <IdeationEntryModal
         isOpen={showEntryModal}
-        profileId={selectedProfileId || ''}
+        profileId={selectedProfileId || ""}
         onSelect={handleEntrySelect}
         onResumeSession={handleResumeSession}
         onClose={() => setShowEntryModal(false)}
@@ -282,7 +307,13 @@ export default function IdeationPageWrapper() {
   );
 }
 
-function FeatureCard({ title, description }: { title: string; description: string }) {
+function FeatureCard({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
   return (
     <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
       <h3 className="font-medium text-gray-900 mb-1">{title}</h3>

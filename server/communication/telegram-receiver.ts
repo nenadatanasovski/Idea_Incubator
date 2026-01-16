@@ -1,9 +1,9 @@
 // server/communication/telegram-receiver.ts
 // COM-005: Telegram Multi-Bot Receiver (Long Polling)
 
-import { EventEmitter } from 'events';
-import { BotRegistry } from './bot-registry';
-import { AgentType, RegisteredBot } from './types';
+import { EventEmitter } from "events";
+import { BotRegistry } from "./bot-registry";
+import { AgentType, RegisteredBot } from "./types";
 
 interface TelegramUpdate {
   update_id: number;
@@ -49,7 +49,8 @@ export class TelegramReceiver extends EventEmitter {
   private botRegistry: BotRegistry;
   private running: boolean = false;
   private offsets: Map<AgentType, number> = new Map();
-  private pollingTimeouts: Map<AgentType, ReturnType<typeof setTimeout>> = new Map();
+  private pollingTimeouts: Map<AgentType, ReturnType<typeof setTimeout>> =
+    new Map();
   private pollIntervalMs: number;
 
   constructor(botRegistry: BotRegistry, pollIntervalMs: number = 1000) {
@@ -63,7 +64,7 @@ export class TelegramReceiver extends EventEmitter {
    */
   async start(): Promise<void> {
     if (this.running) {
-      console.warn('[TelegramReceiver] Already running');
+      console.warn("[TelegramReceiver] Already running");
       return;
     }
 
@@ -77,14 +78,14 @@ export class TelegramReceiver extends EventEmitter {
       this.startBotPolling(bot);
     }
 
-    this.emit('receiver:started', { botCount: bots.length });
+    this.emit("receiver:started", { botCount: bots.length });
   }
 
   /**
    * Stop polling for all bots.
    */
   async stop(): Promise<void> {
-    console.log('[TelegramReceiver] Stopping...');
+    console.log("[TelegramReceiver] Stopping...");
     this.running = false;
 
     // Clear all polling timeouts
@@ -94,7 +95,7 @@ export class TelegramReceiver extends EventEmitter {
     }
     this.pollingTimeouts.clear();
 
-    this.emit('receiver:stopped');
+    this.emit("receiver:stopped");
   }
 
   /**
@@ -114,7 +115,9 @@ export class TelegramReceiver extends EventEmitter {
       const updates = await this.getUpdates(bot);
 
       if (updates.length > 0) {
-        console.log(`[TelegramReceiver] Got ${updates.length} updates for ${bot.agentType}`);
+        console.log(
+          `[TelegramReceiver] Got ${updates.length} updates for ${bot.agentType}`,
+        );
       }
 
       for (const update of updates) {
@@ -123,8 +126,13 @@ export class TelegramReceiver extends EventEmitter {
       }
     } catch (error) {
       const errorMessage = (error as Error).message;
-      console.error(`[TelegramReceiver] Polling error for ${bot.agentType}: ${errorMessage}`);
-      this.emit('receiver:error', { botType: bot.agentType, error: errorMessage });
+      console.error(
+        `[TelegramReceiver] Polling error for ${bot.agentType}: ${errorMessage}`,
+      );
+      this.emit("receiver:error", {
+        botType: bot.agentType,
+        error: errorMessage,
+      });
     }
 
     // Schedule next poll
@@ -144,12 +152,12 @@ export class TelegramReceiver extends EventEmitter {
     const url = `https://api.telegram.org/bot${bot.token}/getUpdates`;
 
     const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         offset,
         timeout: 30, // Long polling timeout in seconds
-        allowed_updates: ['message', 'callback_query'],
+        allowed_updates: ["message", "callback_query"],
       }),
     });
 
@@ -159,13 +167,16 @@ export class TelegramReceiver extends EventEmitter {
       return data.result as TelegramUpdate[];
     }
 
-    throw new Error(data.description || 'Unknown Telegram API error');
+    throw new Error(data.description || "Unknown Telegram API error");
   }
 
   /**
    * Process a single update.
    */
-  private async processUpdate(botType: AgentType, update: TelegramUpdate): Promise<void> {
+  private async processUpdate(
+    botType: AgentType,
+    update: TelegramUpdate,
+  ): Promise<void> {
     if (update.message) {
       await this.processMessage(botType, update.message);
     }
@@ -178,8 +189,11 @@ export class TelegramReceiver extends EventEmitter {
   /**
    * Process an incoming message.
    */
-  private async processMessage(botType: AgentType, message: TelegramMessage): Promise<void> {
-    const text = message.text || '';
+  private async processMessage(
+    botType: AgentType,
+    message: TelegramMessage,
+  ): Promise<void> {
+    const text = message.text || "";
 
     const receivedMessage: ReceivedMessage = {
       botType,
@@ -191,118 +205,120 @@ export class TelegramReceiver extends EventEmitter {
       timestamp: new Date(message.date * 1000),
     };
 
-    console.log(`[TelegramReceiver] Message from ${botType}: "${text.substring(0, 50)}..."`);
+    console.log(
+      `[TelegramReceiver] Message from ${botType}: "${text.substring(0, 50)}..."`,
+    );
 
     // Handle commands
-    if (text.startsWith('/start')) {
-      this.emit('command:start', receivedMessage);
+    if (text.startsWith("/start")) {
+      this.emit("command:start", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/summary')) {
-      this.emit('command:summary', receivedMessage);
+    if (text.startsWith("/summary")) {
+      this.emit("command:summary", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/status')) {
-      this.emit('command:status', receivedMessage);
+    if (text.startsWith("/status")) {
+      this.emit("command:status", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/help')) {
-      this.emit('command:help', receivedMessage);
+    if (text.startsWith("/help")) {
+      this.emit("command:help", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/link')) {
-      this.emit('command:link', receivedMessage);
+    if (text.startsWith("/link")) {
+      this.emit("command:link", receivedMessage);
       return;
     }
 
     // Task Agent commands (PTE-096 to PTE-103, BA-065 to BA-076)
-    if (text.startsWith('/newtask')) {
-      this.emit('command:newtask', receivedMessage);
+    if (text.startsWith("/newtask")) {
+      this.emit("command:newtask", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/edit')) {
-      this.emit('command:edit', receivedMessage);
+    if (text.startsWith("/edit")) {
+      this.emit("command:edit", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/override')) {
-      this.emit('command:override', receivedMessage);
+    if (text.startsWith("/override")) {
+      this.emit("command:override", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/queue')) {
-      this.emit('command:queue', receivedMessage);
+    if (text.startsWith("/queue")) {
+      this.emit("command:queue", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/suggest')) {
-      this.emit('command:suggest', receivedMessage);
+    if (text.startsWith("/suggest")) {
+      this.emit("command:suggest", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/accept')) {
-      this.emit('command:accept', receivedMessage);
+    if (text.startsWith("/accept")) {
+      this.emit("command:accept", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/reject')) {
-      this.emit('command:reject', receivedMessage);
+    if (text.startsWith("/reject")) {
+      this.emit("command:reject", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/parallel')) {
-      this.emit('command:parallel', receivedMessage);
+    if (text.startsWith("/parallel")) {
+      this.emit("command:parallel", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/execute')) {
-      this.emit('command:execute', receivedMessage);
+    if (text.startsWith("/execute")) {
+      this.emit("command:execute", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/pause')) {
-      this.emit('command:pause', receivedMessage);
+    if (text.startsWith("/pause")) {
+      this.emit("command:pause", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/resume')) {
-      this.emit('command:resume', receivedMessage);
+    if (text.startsWith("/resume")) {
+      this.emit("command:resume", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/stop')) {
-      this.emit('command:stop', receivedMessage);
+    if (text.startsWith("/stop")) {
+      this.emit("command:stop", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/agents')) {
-      this.emit('command:agents', receivedMessage);
+    if (text.startsWith("/agents")) {
+      this.emit("command:agents", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/lists')) {
-      this.emit('command:lists', receivedMessage);
+    if (text.startsWith("/lists")) {
+      this.emit("command:lists", receivedMessage);
       return;
     }
 
-    if (text.startsWith('/task')) {
-      this.emit('command:task', receivedMessage);
+    if (text.startsWith("/task")) {
+      this.emit("command:task", receivedMessage);
       return;
     }
 
     // Check if it's a verification code (6 digits)
     if (/^\d{6}$/.test(text.trim())) {
-      this.emit('verification:code', receivedMessage);
+      this.emit("verification:code", receivedMessage);
       return;
     }
 
     // Regular text message (could be free-text answer)
-    this.emit('message:text', receivedMessage);
+    this.emit("message:text", receivedMessage);
   }
 
   /**
@@ -310,52 +326,57 @@ export class TelegramReceiver extends EventEmitter {
    */
   private async processCallbackQuery(
     botType: AgentType,
-    callback: TelegramCallbackQuery
+    callback: TelegramCallbackQuery,
   ): Promise<void> {
     const receivedCallback: ReceivedCallback = {
       botType,
       callbackId: callback.id,
-      chatId: callback.message?.chat.id.toString() || '',
+      chatId: callback.message?.chat.id.toString() || "",
       messageId: callback.message?.message_id || 0,
-      data: callback.data || '',
+      data: callback.data || "",
       fromUserId: callback.from.id,
     };
 
-    console.log(`[TelegramReceiver] Callback from ${botType}: "${callback.data}"`);
+    console.log(
+      `[TelegramReceiver] Callback from ${botType}: "${callback.data}"`,
+    );
 
     // Answer callback query (removes loading state from button)
     await this.answerCallbackQuery(botType, callback.id);
 
     // Parse callback data
     // Format: "answer:{questionId}:{action}" or "approve:{approvalId}:{yes|no}"
-    const parts = (callback.data || '').split(':');
+    const parts = (callback.data || "").split(":");
 
-    if (parts[0] === 'answer' && parts.length >= 3) {
-      this.emit('answer:button', {
+    if (parts[0] === "answer" && parts.length >= 3) {
+      this.emit("answer:button", {
         ...receivedCallback,
         questionId: parts[1],
-        action: parts.slice(2).join(':'),
+        action: parts.slice(2).join(":"),
       });
       return;
     }
 
-    if (parts[0] === 'approve' && parts.length >= 3) {
-      this.emit('approval:response', {
+    if (parts[0] === "approve" && parts.length >= 3) {
+      this.emit("approval:response", {
         ...receivedCallback,
         approvalId: parts[1],
-        approved: parts[2] === 'yes',
+        approved: parts[2] === "yes",
       });
       return;
     }
 
     // Unknown callback
-    this.emit('callback:unknown', receivedCallback);
+    this.emit("callback:unknown", receivedCallback);
   }
 
   /**
    * Answer a callback query to remove the loading indicator.
    */
-  private async answerCallbackQuery(botType: AgentType, callbackId: string): Promise<void> {
+  private async answerCallbackQuery(
+    botType: AgentType,
+    callbackId: string,
+  ): Promise<void> {
     const bot = this.botRegistry.getBot(botType);
     if (!bot) return;
 
@@ -363,12 +384,14 @@ export class TelegramReceiver extends EventEmitter {
 
     try {
       await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ callback_query_id: callbackId }),
       });
     } catch (error) {
-      console.error(`[TelegramReceiver] Failed to answer callback query: ${error}`);
+      console.error(
+        `[TelegramReceiver] Failed to answer callback query: ${error}`,
+      );
     }
   }
 }

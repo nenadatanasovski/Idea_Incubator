@@ -49,6 +49,7 @@
 ## Functional Requirements
 
 ### FR-1: Execution Analysis
+
 - FR-1.1: Parse Build Agent execution logs
 - FR-1.2: Extract task results (success/failure)
 - FR-1.3: Identify error messages and stack traces
@@ -56,6 +57,7 @@
 - FR-1.5: Track file modifications per task
 
 ### FR-2: Gotcha Extraction
+
 - FR-2.1: Identify error-fix pairs from failures
 - FR-2.2: Categorize gotchas by error type
 - FR-2.3: Tag gotchas with file patterns
@@ -63,12 +65,14 @@
 - FR-2.5: Generate human-readable gotcha descriptions
 
 ### FR-3: Pattern Extraction
+
 - FR-3.1: Identify successful code patterns
 - FR-3.2: Detect reusable approaches across tasks
 - FR-3.3: Extract code templates from successes
 - FR-3.4: Tag patterns with context (file type, action)
 
 ### FR-4: Knowledge Base Management
+
 - FR-4.1: Store entries with unique IDs
 - FR-4.2: Track confidence scores per entry
 - FR-4.3: Record occurrence counts
@@ -76,18 +80,21 @@
 - FR-4.5: Support querying by file pattern and action type
 
 ### FR-5: Duplicate Detection
+
 - FR-5.1: Compare new entries against existing
 - FR-5.2: Use semantic similarity for matching
 - FR-5.3: Merge similar gotchas (increase confidence)
 - FR-5.4: Prevent knowledge base bloat
 
 ### FR-6: Confidence Management
+
 - FR-6.1: Assign initial confidence (0.5)
 - FR-6.2: Increase confidence on confirmed prevention
 - FR-6.3: Apply time-based decay
 - FR-6.4: Track promotion/demotion thresholds
 
 ### FR-7: CLAUDE.md Updates
+
 - FR-7.1: Generate update proposals for high-confidence gotchas
 - FR-7.2: Target appropriate CLAUDE.md section
 - FR-7.3: Require human approval via Communication Hub
@@ -95,6 +102,7 @@
 - FR-7.5: Track proposal status (pending/approved/rejected)
 
 ### FR-8: API Endpoints
+
 - FR-8.1: POST /api/sia/analyze - Trigger execution analysis
 - FR-8.2: GET /api/sia/knowledge - Query knowledge base
 - FR-8.3: GET /api/sia/gotchas - Get gotchas with filters
@@ -108,16 +116,19 @@
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
+
 - Analysis completes within 30 seconds per execution
 - Knowledge Base queries return within 100ms
 - No impact on main agent execution flow
 
 ### NFR-2: Reliability
+
 - Graceful handling of malformed execution logs
 - Idempotent analysis (re-running produces same results)
 - Transaction safety for knowledge writes
 
 ### NFR-3: Maintainability
+
 - Modular extractor design (easy to add new extractors)
 - Clear separation between analysis and storage
 - Comprehensive logging for debugging
@@ -127,10 +138,11 @@
 ## Data Models
 
 ### KnowledgeEntry
+
 ```typescript
 interface KnowledgeEntry {
   id: string;
-  type: 'gotcha' | 'pattern' | 'decision';
+  type: "gotcha" | "pattern" | "decision";
   content: string;
   filePatterns: string[];
   actionTypes: string[];
@@ -147,13 +159,14 @@ interface KnowledgeEntry {
 ```
 
 ### ClaudeMdProposal
+
 ```typescript
 interface ClaudeMdProposal {
   id: string;
   knowledgeEntryId: string;
   proposedSection: string;
   proposedContent: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   reviewedAt: string | null;
   reviewerNotes: string | null;
   createdAt: string;
@@ -161,6 +174,7 @@ interface ClaudeMdProposal {
 ```
 
 ### GotchaApplication
+
 ```typescript
 interface GotchaApplication {
   id: string;
@@ -173,6 +187,7 @@ interface GotchaApplication {
 ```
 
 ### ExecutionAnalysis
+
 ```typescript
 interface ExecutionAnalysis {
   executionId: string;
@@ -262,6 +277,7 @@ CREATE INDEX IF NOT EXISTS idx_applications_entry ON gotcha_applications(knowled
 ## Component Details
 
 ### 1. Execution Analyzer (`agents/sia/execution-analyzer.ts`)
+
 ```typescript
 interface ExecutionAnalyzer {
   analyze(executionId: string): Promise<ExecutionAnalysis>;
@@ -273,6 +289,7 @@ interface ExecutionAnalyzer {
 ```
 
 ### 2. Gotcha Extractor (`agents/sia/gotcha-extractor.ts`)
+
 ```typescript
 interface GotchaExtractor {
   extract(failures: FailureInfo[]): ExtractedGotcha[];
@@ -284,6 +301,7 @@ interface GotchaExtractor {
 ```
 
 ### 3. Pattern Extractor (`agents/sia/pattern-extractor.ts`)
+
 ```typescript
 interface PatternExtractor {
   extract(successes: TaskResult[]): ExtractedPattern[];
@@ -293,6 +311,7 @@ interface PatternExtractor {
 ```
 
 ### 4. Knowledge Writer (`agents/sia/knowledge-writer.ts`)
+
 ```typescript
 interface KnowledgeWriter {
   writeGotcha(gotcha: ExtractedGotcha): Promise<KnowledgeEntry>;
@@ -303,6 +322,7 @@ interface KnowledgeWriter {
 ```
 
 ### 5. Duplicate Detector (`agents/sia/duplicate-detector.ts`)
+
 ```typescript
 interface DuplicateDetector {
   findDuplicate(content: string, type: string): Promise<KnowledgeEntry | null>;
@@ -313,9 +333,14 @@ interface DuplicateDetector {
 ```
 
 ### 6. Confidence Tracker (`agents/sia/confidence-tracker.ts`)
+
 ```typescript
 interface ConfidenceTracker {
-  recordPrevention(entryId: string, executionId: string, taskId: string): Promise<void>;
+  recordPrevention(
+    entryId: string,
+    executionId: string,
+    taskId: string,
+  ): Promise<void>;
   updateConfidence(entryId: string): Promise<number>;
   applyDecay(): Promise<void>;
   getPromotionCandidates(): Promise<KnowledgeEntry[]>;
@@ -333,6 +358,7 @@ const CONFIDENCE_CONFIG = {
 ```
 
 ### 7. CLAUDE.md Updater (`agents/sia/claude-md-updater.ts`)
+
 ```typescript
 interface ClaudeMdUpdater {
   createProposal(entry: KnowledgeEntry): Promise<ClaudeMdProposal>;
@@ -343,10 +369,10 @@ interface ClaudeMdUpdater {
 }
 
 const SECTION_MAPPING = {
-  sql: '## Database Conventions',
-  api: '## API Conventions',
-  typescript: '## Coding Loops Infrastructure',
-  test: '## Common Commands',
+  sql: "## Database Conventions",
+  api: "## API Conventions",
+  typescript: "## Coding Loops Infrastructure",
+  test: "## Common Commands",
 };
 ```
 
@@ -355,6 +381,7 @@ const SECTION_MAPPING = {
 ## API Specifications
 
 ### POST /api/sia/analyze
+
 ```typescript
 // Request
 { executionId: string }
@@ -369,6 +396,7 @@ const SECTION_MAPPING = {
 ```
 
 ### GET /api/sia/knowledge
+
 ```typescript
 // Query params
 {
@@ -388,6 +416,7 @@ const SECTION_MAPPING = {
 ```
 
 ### GET /api/sia/gotchas
+
 ```typescript
 // Query params
 {
@@ -403,6 +432,7 @@ const SECTION_MAPPING = {
 ```
 
 ### GET /api/sia/proposals
+
 ```typescript
 // Query params
 { status?: 'pending' | 'approved' | 'rejected' }
@@ -414,6 +444,7 @@ const SECTION_MAPPING = {
 ```
 
 ### POST /api/sia/proposals/:id/approve
+
 ```typescript
 // Request
 { notes?: string }
@@ -423,12 +454,17 @@ const SECTION_MAPPING = {
 ```
 
 ### POST /api/sia/proposals/:id/reject
+
 ```typescript
 // Request
-{ notes: string }
+{
+  notes: string;
+}
 
 // Response
-{ success: boolean }
+{
+  success: boolean;
+}
 ```
 
 ---
@@ -438,34 +474,34 @@ const SECTION_MAPPING = {
 ```typescript
 const EXTRACTION_RULES = [
   {
-    name: 'sqlite-date-type',
+    name: "sqlite-date-type",
     errorPattern: /datetime|timestamp|date/i,
-    filePattern: '*.sql',
-    fix: 'Use TEXT for dates in SQLite, not DATETIME',
+    filePattern: "*.sql",
+    fix: "Use TEXT for dates in SQLite, not DATETIME",
   },
   {
-    name: 'import-extension',
+    name: "import-extension",
     errorPattern: /Cannot find module|ERR_MODULE_NOT_FOUND/,
-    filePattern: '*.ts',
-    fix: 'Add .js extension to imports for ES modules',
+    filePattern: "*.ts",
+    fix: "Add .js extension to imports for ES modules",
   },
   {
-    name: 'async-await',
+    name: "async-await",
     errorPattern: /Promise.*is not assignable|await.*Promise/,
-    filePattern: '*.ts',
-    fix: 'Ensure async functions are awaited',
+    filePattern: "*.ts",
+    fix: "Ensure async functions are awaited",
   },
   {
-    name: 'sql-js-api',
+    name: "sql-js-api",
     errorPattern: /prepare|run|get.*not a function/,
-    filePattern: '*.ts',
-    fix: 'Use sql.js API: db.run() for writes, db.prepare().bind().step() for reads',
+    filePattern: "*.ts",
+    fix: "Use sql.js API: db.run() for writes, db.prepare().bind().step() for reads",
   },
   {
-    name: 'foreign-key-pragma',
+    name: "foreign-key-pragma",
     errorPattern: /FOREIGN KEY constraint failed/,
-    filePattern: '*.sql',
-    fix: 'Enable PRAGMA foreign_keys = ON before foreign key operations',
+    filePattern: "*.sql",
+    fix: "Enable PRAGMA foreign_keys = ON before foreign key operations",
   },
 ];
 ```
@@ -477,11 +513,13 @@ const EXTRACTION_RULES = [
 ### Message Bus Events
 
 **Subscribe to:**
+
 - `execution.completed` - Trigger analysis
 - `task.failed` - Real-time gotcha extraction
 - `task.retried` - Track retry patterns
 
 **Publish:**
+
 - `sia.analysis.completed` - Analysis finished
 - `sia.gotcha.extracted` - New gotcha found
 - `sia.proposal.created` - CLAUDE.md update proposed

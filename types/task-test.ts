@@ -17,9 +17,9 @@ export type TestLevel = 1 | 2 | 3;
  * Test level descriptions
  */
 export const TEST_LEVEL_DESCRIPTIONS: Record<TestLevel, string> = {
-  1: 'Syntax/Compile Check',
-  2: 'Unit Tests',
-  3: 'Integration/E2E Tests',
+  1: "Syntax/Compile Check",
+  2: "Unit Tests",
+  3: "Integration/E2E Tests",
 };
 
 /**
@@ -77,7 +77,7 @@ export interface ValidationResult {
  */
 export interface RunValidationInput {
   taskId: string;
-  levels?: TestLevel[];  // Default: all levels
+  levels?: TestLevel[]; // Default: all levels
   executionId?: string;
   agentId?: string;
 }
@@ -88,24 +88,24 @@ export interface RunValidationInput {
 export const DEFAULT_TEST_CONFIGS: Record<TestLevel, TaskTestConfig> = {
   1: {
     level: 1,
-    command: 'npx tsc --noEmit',
+    command: "npx tsc --noEmit",
     expectedExitCode: 0,
     timeout: 60000,
-    description: 'TypeScript type checking',
+    description: "TypeScript type checking",
   },
   2: {
     level: 2,
-    command: 'npm test -- --passWithNoTests',
+    command: "npm test -- --passWithNoTests",
     expectedExitCode: 0,
     timeout: 120000,
-    description: 'Run unit tests',
+    description: "Run unit tests",
   },
   3: {
     level: 3,
-    command: 'npm run test:e2e -- --passWithNoTests',
+    command: "npm run test:e2e -- --passWithNoTests",
     expectedExitCode: 0,
     timeout: 300000,
-    description: 'Run integration/E2E tests',
+    description: "Run integration/E2E tests",
   },
 };
 

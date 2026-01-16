@@ -9,6 +9,7 @@
 ## Overview
 
 This document defines the complete task format used throughout the Idea Incubator system. All tasks should follow this structure to ensure compatibility with:
+
 - Task Agent validation
 - Build Agent execution
 - Parallelism analysis
@@ -29,30 +30,30 @@ This document defines the complete task format used throughout the Idea Incubato
 
 ### Metadata
 
-| Field | Value |
-|-------|-------|
-| **ID** | `[UUID - system generated]` |
+| Field          | Value                                                       |
+| -------------- | ----------------------------------------------------------- |
+| **ID**         | `[UUID - system generated]`                                 |
 | **Display ID** | `[USER_INITIALS]-[PROJECT_CODE]-[CATEGORY_CODE]-[SEQUENCE]` |
-| **Phase** | 1-Database / 2-Types / 3-API / 4-UI / 5-Tests |
-| **Category** | See Category Reference below |
-| **Status** | See Status Reference below |
-| **Queue** | `evaluation` / `null` |
-| **Task List** | Task List Name or NULL (if in Evaluation Queue) |
-| **Priority** | P1-Critical / P2-Important / P3-Enhancement |
-| **Effort** | trivial / small / medium / large / epic |
-| **Owner** | Build Agent / Human / Task Agent |
+| **Phase**      | 1-Database / 2-Types / 3-API / 4-UI / 5-Tests               |
+| **Category**   | See Category Reference below                                |
+| **Status**     | See Status Reference below                                  |
+| **Queue**      | `evaluation` / `null`                                       |
+| **Task List**  | Task List Name or NULL (if in Evaluation Queue)             |
+| **Priority**   | P1-Critical / P2-Important / P3-Enhancement                 |
+| **Effort**     | trivial / small / medium / large / epic                     |
+| **Owner**      | Build Agent / Human / Task Agent                            |
 
 ---
 
 ### Relationships
 
-| Type | Target | Notes |
-|------|--------|-------|
-| **Depends On** | Task IDs that must complete first | Blocks execution |
-| **Blocks** | Task IDs waiting on this | Auto-calculated |
-| **Related To** | Thematically connected tasks | Informational |
-| **Duplicate Of** | Task ID if duplicate | Triggers merge flow |
-| **Subtask Of** | Parent task ID | Hierarchical grouping |
+| Type             | Target                            | Notes                 |
+| ---------------- | --------------------------------- | --------------------- |
+| **Depends On**   | Task IDs that must complete first | Blocks execution      |
+| **Blocks**       | Task IDs waiting on this          | Auto-calculated       |
+| **Related To**   | Thematically connected tasks      | Informational         |
+| **Duplicate Of** | Task ID if duplicate              | Triggers merge flow   |
+| **Subtask Of**   | Parent task ID                    | Hierarchical grouping |
 
 ---
 
@@ -66,25 +67,25 @@ This document defines the complete task format used throughout the Idea Incubato
 
 #### Why This Task?
 
-| Benefit | Description |
-|---------|-------------|
+| Benefit       | Description                |
+| ------------- | -------------------------- |
 | **Benefit 1** | How this helps the project |
-| **Benefit 2** | Additional value provided |
+| **Benefit 2** | Additional value provided  |
 
 #### Key Design Decisions
 
-| Decision | Rationale |
-|----------|-----------|
+| Decision              | Rationale                      |
+| --------------------- | ------------------------------ |
 | Technical choice made | Why this approach was selected |
 
 ---
 
 ### File Impacts
 
-| File Path | Operation | Confidence | Source |
-|-----------|-----------|------------|--------|
-| `path/to/file.ts` | CREATE | 0.95 | ai_estimate |
-| `path/to/other.ts` | UPDATE | 0.85 | pattern_match |
+| File Path          | Operation | Confidence | Source        |
+| ------------------ | --------- | ---------- | ------------- |
+| `path/to/file.ts`  | CREATE    | 0.95       | ai_estimate   |
+| `path/to/other.ts` | UPDATE    | 0.85       | pattern_match |
 
 **Operations:** `CREATE`, `UPDATE`, `DELETE`, `READ`
 **Sources:** `ai_estimate`, `pattern_match`, `user_declared`, `validated`
@@ -109,11 +110,11 @@ This document defines the complete task format used throughout the Idea Incubato
 
 **PASS** when ALL of the following are true:
 
-| # | Criterion | How to Verify |
-|---|-----------|---------------|
-| 1 | What must be true | Command or check to verify |
-| 2 | What must be true | Command or check to verify |
-| 3 | What must be true | Command or check to verify |
+| #   | Criterion         | How to Verify              |
+| --- | ----------------- | -------------------------- |
+| 1   | What must be true | Command or check to verify |
+| 2   | What must be true | Command or check to verify |
+| 3   | What must be true | Command or check to verify |
 
 **FAIL** if any criterion is not met.
 
@@ -195,11 +196,7 @@ command_2
   {
     "name": "Test case description",
     "preconditions": ["User is logged in"],
-    "steps": [
-      "Navigate to /page",
-      "Click button X",
-      "Fill form field Y"
-    ],
+    "steps": ["Navigate to /page", "Click button X", "Fill form field Y"],
     "expectedResult": "Success message appears"
   }
 ]
@@ -217,62 +214,62 @@ command_2
 
 ### Category Reference
 
-| Category | Code | Description |
-|----------|------|-------------|
-| `feature` | FEA | New functionality |
-| `bug` | BUG | Defect fix |
-| `task` | TSK | General task |
-| `story` | STY | User story |
-| `epic` | EPC | Large feature set |
-| `spike` | SPK | Research/exploration |
-| `improvement` | IMP | Enhancement |
-| `documentation` | DOC | Docs update |
-| `test` | TST | Test creation |
-| `devops` | OPS | CI/CD/infrastructure |
-| `design` | DES | UI/UX design |
-| `research` | RSH | Investigation |
-| `infrastructure` | INF | System infrastructure |
-| `security` | SEC | Security work |
-| `performance` | PRF | Optimization |
-| `other` | OTH | Uncategorized |
+| Category         | Code | Description           |
+| ---------------- | ---- | --------------------- |
+| `feature`        | FEA  | New functionality     |
+| `bug`            | BUG  | Defect fix            |
+| `task`           | TSK  | General task          |
+| `story`          | STY  | User story            |
+| `epic`           | EPC  | Large feature set     |
+| `spike`          | SPK  | Research/exploration  |
+| `improvement`    | IMP  | Enhancement           |
+| `documentation`  | DOC  | Docs update           |
+| `test`           | TST  | Test creation         |
+| `devops`         | OPS  | CI/CD/infrastructure  |
+| `design`         | DES  | UI/UX design          |
+| `research`       | RSH  | Investigation         |
+| `infrastructure` | INF  | System infrastructure |
+| `security`       | SEC  | Security work         |
+| `performance`    | PRF  | Optimization          |
+| `other`          | OTH  | Uncategorized         |
 
 ### Status Reference
 
-| Status | Description | Transitions To |
-|--------|-------------|----------------|
-| `draft` | Being written | evaluating, pending |
-| `evaluating` | In Evaluation Queue | pending, blocked |
-| `pending` | Ready to execute | in_progress, blocked |
-| `in_progress` | Being executed | completed, failed, blocked |
-| `completed` | Successfully done | (terminal) |
-| `failed` | Execution failed | pending (retry), blocked |
-| `blocked` | Waiting on dependency | pending (when unblocked) |
-| `skipped` | Intentionally skipped | (terminal) |
+| Status        | Description           | Transitions To             |
+| ------------- | --------------------- | -------------------------- |
+| `draft`       | Being written         | evaluating, pending        |
+| `evaluating`  | In Evaluation Queue   | pending, blocked           |
+| `pending`     | Ready to execute      | in_progress, blocked       |
+| `in_progress` | Being executed        | completed, failed, blocked |
+| `completed`   | Successfully done     | (terminal)                 |
+| `failed`      | Execution failed      | pending (retry), blocked   |
+| `blocked`     | Waiting on dependency | pending (when unblocked)   |
+| `skipped`     | Intentionally skipped | (terminal)                 |
 
 ### Relationship Type Reference
 
-| Type | Description | Creates Execution Dependency |
-|------|-------------|------------------------------|
-| `depends_on` | Must wait for target | YES |
-| `blocks` | Target waits for this | YES (inverse) |
-| `related_to` | Thematic connection | NO |
-| `duplicate_of` | Same as target | NO (triggers merge) |
-| `subtask_of` | Part of parent | NO |
-| `supersedes` | Replaces target | NO |
-| `implements` | Implements spec | NO |
-| `conflicts_with` | Cannot run simultaneously | YES (parallel blocking) |
-| `enables` | Unlocks target | YES |
-| `inspired_by` | Idea source | NO |
-| `tests` | Validates target | NO |
+| Type             | Description               | Creates Execution Dependency |
+| ---------------- | ------------------------- | ---------------------------- |
+| `depends_on`     | Must wait for target      | YES                          |
+| `blocks`         | Target waits for this     | YES (inverse)                |
+| `related_to`     | Thematic connection       | NO                           |
+| `duplicate_of`   | Same as target            | NO (triggers merge)          |
+| `subtask_of`     | Part of parent            | NO                           |
+| `supersedes`     | Replaces target           | NO                           |
+| `implements`     | Implements spec           | NO                           |
+| `conflicts_with` | Cannot run simultaneously | YES (parallel blocking)      |
+| `enables`        | Unlocks target            | YES                          |
+| `inspired_by`    | Idea source               | NO                           |
+| `tests`          | Validates target          | NO                           |
 
 ### File Operation Reference
 
-| Operation | Description | Parallel Conflict Matrix |
-|-----------|-------------|--------------------------|
-| `CREATE` | New file | Conflicts with: CREATE (same file) |
-| `UPDATE` | Modify existing | Conflicts with: UPDATE, DELETE |
-| `DELETE` | Remove file | Conflicts with: CREATE, UPDATE, DELETE, READ |
-| `READ` | Read only | No conflicts |
+| Operation | Description     | Parallel Conflict Matrix                     |
+| --------- | --------------- | -------------------------------------------- |
+| `CREATE`  | New file        | Conflicts with: CREATE (same file)           |
+| `UPDATE`  | Modify existing | Conflicts with: UPDATE, DELETE               |
+| `DELETE`  | Remove file     | Conflicts with: CREATE, UPDATE, DELETE, READ |
+| `READ`    | Read only       | No conflicts                                 |
 
 ---
 
@@ -286,6 +283,7 @@ category: "feature"
 ```
 
 All other fields will be:
+
 - Auto-generated (ID, display_id, timestamps)
 - Set to defaults (status: evaluating, queue: evaluation)
 - Estimated by AI (file impacts)
@@ -305,28 +303,28 @@ All other fields will be:
 
 ### Metadata
 
-| Field | Value |
-|-------|-------|
-| **ID** | `a1b2c3d4-e5f6-7890-abcd-ef1234567890` |
-| **Display ID** | `TU-PROJ-FEA-042` |
-| **Phase** | 3 - API |
-| **Category** | feature |
-| **Status** | pending |
-| **Queue** | null |
-| **Task List** | User Profile Feature |
-| **Priority** | P2 |
-| **Effort** | medium |
-| **Owner** | Build Agent |
+| Field          | Value                                  |
+| -------------- | -------------------------------------- |
+| **ID**         | `a1b2c3d4-e5f6-7890-abcd-ef1234567890` |
+| **Display ID** | `TU-PROJ-FEA-042`                      |
+| **Phase**      | 3 - API                                |
+| **Category**   | feature                                |
+| **Status**     | pending                                |
+| **Queue**      | null                                   |
+| **Task List**  | User Profile Feature                   |
+| **Priority**   | P2                                     |
+| **Effort**     | medium                                 |
+| **Owner**      | Build Agent                            |
 
 ---
 
 ### Relationships
 
-| Type | Target | Notes |
-|------|--------|-------|
+| Type           | Target                           | Notes                                |
+| -------------- | -------------------------------- | ------------------------------------ |
 | **Depends On** | TU-PROJ-FEA-040, TU-PROJ-FEA-041 | Requires user table and file storage |
-| **Blocks** | TU-PROJ-FEA-043 | Profile display needs avatars |
-| **Related To** | TU-PROJ-FEA-044 | Image resizing feature |
+| **Blocks**     | TU-PROJ-FEA-043                  | Profile display needs avatars        |
+| **Related To** | TU-PROJ-FEA-044                  | Image resizing feature               |
 
 ---
 
@@ -340,29 +338,29 @@ All other fields will be:
 
 #### Why This Task?
 
-| Benefit | Description |
-|---------|-------------|
+| Benefit                  | Description                                        |
+| ------------------------ | -------------------------------------------------- |
 | **User Personalization** | Allows users to customize their profile appearance |
-| **Social Features** | Enables avatar display in comments, mentions, etc. |
+| **Social Features**      | Enables avatar display in comments, mentions, etc. |
 
 #### Key Design Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| Store in S3-compatible storage | Scalable, CDN-friendly |
-| Max 5MB file size | Balance quality vs storage costs |
-| Accept JPEG, PNG, WebP only | Common formats, good compression |
+| Decision                       | Rationale                        |
+| ------------------------------ | -------------------------------- |
+| Store in S3-compatible storage | Scalable, CDN-friendly           |
+| Max 5MB file size              | Balance quality vs storage costs |
+| Accept JPEG, PNG, WebP only    | Common formats, good compression |
 
 ---
 
 ### File Impacts
 
-| File Path | Operation | Confidence | Source |
-|-----------|-----------|------------|--------|
-| `server/routes/avatar.ts` | CREATE | 0.95 | ai_estimate |
-| `server/services/image-processor.ts` | CREATE | 0.90 | ai_estimate |
-| `types/user.ts` | UPDATE | 0.85 | pattern_match |
-| `server/api.ts` | UPDATE | 0.95 | pattern_match |
+| File Path                            | Operation | Confidence | Source        |
+| ------------------------------------ | --------- | ---------- | ------------- |
+| `server/routes/avatar.ts`            | CREATE    | 0.95       | ai_estimate   |
+| `server/services/image-processor.ts` | CREATE    | 0.90       | ai_estimate   |
+| `types/user.ts`                      | UPDATE    | 0.85       | pattern_match |
+| `server/api.ts`                      | UPDATE    | 0.95       | pattern_match |
 
 ---
 
@@ -390,13 +388,13 @@ All other fields will be:
 
 **PASS** when ALL of the following are true:
 
-| # | Criterion | How to Verify |
-|---|-----------|---------------|
-| 1 | Route file exists | `test -f server/routes/avatar.ts` |
-| 2 | TypeScript compiles | `npx tsc --noEmit` exits 0 |
-| 3 | API returns 200 on valid upload | POST with valid image returns 200 |
-| 4 | API returns 400 on invalid file | POST with PDF returns 400 |
-| 5 | User record updated | avatarUrl field populated |
+| #   | Criterion                       | How to Verify                     |
+| --- | ------------------------------- | --------------------------------- |
+| 1   | Route file exists               | `test -f server/routes/avatar.ts` |
+| 2   | TypeScript compiles             | `npx tsc --noEmit` exits 0        |
+| 3   | API returns 200 on valid upload | POST with valid image returns 200 |
+| 4   | API returns 400 on invalid file | POST with PDF returns 400         |
+| 5   | User record updated             | avatarUrl field populated         |
 
 **FAIL** if any criterion is not met.
 
@@ -420,14 +418,14 @@ types/
 
 ```typescript
 // server/routes/avatar.ts
-import { Router } from 'express';
-import multer from 'multer';
-import { ImageProcessor } from '../services/image-processor';
+import { Router } from "express";
+import multer from "multer";
+import { ImageProcessor } from "../services/image-processor";
 
 const router = Router();
 const upload = multer({ limits: { fileSize: 5 * 1024 * 1024 } });
 
-router.post('/:userId/avatar', upload.single('avatar'), async (req, res) => {
+router.post("/:userId/avatar", upload.single("avatar"), async (req, res) => {
   // Validate file type
   // Process image
   // Store in backend
@@ -534,20 +532,20 @@ The Task Agent validates tasks against these rules:
 
 ### Required Fields (Creation)
 
-| Field | Required | Default |
-|-------|----------|---------|
-| title | YES | - |
-| category | YES | 'task' |
-| description | NO | '' |
-| projectId | YES (via context) | - |
+| Field       | Required          | Default |
+| ----------- | ----------------- | ------- |
+| title       | YES               | -       |
+| category    | YES               | 'task'  |
+| description | NO                | ''      |
+| projectId   | YES (via context) | -       |
 
 ### Required Fields (Execution)
 
-| Field | Required | Notes |
-|-------|----------|-------|
-| passsCriteria | YES | At least 1 criterion |
-| fileImpacts | YES | At least estimated |
-| requirements | RECOMMENDED | Improves Build Agent success |
+| Field         | Required    | Notes                        |
+| ------------- | ----------- | ---------------------------- |
+| passsCriteria | YES         | At least 1 criterion         |
+| fileImpacts   | YES         | At least estimated           |
+| requirements  | RECOMMENDED | Improves Build Agent success |
 
 ### Validation Checks
 
@@ -567,4 +565,4 @@ The Task Agent validates tasks against these rules:
 
 ---
 
-*This reference document defines the canonical task format. All task-related code should conform to this specification.*
+_This reference document defines the canonical task format. All task-related code should conform to this specification._

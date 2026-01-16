@@ -6,14 +6,14 @@
  * - Checkbox format: - [ ] Task description
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 export interface ParsedTask {
   id: string;
   description: string;
-  priority: 'P1' | 'P2' | 'P3' | 'P4';
-  status: 'pending' | 'in_progress' | 'complete';
+  priority: "P1" | "P2" | "P3" | "P4";
+  status: "pending" | "in_progress" | "complete";
   section: string;
   subsection?: string;
   lineNumber: number;
@@ -44,7 +44,8 @@ export interface TaskSection {
 }
 
 // Patterns for parsing
-const TABLE_ROW_PATTERN = /^\|\s*([A-Z]+-\d+)\s*\|\s*(.+?)\s*\|\s*(P[1-4])\s*\|\s*\[([x~\s])\]\s*\|/;
+const TABLE_ROW_PATTERN =
+  /^\|\s*([A-Z]+-\d+)\s*\|\s*(.+?)\s*\|\s*(P[1-4])\s*\|\s*\[([x~\s])\]\s*\|/;
 const CHECKBOX_PATTERN = /^[-*]\s*\[([x~\s])\]\s*(.+)$/;
 const SECTION_PATTERN = /^##\s+(\d+\.?\s*)?(.+)$/;
 const SUBSECTION_PATTERN = /^###\s+(.+)$/;
@@ -53,11 +54,14 @@ const TITLE_PATTERN = /^#\s+(.+)$/;
 /**
  * Parse status character to status string
  */
-function parseStatus(char: string): 'pending' | 'in_progress' | 'complete' {
+function parseStatus(char: string): "pending" | "in_progress" | "complete" {
   switch (char.toLowerCase()) {
-    case 'x': return 'complete';
-    case '~': return 'in_progress';
-    default: return 'pending';
+    case "x":
+      return "complete";
+    case "~":
+      return "in_progress";
+    default:
+      return "pending";
   }
 }
 
@@ -67,23 +71,23 @@ function parseStatus(char: string): 'pending' | 'in_progress' | 'complete' {
 function generateId(description: string, index: number): string {
   const slug = description
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
     .slice(0, 20);
-  return `TASK-${index.toString().padStart(3, '0')}-${slug}`;
+  return `TASK-${index.toString().padStart(3, "0")}-${slug}`;
 }
 
 /**
  * Parse a markdown task list file
  */
 export function parseTaskList(filePath: string): TaskList {
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n');
+  const content = fs.readFileSync(filePath, "utf-8");
+  const lines = content.split("\n");
   const stats = fs.statSync(filePath);
 
-  let title = path.basename(filePath, '.md');
+  let title = path.basename(filePath, ".md");
   let description: string | undefined;
-  let currentSection = 'General';
+  let currentSection = "General";
   let currentSubsection: string | undefined;
   const tasks: ParsedTask[] = [];
   const sections: TaskSection[] = [];
@@ -99,8 +103,8 @@ export function parseTaskList(filePath: string): TaskList {
     if (titleMatch) {
       title = titleMatch[1].trim();
       // Look for description in next line(s)
-      if (i + 1 < lines.length && lines[i + 1].startsWith('>')) {
-        description = lines[i + 1].replace(/^>\s*/, '').trim();
+      if (i + 1 < lines.length && lines[i + 1].startsWith(">")) {
+        description = lines[i + 1].replace(/^>\s*/, "").trim();
       }
       continue;
     }
@@ -131,7 +135,7 @@ export function parseTaskList(filePath: string): TaskList {
       const task: ParsedTask = {
         id: tableMatch[1],
         description: tableMatch[2].trim(),
-        priority: tableMatch[3] as 'P1' | 'P2' | 'P3' | 'P4',
+        priority: tableMatch[3] as "P1" | "P2" | "P3" | "P4",
         status: parseStatus(tableMatch[4]),
         section: currentSection,
         subsection: currentSubsection,
@@ -149,7 +153,7 @@ export function parseTaskList(filePath: string): TaskList {
       const task: ParsedTask = {
         id: generateId(checkboxMatch[2], taskIndex),
         description: checkboxMatch[2].trim(),
-        priority: 'P2', // Default priority for checkbox tasks
+        priority: "P2", // Default priority for checkbox tasks
         status: parseStatus(checkboxMatch[1]),
         section: currentSection,
         subsection: currentSubsection,
@@ -164,14 +168,14 @@ export function parseTaskList(filePath: string): TaskList {
   // Calculate summary
   const summary = {
     total: tasks.length,
-    pending: tasks.filter(t => t.status === 'pending').length,
-    inProgress: tasks.filter(t => t.status === 'in_progress').length,
-    complete: tasks.filter(t => t.status === 'complete').length,
+    pending: tasks.filter((t) => t.status === "pending").length,
+    inProgress: tasks.filter((t) => t.status === "in_progress").length,
+    complete: tasks.filter((t) => t.status === "complete").length,
     byPriority: {
-      P1: tasks.filter(t => t.priority === 'P1').length,
-      P2: tasks.filter(t => t.priority === 'P2').length,
-      P3: tasks.filter(t => t.priority === 'P3').length,
-      P4: tasks.filter(t => t.priority === 'P4').length,
+      P1: tasks.filter((t) => t.priority === "P1").length,
+      P2: tasks.filter((t) => t.priority === "P2").length,
+      P3: tasks.filter((t) => t.priority === "P3").length,
+      P4: tasks.filter((t) => t.priority === "P4").length,
     },
   };
 
@@ -194,15 +198,13 @@ export function findTaskLists(basePath: string): string[] {
   const taskLists: string[] = [];
 
   // Scan docs/bootstrap folder for any markdown files with task tables
-  const docsBootstrapPath = path.join(basePath, 'docs/bootstrap');
+  const docsBootstrapPath = path.join(basePath, "docs/bootstrap");
   if (fs.existsSync(docsBootstrapPath)) {
     scanForTaskListsByContent(docsBootstrapPath, taskLists);
   }
 
   // Check specific known paths
-  const knownPaths = [
-    path.join(basePath, 'coding-loops/TASKS.md'),
-  ];
+  const knownPaths = [path.join(basePath, "coding-loops/TASKS.md")];
 
   for (const p of knownPaths) {
     if (fs.existsSync(p) && !taskLists.includes(p)) {
@@ -211,13 +213,13 @@ export function findTaskLists(basePath: string): string[] {
   }
 
   // Scan for other task lists in ideas folder
-  const ideasPath = path.join(basePath, 'ideas');
+  const ideasPath = path.join(basePath, "ideas");
   if (fs.existsSync(ideasPath)) {
     scanForTaskLists(ideasPath, taskLists);
   }
 
   // Scan for task lists in users folder
-  const usersPath = path.join(basePath, 'users');
+  const usersPath = path.join(basePath, "users");
   if (fs.existsSync(usersPath)) {
     scanForTaskLists(usersPath, taskLists);
   }
@@ -233,12 +235,16 @@ function scanForTaskListsByContent(dir: string, results: string[]): void {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
-      if (entry.isFile() && entry.name.endsWith('.md')) {
+      if (entry.isFile() && entry.name.endsWith(".md")) {
         // Check if file contains task table format
         try {
-          const content = fs.readFileSync(fullPath, 'utf-8');
+          const content = fs.readFileSync(fullPath, "utf-8");
           // Look for task table pattern: | ID | Task | Pri | Status |
-          if (content.match(/\|\s*[A-Z]+-\d+\s*\|.*\|\s*P[1-4]\s*\|\s*\[[x~\s]\]\s*\|/)) {
+          if (
+            content.match(
+              /\|\s*[A-Z]+-\d+\s*\|.*\|\s*P[1-4]\s*\|\s*\[[x~\s]\]\s*\|/,
+            )
+          ) {
             results.push(fullPath);
           }
         } catch (e) {
@@ -258,11 +264,15 @@ function scanForTaskLists(dir: string, results: string[], depth = 0): void {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+      if (
+        entry.isDirectory() &&
+        !entry.name.startsWith(".") &&
+        entry.name !== "node_modules"
+      ) {
         scanForTaskLists(fullPath, results, depth + 1);
       } else if (entry.isFile()) {
         const lowerName = entry.name.toLowerCase();
-        if (lowerName === 'tasks.md' || lowerName === 'task-list.md') {
+        if (lowerName === "tasks.md" || lowerName === "task-list.md") {
           results.push(fullPath);
         }
       }
@@ -278,13 +288,14 @@ function scanForTaskLists(dir: string, results: string[], depth = 0): void {
 export function updateTaskStatus(
   filePath: string,
   taskId: string,
-  newStatus: 'pending' | 'in_progress' | 'complete'
+  newStatus: "pending" | "in_progress" | "complete",
 ): boolean {
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n');
+  const content = fs.readFileSync(filePath, "utf-8");
+  const lines = content.split("\n");
   let modified = false;
 
-  const statusChar = newStatus === 'complete' ? 'x' : newStatus === 'in_progress' ? '~' : ' ';
+  const statusChar =
+    newStatus === "complete" ? "x" : newStatus === "in_progress" ? "~" : " ";
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -302,7 +313,7 @@ export function updateTaskStatus(
   }
 
   if (modified) {
-    fs.writeFileSync(filePath, lines.join('\n'), 'utf-8');
+    fs.writeFileSync(filePath, lines.join("\n"), "utf-8");
   }
 
   return modified;
@@ -314,10 +325,14 @@ export function updateTaskStatus(
 export function addTask(
   filePath: string,
   sectionName: string,
-  task: { id: string; description: string; priority: 'P1' | 'P2' | 'P3' | 'P4' }
+  task: {
+    id: string;
+    description: string;
+    priority: "P1" | "P2" | "P3" | "P4";
+  },
 ): boolean {
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n');
+  const content = fs.readFileSync(filePath, "utf-8");
+  const lines = content.split("\n");
 
   // Find the section
   let sectionIndex = -1;
@@ -325,11 +340,14 @@ export function addTask(
 
   for (let i = 0; i < lines.length; i++) {
     const sectionMatch = lines[i].match(SECTION_PATTERN);
-    if (sectionMatch && sectionMatch[2].trim().toLowerCase().includes(sectionName.toLowerCase())) {
+    if (
+      sectionMatch &&
+      sectionMatch[2].trim().toLowerCase().includes(sectionName.toLowerCase())
+    ) {
       sectionIndex = i;
       // Find the end of the table in this section
       for (let j = i + 1; j < lines.length; j++) {
-        if (lines[j].startsWith('|') && lines[j].includes('|')) {
+        if (lines[j].startsWith("|") && lines[j].includes("|")) {
           tableEndIndex = j;
         } else if (lines[j].match(SECTION_PATTERN)) {
           break; // Next section
@@ -347,19 +365,24 @@ export function addTask(
   const newRow = `| ${task.id} | ${task.description} | ${task.priority} | [ ] |`;
   lines.splice(tableEndIndex + 1, 0, newRow);
 
-  fs.writeFileSync(filePath, lines.join('\n'), 'utf-8');
+  fs.writeFileSync(filePath, lines.join("\n"), "utf-8");
   return true;
 }
 
 /**
  * Get next pending task for a given priority level
  */
-export function getNextPendingTask(taskList: TaskList, minPriority?: 'P1' | 'P2' | 'P3' | 'P4'): ParsedTask | null {
-  const priorityOrder = ['P1', 'P2', 'P3', 'P4'];
+export function getNextPendingTask(
+  taskList: TaskList,
+  minPriority?: "P1" | "P2" | "P3" | "P4",
+): ParsedTask | null {
+  const priorityOrder = ["P1", "P2", "P3", "P4"];
   const maxIndex = minPriority ? priorityOrder.indexOf(minPriority) : 3;
 
   for (const priority of priorityOrder.slice(0, maxIndex + 1)) {
-    const task = taskList.tasks.find(t => t.status === 'pending' && t.priority === priority);
+    const task = taskList.tasks.find(
+      (t) => t.status === "pending" && t.priority === priority,
+    );
     if (task) return task;
   }
 
@@ -369,9 +392,12 @@ export function getNextPendingTask(taskList: TaskList, minPriority?: 'P1' | 'P2'
 /**
  * Get tasks by section
  */
-export function getTasksBySection(taskList: TaskList, sectionName: string): ParsedTask[] {
-  return taskList.tasks.filter(t =>
-    t.section.toLowerCase().includes(sectionName.toLowerCase())
+export function getTasksBySection(
+  taskList: TaskList,
+  sectionName: string,
+): ParsedTask[] {
+  return taskList.tasks.filter((t) =>
+    t.section.toLowerCase().includes(sectionName.toLowerCase()),
   );
 }
 
@@ -390,7 +416,7 @@ export function getTaskListsSummary(basePath: string): Array<{
   lastModified: string;
 }> {
   const files = findTaskLists(basePath);
-  const summaries = files.map(file => {
+  const summaries = files.map((file) => {
     const taskList = parseTaskList(file);
     return {
       filePath: taskList.filePath,
@@ -400,15 +426,19 @@ export function getTaskListsSummary(basePath: string): Array<{
       pending: taskList.summary.pending,
       inProgress: taskList.summary.inProgress,
       complete: taskList.summary.complete,
-      percentComplete: taskList.summary.total > 0
-        ? Math.round((taskList.summary.complete / taskList.summary.total) * 100)
-        : 0,
+      percentComplete:
+        taskList.summary.total > 0
+          ? Math.round(
+              (taskList.summary.complete / taskList.summary.total) * 100,
+            )
+          : 0,
       lastModified: taskList.lastModified,
     };
   });
 
   // Sort by lastModified date, newest first
-  return summaries.sort((a, b) =>
-    new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
+  return summaries.sort(
+    (a, b) =>
+      new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime(),
   );
 }

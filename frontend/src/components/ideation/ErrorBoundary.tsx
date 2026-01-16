@@ -4,7 +4,7 @@
 // Implements TEST-UI-014 requirements
 // =============================================================================
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from "react";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -27,7 +27,12 @@ interface ErrorBoundaryState {
 // -----------------------------------------------------------------------------
 
 const AlertIcon = () => (
-  <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg
+    className="w-12 h-12 text-red-500"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -38,7 +43,12 @@ const AlertIcon = () => (
 );
 
 const RefreshIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -73,7 +83,8 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, onRetry }) => {
           data-testid="error-message"
           className="mt-2 text-sm text-gray-600 dark:text-gray-400"
         >
-          {error?.message || 'An unexpected error occurred while rendering this component.'}
+          {error?.message ||
+            "An unexpected error occurred while rendering this component."}
         </p>
         <button
           data-testid="btn-retry"
@@ -83,7 +94,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, onRetry }) => {
           <RefreshIcon />
           Try Again
         </button>
-        {process.env.NODE_ENV === 'development' && error?.stack && (
+        {process.env.NODE_ENV === "development" && error?.stack && (
           <details className="mt-4 w-full text-left">
             <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
               Technical Details
@@ -102,7 +113,10 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, onRetry }) => {
 // Error Boundary Class Component
 // -----------------------------------------------------------------------------
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -118,7 +132,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log error to console
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
 
     this.setState({ errorInfo });
 
@@ -171,7 +185,7 @@ interface ArtifactErrorProps {
 export const ArtifactError: React.FC<ArtifactErrorProps> = ({
   error,
   onRetry,
-  title = 'Failed to load artifact',
+  title = "Failed to load artifact",
 }) => {
   const errorMessage = error instanceof Error ? error.message : error;
 
@@ -230,7 +244,9 @@ interface OfflineIndicatorProps {
   isOffline: boolean;
 }
 
-export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ isOffline }) => {
+export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
+  isOffline,
+}) => {
   if (!isOffline) return null;
 
   return (
@@ -278,7 +294,12 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
       className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50"
     >
       <div className="flex items-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg shadow-lg">
-        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          className="w-5 h-5 flex-shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -292,7 +313,12 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
             onClick={onDismiss}
             className="ml-2 p-0.5 hover:bg-red-500 rounded transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -313,19 +339,19 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
 
 export function useNetworkStatus(): boolean {
   const [isOffline, setIsOffline] = React.useState(
-    typeof navigator !== 'undefined' ? !navigator.onLine : false
+    typeof navigator !== "undefined" ? !navigator.onLine : false,
   );
 
   React.useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 

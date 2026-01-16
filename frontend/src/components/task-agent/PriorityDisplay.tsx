@@ -5,7 +5,7 @@
  * Part of: Task System V2 Implementation Plan (IMPL-7.13)
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react";
 import {
   TrendingUp,
   Clock,
@@ -14,82 +14,89 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronRight,
-  Info
-} from 'lucide-react'
+  Info,
+} from "lucide-react";
 
 interface PriorityFactors {
-  basePriority: number
-  blockingCount: number
-  blockingBoost: number
-  urgencyMultiplier: number
-  effortDiscount: number
-  staleDays: number
-  staleBoost: number
-  dependencyPenalty: number
+  basePriority: number;
+  blockingCount: number;
+  blockingBoost: number;
+  urgencyMultiplier: number;
+  effortDiscount: number;
+  staleDays: number;
+  staleBoost: number;
+  dependencyPenalty: number;
 }
 
 interface PriorityCalculation {
-  taskId: string
-  finalScore: number
-  factors: PriorityFactors
-  isQuickWin: boolean
-  calculatedAt: string
+  taskId: string;
+  finalScore: number;
+  factors: PriorityFactors;
+  isQuickWin: boolean;
+  calculatedAt: string;
 }
 
 interface PriorityDisplayProps {
-  taskId: string
-  compact?: boolean
-  onRecalculate?: () => void
+  taskId: string;
+  compact?: boolean;
+  onRecalculate?: () => void;
 }
 
 function getScoreColor(score: number): { text: string; bg: string } {
-  if (score >= 80) return { text: 'text-red-600', bg: 'bg-red-100' }
-  if (score >= 60) return { text: 'text-orange-600', bg: 'bg-orange-100' }
-  if (score >= 40) return { text: 'text-yellow-600', bg: 'bg-yellow-100' }
-  return { text: 'text-green-600', bg: 'bg-green-100' }
+  if (score >= 80) return { text: "text-red-600", bg: "bg-red-100" };
+  if (score >= 60) return { text: "text-orange-600", bg: "bg-orange-100" };
+  if (score >= 40) return { text: "text-yellow-600", bg: "bg-yellow-100" };
+  return { text: "text-green-600", bg: "bg-green-100" };
 }
 
-export default function PriorityDisplay({ taskId, compact = false, onRecalculate }: PriorityDisplayProps) {
-  const [priority, setPriority] = useState<PriorityCalculation | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState(false)
+export default function PriorityDisplay({
+  taskId,
+  compact = false,
+  onRecalculate,
+}: PriorityDisplayProps) {
+  const [priority, setPriority] = useState<PriorityCalculation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    fetchPriority()
-  }, [taskId])
+    fetchPriority();
+  }, [taskId]);
 
   const fetchPriority = async () => {
     try {
-      setLoading(true)
-      const response = await fetch(`/api/task-agent/tasks/${taskId}/priority`)
+      setLoading(true);
+      const response = await fetch(`/api/task-agent/tasks/${taskId}/priority`);
       if (response.ok) {
-        setPriority(await response.json())
+        setPriority(await response.json());
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const recalculate = async () => {
     try {
-      setLoading(true)
-      const response = await fetch(`/api/task-agent/tasks/${taskId}/priority/recalculate`, {
-        method: 'POST'
-      })
+      setLoading(true);
+      const response = await fetch(
+        `/api/task-agent/tasks/${taskId}/priority/recalculate`,
+        {
+          method: "POST",
+        },
+      );
       if (response.ok) {
-        const result = await response.json()
-        setPriority(result)
-        onRecalculate?.()
+        const result = await response.json();
+        setPriority(result);
+        onRecalculate?.();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -97,20 +104,22 @@ export default function PriorityDisplay({ taskId, compact = false, onRecalculate
         <RefreshCw className="h-4 w-4 animate-spin" />
         <span className="text-sm">Calculating...</span>
       </div>
-    )
+    );
   }
 
   if (error || !priority) {
-    return null
+    return null;
   }
 
-  const scoreColor = getScoreColor(priority.finalScore)
+  const scoreColor = getScoreColor(priority.finalScore);
 
   // Compact mode - just show score badge
   if (compact) {
     return (
       <div className="inline-flex items-center gap-2">
-        <span className={`px-2 py-0.5 rounded-full text-sm font-medium ${scoreColor.bg} ${scoreColor.text}`}>
+        <span
+          className={`px-2 py-0.5 rounded-full text-sm font-medium ${scoreColor.bg} ${scoreColor.text}`}
+        >
           P{Math.round(priority.finalScore)}
         </span>
         {priority.isQuickWin && (
@@ -120,7 +129,7 @@ export default function PriorityDisplay({ taskId, compact = false, onRecalculate
           </span>
         )}
       </div>
-    )
+    );
   }
 
   // Full mode - show breakdown
@@ -153,7 +162,7 @@ export default function PriorityDisplay({ taskId, compact = false, onRecalculate
       {/* Progress Bar */}
       <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
         <div
-          className={`h-full ${scoreColor.bg.replace('100', '500')} transition-all duration-500`}
+          className={`h-full ${scoreColor.bg.replace("100", "500")} transition-all duration-500`}
           style={{ width: `${priority.finalScore}%` }}
         />
       </div>
@@ -163,7 +172,11 @@ export default function PriorityDisplay({ taskId, compact = false, onRecalculate
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
       >
-        {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        {expanded ? (
+          <ChevronDown className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
         View Priority Factors
       </button>
 
@@ -175,7 +188,9 @@ export default function PriorityDisplay({ taskId, compact = false, onRecalculate
               <span className="text-sm text-gray-600">Base Priority</span>
               <Info className="h-3 w-3 text-gray-400" />
             </div>
-            <span className="font-mono text-sm">{priority.factors.basePriority}</span>
+            <span className="font-mono text-sm">
+              {priority.factors.basePriority}
+            </span>
           </div>
 
           {/* Blocking Boost */}
@@ -183,7 +198,8 @@ export default function PriorityDisplay({ taskId, compact = false, onRecalculate
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">
-                  Blocking {priority.factors.blockingCount} task{priority.factors.blockingCount > 1 ? 's' : ''}
+                  Blocking {priority.factors.blockingCount} task
+                  {priority.factors.blockingCount > 1 ? "s" : ""}
                 </span>
                 <AlertCircle className="h-3 w-3 text-red-400" />
               </div>
@@ -197,7 +213,9 @@ export default function PriorityDisplay({ taskId, compact = false, onRecalculate
           {priority.factors.urgencyMultiplier !== 1 && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Urgency Multiplier</span>
+                <span className="text-sm text-gray-600">
+                  Urgency Multiplier
+                </span>
                 <Clock className="h-3 w-3 text-amber-400" />
               </div>
               <span className="font-mono text-sm">
@@ -213,8 +231,11 @@ export default function PriorityDisplay({ taskId, compact = false, onRecalculate
                 <span className="text-sm text-gray-600">Effort Adjustment</span>
                 <Zap className="h-3 w-3 text-green-400" />
               </div>
-              <span className={`font-mono text-sm ${priority.factors.effortDiscount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {priority.factors.effortDiscount > 0 ? '+' : ''}{priority.factors.effortDiscount}
+              <span
+                className={`font-mono text-sm ${priority.factors.effortDiscount > 0 ? "text-green-600" : "text-red-600"}`}
+              >
+                {priority.factors.effortDiscount > 0 ? "+" : ""}
+                {priority.factors.effortDiscount}
               </span>
             </div>
           )}
@@ -237,7 +258,9 @@ export default function PriorityDisplay({ taskId, compact = false, onRecalculate
           {priority.factors.dependencyPenalty > 0 && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Blocked Dependencies</span>
+                <span className="text-sm text-gray-600">
+                  Blocked Dependencies
+                </span>
               </div>
               <span className="font-mono text-sm text-red-600">
                 -{priority.factors.dependencyPenalty}
@@ -252,5 +275,5 @@ export default function PriorityDisplay({ taskId, compact = false, onRecalculate
         </div>
       )}
     </div>
-  )
+  );
 }

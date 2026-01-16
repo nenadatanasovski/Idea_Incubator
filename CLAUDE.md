@@ -24,17 +24,17 @@ This is an idea incubation system that uses AI agents to evaluate and red-team i
 
 ## File Locations
 
-| Content Type | Location |
-|--------------|----------|
-| Ideas | `ideas/[slug]/README.md` |
-| Evaluations | `ideas/[slug]/evaluation.md` |
-| Development notes | `ideas/[slug]/development.md` |
-| Red team challenges | `ideas/[slug]/redteam.md` |
-| Research | `ideas/[slug]/research/*.md` |
-| User profiles | `profiles/[slug].md` (exported) |
-| Database | `database/ideas.db` |
-| Templates | `templates/*.md` |
-| Taxonomy | `taxonomy/*.md` |
+| Content Type        | Location                        |
+| ------------------- | ------------------------------- |
+| Ideas               | `ideas/[slug]/README.md`        |
+| Evaluations         | `ideas/[slug]/evaluation.md`    |
+| Development notes   | `ideas/[slug]/development.md`   |
+| Red team challenges | `ideas/[slug]/redteam.md`       |
+| Research            | `ideas/[slug]/research/*.md`    |
+| User profiles       | `profiles/[slug].md` (exported) |
+| Database            | `database/ideas.db`             |
+| Templates           | `templates/*.md`                |
+| Taxonomy            | `taxonomy/*.md`                 |
 
 ## Common Commands
 
@@ -73,6 +73,7 @@ python3 tests/e2e/unified-fs-ralph-loop.py --max-iterations 5  # With limit
 User profiles provide context for accurate Personal Fit (FT1-FT5) evaluation. Without a profile, Fit scores default to 5/10 with low confidence.
 
 **Profile captures:**
+
 - **Goals (FT1)**: income, impact, learning, portfolio, lifestyle, exit, passion, legacy
 - **Passion (FT2)**: interests, motivations, domain connection
 - **Skills (FT3)**: technical skills, experience, expertise, known gaps
@@ -80,6 +81,7 @@ User profiles provide context for accurate Personal Fit (FT1-FT5) evaluation. Wi
 - **Life Stage (FT5)**: employment status, hours available, runway, risk tolerance
 
 **Usage:**
+
 1. Create profile once: `npm run profile create`
 2. Link to each idea: `npm run profile link my-idea my-profile`
 3. Run evaluation: `npm run evaluate my-idea` (profile auto-loaded)
@@ -94,6 +96,7 @@ GROW → MAINTAIN → PIVOT → PAUSE → SUNSET → ARCHIVE → ABANDONED
 ## Evaluation Criteria
 
 30 criteria across 6 categories:
+
 - **Problem** (5): Clarity, Severity, Target User, Validation, Uniqueness
 - **Solution** (5): Clarity, Feasibility, Uniqueness, Scalability, Defensibility
 - **Feasibility** (5): Technical, Resources, Skills, Time to Value, Dependencies
@@ -104,6 +107,7 @@ GROW → MAINTAIN → PIVOT → PAUSE → SUNSET → ARCHIVE → ABANDONED
 ## Budget Guidelines
 
 Default evaluation budget: $10
+
 - Initial evaluation: ~$2
 - Red team challenges: ~$4
 - Debate rounds: ~$3
@@ -112,6 +116,7 @@ Default evaluation budget: $10
 ## Agent Types
 
 ### Ideation & Evaluation Agents (Existing)
+
 1. **Orchestrator** - Routes inputs, manages flow
 2. **Classifier** - Auto-tags and detects relationships
 3. **Evaluator** - Scores against 30 criteria
@@ -121,6 +126,7 @@ Default evaluation budget: $10
 7. **Development** - Asks clarifying questions
 
 ### Build Pipeline Agents (New)
+
 8. **Specification Agent** - Transforms ideation artifacts into executable specs
 9. **Build Agent** - Executes atomic tasks from specs
 10. **Self-Improvement Agent (SIA)** - Learns from failures, improves system
@@ -173,6 +179,7 @@ When generating `build/spec.md`:
 When generating `build/tasks.md`:
 
 ### Task Structure (PIV-style)
+
 ```yaml
 id: T-001
 phase: database | types | api | ui | tests
@@ -194,10 +201,11 @@ validation:
 code_template: |
   // Template code to guide implementation
 
-depends_on: ["T-000"]  # Task dependencies
+depends_on: ["T-000"] # Task dependencies
 ```
 
 ### Phase Order
+
 1. **database** - Migrations first (other phases depend on schema)
 2. **types** - TypeScript interfaces before implementation
 3. **api** - Server routes and endpoints
@@ -205,6 +213,7 @@ depends_on: ["T-000"]  # Task dependencies
 5. **tests** - Unit and integration tests
 
 ### Gotcha Sources
+
 - Knowledge Base entries tagged with file pattern
 - Previous failures for similar tasks
 - Common mistakes for the action type (CREATE, UPDATE, etc.)
@@ -232,14 +241,16 @@ The Build Agent follows the PIV Loop pattern:
 
 Cross-agent learning through shared knowledge:
 
-| Type | Description | Example |
-|------|-------------|---------|
-| `gotcha` | Mistake to avoid | "Use TEXT for dates in SQLite" |
-| `pattern` | Reusable approach | "API route registration pattern" |
-| `decision` | Architecture choice | "Use sql.js not better-sqlite3" |
+| Type       | Description         | Example                          |
+| ---------- | ------------------- | -------------------------------- |
+| `gotcha`   | Mistake to avoid    | "Use TEXT for dates in SQLite"   |
+| `pattern`  | Reusable approach   | "API route registration pattern" |
+| `decision` | Architecture choice | "Use sql.js not better-sqlite3"  |
 
 ### Recording Discoveries
+
 When Build Agent discovers a new gotcha or pattern:
+
 1. Record in Knowledge Base with confidence score
 2. Tag with file pattern (e.g., `*.sql`, `server/routes/*`)
 3. Tag with action type (CREATE, UPDATE, etc.)
@@ -250,12 +261,14 @@ When Build Agent discovers a new gotcha or pattern:
 ## Database Conventions
 
 ### SQLite Best Practices
+
 - Use `TEXT` for dates, not `DATETIME`
 - Always include `IF NOT EXISTS`
 - Foreign keys require `PRAGMA foreign_keys = ON`
 - Use `datetime('now')` for timestamps
 
 ### TypeScript Types for DB
+
 - IDs are always `string` (UUIDs)
 - Dates are ISO strings (`createdAt: string`)
 - Boolean fields stored as `INTEGER` (0/1) in SQLite
@@ -265,6 +278,7 @@ When Build Agent discovers a new gotcha or pattern:
 ## API Conventions
 
 ### Route Patterns
+
 ```typescript
 // Routes live in server/routes/{feature}.ts
 import { Router } from 'express';
@@ -280,6 +294,7 @@ export default router;
 ```
 
 ### Error Handling
+
 - Return appropriate status codes (404, 400, 500)
 - Always validate input before database calls
 - Use `try/catch` with error logging
@@ -290,16 +305,17 @@ export default router;
 
 The multi-agent coordination system lives in `coding-loops/`:
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| Message Bus | `shared/message_bus.py` | Inter-agent events, file locking |
-| Verification Gate | `shared/verification_gate.py` | Validate agent claims |
-| Knowledge Base | `shared/knowledge_base.py` | Cross-agent learning |
-| Resource Registry | `shared/resource_registry.py` | File ownership |
-| Git Manager | `shared/git_manager.py` | Branch management |
-| Checkpoint Manager | `shared/checkpoint_manager.py` | Rollback support |
+| Component          | Location                       | Purpose                          |
+| ------------------ | ------------------------------ | -------------------------------- |
+| Message Bus        | `shared/message_bus.py`        | Inter-agent events, file locking |
+| Verification Gate  | `shared/verification_gate.py`  | Validate agent claims            |
+| Knowledge Base     | `shared/knowledge_base.py`     | Cross-agent learning             |
+| Resource Registry  | `shared/resource_registry.py`  | File ownership                   |
+| Git Manager        | `shared/git_manager.py`        | Branch management                |
+| Checkpoint Manager | `shared/checkpoint_manager.py` | Rollback support                 |
 
 ### Running Loops
+
 ```bash
 # Always use python3
 python3 coding-loops/loop-1-critical-path/run_loop.py
@@ -313,14 +329,15 @@ python3 coding-loops/loop-3-polish/run_loop.py
 
 The Agent Dashboard at `/agents` provides real-time monitoring:
 
-| Feature | Description |
-|---------|-------------|
-| Agent Status Cards | Shows all 6 agents with status, metrics, current task |
-| Question Queue | Priority-sorted blocking questions requiring answers |
-| Activity Timeline | Recent agent activities (tasks, questions) |
-| Task Executor Controls | Start/stop/pause task execution |
+| Feature                | Description                                           |
+| ---------------------- | ----------------------------------------------------- |
+| Agent Status Cards     | Shows all 6 agents with status, metrics, current task |
+| Question Queue         | Priority-sorted blocking questions requiring answers  |
+| Activity Timeline      | Recent agent activities (tasks, questions)            |
+| Task Executor Controls | Start/stop/pause task execution                       |
 
 ### Agent Types in Dashboard
+
 - `spec-agent` - Specification generation
 - `build-agent` - Task execution
 - `validation-agent` - Quality validation
@@ -333,6 +350,7 @@ The Agent Dashboard at `/agents` provides real-time monitoring:
 ## Task Execution System
 
 ### Task Lists
+
 Task lists are markdown files with YAML frontmatter containing executable tasks.
 
 ```bash
@@ -347,6 +365,7 @@ POST /api/executor/stop
 ```
 
 ### Kanban Board
+
 Available at `/kanban` - shows tasks by status (pending, in_progress, complete, failed, blocked).
 
 ---
@@ -364,6 +383,7 @@ ws://localhost:3001/ws?monitor=agents  // Agent monitoring
 ```
 
 ### Event Types
+
 - `task:started`, `task:completed`, `task:failed`, `task:skipped`
 - `executor:started`, `executor:paused`, `executor:resumed`, `executor:stopped`
 - `question:new`, `question:answered`, `question:expired`
@@ -375,14 +395,15 @@ ws://localhost:3001/ws?monitor=agents  // Agent monitoring
 
 Blocking questions halt agent execution until answered.
 
-| Priority | Type | Description |
-|----------|------|-------------|
-| 100 | BLOCKING | Must answer to continue |
-| 80 | APPROVAL | Needs user sign-off |
-| 60 | ESCALATION | Agent needs human help |
-| 40 | DECISION | Multiple valid choices |
+| Priority | Type       | Description             |
+| -------- | ---------- | ----------------------- |
+| 100      | BLOCKING   | Must answer to continue |
+| 80       | APPROVAL   | Needs user sign-off     |
+| 60       | ESCALATION | Agent needs human help  |
+| 40       | DECISION   | Multiple valid choices  |
 
 ### API Endpoints
+
 ```bash
 GET  /api/questions/pending          # Get pending questions
 POST /api/questions/:id/answer       # Submit answer
@@ -410,16 +431,16 @@ Issues detected: `timeout`, `error`, `drift`, `anomaly`, `threshold`
 
 ## New API Routes
 
-| Route | Purpose |
-|-------|---------|
-| `/api/agents` | Agent status and metrics |
-| `/api/agents/:id/heartbeat` | Record agent heartbeat |
-| `/api/executor/*` | Task execution control |
-| `/api/task-lists` | Browse/manage task lists |
-| `/api/questions/*` | Question queue management |
-| `/api/notifications/*` | Notification system |
-| `/api/knowledge/*` | Knowledge base queries |
-| `/api/task-agent/*` | Task Agent (parallel execution) routes |
+| Route                       | Purpose                                |
+| --------------------------- | -------------------------------------- |
+| `/api/agents`               | Agent status and metrics               |
+| `/api/agents/:id/heartbeat` | Record agent heartbeat                 |
+| `/api/executor/*`           | Task execution control                 |
+| `/api/task-lists`           | Browse/manage task lists               |
+| `/api/questions/*`          | Question queue management              |
+| `/api/notifications/*`      | Notification system                    |
+| `/api/knowledge/*`          | Knowledge base queries                 |
+| `/api/task-agent/*`         | Task Agent (parallel execution) routes |
 
 ---
 
@@ -429,12 +450,12 @@ The Task Agent manages parallel task execution with these key features:
 
 ### Core Concepts
 
-| Concept | Description |
-|---------|-------------|
-| **Evaluation Queue** | Staging area for listless tasks awaiting analysis and grouping |
-| **Display ID** | Human-readable task ID format: `TU-PROJ-CAT-###` (e.g., `TU-IDEA-FEA-042`) |
-| **Execution Waves** | Groups of tasks that can run in parallel without conflicts |
-| **Build Agent** | 1 agent = 1 task, spawned dynamically based on parallelism |
+| Concept              | Description                                                                |
+| -------------------- | -------------------------------------------------------------------------- |
+| **Evaluation Queue** | Staging area for listless tasks awaiting analysis and grouping             |
+| **Display ID**       | Human-readable task ID format: `TU-PROJ-CAT-###` (e.g., `TU-IDEA-FEA-042`) |
+| **Execution Waves**  | Groups of tasks that can run in parallel without conflicts                 |
+| **Build Agent**      | 1 agent = 1 task, spawned dynamically based on parallelism                 |
 
 ### Task Lifecycle
 
@@ -454,79 +475,79 @@ Examples:
 
 ### Category Codes
 
-| Code | Category |
-|------|----------|
-| FEA | Feature |
-| BUG | Bug Fix |
-| ENH | Enhancement |
-| REF | Refactor |
-| DOC | Documentation |
-| TST | Test |
-| INF | Infrastructure |
-| RES | Research |
-| SEC | Security |
-| PRF | Performance |
+| Code | Category       |
+| ---- | -------------- |
+| FEA  | Feature        |
+| BUG  | Bug Fix        |
+| ENH  | Enhancement    |
+| REF  | Refactor       |
+| DOC  | Documentation  |
+| TST  | Test           |
+| INF  | Infrastructure |
+| RES  | Research       |
+| SEC  | Security       |
+| PRF  | Performance    |
 
 ### Task Agent API Routes
 
-| Route | Method | Description |
-|-------|--------|-------------|
-| `/api/task-agent/tasks` | POST | Create task (listless or in list) |
-| `/api/task-agent/evaluation-queue` | GET | Get tasks in Evaluation Queue |
-| `/api/task-agent/evaluation-queue/stats` | GET | Get queue statistics |
-| `/api/task-agent/tasks/:id/move` | POST | Move task to task list |
-| `/api/task-agent/grouping-suggestions` | GET | Get auto-grouping suggestions |
-| `/api/task-agent/grouping-suggestions/:id/accept` | POST | Accept suggestion |
-| `/api/task-agent/grouping-suggestions/:id/reject` | POST | Reject suggestion |
-| `/api/task-agent/task-lists/:id/parallelism` | GET | Get parallelism analysis |
-| `/api/task-agent/task-lists/:id/execute` | POST | Start parallel execution |
-| `/api/task-agent/agents` | GET | Get active Build Agents |
-| `/api/task-agent/dependencies/check-cycle` | POST | Check for circular dependencies |
+| Route                                             | Method | Description                       |
+| ------------------------------------------------- | ------ | --------------------------------- |
+| `/api/task-agent/tasks`                           | POST   | Create task (listless or in list) |
+| `/api/task-agent/evaluation-queue`                | GET    | Get tasks in Evaluation Queue     |
+| `/api/task-agent/evaluation-queue/stats`          | GET    | Get queue statistics              |
+| `/api/task-agent/tasks/:id/move`                  | POST   | Move task to task list            |
+| `/api/task-agent/grouping-suggestions`            | GET    | Get auto-grouping suggestions     |
+| `/api/task-agent/grouping-suggestions/:id/accept` | POST   | Accept suggestion                 |
+| `/api/task-agent/grouping-suggestions/:id/reject` | POST   | Reject suggestion                 |
+| `/api/task-agent/task-lists/:id/parallelism`      | GET    | Get parallelism analysis          |
+| `/api/task-agent/task-lists/:id/execute`          | POST   | Start parallel execution          |
+| `/api/task-agent/agents`                          | GET    | Get active Build Agents           |
+| `/api/task-agent/dependencies/check-cycle`        | POST   | Check for circular dependencies   |
 
 ### File Conflict Matrix
 
 Tasks cannot run in parallel if they have conflicting file operations:
 
-| Task A | Task B | Conflict? | Reason |
-|--------|--------|-----------|--------|
-| CREATE | CREATE | YES | Same file cannot be created twice |
-| UPDATE | UPDATE | YES | Concurrent modification |
-| UPDATE | DELETE | YES | File may not exist |
-| DELETE | DELETE | YES | Double delete |
-| DELETE | READ | YES | File may not exist |
-| READ | READ | NO | Safe |
+| Task A | Task B | Conflict? | Reason                            |
+| ------ | ------ | --------- | --------------------------------- |
+| CREATE | CREATE | YES       | Same file cannot be created twice |
+| UPDATE | UPDATE | YES       | Concurrent modification           |
+| UPDATE | DELETE | YES       | File may not exist                |
+| DELETE | DELETE | YES       | Double delete                     |
+| DELETE | READ   | YES       | File may not exist                |
+| READ   | READ   | NO        | Safe                              |
 
 ### Telegram Commands
 
-| Command | Description |
-|---------|-------------|
+| Command           | Description                     |
+| ----------------- | ------------------------------- |
 | `/newtask <desc>` | Create task in Evaluation Queue |
-| `/queue` | Show Evaluation Queue status |
-| `/suggest` | Get grouping suggestions |
-| `/parallel [id]` | Show parallelism status |
-| `/agents` | Show active Build Agents |
+| `/queue`          | Show Evaluation Queue status    |
+| `/suggest`        | Get grouping suggestions        |
+| `/parallel [id]`  | Show parallelism status         |
+| `/agents`         | Show active Build Agents        |
 
 ### Service Locations
 
-| Service | Path |
-|---------|------|
-| Evaluation Queue Manager | `server/services/task-agent/evaluation-queue-manager.ts` |
-| Task Creation Service | `server/services/task-agent/task-creation-service.ts` |
-| File Impact Analyzer | `server/services/task-agent/file-impact-analyzer.ts` |
-| Parallelism Calculator | `server/services/task-agent/parallelism-calculator.ts` |
-| Build Agent Orchestrator | `server/services/task-agent/build-agent-orchestrator.ts` |
-| Auto-Grouping Engine | `server/services/task-agent/auto-grouping-engine.ts` |
-| Circular Dep Prevention | `server/services/task-agent/circular-dependency-prevention.ts` |
+| Service                  | Path                                                           |
+| ------------------------ | -------------------------------------------------------------- |
+| Evaluation Queue Manager | `server/services/task-agent/evaluation-queue-manager.ts`       |
+| Task Creation Service    | `server/services/task-agent/task-creation-service.ts`          |
+| File Impact Analyzer     | `server/services/task-agent/file-impact-analyzer.ts`           |
+| Parallelism Calculator   | `server/services/task-agent/parallelism-calculator.ts`         |
+| Build Agent Orchestrator | `server/services/task-agent/build-agent-orchestrator.ts`       |
+| Auto-Grouping Engine     | `server/services/task-agent/auto-grouping-engine.ts`           |
+| Circular Dep Prevention  | `server/services/task-agent/circular-dependency-prevention.ts` |
 
 ### Database Tables
 
-| Table | Purpose |
-|-------|---------|
-| `tasks` | Task records with display_id and queue |
-| `task_lists_v2` | Task list containers |
-| `task_relationships` | Dependencies between tasks |
-| `task_file_impacts` | Predicted file operations |
-| `parallelism_analysis` | Task pair analysis cache |
-| `parallel_execution_waves` | Execution wave tracking |
-| `build_agent_instances` | Active Build Agents |
-| `grouping_suggestions` | Auto-grouping suggestions |
+| Table                      | Purpose                                |
+| -------------------------- | -------------------------------------- |
+| `tasks`                    | Task records with display_id and queue |
+| `task_lists_v2`            | Task list containers                   |
+| `task_relationships`       | Dependencies between tasks             |
+| `task_file_impacts`        | Predicted file operations              |
+| `parallelism_analysis`     | Task pair analysis cache               |
+| `parallel_execution_waves` | Execution wave tracking                |
+| `build_agent_instances`    | Active Build Agents                    |
+| `grouping_suggestions`     | Auto-grouping suggestions              |

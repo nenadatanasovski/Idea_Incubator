@@ -13,6 +13,7 @@ queries:
   - pain points small business inventory management
 identifier: research_small_business_inven
 ---
+
 ## Key Findings
 
 1. **Market size ranges from $1.7B to $3.9B in 2024** - Different research firms report varying estimates, with the consensus around $2-3.5 billion for the total inventory management software market
@@ -51,7 +52,6 @@ identifier: research_small_business_inven
 - **Vertical specialization** - General tools may miss industry-specific needs (restaurants, artisan makers, home-based sellers)
 - **Mobile-first approach** - Many solutions are desktop-oriented; opportunity for truly mobile-native inventory tools
 - **Integration-focused** - SMEs using multiple platforms (Etsy, Amazon, Shopify) need seamless sync without enterprise complexity
-
 
 ---
 
@@ -96,7 +96,6 @@ identifier: research_small_business_inven
 - **AI-native from day one** - Most incumbents are bolting on AI; building AI-first could be a moat
 - **Mobile-first for field operations** - Many solutions have weak mobile experiences for warehouse/field workers
 - **Sustainability/compliance tracking** - ESG requirements and supply chain traceability are underserved
-
 
 ---
 

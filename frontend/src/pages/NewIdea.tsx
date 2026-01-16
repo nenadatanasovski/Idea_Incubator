@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom'
-import { ArrowLeft, Lightbulb } from 'lucide-react'
-import IdeaForm from '../components/IdeaForm'
+import { Link } from "react-router-dom";
+import { ArrowLeft, Lightbulb } from "lucide-react";
+import IdeaForm from "../components/IdeaForm";
 
 export default function NewIdea() {
   return (
@@ -19,7 +19,9 @@ export default function NewIdea() {
             <Lightbulb className="h-5 w-5 text-primary-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Capture a New Idea</h1>
+            <h1 className="text-xl font-bold text-gray-900">
+              Capture a New Idea
+            </h1>
             <p className="text-sm text-gray-500">
               Describe your idea and we'll help you evaluate it
             </p>
@@ -29,5 +31,5 @@ export default function NewIdea() {
         <IdeaForm mode="create" />
       </div>
     </div>
-  )
+  );
 }

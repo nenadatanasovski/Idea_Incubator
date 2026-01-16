@@ -13,6 +13,7 @@ queries:
   - pet sitting marketplace startups
 identifier: research_pet_sitting_app_mark
 ---
+
 ## Pet Sitting App Market Australia 2024 - Research Summary
 
 ### Key Findings
@@ -54,7 +55,6 @@ identifier: research_pet_sitting_app_mark
 - [PetCloud App - App Store](https://apps.apple.com/au/app/petcloud-pet-sitters-walkers/id1539909889)
 - [Canstar - Best Apps for Pet Owners](https://www.canstar.com.au/pet-insurance/best-pet-apps/)
 - [PetBacker Australia](https://www.petbacker.com/d/australia)
-
 
 ---
 

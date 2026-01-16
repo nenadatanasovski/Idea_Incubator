@@ -9,12 +9,12 @@
  * - Success criteria
  */
 
-import * as yaml from 'yaml';
+import * as yaml from "yaml";
 
 export interface ParsedBrief {
   id: string;
   title: string;
-  complexity: 'simple' | 'medium' | 'complex';
+  complexity: "simple" | "medium" | "complex";
   problem: string;
   solution: string;
   mvpScope: MvpScope;
@@ -41,7 +41,7 @@ export interface ParseResult {
 export interface Frontmatter {
   id?: string;
   title?: string;
-  complexity?: 'simple' | 'medium' | 'complex';
+  complexity?: "simple" | "medium" | "complex";
   creator?: string;
   created?: string;
   updated?: string;
@@ -66,65 +66,88 @@ export class BriefParser {
     const contentWithoutFrontmatter = this.removeFrontmatter(content);
 
     // Extract sections
-    const problem = this.extractSection(contentWithoutFrontmatter, 'Problem');
-    const solution = this.extractSection(contentWithoutFrontmatter, 'Solution');
+    const problem = this.extractSection(contentWithoutFrontmatter, "Problem");
+    const solution = this.extractSection(contentWithoutFrontmatter, "Solution");
     const mvpScope = this.extractMvpScope(contentWithoutFrontmatter);
-    const constraints = this.extractListItems(contentWithoutFrontmatter, 'Constraints');
-    const successCriteria = this.extractSuccessCriteria(contentWithoutFrontmatter);
-    const architecture = this.extractSection(contentWithoutFrontmatter, 'Architecture');
-    const databaseSchema = this.extractCodeBlock(contentWithoutFrontmatter, 'sql');
+    const constraints = this.extractListItems(
+      contentWithoutFrontmatter,
+      "Constraints",
+    );
+    const successCriteria = this.extractSuccessCriteria(
+      contentWithoutFrontmatter,
+    );
+    const architecture = this.extractSection(
+      contentWithoutFrontmatter,
+      "Architecture",
+    );
+    const databaseSchema = this.extractCodeBlock(
+      contentWithoutFrontmatter,
+      "sql",
+    );
 
     // Validate required fields
     if (!frontmatter.id) {
-      missing.push('id (in frontmatter)');
+      missing.push("id (in frontmatter)");
     }
     if (!frontmatter.title) {
-      missing.push('title (in frontmatter)');
+      missing.push("title (in frontmatter)");
     }
     if (!problem) {
-      missing.push('Problem section');
+      missing.push("Problem section");
     }
     if (!solution) {
-      missing.push('Solution section');
+      missing.push("Solution section");
     }
 
     // Check recommended sections
     if (mvpScope.inScope.length === 0 && mvpScope.outOfScope.length === 0) {
-      warnings.push('No MVP Scope section found');
+      warnings.push("No MVP Scope section found");
     }
     if (successCriteria.length === 0) {
-      warnings.push('No Success Criteria found');
+      warnings.push("No Success Criteria found");
     }
 
     // Generate questions for ambiguity
     if (problem && problem.length < 100) {
-      questions.push('The problem statement is brief. Can you elaborate on the specific pain points?');
+      questions.push(
+        "The problem statement is brief. Can you elaborate on the specific pain points?",
+      );
     }
-    if (solution && !solution.includes('API') && !solution.includes('database') && !solution.includes('table')) {
-      questions.push('What data structures or APIs will this feature require?');
+    if (
+      solution &&
+      !solution.includes("API") &&
+      !solution.includes("database") &&
+      !solution.includes("table")
+    ) {
+      questions.push("What data structures or APIs will this feature require?");
     }
     if (!frontmatter.complexity) {
-      questions.push('What is the complexity level of this feature: simple, medium, or complex?');
+      questions.push(
+        "What is the complexity level of this feature: simple, medium, or complex?",
+      );
     }
     if (successCriteria.length === 0) {
-      questions.push('What are the specific success criteria for this feature?');
+      questions.push(
+        "What are the specific success criteria for this feature?",
+      );
     }
 
     // Infer complexity if not specified
-    const complexity = frontmatter.complexity || this.inferComplexity(mvpScope, solution);
+    const complexity =
+      frontmatter.complexity || this.inferComplexity(mvpScope, solution);
 
     const brief: ParsedBrief = {
-      id: frontmatter.id || 'unknown',
-      title: frontmatter.title || 'Untitled',
+      id: frontmatter.id || "unknown",
+      title: frontmatter.title || "Untitled",
       complexity,
-      problem: problem || '',
-      solution: solution || '',
+      problem: problem || "",
+      solution: solution || "",
       mvpScope,
       constraints,
       successCriteria,
       architecture: architecture || undefined,
       databaseSchema: databaseSchema || undefined,
-      rawContent: content
+      rawContent: content,
     };
 
     const valid = missing.length === 0;
@@ -134,7 +157,7 @@ export class BriefParser {
       valid,
       missing,
       warnings,
-      questions
+      questions,
     };
   }
 
@@ -158,7 +181,7 @@ export class BriefParser {
    * Remove frontmatter from content
    */
   private removeFrontmatter(content: string): string {
-    return content.replace(/^---\n[\s\S]*?\n---\n?/, '');
+    return content.replace(/^---\n[\s\S]*?\n---\n?/, "");
   }
 
   /**
@@ -168,12 +191,12 @@ export class BriefParser {
     // Match ## heading or # heading (case insensitive)
     const pattern = new RegExp(
       `#+\\s*${heading}[^\\n]*\\n([\\s\\S]*?)(?=\\n#+\\s|$)`,
-      'i'
+      "i",
     );
     const match = content.match(pattern);
 
     if (!match) {
-      return '';
+      return "";
     }
 
     return match[1].trim();
@@ -183,8 +206,9 @@ export class BriefParser {
    * Extract MVP scope as in-scope and out-of-scope lists
    */
   private extractMvpScope(content: string): MvpScope {
-    const mvpSection = this.extractSection(content, 'MVP Scope') ||
-                       this.extractSection(content, 'Scope');
+    const mvpSection =
+      this.extractSection(content, "MVP Scope") ||
+      this.extractSection(content, "Scope");
 
     const inScope: string[] = [];
     const outOfScope: string[] = [];
@@ -195,8 +219,12 @@ export class BriefParser {
 
     // Look for "In Scope" and "Out of Scope" subsections within the MVP section
     // Match ### In Scope, **In Scope:**, or other common formats
-    const inScopeMatch = mvpSection.match(/(?:###?\s*|\*\*\s*)In[- ]?Scope[^\n]*(?:\*\*)?:?\n([\s\S]*?)(?=(?:###?\s|\*\*\s*Out)|$)/i);
-    const outOfScopeMatch = mvpSection.match(/(?:###?\s*|\*\*\s*)Out[- ]?of[- ]?Scope[^\n]*(?:\*\*)?:?\n([\s\S]*?)(?=(?:###?\s|\*\*)|$)/i);
+    const inScopeMatch = mvpSection.match(
+      /(?:###?\s*|\*\*\s*)In[- ]?Scope[^\n]*(?:\*\*)?:?\n([\s\S]*?)(?=(?:###?\s|\*\*\s*Out)|$)/i,
+    );
+    const outOfScopeMatch = mvpSection.match(
+      /(?:###?\s*|\*\*\s*)Out[- ]?of[- ]?Scope[^\n]*(?:\*\*)?:?\n([\s\S]*?)(?=(?:###?\s|\*\*)|$)/i,
+    );
 
     if (inScopeMatch) {
       inScope.push(...this.extractListFromText(inScopeMatch[1]));
@@ -230,12 +258,12 @@ export class BriefParser {
    */
   private extractListFromText(text: string): string[] {
     const items: string[] = [];
-    const lines = text.split('\n');
+    const lines = text.split("\n");
 
     for (const line of lines) {
       // Match bullet points (-, *, +) or numbered lists
-      const match = line.match(/^\s*[-*+]\s+(.+)$/) ||
-                   line.match(/^\s*\d+\.\s+(.+)$/);
+      const match =
+        line.match(/^\s*[-*+]\s+(.+)$/) || line.match(/^\s*\d+\.\s+(.+)$/);
       if (match) {
         items.push(match[1].trim());
       }
@@ -248,21 +276,23 @@ export class BriefParser {
    * Extract success criteria (handles checkboxes)
    */
   private extractSuccessCriteria(content: string): string[] {
-    const section = this.extractSection(content, 'Success Criteria') ||
-                   this.extractSection(content, 'Acceptance Criteria');
+    const section =
+      this.extractSection(content, "Success Criteria") ||
+      this.extractSection(content, "Acceptance Criteria");
 
     if (!section) {
       return [];
     }
 
     const criteria: string[] = [];
-    const lines = section.split('\n');
+    const lines = section.split("\n");
 
     for (const line of lines) {
       // Match checkboxes [ ] or [x] or bullet points
-      const match = line.match(/^\s*[-*+]\s*\[[ x]\]\s*(.+)$/) ||
-                   line.match(/^\s*[-*+]\s+(.+)$/) ||
-                   line.match(/^\s*\d+\.\s+(.+)$/);
+      const match =
+        line.match(/^\s*[-*+]\s*\[[ x]\]\s*(.+)$/) ||
+        line.match(/^\s*[-*+]\s+(.+)$/) ||
+        line.match(/^\s*\d+\.\s+(.+)$/);
       if (match) {
         criteria.push(match[1].trim());
       }
@@ -274,8 +304,11 @@ export class BriefParser {
   /**
    * Extract code block of specific language
    */
-  private extractCodeBlock(content: string, language: string): string | undefined {
-    const pattern = new RegExp(`\`\`\`${language}\\n([\\s\\S]*?)\`\`\``, 'i');
+  private extractCodeBlock(
+    content: string,
+    language: string,
+  ): string | undefined {
+    const pattern = new RegExp(`\`\`\`${language}\\n([\\s\\S]*?)\`\`\``, "i");
     const match = content.match(pattern);
     return match ? match[1].trim() : undefined;
   }
@@ -283,18 +316,21 @@ export class BriefParser {
   /**
    * Infer complexity from scope and solution
    */
-  private inferComplexity(mvpScope: MvpScope, solution: string): 'simple' | 'medium' | 'complex' {
+  private inferComplexity(
+    mvpScope: MvpScope,
+    solution: string,
+  ): "simple" | "medium" | "complex" {
     const totalItems = mvpScope.inScope.length + mvpScope.outOfScope.length;
     const solutionLength = solution.length;
 
     // Simple heuristics
     if (totalItems <= 5 && solutionLength < 500) {
-      return 'simple';
+      return "simple";
     }
     if (totalItems > 10 || solutionLength > 1500) {
-      return 'complex';
+      return "complex";
     }
-    return 'medium';
+    return "medium";
   }
 
   /**
@@ -303,35 +339,38 @@ export class BriefParser {
   validateBrief(brief: ParsedBrief): { valid: boolean; missing: string[] } {
     const missing: string[] = [];
 
-    if (!brief.id || brief.id === 'unknown') {
-      missing.push('id');
+    if (!brief.id || brief.id === "unknown") {
+      missing.push("id");
     }
-    if (!brief.title || brief.title === 'Untitled') {
-      missing.push('title');
+    if (!brief.title || brief.title === "Untitled") {
+      missing.push("title");
     }
     if (!brief.problem) {
-      missing.push('problem');
+      missing.push("problem");
     }
     if (!brief.solution) {
-      missing.push('solution');
+      missing.push("solution");
     }
 
     return {
       valid: missing.length === 0,
-      missing
+      missing,
     };
   }
 
   /**
    * Get expected task count based on complexity
    */
-  getExpectedTaskCount(complexity: 'simple' | 'medium' | 'complex'): { min: number; max: number } {
+  getExpectedTaskCount(complexity: "simple" | "medium" | "complex"): {
+    min: number;
+    max: number;
+  } {
     switch (complexity) {
-      case 'simple':
+      case "simple":
         return { min: 5, max: 8 };
-      case 'medium':
+      case "medium":
         return { min: 10, max: 15 };
-      case 'complex':
+      case "complex":
         return { min: 20, max: 30 };
     }
   }

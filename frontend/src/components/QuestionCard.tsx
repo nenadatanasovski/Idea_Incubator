@@ -1,66 +1,84 @@
-import { useState } from 'react'
-import { HelpCircle, AlertCircle, Lightbulb, Send, X, Sparkles, Loader2 } from 'lucide-react'
-import type { Question, QuestionPriority } from '../types'
-import { priorityMeta, categoryNames } from '../types'
+import { useState } from "react";
+import {
+  HelpCircle,
+  AlertCircle,
+  Lightbulb,
+  Send,
+  X,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
+import type { Question, QuestionPriority } from "../types";
+import { priorityMeta, categoryNames } from "../types";
 
 export interface Suggestion {
-  id: string
-  suggestion: string
-  rationale: string
-  source: 'profile' | 'web_research' | 'synthesis'
+  id: string;
+  suggestion: string;
+  rationale: string;
+  source: "profile" | "web_research" | "synthesis";
 }
 
 interface QuestionCardProps {
-  question: Question
-  onAnswer: (questionId: string, answer: string) => Promise<void>
-  onSkip?: (questionId: string) => void
-  existingAnswer?: string
-  disabled?: boolean
-  ideaSlug?: string
-  initialSuggestions?: Suggestion[]  // Pre-loaded suggestions from parent
+  question: Question;
+  onAnswer: (questionId: string, answer: string) => Promise<void>;
+  onSkip?: (questionId: string) => void;
+  existingAnswer?: string;
+  disabled?: boolean;
+  ideaSlug?: string;
+  initialSuggestions?: Suggestion[]; // Pre-loaded suggestions from parent
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 function PriorityBadge({ priority }: { priority: QuestionPriority }) {
-  const meta = priorityMeta[priority]
+  const meta = priorityMeta[priority];
   return (
-    <span className={`text-xs font-medium ${meta.color}`}>
-      {meta.label}
-    </span>
-  )
+    <span className={`text-xs font-medium ${meta.color}`}>{meta.label}</span>
+  );
 }
 
-function QuestionTypeIcon({ type }: { type: Question['type'] }) {
+function QuestionTypeIcon({ type }: { type: Question["type"] }) {
   switch (type) {
-    case 'factual':
-      return <span title="Factual question"><HelpCircle className="h-4 w-4 text-blue-500" /></span>
-    case 'analytical':
-      return <span title="Analytical question"><Lightbulb className="h-4 w-4 text-amber-500" /></span>
-    case 'reflective':
-      return <span title="Reflective question"><AlertCircle className="h-4 w-4 text-purple-500" /></span>
+    case "factual":
+      return (
+        <span title="Factual question">
+          <HelpCircle className="h-4 w-4 text-blue-500" />
+        </span>
+      );
+    case "analytical":
+      return (
+        <span title="Analytical question">
+          <Lightbulb className="h-4 w-4 text-amber-500" />
+        </span>
+      );
+    case "reflective":
+      return (
+        <span title="Reflective question">
+          <AlertCircle className="h-4 w-4 text-purple-500" />
+        </span>
+      );
     default:
-      return null
+      return null;
   }
 }
 
 function SuggestionCard({
   suggestion,
-  onSelect
+  onSelect,
 }: {
-  suggestion: Suggestion
-  onSelect: (text: string) => void
+  suggestion: Suggestion;
+  onSelect: (text: string) => void;
 }) {
   const sourceColors = {
-    profile: 'bg-purple-100 text-purple-700',
-    web_research: 'bg-blue-100 text-blue-700',
-    synthesis: 'bg-green-100 text-green-700'
-  }
+    profile: "bg-purple-100 text-purple-700",
+    web_research: "bg-blue-100 text-blue-700",
+    synthesis: "bg-green-100 text-green-700",
+  };
   const sourceLabels = {
-    profile: 'From your profile',
-    web_research: 'From research',
-    synthesis: 'AI synthesis'
-  }
+    profile: "From your profile",
+    web_research: "From research",
+    synthesis: "AI synthesis",
+  };
 
   return (
     <button
@@ -69,13 +87,15 @@ function SuggestionCard({
     >
       <div className="flex items-start justify-between gap-2 mb-1">
         <p className="text-sm text-gray-900">{suggestion.suggestion}</p>
-        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${sourceColors[suggestion.source]}`}>
+        <span
+          className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${sourceColors[suggestion.source]}`}
+        >
           {sourceLabels[suggestion.source]}
         </span>
       </div>
       <p className="text-xs text-gray-500 mt-1">{suggestion.rationale}</p>
     </button>
-  )
+  );
 }
 
 export default function QuestionCard({
@@ -86,79 +106,89 @@ export default function QuestionCard({
   disabled = false,
   ideaSlug,
   initialSuggestions,
-  showAISuggestionsFirst = false // For critical gaps, show AI suggestions more prominently
+  showAISuggestionsFirst = false, // For critical gaps, show AI suggestions more prominently
 }: QuestionCardProps & { showAISuggestionsFirst?: boolean }) {
-  const [answer, setAnswer] = useState(existingAnswer || '')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(!existingAnswer)
-  const [suggestions, setSuggestions] = useState<Suggestion[]>(initialSuggestions || [])
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
+  const [answer, setAnswer] = useState(existingAnswer || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(!existingAnswer);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>(
+    initialSuggestions || [],
+  );
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   // Show suggestions if we have initialSuggestions or showAISuggestionsFirst is true
-  const [showSuggestions, setShowSuggestions] = useState(showAISuggestionsFirst || (initialSuggestions && initialSuggestions.length > 0))
-  const [suggestionError, setSuggestionError] = useState<string | null>(null)
-  const [hasAttemptedAnswer, setHasAttemptedAnswer] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(
+    showAISuggestionsFirst ||
+      (initialSuggestions && initialSuggestions.length > 0),
+  );
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [hasAttemptedAnswer, setHasAttemptedAnswer] = useState(false);
 
   const handleSubmit = async () => {
-    if (!answer.trim() || isSubmitting || disabled) return
+    if (!answer.trim() || isSubmitting || disabled) return;
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      await onAnswer(question.id, answer.trim())
-      setIsExpanded(false)
-      setShowSuggestions(false)
-      setSuggestions([])
+      await onAnswer(question.id, answer.trim());
+      setIsExpanded(false);
+      setShowSuggestions(false);
+      setSuggestions([]);
     } catch (error) {
-      console.error('Failed to submit answer:', error)
+      console.error("Failed to submit answer:", error);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault()
-      handleSubmit()
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSubmit();
     }
-  }
+  };
 
   const handleGetSuggestions = async () => {
-    if (!ideaSlug) return
+    if (!ideaSlug) return;
 
-    setIsLoadingSuggestions(true)
-    setSuggestionError(null)
-    setShowSuggestions(true)
+    setIsLoadingSuggestions(true);
+    setSuggestionError(null);
+    setShowSuggestions(true);
 
     try {
-      const res = await fetch(`${API_BASE}/api/ideas/${ideaSlug}/questions/${question.id}/suggestions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
+      const res = await fetch(
+        `${API_BASE}/api/ideas/${ideaSlug}/questions/${question.id}/suggestions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
 
       if (!res.ok) {
-        throw new Error('Failed to get suggestions')
+        throw new Error("Failed to get suggestions");
       }
 
-      const data = await res.json()
+      const data = await res.json();
       if (data.success && data.data.suggestions) {
-        setSuggestions(data.data.suggestions)
+        setSuggestions(data.data.suggestions);
       } else {
-        throw new Error(data.error || 'No suggestions returned')
+        throw new Error(data.error || "No suggestions returned");
       }
     } catch (err) {
-      console.error('Failed to get suggestions:', err)
-      setSuggestionError((err as Error).message)
+      console.error("Failed to get suggestions:", err);
+      setSuggestionError((err as Error).message);
     } finally {
-      setIsLoadingSuggestions(false)
+      setIsLoadingSuggestions(false);
     }
-  }
+  };
 
   const handleSelectSuggestion = (text: string) => {
-    setAnswer(text)
-    setShowSuggestions(false)
-  }
+    setAnswer(text);
+    setShowSuggestions(false);
+  };
 
   return (
-    <div className={`card ${existingAnswer ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+    <div
+      className={`card ${existingAnswer ? "border-green-200 bg-green-50" : "border-gray-200"}`}
+    >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2 flex-1">
@@ -195,7 +225,9 @@ export default function QuestionCard({
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-900">AI Suggestions</span>
+                  <span className="text-sm font-medium text-purple-900">
+                    AI Suggestions
+                  </span>
                 </div>
                 <button
                   onClick={() => setShowSuggestions(false)}
@@ -208,7 +240,9 @@ export default function QuestionCard({
               {isLoadingSuggestions ? (
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="h-6 w-6 text-purple-600 animate-spin" />
-                  <span className="ml-2 text-sm text-purple-600">Generating suggestions...</span>
+                  <span className="ml-2 text-sm text-purple-600">
+                    Generating suggestions...
+                  </span>
                 </div>
               ) : suggestionError ? (
                 <div className="text-sm text-red-600 py-2">
@@ -216,7 +250,9 @@ export default function QuestionCard({
                 </div>
               ) : suggestions.length > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-xs text-gray-500 mb-2">Click a suggestion to use it as your answer:</p>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Click a suggestion to use it as your answer:
+                  </p>
                   {suggestions.map((s) => (
                     <SuggestionCard
                       key={s.id}
@@ -226,7 +262,9 @@ export default function QuestionCard({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 py-2">No suggestions available</p>
+                <p className="text-sm text-gray-500 py-2">
+                  No suggestions available
+                </p>
               )}
             </div>
           )}
@@ -239,9 +277,9 @@ export default function QuestionCard({
             <textarea
               value={answer}
               onChange={(e) => {
-                setAnswer(e.target.value)
+                setAnswer(e.target.value);
                 if (e.target.value.length > 10) {
-                  setHasAttemptedAnswer(true)
+                  setHasAttemptedAnswer(true);
                 }
               }}
               placeholder="Share your thoughts on this question..."
@@ -262,14 +300,22 @@ export default function QuestionCard({
                   onClick={handleGetSuggestions}
                   disabled={disabled || isSubmitting || isLoadingSuggestions}
                   className={`inline-flex items-center gap-1 text-xs font-medium disabled:opacity-50 ${
-                    hasAttemptedAnswer || question.priority === 'critical' || showAISuggestionsFirst
-                      ? 'text-purple-600 hover:text-purple-700'
-                      : 'text-gray-400 hover:text-gray-500'
+                    hasAttemptedAnswer ||
+                    question.priority === "critical" ||
+                    showAISuggestionsFirst
+                      ? "text-purple-600 hover:text-purple-700"
+                      : "text-gray-400 hover:text-gray-500"
                   }`}
-                  title={!hasAttemptedAnswer && question.priority !== 'critical' ? 'Try answering first, then get AI help if needed' : undefined}
+                  title={
+                    !hasAttemptedAnswer && question.priority !== "critical"
+                      ? "Try answering first, then get AI help if needed"
+                      : undefined
+                  }
                 >
                   <Sparkles className="h-3 w-3" />
-                  {hasAttemptedAnswer || question.priority === 'critical' ? 'Get AI Suggestions' : 'Need help?'}
+                  {hasAttemptedAnswer || question.priority === "critical"
+                    ? "Get AI Suggestions"
+                    : "Need help?"}
                 </button>
               )}
             </div>
@@ -299,7 +345,11 @@ export default function QuestionCard({
                 className="btn btn-primary text-sm"
               >
                 <Send className="h-4 w-4 mr-1" />
-                {isSubmitting ? 'Saving...' : existingAnswer ? 'Update' : 'Submit'}
+                {isSubmitting
+                  ? "Saving..."
+                  : existingAnswer
+                    ? "Update"
+                    : "Submit"}
               </button>
             </div>
           </div>
@@ -313,5 +363,5 @@ export default function QuestionCard({
         </div>
       )}
     </div>
-  )
+  );
 }

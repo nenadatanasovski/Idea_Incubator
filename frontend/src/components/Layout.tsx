@@ -1,24 +1,35 @@
-import { Link, useLocation } from 'react-router-dom'
-import { Lightbulb, LayoutDashboard, List, GitCompare, MessageSquare, User, ScrollText, Sparkles, Bot, Bell } from 'lucide-react'
-import clsx from 'clsx'
+import { Link, useLocation } from "react-router-dom";
+import {
+  Lightbulb,
+  LayoutDashboard,
+  List,
+  GitCompare,
+  MessageSquare,
+  User,
+  ScrollText,
+  Sparkles,
+  Bot,
+  Bell,
+} from "lucide-react";
+import clsx from "clsx";
 
 interface LayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Ideate', href: '/ideate', icon: Sparkles, highlight: true },
-  { name: 'Ideas', href: '/ideas', icon: List },
-  { name: 'Compare', href: '/compare', icon: GitCompare },
-  { name: 'Debates', href: '/debate', icon: MessageSquare },
-  { name: 'Event Log', href: '/events', icon: ScrollText },
-  { name: 'Agents', href: '/agents', icon: Bot },
-  { name: 'Profile', href: '/profile', icon: User },
-]
+  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Ideate", href: "/ideate", icon: Sparkles, highlight: true },
+  { name: "Ideas", href: "/ideas", icon: List },
+  { name: "Compare", href: "/compare", icon: GitCompare },
+  { name: "Debates", href: "/debate", icon: MessageSquare },
+  { name: "Event Log", href: "/events", icon: ScrollText },
+  { name: "Agents", href: "/agents", icon: Bot },
+  { name: "Profile", href: "/profile", icon: User },
+];
 
 export default function Layout({ children }: LayoutProps) {
-  const location = useLocation()
+  const location = useLocation();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -38,26 +49,28 @@ export default function Layout({ children }: LayoutProps) {
               {/* Navigation */}
               <nav className="hidden sm:ml-8 sm:flex sm:space-x-4">
                 {navigation.map((item) => {
-                  const isActive = location.pathname === item.href ||
-                    (item.href !== '/' && location.pathname.startsWith(item.href))
-                  const isHighlight = 'highlight' in item && item.highlight
+                  const isActive =
+                    location.pathname === item.href ||
+                    (item.href !== "/" &&
+                      location.pathname.startsWith(item.href));
+                  const isHighlight = "highlight" in item && item.highlight;
                   return (
                     <Link
                       key={item.name}
                       to={item.href}
                       className={clsx(
-                        'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md',
+                        "inline-flex items-center px-3 py-2 text-sm font-medium rounded-md",
                         isActive
-                          ? 'bg-primary-50 text-primary-700'
+                          ? "bg-primary-50 text-primary-700"
                           : isHighlight
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'
-                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                            ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
                       )}
                     >
                       <item.icon className="h-4 w-4 mr-2" />
                       {item.name}
                     </Link>
-                  )
+                  );
                 })}
               </nav>
             </div>
@@ -67,10 +80,10 @@ export default function Layout({ children }: LayoutProps) {
               <Link
                 to="/settings/notifications"
                 className={clsx(
-                  'p-2 rounded-md transition',
-                  location.pathname.startsWith('/settings')
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  "p-2 rounded-md transition",
+                  location.pathname.startsWith("/settings")
+                    ? "bg-primary-50 text-primary-700"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100",
                 )}
                 title="Notification Settings"
               >
@@ -82,9 +95,7 @@ export default function Layout({ children }: LayoutProps) {
       </header>
 
       {/* Main content - pt-16 accounts for fixed header */}
-      <main className="px-4 sm:px-6 lg:px-8 pt-16 pb-6">
-        {children}
-      </main>
+      <main className="px-4 sm:px-6 lg:px-8 pt-16 pb-6">{children}</main>
     </div>
-  )
+  );
 }

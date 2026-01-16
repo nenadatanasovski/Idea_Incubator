@@ -5,12 +5,12 @@
  * Part of: Task System V2 Implementation Plan (IMPL-8.6)
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { v4 as uuidv4 } from 'uuid';
-import { taskTestService } from '../../server/services/task-agent/task-test-service';
-import { run, saveDb } from '../../database/db';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { v4 as uuidv4 } from "uuid";
+import { taskTestService } from "../../server/services/task-agent/task-test-service";
+import { run, saveDb } from "../../database/db";
 
-const TEST_PREFIX = 'TEST-SVC-';
+const TEST_PREFIX = "TEST-SVC-";
 
 // Create test task
 async function createTestTask(): Promise<string> {
@@ -18,7 +18,7 @@ async function createTestTask(): Promise<string> {
   await run(
     `INSERT INTO tasks (id, display_id, title, status, category, priority, effort, created_at, updated_at)
      VALUES (?, ?, ?, 'pending', 'feature', 'P2', 'medium', datetime('now'), datetime('now'))`,
-    [taskId, `${TEST_PREFIX}${taskId.slice(0, 8)}`, `${TEST_PREFIX}Test Task`]
+    [taskId, `${TEST_PREFIX}${taskId.slice(0, 8)}`, `${TEST_PREFIX}Test Task`],
   );
   await saveDb();
   return taskId;
@@ -26,12 +26,14 @@ async function createTestTask(): Promise<string> {
 
 // Cleanup test data
 async function cleanupTestData(): Promise<void> {
-  await run(`DELETE FROM task_test_results WHERE task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`);
+  await run(
+    `DELETE FROM task_test_results WHERE task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
+  );
   await run(`DELETE FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%'`);
   await saveDb();
 }
 
-describe('TaskTestService', () => {
+describe("TaskTestService", () => {
   let testTaskId: string;
 
   beforeAll(async () => {
@@ -47,12 +49,27 @@ describe('TaskTestService', () => {
     testTaskId = await createTestTask();
   });
 
-  describe('setTestConfig', () => {
-    it('should set test configuration for a task', async () => {
+  describe("setTestConfig", () => {
+    it("should set test configuration for a task", async () => {
       const configs = [
-        { level: 'syntax' as const, command: 'npx tsc --noEmit', timeout: 30000, requiredForPass: true },
-        { level: 'unit' as const, command: 'npm test', timeout: 60000, requiredForPass: true },
-        { level: 'e2e' as const, command: 'npm run e2e', timeout: 120000, requiredForPass: false }
+        {
+          level: "syntax" as const,
+          command: "npx tsc --noEmit",
+          timeout: 30000,
+          requiredForPass: true,
+        },
+        {
+          level: "unit" as const,
+          command: "npm test",
+          timeout: 60000,
+          requiredForPass: true,
+        },
+        {
+          level: "e2e" as const,
+          command: "npm run e2e",
+          timeout: 120000,
+          requiredForPass: false,
+        },
       ];
 
       await taskTestService.setTestConfig(testTaskId, configs);
@@ -60,27 +77,29 @@ describe('TaskTestService', () => {
       const retrievedConfig = await taskTestService.getTestConfig(testTaskId);
 
       expect(retrievedConfig.length).toBe(3);
-      expect(retrievedConfig.find(c => c.level === 'syntax')?.command).toBe('npx tsc --noEmit');
+      expect(retrievedConfig.find((c) => c.level === "syntax")?.command).toBe(
+        "npx tsc --noEmit",
+      );
     });
   });
 
-  describe('getTestConfig', () => {
-    it('should return empty array for task without config', async () => {
+  describe("getTestConfig", () => {
+    it("should return empty array for task without config", async () => {
       const config = await taskTestService.getTestConfig(testTaskId);
       expect(config).toEqual([]);
     });
   });
 
-  describe('recordResult', () => {
-    it('should record test result', async () => {
+  describe("recordResult", () => {
+    it("should record test result", async () => {
       const result = await taskTestService.recordResult({
         taskId: testTaskId,
         overallPassed: true,
         totalDuration: 5000,
         levels: [
-          { level: 'syntax', passed: true, duration: 2000 },
-          { level: 'unit', passed: true, duration: 3000 }
-        ]
+          { level: "syntax", passed: true, duration: 2000 },
+          { level: "unit", passed: true, duration: 3000 },
+        ],
       });
 
       expect(result).toBeDefined();
@@ -88,35 +107,40 @@ describe('TaskTestService', () => {
       expect(result.overallPassed).toBe(true);
     });
 
-    it('should record failed test result', async () => {
+    it("should record failed test result", async () => {
       const result = await taskTestService.recordResult({
         taskId: testTaskId,
         overallPassed: false,
         totalDuration: 1000,
         levels: [
-          { level: 'syntax', passed: false, duration: 1000, errorMessage: 'Type error in line 42' }
-        ]
+          {
+            level: "syntax",
+            passed: false,
+            duration: 1000,
+            errorMessage: "Type error in line 42",
+          },
+        ],
       });
 
       expect(result.overallPassed).toBe(false);
-      expect(result.levels[0].errorMessage).toContain('Type error');
+      expect(result.levels[0].errorMessage).toContain("Type error");
     });
   });
 
-  describe('getResults', () => {
-    it('should return all results for a task', async () => {
+  describe("getResults", () => {
+    it("should return all results for a task", async () => {
       await taskTestService.recordResult({
         taskId: testTaskId,
         overallPassed: false,
         totalDuration: 1000,
-        levels: [{ level: 'syntax', passed: false, duration: 1000 }]
+        levels: [{ level: "syntax", passed: false, duration: 1000 }],
       });
 
       await taskTestService.recordResult({
         taskId: testTaskId,
         overallPassed: true,
         totalDuration: 2000,
-        levels: [{ level: 'syntax', passed: true, duration: 2000 }]
+        levels: [{ level: "syntax", passed: true, duration: 2000 }],
       });
 
       const results = await taskTestService.getResults(testTaskId);
@@ -125,23 +149,23 @@ describe('TaskTestService', () => {
     });
   });
 
-  describe('getLatestResults', () => {
-    it('should return the most recent result', async () => {
+  describe("getLatestResults", () => {
+    it("should return the most recent result", async () => {
       await taskTestService.recordResult({
         taskId: testTaskId,
         overallPassed: false,
         totalDuration: 1000,
-        levels: [{ level: 'syntax', passed: false, duration: 1000 }]
+        levels: [{ level: "syntax", passed: false, duration: 1000 }],
       });
 
       // Wait a bit to ensure different timestamps
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       await taskTestService.recordResult({
         taskId: testTaskId,
         overallPassed: true,
         totalDuration: 2000,
-        levels: [{ level: 'syntax', passed: true, duration: 2000 }]
+        levels: [{ level: "syntax", passed: true, duration: 2000 }],
       });
 
       const latest = await taskTestService.getLatestResults(testTaskId);
@@ -150,18 +174,28 @@ describe('TaskTestService', () => {
       expect(latest?.totalDuration).toBe(2000);
     });
 
-    it('should return null for task without results', async () => {
+    it("should return null for task without results", async () => {
       const latest = await taskTestService.getLatestResults(testTaskId);
       expect(latest).toBeNull();
     });
   });
 
-  describe('checkAcceptanceCriteria', () => {
-    it('should check if acceptance criteria are met', async () => {
+  describe("checkAcceptanceCriteria", () => {
+    it("should check if acceptance criteria are met", async () => {
       // Set test config
       await taskTestService.setTestConfig(testTaskId, [
-        { level: 'syntax', command: 'tsc', timeout: 30000, requiredForPass: true },
-        { level: 'unit', command: 'jest', timeout: 60000, requiredForPass: true }
+        {
+          level: "syntax",
+          command: "tsc",
+          timeout: 30000,
+          requiredForPass: true,
+        },
+        {
+          level: "unit",
+          command: "jest",
+          timeout: 60000,
+          requiredForPass: true,
+        },
       ]);
 
       // Record passing result
@@ -170,9 +204,9 @@ describe('TaskTestService', () => {
         overallPassed: true,
         totalDuration: 5000,
         levels: [
-          { level: 'syntax', passed: true, duration: 2000 },
-          { level: 'unit', passed: true, duration: 3000 }
-        ]
+          { level: "syntax", passed: true, duration: 2000 },
+          { level: "unit", passed: true, duration: 3000 },
+        ],
       });
 
       const check = await taskTestService.checkAcceptanceCriteria(testTaskId);
@@ -181,12 +215,27 @@ describe('TaskTestService', () => {
       expect(check.missingLevels).toEqual([]);
     });
 
-    it('should report missing required levels', async () => {
+    it("should report missing required levels", async () => {
       // Set test config requiring all 3 levels
       await taskTestService.setTestConfig(testTaskId, [
-        { level: 'syntax', command: 'tsc', timeout: 30000, requiredForPass: true },
-        { level: 'unit', command: 'jest', timeout: 60000, requiredForPass: true },
-        { level: 'e2e', command: 'cypress', timeout: 120000, requiredForPass: true }
+        {
+          level: "syntax",
+          command: "tsc",
+          timeout: 30000,
+          requiredForPass: true,
+        },
+        {
+          level: "unit",
+          command: "jest",
+          timeout: 60000,
+          requiredForPass: true,
+        },
+        {
+          level: "e2e",
+          command: "cypress",
+          timeout: 120000,
+          requiredForPass: true,
+        },
       ]);
 
       // Record result missing e2e
@@ -195,16 +244,16 @@ describe('TaskTestService', () => {
         overallPassed: false,
         totalDuration: 5000,
         levels: [
-          { level: 'syntax', passed: true, duration: 2000 },
-          { level: 'unit', passed: true, duration: 3000 }
+          { level: "syntax", passed: true, duration: 2000 },
+          { level: "unit", passed: true, duration: 3000 },
           // e2e missing
-        ]
+        ],
       });
 
       const check = await taskTestService.checkAcceptanceCriteria(testTaskId);
 
       expect(check.allPassing).toBe(false);
-      expect(check.missingLevels).toContain('e2e');
+      expect(check.missingLevels).toContain("e2e");
     });
   });
 });

@@ -46,11 +46,13 @@ The agent operates like a skilled detective — extracting information through n
 The Ideation Agent's singular purpose: **Help the user discover themselves and the market, then find where those two things realistically overlap.**
 
 This is NOT about:
+
 - Asking evaluation questions (handled later)
 - Detailed business planning (handled later)
 - Profile data collection (already captured)
 
 This IS about:
+
 - Understanding what makes this specific user tick
 - Understanding what the market needs in their context
 - Finding the intersection grounded in real data
@@ -65,25 +67,27 @@ This IS about:
 The agent employs a **dual-mode questioning strategy**:
 
 **Mode 1: Covert Extraction** (default for skill testing, narrowing)
+
 - Extract information without revealing assessment purpose
 - Test knowledge/skills through natural conversation
 - Narrow possibilities silently based on accumulated signals
 
 **Mode 2: Transparent Inquiry** (for context-building, clarity)
+
 - **Reveal why you're asking** when referencing previous answers
 - Explain the purpose when clarity helps the user give better answers
 - Build trust through transparency about the process
 
 ### 2.2 When to Reveal Question Purpose
 
-| Situation | Approach | Example |
-|-----------|----------|---------|
-| **Referencing previous answers** | ✅ Reveal connection | "Earlier you mentioned [X]. I'm asking about [Y] because I want to understand if they connect..." |
-| **Need specific/precise info** | ✅ Explain why | "I need to understand your time constraints specifically because this affects whether we explore side-project or full-time ideas." |
-| **User seems confused** | ✅ Provide context | "Let me explain why I'm asking this — it helps me understand..." |
-| **Testing domain knowledge** | ❌ Keep covert | Just ask the scenario question naturally |
-| **Assessing skill level** | ❌ Keep covert | Frame as hypothetical, not as test |
-| **Narrowing options** | ❌ Keep covert | Don't announce "I'm narrowing down" |
+| Situation                        | Approach             | Example                                                                                                                            |
+| -------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Referencing previous answers** | ✅ Reveal connection | "Earlier you mentioned [X]. I'm asking about [Y] because I want to understand if they connect..."                                  |
+| **Need specific/precise info**   | ✅ Explain why       | "I need to understand your time constraints specifically because this affects whether we explore side-project or full-time ideas." |
+| **User seems confused**          | ✅ Provide context   | "Let me explain why I'm asking this — it helps me understand..."                                                                   |
+| **Testing domain knowledge**     | ❌ Keep covert       | Just ask the scenario question naturally                                                                                           |
+| **Assessing skill level**        | ❌ Keep covert       | Frame as hypothetical, not as test                                                                                                 |
+| **Narrowing options**            | ❌ Keep covert       | Don't announce "I'm narrowing down"                                                                                                |
 
 ### 2.3 The Information Extraction Framework
 
@@ -127,6 +131,7 @@ The agent employs a **dual-mode questioning strategy**:
 ### 2.4 Transparent Questioning Examples
 
 **Revealing purpose (good):**
+
 ```
 AGENT: "You mentioned earlier that you lose track of time when coding.
 I'm asking about this specifically because I want to understand if
@@ -135,6 +140,7 @@ or if it's just familiar. Does coding feel like flow or like work?"
 ```
 
 **Building on context (good):**
+
 ```
 AGENT: "Earlier you said the healthcare system frustrates you. Now
 I need to understand something important: is this frustration from
@@ -143,6 +149,7 @@ I ask is that insider knowledge often creates real competitive advantage."
 ```
 
 **Still covert when testing (appropriate):**
+
 ```
 AGENT: "If you had to explain HIPAA compliance to a hospital CEO in
 30 seconds, what would you say?"
@@ -166,6 +173,7 @@ experience, something you observed, or research you've done?"
 ```
 
 **When user suggests an idea, the agent:**
+
 1. Acknowledges the idea positively but neutrally
 2. Connects it to prior conversation context
 3. Begins targeted follow-up questions for that specific idea
@@ -181,13 +189,13 @@ The agent tracks TWO independent metrics:
 
 ### 3.1 Confidence Meter (How well-defined is the idea?)
 
-| Level | Meaning | Trigger |
-|-------|---------|---------|
-| 0-30% | Vague exploration | Just started, no clear direction |
-| 31-50% | Direction emerging | Some areas populated |
-| 51-75% | Idea forming | Most key areas have signals |
-| 76-99% | Idea crystallized | Clear problem/solution/market fit |
-| 100% | Fully defined | All key areas complete with validation |
+| Level  | Meaning            | Trigger                                |
+| ------ | ------------------ | -------------------------------------- |
+| 0-30%  | Vague exploration  | Just started, no clear direction       |
+| 31-50% | Direction emerging | Some areas populated                   |
+| 51-75% | Idea forming       | Most key areas have signals            |
+| 76-99% | Idea crystallized  | Clear problem/solution/market fit      |
+| 100%   | Fully defined      | All key areas complete with validation |
 
 ### 3.2 Viability Meter (Is this idea realistic?)
 
@@ -212,23 +220,23 @@ The agent tracks TWO independent metrics:
 
 ### 3.3 Viability Risk Factors (Web-Search Validated)
 
-| Risk Factor | Trigger | Evidence Required |
-|-------------|---------|-------------------|
-| **Impossible** | Technology doesn't exist, violates physics/regulations | Web search shows no precedent, regulatory blocks |
-| **Unrealistic** | Requires resources far beyond user's capacity | Market data shows capital requirements, user constraints |
-| **Too Complex** | Requires solving 5+ hard problems simultaneously | Competitor analysis shows why others failed |
-| **Too Vague** | Can't be validated because it's undefined | User can't answer basic what/who/how questions |
-| **Market Saturated** | 10+ well-funded competitors, no clear differentiation | Web search shows crowded landscape |
-| **Timing Wrong** | Too early (tech not ready) or too late (market closed) | Trend data, market maturity signals |
+| Risk Factor          | Trigger                                                | Evidence Required                                        |
+| -------------------- | ------------------------------------------------------ | -------------------------------------------------------- |
+| **Impossible**       | Technology doesn't exist, violates physics/regulations | Web search shows no precedent, regulatory blocks         |
+| **Unrealistic**      | Requires resources far beyond user's capacity          | Market data shows capital requirements, user constraints |
+| **Too Complex**      | Requires solving 5+ hard problems simultaneously       | Competitor analysis shows why others failed              |
+| **Too Vague**        | Can't be validated because it's undefined              | User can't answer basic what/who/how questions           |
+| **Market Saturated** | 10+ well-funded competitors, no clear differentiation  | Web search shows crowded landscape                       |
+| **Timing Wrong**     | Too early (tech not ready) or too late (market closed) | Trend data, market maturity signals                      |
 
 ### 3.4 Viability Threshold Behavior
 
-| Viability Level | Agent Behavior |
-|-----------------|----------------|
-| **75-100%** | Healthy — continue building confidence |
-| **50-74%** | Caution — mention concerns, suggest pivots |
-| **25-49%** | Warning — have honest conversation about risks |
-| **0-24%** | Critical — must address before continuing |
+| Viability Level | Agent Behavior                                 |
+| --------------- | ---------------------------------------------- |
+| **75-100%**     | Healthy — continue building confidence         |
+| **50-74%**      | Caution — mention concerns, suggest pivots     |
+| **25-49%**      | Warning — have honest conversation about risks |
+| **0-24%**       | Critical — must address before continuing      |
 
 ### 3.5 Viability Intervention Protocol
 
@@ -288,40 +296,40 @@ Not the vision, just: they open it, and then what happens?"
 
 The agent works to fill these internal "slots" about the user:
 
-| Area | What Agent Captures | How It's Extracted |
-|------|--------------------|--------------------|
-| **Impact Vision** | What change do they want to make? World, country, city, community level? | "If you could fix one thing..." / "What legacy..." |
-| **Frustrations** | Personal pain points they've experienced | "What feels harder than it should..." / "Walk me through..." |
-| **Expertise** | What they know that others don't | "What do outsiders get wrong about..." / Technical scenarios |
-| **Interests** | What genuinely energizes them | "What do you read/watch/think about voluntarily?" |
-| **Tick Factors** | What makes them come alive | "When do you lose track of time?" / "What makes you angry?" |
-| **Skills (Tested)** | Actual capability level | Covert probing, scenario questions |
-| **Constraints** | Location, time, capital, risk tolerance | Natural conversation, profile data |
+| Area                | What Agent Captures                                                      | How It's Extracted                                           |
+| ------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| **Impact Vision**   | What change do they want to make? World, country, city, community level? | "If you could fix one thing..." / "What legacy..."           |
+| **Frustrations**    | Personal pain points they've experienced                                 | "What feels harder than it should..." / "Walk me through..." |
+| **Expertise**       | What they know that others don't                                         | "What do outsiders get wrong about..." / Technical scenarios |
+| **Interests**       | What genuinely energizes them                                            | "What do you read/watch/think about voluntarily?"            |
+| **Tick Factors**    | What makes them come alive                                               | "When do you lose track of time?" / "What makes you angry?"  |
+| **Skills (Tested)** | Actual capability level                                                  | Covert probing, scenario questions                           |
+| **Constraints**     | Location, time, capital, risk tolerance                                  | Natural conversation, profile data                           |
 
 ### 4.2 Market-Discovery Areas
 
 These are populated through web search + user input:
 
-| Area | What Agent Captures | Data Sources |
-|------|--------------------|--------------|
-| **Competitor Landscape** | Who's playing in relevant spaces | Web search, user knowledge |
-| **Market Gaps** | What's missing or underserved | Web search analysis, user frustrations |
-| **Timing Signals** | Why now? What's changed? | Web search for trends, news |
-| **Failed Attempts** | What's been tried and failed | Web search, startup post-mortems |
-| **Location Context** | Market presence in user's city/region | Web search for local data |
-| **Job Market** | What skills are in demand where | Web search for job postings, trends |
+| Area                     | What Agent Captures                   | Data Sources                           |
+| ------------------------ | ------------------------------------- | -------------------------------------- |
+| **Competitor Landscape** | Who's playing in relevant spaces      | Web search, user knowledge             |
+| **Market Gaps**          | What's missing or underserved         | Web search analysis, user frustrations |
+| **Timing Signals**       | Why now? What's changed?              | Web search for trends, news            |
+| **Failed Attempts**      | What's been tried and failed          | Web search, startup post-mortems       |
+| **Location Context**     | Market presence in user's city/region | Web search for local data              |
+| **Job Market**           | What skills are in demand where       | Web search for job postings, trends    |
 
 ### 4.3 Narrowing Dimensions
 
 The agent silently narrows across these dimensions:
 
-| Dimension | Options | How Determined |
-|-----------|---------|----------------|
-| **Product Type** | Digital / Physical / Hybrid / Service | Inferred from skills, interests, constraints |
-| **Customer Type** | B2B / B2C / B2B2C / Marketplace | Inferred from frustrations, network, expertise |
-| **Geography** | Local / National / Global | Asked early, profile data, web validation |
-| **Scale Ambition** | Lifestyle / Growth / Venture | Inferred from goals, risk tolerance, constraints |
-| **Technical Depth** | No-code / Low-code / Full custom | Tested through covert skill assessment |
+| Dimension           | Options                               | How Determined                                   |
+| ------------------- | ------------------------------------- | ------------------------------------------------ |
+| **Product Type**    | Digital / Physical / Hybrid / Service | Inferred from skills, interests, constraints     |
+| **Customer Type**   | B2B / B2C / B2B2C / Marketplace       | Inferred from frustrations, network, expertise   |
+| **Geography**       | Local / National / Global             | Asked early, profile data, web validation        |
+| **Scale Ambition**  | Lifestyle / Growth / Venture          | Inferred from goals, risk tolerance, constraints |
+| **Technical Depth** | No-code / Low-code / Full custom      | Tested through covert skill assessment           |
 
 ---
 
@@ -386,32 +394,39 @@ The agent has a context window of **100k tokens**. This allows for extended conv
 ### 5.3 Memory File Structures
 
 **self-discovery.md:**
+
 ```markdown
 # Self-Discovery State
 
 ## Impact Vision
+
 - Level: [world/country/city/community]
 - Description: [what user wants to change]
 - Confidence: [high/medium/low]
 
 ## Frustrations Identified
+
 1. [Frustration] - Source: [quote/inference] - Severity: [high/med/low]
 2. ...
 
 ## Expertise Areas
+
 - [Area]: [depth: expert/competent/novice] - Evidence: [how tested]
 - ...
 
 ## Interests & Passions
+
 - [Interest] - Genuine: [yes/no] - Evidence: [engagement level]
 - ...
 
 ## Skills Assessment
+
 - [Skill]: [level] - Tested via: [method]
 - Gaps identified: [list]
 - Strengths identified: [list]
 
 ## Constraints
+
 - Location: [fixed/flexible] - Target: [city/country]
 - Time: [hours/week]
 - Capital: [bootstrap/seeking funding]
@@ -419,6 +434,7 @@ The agent has a context window of **100k tokens**. This allows for extended conv
 ```
 
 **viability-assessment.md:**
+
 ```markdown
 # Viability Assessment
 
@@ -427,60 +443,73 @@ The agent has a context window of **100k tokens**. This allows for extended conv
 ## Risk Factors Identified
 
 ### Market Risks
+
 - [Risk]: [severity] - Evidence: [URL source]
 - ...
 
 ### Technical Risks
+
 - [Risk]: [severity] - Evidence: [assessment method]
 - ...
 
 ### Resource Risks
+
 - [Risk]: [severity] - Evidence: [user constraint vs requirement]
 - ...
 
 ### Complexity Risks
+
 - [Risk]: [severity] - Evidence: [why this is hard]
 - ...
 
 ## Web Search Evidence
+
 | Query | Finding | Source URL | Implication |
-|-------|---------|------------|-------------|
-| ... | ... | ... | ... |
+| ----- | ------- | ---------- | ----------- |
+| ...   | ...     | ...        | ...         |
 
 ## Interventions Made
+
 - [Timestamp]: [What was flagged] - User response: [choice made]
 - ...
 ```
 
 **handoff-notes.md:**
+
 ```markdown
 # Agent Handoff Notes
 
 ## Session Summary
+
 [2-3 paragraph summary of conversation so far]
 
 ## Current State
+
 - Idea candidate: [yes/no] - If yes, see idea-candidate.md
 - Confidence level: [%]
 - Viability level: [%]
 - Conversation phase: [exploring/narrowing/validating/refining]
 
 ## Immediate Next Steps
+
 1. [What to ask/do next]
 2. [Follow-up needed on X]
 3. [Validate Y with web search]
 
 ## User Rapport Notes
+
 - Communication style: [verbose/terse/analytical/emotional]
 - Engagement level: [high/medium/low]
 - Topics that energize: [list]
 - Topics to avoid: [list]
 
 ## User-Suggested Ideas
+
 - [Idea user brought up] - Status: [exploring/validated/flagged]
 - ...
 
 ## Critical Context
+
 [Anything the next agent MUST know to continue naturally]
 ```
 
@@ -600,6 +629,7 @@ When the agent presents options, they appear as **clickable buttons** in the cha
 ```
 
 **Button behavior:**
+
 - Clicking a button sends that option as the user's response
 - User can still type a custom response instead
 - Buttons are styled distinctly from regular text
@@ -730,6 +760,7 @@ The agent can present multi-question forms when efficient:
 ```
 
 **Supported Input Types:**
+
 - **Buttons** (single select — primary method for quick choices)
 - **Button groups** (multi-select with checkboxes)
 - **Text** (single line, multi-line)
@@ -774,6 +805,7 @@ wondered about?"
 ### 7.2 Conversation Patterns
 
 **Transparent context-building:**
+
 ```
 AGENT: "Earlier you mentioned you lose track of time when coding.
 I'm asking about this specifically because I want to understand if
@@ -784,6 +816,7 @@ Does coding feel like play or like work?"
 ```
 
 **Accepting user-suggested ideas:**
+
 ```
 USER: "Actually, I've had this idea for a while — what about a
 marketplace for vintage synthesizers?"
@@ -798,6 +831,7 @@ with buying/selling synths, or more of an observation?"
 ```
 
 **Introducing market data:**
+
 ```
 AGENT: "I did a quick search on vintage synth marketplaces.
 Found a few players: Reverb.com dominates, there's also Vintage
@@ -810,6 +844,7 @@ Does that match what you've experienced?"
 ```
 
 **Viability concern (calm, evidence-based):**
+
 ```
 AGENT: "I need to share something important here.
 
@@ -833,16 +868,17 @@ This doesn't mean the idea is bad, but these are real obstacles.
 
 ### 7.3 Tone Guidelines
 
-| Attribute | Guideline |
-|-----------|-----------|
-| **Base tone** | Neutral, professional, curious |
-| **Warmth** | Friendly but not effusive |
-| **Humor** | Occasional witty one-liner (random, not forced) |
-| **Honesty** | Direct about challenges, cites evidence |
-| **Transparency** | Explains "why I'm asking" when helpful |
-| **Pacing** | Mix of single questions and button choices |
+| Attribute        | Guideline                                       |
+| ---------------- | ----------------------------------------------- |
+| **Base tone**    | Neutral, professional, curious                  |
+| **Warmth**       | Friendly but not effusive                       |
+| **Humor**        | Occasional witty one-liner (random, not forced) |
+| **Honesty**      | Direct about challenges, cites evidence         |
+| **Transparency** | Explains "why I'm asking" when helpful          |
+| **Pacing**       | Mix of single questions and button choices      |
 
 **Witty interjections (random, ~10% of responses):**
+
 - "Ah, the classic 'surely someone's solved this' moment. Usually they haven't, or they've done it poorly."
 - "That's either a terrible idea or a brilliant one. Often the same thing."
 - "Noted. I'm adding 'has strong opinions about X' to my mental file."
@@ -851,12 +887,14 @@ This doesn't mean the idea is bad, but these are real obstacles.
 ### 7.4 Handling Edge Cases
 
 **User gives very short answers:**
+
 ```
 AGENT: "Got it. Let me dig a bit deeper — when you say [short answer],
 what's behind that? I'm trying to understand the 'why' not just the 'what'."
 ```
 
 **User suggests an idea mid-conversation:**
+
 ```
 AGENT: "That's a concrete idea — let's explore it. I'll connect this
 to what we've discussed and run some market validation.
@@ -865,6 +903,7 @@ to what we've discussed and run some market validation.
 ```
 
 **Viability drops critically:**
+
 ```
 AGENT: "I want to pause here. Based on my research, this direction
 has some fundamental challenges we should discuss before going further.
@@ -873,6 +912,7 @@ has some fundamental challenges we should discuss before going further.
 ```
 
 **User ignores viability warnings:**
+
 ```
 AGENT: "Understood — you want to proceed despite the challenges.
 I'll note that the viability score is [X]% and continue. We can
@@ -893,7 +933,7 @@ When user clicks "Capture this idea" (at any confidence level):
 interface CaptureHandoff {
   // Pre-populated in README.md
   title: string;
-  type: 'business' | 'creative' | 'technical' | 'personal' | 'research';
+  type: "business" | "creative" | "technical" | "personal" | "research";
   overview: string;
   problemStatement: string;
   targetUsers: string[];
@@ -911,14 +951,14 @@ interface CaptureHandoff {
     marketDiscoveryFindings: object;
     webSearchSources: string[];
     narrowingDecisions: string[];
-    userSuggestedIdea: boolean;  // Did user bring this idea?
+    userSuggestedIdea: boolean; // Did user bring this idea?
   };
 
   // Pre-answered for Development phase
   preAnsweredQuestions: {
     questionId: string;
     answer: string;
-    source: 'ideation_agent';
+    source: "ideation_agent";
     confidence: number;
   }[];
 }
@@ -950,46 +990,52 @@ Let's focus on the areas we haven't covered yet..."
 
 ### 9.1 Overlap with Other Phases
 
-| Phase | What It Handles | Ideation Agent MUST NOT |
-|-------|-----------------|-------------------------|
-| **Profile** | Goals, passions, skills, network, life stage | Re-ask profile questions |
+| Phase           | What It Handles                                   | Ideation Agent MUST NOT         |
+| --------------- | ------------------------------------------------- | ------------------------------- |
+| **Profile**     | Goals, passions, skills, network, life stage      | Re-ask profile questions        |
 | **Development** | Detailed user personas, business model, execution | Get into implementation details |
-| **Evaluation** | 30 criteria scoring | Ask evaluation questions |
-| **Red Team** | Assumption challenges | Play devil's advocate |
+| **Evaluation**  | 30 criteria scoring                               | Ask evaluation questions        |
+| **Red Team**    | Assumption challenges                             | Play devil's advocate           |
 
 ### 9.2 Anti-Patterns
 
 **DON'T: Always hide purpose**
+
 ```
 ❌ Never explaining why you're asking anything
 ✓ Reveal purpose when it helps user answer better
 ```
 
 **DON'T: Over-structure the conversation**
+
 ```
 ❌ "Let's go through 5 categories: first, your frustrations..."
 ❌ "Question 7 of 20: What is your..."
 ```
 
 **DON'T: Push toward specific ideas**
+
 ```
 ❌ "I think you should build X because..."
 ❌ "The best idea here is clearly..."
 ```
 
 **DON'T: Ignore user-suggested ideas**
+
 ```
 ❌ "Let's continue with my questions instead."
 ✓ "That's interesting — let's explore that."
 ```
 
 **DON'T: Skip viability warnings**
+
 ```
 ❌ Presenting idea without checking feasibility
 ❌ Ignoring red flags from web search
 ```
 
 **DON'T: Make users type when buttons work**
+
 ```
 ❌ "Type A, B, or C to select..."
 ✓ [Button A] [Button B] [Button C]
@@ -1000,6 +1046,7 @@ Let's focus on the areas we haven't covered yet..."
 ## 10. Implementation Phases
 
 ### Phase 1: Foundation (MVP)
+
 - [ ] Basic conversational agent with core methodology
 - [ ] Profile loading and gap identification
 - [ ] Simple confidence tracking
@@ -1009,6 +1056,7 @@ Let's focus on the areas we haven't covered yet..."
 - [ ] Basic UI (conversation + idea panel)
 
 ### Phase 2: Intelligence
+
 - [ ] Strategic questioning (covert vs transparent)
 - [ ] Automated narrowing logic
 - [ ] **Viability meter with web-search validation**
@@ -1018,6 +1066,7 @@ Let's focus on the areas we haven't covered yet..."
 - [ ] Confidence calculation refinement
 
 ### Phase 3: Polish
+
 - [ ] Witty interjection system
 - [ ] **Viability intervention UI flows**
 - [ ] Development phase pre-population
@@ -1154,8 +1203,8 @@ interface ButtonOption {
   id: string;
   label: string;
   value: string;
-  style: 'primary' | 'secondary' | 'outline';
-  fullWidth?: boolean;  // For "I'm not sure" type options
+  style: "primary" | "secondary" | "outline";
+  fullWidth?: boolean; // For "I'm not sure" type options
 }
 
 interface AgentResponse {
@@ -1170,21 +1219,21 @@ interface AgentResponse {
 
 ## 12. Success Metrics
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Session start rate | 30% of captures | % who choose guided vs direct |
-| Completion rate | 60% | % reaching idea capture |
-| Average confidence at capture | 85% | Mean confidence level |
-| **Average viability at capture** | **70%** | Mean viability level |
-| Time to first idea candidate | < 10 min | Time until idea appears |
-| User satisfaction | 4.0/5 | Post-session rating |
-| Downstream conversion | > 50% | % completing Development |
-| Evaluation score delta | +0.5 | Guided vs direct capture scores |
-| **Viability intervention rate** | **< 20%** | % of sessions with critical warnings |
+| Metric                           | Target          | Measurement                          |
+| -------------------------------- | --------------- | ------------------------------------ |
+| Session start rate               | 30% of captures | % who choose guided vs direct        |
+| Completion rate                  | 60%             | % reaching idea capture              |
+| Average confidence at capture    | 85%             | Mean confidence level                |
+| **Average viability at capture** | **70%**         | Mean viability level                 |
+| Time to first idea candidate     | < 10 min        | Time until idea appears              |
+| User satisfaction                | 4.0/5           | Post-session rating                  |
+| Downstream conversion            | > 50%           | % completing Development             |
+| Evaluation score delta           | +0.5            | Guided vs direct capture scores      |
+| **Viability intervention rate**  | **< 20%**       | % of sessions with critical warnings |
 
 ---
 
-*Document Version: 3.0*
-*Created: 2025-12-30*
-*Last Updated: 2025-12-30*
-*Status: Ready for Technical Specification*
+_Document Version: 3.0_
+_Created: 2025-12-30_
+_Last Updated: 2025-12-30_
+_Status: Ready for Technical Specification_

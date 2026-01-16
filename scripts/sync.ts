@@ -1,17 +1,23 @@
 #!/usr/bin/env tsx
-import * as fs from 'fs';
-import * as path from 'path';
-import { glob } from 'glob';
-import { v4 as uuidv4 } from 'uuid';
-import { createHash } from 'crypto';
-import { getConfig } from '../config/index.js';
-import { closeDb, query, run, insert, update, saveDb } from '../database/db.js';
-import { runMigrations } from '../database/migrate.js';
-import { parseMarkdown } from '../utils/parser.js';
-import { logInfo, logSuccess, logError, logWarning, logDebug } from '../utils/logger.js';
-import { parseDevlopmentMd } from '../questions/parser.js';
-import { classifyQuestionToId } from '../questions/classifier.js';
-import { saveAnswer } from '../questions/readiness.js';
+import * as fs from "fs";
+import * as path from "path";
+import { glob } from "glob";
+import { v4 as uuidv4 } from "uuid";
+import { createHash } from "crypto";
+import { getConfig } from "../config/index.js";
+import { closeDb, query, run, insert, update, saveDb } from "../database/db.js";
+import { runMigrations } from "../database/migrate.js";
+import { parseMarkdown } from "../utils/parser.js";
+import {
+  logInfo,
+  logSuccess,
+  logError,
+  logWarning,
+  logDebug,
+} from "../utils/logger.js";
+import { parseDevlopmentMd } from "../questions/parser.js";
+import { classifyQuestionToId } from "../questions/classifier.js";
+import { saveAnswer } from "../questions/readiness.js";
 
 interface SyncResult {
   created: string[];
@@ -35,25 +41,26 @@ interface DevSyncResult {
  */
 function computeIdeaHash(ideaPath: string): string {
   const filesToHash = [
-    path.join(ideaPath, 'README.md'),
-    path.join(ideaPath, 'development.md')
+    path.join(ideaPath, "README.md"),
+    path.join(ideaPath, "development.md"),
   ];
 
   // Also include any research files
-  const researchPath = path.join(ideaPath, 'research');
+  const researchPath = path.join(ideaPath, "research");
   if (fs.existsSync(researchPath)) {
-    const researchFiles = fs.readdirSync(researchPath)
-      .filter(f => f.endsWith('.md'))
-      .map(f => path.join(researchPath, f));
+    const researchFiles = fs
+      .readdirSync(researchPath)
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => path.join(researchPath, f));
     filesToHash.push(...researchFiles);
   }
 
   const contents = filesToHash
-    .filter(f => fs.existsSync(f))
-    .map(f => fs.readFileSync(f, 'utf-8'))
-    .join('\n---FILE-BOUNDARY---\n');
+    .filter((f) => fs.existsSync(f))
+    .map((f) => fs.readFileSync(f, "utf-8"))
+    .join("\n---FILE-BOUNDARY---\n");
 
-  return createHash('md5').update(contents).digest('hex');
+  return createHash("md5").update(contents).digest("hex");
 }
 
 /**
@@ -62,15 +69,15 @@ function computeIdeaHash(ideaPath: string): string {
  */
 async function syncDevelopmentAnswers(
   ideaId: string,
-  folderPath: string
+  folderPath: string,
 ): Promise<DevSyncResult> {
-  const devPath = path.join(folderPath, 'development.md');
+  const devPath = path.join(folderPath, "development.md");
 
   if (!fs.existsSync(devPath)) {
     return { synced: 0, failed: 0, skipped: 0 };
   }
 
-  const content = fs.readFileSync(devPath, 'utf-8');
+  const content = fs.readFileSync(devPath, "utf-8");
 
   // Skip if file is too short (likely just template)
   if (content.length < 100) {
@@ -89,7 +96,7 @@ async function syncDevelopmentAnswers(
 
     if (questionId) {
       try {
-        await saveAnswer(ideaId, questionId, answer, 'user', confidence);
+        await saveAnswer(ideaId, questionId, answer, "user", confidence);
         synced++;
         logDebug(`  Mapped "${question.slice(0, 30)}..." -> ${questionId}`);
       } catch (error) {
@@ -119,7 +126,7 @@ export async function syncIdeasToDb(): Promise<SyncResult> {
     stale: [],
     errors: [],
     developmentSynced: 0,
-    developmentFailed: 0
+    developmentFailed: 0,
   };
 
   // Ensure ideas directory exists
@@ -130,7 +137,7 @@ export async function syncIdeasToDb(): Promise<SyncResult> {
   }
 
   // Find all idea README.md files
-  const ideaFiles = await glob('*/README.md', { cwd: ideasDir });
+  const ideaFiles = await glob("*/README.md", { cwd: ideasDir });
   const processedSlugs = new Set<string>();
 
   logInfo(`Found ${ideaFiles.length} idea file(s) to process.`);
@@ -152,12 +159,14 @@ export async function syncIdeasToDb(): Promise<SyncResult> {
         id: string;
         content_hash: string;
         updated_at: string;
-      }>('SELECT id, content_hash, updated_at FROM ideas WHERE slug = ?', [slug]);
+      }>("SELECT id, content_hash, updated_at FROM ideas WHERE slug = ?", [
+        slug,
+      ]);
 
       if (existing.length === 0) {
         // Create new idea
         const id = frontmatter.id || uuidv4();
-        await insert('ideas', {
+        await insert("ideas", {
           id,
           slug,
           title: frontmatter.title,
@@ -167,7 +176,7 @@ export async function syncIdeasToDb(): Promise<SyncResult> {
           content_hash: hash,
           folder_path: ideaFolder,
           created_at: frontmatter.created,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         });
 
         // Sync tags
@@ -188,14 +197,19 @@ export async function syncIdeasToDb(): Promise<SyncResult> {
 
         // Check if content changed (including development.md)
         if (idea.content_hash !== hash) {
-          await update('ideas', {
-            title: frontmatter.title,
-            summary: frontmatter.summary || null,
-            idea_type: frontmatter.type,
-            lifecycle_stage: frontmatter.stage,
-            content_hash: hash,
-            updated_at: new Date().toISOString()
-          }, 'id = ?', [idea.id]);
+          await update(
+            "ideas",
+            {
+              title: frontmatter.title,
+              summary: frontmatter.summary || null,
+              idea_type: frontmatter.type,
+              lifecycle_stage: frontmatter.stage,
+              content_hash: hash,
+              updated_at: new Date().toISOString(),
+            },
+            "id = ?",
+            [idea.id],
+          );
 
           // Sync tags
           await syncTags(idea.id, frontmatter.tags || []);
@@ -218,18 +232,18 @@ export async function syncIdeasToDb(): Promise<SyncResult> {
     } catch (error) {
       result.errors.push({
         path: fullPath,
-        error: (error as Error).message
+        error: (error as Error).message,
       });
       logError(`Failed to process ${fullPath}`, error as Error);
     }
   }
 
   // Find deleted ideas (in DB but not in files)
-  const dbIdeas = await query<{ slug: string }>('SELECT slug FROM ideas');
+  const dbIdeas = await query<{ slug: string }>("SELECT slug FROM ideas");
   for (const dbIdea of dbIdeas) {
     if (!processedSlugs.has(dbIdea.slug)) {
       // Idea was deleted from filesystem
-      await run('DELETE FROM ideas WHERE slug = ?', [dbIdea.slug]);
+      await run("DELETE FROM ideas WHERE slug = ?", [dbIdea.slug]);
       result.deleted.push(dbIdea.slug);
       logWarning(`Deleted from DB: ${dbIdea.slug}`);
     }
@@ -248,22 +262,27 @@ export async function syncIdeasToDb(): Promise<SyncResult> {
  */
 async function syncTags(ideaId: string, tags: string[]): Promise<void> {
   // Remove existing tags
-  await run('DELETE FROM idea_tags WHERE idea_id = ?', [ideaId]);
+  await run("DELETE FROM idea_tags WHERE idea_id = ?", [ideaId]);
 
   for (const tagName of tags) {
     // Get or create tag
-    let tag = await query<{ id: number }>('SELECT id FROM tags WHERE name = ?', [tagName]);
+    let tag = await query<{ id: number }>(
+      "SELECT id FROM tags WHERE name = ?",
+      [tagName],
+    );
 
     if (tag.length === 0) {
-      await insert('tags', { name: tagName });
-      tag = await query<{ id: number }>('SELECT id FROM tags WHERE name = ?', [tagName]);
+      await insert("tags", { name: tagName });
+      tag = await query<{ id: number }>("SELECT id FROM tags WHERE name = ?", [
+        tagName,
+      ]);
     }
 
     // Link tag to idea
-    await run('INSERT OR IGNORE INTO idea_tags (idea_id, tag_id) VALUES (?, ?)', [
-      ideaId,
-      tag[0].id
-    ]);
+    await run(
+      "INSERT OR IGNORE INTO idea_tags (idea_id, tag_id) VALUES (?, ?)",
+      [ideaId, tag[0].id],
+    );
   }
 }
 
@@ -274,7 +293,7 @@ async function checkStaleness(
   ideaId: string,
   slug: string,
   _currentHash: string,
-  result: SyncResult
+  result: SyncResult,
 ): Promise<void> {
   const config = getConfig();
 
@@ -287,14 +306,15 @@ async function checkStaleness(
      FROM evaluations WHERE idea_id = ?
      GROUP BY evaluation_run_id
      ORDER BY evaluated_at DESC LIMIT 1`,
-    [ideaId]
+    [ideaId],
   );
 
   if (lastEval.length === 0) return;
 
   const evalDate = new Date(lastEval[0].evaluated_at);
   const now = new Date();
-  const daysSince = (now.getTime() - evalDate.getTime()) / (1000 * 60 * 60 * 24);
+  const daysSince =
+    (now.getTime() - evalDate.getTime()) / (1000 * 60 * 60 * 24);
 
   // Check if evaluation is older than threshold
   if (daysSince > config.staleness.evaluationAgeDays) {
@@ -308,7 +328,7 @@ async function checkStaleness(
  */
 async function generateIndex(): Promise<void> {
   const config = getConfig();
-  const indexPath = path.join(config.paths.ideas, '_index.md');
+  const indexPath = path.join(config.paths.ideas, "_index.md");
 
   const ideas = await query<{
     slug: string;
@@ -320,7 +340,7 @@ async function generateIndex(): Promise<void> {
     `SELECT i.slug, i.title, i.lifecycle_stage, i.idea_type, i.updated_at,
             (SELECT AVG(final_score) FROM evaluations e WHERE e.idea_id = i.id) as avg_score
      FROM ideas i
-     ORDER BY i.updated_at DESC`
+     ORDER BY i.updated_at DESC`,
   );
 
   let content = `# Idea Index
@@ -336,23 +356,23 @@ Last updated: ${new Date().toISOString()}
 `;
 
   for (const idea of ideas) {
-    const date = new Date(idea.updated_at).toISOString().split('T')[0];
-    content += `| [${idea.title}](./${idea.slug}/README.md) | ${idea.lifecycle_stage} | ${idea.idea_type || '-'} | ${date} |\n`;
+    const date = new Date(idea.updated_at).toISOString().split("T")[0];
+    content += `| [${idea.title}](./${idea.slug}/README.md) | ${idea.lifecycle_stage} | ${idea.idea_type || "-"} | ${date} |\n`;
   }
 
-  fs.writeFileSync(indexPath, content, 'utf-8');
+  fs.writeFileSync(indexPath, content, "utf-8");
   logInfo(`Generated index: ${indexPath}`);
 }
 
 // CLI entry point
 async function main(): Promise<void> {
   try {
-    logInfo('Starting sync...');
+    logInfo("Starting sync...");
     await runMigrations();
     const result = await syncIdeasToDb();
 
-    console.log('\nSync Summary:');
-    console.log('=============');
+    console.log("\nSync Summary:");
+    console.log("=============");
     console.log(`  Created: ${result.created.length}`);
     console.log(`  Updated: ${result.updated.length}`);
     console.log(`  Deleted: ${result.deleted.length}`);
@@ -367,18 +387,18 @@ async function main(): Promise<void> {
 
     if (result.stale.length > 0) {
       console.log(`\n  Stale evaluations: ${result.stale.length}`);
-      result.stale.forEach(s => console.log(`    - ${s}`));
-      console.log('\n  Run `npm run evaluate <slug>` to update evaluations.');
+      result.stale.forEach((s) => console.log(`    - ${s}`));
+      console.log("\n  Run `npm run evaluate <slug>` to update evaluations.");
     }
 
     if (result.errors.length > 0) {
       console.log(`\n  Errors: ${result.errors.length}`);
-      result.errors.forEach(e => console.log(`    - ${e.path}: ${e.error}`));
+      result.errors.forEach((e) => console.log(`    - ${e.path}: ${e.error}`));
     }
 
-    logSuccess('Sync complete.');
+    logSuccess("Sync complete.");
   } catch (error) {
-    logError('Sync failed', error as Error);
+    logError("Sync failed", error as Error);
     process.exit(1);
   } finally {
     await closeDb();
@@ -386,10 +406,9 @@ async function main(): Promise<void> {
 }
 
 // Run if called directly
-const isMainModule = process.argv[1] && (
-  process.argv[1].endsWith('sync.ts') ||
-  process.argv[1].endsWith('sync.js')
-);
+const isMainModule =
+  process.argv[1] &&
+  (process.argv[1].endsWith("sync.ts") || process.argv[1].endsWith("sync.js"));
 
 if (isMainModule) {
   main();

@@ -8,6 +8,7 @@ sessionId: afda70d2-5ae0-497e-9ab2-8e7596c9da07
 createdAt: 2026-01-05 21:52:46
 updatedAt: 2026-01-05 21:52:46
 ---
+
 # Technical Architecture Exploration: Vibe Platform
 
 ## System Overview
@@ -15,6 +16,7 @@ updatedAt: 2026-01-05 21:52:46
 Vibe is an AI-powered platform that transforms ideas into validated concepts, then into AI-built applications, with proactive networking capabilities. The system operates through self-optimizing agent loops (SIA - presumably Self-Improving Agent loops).
 
 The architecture must support:
+
 1. **Idea Intake & Processing** - Capturing and structuring user ideas
 2. **AI Validation Pipeline** - Multi-agent evaluation and refinement
 3. **Code Generation** - AI-powered application building
@@ -26,6 +28,7 @@ The architecture must support:
 ## Core Components
 
 ### 1. **Idea Orchestration Service**
+
 **Responsibility:** Central nervous system for idea lifecycle management
 
 - Receives raw idea input (text, voice, documents)
@@ -34,6 +37,7 @@ The architecture must support:
 - Coordinates multi-agent workflows
 
 **Interface:**
+
 ```
 POST /ideas - Create new idea
 GET /ideas/{id}/status - Get processing status
@@ -42,6 +46,7 @@ WebSocket /ideas/{id}/stream - Real-time updates
 ```
 
 ### 2. **Agent Runtime Environment**
+
 **Responsibility:** Executes AI agents with isolation and resource management
 
 - Spawns evaluation, red-team, and synthesis agents
@@ -50,11 +55,13 @@ WebSocket /ideas/{id}/stream - Real-time updates
 - Handles budget constraints and cost tracking
 
 **Sub-components:**
+
 - Agent Scheduler (queuing, prioritization)
 - Context Manager (RAG, memory persistence)
 - Tool Registry (available capabilities per agent type)
 
 ### 3. **Validation Engine**
+
 **Responsibility:** Multi-perspective idea evaluation
 
 - Runs 30-criteria evaluation framework
@@ -63,6 +70,7 @@ WebSocket /ideas/{id}/stream - Real-time updates
 - Produces confidence-weighted scores
 
 ### 4. **Code Generation Service**
+
 **Responsibility:** Transforms validated concepts into working applications
 
 - Generates architecture from requirements
@@ -71,6 +79,7 @@ WebSocket /ideas/{id}/stream - Real-time updates
 - Supports iterative refinement based on feedback
 
 ### 5. **Networking Intelligence Service**
+
 **Responsibility:** Proactive connection recommendations
 
 - Analyzes idea requirements vs. user capabilities
@@ -79,6 +88,7 @@ WebSocket /ideas/{id}/stream - Real-time updates
 - Tracks relationship strength and relevance over time
 
 ### 6. **Self-Optimization Controller (SIA Loops)**
+
 **Responsibility:** Continuous system improvement
 
 - Monitors agent performance metrics
@@ -145,17 +155,18 @@ WebSocket /ideas/{id}/stream - Real-time updates
 
 ### Option A: **Serverless-First (Recommended for MVP)**
 
-| Component | Technology | Rationale |
-|-----------|------------|-----------|
-| API Layer | **Vercel/Cloudflare Workers** | Zero cold-start, edge deployment |
-| Orchestration | **Inngest** or **Temporal** | Durable workflows, automatic retries |
-| AI Runtime | **Claude API** (direct) | Already integrated, best reasoning |
-| Database | **SQLite + Turso** | Current setup, scales to millions of rows |
-| Vector Store | **Turso + sqlite-vec** or **Pinecone** | RAG for context retrieval |
-| Queue | **Upstash Redis** | Serverless, for rate limiting & queues |
-| Code Gen Storage | **R2/S3** | Generated project artifacts |
+| Component        | Technology                             | Rationale                                 |
+| ---------------- | -------------------------------------- | ----------------------------------------- |
+| API Layer        | **Vercel/Cloudflare Workers**          | Zero cold-start, edge deployment          |
+| Orchestration    | **Inngest** or **Temporal**            | Durable workflows, automatic retries      |
+| AI Runtime       | **Claude API** (direct)                | Already integrated, best reasoning        |
+| Database         | **SQLite + Turso**                     | Current setup, scales to millions of rows |
+| Vector Store     | **Turso + sqlite-vec** or **Pinecone** | RAG for context retrieval                 |
+| Queue            | **Upstash Redis**                      | Serverless, for rate limiting & queues    |
+| Code Gen Storage | **R2/S3**                              | Generated project artifacts               |
 
 **Trade-offs:**
+
 - ✅ Low operational overhead
 - ✅ Pay-per-use (cost-efficient at low scale)
 - ✅ Fast time-to-market
@@ -164,17 +175,18 @@ WebSocket /ideas/{id}/stream - Real-time updates
 
 ### Option B: **Container-Based (Scale Path)**
 
-| Component | Technology | Rationale |
-|-----------|------------|-----------|
-| API Layer | **Node.js + Fastify** | Performance, TypeScript native |
-| Orchestration | **Temporal** | Enterprise-grade workflow engine |
-| AI Runtime | **LangGraph** + Claude | Agent graphs with persistence |
-| Database | **PostgreSQL** | ACID, JSON support, extensions |
-| Vector Store | **pgvector** | Single database simplicity |
-| Queue | **BullMQ + Redis** | Job processing, priorities |
-| Infra | **Railway** or **Fly.io** | Simple container deployment |
+| Component     | Technology                | Rationale                        |
+| ------------- | ------------------------- | -------------------------------- |
+| API Layer     | **Node.js + Fastify**     | Performance, TypeScript native   |
+| Orchestration | **Temporal**              | Enterprise-grade workflow engine |
+| AI Runtime    | **LangGraph** + Claude    | Agent graphs with persistence    |
+| Database      | **PostgreSQL**            | ACID, JSON support, extensions   |
+| Vector Store  | **pgvector**              | Single database simplicity       |
+| Queue         | **BullMQ + Redis**        | Job processing, priorities       |
+| Infra         | **Railway** or **Fly.io** | Simple container deployment      |
 
 **Trade-offs:**
+
 - ✅ Full control over execution
 - ✅ Better for long-running agents
 - ✅ Easier debugging and observability
@@ -183,36 +195,38 @@ WebSocket /ideas/{id}/stream - Real-time updates
 
 ### Build vs. Buy Decisions
 
-| Capability | Build | Buy | Recommendation |
-|------------|-------|-----|----------------|
-| Agent Orchestration | Custom state machine | Temporal/Inngest | **Buy** - complexity not core value |
-| Evaluation Framework | Custom (existing) | - | **Build** - core differentiator |
-| Code Generation | Custom prompts | Cursor API/Aider | **Hybrid** - wrap existing tools |
-| User Matching | Custom | LinkedIn API | **Build** - data ownership matters |
-| Auth/Identity | Custom | Clerk/Auth0 | **Buy** - solved problem |
-| Payments | Custom | Stripe | **Buy** - compliance burden |
+| Capability           | Build                | Buy              | Recommendation                      |
+| -------------------- | -------------------- | ---------------- | ----------------------------------- |
+| Agent Orchestration  | Custom state machine | Temporal/Inngest | **Buy** - complexity not core value |
+| Evaluation Framework | Custom (existing)    | -                | **Build** - core differentiator     |
+| Code Generation      | Custom prompts       | Cursor API/Aider | **Hybrid** - wrap existing tools    |
+| User Matching        | Custom               | LinkedIn API     | **Build** - data ownership matters  |
+| Auth/Identity        | Custom               | Clerk/Auth0      | **Buy** - solved problem            |
+| Payments             | Custom               | Stripe           | **Buy** - compliance burden         |
 
 ---
 
 ## Integration Points
 
 ### External AI Services
+
 ```yaml
 Primary:
   - Claude API (Anthropic): Main reasoning engine
   - Embeddings: Voyage AI or OpenAI ada-002
-  
+
 Fallback:
   - OpenAI GPT-4: Backup for Claude outages
   - Local models: Ollama for development/testing
 ```
 
 ### Code Generation Integrations
+
 ```yaml
 Version Control:
   - GitHub API: Repository creation, commits
   - GitHub Actions: CI/CD pipeline triggers
-  
+
 Deployment Targets:
   - Vercel: Frontend deployments
   - Railway/Fly.io: Backend services
@@ -220,18 +234,20 @@ Deployment Targets:
 ```
 
 ### Networking Data Sources
+
 ```yaml
 Professional:
   - LinkedIn (OAuth): Profile data, connections
   - GitHub: Developer skills, activity
   - AngelList: Startup ecosystem data
-  
+
 Community:
   - Discord API: Community engagement
   - Twitter/X API: Thought leadership signals
 ```
 
 ### Observability
+
 ```yaml
 Monitoring:
   - PostHog: Product analytics, feature flags
@@ -244,12 +260,14 @@ Monitoring:
 ## Security Considerations
 
 ### Authentication & Authorization
+
 - **User Auth:** OAuth 2.0 via Clerk (Google, GitHub, email)
 - **API Auth:** JWT tokens with refresh rotation
 - **Agent Auth:** Scoped API keys per agent type
 - **RBAC:** Role-based access (Free, Pro, Team, Enterprise)
 
 ### Data Protection
+
 ```
 ┌─────────────────────────────────────────┐
 │           SECURITY LAYERS               │
@@ -263,11 +281,13 @@ Monitoring:
 ```
 
 ### Compliance Requirements
+
 - **GDPR:** Data export/deletion capabilities
 - **SOC 2:** Audit logging for enterprise tier
 - **AI Transparency:** Explanation of agent decisions
 
 ### Prompt Injection Mitigation
+
 - Input sanitization before agent processing
 - Separate system prompts from user content
 - Output validation before code execution
@@ -277,6 +297,7 @@ Monitoring:
 ## Evolution Path
 
 ### Phase 1: MVP (Weeks 1-6)
+
 **Goal:** Validate core value proposition
 
 ```
@@ -299,6 +320,7 @@ Features:
 ---
 
 ### Phase 2: Multi-Agent Foundation (Weeks 7-12)
+
 **Goal:** Parallel agent execution, better UX
 
 ```
@@ -323,6 +345,7 @@ Features:
 ---
 
 ### Phase 3: Code Generation & Networking (Months 4-6)
+
 **Goal:** Full pipeline from idea to deployed app
 
 ```
@@ -349,6 +372,7 @@ Features:
 ---
 
 ### Phase 4: Platform & Scale (Months 7-12)
+
 **Goal:** Self-sustaining platform with marketplace dynamics
 
 ```
@@ -376,12 +400,14 @@ Features:
 ## Key Architectural Decisions
 
 ### Decision 1: Workflow Engine
+
 **Recommendation:** Start with **Inngest**, migrate to **Temporal** at scale
 
 - Inngest: Lower complexity, serverless-native, good for MVP
 - Temporal: More powerful, better for long-running processes
 
 ### Decision 2: Database Strategy
+
 **Recommendation:** Keep **SQLite/Turso** through Phase 2, evaluate PostgreSQL for Phase 3
 
 - Current SQLite setup works well for single-user
@@ -389,6 +415,7 @@ Features:
 - PostgreSQL needed when you need complex queries, pgvector, or triggers
 
 ### Decision 3: Code Generation Approach
+
 **Recommendation:** **Wrapper over existing tools** (Aider, Claude artifacts)
 
 - Don't rebuild code generation from scratch
@@ -396,11 +423,12 @@ Features:
 - Use sandboxed execution (E2B, Firecracker) for safety
 
 ### Decision 4: Agent Memory Architecture
+
 **Recommendation:** **Hybrid approach**
 
 ```
 Short-term: In-context (conversation history)
-Medium-term: Vector DB (RAG retrieval)  
+Medium-term: Vector DB (RAG retrieval)
 Long-term: Structured DB (user profiles, evaluations)
 ```
 
@@ -408,13 +436,13 @@ Long-term: Structured DB (user profiles, evaluations)
 
 ## Risk Mitigation
 
-| Risk | Mitigation |
-|------|------------|
-| AI costs spiral | Budget caps, caching, model fallbacks |
-| Claude API outages | Multi-provider support (OpenAI backup) |
+| Risk                   | Mitigation                              |
+| ---------------------- | --------------------------------------- |
+| AI costs spiral        | Budget caps, caching, model fallbacks   |
+| Claude API outages     | Multi-provider support (OpenAI backup)  |
 | Generated code quality | Sandboxed execution, human review gates |
-| Data security breach | Encryption, audit logs, SOC 2 path |
-| Complexity creep | Strict phase gates, MVP-first mindset |
+| Data security breach   | Encryption, audit logs, SOC 2 path      |
+| Complexity creep       | Strict phase gates, MVP-first mindset   |
 
 ---
 

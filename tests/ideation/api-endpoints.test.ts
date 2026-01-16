@@ -1,9 +1,9 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
-import express from 'express';
-import type { Request, Response } from 'express';
+import { describe, test, expect, beforeEach, vi } from "vitest";
+import express from "express";
+import type { Request, Response } from "express";
 
 // Mock all dependencies before importing the router
-vi.mock('../../database/db.js', () => ({
+vi.mock("../../database/db.js", () => ({
   getDb: vi.fn(() => ({
     run: vi.fn(),
     exec: vi.fn(() => []),
@@ -14,7 +14,7 @@ vi.mock('../../database/db.js', () => ({
   run: vi.fn(() => ({ changes: 1 })),
 }));
 
-vi.mock('../../agents/ideation/session-manager.js', () => ({
+vi.mock("../../agents/ideation/session-manager.js", () => ({
   sessionManager: {
     create: vi.fn(),
     load: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('../../agents/ideation/session-manager.js', () => ({
   },
 }));
 
-vi.mock('../../agents/ideation/message-store.js', () => ({
+vi.mock("../../agents/ideation/message-store.js", () => ({
   messageStore: {
     add: vi.fn(),
     getBySession: vi.fn(),
@@ -34,7 +34,7 @@ vi.mock('../../agents/ideation/message-store.js', () => ({
   },
 }));
 
-vi.mock('../../agents/ideation/memory-manager.js', () => ({
+vi.mock("../../agents/ideation/memory-manager.js", () => ({
   memoryManager: {
     upsert: vi.fn(),
     getByType: vi.fn(),
@@ -42,24 +42,39 @@ vi.mock('../../agents/ideation/memory-manager.js', () => ({
   },
 }));
 
-vi.mock('../../agents/ideation/orchestrator.js', () => ({
+vi.mock("../../agents/ideation/orchestrator.js", () => ({
   agentOrchestrator: {
     processMessage: vi.fn(),
   },
 }));
 
-vi.mock('../../agents/ideation/greeting-generator.js', () => ({
+vi.mock("../../agents/ideation/greeting-generator.js", () => ({
   generateGreetingWithButtons: vi.fn(() => ({
-    text: 'Welcome! I\'m here to help.',
+    text: "Welcome! I'm here to help.",
     buttons: [
-      { id: 'btn_frustration', label: 'Something frustrates me', value: 'test', style: 'secondary' },
-      { id: 'btn_idea', label: 'I have a rough idea', value: 'test', style: 'secondary' },
-      { id: 'btn_explore', label: 'Help me explore', value: 'test', style: 'secondary' },
+      {
+        id: "btn_frustration",
+        label: "Something frustrates me",
+        value: "test",
+        style: "secondary",
+      },
+      {
+        id: "btn_idea",
+        label: "I have a rough idea",
+        value: "test",
+        style: "secondary",
+      },
+      {
+        id: "btn_explore",
+        label: "Help me explore",
+        value: "test",
+        style: "secondary",
+      },
     ],
   })),
 }));
 
-vi.mock('../../agents/ideation/candidate-manager.js', () => ({
+vi.mock("../../agents/ideation/candidate-manager.js", () => ({
   candidateManager: {
     create: vi.fn(),
     getById: vi.fn(),
@@ -72,7 +87,7 @@ vi.mock('../../agents/ideation/candidate-manager.js', () => ({
   },
 }));
 
-vi.mock('../../agents/ideation/streaming.js', () => ({
+vi.mock("../../agents/ideation/streaming.js", () => ({
   createSSEStream: vi.fn(() => ({
     send: vi.fn(),
     end: vi.fn(),
@@ -83,7 +98,7 @@ vi.mock('../../agents/ideation/streaming.js', () => ({
   })),
 }));
 
-vi.mock('../../utils/anthropic-client.js', () => ({
+vi.mock("../../utils/anthropic-client.js", () => ({
   getAnthropicClient: vi.fn(() => ({})),
   createAnthropicClient: vi.fn(() => ({
     messages: { create: vi.fn() },
@@ -94,17 +109,17 @@ vi.mock('../../utils/anthropic-client.js', () => ({
   useClaudeCli: false,
 }));
 
-vi.mock('../../agents/ideation/system-prompt.js', () => ({
-  buildSystemPrompt: vi.fn(() => 'System prompt'),
+vi.mock("../../agents/ideation/system-prompt.js", () => ({
+  buildSystemPrompt: vi.fn(() => "System prompt"),
 }));
 
 // Now import the router after mocks are set up
-import { ideationRouter } from '../../server/routes/ideation.js';
-import { sessionManager } from '../../agents/ideation/session-manager.js';
-import { messageStore } from '../../agents/ideation/message-store.js';
-import { agentOrchestrator } from '../../agents/ideation/orchestrator.js';
-import { candidateManager } from '../../agents/ideation/candidate-manager.js';
-import { getOne } from '../../database/db.js';
+import { ideationRouter } from "../../server/routes/ideation.js";
+import { sessionManager } from "../../agents/ideation/session-manager.js";
+import { messageStore } from "../../agents/ideation/message-store.js";
+import { agentOrchestrator } from "../../agents/ideation/orchestrator.js";
+import { candidateManager } from "../../agents/ideation/candidate-manager.js";
+import { getOne } from "../../database/db.js";
 
 // Type definitions for route handler extraction
 interface RouteLayer {
@@ -116,9 +131,14 @@ interface RouteLayer {
 }
 
 // Helper function to get route handler
-function getRouteHandler(path: string, method: 'get' | 'post'): ((req: Request, res: Response) => Promise<unknown>) | undefined {
+function getRouteHandler(
+  path: string,
+  method: "get" | "post",
+): ((req: Request, res: Response) => Promise<unknown>) | undefined {
   const router = ideationRouter as unknown as { stack: RouteLayer[] };
-  const layer = router.stack.find(l => l.route?.path === path && l.route?.methods?.[method]);
+  const layer = router.stack.find(
+    (l) => l.route?.path === path && l.route?.methods?.[method],
+  );
   return layer?.route?.stack[0].handle;
 }
 
@@ -152,7 +172,7 @@ function createMockResponse() {
   return res as typeof res & Response;
 }
 
-describe('Ideation API Endpoints', () => {
+describe("Ideation API Endpoints", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -161,23 +181,23 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/start
   // ===========================================================================
 
-  describe('POST /start', () => {
-    test('PASS: Creates session with valid profile', async () => {
+  describe("POST /start", () => {
+    test("PASS: Creates session with valid profile", async () => {
       vi.mocked(getOne).mockResolvedValue({
-        id: 'profile-123',
-        name: 'Test User',
-        technical_skills: 'programming,design',
-        interests: 'tech,startups',
-        city: 'Sydney',
-        country: 'Australia',
+        id: "profile-123",
+        name: "Test User",
+        technical_skills: "programming,design",
+        interests: "tech,startups",
+        city: "Sydney",
+        country: "Australia",
       });
 
       vi.mocked(sessionManager.create).mockResolvedValue({
-        id: 'session-123',
-        profileId: 'profile-123',
-        status: 'active',
-        currentPhase: 'exploring',
-        entryMode: 'discover',
+        id: "session-123",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
         startedAt: new Date(),
         completedAt: null,
         lastActivityAt: new Date(),
@@ -187,10 +207,10 @@ describe('Ideation API Endpoints', () => {
       });
 
       vi.mocked(messageStore.add).mockResolvedValue({
-        id: 'msg-1',
-        sessionId: 'session-123',
-        role: 'assistant',
-        content: 'Welcome!',
+        id: "msg-1",
+        sessionId: "session-123",
+        role: "assistant",
+        content: "Welcome!",
         buttonsShown: null,
         buttonClicked: null,
         formShown: null,
@@ -202,54 +222,67 @@ describe('Ideation API Endpoints', () => {
 
       vi.mocked(sessionManager.update).mockResolvedValue(null);
 
-      const req = createMockRequest({ body: { profileId: 'profile-123' } });
+      const req = createMockRequest({ body: { profileId: "profile-123" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/start', 'post');
+      const handler = getRouteHandler("/start", "post");
       expect(handler).toBeDefined();
       await handler!(req, res);
 
       expect(res.statusCode).toBe(200);
-      expect((res.jsonData as { sessionId: string }).sessionId).toBe('session-123');
+      expect((res.jsonData as { sessionId: string }).sessionId).toBe(
+        "session-123",
+      );
     });
 
-    test('PASS: Greeting includes buttons', async () => {
-      vi.mocked(getOne).mockResolvedValue({ id: 'profile-123', name: 'Test User' });
+    test("PASS: Greeting includes buttons", async () => {
+      vi.mocked(getOne).mockResolvedValue({
+        id: "profile-123",
+        name: "Test User",
+      });
       vi.mocked(sessionManager.create).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: null,
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
       vi.mocked(messageStore.add).mockResolvedValue({} as never);
       vi.mocked(sessionManager.update).mockResolvedValue(null);
 
-      const req = createMockRequest({ body: { profileId: 'profile-123' } });
+      const req = createMockRequest({ body: { profileId: "profile-123" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/start', 'post');
+      const handler = getRouteHandler("/start", "post");
       await handler!(req, res);
 
       const buttons = (res.jsonData as { buttons: unknown[] }).buttons;
       expect(buttons).toHaveLength(3);
     });
 
-    test('FAIL: Returns 404 for invalid profile', async () => {
+    test("FAIL: Returns 404 for invalid profile", async () => {
       vi.mocked(getOne).mockResolvedValue(null);
 
-      const req = createMockRequest({ body: { profileId: 'nonexistent' } });
+      const req = createMockRequest({ body: { profileId: "nonexistent" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/start', 'post');
+      const handler = getRouteHandler("/start", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(404);
     });
 
-    test('FAIL: Returns 400 for missing profileId', async () => {
+    test("FAIL: Returns 400 for missing profileId", async () => {
       const req = createMockRequest({ body: {} });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/start', 'post');
+      const handler = getRouteHandler("/start", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(400);
@@ -260,96 +293,160 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/message
   // ===========================================================================
 
-  describe('POST /message', () => {
-    test('PASS: Processes message and returns response', async () => {
+  describe("POST /message", () => {
+    test("PASS: Processes message and returns response", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: null,
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
-      vi.mocked(getOne).mockResolvedValue({ id: 'profile-123', name: 'Test User' });
+      vi.mocked(getOne).mockResolvedValue({
+        id: "profile-123",
+        name: "Test User",
+      });
       vi.mocked(agentOrchestrator.processMessage).mockResolvedValue({
-        reply: 'That sounds interesting!', buttons: null, form: null, candidateUpdate: null,
-        confidence: 20, viability: 100, requiresIntervention: false, handoffOccurred: false,
+        reply: "That sounds interesting!",
+        buttons: null,
+        form: null,
+        candidateUpdate: null,
+        confidence: 20,
+        viability: 100,
+        requiresIntervention: false,
+        handoffOccurred: false,
       });
       vi.mocked(messageStore.getBySession).mockResolvedValue([]);
       vi.mocked(messageStore.getTotalTokens).mockResolvedValue(100);
       vi.mocked(sessionManager.update).mockResolvedValue(null);
 
-      const req = createMockRequest({ body: { sessionId: 'session-123', message: 'Healthcare problems' } });
+      const req = createMockRequest({
+        body: { sessionId: "session-123", message: "Healthcare problems" },
+      });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/message', 'post');
+      const handler = getRouteHandler("/message", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(200);
       expect((res.jsonData as { reply: string }).reply).toBeDefined();
     });
 
-    test('PASS: Returns ideaCandidate when confidence is high', async () => {
+    test("PASS: Returns ideaCandidate when confidence is high", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: null,
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
-      vi.mocked(getOne).mockResolvedValue({ id: 'profile-123', name: 'Test User' });
+      vi.mocked(getOne).mockResolvedValue({
+        id: "profile-123",
+        name: "Test User",
+      });
       vi.mocked(agentOrchestrator.processMessage).mockResolvedValue({
-        reply: 'Great idea!', buttons: null, form: null,
-        candidateUpdate: { title: 'Healthcare Platform', summary: 'A platform' },
-        confidence: 50, viability: 80, requiresIntervention: false, handoffOccurred: false,
+        reply: "Great idea!",
+        buttons: null,
+        form: null,
+        candidateUpdate: {
+          title: "Healthcare Platform",
+          summary: "A platform",
+        },
+        confidence: 50,
+        viability: 80,
+        requiresIntervention: false,
+        handoffOccurred: false,
       });
       vi.mocked(candidateManager.getOrCreateForSession).mockResolvedValue({
-        id: 'candidate-1', sessionId: 'session-123', title: 'Healthcare Platform',
-        summary: 'A platform', confidence: 50, viability: 80, userSuggested: false,
-        status: 'forming', capturedIdeaId: null, version: 1, createdAt: new Date(), updatedAt: new Date(),
+        id: "candidate-1",
+        sessionId: "session-123",
+        title: "Healthcare Platform",
+        summary: "A platform",
+        confidence: 50,
+        viability: 80,
+        userSuggested: false,
+        status: "forming",
+        capturedIdeaId: null,
+        version: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
       vi.mocked(messageStore.getBySession).mockResolvedValue([]);
       vi.mocked(messageStore.getTotalTokens).mockResolvedValue(100);
       vi.mocked(sessionManager.update).mockResolvedValue(null);
 
-      const req = createMockRequest({ body: { sessionId: 'session-123', message: 'Build a platform' } });
+      const req = createMockRequest({
+        body: { sessionId: "session-123", message: "Build a platform" },
+      });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/message', 'post');
+      const handler = getRouteHandler("/message", "post");
       await handler!(req, res);
 
       // Response structure uses candidateUpdate, not ideaCandidate
-      expect((res.jsonData as { candidateUpdate: { id: string } | null }).candidateUpdate).toHaveProperty('id');
+      expect(
+        (res.jsonData as { candidateUpdate: { id: string } | null })
+          .candidateUpdate,
+      ).toHaveProperty("id");
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue(null);
 
-      const req = createMockRequest({ body: { sessionId: 'nonexistent', message: 'Hello' } });
+      const req = createMockRequest({
+        body: { sessionId: "nonexistent", message: "Hello" },
+      });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/message', 'post');
+      const handler = getRouteHandler("/message", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(404);
     });
 
-    test('FAIL: Returns 400 for missing message', async () => {
-      const req = createMockRequest({ body: { sessionId: 'session-123' } });
+    test("FAIL: Returns 400 for missing message", async () => {
+      const req = createMockRequest({ body: { sessionId: "session-123" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/message', 'post');
+      const handler = getRouteHandler("/message", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(400);
     });
 
-    test('FAIL: Returns 400 for completed session', async () => {
+    test("FAIL: Returns 400 for completed session", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'completed', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: new Date(), lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "completed",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: new Date(),
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
 
-      const req = createMockRequest({ body: { sessionId: 'session-123', message: 'Hello' } });
+      const req = createMockRequest({
+        body: { sessionId: "session-123", message: "Hello" },
+      });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/message', 'post');
+      const handler = getRouteHandler("/message", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(400);
@@ -360,44 +457,74 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/button
   // ===========================================================================
 
-  describe('POST /button', () => {
-    test('PASS: Button click is processed as message', async () => {
+  describe("POST /button", () => {
+    test("PASS: Button click is processed as message", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: null,
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
-      vi.mocked(messageStore.getBySession).mockResolvedValue([{
-        id: 'msg-1', sessionId: 'session-123', role: 'assistant', content: 'Welcome!',
-        buttonsShown: [], buttonClicked: null, formShown: null, formResponse: null,
-        webSearchResults: null, tokenCount: 10, createdAt: new Date(),
-      }]);
-      vi.mocked(getOne).mockResolvedValue({ id: 'profile-123', name: 'Test' });
+      vi.mocked(messageStore.getBySession).mockResolvedValue([
+        {
+          id: "msg-1",
+          sessionId: "session-123",
+          role: "assistant",
+          content: "Welcome!",
+          buttonsShown: [],
+          buttonClicked: null,
+          formShown: null,
+          formResponse: null,
+          webSearchResults: null,
+          tokenCount: 10,
+          createdAt: new Date(),
+        },
+      ]);
+      vi.mocked(getOne).mockResolvedValue({ id: "profile-123", name: "Test" });
       vi.mocked(messageStore.recordButtonClick).mockResolvedValue();
       vi.mocked(agentOrchestrator.processMessage).mockResolvedValue({
-        reply: 'I understand.', buttons: null, form: null, candidateUpdate: null,
-        confidence: 10, viability: 100, requiresIntervention: false, handoffOccurred: false,
+        reply: "I understand.",
+        buttons: null,
+        form: null,
+        candidateUpdate: null,
+        confidence: 10,
+        viability: 100,
+        requiresIntervention: false,
+        handoffOccurred: false,
       });
       vi.mocked(messageStore.getTotalTokens).mockResolvedValue(100);
       vi.mocked(sessionManager.update).mockResolvedValue(null);
 
       const req = createMockRequest({
-        body: { sessionId: 'session-123', buttonId: 'btn_frustration', buttonValue: 'Something frustrates me' },
+        body: {
+          sessionId: "session-123",
+          buttonId: "btn_frustration",
+          buttonValue: "Something frustrates me",
+        },
       });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/button', 'post');
+      const handler = getRouteHandler("/button", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(200);
       expect((res.jsonData as { reply: string }).reply).toBeDefined();
     });
 
-    test('FAIL: Returns 400 for missing buttonId', async () => {
-      const req = createMockRequest({ body: { sessionId: 'session-123', buttonValue: 'test' } });
+    test("FAIL: Returns 400 for missing buttonId", async () => {
+      const req = createMockRequest({
+        body: { sessionId: "session-123", buttonValue: "test" },
+      });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/button', 'post');
+      const handler = getRouteHandler("/button", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(400);
@@ -408,31 +535,39 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/capture
   // ===========================================================================
 
-  describe('POST /capture', () => {
-    test('FAIL: Returns 400 if no candidate exists', async () => {
+  describe("POST /capture", () => {
+    test("FAIL: Returns 400 if no candidate exists", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: null,
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
       vi.mocked(candidateManager.getActiveForSession).mockResolvedValue(null);
 
-      const req = createMockRequest({ body: { sessionId: 'session-123' } });
+      const req = createMockRequest({ body: { sessionId: "session-123" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/capture', 'post');
+      const handler = getRouteHandler("/capture", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(400);
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue(null);
 
-      const req = createMockRequest({ body: { sessionId: 'nonexistent' } });
+      const req = createMockRequest({ body: { sessionId: "nonexistent" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/capture', 'post');
+      const handler = getRouteHandler("/capture", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(404);
@@ -443,33 +578,41 @@ describe('Ideation API Endpoints', () => {
   // GET /api/ideation/session/:sessionId
   // ===========================================================================
 
-  describe('GET /session/:sessionId', () => {
-    test('PASS: Returns session details', async () => {
+  describe("GET /session/:sessionId", () => {
+    test("PASS: Returns session details", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: null,
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
       vi.mocked(messageStore.getBySession).mockResolvedValue([]);
       vi.mocked(candidateManager.getActiveForSession).mockResolvedValue(null);
 
-      const req = createMockRequest({ params: { sessionId: 'session-123' } });
+      const req = createMockRequest({ params: { sessionId: "session-123" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/session/:sessionId', 'get');
+      const handler = getRouteHandler("/session/:sessionId", "get");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(200);
       expect((res.jsonData as { session: object }).session).toBeDefined();
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue(null);
 
-      const req = createMockRequest({ params: { sessionId: 'nonexistent' } });
+      const req = createMockRequest({ params: { sessionId: "nonexistent" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/session/:sessionId', 'get');
+      const handler = getRouteHandler("/session/:sessionId", "get");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(404);
@@ -480,47 +623,63 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/session/:sessionId/abandon
   // ===========================================================================
 
-  describe('POST /session/:sessionId/abandon', () => {
-    test('PASS: Abandons active session', async () => {
+  describe("POST /session/:sessionId/abandon", () => {
+    test("PASS: Abandons active session", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: null,
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
       vi.mocked(sessionManager.abandon).mockResolvedValue(null);
 
-      const req = createMockRequest({ params: { sessionId: 'session-123' } });
+      const req = createMockRequest({ params: { sessionId: "session-123" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/session/:sessionId/abandon', 'post');
+      const handler = getRouteHandler("/session/:sessionId/abandon", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(200);
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue(null);
 
-      const req = createMockRequest({ params: { sessionId: 'nonexistent' } });
+      const req = createMockRequest({ params: { sessionId: "nonexistent" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/session/:sessionId/abandon', 'post');
+      const handler = getRouteHandler("/session/:sessionId/abandon", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(404);
     });
 
-    test('FAIL: Returns 400 for already abandoned session', async () => {
+    test("FAIL: Returns 400 for already abandoned session", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'abandoned', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: new Date(), lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "abandoned",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: new Date(),
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
 
-      const req = createMockRequest({ params: { sessionId: 'session-123' } });
+      const req = createMockRequest({ params: { sessionId: "session-123" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/session/:sessionId/abandon', 'post');
+      const handler = getRouteHandler("/session/:sessionId/abandon", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(400);
@@ -531,41 +690,47 @@ describe('Ideation API Endpoints', () => {
   // GET /api/ideation/sessions
   // ===========================================================================
 
-  describe('GET /sessions', () => {
-    test('PASS: Returns sessions for profile', async () => {
+  describe("GET /sessions", () => {
+    test("PASS: Returns sessions for profile", async () => {
       // Route uses query() directly, not sessionManager.getActiveByProfile
       // The mock returns [] by default, which is fine for this test
 
-      const req = createMockRequest({ query: { profileId: 'profile-123' } });
+      const req = createMockRequest({ query: { profileId: "profile-123" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/sessions', 'get');
+      const handler = getRouteHandler("/sessions", "get");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(200);
       // Response structure is { success, data: { sessions } }
-      expect((res.jsonData as { data: { sessions: unknown[] } }).data.sessions).toBeInstanceOf(Array);
+      expect(
+        (res.jsonData as { data: { sessions: unknown[] } }).data.sessions,
+      ).toBeInstanceOf(Array);
     });
 
-    test('PASS: Returns empty array for profile with no sessions', async () => {
+    test("PASS: Returns empty array for profile with no sessions", async () => {
       // Route uses query() directly which returns [] by default
 
-      const req = createMockRequest({ query: { profileId: 'profile-no-sessions' } });
+      const req = createMockRequest({
+        query: { profileId: "profile-no-sessions" },
+      });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/sessions', 'get');
+      const handler = getRouteHandler("/sessions", "get");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(200);
       // Response structure is { success, data: { sessions } }
-      expect((res.jsonData as { data: { sessions: unknown[] } }).data.sessions).toEqual([]);
+      expect(
+        (res.jsonData as { data: { sessions: unknown[] } }).data.sessions,
+      ).toEqual([]);
     });
 
-    test('FAIL: Returns 400 for missing profileId', async () => {
+    test("FAIL: Returns 400 for missing profileId", async () => {
       const req = createMockRequest({ query: {} });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/sessions', 'get');
+      const handler = getRouteHandler("/sessions", "get");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(400);
@@ -576,53 +741,71 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/form
   // ===========================================================================
 
-  describe('POST /form', () => {
-    test('PASS: Processes form submission', async () => {
+  describe("POST /form", () => {
+    test("PASS: Processes form submission", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: null,
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
-      vi.mocked(getOne).mockResolvedValue({ id: 'profile-123', name: 'Test' });
+      vi.mocked(getOne).mockResolvedValue({ id: "profile-123", name: "Test" });
       vi.mocked(messageStore.add).mockResolvedValue({} as never);
       vi.mocked(candidateManager.getActiveForSession).mockResolvedValue(null);
       vi.mocked(agentOrchestrator.processMessage).mockResolvedValue({
-        reply: 'Thanks for the details!', buttons: null, form: null, candidateUpdate: null,
-        confidence: 20, viability: 100, requiresIntervention: false, handoffOccurred: false,
+        reply: "Thanks for the details!",
+        buttons: null,
+        form: null,
+        candidateUpdate: null,
+        confidence: 20,
+        viability: 100,
+        requiresIntervention: false,
+        handoffOccurred: false,
       });
 
       const req = createMockRequest({
-        body: { sessionId: 'session-123', formId: 'test_form', responses: { field1: 'value1' } },
+        body: {
+          sessionId: "session-123",
+          formId: "test_form",
+          responses: { field1: "value1" },
+        },
       });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/form', 'post');
+      const handler = getRouteHandler("/form", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(200);
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue(null);
 
       const req = createMockRequest({
-        body: { sessionId: 'nonexistent', formId: 'test', responses: {} },
+        body: { sessionId: "nonexistent", formId: "test", responses: {} },
       });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/form', 'post');
+      const handler = getRouteHandler("/form", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(404);
     });
 
-    test('FAIL: Returns 400 for missing formId', async () => {
+    test("FAIL: Returns 400 for missing formId", async () => {
       const req = createMockRequest({
-        body: { sessionId: 'session-123', responses: {} },
+        body: { sessionId: "session-123", responses: {} },
       });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/form', 'post');
+      const handler = getRouteHandler("/form", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(400);
@@ -633,32 +816,40 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/save
   // ===========================================================================
 
-  describe('POST /save', () => {
-    test('FAIL: Returns 404 when no candidate exists', async () => {
+  describe("POST /save", () => {
+    test("FAIL: Returns 404 when no candidate exists", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: null,
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
       vi.mocked(candidateManager.getActiveForSession).mockResolvedValue(null);
       vi.mocked(candidateManager.getById).mockResolvedValue(null);
 
-      const req = createMockRequest({ body: { sessionId: 'session-123' } });
+      const req = createMockRequest({ body: { sessionId: "session-123" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/save', 'post');
+      const handler = getRouteHandler("/save", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(404);
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue(null);
 
-      const req = createMockRequest({ body: { sessionId: 'nonexistent' } });
+      const req = createMockRequest({ body: { sessionId: "nonexistent" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/save', 'post');
+      const handler = getRouteHandler("/save", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(404);
@@ -669,40 +860,60 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/discard
   // ===========================================================================
 
-  describe('POST /discard', () => {
-    test('PASS: Discards session and creates new one', async () => {
+  describe("POST /discard", () => {
+    test("PASS: Discards session and creates new one", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue({
-        id: 'session-123', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-123",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: null,
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
       vi.mocked(candidateManager.getActiveForSession).mockResolvedValue(null);
       vi.mocked(sessionManager.abandon).mockResolvedValue(null);
-      vi.mocked(getOne).mockResolvedValue({ id: 'profile-123', name: 'Test' });
+      vi.mocked(getOne).mockResolvedValue({ id: "profile-123", name: "Test" });
       vi.mocked(sessionManager.create).mockResolvedValue({
-        id: 'session-new', profileId: 'profile-123', status: 'active', currentPhase: 'exploring',
-        entryMode: 'discover', startedAt: new Date(), completedAt: null, lastActivityAt: new Date(),
-        handoffCount: 0, tokenCount: 0, messageCount: 0,
+        id: "session-new",
+        profileId: "profile-123",
+        status: "active",
+        currentPhase: "exploring",
+        entryMode: "discover",
+        startedAt: new Date(),
+        completedAt: null,
+        lastActivityAt: new Date(),
+        handoffCount: 0,
+        tokenCount: 0,
+        messageCount: 0,
       });
       vi.mocked(messageStore.add).mockResolvedValue({} as never);
 
-      const req = createMockRequest({ body: { sessionId: 'session-123', reason: 'Want fresh' } });
+      const req = createMockRequest({
+        body: { sessionId: "session-123", reason: "Want fresh" },
+      });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/discard', 'post');
+      const handler = getRouteHandler("/discard", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(200);
-      expect((res.jsonData as { newSessionId: string }).newSessionId).toBeDefined();
+      expect(
+        (res.jsonData as { newSessionId: string }).newSessionId,
+      ).toBeDefined();
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       vi.mocked(sessionManager.load).mockResolvedValue(null);
 
-      const req = createMockRequest({ body: { sessionId: 'nonexistent' } });
+      const req = createMockRequest({ body: { sessionId: "nonexistent" } });
       const res = createMockResponse();
 
-      const handler = getRouteHandler('/discard', 'post');
+      const handler = getRouteHandler("/discard", "post");
       await handler!(req, res);
 
       expect(res.statusCode).toBe(404);

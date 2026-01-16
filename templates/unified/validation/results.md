@@ -10,20 +10,22 @@ updated: "{{updated}}"
 # Validation Results: {{title}}
 
 ## Assumption Tested
+
 <!-- Agent fills after validation complete -->
 
 - [ ] Defined: No
 
-*Which assumption was being validated?*
+_Which assumption was being validated?_
 
 ---
 
 ## Method Used
+
 <!-- Agent fills after validation complete -->
 
 - [ ] Defined: No
 
-*What validation method was employed?*
+_What validation method was employed?_
 
 - **Method**:
 - **Sample Size**:
@@ -33,19 +35,20 @@ updated: "{{updated}}"
 ---
 
 ## Result
+
 <!-- Agent fills after data analysis -->
 
 - [ ] Defined: No
 
-*What did the validation reveal?*
+_What did the validation reveal?_
 
 ### Quantitative Data
 
 | Metric | Expected | Actual |
-|--------|----------|--------|
-| | | |
-| | | |
-| | | |
+| ------ | -------- | ------ |
+|        |          |        |
+|        |          |        |
+|        |          |        |
 
 ### Qualitative Insights
 
@@ -63,24 +66,24 @@ updated: "{{updated}}"
 ---
 
 ## Implications
+
 <!-- Agent fills after result interpretation -->
 
 - [ ] Defined: No
 
-*What does this mean for the idea?*
+_What does this mean for the idea?_
 
 -
 -
--
-
----
+- ***
 
 ## Next Steps
+
 <!-- Agent fills after planning -->
 
 - [ ] Defined: No
 
-*What actions should be taken based on these results?*
+_What actions should be taken based on these results?_
 
 - [ ]
 - [ ]

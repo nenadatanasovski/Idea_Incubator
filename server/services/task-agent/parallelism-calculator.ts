@@ -7,15 +7,18 @@
  * Part of: PTE-053 to PTE-057
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   ParallelismAnalysis,
   ExecutionWave,
   TaskListParallelism,
   TaskIdentity,
-} from '../../../types/task-agent.js';
-import { canRunParallel, getConflictDetails } from './file-conflict-detector.js';
+} from "../../../types/task-agent.js";
+import {
+  canRunParallel,
+  getConflictDetails,
+} from "./file-conflict-detector.js";
 
 /**
  * Database row for parallelism analysis
@@ -40,8 +43,10 @@ function mapAnalysisRow(row: ParallelismAnalysisRow): ParallelismAnalysis {
     taskAId: row.task_a_id,
     taskBId: row.task_b_id,
     canParallel: row.can_parallel === 1,
-    conflictType: row.conflict_type as ParallelismAnalysis['conflictType'],
-    conflictDetails: row.conflict_details ? JSON.parse(row.conflict_details) : undefined,
+    conflictType: row.conflict_type as ParallelismAnalysis["conflictType"],
+    conflictDetails: row.conflict_details
+      ? JSON.parse(row.conflict_details)
+      : undefined,
     analyzedAt: row.analyzed_at,
     invalidatedAt: row.invalidated_at || undefined,
   };
@@ -55,7 +60,7 @@ function mapAnalysisRow(row: ParallelismAnalysisRow): ParallelismAnalysis {
  */
 export async function analyzeParallelism(
   taskListId: string,
-  forceReanalyze = false
+  forceReanalyze = false,
 ): Promise<ParallelismAnalysis[]> {
   // Get all pending tasks in the list
   const tasks = await query<{ id: string; display_id: string }>(
@@ -64,7 +69,7 @@ export async function analyzeParallelism(
      WHERE task_list_id = ?
        AND status IN ('pending', 'evaluating')
      ORDER BY position`,
-    [taskListId]
+    [taskListId],
   );
 
   const analyses: ParallelismAnalysis[] = [];
@@ -81,7 +86,7 @@ export async function analyzeParallelism(
           `SELECT * FROM parallelism_analysis
            WHERE task_a_id = ? AND task_b_id = ?
              AND invalidated_at IS NULL`,
-          [taskAId, taskBId]
+          [taskAId, taskBId],
         );
 
         if (cached) {
@@ -104,10 +109,11 @@ export async function analyzeParallelism(
  */
 export async function analyzeTaskPair(
   taskAId: string,
-  taskBId: string
+  taskBId: string,
 ): Promise<ParallelismAnalysis> {
   // Ensure consistent ordering
-  const [orderedA, orderedB] = taskAId < taskBId ? [taskAId, taskBId] : [taskBId, taskAId];
+  const [orderedA, orderedB] =
+    taskAId < taskBId ? [taskAId, taskBId] : [taskBId, taskAId];
 
   // Get conflict details
   const details = await getConflictDetails(orderedA, orderedB);
@@ -120,12 +126,12 @@ export async function analyzeTaskPair(
     taskBId: orderedB,
     canParallel: details.canRunParallel,
     conflictType: details.hasDependency
-      ? 'dependency'
+      ? "dependency"
       : details.fileConflicts.length > 0
-        ? 'file_conflict'
+        ? "file_conflict"
         : undefined,
     conflictDetails: details.hasDependency
-      ? { dependencyChain: [details.dependencyDirection || ''] }
+      ? { dependencyChain: [details.dependencyDirection || ""] }
       : details.fileConflicts.length > 0
         ? { conflictingFiles: details.fileConflicts }
         : undefined,
@@ -148,9 +154,11 @@ export async function analyzeTaskPair(
       analysis.taskBId,
       analysis.canParallel ? 1 : 0,
       analysis.conflictType || null,
-      analysis.conflictDetails ? JSON.stringify(analysis.conflictDetails) : null,
+      analysis.conflictDetails
+        ? JSON.stringify(analysis.conflictDetails)
+        : null,
       analysis.analyzedAt,
-    ]
+    ],
   );
 
   await saveDb();
@@ -167,7 +175,7 @@ export async function analyzeTaskPair(
  * @param taskListId Task list ID
  */
 export async function calculateWaves(
-  taskListId: string
+  taskListId: string,
 ): Promise<ExecutionWave[]> {
   // Get all pending tasks
   const tasks = await query<{
@@ -180,7 +188,7 @@ export async function calculateWaves(
      WHERE task_list_id = ?
        AND status IN ('pending', 'evaluating')
      ORDER BY position`,
-    [taskListId]
+    [taskListId],
   );
 
   if (tasks.length === 0) {
@@ -201,7 +209,7 @@ export async function calculateWaves(
        AND tr.relationship_type = 'depends_on'
        AND t1.status IN ('pending', 'evaluating')
        AND t2.status NOT IN ('completed', 'skipped')`,
-    [taskListId, taskListId]
+    [taskListId, taskListId],
   );
 
   // Build dependency map: taskId -> set of task IDs it depends on
@@ -244,7 +252,7 @@ export async function calculateWaves(
       // Check if all dependencies are satisfied (in previous waves)
       const deps = dependsOn.get(task.id) || new Set();
       const unsatisfiedDeps = Array.from(deps).filter(
-        (depId) => !assignedTasks.has(depId)
+        (depId) => !assignedTasks.has(depId),
       );
 
       if (unsatisfiedDeps.length > 0) {
@@ -254,9 +262,10 @@ export async function calculateWaves(
       // Check if this task conflicts with any other task in this wave
       let hasConflictInWave = false;
       for (const existingTaskId of waveTaskIds) {
-        const key = task.id < existingTaskId
-          ? `${task.id}:${existingTaskId}`
-          : `${existingTaskId}:${task.id}`;
+        const key =
+          task.id < existingTaskId
+            ? `${task.id}:${existingTaskId}`
+            : `${existingTaskId}:${task.id}`;
         const canParallel = canRunParallelMap.get(key);
 
         if (canParallel === false) {
@@ -272,7 +281,9 @@ export async function calculateWaves(
 
     // If no tasks can be added, break (shouldn't happen unless there's a cycle)
     if (waveTaskIds.length === 0) {
-      console.warn('[ParallelismCalculator] No tasks could be added to wave - possible cycle');
+      console.warn(
+        "[ParallelismCalculator] No tasks could be added to wave - possible cycle",
+      );
       break;
     }
 
@@ -281,7 +292,7 @@ export async function calculateWaves(
       id: uuidv4(),
       taskListId,
       waveNumber,
-      status: 'pending',
+      status: "pending",
       taskCount: waveTaskIds.length,
       completedCount: 0,
       failedCount: 0,
@@ -307,7 +318,7 @@ export async function calculateWaves(
        ON CONFLICT(task_list_id, wave_number) DO UPDATE SET
          task_count = excluded.task_count,
          status = 'pending'`,
-      [wave.id, wave.taskListId, wave.waveNumber, wave.status, wave.taskCount]
+      [wave.id, wave.taskListId, wave.waveNumber, wave.status, wave.taskCount],
     );
 
     // Save wave-task assignments
@@ -316,7 +327,7 @@ export async function calculateWaves(
         `INSERT INTO wave_task_assignments (id, wave_id, task_id, position)
          VALUES (?, ?, ?, ?)
          ON CONFLICT(wave_id, task_id) DO UPDATE SET position = excluded.position`,
-        [uuidv4(), wave.id, wave.tasks[i].id, i]
+        [uuidv4(), wave.id, wave.tasks[i].id, i],
       );
     }
   }
@@ -353,7 +364,7 @@ export async function invalidateAnalysis(taskId: string): Promise<void> {
      SET invalidated_at = datetime('now')
      WHERE (task_a_id = ? OR task_b_id = ?)
        AND invalidated_at IS NULL`,
-    [taskId, taskId]
+    [taskId, taskId],
   );
   await saveDb();
 }
@@ -362,7 +373,7 @@ export async function invalidateAnalysis(taskId: string): Promise<void> {
  * Get full parallelism analysis for a task list
  */
 export async function getTaskListParallelism(
-  taskListId: string
+  taskListId: string,
 ): Promise<TaskListParallelism> {
   const waves = await calculateWaves(taskListId);
 
@@ -375,7 +386,7 @@ export async function getTaskListParallelism(
     `SELECT COUNT(*) as count FROM tasks
      WHERE task_list_id = ?
        AND status IN ('pending', 'evaluating')`,
-    [taskListId]
+    [taskListId],
   );
 
   return {
@@ -393,15 +404,16 @@ export async function getTaskListParallelism(
  */
 export async function getCachedAnalysis(
   taskAId: string,
-  taskBId: string
+  taskBId: string,
 ): Promise<ParallelismAnalysis | null> {
-  const [orderedA, orderedB] = taskAId < taskBId ? [taskAId, taskBId] : [taskBId, taskAId];
+  const [orderedA, orderedB] =
+    taskAId < taskBId ? [taskAId, taskBId] : [taskBId, taskAId];
 
   const row = await getOne<ParallelismAnalysisRow>(
     `SELECT * FROM parallelism_analysis
      WHERE task_a_id = ? AND task_b_id = ?
        AND invalidated_at IS NULL`,
-    [orderedA, orderedB]
+    [orderedA, orderedB],
   );
 
   if (!row) {
@@ -421,14 +433,14 @@ export async function cleanupStaleAnalyses(olderThanDays = 7): Promise<number> {
     `SELECT COUNT(*) as count FROM parallelism_analysis
      WHERE invalidated_at IS NOT NULL
        AND invalidated_at < datetime('now', '-' || ? || ' days')`,
-    [olderThanDays]
+    [olderThanDays],
   );
 
   await run(
     `DELETE FROM parallelism_analysis
      WHERE invalidated_at IS NOT NULL
        AND invalidated_at < datetime('now', '-' || ? || ' days')`,
-    [olderThanDays]
+    [olderThanDays],
   );
 
   await saveDb();

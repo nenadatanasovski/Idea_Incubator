@@ -2,10 +2,13 @@
  * Analysis prompts for Spec Agent
  */
 
-import { ParsedBrief } from '../brief-parser.js';
-import { LoadedContext } from '../context-loader.js';
+import { ParsedBrief } from "../brief-parser.js";
+import { LoadedContext } from "../context-loader.js";
 
-export function buildAnalysisPrompt(brief: ParsedBrief, context: LoadedContext): string {
+export function buildAnalysisPrompt(
+  brief: ParsedBrief,
+  context: LoadedContext,
+): string {
   return `Analyze the following feature brief and extract structured requirements.
 
 ## Feature Brief
@@ -23,22 +26,22 @@ ${brief.solution}
 ### MVP Scope
 
 **In Scope:**
-${brief.mvpScope.inScope.map(s => `- ${s}`).join('\n')}
+${brief.mvpScope.inScope.map((s) => `- ${s}`).join("\n")}
 
 **Out of Scope:**
-${brief.mvpScope.outOfScope.map(s => `- ${s}`).join('\n')}
+${brief.mvpScope.outOfScope.map((s) => `- ${s}`).join("\n")}
 
 ### Success Criteria
-${brief.successCriteria.map(c => `- ${c}`).join('\n')}
+${brief.successCriteria.map((c) => `- ${c}`).join("\n")}
 
-${brief.architecture ? `### Architecture\n${brief.architecture}` : ''}
+${brief.architecture ? `### Architecture\n${brief.architecture}` : ""}
 
-${brief.databaseSchema ? `### Database Schema\n\`\`\`sql\n${brief.databaseSchema}\n\`\`\`` : ''}
+${brief.databaseSchema ? `### Database Schema\n\`\`\`sql\n${brief.databaseSchema}\n\`\`\`` : ""}
 
 ## Context
 
 The following gotchas are known for this project:
-${context.gotchas.map(g => `- [${g.id}] ${g.content}`).join('\n')}
+${context.gotchas.map((g) => `- [${g.id}] ${g.content}`).join("\n")}
 
 ## Instructions
 
@@ -66,7 +69,10 @@ Output valid JSON matching this structure:
 \`\`\``;
 }
 
-export function buildArchitecturePrompt(brief: ParsedBrief, context: LoadedContext): string {
+export function buildArchitecturePrompt(
+  brief: ParsedBrief,
+  context: LoadedContext,
+): string {
   return `Design the technical architecture for the following feature.
 
 ## Feature
@@ -79,7 +85,7 @@ ${brief.problem}
 ### Solution
 ${brief.solution}
 
-${brief.databaseSchema ? `### Existing Schema Hint\n\`\`\`sql\n${brief.databaseSchema}\n\`\`\`` : ''}
+${brief.databaseSchema ? `### Existing Schema Hint\n\`\`\`sql\n${brief.databaseSchema}\n\`\`\`` : ""}
 
 ## Project Patterns
 

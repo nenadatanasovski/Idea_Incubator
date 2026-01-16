@@ -1,37 +1,40 @@
 // agents/sia/claude-md-updater.ts - Propose and apply CLAUDE.md updates
 
-import { v4 as uuid } from 'uuid';
-import { readFile, writeFile } from 'fs/promises';
-import { execSync } from 'child_process';
-import { KnowledgeEntry, ClaudeMdProposal } from '../../types/sia.js';
-import { saveProposal, getProposal, updateProposalStatus } from './db.js';
-import { getPromotionCandidates, CONFIDENCE_CONFIG } from './confidence-tracker.js';
+import { v4 as uuid } from "uuid";
+import { readFile, writeFile } from "fs/promises";
+import { execSync } from "child_process";
+import { KnowledgeEntry, ClaudeMdProposal } from "../../types/sia.js";
+import { saveProposal, getProposal, updateProposalStatus } from "./db.js";
+import {
+  getPromotionCandidates,
+  CONFIDENCE_CONFIG,
+} from "./confidence-tracker.js";
 
-const CLAUDE_MD_PATH = 'CLAUDE.md';
+const CLAUDE_MD_PATH = "CLAUDE.md";
 
 /**
  * Section mapping based on gotcha file patterns
  */
 const SECTION_MAPPING: Record<string, string> = {
-  '*.sql': '## Database Conventions',
-  'database/': '## Database Conventions',
-  'server/routes/': '## API Conventions',
-  '*.ts': '## Coding Loops Infrastructure',
-  'tests/': '## Common Commands',
-  'agents/': '## Agent Types',
-  'types/': '## Coding Loops Infrastructure',
+  "*.sql": "## Database Conventions",
+  "database/": "## Database Conventions",
+  "server/routes/": "## API Conventions",
+  "*.ts": "## Coding Loops Infrastructure",
+  "tests/": "## Common Commands",
+  "agents/": "## Agent Types",
+  "types/": "## Coding Loops Infrastructure",
 };
 
 /**
  * Default section for gotchas that don't match any pattern
  */
-const DEFAULT_SECTION = '## Database Conventions';
+const DEFAULT_SECTION = "## Database Conventions";
 
 /**
  * Create a CLAUDE.md update proposal for a knowledge entry
  */
 export async function createProposal(
-  entry: KnowledgeEntry
+  entry: KnowledgeEntry,
 ): Promise<ClaudeMdProposal> {
   const section = determineSection(entry);
   const content = formatProposalContent(entry);
@@ -41,7 +44,7 @@ export async function createProposal(
     knowledgeEntryId: entry.id,
     proposedSection: section,
     proposedContent: content,
-    status: 'pending',
+    status: "pending",
     reviewedAt: null,
     reviewerNotes: null,
     createdAt: new Date().toISOString(),
@@ -57,7 +60,7 @@ export async function createProposal(
 export function determineSection(entry: KnowledgeEntry): string {
   for (const pattern of entry.filePatterns) {
     for (const [key, section] of Object.entries(SECTION_MAPPING)) {
-      if (pattern.includes(key) || key.includes(pattern.replace('*', ''))) {
+      if (pattern.includes(key) || key.includes(pattern.replace("*", ""))) {
         return section;
       }
     }
@@ -69,8 +72,8 @@ export function determineSection(entry: KnowledgeEntry): string {
  * Format the gotcha content for CLAUDE.md
  */
 export function formatProposalContent(entry: KnowledgeEntry): string {
-  const patterns = entry.filePatterns.join(', ') || 'general';
-  const actions = entry.actionTypes.join(', ') || 'all actions';
+  const patterns = entry.filePatterns.join(", ") || "general";
+  const actions = entry.actionTypes.join(", ") || "all actions";
 
   return `- **${patterns}** (${actions}): ${entry.content}`;
 }
@@ -84,17 +87,19 @@ export async function applyProposal(proposalId: string): Promise<string> {
     throw new Error(`Proposal ${proposalId} not found`);
   }
 
-  if (proposal.status !== 'approved') {
+  if (proposal.status !== "approved") {
     throw new Error(`Proposal ${proposalId} is not approved`);
   }
 
   // Read current CLAUDE.md
-  const content = await readFile(CLAUDE_MD_PATH, 'utf-8');
+  const content = await readFile(CLAUDE_MD_PATH, "utf-8");
 
   // Find the target section
   const sectionIndex = content.indexOf(proposal.proposedSection);
   if (sectionIndex === -1) {
-    throw new Error(`Section ${proposal.proposedSection} not found in CLAUDE.md`);
+    throw new Error(
+      `Section ${proposal.proposedSection} not found in CLAUDE.md`,
+    );
   }
 
   // Find the end of the section (next ## or end of file)
@@ -106,12 +111,12 @@ export async function applyProposal(proposalId: string): Promise<string> {
   // Insert the new content before the section end
   // Find the last non-empty line before the next section
   const sectionContent = content.slice(sectionIndex, sectionEnd);
-  const lastContentIndex = sectionContent.lastIndexOf('\n');
+  const lastContentIndex = sectionContent.lastIndexOf("\n");
 
   const insertPosition = sectionIndex + lastContentIndex;
   const newContent =
     content.slice(0, insertPosition) +
-    '\n' +
+    "\n" +
     proposal.proposedContent +
     content.slice(insertPosition);
 
@@ -122,11 +127,11 @@ export async function applyProposal(proposalId: string): Promise<string> {
   try {
     execSync(`git add ${CLAUDE_MD_PATH}`);
     execSync(
-      `git commit -m "docs: Add gotcha from SIA\n\nKnowledge entry: ${proposal.knowledgeEntryId}\nProposal: ${proposal.id}"`
+      `git commit -m "docs: Add gotcha from SIA\n\nKnowledge entry: ${proposal.knowledgeEntryId}\nProposal: ${proposal.id}"`,
     );
   } catch (error) {
     // Git commit may fail if nothing changed or git not available
-    console.warn('Git commit failed:', error);
+    console.warn("Git commit failed:", error);
   }
 
   return newContent;
@@ -154,7 +159,7 @@ export async function generatePendingProposals(): Promise<ClaudeMdProposal[]> {
  */
 export function isEligibleForPromotion(entry: KnowledgeEntry): boolean {
   return (
-    entry.type === 'gotcha' &&
+    entry.type === "gotcha" &&
     entry.confidence >= CONFIDENCE_CONFIG.promotionThreshold &&
     entry.occurrences >= 2
   );
@@ -183,14 +188,14 @@ export function previewProposal(entry: KnowledgeEntry): {
  */
 export async function rejectProposal(
   proposalId: string,
-  notes: string
+  notes: string,
 ): Promise<void> {
   const proposal = await getProposal(proposalId);
   if (!proposal) {
     throw new Error(`Proposal ${proposalId} not found`);
   }
 
-  await updateProposalStatus(proposalId, 'rejected', notes);
+  await updateProposalStatus(proposalId, "rejected", notes);
 }
 
 /**
@@ -199,6 +204,6 @@ export async function rejectProposal(
 export async function getPendingReviews(): Promise<ClaudeMdProposal[]> {
   // This would query proposals with status='pending'
   // Already implemented in db.ts via getProposals('pending')
-  const { getProposals } = await import('./db.js');
-  return getProposals('pending');
+  const { getProposals } = await import("./db.js");
+  return getProposals("pending");
 }

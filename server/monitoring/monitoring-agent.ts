@@ -2,26 +2,29 @@
 // MON-001: Monitoring Agent Core Architecture
 // The "System Soul" - watches all agents and system health
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 import {
   emitAgentEvent,
   emitSystemHealth,
   emitSystemAlert,
   AgentEventType,
-} from '../websocket';
+} from "../websocket";
 
 interface Database {
-  run(sql: string, params?: unknown[]): Promise<{ lastID: number; changes: number }>;
+  run(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ lastID: number; changes: number }>;
   get<T>(sql: string, params?: unknown[]): Promise<T | undefined>;
   all<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
-export type MonitoringLevel = 'minimal' | 'standard' | 'verbose' | 'debug';
+export type MonitoringLevel = "minimal" | "standard" | "verbose" | "debug";
 
 export interface AgentState {
   agentId: string;
   agentType: string;
-  status: 'idle' | 'working' | 'blocked' | 'error' | 'halted';
+  status: "idle" | "working" | "blocked" | "error" | "halted";
   sessionId?: string;
   currentTask?: string;
   lastHeartbeat: Date;
@@ -49,8 +52,8 @@ export interface SystemMetrics {
 
 export interface DetectedIssue {
   id: string;
-  type: 'timeout' | 'error' | 'drift' | 'anomaly' | 'threshold';
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  type: "timeout" | "error" | "drift" | "anomaly" | "threshold";
+  severity: "low" | "medium" | "high" | "critical";
   agentId?: string;
   sessionId?: string;
   description: string;
@@ -75,7 +78,7 @@ export interface MonitoringConfig {
 }
 
 const DEFAULT_CONFIG: MonitoringConfig = {
-  level: 'standard',
+  level: "standard",
   heartbeatIntervalMs: 30 * 1000, // 30 seconds
   healthCheckIntervalMs: 60 * 1000, // 1 minute
   agentTimeoutMs: 5 * 60 * 1000, // 5 minutes
@@ -120,7 +123,7 @@ export class MonitoringAgent extends EventEmitter {
    */
   async start(): Promise<void> {
     if (this.running) {
-      console.log('[MonitoringAgent] Already running');
+      console.log("[MonitoringAgent] Already running");
       return;
     }
 
@@ -133,20 +136,20 @@ export class MonitoringAgent extends EventEmitter {
     // Start periodic health checks
     this.healthCheckInterval = setInterval(
       () => this.performHealthCheck(),
-      this.config.healthCheckIntervalMs
+      this.config.healthCheckIntervalMs,
     );
 
     // Start heartbeat emission
     this.heartbeatInterval = setInterval(
       () => this.emitHeartbeat(),
-      this.config.heartbeatIntervalMs
+      this.config.heartbeatIntervalMs,
     );
 
     // Perform initial health check
     await this.performHealthCheck();
 
     console.log(`[MonitoringAgent] Started with level: ${this.config.level}`);
-    this.emit('started');
+    this.emit("started");
   }
 
   /**
@@ -169,8 +172,8 @@ export class MonitoringAgent extends EventEmitter {
       this.heartbeatInterval = undefined;
     }
 
-    console.log('[MonitoringAgent] Stopped');
-    this.emit('stopped');
+    console.log("[MonitoringAgent] Stopped");
+    this.emit("stopped");
   }
 
   /**
@@ -181,7 +184,7 @@ export class MonitoringAgent extends EventEmitter {
     const state: AgentState = {
       agentId,
       agentType,
-      status: 'idle',
+      status: "idle",
       sessionId,
       lastHeartbeat: now,
       lastActivity: now,
@@ -197,8 +200,10 @@ export class MonitoringAgent extends EventEmitter {
     this.agentStates.set(agentId, state);
     this.updateAgentInDb(state);
 
-    console.log(`[MonitoringAgent] Registered agent: ${agentId} (${agentType})`);
-    this.emit('agent:registered', { agentId, agentType, sessionId });
+    console.log(
+      `[MonitoringAgent] Registered agent: ${agentId} (${agentType})`,
+    );
+    this.emit("agent:registered", { agentId, agentType, sessionId });
   }
 
   /**
@@ -209,7 +214,7 @@ export class MonitoringAgent extends EventEmitter {
     if (state) {
       this.agentStates.delete(agentId);
       console.log(`[MonitoringAgent] Unregistered agent: ${agentId}`);
-      this.emit('agent:unregistered', { agentId, agentType: state.agentType });
+      this.emit("agent:unregistered", { agentId, agentType: state.agentType });
     }
   }
 
@@ -218,8 +223,8 @@ export class MonitoringAgent extends EventEmitter {
    */
   updateAgentStatus(
     agentId: string,
-    status: AgentState['status'],
-    details?: Partial<AgentState>
+    status: AgentState["status"],
+    details?: Partial<AgentState>,
   ): void {
     const state = this.agentStates.get(agentId);
     if (!state) {
@@ -239,18 +244,22 @@ export class MonitoringAgent extends EventEmitter {
 
     // Emit WebSocket event
     const eventType: AgentEventType =
-      status === 'blocked' ? 'agent:blocked' :
-      status === 'error' ? 'agent:error' :
-      status === 'halted' ? 'agent:halted' :
-      status === 'working' && previousStatus === 'blocked' ? 'agent:unblocked' :
-      'agent:heartbeat';
+      status === "blocked"
+        ? "agent:blocked"
+        : status === "error"
+          ? "agent:error"
+          : status === "halted"
+            ? "agent:halted"
+            : status === "working" && previousStatus === "blocked"
+              ? "agent:unblocked"
+              : "agent:heartbeat";
 
     emitAgentEvent(eventType, agentId, state.agentType, {
       status,
       message: details?.currentTask,
     });
 
-    this.emit('agent:status', { agentId, status, previousStatus });
+    this.emit("agent:status", { agentId, status, previousStatus });
   }
 
   /**
@@ -267,12 +276,16 @@ export class MonitoringAgent extends EventEmitter {
   /**
    * Record a question being asked
    */
-  recordQuestionAsked(agentId: string, questionId: string, blocking: boolean): void {
+  recordQuestionAsked(
+    agentId: string,
+    questionId: string,
+    blocking: boolean,
+  ): void {
     const state = this.agentStates.get(agentId);
     if (state) {
       state.metrics.questionsAsked++;
       if (blocking) {
-        state.status = 'blocked';
+        state.status = "blocked";
         state.blockedBy = state.blockedBy || [];
         state.blockedBy.push(questionId);
       }
@@ -283,14 +296,18 @@ export class MonitoringAgent extends EventEmitter {
   /**
    * Record a question being answered
    */
-  recordQuestionAnswered(agentId: string, questionId: string, responseTimeMs: number): void {
+  recordQuestionAnswered(
+    agentId: string,
+    questionId: string,
+    responseTimeMs: number,
+  ): void {
     const state = this.agentStates.get(agentId);
     if (state) {
       state.metrics.questionsAnswered++;
       if (state.blockedBy) {
-        state.blockedBy = state.blockedBy.filter(id => id !== questionId);
+        state.blockedBy = state.blockedBy.filter((id) => id !== questionId);
         if (state.blockedBy.length === 0) {
-          state.status = 'working';
+          state.status = "working";
           state.blockedBy = undefined;
         }
       }
@@ -314,8 +331,8 @@ export class MonitoringAgent extends EventEmitter {
 
     // Create detected issue
     this.createIssue({
-      type: 'error',
-      severity: 'medium',
+      type: "error",
+      severity: "medium",
       agentId,
       description: `Agent error: ${error}`,
       evidence: { error },
@@ -348,7 +365,7 @@ export class MonitoringAgent extends EventEmitter {
    */
   getDetectedIssues(includeResolved: boolean = false): DetectedIssue[] {
     const issues = Array.from(this.detectedIssues.values());
-    return includeResolved ? issues : issues.filter(i => !i.resolved);
+    return includeResolved ? issues : issues.filter((i) => !i.resolved);
   }
 
   /**
@@ -359,7 +376,7 @@ export class MonitoringAgent extends EventEmitter {
     if (issue) {
       issue.resolved = true;
       issue.resolvedAt = new Date();
-      this.emit('issue:resolved', issue);
+      this.emit("issue:resolved", issue);
     }
   }
 
@@ -371,17 +388,19 @@ export class MonitoringAgent extends EventEmitter {
 
     // Update system metrics
     this.systemMetrics.systemUptime = now.getTime() - this.startTime.getTime();
-    this.systemMetrics.activeAgents = Array.from(this.agentStates.values())
-      .filter(s => s.status === 'working').length;
-    this.systemMetrics.blockedAgents = Array.from(this.agentStates.values())
-      .filter(s => s.status === 'blocked').length;
+    this.systemMetrics.activeAgents = Array.from(
+      this.agentStates.values(),
+    ).filter((s) => s.status === "working").length;
+    this.systemMetrics.blockedAgents = Array.from(
+      this.agentStates.values(),
+    ).filter((s) => s.status === "blocked").length;
     this.systemMetrics.lastHealthCheck = now;
 
     // Get pending questions count from DB
     try {
       const result = await this.db.get<{ count: number }>(
-        'SELECT COUNT(*) as count FROM questions WHERE status = ?',
-        ['pending']
+        "SELECT COUNT(*) as count FROM questions WHERE status = ?",
+        ["pending"],
       );
       this.systemMetrics.pendingQuestions = result?.count || 0;
     } catch {
@@ -400,7 +419,7 @@ export class MonitoringAgent extends EventEmitter {
       systemUptime: this.systemMetrics.systemUptime,
     });
 
-    this.emit('health:check', this.systemMetrics);
+    this.emit("health:check", this.systemMetrics);
   }
 
   /**
@@ -412,20 +431,26 @@ export class MonitoringAgent extends EventEmitter {
     // Check pending questions threshold
     if (this.systemMetrics.pendingQuestions > thresholds.pendingQuestions) {
       this.createIssue({
-        type: 'threshold',
-        severity: 'medium',
+        type: "threshold",
+        severity: "medium",
         description: `High number of pending questions: ${this.systemMetrics.pendingQuestions}`,
-        evidence: { count: this.systemMetrics.pendingQuestions, threshold: thresholds.pendingQuestions },
+        evidence: {
+          count: this.systemMetrics.pendingQuestions,
+          threshold: thresholds.pendingQuestions,
+        },
       });
     }
 
     // Check blocked agents threshold
     if (this.systemMetrics.blockedAgents > thresholds.blockedAgents) {
       this.createIssue({
-        type: 'threshold',
-        severity: 'high',
+        type: "threshold",
+        severity: "high",
         description: `Too many blocked agents: ${this.systemMetrics.blockedAgents}`,
-        evidence: { count: this.systemMetrics.blockedAgents, threshold: thresholds.blockedAgents },
+        evidence: {
+          count: this.systemMetrics.blockedAgents,
+          threshold: thresholds.blockedAgents,
+        },
       });
     }
 
@@ -435,11 +460,14 @@ export class MonitoringAgent extends EventEmitter {
       const timeSinceHeartbeat = now.getTime() - state.lastHeartbeat.getTime();
       if (timeSinceHeartbeat > this.config.agentTimeoutMs) {
         this.createIssue({
-          type: 'timeout',
-          severity: 'high',
+          type: "timeout",
+          severity: "high",
           agentId: state.agentId,
           description: `Agent ${state.agentId} has not sent heartbeat in ${Math.round(timeSinceHeartbeat / 1000)}s`,
-          evidence: { lastHeartbeat: state.lastHeartbeat.toISOString(), timeoutMs: this.config.agentTimeoutMs },
+          evidence: {
+            lastHeartbeat: state.lastHeartbeat.toISOString(),
+            timeoutMs: this.config.agentTimeoutMs,
+          },
         });
       }
     }
@@ -449,21 +477,28 @@ export class MonitoringAgent extends EventEmitter {
    * Manually detect/create an issue (public API for external use)
    */
   detectIssue(
-    type: DetectedIssue['type'],
-    severity: DetectedIssue['severity'],
+    type: DetectedIssue["type"],
+    severity: DetectedIssue["severity"],
     description: string,
     evidence: Record<string, unknown>,
     agentId?: string,
-    sessionId?: string
+    sessionId?: string,
   ): DetectedIssue {
-    return this.createIssue({ type, severity, description, evidence, agentId, sessionId });
+    return this.createIssue({
+      type,
+      severity,
+      description,
+      evidence,
+      agentId,
+      sessionId,
+    });
   }
 
   /**
    * Create a detected issue (internal)
    */
   private createIssue(
-    data: Omit<DetectedIssue, 'id' | 'detectedAt' | 'resolved'>
+    data: Omit<DetectedIssue, "id" | "detectedAt" | "resolved">,
   ): DetectedIssue {
     const id = `issue_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const issue: DetectedIssue = {
@@ -480,7 +515,7 @@ export class MonitoringAgent extends EventEmitter {
     const alertSeverity = this.mapSeverityToAlert(issue.severity);
     emitSystemAlert(issue.description, alertSeverity);
 
-    this.emit('issue:detected', issue);
+    this.emit("issue:detected", issue);
     console.log(`[MonitoringAgent] Issue detected: ${issue.description}`);
 
     return issue;
@@ -502,13 +537,20 @@ export class MonitoringAgent extends EventEmitter {
   /**
    * Map issue severity to alert severity for WebSocket emission.
    */
-  private mapSeverityToAlert(severity: DetectedIssue['severity']): 'info' | 'warning' | 'error' | 'critical' {
+  private mapSeverityToAlert(
+    severity: DetectedIssue["severity"],
+  ): "info" | "warning" | "error" | "critical" {
     switch (severity) {
-      case 'critical': return 'critical';
-      case 'high': return 'error';
-      case 'medium': return 'warning';
-      case 'low': return 'info';
-      default: return 'info';
+      case "critical":
+        return "critical";
+      case "high":
+        return "error";
+      case "medium":
+        return "warning";
+      case "low":
+        return "info";
+      default:
+        return "info";
     }
   }
 
@@ -535,16 +577,13 @@ export class MonitoringAgent extends EventEmitter {
         session_id: string | null;
         current_task: string | null;
         last_activity: string;
-      }>(
-        'SELECT * FROM agent_states WHERE status != ?',
-        ['completed']
-      );
+      }>("SELECT * FROM agent_states WHERE status != ?", ["completed"]);
 
       for (const row of rows) {
         const state: AgentState = {
           agentId: row.agent_id,
           agentType: row.agent_type,
-          status: row.status as AgentState['status'],
+          status: row.status as AgentState["status"],
           sessionId: row.session_id || undefined,
           currentTask: row.current_task || undefined,
           lastHeartbeat: new Date(row.last_activity),
@@ -560,9 +599,11 @@ export class MonitoringAgent extends EventEmitter {
         this.agentStates.set(state.agentId, state);
       }
 
-      console.log(`[MonitoringAgent] Loaded ${this.agentStates.size} agent states`);
+      console.log(
+        `[MonitoringAgent] Loaded ${this.agentStates.size} agent states`,
+      );
     } catch (error) {
-      console.error('[MonitoringAgent] Failed to load agent states:', error);
+      console.error("[MonitoringAgent] Failed to load agent states:", error);
     }
   }
 
@@ -587,10 +628,10 @@ export class MonitoringAgent extends EventEmitter {
           state.currentTask || null,
           state.lastActivity.toISOString(),
           new Date().toISOString(),
-        ]
+        ],
       );
     } catch (error) {
-      console.error('[MonitoringAgent] Failed to update agent state:', error);
+      console.error("[MonitoringAgent] Failed to update agent state:", error);
     }
   }
 
@@ -613,10 +654,10 @@ export class MonitoringAgent extends EventEmitter {
           issue.detectedAt.toISOString(),
           issue.resolved ? 1 : 0,
           new Date().toISOString(),
-        ]
+        ],
       );
     } catch (error) {
-      console.error('[MonitoringAgent] Failed to store issue:', error);
+      console.error("[MonitoringAgent] Failed to store issue:", error);
     }
   }
 }

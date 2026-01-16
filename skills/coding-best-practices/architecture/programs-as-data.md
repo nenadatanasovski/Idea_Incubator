@@ -1,6 +1,7 @@
 # SKILL: Programs as Data (Description vs Execution)
 
 ## When to Load
+
 - Building complex operations
 - Designing workflow systems
 - Creating DSLs or builders
@@ -28,111 +29,111 @@ ENABLE inspection, optimization, or alternative execution
 ## Practical Examples
 
 ### Query Builders
+
 ```typescript
 // BAD - executes immediately
 function getActiveUsers() {
-  return db.query('SELECT * FROM users WHERE active = true')
+  return db.query("SELECT * FROM users WHERE active = true");
 }
 
 // GOOD - returns description
 function getActiveUsers() {
-  return Query
-    .select('*')
-    .from('users')
-    .where('active', true)
+  return Query.select("*").from("users").where("active", true);
   // Not executed yet - returns query description
 }
 
 // Execute when ready
-const query = getActiveUsers()
-console.log(query.toSQL())  // Inspect
-const results = await query.execute()  // Execute
+const query = getActiveUsers();
+console.log(query.toSQL()); // Inspect
+const results = await query.execute(); // Execute
 ```
 
 ### Validation Pipelines
+
 ```typescript
 // BAD - validates immediately, can't compose
 function validateEmail(email: string): boolean {
-  if (!email) return false
-  if (!email.includes('@')) return false
-  return true
+  if (!email) return false;
+  if (!email.includes("@")) return false;
+  return true;
 }
 
 // GOOD - returns validation description
-const emailValidator = Validator
-  .string()
+const emailValidator = Validator.string()
   .required()
   .matches(/@/)
-  .maxLength(255)
+  .maxLength(255);
 
 // Can compose validators
 const userValidator = Validator.object({
   email: emailValidator,
-  name: Validator.string().required()
-})
+  name: Validator.string().required(),
+});
 
 // Execute validation
-const result = userValidator.validate(input)
+const result = userValidator.validate(input);
 ```
 
 ### Task/Workflow Definitions
+
 ```typescript
 // BAD - executes immediately
 async function deployProcess() {
-  await buildCode()
-  await runTests()
-  await deploy()
+  await buildCode();
+  await runTests();
+  await deploy();
 }
 
 // GOOD - describes workflow
-const deployWorkflow = Workflow
-  .step('build', buildCode)
-  .step('test', runTests, { dependsOn: 'build' })
-  .step('deploy', deploy, { dependsOn: 'test' })
+const deployWorkflow = Workflow.step("build", buildCode)
+  .step("test", runTests, { dependsOn: "build" })
+  .step("deploy", deploy, { dependsOn: "test" });
 
 // Can inspect
-console.log(deployWorkflow.steps)
-console.log(deployWorkflow.dependencies)
+console.log(deployWorkflow.steps);
+console.log(deployWorkflow.dependencies);
 
 // Can execute with options
-await deployWorkflow.run({ parallel: true, dryRun: true })
+await deployWorkflow.run({ parallel: true, dryRun: true });
 ```
 
 ### Animation/Effect Descriptions
+
 ```typescript
 // BAD - runs immediately
 function fadeIn(element) {
-  element.style.opacity = 0
+  element.style.opacity = 0;
   // ... animation loop
 }
 
 // GOOD - describes animation
-const fadeIn = Animation
-  .property('opacity')
+const fadeIn = Animation.property("opacity")
   .from(0)
   .to(1)
   .duration(300)
-  .easing('ease-in')
+  .easing("ease-in");
 
 // Execute on specific element
-fadeIn.applyTo(element)
+fadeIn.applyTo(element);
 
 // Or compose
-const entrance = Animation.sequence([fadeIn, slideUp])
+const entrance = Animation.sequence([fadeIn, slideUp]);
 ```
 
 ## When NOT to Use This Pattern
 
 Simple, one-shot operations:
+
 ```typescript
 // OVERKILL
-const add = Operation.binary('+').apply(1, 2).execute()
+const add = Operation.binary("+").apply(1, 2).execute();
 
 // JUST DO IT
-const sum = 1 + 2
+const sum = 1 + 2;
 ```
 
 Only add the indirection when you get concrete benefits:
+
 - Need to inspect before executing
 - Need to serialize/deserialize the operation
 - Need multiple execution strategies

@@ -1,4 +1,4 @@
-import { BudgetExceededError, ApiCallLimitError } from './errors.js';
+import { BudgetExceededError, ApiCallLimitError } from "./errors.js";
 
 // Claude model pricing (as of 2025)
 // https://www.anthropic.com/pricing
@@ -9,24 +9,30 @@ interface ModelPricing {
 
 const MODEL_PRICING: Record<string, ModelPricing> = {
   // Opus 4.5
-  'claude-opus-4-5-20251101': { inputPerMillion: 15.00, outputPerMillion: 75.00 },
-  'claude-opus-4-5': { inputPerMillion: 15.00, outputPerMillion: 75.00 },
+  "claude-opus-4-5-20251101": { inputPerMillion: 15.0, outputPerMillion: 75.0 },
+  "claude-opus-4-5": { inputPerMillion: 15.0, outputPerMillion: 75.0 },
   // Sonnet 4
-  'claude-sonnet-4-20250514': { inputPerMillion: 3.00, outputPerMillion: 15.00 },
-  'claude-sonnet-4': { inputPerMillion: 3.00, outputPerMillion: 15.00 },
+  "claude-sonnet-4-20250514": { inputPerMillion: 3.0, outputPerMillion: 15.0 },
+  "claude-sonnet-4": { inputPerMillion: 3.0, outputPerMillion: 15.0 },
   // Sonnet 3.5
-  'claude-3-5-sonnet-20241022': { inputPerMillion: 3.00, outputPerMillion: 15.00 },
-  'claude-3-5-sonnet': { inputPerMillion: 3.00, outputPerMillion: 15.00 },
+  "claude-3-5-sonnet-20241022": {
+    inputPerMillion: 3.0,
+    outputPerMillion: 15.0,
+  },
+  "claude-3-5-sonnet": { inputPerMillion: 3.0, outputPerMillion: 15.0 },
   // Haiku 3.5
-  'claude-3-5-haiku-20241022': { inputPerMillion: 1.00, outputPerMillion: 5.00 },
-  'claude-3-5-haiku': { inputPerMillion: 1.00, outputPerMillion: 5.00 },
+  "claude-3-5-haiku-20241022": { inputPerMillion: 1.0, outputPerMillion: 5.0 },
+  "claude-3-5-haiku": { inputPerMillion: 1.0, outputPerMillion: 5.0 },
   // Haiku 3
-  'claude-3-haiku-20240307': { inputPerMillion: 0.25, outputPerMillion: 1.25 },
-  'claude-3-haiku': { inputPerMillion: 0.25, outputPerMillion: 1.25 },
+  "claude-3-haiku-20240307": { inputPerMillion: 0.25, outputPerMillion: 1.25 },
+  "claude-3-haiku": { inputPerMillion: 0.25, outputPerMillion: 1.25 },
 };
 
 // Default pricing (Sonnet as a reasonable default)
-const DEFAULT_PRICING: ModelPricing = { inputPerMillion: 3.00, outputPerMillion: 15.00 };
+const DEFAULT_PRICING: ModelPricing = {
+  inputPerMillion: 3.0,
+  outputPerMillion: 15.0,
+};
 
 function getPricingForModel(model?: string): ModelPricing {
   if (!model) return DEFAULT_PRICING;
@@ -39,9 +45,9 @@ function getPricingForModel(model?: string): ModelPricing {
     }
   }
   // Try fuzzy match for model family
-  if (model.includes('opus')) return MODEL_PRICING['claude-opus-4-5'];
-  if (model.includes('sonnet')) return MODEL_PRICING['claude-sonnet-4'];
-  if (model.includes('haiku')) return MODEL_PRICING['claude-3-5-haiku'];
+  if (model.includes("opus")) return MODEL_PRICING["claude-opus-4-5"];
+  if (model.includes("sonnet")) return MODEL_PRICING["claude-sonnet-4"];
+  if (model.includes("haiku")) return MODEL_PRICING["claude-3-5-haiku"];
   return DEFAULT_PRICING;
 }
 
@@ -89,7 +95,7 @@ export type ApiCallCallback = (
   outputTokens: number,
   cost: number,
   request?: ApiRequestData,
-  response?: ApiResponseData
+  response?: ApiResponseData,
 ) => void;
 
 /**
@@ -107,11 +113,16 @@ export class CostTracker {
   private model: string;
   private apiCallCallback?: ApiCallCallback;
 
-  constructor(budgetDollars: number = 10.00, unlimited: boolean = false, maxApiCalls?: number, model?: string) {
+  constructor(
+    budgetDollars: number = 10.0,
+    unlimited: boolean = false,
+    maxApiCalls?: number,
+    model?: string,
+  ) {
     this.budget = budgetDollars;
     this.unlimitedMode = unlimited;
     this.maxApiCalls = maxApiCalls;
-    this.model = model || 'claude-sonnet-4';
+    this.model = model || "claude-sonnet-4";
     this.pricing = getPricingForModel(model);
   }
 
@@ -147,9 +158,9 @@ export class CostTracker {
    */
   track(
     usage: TokenUsage,
-    operation: string = 'unknown',
+    operation: string = "unknown",
     request?: ApiRequestData,
-    response?: ApiResponseData
+    response?: ApiResponseData,
   ): void {
     this.inputTokens += usage.input_tokens;
     this.outputTokens += usage.output_tokens;
@@ -168,7 +179,14 @@ export class CostTracker {
 
     // Invoke callback if set (for broadcasting API call details)
     if (this.apiCallCallback) {
-      this.apiCallCallback(operation, usage.input_tokens, usage.output_tokens, cost, request, response);
+      this.apiCallCallback(
+        operation,
+        usage.input_tokens,
+        usage.output_tokens,
+        cost,
+        request,
+        response,
+      );
     }
   }
 
@@ -177,7 +195,8 @@ export class CostTracker {
    */
   private calculateCost(inputTokens: number, outputTokens: number): number {
     const inputCost = (inputTokens / 1_000_000) * this.pricing.inputPerMillion;
-    const outputCost = (outputTokens / 1_000_000) * this.pricing.outputPerMillion;
+    const outputCost =
+      (outputTokens / 1_000_000) * this.pricing.outputPerMillion;
     return inputCost + outputCost;
   }
 
@@ -192,7 +211,7 @@ export class CostTracker {
    * Check if budget is exceeded and throw if so
    */
   checkBudget(): void {
-    if (this.unlimitedMode) return;  // Skip budget check in unlimited mode
+    if (this.unlimitedMode) return; // Skip budget check in unlimited mode
     const cost = this.getEstimatedCost();
     if (cost >= this.budget) {
       throw new BudgetExceededError(cost, this.budget);
@@ -203,7 +222,7 @@ export class CostTracker {
    * Check if API call limit is exceeded and throw if so
    */
   checkApiCallLimit(): void {
-    if (this.unlimitedMode) return;  // Skip check in unlimited mode
+    if (this.unlimitedMode) return; // Skip check in unlimited mode
     if (this.maxApiCalls && this.apiCalls >= this.maxApiCalls) {
       throw new ApiCallLimitError(this.apiCalls, this.maxApiCalls);
     }
@@ -253,7 +272,7 @@ export class CostTracker {
       outputTokens: this.outputTokens,
       estimatedCost: this.getEstimatedCost(),
       budgetRemaining: this.getBudgetRemaining(),
-      apiCalls: this.apiCalls
+      apiCalls: this.apiCalls,
     };
   }
 
@@ -298,10 +317,16 @@ export class CostTracker {
   /**
    * Estimate cost for a planned operation
    */
-  static estimateCost(estimatedInputTokens: number, estimatedOutputTokens: number, model?: string): number {
+  static estimateCost(
+    estimatedInputTokens: number,
+    estimatedOutputTokens: number,
+    model?: string,
+  ): number {
     const pricing = getPricingForModel(model);
-    const inputCost = (estimatedInputTokens / 1_000_000) * pricing.inputPerMillion;
-    const outputCost = (estimatedOutputTokens / 1_000_000) * pricing.outputPerMillion;
+    const inputCost =
+      (estimatedInputTokens / 1_000_000) * pricing.inputPerMillion;
+    const outputCost =
+      (estimatedOutputTokens / 1_000_000) * pricing.outputPerMillion;
     return inputCost + outputCost;
   }
 }

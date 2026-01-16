@@ -66,6 +66,7 @@ python3 coding-loops/cli.py health
 **Symptoms:** Same test showing for >30 minutes
 
 **Diagnosis:**
+
 ```bash
 # Check loop status
 python3 coding-loops/cli.py status loop-1
@@ -78,6 +79,7 @@ python3 coding-loops/cli.py timeline --filter test_id=CP-UFS-001
 ```
 
 **Resolution:**
+
 ```bash
 # Option 1: Skip the test
 python3 coding-loops/cli.py skip CP-UFS-001
@@ -96,6 +98,7 @@ python3 coding-loops/cli.py restart loop-1
 **Symptoms:** No alerts for known issues, health showing stale
 
 **Diagnosis:**
+
 ```bash
 # Check if process is running
 ps aux | grep monitor_agent
@@ -108,6 +111,7 @@ sqlite3 coding-loops/coordination.db "SELECT * FROM component_health WHERE compo
 ```
 
 **Resolution:**
+
 ```bash
 # Restart monitor
 pkill -f monitor_agent.py
@@ -125,6 +129,7 @@ python3 coding-loops/cli.py status
 **Symptoms:** No progress, all loops waiting
 
 **Diagnosis:**
+
 ```bash
 # Check for locks
 python3 coding-loops/cli.py locks
@@ -137,6 +142,7 @@ python3 coding-loops/cli.py decisions
 ```
 
 **Resolution:**
+
 ```bash
 # If deadlock detected
 python3 coding-loops/cli.py force-unlock loop-1
@@ -156,6 +162,7 @@ python3 coding-loops/cli.py resume all
 **Symptoms:** SQLite errors in logs
 
 **Diagnosis:**
+
 ```bash
 # Check database integrity
 sqlite3 coding-loops/coordination.db "PRAGMA integrity_check"
@@ -168,6 +175,7 @@ sqlite3 coding-loops/coordination.db "PRAGMA journal_mode"
 ```
 
 **Resolution:**
+
 ```bash
 # Stop all agents first
 python3 coding-loops/cli.py pause all
@@ -186,6 +194,7 @@ python3 coding-loops/cli.py resume all
 **Symptoms:** file_conflict event, one loop paused
 
 **Diagnosis:**
+
 ```bash
 # Check conflict details
 python3 coding-loops/cli.py conflicts
@@ -195,6 +204,7 @@ python3 coding-loops/cli.py status
 ```
 
 **Resolution:**
+
 ```bash
 # Usually auto-resolved by PM Agent
 # If stuck, manually decide:
@@ -211,6 +221,7 @@ python3 coding-loops/cli.py decide DEC-001 A
 **Symptoms:** regression_detected event, previously passing test fails
 
 **Diagnosis:**
+
 ```bash
 # Check regression details
 python3 coding-loops/cli.py regressions
@@ -220,6 +231,7 @@ sqlite3 coding-loops/coordination.db "SELECT * FROM passing_tests WHERE test_id=
 ```
 
 **Resolution:**
+
 ```bash
 # Option 1: Rollback blamed loop
 python3 coding-loops/cli.py rollback loop-2
@@ -234,14 +246,14 @@ python3 coding-loops/cli.py skip CP-UFS-001 --reason "Regression from INF-AUTH-0
 
 When away from desk, you can respond to decisions via Telegram:
 
-| Message | Action |
-|---------|--------|
-| `/status` | Get current system status |
-| `/decisions` | List pending decisions |
-| `/decide DEC-001 A` | Make a decision |
-| `/pause all` | Pause all loops |
-| `/resume all` | Resume all loops |
-| `/skip CP-UFS-001` | Skip a stuck test |
+| Message             | Action                    |
+| ------------------- | ------------------------- |
+| `/status`           | Get current system status |
+| `/decisions`        | List pending decisions    |
+| `/decide DEC-001 A` | Make a decision           |
+| `/pause all`        | Pause all loops           |
+| `/resume all`       | Resume all loops          |
+| `/skip CP-UFS-001`  | Skip a stuck test         |
 
 ---
 
@@ -286,22 +298,22 @@ python3 coding-loops/cli.py resume all
 
 ### Key Metrics to Watch
 
-| Metric | Warning | Critical |
-|--------|---------|----------|
-| Tests passed / hour | <1 | 0 for 2 hours |
-| Conflicts / hour | >5 | >10 |
-| Stuck loops | 1 | 2+ |
-| Decisions pending | >3 | >5 or oldest >1h |
-| Database size | >500MB | >1GB |
+| Metric              | Warning | Critical         |
+| ------------------- | ------- | ---------------- |
+| Tests passed / hour | <1      | 0 for 2 hours    |
+| Conflicts / hour    | >5      | >10              |
+| Stuck loops         | 1       | 2+               |
+| Decisions pending   | >3      | >5 or oldest >1h |
+| Database size       | >500MB  | >1GB             |
 
 ### Recommended Check Frequency
 
-| When | Check |
-|------|-------|
-| Morning | `cli.py summary` |
-| Every few hours | `cli.py status` |
-| End of day | `cli.py timeline --since 8h` |
-| Weekly | Review transcripts, archive old checkpoints |
+| When            | Check                                       |
+| --------------- | ------------------------------------------- |
+| Morning         | `cli.py summary`                            |
+| Every few hours | `cli.py status`                             |
+| End of day      | `cli.py timeline --since 8h`                |
+| Weekly          | Review transcripts, archive old checkpoints |
 
 ---
 
@@ -345,22 +357,23 @@ python3 coding-loops/cli.py force-unlock-all
 
 ## Log Locations
 
-| Component | Log Location |
-|-----------|--------------|
-| Monitor Agent | stdout (redirect as needed) |
-| PM Agent | stdout |
-| Loop transcripts | `loop-*/specs/logs/transcripts/` |
-| Database | `coordination.db` (query events table) |
+| Component        | Log Location                           |
+| ---------------- | -------------------------------------- |
+| Monitor Agent    | stdout (redirect as needed)            |
+| PM Agent         | stdout                                 |
+| Loop transcripts | `loop-*/specs/logs/transcripts/`       |
+| Database         | `coordination.db` (query events table) |
 
 ---
 
 ## Contact
 
 When all else fails:
+
 1. Check the timeline for clues: `cli.py timeline --since 1h`
 2. Check transcripts for the stuck loop
 3. Consider resetting and retrying from last known good state
 
 ---
 
-*Last Updated: 2026-01-07*
+_Last Updated: 2026-01-07_

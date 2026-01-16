@@ -11,8 +11,8 @@ import type {
   GroupingSuggestion,
   ExecutionWave,
   BuildAgentInstance,
-} from '../../../../types/task-agent.js';
-import type { CycleDetectionResult } from '../circular-dependency-prevention.js';
+} from "../../../../types/task-agent.js";
+import type { CycleDetectionResult } from "../circular-dependency-prevention.js";
 
 /**
  * Task creation confirmation message
@@ -32,7 +32,7 @@ export function taskCreatedMessage(task: {
   }
 
   if (task.estimatedFiles && task.estimatedFiles.length > 0) {
-    message += `\n**Estimated files:** ${task.estimatedFiles.slice(0, 3).join(', ')}`;
+    message += `\n**Estimated files:** ${task.estimatedFiles.slice(0, 3).join(", ")}`;
     if (task.estimatedFiles.length > 3) {
       message += ` (+${task.estimatedFiles.length - 3} more)`;
     }
@@ -62,7 +62,7 @@ export function analysisCompleteWithRelatedMessage(task: {
 **Related tasks found:**`;
 
   for (const related of task.relatedTasks.slice(0, 5)) {
-    message += `\n• \`${related.displayId}\`: ${related.title.substring(0, 50)}${related.title.length > 50 ? '...' : ''}`;
+    message += `\n• \`${related.displayId}\`: ${related.title.substring(0, 50)}${related.title.length > 50 ? "..." : ""}`;
   }
 
   message += `
@@ -123,7 +123,7 @@ export function taskFailedMessage(data: {
 }): string {
   return `❌ **Task Failed:** ${data.displayId}
 
-**Error:** ${data.errorMessage.substring(0, 200)}${data.errorMessage.length > 200 ? '...' : ''}
+**Error:** ${data.errorMessage.substring(0, 200)}${data.errorMessage.length > 200 ? "..." : ""}
 
 **Impact:**
 • ${data.blockedCount} tasks now blocked
@@ -146,7 +146,7 @@ A potential circular dependency was detected, but I couldn't determine the exact
 Please review task dependencies manually.`;
   }
 
-  const cyclePath = data.cycleDisplayIds.join(' → ');
+  const cyclePath = data.cycleDisplayIds.join(" → ");
 
   return `🔄 **Circular Dependency Detected**
 
@@ -179,7 +179,9 @@ You have **${data.totalCount}** tasks awaiting grouping:
 /**
  * Grouping suggestion message
  */
-export function groupingSuggestionMessage(suggestion: GroupingSuggestion): string {
+export function groupingSuggestionMessage(
+  suggestion: GroupingSuggestion,
+): string {
   const score = suggestion.similarityScore || 0;
   let message = `📁 **Grouping Suggestion**
 
@@ -187,7 +189,7 @@ export function groupingSuggestionMessage(suggestion: GroupingSuggestion): strin
 **Tasks:** ${suggestion.suggestedTasks.length}
 **Score:** ${Math.round(score * 100)}%
 
-**Why:** ${suggestion.groupingReason.substring(0, 150)}${suggestion.groupingReason.length > 150 ? '...' : ''}
+**Why:** ${suggestion.groupingReason.substring(0, 150)}${suggestion.groupingReason.length > 150 ? "..." : ""}
 
 **Tasks to group:** ${suggestion.suggestedTasks.length} tasks`;
 
@@ -201,23 +203,26 @@ export function groupingSuggestionMessage(suggestion: GroupingSuggestion): strin
 /**
  * Wave execution update message
  */
-export function waveUpdateMessage(wave: ExecutionWave, taskListName: string): string {
+export function waveUpdateMessage(
+  wave: ExecutionWave,
+  taskListName: string,
+): string {
   const statusIcon =
-    wave.status === 'completed'
-      ? '✅'
-      : wave.status === 'in_progress'
-      ? '🔄'
-      : wave.status === 'failed'
-      ? '❌'
-      : '⏳';
+    wave.status === "completed"
+      ? "✅"
+      : wave.status === "in_progress"
+        ? "🔄"
+        : wave.status === "failed"
+          ? "❌"
+          : "⏳";
 
   return `${statusIcon} **Wave ${wave.waveNumber} ${wave.status}**
 
 **Task List:** ${taskListName}
 **Tasks:** ${wave.completedCount}/${wave.taskCount} completed
-${wave.failedCount > 0 ? `**Failed:** ${wave.failedCount}` : ''}
+${wave.failedCount > 0 ? `**Failed:** ${wave.failedCount}` : ""}
 
-${wave.status === 'completed' && wave.waveNumber < 10 ? '🚀 Starting next wave...' : ''}`;
+${wave.status === "completed" && wave.waveNumber < 10 ? "🚀 Starting next wave..." : ""}`;
 }
 
 /**
@@ -231,11 +236,17 @@ export function executionCompleteMessage(data: {
   skippedTasks: number;
   duration: string;
 }): string {
-  const successRate = data.totalTasks > 0
-    ? Math.round((data.completedTasks / data.totalTasks) * 100)
-    : 0;
+  const successRate =
+    data.totalTasks > 0
+      ? Math.round((data.completedTasks / data.totalTasks) * 100)
+      : 0;
 
-  const statusEmoji = data.failedTasks === 0 ? '🎉' : data.failedTasks < data.completedTasks ? '⚠️' : '❌';
+  const statusEmoji =
+    data.failedTasks === 0
+      ? "🎉"
+      : data.failedTasks < data.completedTasks
+        ? "⚠️"
+        : "❌";
 
   return `${statusEmoji} **Execution Complete:** ${data.taskListName}
 
@@ -247,7 +258,7 @@ export function executionCompleteMessage(data: {
 **Success Rate:** ${successRate}%
 **Duration:** ${data.duration}
 
-${data.failedTasks > 0 ? `\n💡 Review failed tasks and consider creating fix tasks.\n\n[🔧 Review Failed](callback:exec:reviewfailed)` : ''}`;
+${data.failedTasks > 0 ? `\n💡 Review failed tasks and consider creating fix tasks.\n\n[🔧 Review Failed](callback:exec:reviewfailed)` : ""}`;
 }
 
 /**
@@ -255,15 +266,15 @@ ${data.failedTasks > 0 ? `\n💡 Review failed tasks and consider creating fix t
  */
 export function agentStatusMessage(agent: BuildAgentInstance): string {
   const statusIcon =
-    agent.status === 'running'
-      ? '🟢'
-      : agent.status === 'spawning'
-      ? '🟡'
-      : agent.status === 'completing'
-      ? '✅'
-      : agent.status === 'terminated'
-      ? '❌'
-      : '⚪';
+    agent.status === "running"
+      ? "🟢"
+      : agent.status === "spawning"
+        ? "🟡"
+        : agent.status === "completing"
+          ? "✅"
+          : agent.status === "terminated"
+            ? "❌"
+            : "⚪";
 
   let message = `${statusIcon} **Build Agent**
 
@@ -271,13 +282,15 @@ export function agentStatusMessage(agent: BuildAgentInstance): string {
 **Status:** ${agent.status}`;
 
   if (agent.lastHeartbeatAt) {
-    const age = Math.floor((Date.now() - new Date(agent.lastHeartbeatAt).getTime()) / 1000);
-    const healthWarning = age > 60 ? ' ⚠️' : '';
+    const age = Math.floor(
+      (Date.now() - new Date(agent.lastHeartbeatAt).getTime()) / 1000,
+    );
+    const healthWarning = age > 60 ? " ⚠️" : "";
     message += `\n**Heartbeat:** ${age}s ago${healthWarning}`;
   }
 
   if (agent.errorMessage) {
-    message += `\n**Error:** ${agent.errorMessage.substring(0, 100)}${agent.errorMessage.length > 100 ? '...' : ''}`;
+    message += `\n**Error:** ${agent.errorMessage.substring(0, 100)}${agent.errorMessage.length > 100 ? "..." : ""}`;
   }
 
   return message;

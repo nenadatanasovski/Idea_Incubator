@@ -25,8 +25,8 @@ mcp__puppeteer__puppeteer_evaluate({
       errors.push({type: 'url', text: window.location.href});
       return JSON.stringify(errors, null, 2);
     })()
-  `
-})
+  `,
+});
 ```
 
 ### Step 2: Check API State
@@ -59,6 +59,7 @@ Before proceeding, write down:
 **Symptom:** [What failed - be specific]
 
 **Evidence Collected:**
+
 - Console errors: [yes/no - list if yes]
 - UI errors visible: [yes/no - describe]
 - API state: [describe DB state]
@@ -155,14 +156,14 @@ Action failed
 
 ## EVIDENCE COLLECTION QUICK REFERENCE
 
-| Check | Command/Tool | What to Look For |
-|-------|--------------|------------------|
-| Console errors | puppeteer_evaluate | TypeError, NetworkError, undefined |
-| UI errors | puppeteer_screenshot | Red text, error messages, unexpected state |
-| Database state | sqlite3 query | Missing records, wrong status, orphaned data |
-| Server logs | tail logs/backend.log | Stack traces, connection errors |
-| Network | curl API endpoint | 4xx/5xx responses, timeouts |
-| Source code | Read tool | Logic errors, missing error handling |
+| Check          | Command/Tool          | What to Look For                             |
+| -------------- | --------------------- | -------------------------------------------- |
+| Console errors | puppeteer_evaluate    | TypeError, NetworkError, undefined           |
+| UI errors      | puppeteer_screenshot  | Red text, error messages, unexpected state   |
+| Database state | sqlite3 query         | Missing records, wrong status, orphaned data |
+| Server logs    | tail logs/backend.log | Stack traces, connection errors              |
+| Network        | curl API endpoint     | 4xx/5xx responses, timeouts                  |
+| Source code    | Read tool             | Logic errors, missing error handling         |
 
 ---
 

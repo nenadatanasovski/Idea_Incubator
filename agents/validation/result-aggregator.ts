@@ -1,13 +1,17 @@
 // agents/validation/result-aggregator.ts
 
-import { ValidatorResult, ValidationSummary, ValidatorConfig } from '../../types/validation.js';
+import {
+  ValidatorResult,
+  ValidationSummary,
+  ValidatorConfig,
+} from "../../types/validation.js";
 
 export function aggregateResults(
   results: ValidatorResult[],
-  validatorConfigs: ValidatorConfig[]
+  validatorConfigs: ValidatorConfig[],
 ): { passed: boolean; summary: ValidationSummary } {
   const requiredValidators = new Set(
-    validatorConfigs.filter(v => v.required).map(v => v.name)
+    validatorConfigs.filter((v) => v.required).map((v) => v.name),
   );
 
   let passed = true;

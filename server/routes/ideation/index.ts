@@ -7,15 +7,15 @@
  * - (main ideation.ts): Message handling, UI actions (too large to split easily)
  */
 
-import { Router } from 'express';
-import { sessionRouter } from './session-routes.js';
-import { artifactRouter } from './artifact-routes.js';
+import { Router } from "express";
+import { sessionRouter } from "./session-routes.js";
+import { artifactRouter } from "./artifact-routes.js";
 
 export const splitIdeationRouter = Router();
 
 // Mount session routes at /session and /sessions
-splitIdeationRouter.use('/session', sessionRouter);
-splitIdeationRouter.use('/sessions', sessionRouter);
+splitIdeationRouter.use("/session", sessionRouter);
+splitIdeationRouter.use("/sessions", sessionRouter);
 
 // Mount artifact routes at /ideas (for unified file system)
-splitIdeationRouter.use('/ideas', artifactRouter);
+splitIdeationRouter.use("/ideas", artifactRouter);

@@ -9,6 +9,7 @@
 ## Executive Summary
 
 The current coding loop system is a **functional prototype** but falls far short of a **robust, self-healing, orchestrator-driven system**. It works for manual operation but cannot:
+
 - Be dynamically created by an orchestrator
 - Self-heal from failures
 - Coordinate with monitor/refinement agents
@@ -22,16 +23,16 @@ The current coding loop system is a **functional prototype** but falls far short
 
 ### What Does a Robust Coding Loop System Need?
 
-| Capability | Description | Current State |
-|------------|-------------|---------------|
-| **Reproducibility** | Orchestrator can create new loops from scratch | ❌ Not possible |
-| **Discoverability** | System knows what loops exist and their state | ❌ No registry |
-| **Controllability** | External agents can start/stop/pause loops | ❌ No API |
-| **Observability** | Real-time visibility into loop progress | ⚠️ Partial (file-based) |
-| **Self-healing** | Automatic recovery from failures | ❌ Only basic retry |
-| **Learning** | Improves from past failures | ❌ No SIA integration |
-| **Coordination** | Multiple loops coordinate resources | ❌ No coordination |
-| **Scalability** | Can handle N loops without manual intervention | ❌ Manual only |
+| Capability          | Description                                    | Current State           |
+| ------------------- | ---------------------------------------------- | ----------------------- |
+| **Reproducibility** | Orchestrator can create new loops from scratch | ❌ Not possible         |
+| **Discoverability** | System knows what loops exist and their state  | ❌ No registry          |
+| **Controllability** | External agents can start/stop/pause loops     | ❌ No API               |
+| **Observability**   | Real-time visibility into loop progress        | ⚠️ Partial (file-based) |
+| **Self-healing**    | Automatic recovery from failures               | ❌ Only basic retry     |
+| **Learning**        | Improves from past failures                    | ❌ No SIA integration   |
+| **Coordination**    | Multiple loops coordinate resources            | ❌ No coordination      |
+| **Scalability**     | Can handle N loops without manual intervention | ❌ Manual only          |
 
 ---
 
@@ -40,6 +41,7 @@ The current coding loop system is a **functional prototype** but falls far short
 ### 1. Hardcoded Paths Everywhere
 
 **Evidence:**
+
 ```python
 # From run_loop.py
 PROJECT_DIR = Path("/Users/nenadatanasovski/idea_incurator")
@@ -47,6 +49,7 @@ SPECS_DIR = PROJECT_DIR / "coding-loops" / "loop-1-critical-path" / "specs"
 ```
 
 **Problem:**
+
 - Absolute paths baked into code
 - No environment variables
 - No configuration files
@@ -60,6 +63,7 @@ SPECS_DIR = PROJECT_DIR / "coding-loops" / "loop-1-critical-path" / "specs"
 ### 2. No Schema Validation
 
 **Evidence:**
+
 ```python
 def load_test_state(self) -> dict:
     with open(self.test_state_file) as f:
@@ -67,6 +71,7 @@ def load_test_state(self) -> dict:
 ```
 
 **Problem:**
+
 - `test-state.json` has no schema definition
 - Invalid JSON breaks silently
 - Missing fields cause runtime errors
@@ -81,6 +86,7 @@ def load_test_state(self) -> dict:
 
 **Evidence:**
 The only way to control a loop is:
+
 ```bash
 python run_loop.py  # Start
 Ctrl+C              # Stop
@@ -88,6 +94,7 @@ Ctrl+C              # Stop
 ```
 
 **Problem:**
+
 - No API endpoints to query state
 - No way to pause/resume
 - No way to skip/reset tests
@@ -102,6 +109,7 @@ Ctrl+C              # Stop
 ### 4. No Health Checks or Heartbeats
 
 **Evidence:**
+
 ```python
 # No health check mechanism exists
 # If a loop hangs, nothing notices
@@ -109,6 +117,7 @@ Ctrl+C              # Stop
 ```
 
 **Problem:**
+
 - No liveness probes
 - No readiness probes
 - No heartbeat mechanism
@@ -122,6 +131,7 @@ Ctrl+C              # Stop
 ### 5. Self-Healing is Minimal
 
 **Evidence:**
+
 ```python
 MAX_ATTEMPTS_PER_TEST = 3
 # After 3 attempts, test is blocked forever
@@ -130,6 +140,7 @@ MAX_ATTEMPTS_PER_TEST = 3
 ```
 
 **Problem:**
+
 - Only retry mechanism is "try 3 times then give up"
 - Blocked tests block all dependents (cascading failure)
 - No rollback capability
@@ -143,6 +154,7 @@ MAX_ATTEMPTS_PER_TEST = 3
 ### 6. No Learning or Refinement
 
 **Evidence:**
+
 ```python
 # Transcripts are saved but never analyzed
 # No pattern detection
@@ -151,6 +163,7 @@ MAX_ATTEMPTS_PER_TEST = 3
 ```
 
 **Problem:**
+
 - Failures repeat the same mistakes
 - No learning from past transcripts
 - No prompt refinement based on outcomes
@@ -164,6 +177,7 @@ MAX_ATTEMPTS_PER_TEST = 3
 ### 7. No Orchestrator Integration
 
 **Evidence:**
+
 ```python
 # No registry of loops
 # No spawn mechanism
@@ -172,6 +186,7 @@ MAX_ATTEMPTS_PER_TEST = 3
 ```
 
 **What's Missing:**
+
 - Loop Registry (what loops exist, what's their state)
 - Loop Factory (create new loops from specs)
 - Resource Manager (how many Claude sessions available)
@@ -185,13 +200,17 @@ MAX_ATTEMPTS_PER_TEST = 3
 ### 8. Specs Are Not Machine-Parseable
 
 **Evidence:**
+
 ```markdown
 # 00-overview.md is human-readable markdown
+
 # test-state.json is separate from specs
+
 # No structured requirement format
 ```
 
 **Problem:**
+
 - Specs are documentation, not configuration
 - Can't generate loops from specs automatically
 - Can't validate specs against implementation
@@ -205,13 +224,13 @@ MAX_ATTEMPTS_PER_TEST = 3
 
 ### Level 1: Minimal Viability (1-2 weeks)
 
-| Fix | Effort | Impact |
-|-----|--------|--------|
-| Configuration file instead of hardcoded paths | 2 hours | High |
-| JSON Schema for test-state.json | 4 hours | Medium |
-| Health check endpoint (simple HTTP) | 4 hours | Medium |
-| Basic API for state queries | 8 hours | High |
-| Environment variable support | 2 hours | Medium |
+| Fix                                           | Effort  | Impact |
+| --------------------------------------------- | ------- | ------ |
+| Configuration file instead of hardcoded paths | 2 hours | High   |
+| JSON Schema for test-state.json               | 4 hours | Medium |
+| Health check endpoint (simple HTTP)           | 4 hours | Medium |
+| Basic API for state queries                   | 8 hours | High   |
+| Environment variable support                  | 2 hours | Medium |
 
 **After Level 1:** Loops can run on any machine, state can be queried externally, basic health monitoring possible.
 
@@ -219,14 +238,14 @@ MAX_ATTEMPTS_PER_TEST = 3
 
 ### Level 2: Orchestrator-Ready (2-4 weeks)
 
-| Fix | Effort | Impact |
-|-----|--------|--------|
-| Loop Registry (JSON/SQLite) | 1 day | High |
-| Loop Factory (create from template) | 2 days | High |
-| REST API for loop control | 3 days | High |
-| Webhook callbacks for events | 1 day | Medium |
+| Fix                                    | Effort | Impact |
+| -------------------------------------- | ------ | ------ |
+| Loop Registry (JSON/SQLite)            | 1 day  | High   |
+| Loop Factory (create from template)    | 2 days | High   |
+| REST API for loop control              | 3 days | High   |
+| Webhook callbacks for events           | 1 day  | Medium |
 | Priority queue for resource allocation | 2 days | Medium |
-| Process manager (PM2/Supervisor) | 1 day | Medium |
+| Process manager (PM2/Supervisor)       | 1 day  | Medium |
 
 **After Level 2:** An orchestrator agent CAN create, control, and monitor loops programmatically.
 
@@ -234,14 +253,14 @@ MAX_ATTEMPTS_PER_TEST = 3
 
 ### Level 3: Self-Healing (3-4 weeks)
 
-| Fix | Effort | Impact |
-|-----|--------|--------|
-| Automatic dependency unblocking | 2 days | High |
-| Checkpoint/resume for long runs | 3 days | High |
-| Rollback capability | 2 days | Medium |
-| Stuck detection and recovery | 2 days | High |
+| Fix                                    | Effort | Impact    |
+| -------------------------------------- | ------ | --------- |
+| Automatic dependency unblocking        | 2 days | High      |
+| Checkpoint/resume for long runs        | 3 days | High      |
+| Rollback capability                    | 2 days | Medium    |
+| Stuck detection and recovery           | 2 days | High      |
 | SIA integration for prompt improvement | 5 days | Very High |
-| Failure pattern detection | 3 days | High |
+| Failure pattern detection              | 3 days | High      |
 
 **After Level 3:** Loops can recover from most failures without human intervention.
 
@@ -249,14 +268,14 @@ MAX_ATTEMPTS_PER_TEST = 3
 
 ### Level 4: Full Autonomous System (4-6 weeks)
 
-| Fix | Effort | Impact |
-|-----|--------|--------|
-| Monitor Agent (real-time dashboard) | 5 days | High |
-| Refinement Agent (improves prompts) | 5 days | Very High |
-| Project Manager Agent (coordinates priorities) | 5 days | High |
-| Cross-loop communication | 3 days | Medium |
-| Resource throttling and budgets | 2 days | Medium |
-| Automatic spec generation from goals | 5 days | Very High |
+| Fix                                            | Effort | Impact    |
+| ---------------------------------------------- | ------ | --------- |
+| Monitor Agent (real-time dashboard)            | 5 days | High      |
+| Refinement Agent (improves prompts)            | 5 days | Very High |
+| Project Manager Agent (coordinates priorities) | 5 days | High      |
+| Cross-loop communication                       | 3 days | Medium    |
+| Resource throttling and budgets                | 2 days | Medium    |
+| Automatic spec generation from goals           | 5 days | Very High |
 
 **After Level 4:** The system is truly autonomous - it can plan, execute, monitor, and improve itself.
 
@@ -460,20 +479,20 @@ class SelfHealingModule:
 
 ### What's Modular
 
-| Component | Modularity | Notes |
-|-----------|------------|-------|
-| `RalphLoopRunner` base class | ✅ Good | Abstract methods allow customization |
-| Transcript management | ✅ Good | Self-contained methods |
-| Test state management | ✅ Good | Clean load/save/update |
+| Component                    | Modularity | Notes                                |
+| ---------------------------- | ---------- | ------------------------------------ |
+| `RalphLoopRunner` base class | ✅ Good    | Abstract methods allow customization |
+| Transcript management        | ✅ Good    | Self-contained methods               |
+| Test state management        | ✅ Good    | Clean load/save/update               |
 
 ### What's NOT Modular
 
-| Component | Issue | Fix Needed |
-|-----------|-------|------------|
-| Path configuration | Hardcoded | Config file/env vars |
-| Loop creation | Manual | Loop factory |
+| Component              | Issue                  | Fix Needed               |
+| ---------------------- | ---------------------- | ------------------------ |
+| Path configuration     | Hardcoded              | Config file/env vars     |
+| Loop creation          | Manual                 | Loop factory             |
 | Claude client creation | Imports from tests/e2e | Proper package structure |
-| Spec content loading | Inline in each loop | Spec loader service |
+| Spec content loading   | Inline in each loop    | Spec loader service      |
 
 ---
 
@@ -484,6 +503,7 @@ class SelfHealingModule:
 **Current Answer:** NO
 
 **Why Not:**
+
 1. No template or factory for loop creation
 2. Hardcoded paths require code changes
 3. No schema for test-state.json
@@ -491,6 +511,7 @@ class SelfHealingModule:
 5. No registration mechanism
 
 **What's Needed:**
+
 1. Loop template with placeholders
 2. Configuration-driven paths
 3. JSON Schema validation
@@ -503,15 +524,15 @@ class SelfHealingModule:
 
 ### Current Self-Healing Capability
 
-| Scenario | Current Behavior | Ideal Behavior |
-|----------|------------------|----------------|
-| Test fails once | Retry up to 3 times | ✅ Acceptable |
-| Test fails 3 times | Block permanently | Analyze and suggest fixes |
-| Dependency blocked | All dependents blocked | Try to unblock or skip |
-| Claude API error | Retry in error handler | Exponential backoff, alert |
-| Loop hangs | Nothing notices | Health check, auto-restart |
-| Same error pattern | Repeat same approach | Learn and try different approach |
-| Out of credits | Crash | Graceful pause, alert |
+| Scenario           | Current Behavior       | Ideal Behavior                   |
+| ------------------ | ---------------------- | -------------------------------- |
+| Test fails once    | Retry up to 3 times    | ✅ Acceptable                    |
+| Test fails 3 times | Block permanently      | Analyze and suggest fixes        |
+| Dependency blocked | All dependents blocked | Try to unblock or skip           |
+| Claude API error   | Retry in error handler | Exponential backoff, alert       |
+| Loop hangs         | Nothing notices        | Health check, auto-restart       |
+| Same error pattern | Repeat same approach   | Learn and try different approach |
+| Out of credits     | Crash                  | Graceful pause, alert            |
 
 **Self-Healing Score: 15/100**
 
@@ -520,9 +541,11 @@ class SelfHealingModule:
 ## Honest Bottom Line
 
 ### What You Have
+
 A working prototype that can run 3 coding loops in parallel **with manual oversight**.
 
 ### What You Don't Have
+
 - Orchestrator-controlled loop management
 - Self-healing recovery
 - Learning/refinement
@@ -532,12 +555,12 @@ A working prototype that can run 3 coding loops in parallel **with manual oversi
 
 ### Effort to Get to Robust System
 
-| Level | Description | Effort | Value |
-|-------|-------------|--------|-------|
-| **L1** | Configurable, queryable | 1-2 weeks | Can run on any machine |
-| **L2** | Orchestrator-ready | 2-4 weeks | Agents can control loops |
-| **L3** | Self-healing | 3-4 weeks | Runs without babysitting |
-| **L4** | Fully autonomous | 4-6 weeks | True autonomous development |
+| Level  | Description             | Effort    | Value                       |
+| ------ | ----------------------- | --------- | --------------------------- |
+| **L1** | Configurable, queryable | 1-2 weeks | Can run on any machine      |
+| **L2** | Orchestrator-ready      | 2-4 weeks | Agents can control loops    |
+| **L3** | Self-healing            | 3-4 weeks | Runs without babysitting    |
+| **L4** | Fully autonomous        | 4-6 weeks | True autonomous development |
 
 **Total to fully autonomous: 10-16 weeks of focused work**
 
@@ -546,21 +569,25 @@ A working prototype that can run 3 coding loops in parallel **with manual oversi
 ## Recommendations
 
 ### Immediate (Before Running Loops)
+
 1. Add `config.json` with paths and settings
 2. Add JSON Schema validation for test-state.json
 3. Add basic health check file (touch a file every iteration)
 
 ### Short-term (First 2 Weeks)
+
 1. Build Loop Registry
 2. Add REST API for control
 3. Implement checkpoint/resume
 
 ### Medium-term (Weeks 3-6)
+
 1. Build Monitor Agent
 2. Integrate with SIA
 3. Add automatic dependency repair
 
 ### Long-term (Weeks 6+)
+
 1. Build Orchestrator Agent
 2. Add Refinement Agent
 3. Implement full self-healing
@@ -579,5 +606,5 @@ The current coding loop system is a **solid foundation** but needs significant i
 
 ---
 
-*Analysis by Claude Code - Skeptic & Realist Perspectives*
-*Created: 2026-01-07*
+_Analysis by Claude Code - Skeptic & Realist Perspectives_
+_Created: 2026-01-07_

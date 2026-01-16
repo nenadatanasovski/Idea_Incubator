@@ -5,19 +5,19 @@
  * Only runs after viability gate passes (readiness >= 50).
  */
 
-import { client } from '../utils/anthropic-client.js';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { logInfo, logWarning } from '../utils/logger.js';
-import { getConfig } from '../config/index.js';
-import { EvaluationParseError } from '../utils/errors.js';
+import { client } from "../utils/anthropic-client.js";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { logInfo, logWarning } from "../utils/logger.js";
+import { getConfig } from "../config/index.js";
+import { EvaluationParseError } from "../utils/errors.js";
 import {
   GapAnalysis,
   ProfileContext,
   DifferentiationAnalysis,
   Opportunity,
   Strategy,
-  Risk
-} from '../types/incubation.js';
+  Risk,
+} from "../types/incubation.js";
 
 const DIFFERENTIATION_SYSTEM_PROMPT = `You are a Differentiation Analysis Agent for idea incubation.
 
@@ -49,45 +49,52 @@ export async function runDifferentiationAnalysis(
   gapAnalysis: GapAnalysis,
   answers: Record<string, string>,
   profile: ProfileContext,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<DifferentiationAnalysis> {
   const config = getConfig();
 
   // Precondition check
   if (gapAnalysis.readinessScore < 50) {
-    throw new Error(`Viability gate must pass first (readiness: ${gapAnalysis.readinessScore}%, required: 50%)`);
+    throw new Error(
+      `Viability gate must pass first (readiness: ${gapAnalysis.readinessScore}%, required: 50%)`,
+    );
   }
 
-  logInfo('Running differentiation analysis...');
+  logInfo("Running differentiation analysis...");
 
-  const answersText = Object.entries(answers).length > 0
-    ? `\n\nAnswered Questions:\n${Object.entries(answers)
-        .map(([q, a]) => `Q: ${q}\nA: ${a}`)
-        .join('\n\n')}`
-    : '';
+  const answersText =
+    Object.entries(answers).length > 0
+      ? `\n\nAnswered Questions:\n${Object.entries(answers)
+          .map(([q, a]) => `Q: ${q}\nA: ${a}`)
+          .join("\n\n")}`
+      : "";
 
   const profileText = `
 User Profile:
-- Goals: ${profile.goals?.join(', ') || 'Not specified'}
-- Skills: ${profile.skills?.join(', ') || 'Not specified'}
-- Network: ${profile.network?.join(', ') || 'Not specified'}
-- Constraints: ${profile.constraints?.join(', ') || 'Not specified'}
-- Interests: ${profile.interests?.join(', ') || 'Not specified'}`;
+- Goals: ${profile.goals?.join(", ") || "Not specified"}
+- Skills: ${profile.skills?.join(", ") || "Not specified"}
+- Network: ${profile.network?.join(", ") || "Not specified"}
+- Constraints: ${profile.constraints?.join(", ") || "Not specified"}
+- Interests: ${profile.interests?.join(", ") || "Not specified"}`;
 
   const gapSummary = `
 Gap Analysis Summary:
 - Readiness Score: ${gapAnalysis.readinessScore}%
 - Critical Gaps: ${gapAnalysis.criticalGapsCount}
 - Significant Gaps: ${gapAnalysis.significantGapsCount}
-- Key Assumptions: ${gapAnalysis.assumptions.slice(0, 5).map(a => a.text).join('; ')}`;
+- Key Assumptions: ${gapAnalysis.assumptions
+    .slice(0, 5)
+    .map((a) => a.text)
+    .join("; ")}`;
 
   const response = await client.messages.create({
     model: config.model,
     max_tokens: 4500,
     system: DIFFERENTIATION_SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `Analyze market positioning and differentiation opportunities for this idea:
+    messages: [
+      {
+        role: "user",
+        content: `Analyze market positioning and differentiation opportunities for this idea:
 
 IDEA:
 ${ideaContent}
@@ -147,20 +154,23 @@ Respond in JSON:
     "recommendation": "When to enter and why"
   },
   "summary": "Executive summary of differentiation analysis"
-}`
-    }]
+}`,
+      },
+    ],
   });
 
-  costTracker.track(response.usage, 'differentiation-analysis');
+  costTracker.track(response.usage, "differentiation-analysis");
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response type from differentiation agent');
+  if (content.type !== "text") {
+    throw new EvaluationParseError(
+      "Unexpected response type from differentiation agent",
+    );
   }
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError('Could not parse differentiation response');
+    throw new EvaluationParseError("Could not parse differentiation response");
   }
 
   let parsed: {
@@ -208,70 +218,82 @@ Respond in JSON:
   try {
     parsed = JSON.parse(jsonMatch[0]);
   } catch {
-    throw new EvaluationParseError('Invalid JSON in differentiation response');
+    throw new EvaluationParseError("Invalid JSON in differentiation response");
   }
 
   // Transform to typed structures with extended fields
-  const marketOpportunities: Opportunity[] = parsed.marketOpportunities.map(o => ({
-    description: o.description,
-    targetSegment: o.targetSegment,
-    potentialImpact: normalizeLevel(o.potentialImpact),
-    feasibility: normalizeLevel(o.feasibility),
-    why: o.why,
-    marketSize: o.marketSize,
-    timing: o.timing
-  }));
+  const marketOpportunities: Opportunity[] = parsed.marketOpportunities.map(
+    (o) => ({
+      description: o.description,
+      targetSegment: o.targetSegment,
+      potentialImpact: normalizeLevel(o.potentialImpact),
+      feasibility: normalizeLevel(o.feasibility),
+      why: o.why,
+      marketSize: o.marketSize,
+      timing: o.timing,
+    }),
+  );
 
-  const competitiveRisks: Risk[] = parsed.competitiveRisks.map(r => ({
+  const competitiveRisks: Risk[] = parsed.competitiveRisks.map((r) => ({
     description: r.description,
     likelihood: normalizeLevel(r.likelihood),
     severity: normalizeLevel(r.severity),
     mitigation: r.mitigation,
     competitors: r.competitors,
-    timeframe: r.timeframe
+    timeframe: r.timeframe,
   }));
 
   const differentiationStrategies: Strategy[] = parsed.differentiationStrategies
-    .map(s => ({
+    .map((s) => ({
       name: s.name,
       description: s.description,
       differentiators: s.differentiators,
       tradeoffs: s.tradeoffs,
       fitWithProfile: Math.max(1, Math.min(10, s.fitWithProfile)),
-      fiveWH: s.fiveWH
+      fiveWH: s.fiveWH,
     }))
     .sort((a, b) => b.fitWithProfile - a.fitWithProfile); // Sort by fit
 
-  logInfo(`Differentiation analysis complete: ${marketOpportunities.length} opportunities, ${differentiationStrategies.length} strategies`);
+  logInfo(
+    `Differentiation analysis complete: ${marketOpportunities.length} opportunities, ${differentiationStrategies.length} strategies`,
+  );
 
   return {
     marketOpportunities,
     competitiveRisks,
     differentiationStrategies,
     summary: parsed.summary,
-    marketTiming: parsed.marketTiming ? {
-      ...parsed.marketTiming,
-      urgency: normalizeLevel(parsed.marketTiming.urgency)
-    } : undefined
+    marketTiming: parsed.marketTiming
+      ? {
+          ...parsed.marketTiming,
+          urgency: normalizeLevel(parsed.marketTiming.urgency),
+        }
+      : undefined,
   };
 }
 
 /**
  * Normalize level string to typed enum
  */
-function normalizeLevel(level: string): 'high' | 'medium' | 'low' {
+function normalizeLevel(level: string): "high" | "medium" | "low" {
   const normalized = level.toLowerCase().trim();
-  if (normalized === 'high' || normalized === 'medium' || normalized === 'low') {
+  if (
+    normalized === "high" ||
+    normalized === "medium" ||
+    normalized === "low"
+  ) {
     return normalized;
   }
   logWarning(`Unknown level "${level}", defaulting to medium`);
-  return 'medium';
+  return "medium";
 }
 
 /**
  * Format differentiation analysis for display
  */
-export function formatDifferentiationAnalysis(analysis: DifferentiationAnalysis): string {
+export function formatDifferentiationAnalysis(
+  analysis: DifferentiationAnalysis,
+): string {
   let output = `
 ## Differentiation Analysis
 
@@ -298,7 +320,7 @@ ${opp.description}
     output += `
 - ${risk.description}
   Likelihood: ${risk.likelihood.toUpperCase()} | Severity: ${risk.severity.toUpperCase()}
-  ${risk.mitigation ? `Mitigation: ${risk.mitigation}` : ''}
+  ${risk.mitigation ? `Mitigation: ${risk.mitigation}` : ""}
 `;
   }
 
@@ -313,10 +335,10 @@ ${opp.description}
 ${strat.description}
 
 Differentiators:
-${strat.differentiators.map(d => `- ${d}`).join('\n')}
+${strat.differentiators.map((d) => `- ${d}`).join("\n")}
 
 Tradeoffs:
-${strat.tradeoffs.map(t => `- ${t}`).join('\n')}
+${strat.tradeoffs.map((t) => `- ${t}`).join("\n")}
 `;
   }
 

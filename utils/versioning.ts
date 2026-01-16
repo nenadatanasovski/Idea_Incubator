@@ -5,19 +5,19 @@
  * Enables version comparison and history tracking.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { v4 as uuid } from 'uuid';
-import { run, query, getOne } from '../database/db.js';
-import { logInfo, logWarning } from '../utils/logger.js';
+import * as fs from "fs";
+import * as path from "path";
+import { v4 as uuid } from "uuid";
+import { run, query, getOne } from "../database/db.js";
+import { logInfo, logWarning } from "../utils/logger.js";
 import {
   IdeaVersion,
   VersionDiff,
   ContentChange,
   ScoreChange,
   VersionChangeType,
-  IncubationPhase
-} from '../types/incubation.js';
+  IncubationPhase,
+} from "../types/incubation.js";
 
 /**
  * Create a version snapshot of an idea
@@ -25,7 +25,7 @@ import {
 export async function createVersionSnapshot(
   ideaId: string,
   changeType: VersionChangeType,
-  changeSummary?: string
+  changeSummary?: string,
 ): Promise<string> {
   // Get current idea
   const idea = await getOne<{
@@ -36,8 +36,8 @@ export async function createVersionSnapshot(
     iteration_number: number;
     incubation_phase: string;
   }>(
-    'SELECT id, slug, folder_path, current_version, iteration_number, incubation_phase FROM ideas WHERE id = ?',
-    [ideaId]
+    "SELECT id, slug, folder_path, current_version, iteration_number, incubation_phase FROM ideas WHERE id = ?",
+    [ideaId],
   );
 
   if (!idea) {
@@ -45,19 +45,19 @@ export async function createVersionSnapshot(
   }
 
   // Read README.md content from filesystem
-  const readmePath = path.join(idea.folder_path, 'README.md');
-  let contentSnapshot = '';
+  const readmePath = path.join(idea.folder_path, "README.md");
+  let contentSnapshot = "";
 
   try {
     if (fs.existsSync(readmePath)) {
-      contentSnapshot = fs.readFileSync(readmePath, 'utf-8');
+      contentSnapshot = fs.readFileSync(readmePath, "utf-8");
     } else {
       logWarning(`README.md not found at ${readmePath}`);
-      contentSnapshot = '# ' + idea.slug + '\n\nNo content available.';
+      contentSnapshot = "# " + idea.slug + "\n\nNo content available.";
     }
   } catch (error) {
     logWarning(`Could not read README.md: ${error}`);
-    contentSnapshot = '# ' + idea.slug + '\n\nNo content available.';
+    contentSnapshot = "# " + idea.slug + "\n\nNo content available.";
   }
 
   // Get latest evaluation if exists
@@ -66,7 +66,7 @@ export async function createVersionSnapshot(
   }>(
     `SELECT evaluation_run_id FROM evaluations WHERE idea_id = ?
      ORDER BY evaluated_at DESC LIMIT 1`,
-    [ideaId]
+    [ideaId],
   );
 
   let evaluationSnapshot: string | undefined;
@@ -80,7 +80,7 @@ export async function createVersionSnapshot(
     }>(
       `SELECT criterion, category, final_score, confidence
        FROM evaluations WHERE idea_id = ? AND evaluation_run_id = ?`,
-      [ideaId, latestEval.evaluation_run_id]
+      [ideaId, latestEval.evaluation_run_id],
     );
 
     evaluationSnapshot = JSON.stringify(evalScores);
@@ -105,17 +105,19 @@ export async function createVersionSnapshot(
       evaluationSnapshot ?? null,
       idea.incubation_phase,
       changeType,
-      changeSummary ?? null
-    ]
+      changeSummary ?? null,
+    ],
   );
 
   // Update idea's current version
   await run(
-    'UPDATE ideas SET current_version = ?, updated_at = datetime(\'now\') WHERE id = ?',
-    [newVersionNumber, ideaId]
+    "UPDATE ideas SET current_version = ?, updated_at = datetime('now') WHERE id = ?",
+    [newVersionNumber, ideaId],
   );
 
-  logInfo(`Created version ${newVersionNumber} for idea ${idea.slug} (${changeType})`);
+  logInfo(
+    `Created version ${newVersionNumber} for idea ${idea.slug} (${changeType})`,
+  );
 
   return versionId;
 }
@@ -123,32 +125,33 @@ export async function createVersionSnapshot(
 /**
  * Create initial version snapshot when idea is created
  */
-export async function createInitialVersionSnapshot(ideaId: string): Promise<string> {
+export async function createInitialVersionSnapshot(
+  ideaId: string,
+): Promise<string> {
   // For initial version, we don't increment - we set it to 1
   const idea = await getOne<{
     id: string;
     slug: string;
     folder_path: string;
     incubation_phase: string;
-  }>(
-    'SELECT id, slug, folder_path, incubation_phase FROM ideas WHERE id = ?',
-    [ideaId]
-  );
+  }>("SELECT id, slug, folder_path, incubation_phase FROM ideas WHERE id = ?", [
+    ideaId,
+  ]);
 
   if (!idea) {
     throw new Error(`Idea not found: ${ideaId}`);
   }
 
   // Read README.md content
-  const readmePath = path.join(idea.folder_path, 'README.md');
-  let contentSnapshot = '';
+  const readmePath = path.join(idea.folder_path, "README.md");
+  let contentSnapshot = "";
 
   try {
     if (fs.existsSync(readmePath)) {
-      contentSnapshot = fs.readFileSync(readmePath, 'utf-8');
+      contentSnapshot = fs.readFileSync(readmePath, "utf-8");
     }
   } catch {
-    contentSnapshot = '# ' + idea.slug + '\n\nNo content available.';
+    contentSnapshot = "# " + idea.slug + "\n\nNo content available.";
   }
 
   const versionId = uuid();
@@ -157,7 +160,7 @@ export async function createInitialVersionSnapshot(ideaId: string): Promise<stri
     `INSERT INTO idea_versions
      (id, idea_id, version_number, iteration_number, content_snapshot, phase, change_type, change_summary, created_at)
      VALUES (?, ?, 1, 1, ?, ?, 'initial', 'Initial idea capture', datetime('now'))`,
-    [versionId, ideaId, contentSnapshot, idea.incubation_phase]
+    [versionId, ideaId, contentSnapshot, idea.incubation_phase],
   );
 
   logInfo(`Created initial version for idea ${idea.slug}`);
@@ -168,7 +171,9 @@ export async function createInitialVersionSnapshot(ideaId: string): Promise<stri
 /**
  * Get version history for an idea
  */
-export async function getVersionHistory(ideaId: string): Promise<IdeaVersion[]> {
+export async function getVersionHistory(
+  ideaId: string,
+): Promise<IdeaVersion[]> {
   const rows = await query<{
     id: string;
     idea_id: string;
@@ -182,10 +187,10 @@ export async function getVersionHistory(ideaId: string): Promise<IdeaVersion[]> 
     created_at: string;
   }>(
     `SELECT * FROM idea_versions WHERE idea_id = ? ORDER BY version_number DESC`,
-    [ideaId]
+    [ideaId],
   );
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     id: row.id,
     ideaId: row.idea_id,
     versionNumber: row.version_number,
@@ -195,7 +200,7 @@ export async function getVersionHistory(ideaId: string): Promise<IdeaVersion[]> 
     phase: row.phase as IncubationPhase,
     changeType: row.change_type as VersionChangeType,
     changeSummary: row.change_summary || undefined,
-    createdAt: new Date(row.created_at)
+    createdAt: new Date(row.created_at),
   }));
 }
 
@@ -204,7 +209,7 @@ export async function getVersionHistory(ideaId: string): Promise<IdeaVersion[]> 
  */
 export async function getVersionSnapshot(
   ideaId: string,
-  versionNumber: number
+  versionNumber: number,
 ): Promise<IdeaVersion | null> {
   const row = await getOne<{
     id: string;
@@ -217,10 +222,10 @@ export async function getVersionSnapshot(
     change_type: string;
     change_summary: string | null;
     created_at: string;
-  }>(
-    'SELECT * FROM idea_versions WHERE idea_id = ? AND version_number = ?',
-    [ideaId, versionNumber]
-  );
+  }>("SELECT * FROM idea_versions WHERE idea_id = ? AND version_number = ?", [
+    ideaId,
+    versionNumber,
+  ]);
 
   if (!row) {
     return null;
@@ -236,7 +241,7 @@ export async function getVersionSnapshot(
     phase: row.phase as IncubationPhase,
     changeType: row.change_type as VersionChangeType,
     changeSummary: row.change_summary || undefined,
-    createdAt: new Date(row.created_at)
+    createdAt: new Date(row.created_at),
   };
 }
 
@@ -246,7 +251,7 @@ export async function getVersionSnapshot(
 export async function compareVersions(
   ideaId: string,
   v1: number,
-  v2: number
+  v2: number,
 ): Promise<VersionDiff> {
   const version1 = await getVersionSnapshot(ideaId, v1);
   const version2 = await getVersionSnapshot(ideaId, v2);
@@ -261,7 +266,7 @@ export async function compareVersions(
   // Generate content changes
   const contentChanges = generateContentChanges(
     version1.contentSnapshot,
-    version2.contentSnapshot
+    version2.contentSnapshot,
   );
 
   // Generate score changes if both have evaluations
@@ -288,7 +293,7 @@ export async function compareVersions(
     from: v1,
     to: v2,
     contentChanges,
-    scoreChanges
+    scoreChanges,
   };
 }
 
@@ -296,7 +301,10 @@ export async function compareVersions(
  * Generate content changes between two markdown documents
  * Simple implementation - identifies section-level changes
  */
-function generateContentChanges(before: string, after: string): ContentChange[] {
+function generateContentChanges(
+  before: string,
+  after: string,
+): ContentChange[] {
   const changes: ContentChange[] = [];
 
   // Extract sections from markdown
@@ -306,18 +314,18 @@ function generateContentChanges(before: string, after: string): ContentChange[] 
   // Compare sections
   const allSectionNames = new Set([
     ...Object.keys(beforeSections),
-    ...Object.keys(afterSections)
+    ...Object.keys(afterSections),
   ]);
 
   for (const sectionName of allSectionNames) {
-    const beforeContent = beforeSections[sectionName] || '';
-    const afterContent = afterSections[sectionName] || '';
+    const beforeContent = beforeSections[sectionName] || "";
+    const afterContent = afterSections[sectionName] || "";
 
     if (beforeContent !== afterContent) {
       changes.push({
         field: sectionName,
         before: beforeContent.trim().substring(0, 200),
-        after: afterContent.trim().substring(0, 200)
+        after: afterContent.trim().substring(0, 200),
       });
     }
   }
@@ -330,8 +338,8 @@ function generateContentChanges(before: string, after: string): ContentChange[] 
  */
 function extractSections(markdown: string): Record<string, string> {
   const sections: Record<string, string> = {};
-  const lines = markdown.split('\n');
-  let currentSection = 'header';
+  const lines = markdown.split("\n");
+  let currentSection = "header";
   let currentContent: string[] = [];
 
   for (const line of lines) {
@@ -340,11 +348,13 @@ function extractSections(markdown: string): Record<string, string> {
     if (headingMatch) {
       // Save previous section
       if (currentContent.length > 0) {
-        sections[currentSection] = currentContent.join('\n');
+        sections[currentSection] = currentContent.join("\n");
       }
 
       // Start new section
-      currentSection = headingMatch[2].toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      currentSection = headingMatch[2]
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_");
       currentContent = [];
     } else {
       currentContent.push(line);
@@ -353,7 +363,7 @@ function extractSections(markdown: string): Record<string, string> {
 
   // Save final section
   if (currentContent.length > 0) {
-    sections[currentSection] = currentContent.join('\n');
+    sections[currentSection] = currentContent.join("\n");
   }
 
   return sections;
@@ -364,12 +374,12 @@ function extractSections(markdown: string): Record<string, string> {
  */
 function generateScoreChanges(
   before: Array<{ criterion: string; final_score: number }>,
-  after: Array<{ criterion: string; final_score: number }>
+  after: Array<{ criterion: string; final_score: number }>,
 ): ScoreChange[] {
   const changes: ScoreChange[] = [];
 
-  const beforeMap = new Map(before.map(s => [s.criterion, s.final_score]));
-  const afterMap = new Map(after.map(s => [s.criterion, s.final_score]));
+  const beforeMap = new Map(before.map((s) => [s.criterion, s.final_score]));
+  const afterMap = new Map(after.map((s) => [s.criterion, s.final_score]));
 
   const allCriteria = new Set([...beforeMap.keys(), ...afterMap.keys()]);
 
@@ -383,7 +393,7 @@ function generateScoreChanges(
         criterion,
         before: beforeScore,
         after: afterScore,
-        delta
+        delta,
       });
     }
   }
@@ -404,21 +414,22 @@ export function formatVersionHistory(versions: IdeaVersion[]): string {
 `;
 
   for (const version of versions) {
-    const date = version.createdAt.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+    const date = version.createdAt.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
 
     const isCurrent = version.versionNumber === versions[0].versionNumber;
-    const label = isCurrent ? ' (current)' : '';
+    const label = isCurrent ? " (current)" : "";
 
     output += `║  v${version.versionNumber}${label}  •  ${date}  •  ${version.changeType.padEnd(20)}║\n`;
 
     if (version.changeSummary) {
-      const summary = version.changeSummary.length > 50
-        ? version.changeSummary.substring(0, 47) + '...'
-        : version.changeSummary;
+      const summary =
+        version.changeSummary.length > 50
+          ? version.changeSummary.substring(0, 47) + "..."
+          : version.changeSummary;
       output += `║      ${summary.padEnd(54)}║\n`;
     }
 
@@ -441,13 +452,13 @@ export function formatVersionDiff(diff: VersionDiff): string {
 `;
 
   if (diff.contentChanges.length === 0) {
-    output += 'No significant content changes detected.\n';
+    output += "No significant content changes detected.\n";
   } else {
     for (const change of diff.contentChanges) {
       output += `
 **${change.field}**
-- Before: ${change.before || '(empty)'}
-- After: ${change.after || '(empty)'}
+- Before: ${change.before || "(empty)"}
+- After: ${change.after || "(empty)"}
 `;
     }
   }
@@ -457,8 +468,8 @@ export function formatVersionDiff(diff: VersionDiff): string {
 ### Score Changes
 `;
     for (const change of diff.scoreChanges) {
-      const direction = change.delta > 0 ? '↑' : '↓';
-      const color = change.delta > 0 ? '+' : '';
+      const direction = change.delta > 0 ? "↑" : "↓";
+      const color = change.delta > 0 ? "+" : "";
       output += `- ${change.criterion}: ${change.before.toFixed(1)} → ${change.after.toFixed(1)} (${color}${change.delta.toFixed(1)} ${direction})\n`;
     }
   }

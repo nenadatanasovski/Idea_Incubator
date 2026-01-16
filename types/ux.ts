@@ -1,19 +1,19 @@
 // types/ux.ts - UX Agent type definitions
 
 export type JourneyStepAction =
-  | 'navigate'
-  | 'click'
-  | 'type'
-  | 'wait'
-  | 'screenshot'
-  | 'assert'
-  | 'select';
+  | "navigate"
+  | "click"
+  | "type"
+  | "wait"
+  | "screenshot"
+  | "assert"
+  | "select";
 
 export interface JourneyStep {
   action: JourneyStepAction;
-  target?: string;      // CSS selector or URL
-  value?: string;       // Text to type or expected value
-  timeout?: number;     // Step timeout in ms
+  target?: string; // CSS selector or URL
+  value?: string; // Text to type or expected value
+  timeout?: number; // Step timeout in ms
   description?: string; // Human-readable description
 }
 
@@ -23,7 +23,7 @@ export interface Journey {
   description: string;
   startUrl: string;
   steps: JourneyStep[];
-  timeout?: number;     // Journey timeout in ms (default 60000)
+  timeout?: number; // Journey timeout in ms (default 60000)
   tags?: string[];
 }
 
@@ -31,7 +31,7 @@ export interface StepResult {
   stepIndex: number;
   action: JourneyStepAction;
   target?: string;
-  status: 'passed' | 'failed' | 'skipped';
+  status: "passed" | "failed" | "skipped";
   error?: string;
   screenshotPath?: string;
   durationMs: number;
@@ -39,7 +39,7 @@ export interface StepResult {
 
 export interface AccessibilityIssue {
   ruleId: string;
-  impact: 'critical' | 'serious' | 'moderate' | 'minor';
+  impact: "critical" | "serious" | "moderate" | "minor";
   description: string;
   selector: string;
   helpUrl: string;
@@ -48,7 +48,7 @@ export interface AccessibilityIssue {
 export interface UXRunResult {
   id: string;
   journeyId: string;
-  status: 'completed' | 'failed' | 'timeout';
+  status: "completed" | "failed" | "timeout";
   passed: boolean;
   steps: StepResult[];
   accessibilityIssues: AccessibilityIssue[];

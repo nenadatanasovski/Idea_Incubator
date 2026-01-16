@@ -8,19 +8,22 @@
  * 4. Handles failures and retries
  */
 
-import { EventEmitter } from 'events';
-import { query, run, getOne } from '../../database/db.js';
+import { EventEmitter } from "events";
+import { query, run, getOne } from "../../database/db.js";
 import {
   parseTaskList,
   updateTaskStatus as updateMarkdownStatus,
   getNextPendingTask,
   ParsedTask,
   TaskList,
-} from './task-loader.js';
-import { getBotToken } from '../communication/config.js';
-import { emitTaskExecutorEvent } from '../websocket.js';
-import { getAgentRunner, AgentRunner } from './agent-runner.js';
-import { getTaskResultCollector, TaskResultCollector } from './task-result-collector.js';
+} from "./task-loader.js";
+import { getBotToken } from "../communication/config.js";
+import { emitTaskExecutorEvent } from "../websocket.js";
+import { getAgentRunner, AgentRunner } from "./agent-runner.js";
+import {
+  getTaskResultCollector,
+  TaskResultCollector,
+} from "./task-result-collector.js";
 
 export interface ExecutionConfig {
   taskListPath: string;
@@ -29,7 +32,7 @@ export interface ExecutionConfig {
   retryAttempts: number;
   retryDelayMs: number;
   executionTimeoutMs: number;
-  minPriority: 'P1' | 'P2' | 'P3' | 'P4';
+  minPriority: "P1" | "P2" | "P3" | "P4";
   dryRun: boolean;
 }
 
@@ -37,7 +40,7 @@ export interface TaskExecution {
   id: string;
   taskId: string;
   taskListPath: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  status: "pending" | "running" | "completed" | "failed" | "skipped";
   startedAt?: string;
   completedAt?: string;
   attempts: number;
@@ -60,28 +63,28 @@ export interface ExecutorStatus {
 
 // Agent type mapping based on task ID prefix
 const AGENT_MAPPING: Record<string, string> = {
-  COM: 'monitoring-agent',
-  FND: 'build-agent',
-  UFS: 'build-agent',
-  IDE: 'spec-agent',
-  EVL: 'validation-agent',
-  AGT: 'spec-agent',
-  SPC: 'spec-agent',
-  BLD: 'build-agent',
-  VAL: 'validation-agent',
-  SIA: 'sia',
-  UXA: 'ux-agent',
-  ORC: 'monitoring-agent',
-  KNW: 'sia',
-  VER: 'validation-agent',
-  MON: 'monitoring-agent',
-  PMA: 'monitoring-agent',
-  WEB: 'build-agent',
-  WSK: 'build-agent',
-  NTF: 'build-agent',
-  QUE: 'build-agent',
-  SEC: 'build-agent',
-  DOC: 'spec-agent',
+  COM: "monitoring-agent",
+  FND: "build-agent",
+  UFS: "build-agent",
+  IDE: "spec-agent",
+  EVL: "validation-agent",
+  AGT: "spec-agent",
+  SPC: "spec-agent",
+  BLD: "build-agent",
+  VAL: "validation-agent",
+  SIA: "sia",
+  UXA: "ux-agent",
+  ORC: "monitoring-agent",
+  KNW: "sia",
+  VER: "validation-agent",
+  MON: "monitoring-agent",
+  PMA: "monitoring-agent",
+  WEB: "build-agent",
+  WSK: "build-agent",
+  NTF: "build-agent",
+  QUE: "build-agent",
+  SEC: "build-agent",
+  DOC: "spec-agent",
 };
 
 export class TaskExecutor extends EventEmitter {
@@ -93,19 +96,19 @@ export class TaskExecutor extends EventEmitter {
   private intervalHandle: NodeJS.Timeout | null = null;
   private notificationsEnabled: boolean = true;
   private resultCollector: TaskResultCollector;
-  private executorStateId: string = '';
+  private executorStateId: string = "";
 
   constructor(config: Partial<ExecutionConfig> = {}) {
     super();
     this.resultCollector = getTaskResultCollector();
     this.config = {
-      taskListPath: '',
+      taskListPath: "",
       autoStart: false,
       maxConcurrent: 1,
       retryAttempts: 2,
       retryDelayMs: 5000,
       executionTimeoutMs: 5 * 60 * 1000, // 5 minutes
-      minPriority: 'P4',
+      minPriority: "P4",
       dryRun: false,
       ...config,
     };
@@ -136,11 +139,13 @@ export class TaskExecutor extends EventEmitter {
     const restored = await this.restoreQueueFromDatabase(filePath);
 
     if (restored) {
-      console.log(`[TaskExecutor] Restored ${this.executionQueue.length} tasks from database`);
+      console.log(
+        `[TaskExecutor] Restored ${this.executionQueue.length} tasks from database`,
+      );
     } else {
       // Build execution queue from pending tasks
       this.executionQueue = this.taskList.tasks
-        .filter(t => t.status === 'pending')
+        .filter((t) => t.status === "pending")
         .sort((a, b) => {
           const priorityOrder = { P1: 1, P2: 2, P3: 3, P4: 4 };
           return priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -150,7 +155,7 @@ export class TaskExecutor extends EventEmitter {
       await this.persistQueueToDatabase();
     }
 
-    this.emit('taskList:loaded', {
+    this.emit("taskList:loaded", {
       filePath,
       title: this.taskList.title,
       totalTasks: this.taskList.summary.total,
@@ -158,7 +163,7 @@ export class TaskExecutor extends EventEmitter {
     });
 
     // Broadcast via WebSocket
-    emitTaskExecutorEvent('tasklist:loaded', {
+    emitTaskExecutorEvent("tasklist:loaded", {
       taskListPath: filePath,
       totalTasks: this.taskList.summary.total,
       pendingTasks: this.taskList.summary.pending,
@@ -176,38 +181,48 @@ export class TaskExecutor extends EventEmitter {
 
     try {
       // Clear existing queue for this task list
-      await run('DELETE FROM task_queue WHERE task_list_path = ?', [this.config.taskListPath]);
+      await run("DELETE FROM task_queue WHERE task_list_path = ?", [
+        this.config.taskListPath,
+      ]);
 
       // Insert current queue items
       for (let i = 0; i < this.executionQueue.length; i++) {
         const task = this.executionQueue[i];
         const queueId = `queue-${Date.now()}-${task.id}`;
 
-        await run(`
+        await run(
+          `
           INSERT INTO task_queue (
             id, task_list_path, task_id, priority, section, description,
             dependencies, status, assigned_agent, position
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          queueId,
-          this.config.taskListPath,
-          task.id,
-          task.priority,
-          task.section || '',
-          task.description,
-          task.dependencies ? JSON.stringify(task.dependencies) : null,
-          'queued',
-          this.getAgentForTask(task),
-          i
-        ]);
+        `,
+          [
+            queueId,
+            this.config.taskListPath,
+            task.id,
+            task.priority,
+            task.section || "",
+            task.description,
+            task.dependencies ? JSON.stringify(task.dependencies) : null,
+            "queued",
+            this.getAgentForTask(task),
+            i,
+          ],
+        );
       }
 
       // Update or create executor state
       await this.persistExecutorState();
 
-      console.log(`[TaskExecutor] Persisted ${this.executionQueue.length} tasks to database`);
+      console.log(
+        `[TaskExecutor] Persisted ${this.executionQueue.length} tasks to database`,
+      );
     } catch (error) {
-      console.error('[TaskExecutor] Error persisting queue to database:', error);
+      console.error(
+        "[TaskExecutor] Error persisting queue to database:",
+        error,
+      );
     }
   }
 
@@ -216,24 +231,31 @@ export class TaskExecutor extends EventEmitter {
    */
   private async restoreQueueFromDatabase(filePath: string): Promise<boolean> {
     try {
-      const queueItems = await query(`
+      const queueItems = await query(
+        `
         SELECT * FROM task_queue
         WHERE task_list_path = ? AND status = 'queued'
         ORDER BY position ASC
-      `, [filePath]);
+      `,
+        [filePath],
+      );
 
       if (!queueItems || queueItems.length === 0) {
         return false;
       }
 
       // Restore executor state
-      const executorState = await getOne(`
+      const executorState = await getOne(
+        `
         SELECT * FROM executor_state WHERE task_list_path = ?
-      `, [filePath]);
+      `,
+        [filePath],
+      );
 
       if (executorState) {
         this.executorStateId = executorState.id as string;
-        this.status.completedTasks = (executorState.completed_tasks as number) || 0;
+        this.status.completedTasks =
+          (executorState.completed_tasks as number) || 0;
         this.status.failedTasks = (executorState.failed_tasks as number) || 0;
         this.status.skippedTasks = (executorState.skipped_tasks as number) || 0;
       }
@@ -242,7 +264,7 @@ export class TaskExecutor extends EventEmitter {
       this.executionQueue = [];
       for (const item of queueItems) {
         // Find the task in the loaded task list
-        const task = this.taskList?.tasks.find(t => t.id === item.task_id);
+        const task = this.taskList?.tasks.find((t) => t.id === item.task_id);
         if (task) {
           this.executionQueue.push(task);
         }
@@ -250,7 +272,10 @@ export class TaskExecutor extends EventEmitter {
 
       return this.executionQueue.length > 0;
     } catch (error) {
-      console.error('[TaskExecutor] Error restoring queue from database:', error);
+      console.error(
+        "[TaskExecutor] Error restoring queue from database:",
+        error,
+      );
       return false;
     }
   }
@@ -276,51 +301,62 @@ export class TaskExecutor extends EventEmitter {
       });
 
       const statusValue = this.status.running
-        ? (this.status.paused ? 'paused' : 'running')
-        : 'stopped';
+        ? this.status.paused
+          ? "paused"
+          : "running"
+        : "stopped";
 
-      await run(`
+      await run(
+        `
         INSERT OR REPLACE INTO executor_state (
           id, task_list_path, status, config_json, total_tasks,
           completed_tasks, failed_tasks, skipped_tasks, current_task_id,
           started_at, paused_at, stopped_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-      `, [
-        this.executorStateId,
-        this.config.taskListPath,
-        statusValue,
-        configJson,
-        this.status.totalTasks,
-        this.status.completedTasks,
-        this.status.failedTasks,
-        this.status.skippedTasks,
-        this.status.currentTask?.id || null,
-        this.status.running ? new Date().toISOString() : null,
-        this.status.paused ? new Date().toISOString() : null,
-        !this.status.running ? new Date().toISOString() : null
-      ]);
+      `,
+        [
+          this.executorStateId,
+          this.config.taskListPath,
+          statusValue,
+          configJson,
+          this.status.totalTasks,
+          this.status.completedTasks,
+          this.status.failedTasks,
+          this.status.skippedTasks,
+          this.status.currentTask?.id || null,
+          this.status.running ? new Date().toISOString() : null,
+          this.status.paused ? new Date().toISOString() : null,
+          !this.status.running ? new Date().toISOString() : null,
+        ],
+      );
     } catch (error) {
-      console.error('[TaskExecutor] Error persisting executor state:', error);
+      console.error("[TaskExecutor] Error persisting executor state:", error);
     }
   }
 
   /**
    * Update task status in database queue
    */
-  private async updateTaskQueueStatus(taskId: string, status: string): Promise<void> {
+  private async updateTaskQueueStatus(
+    taskId: string,
+    status: string,
+  ): Promise<void> {
     if (!this.config.taskListPath) return;
 
     try {
-      await run(`
+      await run(
+        `
         UPDATE task_queue
         SET status = ?,
             updated_at = datetime('now'),
             started_at = CASE WHEN ? = 'running' THEN datetime('now') ELSE started_at END,
             completed_at = CASE WHEN ? IN ('completed', 'failed', 'skipped') THEN datetime('now') ELSE completed_at END
         WHERE task_list_path = ? AND task_id = ?
-      `, [status, status, status, this.config.taskListPath, taskId]);
+      `,
+        [status, status, status, this.config.taskListPath, taskId],
+      );
     } catch (error) {
-      console.error('[TaskExecutor] Error updating task queue status:', error);
+      console.error("[TaskExecutor] Error updating task queue status:", error);
     }
   }
 
@@ -329,12 +365,12 @@ export class TaskExecutor extends EventEmitter {
    */
   async start(): Promise<void> {
     if (this.status.running) {
-      console.log('[TaskExecutor] Already running');
+      console.log("[TaskExecutor] Already running");
       return;
     }
 
     if (!this.taskList) {
-      throw new Error('No task list loaded. Call loadTaskList() first.');
+      throw new Error("No task list loaded. Call loadTaskList() first.");
     }
 
     this.status.running = true;
@@ -343,25 +379,29 @@ export class TaskExecutor extends EventEmitter {
     // Persist state change
     await this.persistExecutorState();
 
-    this.emit('executor:started', {
+    this.emit("executor:started", {
       taskListPath: this.config.taskListPath,
       pendingTasks: this.executionQueue.length,
     });
 
     // Send Telegram notification
-    this.sendTelegramNotification('executor_started', {
+    this.sendTelegramNotification("executor_started", {
       taskListPath: this.config.taskListPath,
       pendingTasks: this.executionQueue.length,
     });
 
     // Broadcast via WebSocket
-    emitTaskExecutorEvent('executor:started', {
+    emitTaskExecutorEvent("executor:started", {
       taskListPath: this.config.taskListPath,
       pendingTasks: this.executionQueue.length,
     });
 
-    console.log(`[TaskExecutor] Started execution of ${this.config.taskListPath}`);
-    console.log(`[TaskExecutor] ${this.executionQueue.length} pending tasks in queue`);
+    console.log(
+      `[TaskExecutor] Started execution of ${this.config.taskListPath}`,
+    );
+    console.log(
+      `[TaskExecutor] ${this.executionQueue.length} pending tasks in queue`,
+    );
 
     // Start the execution loop
     this.runExecutionLoop();
@@ -373,8 +413,8 @@ export class TaskExecutor extends EventEmitter {
   async pause(): Promise<void> {
     this.status.paused = true;
     await this.persistExecutorState();
-    this.emit('executor:paused', { reason: 'user_requested' });
-    console.log('[TaskExecutor] Paused');
+    this.emit("executor:paused", { reason: "user_requested" });
+    console.log("[TaskExecutor] Paused");
   }
 
   /**
@@ -382,13 +422,13 @@ export class TaskExecutor extends EventEmitter {
    */
   async resume(): Promise<void> {
     if (!this.status.running) {
-      console.log('[TaskExecutor] Not running. Call start() instead.');
+      console.log("[TaskExecutor] Not running. Call start() instead.");
       return;
     }
     this.status.paused = false;
     await this.persistExecutorState();
-    this.emit('executor:resumed');
-    console.log('[TaskExecutor] Resumed');
+    this.emit("executor:resumed");
+    console.log("[TaskExecutor] Resumed");
   }
 
   /**
@@ -406,12 +446,12 @@ export class TaskExecutor extends EventEmitter {
     // Persist state change
     await this.persistExecutorState();
 
-    this.emit('executor:stopped', {
+    this.emit("executor:stopped", {
       completedTasks: this.status.completedTasks,
       failedTasks: this.status.failedTasks,
     });
 
-    console.log('[TaskExecutor] Stopped');
+    console.log("[TaskExecutor] Stopped");
   }
 
   /**
@@ -432,7 +472,7 @@ export class TaskExecutor extends EventEmitter {
     const maxPriorityIndex = priorityOrder[this.config.minPriority];
 
     const eligibleTasks = this.executionQueue.filter(
-      t => priorityOrder[t.priority] <= maxPriorityIndex
+      (t) => priorityOrder[t.priority] <= maxPriorityIndex,
     );
 
     return eligibleTasks[0] || null;
@@ -447,7 +487,7 @@ export class TaskExecutor extends EventEmitter {
       id: executionId,
       taskId: task.id,
       taskListPath: this.config.taskListPath,
-      status: 'running',
+      status: "running",
       startedAt: new Date().toISOString(),
       attempts: 0,
       assignedAgent: this.getAgentForTask(task),
@@ -456,7 +496,7 @@ export class TaskExecutor extends EventEmitter {
     this.activeExecutions.set(executionId, execution);
     this.status.currentTask = task;
 
-    this.emit('task:started', {
+    this.emit("task:started", {
       taskId: task.id,
       executionId,
       description: task.description,
@@ -465,7 +505,7 @@ export class TaskExecutor extends EventEmitter {
     });
 
     // Send Telegram notification
-    this.sendTelegramNotification('started', {
+    this.sendTelegramNotification("started", {
       taskId: task.id,
       description: task.description,
       agent: execution.assignedAgent,
@@ -473,29 +513,29 @@ export class TaskExecutor extends EventEmitter {
     });
 
     // Broadcast via WebSocket
-    emitTaskExecutorEvent('task:started', {
+    emitTaskExecutorEvent("task:started", {
       taskId: task.id,
       description: task.description,
       agent: execution.assignedAgent,
       priority: task.priority,
-      status: 'running',
+      status: "running",
     });
 
     // Update markdown file to mark as in_progress
     if (!this.config.dryRun) {
-      updateMarkdownStatus(this.config.taskListPath, task.id, 'in_progress');
+      updateMarkdownStatus(this.config.taskListPath, task.id, "in_progress");
       // Update database queue status
-      await this.updateTaskQueueStatus(task.id, 'running');
+      await this.updateTaskQueueStatus(task.id, "running");
       await this.persistExecutorState();
     }
 
     // Start progress reporting interval
     const progressInterval = setInterval(() => {
       const elapsedMs = Date.now() - new Date(execution.startedAt).getTime();
-      emitTaskExecutorEvent('task:progress', {
+      emitTaskExecutorEvent("task:progress", {
         taskId: task.id,
         executionId,
-        status: 'running',
+        status: "running",
         elapsedMs,
         description: task.description,
       });
@@ -505,7 +545,11 @@ export class TaskExecutor extends EventEmitter {
       // Execute the task with timeout enforcement
       const timeoutPromise = new Promise<TaskResult>((_, reject) => {
         setTimeout(() => {
-          reject(new Error(`Task execution timed out after ${this.config.executionTimeoutMs}ms`));
+          reject(
+            new Error(
+              `Task execution timed out after ${this.config.executionTimeoutMs}ms`,
+            ),
+          );
         }, this.config.executionTimeoutMs);
       });
 
@@ -515,7 +559,7 @@ export class TaskExecutor extends EventEmitter {
       ]);
 
       clearInterval(progressInterval);
-      execution.status = result.success ? 'completed' : 'failed';
+      execution.status = result.success ? "completed" : "failed";
       execution.output = result.output;
       execution.error = result.error;
       execution.completedAt = new Date().toISOString();
@@ -525,10 +569,13 @@ export class TaskExecutor extends EventEmitter {
         updateMarkdownStatus(
           this.config.taskListPath,
           task.id,
-          result.success ? 'complete' : 'pending'
+          result.success ? "complete" : "pending",
         );
         // Update database queue status
-        await this.updateTaskQueueStatus(task.id, result.success ? 'completed' : 'failed');
+        await this.updateTaskQueueStatus(
+          task.id,
+          result.success ? "completed" : "failed",
+        );
       }
 
       // Record in database
@@ -537,27 +584,29 @@ export class TaskExecutor extends EventEmitter {
       if (result.success) {
         this.status.completedTasks++;
         // Remove from queue
-        this.executionQueue = this.executionQueue.filter(t => t.id !== task.id);
+        this.executionQueue = this.executionQueue.filter(
+          (t) => t.id !== task.id,
+        );
         // Persist updated queue to database
         await this.persistQueueToDatabase();
 
-        this.emit('task:completed', {
+        this.emit("task:completed", {
           taskId: task.id,
           executionId,
           output: result.output,
         });
 
         // Send Telegram notification
-        this.sendTelegramNotification('completed', {
+        this.sendTelegramNotification("completed", {
           taskId: task.id,
           output: result.output,
         });
 
         // Broadcast via WebSocket
-        emitTaskExecutorEvent('task:completed', {
+        emitTaskExecutorEvent("task:completed", {
           taskId: task.id,
           output: result.output,
-          status: 'completed',
+          status: "completed",
           completedTasks: this.status.completedTasks,
           totalTasks: this.status.totalTasks,
           pendingTasks: this.executionQueue.length,
@@ -568,7 +617,7 @@ export class TaskExecutor extends EventEmitter {
 
         if (execution.attempts < this.config.retryAttempts) {
           // Will retry
-          this.emit('task:retry', {
+          this.emit("task:retry", {
             taskId: task.id,
             executionId,
             attempt: execution.attempts,
@@ -576,7 +625,7 @@ export class TaskExecutor extends EventEmitter {
           });
         } else {
           // Max retries exceeded
-          this.emit('task:failed', {
+          this.emit("task:failed", {
             taskId: task.id,
             executionId,
             error: result.error,
@@ -584,38 +633,38 @@ export class TaskExecutor extends EventEmitter {
           });
 
           // Send Telegram notification
-          this.sendTelegramNotification('failed', {
+          this.sendTelegramNotification("failed", {
             taskId: task.id,
             error: result.error,
             attempts: execution.attempts,
           });
 
           // Broadcast via WebSocket
-          emitTaskExecutorEvent('task:failed', {
+          emitTaskExecutorEvent("task:failed", {
             taskId: task.id,
             error: result.error,
             attempts: execution.attempts,
-            status: 'failed',
+            status: "failed",
             failedTasks: this.status.failedTasks,
           });
         }
       }
     } catch (err) {
       clearInterval(progressInterval);
-      execution.status = 'failed';
-      execution.error = err instanceof Error ? err.message : 'Unknown error';
+      execution.status = "failed";
+      execution.error = err instanceof Error ? err.message : "Unknown error";
       execution.completedAt = new Date().toISOString();
 
       // Emit timeout or error event
-      const isTimeout = execution.error.includes('timed out');
-      emitTaskExecutorEvent(isTimeout ? 'task:timeout' : 'task:error', {
+      const isTimeout = execution.error.includes("timed out");
+      emitTaskExecutorEvent(isTimeout ? "task:timeout" : "task:error", {
         taskId: task.id,
         executionId,
         error: execution.error,
-        status: 'failed',
+        status: "failed",
       });
 
-      this.emit('task:error', {
+      this.emit("task:error", {
         taskId: task.id,
         executionId,
         error: execution.error,
@@ -650,19 +699,19 @@ export class TaskExecutor extends EventEmitter {
       const nextTask = this.getNextTask();
       if (!nextTask) {
         // No more tasks
-        this.emit('executor:complete', {
+        this.emit("executor:complete", {
           completed: this.status.completedTasks,
           failed: this.status.failedTasks,
         });
 
         // Send Telegram notification
-        this.sendTelegramNotification('executor_complete', {
+        this.sendTelegramNotification("executor_complete", {
           completed: this.status.completedTasks,
           failed: this.status.failedTasks,
         });
 
         // Broadcast via WebSocket
-        emitTaskExecutorEvent('executor:complete', {
+        emitTaskExecutorEvent("executor:complete", {
           completedTasks: this.status.completedTasks,
           failedTasks: this.status.failedTasks,
         });
@@ -684,12 +733,16 @@ export class TaskExecutor extends EventEmitter {
    */
   private async performTaskExecution(
     task: ParsedTask,
-    execution: TaskExecution
+    execution: TaskExecution,
   ): Promise<{ success: boolean; output?: string; error?: string }> {
-    console.log(`[TaskExecutor] Executing task ${task.id}: ${task.description}`);
+    console.log(
+      `[TaskExecutor] Executing task ${task.id}: ${task.description}`,
+    );
 
     if (this.config.dryRun) {
-      console.log(`[TaskExecutor] DRY RUN - Would execute: ${task.description}`);
+      console.log(
+        `[TaskExecutor] DRY RUN - Would execute: ${task.description}`,
+      );
       return {
         success: true,
         output: `DRY RUN: Task ${task.id} would be executed`,
@@ -697,18 +750,18 @@ export class TaskExecutor extends EventEmitter {
     }
 
     // Start tracking execution with result collector
-    const buildId = 'autonomous-' + Date.now();
+    const buildId = "autonomous-" + Date.now();
     const agentType = execution.assignedAgent || this.getAgentForTask(task);
 
     await this.resultCollector.startExecution(
       task,
       this.config.taskListPath,
       buildId,
-      agentType
+      agentType,
     );
 
     // Emit event that task is starting
-    this.emit('task:execute', {
+    this.emit("task:execute", {
       taskId: task.id,
       description: task.description,
       agent: agentType,
@@ -720,14 +773,20 @@ export class TaskExecutor extends EventEmitter {
       const runner = await getAgentRunner(agentType);
 
       // Set task list context for Telegram message identification
-      const taskListName = this.config.taskListPath.split('/').pop() || this.config.taskListPath;
+      const taskListName =
+        this.config.taskListPath.split("/").pop() || this.config.taskListPath;
       runner.setTaskListContext({
-        projectName: this.taskList?.title || 'Unknown Project',
-        projectSlug: taskListName.replace(/\.md$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        projectName: this.taskList?.title || "Unknown Project",
+        projectSlug: taskListName
+          .replace(/\.md$/, "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-"),
         taskListName: taskListName,
       });
 
-      console.log(`[TaskExecutor] Running task ${task.id} with agent ${runner.getAgentId()}`);
+      console.log(
+        `[TaskExecutor] Running task ${task.id} with agent ${runner.getAgentId()}`,
+      );
 
       // Actually execute the task using the AgentRunner (this waits for completion)
       const result = await runner.executeTask(task);
@@ -751,15 +810,20 @@ export class TaskExecutor extends EventEmitter {
       } else {
         return {
           success: false,
-          error: result.error || 'Unknown error during execution',
+          error: result.error || "Unknown error during execution",
         };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       console.error(`[TaskExecutor] Error executing task ${task.id}:`, error);
 
       // Record failure in result collector
-      await this.resultCollector.recordFailure(execution.id, errorMessage, false);
+      await this.resultCollector.recordFailure(
+        execution.id,
+        errorMessage,
+        false,
+      );
 
       return {
         success: false,
@@ -772,8 +836,8 @@ export class TaskExecutor extends EventEmitter {
    * Get the appropriate agent for a task
    */
   private getAgentForTask(task: ParsedTask): string {
-    const prefix = task.id.split('-')[0];
-    return AGENT_MAPPING[prefix] || 'build-agent';
+    const prefix = task.id.split("-")[0];
+    return AGENT_MAPPING[prefix] || "build-agent";
   }
 
   /**
@@ -781,17 +845,20 @@ export class TaskExecutor extends EventEmitter {
    */
   private async recordExecution(execution: TaskExecution): Promise<void> {
     try {
-      await run(`
+      await run(
+        `
         UPDATE task_executions
         SET status = ?, completed_at = ?, error = ?, output = ?
         WHERE id = ?
-      `, [
-        execution.status === 'completed' ? 'complete' : 'failed',
-        execution.completedAt ?? null,
-        execution.error ?? null,
-        execution.output ?? null,
-        execution.id,
-      ]);
+      `,
+        [
+          execution.status === "completed" ? "complete" : "failed",
+          execution.completedAt ?? null,
+          execution.error ?? null,
+          execution.output ?? null,
+          execution.id,
+        ],
+      );
     } catch (e) {
       // Table may not exist
     }
@@ -801,80 +868,89 @@ export class TaskExecutor extends EventEmitter {
    * Sleep utility
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
    * Escape special characters for Telegram Markdown
    */
   private escapeMarkdown(text: string): string {
-    if (typeof text !== 'string') return String(text || '');
-    return text.replace(/[_*]/g, '\\$&');
+    if (typeof text !== "string") return String(text || "");
+    return text.replace(/[_*]/g, "\\$&");
   }
 
   /**
    * Send Telegram notification for task events
    */
   private async sendTelegramNotification(
-    type: 'started' | 'completed' | 'failed' | 'executor_started' | 'executor_complete',
-    data: Record<string, unknown>
+    type:
+      | "started"
+      | "completed"
+      | "failed"
+      | "executor_started"
+      | "executor_complete",
+    data: Record<string, unknown>,
   ): Promise<void> {
     console.log(`[TaskExecutor] Sending Telegram notification: ${type}`);
 
     if (!this.notificationsEnabled) {
-      console.log('[TaskExecutor] Notifications disabled, skipping');
+      console.log("[TaskExecutor] Notifications disabled, skipping");
       return;
     }
 
     const testChatId = process.env.TELEGRAM_TEST_CHAT_ID;
     if (!testChatId) {
-      console.log('[TaskExecutor] TELEGRAM_TEST_CHAT_ID not set, skipping notification');
+      console.log(
+        "[TaskExecutor] TELEGRAM_TEST_CHAT_ID not set, skipping notification",
+      );
       return;
     }
 
-    const botToken = getBotToken('monitoring');
+    const botToken = getBotToken("monitoring");
     if (!botToken) {
-      console.log('[TaskExecutor] No monitoring bot token configured, skipping notification');
+      console.log(
+        "[TaskExecutor] No monitoring bot token configured, skipping notification",
+      );
       return;
     }
     console.log(`[TaskExecutor] Sending to chat ${testChatId}`);
 
     // Helper to safely escape markdown in dynamic content
-    const esc = (val: unknown) => this.escapeMarkdown(String(val || ''));
+    const esc = (val: unknown) => this.escapeMarkdown(String(val || ""));
 
     // Get task list context for project identification
     const projectHeader = this.taskList?.title
-      ? `📦 *${esc(this.taskList.title)}* | 📋 ${esc(this.config.taskListPath.split('/').pop())}\n\n`
-      : '';
+      ? `📦 *${esc(this.taskList.title)}* | 📋 ${esc(this.config.taskListPath.split("/").pop())}\n\n`
+      : "";
 
     let emoji: string;
     let title: string;
     let body: string;
 
     switch (type) {
-      case 'started':
-        emoji = '🚀';
-        title = 'Task Started';
+      case "started":
+        emoji = "🚀";
+        title = "Task Started";
         body = `*Task:* \`${data.taskId}\`\n*Description:* ${esc(data.description)}\n*Agent:* ${esc(data.agent)}\n*Priority:* ${data.priority}`;
         break;
-      case 'completed':
-        emoji = '✅';
-        title = 'Task Completed';
-        body = `*Task:* \`${data.taskId}\`\n*Output:* ${esc(data.output || 'Success')}`;
+      case "completed":
+        emoji = "✅";
+        title = "Task Completed";
+        body = `*Task:* \`${data.taskId}\`\n*Output:* ${esc(data.output || "Success")}`;
         break;
-      case 'failed':
-        emoji = '❌';
-        title = 'Task Failed';
+      case "failed":
+        emoji = "❌";
+        title = "Task Failed";
         body = `*Task:* \`${data.taskId}\`\n*Error:* ${esc(data.error)}\n*Attempts:* ${data.attempts}`;
         break;
-      case 'executor_started':
-        emoji = '▶️';
-        title = 'Executor Started';
+      case "executor_started":
+        emoji = "▶️";
+        title = "Executor Started";
         body = `*Task List:* ${esc(data.taskListPath)}\n*Pending Tasks:* ${data.pendingTasks}`;
         break;
-      case 'executor_complete':
-        emoji = '🏁';
-        title = 'Executor Complete';
+      case "executor_complete":
+        emoji = "🏁";
+        title = "Executor Complete";
         body = `*Completed:* ${data.completed}\n*Failed:* ${data.failed}`;
         break;
       default:
@@ -884,24 +960,35 @@ export class TaskExecutor extends EventEmitter {
     const text = `${projectHeader}${emoji} *${title}*\n\n${body}`;
 
     try {
-      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: testChatId,
-          text,
-          parse_mode: 'Markdown',
-        }),
-      });
+      const response = await fetch(
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: testChatId,
+            text,
+            parse_mode: "Markdown",
+          }),
+        },
+      );
 
       const result = await response.json();
       if (result.ok) {
-        console.log(`[TaskExecutor] Telegram notification sent (messageId: ${result.result?.message_id})`);
+        console.log(
+          `[TaskExecutor] Telegram notification sent (messageId: ${result.result?.message_id})`,
+        );
       } else {
-        console.error('[TaskExecutor] Telegram notification failed:', result.description);
+        console.error(
+          "[TaskExecutor] Telegram notification failed:",
+          result.description,
+        );
       }
     } catch (error) {
-      console.error('[TaskExecutor] Failed to send Telegram notification:', error);
+      console.error(
+        "[TaskExecutor] Failed to send Telegram notification:",
+        error,
+      );
     }
   }
 
@@ -916,14 +1003,14 @@ export class TaskExecutor extends EventEmitter {
    * Skip a task
    */
   async skipTask(taskId: string): Promise<void> {
-    this.executionQueue = this.executionQueue.filter(t => t.id !== taskId);
+    this.executionQueue = this.executionQueue.filter((t) => t.id !== taskId);
     this.status.skippedTasks++;
 
     // Update database - just update status, don't call persistQueueToDatabase
     // as that would delete the row we just updated
-    await this.updateTaskQueueStatus(taskId, 'skipped');
+    await this.updateTaskQueueStatus(taskId, "skipped");
 
-    this.emit('task:skipped', { taskId });
+    this.emit("task:skipped", { taskId });
   }
 
   /**
@@ -932,8 +1019,8 @@ export class TaskExecutor extends EventEmitter {
   async requeueTask(taskId: string): Promise<void> {
     if (!this.taskList) return;
 
-    const task = this.taskList.tasks.find(t => t.id === taskId);
-    if (task && !this.executionQueue.find(t => t.id === taskId)) {
+    const task = this.taskList.tasks.find((t) => t.id === taskId);
+    if (task && !this.executionQueue.find((t) => t.id === taskId)) {
       this.executionQueue.push(task);
       this.executionQueue.sort((a, b) => {
         const priorityOrder = { P1: 1, P2: 2, P3: 3, P4: 4 };
@@ -941,10 +1028,10 @@ export class TaskExecutor extends EventEmitter {
       });
 
       // Update database
-      await this.updateTaskQueueStatus(taskId, 'queued');
+      await this.updateTaskQueueStatus(taskId, "queued");
       await this.persistQueueToDatabase();
 
-      this.emit('task:requeued', { taskId });
+      this.emit("task:requeued", { taskId });
     }
   }
 
@@ -952,7 +1039,10 @@ export class TaskExecutor extends EventEmitter {
    * Wait for a specific task execution to complete
    * Useful for external monitoring or testing
    */
-  async waitForTaskCompletion(executionId: string, timeoutMs?: number): Promise<any> {
+  async waitForTaskCompletion(
+    executionId: string,
+    timeoutMs?: number,
+  ): Promise<any> {
     return this.resultCollector.waitForCompletion(executionId, timeoutMs);
   }
 
@@ -995,7 +1085,9 @@ export function getTaskExecutor(): TaskExecutor {
   return executorInstance;
 }
 
-export function createTaskExecutor(config?: Partial<ExecutionConfig>): TaskExecutor {
+export function createTaskExecutor(
+  config?: Partial<ExecutionConfig>,
+): TaskExecutor {
   executorInstance = new TaskExecutor(config);
   return executorInstance;
 }

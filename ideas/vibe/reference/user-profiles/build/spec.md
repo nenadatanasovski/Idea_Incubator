@@ -15,10 +15,12 @@ complexity: "medium"
 ## Context References
 
 **Required Reading:**
+
 - [x] `README.md` - Idea overview
 - [x] `planning/brief.md` - Feature brief
 
 **Patterns to Follow:**
+
 - Section: "Database Patterns" - Use SQLite with TEXT timestamps
 - Section: "API Routes" - Express router patterns
 - Section: "File Uploads" - Multer middleware for file handling
@@ -31,6 +33,7 @@ complexity: "medium"
 Implement a user profiles system that extends basic auth with profile information, avatar support, and user preferences. This enables personalization and collaborative features.
 
 **Success Criteria:**
+
 1. Users can view and update their profile information
 2. Avatar uploads work with automatic resizing to 32, 64, 128, 256px
 3. User preferences persist across sessions
@@ -38,6 +41,7 @@ Implement a user profiles system that extends basic auth with profile informatio
 5. Missing profiles are created automatically on first access
 
 **Out of Scope:**
+
 - OAuth flow implementation (just token storage)
 - Profile privacy settings
 - Profile search and discovery
@@ -47,14 +51,14 @@ Implement a user profiles system that extends basic auth with profile informatio
 
 ## Functional Requirements
 
-| ID | Requirement | Priority | Acceptance Criteria | Source |
-|----|-------------|----------|---------------------|--------|
-| FR-001 | Profile CRUD | Must | Create, read, update profile info | Brief |
-| FR-002 | Avatar upload | Must | Upload image up to 5MB, auto-resize | Brief |
-| FR-003 | Avatar serving | Must | Serve resized avatars via static route | Brief |
-| FR-004 | Preferences | Must | Get/set theme, notifications, language | Brief |
-| FR-005 | Auto-creation | Should | Create profile on first access | Brief |
-| FR-006 | Public profiles | Should | View another user's public info | Brief |
+| ID     | Requirement     | Priority | Acceptance Criteria                    | Source |
+| ------ | --------------- | -------- | -------------------------------------- | ------ |
+| FR-001 | Profile CRUD    | Must     | Create, read, update profile info      | Brief  |
+| FR-002 | Avatar upload   | Must     | Upload image up to 5MB, auto-resize    | Brief  |
+| FR-003 | Avatar serving  | Must     | Serve resized avatars via static route | Brief  |
+| FR-004 | Preferences     | Must     | Get/set theme, notifications, language | Brief  |
+| FR-005 | Auto-creation   | Should   | Create profile on first access         | Brief  |
+| FR-006 | Public profiles | Should   | View another user's public info        | Brief  |
 
 ### Detailed Requirements
 
@@ -65,6 +69,7 @@ Implement a user profiles system that extends basic auth with profile informatio
 **User Story:** As a user, I want to manage my profile so that other users can learn about me.
 
 **Acceptance Criteria:**
+
 - [x] GET /api/profile returns current user's profile
 - [x] PUT /api/profile updates profile fields
 - [x] Profile includes: display_name, bio, location, website
@@ -77,6 +82,7 @@ Implement a user profiles system that extends basic auth with profile informatio
 **User Story:** As a user, I want to upload an avatar so that my profile is recognizable.
 
 **Acceptance Criteria:**
+
 - [x] POST /api/profile/avatar accepts image upload
 - [x] Maximum file size: 5MB
 - [x] Accepted formats: JPEG, PNG, GIF, WebP
@@ -90,6 +96,7 @@ Implement a user profiles system that extends basic auth with profile informatio
 **User Story:** As a user, I want to set my preferences so the app works how I like.
 
 **Acceptance Criteria:**
+
 - [x] GET /api/profile/preferences returns preferences
 - [x] PUT /api/profile/preferences updates preferences
 - [x] Preferences include: theme, language, timezone, notification settings
@@ -98,12 +105,12 @@ Implement a user profiles system that extends basic auth with profile informatio
 
 ## Non-Functional Requirements
 
-| Category | Requirement | Target | Validation Method |
-|----------|-------------|--------|-------------------|
-| Performance | Avatar upload | < 3s for 5MB | Timing test |
-| Storage | Avatar sizes | ~200KB per user | Disk usage check |
-| Security | Image validation | No code execution | File type check |
-| Availability | Profile access | 99.9% | Monitoring |
+| Category     | Requirement      | Target            | Validation Method |
+| ------------ | ---------------- | ----------------- | ----------------- |
+| Performance  | Avatar upload    | < 3s for 5MB      | Timing test       |
+| Storage      | Avatar sizes     | ~200KB per user   | Disk usage check  |
+| Security     | Image validation | No code execution | File type check   |
+| Availability | Profile access   | 99.9%             | Monitoring        |
 
 ---
 
@@ -125,27 +132,27 @@ Implement a user profiles system that extends basic auth with profile informatio
 
 ### New Files
 
-| File Path | Purpose | Owner |
-|-----------|---------|-------|
-| `database/migrations/026_user_profiles.sql` | Create profile tables | Build Agent |
-| `types/profile.ts` | TypeScript interfaces | Build Agent |
-| `server/services/profile-service.ts` | Profile CRUD operations | Build Agent |
-| `server/services/avatar-handler.ts` | Image upload and resize | Build Agent |
-| `server/services/preferences-manager.ts` | Preference operations | Build Agent |
-| `server/routes/profile.ts` | Profile API endpoints | Build Agent |
+| File Path                                   | Purpose                 | Owner       |
+| ------------------------------------------- | ----------------------- | ----------- |
+| `database/migrations/026_user_profiles.sql` | Create profile tables   | Build Agent |
+| `types/profile.ts`                          | TypeScript interfaces   | Build Agent |
+| `server/services/profile-service.ts`        | Profile CRUD operations | Build Agent |
+| `server/services/avatar-handler.ts`         | Image upload and resize | Build Agent |
+| `server/services/preferences-manager.ts`    | Preference operations   | Build Agent |
+| `server/routes/profile.ts`                  | Profile API endpoints   | Build Agent |
 
 ### Modified Files
 
-| File Path | Changes | Owner |
-|-----------|---------|-------|
+| File Path       | Changes              | Owner       |
+| --------------- | -------------------- | ----------- |
 | `server/api.ts` | Mount profile routes | Build Agent |
 
 ### Files to Avoid
 
-| File Path | Reason | Owner |
-|-----------|--------|-------|
-| `server/routes/auth.ts` | Authentication system | Auth team |
-| `server/middleware/auth.ts` | Auth middleware | Auth team |
+| File Path                   | Reason                | Owner     |
+| --------------------------- | --------------------- | --------- |
+| `server/routes/auth.ts`     | Authentication system | Auth team |
+| `server/middleware/auth.ts` | Auth middleware       | Auth team |
 
 ---
 
@@ -153,21 +160,22 @@ Implement a user profiles system that extends basic auth with profile informatio
 
 ### Endpoints
 
-| Endpoint | Method | Description | Auth | Request | Response |
-|----------|--------|-------------|------|---------|----------|
-| `/api/profile` | GET | Get current profile | Required | - | Profile |
-| `/api/profile` | PUT | Update profile | Required | ProfileUpdate | Profile |
-| `/api/profile/avatar` | POST | Upload avatar | Required | multipart/form-data | { url } |
-| `/api/profile/avatar` | DELETE | Remove avatar | Required | - | { success } |
-| `/api/profile/preferences` | GET | Get preferences | Required | - | Preferences |
-| `/api/profile/preferences` | PUT | Update preferences | Required | PreferencesUpdate | Preferences |
-| `/api/profile/:userId` | GET | Get public profile | Optional | - | PublicProfile |
+| Endpoint                   | Method | Description         | Auth     | Request             | Response      |
+| -------------------------- | ------ | ------------------- | -------- | ------------------- | ------------- |
+| `/api/profile`             | GET    | Get current profile | Required | -                   | Profile       |
+| `/api/profile`             | PUT    | Update profile      | Required | ProfileUpdate       | Profile       |
+| `/api/profile/avatar`      | POST   | Upload avatar       | Required | multipart/form-data | { url }       |
+| `/api/profile/avatar`      | DELETE | Remove avatar       | Required | -                   | { success }   |
+| `/api/profile/preferences` | GET    | Get preferences     | Required | -                   | Preferences   |
+| `/api/profile/preferences` | PUT    | Update preferences  | Required | PreferencesUpdate   | Preferences   |
+| `/api/profile/:userId`     | GET    | Get public profile  | Optional | -                   | PublicProfile |
 
 ### Request/Response Examples
 
 #### GET /api/profile
 
 **Response:**
+
 ```json
 {
   "id": "profile-123",
@@ -185,6 +193,7 @@ Implement a user profiles system that extends basic auth with profile informatio
 #### PUT /api/profile
 
 **Request:**
+
 ```json
 {
   "displayName": "Jane Developer",
@@ -195,6 +204,7 @@ Implement a user profiles system that extends basic auth with profile informatio
 ```
 
 **Response:**
+
 ```json
 {
   "id": "profile-123",
@@ -214,6 +224,7 @@ Implement a user profiles system that extends basic auth with profile informatio
 **Request:** multipart/form-data with `avatar` field
 
 **Response:**
+
 ```json
 {
   "url": "/assets/avatars/user-456/256.jpg",
@@ -229,6 +240,7 @@ Implement a user profiles system that extends basic auth with profile informatio
 #### GET /api/profile/preferences
 
 **Response:**
+
 ```json
 {
   "id": "pref-789",
@@ -321,7 +333,7 @@ export interface ProfileUpdateInput {
 export interface UserPreferences {
   id: string;
   userId: string;
-  theme: 'light' | 'dark' | 'system';
+  theme: "light" | "dark" | "system";
   language: string;
   timezone: string;
   emailNotifications: boolean;
@@ -332,7 +344,7 @@ export interface UserPreferences {
 }
 
 export interface PreferencesUpdateInput {
-  theme?: 'light' | 'dark' | 'system';
+  theme?: "light" | "dark" | "system";
   language?: string;
   timezone?: string;
   emailNotifications?: boolean;
@@ -366,32 +378,32 @@ export interface PublicProfile {
 
 ### Internal Dependencies
 
-| Dependency | Status | Blocks | Owner |
-|------------|--------|--------|-------|
-| Database (db.ts) | Ready | None | Core |
-| Express app | Ready | None | Core |
-| Auth middleware | Ready | None | Auth |
-| Users table | Ready | None | Auth |
+| Dependency       | Status | Blocks | Owner |
+| ---------------- | ------ | ------ | ----- |
+| Database (db.ts) | Ready  | None   | Core  |
+| Express app      | Ready  | None   | Core  |
+| Auth middleware  | Ready  | None   | Auth  |
+| Users table      | Ready  | None   | Auth  |
 
 ### External Dependencies
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| express | ^4.18 | Web framework (existing) |
-| multer | ^1.4 | File upload handling |
-| sharp | ^0.33 | Image resizing |
+| Package | Version | Purpose                  |
+| ------- | ------- | ------------------------ |
+| express | ^4.18   | Web framework (existing) |
+| multer  | ^1.4    | File upload handling     |
+| sharp   | ^0.33   | Image resizing           |
 
 ---
 
 ## Known Gotchas
 
-| ID | Gotcha | Source | Confidence |
-|----|--------|--------|------------|
-| G-001 | Use TEXT for SQLite timestamps, not DATETIME | Knowledge Base | High |
-| G-002 | Multer stores files in memory by default - use diskStorage | Experience | High |
-| G-003 | Sharp requires native bindings - ensure node_modules rebuilt | Experience | Medium |
-| G-004 | Avatar directory must exist before writing | Experience | High |
-| G-005 | Use INTEGER 0/1 for booleans in SQLite | Knowledge Base | High |
+| ID    | Gotcha                                                       | Source         | Confidence |
+| ----- | ------------------------------------------------------------ | -------------- | ---------- |
+| G-001 | Use TEXT for SQLite timestamps, not DATETIME                 | Knowledge Base | High       |
+| G-002 | Multer stores files in memory by default - use diskStorage   | Experience     | High       |
+| G-003 | Sharp requires native bindings - ensure node_modules rebuilt | Experience     | Medium     |
+| G-004 | Avatar directory must exist before writing                   | Experience     | High       |
+| G-005 | Use INTEGER 0/1 for booleans in SQLite                       | Knowledge Base | High       |
 
 ---
 
@@ -399,11 +411,11 @@ export interface PublicProfile {
 
 ### Unit Tests
 
-| Test File | Coverage Target | Priority |
-|-----------|-----------------|----------|
-| `tests/profile.test.ts` | 80% | High |
-| `tests/avatar.test.ts` | 70% | Medium |
-| `tests/preferences.test.ts` | 80% | High |
+| Test File                   | Coverage Target | Priority |
+| --------------------------- | --------------- | -------- |
+| `tests/profile.test.ts`     | 80%             | High     |
+| `tests/avatar.test.ts`      | 70%             | Medium   |
+| `tests/preferences.test.ts` | 80%             | High     |
 
 ### Validation Commands
 
@@ -430,11 +442,11 @@ curl http://localhost:3000/api/profile -H "Authorization: Bearer $TOKEN" | jq
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Image processing fails | Low | Medium | Fallback to default avatar |
-| Storage grows too large | Medium | Low | Add cleanup for orphaned files |
-| Profile not auto-created | Low | High | Add middleware check |
+| Risk                     | Likelihood | Impact | Mitigation                     |
+| ------------------------ | ---------- | ------ | ------------------------------ |
+| Image processing fails   | Low        | Medium | Fallback to default avatar     |
+| Storage grows too large  | Medium     | Low    | Add cleanup for orphaned files |
+| Profile not auto-created | Low        | High   | Add middleware check           |
 
 ---
 
@@ -459,5 +471,5 @@ curl http://localhost:3000/api/profile -H "Authorization: Bearer $TOKEN" | jq
 
 ---
 
-*Generated for Spec Agent reference*
-*See `tasks.md` for implementation breakdown*
+_Generated for Spec Agent reference_
+_See `tasks.md` for implementation breakdown_

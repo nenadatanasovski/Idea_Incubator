@@ -15,6 +15,7 @@ This document provides a comprehensive first-principles analysis of the debate s
 ## Issue 1: API Event Counter Inaccuracy
 
 ### Problem Statement
+
 The API event counter in the frontend stops counting at a certain point while the debate is still in progress.
 
 ### Root Cause Analysis
@@ -32,6 +33,7 @@ The `budget:status` event (which carries the `apiCalls` count) is only broadcast
 - But no broadcast happens until ALL debates complete
 
 **Code Evidence** (`agents/debate.ts`):
+
 ```typescript
 // Lines 254-263: Only one broadcast at START
 const initialReport = costTracker.getReport();
@@ -60,12 +62,13 @@ if (broadcaster) {
 ### Frontend Display Issue
 
 In `DebateViewer.tsx` (lines 639-643):
+
 ```typescript
 const latestBudgetEvent = useMemo(() => {
-  const budgetEvents = events.filter(e => e.type === 'budget:status')
-  return budgetEvents.length > 0 ? budgetEvents[budgetEvents.length - 1] : null
-}, [events])
-const apiCalls = latestBudgetEvent?.data.apiCalls as number | undefined
+  const budgetEvents = events.filter((e) => e.type === "budget:status");
+  return budgetEvents.length > 0 ? budgetEvents[budgetEvents.length - 1] : null;
+}, [events]);
+const apiCalls = latestBudgetEvent?.data.apiCalls as number | undefined;
 ```
 
 This correctly displays the LAST `budget:status` event, but since no events are emitted during debate, the counter appears frozen.
@@ -81,6 +84,7 @@ This correctly displays the LAST `budget:status` event, but since no events are 
 ## Issue 2: Budget Limit Not Tied to API Calls
 
 ### Problem Statement
+
 The budget limit is based on dollar cost (token pricing), not the number of API calls made.
 
 ### Root Cause Analysis
@@ -103,12 +107,13 @@ The budget is specified in DOLLARS (default $10, line 41), and `checkBudget()` c
 ```typescript
 // Lines 3-7
 const PRICING = {
-  inputPerMillion: 15.00,  // $15 per 1M input tokens
-  outputPerMillion: 75.00  // $75 per 1M output tokens
+  inputPerMillion: 15.0, // $15 per 1M input tokens
+  outputPerMillion: 75.0, // $75 per 1M output tokens
 };
 ```
 
 **API Call Count IS Tracked** (line 52):
+
 ```typescript
 track(usage: TokenUsage, operation: string = 'unknown'): void {
   this.inputTokens += usage.input_tokens;
@@ -123,6 +128,7 @@ But `apiCalls` is never used in budget enforcement—only in reporting.
 ### Ambiguity in User's Intent
 
 The user's complaint may mean one of:
+
 1. **Want API call-based limits**: "Stop after X API calls" (not currently supported)
 2. **Display issue**: API calls shown don't match actual calls made (different issue)
 3. **Misleading UI**: Counter suggests control that doesn't exist
@@ -130,11 +136,13 @@ The user's complaint may mean one of:
 ### Solution Options
 
 **Option A**: Add API call limit support
+
 - Add `maxApiCalls` parameter to CostTracker
 - Add `checkApiCallLimit()` method
 - Allow budget to be specified as either dollars OR API calls
 
 **Option B**: Clarify in UI
+
 - Make clear that "Budget" is in dollars, not API calls
 - Show API calls as informational only
 - Add tooltip explaining the difference
@@ -144,6 +152,7 @@ The user's complaint may mean one of:
 ## Issue 3: Debate List Display Issues
 
 ### Problem Statement
+
 The debate list does not properly show debates that have passed, and timestamps are incorrect or missing.
 
 ### Root Cause Analysis
@@ -175,6 +184,7 @@ If `--skip-debate` is used or debate fails, the `debate_rounds` table has no ent
 **Issue 2: "Passed" Status Not Stored or Queried**
 
 There is no explicit "passed/failed/completed" status field. The only indicators are:
+
 - Presence of `debate_rounds` entries (debate happened)
 - Presence of `final_syntheses` entries (synthesis completed)
 - `evaluation_events` table (real-time events stored)
@@ -182,8 +192,9 @@ There is no explicit "passed/failed/completed" status field. The only indicators
 **Issue 3: Timestamp Inconsistency**
 
 The `debate_rounds.timestamp` field is set in `saveDebateResults()` (`scripts/evaluate.ts` line 678):
+
 ```typescript
-timestamp: new Date().toISOString()
+timestamp: new Date().toISOString();
 ```
 
 This creates the SAME timestamp for all rounds in a batch (not staggered by actual execution time).
@@ -191,11 +202,12 @@ This creates the SAME timestamp for all rounds in a batch (not staggered by actu
 **Issue 4: Frontend Relative Time Calculation**
 
 `DebateList.tsx` (lines 60-73) calculates relative time:
+
 ```typescript
 function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
   // ...
 }
 ```
@@ -214,11 +226,13 @@ If the timestamp stored is incorrect or missing, the display will be wrong.
 ## Issue 4: Debate Sections Don't Start With Evaluator
 
 ### Problem Statement
+
 Debate sections in the viewer do not consistently start with an evaluator/evaluation assessment.
 
 ### Root Cause Analysis
 
 **The fundamental flow should be:**
+
 ```
 1. Evaluator provides initial assessment (score + reasoning)
 2. Red Team challenges the assessment
@@ -241,7 +255,7 @@ if (broadcaster) {
       result.criterion.name,
       result.criterion.category,
       result.reasoning,
-      result.score
+      result.score,
     );
   }
 }
@@ -260,7 +274,7 @@ if (broadcaster) {
     criterion.name,
     criterion.category,
     evaluation.score,
-    evaluation.reasoning
+    evaluation.reasoning,
   );
 }
 ```
@@ -295,6 +309,7 @@ The `evaluator:initial` case has a guard: `if (!debate.evaluatorAssessment)`.
 #### Issue D: Parallel Debate Execution Creates Event Interleaving
 
 With 30 debates running in parallel (line 267 of `debate.ts`):
+
 ```typescript
 const debatePromises = evaluations.map(eval_ =>
   runCriterionDebate(...)
@@ -303,6 +318,7 @@ const allDebates = await Promise.all(debatePromises);
 ```
 
 Events from different criteria interleave in unpredictable order:
+
 - Criterion A: criterion:start
 - Criterion B: criterion:start
 - Criterion C: redteam:challenge (before criterion:start!)
@@ -313,6 +329,7 @@ The frontend `groupEventsByCriterion()` groups by criterion name, so events even
 #### Issue E: Event Loss Due to WebSocket Timing
 
 In `useDebateStream.ts`, events are buffered (line 103):
+
 ```typescript
 events: [...prev.events.slice(-maxEvents + 1), event],
 ```
@@ -346,12 +363,13 @@ if (broadcaster) {
     report.estimatedCost,
     report.budgetRemaining,
     report.estimatedCost + report.budgetRemaining,
-    report.apiCalls
+    report.apiCalls,
   );
 }
 ```
 
 Repeat after:
+
 - Line 156 (generateDefense)
 - Line 178 (judgeRound)
 
@@ -360,7 +378,10 @@ Repeat after:
 Create a helper to prevent excessive broadcasts:
 
 ```typescript
-function createDebouncedBroadcast(broadcaster: Broadcaster, intervalMs: number = 1000) {
+function createDebouncedBroadcast(
+  broadcaster: Broadcaster,
+  intervalMs: number = 1000,
+) {
   let lastBroadcast = 0;
   return async (costTracker: CostTracker) => {
     const now = Date.now();
@@ -370,7 +391,7 @@ function createDebouncedBroadcast(broadcaster: Broadcaster, intervalMs: number =
         report.estimatedCost,
         report.budgetRemaining,
         report.estimatedCost + report.budgetRemaining,
-        report.apiCalls
+        report.apiCalls,
       );
       lastBroadcast = now;
     }
@@ -388,12 +409,16 @@ function createDebouncedBroadcast(broadcaster: Broadcaster, intervalMs: number =
 
 ```typescript
 export class CostTracker {
-  private maxApiCalls?: number;  // NEW
+  private maxApiCalls?: number; // NEW
 
-  constructor(budgetDollars: number = 10.00, unlimited: boolean = false, maxApiCalls?: number) {
+  constructor(
+    budgetDollars: number = 10.0,
+    unlimited: boolean = false,
+    maxApiCalls?: number,
+  ) {
     this.budget = budgetDollars;
     this.unlimitedMode = unlimited;
-    this.maxApiCalls = maxApiCalls;  // NEW
+    this.maxApiCalls = maxApiCalls; // NEW
   }
 
   // NEW method
@@ -412,16 +437,26 @@ export class CostTracker {
 Add clarifying labels:
 
 ```tsx
-{apiCalls !== undefined && (
-  <span className="text-cyan-400" title="Total API calls made (informational)">
-    API Calls: {apiCalls}
-  </span>
-)}
-{latestBudgetEvent && (
-  <span className="text-green-400" title="Budget in dollars controls when evaluation stops">
-    Budget: ${latestBudgetEvent.data.remaining?.toFixed(2)} remaining
-  </span>
-)}
+{
+  apiCalls !== undefined && (
+    <span
+      className="text-cyan-400"
+      title="Total API calls made (informational)"
+    >
+      API Calls: {apiCalls}
+    </span>
+  );
+}
+{
+  latestBudgetEvent && (
+    <span
+      className="text-green-400"
+      title="Budget in dollars controls when evaluation stops"
+    >
+      Budget: ${latestBudgetEvent.data.remaining?.toFixed(2)} remaining
+    </span>
+  );
+}
 ```
 
 ---
@@ -476,15 +511,21 @@ const sessions = await query<{
 **File: `frontend/src/pages/DebateList.tsx`**
 
 ```tsx
-{session.status === 'complete' && (
-  <CheckCircle className="h-4 w-4 text-green-500" />
-)}
-{session.status === 'in-progress' && (
-  <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-)}
-{session.status === 'evaluation-only' && (
-  <AlertCircle className="h-4 w-4 text-amber-500" title="No debate was run" />
-)}
+{
+  session.status === "complete" && (
+    <CheckCircle className="h-4 w-4 text-green-500" />
+  );
+}
+{
+  session.status === "in-progress" && (
+    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+  );
+}
+{
+  session.status === "evaluation-only" && (
+    <AlertCircle className="h-4 w-4 text-amber-500" title="No debate was run" />
+  );
+}
 ```
 
 ---
@@ -503,7 +544,7 @@ export async function runCriterionDebate(
   evaluation: EvaluationResult,
   ideaContent: string,
   costTracker: CostTracker,
-  broadcaster?: Broadcaster
+  broadcaster?: Broadcaster,
 ): Promise<CriterionDebate> {
   // FIRST thing: broadcast criterion start with FULL initial assessment
   if (broadcaster) {
@@ -511,7 +552,7 @@ export async function runCriterionDebate(
       criterion.name,
       criterion.category,
       evaluation.score,
-      evaluation.reasoning  // Full reasoning included
+      evaluation.reasoning, // Full reasoning included
     );
   }
 
@@ -564,21 +605,25 @@ case 'evaluator:initial':
 ## Testing Plan
 
 ### Test Case 1: API Counter Accuracy
+
 1. Start an evaluation
 2. Observe the API call counter updating every second
 3. Compare final count to CostTracker log
 
 ### Test Case 2: Budget Display
+
 1. Set a $5 budget
 2. Run evaluation until budget exhausted
 3. Verify message shows "Budget Exceeded" with correct amounts
 
 ### Test Case 3: Debate List
+
 1. Run evaluation with debate
 2. Run evaluation WITHOUT debate (--skip-debate)
 3. Verify both appear in list with correct status
 
 ### Test Case 4: Evaluator-First Ordering
+
 1. Connect to live debate viewer
 2. Start evaluation
 3. For EACH criterion card, verify evaluator assessment appears before any challenges
@@ -599,34 +644,35 @@ All changes are additive and backwards-compatible with existing data.
 
 ## Appendix: File Change Summary
 
-| File | Changes |
-|------|---------|
-| `agents/debate.ts` | Add periodic budget broadcasts, ensure criterionStart is first |
-| `agents/specialized-evaluators.ts` | Remove or delay evaluatorInitial broadcasts |
-| `utils/cost-tracker.ts` | Add optional API call limit |
-| `server/api.ts` | Update /api/debates query to include all sessions |
-| `frontend/src/pages/DebateViewer.tsx` | Update event grouping logic, add status display |
-| `frontend/src/pages/DebateList.tsx` | Add status indicators, improve timestamp display |
-| `utils/broadcast.ts` | No changes needed |
+| File                                  | Changes                                                        |
+| ------------------------------------- | -------------------------------------------------------------- |
+| `agents/debate.ts`                    | Add periodic budget broadcasts, ensure criterionStart is first |
+| `agents/specialized-evaluators.ts`    | Remove or delay evaluatorInitial broadcasts                    |
+| `utils/cost-tracker.ts`               | Add optional API call limit                                    |
+| `server/api.ts`                       | Update /api/debates query to include all sessions              |
+| `frontend/src/pages/DebateViewer.tsx` | Update event grouping logic, add status display                |
+| `frontend/src/pages/DebateList.tsx`   | Add status indicators, improve timestamp display               |
+| `utils/broadcast.ts`                  | No changes needed                                              |
 
 ---
 
 ## Estimated Effort
 
-| Phase | Complexity | Effort |
-|-------|------------|--------|
-| Phase 1: API Counter | Low | ~2 hours |
-| Phase 2: Budget Clarification | Low | ~1 hour |
-| Phase 3: Debate List | Medium | ~3 hours |
-| Phase 4: Evaluator-First | Medium | ~3 hours |
-| Testing | Medium | ~2 hours |
-| **Total** | | **~11 hours** |
+| Phase                         | Complexity | Effort        |
+| ----------------------------- | ---------- | ------------- |
+| Phase 1: API Counter          | Low        | ~2 hours      |
+| Phase 2: Budget Clarification | Low        | ~1 hour       |
+| Phase 3: Debate List          | Medium     | ~3 hours      |
+| Phase 4: Evaluator-First      | Medium     | ~3 hours      |
+| Testing                       | Medium     | ~2 hours      |
+| **Total**                     |            | **~11 hours** |
 
 ---
 
 ## Conclusion
 
 The four issues stem from:
+
 1. **Insufficient event broadcasting** during parallel operations
 2. **Misunderstood budget semantics** (dollars vs API calls)
 3. **Incomplete query** that misses non-debate evaluations

@@ -1,7 +1,7 @@
 /**
  * Shared Route Utilities
  */
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
 /**
  * API Response wrapper type
@@ -34,7 +34,8 @@ export interface IdeaRow {
 /**
  * Wrap async route handlers to catch errors
  */
-export const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) =>
+export const asyncHandler =
+  (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) =>
   (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
@@ -49,6 +50,12 @@ export function respond<T>(res: Response, data: T): void {
 /**
  * Send error response
  */
-export function respondError(res: Response, statusCode: number, message: string): void {
-  res.status(statusCode).json({ success: false, error: message } as ApiResponse<null>);
+export function respondError(
+  res: Response,
+  statusCode: number,
+  message: string,
+): void {
+  res
+    .status(statusCode)
+    .json({ success: false, error: message } as ApiResponse<null>);
 }

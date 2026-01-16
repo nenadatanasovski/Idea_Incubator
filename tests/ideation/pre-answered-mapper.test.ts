@@ -1,10 +1,10 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from "vitest";
 import {
   generatePreAnsweredQuestions,
   generateDevelopmentHandoff,
   IdeationSignals,
   PreAnsweredQuestion,
-} from '../../agents/ideation/pre-answered-mapper.js';
+} from "../../agents/ideation/pre-answered-mapper.js";
 
 // ============================================================================
 // TEST HELPERS
@@ -22,15 +22,22 @@ function createEmptySignals(): IdeationSignals {
 // TESTS
 // ============================================================================
 
-describe('PreAnsweredQuestionsMapper', () => {
-  describe('generatePreAnsweredQuestions', () => {
-
-    test('PASS: Maps high-severity frustrations to problem statement', () => {
+describe("PreAnsweredQuestionsMapper", () => {
+  describe("generatePreAnsweredQuestions", () => {
+    test("PASS: Maps high-severity frustrations to problem statement", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           frustrations: [
-            { description: 'Finding doctors is too hard', source: 'user', severity: 'high' },
-            { description: 'Wait times are excessive', source: 'user', severity: 'high' },
+            {
+              description: "Finding doctors is too hard",
+              source: "user",
+              severity: "high",
+            },
+            {
+              description: "Wait times are excessive",
+              source: "user",
+              severity: "high",
+            },
           ],
         },
         marketDiscovery: {},
@@ -39,81 +46,99 @@ describe('PreAnsweredQuestionsMapper', () => {
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const problemQuestion = result.find(q => q.questionId === 'DEV_PROBLEM_STATEMENT');
+      const problemQuestion = result.find(
+        (q) => q.questionId === "DEV_PROBLEM_STATEMENT",
+      );
       expect(problemQuestion).toBeDefined();
-      expect(problemQuestion!.answer).toContain('Finding doctors');
+      expect(problemQuestion!.answer).toContain("Finding doctors");
       expect(problemQuestion!.confidence).toBeGreaterThanOrEqual(0.6);
     });
 
-    test('PASS: Maps customer type to target user', () => {
+    test("PASS: Maps customer type to target user", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
         narrowingState: {
-          customerType: { value: 'B2B', confidence: 0.9 },
+          customerType: { value: "B2B", confidence: 0.9 },
         },
       };
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const targetUser = result.find(q => q.questionId === 'DEV_TARGET_USER');
+      const targetUser = result.find((q) => q.questionId === "DEV_TARGET_USER");
       expect(targetUser).toBeDefined();
-      expect(targetUser!.answer).toBe('Businesses and organizations');
+      expect(targetUser!.answer).toBe("Businesses and organizations");
     });
 
-    test('PASS: Maps B2C customer type correctly', () => {
+    test("PASS: Maps B2C customer type correctly", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
         narrowingState: {
-          customerType: { value: 'B2C', confidence: 0.9 },
+          customerType: { value: "B2C", confidence: 0.9 },
         },
       };
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const targetUser = result.find(q => q.questionId === 'DEV_TARGET_USER');
-      expect(targetUser?.answer).toBe('Individual consumers');
+      const targetUser = result.find((q) => q.questionId === "DEV_TARGET_USER");
+      expect(targetUser?.answer).toBe("Individual consumers");
     });
 
-    test('PASS: Maps product type to solution type', () => {
+    test("PASS: Maps product type to solution type", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
         narrowingState: {
-          productType: { value: 'Digital', confidence: 0.8 },
+          productType: { value: "Digital", confidence: 0.8 },
         },
       };
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const solutionType = result.find(q => q.questionId === 'DEV_SOLUTION_TYPE');
+      const solutionType = result.find(
+        (q) => q.questionId === "DEV_SOLUTION_TYPE",
+      );
       expect(solutionType).toBeDefined();
-      expect(solutionType!.answer).toBe('Software/digital product');
+      expect(solutionType!.answer).toBe("Software/digital product");
     });
 
-    test('PASS: Maps Physical product type correctly', () => {
+    test("PASS: Maps Physical product type correctly", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
         narrowingState: {
-          productType: { value: 'Physical', confidence: 0.8 },
+          productType: { value: "Physical", confidence: 0.8 },
         },
       };
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const solutionType = result.find(q => q.questionId === 'DEV_SOLUTION_TYPE');
-      expect(solutionType?.answer).toBe('Physical product');
+      const solutionType = result.find(
+        (q) => q.questionId === "DEV_SOLUTION_TYPE",
+      );
+      expect(solutionType?.answer).toBe("Physical product");
     });
 
-    test('PASS: Maps competitors to competitor list', () => {
+    test("PASS: Maps competitors to competitor list", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {},
         marketDiscovery: {
           competitors: [
-            { name: 'Competitor A', description: 'Market leader', strengths: [], weaknesses: [], source: 'web' },
-            { name: 'Competitor B', description: 'Fast growing', strengths: [], weaknesses: [], source: 'web' },
+            {
+              name: "Competitor A",
+              description: "Market leader",
+              strengths: [],
+              weaknesses: [],
+              source: "web",
+            },
+            {
+              name: "Competitor B",
+              description: "Fast growing",
+              strengths: [],
+              weaknesses: [],
+              source: "web",
+            },
           ],
         },
         narrowingState: {},
@@ -121,18 +146,28 @@ describe('PreAnsweredQuestionsMapper', () => {
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const competitors = result.find(q => q.questionId === 'DEV_COMPETITORS');
+      const competitors = result.find(
+        (q) => q.questionId === "DEV_COMPETITORS",
+      );
       expect(competitors).toBeDefined();
-      expect(competitors!.answer).toContain('Competitor A');
-      expect(competitors!.answer).toContain('Competitor B');
+      expect(competitors!.answer).toContain("Competitor A");
+      expect(competitors!.answer).toContain("Competitor B");
     });
 
-    test('PASS: Maps expertise to unfair advantage', () => {
+    test("PASS: Maps expertise to unfair advantage", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           expertise: [
-            { area: 'Healthcare IT', depth: 'expert', evidence: 'Worked 10 years' },
-            { area: 'Machine Learning', depth: 'competent', evidence: 'Self-taught' },
+            {
+              area: "Healthcare IT",
+              depth: "expert",
+              evidence: "Worked 10 years",
+            },
+            {
+              area: "Machine Learning",
+              depth: "competent",
+              evidence: "Self-taught",
+            },
           ],
         },
         marketDiscovery: {},
@@ -141,13 +176,15 @@ describe('PreAnsweredQuestionsMapper', () => {
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const advantage = result.find(q => q.questionId === 'DEV_UNFAIR_ADVANTAGE');
+      const advantage = result.find(
+        (q) => q.questionId === "DEV_UNFAIR_ADVANTAGE",
+      );
       expect(advantage).toBeDefined();
-      expect(advantage!.answer).toContain('Healthcare IT');
-      expect(advantage!.answer).not.toContain('Machine Learning'); // Only expert level
+      expect(advantage!.answer).toContain("Healthcare IT");
+      expect(advantage!.answer).not.toContain("Machine Learning"); // Only expert level
     });
 
-    test('PASS: Maps time constraints to commitment level - full time', () => {
+    test("PASS: Maps time constraints to commitment level - full time", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           constraints: {
@@ -160,12 +197,14 @@ describe('PreAnsweredQuestionsMapper', () => {
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const commitment = result.find(q => q.questionId === 'DEV_TIME_COMMITMENT');
+      const commitment = result.find(
+        (q) => q.questionId === "DEV_TIME_COMMITMENT",
+      );
       expect(commitment).toBeDefined();
-      expect(commitment!.answer).toBe('Full-time (40+ hours/week)');
+      expect(commitment!.answer).toBe("Full-time (40+ hours/week)");
     });
 
-    test('PASS: Maps time constraints to commitment level - side project', () => {
+    test("PASS: Maps time constraints to commitment level - side project", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           constraints: {
@@ -178,12 +217,14 @@ describe('PreAnsweredQuestionsMapper', () => {
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const commitment = result.find(q => q.questionId === 'DEV_TIME_COMMITMENT');
+      const commitment = result.find(
+        (q) => q.questionId === "DEV_TIME_COMMITMENT",
+      );
       expect(commitment).toBeDefined();
-      expect(commitment!.answer).toBe('Side project (10-20 hours/week)');
+      expect(commitment!.answer).toBe("Side project (10-20 hours/week)");
     });
 
-    test('PASS: Maps time constraints to commitment level - hobby', () => {
+    test("PASS: Maps time constraints to commitment level - hobby", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           constraints: {
@@ -196,27 +237,29 @@ describe('PreAnsweredQuestionsMapper', () => {
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const commitment = result.find(q => q.questionId === 'DEV_TIME_COMMITMENT');
+      const commitment = result.find(
+        (q) => q.questionId === "DEV_TIME_COMMITMENT",
+      );
       expect(commitment).toBeDefined();
-      expect(commitment!.answer).toBe('Hobby level (less than 10 hours/week)');
+      expect(commitment!.answer).toBe("Hobby level (less than 10 hours/week)");
     });
 
-    test('PASS: Skips questions below confidence threshold', () => {
+    test("PASS: Skips questions below confidence threshold", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
         narrowingState: {
-          customerType: { value: 'B2B', confidence: 0.3 }, // Below 0.7 threshold
+          customerType: { value: "B2B", confidence: 0.3 }, // Below 0.7 threshold
         },
       };
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const targetUser = result.find(q => q.questionId === 'DEV_TARGET_USER');
+      const targetUser = result.find((q) => q.questionId === "DEV_TARGET_USER");
       expect(targetUser).toBeUndefined();
     });
 
-    test('PASS: Returns empty array for empty signals', () => {
+    test("PASS: Returns empty array for empty signals", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
@@ -228,11 +271,15 @@ describe('PreAnsweredQuestionsMapper', () => {
       expect(result).toEqual([]);
     });
 
-    test('PASS: Includes evidence quotes from frustrations', () => {
+    test("PASS: Includes evidence quotes from frustrations", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           frustrations: [
-            { description: 'Test frustration', source: 'user', severity: 'high' },
+            {
+              description: "Test frustration",
+              source: "user",
+              severity: "high",
+            },
           ],
         },
         marketDiscovery: {},
@@ -241,32 +288,34 @@ describe('PreAnsweredQuestionsMapper', () => {
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const problemQuestion = result.find(q => q.questionId === 'DEV_PROBLEM_STATEMENT');
+      const problemQuestion = result.find(
+        (q) => q.questionId === "DEV_PROBLEM_STATEMENT",
+      );
       expect(problemQuestion?.evidenceQuotes).toBeDefined();
       expect(problemQuestion?.evidenceQuotes.length).toBeGreaterThan(0);
     });
 
-    test('PASS: Maps geography to geography question', () => {
+    test("PASS: Maps geography to geography question", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
         narrowingState: {
-          geography: { value: 'Local', confidence: 0.9 },
+          geography: { value: "Local", confidence: 0.9 },
         },
       };
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const geography = result.find(q => q.questionId === 'DEV_GEOGRAPHY');
+      const geography = result.find((q) => q.questionId === "DEV_GEOGRAPHY");
       expect(geography).toBeDefined();
-      expect(geography!.answer).toBe('Local market (single city/region)');
+      expect(geography!.answer).toBe("Local market (single city/region)");
     });
 
-    test('PASS: Maps funding approach correctly', () => {
+    test("PASS: Maps funding approach correctly", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           constraints: {
-            capital: 'bootstrap',
+            capital: "bootstrap",
           },
         },
         marketDiscovery: {},
@@ -275,30 +324,34 @@ describe('PreAnsweredQuestionsMapper', () => {
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const funding = result.find(q => q.questionId === 'DEV_FUNDING_APPROACH');
+      const funding = result.find(
+        (q) => q.questionId === "DEV_FUNDING_APPROACH",
+      );
       expect(funding).toBeDefined();
-      expect(funding!.answer).toBe('Bootstrapped/self-funded');
+      expect(funding!.answer).toBe("Bootstrapped/self-funded");
     });
 
-    test('PASS: Maps candidate summary to one-line pitch', () => {
+    test("PASS: Maps candidate summary to one-line pitch", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
         narrowingState: {},
-        candidateSummary: 'A platform that helps clinics find specialists quickly',
+        candidateSummary:
+          "A platform that helps clinics find specialists quickly",
       };
 
       const result = generatePreAnsweredQuestions(signals);
 
-      const pitch = result.find(q => q.questionId === 'DEV_ONE_LINE_PITCH');
+      const pitch = result.find((q) => q.questionId === "DEV_ONE_LINE_PITCH");
       expect(pitch).toBeDefined();
-      expect(pitch!.answer).toBe('A platform that helps clinics find specialists quickly');
+      expect(pitch!.answer).toBe(
+        "A platform that helps clinics find specialists quickly",
+      );
     });
   });
 
-  describe('generateDevelopmentHandoff', () => {
-
-    test('PASS: Includes all metadata', () => {
+  describe("generateDevelopmentHandoff", () => {
+    test("PASS: Includes all metadata", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
@@ -307,23 +360,33 @@ describe('PreAnsweredQuestionsMapper', () => {
 
       const result = generateDevelopmentHandoff(
         signals,
-        'session_123',
+        "session_123",
         75,
         80,
-        [{ riskType: 'saturated_market', description: 'Many competitors', severity: 'medium' }]
+        [
+          {
+            riskType: "saturated_market",
+            description: "Many competitors",
+            severity: "medium",
+          },
+        ],
       );
 
-      expect(result.ideationMetadata.sessionId).toBe('session_123');
+      expect(result.ideationMetadata.sessionId).toBe("session_123");
       expect(result.ideationMetadata.confidenceAtCapture).toBe(75);
       expect(result.ideationMetadata.viabilityAtCapture).toBe(80);
       expect(result.ideationMetadata.viabilityRisks).toHaveLength(1);
     });
 
-    test('PASS: Includes pre-answered questions', () => {
+    test("PASS: Includes pre-answered questions", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           frustrations: [
-            { description: 'Problem statement here', source: 'user', severity: 'high' },
+            {
+              description: "Problem statement here",
+              source: "user",
+              severity: "high",
+            },
           ],
         },
         marketDiscovery: {},
@@ -332,16 +395,16 @@ describe('PreAnsweredQuestionsMapper', () => {
 
       const result = generateDevelopmentHandoff(
         signals,
-        'session_123',
+        "session_123",
         75,
         80,
-        []
+        [],
       );
 
       expect(result.preAnsweredQuestions.length).toBeGreaterThan(0);
     });
 
-    test('PASS: Returns empty pre-answered questions for empty signals', () => {
+    test("PASS: Returns empty pre-answered questions for empty signals", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
@@ -350,10 +413,10 @@ describe('PreAnsweredQuestionsMapper', () => {
 
       const result = generateDevelopmentHandoff(
         signals,
-        'session_123',
+        "session_123",
         50,
         60,
-        []
+        [],
       );
 
       expect(result.preAnsweredQuestions).toEqual([]);

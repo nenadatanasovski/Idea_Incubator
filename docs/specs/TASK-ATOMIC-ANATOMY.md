@@ -21,6 +21,7 @@
 10. [Task Agent Decision Interfaces](#10-task-agent-decision-interfaces)
 
 **Appendices:**
+
 - [Appendix A: Standard Appendix Templates](#appendix-a-standard-appendix-templates)
 - [Appendix B: Category Reference](#appendix-b-category-reference)
 - [Appendix C: SQL Migrations](#appendix-c-sql-migrations)
@@ -68,6 +69,7 @@ flowchart LR
 ```
 
 **Why this matters:**
+
 - Ensures all tasks are correctly formatted
 - Guarantees independent testability
 - Removes cognitive burden from users
@@ -77,14 +79,14 @@ flowchart LR
 
 Tasks and all their appendices live in the **database**, not in markdown files.
 
-| Entity | Storage | Rationale |
-|--------|---------|-----------|
-| Tasks | `tasks` table | Queryable, relational, versionable |
-| Appendices | `task_appendices` table | Linked to tasks, typed, flexible |
-| Relationships | `task_relationships` table | Graph structure, bidirectional |
-| Impacts | `task_impacts` table | CRUD operations, conflict detection |
-| PRDs | `prds` table | Container for task lists |
-| Test Results | `task_test_results` table | Execution history |
+| Entity        | Storage                    | Rationale                           |
+| ------------- | -------------------------- | ----------------------------------- |
+| Tasks         | `tasks` table              | Queryable, relational, versionable  |
+| Appendices    | `task_appendices` table    | Linked to tasks, typed, flexible    |
+| Relationships | `task_relationships` table | Graph structure, bidirectional      |
+| Impacts       | `task_impacts` table       | CRUD operations, conflict detection |
+| PRDs          | `prds` table               | Container for task lists            |
+| Test Results  | `task_test_results` table  | Execution history                   |
 
 ---
 
@@ -171,19 +173,19 @@ erDiagram
 
 ### 2.1.1 Implementation Status
 
-| Entity | Status | Notes |
-|--------|--------|-------|
-| TASK | ✅ Exists | Core schema implemented |
-| TASK_LIST | ✅ Exists | `task_lists_v2` table |
-| TASK_LIST_ITEM | ✅ Exists | Junction table |
-| TASK_RELATIONSHIP | ✅ Exists | `task_relationships` table |
-| TASK_IMPACT | 🆕 NEW | Requires migration |
-| TASK_APPENDIX | 🆕 NEW | Requires migration |
-| PRD | 🆕 NEW | Requires migration |
-| PRD_TASK_LISTS | 🆕 NEW | Junction table |
-| PRD_TASKS | 🆕 NEW | Junction table |
-| TASK_TEST_RESULT | 🆕 NEW | Requires migration |
-| TASK_STATE_HISTORY | 🆕 NEW | Requires migration |
+| Entity             | Status    | Notes                      |
+| ------------------ | --------- | -------------------------- |
+| TASK               | ✅ Exists | Core schema implemented    |
+| TASK_LIST          | ✅ Exists | `task_lists_v2` table      |
+| TASK_LIST_ITEM     | ✅ Exists | Junction table             |
+| TASK_RELATIONSHIP  | ✅ Exists | `task_relationships` table |
+| TASK_IMPACT        | 🆕 NEW    | Requires migration         |
+| TASK_APPENDIX      | 🆕 NEW    | Requires migration         |
+| PRD                | 🆕 NEW    | Requires migration         |
+| PRD_TASK_LISTS     | 🆕 NEW    | Junction table             |
+| PRD_TASKS          | 🆕 NEW    | Junction table             |
+| TASK_TEST_RESULT   | 🆕 NEW    | Requires migration         |
+| TASK_STATE_HISTORY | 🆕 NEW    | Requires migration         |
 
 ### 2.2 TypeScript Interface
 
@@ -195,42 +197,42 @@ erDiagram
  */
 interface Task {
   // === IDENTITY ===
-  id: string;                        // UUID primary key
-  displayId: string;                 // Human-readable: TU-PROJ-CAT-###
+  id: string; // UUID primary key
+  displayId: string; // Human-readable: TU-PROJ-CAT-###
 
   // === SCOPE ===
-  userId: string;                    // Owner
-  projectId?: string;                // Optional project scope
-  ideaId?: string;                   // Optional idea scope
-  parentTaskId?: string;             // For subtask hierarchy
+  userId: string; // Owner
+  projectId?: string; // Optional project scope
+  ideaId?: string; // Optional idea scope
+  parentTaskId?: string; // For subtask hierarchy
 
   // === CONTENT ===
-  title: string;                     // Short, action-oriented title
-  description: string;               // Full description with context
-  category: TaskCategory;            // feature, bug, etc.
+  title: string; // Short, action-oriented title
+  description: string; // Full description with context
+  category: TaskCategory; // feature, bug, etc.
 
   // === STATUS ===
   status: TaskStatus;
-  riskLevel: 'low' | 'medium' | 'high';
+  riskLevel: "low" | "medium" | "high";
 
   // === VERSIONING ===
-  version: number;                   // Increments on edit
-  supersedesTaskId?: string;         // Previous version
+  version: number; // Increments on edit
+  supersedesTaskId?: string; // Previous version
 
   // === ACCEPTANCE ===
   acceptanceCriteria: AcceptanceCriterion[];
 
   // === TESTING (3-level) ===
-  codebaseTests: CodebaseTest[];     // tsc, lint, unit
-  apiTests: ApiTest[];               // HTTP endpoint tests
-  uiTests: UiTest[];                 // Puppeteer tests
+  codebaseTests: CodebaseTest[]; // tsc, lint, unit
+  apiTests: ApiTest[]; // HTTP endpoint tests
+  uiTests: UiTest[]; // Puppeteer tests
 
   // === EFFORT & PRIORITY ===
   estimatedEffort: EffortBucket;
-  priorityScore: number;             // Computed by Task Agent
-  blocksCount: number;               // How many tasks this blocks
-  isQuickWin: boolean;               // < 30 min effort
-  deadline?: string;                 // Optional deadline
+  priorityScore: number; // Computed by Task Agent
+  blocksCount: number; // How many tasks this blocks
+  isQuickWin: boolean; // < 30 min effort
+  deadline?: string; // Optional deadline
 
   // === EXECUTION ===
   assignedAgent?: string;
@@ -250,20 +252,20 @@ interface TaskImpact {
   id: string;
   taskId: string;
 
-  impactType: 'file' | 'api' | 'function' | 'database' | 'type';
-  operation: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE';
+  impactType: "file" | "api" | "function" | "database" | "type";
+  operation: "CREATE" | "READ" | "UPDATE" | "DELETE";
 
   // Target identification
-  targetPath: string;                // File path, API route, table name
-  targetName?: string;               // Function name, column name, type name
-  targetSignature?: string;          // For functions: parameter types
+  targetPath: string; // File path, API route, table name
+  targetName?: string; // Function name, column name, type name
+  targetSignature?: string; // For functions: parameter types
 
   // Confidence tracking
-  confidence: number;                // 0.0 - 1.0
-  source: 'ai' | 'pattern' | 'user' | 'validated';
+  confidence: number; // 0.0 - 1.0
+  source: "ai" | "pattern" | "user" | "validated";
 
   createdAt: string;
-  validatedAt?: string;              // Set after execution confirms impact
+  validatedAt?: string; // Set after execution confirms impact
 }
 
 /**
@@ -274,14 +276,14 @@ interface TaskAppendix {
   taskId: string;
 
   appendixType: AppendixType;
-  contentType: 'inline' | 'reference';
+  contentType: "inline" | "reference";
 
   // For inline content
   content?: string;
 
   // For references
   referenceId?: string;
-  referenceTable?: string;           // 'prds', 'knowledge', 'tasks', etc.
+  referenceTable?: string; // 'prds', 'knowledge', 'tasks', etc.
 
   // Metadata
   title?: string;
@@ -294,74 +296,74 @@ interface TaskAppendix {
 // === ENUMS ===
 
 type TaskStatus =
-  | 'draft'           // Created but not validated
-  | 'pending'         // Validated, ready for execution
-  | 'evaluating'      // In Evaluation Queue (listless)
-  | 'blocked'         // Cannot proceed (dependency/conflict)
-  | 'in_progress'     // Currently being worked on
-  | 'validating'      // Running tests
-  | 'failed'          // Execution/tests failed
-  | 'stale'           // No activity for threshold
-  | 'completed'       // All tests passed
-  | 'cancelled';      // Explicitly cancelled
+  | "draft" // Created but not validated
+  | "pending" // Validated, ready for execution
+  | "evaluating" // In Evaluation Queue (listless)
+  | "blocked" // Cannot proceed (dependency/conflict)
+  | "in_progress" // Currently being worked on
+  | "validating" // Running tests
+  | "failed" // Execution/tests failed
+  | "stale" // No activity for threshold
+  | "completed" // All tests passed
+  | "cancelled"; // Explicitly cancelled
 
 type TaskCategory =
-  | 'feature'         // FEA - New functionality
-  | 'improvement'     // IMP - Enhancement to existing
-  | 'bug'             // BUG - Fix broken behavior
-  | 'investigation'   // INV - Research/analysis
-  | 'technical_debt'  // TED - Code quality
-  | 'infrastructure'  // INF - DevOps/tooling
-  | 'documentation'   // DOC - Docs only
-  | 'refactoring'     // REF - Code restructure
-  | 'security'        // SEC - Security fix/feature
-  | 'performance'     // PER - Performance improvement
-  | 'testing'         // TST - Test coverage
-  | 'migration'       // MIG - Data/schema migration
-  | 'integration'     // INT - External service integration
-  | 'ux_design'       // UXD - UI/UX work
-  | 'maintenance'     // MNT - Routine maintenance
-  | 'decommissioned'; // DEC - Removal/sunset
+  | "feature" // FEA - New functionality
+  | "improvement" // IMP - Enhancement to existing
+  | "bug" // BUG - Fix broken behavior
+  | "investigation" // INV - Research/analysis
+  | "technical_debt" // TED - Code quality
+  | "infrastructure" // INF - DevOps/tooling
+  | "documentation" // DOC - Docs only
+  | "refactoring" // REF - Code restructure
+  | "security" // SEC - Security fix/feature
+  | "performance" // PER - Performance improvement
+  | "testing" // TST - Test coverage
+  | "migration" // MIG - Data/schema migration
+  | "integration" // INT - External service integration
+  | "ux_design" // UXD - UI/UX work
+  | "maintenance" // MNT - Routine maintenance
+  | "decommissioned"; // DEC - Removal/sunset
 
 type EffortBucket =
-  | 'trivial'         // < 15 minutes
-  | 'small'           // 15-30 minutes
-  | 'medium'          // 30-60 minutes
-  | 'large'           // 1-4 hours
-  | 'epic';           // > 4 hours (should be decomposed)
+  | "trivial" // < 15 minutes
+  | "small" // 15-30 minutes
+  | "medium" // 30-60 minutes
+  | "large" // 1-4 hours
+  | "epic"; // > 4 hours (should be decomposed)
 
 type AppendixType =
-  | 'prd_reference'       // Links to parent PRD
-  | 'code_context'        // Existing code snippets
-  | 'research_notes'      // Background information
-  | 'design_spec'         // UI/UX specifications
-  | 'gotcha_list'         // Injected mistakes to avoid
-  | 'decision_log'        // Architectural decisions
-  | 'test_data'           // Sample inputs/outputs
-  | 'api_contract'        // OpenAPI/schema reference
-  | 'migration_script'    // SQL or data migration
-  | 'rollback_plan'       // How to undo changes
-  | 'custom';             // User-defined type
+  | "prd_reference" // Links to parent PRD
+  | "code_context" // Existing code snippets
+  | "research_notes" // Background information
+  | "design_spec" // UI/UX specifications
+  | "gotcha_list" // Injected mistakes to avoid
+  | "decision_log" // Architectural decisions
+  | "test_data" // Sample inputs/outputs
+  | "api_contract" // OpenAPI/schema reference
+  | "migration_script" // SQL or data migration
+  | "rollback_plan" // How to undo changes
+  | "custom"; // User-defined type
 ```
 
 ### 2.3 Field Definitions Table
 
-| Field | Type | Required | Description | Example |
-|-------|------|----------|-------------|---------|
-| `id` | UUID | Yes | Unique identifier | `550e8400-e29b-41d4-a716-446655440000` |
-| `displayId` | string | Yes | Human-readable ID | `TU-VIBE-FEA-042` |
-| `title` | string | Yes | Action-oriented title | `Add user authentication endpoint` |
-| `description` | text | Yes | Full context and requirements | See template below |
-| `category` | enum | Yes | Task type classification | `feature` |
-| `status` | enum | Yes | Current lifecycle state | `pending` |
-| `riskLevel` | enum | Yes | Impact if task fails | `medium` |
-| `version` | int | Yes | Increments on edit | `1` |
-| `acceptanceCriteria` | JSON | Yes | Measurable success conditions | See template below |
-| `codebaseTests` | JSON | Yes | Syntax/type/lint tests | `["tsc --noEmit"]` |
-| `apiTests` | JSON | Conditional | HTTP tests (if API task) | See template below |
-| `uiTests` | JSON | Conditional | Puppeteer tests (if UI task) | See template below |
-| `estimatedEffort` | enum | Yes | Time bucket | `small` |
-| `priorityScore` | int | Yes | Computed priority | `75` |
+| Field                | Type   | Required    | Description                   | Example                                |
+| -------------------- | ------ | ----------- | ----------------------------- | -------------------------------------- |
+| `id`                 | UUID   | Yes         | Unique identifier             | `550e8400-e29b-41d4-a716-446655440000` |
+| `displayId`          | string | Yes         | Human-readable ID             | `TU-VIBE-FEA-042`                      |
+| `title`              | string | Yes         | Action-oriented title         | `Add user authentication endpoint`     |
+| `description`        | text   | Yes         | Full context and requirements | See template below                     |
+| `category`           | enum   | Yes         | Task type classification      | `feature`                              |
+| `status`             | enum   | Yes         | Current lifecycle state       | `pending`                              |
+| `riskLevel`          | enum   | Yes         | Impact if task fails          | `medium`                               |
+| `version`            | int    | Yes         | Increments on edit            | `1`                                    |
+| `acceptanceCriteria` | JSON   | Yes         | Measurable success conditions | See template below                     |
+| `codebaseTests`      | JSON   | Yes         | Syntax/type/lint tests        | `["tsc --noEmit"]`                     |
+| `apiTests`           | JSON   | Conditional | HTTP tests (if API task)      | See template below                     |
+| `uiTests`            | JSON   | Conditional | Puppeteer tests (if UI task)  | See template below                     |
+| `estimatedEffort`    | enum   | Yes         | Time bucket                   | `small`                                |
+| `priorityScore`      | int    | Yes         | Computed priority             | `75`                                   |
 
 ### 2.4 Status Lifecycle
 
@@ -410,6 +412,7 @@ stateDiagram-v2
 ### 3.1 Impact Types
 
 Every task must declare its **impacts** - what it touches and how. This enables:
+
 - Conflict detection between parallel tasks
 - Cascade detection when tasks are edited
 - Dependency inference
@@ -441,37 +444,37 @@ flowchart TB
 
 ### 3.2 Impact Type Definitions
 
-| Impact Type | Target Path | Target Name | Target Signature | Example |
-|-------------|-------------|-------------|------------------|---------|
-| `file` | File path | - | - | `src/services/user.ts` |
-| `api` | Route path | HTTP method | Request/response types | `/api/users`, `POST` |
-| `function` | File path | Function name | Parameter types | `src/utils.ts`, `formatDate`, `(date: Date) => string` |
-| `database` | Table name | Column name (optional) | Column type | `users`, `email`, `TEXT` |
-| `type` | File path | Type/interface name | - | `types/user.ts`, `User` |
+| Impact Type | Target Path | Target Name            | Target Signature       | Example                                                |
+| ----------- | ----------- | ---------------------- | ---------------------- | ------------------------------------------------------ |
+| `file`      | File path   | -                      | -                      | `src/services/user.ts`                                 |
+| `api`       | Route path  | HTTP method            | Request/response types | `/api/users`, `POST`                                   |
+| `function`  | File path   | Function name          | Parameter types        | `src/utils.ts`, `formatDate`, `(date: Date) => string` |
+| `database`  | Table name  | Column name (optional) | Column type            | `users`, `email`, `TEXT`                               |
+| `type`      | File path   | Type/interface name    | -                      | `types/user.ts`, `User`                                |
 
 ### 3.3 CRUD Operations Matrix
 
-| Operation | Symbol | Meaning | Conflict With |
-|-----------|--------|---------|---------------|
-| `CREATE` | C | Creates new entity | CREATE (same target) |
-| `READ` | R | Reads existing entity | DELETE |
-| `UPDATE` | U | Modifies existing entity | UPDATE, DELETE |
-| `DELETE` | D | Removes entity | CREATE, READ, UPDATE, DELETE |
+| Operation | Symbol | Meaning                  | Conflict With                |
+| --------- | ------ | ------------------------ | ---------------------------- |
+| `CREATE`  | C      | Creates new entity       | CREATE (same target)         |
+| `READ`    | R      | Reads existing entity    | DELETE                       |
+| `UPDATE`  | U      | Modifies existing entity | UPDATE, DELETE               |
+| `DELETE`  | D      | Removes entity           | CREATE, READ, UPDATE, DELETE |
 
 **Conflict Matrix (when two tasks touch same target):**
 
-| Task A | Task B | Conflict? | Reason |
-|--------|--------|-----------|--------|
-| CREATE | CREATE | **YES** | Cannot create same entity twice |
-| CREATE | READ | NO | Read happens after create |
-| CREATE | UPDATE | NO | Update after create is valid |
-| CREATE | DELETE | **YES** | Race condition |
-| READ | READ | NO | Safe - no mutation |
-| READ | UPDATE | NO | Read before write is safe |
-| READ | DELETE | **YES** | Entity may not exist |
-| UPDATE | UPDATE | **YES** | Concurrent modification |
-| UPDATE | DELETE | **YES** | Entity may not exist |
-| DELETE | DELETE | **YES** | Double delete |
+| Task A | Task B | Conflict? | Reason                          |
+| ------ | ------ | --------- | ------------------------------- |
+| CREATE | CREATE | **YES**   | Cannot create same entity twice |
+| CREATE | READ   | NO        | Read happens after create       |
+| CREATE | UPDATE | NO        | Update after create is valid    |
+| CREATE | DELETE | **YES**   | Race condition                  |
+| READ   | READ   | NO        | Safe - no mutation              |
+| READ   | UPDATE | NO        | Read before write is safe       |
+| READ   | DELETE | **YES**   | Entity may not exist            |
+| UPDATE | UPDATE | **YES**   | Concurrent modification         |
+| UPDATE | DELETE | **YES**   | Entity may not exist            |
+| DELETE | DELETE | **YES**   | Double delete                   |
 
 ### 3.4 Impact Schema
 
@@ -527,7 +530,7 @@ CREATE INDEX idx_impacts_type_op ON task_impacts(impact_type, operation);
       "impactType": "file",
       "operation": "UPDATE",
       "targetPath": "server/routes/index.ts",
-      "confidence": 0.90,
+      "confidence": 0.9,
       "source": "ai"
     },
     {
@@ -553,7 +556,7 @@ CREATE INDEX idx_impacts_type_op ON task_impacts(impact_type, operation);
       "operation": "UPDATE",
       "targetPath": "types/api.ts",
       "targetName": "ApiRoutes",
-      "confidence": 0.80,
+      "confidence": 0.8,
       "source": "ai"
     }
   ]
@@ -628,19 +631,19 @@ graph TB
 
 ### 4.2 Relationship Definitions
 
-| Type | Direction | Meaning | Blocks Execution? |
-|------|-----------|---------|-------------------|
-| `depends_on` | A → B | A requires B complete first | Yes |
-| `blocks` | A → B | A prevents B from starting | Yes |
-| `subtask_of` | A → B | A is a child of B | No |
-| `supersedes` | A → B | A replaces B (new version) | No |
-| `related_to` | A ↔ B | Conceptual relationship | No |
-| `duplicate_of` | A → B | A is duplicate of B | No (merge recommended) |
-| `implements` | A → B | A implements spec/requirement B | No |
-| `inspired_by` | A → B | A derived from B | No |
-| `conflicts_with` | A ↔ B | A and B cannot run in parallel | Yes (parallel only) |
-| `enables` | A → B | A makes B easier (soft dep) | No |
-| `tests` | A → B | A tests/validates B | No |
+| Type             | Direction | Meaning                         | Blocks Execution?      |
+| ---------------- | --------- | ------------------------------- | ---------------------- |
+| `depends_on`     | A → B     | A requires B complete first     | Yes                    |
+| `blocks`         | A → B     | A prevents B from starting      | Yes                    |
+| `subtask_of`     | A → B     | A is a child of B               | No                     |
+| `supersedes`     | A → B     | A replaces B (new version)      | No                     |
+| `related_to`     | A ↔ B     | Conceptual relationship         | No                     |
+| `duplicate_of`   | A → B     | A is duplicate of B             | No (merge recommended) |
+| `implements`     | A → B     | A implements spec/requirement B | No                     |
+| `inspired_by`    | A → B     | A derived from B                | No                     |
+| `conflicts_with` | A ↔ B     | A and B cannot run in parallel  | Yes (parallel only)    |
+| `enables`        | A → B     | A makes B easier (soft dep)     | No                     |
+| `tests`          | A → B     | A tests/validates B             | No                     |
 
 ### 4.3 Relationship Schema
 
@@ -707,14 +710,14 @@ flowchart TB
 
 **Cascade Trigger Rules:**
 
-| Change Type | Cascade Behavior | Action |
-|-------------|------------------|--------|
-| Dependency added/removed | Find all tasks with `depends_on` or `blocks` relationship | Flag for review |
-| File impact added/changed | Find all tasks touching same file | Check for conflicts, flag if found |
-| API impact added/changed | Find all tasks touching same API route | Flag for review |
-| Function impact added/changed | Find all tasks touching same function | Flag for review |
-| Acceptance criteria changed | No cascade | Isolated change |
-| Title/description changed | No cascade | Isolated change |
+| Change Type                   | Cascade Behavior                                          | Action                             |
+| ----------------------------- | --------------------------------------------------------- | ---------------------------------- |
+| Dependency added/removed      | Find all tasks with `depends_on` or `blocks` relationship | Flag for review                    |
+| File impact added/changed     | Find all tasks touching same file                         | Check for conflicts, flag if found |
+| API impact added/changed      | Find all tasks touching same API route                    | Flag for review                    |
+| Function impact added/changed | Find all tasks touching same function                     | Flag for review                    |
+| Acceptance criteria changed   | No cascade                                                | Isolated change                    |
+| Title/description changed     | No cascade                                                | Isolated change                    |
 
 **Auto-Approve Flag:**
 
@@ -724,10 +727,10 @@ The `auto_approve_reviews` boolean on `task_lists` controls whether cascade chan
 ALTER TABLE task_lists ADD COLUMN auto_approve_reviews INTEGER NOT NULL DEFAULT 0;
 ```
 
-| Flag Value | Behavior |
-|------------|----------|
+| Flag Value    | Behavior                                             |
+| ------------- | ---------------------------------------------------- |
 | `0` (default) | Task Agent proposes changes, waits for user approval |
-| `1` | Task Agent auto-applies non-destructive changes |
+| `1`           | Task Agent auto-applies non-destructive changes      |
 
 ---
 
@@ -737,19 +740,19 @@ ALTER TABLE task_lists ADD COLUMN auto_approve_reviews INTEGER NOT NULL DEFAULT 
 
 Appendices are optional attachments that provide additional context to brief the Build Agent.
 
-| Type | Purpose | Content Type | Example |
-|------|---------|--------------|---------|
-| `prd_reference` | Links to parent PRD | reference | PRD ID |
-| `code_context` | Existing code agent should understand | inline | Function snippets |
-| `research_notes` | Background information | inline | Market data |
-| `design_spec` | UI/UX specifications | inline or reference | Figma link, component spec |
-| `gotcha_list` | Mistakes to avoid (from Knowledge Base) | inline | Injected gotchas |
-| `decision_log` | Architectural decisions | reference | ADR IDs |
-| `test_data` | Sample inputs/outputs | inline | JSON fixtures |
-| `api_contract` | OpenAPI/schema reference | inline or reference | Schema snippet |
-| `migration_script` | SQL or data migration | inline | SQL template |
-| `rollback_plan` | How to undo changes | inline | Rollback steps |
-| `custom` | User-defined | inline | Any content |
+| Type               | Purpose                                 | Content Type        | Example                    |
+| ------------------ | --------------------------------------- | ------------------- | -------------------------- |
+| `prd_reference`    | Links to parent PRD                     | reference           | PRD ID                     |
+| `code_context`     | Existing code agent should understand   | inline              | Function snippets          |
+| `research_notes`   | Background information                  | inline              | Market data                |
+| `design_spec`      | UI/UX specifications                    | inline or reference | Figma link, component spec |
+| `gotcha_list`      | Mistakes to avoid (from Knowledge Base) | inline              | Injected gotchas           |
+| `decision_log`     | Architectural decisions                 | reference           | ADR IDs                    |
+| `test_data`        | Sample inputs/outputs                   | inline              | JSON fixtures              |
+| `api_contract`     | OpenAPI/schema reference                | inline or reference | Schema snippet             |
+| `migration_script` | SQL or data migration                   | inline              | SQL template               |
+| `rollback_plan`    | How to undo changes                     | inline              | Rollback steps             |
+| `custom`           | User-defined                            | inline              | Any content                |
 
 ### 5.2 Appendix Schema
 
@@ -795,7 +798,7 @@ CREATE INDEX idx_appendix_ref ON task_appendices(reference_table, reference_id);
 
 **Code Context Appendix:**
 
-```json
+````json
 {
   "appendixType": "code_context",
   "contentType": "inline",
@@ -803,7 +806,7 @@ CREATE INDEX idx_appendix_ref ON task_appendices(reference_table, reference_id);
   "description": "Current implementation to extend",
   "content": "```typescript\n// server/services/user.ts\nexport class UserService {\n  async getUser(id: string): Promise<User | null> {\n    return db.query('SELECT * FROM users WHERE id = ?', [id]);\n  }\n}\n```"
 }
-```
+````
 
 **PRD Reference Appendix:**
 
@@ -965,7 +968,7 @@ interface PRD {
   outOfScope: string[];
 
   // Status
-  status: 'draft' | 'active' | 'completed' | 'archived';
+  status: "draft" | "active" | "completed" | "archived";
 
   // Progress
   totalTaskLists: number;
@@ -1028,10 +1031,10 @@ Users provide instructions through multiple channels. Task Agent normalizes them
  */
 interface UserInstruction {
   // Required
-  content: string;                    // What the user said/wrote
+  content: string; // What the user said/wrote
 
   // Channel metadata
-  channel: 'telegram' | 'web_ui' | 'voice' | 'api' | 'forwarded';
+  channel: "telegram" | "web_ui" | "voice" | "api" | "forwarded";
   timestamp: string;
   userId: string;
 
@@ -1044,9 +1047,9 @@ interface UserInstruction {
 
   // Attachments
   attachments?: Array<{
-    type: 'image' | 'document' | 'voice' | 'code';
-    content: string;                  // URL or base64
-    transcription?: string;           // For voice
+    type: "image" | "document" | "voice" | "code";
+    content: string; // URL or base64
+    transcription?: string; // For voice
   }>;
 
   // Conversation context
@@ -1059,7 +1062,7 @@ interface UserInstruction {
  */
 interface NormalizedInstruction {
   // Extracted intent
-  intent: string;                     // What the user wants to accomplish
+  intent: string; // What the user wants to accomplish
 
   // Inferred scope
   projectId: string;
@@ -1095,16 +1098,16 @@ Task Agent **extensively** covers all bases before creating a task. There is no 
 
 **Question Categories:**
 
-| Category | Example Questions |
-|----------|-------------------|
-| **Intent** | "You want to add user authentication - should this support OAuth, email/password, or both?" |
-| **Scope** | "Should this include password reset functionality, or is that a separate task?" |
-| **Target** | "Which users will use this - all users, or specific roles?" |
-| **Technical** | "Should we use JWT or session-based authentication?" |
-| **Dependencies** | "This requires a users table - is that already in place?" |
-| **Testing** | "What should happen if invalid credentials are provided?" |
-| **Edge Cases** | "How should we handle rate limiting for failed login attempts?" |
-| **Rollback** | "If this breaks, what's the rollback plan?" |
+| Category         | Example Questions                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| **Intent**       | "You want to add user authentication - should this support OAuth, email/password, or both?" |
+| **Scope**        | "Should this include password reset functionality, or is that a separate task?"             |
+| **Target**       | "Which users will use this - all users, or specific roles?"                                 |
+| **Technical**    | "Should we use JWT or session-based authentication?"                                        |
+| **Dependencies** | "This requires a users table - is that already in place?"                                   |
+| **Testing**      | "What should happen if invalid credentials are provided?"                                   |
+| **Edge Cases**   | "How should we handle rate limiting for failed login attempts?"                             |
+| **Rollback**     | "If this breaks, what's the rollback plan?"                                                 |
 
 **Questioning Flow:**
 
@@ -1186,14 +1189,14 @@ flowchart TB
 
 A task passes atomicity validation when ALL of the following are true:
 
-| Rule | Check | Example Pass | Example Fail |
-|------|-------|--------------|--------------|
-| **Single Concern** | Task has one logical purpose | "Add login endpoint" | "Add login and password reset" |
-| **Bounded Files** | ≤ 3 files modified (with exceptions) | `auth.ts`, `types.ts` | 10 files across codebase |
-| **Time Bounded** | ≤ 1 hour estimated effort | `small` or `medium` | `epic` |
-| **Testable** | Has at least one validation command | `tsc --noEmit` | No tests defined |
-| **Independent** | Can be validated without other pending tasks | Tests pass in isolation | Requires other task to pass |
-| **Clear Completion** | Binary pass/fail acceptance criteria | "Endpoint returns 200" | "Works well" |
+| Rule                 | Check                                        | Example Pass            | Example Fail                   |
+| -------------------- | -------------------------------------------- | ----------------------- | ------------------------------ |
+| **Single Concern**   | Task has one logical purpose                 | "Add login endpoint"    | "Add login and password reset" |
+| **Bounded Files**    | ≤ 3 files modified (with exceptions)         | `auth.ts`, `types.ts`   | 10 files across codebase       |
+| **Time Bounded**     | ≤ 1 hour estimated effort                    | `small` or `medium`     | `epic`                         |
+| **Testable**         | Has at least one validation command          | `tsc --noEmit`          | No tests defined               |
+| **Independent**      | Can be validated without other pending tasks | Tests pass in isolation | Requires other task to pass    |
+| **Clear Completion** | Binary pass/fail acceptance criteria         | "Endpoint returns 200"  | "Works well"                   |
 
 ---
 
@@ -1203,23 +1206,23 @@ A task passes atomicity validation when ALL of the following are true:
 
 Task Agent estimates effort using these calibrated buckets:
 
-| Bucket | Time Range | Typical Characteristics |
-|--------|------------|------------------------|
-| `trivial` | < 15 min | Single-line change, config tweak, typo fix |
-| `small` | 15-30 min | Single function, simple endpoint, minor feature |
-| `medium` | 30-60 min | Multiple functions, moderate endpoint, standard feature |
-| `large` | 1-4 hours | Multiple files, complex feature, significant change |
-| `epic` | > 4 hours | **Should be decomposed** - too large for single task |
+| Bucket    | Time Range | Typical Characteristics                                 |
+| --------- | ---------- | ------------------------------------------------------- |
+| `trivial` | < 15 min   | Single-line change, config tweak, typo fix              |
+| `small`   | 15-30 min  | Single function, simple endpoint, minor feature         |
+| `medium`  | 30-60 min  | Multiple functions, moderate endpoint, standard feature |
+| `large`   | 1-4 hours  | Multiple files, complex feature, significant change     |
+| `epic`    | > 4 hours  | **Should be decomposed** - too large for single task    |
 
 **Calibration Examples:**
 
-| Task | Bucket | Rationale |
-|------|--------|-----------|
-| "Fix typo in error message" | `trivial` | One string change |
-| "Add validation to email field" | `small` | One function, one test |
-| "Create user authentication endpoint" | `medium` | Route + service + tests |
-| "Implement WebSocket real-time updates" | `large` | Multiple files, complex testing |
-| "Build entire notification system" | `epic` | **Decompose** into smaller tasks |
+| Task                                    | Bucket    | Rationale                        |
+| --------------------------------------- | --------- | -------------------------------- |
+| "Fix typo in error message"             | `trivial` | One string change                |
+| "Add validation to email field"         | `small`   | One function, one test           |
+| "Create user authentication endpoint"   | `medium`  | Route + service + tests          |
+| "Implement WebSocket real-time updates" | `large`   | Multiple files, complex testing  |
+| "Build entire notification system"      | `epic`    | **Decompose** into smaller tasks |
 
 ### 8.2 Priority Calculation
 
@@ -1247,16 +1250,28 @@ function calculatePriority(task: Task, context: TaskContext): number {
 
   // Factor 4: Risk level
   switch (task.riskLevel) {
-    case 'high': score += 5; break;   // Handle risky items sooner
-    case 'medium': score += 0; break;
-    case 'low': score -= 5; break;    // Can defer low-risk
+    case "high":
+      score += 5;
+      break; // Handle risky items sooner
+    case "medium":
+      score += 0;
+      break;
+    case "low":
+      score -= 5;
+      break; // Can defer low-risk
   }
 
   // Factor 5: Category urgency
   switch (task.category) {
-    case 'security': score += 25; break;
-    case 'bug': score += 15; break;
-    case 'feature': score += 5; break;
+    case "security":
+      score += 25;
+      break;
+    case "bug":
+      score += 15;
+      break;
+    case "feature":
+      score += 5;
+      break;
     // Other categories: no adjustment
   }
 
@@ -1270,13 +1285,13 @@ Task Agent must use consistent estimation across all tasks:
 
 **Effort Estimation Inputs:**
 
-| Input | Weight | Source |
-|-------|--------|--------|
-| File count | High | Impact analysis |
-| Function count | Medium | Impact analysis |
-| Historical similar tasks | High | Knowledge Base patterns |
-| Category complexity | Medium | Category defaults |
-| Dependency count | Low | Relationship analysis |
+| Input                    | Weight | Source                  |
+| ------------------------ | ------ | ----------------------- |
+| File count               | High   | Impact analysis         |
+| Function count           | Medium | Impact analysis         |
+| Historical similar tasks | High   | Knowledge Base patterns |
+| Category complexity      | Medium | Category defaults       |
+| Dependency count         | Low    | Relationship analysis   |
 
 **Effort Estimation Formula:**
 
@@ -1286,37 +1301,37 @@ function estimateEffort(task: Task, impacts: TaskImpact[]): EffortBucket {
   let score = 0;
 
   // File impacts (most significant)
-  const fileImpacts = impacts.filter(i => i.impactType === 'file');
-  score += fileImpacts.filter(i => i.operation === 'CREATE').length * 15;
-  score += fileImpacts.filter(i => i.operation === 'UPDATE').length * 10;
+  const fileImpacts = impacts.filter((i) => i.impactType === "file");
+  score += fileImpacts.filter((i) => i.operation === "CREATE").length * 15;
+  score += fileImpacts.filter((i) => i.operation === "UPDATE").length * 10;
 
   // Function impacts
-  const fnImpacts = impacts.filter(i => i.impactType === 'function');
-  score += fnImpacts.filter(i => i.operation === 'CREATE').length * 10;
-  score += fnImpacts.filter(i => i.operation === 'UPDATE').length * 5;
+  const fnImpacts = impacts.filter((i) => i.impactType === "function");
+  score += fnImpacts.filter((i) => i.operation === "CREATE").length * 10;
+  score += fnImpacts.filter((i) => i.operation === "UPDATE").length * 5;
 
   // API impacts (testing overhead)
-  const apiImpacts = impacts.filter(i => i.impactType === 'api');
+  const apiImpacts = impacts.filter((i) => i.impactType === "api");
   score += apiImpacts.length * 8;
 
   // Database impacts (migration complexity)
-  const dbImpacts = impacts.filter(i => i.impactType === 'database');
+  const dbImpacts = impacts.filter((i) => i.impactType === "database");
   score += dbImpacts.length * 12;
 
   // Historical adjustment
   const similar = findSimilarCompletedTasks(task);
   if (similar.length > 0) {
-    const avgActualMinutes = average(similar.map(t => t.actualEffortMinutes));
+    const avgActualMinutes = average(similar.map((t) => t.actualEffortMinutes));
     // Adjust towards historical average
     score = (score + avgActualMinutes) / 2;
   }
 
   // Map score to bucket
-  if (score < 15) return 'trivial';
-  if (score < 30) return 'small';
-  if (score < 60) return 'medium';
-  if (score < 240) return 'large';
-  return 'epic'; // Should decompose
+  if (score < 15) return "trivial";
+  if (score < 30) return "small";
+  if (score < 60) return "medium";
+  if (score < 240) return "large";
+  return "epic"; // Should decompose
 }
 ```
 
@@ -1359,30 +1374,30 @@ flowchart TB
 
 ### 9.2 Test Requirements by Category
 
-| Category | Codebase Tests | API Tests | UI Tests |
-|----------|---------------|-----------|----------|
-| `feature` (backend) | Required | Required | - |
-| `feature` (frontend) | Required | - | Required |
-| `feature` (fullstack) | Required | Required | Required |
-| `bug` | Required | If API affected | If UI affected |
-| `infrastructure` | Required | - | - |
-| `migration` | Required | - | - |
-| `security` | Required | Required | Optional |
-| `performance` | Required | Optional | Optional |
+| Category              | Codebase Tests | API Tests       | UI Tests       |
+| --------------------- | -------------- | --------------- | -------------- |
+| `feature` (backend)   | Required       | Required        | -              |
+| `feature` (frontend)  | Required       | -               | Required       |
+| `feature` (fullstack) | Required       | Required        | Required       |
+| `bug`                 | Required       | If API affected | If UI affected |
+| `infrastructure`      | Required       | -               | -              |
+| `migration`           | Required       | -               | -              |
+| `security`            | Required       | Required        | Optional       |
+| `performance`         | Required       | Optional        | Optional       |
 
 ### 9.3 Test Schema
 
 ```typescript
 interface CodebaseTest {
-  command: string;          // e.g., "tsc --noEmit"
-  expected: string;         // e.g., "exit code 0"
-  timeout?: number;         // ms, default 30000
+  command: string; // e.g., "tsc --noEmit"
+  expected: string; // e.g., "exit code 0"
+  timeout?: number; // ms, default 30000
   description?: string;
 }
 
 interface ApiTest {
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  path: string;             // e.g., "/api/auth/login"
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  path: string; // e.g., "/api/auth/login"
   headers?: Record<string, string>;
   body?: unknown;
   expectedStatus: number;
@@ -1393,12 +1408,12 @@ interface ApiTest {
 }
 
 interface UiTest {
-  action: 'navigate' | 'click' | 'fill' | 'assert' | 'screenshot';
-  selector?: string;        // CSS selector
-  value?: string;           // For 'fill' action
-  url?: string;             // For 'navigate' action
+  action: "navigate" | "click" | "fill" | "assert" | "screenshot";
+  selector?: string; // CSS selector
+  value?: string; // For 'fill' action
+  url?: string; // For 'navigate' action
   assertion?: {
-    type: 'visible' | 'text' | 'count' | 'attribute';
+    type: "visible" | "text" | "count" | "attribute";
     expected: string | number;
   };
   timeout?: number;
@@ -1410,13 +1425,13 @@ interface UiTest {
 
 Task Agent maps acceptance criteria to tests:
 
-| Criteria Pattern | Generated Test Type | Example |
-|-----------------|---------------------|---------|
-| "Endpoint returns..." | API test | `{ method: 'GET', path: '/api/users', expectedStatus: 200 }` |
-| "User can click..." | UI test | `{ action: 'click', selector: '#submit-btn' }` |
-| "No TypeScript errors" | Codebase test | `{ command: 'tsc --noEmit', expected: 'exit code 0' }` |
-| "Function returns..." | Codebase test (unit) | `{ command: 'npm test -- --grep "functionName"', expected: 'pass' }` |
-| "Page displays..." | UI test | `{ action: 'assert', selector: '.message', assertion: { type: 'visible' } }` |
+| Criteria Pattern       | Generated Test Type  | Example                                                                      |
+| ---------------------- | -------------------- | ---------------------------------------------------------------------------- |
+| "Endpoint returns..."  | API test             | `{ method: 'GET', path: '/api/users', expectedStatus: 200 }`                 |
+| "User can click..."    | UI test              | `{ action: 'click', selector: '#submit-btn' }`                               |
+| "No TypeScript errors" | Codebase test        | `{ command: 'tsc --noEmit', expected: 'exit code 0' }`                       |
+| "Function returns..."  | Codebase test (unit) | `{ command: 'npm test -- --grep "functionName"', expected: 'pass' }`         |
+| "Page displays..."     | UI test              | `{ action: 'assert', selector: '.message', assertion: { type: 'visible' } }` |
 
 ---
 
@@ -1433,12 +1448,12 @@ interface EffortEstimationInput {
     acceptanceCriteria: AcceptanceCriterion[];
   };
   impacts: TaskImpact[];
-  historicalSimilar: Task[];  // Past completed tasks
+  historicalSimilar: Task[]; // Past completed tasks
 }
 
 interface EffortEstimationOutput {
   bucket: EffortBucket;
-  confidenceScore: number;  // 0.0 - 1.0
+  confidenceScore: number; // 0.0 - 1.0
   reasoning: string;
   shouldDecompose: boolean;
   decompositionSuggestions?: string[];
@@ -1457,13 +1472,13 @@ interface ConflictDetectionInput {
 
 interface ConflictDetectionOutput {
   hasConflict: boolean;
-  conflictType?: 'file' | 'api' | 'function' | 'database' | 'type';
+  conflictType?: "file" | "api" | "function" | "database" | "type";
   conflictDetails?: {
     targetPath: string;
     targetName?: string;
     operationA: CrudOperation;
     operationB: CrudOperation;
-    severity: 'blocking' | 'warning';
+    severity: "blocking" | "warning";
   }[];
   canRunParallel: boolean;
   resolutionSuggestion?: string;
@@ -1481,9 +1496,15 @@ interface AtomicityCheckInput {
 interface AtomicityCheckOutput {
   isAtomic: boolean;
   violations: Array<{
-    rule: 'single_concern' | 'bounded_files' | 'time_bounded' | 'testable' | 'independent' | 'clear_completion';
+    rule:
+      | "single_concern"
+      | "bounded_files"
+      | "time_bounded"
+      | "testable"
+      | "independent"
+      | "clear_completion";
     description: string;
-    severity: 'error' | 'warning';
+    severity: "error" | "warning";
   }>;
   decompositionRequired: boolean;
   suggestedSubtasks?: Array<{
@@ -1509,15 +1530,19 @@ interface CascadeTriggerInput {
 interface CascadeTriggerOutput {
   tasksToFlag: Array<{
     taskId: string;
-    reason: 'dependency_change' | 'file_conflict' | 'api_conflict' | 'function_conflict';
+    reason:
+      | "dependency_change"
+      | "file_conflict"
+      | "api_conflict"
+      | "function_conflict";
     details: string;
   }>;
   proposedChanges: Array<{
     taskId: string;
-    changeType: 'update_dependency' | 'update_impact' | 'flag_conflict';
+    changeType: "update_dependency" | "update_impact" | "flag_conflict";
     proposedEdit: Partial<Task>;
   }>;
-  autoApproveEligible: boolean;  // Based on task list setting
+  autoApproveEligible: boolean; // Based on task list setting
 }
 ```
 
@@ -1530,8 +1555,8 @@ interface GotchaInjectionInput {
   knowledgeBaseQuery: {
     filePatterns: string[];
     actionTypes: CrudOperation[];
-    minConfidence: number;  // Default 0.6
-    limit: number;          // Default 5
+    minConfidence: number; // Default 0.6
+    limit: number; // Default 5
   };
 }
 
@@ -1540,7 +1565,7 @@ interface GotchaInjectionOutput {
     id: string;
     content: string;
     relevanceScore: number;
-    source: 'file_pattern' | 'action_type' | 'category' | 'historical';
+    source: "file_pattern" | "action_type" | "category" | "historical";
   }>;
   appendixCreated: boolean;
   appendixId?: string;
@@ -1560,17 +1585,19 @@ interface GotchaInjectionOutput {
 **PRD Title:** {prd_title}
 
 ### Relevant Success Criteria
+
 - {criterion_1}
 - {criterion_2}
 
 ### Constraints from PRD
+
 - {constraint_1}
 - {constraint_2}
 ```
 
 ### A.2 Code Context Template
 
-```markdown
+````markdown
 ## Code Context
 
 ### Existing Implementation
@@ -1580,14 +1607,18 @@ interface GotchaInjectionOutput {
 ```{language}
 {code_snippet}
 ```
+````
 
 ### Integration Points
+
 - {integration_point_1}
 - {integration_point_2}
 
 ### Notes
+
 {additional_context}
-```
+
+````
 
 ### A.3 Gotcha List Template
 
@@ -1609,11 +1640,11 @@ interface GotchaInjectionOutput {
    - Pattern: `{file_pattern}`
    - Action: `{action_type}`
    - Detail: {gotcha_content}
-```
+````
 
 ### A.4 Test Data Template
 
-```markdown
+````markdown
 ## Test Data
 
 ### Input Fixtures
@@ -1631,15 +1662,17 @@ interface GotchaInjectionOutput {
   }
 }
 ```
+````
 
 ### Expected Outputs
 
-| Input | Expected Output | Notes |
-|-------|-----------------|-------|
-| validInput | {expected} | Happy path |
-| invalidInput | Error: {message} | Validation error |
-| edgeCase | {expected} | Boundary handling |
-```
+| Input        | Expected Output  | Notes             |
+| ------------ | ---------------- | ----------------- |
+| validInput   | {expected}       | Happy path        |
+| invalidInput | Error: {message} | Validation error  |
+| edgeCase     | {expected}       | Boundary handling |
+
+````
 
 ### A.5 Rollback Plan Template
 
@@ -1652,9 +1685,10 @@ interface GotchaInjectionOutput {
    ```sql
    -- Revert migration
    {rollback_sql}
-   ```
+````
 
 2. **File Revert**
+
    ```bash
    git checkout HEAD~1 -- {file_paths}
    ```
@@ -1665,8 +1699,10 @@ interface GotchaInjectionOutput {
    ```
 
 ### Dependencies to Notify
+
 - Task {related_task_id}: May need re-execution
-```
+
+````
 
 ---
 
@@ -1725,7 +1761,7 @@ CREATE TABLE task_impacts (
 CREATE INDEX idx_impacts_task ON task_impacts(task_id);
 CREATE INDEX idx_impacts_target ON task_impacts(target_path);
 CREATE INDEX idx_impacts_type_op ON task_impacts(impact_type, operation);
-```
+````
 
 ### Migration: Task Appendices Table
 
@@ -2034,9 +2070,10 @@ This checklist covers all implementation work required to realize the task syste
 
 ---
 
-*This document is the canonical reference for task structure in the Idea Incubator system. All agents and developers should reference this specification when creating, consuming, or modifying tasks.*
+_This document is the canonical reference for task structure in the Idea Incubator system. All agents and developers should reference this specification when creating, consuming, or modifying tasks._
 
 **Related Documents:**
+
 - [task-data-model.md](./task-data-model.md) - Database schema details
 - [task-agent-arch.md](./task-agent-arch.md) - Task Agent architecture
 - [AGENT-SPECIFICATIONS-PIPELINE.md](./AGENT-SPECIFICATIONS-PIPELINE.md) - Agent specifications

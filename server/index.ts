@@ -1,5 +1,5 @@
 // Server entry point
-import 'dotenv/config';
-import { startServer } from './api.js';
+import "dotenv/config";
+import { startServer } from "./api.js";
 
 startServer();

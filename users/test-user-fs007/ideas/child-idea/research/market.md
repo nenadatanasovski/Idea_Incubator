@@ -12,6 +12,7 @@ updated: 2026-01-06T03:56:38.753Z
 - [ ] Defined: No
 
 ## Market Size
+
 <!-- Agent fills after market sizing analysis -->
 
 - TAM (Total Addressable Market):
@@ -19,13 +20,16 @@ updated: 2026-01-06T03:56:38.753Z
 - SOM (Serviceable Obtainable Market):
 
 ## Trends
+
 <!-- Agent fills after trend analysis -->
 
 1. Trend 1
 2. Trend 2
 
 ## Timing
+
 <!-- Agent fills after timing assessment -->
 
 ## Geographic Focus
+
 <!-- Agent fills after geographic analysis -->

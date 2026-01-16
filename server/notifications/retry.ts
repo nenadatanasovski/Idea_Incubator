@@ -6,12 +6,16 @@ import {
   getFailedDeliveries,
   getNotificationById,
   markDeliveryForRetry,
-  updateDeliveryStatus
-} from '../../database/db.js';
-import { NotificationChannel, Notification, NotificationDelivery } from '../../types/notification.js';
-import { inAppChannel } from './channels/in-app.js';
-import { emailChannel } from './channels/email.js';
-import { telegramChannel } from './channels/telegram.js';
+  updateDeliveryStatus,
+} from "../../database/db.js";
+import {
+  NotificationChannel,
+  Notification,
+  NotificationDelivery,
+} from "../../types/notification.js";
+import { inAppChannel } from "./channels/in-app.js";
+import { emailChannel } from "./channels/email.js";
+import { telegramChannel } from "./channels/telegram.js";
 
 // Exponential backoff intervals in minutes
 const BACKOFF_MINUTES = [1, 5, 15, 60];
@@ -33,7 +37,7 @@ class RetryProcessor {
   private channels: Record<NotificationChannel, RetryableChannel> = {
     in_app: inAppChannel,
     email: emailChannel,
-    telegram: telegramChannel
+    telegram: telegramChannel,
   };
 
   /**
@@ -42,7 +46,7 @@ class RetryProcessor {
    */
   start(intervalMs = 60000): void {
     if (this.intervalId) {
-      console.warn('[RetryProcessor] Already running');
+      console.warn("[RetryProcessor] Already running");
       return;
     }
 
@@ -60,7 +64,7 @@ class RetryProcessor {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log('[RetryProcessor] Stopped');
+      console.log("[RetryProcessor] Stopped");
     }
   }
 
@@ -99,13 +103,15 @@ class RetryProcessor {
         return;
       }
 
-      console.log(`[RetryProcessor] Processing ${deliveries.length} failed deliveries`);
+      console.log(
+        `[RetryProcessor] Processing ${deliveries.length} failed deliveries`,
+      );
 
       for (const delivery of deliveries) {
         await this.retryDelivery(delivery);
       }
     } catch (error) {
-      console.error('[RetryProcessor] Error processing retries:', error);
+      console.error("[RetryProcessor] Error processing retries:", error);
     } finally {
       this.isProcessing = false;
     }
@@ -124,14 +130,22 @@ class RetryProcessor {
     const notification = await getNotificationById(delivery.notificationId);
     if (!notification) {
       // Notification was deleted, mark delivery as skipped
-      await updateDeliveryStatus(delivery.id, 'skipped', 'Notification deleted');
+      await updateDeliveryStatus(
+        delivery.id,
+        "skipped",
+        "Notification deleted",
+      );
       return;
     }
 
     // Get the channel
     const channel = this.channels[delivery.channel as NotificationChannel];
     if (!channel) {
-      await updateDeliveryStatus(delivery.id, 'failed', `Unknown channel: ${delivery.channel}`);
+      await updateDeliveryStatus(
+        delivery.id,
+        "failed",
+        `Unknown channel: ${delivery.channel}`,
+      );
       return;
     }
 
@@ -141,27 +155,28 @@ class RetryProcessor {
 
       // Success! The channel will have updated the delivery status
       console.log(
-        `[RetryProcessor] Retry successful for delivery ${delivery.id} (attempt ${delivery.retryCount + 1})`
+        `[RetryProcessor] Retry successful for delivery ${delivery.id} (attempt ${delivery.retryCount + 1})`,
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       if (delivery.retryCount >= MAX_RETRIES - 1) {
         // Max retries exceeded, mark as permanently failed
         await updateDeliveryStatus(
           delivery.id,
-          'failed',
-          `Max retries (${MAX_RETRIES}) exceeded: ${errorMessage}`
+          "failed",
+          `Max retries (${MAX_RETRIES}) exceeded: ${errorMessage}`,
         );
         console.warn(
-          `[RetryProcessor] Delivery ${delivery.id} permanently failed after ${MAX_RETRIES} attempts`
+          `[RetryProcessor] Delivery ${delivery.id} permanently failed after ${MAX_RETRIES} attempts`,
         );
       } else {
         // Schedule next retry
         const nextRetry = this.calculateNextRetry(delivery.retryCount + 1);
         await markDeliveryForRetry(delivery.id, nextRetry.toISOString());
         console.log(
-          `[RetryProcessor] Delivery ${delivery.id} scheduled for retry at ${nextRetry.toISOString()}`
+          `[RetryProcessor] Delivery ${delivery.id} scheduled for retry at ${nextRetry.toISOString()}`,
         );
       }
     }
@@ -180,7 +195,7 @@ class RetryProcessor {
   getStats(): { isRunning: boolean; isProcessing: boolean } {
     return {
       isRunning: this.isRunning(),
-      isProcessing: this.isProcessing
+      isProcessing: this.isProcessing,
     };
   }
 }

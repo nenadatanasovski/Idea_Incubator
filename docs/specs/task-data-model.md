@@ -210,26 +210,26 @@ CREATE TABLE display_id_sequences (
 ```typescript
 // Task identity with human-readable ID
 export interface TaskIdentity {
-  id: string;           // UUID
-  displayId: string;    // TU-PROJ-FEA-042
+  id: string; // UUID
+  displayId: string; // TU-PROJ-FEA-042
 }
 
 // Task categories
-export type TaskCategory = 'feature' | 'bug' | 'task' | 'story' | 'epic';
+export type TaskCategory = "feature" | "bug" | "task" | "story" | "epic";
 
 // Task status values
 export type TaskStatus =
-  | 'pending'
-  | 'evaluating'
-  | 'ready'
-  | 'in_progress'
-  | 'completed'
-  | 'failed'
-  | 'skipped'
-  | 'blocked';
+  | "pending"
+  | "evaluating"
+  | "ready"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "skipped"
+  | "blocked";
 
 // Queue types
-export type TaskQueue = 'evaluation' | null;
+export type TaskQueue = "evaluation" | null;
 
 // Full task interface
 export interface Task extends TaskIdentity {
@@ -240,11 +240,11 @@ export interface Task extends TaskIdentity {
   queue: TaskQueue;
   taskListId?: string;
   projectId?: string;
-  priority: 'P0' | 'P1' | 'P2' | 'P3';
-  effort: 'trivial' | 'small' | 'medium' | 'large' | 'epic';
+  priority: "P0" | "P1" | "P2" | "P3";
+  effort: "trivial" | "small" | "medium" | "large" | "epic";
   phase: number;
   position: number;
-  owner: 'human' | 'build_agent' | 'task_agent';
+  owner: "human" | "build_agent" | "task_agent";
   assignedAgentId?: string;
   createdAt: string;
   updatedAt: string;
@@ -256,15 +256,19 @@ export interface Task extends TaskIdentity {
 ### File Impact Types
 
 ```typescript
-export type FileOperation = 'CREATE' | 'UPDATE' | 'DELETE' | 'READ';
-export type ImpactSource = 'ai_estimate' | 'pattern_match' | 'user_declared' | 'validated';
+export type FileOperation = "CREATE" | "UPDATE" | "DELETE" | "READ";
+export type ImpactSource =
+  | "ai_estimate"
+  | "pattern_match"
+  | "user_declared"
+  | "validated";
 
 export interface FileImpact {
   id: string;
   taskId: string;
   filePath: string;
   operation: FileOperation;
-  confidence: number;  // 0.0 to 1.0
+  confidence: number; // 0.0 to 1.0
   source: ImpactSource;
   createdAt: string;
   updatedAt: string;
@@ -276,7 +280,7 @@ export interface FileConflict {
   taskAOperation: FileOperation;
   taskBId: string;
   taskBOperation: FileOperation;
-  conflictType: 'write-write' | 'write-delete' | 'delete-read';
+  conflictType: "write-write" | "write-delete" | "delete-read";
 }
 ```
 
@@ -297,7 +301,7 @@ export interface ExecutionWave {
   id: string;
   taskListId: string;
   waveNumber: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  status: "pending" | "in_progress" | "completed" | "failed";
   taskCount: number;
   completedCount: number;
   failedCount: number;
@@ -310,7 +314,7 @@ export interface BuildAgentInstance {
   taskListId?: string;
   taskId?: string;
   waveId?: string;
-  status: 'spawning' | 'running' | 'completing' | 'terminated' | 'failed';
+  status: "spawning" | "running" | "completing" | "terminated" | "failed";
   processId?: string;
   startedAt: string;
   lastHeartbeatAt?: string;
@@ -324,9 +328,9 @@ export interface BuildAgentInstance {
 ```typescript
 export interface GroupingSuggestion {
   id: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'expired' | 'superseded';
+  status: "pending" | "accepted" | "rejected" | "expired" | "superseded";
   suggestedName: string;
-  suggestedTasks: string[];  // Task IDs
+  suggestedTasks: string[]; // Task IDs
   groupingReason: string;
   similarityScore?: number;
   projectId?: string;
@@ -397,18 +401,18 @@ export interface GroupingSuggestion {
 
 ## Conflict Detection Matrix
 
-| Task A Operation | Task B Operation | Can Parallel? | Reason |
-|-----------------|------------------|---------------|--------|
-| CREATE | CREATE | NO | Same file cannot be created twice |
-| CREATE | UPDATE | NO | File must exist for update |
-| CREATE | DELETE | NO | Race condition |
-| CREATE | READ | YES | Safe |
-| UPDATE | UPDATE | NO | Concurrent modification |
-| UPDATE | DELETE | NO | File may not exist after delete |
-| UPDATE | READ | YES | Read-before-write is safe |
-| DELETE | DELETE | NO | Double delete |
-| DELETE | READ | NO | File may not exist |
-| READ | READ | YES | Safe |
+| Task A Operation | Task B Operation | Can Parallel? | Reason                            |
+| ---------------- | ---------------- | ------------- | --------------------------------- |
+| CREATE           | CREATE           | NO            | Same file cannot be created twice |
+| CREATE           | UPDATE           | NO            | File must exist for update        |
+| CREATE           | DELETE           | NO            | Race condition                    |
+| CREATE           | READ             | YES           | Safe                              |
+| UPDATE           | UPDATE           | NO            | Concurrent modification           |
+| UPDATE           | DELETE           | NO            | File may not exist after delete   |
+| UPDATE           | READ             | YES           | Read-before-write is safe         |
+| DELETE           | DELETE           | NO            | Double delete                     |
+| DELETE           | READ             | NO            | File may not exist                |
+| READ             | READ             | YES           | Safe                              |
 
 ---
 

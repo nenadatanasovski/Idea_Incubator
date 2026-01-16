@@ -12,6 +12,7 @@ queries:
   - POD t-shirt business competition landscape
 identifier: research_print_on_demand_t-sh
 ---
+
 ## Print on Demand T-Shirt Market Australia 2024 - Research Summary
 
 ### Key Findings
@@ -51,7 +52,6 @@ identifier: research_print_on_demand_t-sh
 3. **Eco-Conscious Products**: Growing demand for sustainable, one-of-a-kind items aligns with POD's on-demand nature (less waste)
 4. **Local Pride Angle**: Partner with local suppliers like OGO (AS Colour, Sportage brands) to emphasize "Made in Melbourne" quality
 5. **Fast Turnaround Niche**: Same-day printing capabilities (The Print Bar) could serve time-sensitive corporate/event markets
-
 
 ---
 

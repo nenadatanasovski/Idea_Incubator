@@ -12,6 +12,7 @@ queries:
   - devbox vs nix vs docker dev environments comparison
 identifier: research_developer_cli_enviro
 ---
+
 ## Key Findings
 
 1. **mise is emerging as the dominant CLI environment manager** - A Rust-based tool that combines version management for multiple languages with environment variables. It's replacing tools like direnv and nvm/pyenv/rbenv with a single unified solution, praised for speed and intuitive commands.
@@ -20,7 +21,7 @@ identifier: research_developer_cli_enviro
 
 3. **Dotfile management is evolving** - Tools like **chezmoi** and **GNU Stow** are becoming standard for syncing development configurations across machines, enabling developers to maintain consistent environments everywhere.
 
-4. **Terminal multiplexers and TUIs are standard** - tmux for session management and lazy* tools (lazygit, lazydocker) for simplified Git/Docker workflows are widely adopted, reducing CLI verbosity.
+4. **Terminal multiplexers and TUIs are standard** - tmux for session management and lazy\* tools (lazygit, lazydocker) for simplified Git/Docker workflows are widely adopted, reducing CLI verbosity.
 
 5. **Internal Developer Platforms (IDPs) are expanding** - Organizations are building platforms that offer self-service environment provisioning via CLI, UI, or API, removing bottlenecks for development teams.
 
@@ -50,7 +51,6 @@ identifier: research_developer_cli_enviro
 - [My Dev Environment CLI Tools - DEV Community](https://dev.to/pkorsch/my-dev-environment-cli-tools-4eka)
 - [Useful Developer Tools CLI Edition | HARIL](https://haril.dev/en/blog/2025/03/30/Best-Tools-of-2025-CLI)
 - [13 CLI Tools Every Developer Should Master in 2025](https://itsfoss.gitlab.io/post/13-cli-tools-every-developer-should-master-in-2025/)
-
 
 ---
 

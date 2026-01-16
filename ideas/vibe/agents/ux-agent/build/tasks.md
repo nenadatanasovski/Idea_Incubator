@@ -5,6 +5,7 @@
 ### Phase: Database
 
 #### T-UX-001: Create database migration
+
 ```yaml
 id: T-UX-001
 phase: database
@@ -28,6 +29,7 @@ depends_on: []
 ### Phase: Types
 
 #### T-UX-002: Create TypeScript types
+
 ```yaml
 id: T-UX-002
 phase: types
@@ -54,6 +56,7 @@ depends_on: [T-UX-001]
 ### Phase: Implementation
 
 #### T-UX-003: Create MCP bridge
+
 ```yaml
 id: T-UX-003
 phase: implementation
@@ -85,6 +88,7 @@ depends_on: [T-UX-002]
 ```
 
 #### T-UX-004: Create screenshot manager
+
 ```yaml
 id: T-UX-004
 phase: implementation
@@ -112,6 +116,7 @@ depends_on: [T-UX-003]
 ```
 
 #### T-UX-005: Create journey definitions
+
 ```yaml
 id: T-UX-005
 phase: implementation
@@ -135,6 +140,7 @@ depends_on: [T-UX-002]
 ```
 
 #### T-UX-006: Create journey runner
+
 ```yaml
 id: T-UX-006
 phase: implementation
@@ -166,6 +172,7 @@ depends_on: [T-UX-003, T-UX-004, T-UX-005]
 ```
 
 #### T-UX-007: Create accessibility checker
+
 ```yaml
 id: T-UX-007
 phase: implementation
@@ -193,6 +200,7 @@ depends_on: [T-UX-003]
 ```
 
 #### T-UX-008: Create database operations
+
 ```yaml
 id: T-UX-008
 phase: implementation
@@ -222,6 +230,7 @@ depends_on: [T-UX-001, T-UX-002]
 ```
 
 #### T-UX-009: Create orchestrator
+
 ```yaml
 id: T-UX-009
 phase: implementation
@@ -246,6 +255,7 @@ depends_on: [T-UX-006, T-UX-007, T-UX-008]
 ```
 
 #### T-UX-010: Create index exports
+
 ```yaml
 id: T-UX-010
 phase: implementation
@@ -269,6 +279,7 @@ depends_on: [T-UX-009]
 ### Phase: API
 
 #### T-UX-011: Create API routes
+
 ```yaml
 id: T-UX-011
 phase: api
@@ -300,6 +311,7 @@ depends_on: [T-UX-010]
 ### Phase: Tests
 
 #### T-UX-012: Create unit tests
+
 ```yaml
 id: T-UX-012
 phase: tests

@@ -1,26 +1,26 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 
 // Event types matching server broadcast.ts
 export type DebateEventType =
-  | 'connected'
-  | 'debate:started'
-  | 'debate:criterion:start'     // Marks start of debate for a specific criterion
-  | 'debate:round:started'
-  | 'evaluator:initial'          // Initial assessment (before debate)
-  | 'evaluator:speaking'         // DEPRECATED: Use evaluator:initial or evaluator:defense
-  | 'evaluator:defense'          // Defense against red team (during debate)
-  | 'redteam:challenge'
-  | 'arbiter:verdict'
-  | 'debate:round:complete'
-  | 'debate:criterion:complete'  // Marks end of debate for a specific criterion
-  | 'debate:criterion:skipped'   // Criterion debate skipped (budget/error)
-  | 'budget:status'              // Budget update event
-  | 'api:call'                   // Individual API call log
-  | 'debate:complete'
-  | 'synthesis:started'
-  | 'synthesis:complete'
-  | 'error'
-  | 'pong';
+  | "connected"
+  | "debate:started"
+  | "debate:criterion:start" // Marks start of debate for a specific criterion
+  | "debate:round:started"
+  | "evaluator:initial" // Initial assessment (before debate)
+  | "evaluator:speaking" // DEPRECATED: Use evaluator:initial or evaluator:defense
+  | "evaluator:defense" // Defense against red team (during debate)
+  | "redteam:challenge"
+  | "arbiter:verdict"
+  | "debate:round:complete"
+  | "debate:criterion:complete" // Marks end of debate for a specific criterion
+  | "debate:criterion:skipped" // Criterion debate skipped (budget/error)
+  | "budget:status" // Budget update event
+  | "api:call" // Individual API call log
+  | "debate:complete"
+  | "synthesis:started"
+  | "synthesis:complete"
+  | "error"
+  | "pong";
 
 export interface DebateEvent {
   type: DebateEventType;
@@ -49,7 +49,13 @@ export interface DebateStreamState {
   events: DebateEvent[];
   currentRound: number;
   currentCriterion: string | null;
-  phase: 'idle' | 'evaluating' | 'challenging' | 'judging' | 'synthesizing' | 'complete';
+  phase:
+    | "idle"
+    | "evaluating"
+    | "challenging"
+    | "judging"
+    | "synthesizing"
+    | "complete";
 }
 
 interface UseDebateStreamOptions {
@@ -65,10 +71,10 @@ const getWsUrl = () => {
   }
   // In development, Vite runs on 5173, backend on 3001 - connect directly to backend
   if (import.meta.env.DEV) {
-    return 'ws://localhost:3001';
+    return "ws://localhost:3001";
   }
   // In production, WebSocket is on the same host
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${protocol}//${window.location.host}`;
 };
 
@@ -84,7 +90,7 @@ export function useDebateStream({
     events: [],
     currentRound: 0,
     currentCriterion: null,
-    phase: 'idle',
+    phase: "idle",
   });
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -104,67 +110,72 @@ export function useDebateStream({
         events: [...prev.events.slice(-maxEvents + 1), event],
       }));
     },
-    [maxEvents]
+    [maxEvents],
   );
 
-  const updatePhase = useCallback((type: DebateEventType, data: DebateEvent['data']) => {
-    setState((prev) => {
-      let phase = prev.phase;
-      let currentRound = prev.currentRound;
-      let currentCriterion = prev.currentCriterion;
+  const updatePhase = useCallback(
+    (type: DebateEventType, data: DebateEvent["data"]) => {
+      setState((prev) => {
+        let phase = prev.phase;
+        let currentRound = prev.currentRound;
+        let currentCriterion = prev.currentCriterion;
 
-      switch (type) {
-        case 'debate:started':
-          phase = 'idle';
-          currentRound = 0;
-          break;
-        case 'debate:criterion:start':
-          // New criterion debate starting
-          currentCriterion = data.criterion || null;
-          phase = 'evaluating';
-          break;
-        case 'debate:round:started':
-          currentRound = data.roundNumber || prev.currentRound + 1;
-          currentCriterion = data.criterion || prev.currentCriterion;
-          break;
-        case 'evaluator:initial':
-        case 'evaluator:speaking':
-          phase = 'evaluating';
-          break;
-        case 'redteam:challenge':
-          phase = 'challenging';
-          currentCriterion = data.criterion || prev.currentCriterion;
-          break;
-        case 'evaluator:defense':
-          phase = 'evaluating';
-          break;
-        case 'arbiter:verdict':
-          phase = 'judging';
-          break;
-        case 'debate:round:complete':
-          phase = 'idle';
-          break;
-        case 'debate:criterion:complete':
-          // Criterion debate complete, stay idle until next
-          phase = 'idle';
-          break;
-        case 'synthesis:started':
-          phase = 'synthesizing';
-          break;
-        case 'synthesis:complete':
-        case 'debate:complete':
-          phase = 'complete';
-          break;
-      }
+        switch (type) {
+          case "debate:started":
+            phase = "idle";
+            currentRound = 0;
+            break;
+          case "debate:criterion:start":
+            // New criterion debate starting
+            currentCriterion = data.criterion || null;
+            phase = "evaluating";
+            break;
+          case "debate:round:started":
+            currentRound = data.roundNumber || prev.currentRound + 1;
+            currentCriterion = data.criterion || prev.currentCriterion;
+            break;
+          case "evaluator:initial":
+          case "evaluator:speaking":
+            phase = "evaluating";
+            break;
+          case "redteam:challenge":
+            phase = "challenging";
+            currentCriterion = data.criterion || prev.currentCriterion;
+            break;
+          case "evaluator:defense":
+            phase = "evaluating";
+            break;
+          case "arbiter:verdict":
+            phase = "judging";
+            break;
+          case "debate:round:complete":
+            phase = "idle";
+            break;
+          case "debate:criterion:complete":
+            // Criterion debate complete, stay idle until next
+            phase = "idle";
+            break;
+          case "synthesis:started":
+            phase = "synthesizing";
+            break;
+          case "synthesis:complete":
+          case "debate:complete":
+            phase = "complete";
+            break;
+        }
 
-      return { ...prev, phase, currentRound, currentCriterion };
-    });
-  }, []);
+        return { ...prev, phase, currentRound, currentCriterion };
+      });
+    },
+    [],
+  );
 
   const connect = useCallback(() => {
     // Guard: already connected or connecting
-    if (wsRef.current?.readyState === WebSocket.OPEN ||
-        wsRef.current?.readyState === WebSocket.CONNECTING) {
+    if (
+      wsRef.current?.readyState === WebSocket.OPEN ||
+      wsRef.current?.readyState === WebSocket.CONNECTING
+    ) {
       return;
     }
 
@@ -178,7 +189,9 @@ export function useDebateStream({
 
     // Use ref to get current slug value
     const slug = ideaSlugRef.current;
-    const ws = new WebSocket(`${getWsUrl()}/ws?idea=${encodeURIComponent(slug)}`);
+    const ws = new WebSocket(
+      `${getWsUrl()}/ws?idea=${encodeURIComponent(slug)}`,
+    );
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -187,12 +200,17 @@ export function useDebateStream({
         ws.close();
         return;
       }
-      setState((prev) => ({ ...prev, connected: true, connecting: false, error: null }));
+      setState((prev) => ({
+        ...prev,
+        connected: true,
+        connecting: false,
+        error: null,
+      }));
 
       // Start ping interval to keep connection alive
       pingIntervalRef.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'ping' }));
+          ws.send(JSON.stringify({ type: "ping" }));
         }
       }, 30000);
     };
@@ -201,12 +219,12 @@ export function useDebateStream({
       if (!isMountedRef.current) return;
       try {
         const data: DebateEvent = JSON.parse(event.data);
-        if (data.type !== 'pong') {
+        if (data.type !== "pong") {
           addEvent(data);
           updatePhase(data.type, data.data);
         }
       } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
+        console.error("Failed to parse WebSocket message:", err);
       }
     };
 
@@ -215,7 +233,7 @@ export function useDebateStream({
       if (!isMountedRef.current) return;
       setState((prev) => ({
         ...prev,
-        error: 'WebSocket connection error',
+        error: "WebSocket connection error",
         connecting: false,
       }));
     };
@@ -252,8 +270,10 @@ export function useDebateStream({
 
     if (wsRef.current) {
       // Only close if connection is open or connecting
-      if (wsRef.current.readyState === WebSocket.OPEN ||
-          wsRef.current.readyState === WebSocket.CONNECTING) {
+      if (
+        wsRef.current.readyState === WebSocket.OPEN ||
+        wsRef.current.readyState === WebSocket.CONNECTING
+      ) {
         wsRef.current.close();
       }
       wsRef.current = null;

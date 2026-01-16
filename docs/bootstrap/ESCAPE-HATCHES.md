@@ -16,12 +16,12 @@ This document defines procedures for when autonomous agents produce incorrect, i
 
 Agents are automatically stopped when:
 
-| Signal | Threshold | Action |
-|--------|-----------|--------|
-| TypeScript errors | Any error in generated code | Pause and report |
-| Test failures | > 50% of tests fail | Pause and report |
-| Infinite loop | > 5 minutes on single task | Force stop |
-| File size explosion | > 10x expected size | Pause and report |
+| Signal               | Threshold                   | Action           |
+| -------------------- | --------------------------- | ---------------- |
+| TypeScript errors    | Any error in generated code | Pause and report |
+| Test failures        | > 50% of tests fail         | Pause and report |
+| Infinite loop        | > 5 minutes on single task  | Force stop       |
+| File size explosion  | > 10x expected size         | Pause and report |
 | Missing dependencies | Import of non-existent file | Pause and report |
 
 ### Human Detection Triggers
@@ -37,12 +37,12 @@ Stop the agent immediately if you observe:
 
 ### Quality Thresholds
 
-| Metric | Acceptable | Concerning | Critical |
-|--------|------------|------------|----------|
-| Task completion rate | > 90% | 70-90% | < 70% |
-| Gotcha relevance | > 80% | 60-80% | < 60% |
-| Code compiles | 100% | < 100% | N/A |
-| Tests pass | > 80% | 60-80% | < 60% |
+| Metric               | Acceptable | Concerning | Critical |
+| -------------------- | ---------- | ---------- | -------- |
+| Task completion rate | > 90%      | 70-90%     | < 70%    |
+| Gotcha relevance     | > 80%      | 60-80%     | < 60%    |
+| Code compiles        | 100%       | < 100%     | N/A      |
+| Tests pass           | > 80%      | 60-80%     | < 60%    |
 
 ---
 
@@ -51,6 +51,7 @@ Stop the agent immediately if you observe:
 ### Stopping an Agent Mid-Execution
 
 **Immediate Stop:**
+
 ```bash
 # If running in terminal
 Ctrl+C
@@ -63,6 +64,7 @@ Ctrl+C or type "stop"
 ```
 
 **Graceful Stop:**
+
 ```bash
 # Create stop signal file
 touch .agent-stop
@@ -73,6 +75,7 @@ touch .agent-stop
 ### Rolling Back Agent Changes
 
 **Option 1: Git Reset (Recommended)**
+
 ```bash
 # See what changed
 git status
@@ -88,6 +91,7 @@ git reset --hard <commit-hash>
 ```
 
 **Option 2: Selective Rollback**
+
 ```bash
 # Discard changes to specific file
 git checkout -- path/to/file.ts
@@ -101,6 +105,7 @@ git stash pop  # Selectively apply
 ```
 
 **Option 3: Branch Isolation**
+
 ```bash
 # Before agent runs, create backup branch
 git checkout -b agent-backup-$(date +%Y%m%d-%H%M%S)
@@ -113,12 +118,14 @@ git checkout agent-backup-XXXXXXXX
 ### Manually Correcting Output
 
 **For spec.md or tasks.md:**
+
 1. Open the file in your editor
 2. Make corrections directly
 3. Run validation: `npm test -- tests/spec-agent/`
 4. Mark task as manually corrected in execution log
 
 **For generated code:**
+
 1. Stop the agent
 2. Review the diff: `git diff path/to/file.ts`
 3. Edit manually or regenerate specific sections
@@ -132,6 +139,7 @@ git checkout agent-backup-XXXXXXXX
 ### Restarting After Manual Correction
 
 **For Spec Agent:**
+
 ```bash
 # 1. Commit your manual corrections
 git add .
@@ -145,6 +153,7 @@ npm run spec-agent -- --resume --from <task-id>
 ```
 
 **For Build Agent:**
+
 ```bash
 # 1. Commit your fixes
 git add .
@@ -161,14 +170,15 @@ npm run build-agent -- --resume
 
 **Step 1: Identify Root Cause**
 
-| Failure Type | Root Cause | Prevention |
-|--------------|------------|------------|
-| Missing context | Brief incomplete | Add to brief template |
-| Wrong pattern | No gotcha for this | Add to Knowledge Base |
-| Scope creep | Unclear boundaries | Add to "Out of Scope" |
-| Logic error | Spec ambiguous | Clarify spec |
+| Failure Type    | Root Cause         | Prevention            |
+| --------------- | ------------------ | --------------------- |
+| Missing context | Brief incomplete   | Add to brief template |
+| Wrong pattern   | No gotcha for this | Add to Knowledge Base |
+| Scope creep     | Unclear boundaries | Add to "Out of Scope" |
+| Logic error     | Spec ambiguous     | Clarify spec          |
 
 **Step 2: Update Knowledge Base**
+
 ```bash
 # Add new gotcha
 echo "| G-XXX | <gotcha> | Manual Fix | High |" >> knowledge-base/gotchas.md
@@ -178,6 +188,7 @@ echo "| P-XXX | <pattern> | <context> | High |" >> knowledge-base/patterns.md
 ```
 
 **Step 3: Update Templates (if needed)**
+
 - Add missing section to template
 - Add validation check
 - Add example for edge case
@@ -189,11 +200,11 @@ Always document failures in the execution log:
 ```markdown
 ## Execution Log
 
-| Task | Status | Notes |
-|------|--------|-------|
-| T-003 | FAILED | Missing gotcha for SQLite UPSERT syntax |
-| T-003 | MANUAL | Fixed manually, added gotcha G-042 |
-| T-004 | COMPLETE | Resumed after fix |
+| Task  | Status   | Notes                                   |
+| ----- | -------- | --------------------------------------- |
+| T-003 | FAILED   | Missing gotcha for SQLite UPSERT syntax |
+| T-003 | MANUAL   | Fixed manually, added gotcha G-042      |
+| T-004 | COMPLETE | Resumed after fix                       |
 ```
 
 ---
@@ -202,23 +213,23 @@ Always document failures in the execution log:
 
 ### Agent Can Self-Correct
 
-| Issue | Self-Correction |
-|-------|-----------------|
-| Minor TypeScript error | Retry with error message |
-| Missing import | Add import and retry |
-| Test failure with clear message | Fix based on assertion |
-| Lint warning | Auto-fix and continue |
+| Issue                           | Self-Correction          |
+| ------------------------------- | ------------------------ |
+| Minor TypeScript error          | Retry with error message |
+| Missing import                  | Add import and retry     |
+| Test failure with clear message | Fix based on assertion   |
+| Lint warning                    | Auto-fix and continue    |
 
 ### Human Must Intervene
 
-| Issue | Human Action |
-|-------|--------------|
-| Architectural decision needed | Clarify in brief/spec |
-| Security concern | Review and approve |
-| Breaking change to public API | Confirm intent |
-| Resource creation (DB, files) | Approve resource names |
-| External API integration | Provide credentials/config |
-| Test failure with unclear cause | Debug manually |
+| Issue                           | Human Action               |
+| ------------------------------- | -------------------------- |
+| Architectural decision needed   | Clarify in brief/spec      |
+| Security concern                | Review and approve         |
+| Breaking change to public API   | Confirm intent             |
+| Resource creation (DB, files)   | Approve resource names     |
+| External API integration        | Provide credentials/config |
+| Test failure with unclear cause | Debug manually             |
 
 ### Abandon and Restart
 
@@ -241,6 +252,7 @@ Consider starting fresh when:
    - Update context and regenerate
 
 **Fresh Start Procedure:**
+
 ```bash
 # 1. Archive current attempt
 git stash
@@ -346,5 +358,5 @@ npm run sync
 
 ---
 
-*This document is referenced by all agent implementations.*
-*Last updated: 2026-01-10*
+_This document is referenced by all agent implementations._
+_Last updated: 2026-01-10_

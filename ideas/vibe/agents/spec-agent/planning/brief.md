@@ -2,19 +2,19 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **ID** | spec-agent |
-| **Title** | Specification Agent |
-| **Complexity** | complex |
-| **Author** | Human (VER-001: Self-Spec) |
-| **Created** | 2026-01-12 |
+| Field          | Value                      |
+| -------------- | -------------------------- |
+| **ID**         | spec-agent                 |
+| **Title**      | Specification Agent        |
+| **Complexity** | complex                    |
+| **Author**     | Human (VER-001: Self-Spec) |
+| **Created**    | 2026-01-12                 |
 
 ---
 
 ## Problem
 
-After ideation and development sessions, ideas have rich context spread across multiple documents (README.md, development.md, target-users.md, research/*.md, planning/brief.md) but no structured implementation plan. Developers must:
+After ideation and development sessions, ideas have rich context spread across multiple documents (README.md, development.md, target-users.md, research/\*.md, planning/brief.md) but no structured implementation plan. Developers must:
 
 1. Read all context documents manually
 2. Synthesize requirements from scattered information
@@ -46,6 +46,7 @@ Spec Agent transforms messy ideation output into clean, actionable implementatio
 ## MVP Scope
 
 **In Scope:**
+
 - Load context from idea folder (README, development, research, planning)
 - Parse brief.md to extract structured fields
 - Integrate with Claude API for requirement analysis
@@ -57,6 +58,7 @@ Spec Agent transforms messy ideation output into clean, actionable implementatio
 - Support multiple complexity levels (simple, medium, complex)
 
 **Out of Scope:**
+
 - Automatic architecture decisions (asks user)
 - Complex multi-feature specs (one feature at a time)
 - Integration with external APIs for research
@@ -109,6 +111,7 @@ Spec Agent Components:
 ```
 
 **Execution Flow:**
+
 ```
 1. Load brief from planning/brief.md
 2. Parse brief into structured format
@@ -151,14 +154,14 @@ CREATE TABLE IF NOT EXISTS specifications (
 
 ## API Design
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /api/specs/generate | POST | Generate spec from brief |
-| /api/specs/:id | GET | Get specification by ID |
-| /api/specs/:id/tasks | GET | Get tasks for a spec |
-| /api/specs/:id/approve | POST | Approve spec for building |
-| /api/specs/:id/regenerate | POST | Regenerate with new parameters |
-| /api/specs/validate | POST | Validate spec without saving |
+| Endpoint                  | Method | Description                    |
+| ------------------------- | ------ | ------------------------------ |
+| /api/specs/generate       | POST   | Generate spec from brief       |
+| /api/specs/:id            | GET    | Get specification by ID        |
+| /api/specs/:id/tasks      | GET    | Get tasks for a spec           |
+| /api/specs/:id/approve    | POST   | Approve spec for building      |
+| /api/specs/:id/regenerate | POST   | Regenerate with new parameters |
+| /api/specs/validate       | POST   | Validate spec without saving   |
 
 ---
 
@@ -175,6 +178,7 @@ CREATE TABLE IF NOT EXISTS specifications (
 ## Input/Output Contracts
 
 **Input (brief.md):**
+
 ```yaml
 ---
 id: feature-name
@@ -199,6 +203,7 @@ How we know it works.
 ```
 
 **Output (spec.md):**
+
 ```yaml
 ---
 id: feature-name
@@ -234,7 +239,8 @@ How to verify implementation.
 ```
 
 **Output (tasks.md):**
-```yaml
+
+````yaml
 ---
 id: feature-name
 complexity: medium
@@ -267,7 +273,8 @@ validation:
   command: "npx tsc --noEmit"
   expected: "exit code 0"
 depends_on: []
-```
+````
+
 ```
 
 ---
@@ -280,3 +287,4 @@ depends_on: []
 4. **Token limits**: Track usage, warn when approaching limits
 5. **Circular dependencies**: DAG validation on generated tasks
 6. **Missing gotchas**: Fallback to hardcoded list if Knowledge Base empty
+```

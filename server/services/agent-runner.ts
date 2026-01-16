@@ -5,40 +5,58 @@
  * This is the missing piece that connects the task executor to real agent work.
  */
 
-import { v4 as uuid } from 'uuid';
-import { createAnthropicClient, AnthropicClient } from '../../utils/anthropic-client.js';
-import { ParsedTask } from './task-loader.js';
-import { CommunicationHub, getCommunicationHub } from '../communication/communication-hub.js';
-import { Question, QuestionType } from '../communication/question-delivery.js';
-import { query, run, getOne } from '../../database/db.js';
-import { emitTaskExecutorEvent } from '../websocket.js';
-import * as fs from 'fs';
-import * as path from 'path';
+import { v4 as uuid } from "uuid";
+import {
+  createAnthropicClient,
+  AnthropicClient,
+} from "../../utils/anthropic-client.js";
+import { ParsedTask } from "./task-loader.js";
+import {
+  CommunicationHub,
+  getCommunicationHub,
+} from "../communication/communication-hub.js";
+import { Question, QuestionType } from "../communication/question-delivery.js";
+import { query, run, getOne } from "../../database/db.js";
+import { emitTaskExecutorEvent } from "../websocket.js";
+import * as fs from "fs";
+import * as path from "path";
 
 // Database adapter to match CommunicationHub's expected interface
 interface DatabaseAdapter {
-  run(sql: string, params?: unknown[]): Promise<{ lastID: number; changes: number }>;
+  run(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ lastID: number; changes: number }>;
   get<T>(sql: string, params?: unknown[]): Promise<T | undefined>;
   all<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
 function createDatabaseAdapter(): DatabaseAdapter {
   return {
-    async run(sql: string, params: unknown[] = []): Promise<{ lastID: number; changes: number }> {
+    async run(
+      sql: string,
+      params: unknown[] = [],
+    ): Promise<{ lastID: number; changes: number }> {
       await run(sql, params as (string | number | null | boolean)[]);
       return { lastID: 0, changes: 1 };
     },
     async get<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
-      const result = await getOne(sql, params as (string | number | null | boolean)[]) as T | null;
+      const result = (await getOne(
+        sql,
+        params as (string | number | null | boolean)[],
+      )) as T | null;
       return result === null ? undefined : result;
     },
     async all<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-      return await query(sql, params as (string | number | null | boolean)[]) as T[];
+      return (await query(
+        sql,
+        params as (string | number | null | boolean)[],
+      )) as T[];
     },
   };
 }
 
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
+const DEFAULT_MODEL = "claude-sonnet-4-20250514";
 const DEFAULT_MAX_TOKENS = 8192;
 
 export interface AgentRunnerConfig {
@@ -49,9 +67,9 @@ export interface AgentRunnerConfig {
 }
 
 export interface TaskListContext {
-  projectName: string;      // e.g., "Vibe Platform"
-  projectSlug: string;      // e.g., "vibe-platform"
-  taskListName: string;     // e.g., "SPEC-IMPLEMENTATION-GAPS.md"
+  projectName: string; // e.g., "Vibe Platform"
+  projectSlug: string; // e.g., "vibe-platform"
+  taskListName: string; // e.g., "SPEC-IMPLEMENTATION-GAPS.md"
 }
 
 export interface TaskResult {
@@ -97,7 +115,9 @@ export class AgentRunner {
    */
   setTaskListContext(context: TaskListContext): void {
     this.taskListContext = context;
-    console.log(`[AgentRunner] Set task list context: ${context.projectName} / ${context.taskListName}`);
+    console.log(
+      `[AgentRunner] Set task list context: ${context.projectName} / ${context.taskListName}`,
+    );
   }
 
   /**
@@ -112,7 +132,7 @@ export class AgentRunner {
       agentId: this.agentId,
       agentType: this.extractAgentType(this.agentId),
       sessionId: `session-${Date.now()}`,
-      capabilities: ['code-generation', 'task-execution'],
+      capabilities: ["code-generation", "task-execution"],
     });
 
     // Acknowledge the handshake (for in-process agents)
@@ -138,14 +158,14 @@ export class AgentRunner {
       const userPrompt = this.buildTaskPrompt(task);
 
       // Conversation loop - may involve multiple turns if questions are needed
-      const messages: { role: 'user' | 'assistant'; content: string }[] = [
-        { role: 'user', content: userPrompt }
+      const messages: { role: "user" | "assistant"; content: string }[] = [
+        { role: "user", content: userPrompt },
       ];
 
       let maxTurns = 7; // Prevent infinite loops, but give enough turns for completion
       let turn = 0;
       let completed = false;
-      let finalOutput = '';
+      let finalOutput = "";
 
       while (turn < maxTurns && !completed) {
         turn++;
@@ -159,24 +179,28 @@ export class AgentRunner {
           messages: messages as any,
         });
 
-        totalTokens += (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+        totalTokens +=
+          (response.usage?.input_tokens || 0) +
+          (response.usage?.output_tokens || 0);
 
         const responseText = response.content
-          .filter(block => block.type === 'text')
-          .map(block => (block as any).text)
-          .join('');
+          .filter((block) => block.type === "text")
+          .map((block) => (block as any).text)
+          .join("");
 
         // Check if Claude is asking a question
         const question = this.parseQuestion(responseText);
 
         if (question) {
           questionsAsked++;
-          console.log(`[AgentRunner] Agent needs to ask a question: ${question.content.slice(0, 100)}...`);
+          console.log(
+            `[AgentRunner] Agent needs to ask a question: ${question.content.slice(0, 100)}...`,
+          );
 
           // Broadcast that we're waiting for input
-          emitTaskExecutorEvent('task:blocked', {
+          emitTaskExecutorEvent("task:blocked", {
             taskId: task.id,
-            reason: 'waiting_for_user_input',
+            reason: "waiting_for_user_input",
             questionType: question.type,
           });
 
@@ -186,13 +210,18 @@ export class AgentRunner {
           if (!answer) {
             // Timeout or error - use default or fail
             if (question.defaultOption) {
-              console.log(`[AgentRunner] Using default answer: ${question.defaultOption}`);
-              messages.push({ role: 'assistant', content: responseText });
-              messages.push({ role: 'user', content: `User did not respond in time. Using default: ${question.defaultOption}` });
+              console.log(
+                `[AgentRunner] Using default answer: ${question.defaultOption}`,
+              );
+              messages.push({ role: "assistant", content: responseText });
+              messages.push({
+                role: "user",
+                content: `User did not respond in time. Using default: ${question.defaultOption}`,
+              });
             } else {
               return {
                 success: false,
-                error: 'Question timeout with no default option',
+                error: "Question timeout with no default option",
                 questionsAsked,
                 tokensUsed: totalTokens,
               };
@@ -200,11 +229,14 @@ export class AgentRunner {
           } else {
             // Got an answer - continue conversation
             console.log(`[AgentRunner] Received answer: ${answer}`);
-            messages.push({ role: 'assistant', content: responseText });
-            messages.push({ role: 'user', content: `User answered: ${answer}\n\nPlease continue with the task.` });
+            messages.push({ role: "assistant", content: responseText });
+            messages.push({
+              role: "user",
+              content: `User answered: ${answer}\n\nPlease continue with the task.`,
+            });
 
             // Broadcast that we're resuming
-            emitTaskExecutorEvent('task:resumed', {
+            emitTaskExecutorEvent("task:resumed", {
               taskId: task.id,
               answer,
             });
@@ -227,14 +259,22 @@ export class AgentRunner {
           } else {
             // On last turn, try to accept the response as completion if it's substantial
             if (turn === maxTurns - 1 && responseText.length > 200) {
-              console.log(`[AgentRunner] Last turn - accepting substantial response as completion`);
+              console.log(
+                `[AgentRunner] Last turn - accepting substantial response as completion`,
+              );
               completed = true;
-              finalOutput = responseText.slice(0, 500) + '...';
+              finalOutput = responseText.slice(0, 500) + "...";
             } else {
               // Claude didn't complete and didn't ask a question - might need more context
-              console.log(`[AgentRunner] Turn ${turn}: No completion detected, asking for explicit completion`);
-              messages.push({ role: 'assistant', content: responseText });
-              messages.push({ role: 'user', content: 'Please complete the task and confirm completion. Use ```TASK_COMPLETE\\noutput: description\\n``` format, or just say "Task completed" or "Implementation complete" when done.' });
+              console.log(
+                `[AgentRunner] Turn ${turn}: No completion detected, asking for explicit completion`,
+              );
+              messages.push({ role: "assistant", content: responseText });
+              messages.push({
+                role: "user",
+                content:
+                  'Please complete the task and confirm completion. Use ```TASK_COMPLETE\\noutput: description\\n``` format, or just say "Task completed" or "Implementation complete" when done.',
+              });
             }
           }
         }
@@ -242,12 +282,14 @@ export class AgentRunner {
 
       if (!completed) {
         // Even if not explicitly completed, if we got substantial output, consider it a success
-        const lastResponse = messages[messages.length - 2]?.content || '';
+        const lastResponse = messages[messages.length - 2]?.content || "";
         if (lastResponse.length > 300) {
-          console.log(`[AgentRunner] Treating substantial final response as completion`);
+          console.log(
+            `[AgentRunner] Treating substantial final response as completion`,
+          );
           return {
             success: true,
-            output: lastResponse.slice(0, 500) + '...',
+            output: lastResponse.slice(0, 500) + "...",
             questionsAsked,
             tokensUsed: totalTokens,
             filesModified,
@@ -270,12 +312,11 @@ export class AgentRunner {
         tokensUsed: totalTokens,
         filesModified,
       };
-
     } catch (error) {
       console.error(`[AgentRunner] Error executing task ${task.id}:`, error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
         questionsAsked,
         tokensUsed: totalTokens,
         filesModified,
@@ -347,24 +388,28 @@ output: Description of what was accomplished
     }
 
     // Load CLAUDE.md for conventions
-    const claudeMdPath = path.join(process.cwd(), 'CLAUDE.md');
+    const claudeMdPath = path.join(process.cwd(), "CLAUDE.md");
     if (fs.existsSync(claudeMdPath)) {
-      const claudeMd = fs.readFileSync(claudeMdPath, 'utf-8');
-      parts.push('');
-      parts.push('### Project Conventions (from CLAUDE.md)');
+      const claudeMd = fs.readFileSync(claudeMdPath, "utf-8");
+      parts.push("");
+      parts.push("### Project Conventions (from CLAUDE.md)");
       parts.push(claudeMd.slice(0, 3000)); // Limit size
     }
 
-    parts.push('');
-    parts.push('Please complete this task. If you need clarification, ask a question using the QUESTION format. Otherwise, complete the task and output using TASK_COMPLETE format.');
-    parts.push('');
-    parts.push('If you generate code, include the target file path in your TASK_COMPLETE block like:');
-    parts.push('```TASK_COMPLETE');
-    parts.push('output: Description of what was done');
-    parts.push('file: path/to/file.ts');
-    parts.push('```');
+    parts.push("");
+    parts.push(
+      "Please complete this task. If you need clarification, ask a question using the QUESTION format. Otherwise, complete the task and output using TASK_COMPLETE format.",
+    );
+    parts.push("");
+    parts.push(
+      "If you generate code, include the target file path in your TASK_COMPLETE block like:",
+    );
+    parts.push("```TASK_COMPLETE");
+    parts.push("output: Description of what was done");
+    parts.push("file: path/to/file.ts");
+    parts.push("```");
 
-    return parts.join('\n');
+    return parts.join("\n");
   }
 
   /**
@@ -384,8 +429,11 @@ output: Description of what was accomplished
 
       if (!typeMatch || !contentMatch) return null;
 
-      const options: { label: string; action: string; description?: string }[] = [];
-      const optionsMatch = questionBlock.match(/options:\n((?:\s+-[\s\S]*?)+?)(?:\ndefault:|$)/);
+      const options: { label: string; action: string; description?: string }[] =
+        [];
+      const optionsMatch = questionBlock.match(
+        /options:\n((?:\s+-[\s\S]*?)+?)(?:\ndefault:|$)/,
+      );
 
       if (optionsMatch) {
         const optionLines = optionsMatch[1].split(/\n\s+-\s+/).filter(Boolean);
@@ -407,17 +455,25 @@ output: Description of what was accomplished
       const type = typeMatch[1].toUpperCase() as QuestionType;
 
       return {
-        type: type === 'DECISION' ? 'DECISION' : type === 'CLARIFYING' ? 'CLARIFYING' : 'BLOCKING',
+        type:
+          type === "DECISION"
+            ? "DECISION"
+            : type === "CLARIFYING"
+              ? "CLARIFYING"
+              : "BLOCKING",
         content: contentMatch[1].trim(),
-        options: options.length > 0 ? options : [
-          { label: 'Yes', action: 'yes' },
-          { label: 'No', action: 'no' },
-        ],
+        options:
+          options.length > 0
+            ? options
+            : [
+                { label: "Yes", action: "yes" },
+                { label: "No", action: "no" },
+              ],
         defaultOption: defaultMatch?.[1],
-        blocking: type === 'BLOCKING',
+        blocking: type === "BLOCKING",
       };
     } catch (e) {
-      console.error('[AgentRunner] Failed to parse question:', e);
+      console.error("[AgentRunner] Failed to parse question:", e);
       return null;
     }
   }
@@ -426,18 +482,23 @@ output: Description of what was accomplished
    * Parse task completion result
    * Supports multiple formats for flexibility with different Claude response styles
    */
-  private parseTaskResult(text: string, _task: ParsedTask): { isComplete: boolean; output: string; code?: string; filePath?: string } {
+  private parseTaskResult(
+    text: string,
+    _task: ParsedTask,
+  ): { isComplete: boolean; output: string; code?: string; filePath?: string } {
     // Try exact TASK_COMPLETE format first
     const completeMatch = text.match(/```TASK_COMPLETE\n([\s\S]*?)```/);
 
     if (completeMatch) {
       const outputMatch = completeMatch[1].match(/output:\s*(.+?)(?:\n|$)/);
       const fileMatch = completeMatch[1].match(/file:\s*(.+?)(?:\n|$)/);
-      const output = outputMatch?.[1]?.trim() || 'Task completed';
+      const output = outputMatch?.[1]?.trim() || "Task completed";
       const filePath = fileMatch?.[1]?.trim();
 
       // Extract code if present
-      const codeMatch = text.match(/```(?:typescript|javascript|ts|js)\n([\s\S]*?)```/);
+      const codeMatch = text.match(
+        /```(?:typescript|javascript|ts|js)\n([\s\S]*?)```/,
+      );
       const code = codeMatch?.[1];
 
       return {
@@ -461,16 +522,21 @@ output: Description of what was accomplished
     for (const pattern of alternativePatterns) {
       if (pattern.test(text)) {
         // Extract any code blocks
-        const codeMatch = text.match(/```(?:typescript|javascript|ts|js)\n([\s\S]*?)```/);
+        const codeMatch = text.match(
+          /```(?:typescript|javascript|ts|js)\n([\s\S]*?)```/,
+        );
         const code = codeMatch?.[1];
 
         // Extract file path if mentioned
-        const fileMatch = text.match(/(?:file|path):\s*[`"]?([^\s`"]+\.[a-z]+)[`"]?/i);
+        const fileMatch = text.match(
+          /(?:file|path):\s*[`"]?([^\s`"]+\.[a-z]+)[`"]?/i,
+        );
         const filePath = fileMatch?.[1]?.trim();
 
         // Extract a summary from the response
-        const lines = text.split('\n').filter(l => l.trim());
-        const output = lines.slice(0, 2).join(' ').slice(0, 200) || 'Task completed';
+        const lines = text.split("\n").filter((l) => l.trim());
+        const output =
+          lines.slice(0, 2).join(" ").slice(0, 200) || "Task completed";
 
         return {
           isComplete: true,
@@ -483,24 +549,30 @@ output: Description of what was accomplished
 
     // Check if response contains code and looks complete (heuristic)
     const hasCode = /```(?:typescript|javascript|ts|js)\n[\s\S]+```/.test(text);
-    const looksComplete = hasCode && (
-      text.includes('Here') ||
-      text.includes('complete') ||
-      text.includes('implemented') ||
-      text.includes('created') ||
-      text.includes('added') ||
-      text.length > 500  // Substantial response with code likely means completion
-    );
+    const looksComplete =
+      hasCode &&
+      (text.includes("Here") ||
+        text.includes("complete") ||
+        text.includes("implemented") ||
+        text.includes("created") ||
+        text.includes("added") ||
+        text.length > 500); // Substantial response with code likely means completion
 
     if (looksComplete) {
-      const codeMatch = text.match(/```(?:typescript|javascript|ts|js)\n([\s\S]*?)```/);
+      const codeMatch = text.match(
+        /```(?:typescript|javascript|ts|js)\n([\s\S]*?)```/,
+      );
       const code = codeMatch?.[1];
-      const fileMatch = text.match(/(?:file|path):\s*[`"]?([^\s`"]+\.[a-z]+)[`"]?/i);
+      const fileMatch = text.match(
+        /(?:file|path):\s*[`"]?([^\s`"]+\.[a-z]+)[`"]?/i,
+      );
       const filePath = fileMatch?.[1]?.trim();
 
       // Extract first meaningful line as output
-      const lines = text.split('\n').filter(l => l.trim() && !l.startsWith('```'));
-      const output = lines[0]?.slice(0, 200) || 'Task completed with code';
+      const lines = text
+        .split("\n")
+        .filter((l) => l.trim() && !l.startsWith("```"));
+      const output = lines[0]?.slice(0, 200) || "Task completed with code";
 
       console.log(`[AgentRunner] Detected task completion via heuristic`);
       return {
@@ -511,15 +583,18 @@ output: Description of what was accomplished
       };
     }
 
-    return { isComplete: false, output: '' };
+    return { isComplete: false, output: "" };
   }
 
   /**
    * Ask a question via CommunicationHub and wait for answer
    */
-  private async askQuestion(taskId: string, question: ParsedQuestion): Promise<string | null> {
+  private async askQuestion(
+    taskId: string,
+    question: ParsedQuestion,
+  ): Promise<string | null> {
     if (!this.hub) {
-      console.error('[AgentRunner] CommunicationHub not initialized');
+      console.error("[AgentRunner] CommunicationHub not initialized");
       return null;
     }
 
@@ -545,14 +620,22 @@ output: Description of what was accomplished
     const deliveryResult = await this.hub.askQuestion(fullQuestion);
 
     if (!deliveryResult.success) {
-      console.error('[AgentRunner] Failed to deliver question:', deliveryResult.error);
+      console.error(
+        "[AgentRunner] Failed to deliver question:",
+        deliveryResult.error,
+      );
       return null;
     }
 
-    console.log(`[AgentRunner] Question delivered via ${deliveryResult.channel}, waiting for answer...`);
+    console.log(
+      `[AgentRunner] Question delivered via ${deliveryResult.channel}, waiting for answer...`,
+    );
 
     // Wait for answer
-    const answer = await this.hub.waitForAnswer(questionId, this.questionTimeoutMs);
+    const answer = await this.hub.waitForAnswer(
+      questionId,
+      this.questionTimeoutMs,
+    );
 
     if (answer) {
       // Unblock the agent
@@ -579,21 +662,30 @@ output: Description of what was accomplished
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(filePath, content, 'utf-8');
+    fs.writeFileSync(filePath, content, "utf-8");
   }
 
   /**
    * Extract agent type from agent ID
    */
-  private extractAgentType(agentId: string): 'monitoring' | 'orchestrator' | 'spec' | 'build' | 'validation' | 'sia' | 'system' {
+  private extractAgentType(
+    agentId: string,
+  ):
+    | "monitoring"
+    | "orchestrator"
+    | "spec"
+    | "build"
+    | "validation"
+    | "sia"
+    | "system" {
     const id = agentId.toLowerCase();
-    if (id.includes('monitor')) return 'monitoring';
-    if (id.includes('orchestrat')) return 'orchestrator';
-    if (id.includes('spec')) return 'spec';
-    if (id.includes('build')) return 'build';
-    if (id.includes('valid')) return 'validation';
-    if (id.includes('sia')) return 'sia';
-    return 'system';
+    if (id.includes("monitor")) return "monitoring";
+    if (id.includes("orchestrat")) return "orchestrator";
+    if (id.includes("spec")) return "spec";
+    if (id.includes("build")) return "build";
+    if (id.includes("valid")) return "validation";
+    if (id.includes("sia")) return "sia";
+    return "system";
   }
 
   /**

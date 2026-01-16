@@ -1,7 +1,7 @@
 // types/sia.ts - Self-Improvement Agent types
 
-export type KnowledgeType = 'gotcha' | 'pattern' | 'decision';
-export type ProposalStatus = 'pending' | 'approved' | 'rejected';
+export type KnowledgeType = "gotcha" | "pattern" | "decision";
+export type ProposalStatus = "pending" | "approved" | "rejected";
 
 export interface KnowledgeEntry {
   id: string;
@@ -43,7 +43,7 @@ export interface GotchaApplication {
 // Execution analysis types
 export interface ExecutionLog {
   timestamp: string;
-  level: 'info' | 'warn' | 'error';
+  level: "info" | "warn" | "error";
   message: string;
   taskId?: string;
   data?: Record<string, unknown>;
@@ -51,7 +51,7 @@ export interface ExecutionLog {
 
 export interface TaskResult {
   taskId: string;
-  status: 'success' | 'failed' | 'skipped';
+  status: "success" | "failed" | "skipped";
   file: string;
   action: string;
   errorMessage?: string;
@@ -73,7 +73,7 @@ export interface FailureInfo {
 export interface RetryInfo {
   taskId: string;
   attempts: number;
-  finalStatus: 'success' | 'failed';
+  finalStatus: "success" | "failed";
   errors: string[];
 }
 

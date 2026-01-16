@@ -3,32 +3,39 @@
 // Message text with full markdown rendering using ReactMarkdown
 // =============================================================================
 
-import React, { useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import type { MessageTextProps } from '../../types/ideation';
+import React, { useCallback } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import type { MessageTextProps } from "../../types/ideation";
 
 // Pre-process content to convert @artifact:id references to special links
 const processArtifactReferences = (content: string): string => {
   // Match @artifact:id pattern (id can be alphanumeric with dashes)
   return content.replace(
     /@artifact:([a-zA-Z0-9_-]+)/g,
-    '[📎 artifact:$1](artifact://$1)'
+    "[📎 artifact:$1](artifact://$1)",
   );
 };
 
-export function MessageText({ content, isStreaming = false, onArtifactClick }: MessageTextProps) {
+export function MessageText({
+  content,
+  isStreaming = false,
+  onArtifactClick,
+}: MessageTextProps) {
   // Process content to convert artifact references to links
   const processedContent = processArtifactReferences(content);
 
-  const handleArtifactClick = useCallback((e: React.MouseEvent, artifactId: string) => {
-    e.preventDefault();
-    if (onArtifactClick) {
-      onArtifactClick(artifactId);
-    }
-  }, [onArtifactClick]);
+  const handleArtifactClick = useCallback(
+    (e: React.MouseEvent, artifactId: string) => {
+      e.preventDefault();
+      if (onArtifactClick) {
+        onArtifactClick(artifactId);
+      }
+    },
+    [onArtifactClick],
+  );
 
   return (
     <div className="message-text prose prose-sm max-w-none dark:prose-invert overflow-hidden break-words">
@@ -37,12 +44,15 @@ export function MessageText({ content, isStreaming = false, onArtifactClick }: M
         components={{
           // Code blocks with syntax highlighting
           code({ node, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '');
-            const isInline = !match && !String(children).includes('\n');
+            const match = /language-(\w+)/.exec(className || "");
+            const isInline = !match && !String(children).includes("\n");
 
             if (isInline) {
               return (
-                <code className="bg-gray-700 text-gray-100 px-1.5 py-0.5 rounded text-sm" {...props}>
+                <code
+                  className="bg-gray-700 text-gray-100 px-1.5 py-0.5 rounded text-sm"
+                  {...props}
+                >
                   {children}
                 </code>
               );
@@ -52,17 +62,17 @@ export function MessageText({ content, isStreaming = false, onArtifactClick }: M
               <div className="overflow-x-auto max-w-full">
                 <SyntaxHighlighter
                   style={oneDark}
-                  language={match ? match[1] : 'text'}
+                  language={match ? match[1] : "text"}
                   PreTag="div"
                   customStyle={{
-                    margin: '0.5rem 0',
-                    borderRadius: '0.375rem',
-                    fontSize: '13px',
-                    overflowX: 'auto',
+                    margin: "0.5rem 0",
+                    borderRadius: "0.375rem",
+                    fontSize: "13px",
+                    overflowX: "auto",
                   }}
                   wrapLongLines={false}
                 >
-                  {String(children).replace(/\n$/, '')}
+                  {String(children).replace(/\n$/, "")}
                 </SyntaxHighlighter>
               </div>
             );
@@ -97,8 +107,8 @@ export function MessageText({ content, isStreaming = false, onArtifactClick }: M
           // Links - handle both regular and artifact links
           a({ href, children }) {
             // Check if this is an artifact link
-            if (href?.startsWith('artifact://')) {
-              const artifactId = href.replace('artifact://', '');
+            if (href?.startsWith("artifact://")) {
+              const artifactId = href.replace("artifact://", "");
               return (
                 <button
                   onClick={(e) => handleArtifactClick(e, artifactId)}
@@ -123,16 +133,32 @@ export function MessageText({ content, isStreaming = false, onArtifactClick }: M
           },
           // Headings
           h1({ children }) {
-            return <h1 className="text-xl font-bold text-gray-100 mt-4 mb-2">{children}</h1>;
+            return (
+              <h1 className="text-xl font-bold text-gray-100 mt-4 mb-2">
+                {children}
+              </h1>
+            );
           },
           h2({ children }) {
-            return <h2 className="text-lg font-bold text-gray-100 mt-3 mb-2">{children}</h2>;
+            return (
+              <h2 className="text-lg font-bold text-gray-100 mt-3 mb-2">
+                {children}
+              </h2>
+            );
           },
           h3({ children }) {
-            return <h3 className="text-base font-semibold text-gray-200 mt-3 mb-1">{children}</h3>;
+            return (
+              <h3 className="text-base font-semibold text-gray-200 mt-3 mb-1">
+                {children}
+              </h3>
+            );
           },
           h4({ children }) {
-            return <h4 className="text-sm font-semibold text-gray-200 mt-2 mb-1">{children}</h4>;
+            return (
+              <h4 className="text-sm font-semibold text-gray-200 mt-2 mb-1">
+                {children}
+              </h4>
+            );
           },
           // Paragraphs
           p({ children }) {
@@ -140,10 +166,18 @@ export function MessageText({ content, isStreaming = false, onArtifactClick }: M
           },
           // Lists
           ul({ children }) {
-            return <ul className="list-disc list-inside space-y-1 mb-2 text-gray-300">{children}</ul>;
+            return (
+              <ul className="list-disc list-inside space-y-1 mb-2 text-gray-300">
+                {children}
+              </ul>
+            );
           },
           ol({ children }) {
-            return <ol className="list-decimal list-inside space-y-1 mb-2 text-gray-300">{children}</ol>;
+            return (
+              <ol className="list-decimal list-inside space-y-1 mb-2 text-gray-300">
+                {children}
+              </ol>
+            );
           },
           li({ children }) {
             return <li className="text-gray-300">{children}</li>;
@@ -162,7 +196,11 @@ export function MessageText({ content, isStreaming = false, onArtifactClick }: M
           },
           // Strong/bold
           strong({ children }) {
-            return <strong className="font-semibold text-gray-100">{children}</strong>;
+            return (
+              <strong className="font-semibold text-gray-100">
+                {children}
+              </strong>
+            );
           },
           // Emphasis/italic
           em({ children }) {

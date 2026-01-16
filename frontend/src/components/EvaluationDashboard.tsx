@@ -1,6 +1,11 @@
-import { useCategoryScores, useEvaluations, useDebateRounds, usePreviousRunScores } from '../hooks/useEvaluations'
-import { scoreInterpretation, categoryWeights } from '../types'
-import type { EvaluationCategory } from '../types'
+import {
+  useCategoryScores,
+  useEvaluations,
+  useDebateRounds,
+  usePreviousRunScores,
+} from "../hooks/useEvaluations";
+import { scoreInterpretation, categoryWeights } from "../types";
+import type { EvaluationCategory } from "../types";
 import {
   RadarChart,
   PolarGrid,
@@ -14,53 +19,59 @@ import {
   YAxis,
   Tooltip,
   Cell,
-} from 'recharts'
-import clsx from 'clsx'
+} from "recharts";
+import clsx from "clsx";
 
 interface EvaluationDashboardProps {
-  slug: string
-  runId?: string
+  slug: string;
+  runId?: string;
 }
 
 const categoryLabels: Record<EvaluationCategory, string> = {
-  problem: 'Problem',
-  solution: 'Solution',
-  feasibility: 'Feasibility',
-  fit: 'Fit',
-  market: 'Market',
-  risk: 'Risk',
-}
+  problem: "Problem",
+  solution: "Solution",
+  feasibility: "Feasibility",
+  fit: "Fit",
+  market: "Market",
+  risk: "Risk",
+};
 
 const categoryDescriptions: Record<EvaluationCategory, string> = {
-  problem: 'Clarity, severity, target user, validation, uniqueness',
-  solution: 'Clarity, feasibility, uniqueness, scalability, defensibility',
-  feasibility: 'Technical, resources, skills, time to value, dependencies',
-  fit: 'Personal, passion, skills, network, life stage',
-  market: 'Size, growth, competition, entry barriers, timing',
-  risk: 'Execution, market, technical, financial, regulatory',
-}
+  problem: "Clarity, severity, target user, validation, uniqueness",
+  solution: "Clarity, feasibility, uniqueness, scalability, defensibility",
+  feasibility: "Technical, resources, skills, time to value, dependencies",
+  fit: "Personal, passion, skills, network, life stage",
+  market: "Size, growth, competition, entry barriers, timing",
+  risk: "Execution, market, technical, financial, regulatory",
+};
 
 function getBarColor(score: number): string {
-  if (score >= 8.0) return '#22c55e'
-  if (score >= 7.0) return '#84cc16'
-  if (score >= 6.0) return '#eab308'
-  if (score >= 5.0) return '#f97316'
-  if (score >= 4.0) return '#ef4444'
-  return '#991b1b'
+  if (score >= 8.0) return "#22c55e";
+  if (score >= 7.0) return "#84cc16";
+  if (score >= 6.0) return "#eab308";
+  if (score >= 5.0) return "#f97316";
+  if (score >= 4.0) return "#ef4444";
+  return "#991b1b";
 }
 
-export default function EvaluationDashboard({ slug, runId }: EvaluationDashboardProps) {
-  const { scores, loading: scoresLoading } = useCategoryScores(slug, runId)
-  const { evaluations, loading: evalsLoading } = useEvaluations(slug, runId)
-  const { rounds } = useDebateRounds(slug, runId)
-  const { previousScores } = usePreviousRunScores(slug, runId)
+export default function EvaluationDashboard({
+  slug,
+  runId,
+}: EvaluationDashboardProps) {
+  const { scores, loading: scoresLoading } = useCategoryScores(slug, runId);
+  const { evaluations, loading: evalsLoading } = useEvaluations(slug, runId);
+  const { rounds } = useDebateRounds(slug, runId);
+  const { previousScores } = usePreviousRunScores(slug, runId);
 
   // Build lookup map for previous scores by criterion (from previous evaluation run)
-  const previousScoresByCriterion = new Map<string, number>()
+  const previousScoresByCriterion = new Map<string, number>();
   if (previousScores) {
     for (const cat of previousScores) {
       for (const criterion of cat.criteria) {
-        previousScoresByCriterion.set(criterion.criterion, criterion.final_score)
+        previousScoresByCriterion.set(
+          criterion.criterion,
+          criterion.final_score,
+        );
       }
     }
   }
@@ -70,7 +81,7 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
       <div className="card">
         <p className="text-gray-500">Loading evaluations...</p>
       </div>
-    )
+    );
   }
 
   if (evaluations.length === 0) {
@@ -81,29 +92,33 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
           Run an evaluation: npm run evaluate {slug}
         </p>
       </div>
-    )
+    );
   }
 
   // Calculate weighted average
   const weightedAvg = scores.reduce((acc, cat) => {
-    const weight = categoryWeights[cat.category as EvaluationCategory] || 0
-    return acc + cat.avg_score * weight
-  }, 0)
+    const weight = categoryWeights[cat.category as EvaluationCategory] || 0;
+    return acc + cat.avg_score * weight;
+  }, 0);
 
   // Prepare radar chart data
   const radarData = scores.map((cat) => ({
-    category: categoryLabels[cat.category as EvaluationCategory] || cat.category,
+    category:
+      categoryLabels[cat.category as EvaluationCategory] || cat.category,
     score: cat.avg_score,
     fullMark: 10,
-  }))
+  }));
 
   // Prepare bar chart data for all criteria
   const barData = evaluations.map((eval_) => ({
-    name: eval_.criterion.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+    name: eval_.criterion
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" "),
     score: eval_.final_score,
     confidence: eval_.confidence,
     category: eval_.category,
-  }))
+  }));
 
   return (
     <div className="space-y-6">
@@ -137,19 +152,22 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Category Overview
           </h3>
-          <div className="flex-1 min-h-0" style={{ minHeight: '350px' }}>
+          <div className="flex-1 min-h-0" style={{ minHeight: "350px" }}>
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData} margin={{ top: 10, right: 40, bottom: 10, left: 40 }}>
+              <RadarChart
+                data={radarData}
+                margin={{ top: 10, right: 40, bottom: 10, left: 40 }}
+              >
                 <PolarGrid gridType="polygon" />
                 <PolarAngleAxis
                   dataKey="category"
-                  tick={{ fill: '#374151', fontSize: 12 }}
+                  tick={{ fill: "#374151", fontSize: 12 }}
                 />
                 <PolarRadiusAxis
                   angle={30}
                   domain={[0, 10]}
                   tickCount={11}
-                  tick={{ fill: '#9ca3af', fontSize: 9 }}
+                  tick={{ fill: "#9ca3af", fontSize: 9 }}
                 />
                 <Radar
                   name="Score"
@@ -171,7 +189,9 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
               key={cat.category}
               className="card p-3 w-full text-left hover:bg-gray-50 transition-colors cursor-pointer"
               onClick={() => {
-                document.getElementById(`category-${cat.category}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                document
+                  .getElementById(`category-${cat.category}`)
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
             >
               <div className="flex items-center justify-between">
@@ -181,7 +201,11 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
                       {categoryLabels[cat.category as EvaluationCategory]}
                     </h4>
                     <span className="text-xs text-gray-400">
-                      {(categoryWeights[cat.category as EvaluationCategory] * 100).toFixed(0)}%
+                      {(
+                        categoryWeights[cat.category as EvaluationCategory] *
+                        100
+                      ).toFixed(0)}
+                      %
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 truncate">
@@ -191,7 +215,7 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
                 <div className="flex items-center gap-2 ml-4">
                   <span
                     className={`text-2xl font-bold ${scoreInterpretation.getColor(
-                      cat.avg_score
+                      cat.avg_score,
                     )}`}
                   >
                     {cat.avg_score.toFixed(1)}
@@ -204,7 +228,10 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
               {/* Score bar */}
               <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className={clsx('h-full rounded-full', scoreInterpretation.getBgColor(cat.avg_score))}
+                  className={clsx(
+                    "h-full rounded-full",
+                    scoreInterpretation.getBgColor(cat.avg_score),
+                  )}
                   style={{ width: `${(cat.avg_score / 10) * 100}%` }}
                 />
               </div>
@@ -229,13 +256,13 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
               <YAxis
                 type="category"
                 dataKey="name"
-                tick={{ fill: '#374151', fontSize: 11 }}
+                tick={{ fill: "#374151", fontSize: 11 }}
                 width={110}
               />
               <Tooltip
                 formatter={(value: number, name: string) => [
                   value.toFixed(1),
-                  name === 'score' ? 'Score' : 'Confidence',
+                  name === "score" ? "Score" : "Confidence",
                 ]}
                 labelFormatter={(label) => `Criterion: ${label}`}
               />
@@ -256,32 +283,49 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
         </h3>
         <div className="space-y-4">
           {Object.entries(
-            evaluations.reduce((acc, eval_) => {
-              if (!acc[eval_.category]) acc[eval_.category] = []
-              acc[eval_.category].push(eval_)
-              return acc
-            }, {} as Record<string, typeof evaluations>)
+            evaluations.reduce(
+              (acc, eval_) => {
+                if (!acc[eval_.category]) acc[eval_.category] = [];
+                acc[eval_.category].push(eval_);
+                return acc;
+              },
+              {} as Record<string, typeof evaluations>,
+            ),
           ).map(([category, evals]) => (
-            <div key={category} id={`category-${category}`} className="scroll-mt-4">
+            <div
+              key={category}
+              id={`category-${category}`}
+              className="scroll-mt-4"
+            >
               <h4 className="font-medium text-gray-900 mb-2">
                 {categoryLabels[category as EvaluationCategory]}
               </h4>
               <div className="space-y-2">
                 {evals.map((eval_) => {
                   // Get debate rounds for this criterion (for showing debate context)
-                  const criterionDebates = rounds.filter(r => r.criterion === eval_.criterion)
-                  const hasDebateForCriterion = criterionDebates.length > 0
+                  const criterionDebates = rounds.filter(
+                    (r) => r.criterion === eval_.criterion,
+                  );
+                  const hasDebateForCriterion = criterionDebates.length > 0;
 
                   // Get previous run score for comparison
-                  const prevScore = previousScoresByCriterion.get(eval_.criterion)
-                  const hasPreviousScore = prevScore !== undefined
-                  const delta = hasPreviousScore ? eval_.final_score - prevScore : 0
+                  const prevScore = previousScoresByCriterion.get(
+                    eval_.criterion,
+                  );
+                  const hasPreviousScore = prevScore !== undefined;
+                  const delta = hasPreviousScore
+                    ? eval_.final_score - prevScore
+                    : 0;
 
                   // Build debate summary from challenges that impacted the score
                   const debateChallenges = criterionDebates
-                    .filter(r => r.arbiter_verdict === 'RED_TEAM' || r.arbiter_verdict === 'DRAW')
-                    .map(r => r.redteam_challenge)
-                    .filter((c): c is string => c !== null)
+                    .filter(
+                      (r) =>
+                        r.arbiter_verdict === "RED_TEAM" ||
+                        r.arbiter_verdict === "DRAW",
+                    )
+                    .map((r) => r.redteam_challenge)
+                    .filter((c): c is string => c !== null);
 
                   return (
                     <div
@@ -291,15 +335,15 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium text-gray-800">
                           {eval_.criterion
-                            .split('_')
+                            .split("_")
                             .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                            .join(' ')}
+                            .join(" ")}
                         </span>
                         <div className="flex items-center gap-2">
                           {/* Show current score as the primary score */}
                           <span
                             className={`font-bold ${scoreInterpretation.getColor(
-                              eval_.final_score
+                              eval_.final_score,
                             )}`}
                           >
                             {eval_.final_score.toFixed(1)}
@@ -339,10 +383,12 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
                           </details>
                         </div>
                       ) : (
-                        <p className="text-sm text-gray-600">{eval_.reasoning}</p>
+                        <p className="text-sm text-gray-600">
+                          {eval_.reasoning}
+                        </p>
                       )}
                     </div>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -350,5 +396,5 @@ export default function EvaluationDashboard({ slug, runId }: EvaluationDashboard
         </div>
       </div>
     </div>
-  )
+  );
 }

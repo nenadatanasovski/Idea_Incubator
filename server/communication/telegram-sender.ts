@@ -1,9 +1,15 @@
 // server/communication/telegram-sender.ts
 // COM-004: Telegram Message Sender
 
-import { BotRegistry } from './bot-registry';
-import { ChatLinker } from './chat-linker';
-import { AgentType, RegisteredBot, InlineButton, SendOptions, SendResult } from './types';
+import { BotRegistry } from "./bot-registry";
+import { ChatLinker } from "./chat-linker";
+import {
+  AgentType,
+  RegisteredBot,
+  InlineButton,
+  SendOptions,
+  SendResult,
+} from "./types";
 
 export class TelegramSender {
   private botRegistry: BotRegistry;
@@ -17,7 +23,7 @@ export class TelegramSender {
     chatLinker: ChatLinker,
     primaryUserId: string,
     maxRetryAttempts: number = 3,
-    baseRetryDelayMs: number = 1000
+    baseRetryDelayMs: number = 1000,
   ) {
     this.botRegistry = botRegistry;
     this.chatLinker = chatLinker;
@@ -33,23 +39,37 @@ export class TelegramSender {
     const bot = this.botRegistry.getBot(options.agentType);
 
     if (!bot) {
-      return { success: false, error: 'No bot available for agent type: ' + options.agentType };
+      return {
+        success: false,
+        error: "No bot available for agent type: " + options.agentType,
+      };
     }
 
-    const chatId = await this.chatLinker.getChatId(this.primaryUserId, options.agentType);
+    const chatId = await this.chatLinker.getChatId(
+      this.primaryUserId,
+      options.agentType,
+    );
 
     if (!chatId) {
       // Try system bot as fallback
-      const systemChatId = await this.chatLinker.getChatId(this.primaryUserId, 'system');
+      const systemChatId = await this.chatLinker.getChatId(
+        this.primaryUserId,
+        "system",
+      );
       if (systemChatId) {
-        const systemBot = this.botRegistry.getBot('system');
+        const systemBot = this.botRegistry.getBot("system");
         if (systemBot) {
-          console.warn(`[TelegramSender] Using system bot as fallback for ${options.agentType}`);
+          console.warn(
+            `[TelegramSender] Using system bot as fallback for ${options.agentType}`,
+          );
           const result = await this.doSend(systemBot, systemChatId, options);
           return { ...result, usedFallback: true };
         }
       }
-      return { success: false, error: 'No linked chat ID for agent type: ' + options.agentType };
+      return {
+        success: false,
+        error: "No linked chat ID for agent type: " + options.agentType,
+      };
     }
 
     return this.doSend(bot, chatId, options);
@@ -61,12 +81,12 @@ export class TelegramSender {
   async sendWithButtons(
     agentType: AgentType,
     text: string,
-    buttons: InlineButton[][]
+    buttons: InlineButton[][],
   ): Promise<SendResult> {
     return this.sendMessage({
       agentType,
       text,
-      parseMode: 'Markdown',
+      parseMode: "Markdown",
       buttons,
     });
   }
@@ -78,18 +98,22 @@ export class TelegramSender {
     agentType: AgentType,
     questionId: string,
     questionText: string,
-    options: { label: string; value: string }[]
+    options: { label: string; value: string }[],
   ): Promise<SendResult> {
-    const buttons: InlineButton[][] = options.map(opt => [{
-      text: opt.label,
-      callbackData: `answer:${questionId}:${opt.value}`,
-    }]);
+    const buttons: InlineButton[][] = options.map((opt) => [
+      {
+        text: opt.label,
+        callbackData: `answer:${questionId}:${opt.value}`,
+      },
+    ]);
 
     // Add "Other" option for free-form response
-    buttons.push([{
-      text: 'Other (type reply)',
-      callbackData: `answer:${questionId}:__other__`,
-    }]);
+    buttons.push([
+      {
+        text: "Other (type reply)",
+        callbackData: `answer:${questionId}:__other__`,
+      },
+    ]);
 
     return this.sendWithButtons(agentType, questionText, buttons);
   }
@@ -101,13 +125,13 @@ export class TelegramSender {
     agentType: AgentType,
     title: string,
     message: string,
-    severity: 'info' | 'warning' | 'error' | 'critical' = 'info'
+    severity: "info" | "warning" | "error" | "critical" = "info",
   ): Promise<SendResult> {
     const emoji = {
-      info: 'ℹ️',
-      warning: '⚠️',
-      error: '❌',
-      critical: '🚨',
+      info: "ℹ️",
+      warning: "⚠️",
+      error: "❌",
+      critical: "🚨",
     }[severity];
 
     const text = `${emoji} *${title}*\n\n${message}`;
@@ -115,7 +139,7 @@ export class TelegramSender {
     return this.sendMessage({
       agentType,
       text,
-      parseMode: 'Markdown',
+      parseMode: "Markdown",
     });
   }
 
@@ -127,7 +151,7 @@ export class TelegramSender {
     approvalId: string,
     title: string,
     description: string,
-    details?: string
+    details?: string,
   ): Promise<SendResult> {
     let text = `🔴 *Approval Required*\n\n*${title}*\n\n${description}`;
 
@@ -137,8 +161,8 @@ export class TelegramSender {
 
     const buttons: InlineButton[][] = [
       [
-        { text: '✅ Approve', callbackData: `approve:${approvalId}:yes` },
-        { text: '❌ Reject', callbackData: `approve:${approvalId}:no` },
+        { text: "✅ Approve", callbackData: `approve:${approvalId}:yes` },
+        { text: "❌ Reject", callbackData: `approve:${approvalId}:no` },
       ],
     ];
 
@@ -152,16 +176,19 @@ export class TelegramSender {
     agentType: AgentType,
     messageId: number,
     newText: string,
-    newButtons?: InlineButton[][]
+    newButtons?: InlineButton[][],
   ): Promise<SendResult> {
     const bot = this.botRegistry.getBot(agentType);
     if (!bot) {
-      return { success: false, error: 'No bot available' };
+      return { success: false, error: "No bot available" };
     }
 
-    const chatId = await this.chatLinker.getChatId(this.primaryUserId, agentType);
+    const chatId = await this.chatLinker.getChatId(
+      this.primaryUserId,
+      agentType,
+    );
     if (!chatId) {
-      return { success: false, error: 'No linked chat ID' };
+      return { success: false, error: "No linked chat ID" };
     }
 
     const url = `https://api.telegram.org/bot${bot.token}/editMessageText`;
@@ -169,16 +196,16 @@ export class TelegramSender {
       chat_id: chatId,
       message_id: messageId,
       text: newText,
-      parse_mode: 'Markdown',
+      parse_mode: "Markdown",
     };
 
     if (newButtons) {
       body.reply_markup = {
-        inline_keyboard: newButtons.map(row =>
-          row.map(btn => ({
+        inline_keyboard: newButtons.map((row) =>
+          row.map((btn) => ({
             text: btn.text,
             callback_data: btn.callbackData,
-          }))
+          })),
         ),
       };
     }
@@ -189,15 +216,21 @@ export class TelegramSender {
   /**
    * Delete a message.
    */
-  async deleteMessage(agentType: AgentType, messageId: number): Promise<SendResult> {
+  async deleteMessage(
+    agentType: AgentType,
+    messageId: number,
+  ): Promise<SendResult> {
     const bot = this.botRegistry.getBot(agentType);
     if (!bot) {
-      return { success: false, error: 'No bot available' };
+      return { success: false, error: "No bot available" };
     }
 
-    const chatId = await this.chatLinker.getChatId(this.primaryUserId, agentType);
+    const chatId = await this.chatLinker.getChatId(
+      this.primaryUserId,
+      agentType,
+    );
     if (!chatId) {
-      return { success: false, error: 'No linked chat ID' };
+      return { success: false, error: "No linked chat ID" };
     }
 
     const url = `https://api.telegram.org/bot${bot.token}/deleteMessage`;
@@ -216,11 +249,14 @@ export class TelegramSender {
     agentType: AgentType,
     chatId: string,
     text: string,
-    parseMode: 'Markdown' | 'HTML' = 'Markdown'
+    parseMode: "Markdown" | "HTML" = "Markdown",
   ): Promise<SendResult> {
     const bot = this.botRegistry.getBot(agentType);
     if (!bot) {
-      return { success: false, error: 'No bot available for agent type: ' + agentType };
+      return {
+        success: false,
+        error: "No bot available for agent type: " + agentType,
+      };
     }
 
     return this.doSend(bot, chatId, { agentType, text, parseMode });
@@ -233,14 +269,22 @@ export class TelegramSender {
     agentType: AgentType,
     chatId: string,
     text: string,
-    buttons: InlineButton[][]
+    buttons: InlineButton[][],
   ): Promise<SendResult> {
     const bot = this.botRegistry.getBot(agentType);
     if (!bot) {
-      return { success: false, error: 'No bot available for agent type: ' + agentType };
+      return {
+        success: false,
+        error: "No bot available for agent type: " + agentType,
+      };
     }
 
-    return this.doSend(bot, chatId, { agentType, text, parseMode: 'Markdown', buttons });
+    return this.doSend(bot, chatId, {
+      agentType,
+      text,
+      parseMode: "Markdown",
+      buttons,
+    });
   }
 
   /**
@@ -249,23 +293,23 @@ export class TelegramSender {
   private async doSend(
     bot: RegisteredBot,
     chatId: string,
-    options: SendOptions
+    options: SendOptions,
   ): Promise<SendResult> {
     const url = `https://api.telegram.org/bot${bot.token}/sendMessage`;
 
     const body: Record<string, unknown> = {
       chat_id: chatId,
       text: options.text,
-      parse_mode: options.parseMode || 'Markdown',
+      parse_mode: options.parseMode || "Markdown",
     };
 
     if (options.buttons) {
       body.reply_markup = {
-        inline_keyboard: options.buttons.map(row =>
-          row.map(btn => ({
+        inline_keyboard: options.buttons.map((row) =>
+          row.map((btn) => ({
             text: btn.text,
             callback_data: btn.callbackData,
-          }))
+          })),
         ),
       };
     }
@@ -283,12 +327,12 @@ export class TelegramSender {
   private async sendWithRetry(
     url: string,
     body: Record<string, unknown>,
-    attempt: number = 1
+    attempt: number = 1,
   ): Promise<SendResult> {
     try {
       const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
@@ -301,7 +345,9 @@ export class TelegramSender {
       // Rate limited - wait and retry
       if (data.error_code === 429) {
         const retryAfter = data.parameters?.retry_after || 30;
-        console.warn(`[TelegramSender] Rate limited, retrying after ${retryAfter}s (attempt ${attempt})`);
+        console.warn(
+          `[TelegramSender] Rate limited, retrying after ${retryAfter}s (attempt ${attempt})`,
+        );
 
         if (attempt < this.maxRetryAttempts) {
           await this.delay(retryAfter * 1000);
@@ -313,7 +359,9 @@ export class TelegramSender {
       return { success: false, error: data.description };
     } catch (error) {
       const errorMessage = (error as Error).message;
-      console.error(`[TelegramSender] Network error (attempt ${attempt}): ${errorMessage}`);
+      console.error(
+        `[TelegramSender] Network error (attempt ${attempt}): ${errorMessage}`,
+      );
 
       if (attempt < this.maxRetryAttempts) {
         const delayMs = this.baseRetryDelayMs * Math.pow(2, attempt - 1);
@@ -329,6 +377,6 @@ export class TelegramSender {
    * Delay helper.
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

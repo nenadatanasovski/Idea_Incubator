@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from 'uuid';
-import { getDb, saveDb } from '../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { getDb, saveDb } from "../../database/db.js";
 import {
   IdeationSession,
   IdeationSessionRow,
@@ -7,8 +7,11 @@ import {
   SessionPhase,
   IdeaCandidate,
   IdeaCandidateRow,
-} from '../../types/ideation.js';
-import { mapSessionRowToSession, mapCandidateRowToCandidate } from '../../utils/ideation-mappers.js';
+} from "../../types/ideation.js";
+import {
+  mapSessionRowToSession,
+  mapCandidateRowToCandidate,
+} from "../../utils/ideation-mappers.js";
 
 /**
  * SESSION MANAGER
@@ -31,16 +34,22 @@ export interface UpdateSessionParams {
 /**
  * Helper to convert db result row to object
  */
-function rowToObject(result: { columns: string[]; values: unknown[][] }): Record<string, unknown> {
+function rowToObject(result: {
+  columns: string[];
+  values: unknown[][];
+}): Record<string, unknown> {
   if (result.values.length === 0) {
     return {};
   }
   const columns = result.columns;
   const values = result.values[0];
-  return columns.reduce((obj, col, i) => {
-    obj[col] = values[i];
-    return obj;
-  }, {} as Record<string, unknown>);
+  return columns.reduce(
+    (obj, col, i) => {
+      obj[col] = values[i];
+      return obj;
+    },
+    {} as Record<string, unknown>,
+  );
 }
 
 export class SessionManager {
@@ -52,14 +61,17 @@ export class SessionManager {
     const id = uuidv4();
     const now = new Date().toISOString();
 
-    db.run(`
+    db.run(
+      `
       INSERT INTO ideation_sessions (
         id, profile_id, status, current_phase, entry_mode,
         started_at, last_activity_at,
         handoff_count, token_count, message_count
       )
       VALUES (?, ?, 'active', 'exploring', 'discover', ?, ?, 0, 0, 0)
-    `, [id, params.profileId, now, now]);
+    `,
+      [id, params.profileId, now, now],
+    );
 
     await saveDb();
 
@@ -71,9 +83,12 @@ export class SessionManager {
    */
   async load(sessionId: string): Promise<IdeationSession | null> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_sessions WHERE id = ?
-    `, [sessionId]);
+    `,
+      [sessionId],
+    );
 
     if (results.length === 0 || results[0].values.length === 0) {
       return null;
@@ -86,42 +101,48 @@ export class SessionManager {
   /**
    * Update session fields.
    */
-  async update(sessionId: string, params: UpdateSessionParams): Promise<IdeationSession | null> {
+  async update(
+    sessionId: string,
+    params: UpdateSessionParams,
+  ): Promise<IdeationSession | null> {
     const db = await getDb();
     const updates: string[] = [];
     const values: unknown[] = [];
 
     if (params.status !== undefined) {
-      updates.push('status = ?');
+      updates.push("status = ?");
       values.push(params.status);
     }
     if (params.currentPhase !== undefined) {
-      updates.push('current_phase = ?');
+      updates.push("current_phase = ?");
       values.push(params.currentPhase);
     }
     if (params.tokenCount !== undefined) {
-      updates.push('token_count = ?');
+      updates.push("token_count = ?");
       values.push(params.tokenCount);
     }
     if (params.messageCount !== undefined) {
-      updates.push('message_count = ?');
+      updates.push("message_count = ?");
       values.push(params.messageCount);
     }
     if (params.handoffCount !== undefined) {
-      updates.push('handoff_count = ?');
+      updates.push("handoff_count = ?");
       values.push(params.handoffCount);
     }
 
-    updates.push('last_activity_at = ?');
+    updates.push("last_activity_at = ?");
     values.push(new Date().toISOString());
 
     values.push(sessionId);
 
-    db.run(`
+    db.run(
+      `
       UPDATE ideation_sessions
-      SET ${updates.join(', ')}
+      SET ${updates.join(", ")}
       WHERE id = ?
-    `, values as (string | number | null)[]);
+    `,
+      values as (string | number | null)[],
+    );
 
     await saveDb();
 
@@ -135,11 +156,14 @@ export class SessionManager {
     const db = await getDb();
     const now = new Date().toISOString();
 
-    db.run(`
+    db.run(
+      `
       UPDATE ideation_sessions
       SET status = 'completed', completed_at = ?, last_activity_at = ?
       WHERE id = ?
-    `, [now, now, sessionId]);
+    `,
+      [now, now, sessionId],
+    );
 
     await saveDb();
 
@@ -153,11 +177,14 @@ export class SessionManager {
     const db = await getDb();
     const now = new Date().toISOString();
 
-    db.run(`
+    db.run(
+      `
       UPDATE ideation_sessions
       SET status = 'abandoned', completed_at = ?, last_activity_at = ?
       WHERE id = ?
-    `, [now, now, sessionId]);
+    `,
+      [now, now, sessionId],
+    );
 
     await saveDb();
 
@@ -169,20 +196,26 @@ export class SessionManager {
    */
   async getActiveByProfile(profileId: string): Promise<IdeationSession[]> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_sessions
       WHERE profile_id = ? AND status = 'active'
       ORDER BY last_activity_at DESC
-    `, [profileId]);
+    `,
+      [profileId],
+    );
 
     if (results.length === 0) return [];
 
     const columns = results[0].columns;
     return results[0].values.map((values: unknown[]) => {
-      const row = columns.reduce((obj: Record<string, unknown>, col: string, i: number) => {
-        obj[col] = values[i];
-        return obj;
-      }, {} as Record<string, unknown>) as IdeationSessionRow;
+      const row = columns.reduce(
+        (obj: Record<string, unknown>, col: string, i: number) => {
+          obj[col] = values[i];
+          return obj;
+        },
+        {} as Record<string, unknown>,
+      ) as IdeationSessionRow;
       return mapSessionRowToSession(row);
     });
   }
@@ -191,16 +224,21 @@ export class SessionManager {
    * Gets the active session for a profile, if one exists.
    * Used to enforce "one idea at a time" constraint.
    */
-  async getActiveSessionByProfile(profileId: string): Promise<IdeationSession | null> {
+  async getActiveSessionByProfile(
+    profileId: string,
+  ): Promise<IdeationSession | null> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT *
       FROM ideation_sessions
       WHERE profile_id = ?
         AND status = 'active'
       ORDER BY last_activity_at DESC
       LIMIT 1
-    `, [profileId]);
+    `,
+      [profileId],
+    );
 
     if (results.length === 0 || results[0].values.length === 0) {
       return null;
@@ -222,16 +260,22 @@ export class SessionManager {
     if (!activeSession) return null;
 
     const db = await getDb();
-    const candidateResults = db.exec(`
+    const candidateResults = db.exec(
+      `
       SELECT *
       FROM ideation_candidates
       WHERE session_id = ?
         AND status IN ('forming', 'active')
       ORDER BY updated_at DESC
       LIMIT 1
-    `, [activeSession.id]);
+    `,
+      [activeSession.id],
+    );
 
-    if (candidateResults.length === 0 || candidateResults[0].values.length === 0) {
+    if (
+      candidateResults.length === 0 ||
+      candidateResults[0].values.length === 0
+    ) {
       return null;
     }
 
@@ -247,11 +291,14 @@ export class SessionManager {
   async incrementHandoff(sessionId: string): Promise<void> {
     const db = await getDb();
 
-    db.run(`
+    db.run(
+      `
       UPDATE ideation_sessions
       SET handoff_count = handoff_count + 1, last_activity_at = ?
       WHERE id = ?
-    `, [new Date().toISOString(), sessionId]);
+    `,
+      [new Date().toISOString(), sessionId],
+    );
 
     await saveDb();
   }

@@ -1,4 +1,4 @@
-import { IdeationMessage } from '../../types/ideation.js';
+import { IdeationMessage } from "../../types/ideation.js";
 
 /**
  * TOKEN COUNTING & HANDOFF
@@ -38,11 +38,11 @@ export function estimateTokens(text: string): number {
  */
 export function calculateTokenUsage(
   conversationHistory: IdeationMessage[],
-  currentMessage: string
+  currentMessage: string,
 ): TokenUsage {
   const conversationTokens = conversationHistory.reduce(
     (sum, msg) => sum + estimateTokens(msg.content),
-    0
+    0,
   );
   const currentMessageTokens = estimateTokens(currentMessage);
 

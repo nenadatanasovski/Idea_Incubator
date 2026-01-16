@@ -8,17 +8,23 @@
  * 4. Provides execution history and metrics
  */
 
-import { EventEmitter } from 'events';
-import { query, run, getOne } from '../../database/db.js';
-import { TaskResult } from './agent-runner.js';
-import { ParsedTask } from './task-loader.js';
+import { EventEmitter } from "events";
+import { query, run, getOne } from "../../database/db.js";
+import { TaskResult } from "./agent-runner.js";
+import { ParsedTask } from "./task-loader.js";
 
 export interface TaskExecutionRecord {
   id: string;
   taskId: string;
   taskListPath: string;
   buildId: string;
-  status: 'pending' | 'running' | 'validating' | 'completed' | 'failed' | 'skipped';
+  status:
+    | "pending"
+    | "running"
+    | "validating"
+    | "completed"
+    | "failed"
+    | "skipped";
   startedAt: string;
   completedAt?: string;
   error?: string;
@@ -45,12 +51,15 @@ export interface ExecutionMetrics {
  * Task Result Collector - Manages execution results
  */
 export class TaskResultCollector extends EventEmitter {
-  private pendingExecutions: Map<string, {
-    promise: Promise<TaskResult>;
-    resolve: (result: TaskResult) => void;
-    reject: (error: Error) => void;
-    timeoutHandle?: NodeJS.Timeout;
-  }> = new Map();
+  private pendingExecutions: Map<
+    string,
+    {
+      promise: Promise<TaskResult>;
+      resolve: (result: TaskResult) => void;
+      reject: (error: Error) => void;
+      timeoutHandle?: NodeJS.Timeout;
+    }
+  > = new Map();
 
   constructor() {
     super();
@@ -64,20 +73,26 @@ export class TaskResultCollector extends EventEmitter {
     task: ParsedTask,
     taskListPath: string,
     buildId: string,
-    assignedAgent: string
+    assignedAgent: string,
   ): Promise<string> {
     const executionId = `exec-${Date.now()}-${task.id}`;
 
     // Record in database
     try {
-      await run(`
+      await run(
+        `
         INSERT INTO task_executions (
           id, task_id, build_id, task_list_path, phase, action, file_path,
           status, started_at, assigned_agent, attempts
         ) VALUES (?, ?, ?, ?, 'execution', 'UPDATE', '', 'running', datetime('now'), ?, 1)
-      `, [executionId, task.id, buildId, taskListPath, assignedAgent]);
+      `,
+        [executionId, task.id, buildId, taskListPath, assignedAgent],
+      );
     } catch (error) {
-      console.error('[TaskResultCollector] Failed to record execution start:', error);
+      console.error(
+        "[TaskResultCollector] Failed to record execution start:",
+        error,
+      );
       // Continue anyway - we can still track in memory
     }
 
@@ -95,13 +110,15 @@ export class TaskResultCollector extends EventEmitter {
       reject: reject!,
     });
 
-    this.emit('execution:started', {
+    this.emit("execution:started", {
       executionId,
       taskId: task.id,
       assignedAgent,
     });
 
-    console.log(`[TaskResultCollector] Started tracking execution ${executionId} for task ${task.id}`);
+    console.log(
+      `[TaskResultCollector] Started tracking execution ${executionId} for task ${task.id}`,
+    );
 
     return executionId;
   }
@@ -111,13 +128,14 @@ export class TaskResultCollector extends EventEmitter {
    */
   async recordCompletion(
     executionId: string,
-    result: TaskResult
+    result: TaskResult,
   ): Promise<void> {
     const completedAt = new Date().toISOString();
 
     // Update database - map our statuses to the schema's statuses
     try {
-      await run(`
+      await run(
+        `
         UPDATE task_executions
         SET
           status = ?,
@@ -128,18 +146,23 @@ export class TaskResultCollector extends EventEmitter {
           questions_asked = ?,
           tokens_used = ?
         WHERE id = ?
-      `, [
-        result.success ? 'completed' : 'failed',  // Map to schema's 'completed' not 'complete'
-        completedAt,
-        result.output || null,
-        result.error || null,
-        result.filesModified ? JSON.stringify(result.filesModified) : null,
-        result.questionsAsked || 0,
-        result.tokensUsed || 0,
-        executionId,
-      ]);
+      `,
+        [
+          result.success ? "completed" : "failed", // Map to schema's 'completed' not 'complete'
+          completedAt,
+          result.output || null,
+          result.error || null,
+          result.filesModified ? JSON.stringify(result.filesModified) : null,
+          result.questionsAsked || 0,
+          result.tokensUsed || 0,
+          executionId,
+        ],
+      );
     } catch (error) {
-      console.error('[TaskResultCollector] Failed to record completion:', error);
+      console.error(
+        "[TaskResultCollector] Failed to record completion:",
+        error,
+      );
     }
 
     // Resolve the promise
@@ -152,13 +175,15 @@ export class TaskResultCollector extends EventEmitter {
       this.pendingExecutions.delete(executionId);
     }
 
-    this.emit('execution:completed', {
+    this.emit("execution:completed", {
       executionId,
       success: result.success,
       output: result.output,
     });
 
-    console.log(`[TaskResultCollector] Recorded completion for ${executionId}: ${result.success ? 'success' : 'failed'}`);
+    console.log(
+      `[TaskResultCollector] Recorded completion for ${executionId}: ${result.success ? "success" : "failed"}`,
+    );
   }
 
   /**
@@ -167,13 +192,14 @@ export class TaskResultCollector extends EventEmitter {
   async recordFailure(
     executionId: string,
     error: string,
-    shouldRetry: boolean = false
+    shouldRetry: boolean = false,
   ): Promise<void> {
     const completedAt = new Date().toISOString();
 
     // Update database
     try {
-      await run(`
+      await run(
+        `
         UPDATE task_executions
         SET
           status = ?,
@@ -181,14 +207,11 @@ export class TaskResultCollector extends EventEmitter {
           error = ?,
           attempts = attempts + 1
         WHERE id = ?
-      `, [
-        shouldRetry ? 'pending' : 'failed',
-        completedAt,
-        error,
-        executionId,
-      ]);
+      `,
+        [shouldRetry ? "pending" : "failed", completedAt, error, executionId],
+      );
     } catch (dbError) {
-      console.error('[TaskResultCollector] Failed to record failure:', dbError);
+      console.error("[TaskResultCollector] Failed to record failure:", dbError);
     }
 
     // Reject the promise if not retrying
@@ -203,13 +226,15 @@ export class TaskResultCollector extends EventEmitter {
       }
     }
 
-    this.emit('execution:failed', {
+    this.emit("execution:failed", {
       executionId,
       error,
       willRetry: shouldRetry,
     });
 
-    console.log(`[TaskResultCollector] Recorded failure for ${executionId}: ${error}`);
+    console.log(
+      `[TaskResultCollector] Recorded failure for ${executionId}: ${error}`,
+    );
   }
 
   /**
@@ -218,19 +243,24 @@ export class TaskResultCollector extends EventEmitter {
    */
   async waitForCompletion(
     executionId: string,
-    timeoutMs: number = 5 * 60 * 1000
+    timeoutMs: number = 5 * 60 * 1000,
   ): Promise<TaskResult> {
     const pending = this.pendingExecutions.get(executionId);
 
     if (!pending) {
       // Check if already completed in database
       const record = await this.getExecutionById(executionId);
-      if (record && (record.status === 'completed' || record.status === 'failed')) {
+      if (
+        record &&
+        (record.status === "completed" || record.status === "failed")
+      ) {
         return {
-          success: record.status === 'completed',
+          success: record.status === "completed",
           output: record.output || undefined,
           error: record.error || undefined,
-          filesModified: record.filesModified ? JSON.parse(record.filesModified) : undefined,
+          filesModified: record.filesModified
+            ? JSON.parse(record.filesModified)
+            : undefined,
           questionsAsked: record.questionsAsked || 0,
           tokensUsed: record.tokensUsed || 0,
         };
@@ -243,8 +273,12 @@ export class TaskResultCollector extends EventEmitter {
     const timeoutPromise = new Promise<TaskResult>((_, reject) => {
       pending.timeoutHandle = setTimeout(() => {
         this.pendingExecutions.delete(executionId);
-        this.recordFailure(executionId, 'Execution timeout').catch(console.error);
-        reject(new Error(`Execution ${executionId} timed out after ${timeoutMs}ms`));
+        this.recordFailure(executionId, "Execution timeout").catch(
+          console.error,
+        );
+        reject(
+          new Error(`Execution ${executionId} timed out after ${timeoutMs}ms`),
+        );
       }, timeoutMs);
     });
 
@@ -255,15 +289,20 @@ export class TaskResultCollector extends EventEmitter {
   /**
    * Get execution status by ID
    */
-  async getExecutionById(executionId: string): Promise<TaskExecutionRecord | null> {
+  async getExecutionById(
+    executionId: string,
+  ): Promise<TaskExecutionRecord | null> {
     try {
-      const record = await getOne<TaskExecutionRecord>(`
+      const record = await getOne<TaskExecutionRecord>(
+        `
         SELECT * FROM task_executions WHERE id = ?
-      `, [executionId]);
+      `,
+        [executionId],
+      );
 
       return record || null;
     } catch (error) {
-      console.error('[TaskResultCollector] Failed to get execution:', error);
+      console.error("[TaskResultCollector] Failed to get execution:", error);
       return null;
     }
   }
@@ -273,13 +312,16 @@ export class TaskResultCollector extends EventEmitter {
    */
   async getExecutionsByTaskId(taskId: string): Promise<TaskExecutionRecord[]> {
     try {
-      return await query<TaskExecutionRecord>(`
+      return await query<TaskExecutionRecord>(
+        `
         SELECT * FROM task_executions
         WHERE task_id = ?
         ORDER BY started_at DESC
-      `, [taskId]);
+      `,
+        [taskId],
+      );
     } catch (error) {
-      console.error('[TaskResultCollector] Failed to get executions:', error);
+      console.error("[TaskResultCollector] Failed to get executions:", error);
       return [];
     }
   }
@@ -287,15 +329,20 @@ export class TaskResultCollector extends EventEmitter {
   /**
    * Get all executions for a build
    */
-  async getExecutionsByBuildId(buildId: string): Promise<TaskExecutionRecord[]> {
+  async getExecutionsByBuildId(
+    buildId: string,
+  ): Promise<TaskExecutionRecord[]> {
     try {
-      return await query<TaskExecutionRecord>(`
+      return await query<TaskExecutionRecord>(
+        `
         SELECT * FROM task_executions
         WHERE build_id = ?
         ORDER BY started_at DESC
-      `, [buildId]);
+      `,
+        [buildId],
+      );
     } catch (error) {
-      console.error('[TaskResultCollector] Failed to get executions:', error);
+      console.error("[TaskResultCollector] Failed to get executions:", error);
       return [];
     }
   }
@@ -305,7 +352,7 @@ export class TaskResultCollector extends EventEmitter {
    */
   async getMetrics(buildId?: string): Promise<ExecutionMetrics> {
     try {
-      const whereClause = buildId ? 'WHERE build_id = ?' : '';
+      const whereClause = buildId ? "WHERE build_id = ?" : "";
       const params = buildId ? [buildId] : [];
 
       const metrics = await getOne<{
@@ -316,7 +363,8 @@ export class TaskResultCollector extends EventEmitter {
         avg_duration: number | null;
         total_tokens: number;
         total_questions: number;
-      }>(`
+      }>(
+        `
         SELECT
           COUNT(*) as total,
           SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
@@ -331,7 +379,9 @@ export class TaskResultCollector extends EventEmitter {
           SUM(COALESCE(questions_asked, 0)) as total_questions
         FROM task_executions
         ${whereClause}
-      `, params);
+      `,
+        params,
+      );
 
       return {
         totalExecutions: metrics?.total || 0,
@@ -343,7 +393,7 @@ export class TaskResultCollector extends EventEmitter {
         totalQuestionsAsked: metrics?.total_questions || 0,
       };
     } catch (error) {
-      console.error('[TaskResultCollector] Failed to get metrics:', error);
+      console.error("[TaskResultCollector] Failed to get metrics:", error);
       return {
         totalExecutions: 0,
         completed: 0,
@@ -365,22 +415,25 @@ export class TaskResultCollector extends EventEmitter {
       if (pending.timeoutHandle) {
         clearTimeout(pending.timeoutHandle);
       }
-      pending.reject(new Error('Execution cancelled'));
+      pending.reject(new Error("Execution cancelled"));
       this.pendingExecutions.delete(executionId);
     }
 
     // Update database
     try {
-      await run(`
+      await run(
+        `
         UPDATE task_executions
         SET status = 'skipped', completed_at = datetime('now')
         WHERE id = ? AND status = 'running'
-      `, [executionId]);
+      `,
+        [executionId],
+      );
     } catch (error) {
-      console.error('[TaskResultCollector] Failed to cancel execution:', error);
+      console.error("[TaskResultCollector] Failed to cancel execution:", error);
     }
 
-    this.emit('execution:cancelled', { executionId });
+    this.emit("execution:cancelled", { executionId });
   }
 
   /**
@@ -395,16 +448,22 @@ export class TaskResultCollector extends EventEmitter {
    */
   async cleanupOldExecutions(daysOld: number = 30): Promise<number> {
     try {
-      const result = await run(`
+      const result = await run(
+        `
         DELETE FROM task_executions
         WHERE status IN ('completed', 'failed', 'skipped')
         AND julianday('now') - julianday(completed_at) > ?
-      `, [daysOld]);
+      `,
+        [daysOld],
+      );
 
       console.log(`[TaskResultCollector] Cleaned up ${result} old executions`);
       return result as any; // SQLite returns changes count
     } catch (error) {
-      console.error('[TaskResultCollector] Failed to cleanup executions:', error);
+      console.error(
+        "[TaskResultCollector] Failed to cleanup executions:",
+        error,
+      );
       return 0;
     }
   }

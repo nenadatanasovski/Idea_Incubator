@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { spawn } from "child_process";
 
 /**
  * WEB SEARCH SERVICE
@@ -23,7 +23,12 @@ export interface SearchResultItem {
 }
 
 export interface SearchPurpose {
-  type: 'competitor_check' | 'market_validation' | 'timing_signal' | 'failed_attempts' | 'general';
+  type:
+    | "competitor_check"
+    | "market_validation"
+    | "timing_signal"
+    | "failed_attempts"
+    | "general";
   context: string;
 }
 
@@ -32,7 +37,7 @@ export interface SearchPurpose {
  */
 export async function performWebSearch(
   query: string,
-  purpose: SearchPurpose
+  purpose: SearchPurpose,
 ): Promise<WebSearchResult> {
   const timestamp = new Date().toISOString();
 
@@ -51,7 +56,7 @@ export async function performWebSearch(
     return {
       query,
       results: [],
-      synthesis: '',
+      synthesis: "",
       timestamp,
       error: (error as Error).message,
     };
@@ -61,8 +66,11 @@ export async function performWebSearch(
 /**
  * Build a search prompt based on purpose.
  */
-export function buildSearchPrompt(query: string, purpose: SearchPurpose): string {
-  const purposeInstructions: Record<SearchPurpose['type'], string> = {
+export function buildSearchPrompt(
+  query: string,
+  purpose: SearchPurpose,
+): string {
+  const purposeInstructions: Record<SearchPurpose["type"], string> = {
     competitor_check: `Search for competitors and alternatives in this space. Focus on: company names, their offerings, pricing models, and market position.`,
     market_validation: `Validate if there's a real market for this. Look for: market size data, user demand signals, industry reports.`,
     timing_signal: `Check if the timing is right for this idea. Look for: recent trends, regulatory changes, technology shifts, market events.`,
@@ -92,48 +100,52 @@ IMPORTANT: Include ALL source URLs as markdown links like [Source Name](https://
  */
 async function runClaudeCliWithSearch(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    console.log('[WebSearch] Executing CLI command via stdin...');
+    console.log("[WebSearch] Executing CLI command via stdin...");
 
-    const claude = spawn('claude', ['--allowedTools', 'WebSearch', '--print', '-'], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    const claude = spawn(
+      "claude",
+      ["--allowedTools", "WebSearch", "--print", "-"],
+      {
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
 
-    claude.stdout.on('data', (data) => {
+    claude.stdout.on("data", (data) => {
       stdout += data.toString();
     });
 
-    claude.stderr.on('data', (data) => {
+    claude.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
-    claude.on('close', (code) => {
+    claude.on("close", (code) => {
       if (code === 0) {
         console.log(`[WebSearch] Output length: ${stdout.length} chars`);
-        console.log('[WebSearch] Output preview:', stdout.slice(0, 200));
+        console.log("[WebSearch] Output preview:", stdout.slice(0, 200));
         resolve(stdout);
       } else {
-        console.error('[WebSearch] Exit code:', code);
-        console.error('[WebSearch] stderr:', stderr.slice(0, 500));
-        console.error('[WebSearch] stdout:', stdout.slice(0, 500));
+        console.error("[WebSearch] Exit code:", code);
+        console.error("[WebSearch] stderr:", stderr.slice(0, 500));
+        console.error("[WebSearch] stdout:", stdout.slice(0, 500));
         reject(new Error(`Web search failed with code ${code}: ${stderr}`));
       }
     });
 
-    claude.on('error', (err) => {
-      console.error('[WebSearch] Spawn error:', err.message);
+    claude.on("error", (err) => {
+      console.error("[WebSearch] Spawn error:", err.message);
       reject(new Error(`Failed to spawn claude: ${err.message}`));
     });
 
     // Set timeout
     const timeout = setTimeout(() => {
       claude.kill();
-      reject(new Error('Web search timed out after 90 seconds'));
+      reject(new Error("Web search timed out after 90 seconds"));
     }, 90000);
 
-    claude.on('close', () => clearTimeout(timeout));
+    claude.on("close", () => clearTimeout(timeout));
 
     // Write prompt to stdin and close
     claude.stdin.write(prompt);
@@ -163,9 +175,9 @@ export function parseSearchResults(output: string): SearchResultItem[] {
   // Also check for bare URLs
   const urlPattern = /(https?:\/\/[^\s\)]+)/g;
   while ((match = urlPattern.exec(output)) !== null) {
-    if (!results.some(r => r.url === match![1])) {
+    if (!results.some((r) => r.url === match![1])) {
       results.push({
-        title: 'Source',
+        title: "Source",
         url: match[1],
         snippet: extractSnippet(output, match.index),
         source: extractHostname(match[1]),
@@ -183,7 +195,7 @@ function extractHostname(url: string): string {
   try {
     return new URL(url).hostname;
   } catch {
-    return 'unknown';
+    return "unknown";
   }
 }
 
@@ -196,10 +208,10 @@ function extractSnippet(text: string, matchIndex: number): string {
   let snippet = text.slice(start, end).trim();
 
   // Clean up and add ellipsis
-  if (start > 0) snippet = '...' + snippet;
-  if (end < text.length) snippet = snippet + '...';
+  if (start > 0) snippet = "..." + snippet;
+  if (end < text.length) snippet = snippet + "...";
 
-  return snippet.replace(/\[.*?\]\(.*?\)/g, '').trim();
+  return snippet.replace(/\[.*?\]\(.*?\)/g, "").trim();
 }
 
 /**
@@ -213,7 +225,11 @@ export interface SearchStrategy {
 
 export function determineSearchStrategy(
   candidateTitle: string,
-  narrowingState: { productType?: string; customerType?: string; geography?: string }
+  narrowingState: {
+    productType?: string;
+    customerType?: string;
+    geography?: string;
+  },
 ): SearchStrategy {
   const queries: string[] = [];
   const purposes: SearchPurpose[] = [];
@@ -221,31 +237,31 @@ export function determineSearchStrategy(
   // Always check for competitors
   queries.push(`${candidateTitle} competitors alternatives`);
   purposes.push({
-    type: 'competitor_check',
+    type: "competitor_check",
     context: `Looking for direct competitors to: ${candidateTitle}`,
   });
 
   // Check market validation
   queries.push(`${candidateTitle} market size demand`);
   purposes.push({
-    type: 'market_validation',
+    type: "market_validation",
     context: `Validating market demand for: ${candidateTitle}`,
   });
 
   // Check for failed attempts if B2C
-  if (narrowingState.customerType === 'B2C') {
+  if (narrowingState.customerType === "B2C") {
     queries.push(`${candidateTitle} startup failed shutdown`);
     purposes.push({
-      type: 'failed_attempts',
+      type: "failed_attempts",
       context: `Looking for previous failed attempts in: ${candidateTitle}`,
     });
   }
 
   // Add geography-specific search if local
-  if (narrowingState.geography === 'local') {
+  if (narrowingState.geography === "local") {
     queries.push(`${candidateTitle} australia local market`);
     purposes.push({
-      type: 'market_validation',
+      type: "market_validation",
       context: `Checking Australian/local market for: ${candidateTitle}`,
     });
   }
@@ -257,17 +273,20 @@ export function determineSearchStrategy(
  * Batch execute searches with rate limiting.
  */
 export async function executeSearchBatch(
-  strategy: SearchStrategy
+  strategy: SearchStrategy,
 ): Promise<WebSearchResult[]> {
   const results: WebSearchResult[] = [];
 
   for (let i = 0; i < strategy.queries.length; i++) {
-    const result = await performWebSearch(strategy.queries[i], strategy.purposes[i]);
+    const result = await performWebSearch(
+      strategy.queries[i],
+      strategy.purposes[i],
+    );
     results.push(result);
 
     // Rate limit: wait 1 second between searches
     if (i < strategy.queries.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 

@@ -2,11 +2,11 @@
  * Notification Dispatcher
  * Routes notifications to appropriate channels based on user preferences
  */
-import { Notification, NotificationChannel } from '../../types/notification.js';
-import { notificationPreferences } from './preferences.js';
-import { inAppChannel } from './channels/in-app.js';
-import { emailChannel } from './channels/email.js';
-import { telegramChannel } from './channels/telegram.js';
+import { Notification, NotificationChannel } from "../../types/notification.js";
+import { notificationPreferences } from "./preferences.js";
+import { inAppChannel } from "./channels/in-app.js";
+import { emailChannel } from "./channels/email.js";
+import { telegramChannel } from "./channels/telegram.js";
 
 /**
  * Channel interface for type-safe dispatch
@@ -23,7 +23,7 @@ class NotificationDispatcher {
   private channels: Record<NotificationChannel, Channel> = {
     in_app: inAppChannel,
     email: emailChannel,
-    telegram: telegramChannel
+    telegram: telegramChannel,
   };
 
   /**
@@ -33,18 +33,18 @@ class NotificationDispatcher {
     // Get effective channels for this user and notification type
     const channels = await notificationPreferences.getChannels(
       notification.userId,
-      notification.type
+      notification.type,
     );
 
     if (channels.length === 0) {
       console.log(
-        `[Dispatcher] Notification ${notification.id} skipped - no active channels for user ${notification.userId}`
+        `[Dispatcher] Notification ${notification.id} skipped - no active channels for user ${notification.userId}`,
       );
       return;
     }
 
     console.log(
-      `[Dispatcher] Dispatching notification ${notification.id} to channels: ${channels.join(', ')}`
+      `[Dispatcher] Dispatching notification ${notification.id} to channels: ${channels.join(", ")}`,
     );
 
     // Dispatch to all channels in parallel
@@ -63,20 +63,20 @@ class NotificationDispatcher {
           // Log but don't fail other channels
           console.error(
             `[Dispatcher] Channel ${channelName} failed for notification ${notification.id}:`,
-            error
+            error,
           );
           throw error; // Re-throw so Promise.allSettled captures it
         }
-      })
+      }),
     );
 
     // Log results summary
-    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
-    const failed = results.filter((r) => r.status === 'rejected').length;
+    const succeeded = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.filter((r) => r.status === "rejected").length;
 
     if (failed > 0) {
       console.warn(
-        `[Dispatcher] Notification ${notification.id}: ${succeeded} succeeded, ${failed} failed`
+        `[Dispatcher] Notification ${notification.id}: ${succeeded} succeeded, ${failed} failed`,
       );
     }
   }
@@ -87,7 +87,7 @@ class NotificationDispatcher {
    */
   async dispatchToChannel(
     notification: Notification,
-    channelName: NotificationChannel
+    channelName: NotificationChannel,
   ): Promise<void> {
     const channel = this.channels[channelName];
     if (!channel) {

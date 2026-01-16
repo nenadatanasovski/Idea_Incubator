@@ -16,18 +16,23 @@ summary: ""
 - [ ] Defined: No
 
 ## Overview
+
 <!-- Agent fills after initial capture -->
 
 ## Problem Statement
+
 <!-- Agent fills after problem clarification -->
 
 ## Target Users
+
 <!-- Agent fills after target user discussion -->
 
 ## Solution
+
 <!-- Agent fills after solution discussion -->
 
 ## Key Features
+
 <!-- Agent fills after feature brainstorming -->
 
 1. Feature 1

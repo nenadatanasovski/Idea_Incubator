@@ -3,9 +3,9 @@
 // User message component with edit functionality
 // =============================================================================
 
-import { useState, useRef, useEffect } from 'react';
-import { User, Pencil, Check, X, FileText } from 'lucide-react';
-import type { UserMessageProps } from '../../types/ideation';
+import { useState, useRef, useEffect } from "react";
+import { User, Pencil, Check, X, FileText } from "lucide-react";
+import type { UserMessageProps } from "../../types/ideation";
 
 // Format timestamp for display
 function formatTimestamp(isoString: string): string {
@@ -13,17 +13,28 @@ function formatTimestamp(isoString: string): string {
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
 
-  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const timeStr = date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   if (isToday) {
     return timeStr;
   }
 
-  const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const dateStr = date.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+  });
   return `${dateStr}, ${timeStr}`;
 }
 
-export function UserMessage({ message, onEdit, isEditable = true, onConvertToArtifact }: UserMessageProps) {
+export function UserMessage({
+  message,
+  onEdit,
+  isEditable = true,
+  onConvertToArtifact,
+}: UserMessageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -33,7 +44,10 @@ export function UserMessage({ message, onEdit, isEditable = true, onConvertToArt
     if (isEditing && textareaRef.current) {
       textareaRef.current.focus();
       // Move cursor to end
-      textareaRef.current.setSelectionRange(editContent.length, editContent.length);
+      textareaRef.current.setSelectionRange(
+        editContent.length,
+        editContent.length,
+      );
     }
   }, [isEditing]);
 
@@ -41,14 +55,15 @@ export function UserMessage({ message, onEdit, isEditable = true, onConvertToArt
   useEffect(() => {
     if (isEditing && textareaRef.current) {
       // Reset height to auto to get accurate scrollHeight
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
       // Set height to scrollHeight with a minimum
       const minHeight = 80; // Minimum height in pixels
       const maxHeight = 400; // Maximum height before scrolling
       const scrollHeight = textareaRef.current.scrollHeight;
       textareaRef.current.style.height = `${Math.min(Math.max(scrollHeight, minHeight), maxHeight)}px`;
       // Enable scrolling if content exceeds max height
-      textareaRef.current.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+      textareaRef.current.style.overflowY =
+        scrollHeight > maxHeight ? "auto" : "hidden";
     }
   }, [editContent, isEditing]);
 
@@ -70,10 +85,10 @@ export function UserMessage({ message, onEdit, isEditable = true, onConvertToArt
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSaveEdit();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       handleCancelEdit();
     }
   };
@@ -86,10 +101,11 @@ export function UserMessage({ message, onEdit, isEditable = true, onConvertToArt
           {onConvertToArtifact && (
             <button
               onClick={() => {
-                const firstLine = message.content.split('\n')[0];
-                const title = firstLine.length > 50
-                  ? firstLine.substring(0, 47) + '...'
-                  : firstLine || 'User Message';
+                const firstLine = message.content.split("\n")[0];
+                const title =
+                  firstLine.length > 50
+                    ? firstLine.substring(0, 47) + "..."
+                    : firstLine || "User Message";
                 onConvertToArtifact(message.content, title);
               }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 text-gray-500 hover:text-gray-700 transition-all shadow-sm border border-gray-200 hover:shadow"
@@ -119,7 +135,7 @@ export function UserMessage({ message, onEdit, isEditable = true, onConvertToArt
                 onChange={(e) => setEditContent(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="w-full bg-blue-700 text-white rounded p-2 resize-none focus:outline-none focus:ring-2 focus:ring-white/50 overflow-hidden"
-                style={{ minHeight: '80px', minWidth: '400px' }}
+                style={{ minHeight: "80px", minWidth: "400px" }}
               />
               <div className="flex justify-end gap-2">
                 <button

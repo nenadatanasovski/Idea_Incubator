@@ -8,6 +8,7 @@ sessionId: 1516b73c-5ed3-41ab-8e1e-add2c69a4be2
 createdAt: 2026-01-02 11:29:53
 updatedAt: 2026-01-02 11:29:53
 ---
+
 Welcome! I'm here to help you discover a business idea that's genuinely right for you.
 
 Here's how this works: We'll have a conversation where I ask questions, you answer, and together we'll explore what excites you and what the market needs. As we go, I'll be looking for where those two things overlap.

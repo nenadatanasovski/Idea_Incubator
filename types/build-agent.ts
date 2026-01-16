@@ -2,8 +2,20 @@
  * Build Agent Types
  */
 
-export type BuildStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
-export type TaskStatus = 'pending' | 'running' | 'validating' | 'completed' | 'failed' | 'skipped';
+export type BuildStatus =
+  | "pending"
+  | "running"
+  | "paused"
+  | "completed"
+  | "failed"
+  | "cancelled";
+export type TaskStatus =
+  | "pending"
+  | "running"
+  | "validating"
+  | "completed"
+  | "failed"
+  | "skipped";
 
 export interface BuildExecution {
   id: string;
@@ -48,7 +60,7 @@ export interface BuildOptions {
 export interface AtomicTask {
   id: string;
   phase: string;
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  action: "CREATE" | "UPDATE" | "DELETE";
   file: string;
   status: string;
   requirements: string[];

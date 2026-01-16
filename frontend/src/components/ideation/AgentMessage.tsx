@@ -3,13 +3,13 @@
 // Agent message component with buttons/form support
 // =============================================================================
 
-import 'react';
-import { Bot, FileText } from 'lucide-react';
-import { MessageText } from './MessageText';
-import { ButtonGroup } from './ButtonGroup';
-import { FormRenderer } from './FormRenderer';
-import { SourceCitations } from './SourceCitations';
-import type { AgentMessageProps } from '../../types/ideation';
+import "react";
+import { Bot, FileText } from "lucide-react";
+import { MessageText } from "./MessageText";
+import { ButtonGroup } from "./ButtonGroup";
+import { FormRenderer } from "./FormRenderer";
+import { SourceCitations } from "./SourceCitations";
+import type { AgentMessageProps } from "../../types/ideation";
 
 // Format timestamp for display
 function formatTimestamp(isoString: string): string {
@@ -17,13 +17,19 @@ function formatTimestamp(isoString: string): string {
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
 
-  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const timeStr = date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   if (isToday) {
     return timeStr;
   }
 
-  const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const dateStr = date.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+  });
   return `${dateStr}, ${timeStr}`;
 }
 
@@ -38,10 +44,11 @@ export function AgentMessage({
   const handleConvertToArtifact = () => {
     if (onConvertToArtifact) {
       // Generate a title from the first line or first 50 chars
-      const firstLine = message.content.split('\n')[0];
-      const title = firstLine.length > 50
-        ? firstLine.substring(0, 47) + '...'
-        : firstLine || 'Agent Response';
+      const firstLine = message.content.split("\n")[0];
+      const title =
+        firstLine.length > 50
+          ? firstLine.substring(0, 47) + "..."
+          : firstLine || "Agent Response";
       onConvertToArtifact(message.content, title);
     }
   };
@@ -56,7 +63,10 @@ export function AgentMessage({
         </div>
         <div className="flex-1 max-w-[85%] min-w-0 overflow-hidden">
           <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 overflow-hidden">
-            <MessageText content={message.content} onArtifactClick={onArtifactClick} />
+            <MessageText
+              content={message.content}
+              onArtifactClick={onArtifactClick}
+            />
           </div>
         </div>
         {/* Save as artifact button - sticky positioning */}

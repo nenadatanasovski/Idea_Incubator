@@ -1,13 +1,23 @@
-import { useState } from 'react'
-import { X, DollarSign, AlertTriangle, Play, MessageSquare } from 'lucide-react'
-import clsx from 'clsx'
+import { useState } from "react";
+import {
+  X,
+  DollarSign,
+  AlertTriangle,
+  Play,
+  MessageSquare,
+} from "lucide-react";
+import clsx from "clsx";
 
 interface EvaluationSettingsModalProps {
-  onStart: (settings: { budget: number; unlimited: boolean; debateRounds: number }) => void
-  onClose: () => void
-  loading?: boolean
-  initialBudget?: number
-  initialDebateRounds?: number
+  onStart: (settings: {
+    budget: number;
+    unlimited: boolean;
+    debateRounds: number;
+  }) => void;
+  onClose: () => void;
+  loading?: boolean;
+  initialBudget?: number;
+  initialDebateRounds?: number;
 }
 
 export default function EvaluationSettingsModal({
@@ -17,21 +27,23 @@ export default function EvaluationSettingsModal({
   initialBudget = 15,
   initialDebateRounds = 1,
 }: EvaluationSettingsModalProps) {
-  const [budget, setBudget] = useState(initialBudget)
-  const [unlimited, setUnlimited] = useState(false)
-  const [debateRounds, setDebateRounds] = useState(initialDebateRounds)
+  const [budget, setBudget] = useState(initialBudget);
+  const [unlimited, setUnlimited] = useState(false);
+  const [debateRounds, setDebateRounds] = useState(initialDebateRounds);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onStart({ budget, unlimited, debateRounds })
-  }
+    e.preventDefault();
+    onStart({ budget, unlimited, debateRounds });
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Evaluation Settings</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Evaluation Settings
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition"
@@ -45,7 +57,10 @@ export default function EvaluationSettingsModal({
           <div className="p-4 space-y-4">
             {/* Budget Input */}
             <div>
-              <label htmlFor="budget" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="budget"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Budget (USD)
               </label>
               <div className="relative">
@@ -57,22 +72,28 @@ export default function EvaluationSettingsModal({
                   max="100"
                   step="1"
                   value={budget}
-                  onChange={(e) => setBudget(Math.max(1, parseInt(e.target.value) || 15))}
+                  onChange={(e) =>
+                    setBudget(Math.max(1, parseInt(e.target.value) || 15))
+                  }
                   disabled={unlimited}
                   className={clsx(
-                    'input pl-10 w-full',
-                    unlimited && 'bg-gray-100 text-gray-500'
+                    "input pl-10 w-full",
+                    unlimited && "bg-gray-100 text-gray-500",
                   )}
                 />
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Typical evaluation costs $3-8. Higher budgets allow more thorough debate rounds.
+                Typical evaluation costs $3-8. Higher budgets allow more
+                thorough debate rounds.
               </p>
             </div>
 
             {/* Debate Rounds Input */}
             <div>
-              <label htmlFor="debateRounds" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="debateRounds"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Debate Rounds
               </label>
               <div className="relative">
@@ -84,12 +105,17 @@ export default function EvaluationSettingsModal({
                   max="3"
                   step="1"
                   value={debateRounds}
-                  onChange={(e) => setDebateRounds(Math.min(3, Math.max(1, parseInt(e.target.value) || 1)))}
+                  onChange={(e) =>
+                    setDebateRounds(
+                      Math.min(3, Math.max(1, parseInt(e.target.value) || 1)),
+                    )
+                  }
                   className="input pl-10 w-full"
                 />
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Number of challenge/defense rounds per criterion (1-3). More rounds = deeper analysis but higher cost.
+                Number of challenge/defense rounds per criterion (1-3). More
+                rounds = deeper analysis but higher cost.
               </p>
             </div>
 
@@ -103,7 +129,10 @@ export default function EvaluationSettingsModal({
                 className="mt-1 h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
               />
               <div>
-                <label htmlFor="unlimited" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="unlimited"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Unlimited budget
                 </label>
                 <p className="text-xs text-gray-500">
@@ -158,5 +187,5 @@ export default function EvaluationSettingsModal({
         </form>
       </div>
     </div>
-  )
+  );
 }

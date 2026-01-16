@@ -41,19 +41,19 @@ tests/ux-agent.test.ts       - Unit tests
 // types/ux.ts
 
 export type JourneyStepAction =
-  | 'navigate'
-  | 'click'
-  | 'type'
-  | 'wait'
-  | 'screenshot'
-  | 'assert'
-  | 'select';
+  | "navigate"
+  | "click"
+  | "type"
+  | "wait"
+  | "screenshot"
+  | "assert"
+  | "select";
 
 export interface JourneyStep {
   action: JourneyStepAction;
-  target?: string;      // CSS selector or URL
-  value?: string;       // Text to type or expected value
-  timeout?: number;     // Step timeout in ms
+  target?: string; // CSS selector or URL
+  value?: string; // Text to type or expected value
+  timeout?: number; // Step timeout in ms
   description?: string; // Human-readable description
 }
 
@@ -63,7 +63,7 @@ export interface Journey {
   description: string;
   startUrl: string;
   steps: JourneyStep[];
-  timeout?: number;     // Journey timeout in ms (default 60000)
+  timeout?: number; // Journey timeout in ms (default 60000)
   tags?: string[];
 }
 
@@ -71,7 +71,7 @@ export interface StepResult {
   stepIndex: number;
   action: JourneyStepAction;
   target?: string;
-  status: 'passed' | 'failed' | 'skipped';
+  status: "passed" | "failed" | "skipped";
   error?: string;
   screenshotPath?: string;
   durationMs: number;
@@ -79,7 +79,7 @@ export interface StepResult {
 
 export interface AccessibilityIssue {
   ruleId: string;
-  impact: 'critical' | 'serious' | 'moderate' | 'minor';
+  impact: "critical" | "serious" | "moderate" | "minor";
   description: string;
   selector: string;
   helpUrl: string;
@@ -88,7 +88,7 @@ export interface AccessibilityIssue {
 export interface UXRunResult {
   id: string;
   journeyId: string;
-  status: 'completed' | 'failed' | 'timeout';
+  status: "completed" | "failed" | "timeout";
   passed: boolean;
   steps: StepResult[];
   accessibilityIssues: AccessibilityIssue[];
@@ -172,8 +172,9 @@ export interface MCPBridge {
 ```
 
 **Implementation notes:**
+
 - Store reference to MCP tools passed from caller
-- Each method wraps corresponding mcp__puppeteer__* tool
+- Each method wraps corresponding mcp**puppeteer**\* tool
 - Handle errors and timeouts gracefully
 - Return standardized results
 
@@ -188,24 +189,37 @@ export async function runJourney(
   options?: {
     screenshotOnFailure?: boolean;
     screenshotDir?: string;
-  }
+  },
 ): Promise<UXRunResult>;
 
 // Internal functions
 function executeStep(
   step: JourneyStep,
   bridge: MCPBridge,
-  screenshotManager: ScreenshotManager
+  screenshotManager: ScreenshotManager,
 ): Promise<StepResult>;
 
 function executeNavigate(target: string, bridge: MCPBridge): Promise<void>;
 function executeClick(target: string, bridge: MCPBridge): Promise<void>;
-function executeType(target: string, value: string, bridge: MCPBridge): Promise<void>;
-function executeWait(target: string, timeout: number, bridge: MCPBridge): Promise<void>;
-function executeAssert(target: string, value: string, bridge: MCPBridge): Promise<void>;
+function executeType(
+  target: string,
+  value: string,
+  bridge: MCPBridge,
+): Promise<void>;
+function executeWait(
+  target: string,
+  timeout: number,
+  bridge: MCPBridge,
+): Promise<void>;
+function executeAssert(
+  target: string,
+  value: string,
+  bridge: MCPBridge,
+): Promise<void>;
 ```
 
 **Execution flow:**
+
 1. Initialize result tracking
 2. Navigate to startUrl
 3. For each step:
@@ -223,25 +237,25 @@ Standard journeys for common flows.
 ```typescript
 export const STANDARD_JOURNEYS: Journey[] = [
   {
-    id: 'homepage-load',
-    name: 'Homepage Load',
-    description: 'Verify homepage loads correctly',
-    startUrl: 'http://localhost:5173',
+    id: "homepage-load",
+    name: "Homepage Load",
+    description: "Verify homepage loads correctly",
+    startUrl: "http://localhost:5173",
     steps: [
-      { action: 'wait', target: 'body', timeout: 5000 },
-      { action: 'screenshot', description: 'Homepage loaded' },
+      { action: "wait", target: "body", timeout: 5000 },
+      { action: "screenshot", description: "Homepage loaded" },
     ],
   },
   {
-    id: 'idea-list',
-    name: 'Idea List Navigation',
-    description: 'Navigate to ideas list and verify it loads',
-    startUrl: 'http://localhost:5173',
+    id: "idea-list",
+    name: "Idea List Navigation",
+    description: "Navigate to ideas list and verify it loads",
+    startUrl: "http://localhost:5173",
     steps: [
-      { action: 'wait', target: 'body' },
-      { action: 'click', target: '[data-testid="ideas-link"]' },
-      { action: 'wait', target: '[data-testid="ideas-list"]' },
-      { action: 'screenshot', description: 'Ideas list' },
+      { action: "wait", target: "body" },
+      { action: "click", target: '[data-testid="ideas-link"]' },
+      { action: "wait", target: '[data-testid="ideas-list"]' },
+      { action: "screenshot", description: "Ideas list" },
     ],
   },
 ];
@@ -259,9 +273,9 @@ Runs axe-core accessibility checks via browser evaluation.
 export async function checkAccessibility(
   bridge: MCPBridge,
   options?: {
-    rules?: string[];       // Specific rules to run
-    impactThreshold?: 'critical' | 'serious' | 'moderate' | 'minor';
-  }
+    rules?: string[]; // Specific rules to run
+    impactThreshold?: "critical" | "serious" | "moderate" | "minor";
+  },
 ): Promise<AccessibilityIssue[]>;
 
 // Inject axe-core into page and run
@@ -271,6 +285,7 @@ function parseAxeResults(results: AxeResult): AccessibilityIssue[];
 ```
 
 **Implementation notes:**
+
 - Inject axe-core script via evaluate()
 - Run axe.run() and parse results
 - Filter by impact threshold
@@ -296,6 +311,7 @@ export class ScreenshotManager {
 ```
 
 **Storage format:**
+
 ```
 screenshots/
   ux-runs/
@@ -313,10 +329,16 @@ export class UXOrchestrator {
   constructor(bridge: MCPBridge);
 
   // Run a journey by ID
-  async runJourney(journeyId: string, options?: RunOptions): Promise<UXRunResult>;
+  async runJourney(
+    journeyId: string,
+    options?: RunOptions,
+  ): Promise<UXRunResult>;
 
   // Run a custom journey
-  async runCustomJourney(journey: Journey, options?: RunOptions): Promise<UXRunResult>;
+  async runCustomJourney(
+    journey: Journey,
+    options?: RunOptions,
+  ): Promise<UXRunResult>;
 
   // Run accessibility check on current page
   async checkAccessibility(url: string): Promise<AccessibilityIssue[]>;
@@ -337,11 +359,19 @@ interface RunOptions {
 
 ```typescript
 export async function saveUXRun(run: UXRun): Promise<void>;
-export async function saveStepResults(runId: string, steps: StepResult[]): Promise<void>;
-export async function saveAccessibilityIssues(runId: string, issues: AccessibilityIssue[]): Promise<void>;
+export async function saveStepResults(
+  runId: string,
+  steps: StepResult[],
+): Promise<void>;
+export async function saveAccessibilityIssues(
+  runId: string,
+  issues: AccessibilityIssue[],
+): Promise<void>;
 export async function getUXRun(id: string): Promise<UXRun | null>;
 export async function getStepResults(runId: string): Promise<UXStepResult[]>;
-export async function getAccessibilityIssues(runId: string): Promise<UXAccessibilityIssue[]>;
+export async function getAccessibilityIssues(
+  runId: string,
+): Promise<UXAccessibilityIssue[]>;
 export async function getRecentRuns(limit?: number): Promise<UXRun[]>;
 ```
 
@@ -350,9 +380,11 @@ export async function getRecentRuns(limit?: number): Promise<UXRun[]>;
 ## API Routes
 
 ### POST /api/ux/run
+
 Start a UX journey run.
 
 **Request:**
+
 ```json
 {
   "journeyId": "homepage-load",
@@ -365,6 +397,7 @@ Start a UX journey run.
 ```
 
 **Response:**
+
 ```json
 {
   "runId": "ux-run-456",
@@ -373,18 +406,23 @@ Start a UX journey run.
 ```
 
 ### GET /api/ux/:id
+
 Get run status and results.
 
 ### GET /api/ux/:id/steps
+
 Get detailed step results.
 
 ### GET /api/ux/:id/accessibility
+
 Get accessibility issues.
 
 ### GET /api/ux/journeys
+
 List available journeys.
 
 ### GET /api/ux/history
+
 Get recent run history.
 
 ---
@@ -452,12 +490,14 @@ CREATE INDEX IF NOT EXISTS idx_ux_accessibility_issues_run_id ON ux_accessibilit
 ## Testing Strategy
 
 Unit tests for:
+
 - Journey step execution logic
 - Result aggregation
 - Accessibility issue parsing
 - Screenshot path generation
 
 Integration tests (require browser):
+
 - Full journey execution
 - Accessibility checking
 - Screenshot capture

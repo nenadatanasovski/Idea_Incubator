@@ -7,17 +7,17 @@
  * Part of: PTE-034 to PTE-038
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { run, getOne, saveDb } from '../../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { run, getOne, saveDb } from "../../../database/db.js";
 import {
   Task,
   CreateTaskInput,
   CreateTaskResponse,
   TaskCategory,
   TaskStatus,
-} from '../../../types/task-agent.js';
-import { generateDisplayId } from './display-id-generator.js';
-import { addToQueue } from './evaluation-queue-manager.js';
+} from "../../../types/task-agent.js";
+import { generateDisplayId } from "./display-id-generator.js";
+import { addToQueue } from "./evaluation-queue-manager.js";
 
 /**
  * Database row type for tasks
@@ -53,16 +53,16 @@ function mapTaskRow(row: TaskRow): Task {
     displayId: row.display_id,
     title: row.title,
     description: row.description || undefined,
-    category: row.category as Task['category'],
-    status: row.status as Task['status'],
-    queue: row.queue as Task['queue'],
+    category: row.category as Task["category"],
+    status: row.status as Task["status"],
+    queue: row.queue as Task["queue"],
     taskListId: row.task_list_id || undefined,
     projectId: row.project_id || undefined,
-    priority: row.priority as Task['priority'],
-    effort: row.effort as Task['effort'],
+    priority: row.priority as Task["priority"],
+    effort: row.effort as Task["effort"],
     phase: row.phase,
     position: row.position,
-    owner: row.owner as Task['owner'],
+    owner: row.owner as Task["owner"],
     assignedAgentId: row.assigned_agent_id || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -81,15 +81,15 @@ function mapTaskRow(row: TaskRow): Task {
  * @returns Created task and analysis info
  */
 export async function createListlessTask(
-  input: CreateTaskInput
+  input: CreateTaskInput,
 ): Promise<CreateTaskResponse> {
   const id = uuidv4();
-  const category = input.category || 'task';
+  const category = input.category || "task";
 
   // Generate display ID
   const displayId = await generateDisplayId(
     category as TaskCategory,
-    input.projectId
+    input.projectId,
   );
 
   // Insert the task
@@ -110,18 +110,18 @@ export async function createListlessTask(
       input.description || null,
       category,
       input.projectId || null,
-      input.priority || 'P2',
-      input.effort || 'medium',
+      input.priority || "P2",
+      input.effort || "medium",
       input.phase || 1,
-    ]
+    ],
   );
 
   await saveDb();
 
   // Get the created task
-  const row = await getOne<TaskRow>('SELECT * FROM tasks WHERE id = ?', [id]);
+  const row = await getOne<TaskRow>("SELECT * FROM tasks WHERE id = ?", [id]);
   if (!row) {
-    throw new Error('Failed to create task');
+    throw new Error("Failed to create task");
   }
 
   const task = mapTaskRow(row);
@@ -141,21 +141,21 @@ export async function createListlessTask(
  * @returns Created task
  */
 export async function createTaskInList(
-  input: CreateTaskInput & { taskListId: string }
+  input: CreateTaskInput & { taskListId: string },
 ): Promise<CreateTaskResponse> {
   const id = uuidv4();
-  const category = input.category || 'task';
+  const category = input.category || "task";
 
   // Generate display ID
   const displayId = await generateDisplayId(
     category as TaskCategory,
-    input.projectId
+    input.projectId,
   );
 
   // Get position for new task
   const maxPos = await getOne<{ max_pos: number | null }>(
-    'SELECT MAX(position) as max_pos FROM tasks WHERE task_list_id = ?',
-    [input.taskListId]
+    "SELECT MAX(position) as max_pos FROM tasks WHERE task_list_id = ?",
+    [input.taskListId],
   );
   const position = (maxPos?.max_pos || 0) + 1;
 
@@ -178,11 +178,11 @@ export async function createTaskInList(
       category,
       input.taskListId,
       input.projectId || null,
-      input.priority || 'P2',
-      input.effort || 'medium',
+      input.priority || "P2",
+      input.effort || "medium",
       input.phase || 1,
       position,
-    ]
+    ],
   );
 
   // Update task list stats
@@ -191,15 +191,15 @@ export async function createTaskInList(
      SET total_tasks = total_tasks + 1,
          updated_at = datetime('now')
      WHERE id = ?`,
-    [input.taskListId]
+    [input.taskListId],
   );
 
   await saveDb();
 
   // Get the created task
-  const row = await getOne<TaskRow>('SELECT * FROM tasks WHERE id = ?', [id]);
+  const row = await getOne<TaskRow>("SELECT * FROM tasks WHERE id = ?", [id]);
   if (!row) {
-    throw new Error('Failed to create task');
+    throw new Error("Failed to create task");
   }
 
   const task = mapTaskRow(row);
@@ -218,7 +218,7 @@ export async function createTaskInList(
  * @returns Created task and analysis info
  */
 export async function createTask(
-  input: CreateTaskInput
+  input: CreateTaskInput,
 ): Promise<CreateTaskResponse> {
   if (input.taskListId) {
     return createTaskInList({ ...input, taskListId: input.taskListId });
@@ -230,7 +230,9 @@ export async function createTask(
  * Get a task by ID
  */
 export async function getTaskById(taskId: string): Promise<Task | null> {
-  const row = await getOne<TaskRow>('SELECT * FROM tasks WHERE id = ?', [taskId]);
+  const row = await getOne<TaskRow>("SELECT * FROM tasks WHERE id = ?", [
+    taskId,
+  ]);
   if (!row) {
     return null;
   }
@@ -240,10 +242,12 @@ export async function getTaskById(taskId: string): Promise<Task | null> {
 /**
  * Get a task by display ID
  */
-export async function getTaskByDisplayId(displayId: string): Promise<Task | null> {
+export async function getTaskByDisplayId(
+  displayId: string,
+): Promise<Task | null> {
   const row = await getOne<TaskRow>(
-    'SELECT * FROM tasks WHERE display_id = ?',
-    [displayId]
+    "SELECT * FROM tasks WHERE display_id = ?",
+    [displayId],
   );
   if (!row) {
     return null;
@@ -267,18 +271,21 @@ export async function deleteTask(taskId: string): Promise<boolean> {
        SET total_tasks = total_tasks - 1,
            updated_at = datetime('now')
        WHERE id = ?`,
-      [task.taskListId]
+      [task.taskListId],
     );
   }
 
   // Delete related records first (cascades should handle most)
-  await run('DELETE FROM task_relationships WHERE source_task_id = ? OR target_task_id = ?', [taskId, taskId]);
-  await run('DELETE FROM task_file_impacts WHERE task_id = ?', [taskId]);
-  await run('DELETE FROM task_components WHERE task_id = ?', [taskId]);
-  await run('DELETE FROM task_embeddings WHERE task_id = ?', [taskId]);
+  await run(
+    "DELETE FROM task_relationships WHERE source_task_id = ? OR target_task_id = ?",
+    [taskId, taskId],
+  );
+  await run("DELETE FROM task_file_impacts WHERE task_id = ?", [taskId]);
+  await run("DELETE FROM task_components WHERE task_id = ?", [taskId]);
+  await run("DELETE FROM task_embeddings WHERE task_id = ?", [taskId]);
 
   // Delete the task
-  await run('DELETE FROM tasks WHERE id = ?', [taskId]);
+  await run("DELETE FROM tasks WHERE id = ?", [taskId]);
   await saveDb();
 
   return true;
@@ -289,40 +296,37 @@ export async function deleteTask(taskId: string): Promise<boolean> {
  */
 export async function updateTaskStatus(
   taskId: string,
-  status: TaskStatus
+  status: TaskStatus,
 ): Promise<Task | null> {
   const task = await getTaskById(taskId);
   if (!task) {
     return null;
   }
 
-  const updates: string[] = ['status = ?', 'updated_at = datetime(\'now\')'];
+  const updates: string[] = ["status = ?", "updated_at = datetime('now')"];
   const params: (string | null)[] = [status];
 
   // Set timestamps based on status
-  if (status === 'in_progress' && !task.startedAt) {
-    updates.push('started_at = datetime(\'now\')');
+  if (status === "in_progress" && !task.startedAt) {
+    updates.push("started_at = datetime('now')");
   }
-  if (status === 'completed' || status === 'failed' || status === 'skipped') {
-    updates.push('completed_at = datetime(\'now\')');
+  if (status === "completed" || status === "failed" || status === "skipped") {
+    updates.push("completed_at = datetime('now')");
   }
 
   params.push(taskId);
 
-  await run(
-    `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`,
-    params
-  );
+  await run(`UPDATE tasks SET ${updates.join(", ")} WHERE id = ?`, params);
 
   // Update task list stats if applicable
-  if (task.taskListId && (status === 'completed' || status === 'failed')) {
-    const column = status === 'completed' ? 'completed_tasks' : 'failed_tasks';
+  if (task.taskListId && (status === "completed" || status === "failed")) {
+    const column = status === "completed" ? "completed_tasks" : "failed_tasks";
     await run(
       `UPDATE task_lists_v2
        SET ${column} = ${column} + 1,
            updated_at = datetime('now')
        WHERE id = ?`,
-      [task.taskListId]
+      [task.taskListId],
     );
   }
 
@@ -335,7 +339,7 @@ export async function updateTaskStatus(
  * Bulk create tasks from a list of inputs
  */
 export async function bulkCreateTasks(
-  inputs: CreateTaskInput[]
+  inputs: CreateTaskInput[],
 ): Promise<CreateTaskResponse[]> {
   const results: CreateTaskResponse[] = [];
 

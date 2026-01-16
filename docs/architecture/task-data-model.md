@@ -24,39 +24,40 @@ Based on questionnaire decisions:
 
 **Format:** `{USER_ID}-{SCOPE_ID}-{TYPE}-{NUMBER}[-{SUBTASK}-{VERSION}]`
 
-| Component | Description | Example |
-|-----------|-------------|---------|
-| USER_ID | Short user identifier | `NA` (Nenad A.) |
-| SCOPE_ID | Project or Idea slug | `VIBE`, `TASK-AGENT` |
-| TYPE | Task category prefix | `FEA`, `BUG`, `INF` |
-| NUMBER | Auto-increment within scope | `001`, `042` |
-| SUBTASK | Optional subtask letter | `A`, `B`, `C` |
-| VERSION | Optional version number | `001`, `002` |
+| Component | Description                 | Example              |
+| --------- | --------------------------- | -------------------- |
+| USER_ID   | Short user identifier       | `NA` (Nenad A.)      |
+| SCOPE_ID  | Project or Idea slug        | `VIBE`, `TASK-AGENT` |
+| TYPE      | Task category prefix        | `FEA`, `BUG`, `INF`  |
+| NUMBER    | Auto-increment within scope | `001`, `042`         |
+| SUBTASK   | Optional subtask letter     | `A`, `B`, `C`        |
+| VERSION   | Optional version number     | `001`, `002`         |
 
 **Examples:**
+
 - `NA-VIBE-FEA-001` - Feature task #1 for Vibe project
 - `NA-TASK-AGENT-BUG-042-A-001` - Subtask A, version 1 of bug #42
 
 **Type Prefixes:**
 
-| Prefix | Category |
-|--------|----------|
-| `FEA` | feature |
-| `IMP` | improvement |
-| `BUG` | bug |
-| `INV` | investigation |
-| `TED` | technical_debt |
-| `INF` | infrastructure |
-| `DOC` | documentation |
-| `REF` | refactoring |
-| `SEC` | security |
-| `PER` | performance |
-| `TST` | testing |
-| `MIG` | migration |
-| `INT` | integration |
-| `UXD` | ux_design |
-| `MNT` | maintenance |
-| `DEC` | decommissioned |
+| Prefix | Category       |
+| ------ | -------------- |
+| `FEA`  | feature        |
+| `IMP`  | improvement    |
+| `BUG`  | bug            |
+| `INV`  | investigation  |
+| `TED`  | technical_debt |
+| `INF`  | infrastructure |
+| `DOC`  | documentation  |
+| `REF`  | refactoring    |
+| `SEC`  | security       |
+| `PER`  | performance    |
+| `TST`  | testing        |
+| `MIG`  | migration      |
+| `INT`  | integration    |
+| `UXD`  | ux_design      |
+| `MNT`  | maintenance    |
+| `DEC`  | decommissioned |
 
 ---
 
@@ -470,12 +471,14 @@ CREATE TABLE validation_rules (
 ### 14. Task Execution Log (Build Agent Session Handoff + SIA Analysis)
 
 The execution log serves two critical purposes:
+
 1. **Build Agent Handoff**: When Build Agent 2 starts, it reads the **last 500 lines** of the execution log to understand what Build Agent 1 accomplished and what remains
 2. **SIA Analysis**: When SIA is spawned (after 3+ failures with no progress), it analyzes the execution log to identify patterns and propose fixes
 
 **execution_id = Lane Isolation:**
 
 The `id` (execution_id) is the "lane" that keeps parallel Build Agents isolated:
+
 - Each task list execution gets a unique execution_id
 - Multiple Build Agents can run in parallel, each in their own lane
 - When Build Agent 2 takes over from Build Agent 1, they use the SAME execution_id
@@ -488,6 +491,7 @@ Build Agent C (exec-ghi789) → Task List C execution log
 ```
 
 **Design:** The execution log is stored as a **line-based text log** in addition to structured metadata. This allows:
+
 - Easy "last N lines" retrieval for Build Agent context
 - Pattern matching and analysis by SIA
 - Human readability for debugging
@@ -687,53 +691,53 @@ GROUP BY tl.id;
 
 ```typescript
 type TaskStatus =
-  | 'draft'        // Created but not validated
-  | 'pending'      // Validated, ready for execution
-  | 'blocked'      // Cannot proceed
-  | 'in_progress'  // Currently being worked on
-  | 'validating'   // Running tests
-  | 'failed'       // Execution/tests failed
-  | 'stale'        // No activity for threshold
-  | 'completed'    // All tests passed
-  | 'cancelled';   // Explicitly cancelled
+  | "draft" // Created but not validated
+  | "pending" // Validated, ready for execution
+  | "blocked" // Cannot proceed
+  | "in_progress" // Currently being worked on
+  | "validating" // Running tests
+  | "failed" // Execution/tests failed
+  | "stale" // No activity for threshold
+  | "completed" // All tests passed
+  | "cancelled"; // Explicitly cancelled
 ```
 
 ### Task List Status
 
 ```typescript
 type TaskListStatus =
-  | 'draft'        // Being assembled
-  | 'active'       // Currently executing
-  | 'paused'       // Temporarily stopped
-  | 'completed'    // All tasks done
-  | 'failed';      // Critical failure, stopped
+  | "draft" // Being assembled
+  | "active" // Currently executing
+  | "paused" // Temporarily stopped
+  | "completed" // All tasks done
+  | "failed"; // Critical failure, stopped
 ```
 
 ### Relationship Types (11 per Q3)
 
 ```typescript
 type RelationshipType =
-  | 'depends_on'     // Must complete first
-  | 'blocks'         // Prevents this from starting
-  | 'related_to'     // Semantic relationship
-  | 'duplicate_of'   // Same task
-  | 'subtask_of'     // Parent-child hierarchy
-  | 'supersedes'     // Replaces older task
-  | 'implements'     // Implements spec/requirement
-  | 'conflicts_with' // Cannot run together
-  | 'enables'        // Soft dependency
-  | 'inspired_by'    // Conceptual link
-  | 'tests';         // Tests another task
+  | "depends_on" // Must complete first
+  | "blocks" // Prevents this from starting
+  | "related_to" // Semantic relationship
+  | "duplicate_of" // Same task
+  | "subtask_of" // Parent-child hierarchy
+  | "supersedes" // Replaces older task
+  | "implements" // Implements spec/requirement
+  | "conflicts_with" // Cannot run together
+  | "enables" // Soft dependency
+  | "inspired_by" // Conceptual link
+  | "tests"; // Tests another task
 ```
 
 ### Question Priority
 
 ```typescript
 type QuestionPriority =
-  | 'critical'   // Always asked immediately
-  | 'high'       // Always asked
-  | 'medium'     // Toggle-controlled (default: ask)
-  | 'low';       // Toggle-controlled (default: skip)
+  | "critical" // Always asked immediately
+  | "high" // Always asked
+  | "medium" // Toggle-controlled (default: ask)
+  | "low"; // Toggle-controlled (default: skip)
 ```
 
 ---
@@ -743,22 +747,26 @@ type QuestionPriority =
 Since tasks currently exist in MD files, migration involves:
 
 ### Phase 1: Schema Creation
+
 1. Create all tables above
 2. Create indexes and views
 3. Create validation rules
 
 ### Phase 2: Data Migration
+
 1. Parse existing task MD files
 2. Extract frontmatter and content
 3. Map to new schema
 4. Preserve IDs and relationships
 
 ### Phase 3: Frontend Updates
+
 1. Update task CRUD to use DB
 2. Remove MD file dependencies
 3. Update visualization components
 
 ### Phase 4: Cleanup
+
 1. Archive old MD files
 2. Update CLAUDE.md references
 3. Update agent specs
@@ -779,7 +787,7 @@ interface Task {
   description: string;
   category: TaskCategory;
   status: TaskStatus;
-  riskLevel: 'low' | 'medium' | 'high';
+  riskLevel: "low" | "medium" | "high";
 
   priorityScore: number;
   blocksCount: number;
@@ -851,7 +859,7 @@ interface Question {
   telegramMessageId?: string;
   callbackData?: string;
 
-  status: 'pending' | 'answered' | 'expired' | 'skipped';
+  status: "pending" | "answered" | "expired" | "skipped";
   answer?: string;
   answeredAt?: string;
   answeredBy?: string;
@@ -872,18 +880,18 @@ interface TaskExecutionLog {
   startedAt: string;
   endedAt?: string;
 
-  status: 'running' | 'completed' | 'failed' | 'interrupted';
+  status: "running" | "completed" | "failed" | "interrupted";
 
   // Structured metadata
   attempts: number;
   lastError?: string;
-  filesModified: string[];     // Files touched
-  gitCommits: string[];        // Commit SHAs
+  filesModified: string[]; // Files touched
+  gitCommits: string[]; // Commit SHAs
 
   // LINE-BASED LOG (KEY for handoff and SIA)
   // Build Agent 2 reads last 500 lines to get bearings
   // SIA reads full log for pattern analysis
-  logContent: string;          // Line-based execution log
+  logContent: string; // Line-based execution log
 
   createdAt: string;
 }
@@ -898,7 +906,7 @@ For the relational graph with filtering:
 ```typescript
 interface GraphNode {
   id: string;
-  type: 'task' | 'task_list' | 'idea' | 'project';
+  type: "task" | "task_list" | "idea" | "project";
   label: string;
   status?: string;
   metadata: Record<string, unknown>;
@@ -917,7 +925,7 @@ interface GraphFilter {
   taskListId?: string;
   statusFilter?: TaskStatus[];
   relationshipFilter?: RelationshipType[];
-  depthLimit?: number;  // How many hops from selected node
+  depthLimit?: number; // How many hops from selected node
 }
 ```
 
@@ -927,17 +935,17 @@ interface GraphFilter {
 
 The database schema is implemented via migrations 050-058:
 
-| Migration | File | Creates |
-|-----------|------|---------|
-| 050 | `050_tasks_schema.sql` | `tasks` table |
-| 051 | `051_task_relationships.sql` | `task_relationships` table |
-| 052 | `052_task_state_history.sql` | `task_state_history` table |
-| 053 | `053_task_test_results.sql` | `task_test_results` table |
-| 054 | `054_task_blocks.sql` | `task_blocks` table |
-| 055 | `055_validation_rules.sql` | `validation_rules` table + default rules |
-| 056 | `056_task_lists.sql` | `task_lists` table |
-| 057 | `057_task_list_items.sql` | `task_list_items` junction table |
-| 058 | `058_questions.sql` | `questions` table (Task Agent → User) |
+| Migration | File                         | Creates                                  |
+| --------- | ---------------------------- | ---------------------------------------- |
+| 050       | `050_tasks_schema.sql`       | `tasks` table                            |
+| 051       | `051_task_relationships.sql` | `task_relationships` table               |
+| 052       | `052_task_state_history.sql` | `task_state_history` table               |
+| 053       | `053_task_test_results.sql`  | `task_test_results` table                |
+| 054       | `054_task_blocks.sql`        | `task_blocks` table                      |
+| 055       | `055_validation_rules.sql`   | `validation_rules` table + default rules |
+| 056       | `056_task_lists.sql`         | `task_lists` table                       |
+| 057       | `057_task_list_items.sql`    | `task_list_items` junction table         |
+| 058       | `058_questions.sql`          | `questions` table (Task Agent → User)    |
 
 **Full implementation specs:** See `docs/bootstrap/tasks/TAK-TASK-AGENT.md` for detailed YAML specs with code templates.
 

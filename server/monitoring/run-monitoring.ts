@@ -14,57 +14,64 @@
  *   npx tsx server/monitoring/run-monitoring.ts --level verbose
  */
 
-import { MonitoringAgent, MonitoringLevel } from './monitoring-agent.js';
-import { BaselineLearner, VIBE_METRICS } from './baseline-learner.js';
-import { ResponseEscalator } from './response-escalator.js';
-import { ActionExecutor, createDefaultActions } from './action-executor.js';
-import { StateReconciler, createDefaultDomains } from './state-reconciler.js';
-import { query, getOne, run as dbRun } from '../../database/db.js';
-import { createTaskExecutor, TaskExecutor } from '../services/task-executor.js';
-import * as path from 'path';
+import { MonitoringAgent, MonitoringLevel } from "./monitoring-agent.js";
+import { BaselineLearner, VIBE_METRICS } from "./baseline-learner.js";
+import { ResponseEscalator } from "./response-escalator.js";
+import { ActionExecutor, createDefaultActions } from "./action-executor.js";
+import { StateReconciler, createDefaultDomains } from "./state-reconciler.js";
+import { query, getOne, run as dbRun } from "../../database/db.js";
+import { createTaskExecutor, TaskExecutor } from "../services/task-executor.js";
+import * as path from "path";
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
-const levelArg = args.find(a => a.startsWith('--level='));
+const levelArg = args.find((a) => a.startsWith("--level="));
 const monitoringLevel: MonitoringLevel = levelArg
-  ? levelArg.split('=')[1] as MonitoringLevel
-  : 'standard';
+  ? (levelArg.split("=")[1] as MonitoringLevel)
+  : "standard";
 
 // Task list argument for autonomous execution
-const taskListArg = args.find(a => a.startsWith('--task-list='));
-const taskListPath = taskListArg
-  ? taskListArg.split('=')[1]
-  : null;
+const taskListArg = args.find((a) => a.startsWith("--task-list="));
+const taskListPath = taskListArg ? taskListArg.split("=")[1] : null;
 
 // Auto-start execution
-const autoStart = args.includes('--auto-start');
+const autoStart = args.includes("--auto-start");
 
 // Dry run mode (don't actually modify files)
-const dryRun = args.includes('--dry-run');
+const dryRun = args.includes("--dry-run");
 
 console.log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║             MONITORING AGENT - CONTINUOUS LOOP               ║
 ║                    Level: ${monitoringLevel.padEnd(8)}                           ║
-║                 Task List: ${(taskListPath || 'None').slice(-30).padEnd(30)}  ║
-║                Auto-Start: ${(autoStart ? 'Yes' : 'No').padEnd(30)}  ║
-║                  Dry Run: ${(dryRun ? 'Yes' : 'No').padEnd(30)}   ║
+║                 Task List: ${(taskListPath || "None").slice(-30).padEnd(30)}  ║
+║                Auto-Start: ${(autoStart ? "Yes" : "No").padEnd(30)}  ║
+║                  Dry Run: ${(dryRun ? "Yes" : "No").padEnd(30)}   ║
 ╚══════════════════════════════════════════════════════════════╝
 `);
 
 // Create a database adapter that matches the expected interface
 const dbAdapter = {
-  async run(sql: string, params?: unknown[]): Promise<{ lastID: number; changes: number }> {
+  async run(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ lastID: number; changes: number }> {
     await dbRun(sql, params as (string | number | boolean | null)[]);
     return { lastID: 0, changes: 0 };
   },
   async get<T>(sql: string, params?: unknown[]): Promise<T | undefined> {
-    const result = await getOne(sql, params as (string | number | boolean | null)[]) as T | null;
+    const result = (await getOne(
+      sql,
+      params as (string | number | boolean | null)[],
+    )) as T | null;
     return result ?? undefined;
   },
   async all<T>(sql: string, params?: unknown[]): Promise<T[]> {
-    return (await query(sql, params as (string | number | boolean | null)[])) as unknown as T[];
-  }
+    return (await query(
+      sql,
+      params as (string | number | boolean | null)[],
+    )) as unknown as T[];
+  },
 };
 
 // Initialize components
@@ -94,7 +101,7 @@ const baselineLearner = new BaselineLearner({
 
 const responseEscalator = new ResponseEscalator(
   {} as any, // CommunicationHub placeholder
-  [] // default rules
+  [], // default rules
 );
 
 const actionExecutor = new ActionExecutor({
@@ -116,12 +123,14 @@ for (const domain of createDefaultDomains()) {
 }
 
 // Wire up event handlers
-monitoringAgent.on('issue:detected', async (issue) => {
-  console.log(`[MonitoringLoop] Issue detected: ${issue.description} (${issue.severity})`);
+monitoringAgent.on("issue:detected", async (issue) => {
+  console.log(
+    `[MonitoringLoop] Issue detected: ${issue.description} (${issue.severity})`,
+  );
 
   // Record metric for anomaly detection
   baselineLearner.recordMetric(VIBE_METRICS.AGENT_ERROR_RATE, 1, {
-    agentId: issue.agentId || 'system',
+    agentId: issue.agentId || "system",
     issueType: issue.type,
   });
 
@@ -130,44 +139,52 @@ monitoringAgent.on('issue:detected', async (issue) => {
   console.log(`[MonitoringLoop] Response: ${JSON.stringify(response)}`);
 });
 
-monitoringAgent.on('agent:status', ({ agentId, status, previousStatus }) => {
-  console.log(`[MonitoringLoop] Agent ${agentId}: ${previousStatus} -> ${status}`);
+monitoringAgent.on("agent:status", ({ agentId, status, previousStatus }) => {
+  console.log(
+    `[MonitoringLoop] Agent ${agentId}: ${previousStatus} -> ${status}`,
+  );
 
   // Record state change
-  baselineLearner.recordMetric(VIBE_METRICS.AGENT_QUEUE_SIZE,
-    status === 'blocked' ? 1 : 0,
-    { agentId }
+  baselineLearner.recordMetric(
+    VIBE_METRICS.AGENT_QUEUE_SIZE,
+    status === "blocked" ? 1 : 0,
+    { agentId },
   );
 });
 
-monitoringAgent.on('health:check', (metrics) => {
+monitoringAgent.on("health:check", (metrics) => {
   // Record health metrics
   baselineLearner.recordMetric(VIBE_METRICS.SYSTEM_CPU, metrics.activeAgents);
-  baselineLearner.recordMetric(VIBE_METRICS.API_LATENCY, metrics.averageResponseTime);
+  baselineLearner.recordMetric(
+    VIBE_METRICS.API_LATENCY,
+    metrics.averageResponseTime,
+  );
 
-  if (monitoringLevel === 'verbose' || monitoringLevel === 'debug') {
+  if (monitoringLevel === "verbose" || monitoringLevel === "debug") {
     console.log(`[MonitoringLoop] Health check:`, {
       active: metrics.activeAgents,
       blocked: metrics.blockedAgents,
       pending: metrics.pendingQuestions,
-      uptime: Math.round(metrics.systemUptime / 1000) + 's',
+      uptime: Math.round(metrics.systemUptime / 1000) + "s",
     });
   }
 });
 
-baselineLearner.on('anomaly:detected', (anomaly) => {
-  console.log(`[MonitoringLoop] Anomaly detected in ${anomaly.metric}: ${anomaly.value} (${anomaly.deviationScore.toFixed(1)}σ)`);
+baselineLearner.on("anomaly:detected", (anomaly) => {
+  console.log(
+    `[MonitoringLoop] Anomaly detected in ${anomaly.metric}: ${anomaly.value} (${anomaly.deviationScore.toFixed(1)}σ)`,
+  );
 
   // Create an observation for the action executor
   const observation = actionExecutor.createObservation(
     `anomaly_${anomaly.metric}`,
-    'automated',
+    "automated",
     `Anomaly detected: ${anomaly.metric} = ${anomaly.value.toFixed(2)}`,
     { anomaly },
     0.7, // 70% confidence for automated detection
-    anomaly.severity === 'high' || anomaly.severity === 'critical'
-      ? ['notify-human']
-      : []
+    anomaly.severity === "high" || anomaly.severity === "critical"
+      ? ["notify-human"]
+      : [],
   );
 
   console.log(`[MonitoringLoop] Created observation: ${observation.id}`);
@@ -180,20 +197,22 @@ async function performReconciliation(): Promise<void> {
 
   // Get current agent states from different sources
   try {
-    const dbAgents = await query<{ agent_id: string; status: string; last_activity: string }>(
-      `SELECT agent_id, status, last_activity FROM agent_states`
-    );
+    const dbAgents = await query<{
+      agent_id: string;
+      status: string;
+      last_activity: string;
+    }>(`SELECT agent_id, status, last_activity FROM agent_states`);
     // Database state source removed (was unused)
 
     // For now, just log the state (in production, would compare with UI state)
-    if (monitoringLevel === 'debug') {
+    if (monitoringLevel === "debug") {
       console.log(`[MonitoringLoop] Reconciliation #${reconciliationCount}:`, {
         dbAgents: dbAgents.length,
       });
     }
   } catch (err) {
     // Tables may not exist yet
-    if (monitoringLevel === 'debug') {
+    if (monitoringLevel === "debug") {
       console.log(`[MonitoringLoop] Reconciliation skipped (no data yet)`);
     }
   }
@@ -211,39 +230,47 @@ if (taskListPath) {
   });
 
   // Wire up task executor events
-  taskExecutor.on('taskList:loaded', (data) => {
-    console.log(`[TaskExecutor] Loaded: ${data.title} (${data.pendingTasks} pending tasks)`);
+  taskExecutor.on("taskList:loaded", (data) => {
+    console.log(
+      `[TaskExecutor] Loaded: ${data.title} (${data.pendingTasks} pending tasks)`,
+    );
   });
 
-  taskExecutor.on('task:started', (data) => {
-    console.log(`[TaskExecutor] Starting: ${data.taskId} - ${data.description}`);
-    monitoringAgent.updateAgentStatus(data.agent, 'working', { currentTask: data.taskId });
+  taskExecutor.on("task:started", (data) => {
+    console.log(
+      `[TaskExecutor] Starting: ${data.taskId} - ${data.description}`,
+    );
+    monitoringAgent.updateAgentStatus(data.agent, "working", {
+      currentTask: data.taskId,
+    });
   });
 
-  taskExecutor.on('task:completed', (data) => {
+  taskExecutor.on("task:completed", (data) => {
     console.log(`[TaskExecutor] Completed: ${data.taskId}`);
     baselineLearner.recordMetric(VIBE_METRICS.AGENT_TASK_DURATION, 1);
   });
 
-  taskExecutor.on('task:failed', (data) => {
+  taskExecutor.on("task:failed", (data) => {
     console.log(`[TaskExecutor] FAILED: ${data.taskId} - ${data.error}`);
     monitoringAgent.detectIssue(
-      'error',
-      'high',
+      "error",
+      "high",
       `Task ${data.taskId} failed: ${data.error}`,
       { taskId: data.taskId, error: data.error },
-      'build-agent'
+      "build-agent",
     );
   });
 
-  taskExecutor.on('executor:complete', (data) => {
-    console.log(`[TaskExecutor] All tasks complete! ${data.completed} completed, ${data.failed} failed`);
+  taskExecutor.on("executor:complete", (data) => {
+    console.log(
+      `[TaskExecutor] All tasks complete! ${data.completed} completed, ${data.failed} failed`,
+    );
   });
 }
 
 // Main monitoring loop
 async function startMonitoringLoop(): Promise<void> {
-  console.log('[MonitoringLoop] Starting components...');
+  console.log("[MonitoringLoop] Starting components...");
 
   // Start all components
   await monitoringAgent.start();
@@ -251,12 +278,12 @@ async function startMonitoringLoop(): Promise<void> {
 
   // Register the default agents
   const defaultAgents = [
-    { id: 'spec-agent', type: 'specification' },
-    { id: 'build-agent', type: 'build' },
-    { id: 'validation-agent', type: 'validation' },
-    { id: 'sia', type: 'sia' },
-    { id: 'ux-agent', type: 'ux' },
-    { id: 'monitoring-agent', type: 'monitoring' },
+    { id: "spec-agent", type: "specification" },
+    { id: "build-agent", type: "build" },
+    { id: "validation-agent", type: "validation" },
+    { id: "sia", type: "sia" },
+    { id: "ux-agent", type: "ux" },
+    { id: "monitoring-agent", type: "monitoring" },
   ];
 
   for (const agent of defaultAgents) {
@@ -264,24 +291,28 @@ async function startMonitoringLoop(): Promise<void> {
   }
 
   // Self-register the monitoring agent as running
-  monitoringAgent.updateAgentStatus('monitoring-agent', 'working', {
-    currentTask: 'Continuous monitoring loop',
+  monitoringAgent.updateAgentStatus("monitoring-agent", "working", {
+    currentTask: "Continuous monitoring loop",
   });
 
   // Load and optionally start task executor
   if (taskExecutor && taskListPath) {
     try {
-      await taskExecutor.loadTaskList(path.resolve(process.cwd(), taskListPath));
-      console.log('[MonitoringLoop] Task list loaded for autonomous execution');
+      await taskExecutor.loadTaskList(
+        path.resolve(process.cwd(), taskListPath),
+      );
+      console.log("[MonitoringLoop] Task list loaded for autonomous execution");
 
       if (autoStart) {
-        console.log('[MonitoringLoop] Auto-starting task execution...');
+        console.log("[MonitoringLoop] Auto-starting task execution...");
         taskExecutor.start();
       } else {
-        console.log('[MonitoringLoop] Task executor ready. Use API or --auto-start to begin.');
+        console.log(
+          "[MonitoringLoop] Task executor ready. Use API or --auto-start to begin.",
+        );
       }
     } catch (err) {
-      console.error('[MonitoringLoop] Failed to load task list:', err);
+      console.error("[MonitoringLoop] Failed to load task list:", err);
     }
   }
 
@@ -296,9 +327,14 @@ async function startMonitoringLoop(): Promise<void> {
     const actionStatus = actionExecutor.getStatus();
     const executorStatus = taskExecutor?.getStatus();
 
-    let executorLine = '║ Executor: Not configured                                     ║';
+    let executorLine =
+      "║ Executor: Not configured                                     ║";
     if (executorStatus) {
-      const status = executorStatus.running ? (executorStatus.paused ? 'Paused' : 'Running') : 'Stopped';
+      const status = executorStatus.running
+        ? executorStatus.paused
+          ? "Paused"
+          : "Running"
+        : "Stopped";
       executorLine = `║ Executor: ${status.padEnd(8)} | Done: ${String(executorStatus.completedTasks).padEnd(4)} | Failed: ${String(executorStatus.failedTasks).padEnd(4)} | Pending: ${String(executorStatus.totalTasks - executorStatus.completedTasks - executorStatus.failedTasks).padEnd(4)}║`;
     }
 
@@ -322,23 +358,23 @@ ${executorLine}
 `);
   }, 300000);
 
-  console.log('[MonitoringLoop] All components started. Press Ctrl+C to stop.');
+  console.log("[MonitoringLoop] All components started. Press Ctrl+C to stop.");
 
   // Keep the process running
-  process.on('SIGINT', async () => {
-    console.log('\n[MonitoringLoop] Shutting down...');
+  process.on("SIGINT", async () => {
+    console.log("\n[MonitoringLoop] Shutting down...");
     if (taskExecutor) {
       taskExecutor.stop();
     }
     await monitoringAgent.stop();
     baselineLearner.stop();
-    console.log('[MonitoringLoop] Goodbye!');
+    console.log("[MonitoringLoop] Goodbye!");
     process.exit(0);
   });
 }
 
 // Run the loop
 startMonitoringLoop().catch((error) => {
-  console.error('[MonitoringLoop] Fatal error:', error);
+  console.error("[MonitoringLoop] Fatal error:", error);
   process.exit(1);
 });

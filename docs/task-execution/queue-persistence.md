@@ -11,6 +11,7 @@ The Task Execution Engine now persists the task queue to the database, ensuring 
 Two new tables were added in migration `034_task_queue_persistence.sql`:
 
 #### `task_queue`
+
 Stores individual tasks in the execution queue with their state and position.
 
 ```sql
@@ -36,6 +37,7 @@ CREATE TABLE task_queue (
 ```
 
 **Indexes:**
+
 - `task_list_path` - Fast lookup by task list
 - `status` - Filter by status
 - `priority` - Sort by priority
@@ -43,6 +45,7 @@ CREATE TABLE task_queue (
 - `(task_list_path, task_id)` - Unique constraint
 
 #### `executor_state`
+
 Stores the executor's configuration and runtime state.
 
 ```sql
@@ -92,6 +95,7 @@ CREATE TABLE executor_state (
 **Modified Methods:**
 
 All state-changing methods now persist to database:
+
 - `loadTaskList()` - Tries to restore from DB, falls back to file
 - `start()` - Persists state change
 - `pause()` - Persists state change
@@ -103,6 +107,7 @@ All state-changing methods now persist to database:
 #### API Routes (`server/routes/executor.ts`)
 
 All route handlers updated to `async` to support database operations:
+
 - `POST /api/executor/start`
 - `POST /api/executor/pause`
 - `POST /api/executor/resume`
@@ -113,6 +118,7 @@ All route handlers updated to `async` to support database operations:
 #### ParsedTask Interface (`server/services/task-loader.ts`)
 
 Added optional `dependencies` field:
+
 ```typescript
 export interface ParsedTask {
   // ... existing fields
@@ -123,25 +129,33 @@ export interface ParsedTask {
 ## Benefits
 
 ### 1. **Crash Recovery**
+
 If the server crashes or is restarted, the executor can resume from where it left off:
+
 - Queue position is maintained
 - Completed/failed/skipped counts are preserved
 - Tasks in progress are reset to 'queued'
 
 ### 2. **Long-Running Builds**
+
 For builds that take hours or days:
+
 - Queue state persists across server restarts
 - Progress is never lost
 - Can safely deploy updates during execution
 
 ### 3. **Monitoring & Debugging**
+
 Database provides a persistent record:
+
 - See historical queue state
 - Track task progression over time
 - Debug issues with specific tasks
 
 ### 4. **Multiple Executors**
+
 Database ensures consistency:
+
 - Each task list has its own executor state
 - No conflicts between concurrent executors
 - Clean separation of concerns
@@ -152,7 +166,7 @@ Database ensures consistency:
 
 ```typescript
 const executor = getTaskExecutor();
-await executor.loadTaskList('/path/to/tasks.md');
+await executor.loadTaskList("/path/to/tasks.md");
 await executor.start();
 ```
 
@@ -162,12 +176,13 @@ On first load, the queue is built from the markdown file and persisted to the da
 
 ```typescript
 const executor = getTaskExecutor();
-await executor.loadTaskList('/path/to/tasks.md');
+await executor.loadTaskList("/path/to/tasks.md");
 // Queue is automatically restored from database
 await executor.start();
 ```
 
 The executor will:
+
 1. Check database for existing queue
 2. Restore queue items in the same order
 3. Restore progress counters
@@ -223,25 +238,33 @@ ORDER BY priority_order ASC, tq.position ASC;
 ## Edge Cases
 
 ### 1. **Task List Modified While Running**
+
 If the markdown file is updated while the executor is running:
+
 - Database queue remains unchanged
 - Next restart will sync with updated file
 - Completed tasks won't be re-added to queue
 
 ### 2. **Database Corruption**
+
 If database tables are missing or corrupted:
+
 - Executor falls back to parsing markdown file
 - Queue is rebuilt from scratch
 - Warning is logged but execution continues
 
 ### 3. **Concurrent Executors**
+
 Multiple executors can run different task lists:
+
 - Each has its own executor_state row (unique task_list_path)
 - Queue items are isolated by task_list_path
 - No conflicts between executors
 
 ### 4. **Task Dependencies**
+
 Dependencies are stored as JSON arrays:
+
 - Currently informational only
 - Future enhancement: check dependencies before execution
 - Can be queried for dependency graphs
@@ -255,6 +278,7 @@ npm test task-queue-persistence
 ```
 
 Test coverage:
+
 - ✓ Queue persists to database on load
 - ✓ Queue restores from database on restart
 - ✓ Executor state persists
@@ -266,11 +290,13 @@ Test coverage:
 ## Migration
 
 Migration `034_task_queue_persistence.sql` is backward compatible:
+
 - Tables created with `IF NOT EXISTS`
 - No changes to existing schema
 - Safe to run on existing databases
 
 To apply:
+
 ```bash
 npm run migrate
 ```

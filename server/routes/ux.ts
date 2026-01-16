@@ -1,14 +1,19 @@
 // server/routes/ux.ts - UX Agent API routes
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response } from "express";
 import {
   getUXRun,
   getStepResults,
   getAccessibilityIssues,
   getRecentRuns,
   getAllJourneys,
-} from '../../agents/ux/index.js';
-import { UXRunRequest, UXRun, UXStepResult, UXAccessibilityIssue } from '../../types/ux.js';
+} from "../../agents/ux/index.js";
+import {
+  UXRunRequest,
+  UXRun,
+  UXStepResult,
+  UXAccessibilityIssue,
+} from "../../types/ux.js";
 
 const router = Router();
 
@@ -18,10 +23,10 @@ const router = Router();
 function countByImpact(issues: UXAccessibilityIssue[]): Record<string, number> {
   return {
     total: issues.length,
-    critical: issues.filter(i => i.impact === 'critical').length,
-    serious: issues.filter(i => i.impact === 'serious').length,
-    moderate: issues.filter(i => i.impact === 'moderate').length,
-    minor: issues.filter(i => i.impact === 'minor').length,
+    critical: issues.filter((i) => i.impact === "critical").length,
+    serious: issues.filter((i) => i.impact === "serious").length,
+    moderate: issues.filter((i) => i.impact === "moderate").length,
+    minor: issues.filter((i) => i.impact === "minor").length,
   };
 }
 
@@ -61,12 +66,12 @@ function mapStepToResponse(step: UXStepResult): Record<string, unknown> {
  * GET /api/ux/journeys
  * List available journeys
  */
-router.get('/journeys', async (_req: Request, res: Response): Promise<void> => {
+router.get("/journeys", async (_req: Request, res: Response): Promise<void> => {
   try {
     const journeys = getAllJourneys();
 
     res.json({
-      journeys: journeys.map(j => ({
+      journeys: journeys.map((j) => ({
         id: j.id,
         name: j.name,
         description: j.description,
@@ -85,7 +90,7 @@ router.get('/journeys', async (_req: Request, res: Response): Promise<void> => {
  * GET /api/ux/history
  * Get recent run history
  */
-router.get('/history', async (req: Request, res: Response): Promise<void> => {
+router.get("/history", async (req: Request, res: Response): Promise<void> => {
   try {
     const limit = parseInt(req.query.limit as string) || 20;
     const runs = await getRecentRuns(limit);
@@ -103,30 +108,32 @@ router.get('/history', async (req: Request, res: Response): Promise<void> => {
  * Start a UX journey run
  * Note: Actual execution requires MCP tools, this just queues the request
  */
-router.post('/run', async (req: Request, res: Response): Promise<void> => {
+router.post("/run", async (req: Request, res: Response): Promise<void> => {
   try {
     const request = req.body as UXRunRequest;
 
     if (!request.journeyId) {
-      res.status(400).json({ error: 'journeyId is required' });
+      res.status(400).json({ error: "journeyId is required" });
       return;
     }
 
     const journeys = getAllJourneys();
-    const journey = journeys.find(j => j.id === request.journeyId);
+    const journey = journeys.find((j) => j.id === request.journeyId);
 
     if (!journey) {
-      res.status(404).json({ error: `Journey not found: ${request.journeyId}` });
+      res
+        .status(404)
+        .json({ error: `Journey not found: ${request.journeyId}` });
       return;
     }
 
     res.json({
-      message: 'Journey run queued',
+      message: "Journey run queued",
       journeyId: request.journeyId,
       journeyName: journey.name,
       stepsCount: journey.steps.length,
       options: request.options,
-      note: 'Actual execution requires MCP bridge setup',
+      note: "Actual execution requires MCP bridge setup",
     });
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
@@ -137,13 +144,13 @@ router.post('/run', async (req: Request, res: Response): Promise<void> => {
  * GET /api/ux/:id
  * Get run status and summary
  */
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+router.get("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const run = await getUXRun(id);
 
     if (!run) {
-      res.status(404).json({ error: 'Run not found' });
+      res.status(404).json({ error: "Run not found" });
       return;
     }
 
@@ -157,13 +164,13 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
  * GET /api/ux/:id/steps
  * Get detailed step results
  */
-router.get('/:id/steps', async (req: Request, res: Response): Promise<void> => {
+router.get("/:id/steps", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const run = await getUXRun(id);
 
     if (!run) {
-      res.status(404).json({ error: 'Run not found' });
+      res.status(404).json({ error: "Run not found" });
       return;
     }
 
@@ -182,32 +189,35 @@ router.get('/:id/steps', async (req: Request, res: Response): Promise<void> => {
  * GET /api/ux/:id/accessibility
  * Get accessibility issues
  */
-router.get('/:id/accessibility', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const run = await getUXRun(id);
+router.get(
+  "/:id/accessibility",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const run = await getUXRun(id);
 
-    if (!run) {
-      res.status(404).json({ error: 'Run not found' });
-      return;
+      if (!run) {
+        res.status(404).json({ error: "Run not found" });
+        return;
+      }
+
+      const issues = await getAccessibilityIssues(id);
+
+      res.json({
+        runId: id,
+        issues: issues.map((i) => ({
+          ruleId: i.ruleId,
+          impact: i.impact,
+          description: i.description,
+          selector: i.selector,
+          helpUrl: i.helpUrl,
+        })),
+        summary: countByImpact(issues),
+      });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
     }
-
-    const issues = await getAccessibilityIssues(id);
-
-    res.json({
-      runId: id,
-      issues: issues.map(i => ({
-        ruleId: i.ruleId,
-        impact: i.impact,
-        description: i.description,
-        selector: i.selector,
-        helpUrl: i.helpUrl,
-      })),
-      summary: countByImpact(issues),
-    });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
-});
+  },
+);
 
 export default router;

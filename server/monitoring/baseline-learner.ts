@@ -1,7 +1,7 @@
 // server/monitoring/baseline-learner.ts
 // MON-010: Historical Baseline Learning - Learn patterns from historical data
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
 /**
  * A metric data point for baseline calculation.
@@ -43,9 +43,9 @@ export interface BaselineAnomaly {
   metric: string;
   value: number;
   baseline: MetricBaseline;
-  deviationType: 'high' | 'low' | 'spike' | 'drop';
+  deviationType: "high" | "low" | "spike" | "drop";
   deviationScore: number; // Number of standard deviations
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: "low" | "medium" | "high" | "critical";
 }
 
 /**
@@ -63,7 +63,7 @@ export interface BaselineLearnerConfig {
   windows: TimeWindow[];
   minSamplesForBaseline: number;
   anomalyThresholds: {
-    low: number;      // Standard deviations
+    low: number; // Standard deviations
     medium: number;
     high: number;
     critical: number;
@@ -74,15 +74,15 @@ export interface BaselineLearnerConfig {
 
 const DEFAULT_CONFIG: BaselineLearnerConfig = {
   windows: [
-    { duration: 5 * 60 * 1000, name: '5min' },      // 5 minutes
-    { duration: 60 * 60 * 1000, name: '1hour' },    // 1 hour
-    { duration: 24 * 60 * 60 * 1000, name: '1day' }, // 1 day
+    { duration: 5 * 60 * 1000, name: "5min" }, // 5 minutes
+    { duration: 60 * 60 * 1000, name: "1hour" }, // 1 hour
+    { duration: 24 * 60 * 60 * 1000, name: "1day" }, // 1 day
   ],
   minSamplesForBaseline: 10,
   anomalyThresholds: {
-    low: 2,      // 2 standard deviations
-    medium: 3,   // 3 standard deviations
-    high: 4,     // 4 standard deviations
+    low: 2, // 2 standard deviations
+    medium: 3, // 3 standard deviations
+    high: 4, // 4 standard deviations
     critical: 5, // 5 standard deviations
   },
   maxDataPoints: 10000,
@@ -122,7 +122,7 @@ export class BaselineLearner extends EventEmitter {
     if (this.running) return;
     this.running = true;
 
-    console.log('[BaselineLearner] Starting baseline learning...');
+    console.log("[BaselineLearner] Starting baseline learning...");
 
     // Set up periodic baseline updates
     this.updateTimer = setInterval(() => {
@@ -132,7 +132,9 @@ export class BaselineLearner extends EventEmitter {
     // Initial baseline calculation
     this.updateAllBaselines();
 
-    console.log(`[BaselineLearner] Started with ${this.config.windows.length} time windows`);
+    console.log(
+      `[BaselineLearner] Started with ${this.config.windows.length} time windows`,
+    );
   }
 
   /**
@@ -147,13 +149,17 @@ export class BaselineLearner extends EventEmitter {
       this.updateTimer = undefined;
     }
 
-    console.log('[BaselineLearner] Stopped');
+    console.log("[BaselineLearner] Stopped");
   }
 
   /**
    * Record a metric data point.
    */
-  recordMetric(metric: string, value: number, tags?: Record<string, string>): void {
+  recordMetric(
+    metric: string,
+    value: number,
+    tags?: Record<string, string>,
+  ): void {
     const dataPoint: MetricDataPoint = {
       timestamp: new Date(),
       metric,
@@ -177,13 +183,19 @@ export class BaselineLearner extends EventEmitter {
     // Check for anomalies against existing baselines
     this.checkForAnomalies(dataPoint);
 
-    this.emit('metric:recorded', dataPoint);
+    this.emit("metric:recorded", dataPoint);
   }
 
   /**
    * Record multiple metrics at once.
    */
-  recordMetrics(metrics: Array<{ metric: string; value: number; tags?: Record<string, string> }>): void {
+  recordMetrics(
+    metrics: Array<{
+      metric: string;
+      value: number;
+      tags?: Record<string, string>;
+    }>,
+  ): void {
     for (const m of metrics) {
       this.recordMetric(m.metric, m.value, m.tags);
     }
@@ -198,16 +210,21 @@ export class BaselineLearner extends EventEmitter {
     for (const [metric, points] of this.dataPoints) {
       for (const window of this.config.windows) {
         const windowStart = new Date(now - window.duration);
-        const windowPoints = points.filter(p => p.timestamp >= windowStart);
+        const windowPoints = points.filter((p) => p.timestamp >= windowStart);
 
         if (windowPoints.length >= this.config.minSamplesForBaseline) {
-          const baseline = this.calculateBaseline(metric, windowPoints, window, windowStart);
+          const baseline = this.calculateBaseline(
+            metric,
+            windowPoints,
+            window,
+            windowStart,
+          );
           this.storeBaseline(metric, window.name, baseline);
         }
       }
     }
 
-    this.emit('baselines:updated', this.getAllBaselines());
+    this.emit("baselines:updated", this.getAllBaselines());
   }
 
   /**
@@ -217,9 +234,9 @@ export class BaselineLearner extends EventEmitter {
     metric: string,
     points: MetricDataPoint[],
     _window: TimeWindow,
-    windowStart: Date
+    windowStart: Date,
   ): MetricBaseline {
-    const values = points.map(p => p.value).sort((a, b) => a - b);
+    const values = points.map((p) => p.value).sort((a, b) => a - b);
     const n = values.length;
 
     // Calculate mean
@@ -227,7 +244,7 @@ export class BaselineLearner extends EventEmitter {
     const mean = sum / n;
 
     // Calculate standard deviation
-    const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
+    const squaredDiffs = values.map((v) => Math.pow(v - mean, 2));
     const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / n;
     const stdDev = Math.sqrt(avgSquaredDiff);
 
@@ -259,7 +276,11 @@ export class BaselineLearner extends EventEmitter {
   /**
    * Store a baseline.
    */
-  private storeBaseline(metric: string, windowName: string, baseline: MetricBaseline): void {
+  private storeBaseline(
+    metric: string,
+    windowName: string,
+    baseline: MetricBaseline,
+  ): void {
     if (!this.baselines.has(metric)) {
       this.baselines.set(metric, new Map());
     }
@@ -279,34 +300,39 @@ export class BaselineLearner extends EventEmitter {
     if (!baseline || baseline.stdDev === 0) return;
 
     // Calculate deviation score (z-score)
-    const deviationScore = Math.abs(dataPoint.value - baseline.mean) / baseline.stdDev;
+    const deviationScore =
+      Math.abs(dataPoint.value - baseline.mean) / baseline.stdDev;
 
     // Determine severity
-    let severity: BaselineAnomaly['severity'] | null = null;
+    let severity: BaselineAnomaly["severity"] | null = null;
     if (deviationScore >= this.config.anomalyThresholds.critical) {
-      severity = 'critical';
+      severity = "critical";
     } else if (deviationScore >= this.config.anomalyThresholds.high) {
-      severity = 'high';
+      severity = "high";
     } else if (deviationScore >= this.config.anomalyThresholds.medium) {
-      severity = 'medium';
+      severity = "medium";
     } else if (deviationScore >= this.config.anomalyThresholds.low) {
-      severity = 'low';
+      severity = "low";
     }
 
     if (severity) {
       // Determine deviation type
-      let deviationType: BaselineAnomaly['deviationType'];
+      let deviationType: BaselineAnomaly["deviationType"];
       const isHigh = dataPoint.value > baseline.mean;
 
       // Check if it's a sudden change (spike/drop) vs sustained deviation
       const recentPoints = this.getRecentPoints(dataPoint.metric, 5);
-      const isSudden = recentPoints.length < 3 ||
-        Math.abs(dataPoint.value - recentPoints[recentPoints.length - 2]?.value || 0) > baseline.stdDev * 2;
+      const isSudden =
+        recentPoints.length < 3 ||
+        Math.abs(
+          dataPoint.value - recentPoints[recentPoints.length - 2]?.value || 0,
+        ) >
+          baseline.stdDev * 2;
 
       if (isHigh) {
-        deviationType = isSudden ? 'spike' : 'high';
+        deviationType = isSudden ? "spike" : "high";
       } else {
-        deviationType = isSudden ? 'drop' : 'low';
+        deviationType = isSudden ? "drop" : "low";
       }
 
       const anomaly: BaselineAnomaly = {
@@ -321,14 +347,14 @@ export class BaselineLearner extends EventEmitter {
       };
 
       this.addAnomaly(anomaly);
-      this.emit('anomaly:detected', anomaly);
+      this.emit("anomaly:detected", anomaly);
 
       // Emit issue for high severity anomalies
-      if (severity === 'high' || severity === 'critical') {
-        this.emit('issue:detected', {
-          type: 'baseline_anomaly',
+      if (severity === "high" || severity === "critical") {
+        this.emit("issue:detected", {
+          type: "baseline_anomaly",
           severity,
-          description: `${deviationType === 'spike' ? 'Spike' : deviationType === 'drop' ? 'Drop' : 'Anomaly'} detected in ${dataPoint.metric}: ${dataPoint.value.toFixed(2)} (${deviationScore.toFixed(1)}σ from baseline)`,
+          description: `${deviationType === "spike" ? "Spike" : deviationType === "drop" ? "Drop" : "Anomaly"} detected in ${dataPoint.metric}: ${dataPoint.value.toFixed(2)} (${deviationScore.toFixed(1)}σ from baseline)`,
           evidence: anomaly,
         });
       }
@@ -387,15 +413,18 @@ export class BaselineLearner extends EventEmitter {
   /**
    * Get anomaly history.
    */
-  getAnomalies(metric?: string, severity?: BaselineAnomaly['severity']): BaselineAnomaly[] {
+  getAnomalies(
+    metric?: string,
+    severity?: BaselineAnomaly["severity"],
+  ): BaselineAnomaly[] {
     let result = [...this.anomalies];
 
     if (metric) {
-      result = result.filter(a => a.metric === metric);
+      result = result.filter((a) => a.metric === metric);
     }
 
     if (severity) {
-      result = result.filter(a => a.severity === severity);
+      result = result.filter((a) => a.severity === severity);
     }
 
     return result;
@@ -406,7 +435,7 @@ export class BaselineLearner extends EventEmitter {
    */
   getRecentAnomalies(windowMs: number = 5 * 60 * 1000): BaselineAnomaly[] {
     const cutoff = new Date(Date.now() - windowMs);
-    return this.anomalies.filter(a => a.timestamp >= cutoff);
+    return this.anomalies.filter((a) => a.timestamp >= cutoff);
   }
 
   /**
@@ -472,7 +501,9 @@ export class BaselineLearner extends EventEmitter {
     for (const points of this.dataPoints.values()) {
       allPoints.push(...points);
     }
-    return allPoints.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    return allPoints.sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+    );
   }
 
   /**
@@ -510,23 +541,23 @@ export class BaselineLearner extends EventEmitter {
  */
 export const VIBE_METRICS = {
   // Agent metrics
-  AGENT_RESPONSE_TIME: 'agent.response_time',
-  AGENT_TASK_DURATION: 'agent.task_duration',
-  AGENT_ERROR_RATE: 'agent.error_rate',
-  AGENT_QUEUE_SIZE: 'agent.queue_size',
+  AGENT_RESPONSE_TIME: "agent.response_time",
+  AGENT_TASK_DURATION: "agent.task_duration",
+  AGENT_ERROR_RATE: "agent.error_rate",
+  AGENT_QUEUE_SIZE: "agent.queue_size",
 
   // Session metrics
-  SESSION_DURATION: 'session.duration',
-  SESSION_MESSAGE_COUNT: 'session.message_count',
-  SESSION_CONFIDENCE: 'session.confidence',
+  SESSION_DURATION: "session.duration",
+  SESSION_MESSAGE_COUNT: "session.message_count",
+  SESSION_CONFIDENCE: "session.confidence",
 
   // System metrics
-  SYSTEM_CPU: 'system.cpu',
-  SYSTEM_MEMORY: 'system.memory',
-  SYSTEM_EVENT_RATE: 'system.event_rate',
+  SYSTEM_CPU: "system.cpu",
+  SYSTEM_MEMORY: "system.memory",
+  SYSTEM_EVENT_RATE: "system.event_rate",
 
   // API metrics
-  API_LATENCY: 'api.latency',
-  API_ERROR_RATE: 'api.error_rate',
-  API_REQUEST_RATE: 'api.request_rate',
+  API_LATENCY: "api.latency",
+  API_ERROR_RATE: "api.error_rate",
+  API_REQUEST_RATE: "api.request_rate",
 };

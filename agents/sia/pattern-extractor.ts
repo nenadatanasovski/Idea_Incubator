@@ -1,7 +1,7 @@
 // agents/sia/pattern-extractor.ts - Extract reusable patterns from successful tasks
 
-import { ExtractedPattern, TaskResult } from '../../types/sia.js';
-import { inferActionType } from './extraction-rules.js';
+import { ExtractedPattern, TaskResult } from "../../types/sia.js";
+import { inferActionType } from "./extraction-rules.js";
 
 /**
  * Extract reusable patterns from successful task results
@@ -23,7 +23,7 @@ export function extractPatterns(successes: TaskResult[]): ExtractedPattern[] {
  * Identify if a successful task contains a reusable pattern
  */
 export function identifyPattern(task: TaskResult): ExtractedPattern | null {
-  if (!task.codeWritten || task.status !== 'success') {
+  if (!task.codeWritten || task.status !== "success") {
     return null;
   }
 
@@ -42,15 +42,15 @@ export function identifyPattern(task: TaskResult): ExtractedPattern | null {
  * Detect Express router pattern
  */
 function detectRouterPattern(task: TaskResult): ExtractedPattern | null {
-  const code = task.codeWritten || '';
+  const code = task.codeWritten || "";
 
   if (
-    code.includes('Router()') &&
-    code.includes('router.get') &&
-    code.includes('export default router')
+    code.includes("Router()") &&
+    code.includes("router.get") &&
+    code.includes("export default router")
   ) {
     return {
-      description: 'Express Router with async handlers',
+      description: "Express Router with async handlers",
       codeTemplate: `import { Router, Request, Response } from 'express';
 
 const router = Router();
@@ -65,7 +65,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 export default router;`,
-      filePattern: 'server/routes/*.ts',
+      filePattern: "server/routes/*.ts",
       actionType: inferActionType(task.action),
       taskId: task.taskId,
     };
@@ -78,15 +78,15 @@ export default router;`,
  * Detect database query pattern
  */
 function detectDatabasePattern(task: TaskResult): ExtractedPattern | null {
-  const code = task.codeWritten || '';
+  const code = task.codeWritten || "";
 
   if (
-    code.includes('getDb()') &&
-    code.includes('db.prepare') &&
-    code.includes('stmt.free()')
+    code.includes("getDb()") &&
+    code.includes("db.prepare") &&
+    code.includes("stmt.free()")
   ) {
     return {
-      description: 'sql.js database query with proper resource cleanup',
+      description: "sql.js database query with proper resource cleanup",
       codeTemplate: `import { getDb } from '../../database/db.js';
 
 export async function queryData(id: string): Promise<DataType | null> {
@@ -107,7 +107,7 @@ export async function queryData(id: string): Promise<DataType | null> {
     // ... map other fields
   };
 }`,
-      filePattern: '*.ts',
+      filePattern: "*.ts",
       actionType: inferActionType(task.action),
       taskId: task.taskId,
     };
@@ -120,15 +120,15 @@ export async function queryData(id: string): Promise<DataType | null> {
  * Detect validator pattern
  */
 function detectValidatorPattern(task: TaskResult): ExtractedPattern | null {
-  const code = task.codeWritten || '';
+  const code = task.codeWritten || "";
 
   if (
-    code.includes('spawn') &&
-    code.includes('validator') &&
-    code.includes('passed')
+    code.includes("spawn") &&
+    code.includes("validator") &&
+    code.includes("passed")
   ) {
     return {
-      description: 'Subprocess validator with timeout',
+      description: "Subprocess validator with timeout",
       codeTemplate: `import { spawn } from 'child_process';
 import { v4 as uuid } from 'uuid';
 import { ValidatorResult } from '../../types/validation.js';
@@ -168,7 +168,7 @@ export async function runValidator(
     });
   });
 }`,
-      filePattern: 'agents/*/validators/*.ts',
+      filePattern: "agents/*/validators/*.ts",
       actionType: inferActionType(task.action),
       taskId: task.taskId,
     };
@@ -181,15 +181,15 @@ export async function runValidator(
  * Detect test pattern
  */
 function detectTestPattern(task: TaskResult): ExtractedPattern | null {
-  const code = task.codeWritten || '';
+  const code = task.codeWritten || "";
 
   if (
-    code.includes('describe') &&
-    code.includes('it(') &&
-    code.includes('expect')
+    code.includes("describe") &&
+    code.includes("it(") &&
+    code.includes("expect")
   ) {
     return {
-      description: 'Vitest test suite structure',
+      description: "Vitest test suite structure",
       codeTemplate: `import { describe, it, expect } from 'vitest';
 
 describe('FeatureName', () => {
@@ -204,7 +204,7 @@ describe('FeatureName', () => {
     });
   });
 });`,
-      filePattern: 'tests/*.ts',
+      filePattern: "tests/*.ts",
       actionType: inferActionType(task.action),
       taskId: task.taskId,
     };

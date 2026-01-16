@@ -4,7 +4,7 @@
  * Defines the agent's behavior, questioning strategy, and output format.
  */
 
-import type { AgentContext } from './idea-context-builder.js';
+import type { AgentContext } from "./idea-context-builder.js";
 
 export const IDEATION_AGENT_SYSTEM_PROMPT = `
 ## MANDATORY OUTPUT FORMAT — READ THIS FIRST
@@ -398,10 +398,10 @@ When a user asks you to edit, modify, update, remove content from, or change an 
 {{MEMORY_FILES}}
 `;
 
-export const USER_PROFILE_PLACEHOLDER = '{{USER_PROFILE}}';
-export const MEMORY_FILES_PLACEHOLDER = '{{MEMORY_FILES}}';
-export const ARTIFACTS_CONTEXT_PLACEHOLDER = '{{ARTIFACTS_CONTEXT}}';
-export const IDEA_CONTEXT_PLACEHOLDER = '{{IDEA_CONTEXT}}';
+export const USER_PROFILE_PLACEHOLDER = "{{USER_PROFILE}}";
+export const MEMORY_FILES_PLACEHOLDER = "{{MEMORY_FILES}}";
+export const ARTIFACTS_CONTEXT_PLACEHOLDER = "{{ARTIFACTS_CONTEXT}}";
+export const IDEA_CONTEXT_PLACEHOLDER = "{{IDEA_CONTEXT}}";
 
 /**
  * Artifact summary for agent context.
@@ -420,47 +420,53 @@ export interface ArtifactSummary {
 export function buildSystemPrompt(
   userProfile: Record<string, unknown>,
   memoryFiles?: { fileType: string; content: string }[],
-  artifacts?: ArtifactSummary[]
+  artifacts?: ArtifactSummary[],
 ): string {
   let prompt = IDEATION_AGENT_SYSTEM_PROMPT;
 
   // Insert artifacts context - FULL content for referenced artifacts, preview for others
   if (artifacts && artifacts.length > 0) {
     const artifactsList = artifacts
-      .map(a => {
+      .map((a) => {
         // If content is provided, this artifact was referenced - show FULL content
         // Otherwise just show basic info
         if (a.content) {
-          const fullContent = typeof a.content === 'string'
-            ? a.content
-            : JSON.stringify(a.content, null, 2);
-          console.log(`[SystemPrompt] Including FULL content for artifact ${a.id} (${fullContent.length} chars)`);
+          const fullContent =
+            typeof a.content === "string"
+              ? a.content
+              : JSON.stringify(a.content, null, 2);
+          console.log(
+            `[SystemPrompt] Including FULL content for artifact ${a.id} (${fullContent.length} chars)`,
+          );
           return `### @artifact:${a.id} (REFERENCED - FULL CONTENT FOR EDITING)\n**Type:** ${a.type}\n**Title:** ${a.title}\n**FULL CONTENT (use this for editing):**\n\`\`\`\n${fullContent}\n\`\`\``;
         } else {
           // Not referenced - just show metadata
           return `### @artifact:${a.id}\n**Type:** ${a.type}\n**Title:** ${a.title}\n*(Content not loaded - reference with @artifact:${a.id} if you need to read/edit this)*`;
         }
       })
-      .join('\n\n');
+      .join("\n\n");
     prompt = prompt.replace(ARTIFACTS_CONTEXT_PLACEHOLDER, artifactsList);
   } else {
-    prompt = prompt.replace(ARTIFACTS_CONTEXT_PLACEHOLDER, 'No artifacts yet.');
+    prompt = prompt.replace(ARTIFACTS_CONTEXT_PLACEHOLDER, "No artifacts yet.");
   }
 
   // Insert user profile
   prompt = prompt.replace(
     USER_PROFILE_PLACEHOLDER,
-    JSON.stringify(userProfile, null, 2)
+    JSON.stringify(userProfile, null, 2),
   );
 
   // Insert memory files if available
   if (memoryFiles && memoryFiles.length > 0) {
     const memoryContent = memoryFiles
-      .map(f => `## ${f.fileType.replace(/_/g, ' ').toUpperCase()}\n${f.content}`)
-      .join('\n\n');
+      .map(
+        (f) =>
+          `## ${f.fileType.replace(/_/g, " ").toUpperCase()}\n${f.content}`,
+      )
+      .join("\n\n");
     prompt = prompt.replace(MEMORY_FILES_PLACEHOLDER, memoryContent);
   } else {
-    prompt = prompt.replace(MEMORY_FILES_PLACEHOLDER, 'No previous handoff.');
+    prompt = prompt.replace(MEMORY_FILES_PLACEHOLDER, "No previous handoff.");
   }
 
   return prompt;
@@ -498,26 +504,34 @@ function formatIdeaContext(context: AgentContext): string {
   const lines: string[] = [];
 
   // Header with title (use ideaSlug as title since we don't have a separate title field)
-  const title = idea.ideaSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const title = idea.ideaSlug
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
   lines.push(`## Current Idea: ${title}`);
-  lines.push(`Type: ${idea.type} | Phase: ${idea.currentPhase} | Completion: ${progress.completionPercent}%`);
-  lines.push('');
+  lines.push(
+    `Type: ${idea.type} | Phase: ${idea.currentPhase} | Completion: ${progress.completionPercent}%`,
+  );
+  lines.push("");
 
   // Progress section
-  lines.push('### Progress');
+  lines.push("### Progress");
 
   // Complete documents
   if (progress.documentsComplete.length > 0) {
-    lines.push(`- Complete: ${progress.documentsComplete.slice(0, 5).join(', ')}${progress.documentsComplete.length > 5 ? ` (+${progress.documentsComplete.length - 5} more)` : ''}`);
+    lines.push(
+      `- Complete: ${progress.documentsComplete.slice(0, 5).join(", ")}${progress.documentsComplete.length > 5 ? ` (+${progress.documentsComplete.length - 5} more)` : ""}`,
+    );
   } else {
-    lines.push('- Complete: None yet');
+    lines.push("- Complete: None yet");
   }
 
   // Missing documents
   if (progress.documentsMissing.length > 0) {
-    lines.push(`- Missing: ${progress.documentsMissing.slice(0, 5).join(', ')}${progress.documentsMissing.length > 5 ? ` (+${progress.documentsMissing.length - 5} more)` : ''}`);
+    lines.push(
+      `- Missing: ${progress.documentsMissing.slice(0, 5).join(", ")}${progress.documentsMissing.length > 5 ? ` (+${progress.documentsMissing.length - 5} more)` : ""}`,
+    );
   } else {
-    lines.push('- Missing: None');
+    lines.push("- Missing: None");
   }
 
   // Next action
@@ -525,34 +539,34 @@ function formatIdeaContext(context: AgentContext): string {
 
   // Blockers if any
   if (progress.blockers.length > 0) {
-    lines.push(`- Blockers: ${progress.blockers.join('; ')}`);
+    lines.push(`- Blockers: ${progress.blockers.join("; ")}`);
   }
 
-  lines.push('');
+  lines.push("");
 
   // Core Documents section
-  lines.push('### Core Documents');
+  lines.push("### Core Documents");
 
   // README Summary
-  lines.push('#### README Summary');
+  lines.push("#### README Summary");
   lines.push(coreDocs.readme.summary);
-  lines.push('');
+  lines.push("");
 
   // Recent Q&A
-  lines.push('#### Recent Q&A');
+  lines.push("#### Recent Q&A");
   if (coreDocs.development.recentQA.length > 0) {
     for (const qa of coreDocs.development.recentQA) {
       lines.push(`- **Q:** ${qa.question}`);
       lines.push(`  **A:** ${qa.answer}`);
     }
   } else {
-    lines.push('No Q&A entries yet.');
+    lines.push("No Q&A entries yet.");
   }
 
   // Gaps if any
   if (coreDocs.development.gaps.length > 0) {
-    lines.push('');
-    lines.push('#### Knowledge Gaps');
+    lines.push("");
+    lines.push("#### Knowledge Gaps");
     for (const gap of coreDocs.development.gaps.slice(0, 5)) {
       lines.push(`- ${gap}`);
     }
@@ -561,22 +575,24 @@ function formatIdeaContext(context: AgentContext): string {
     }
   }
 
-  lines.push('');
+  lines.push("");
 
   // Available Documents section
-  lines.push('### Available Documents');
+  lines.push("### Available Documents");
   if (availableDocuments.length > 0) {
     for (const doc of availableDocuments.slice(0, 10)) {
       lines.push(`- **${doc.path}**: ${doc.summary}`);
     }
     if (availableDocuments.length > 10) {
-      lines.push(`- (+${availableDocuments.length - 10} more documents available)`);
+      lines.push(
+        `- (+${availableDocuments.length - 10} more documents available)`,
+      );
     }
   } else {
-    lines.push('No additional documents available.');
+    lines.push("No additional documents available.");
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -587,12 +603,15 @@ function formatIdeaContext(context: AgentContext): string {
  * @param context - The AgentContext to inject (can be null/undefined for empty context)
  * @returns System prompt with placeholder replaced
  */
-export function injectIdeaContext(systemPrompt: string, context: AgentContext | null | undefined): string {
+export function injectIdeaContext(
+  systemPrompt: string,
+  context: AgentContext | null | undefined,
+): string {
   // Handle empty/null context
   if (!context) {
     return systemPrompt.replace(
       IDEA_CONTEXT_PLACEHOLDER,
-      'No idea context loaded. Start a new session or link to an existing idea.'
+      "No idea context loaded. Start a new session or link to an existing idea.",
     );
   }
 

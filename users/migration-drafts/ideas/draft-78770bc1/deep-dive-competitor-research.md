@@ -8,6 +8,7 @@ sessionId: 78770bc1-72aa-46f8-96ae-3deca197a07c
 createdAt: 2026-01-04 10:48:43
 updatedAt: 2026-01-04 10:48:43
 ---
+
 ## Research Complete!
 
 I've conducted comprehensive market research on the **AI Resume Screening Tool** idea. Here's what I found:
@@ -17,28 +18,32 @@ I've conducted comprehensive market research on the **AI Resume Screening Tool**
 ## Key Findings
 
 ### The Market is Real & Growing
+
 - **$617-661M** market in 2024-2025, growing to **$1.56B by 2037** (7.4% CAGR)
 - **83% of companies** will use AI resume screening by 2025
 - Strong investor interest: Mercor just raised $100M at $2B valuation
 
 ### The Pain Points Are Validated
+
 Your observation is correct — recruiters **have tools but still struggle**:
 
-| Pain Point | Evidence |
-|------------|----------|
-| **Accuracy** | 88% of employers believe ATS screens out qualified candidates |
-| **Bias** | 85% of AI screeners prefer white-associated names; major lawsuits underway |
+| Pain Point      | Evidence                                                                   |
+| --------------- | -------------------------------------------------------------------------- |
+| **Accuracy**    | 88% of employers believe ATS screens out qualified candidates              |
+| **Bias**        | 85% of AI screeners prefer white-associated names; major lawsuits underway |
 | **Integration** | Top complaint — tools don't connect to LinkedIn, HRIS, job boards properly |
-| **Cost** | Enterprise tools expensive; SMB tools lacking |
-| **Arms Race** | AI candidates vs. AI screeners = volume without quality |
+| **Cost**        | Enterprise tools expensive; SMB tools lacking                              |
+| **Arms Race**   | AI candidates vs. AI screeners = volume without quality                    |
 
 ### Competitive Landscape
+
 - **Fragmented**: Top 10 vendors hold only 51% of market
 - **Enterprise leaders**: iCIMS, Workday, Greenhouse, Lever
 - **AI challengers**: Eightfold ($424M raised), Mercor ($2B valuation)
 - **SMB gap**: Budget tools ($30-75/mo) are weak; premium tools ($299+/mo) too expensive
 
 ### Major Risk: Regulatory Wave
+
 - **40+ states** have introduced AI employment bills
 - **EEOC actively suing** vendors (Workday class action certified May 2025)
 - **Colorado AI Act** and **California regulations** (Oct 2025) set precedent
@@ -50,7 +55,7 @@ Your observation is correct — recruiters **have tools but still struggle**:
 
 1. **Compliance-first**: Build for the regulatory wave before it hits
 2. **SMB sweet spot**: $75-149/month gap in market
-3. **Integration depth**: Do 10 integrations perfectly vs. 500 poorly  
+3. **Integration depth**: Do 10 integrations perfectly vs. 500 poorly
 4. **Explainable AI**: Transparent scoring vs. black-box competitors
 5. **Accuracy focus**: Measurable improvement metrics
 
@@ -68,6 +73,7 @@ Before evaluating further, consider:
 ---
 
 The research files have been saved to:
+
 - `/ideas/ai-resume-screening-tool/README.md`
 - `/ideas/ai-resume-screening-tool/research/market-research.md`
 

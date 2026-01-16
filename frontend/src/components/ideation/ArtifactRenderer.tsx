@@ -3,34 +3,41 @@
 // Renders artifacts based on their type
 // =============================================================================
 
-import React, { useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import mermaid from 'mermaid';
-import type { ArtifactRendererProps, ResearchResult, SynthesizedResearch } from '../../types/ideation';
+import React, { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import mermaid from "mermaid";
+import type {
+  ArtifactRendererProps,
+  ResearchResult,
+  SynthesizedResearch,
+} from "../../types/ideation";
 
 // Initialize mermaid
 mermaid.initialize({
   startOnLoad: false,
-  theme: 'default',
-  securityLevel: 'loose',
-  fontFamily: 'inherit',
+  theme: "default",
+  securityLevel: "loose",
+  fontFamily: "inherit",
 });
 
 // Code artifact renderer
-const CodeArtifact: React.FC<{ content: string; language?: string }> = ({ content, language }) => {
+const CodeArtifact: React.FC<{ content: string; language?: string }> = ({
+  content,
+  language,
+}) => {
   return (
     <div className="h-full overflow-auto">
       <SyntaxHighlighter
-        language={language || 'text'}
+        language={language || "text"}
         style={oneDark}
         customStyle={{
           margin: 0,
           borderRadius: 0,
-          minHeight: '100%',
-          fontSize: '13px',
+          minHeight: "100%",
+          fontSize: "13px",
         }}
         showLineNumbers
       >
@@ -41,10 +48,13 @@ const CodeArtifact: React.FC<{ content: string; language?: string }> = ({ conten
 };
 
 // Mermaid diagram renderer
-const MermaidArtifact: React.FC<{ content: string; id: string }> = ({ content, id }) => {
+const MermaidArtifact: React.FC<{ content: string; id: string }> = ({
+  content,
+  id,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [svg, setSvg] = useState<string>('');
+  const [svg, setSvg] = useState<string>("");
 
   useEffect(() => {
     const renderDiagram = async () => {
@@ -54,16 +64,21 @@ const MermaidArtifact: React.FC<{ content: string; id: string }> = ({ content, i
         // Clean the content
         const cleanedContent = content
           .trim()
-          .replace(/^```mermaid\s*/i, '')
-          .replace(/```\s*$/, '')
+          .replace(/^```mermaid\s*/i, "")
+          .replace(/```\s*$/, "")
           .trim();
 
-        const { svg: renderedSvg } = await mermaid.render(`mermaid-${id}`, cleanedContent);
+        const { svg: renderedSvg } = await mermaid.render(
+          `mermaid-${id}`,
+          cleanedContent,
+        );
         setSvg(renderedSvg);
         setError(null);
       } catch (err) {
-        console.error('Mermaid rendering error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to render diagram');
+        console.error("Mermaid rendering error:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to render diagram",
+        );
       }
     };
 
@@ -146,16 +161,16 @@ const MarkdownArtifact: React.FC<{ content: string }> = ({ content }) => {
         remarkPlugins={[remarkGfm]}
         components={{
           code({ node, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '');
+            const match = /language-(\w+)/.exec(className || "");
             const inline = !match;
             return !inline && match ? (
               <SyntaxHighlighter
                 style={oneDark}
                 language={match[1]}
                 PreTag="div"
-                customStyle={{ fontSize: '12px' }}
+                customStyle={{ fontSize: "12px" }}
               >
-                {String(children).replace(/\n$/, '')}
+                {String(children).replace(/\n$/, "")}
               </SyntaxHighlighter>
             ) : (
               <code className={className} {...props}>
@@ -172,15 +187,18 @@ const MarkdownArtifact: React.FC<{ content: string }> = ({ content }) => {
 };
 
 // Research artifact renderer - displays synthesized research with sources
-const ResearchArtifact: React.FC<{ content: ResearchResult[] | SynthesizedResearch; queries: string[] }> = ({
-  content,
-  queries,
-}) => {
+const ResearchArtifact: React.FC<{
+  content: ResearchResult[] | SynthesizedResearch;
+  queries: string[];
+}> = ({ content, queries }) => {
   const [showSources, setShowSources] = useState(false);
 
   // Handle both old format (array) and new synthesized format (object)
-  const isSynthesized = content && !Array.isArray(content) && 'synthesis' in content;
-  const synthesis = isSynthesized ? (content as SynthesizedResearch).synthesis : null;
+  const isSynthesized =
+    content && !Array.isArray(content) && "synthesis" in content;
+  const synthesis = isSynthesized
+    ? (content as SynthesizedResearch).synthesis
+    : null;
   const sources = isSynthesized
     ? (content as SynthesizedResearch).sources
     : (content as ResearchResult[]);
@@ -188,7 +206,7 @@ const ResearchArtifact: React.FC<{ content: ResearchResult[] | SynthesizedResear
   // Group sources by query for display
   const groupedSources: Record<string, ResearchResult[]> = {};
   (sources || []).forEach((result) => {
-    const query = result.query || 'General';
+    const query = result.query || "General";
     if (!groupedSources[query]) {
       groupedSources[query] = [];
     }
@@ -216,16 +234,16 @@ const ResearchArtifact: React.FC<{ content: ResearchResult[] | SynthesizedResear
             remarkPlugins={[remarkGfm]}
             components={{
               code({ node, className, children, ...props }) {
-                const match = /language-(\w+)/.exec(className || '');
+                const match = /language-(\w+)/.exec(className || "");
                 const inline = !match;
                 return !inline && match ? (
                   <SyntaxHighlighter
                     style={oneDark}
                     language={match[1]}
                     PreTag="div"
-                    customStyle={{ fontSize: '12px' }}
+                    customStyle={{ fontSize: "12px" }}
                   >
-                    {String(children).replace(/\n$/, '')}
+                    {String(children).replace(/\n$/, "")}
                   </SyntaxHighlighter>
                 ) : (
                   <code className={className} {...props}>
@@ -262,12 +280,17 @@ const ResearchArtifact: React.FC<{ content: ResearchResult[] | SynthesizedResear
             className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
           >
             <svg
-              className={`w-4 h-4 transition-transform ${showSources ? 'rotate-90' : ''}`}
+              className={`w-4 h-4 transition-transform ${showSources ? "rotate-90" : ""}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
             Sources ({sources.length})
           </button>
@@ -320,8 +343,10 @@ const ResearchArtifact: React.FC<{ content: ResearchResult[] | SynthesizedResear
 };
 
 // Idea summary artifact renderer
-const IdeaSummaryArtifact: React.FC<{ content: string | object }> = ({ content }) => {
-  if (typeof content === 'string') {
+const IdeaSummaryArtifact: React.FC<{ content: string | object }> = ({
+  content,
+}) => {
+  if (typeof content === "string") {
     return <MarkdownArtifact content={content} />;
   }
 
@@ -346,35 +371,53 @@ const IdeaSummaryArtifact: React.FC<{ content: string | object }> = ({ content }
 
       {summary.problem && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Problem</h4>
-          <p className="mt-1 text-gray-700 dark:text-gray-300">{summary.problem}</p>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Problem
+          </h4>
+          <p className="mt-1 text-gray-700 dark:text-gray-300">
+            {summary.problem}
+          </p>
         </div>
       )}
 
       {summary.solution && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Solution</h4>
-          <p className="mt-1 text-gray-700 dark:text-gray-300">{summary.solution}</p>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Solution
+          </h4>
+          <p className="mt-1 text-gray-700 dark:text-gray-300">
+            {summary.solution}
+          </p>
         </div>
       )}
 
       {summary.targetMarket && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Target Market</h4>
-          <p className="mt-1 text-gray-700 dark:text-gray-300">{summary.targetMarket}</p>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Target Market
+          </h4>
+          <p className="mt-1 text-gray-700 dark:text-gray-300">
+            {summary.targetMarket}
+          </p>
         </div>
       )}
 
       {summary.uniqueValue && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Unique Value</h4>
-          <p className="mt-1 text-gray-700 dark:text-gray-300">{summary.uniqueValue}</p>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Unique Value
+          </h4>
+          <p className="mt-1 text-gray-700 dark:text-gray-300">
+            {summary.uniqueValue}
+          </p>
         </div>
       )}
 
       {summary.keyRisks && summary.keyRisks.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Key Risks</h4>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Key Risks
+          </h4>
           <ul className="mt-1 list-disc list-inside text-gray-700 dark:text-gray-300">
             {summary.keyRisks.map((risk, idx) => (
               <li key={idx}>{risk}</li>
@@ -385,7 +428,9 @@ const IdeaSummaryArtifact: React.FC<{ content: string | object }> = ({ content }
 
       {summary.nextSteps && summary.nextSteps.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Next Steps</h4>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Next Steps
+          </h4>
           <ul className="mt-1 list-disc list-inside text-gray-700 dark:text-gray-300">
             {summary.nextSteps.map((step, idx) => (
               <li key={idx}>{step}</li>
@@ -403,8 +448,18 @@ const ErrorArtifact: React.FC<{ error: string }> = ({ error }) => {
     <div className="flex items-center justify-center h-full p-4">
       <div className="text-center">
         <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-          <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          <svg
+            className="w-6 h-6 text-red-600 dark:text-red-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
           </svg>
         </div>
         <p className="text-gray-600 dark:text-gray-400">{error}</p>
@@ -418,8 +473,19 @@ const LoadingArtifact: React.FC = () => {
   return (
     <div className="flex items-center justify-center h-full">
       <div className="flex flex-col items-center gap-3">
-        <svg className="w-8 h-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <svg
+          className="w-8 h-8 animate-spin text-blue-500"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
           <path
             className="opacity-75"
             fill="currentColor"
@@ -435,58 +501,69 @@ const LoadingArtifact: React.FC = () => {
 };
 
 // Main renderer component
-export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({ artifact, isFullscreen: _isFullscreen }) => {
+export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({
+  artifact,
+  isFullscreen: _isFullscreen,
+}) => {
   // Handle loading state
-  if (artifact.status === 'loading') {
+  if (artifact.status === "loading") {
     return <LoadingArtifact />;
   }
 
   // Handle error state
-  if (artifact.status === 'error' && artifact.error) {
+  if (artifact.status === "error" && artifact.error) {
     return <ErrorArtifact error={artifact.error} />;
   }
 
   // Render based on artifact type
   switch (artifact.type) {
-    case 'code':
+    case "code":
       return (
         <CodeArtifact
-          content={typeof artifact.content === 'string' ? artifact.content : JSON.stringify(artifact.content, null, 2)}
+          content={
+            typeof artifact.content === "string"
+              ? artifact.content
+              : JSON.stringify(artifact.content, null, 2)
+          }
           language={artifact.language}
         />
       );
 
-    case 'mermaid':
+    case "mermaid":
       return (
         <MermaidArtifact
-          content={typeof artifact.content === 'string' ? artifact.content : ''}
+          content={typeof artifact.content === "string" ? artifact.content : ""}
           id={artifact.id}
         />
       );
 
-    case 'html':
+    case "html":
       return (
         <HtmlArtifact
-          content={typeof artifact.content === 'string' ? artifact.content : ''}
+          content={typeof artifact.content === "string" ? artifact.content : ""}
         />
       );
 
-    case 'svg':
+    case "svg":
       return (
         <SvgArtifact
-          content={typeof artifact.content === 'string' ? artifact.content : ''}
+          content={typeof artifact.content === "string" ? artifact.content : ""}
         />
       );
 
-    case 'markdown':
-    case 'text':
+    case "markdown":
+    case "text":
       return (
         <MarkdownArtifact
-          content={typeof artifact.content === 'string' ? artifact.content : JSON.stringify(artifact.content, null, 2)}
+          content={
+            typeof artifact.content === "string"
+              ? artifact.content
+              : JSON.stringify(artifact.content, null, 2)
+          }
         />
       );
 
-    case 'research':
+    case "research":
       return (
         <ResearchArtifact
           content={artifact.content as ResearchResult[] | SynthesizedResearch}
@@ -494,16 +571,20 @@ export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({ artifact, is
         />
       );
 
-    case 'idea-summary':
-    case 'analysis':
-    case 'comparison':
+    case "idea-summary":
+    case "analysis":
+    case "comparison":
       return <IdeaSummaryArtifact content={artifact.content} />;
 
-    case 'react':
+    case "react":
       // For React components, show the code with syntax highlighting
       return (
         <CodeArtifact
-          content={typeof artifact.content === 'string' ? artifact.content : JSON.stringify(artifact.content, null, 2)}
+          content={
+            typeof artifact.content === "string"
+              ? artifact.content
+              : JSON.stringify(artifact.content, null, 2)
+          }
           language="jsx"
         />
       );
@@ -512,7 +593,11 @@ export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({ artifact, is
       // Default to markdown/text rendering
       return (
         <MarkdownArtifact
-          content={typeof artifact.content === 'string' ? artifact.content : JSON.stringify(artifact.content, null, 2)}
+          content={
+            typeof artifact.content === "string"
+              ? artifact.content
+              : JSON.stringify(artifact.content, null, 2)
+          }
         />
       );
   }

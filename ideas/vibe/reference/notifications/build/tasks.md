@@ -29,11 +29,13 @@ status: "pending"
 ## Context Loading
 
 ### Required Context
+
 - [x] `build/spec.md` - Technical specification
 - [x] `CLAUDE.md` - Project conventions (sections: Database, API Routes, WebSocket)
 - [x] Knowledge Base gotchas for: SQLite JSON, WebSocket, Email sending
 
 ### Idea Context
+
 - [x] `README.md` - Idea overview
 - [x] `planning/brief.md` - Feature brief
 
@@ -1624,8 +1626,8 @@ notes: null
 ## Execution Log
 
 | Task | Status | Started | Completed | Duration | Notes |
-|------|--------|---------|-----------|----------|-------|
-| | | | | | |
+| ---- | ------ | ------- | --------- | -------- | ----- |
+|      |        |         |           |          |       |
 
 ---
 
@@ -1634,14 +1636,14 @@ notes: null
 ### Patterns Discovered
 
 | Pattern | Context | Confidence |
-|---------|---------|------------|
-| | | |
+| ------- | ------- | ---------- |
+|         |         |            |
 
 ### Gotchas Discovered
 
 | Gotcha | Context | Should Propagate? |
-|--------|---------|-------------------|
-| | | |
+| ------ | ------- | ----------------- |
+|        |         |                   |
 
 ---
 
@@ -1681,5 +1683,5 @@ notes: null
 
 ---
 
-*Generated for Spec Agent reference*
-*Executed by Build Agent*
+_Generated for Spec Agent reference_
+_Executed by Build Agent_

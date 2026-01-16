@@ -24,7 +24,7 @@ export interface ProfileUpdateInput {
 export interface UserPreferences {
   id: string;
   userId: string;
-  theme: 'light' | 'dark' | 'system';
+  theme: "light" | "dark" | "system";
   language: string;
   timezone: string;
   emailNotifications: boolean;
@@ -35,7 +35,7 @@ export interface UserPreferences {
 }
 
 export interface PreferencesUpdateInput {
-  theme?: 'light' | 'dark' | 'system';
+  theme?: "light" | "dark" | "system";
   language?: string;
   timezone?: string;
   emailNotifications?: boolean;

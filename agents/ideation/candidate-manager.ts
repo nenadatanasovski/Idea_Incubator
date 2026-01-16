@@ -1,11 +1,11 @@
-import { v4 as uuidv4 } from 'uuid';
-import { getDb, saveDb } from '../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { getDb, saveDb } from "../../database/db.js";
 import {
   IdeaCandidate,
   IdeaCandidateRow,
   CandidateStatus,
-} from '../../types/ideation.js';
-import { mapCandidateRowToCandidate } from '../../utils/ideation-mappers.js';
+} from "../../types/ideation.js";
+import { mapCandidateRowToCandidate } from "../../utils/ideation-mappers.js";
 
 /**
  * CANDIDATE MANAGER
@@ -34,16 +34,22 @@ export interface UpdateCandidateParams {
 /**
  * Helper to convert db result row to object
  */
-function rowToObject(result: { columns: string[]; values: unknown[][] }): Record<string, unknown> {
+function rowToObject(result: {
+  columns: string[];
+  values: unknown[][];
+}): Record<string, unknown> {
   if (result.values.length === 0) {
     return {};
   }
   const columns = result.columns;
   const values = result.values[0];
-  return columns.reduce((obj, col, i) => {
-    obj[col] = values[i];
-    return obj;
-  }, {} as Record<string, unknown>);
+  return columns.reduce(
+    (obj, col, i) => {
+      obj[col] = values[i];
+      return obj;
+    },
+    {} as Record<string, unknown>,
+  );
 }
 
 export class CandidateManager {
@@ -55,23 +61,26 @@ export class CandidateManager {
     const id = uuidv4();
     const now = new Date().toISOString();
 
-    db.run(`
+    db.run(
+      `
       INSERT INTO ideation_candidates (
         id, session_id, title, summary, confidence, viability,
         user_suggested, status, version, created_at, updated_at
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, 'forming', 1, ?, ?)
-    `, [
-      id,
-      params.sessionId,
-      params.title,
-      params.summary || null,
-      params.confidence || 0,
-      params.viability || 100,
-      params.userSuggested ? 1 : 0,
-      now,
-      now,
-    ]);
+    `,
+      [
+        id,
+        params.sessionId,
+        params.title,
+        params.summary || null,
+        params.confidence || 0,
+        params.viability || 100,
+        params.userSuggested ? 1 : 0,
+        now,
+        now,
+      ],
+    );
 
     await saveDb();
 
@@ -83,9 +92,12 @@ export class CandidateManager {
    */
   async getById(candidateId: string): Promise<IdeaCandidate | null> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_candidates WHERE id = ?
-    `, [candidateId]);
+    `,
+      [candidateId],
+    );
 
     if (results.length === 0 || results[0].values.length === 0) {
       return null;
@@ -100,12 +112,15 @@ export class CandidateManager {
    */
   async getActiveForSession(sessionId: string): Promise<IdeaCandidate | null> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_candidates
       WHERE session_id = ? AND status IN ('forming', 'active')
       ORDER BY updated_at DESC
       LIMIT 1
-    `, [sessionId]);
+    `,
+      [sessionId],
+    );
 
     if (results.length === 0 || results[0].values.length === 0) {
       return null;
@@ -125,12 +140,15 @@ export class CandidateManager {
   /**
    * Get or create candidate for session.
    */
-  async getOrCreateForSession(sessionId: string, params: {
-    title: string;
-    summary?: string;
-    confidence: number;
-    viability: number;
-  }): Promise<IdeaCandidate> {
+  async getOrCreateForSession(
+    sessionId: string,
+    params: {
+      title: string;
+      summary?: string;
+      confidence: number;
+      viability: number;
+    },
+  ): Promise<IdeaCandidate> {
     const existing = await this.getActiveForSession(sessionId);
 
     if (existing) {
@@ -140,7 +158,7 @@ export class CandidateManager {
         summary: params.summary,
         confidence: params.confidence,
         viability: params.viability,
-        status: params.confidence >= 50 ? 'active' : 'forming',
+        status: params.confidence >= 50 ? "active" : "forming",
       }) as Promise<IdeaCandidate>;
     }
 
@@ -157,49 +175,55 @@ export class CandidateManager {
   /**
    * Update candidate.
    */
-  async update(candidateId: string, params: UpdateCandidateParams): Promise<IdeaCandidate | null> {
+  async update(
+    candidateId: string,
+    params: UpdateCandidateParams,
+  ): Promise<IdeaCandidate | null> {
     const db = await getDb();
     const updates: string[] = [];
     const values: unknown[] = [];
 
     if (params.title !== undefined) {
-      updates.push('title = ?');
+      updates.push("title = ?");
       values.push(params.title);
     }
     if (params.summary !== undefined) {
-      updates.push('summary = ?');
+      updates.push("summary = ?");
       values.push(params.summary);
     }
     if (params.confidence !== undefined) {
-      updates.push('confidence = ?');
+      updates.push("confidence = ?");
       values.push(params.confidence);
     }
     if (params.viability !== undefined) {
-      updates.push('viability = ?');
+      updates.push("viability = ?");
       values.push(params.viability);
     }
     if (params.status !== undefined) {
-      updates.push('status = ?');
+      updates.push("status = ?");
       values.push(params.status);
     }
     if (params.capturedIdeaId !== undefined) {
-      updates.push('captured_idea_id = ?');
+      updates.push("captured_idea_id = ?");
       values.push(params.capturedIdeaId);
     }
 
     // Increment version
-    updates.push('version = version + 1');
-    updates.push('updated_at = ?');
+    updates.push("version = version + 1");
+    updates.push("updated_at = ?");
     values.push(new Date().toISOString());
 
     values.push(candidateId);
 
     if (updates.length > 0) {
-      db.run(`
+      db.run(
+        `
         UPDATE ideation_candidates
-        SET ${updates.join(', ')}
+        SET ${updates.join(", ")}
         WHERE id = ?
-      `, values as (string | number | null)[]);
+      `,
+        values as (string | number | null)[],
+      );
 
       await saveDb();
     }
@@ -211,14 +235,14 @@ export class CandidateManager {
    * Discard a candidate.
    */
   async discard(candidateId: string): Promise<void> {
-    await this.update(candidateId, { status: 'discarded' });
+    await this.update(candidateId, { status: "discarded" });
   }
 
   /**
    * Save a candidate (for later).
    */
   async save(candidateId: string): Promise<void> {
-    await this.update(candidateId, { status: 'saved' });
+    await this.update(candidateId, { status: "saved" });
   }
 
   /**
@@ -226,20 +250,26 @@ export class CandidateManager {
    */
   async getAllForSession(sessionId: string): Promise<IdeaCandidate[]> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_candidates
       WHERE session_id = ?
       ORDER BY created_at DESC
-    `, [sessionId]);
+    `,
+      [sessionId],
+    );
 
     if (results.length === 0) return [];
 
     const columns = results[0].columns;
     return results[0].values.map((values: unknown[]) => {
-      const row = columns.reduce((obj: Record<string, unknown>, col: string, i: number) => {
-        obj[col] = values[i];
-        return obj;
-      }, {} as Record<string, unknown>) as IdeaCandidateRow;
+      const row = columns.reduce(
+        (obj: Record<string, unknown>, col: string, i: number) => {
+          obj[col] = values[i];
+          return obj;
+        },
+        {} as Record<string, unknown>,
+      ) as IdeaCandidateRow;
       return mapCandidateRowToCandidate(row);
     });
   }

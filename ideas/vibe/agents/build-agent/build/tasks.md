@@ -14,13 +14,13 @@ phases:
 
 ## Task Summary
 
-| Phase | Count |
-|-------|-------|
-| database | 3 |
-| types | 3 |
-| services | 8 |
-| api | 6 |
-| tests | 4 |
+| Phase    | Count |
+| -------- | ----- |
+| database | 3     |
+| types    | 3     |
+| services | 8     |
+| api      | 6     |
+| tests    | 4     |
 
 ---
 
@@ -94,8 +94,7 @@ code_template: |
   );
 
   CREATE INDEX IF NOT EXISTS idx_checkpoints_build ON build_checkpoints(build_id);
-depends_on:
-  []
+depends_on: []
 ```
 
 ### T-002: database - UPDATE db.ts queries

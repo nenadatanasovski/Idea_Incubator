@@ -1,31 +1,31 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Save, X, Loader2, AlertCircle } from 'lucide-react'
-import { createIdea, updateIdea, type CreateIdeaInput } from '../api/client'
-import { lifecycleStages, type LifecycleStage, type IdeaType } from '../types'
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Save, X, Loader2, AlertCircle } from "lucide-react";
+import { createIdea, updateIdea, type CreateIdeaInput } from "../api/client";
+import { lifecycleStages, type LifecycleStage, type IdeaType } from "../types";
 
 interface IdeaFormProps {
-  mode: 'create' | 'edit'
+  mode: "create" | "edit";
   initialData?: {
-    title: string
-    summary: string | null
-    idea_type: IdeaType
-    lifecycle_stage: LifecycleStage
-    content: string | null
-    tags: string[]
-  }
-  slug?: string
-  onSuccess?: () => void
-  onCancel?: () => void
+    title: string;
+    summary: string | null;
+    idea_type: IdeaType;
+    lifecycle_stage: LifecycleStage;
+    content: string | null;
+    tags: string[];
+  };
+  slug?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
 const ideaTypes: { value: IdeaType; label: string }[] = [
-  { value: 'business', label: 'Business' },
-  { value: 'creative', label: 'Creative' },
-  { value: 'technical', label: 'Technical' },
-  { value: 'personal', label: 'Personal' },
-  { value: 'research', label: 'Research' },
-]
+  { value: "business", label: "Business" },
+  { value: "creative", label: "Creative" },
+  { value: "technical", label: "Technical" },
+  { value: "personal", label: "Personal" },
+  { value: "research", label: "Research" },
+];
 
 export default function IdeaForm({
   mode,
@@ -34,40 +34,44 @@ export default function IdeaForm({
   onSuccess,
   onCancel,
 }: IdeaFormProps) {
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [title, setTitle] = useState(initialData?.title || '')
-  const [summary, setSummary] = useState(initialData?.summary || '')
-  const [ideaType, setIdeaType] = useState<IdeaType>(initialData?.idea_type || 'business')
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [summary, setSummary] = useState(initialData?.summary || "");
+  const [ideaType, setIdeaType] = useState<IdeaType>(
+    initialData?.idea_type || "business",
+  );
   const [lifecycleStage, setLifecycleStage] = useState<LifecycleStage>(
-    initialData?.lifecycle_stage || 'SPARK'
-  )
-  const [content, setContent] = useState(initialData?.content || '')
-  const [tagsInput, setTagsInput] = useState(initialData?.tags?.join(', ') || '')
+    initialData?.lifecycle_stage || "SPARK",
+  );
+  const [content, setContent] = useState(initialData?.content || "");
+  const [tagsInput, setTagsInput] = useState(
+    initialData?.tags?.join(", ") || "",
+  );
 
   // Reset form when initialData changes
   useEffect(() => {
     if (initialData) {
-      setTitle(initialData.title)
-      setSummary(initialData.summary || '')
-      setIdeaType(initialData.idea_type)
-      setLifecycleStage(initialData.lifecycle_stage)
-      setContent(initialData.content || '')
-      setTagsInput(initialData.tags?.join(', ') || '')
+      setTitle(initialData.title);
+      setSummary(initialData.summary || "");
+      setIdeaType(initialData.idea_type);
+      setLifecycleStage(initialData.lifecycle_stage);
+      setContent(initialData.content || "");
+      setTagsInput(initialData.tags?.join(", ") || "");
     }
-  }, [initialData])
+  }, [initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
     const tags = tagsInput
-      .split(',')
+      .split(",")
       .map((t) => t.trim())
-      .filter(Boolean)
+      .filter(Boolean);
 
     const data: CreateIdeaInput = {
       title,
@@ -76,30 +80,30 @@ export default function IdeaForm({
       lifecycle_stage: lifecycleStage,
       content: content || undefined,
       tags: tags.length > 0 ? tags : undefined,
-    }
+    };
 
     try {
-      if (mode === 'create') {
-        const result = await createIdea(data)
+      if (mode === "create") {
+        const result = await createIdea(data);
         if (onSuccess) {
-          onSuccess()
+          onSuccess();
         } else {
-          navigate(`/ideas/${result.slug}`)
+          navigate(`/ideas/${result.slug}`);
         }
       } else if (slug) {
-        await updateIdea(slug, data)
+        await updateIdea(slug, data);
         if (onSuccess) {
-          onSuccess()
+          onSuccess();
         } else {
-          navigate(`/ideas/${slug}`)
+          navigate(`/ideas/${slug}`);
         }
       }
     } catch (err) {
-      setError((err as Error).message)
+      setError((err as Error).message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -112,7 +116,10 @@ export default function IdeaForm({
 
       {/* Title */}
       <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="title"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Title <span className="text-red-500">*</span>
         </label>
         <input
@@ -128,7 +135,10 @@ export default function IdeaForm({
 
       {/* Summary */}
       <div>
-        <label htmlFor="summary" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="summary"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Summary
         </label>
         <textarea
@@ -144,7 +154,10 @@ export default function IdeaForm({
       {/* Type and Stage */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="ideaType" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="ideaType"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Type
           </label>
           <select
@@ -162,13 +175,18 @@ export default function IdeaForm({
         </div>
 
         <div>
-          <label htmlFor="lifecycleStage" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="lifecycleStage"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Lifecycle Stage
           </label>
           <select
             id="lifecycleStage"
             value={lifecycleStage}
-            onChange={(e) => setLifecycleStage(e.target.value as LifecycleStage)}
+            onChange={(e) =>
+              setLifecycleStage(e.target.value as LifecycleStage)
+            }
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
           >
             {Object.entries(lifecycleStages)
@@ -184,7 +202,10 @@ export default function IdeaForm({
 
       {/* Tags */}
       <div>
-        <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="tags"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Tags
         </label>
         <input
@@ -200,7 +221,10 @@ export default function IdeaForm({
 
       {/* Content */}
       <div>
-        <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="content"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Full Description
         </label>
         <textarea
@@ -235,9 +259,9 @@ export default function IdeaForm({
           ) : (
             <Save className="h-4 w-4 mr-2" />
           )}
-          {mode === 'create' ? 'Create Idea' : 'Save Changes'}
+          {mode === "create" ? "Create Idea" : "Save Changes"}
         </button>
       </div>
     </form>
-  )
+  );
 }

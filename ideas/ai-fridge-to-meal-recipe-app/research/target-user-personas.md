@@ -10,7 +10,7 @@
 
 This document defines six primary user personas and four niche segments for the AI Fridge-to-Meal Recipe App. These personas represent distinct segments of the ~120 million US households that cook at home regularly, with a focus on the premium segment willing to pay $5-20/month for intelligent meal planning and reduced food waste.
 
-**Key Insight:** The core value proposition—"See what I have, tell me what to make"—appeals universally, but the *reasons* users need this solution vary dramatically by life stage, lifestyle, and cooking relationship.
+**Key Insight:** The core value proposition—"See what I have, tell me what to make"—appeals universally, but the _reasons_ users need this solution vary dramatically by life stage, lifestyle, and cooking relationship.
 
 ---
 
@@ -18,20 +18,20 @@ This document defines six primary user personas and four niche segments for the 
 
 ### Profile
 
-| Attribute | Details |
-|-----------|---------|
-| **Name** | Maya Thompson |
-| **Age** | 34 |
-| **Location** | Denver, CO (suburban apartment) |
-| **Occupation** | Product Marketing Manager |
-| **Household Income** | $115,000/year |
-| **Household** | Lives with partner, no children (yet) |
-| **Cooking Frequency** | Attempts 4-5x/week, succeeds 2-3x |
-| **Tech Savviness** | Very High |
+| Attribute             | Details                               |
+| --------------------- | ------------------------------------- |
+| **Name**              | Maya Thompson                         |
+| **Age**               | 34                                    |
+| **Location**          | Denver, CO (suburban apartment)       |
+| **Occupation**        | Product Marketing Manager             |
+| **Household Income**  | $115,000/year                         |
+| **Household**         | Lives with partner, no children (yet) |
+| **Cooking Frequency** | Attempts 4-5x/week, succeeds 2-3x     |
+| **Tech Savviness**    | Very High                             |
 
 ### Background Story
 
-Maya has good intentions about cooking. Every Sunday she tells herself "this week will be different." She buys groceries, meal preps the containers, downloads recipe apps... and by Wednesday, she's ordering DoorDash while a bag of spinach wilts in the crisper drawer. She's not a bad cook—she actually enjoys it when she has energy—but the *decision* of what to make is the killer. After a 10-hour workday, staring into the fridge feels like solving a puzzle with missing pieces.
+Maya has good intentions about cooking. Every Sunday she tells herself "this week will be different." She buys groceries, meal preps the containers, downloads recipe apps... and by Wednesday, she's ordering DoorDash while a bag of spinach wilts in the crisper drawer. She's not a bad cook—she actually enjoys it when she has energy—but the _decision_ of what to make is the killer. After a 10-hour workday, staring into the fridge feels like solving a puzzle with missing pieces.
 
 ### Goals & Motivations
 
@@ -95,16 +95,16 @@ Maya has good intentions about cooking. Every Sunday she tells herself "this wee
 
 ### Profile
 
-| Attribute | Details |
-|-----------|---------|
-| **Name** | Jordan Rivera |
-| **Age** | 28 |
-| **Location** | Austin, TX |
-| **Occupation** | Senior Software Engineer |
-| **Household Income** | $145,000/year |
-| **Household** | Lives alone |
-| **Diet** | High protein (180g/day), moderate carbs, tracking macros |
-| **Tech Savviness** | Extremely High |
+| Attribute            | Details                                                  |
+| -------------------- | -------------------------------------------------------- |
+| **Name**             | Jordan Rivera                                            |
+| **Age**              | 28                                                       |
+| **Location**         | Austin, TX                                               |
+| **Occupation**       | Senior Software Engineer                                 |
+| **Household Income** | $145,000/year                                            |
+| **Household**        | Lives alone                                              |
+| **Diet**             | High protein (180g/day), moderate carbs, tracking macros |
+| **Tech Savviness**   | Extremely High                                           |
 
 ### Background Story
 
@@ -172,16 +172,16 @@ Jordan hit their goal weight two years ago and has maintained it through discipl
 
 ### Profile
 
-| Attribute | Details |
-|-----------|---------|
-| **Name** | Angela Martinez |
-| **Age** | 41 |
-| **Location** | Phoenix, AZ |
-| **Occupation** | Elementary School Teacher |
-| **Household Income** | $78,000/year (dual income with spouse) |
-| **Household** | Married, 3 kids (ages 7, 10, 14) |
-| **Cooking Frequency** | 5-6 dinners/week (necessity) |
-| **Tech Savviness** | Medium |
+| Attribute             | Details                                |
+| --------------------- | -------------------------------------- |
+| **Name**              | Angela Martinez                        |
+| **Age**               | 41                                     |
+| **Location**          | Phoenix, AZ                            |
+| **Occupation**        | Elementary School Teacher              |
+| **Household Income**  | $78,000/year (dual income with spouse) |
+| **Household**         | Married, 3 kids (ages 7, 10, 14)       |
+| **Cooking Frequency** | 5-6 dinners/week (necessity)           |
+| **Tech Savviness**    | Medium                                 |
 
 ### Background Story
 
@@ -250,16 +250,16 @@ Angela is the household's "food manager"—she plans, shops, preps, and cooks fo
 
 ### Profile
 
-| Attribute | Details |
-|-----------|---------|
-| **Name** | Ethan Park |
-| **Age** | 22 |
-| **Location** | Chicago, IL |
-| **Occupation** | Junior Financial Analyst (first job out of college) |
-| **Household Income** | $58,000/year |
-| **Household** | Lives with one roommate |
-| **Cooking Experience** | Novice—can make pasta, eggs, sandwiches |
-| **Tech Savviness** | Very High (digital native) |
+| Attribute              | Details                                             |
+| ---------------------- | --------------------------------------------------- |
+| **Name**               | Ethan Park                                          |
+| **Age**                | 22                                                  |
+| **Location**           | Chicago, IL                                         |
+| **Occupation**         | Junior Financial Analyst (first job out of college) |
+| **Household Income**   | $58,000/year                                        |
+| **Household**          | Lives with one roommate                             |
+| **Cooking Experience** | Novice—can make pasta, eggs, sandwiches             |
+| **Tech Savviness**     | Very High (digital native)                          |
 
 ### Background Story
 
@@ -328,16 +328,16 @@ Ethan graduated last May and has been living on his own for 8 months. His cookin
 
 ### Profile
 
-| Attribute | Details |
-|-----------|---------|
-| **Name** | Priya Sharma |
-| **Age** | 36 |
-| **Location** | Seattle, WA |
-| **Occupation** | UX Research Manager |
-| **Household Income** | $130,000/year |
-| **Household** | Married with one child (age 4) |
+| Attribute                | Details                                                 |
+| ------------------------ | ------------------------------------------------------- |
+| **Name**                 | Priya Sharma                                            |
+| **Age**                  | 36                                                      |
+| **Location**             | Seattle, WA                                             |
+| **Occupation**           | UX Research Manager                                     |
+| **Household Income**     | $130,000/year                                           |
+| **Household**            | Married with one child (age 4)                          |
 | **Dietary Restrictions** | Celiac disease (strict gluten-free), lactose intolerant |
-| **Tech Savviness** | High |
+| **Tech Savviness**       | High                                                    |
 
 ### Background Story
 
@@ -406,16 +406,16 @@ Priya was diagnosed with celiac disease 5 years ago. What seemed like a simple "
 
 ### Profile
 
-| Attribute | Details |
-|-----------|---------|
-| **Name** | Robert Chen |
-| **Age** | 68 |
-| **Location** | San Diego, CA |
-| **Occupation** | Retired Engineer |
-| **Household Income** | $75,000/year (retirement) |
-| **Household** | Lives with wife; kids have moved out |
-| **Health Considerations** | Type 2 diabetes, watching sodium |
-| **Tech Savviness** | Medium (uses iPhone, iPad, comfortable with apps) |
+| Attribute                 | Details                                           |
+| ------------------------- | ------------------------------------------------- |
+| **Name**                  | Robert Chen                                       |
+| **Age**                   | 68                                                |
+| **Location**              | San Diego, CA                                     |
+| **Occupation**            | Retired Engineer                                  |
+| **Household Income**      | $75,000/year (retirement)                         |
+| **Household**             | Lives with wife; kids have moved out              |
+| **Health Considerations** | Type 2 diabetes, watching sodium                  |
+| **Tech Savviness**        | Medium (uses iPhone, iPad, comfortable with apps) |
 
 ### Background Story
 
@@ -485,12 +485,14 @@ Robert retired two years ago after 40 years as an electrical engineer. His wife 
 ### Niche 1: The Zero-Waste Warrior
 
 **Profile Summary:**
+
 - Motivated primarily by environmental impact
 - Wants to use every part of every ingredient
 - Interested in composting what can't be used
 - Will pay premium for sustainability features
 
 **Specific Needs:**
+
 - "Use every part" recipes (carrot tops, broccoli stems)
 - Produce lifecycle tracking
 - Composting guidance for scraps
@@ -503,12 +505,14 @@ Robert retired two years ago after 40 years as an electrical engineer. His wife 
 ### Niche 2: The Shift Worker
 
 **Profile Summary:**
+
 - Nurses, firefighters, factory workers with irregular schedules
 - Needs meals that can be prepped ahead or cooked at odd hours
 - Often eating at 2am or 6am—not traditional "dinner"
 - Meal prep is essential but timing is chaotic
 
 **Specific Needs:**
+
 - Meals that reheat well
 - Quick options for any time of day
 - Batch prep with storage guidance
@@ -521,12 +525,14 @@ Robert retired two years ago after 40 years as an electrical engineer. His wife 
 ### Niche 3: The Grief/Divorce Transitioner
 
 **Profile Summary:**
+
 - Recently widowed, divorced, or empty-nested
 - Used to cooking for two+ but now cooking for one
 - Emotional relationship with food is complicated
 - Learning new skills during difficult life transition
 
 **Specific Needs:**
+
 - Single-serving recipes without sadness
 - Freezer-friendly portions
 - Simple comfort food options
@@ -539,12 +545,14 @@ Robert retired two years ago after 40 years as an electrical engineer. His wife 
 ### Niche 4: The Multicultural Fusion Seeker
 
 **Profile Summary:**
+
 - Second/third-generation Americans with diverse food heritage
 - Wants to recreate grandmother's recipes with available ingredients
 - Interested in fusion and experimentation
 - Values authenticity but lives with American grocery access
 
 **Specific Needs:**
+
 - International ingredient substitutions
 - Authentic technique guidance
 - Fusion recipe suggestions
@@ -556,29 +564,29 @@ Robert retired two years ago after 40 years as an electrical engineer. His wife 
 
 ## Persona Comparison Matrix
 
-| Attribute | Maya (Weeknight) | Jordan (Macro) | Angela (Family) | Ethan (Novice) | Priya (Celiac) | Robert (Retired) |
-|-----------|------------------|----------------|-----------------|----------------|----------------|------------------|
-| **Primary Need** | Decision elimination | Variety + macros | Budget + family | Learning basics | Safe variety | Health + portions |
-| **Tech Comfort** | Very High | Extremely High | Medium | Very High | High | Medium |
-| **Cooking Skill** | Intermediate | Intermediate | Proficient | Beginner | Proficient | Intermediate |
-| **Time Available** | Very Low | Low | Low | Medium | Medium | High |
-| **Budget Sensitivity** | Low | Low | Very High | Medium | Low | Medium |
-| **Subscription WTP** | $12.99/mo | $19.99/mo | $6.99/mo | $4.99/mo | $14.99/mo | $9.99/mo |
-| **Key Feature** | Speed + scan | Macro tracking | Cost visibility | Video guidance | Allergen safety | Voice + large text |
-| **Acquisition** | Instagram | Reddit/fitness | Facebook/parents | TikTok | Support groups | Facebook/health |
+| Attribute              | Maya (Weeknight)     | Jordan (Macro)   | Angela (Family)  | Ethan (Novice)  | Priya (Celiac)  | Robert (Retired)   |
+| ---------------------- | -------------------- | ---------------- | ---------------- | --------------- | --------------- | ------------------ |
+| **Primary Need**       | Decision elimination | Variety + macros | Budget + family  | Learning basics | Safe variety    | Health + portions  |
+| **Tech Comfort**       | Very High            | Extremely High   | Medium           | Very High       | High            | Medium             |
+| **Cooking Skill**      | Intermediate         | Intermediate     | Proficient       | Beginner        | Proficient      | Intermediate       |
+| **Time Available**     | Very Low             | Low              | Low              | Medium          | Medium          | High               |
+| **Budget Sensitivity** | Low                  | Low              | Very High        | Medium          | Low             | Medium             |
+| **Subscription WTP**   | $12.99/mo            | $19.99/mo        | $6.99/mo         | $4.99/mo        | $14.99/mo       | $9.99/mo           |
+| **Key Feature**        | Speed + scan         | Macro tracking   | Cost visibility  | Video guidance  | Allergen safety | Voice + large text |
+| **Acquisition**        | Instagram            | Reddit/fitness   | Facebook/parents | TikTok          | Support groups  | Facebook/health    |
 
 ---
 
 ## Market Sizing by Persona
 
-| Persona Type | Est. US Market Size | Addressable | WTP Segment | Priority |
-|--------------|---------------------|-------------|-------------|----------|
-| Weeknight Warriors | 35M | 12M | 6M | **#1 - Primary** |
-| Macro Trackers | 15M | 8M | 4M | **#2 - Primary** |
-| Budget Families | 30M | 10M | 3M | **#3 - Primary** |
-| Novice Cooks | 25M | 15M | 5M | #4 - Growth/Freemium |
-| Dietary Restricted | 20M | 8M | 4M | #5 - Premium Niche |
-| Retirement Cooks | 15M | 4M | 2M | #6 - Expansion |
+| Persona Type       | Est. US Market Size | Addressable | WTP Segment | Priority             |
+| ------------------ | ------------------- | ----------- | ----------- | -------------------- |
+| Weeknight Warriors | 35M                 | 12M         | 6M          | **#1 - Primary**     |
+| Macro Trackers     | 15M                 | 8M          | 4M          | **#2 - Primary**     |
+| Budget Families    | 30M                 | 10M         | 3M          | **#3 - Primary**     |
+| Novice Cooks       | 25M                 | 15M         | 5M          | #4 - Growth/Freemium |
+| Dietary Restricted | 20M                 | 8M          | 4M          | #5 - Premium Niche   |
+| Retirement Cooks   | 15M                 | 4M          | 2M          | #6 - Expansion       |
 
 **Total Addressable Market:** ~57M households
 **Serviceable Obtainable Market (Year 1):** ~200K-500K users
@@ -589,29 +597,29 @@ Robert retired two years ago after 40 years as an electrical engineer. His wife 
 
 ### MVP Features (All Primary Personas)
 
-| Feature | Maya | Jordan | Angela | Priority |
-|---------|------|--------|--------|----------|
-| Fridge photo scanning | Essential | Important | Essential | P0 |
-| Recipe matching (ingredient overlap) | Essential | Essential | Essential | P0 |
-| Time-based filtering | Essential | Nice-to-have | Essential | P0 |
-| Basic dietary filters | Nice-to-have | Essential | Nice-to-have | P0 |
-| Step-by-step instructions | Important | Nice-to-have | Important | P1 |
-| Shopping list for missing items | Essential | Important | Essential | P1 |
+| Feature                              | Maya         | Jordan       | Angela       | Priority |
+| ------------------------------------ | ------------ | ------------ | ------------ | -------- |
+| Fridge photo scanning                | Essential    | Important    | Essential    | P0       |
+| Recipe matching (ingredient overlap) | Essential    | Essential    | Essential    | P0       |
+| Time-based filtering                 | Essential    | Nice-to-have | Essential    | P0       |
+| Basic dietary filters                | Nice-to-have | Essential    | Nice-to-have | P0       |
+| Step-by-step instructions            | Important    | Nice-to-have | Important    | P1       |
+| Shopping list for missing items      | Essential    | Important    | Essential    | P1       |
 
 ### Persona-Specific Features
 
-| Feature | Primary Persona | Priority |
-|---------|-----------------|----------|
-| Macro tracking + MFP sync | Jordan | P1 |
-| Cost-per-serving calculator | Angela | P1 |
-| "Expiring soon" prioritization | Maya, Angela | P1 |
-| Video cooking instructions | Ethan | P2 |
-| Skill level matching | Ethan | P2 |
-| Medical-grade allergen filter | Priya | P2 |
-| Portion scaling (1-8 servings) | Robert, Angela | P1 |
-| Voice-guided cooking | Robert | P3 |
-| Large text accessibility mode | Robert | P2 |
-| Kid-friendly recipe filter | Angela | P2 |
+| Feature                        | Primary Persona | Priority |
+| ------------------------------ | --------------- | -------- |
+| Macro tracking + MFP sync      | Jordan          | P1       |
+| Cost-per-serving calculator    | Angela          | P1       |
+| "Expiring soon" prioritization | Maya, Angela    | P1       |
+| Video cooking instructions     | Ethan           | P2       |
+| Skill level matching           | Ethan           | P2       |
+| Medical-grade allergen filter  | Priya           | P2       |
+| Portion scaling (1-8 servings) | Robert, Angela  | P1       |
+| Voice-guided cooking           | Robert          | P3       |
+| Large text accessibility mode  | Robert          | P2       |
+| Kid-friendly recipe filter     | Angela          | P2       |
 
 ---
 
@@ -652,13 +660,13 @@ money with this"     work?"                             savings   → Tells ever
 
 ## Pricing Strategy by Persona
 
-| Tier | Price | Target Personas | Key Features |
-|------|-------|-----------------|--------------|
-| **Free** | $0 | Ethan (trial), All (acquisition) | 3 scans/week, basic recipes |
-| **Basic** | $6.99/mo | Angela | Unlimited scans, cost tracking, family filters |
-| **Pro** | $12.99/mo | Maya, Robert | All Basic + meal planning, voice mode, expiration tracking |
-| **Premium** | $19.99/mo | Jordan, Priya | All Pro + macro sync, medical allergen filters, API access |
-| **Family** | $14.99/mo | Angela (upgrade) | Pro features for up to 5 profiles |
+| Tier        | Price     | Target Personas                  | Key Features                                               |
+| ----------- | --------- | -------------------------------- | ---------------------------------------------------------- |
+| **Free**    | $0        | Ethan (trial), All (acquisition) | 3 scans/week, basic recipes                                |
+| **Basic**   | $6.99/mo  | Angela                           | Unlimited scans, cost tracking, family filters             |
+| **Pro**     | $12.99/mo | Maya, Robert                     | All Basic + meal planning, voice mode, expiration tracking |
+| **Premium** | $19.99/mo | Jordan, Priya                    | All Pro + macro sync, medical allergen filters, API access |
+| **Family**  | $14.99/mo | Angela (upgrade)                 | Pro features for up to 5 profiles                          |
 
 ---
 
@@ -666,36 +674,36 @@ money with this"     work?"                             savings   → Tells ever
 
 ### Paid Channels
 
-| Channel | Target Persona | Est. CAC | Content Angle |
-|---------|----------------|----------|---------------|
-| Instagram/Facebook | Maya | $18 | "What's for dinner? Let AI decide." |
-| TikTok | Ethan | $8 | "I scanned my fridge and it told me to make THIS" |
-| Reddit (fitness) | Jordan | $15 | "Finally—an app that knows my macros" |
-| Facebook (parents) | Angela | $12 | "How I cut my grocery waste in half" |
-| Facebook (50+) | Robert | $25 | "Cooking for two just got easier" |
+| Channel            | Target Persona | Est. CAC | Content Angle                                     |
+| ------------------ | -------------- | -------- | ------------------------------------------------- |
+| Instagram/Facebook | Maya           | $18      | "What's for dinner? Let AI decide."               |
+| TikTok             | Ethan          | $8       | "I scanned my fridge and it told me to make THIS" |
+| Reddit (fitness)   | Jordan         | $15      | "Finally—an app that knows my macros"             |
+| Facebook (parents) | Angela         | $12      | "How I cut my grocery waste in half"              |
+| Facebook (50+)     | Robert         | $25      | "Cooking for two just got easier"                 |
 
 ### Organic/Partnership Channels
 
-| Channel | Target Persona | Strategy |
-|---------|----------------|----------|
-| Celiac Foundation | Priya | Sponsorship + verified recipes |
-| MyFitnessPal | Jordan | Integration announcement |
-| AARP | Robert | Partnership article |
-| College orientation | Ethan | Campus ambassador program |
-| Mommy bloggers | Angela | Affiliate/review program |
+| Channel             | Target Persona | Strategy                       |
+| ------------------- | -------------- | ------------------------------ |
+| Celiac Foundation   | Priya          | Sponsorship + verified recipes |
+| MyFitnessPal        | Jordan         | Integration announcement       |
+| AARP                | Robert         | Partnership article            |
+| College orientation | Ethan          | Campus ambassador program      |
+| Mommy bloggers      | Angela         | Affiliate/review program       |
 
 ---
 
 ## Competitive Positioning
 
-| Competitor | Their Focus | Our Advantage |
-|------------|-------------|---------------|
-| SuperCook | Ingredient-based search | AI scanning (no manual entry) |
-| Yummly | Recipe discovery | Fridge-first approach |
-| Mealime | Meal planning | Real-time ingredient awareness |
-| MyFitnessPal Recipes | Nutrition tracking | Ingredient-to-recipe matching |
-| Whisk | Shopping lists | Visual AI identification |
-| Tasty | Video entertainment | Personalized to YOUR fridge |
+| Competitor           | Their Focus             | Our Advantage                  |
+| -------------------- | ----------------------- | ------------------------------ |
+| SuperCook            | Ingredient-based search | AI scanning (no manual entry)  |
+| Yummly               | Recipe discovery        | Fridge-first approach          |
+| Mealime              | Meal planning           | Real-time ingredient awareness |
+| MyFitnessPal Recipes | Nutrition tracking      | Ingredient-to-recipe matching  |
+| Whisk                | Shopping lists          | Visual AI identification       |
+| Tasty                | Video entertainment     | Personalized to YOUR fridge    |
 
 **Core Differentiation:** "Other apps make you search for recipes. We look at what you have and tell you what to make."
 
@@ -713,17 +721,17 @@ money with this"     work?"                             savings   → Tells ever
 
 ## Key Risks by Persona
 
-| Persona | Primary Risk | Mitigation |
-|---------|--------------|------------|
-| Maya | Scanning accuracy disappoints | Set expectations; allow manual correction |
-| Jordan | Macro data inaccurate | Partner with verified nutrition database |
-| Angela | Recipes don't fit family tastes | Preference learning + picky eater mode |
-| Ethan | Recipes still too hard | Skill-level filtering + video tutorials |
-| Priya | One allergen mistake destroys trust | Medical-grade verification; disclaimers |
-| Robert | App too confusing to use | Accessibility testing; onboarding support |
+| Persona | Primary Risk                        | Mitigation                                |
+| ------- | ----------------------------------- | ----------------------------------------- |
+| Maya    | Scanning accuracy disappoints       | Set expectations; allow manual correction |
+| Jordan  | Macro data inaccurate               | Partner with verified nutrition database  |
+| Angela  | Recipes don't fit family tastes     | Preference learning + picky eater mode    |
+| Ethan   | Recipes still too hard              | Skill-level filtering + video tutorials   |
+| Priya   | One allergen mistake destroys trust | Medical-grade verification; disclaimers   |
+| Robert  | App too confusing to use            | Accessibility testing; onboarding support |
 
 ---
 
-*This document should be reviewed and updated quarterly based on user research and customer feedback.*
+_This document should be reviewed and updated quarterly based on user research and customer feedback._
 
-*Version 1.0 | Created: 2026-01-05*
+_Version 1.0 | Created: 2026-01-05_

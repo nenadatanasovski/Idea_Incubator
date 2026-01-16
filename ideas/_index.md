@@ -6,21 +6,21 @@ Last updated: 2026-01-04T10:15:07.875Z
 
 ## All Ideas (16)
 
-| Idea | Stage | Type | Updated |
-|------|-------|------|---------|
-| [Pet Sitting Marketplace](./pet-sitting-marketplace/README.md) | EVALUATE | business | 2026-01-04 |
-| [DeskNow - Surry Hills Same-Day Workspace ($2K MVP, 10hr/week)](./sydney-coworking-space-finder/README.md) | EVALUATE | business | 2026-01-04 |
-| [AI-Powered Pet Health Monitor](./ai-powered-pet-health-monitor/README.md) | EVALUATE | business | 2026-01-02 |
-| [AI Code Review Assistant](./ai-code-review-assistant/README.md) | EVALUATE | business | 2025-12-28 |
-| [Solar Phone Charger](./solar-phone-charger/README.md) | EVALUATE | technical | 2025-12-27 |
-| [Australian Local Food Delivery Network](./australian-local-food-delivery-network/README.md) | EVALUATE | business | 2025-12-27 |
-| [AI-Powered Real-Time Trading System](./ai-powered-real-time-trading-system/README.md) | EVALUATE | business | 2025-12-27 |
-| [Pet Health Monitoring App](./test-web-search-validation/README.md) | SPARK | business | 2025-12-27 |
-| [E2E Test - Smart Wellness Tracker](./e2e-test-smart-wellness-tracker/README.md) | SPARK | business | 2025-12-27 |
-| [Research Test - AI Resume Builder](./research-test-ai-resume-builder/README.md) | SPARK | business | 2025-12-27 |
-| [Smart Home Energy Monitor](./smart-home-energy-monitor/README.md) | EVALUATE | business | 2025-12-27 |
-| [Healthcare Expense Tracking SaaS](./healthcare-expense-tracking-saas/README.md) | SPARK | business | 2025-12-26 |
-| [AI powered fridge recipe scanner](./ai-powered-fridge-recipe-scanner/README.md) | SPARK | business | 2025-12-26 |
-| [AI-Powered Meeting Summarizer](./ai-powered-meeting-summarizer/README.md) | SPARK | business | 2025-12-26 |
-| [AI Personal Finance Advisor](./ai-personal-finance-advisor/README.md) | EVALUATE | business | 2025-12-26 |
-| [AI-led Stock Trading System](./ai-led-stock-trading-system/README.md) | SPARK | business | 2025-12-26 |
+| Idea                                                                                                       | Stage    | Type      | Updated    |
+| ---------------------------------------------------------------------------------------------------------- | -------- | --------- | ---------- |
+| [Pet Sitting Marketplace](./pet-sitting-marketplace/README.md)                                             | EVALUATE | business  | 2026-01-04 |
+| [DeskNow - Surry Hills Same-Day Workspace ($2K MVP, 10hr/week)](./sydney-coworking-space-finder/README.md) | EVALUATE | business  | 2026-01-04 |
+| [AI-Powered Pet Health Monitor](./ai-powered-pet-health-monitor/README.md)                                 | EVALUATE | business  | 2026-01-02 |
+| [AI Code Review Assistant](./ai-code-review-assistant/README.md)                                           | EVALUATE | business  | 2025-12-28 |
+| [Solar Phone Charger](./solar-phone-charger/README.md)                                                     | EVALUATE | technical | 2025-12-27 |
+| [Australian Local Food Delivery Network](./australian-local-food-delivery-network/README.md)               | EVALUATE | business  | 2025-12-27 |
+| [AI-Powered Real-Time Trading System](./ai-powered-real-time-trading-system/README.md)                     | EVALUATE | business  | 2025-12-27 |
+| [Pet Health Monitoring App](./test-web-search-validation/README.md)                                        | SPARK    | business  | 2025-12-27 |
+| [E2E Test - Smart Wellness Tracker](./e2e-test-smart-wellness-tracker/README.md)                           | SPARK    | business  | 2025-12-27 |
+| [Research Test - AI Resume Builder](./research-test-ai-resume-builder/README.md)                           | SPARK    | business  | 2025-12-27 |
+| [Smart Home Energy Monitor](./smart-home-energy-monitor/README.md)                                         | EVALUATE | business  | 2025-12-27 |
+| [Healthcare Expense Tracking SaaS](./healthcare-expense-tracking-saas/README.md)                           | SPARK    | business  | 2025-12-26 |
+| [AI powered fridge recipe scanner](./ai-powered-fridge-recipe-scanner/README.md)                           | SPARK    | business  | 2025-12-26 |
+| [AI-Powered Meeting Summarizer](./ai-powered-meeting-summarizer/README.md)                                 | SPARK    | business  | 2025-12-26 |
+| [AI Personal Finance Advisor](./ai-personal-finance-advisor/README.md)                                     | EVALUATE | business  | 2025-12-26 |
+| [AI-led Stock Trading System](./ai-led-stock-trading-system/README.md)                                     | SPARK    | business  | 2025-12-26 |

@@ -2,14 +2,14 @@
 
 ## Summary
 
-| Phase | Tasks | Description |
-|-------|-------|-------------|
-| database | 1 | Migration for knowledge base tables |
-| types | 1 | TypeScript interfaces |
-| services | 7 | Core SIA components |
-| api | 1 | API routes |
-| tests | 1 | Unit tests |
-| **Total** | **11** | |
+| Phase     | Tasks  | Description                         |
+| --------- | ------ | ----------------------------------- |
+| database  | 1      | Migration for knowledge base tables |
+| types     | 1      | TypeScript interfaces               |
+| services  | 7      | Core SIA components                 |
+| api       | 1      | API routes                          |
+| tests     | 1      | Unit tests                          |
+| **Total** | **11** |                                     |
 
 ---
 

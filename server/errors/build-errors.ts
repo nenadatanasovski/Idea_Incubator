@@ -15,10 +15,10 @@ export class BuildError extends Error {
     code: string,
     statusCode: number = 500,
     buildId?: string,
-    details?: unknown
+    details?: unknown,
   ) {
     super(message);
-    this.name = 'BuildError';
+    this.name = "BuildError";
     this.code = code;
     this.statusCode = statusCode;
     this.buildId = buildId;
@@ -38,7 +38,7 @@ export class BuildError extends Error {
 // Build execution errors
 export class BuildNotFoundError extends BuildError {
   constructor(buildId: string) {
-    super(`Build not found: ${buildId}`, 'BUILD_NOT_FOUND', 404, buildId);
+    super(`Build not found: ${buildId}`, "BUILD_NOT_FOUND", 404, buildId);
   }
 }
 
@@ -46,9 +46,9 @@ export class BuildAlreadyRunningError extends BuildError {
   constructor(buildId: string) {
     super(
       `Build is already running: ${buildId}`,
-      'BUILD_ALREADY_RUNNING',
+      "BUILD_ALREADY_RUNNING",
       409,
-      buildId
+      buildId,
     );
   }
 }
@@ -57,10 +57,10 @@ export class BuildNotRunningError extends BuildError {
   constructor(buildId: string, currentStatus: string) {
     super(
       `Build is not running: ${buildId}`,
-      'BUILD_NOT_RUNNING',
+      "BUILD_NOT_RUNNING",
       400,
       buildId,
-      { currentStatus }
+      { currentStatus },
     );
   }
 }
@@ -69,9 +69,9 @@ export class BuildCompletedError extends BuildError {
   constructor(buildId: string) {
     super(
       `Build has already completed: ${buildId}`,
-      'BUILD_COMPLETED',
+      "BUILD_COMPLETED",
       400,
-      buildId
+      buildId,
     );
   }
 }
@@ -80,15 +80,25 @@ export class BuildCompletedError extends BuildError {
 export class TaskExecutionError extends BuildError {
   public readonly taskId: string;
 
-  constructor(message: string, taskId: string, buildId?: string, details?: unknown) {
-    super(message, 'TASK_EXECUTION_ERROR', 500, buildId, { taskId, ...details as object });
+  constructor(
+    message: string,
+    taskId: string,
+    buildId?: string,
+    details?: unknown,
+  ) {
+    super(message, "TASK_EXECUTION_ERROR", 500, buildId, {
+      taskId,
+      ...(details as object),
+    });
     this.taskId = taskId;
   }
 }
 
 export class TaskNotFoundError extends BuildError {
   constructor(taskId: string, buildId?: string) {
-    super(`Task not found: ${taskId}`, 'TASK_NOT_FOUND', 404, buildId, { taskId });
+    super(`Task not found: ${taskId}`, "TASK_NOT_FOUND", 404, buildId, {
+      taskId,
+    });
   }
 }
 
@@ -96,23 +106,28 @@ export class TaskDependencyError extends BuildError {
   constructor(taskId: string, missingDeps: string[], buildId?: string) {
     super(
       `Task ${taskId} has unmet dependencies`,
-      'TASK_DEPENDENCY_ERROR',
+      "TASK_DEPENDENCY_ERROR",
       400,
       buildId,
-      { taskId, missingDeps }
+      { taskId, missingDeps },
     );
   }
 }
 
 // Validation errors
 export class ValidationError extends BuildError {
-  constructor(command: string, expected: string, actual: string, buildId?: string) {
+  constructor(
+    command: string,
+    expected: string,
+    actual: string,
+    buildId?: string,
+  ) {
     super(
       `Validation failed for command: ${command}`,
-      'VALIDATION_ERROR',
+      "VALIDATION_ERROR",
       400,
       buildId,
-      { command, expected, actual }
+      { command, expected, actual },
     );
   }
 }
@@ -121,10 +136,10 @@ export class CodeGenerationError extends BuildError {
   constructor(taskId: string, message: string, buildId?: string) {
     super(
       `Code generation failed for task ${taskId}: ${message}`,
-      'CODE_GENERATION_ERROR',
+      "CODE_GENERATION_ERROR",
       500,
       buildId,
-      { taskId }
+      { taskId },
     );
   }
 }
@@ -132,7 +147,7 @@ export class CodeGenerationError extends BuildError {
 // Checkpoint errors
 export class CheckpointError extends BuildError {
   constructor(message: string, buildId?: string) {
-    super(message, 'CHECKPOINT_ERROR', 500, buildId);
+    super(message, "CHECKPOINT_ERROR", 500, buildId);
   }
 }
 
@@ -140,9 +155,9 @@ export class CheckpointNotFoundError extends BuildError {
   constructor(buildId: string) {
     super(
       `No checkpoint found for build: ${buildId}`,
-      'CHECKPOINT_NOT_FOUND',
+      "CHECKPOINT_NOT_FOUND",
       404,
-      buildId
+      buildId,
     );
   }
 }
@@ -150,19 +165,22 @@ export class CheckpointNotFoundError extends BuildError {
 // Spec/Task file errors
 export class SpecNotFoundError extends BuildError {
   constructor(specPath: string) {
-    super(`Spec file not found: ${specPath}`, 'SPEC_NOT_FOUND', 404, undefined, { specPath });
+    super(
+      `Spec file not found: ${specPath}`,
+      "SPEC_NOT_FOUND",
+      404,
+      undefined,
+      { specPath },
+    );
   }
 }
 
 export class InvalidSpecError extends BuildError {
   constructor(specPath: string, reason: string) {
-    super(
-      `Invalid spec file: ${reason}`,
-      'INVALID_SPEC',
-      400,
-      undefined,
-      { specPath, reason }
-    );
+    super(`Invalid spec file: ${reason}`, "INVALID_SPEC", 400, undefined, {
+      specPath,
+      reason,
+    });
   }
 }
 
@@ -171,23 +189,19 @@ export class FileWriteError extends BuildError {
   constructor(filePath: string, reason: string, buildId?: string) {
     super(
       `Failed to write file: ${filePath}`,
-      'FILE_WRITE_ERROR',
+      "FILE_WRITE_ERROR",
       500,
       buildId,
-      { filePath, reason }
+      { filePath, reason },
     );
   }
 }
 
 export class FileLockError extends BuildError {
   constructor(filePath: string, buildId?: string) {
-    super(
-      `File is locked: ${filePath}`,
-      'FILE_LOCK_ERROR',
-      423,
-      buildId,
-      { filePath }
-    );
+    super(`File is locked: ${filePath}`, "FILE_LOCK_ERROR", 423, buildId, {
+      filePath,
+    });
   }
 }
 
@@ -198,18 +212,18 @@ export function buildErrorHandler(
   error: Error,
   _req: unknown,
   res: { status: (code: number) => { json: (body: unknown) => unknown } },
-  _next: unknown
+  _next: unknown,
 ): unknown {
   if (error instanceof BuildError) {
     return res.status(error.statusCode).json(error.toJSON());
   }
 
   // Log unexpected errors
-  console.error('Unexpected build error:', error);
+  console.error("Unexpected build error:", error);
 
   return res.status(500).json({
-    error: 'Internal server error',
-    code: 'INTERNAL_ERROR',
+    error: "Internal server error",
+    code: "INTERNAL_ERROR",
   });
 }
 
@@ -218,7 +232,7 @@ export function buildErrorHandler(
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function asyncHandler(
-  fn: (req: any, res: any, next: any) => Promise<any>
+  fn: (req: any, res: any, next: any) => Promise<any>,
 ): (req: any, res: any, next: (err?: Error) => void) => void {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);

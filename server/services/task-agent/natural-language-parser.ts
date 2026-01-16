@@ -7,7 +7,7 @@
  * Part of: PTE-101 to PTE-103
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import Anthropic from "@anthropic-ai/sdk";
 
 /**
  * Parsed task intent from natural language
@@ -41,24 +41,48 @@ export interface ConfirmationMessage {
 
 // Category detection patterns
 const CATEGORY_PATTERNS: Array<{ pattern: RegExp; category: string }> = [
-  { pattern: /\b(fix|bug|error|issue|broken|crash|fail)\b/i, category: 'bug' },
-  { pattern: /\b(add|create|new|implement|build|make)\b/i, category: 'feature' },
-  { pattern: /\b(improve|enhance|better|optimize|upgrade)\b/i, category: 'enhancement' },
-  { pattern: /\b(refactor|clean|restructure|reorganize)\b/i, category: 'refactor' },
-  { pattern: /\b(test|spec|unit|integration|e2e)\b/i, category: 'test' },
-  { pattern: /\b(doc|document|readme|comment|explain)\b/i, category: 'documentation' },
-  { pattern: /\b(deploy|release|ci|cd|pipeline|infra)\b/i, category: 'infrastructure' },
-  { pattern: /\b(research|investigate|explore|analyze|study)\b/i, category: 'research' },
+  { pattern: /\b(fix|bug|error|issue|broken|crash|fail)\b/i, category: "bug" },
+  {
+    pattern: /\b(add|create|new|implement|build|make)\b/i,
+    category: "feature",
+  },
+  {
+    pattern: /\b(improve|enhance|better|optimize|upgrade)\b/i,
+    category: "enhancement",
+  },
+  {
+    pattern: /\b(refactor|clean|restructure|reorganize)\b/i,
+    category: "refactor",
+  },
+  { pattern: /\b(test|spec|unit|integration|e2e)\b/i, category: "test" },
+  {
+    pattern: /\b(doc|document|readme|comment|explain)\b/i,
+    category: "documentation",
+  },
+  {
+    pattern: /\b(deploy|release|ci|cd|pipeline|infra)\b/i,
+    category: "infrastructure",
+  },
+  {
+    pattern: /\b(research|investigate|explore|analyze|study)\b/i,
+    category: "research",
+  },
 ];
 
 // File pattern detection
 const FILE_PATTERNS: Array<{ pattern: RegExp; files: string[] }> = [
-  { pattern: /\b(api|route|endpoint)\b/i, files: ['server/routes/*.ts'] },
-  { pattern: /\b(component|ui|frontend)\b/i, files: ['frontend/src/components/*.tsx'] },
-  { pattern: /\b(database|migration|schema|table)\b/i, files: ['database/migrations/*.sql'] },
-  { pattern: /\b(type|interface|typedef)\b/i, files: ['types/*.ts'] },
-  { pattern: /\b(test|spec)\b/i, files: ['tests/**/*.ts'] },
-  { pattern: /\b(style|css|tailwind)\b/i, files: ['frontend/src/**/*.css'] },
+  { pattern: /\b(api|route|endpoint)\b/i, files: ["server/routes/*.ts"] },
+  {
+    pattern: /\b(component|ui|frontend)\b/i,
+    files: ["frontend/src/components/*.tsx"],
+  },
+  {
+    pattern: /\b(database|migration|schema|table)\b/i,
+    files: ["database/migrations/*.sql"],
+  },
+  { pattern: /\b(type|interface|typedef)\b/i, files: ["types/*.ts"] },
+  { pattern: /\b(test|spec)\b/i, files: ["tests/**/*.ts"] },
+  { pattern: /\b(style|css|tailwind)\b/i, files: ["frontend/src/**/*.css"] },
 ];
 
 /**
@@ -67,7 +91,9 @@ const FILE_PATTERNS: Array<{ pattern: RegExp; files: string[] }> = [
  * @param input Raw natural language input
  * @returns Parsed task intent
  */
-export async function parseTaskIntent(input: string): Promise<ParsedTaskIntent> {
+export async function parseTaskIntent(
+  input: string,
+): Promise<ParsedTaskIntent> {
   const trimmedInput = input.trim();
 
   // Validate input
@@ -76,7 +102,7 @@ export async function parseTaskIntent(input: string): Promise<ParsedTaskIntent> 
       title: trimmedInput,
       confidence: 0,
       isValidTask: false,
-      validationMessage: 'Input is too short. Please provide more details.',
+      validationMessage: "Input is too short. Please provide more details.",
     };
   }
 
@@ -102,7 +128,10 @@ export async function parseTaskIntent(input: string): Promise<ParsedTaskIntent> 
       ].filter((v, i, a) => a.indexOf(v) === i),
     };
   } catch (err) {
-    console.error('[NaturalLanguageParser] AI parsing failed, using rule-based result:', err);
+    console.error(
+      "[NaturalLanguageParser] AI parsing failed, using rule-based result:",
+      err,
+    );
     return ruleBasedResult;
   }
 }
@@ -132,16 +161,19 @@ function parseWithRules(input: string): ParsedTaskIntent {
   let title = input;
 
   // Remove common prefixes
-  title = title.replace(/^(please|can you|could you|i want to|i need to|we need to|let's)\s+/i, '');
-  title = title.replace(/^(the task is to|task:)\s*/i, '');
+  title = title.replace(
+    /^(please|can you|could you|i want to|i need to|we need to|let's)\s+/i,
+    "",
+  );
+  title = title.replace(/^(the task is to|task:)\s*/i, "");
 
   // Capitalize first letter
   title = title.charAt(0).toUpperCase() + title.slice(1);
 
   // Truncate if too long
   if (title.length > 100) {
-    const lastSpace = title.lastIndexOf(' ', 100);
-    title = title.substring(0, lastSpace > 50 ? lastSpace : 100) + '...';
+    const lastSpace = title.lastIndexOf(" ", 100);
+    title = title.substring(0, lastSpace > 50 ? lastSpace : 100) + "...";
   }
 
   // Calculate confidence based on signals
@@ -178,21 +210,21 @@ Respond with a JSON object containing:
 Only respond with the JSON object, no explanation.`;
 
   const response = await anthropic.messages.create({
-    model: 'claude-3-haiku-20240307',
+    model: "claude-3-haiku-20240307",
     max_tokens: 500,
     system: systemPrompt,
     messages: [
       {
-        role: 'user',
+        role: "user",
         content: input,
       },
     ],
   });
 
   // Extract text from response
-  const textContent = response.content.find((c) => c.type === 'text');
-  if (!textContent || textContent.type !== 'text') {
-    throw new Error('No text response from AI');
+  const textContent = response.content.find((c) => c.type === "text");
+  if (!textContent || textContent.type !== "text") {
+    throw new Error("No text response from AI");
   }
 
   // Parse JSON response
@@ -207,8 +239,11 @@ Only respond with the JSON object, no explanation.`;
       isValidTask: true,
     };
   } catch (err) {
-    console.error('[NaturalLanguageParser] Failed to parse AI response:', textContent.text);
-    throw new Error('Failed to parse AI response');
+    console.error(
+      "[NaturalLanguageParser] Failed to parse AI response:",
+      textContent.text,
+    );
+    throw new Error("Failed to parse AI response");
   }
 }
 
@@ -221,10 +256,10 @@ Only respond with the JSON object, no explanation.`;
  */
 export function generateConfirmation(
   intent: ParsedTaskIntent,
-  originalInput: string
+  originalInput: string,
 ): ConfirmationMessage {
   const confidenceEmoji =
-    intent.confidence >= 0.8 ? '✅' : intent.confidence >= 0.6 ? '🤔' : '❓';
+    intent.confidence >= 0.8 ? "✅" : intent.confidence >= 0.6 ? "🤔" : "❓";
 
   let text = `${confidenceEmoji} **Task Parsed**\n\n`;
   text += `📝 **Title:** ${intent.title}\n`;
@@ -269,7 +304,7 @@ export function generateConfirmation(
  */
 export function applyEdits(
   original: ParsedTaskIntent,
-  edits: Partial<ParsedTaskIntent>
+  edits: Partial<ParsedTaskIntent>,
 ): ParsedTaskIntent {
   return {
     ...original,
@@ -312,7 +347,9 @@ export function isRejection(input: string): boolean {
  * @param input User input like "change title to: New title"
  * @returns Parsed edits or null if not an edit
  */
-export function parseEditIntent(input: string): Partial<ParsedTaskIntent> | null {
+export function parseEditIntent(
+  input: string,
+): Partial<ParsedTaskIntent> | null {
   const titleMatch = input.match(/(?:title|name)[\s:]+(.+)/i);
   if (titleMatch) {
     return { title: titleMatch[1].trim() };

@@ -2,15 +2,15 @@
  * Claude Code CLI Client
  * Uses the `claude` CLI command to make API calls with OAuth token
  */
-import { spawn } from 'child_process';
+import { spawn } from "child_process";
 
 export interface ClaudeMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
 export interface ClaudeResponse {
-  content: Array<{ type: 'text'; text: string }>;
+  content: Array<{ type: "text"; text: string }>;
   model: string;
   stop_reason: string;
   usage: {
@@ -24,7 +24,7 @@ export interface ClaudeCliOptions {
   systemPrompt?: string;
   _maxTokens?: number;
   jsonSchema?: object;
-  tools?: string[];  // Enable specific tools like 'WebSearch'
+  tools?: string[]; // Enable specific tools like 'WebSearch'
 }
 
 /**
@@ -33,10 +33,10 @@ export interface ClaudeCliOptions {
  */
 export async function callClaudeCli(
   messages: ClaudeMessage[],
-  options: ClaudeCliOptions = {}
+  options: ClaudeCliOptions = {},
 ): Promise<ClaudeResponse> {
   const {
-    model = 'sonnet',
+    model = "sonnet",
     systemPrompt,
     _maxTokens = 4096,
     tools = [],
@@ -44,34 +44,36 @@ export async function callClaudeCli(
 
   // Build the prompt from messages
   const prompt = messages
-    .map((m) => (m.role === 'user' ? m.content : `Assistant: ${m.content}`))
-    .join('\n\n');
+    .map((m) => (m.role === "user" ? m.content : `Assistant: ${m.content}`))
+    .join("\n\n");
 
   // Build CLI arguments
   // Note: --dangerously-skip-permissions bypasses OAuth, so we don't use it
   const args = [
-    '--print',
-    '--output-format', 'json',
-    '--model', model,
-    '--no-session-persistence', // Don't save sessions
+    "--print",
+    "--output-format",
+    "json",
+    "--model",
+    model,
+    "--no-session-persistence", // Don't save sessions
   ];
 
   // Add tools if specified (e.g., 'WebSearch')
   // Use both --tools (to enable) and --allowedTools (to auto-approve)
   if (tools.length > 0) {
-    args.push('--tools', tools.join(','));
-    args.push('--allowedTools', tools.join(','));
+    args.push("--tools", tools.join(","));
+    args.push("--allowedTools", tools.join(","));
   }
 
   if (systemPrompt) {
-    args.push('--system-prompt', systemPrompt);
+    args.push("--system-prompt", systemPrompt);
   }
 
   // Add the prompt
   args.push(prompt);
 
   // Debug: log the command being run (condensed)
-  const toolsStr = tools.length > 0 ? ` [tools: ${tools.join(',')}]` : '';
+  const toolsStr = tools.length > 0 ? ` [tools: ${tools.join(",")}]` : "";
   console.log(`[CLI] Running claude --model ${model}${toolsStr}`);
 
   // Default timeout: 360 seconds for CLI calls (6 minutes)
@@ -82,60 +84,69 @@ export async function callClaudeCli(
     // Build environment for Claude CLI
     // IMPORTANT: Remove ANTHROPIC_AUTH_TOKEN and ANTHROPIC_API_KEY from the environment
     // so the CLI uses its built-in OAuth session instead of trying to use the env var token directly
-    const { ANTHROPIC_AUTH_TOKEN, ANTHROPIC_API_KEY, ...cleanEnv } = process.env;
+    const { ANTHROPIC_AUTH_TOKEN, ANTHROPIC_API_KEY, ...cleanEnv } =
+      process.env;
     const env = {
       ...cleanEnv,
-      HOME: process.env.HOME || '/Users/' + process.env.USER,
-      PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
+      HOME: process.env.HOME || "/Users/" + process.env.USER,
+      PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
     };
 
-    const child = spawn('claude', args, {
-      stdio: ['ignore', 'pipe', 'pipe'], // Close stdin to prevent hanging
+    const child = spawn("claude", args, {
+      stdio: ["ignore", "pipe", "pipe"], // Close stdin to prevent hanging
       env,
     });
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
     let timedOut = false;
 
     // Set timeout to prevent hanging
     const timeoutId = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGTERM');
-      console.log('[CLI] Timeout reached, killing process');
+      child.kill("SIGTERM");
+      console.log("[CLI] Timeout reached, killing process");
     }, CLI_TIMEOUT_MS);
 
     // Limit output size to prevent memory issues
     const MAX_OUTPUT_SIZE = 500 * 1024; // 500KB
 
-    child.stdout.on('data', (data) => {
+    child.stdout.on("data", (data) => {
       if (stdout.length < MAX_OUTPUT_SIZE) {
         stdout += data.toString();
       }
     });
 
-    child.stderr.on('data', (data) => {
+    child.stderr.on("data", (data) => {
       if (stderr.length < MAX_OUTPUT_SIZE) {
         stderr += data.toString();
       }
     });
 
-    child.on('error', (err) => {
+    child.on("error", (err) => {
       clearTimeout(timeoutId);
       reject(new Error(`Failed to spawn claude CLI: ${err.message}`));
     });
 
-    child.on('close', (code) => {
+    child.on("close", (code) => {
       clearTimeout(timeoutId);
 
       if (timedOut) {
-        reject(new Error('Claude CLI timed out after 360 seconds. Try a simpler request or start a new session.'));
+        reject(
+          new Error(
+            "Claude CLI timed out after 360 seconds. Try a simpler request or start a new session.",
+          ),
+        );
         return;
       }
 
       if (code !== 0) {
         // Include stdout as well for debugging
-        reject(new Error(`claude CLI exited with code ${code}.\nstderr: ${stderr}\nstdout: ${stdout}`));
+        reject(
+          new Error(
+            `claude CLI exited with code ${code}.\nstderr: ${stderr}\nstdout: ${stdout}`,
+          ),
+        );
         return;
       }
 
@@ -145,12 +156,14 @@ export async function callClaudeCli(
 
         // Check for API errors in the response
         if (result.is_error) {
-          reject(new Error(`Claude API error: ${result.result || 'Unknown error'}`));
+          reject(
+            new Error(`Claude API error: ${result.result || "Unknown error"}`),
+          );
           return;
         }
 
         // Extract the response - Claude CLI JSON format
-        let text = '';
+        let text = "";
         let inputTokens = 0;
         let outputTokens = 0;
 
@@ -159,8 +172,10 @@ export async function callClaudeCli(
           text = result.result;
         } else if (result.content) {
           // Direct content array
-          text = result.content.map((c: { text?: string }) => c.text || '').join('');
-        } else if (typeof result === 'string') {
+          text = result.content
+            .map((c: { text?: string }) => c.text || "")
+            .join("");
+        } else if (typeof result === "string") {
           text = result;
         } else {
           // Try to find text in the response
@@ -174,9 +189,9 @@ export async function callClaudeCli(
         }
 
         resolve({
-          content: [{ type: 'text', text }],
+          content: [{ type: "text", text }],
           model: model,
-          stop_reason: 'end_turn',
+          stop_reason: "end_turn",
           usage: {
             input_tokens: inputTokens,
             output_tokens: outputTokens,
@@ -185,9 +200,9 @@ export async function callClaudeCli(
       } catch (parseErr) {
         // If not JSON, treat as plain text response
         resolve({
-          content: [{ type: 'text', text: stdout.trim() }],
+          content: [{ type: "text", text: stdout.trim() }],
           model: model,
-          stop_reason: 'end_turn',
+          stop_reason: "end_turn",
           usage: {
             input_tokens: 0,
             output_tokens: 0,
@@ -208,12 +223,16 @@ export function createCliClient() {
         model: string;
         max_tokens: number;
         system?: string;
-        messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+        messages: Array<{ role: "user" | "assistant"; content: string }>;
       }) => {
         return callClaudeCli(params.messages, {
-          model: params.model.includes('sonnet') ? 'sonnet' :
-                 params.model.includes('opus') ? 'opus' :
-                 params.model.includes('haiku') ? 'haiku' : 'sonnet',
+          model: params.model.includes("sonnet")
+            ? "sonnet"
+            : params.model.includes("opus")
+              ? "opus"
+              : params.model.includes("haiku")
+                ? "haiku"
+                : "sonnet",
           systemPrompt: params.system,
           _maxTokens: params.max_tokens,
         });

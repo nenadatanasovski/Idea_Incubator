@@ -8,14 +8,14 @@
  * Part of: PTE-140 to PTE-143
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   TaskAgentInstance,
   TaskAgentStatus,
   TaskAgentActivity,
   TaskAgentActivityType,
-} from '../../../types/task-agent.js';
+} from "../../../types/task-agent.js";
 
 /**
  * Database row for Task Agent instance
@@ -77,19 +77,19 @@ export async function spawnTaskAgent(
   taskListId: string,
   projectId: string,
   telegramChannelId?: string,
-  telegramBotToken?: string
+  telegramBotToken?: string,
 ): Promise<TaskAgentInstance> {
   // PTE-143: Check if a Task Agent already exists for this task list
   const existing = await getOne<TaskAgentInstanceRow>(
     `SELECT * FROM task_agent_instances
      WHERE task_list_id = ?
        AND status IN ('active', 'paused')`,
-    [taskListId]
+    [taskListId],
   );
 
   if (existing) {
     throw new Error(
-      `Task Agent ${existing.id} is already managing task list ${taskListId}`
+      `Task Agent ${existing.id} is already managing task list ${taskListId}`,
     );
   }
 
@@ -99,12 +99,12 @@ export async function spawnTaskAgent(
       `SELECT * FROM task_agent_instances
        WHERE telegram_channel_id = ?
          AND status IN ('active', 'paused')`,
-      [telegramChannelId]
+      [telegramChannelId],
     );
 
     if (telegramLinked) {
       throw new Error(
-        `Telegram channel ${telegramChannelId} is already linked to Task Agent ${telegramLinked.id}`
+        `Telegram channel ${telegramChannelId} is already linked to Task Agent ${telegramLinked.id}`,
       );
     }
   }
@@ -116,17 +116,26 @@ export async function spawnTaskAgent(
       id, task_list_id, is_evaluation_queue, telegram_channel_id,
       telegram_bot_token, status, project_id
     ) VALUES (?, ?, 0, ?, ?, 'active', ?)`,
-    [id, taskListId, telegramChannelId || null, telegramBotToken || null, projectId]
+    [
+      id,
+      taskListId,
+      telegramChannelId || null,
+      telegramBotToken || null,
+      projectId,
+    ],
   );
 
   // Log activity
-  await logActivity(id, 'task_created', { action: 'agent_spawned', taskListId });
+  await logActivity(id, "task_created", {
+    action: "agent_spawned",
+    taskListId,
+  });
 
   await saveDb();
 
   const row = await getOne<TaskAgentInstanceRow>(
-    'SELECT * FROM task_agent_instances WHERE id = ?',
-    [id]
+    "SELECT * FROM task_agent_instances WHERE id = ?",
+    [id],
   );
 
   return mapAgentRow(row!);
@@ -142,7 +151,7 @@ export async function spawnTaskAgent(
 export async function spawnEvaluationQueueAgent(
   projectId: string,
   telegramChannelId?: string,
-  telegramBotToken?: string
+  telegramBotToken?: string,
 ): Promise<TaskAgentInstance> {
   // Check if an Evaluation Queue agent already exists for this project
   const existing = await getOne<TaskAgentInstanceRow>(
@@ -150,12 +159,12 @@ export async function spawnEvaluationQueueAgent(
      WHERE project_id = ?
        AND is_evaluation_queue = 1
        AND status IN ('active', 'paused')`,
-    [projectId]
+    [projectId],
   );
 
   if (existing) {
     throw new Error(
-      `Task Agent ${existing.id} is already managing the Evaluation Queue for project ${projectId}`
+      `Task Agent ${existing.id} is already managing the Evaluation Queue for project ${projectId}`,
     );
   }
 
@@ -165,12 +174,12 @@ export async function spawnEvaluationQueueAgent(
       `SELECT * FROM task_agent_instances
        WHERE telegram_channel_id = ?
          AND status IN ('active', 'paused')`,
-      [telegramChannelId]
+      [telegramChannelId],
     );
 
     if (telegramLinked) {
       throw new Error(
-        `Telegram channel ${telegramChannelId} is already linked to Task Agent ${telegramLinked.id}`
+        `Telegram channel ${telegramChannelId} is already linked to Task Agent ${telegramLinked.id}`,
       );
     }
   }
@@ -182,16 +191,19 @@ export async function spawnEvaluationQueueAgent(
       id, task_list_id, is_evaluation_queue, telegram_channel_id,
       telegram_bot_token, status, project_id
     ) VALUES (?, NULL, 1, ?, ?, 'active', ?)`,
-    [id, telegramChannelId || null, telegramBotToken || null, projectId]
+    [id, telegramChannelId || null, telegramBotToken || null, projectId],
   );
 
-  await logActivity(id, 'task_created', { action: 'evaluation_queue_agent_spawned', projectId });
+  await logActivity(id, "task_created", {
+    action: "evaluation_queue_agent_spawned",
+    projectId,
+  });
 
   await saveDb();
 
   const row = await getOne<TaskAgentInstanceRow>(
-    'SELECT * FROM task_agent_instances WHERE id = ?',
-    [id]
+    "SELECT * FROM task_agent_instances WHERE id = ?",
+    [id],
   );
 
   return mapAgentRow(row!);
@@ -200,10 +212,12 @@ export async function spawnEvaluationQueueAgent(
 /**
  * Get a Task Agent by ID
  */
-export async function getTaskAgent(agentId: string): Promise<TaskAgentInstance | null> {
+export async function getTaskAgent(
+  agentId: string,
+): Promise<TaskAgentInstance | null> {
   const row = await getOne<TaskAgentInstanceRow>(
-    'SELECT * FROM task_agent_instances WHERE id = ?',
-    [agentId]
+    "SELECT * FROM task_agent_instances WHERE id = ?",
+    [agentId],
   );
 
   if (!row) {
@@ -217,13 +231,13 @@ export async function getTaskAgent(agentId: string): Promise<TaskAgentInstance |
  * Get Task Agent for a task list
  */
 export async function getTaskAgentForList(
-  taskListId: string
+  taskListId: string,
 ): Promise<TaskAgentInstance | null> {
   const row = await getOne<TaskAgentInstanceRow>(
     `SELECT * FROM task_agent_instances
      WHERE task_list_id = ?
        AND status IN ('active', 'paused')`,
-    [taskListId]
+    [taskListId],
   );
 
   if (!row) {
@@ -237,14 +251,14 @@ export async function getTaskAgentForList(
  * Get Task Agent for Evaluation Queue
  */
 export async function getEvaluationQueueAgent(
-  projectId: string
+  projectId: string,
 ): Promise<TaskAgentInstance | null> {
   const row = await getOne<TaskAgentInstanceRow>(
     `SELECT * FROM task_agent_instances
      WHERE project_id = ?
        AND is_evaluation_queue = 1
        AND status IN ('active', 'paused')`,
-    [projectId]
+    [projectId],
   );
 
   if (!row) {
@@ -258,17 +272,17 @@ export async function getEvaluationQueueAgent(
  * Get all active Task Agents
  */
 export async function getActiveTaskAgents(
-  projectId?: string
+  projectId?: string,
 ): Promise<TaskAgentInstance[]> {
   let sql = `SELECT * FROM task_agent_instances WHERE status IN ('active', 'paused')`;
   const params: string[] = [];
 
   if (projectId) {
-    sql += ' AND project_id = ?';
+    sql += " AND project_id = ?";
     params.push(projectId);
   }
 
-  sql += ' ORDER BY created_at DESC';
+  sql += " ORDER BY created_at DESC";
 
   const rows = await query<TaskAgentInstanceRow>(sql, params);
   return rows.map(mapAgentRow);
@@ -282,7 +296,7 @@ export async function getActiveTaskAgents(
 export async function linkToTelegram(
   agentId: string,
   telegramChannelId: string,
-  telegramBotToken?: string
+  telegramBotToken?: string,
 ): Promise<TaskAgentInstance> {
   // Check if channel is already linked to another agent
   const linked = await getOne<TaskAgentInstanceRow>(
@@ -290,12 +304,12 @@ export async function linkToTelegram(
      WHERE telegram_channel_id = ?
        AND id != ?
        AND status IN ('active', 'paused')`,
-    [telegramChannelId, agentId]
+    [telegramChannelId, agentId],
   );
 
   if (linked) {
     throw new Error(
-      `Telegram channel ${telegramChannelId} is already linked to Task Agent ${linked.id}`
+      `Telegram channel ${telegramChannelId} is already linked to Task Agent ${linked.id}`,
     );
   }
 
@@ -305,10 +319,13 @@ export async function linkToTelegram(
          telegram_bot_token = ?,
          updated_at = datetime('now')
      WHERE id = ?`,
-    [telegramChannelId, telegramBotToken || null, agentId]
+    [telegramChannelId, telegramBotToken || null, agentId],
   );
 
-  await logActivity(agentId, 'task_created', { action: 'telegram_linked', telegramChannelId });
+  await logActivity(agentId, "task_created", {
+    action: "telegram_linked",
+    telegramChannelId,
+  });
 
   await saveDb();
 
@@ -318,17 +335,19 @@ export async function linkToTelegram(
 /**
  * Unlink a Task Agent from Telegram
  */
-export async function unlinkFromTelegram(agentId: string): Promise<TaskAgentInstance> {
+export async function unlinkFromTelegram(
+  agentId: string,
+): Promise<TaskAgentInstance> {
   await run(
     `UPDATE task_agent_instances
      SET telegram_channel_id = NULL,
          telegram_bot_token = NULL,
          updated_at = datetime('now')
      WHERE id = ?`,
-    [agentId]
+    [agentId],
   );
 
-  await logActivity(agentId, 'task_created', { action: 'telegram_unlinked' });
+  await logActivity(agentId, "task_created", { action: "telegram_unlinked" });
 
   await saveDb();
 
@@ -340,16 +359,18 @@ export async function unlinkFromTelegram(agentId: string): Promise<TaskAgentInst
  *
  * Part of: PTE-142
  */
-export async function pauseTaskAgent(agentId: string): Promise<TaskAgentInstance> {
+export async function pauseTaskAgent(
+  agentId: string,
+): Promise<TaskAgentInstance> {
   await run(
     `UPDATE task_agent_instances
      SET status = 'paused',
          updated_at = datetime('now')
      WHERE id = ?`,
-    [agentId]
+    [agentId],
   );
 
-  await logActivity(agentId, 'task_created', { action: 'agent_paused' });
+  await logActivity(agentId, "task_created", { action: "agent_paused" });
 
   await saveDb();
 
@@ -359,16 +380,18 @@ export async function pauseTaskAgent(agentId: string): Promise<TaskAgentInstance
 /**
  * Resume a paused Task Agent
  */
-export async function resumeTaskAgent(agentId: string): Promise<TaskAgentInstance> {
+export async function resumeTaskAgent(
+  agentId: string,
+): Promise<TaskAgentInstance> {
   await run(
     `UPDATE task_agent_instances
      SET status = 'active',
          updated_at = datetime('now')
      WHERE id = ?`,
-    [agentId]
+    [agentId],
   );
 
-  await logActivity(agentId, 'task_created', { action: 'agent_resumed' });
+  await logActivity(agentId, "task_created", { action: "agent_resumed" });
 
   await saveDb();
 
@@ -382,7 +405,7 @@ export async function resumeTaskAgent(agentId: string): Promise<TaskAgentInstanc
  */
 export async function terminateTaskAgent(
   agentId: string,
-  reason?: string
+  reason?: string,
 ): Promise<void> {
   await run(
     `UPDATE task_agent_instances
@@ -390,10 +413,13 @@ export async function terminateTaskAgent(
          terminated_at = datetime('now'),
          updated_at = datetime('now')
      WHERE id = ?`,
-    [agentId]
+    [agentId],
   );
 
-  await logActivity(agentId, 'task_created', { action: 'agent_terminated', reason });
+  await logActivity(agentId, "task_created", {
+    action: "agent_terminated",
+    reason,
+  });
 
   await saveDb();
 }
@@ -407,7 +433,7 @@ export async function recordHeartbeat(agentId: string): Promise<void> {
      SET last_heartbeat_at = datetime('now'),
          updated_at = datetime('now')
      WHERE id = ?`,
-    [agentId]
+    [agentId],
   );
 
   await saveDb();
@@ -418,7 +444,7 @@ export async function recordHeartbeat(agentId: string): Promise<void> {
  */
 export async function recordError(
   agentId: string,
-  errorMessage: string
+  errorMessage: string,
 ): Promise<void> {
   await run(
     `UPDATE task_agent_instances
@@ -426,10 +452,10 @@ export async function recordError(
          last_error = ?,
          updated_at = datetime('now')
      WHERE id = ?`,
-    [errorMessage, agentId]
+    [errorMessage, agentId],
   );
 
-  await logActivity(agentId, 'error_occurred', { error: errorMessage });
+  await logActivity(agentId, "error_occurred", { error: errorMessage });
 
   await saveDb();
 }
@@ -443,7 +469,7 @@ export async function incrementTasksProcessed(agentId: string): Promise<void> {
      SET tasks_processed = tasks_processed + 1,
          updated_at = datetime('now')
      WHERE id = ?`,
-    [agentId]
+    [agentId],
   );
 
   await saveDb();
@@ -458,7 +484,7 @@ export async function incrementSuggestionsMade(agentId: string): Promise<void> {
      SET suggestions_made = suggestions_made + 1,
          updated_at = datetime('now')
      WHERE id = ?`,
-    [agentId]
+    [agentId],
   );
 
   await saveDb();
@@ -473,7 +499,7 @@ export async function incrementQuestionsAsked(agentId: string): Promise<void> {
      SET questions_asked = questions_asked + 1,
          updated_at = datetime('now')
      WHERE id = ?`,
-    [agentId]
+    [agentId],
   );
 
   await saveDb();
@@ -488,7 +514,7 @@ export async function logActivity(
   details?: Record<string, unknown>,
   taskId?: string,
   suggestionId?: string,
-  buildAgentId?: string
+  buildAgentId?: string,
 ): Promise<void> {
   await run(
     `INSERT INTO task_agent_activities (
@@ -502,7 +528,7 @@ export async function logActivity(
       taskId || null,
       suggestionId || null,
       buildAgentId || null,
-    ]
+    ],
   );
 
   await saveDb();
@@ -513,7 +539,7 @@ export async function logActivity(
  */
 export async function getAgentActivities(
   agentId: string,
-  limit = 50
+  limit = 50,
 ): Promise<TaskAgentActivity[]> {
   const rows = await query<{
     id: string;
@@ -529,7 +555,7 @@ export async function getAgentActivities(
      WHERE task_agent_id = ?
      ORDER BY created_at DESC
      LIMIT ?`,
-    [agentId, limit]
+    [agentId, limit],
   );
 
   return rows.map((row) => ({
@@ -548,13 +574,13 @@ export async function getAgentActivities(
  * Get Task Agent by Telegram channel ID
  */
 export async function getAgentByTelegramChannel(
-  telegramChannelId: string
+  telegramChannelId: string,
 ): Promise<TaskAgentInstance | null> {
   const row = await getOne<TaskAgentInstanceRow>(
     `SELECT * FROM task_agent_instances
      WHERE telegram_channel_id = ?
        AND status IN ('active', 'paused')`,
-    [telegramChannelId]
+    [telegramChannelId],
   );
 
   if (!row) {
@@ -577,9 +603,7 @@ export async function hasActiveTaskAgent(taskListId: string): Promise<boolean> {
 /**
  * Get agent statistics
  */
-export async function getAgentStats(
-  projectId?: string
-): Promise<{
+export async function getAgentStats(projectId?: string): Promise<{
   totalActive: number;
   totalPaused: number;
   totalTerminated: number;
@@ -587,11 +611,11 @@ export async function getAgentStats(
   totalSuggestionsMade: number;
   totalQuestionsAsked: number;
 }> {
-  let whereClause = '';
+  let whereClause = "";
   const params: string[] = [];
 
   if (projectId) {
-    whereClause = 'WHERE project_id = ?';
+    whereClause = "WHERE project_id = ?";
     params.push(projectId);
   }
 
@@ -612,7 +636,7 @@ export async function getAgentStats(
       SUM(questions_asked) AS total_questions
     FROM task_agent_instances
     ${whereClause}`,
-    params
+    params,
   );
 
   return {

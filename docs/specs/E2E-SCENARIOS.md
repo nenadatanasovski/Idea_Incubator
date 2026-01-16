@@ -364,7 +364,7 @@ After VALIDATING and REFINING phases complete (~20-30 min total):
 
 ### Step 2.1: Spec Generation Triggered
 
-```
+````
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ STEP 2.1: Specification Generation                                           │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -458,11 +458,11 @@ After VALIDATING and REFINING phases complete (~20-30 min total):
 │    └────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+````
 
 ### Step 2.2: Task Generation
 
-```
+````
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ STEP 2.2: Atomic Task Generation                                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -576,7 +576,7 @@ After VALIDATING and REFINING phases complete (~20-30 min total):
 │    └────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+````
 
 ### Step 2.3: User Approves Spec
 
@@ -703,7 +703,7 @@ After VALIDATING and REFINING phases complete (~20-30 min total):
 
 ### Step 3.2: Execute (Task-by-Task)
 
-```
+````
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ STEP 3.2: Build Agent - Execute Task T-001                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -875,7 +875,7 @@ After VALIDATING and REFINING phases complete (~20-30 min total):
 │ 18. PROCEED TO NEXT TASK: T-002                                             │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+````
 
 ### Step 3.3: All Tasks Complete → Validate
 
@@ -1595,7 +1595,7 @@ After the complete Idea → App pipeline:
 
 **Example:** Gotcha discovered in one build helps prevent error in another
 
-```
+````
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ KNOWLEDGE PROPAGATION                                                        │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -1747,23 +1747,23 @@ After the complete Idea → App pipeline:
 │    └────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+````
 
 ---
 
 ## Summary: Key Mechanisms
 
-| Mechanism | Purpose | Tables/Events Involved |
-|-----------|---------|------------------------|
-| **Phase Transitions** | Guide ideation through discovery | `ideation_sessions.phase`, `ideation_artifacts` |
-| **Handoff Brief** | Transfer context between agents | `planning/brief.md`, `ideation.completed` event |
-| **Gotcha Injection** | Prevent repeated failures | `knowledge` table, Spec Agent queries |
-| **File Locking** | Prevent concurrent edits | `file_locks` table, `wait_graph` |
-| **Checkpoints** | Enable rollback on failure | `checkpoints` table, Git refs |
-| **Event Bus** | Coordinate between agents | `events` table, pub/sub |
-| **Knowledge Propagation** | Learn from failures | `knowledge`, `improvement_metrics` |
-| **System Review** | Extract learnings | `system_reviews`, SIA analysis |
+| Mechanism                 | Purpose                          | Tables/Events Involved                          |
+| ------------------------- | -------------------------------- | ----------------------------------------------- |
+| **Phase Transitions**     | Guide ideation through discovery | `ideation_sessions.phase`, `ideation_artifacts` |
+| **Handoff Brief**         | Transfer context between agents  | `planning/brief.md`, `ideation.completed` event |
+| **Gotcha Injection**      | Prevent repeated failures        | `knowledge` table, Spec Agent queries           |
+| **File Locking**          | Prevent concurrent edits         | `file_locks` table, `wait_graph`                |
+| **Checkpoints**           | Enable rollback on failure       | `checkpoints` table, Git refs                   |
+| **Event Bus**             | Coordinate between agents        | `events` table, pub/sub                         |
+| **Knowledge Propagation** | Learn from failures              | `knowledge`, `improvement_metrics`              |
+| **System Review**         | Extract learnings                | `system_reviews`, SIA analysis                  |
 
 ---
 
-*This document provides concrete examples of how data flows through the system. For implementation details, see AGENT-ARCHITECTURE.md and IMPLEMENTATION-PLAN.md.*
+_This document provides concrete examples of how data flows through the system. For implementation details, see AGENT-ARCHITECTURE.md and IMPLEMENTATION-PLAN.md._

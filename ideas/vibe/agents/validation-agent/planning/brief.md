@@ -2,13 +2,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **ID** | validation-agent |
-| **Title** | Validation Agent |
-| **Complexity** | medium |
-| **Author** | Human |
-| **Created** | 2026-01-11 |
+| Field          | Value            |
+| -------------- | ---------------- |
+| **ID**         | validation-agent |
+| **Title**      | Validation Agent |
+| **Complexity** | medium           |
+| **Author**     | Human            |
+| **Created**    | 2026-01-11       |
 
 ---
 
@@ -39,6 +39,7 @@ Validation Agent is a multi-level code validation system that:
 6. **Reports results** through Communication Hub
 
 Validation Agent can be invoked at different levels depending on context:
+
 - QUICK: During development (< 30 seconds)
 - STANDARD: Before commits (< 2 minutes)
 - THOROUGH: Before merges (< 10 minutes)
@@ -49,6 +50,7 @@ Validation Agent can be invoked at different levels depending on context:
 ## MVP Scope
 
 **In Scope:**
+
 - Define 4 validation levels (QUICK, STANDARD, THOROUGH, RELEASE)
 - TypeScript compilation check (tsc --noEmit)
 - Unit test runner integration (vitest)
@@ -59,6 +61,7 @@ Validation Agent can be invoked at different levels depending on context:
 - Pass/fail determination with detailed output
 
 **Out of Scope:**
+
 - E2E test integration (playwright) - deferred to v0.2
 - Performance benchmarking
 - Visual regression testing
@@ -106,6 +109,7 @@ Validation Agent Components:
 ```
 
 **Validation Levels:**
+
 ```
 QUICK (< 30s):
   - TypeScript compilation
@@ -130,6 +134,7 @@ RELEASE (comprehensive):
 ```
 
 **Execution Flow:**
+
 ```
 1. Receive validation request with level
 2. Load level configuration
@@ -175,13 +180,13 @@ CREATE TABLE IF NOT EXISTS validator_results (
 
 ## API Design
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /api/validation/run | POST | Start validation at specified level |
-| /api/validation/:id | GET | Get validation run status |
-| /api/validation/:id/results | GET | Get detailed results |
-| /api/validation/levels | GET | List available levels |
-| /api/validation/history | GET | Recent validation history |
+| Endpoint                    | Method | Description                         |
+| --------------------------- | ------ | ----------------------------------- |
+| /api/validation/run         | POST   | Start validation at specified level |
+| /api/validation/:id         | GET    | Get validation run status           |
+| /api/validation/:id/results | GET    | Get detailed results                |
+| /api/validation/levels      | GET    | List available levels               |
+| /api/validation/history     | GET    | Recent validation history           |
 
 ---
 

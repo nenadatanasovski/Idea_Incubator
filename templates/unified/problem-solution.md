@@ -10,11 +10,12 @@ updated: "{{updated}}"
 # Problem & Solution: {{title}}
 
 ## Problem Definition
+
 <!-- Agent fills after problem exploration -->
 
 - [ ] Defined: No
 
-*Clear statement of the problem being solved.*
+_Clear statement of the problem being solved._
 
 **Problem Statement:**
 
@@ -25,22 +26,24 @@ updated: "{{updated}}"
 **Severity (1-10):**
 
 ## Root Causes
+
 <!-- Agent fills after root cause analysis -->
 
 - [ ] Defined: No
 
-*What underlying factors cause this problem?*
+_What underlying factors cause this problem?_
 
 1.
 2.
 3.
 
 ## Proposed Solution
+
 <!-- Agent fills after solution design -->
 
 - [ ] Defined: No
 
-*How does this idea address the problem?*
+_How does this idea address the problem?_
 
 **Solution Overview:**
 
@@ -49,14 +52,15 @@ updated: "{{updated}}"
 **Key mechanisms:**
 
 ## Key Differentiators
+
 <!-- Agent fills after competitive positioning -->
 
 - [ ] Defined: No
 
-*What makes this solution unique compared to alternatives?*
+_What makes this solution unique compared to alternatives?_
 
 | Differentiator | Our Approach | Competitor Approach |
-|---------------|--------------|---------------------|
-| | | |
-| | | |
-| | | |
+| -------------- | ------------ | ------------------- |
+|                |              |                     |
+|                |              |                     |
+|                |              |                     |

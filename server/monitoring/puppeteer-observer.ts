@@ -1,7 +1,7 @@
 // server/monitoring/puppeteer-observer.ts
 // MON-003: Puppeteer MCP Observer - UI validation through browser automation
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
 /**
  * UI element to observe for validation.
@@ -9,7 +9,7 @@ import { EventEmitter } from 'events';
 export interface UIElement {
   selector: string;
   description: string;
-  expectedState?: 'visible' | 'hidden' | 'enabled' | 'disabled' | 'contains';
+  expectedState?: "visible" | "hidden" | "enabled" | "disabled" | "contains";
   expectedValue?: string;
 }
 
@@ -58,8 +58,8 @@ export interface PuppeteerObserverConfig {
 }
 
 const DEFAULT_CONFIG: PuppeteerObserverConfig = {
-  baseUrl: 'http://localhost:3000',
-  screenshotDir: './screenshots/monitoring',
+  baseUrl: "http://localhost:3000",
+  screenshotDir: "./screenshots/monitoring",
   defaultTimeout: 30000,
   headless: true,
   viewport: { width: 1920, height: 1080 },
@@ -70,22 +70,34 @@ const DEFAULT_CONFIG: PuppeteerObserverConfig = {
  */
 const DEFAULT_RULES: UIValidationRule[] = [
   {
-    id: 'dashboard-health',
-    name: 'Dashboard Health Check',
-    url: '/dashboard',
+    id: "dashboard-health",
+    name: "Dashboard Health Check",
+    url: "/dashboard",
     elements: [
-      { selector: '[data-testid="agent-status"]', description: 'Agent status panel', expectedState: 'visible' },
-      { selector: '[data-testid="question-queue"]', description: 'Question queue panel', expectedState: 'visible' },
+      {
+        selector: '[data-testid="agent-status"]',
+        description: "Agent status panel",
+        expectedState: "visible",
+      },
+      {
+        selector: '[data-testid="question-queue"]',
+        description: "Question queue panel",
+        expectedState: "visible",
+      },
     ],
     interval: 60000, // Check every minute
     enabled: true,
   },
   {
-    id: 'api-health',
-    name: 'API Health Endpoint',
-    url: '/api/health',
+    id: "api-health",
+    name: "API Health Endpoint",
+    url: "/api/health",
     elements: [
-      { selector: 'pre', description: 'JSON response', expectedState: 'visible' },
+      {
+        selector: "pre",
+        description: "JSON response",
+        expectedState: "visible",
+      },
     ],
     interval: 30000, // Check every 30 seconds
     enabled: true,
@@ -108,7 +120,8 @@ export class PuppeteerObserver extends EventEmitter {
   private config: PuppeteerObserverConfig;
   private rules: UIValidationRule[];
   private observations: UIObservation[] = [];
-  private intervalTimers: Map<string, ReturnType<typeof setInterval>> = new Map();
+  private intervalTimers: Map<string, ReturnType<typeof setInterval>> =
+    new Map();
   private running: boolean = false;
   private maxObservations: number = 1000;
 
@@ -119,7 +132,7 @@ export class PuppeteerObserver extends EventEmitter {
 
   constructor(
     config: Partial<PuppeteerObserverConfig> = {},
-    rules?: UIValidationRule[]
+    rules?: UIValidationRule[],
   ) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -147,28 +160,36 @@ export class PuppeteerObserver extends EventEmitter {
     if (this.running) return;
     this.running = true;
 
-    console.log('[PuppeteerObserver] Starting UI observation...');
+    console.log("[PuppeteerObserver] Starting UI observation...");
 
     // Set up interval timers for each enabled rule
     for (const rule of this.rules) {
       if (!rule.enabled) continue;
 
       // Run immediately
-      this.runRule(rule).catch(err => {
-        console.error(`[PuppeteerObserver] Initial check failed for ${rule.id}:`, err);
+      this.runRule(rule).catch((err) => {
+        console.error(
+          `[PuppeteerObserver] Initial check failed for ${rule.id}:`,
+          err,
+        );
       });
 
       // Set up periodic checks
       const timer = setInterval(() => {
-        this.runRule(rule).catch(err => {
-          console.error(`[PuppeteerObserver] Periodic check failed for ${rule.id}:`, err);
+        this.runRule(rule).catch((err) => {
+          console.error(
+            `[PuppeteerObserver] Periodic check failed for ${rule.id}:`,
+            err,
+          );
         });
       }, rule.interval);
 
       this.intervalTimers.set(rule.id, timer);
     }
 
-    console.log(`[PuppeteerObserver] Started with ${this.rules.filter(r => r.enabled).length} active rules`);
+    console.log(
+      `[PuppeteerObserver] Started with ${this.rules.filter((r) => r.enabled).length} active rules`,
+    );
   }
 
   /**
@@ -184,7 +205,7 @@ export class PuppeteerObserver extends EventEmitter {
       this.intervalTimers.delete(ruleId);
     }
 
-    console.log('[PuppeteerObserver] Stopped');
+    console.log("[PuppeteerObserver] Stopped");
   }
 
   /**
@@ -202,7 +223,9 @@ export class PuppeteerObserver extends EventEmitter {
 
     try {
       // Navigate to the page
-      const fullUrl = rule.url.startsWith('http') ? rule.url : `${this.config.baseUrl}${rule.url}`;
+      const fullUrl = rule.url.startsWith("http")
+        ? rule.url
+        : `${this.config.baseUrl}${rule.url}`;
 
       if (this.mcpNavigate) {
         await this.mcpNavigate(fullUrl);
@@ -224,10 +247,10 @@ export class PuppeteerObserver extends EventEmitter {
       }
 
       // Determine overall success
-      observation.success = observation.elementResults.every(r => r.passed);
-
+      observation.success = observation.elementResults.every((r) => r.passed);
     } catch (error) {
-      observation.error = error instanceof Error ? error.message : String(error);
+      observation.error =
+        error instanceof Error ? error.message : String(error);
       observation.success = false;
     }
 
@@ -236,13 +259,13 @@ export class PuppeteerObserver extends EventEmitter {
 
     // Emit events
     if (observation.success) {
-      this.emit('observation:success', observation);
+      this.emit("observation:success", observation);
     } else {
-      this.emit('observation:failure', observation);
-      this.emit('issue:detected', {
-        type: 'ui_validation',
-        severity: 'medium',
-        description: `UI validation failed for ${rule.name}: ${observation.error || 'Element checks failed'}`,
+      this.emit("observation:failure", observation);
+      this.emit("issue:detected", {
+        type: "ui_validation",
+        severity: "medium",
+        description: `UI validation failed for ${rule.name}: ${observation.error || "Element checks failed"}`,
         evidence: observation,
       });
     }
@@ -253,8 +276,10 @@ export class PuppeteerObserver extends EventEmitter {
   /**
    * Check a single UI element.
    */
-  private async checkElement(element: UIElement): Promise<UIObservation['elementResults'][0]> {
-    const result: UIObservation['elementResults'][0] = {
+  private async checkElement(
+    element: UIElement,
+  ): Promise<UIObservation["elementResults"][0]> {
+    const result: UIObservation["elementResults"][0] = {
       selector: element.selector,
       description: element.description,
       passed: false,
@@ -264,7 +289,7 @@ export class PuppeteerObserver extends EventEmitter {
       if (!this.mcpEvaluate) {
         // Simulate check for testing
         result.passed = true;
-        result.actual = 'simulated';
+        result.actual = "simulated";
         return result;
       }
 
@@ -272,7 +297,7 @@ export class PuppeteerObserver extends EventEmitter {
       let script: string;
 
       switch (element.expectedState) {
-        case 'visible':
+        case "visible":
           script = `
             (() => {
               const el = document.querySelector('${element.selector}');
@@ -284,7 +309,7 @@ export class PuppeteerObserver extends EventEmitter {
           `;
           break;
 
-        case 'hidden':
+        case "hidden":
           script = `
             (() => {
               const el = document.querySelector('${element.selector}');
@@ -296,7 +321,7 @@ export class PuppeteerObserver extends EventEmitter {
           `;
           break;
 
-        case 'enabled':
+        case "enabled":
           script = `
             (() => {
               const el = document.querySelector('${element.selector}');
@@ -306,7 +331,7 @@ export class PuppeteerObserver extends EventEmitter {
           `;
           break;
 
-        case 'disabled':
+        case "disabled":
           script = `
             (() => {
               const el = document.querySelector('${element.selector}');
@@ -316,13 +341,13 @@ export class PuppeteerObserver extends EventEmitter {
           `;
           break;
 
-        case 'contains':
+        case "contains":
           script = `
             (() => {
               const el = document.querySelector('${element.selector}');
               if (!el) return { found: false };
               const text = el.textContent || '';
-              return { found: true, text, contains: text.includes('${element.expectedValue || ''}') };
+              return { found: true, text, contains: text.includes('${element.expectedValue || ""}') };
             })()
           `;
           break;
@@ -337,41 +362,44 @@ export class PuppeteerObserver extends EventEmitter {
           `;
       }
 
-      const evalResult = await this.mcpEvaluate(script) as Record<string, unknown>;
+      const evalResult = (await this.mcpEvaluate(script)) as Record<
+        string,
+        unknown
+      >;
 
       if (!evalResult.found) {
         result.passed = false;
-        result.error = 'Element not found';
+        result.error = "Element not found";
         return result;
       }
 
       // Check based on expected state
       switch (element.expectedState) {
-        case 'visible':
+        case "visible":
           result.passed = evalResult.visible === true;
-          result.actual = evalResult.visible ? 'visible' : 'hidden';
-          result.expected = 'visible';
+          result.actual = evalResult.visible ? "visible" : "hidden";
+          result.expected = "visible";
           break;
 
-        case 'hidden':
+        case "hidden":
           result.passed = evalResult.hidden === true;
-          result.actual = evalResult.hidden ? 'hidden' : 'visible';
-          result.expected = 'hidden';
+          result.actual = evalResult.hidden ? "hidden" : "visible";
+          result.expected = "hidden";
           break;
 
-        case 'enabled':
+        case "enabled":
           result.passed = evalResult.enabled === true;
-          result.actual = evalResult.enabled ? 'enabled' : 'disabled';
-          result.expected = 'enabled';
+          result.actual = evalResult.enabled ? "enabled" : "disabled";
+          result.expected = "enabled";
           break;
 
-        case 'disabled':
+        case "disabled":
           result.passed = evalResult.disabled === true;
-          result.actual = evalResult.disabled ? 'disabled' : 'enabled';
-          result.expected = 'disabled';
+          result.actual = evalResult.disabled ? "disabled" : "enabled";
+          result.expected = "disabled";
           break;
 
-        case 'contains':
+        case "contains":
           result.passed = evalResult.contains === true;
           result.actual = String(evalResult.text).slice(0, 100);
           result.expected = `contains "${element.expectedValue}"`;
@@ -379,9 +407,8 @@ export class PuppeteerObserver extends EventEmitter {
 
         default:
           result.passed = true;
-          result.actual = 'found';
+          result.actual = "found";
       }
-
     } catch (error) {
       result.passed = false;
       result.error = error instanceof Error ? error.message : String(error);
@@ -407,7 +434,7 @@ export class PuppeteerObserver extends EventEmitter {
    */
   getObservations(ruleId?: string): UIObservation[] {
     if (ruleId) {
-      return this.observations.filter(o => o.ruleId === ruleId);
+      return this.observations.filter((o) => o.ruleId === ruleId);
     }
     return [...this.observations];
   }
@@ -448,7 +475,7 @@ export class PuppeteerObserver extends EventEmitter {
    * Remove a validation rule.
    */
   removeRule(ruleId: string): void {
-    this.rules = this.rules.filter(r => r.id !== ruleId);
+    this.rules = this.rules.filter((r) => r.id !== ruleId);
 
     const timer = this.intervalTimers.get(ruleId);
     if (timer) {
@@ -470,12 +497,15 @@ export class PuppeteerObserver extends EventEmitter {
   async runAllRules(): Promise<UIObservation[]> {
     const results: UIObservation[] = [];
 
-    for (const rule of this.rules.filter(r => r.enabled)) {
+    for (const rule of this.rules.filter((r) => r.enabled)) {
       try {
         const observation = await this.runRule(rule);
         results.push(observation);
       } catch (error) {
-        console.error(`[PuppeteerObserver] Failed to run rule ${rule.id}:`, error);
+        console.error(
+          `[PuppeteerObserver] Failed to run rule ${rule.id}:`,
+          error,
+        );
       }
     }
 
@@ -494,13 +524,13 @@ export class PuppeteerObserver extends EventEmitter {
   } {
     const recentCutoff = Date.now() - 5 * 60 * 1000; // Last 5 minutes
     const recentFailures = this.observations.filter(
-      o => !o.success && o.timestamp.getTime() > recentCutoff
+      (o) => !o.success && o.timestamp.getTime() > recentCutoff,
     ).length;
 
     return {
       running: this.running,
       ruleCount: this.rules.length,
-      activeRules: this.rules.filter(r => r.enabled).length,
+      activeRules: this.rules.filter((r) => r.enabled).length,
       totalObservations: this.observations.length,
       recentFailures,
     };

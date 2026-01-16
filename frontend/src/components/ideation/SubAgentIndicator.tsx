@@ -3,20 +3,24 @@
 // Visual indicator for sub-agents working on tasks
 // =============================================================================
 
-import { useEffect, useState } from 'react';
-import { Check, X, Loader2, Clock } from 'lucide-react';
-import type { SubAgent, SubAgentStatus, SubAgentIndicatorProps } from '../../types/ideation';
+import { useEffect, useState } from "react";
+import { Check, X, Loader2, Clock } from "lucide-react";
+import type {
+  SubAgent,
+  SubAgentStatus,
+  SubAgentIndicatorProps,
+} from "../../types/ideation";
 
 // Status icon component
 function StatusIcon({ status }: { status: SubAgentStatus }) {
   switch (status) {
-    case 'spawning':
+    case "spawning":
       return <Clock className="w-4 h-4 text-gray-400" />;
-    case 'running':
+    case "running":
       return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
-    case 'completed':
+    case "completed":
       return <Check className="w-4 h-4 text-green-500" />;
-    case 'failed':
+    case "failed":
       return <X className="w-4 h-4 text-red-500" />;
   }
 }
@@ -24,28 +28,28 @@ function StatusIcon({ status }: { status: SubAgentStatus }) {
 // Status background color classes
 function getStatusClasses(status: SubAgentStatus): string {
   switch (status) {
-    case 'spawning':
-      return 'bg-gray-50 border-gray-200';
-    case 'running':
-      return 'bg-blue-50 border-blue-200';
-    case 'completed':
-      return 'bg-green-50 border-green-200';
-    case 'failed':
-      return 'bg-red-50 border-red-200';
+    case "spawning":
+      return "bg-gray-50 border-gray-200";
+    case "running":
+      return "bg-blue-50 border-blue-200";
+    case "completed":
+      return "bg-green-50 border-green-200";
+    case "failed":
+      return "bg-red-50 border-red-200";
   }
 }
 
 // Status text color classes
 function getTextClasses(status: SubAgentStatus): string {
   switch (status) {
-    case 'spawning':
-      return 'text-gray-500';
-    case 'running':
-      return 'text-blue-700';
-    case 'completed':
-      return 'text-green-700';
-    case 'failed':
-      return 'text-red-700';
+    case "spawning":
+      return "text-gray-500";
+    case "running":
+      return "text-blue-700";
+    case "completed":
+      return "text-green-700";
+    case "failed":
+      return "text-red-700";
   }
 }
 
@@ -67,7 +71,7 @@ function AgentRow({ agent, index }: { agent: SubAgent; index: number }) {
         flex items-center gap-3 px-3 py-2 rounded-md border
         transition-all duration-300 ease-out
         ${getStatusClasses(agent.status)}
-        ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}
+        ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"}
       `}
     >
       <div className="flex-shrink-0">
@@ -76,11 +80,17 @@ function AgentRow({ agent, index }: { agent: SubAgent; index: number }) {
       <span className={`text-sm font-medium ${getTextClasses(agent.status)}`}>
         {agent.name}
       </span>
-      {agent.status === 'running' && (
+      {agent.status === "running" && (
         <div className="ml-auto flex items-center gap-1">
           <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
-          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+          <span
+            className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"
+            style={{ animationDelay: "150ms" }}
+          />
+          <span
+            className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"
+            style={{ animationDelay: "300ms" }}
+          />
         </div>
       )}
     </div>
@@ -92,15 +102,13 @@ export function SubAgentIndicator({ agents }: SubAgentIndicatorProps) {
 
   // Calculate progress
   const completed = agents.filter(
-    (a) => a.status === 'completed' || a.status === 'failed'
+    (a) => a.status === "completed" || a.status === "failed",
   ).length;
   const total = agents.length;
   const progressPercent = (completed / total) * 100;
 
   return (
-    <div
-      className="sub-agent-indicator bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-    >
+    <div className="sub-agent-indicator bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       {/* Header with progress bar */}
       <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center justify-between mb-1.5">

@@ -8,6 +8,7 @@ sessionId: 629b9d2d-f0ec-4639-86ac-5f8cd8d3b121
 createdAt: 2026-01-04 11:27:21
 updatedAt: 2026-01-04 11:27:21
 ---
+
 You have several ideas in your incubator. Which one would you like me to create a pitch for? Here are your options:
 
 1. **ai-code-review-assistant**

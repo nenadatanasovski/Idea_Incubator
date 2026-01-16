@@ -8,8 +8,12 @@
  * Part of: PTE-058 to PTE-061
  */
 
-import { query, run, getOne, saveDb } from '../../../database/db.js';
-import { TaskIdentity, FileConflict, FileOperation } from '../../../types/task-agent.js';
+import { query, run, getOne, saveDb } from "../../../database/db.js";
+import {
+  TaskIdentity,
+  FileConflict,
+  FileOperation,
+} from "../../../types/task-agent.js";
 
 /**
  * Result of finding parallel opportunities
@@ -29,7 +33,7 @@ export interface ParallelOpportunity {
  * This is the main query for identifying parallelism opportunities.
  */
 export async function findParallelOpportunities(
-  taskListId: string
+  taskListId: string,
 ): Promise<ParallelOpportunity[]> {
   const results = await query<{
     task_a_id: string;
@@ -96,7 +100,7 @@ export async function findParallelOpportunities(
       ON tp.task_a_id = dc.task_a_id AND tp.task_b_id = dc.task_b_id
     LEFT JOIN file_conflicts fc
       ON tp.task_a_id = fc.task_a_id AND tp.task_b_id = fc.task_b_id`,
-    [taskListId, taskListId]
+    [taskListId, taskListId],
   );
 
   return results.map((r) => ({
@@ -114,15 +118,17 @@ export async function findParallelOpportunities(
  */
 export async function getFileConflictsForPair(
   taskAId: string,
-  taskBId: string
-): Promise<Array<{
-  filePath: string;
-  operationA: FileOperation;
-  operationB: FileOperation;
-  confidenceA: number;
-  confidenceB: number;
-  conflictType: string;
-}>> {
+  taskBId: string,
+): Promise<
+  Array<{
+    filePath: string;
+    operationA: FileOperation;
+    operationB: FileOperation;
+    confidenceA: number;
+    confidenceB: number;
+    conflictType: string;
+  }>
+> {
   const results = await query<{
     file_path: string;
     task_a_operation: string;
@@ -150,7 +156,7 @@ export async function getFileConflictsForPair(
       AND fi2.task_id = ?
       AND fi1.operation != 'READ'
       AND fi2.operation != 'READ'`,
-    [taskAId, taskBId]
+    [taskAId, taskBId],
   );
 
   return results.map((r) => ({
@@ -167,7 +173,7 @@ export async function getFileConflictsForPair(
  * Get transitive dependencies for a task using recursive CTE
  */
 export async function getDependencyChain(
-  taskId: string
+  taskId: string,
 ): Promise<Array<{ taskId: string; depth: number }>> {
   const results = await query<{
     target_task_id: string;
@@ -196,7 +202,7 @@ export async function getDependencyChain(
     SELECT DISTINCT target_task_id, depth
     FROM dep_chain
     ORDER BY depth`,
-    [taskId]
+    [taskId],
   );
 
   return results.map((r) => ({
@@ -210,7 +216,7 @@ export async function getDependencyChain(
  */
 export async function wouldCreateCycle(
   sourceTaskId: string,
-  targetTaskId: string
+  targetTaskId: string,
 ): Promise<{ wouldCreateCycle: boolean; cyclePath?: string }> {
   const result = await getOne<{ cycle_path: string }>(
     `WITH RECURSIVE path AS (
@@ -235,7 +241,7 @@ export async function wouldCreateCycle(
     FROM path
     WHERE current = ?
     LIMIT 1`,
-    [targetTaskId, targetTaskId, targetTaskId, sourceTaskId, sourceTaskId]
+    [targetTaskId, targetTaskId, targetTaskId, sourceTaskId, sourceTaskId],
   );
 
   if (result?.cycle_path) {
@@ -252,13 +258,13 @@ export async function wouldCreateCycle(
  * Invalidate stale parallelism analyses for a changed task
  */
 export async function invalidateStaleAnalyses(
-  changedTaskId: string
+  changedTaskId: string,
 ): Promise<number> {
   const countResult = await getOne<{ count: number }>(
     `SELECT COUNT(*) as count FROM parallelism_analysis
      WHERE (task_a_id = ? OR task_b_id = ?)
        AND invalidated_at IS NULL`,
-    [changedTaskId, changedTaskId]
+    [changedTaskId, changedTaskId],
   );
 
   await run(
@@ -266,7 +272,7 @@ export async function invalidateStaleAnalyses(
      SET invalidated_at = datetime('now')
      WHERE (task_a_id = ? OR task_b_id = ?)
        AND invalidated_at IS NULL`,
-    [changedTaskId, changedTaskId]
+    [changedTaskId, changedTaskId],
   );
 
   await saveDb();
@@ -277,9 +283,7 @@ export async function invalidateStaleAnalyses(
 /**
  * Get Evaluation Queue statistics
  */
-export async function getEvaluationQueueStats(
-  projectId?: string
-): Promise<{
+export async function getEvaluationQueueStats(projectId?: string): Promise<{
   totalQueued: number;
   staleCount: number;
   newToday: number;
@@ -297,7 +301,7 @@ export async function getEvaluationQueueStats(
   const params: string[] = [];
 
   if (projectId) {
-    sql += ' AND project_id = ?';
+    sql += " AND project_id = ?";
     params.push(projectId);
   }
 
@@ -320,7 +324,7 @@ export async function getEvaluationQueueStats(
  * Get tasks that are ready to execute (no unmet dependencies)
  */
 export async function getReadyTasks(
-  taskListId: string
+  taskListId: string,
 ): Promise<TaskIdentity[]> {
   const results = await query<{
     id: string;
@@ -338,7 +342,7 @@ export async function getReadyTasks(
            AND dep.status NOT IN ('completed', 'skipped')
        )
      ORDER BY t.position`,
-    [taskListId]
+    [taskListId],
   );
 
   return results.map((r) => ({
@@ -351,7 +355,7 @@ export async function getReadyTasks(
  * Get tasks that are blocked by a specific task
  */
 export async function getBlockedTasks(
-  blockerTaskId: string
+  blockerTaskId: string,
 ): Promise<TaskIdentity[]> {
   const results = await query<{
     id: string;
@@ -364,7 +368,7 @@ export async function getBlockedTasks(
        AND tr.relationship_type = 'depends_on'
        AND t.status IN ('pending', 'blocked')
      ORDER BY t.position`,
-    [blockerTaskId]
+    [blockerTaskId],
   );
 
   return results.map((r) => ({
@@ -378,7 +382,7 @@ export async function getBlockedTasks(
  * using a recursive approach
  */
 export async function calculateWaveNumbers(
-  taskListId: string
+  taskListId: string,
 ): Promise<Map<string, number>> {
   // This uses a simpler iterative approach rather than a pure SQL recursive CTE
   // because we also need to consider file conflicts
@@ -392,7 +396,7 @@ export async function calculateWaveNumbers(
      WHERE task_list_id = ?
        AND status IN ('pending', 'evaluating')
      ORDER BY position`,
-    [taskListId]
+    [taskListId],
   );
 
   const waveMap = new Map<string, number>();

@@ -4,9 +4,9 @@
 // Implements TEST-UI-007 requirements
 // =============================================================================
 
-import React, { useState, useMemo, useCallback } from 'react';
-import type { Artifact, ArtifactType } from '../../types/ideation';
-import type { ClassificationInfo } from '../../types/ideation-state';
+import React, { useState, useMemo, useCallback } from "react";
+import type { Artifact, ArtifactType } from "../../types/ideation";
+import type { ClassificationInfo } from "../../types/ideation-state";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -34,71 +34,166 @@ interface SessionGroup {
 
 const ChevronRightIcon = ({ expanded }: { expanded: boolean }) => (
   <svg
-    className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
+    className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
   >
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 5l7 7-7 7"
+    />
   </svg>
 );
 
 const SessionIcon = () => (
-  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  <svg
+    className="w-4 h-4 text-blue-500"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
   </svg>
 );
 
 const TemplateIcon = () => (
-  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+  <svg
+    className="w-4 h-4 text-gray-500"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+    />
   </svg>
 );
 
 const TrashIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
   </svg>
 );
 
 const getFileIcon = (type: ArtifactType) => {
   switch (type) {
-    case 'code':
+    case "code":
       return (
-        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        <svg
+          className="w-4 h-4 text-blue-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+          />
         </svg>
       );
-    case 'research':
+    case "research":
       return (
-        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        <svg
+          className="w-4 h-4 text-green-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
         </svg>
       );
-    case 'mermaid':
+    case "mermaid":
       return (
-        <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343" />
+        <svg
+          className="w-4 h-4 text-purple-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343"
+          />
         </svg>
       );
-    case 'markdown':
-    case 'text':
+    case "markdown":
+    case "text":
       return (
-        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <svg
+          className="w-4 h-4 text-gray-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
         </svg>
       );
-    case 'idea-summary':
-    case 'analysis':
+    case "idea-summary":
+    case "analysis":
       return (
-        <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        <svg
+          className="w-4 h-4 text-amber-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+          />
         </svg>
       );
     default:
       return (
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        <svg
+          className="w-4 h-4 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+          />
         </svg>
       );
   }
@@ -121,7 +216,9 @@ function extractSessionId(artifact: Artifact): string | null {
 
   // Check identifier for session pattern
   if (artifact.identifier) {
-    const identMatch = artifact.identifier.match(/^session[_-]?([a-zA-Z0-9-]+)/i);
+    const identMatch = artifact.identifier.match(
+      /^session[_-]?([a-zA-Z0-9-]+)/i,
+    );
     if (identMatch) {
       return identMatch[0];
     }
@@ -149,13 +246,26 @@ function getSessionDate(artifacts: Artifact[]): Date {
  * Format date as "Jan 5, 2:30 PM"
  */
 function formatSessionDate(date: Date): string {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const month = months[date.getMonth()];
   const day = date.getDate();
 
   let hours = date.getHours();
   const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12;
   hours = hours || 12; // Convert 0 to 12
 
@@ -182,7 +292,20 @@ function formatRelativeDate(dateString: string): string {
   } else if (diffDays < 7) {
     return `${diffDays}d ago`;
   } else {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     return `${months[date.getMonth()]} ${date.getDate()}`;
   }
 }
@@ -192,18 +315,30 @@ function formatRelativeDate(dateString: string): string {
  */
 function getTypeDisplayName(type: ArtifactType): string {
   switch (type) {
-    case 'code': return 'Code';
-    case 'html': return 'HTML';
-    case 'svg': return 'SVG';
-    case 'mermaid': return 'Diagram';
-    case 'react': return 'React';
-    case 'text': return 'Text';
-    case 'markdown': return 'Markdown';
-    case 'research': return 'Research';
-    case 'idea-summary': return 'Summary';
-    case 'analysis': return 'Analysis';
-    case 'comparison': return 'Comparison';
-    default: return type;
+    case "code":
+      return "Code";
+    case "html":
+      return "HTML";
+    case "svg":
+      return "SVG";
+    case "mermaid":
+      return "Diagram";
+    case "react":
+      return "React";
+    case "text":
+      return "Text";
+    case "markdown":
+      return "Markdown";
+    case "research":
+      return "Research";
+    case "idea-summary":
+      return "Summary";
+    case "analysis":
+      return "Analysis";
+    case "comparison":
+      return "Comparison";
+    default:
+      return type;
   }
 }
 
@@ -211,8 +346,8 @@ function getTypeDisplayName(type: ArtifactType): string {
  * Extract filename from artifact
  */
 function extractFileName(artifact: Artifact): string {
-  if (artifact.title.includes('/')) {
-    const parts = artifact.title.split('/');
+  if (artifact.title.includes("/")) {
+    const parts = artifact.title.split("/");
     return parts[parts.length - 1];
   }
   return artifact.title;
@@ -250,7 +385,7 @@ function groupArtifactsBySession(artifacts: Artifact[]): SessionGroup[] {
 
     const sessionDate = getSessionDate(sessionArtifacts);
     const artifactCount = sessionArtifacts.length;
-    const displayName = `Session ${formatSessionDate(sessionDate)} (${artifactCount} artifact${artifactCount !== 1 ? 's' : ''})`;
+    const displayName = `Session ${formatSessionDate(sessionDate)} (${artifactCount} artifact${artifactCount !== 1 ? "s" : ""})`;
 
     groups.push({
       sessionId,
@@ -273,8 +408,8 @@ function groupArtifactsBySession(artifacts: Artifact[]): SessionGroup[] {
     });
 
     groups.push({
-      sessionId: '_template',
-      displayName: 'Template Files',
+      sessionId: "_template",
+      displayName: "Template Files",
       date: new Date(0), // Very old date to keep at bottom
       artifacts: templateArtifacts,
       isTemplate: true,
@@ -295,26 +430,26 @@ interface StatusBadgeProps {
 const StatusBadge: React.FC<StatusBadgeProps> = ({ classification }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
-  let bgColor = 'bg-gray-300';
-  let tooltip = 'Unknown';
+  let bgColor = "bg-gray-300";
+  let tooltip = "Unknown";
 
   if (classification) {
     const { classification: type, isComplete } = classification;
 
-    if (type === 'required') {
+    if (type === "required") {
       if (isComplete) {
-        bgColor = 'bg-yellow-400';
-        tooltip = 'Required - Complete';
+        bgColor = "bg-yellow-400";
+        tooltip = "Required - Complete";
       } else {
-        bgColor = 'bg-red-500';
-        tooltip = 'Required - Missing';
+        bgColor = "bg-red-500";
+        tooltip = "Required - Missing";
       }
-    } else if (type === 'recommended') {
-      bgColor = 'bg-blue-400';
-      tooltip = 'Recommended';
-    } else if (type === 'optional') {
-      bgColor = 'bg-gray-300';
-      tooltip = 'Optional';
+    } else if (type === "recommended") {
+      bgColor = "bg-blue-400";
+      tooltip = "Recommended";
+    } else if (type === "optional") {
+      bgColor = "bg-gray-300";
+      tooltip = "Optional";
     }
   }
 
@@ -372,9 +507,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
           {title}
         </h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
-          {message}
-        </p>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">{message}</p>
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
@@ -406,21 +539,26 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
   classifications = {},
 }) => {
   // Track expanded/collapsed state of sessions
-  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set(['_template']));
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(
+    new Set(["_template"]),
+  );
 
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     sessionId: string;
     artifactIds: string[];
-  }>({ isOpen: false, sessionId: '', artifactIds: [] });
+  }>({ isOpen: false, sessionId: "", artifactIds: [] });
 
   // Group artifacts by session
-  const sessionGroups = useMemo(() => groupArtifactsBySession(artifacts), [artifacts]);
+  const sessionGroups = useMemo(
+    () => groupArtifactsBySession(artifacts),
+    [artifacts],
+  );
 
   // Toggle session expanded/collapsed state
   const handleToggleSession = useCallback((sessionId: string) => {
-    setExpandedSessions(prev => {
+    setExpandedSessions((prev) => {
       const next = new Set(prev);
       if (next.has(sessionId)) {
         next.delete(sessionId);
@@ -432,25 +570,28 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
   }, []);
 
   // Handle delete session button click
-  const handleDeleteSessionClick = useCallback((sessionId: string, artifactIds: string[]) => {
-    setConfirmDialog({
-      isOpen: true,
-      sessionId,
-      artifactIds,
-    });
-  }, []);
+  const handleDeleteSessionClick = useCallback(
+    (sessionId: string, artifactIds: string[]) => {
+      setConfirmDialog({
+        isOpen: true,
+        sessionId,
+        artifactIds,
+      });
+    },
+    [],
+  );
 
   // Confirm deletion
   const handleConfirmDelete = useCallback(() => {
     if (onDeleteSession && confirmDialog.sessionId) {
       onDeleteSession(confirmDialog.sessionId, confirmDialog.artifactIds);
     }
-    setConfirmDialog({ isOpen: false, sessionId: '', artifactIds: [] });
+    setConfirmDialog({ isOpen: false, sessionId: "", artifactIds: [] });
   }, [onDeleteSession, confirmDialog]);
 
   // Cancel deletion
   const handleCancelDelete = useCallback(() => {
-    setConfirmDialog({ isOpen: false, sessionId: '', artifactIds: [] });
+    setConfirmDialog({ isOpen: false, sessionId: "", artifactIds: [] });
   }, []);
 
   if (artifacts.length === 0) {
@@ -468,19 +609,19 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
     <div data-testid="sessions-view" className="w-full overflow-auto">
       {sessionGroups.map((group) => {
         const isExpanded = expandedSessions.has(group.sessionId);
-        const artifactIds = group.artifacts.map(a => a.id);
+        const artifactIds = group.artifacts.map((a) => a.id);
 
         return (
           <div
             key={group.sessionId}
-            data-testid={group.isTemplate ? 'template-files-group' : 'session-group'}
+            data-testid={
+              group.isTemplate ? "template-files-group" : "session-group"
+            }
             aria-expanded={isExpanded}
             className="border-b border-gray-200 dark:border-gray-700 last:border-b-0"
           >
             {/* Session Header */}
-            <div
-              className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
+            <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <button
                 data-testid="session-toggle"
                 onClick={() => handleToggleSession(group.sessionId)}
@@ -519,18 +660,29 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
               <table className="w-full text-sm">
                 <thead className="bg-gray-100 dark:bg-gray-900/50">
                   <tr>
-                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs">Name</th>
-                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs w-20">Date</th>
-                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs w-20">Type</th>
-                    <th className="text-center px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs w-14">Status</th>
+                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs">
+                      Name
+                    </th>
+                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs w-20">
+                      Date
+                    </th>
+                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs w-20">
+                      Type
+                    </th>
+                    <th className="text-center px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs w-14">
+                      Status
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {group.artifacts.map((artifact, index) => {
-                    const isSelected = artifact.id === selectedPath ||
-                                       artifact.title === selectedPath ||
-                                       artifact.identifier === selectedPath;
-                    const classification = classifications[artifact.id] || classifications[artifact.title];
+                    const isSelected =
+                      artifact.id === selectedPath ||
+                      artifact.title === selectedPath ||
+                      artifact.identifier === selectedPath;
+                    const classification =
+                      classifications[artifact.id] ||
+                      classifications[artifact.title];
 
                     return (
                       <tr
@@ -542,7 +694,7 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
                         onClick={() => onSelect(artifact)}
                         className={`
                           cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0
-                          ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30 selected' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}
+                          ${isSelected ? "bg-blue-50 dark:bg-blue-900/30 selected" : "hover:bg-gray-50 dark:hover:bg-gray-800"}
                         `}
                       >
                         <td className="px-3 py-1.5">
@@ -552,7 +704,7 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
                             </span>
                             <span
                               data-testid="artifact-name"
-                              className={`truncate ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}
+                              className={`truncate ${isSelected ? "text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-gray-100"}`}
                               title={artifact.title}
                             >
                               {extractFileName(artifact)}
@@ -560,7 +712,9 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
                           </div>
                         </td>
                         <td className="px-3 py-1.5 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
-                          {formatRelativeDate(artifact.updatedAt || artifact.createdAt)}
+                          {formatRelativeDate(
+                            artifact.updatedAt || artifact.createdAt,
+                          )}
                         </td>
                         <td className="px-3 py-1.5 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
                           {getTypeDisplayName(artifact.type)}
@@ -582,7 +736,7 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
         title="Delete Session"
-        message={`Are you sure you want to delete this session and all ${confirmDialog.artifactIds.length} artifact${confirmDialog.artifactIds.length !== 1 ? 's' : ''}? This action cannot be undone.`}
+        message={`Are you sure you want to delete this session and all ${confirmDialog.artifactIds.length} artifact${confirmDialog.artifactIds.length !== 1 ? "s" : ""}? This action cannot be undone.`}
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />

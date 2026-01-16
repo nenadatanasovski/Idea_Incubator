@@ -1,9 +1,14 @@
 // agents/ux/journey-runner.ts - Execute user journeys step by step
 
-import { v4 as uuid } from 'uuid';
-import { Journey, JourneyStep, StepResult, UXRunResult } from '../../types/ux.js';
-import { MCPBridge } from './mcp-bridge.js';
-import { ScreenshotManager } from './screenshot-manager.js';
+import { v4 as uuid } from "uuid";
+import {
+  Journey,
+  JourneyStep,
+  StepResult,
+  UXRunResult,
+} from "../../types/ux.js";
+import { MCPBridge } from "./mcp-bridge.js";
+import { ScreenshotManager } from "./screenshot-manager.js";
 
 const DEFAULT_STEP_TIMEOUT = 10000;
 const DEFAULT_JOURNEY_TIMEOUT = 60000;
@@ -19,7 +24,7 @@ export interface RunJourneyOptions {
 async function waitForElement(
   bridge: MCPBridge,
   selector: string,
-  timeout: number
+  timeout: number,
 ): Promise<void> {
   const found = await bridge.waitForSelector(selector, timeout);
   if (!found) {
@@ -33,7 +38,7 @@ async function waitForElement(
 export async function runJourney(
   journey: Journey,
   bridge: MCPBridge,
-  options: RunJourneyOptions = {}
+  options: RunJourneyOptions = {},
 ): Promise<UXRunResult> {
   const runId = uuid();
   const startedAt = new Date().toISOString();
@@ -43,10 +48,10 @@ export async function runJourney(
   const steps: StepResult[] = [];
   const screenshots: string[] = [];
   let passed = true;
-  let status: 'completed' | 'failed' | 'timeout' = 'completed';
+  let status: "completed" | "failed" | "timeout" = "completed";
 
-  const timeoutPromise = new Promise<'timeout'>((resolve) => {
-    setTimeout(() => resolve('timeout'), journeyTimeout);
+  const timeoutPromise = new Promise<"timeout">((resolve) => {
+    setTimeout(() => resolve("timeout"), journeyTimeout);
   });
 
   try {
@@ -60,15 +65,15 @@ export async function runJourney(
         timeoutPromise,
       ]);
 
-      if (stepResultOrTimeout === 'timeout') {
-        status = 'timeout';
+      if (stepResultOrTimeout === "timeout") {
+        status = "timeout";
         passed = false;
         steps.push({
           stepIndex: i,
           action: step.action,
           target: step.target,
-          status: 'failed',
-          error: 'Journey timeout exceeded',
+          status: "failed",
+          error: "Journey timeout exceeded",
           durationMs: 0,
         });
         break;
@@ -81,9 +86,9 @@ export async function runJourney(
         screenshots.push(stepResult.screenshotPath);
       }
 
-      if (stepResult.status === 'failed') {
+      if (stepResult.status === "failed") {
         passed = false;
-        status = 'failed';
+        status = "failed";
 
         if (options.screenshotOnFailure) {
           try {
@@ -91,7 +96,7 @@ export async function runJourney(
               bridge,
               runId,
               i,
-              'failure'
+              "failure",
             );
             screenshots.push(failScreenshot);
           } catch {
@@ -104,19 +109,20 @@ export async function runJourney(
     }
   } catch (error) {
     passed = false;
-    status = 'failed';
+    status = "failed";
     steps.push({
       stepIndex: steps.length,
-      action: 'navigate',
+      action: "navigate",
       target: journey.startUrl,
-      status: 'failed',
+      status: "failed",
       error: (error as Error).message,
       durationMs: 0,
     });
   }
 
   const completedAt = new Date().toISOString();
-  const durationMs = new Date(completedAt).getTime() - new Date(startedAt).getTime();
+  const durationMs =
+    new Date(completedAt).getTime() - new Date(startedAt).getTime();
 
   return {
     id: runId,
@@ -140,19 +146,26 @@ async function executeStep(
   index: number,
   bridge: MCPBridge,
   screenshotManager: ScreenshotManager,
-  runId: string
+  runId: string,
 ): Promise<StepResult> {
   const startTime = Date.now();
   const timeout = step.timeout || DEFAULT_STEP_TIMEOUT;
 
   try {
-    const screenshotPath = await executeStepAction(step, bridge, screenshotManager, runId, index, timeout);
+    const screenshotPath = await executeStepAction(
+      step,
+      bridge,
+      screenshotManager,
+      runId,
+      index,
+      timeout,
+    );
 
     return {
       stepIndex: index,
       action: step.action,
       target: step.target,
-      status: 'passed',
+      status: "passed",
       screenshotPath,
       durationMs: Date.now() - startTime,
     };
@@ -161,7 +174,7 @@ async function executeStep(
       stepIndex: index,
       action: step.action,
       target: step.target,
-      status: 'failed',
+      status: "failed",
       error: (error as Error).message,
       durationMs: Date.now() - startTime,
     };
@@ -177,37 +190,37 @@ async function executeStepAction(
   screenshotManager: ScreenshotManager,
   runId: string,
   index: number,
-  timeout: number
+  timeout: number,
 ): Promise<string | undefined> {
   switch (step.action) {
-    case 'navigate':
+    case "navigate":
       await bridge.navigate(step.target!);
       return undefined;
 
-    case 'click':
+    case "click":
       await waitForElement(bridge, step.target!, timeout);
       await bridge.click(step.target!);
       return undefined;
 
-    case 'type':
+    case "type":
       await waitForElement(bridge, step.target!, timeout);
       await bridge.type(step.target!, step.value!);
       return undefined;
 
-    case 'select':
+    case "select":
       await waitForElement(bridge, step.target!, timeout);
       await bridge.select(step.target!, step.value!);
       return undefined;
 
-    case 'wait':
+    case "wait":
       await waitForElement(bridge, step.target!, timeout);
       return undefined;
 
-    case 'assert':
+    case "assert":
       await executeAssert(step.target!, step.value!, bridge, timeout);
       return undefined;
 
-    case 'screenshot':
+    case "screenshot":
       return screenshotManager.capture(bridge, runId, index, step.description);
   }
 }
@@ -219,7 +232,7 @@ async function executeAssert(
   selector: string,
   expectedValue: string,
   bridge: MCPBridge,
-  timeout: number
+  timeout: number,
 ): Promise<void> {
   await waitForElement(bridge, selector, timeout);
 
@@ -230,7 +243,7 @@ async function executeAssert(
 
   if (!actualValue.includes(expectedValue)) {
     throw new Error(
-      `Assertion failed: expected "${selector}" to contain "${expectedValue}", got "${actualValue}"`
+      `Assertion failed: expected "${selector}" to contain "${expectedValue}", got "${actualValue}"`,
     );
   }
 }

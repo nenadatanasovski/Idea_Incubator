@@ -6,12 +6,15 @@
  * serves as a regenerable cache for fast UI loading.
  */
 
-import * as yaml from 'yaml';
-import * as fs from 'fs';
-import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { getConfig } from '../../config/index.js';
-import { createUserFolder, createIdeaFolder as createIdeaFolderFromUtils } from '../../utils/folder-structure.js';
+import * as yaml from "yaml";
+import * as fs from "fs";
+import * as path from "path";
+import { v4 as uuidv4 } from "uuid";
+import { getConfig } from "../../config/index.js";
+import {
+  createUserFolder,
+  createIdeaFolder as createIdeaFolderFromUtils,
+} from "../../utils/folder-structure.js";
 
 // Re-export createIdeaFolder for convenient access
 export { createIdeaFolderFromUtils as createIdeaFolder };
@@ -20,14 +23,14 @@ export { createIdeaFolderFromUtils as createIdeaFolder };
  * Supported artifact types
  */
 export type ArtifactType =
-  | 'research'
-  | 'mermaid'
-  | 'markdown'
-  | 'code'
-  | 'analysis'
-  | 'comparison'
-  | 'idea-summary'
-  | 'template';
+  | "research"
+  | "mermaid"
+  | "markdown"
+  | "code"
+  | "analysis"
+  | "comparison"
+  | "idea-summary"
+  | "template";
 
 /**
  * Metadata stored in YAML frontmatter of artifact files
@@ -80,7 +83,7 @@ export interface UnifiedArtifact {
   /** Estimated token count for the artifact content */
   tokenCount: number;
   /** Current status of the artifact */
-  status: 'ready' | 'updating' | 'error';
+  status: "ready" | "updating" | "error";
   /** ISO timestamp when created */
   createdAt: string;
   /** ISO timestamp when last updated */
@@ -179,13 +182,13 @@ export interface ParsedFrontmatter {
  */
 export function parseFrontmatter(content: string): ParsedFrontmatter {
   // Handle empty content
-  if (!content || content.trim() === '') {
-    return { metadata: {}, body: '' };
+  if (!content || content.trim() === "") {
+    return { metadata: {}, body: "" };
   }
 
   // Check if content starts with frontmatter delimiter
   const trimmedContent = content.trimStart();
-  if (!trimmedContent.startsWith('---')) {
+  if (!trimmedContent.startsWith("---")) {
     // No frontmatter, return full content as body
     return { metadata: {}, body: content };
   }
@@ -197,13 +200,13 @@ export function parseFrontmatter(content: string): ParsedFrontmatter {
   // ---
   // body content
 
-  const lines = content.split('\n');
+  const lines = content.split("\n");
   let frontmatterStartIndex = -1;
   let frontmatterEndIndex = -1;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (line === '---') {
+    if (line === "---") {
       if (frontmatterStartIndex === -1) {
         frontmatterStartIndex = i;
       } else {
@@ -220,18 +223,18 @@ export function parseFrontmatter(content: string): ParsedFrontmatter {
 
   // Extract YAML content between delimiters
   const yamlLines = lines.slice(frontmatterStartIndex + 1, frontmatterEndIndex);
-  const yamlContent = yamlLines.join('\n');
+  const yamlContent = yamlLines.join("\n");
 
   // Extract body content after closing delimiter
   const bodyLines = lines.slice(frontmatterEndIndex + 1);
   // Remove leading empty line if present (common formatting)
-  let body = bodyLines.join('\n');
-  if (body.startsWith('\n')) {
+  let body = bodyLines.join("\n");
+  if (body.startsWith("\n")) {
     body = body.slice(1);
   }
 
   // If YAML content is empty, return empty metadata
-  if (yamlContent.trim() === '') {
+  if (yamlContent.trim() === "") {
     return { metadata: {}, body };
   }
 
@@ -240,11 +243,12 @@ export function parseFrontmatter(content: string): ParsedFrontmatter {
     const parsed = yaml.parse(yamlContent);
 
     // Ensure we return an object even if YAML parses to null
-    const metadata: Partial<ArtifactMetadata> = parsed && typeof parsed === 'object' ? parsed : {};
+    const metadata: Partial<ArtifactMetadata> =
+      parsed && typeof parsed === "object" ? parsed : {};
 
     return { metadata, body };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = error instanceof Error ? error.message : "Unknown error";
     throw new Error(`Invalid YAML in frontmatter: ${message}`);
   }
 }
@@ -264,18 +268,20 @@ export function parseFrontmatter(content: string): ParsedFrontmatter {
  * @param metadata - The metadata object to convert to frontmatter
  * @returns YAML frontmatter string with `---` delimiters
  */
-export function generateFrontmatter(metadata: Partial<ArtifactMetadata>): string {
+export function generateFrontmatter(
+  metadata: Partial<ArtifactMetadata>,
+): string {
   // Handle empty metadata - return minimal valid frontmatter
   if (!metadata || Object.keys(metadata).length === 0) {
-    return '---\n---\n';
+    return "---\n---\n";
   }
 
   // Convert metadata to YAML
   const yamlContent = yaml.stringify(metadata, {
     // Use double quotes for strings when needed
-    defaultStringType: 'PLAIN',
+    defaultStringType: "PLAIN",
     // Don't add document markers within the yaml content
-    defaultKeyType: 'PLAIN',
+    defaultKeyType: "PLAIN",
     // Line width for wrapping
     lineWidth: 0, // Disable line wrapping to preserve values
   });
@@ -366,13 +372,15 @@ function findSplitPoints(content: string): string[] {
   // If no headings found, suggest splitting by paragraphs
   if (headings.length === 0) {
     // Find paragraph breaks (double newlines)
-    const paragraphs = content.split(/\n\n+/).filter((p) => p.trim().length > 0);
+    const paragraphs = content
+      .split(/\n\n+/)
+      .filter((p) => p.trim().length > 0);
     if (paragraphs.length > 1) {
       // Return first few words of each paragraph as potential split points
       return paragraphs.slice(0, 5).map((p) => {
-        const firstLine = p.split('\n')[0];
+        const firstLine = p.split("\n")[0];
         const words = firstLine.trim().split(/\s+/).slice(0, 5);
-        return words.join(' ') + '...';
+        return words.join(" ") + "...";
       });
     }
   }
@@ -413,7 +421,7 @@ function getUsersRoot(): string {
   const config = getConfig();
   // Users directory is at the same level as ideas directory
   const projectRoot = path.dirname(config.paths.ideas);
-  return path.join(projectRoot, 'users');
+  return path.join(projectRoot, "users");
 }
 
 /**
@@ -427,25 +435,25 @@ function generateFilePath(type: ArtifactType, title: string): string {
   // Convert title to slug
   const slug = title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 
   // Map types to subdirectories
   const typeToDir: Record<ArtifactType, string> = {
-    research: 'research',
-    mermaid: 'assets/diagrams',
-    markdown: '',
-    code: 'build',
-    analysis: 'analysis',
-    comparison: 'analysis',
-    'idea-summary': '',
-    template: '',
+    research: "research",
+    mermaid: "assets/diagrams",
+    markdown: "",
+    code: "build",
+    analysis: "analysis",
+    comparison: "analysis",
+    "idea-summary": "",
+    template: "",
   };
 
-  const dir = typeToDir[type] || '';
-  const extension = type === 'mermaid' ? '.mmd' : '.md';
+  const dir = typeToDir[type] || "";
+  const extension = type === "mermaid" ? ".mmd" : ".md";
   const fileName = `${slug}${extension}`;
 
   return dir ? `${dir}/${fileName}` : fileName;
@@ -459,10 +467,10 @@ function generateFilePath(type: ArtifactType, title: string): string {
  */
 async function updateCacheWithArtifact(
   ideaFolder: string,
-  artifact: UnifiedArtifact
+  artifact: UnifiedArtifact,
 ): Promise<void> {
-  const metadataFolder = path.join(ideaFolder, '.metadata');
-  const indexPath = path.join(metadataFolder, 'index.json');
+  const metadataFolder = path.join(ideaFolder, ".metadata");
+  const indexPath = path.join(metadataFolder, "index.json");
 
   // Ensure .metadata directory exists
   if (!fs.existsSync(metadataFolder)) {
@@ -473,7 +481,7 @@ async function updateCacheWithArtifact(
   let cache: ArtifactCacheIndex;
   try {
     if (fs.existsSync(indexPath)) {
-      const content = fs.readFileSync(indexPath, 'utf-8');
+      const content = fs.readFileSync(indexPath, "utf-8");
       const parsed = JSON.parse(content);
       // Handle both old format (empty object) and new format
       cache = parsed.artifacts
@@ -507,7 +515,7 @@ async function updateCacheWithArtifact(
   cache.updatedAt = new Date().toISOString();
 
   // Write cache
-  fs.writeFileSync(indexPath, JSON.stringify(cache, null, 2), 'utf-8');
+  fs.writeFileSync(indexPath, JSON.stringify(cache, null, 2), "utf-8");
 }
 
 /**
@@ -524,10 +532,10 @@ async function updateCacheWithArtifact(
 export async function saveArtifact(
   userSlug: string,
   ideaSlug: string,
-  input: CreateArtifactInput
+  input: CreateArtifactInput,
 ): Promise<UnifiedArtifact> {
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 
   // Ensure user folder exists
   await createUserFolder(userSlug);
@@ -547,7 +555,7 @@ export async function saveArtifact(
 
   if (fs.existsSync(absolutePath)) {
     try {
-      const existingContent = fs.readFileSync(absolutePath, 'utf-8');
+      const existingContent = fs.readFileSync(absolutePath, "utf-8");
       const { metadata } = parseFrontmatter(existingContent);
       existingId = metadata.id;
       existingCreatedAt = metadata.createdAt;
@@ -601,7 +609,7 @@ export async function saveArtifact(
   }
 
   // Write file
-  fs.writeFileSync(absolutePath, fileContent, 'utf-8');
+  fs.writeFileSync(absolutePath, fileContent, "utf-8");
 
   // Build artifact result
   const artifact: UnifiedArtifact = {
@@ -613,7 +621,7 @@ export async function saveArtifact(
     title: input.title,
     filePath,
     tokenCount,
-    status: 'ready',
+    status: "ready",
     createdAt,
     updatedAt,
   };
@@ -636,12 +644,12 @@ export async function saveArtifact(
  */
 function normalizeFilePath(filePath: string): string {
   // Remove leading slashes
-  let normalized = filePath.replace(/^\/+/, '');
+  let normalized = filePath.replace(/^\/+/, "");
 
   // If the path doesn't have an extension, add .md
   // (unless it already ends with .mmd for mermaid diagrams)
   if (!path.extname(normalized)) {
-    normalized = normalized + '.md';
+    normalized = normalized + ".md";
   }
 
   return normalized;
@@ -661,10 +669,10 @@ function normalizeFilePath(filePath: string): string {
 export async function loadArtifact(
   userSlug: string,
   ideaSlug: string,
-  filePath: string
+  filePath: string,
 ): Promise<UnifiedArtifact | null> {
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 
   // Normalize the file path
   const normalizedPath = normalizeFilePath(filePath);
@@ -678,7 +686,7 @@ export async function loadArtifact(
   // Read file content
   let content: string;
   try {
-    content = fs.readFileSync(absolutePath, 'utf-8');
+    content = fs.readFileSync(absolutePath, "utf-8");
   } catch {
     // If we can't read the file for any reason, return null
     return null;
@@ -695,8 +703,10 @@ export async function loadArtifact(
 
   // Generate default metadata for files without proper frontmatter
   const id = metadata.id || uuidv4();
-  const title = metadata.title || path.basename(normalizedPath, path.extname(normalizedPath));
-  const type: ArtifactType = (metadata.type as ArtifactType) || 'markdown';
+  const title =
+    metadata.title ||
+    path.basename(normalizedPath, path.extname(normalizedPath));
+  const type: ArtifactType = (metadata.type as ArtifactType) || "markdown";
   const createdAt = metadata.createdAt || stats.birthtime.toISOString();
   const updatedAt = metadata.updatedAt || stats.mtime.toISOString();
 
@@ -710,7 +720,7 @@ export async function loadArtifact(
     title,
     filePath: normalizedPath,
     tokenCount,
-    status: 'ready',
+    status: "ready",
     createdAt,
     updatedAt,
   };
@@ -725,18 +735,18 @@ export async function loadArtifact(
  * @returns The cache index or null if not available/invalid
  */
 function readCacheIndex(ideaFolder: string): ArtifactCacheIndex | null {
-  const indexPath = path.join(ideaFolder, '.metadata', 'index.json');
+  const indexPath = path.join(ideaFolder, ".metadata", "index.json");
 
   if (!fs.existsSync(indexPath)) {
     return null;
   }
 
   try {
-    const content = fs.readFileSync(indexPath, 'utf-8');
+    const content = fs.readFileSync(indexPath, "utf-8");
     const parsed = JSON.parse(content);
 
     // Handle both old format (just artifacts object) and new format (with updatedAt)
-    if (parsed.artifacts && typeof parsed.artifacts === 'object') {
+    if (parsed.artifacts && typeof parsed.artifacts === "object") {
       return parsed as ArtifactCacheIndex;
     }
 
@@ -761,7 +771,7 @@ function readCacheIndex(ideaFolder: string): ArtifactCacheIndex | null {
 function findMarkdownFilesRecursively(
   dir: string,
   baseDir: string,
-  excludeDirs: string[] = ['.metadata', '.versions']
+  excludeDirs: string[] = [".metadata", ".versions"],
 ): string[] {
   const results: string[] = [];
 
@@ -781,11 +791,13 @@ function findMarkdownFilesRecursively(
         continue;
       }
       // Recurse into subdirectory
-      results.push(...findMarkdownFilesRecursively(fullPath, baseDir, excludeDirs));
+      results.push(
+        ...findMarkdownFilesRecursively(fullPath, baseDir, excludeDirs),
+      );
     } else if (entry.isFile()) {
       // Include markdown and mermaid files
       const ext = path.extname(entry.name).toLowerCase();
-      if (ext === '.md' || ext === '.mmd') {
+      if (ext === ".md" || ext === ".mmd") {
         results.push(relativePath);
       }
     }
@@ -805,7 +817,7 @@ function findMarkdownFilesRecursively(
 async function buildCacheFromFilesystem(
   userSlug: string,
   ideaSlug: string,
-  ideaFolder: string
+  ideaFolder: string,
 ): Promise<UnifiedArtifact[]> {
   const artifacts: UnifiedArtifact[] = [];
   const filePaths = findMarkdownFilesRecursively(ideaFolder, ideaFolder);
@@ -818,8 +830,8 @@ async function buildCacheFromFilesystem(
   }
 
   // Update the cache with all found artifacts
-  const metadataFolder = path.join(ideaFolder, '.metadata');
-  const indexPath = path.join(metadataFolder, 'index.json');
+  const metadataFolder = path.join(ideaFolder, ".metadata");
+  const indexPath = path.join(metadataFolder, "index.json");
 
   // Ensure .metadata directory exists
   if (!fs.existsSync(metadataFolder)) {
@@ -845,7 +857,7 @@ async function buildCacheFromFilesystem(
   }
 
   // Write cache
-  fs.writeFileSync(indexPath, JSON.stringify(cache, null, 2), 'utf-8');
+  fs.writeFileSync(indexPath, JSON.stringify(cache, null, 2), "utf-8");
 
   return artifacts;
 }
@@ -863,10 +875,10 @@ async function buildCacheFromFilesystem(
  */
 export async function listArtifacts(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<UnifiedArtifact[]> {
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 
   // If folder doesn't exist, return empty array (no throw)
   if (!fs.existsSync(ideaFolder)) {
@@ -889,7 +901,7 @@ export async function listArtifacts(
       title: entry.title,
       filePath: entry.filePath,
       tokenCount: entry.tokenCount,
-      status: 'ready' as const,
+      status: "ready" as const,
       createdAt: entry.updatedAt, // Cache doesn't store createdAt, use updatedAt
       updatedAt: entry.updatedAt,
     }));
@@ -914,8 +926,11 @@ export async function listArtifacts(
  * @param ideaFolder - Absolute path to the idea folder
  * @param filePath - Relative file path of the artifact to remove
  */
-async function removeCacheEntryInternal(ideaFolder: string, filePath: string): Promise<void> {
-  const indexPath = path.join(ideaFolder, '.metadata', 'index.json');
+async function removeCacheEntryInternal(
+  ideaFolder: string,
+  filePath: string,
+): Promise<void> {
+  const indexPath = path.join(ideaFolder, ".metadata", "index.json");
 
   // If cache doesn't exist, nothing to do
   if (!fs.existsSync(indexPath)) {
@@ -923,12 +938,12 @@ async function removeCacheEntryInternal(ideaFolder: string, filePath: string): P
   }
 
   try {
-    const content = fs.readFileSync(indexPath, 'utf-8');
+    const content = fs.readFileSync(indexPath, "utf-8");
     const parsed = JSON.parse(content);
 
     // Handle both old format (just artifacts object) and new format (with updatedAt)
     let cache: ArtifactCacheIndex;
-    if (parsed.artifacts && typeof parsed.artifacts === 'object') {
+    if (parsed.artifacts && typeof parsed.artifacts === "object") {
       cache = parsed as ArtifactCacheIndex;
     } else {
       // Old format - convert
@@ -945,7 +960,7 @@ async function removeCacheEntryInternal(ideaFolder: string, filePath: string): P
       // Update timestamp and write back
       cache.updatedAt = new Date().toISOString();
 
-      fs.writeFileSync(indexPath, JSON.stringify(cache, null, 2), 'utf-8');
+      fs.writeFileSync(indexPath, JSON.stringify(cache, null, 2), "utf-8");
     }
   } catch {
     // If we can't update the cache, just continue
@@ -967,10 +982,10 @@ async function removeCacheEntryInternal(ideaFolder: string, filePath: string): P
 export async function deleteArtifact(
   userSlug: string,
   ideaSlug: string,
-  filePath: string
+  filePath: string,
 ): Promise<boolean> {
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 
   // Normalize the file path
   const normalizedPath = normalizeFilePath(filePath);
@@ -1015,9 +1030,12 @@ export async function deleteArtifact(
  * @param userSlug - The user slug (owner)
  * @param ideaSlug - The idea slug
  */
-export async function rebuildCache(userSlug: string, ideaSlug: string): Promise<void> {
+export async function rebuildCache(
+  userSlug: string,
+  ideaSlug: string,
+): Promise<void> {
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 
   // If folder doesn't exist, create empty cache
   if (!fs.existsSync(ideaFolder)) {
@@ -1025,7 +1043,10 @@ export async function rebuildCache(userSlug: string, ideaSlug: string): Promise<
   }
 
   // Find all markdown files, excluding .metadata and .versions directories
-  const filePaths = findMarkdownFilesRecursively(ideaFolder, ideaFolder, ['.metadata', '.versions']);
+  const filePaths = findMarkdownFilesRecursively(ideaFolder, ideaFolder, [
+    ".metadata",
+    ".versions",
+  ]);
 
   // Build cache index
   const cache: ArtifactCacheIndex = {
@@ -1038,7 +1059,7 @@ export async function rebuildCache(userSlug: string, ideaSlug: string): Promise<
     const absolutePath = path.join(ideaFolder, filePath);
 
     try {
-      const content = fs.readFileSync(absolutePath, 'utf-8');
+      const content = fs.readFileSync(absolutePath, "utf-8");
       const { metadata, body } = parseFrontmatter(content);
 
       // Get file stats for fallback timestamps
@@ -1049,8 +1070,9 @@ export async function rebuildCache(userSlug: string, ideaSlug: string): Promise<
 
       // Generate entry - use metadata values or inferred defaults
       const id = metadata.id || uuidv4();
-      const title = metadata.title || path.basename(filePath, path.extname(filePath));
-      const type: ArtifactType = (metadata.type as ArtifactType) || 'markdown';
+      const title =
+        metadata.title || path.basename(filePath, path.extname(filePath));
+      const type: ArtifactType = (metadata.type as ArtifactType) || "markdown";
       const updatedAt = metadata.updatedAt || stats.mtime.toISOString();
 
       // Build cache entry
@@ -1070,14 +1092,14 @@ export async function rebuildCache(userSlug: string, ideaSlug: string): Promise<
   }
 
   // Ensure .metadata directory exists
-  const metadataFolder = path.join(ideaFolder, '.metadata');
+  const metadataFolder = path.join(ideaFolder, ".metadata");
   if (!fs.existsSync(metadataFolder)) {
     fs.mkdirSync(metadataFolder, { recursive: true });
   }
 
   // Write cache
-  const indexPath = path.join(metadataFolder, 'index.json');
-  fs.writeFileSync(indexPath, JSON.stringify(cache, null, 2), 'utf-8');
+  const indexPath = path.join(metadataFolder, "index.json");
+  fs.writeFileSync(indexPath, JSON.stringify(cache, null, 2), "utf-8");
 }
 
 /**
@@ -1093,14 +1115,14 @@ export async function rebuildCache(userSlug: string, ideaSlug: string): Promise<
 export async function updateCacheEntry(
   userSlug: string,
   ideaSlug: string,
-  artifact: UnifiedArtifact
+  artifact: UnifiedArtifact,
 ): Promise<void> {
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 
-  const metadataFolder = path.join(ideaFolder, '.metadata');
-  const indexPath = path.join(metadataFolder, 'index.json');
-  const tempPath = path.join(metadataFolder, 'index.json.tmp');
+  const metadataFolder = path.join(ideaFolder, ".metadata");
+  const indexPath = path.join(metadataFolder, "index.json");
+  const tempPath = path.join(metadataFolder, "index.json.tmp");
 
   // Ensure .metadata directory exists
   if (!fs.existsSync(metadataFolder)) {
@@ -1111,7 +1133,7 @@ export async function updateCacheEntry(
   let cache: ArtifactCacheIndex;
   try {
     if (fs.existsSync(indexPath)) {
-      const content = fs.readFileSync(indexPath, 'utf-8');
+      const content = fs.readFileSync(indexPath, "utf-8");
       const parsed = JSON.parse(content);
       // Handle both old format (empty object) and new format
       cache = parsed.artifacts
@@ -1146,7 +1168,7 @@ export async function updateCacheEntry(
 
   // Atomic write: write to temp file first, then rename
   const cacheContent = JSON.stringify(cache, null, 2);
-  fs.writeFileSync(tempPath, cacheContent, 'utf-8');
+  fs.writeFileSync(tempPath, cacheContent, "utf-8");
   fs.renameSync(tempPath, indexPath);
 }
 
@@ -1163,14 +1185,14 @@ export async function updateCacheEntry(
 export async function removeCacheEntry(
   userSlug: string,
   ideaSlug: string,
-  filePath: string
+  filePath: string,
 ): Promise<void> {
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 
-  const metadataFolder = path.join(ideaFolder, '.metadata');
-  const indexPath = path.join(metadataFolder, 'index.json');
-  const tempPath = path.join(metadataFolder, 'index.json.tmp');
+  const metadataFolder = path.join(ideaFolder, ".metadata");
+  const indexPath = path.join(metadataFolder, "index.json");
+  const tempPath = path.join(metadataFolder, "index.json.tmp");
 
   // If cache doesn't exist, nothing to do
   if (!fs.existsSync(indexPath)) {
@@ -1178,12 +1200,12 @@ export async function removeCacheEntry(
   }
 
   try {
-    const content = fs.readFileSync(indexPath, 'utf-8');
+    const content = fs.readFileSync(indexPath, "utf-8");
     const parsed = JSON.parse(content);
 
     // Handle both old format (just artifacts object) and new format (with updatedAt)
     let cache: ArtifactCacheIndex;
-    if (parsed.artifacts && typeof parsed.artifacts === 'object') {
+    if (parsed.artifacts && typeof parsed.artifacts === "object") {
       cache = parsed as ArtifactCacheIndex;
     } else {
       // Old format - convert
@@ -1205,7 +1227,7 @@ export async function removeCacheEntry(
 
       // Atomic write: write to temp file first, then rename
       const cacheContent = JSON.stringify(cache, null, 2);
-      fs.writeFileSync(tempPath, cacheContent, 'utf-8');
+      fs.writeFileSync(tempPath, cacheContent, "utf-8");
       fs.renameSync(tempPath, indexPath);
     }
   } catch {
@@ -1228,12 +1250,12 @@ export async function removeCacheEntry(
  */
 export async function isCacheValid(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<boolean> {
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 
-  const indexPath = path.join(ideaFolder, '.metadata', 'index.json');
+  const indexPath = path.join(ideaFolder, ".metadata", "index.json");
 
   // If cache file doesn't exist, it's not valid
   if (!fs.existsSync(indexPath)) {
@@ -1243,11 +1265,15 @@ export async function isCacheValid(
   // Read and parse the cache to get its timestamp
   let cache: ArtifactCacheIndex;
   try {
-    const content = fs.readFileSync(indexPath, 'utf-8');
+    const content = fs.readFileSync(indexPath, "utf-8");
     const parsed = JSON.parse(content);
 
     // Handle both old format and new format
-    if (parsed.artifacts && typeof parsed.artifacts === 'object' && parsed.updatedAt) {
+    if (
+      parsed.artifacts &&
+      typeof parsed.artifacts === "object" &&
+      parsed.updatedAt
+    ) {
       cache = parsed as ArtifactCacheIndex;
     } else {
       // Old format without updatedAt - consider invalid
@@ -1277,7 +1303,10 @@ export async function isCacheValid(
   }
 
   // Find all markdown files and check their modification times
-  const filePaths = findMarkdownFilesRecursively(ideaFolder, ideaFolder, ['.metadata', '.versions']);
+  const filePaths = findMarkdownFilesRecursively(ideaFolder, ideaFolder, [
+    ".metadata",
+    ".versions",
+  ]);
 
   for (const filePath of filePaths) {
     const absolutePath = path.join(ideaFolder, filePath);
@@ -1316,10 +1345,10 @@ export async function isCacheValid(
 export async function deleteSessionArtifacts(
   userSlug: string,
   ideaSlug: string,
-  sessionId: string
+  sessionId: string,
 ): Promise<number> {
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 
   // If folder doesn't exist, return 0 (no throw)
   if (!fs.existsSync(ideaFolder)) {
@@ -1337,7 +1366,7 @@ export async function deleteSessionArtifacts(
 
     try {
       // Read and parse the file to check its sessionId
-      const content = fs.readFileSync(absolutePath, 'utf-8');
+      const content = fs.readFileSync(absolutePath, "utf-8");
       const { metadata } = parseFrontmatter(content);
 
       // Only delete files with matching sessionId
@@ -1378,11 +1407,11 @@ export async function deleteSessionArtifacts(
 export async function renameIdeaFolder(
   userSlug: string,
   oldSlug: string,
-  newSlug: string
+  newSlug: string,
 ): Promise<void> {
   const usersRoot = getUsersRoot();
-  const oldPath = path.resolve(usersRoot, userSlug, 'ideas', oldSlug);
-  const newPath = path.resolve(usersRoot, userSlug, 'ideas', newSlug);
+  const oldPath = path.resolve(usersRoot, userSlug, "ideas", oldSlug);
+  const newPath = path.resolve(usersRoot, userSlug, "ideas", newSlug);
 
   // Verify old folder exists
   if (!fs.existsSync(oldPath)) {
@@ -1398,14 +1427,17 @@ export async function renameIdeaFolder(
   fs.renameSync(oldPath, newPath);
 
   // Find all markdown files and update frontmatter
-  const filePaths = findMarkdownFilesRecursively(newPath, newPath, ['.metadata', '.versions']);
+  const filePaths = findMarkdownFilesRecursively(newPath, newPath, [
+    ".metadata",
+    ".versions",
+  ]);
 
   for (const filePath of filePaths) {
     const absolutePath = path.join(newPath, filePath);
 
     try {
       // Read file content
-      const content = fs.readFileSync(absolutePath, 'utf-8');
+      const content = fs.readFileSync(absolutePath, "utf-8");
       const { metadata, body } = parseFrontmatter(content);
 
       // Update ideaSlug in frontmatter if present
@@ -1423,7 +1455,7 @@ export async function renameIdeaFolder(
         // Regenerate frontmatter and write file
         const newFrontmatter = generateFrontmatter(metadata);
         const newContent = newFrontmatter + body;
-        fs.writeFileSync(absolutePath, newContent, 'utf-8');
+        fs.writeFileSync(absolutePath, newContent, "utf-8");
       }
     } catch {
       // If we can't update a file, continue with the rest
@@ -1432,10 +1464,14 @@ export async function renameIdeaFolder(
   }
 
   // Update .metadata/relationships.json if it exists
-  const relationshipsPath = path.join(newPath, '.metadata', 'relationships.json');
+  const relationshipsPath = path.join(
+    newPath,
+    ".metadata",
+    "relationships.json",
+  );
   if (fs.existsSync(relationshipsPath)) {
     try {
-      const relContent = fs.readFileSync(relationshipsPath, 'utf-8');
+      const relContent = fs.readFileSync(relationshipsPath, "utf-8");
       const relationships = JSON.parse(relContent);
 
       // Update any parent references that point to the old slug
@@ -1461,12 +1497,16 @@ export async function renameIdeaFolder(
       // Update integrates_with array
       if (Array.isArray(relationships.integrates_with)) {
         relationships.integrates_with = relationships.integrates_with.map(
-          (slug: string) => (slug === oldSlug ? newSlug : slug)
+          (slug: string) => (slug === oldSlug ? newSlug : slug),
         );
       }
 
       // Write updated relationships
-      fs.writeFileSync(relationshipsPath, JSON.stringify(relationships, null, 2), 'utf-8');
+      fs.writeFileSync(
+        relationshipsPath,
+        JSON.stringify(relationships, null, 2),
+        "utf-8",
+      );
     } catch {
       // If we can't update relationships, continue
     }
@@ -1474,18 +1514,18 @@ export async function renameIdeaFolder(
 
   // Update database references
   try {
-    const { run, saveDb } = await import('../../database/db.js');
+    const { run, saveDb } = await import("../../database/db.js");
 
     // Update ideation_sessions
     await run(
       `UPDATE ideation_sessions SET idea_slug = ? WHERE user_slug = ? AND idea_slug = ?`,
-      [newSlug, userSlug, oldSlug]
+      [newSlug, userSlug, oldSlug],
     );
 
     // Update ideation_artifacts
     await run(
       `UPDATE ideation_artifacts SET idea_slug = ? WHERE user_slug = ? AND idea_slug = ?`,
-      [newSlug, userSlug, oldSlug]
+      [newSlug, userSlug, oldSlug],
     );
 
     // Save changes to disk

@@ -13,6 +13,7 @@ queries:
   - recruiting automation startup failures
 identifier: research_ai_recruiting_softwa
 ---
+
 ## AI Recruiting Software Market Leaders 2024 - Research Summary
 
 ### Key Findings
@@ -55,7 +56,6 @@ identifier: research_ai_recruiting_softwa
 - [ProOwrx - Top AI Recruiting Tools 2024](https://proowrx.com/business-toolkit/top-ai-recruiting-tools-in-2024/)
 - [Market.us - AI in Recruitment Market Size & Share](https://market.us/report/ai-in-recruitment-market/)
 - [Pesto Tech - Top 20 AI Tools for Recruitment 2024](https://pesto.tech/resources/top-20-ai-tools-for-recruitment-in-2024)
-
 
 ---
 
@@ -101,7 +101,6 @@ identifier: research_ai_recruiting_softwa
 - [HackerEarth - Top 7 Resume Screening Software](https://www.hackerearth.com/blog/resume-screening-software)
 - [CareerPuck - 5 Best AI Resume Screening Tools](https://www.careerpuck.com/blog/the-best-ai-resume-screening-tools-on-the-market)
 - [Index.dev - 6 Best AI Resume Screening Tools for Remote Hiring](https://www.index.dev/blog/best-ai-resume-screening-tools-remote-hiring)
-
 
 ---
 

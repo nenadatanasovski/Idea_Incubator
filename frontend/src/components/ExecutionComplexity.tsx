@@ -9,7 +9,7 @@ import type {
   StrategicApproach,
   EnhancedStrategy,
   IdeaFinancialAllocation,
-} from '../types';
+} from "../types";
 
 interface Props {
   approach?: StrategicApproach;
@@ -27,7 +27,7 @@ interface ComplexityDimension {
 }
 
 interface ApproachProfile {
-  overall: 'low' | 'medium' | 'high' | 'very_high';
+  overall: "low" | "medium" | "high" | "very_high";
   timeToRevenue: string;
   dimensions: ComplexityDimension[];
   keyChallenge: string;
@@ -36,310 +36,325 @@ interface ApproachProfile {
 
 const APPROACH_PROFILES: Record<StrategicApproach, ApproachProfile> = {
   create: {
-    overall: 'very_high',
-    timeToRevenue: '12-24 months',
+    overall: "very_high",
+    timeToRevenue: "12-24 months",
     dimensions: [
       {
-        id: 'market_education',
-        label: 'Market Education',
-        description: 'Teaching customers about a new category',
+        id: "market_education",
+        label: "Market Education",
+        description: "Teaching customers about a new category",
         level: 5,
-        icon: '📚',
+        icon: "📚",
       },
       {
-        id: 'product_development',
-        label: 'Product Development',
-        description: 'Building something truly new',
+        id: "product_development",
+        label: "Product Development",
+        description: "Building something truly new",
         level: 5,
-        icon: '🔨',
+        icon: "🔨",
       },
       {
-        id: 'validation',
-        label: 'Validation Difficulty',
-        description: 'No existing benchmarks to compare against',
+        id: "validation",
+        label: "Validation Difficulty",
+        description: "No existing benchmarks to compare against",
         level: 4,
-        icon: '🎯',
+        icon: "🎯",
       },
       {
-        id: 'capital_requirements',
-        label: 'Capital Requirements',
-        description: 'Runway needed before revenue',
+        id: "capital_requirements",
+        label: "Capital Requirements",
+        description: "Runway needed before revenue",
         level: 4,
-        icon: '💰',
+        icon: "💰",
       },
       {
-        id: 'competitive_pressure',
-        label: 'Competitive Pressure',
-        description: 'Initial lack of competition',
+        id: "competitive_pressure",
+        label: "Competitive Pressure",
+        description: "Initial lack of competition",
         level: 1,
-        icon: '⚔️',
+        icon: "⚔️",
       },
     ],
-    keyChallenge: 'Creating demand for something people don\'t know they need yet',
+    keyChallenge:
+      "Creating demand for something people don't know they need yet",
     successFactors: [
-      'Deep understanding of latent customer needs',
-      'Ability to articulate a compelling vision',
-      'Patience and long runway',
-      'Strong storytelling and marketing skills',
+      "Deep understanding of latent customer needs",
+      "Ability to articulate a compelling vision",
+      "Patience and long runway",
+      "Strong storytelling and marketing skills",
     ],
   },
   copy_improve: {
-    overall: 'medium',
-    timeToRevenue: '3-9 months',
+    overall: "medium",
+    timeToRevenue: "3-9 months",
     dimensions: [
       {
-        id: 'market_education',
-        label: 'Market Education',
-        description: 'Market already understands the category',
+        id: "market_education",
+        label: "Market Education",
+        description: "Market already understands the category",
         level: 1,
-        icon: '📚',
+        icon: "📚",
       },
       {
-        id: 'product_development',
-        label: 'Product Development',
-        description: 'Building on proven patterns',
+        id: "product_development",
+        label: "Product Development",
+        description: "Building on proven patterns",
         level: 3,
-        icon: '🔨',
+        icon: "🔨",
       },
       {
-        id: 'validation',
-        label: 'Validation Difficulty',
-        description: 'Can benchmark against existing solutions',
+        id: "validation",
+        label: "Validation Difficulty",
+        description: "Can benchmark against existing solutions",
         level: 2,
-        icon: '🎯',
+        icon: "🎯",
       },
       {
-        id: 'differentiation',
-        label: 'Differentiation Challenge',
-        description: 'Need clear improvements over incumbents',
+        id: "differentiation",
+        label: "Differentiation Challenge",
+        description: "Need clear improvements over incumbents",
         level: 4,
-        icon: '✨',
+        icon: "✨",
       },
       {
-        id: 'competitive_pressure',
-        label: 'Competitive Pressure',
-        description: 'Established competitors exist',
+        id: "competitive_pressure",
+        label: "Competitive Pressure",
+        description: "Established competitors exist",
         level: 4,
-        icon: '⚔️',
+        icon: "⚔️",
       },
     ],
-    keyChallenge: 'Differentiating enough to win customers from incumbents',
+    keyChallenge: "Differentiating enough to win customers from incumbents",
     successFactors: [
-      'Clear understanding of incumbent weaknesses',
-      'Specific improvement that matters to customers',
-      'Efficient execution to reach market quickly',
-      'Strong competitive positioning',
+      "Clear understanding of incumbent weaknesses",
+      "Specific improvement that matters to customers",
+      "Efficient execution to reach market quickly",
+      "Strong competitive positioning",
     ],
   },
   combine: {
-    overall: 'high',
-    timeToRevenue: '6-12 months',
+    overall: "high",
+    timeToRevenue: "6-12 months",
     dimensions: [
       {
-        id: 'integration_complexity',
-        label: 'Integration Complexity',
-        description: 'Combining multiple concepts into one',
+        id: "integration_complexity",
+        label: "Integration Complexity",
+        description: "Combining multiple concepts into one",
         level: 4,
-        icon: '🔗',
+        icon: "🔗",
       },
       {
-        id: 'product_development',
-        label: 'Product Development',
-        description: 'Building a novel combination',
+        id: "product_development",
+        label: "Product Development",
+        description: "Building a novel combination",
         level: 4,
-        icon: '🔨',
+        icon: "🔨",
       },
       {
-        id: 'market_education',
-        label: 'Market Education',
-        description: 'Explaining a new combination',
+        id: "market_education",
+        label: "Market Education",
+        description: "Explaining a new combination",
         level: 3,
-        icon: '📚',
+        icon: "📚",
       },
       {
-        id: 'validation',
-        label: 'Validation Difficulty',
-        description: 'Testing if combination adds value',
+        id: "validation",
+        label: "Validation Difficulty",
+        description: "Testing if combination adds value",
         level: 3,
-        icon: '🎯',
+        icon: "🎯",
       },
       {
-        id: 'competitive_pressure',
-        label: 'Competitive Pressure',
-        description: 'Unique positioning reduces direct competition',
+        id: "competitive_pressure",
+        label: "Competitive Pressure",
+        description: "Unique positioning reduces direct competition",
         level: 2,
-        icon: '⚔️',
+        icon: "⚔️",
       },
     ],
-    keyChallenge: 'Ensuring the combination creates more value than the sum of parts',
+    keyChallenge:
+      "Ensuring the combination creates more value than the sum of parts",
     successFactors: [
-      'Clear synergy between combined elements',
-      'Technical ability to integrate well',
-      'Understanding of both source domains',
-      'Ability to communicate combined value clearly',
+      "Clear synergy between combined elements",
+      "Technical ability to integrate well",
+      "Understanding of both source domains",
+      "Ability to communicate combined value clearly",
     ],
   },
   localize: {
-    overall: 'medium',
-    timeToRevenue: '2-6 months',
+    overall: "medium",
+    timeToRevenue: "2-6 months",
     dimensions: [
       {
-        id: 'market_knowledge',
-        label: 'Local Market Knowledge',
-        description: 'Understanding local needs and culture',
+        id: "market_knowledge",
+        label: "Local Market Knowledge",
+        description: "Understanding local needs and culture",
         level: 4,
-        icon: '🌍',
+        icon: "🌍",
       },
       {
-        id: 'product_development',
-        label: 'Product Development',
-        description: 'Adapting existing model to local context',
+        id: "product_development",
+        label: "Product Development",
+        description: "Adapting existing model to local context",
         level: 2,
-        icon: '🔨',
+        icon: "🔨",
       },
       {
-        id: 'operations',
-        label: 'Operational Complexity',
-        description: 'Local partnerships and logistics',
+        id: "operations",
+        label: "Operational Complexity",
+        description: "Local partnerships and logistics",
         level: 3,
-        icon: '⚙️',
+        icon: "⚙️",
       },
       {
-        id: 'competitive_pressure',
-        label: 'Competitive Pressure',
-        description: 'May face local competitors',
+        id: "competitive_pressure",
+        label: "Competitive Pressure",
+        description: "May face local competitors",
         level: 3,
-        icon: '⚔️',
+        icon: "⚔️",
       },
       {
-        id: 'scalability',
-        label: 'Scalability',
-        description: 'Growth limited to geographic area',
+        id: "scalability",
+        label: "Scalability",
+        description: "Growth limited to geographic area",
         level: 4,
-        icon: '📈',
+        icon: "📈",
       },
     ],
-    keyChallenge: 'Understanding local nuances that make or break adaptation',
+    keyChallenge: "Understanding local nuances that make or break adaptation",
     successFactors: [
-      'Deep knowledge of local market',
-      'Strong local network and relationships',
-      'Understanding of cultural differences',
-      'Ability to build local trust',
+      "Deep knowledge of local market",
+      "Strong local network and relationships",
+      "Understanding of cultural differences",
+      "Ability to build local trust",
     ],
   },
   specialize: {
-    overall: 'medium',
-    timeToRevenue: '3-8 months',
+    overall: "medium",
+    timeToRevenue: "3-8 months",
     dimensions: [
       {
-        id: 'domain_expertise',
-        label: 'Domain Expertise Required',
-        description: 'Deep knowledge of the niche',
+        id: "domain_expertise",
+        label: "Domain Expertise Required",
+        description: "Deep knowledge of the niche",
         level: 5,
-        icon: '🎓',
+        icon: "🎓",
       },
       {
-        id: 'product_development',
-        label: 'Product Development',
-        description: 'Tailoring solution to niche needs',
+        id: "product_development",
+        label: "Product Development",
+        description: "Tailoring solution to niche needs",
         level: 3,
-        icon: '🔨',
+        icon: "🔨",
       },
       {
-        id: 'market_size_risk',
-        label: 'Market Size Risk',
-        description: 'Niche may be too small',
+        id: "market_size_risk",
+        label: "Market Size Risk",
+        description: "Niche may be too small",
         level: 4,
-        icon: '📊',
+        icon: "📊",
       },
       {
-        id: 'competitive_pressure',
-        label: 'Competitive Pressure',
-        description: 'Generalists rarely compete in niches',
+        id: "competitive_pressure",
+        label: "Competitive Pressure",
+        description: "Generalists rarely compete in niches",
         level: 1,
-        icon: '⚔️',
+        icon: "⚔️",
       },
       {
-        id: 'customer_acquisition',
-        label: 'Customer Acquisition',
-        description: 'Finding niche customers efficiently',
+        id: "customer_acquisition",
+        label: "Customer Acquisition",
+        description: "Finding niche customers efficiently",
         level: 3,
-        icon: '👥',
+        icon: "👥",
       },
     ],
-    keyChallenge: 'Ensuring the niche is large enough to sustain the business',
+    keyChallenge: "Ensuring the niche is large enough to sustain the business",
     successFactors: [
-      'Genuine expertise in the niche domain',
-      'Existing connections in the niche community',
-      'Deep understanding of niche-specific problems',
-      'Ability to become a trusted authority',
+      "Genuine expertise in the niche domain",
+      "Existing connections in the niche community",
+      "Deep understanding of niche-specific problems",
+      "Ability to become a trusted authority",
     ],
   },
   time: {
-    overall: 'high',
-    timeToRevenue: '1-6 months',
+    overall: "high",
+    timeToRevenue: "1-6 months",
     dimensions: [
       {
-        id: 'speed',
-        label: 'Speed to Market',
-        description: 'Must move faster than others',
+        id: "speed",
+        label: "Speed to Market",
+        description: "Must move faster than others",
         level: 5,
-        icon: '⚡',
+        icon: "⚡",
       },
       {
-        id: 'trend_reading',
-        label: 'Trend Reading',
-        description: 'Accurately identifying timing',
+        id: "trend_reading",
+        label: "Trend Reading",
+        description: "Accurately identifying timing",
         level: 5,
-        icon: '🔮',
+        icon: "🔮",
       },
       {
-        id: 'product_development',
-        label: 'Product Development',
-        description: 'Building quickly to capture window',
+        id: "product_development",
+        label: "Product Development",
+        description: "Building quickly to capture window",
         level: 3,
-        icon: '🔨',
+        icon: "🔨",
       },
       {
-        id: 'sustainability',
-        label: 'Sustainability Risk',
-        description: 'Timing advantage may be temporary',
+        id: "sustainability",
+        label: "Sustainability Risk",
+        description: "Timing advantage may be temporary",
         level: 5,
-        icon: '♻️',
+        icon: "♻️",
       },
       {
-        id: 'competitive_pressure',
-        label: 'Future Competition',
-        description: 'Others will follow if successful',
+        id: "competitive_pressure",
+        label: "Future Competition",
+        description: "Others will follow if successful",
         level: 4,
-        icon: '⚔️',
+        icon: "⚔️",
       },
     ],
-    keyChallenge: 'Building fast enough to capture the window and sustainable enough to survive competition',
+    keyChallenge:
+      "Building fast enough to capture the window and sustainable enough to survive competition",
     successFactors: [
-      'Rapid execution capability',
-      'Strong trend awareness',
-      'Ability to pivot as market matures',
-      'Plan for sustaining advantage',
+      "Rapid execution capability",
+      "Strong trend awareness",
+      "Ability to pivot as market matures",
+      "Plan for sustaining advantage",
     ],
   },
 };
 
 const overallStyles = {
-  low: { bg: 'bg-green-100', text: 'text-green-800', label: 'Low Complexity' },
-  medium: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Medium Complexity' },
-  high: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'High Complexity' },
-  very_high: { bg: 'bg-red-100', text: 'text-red-800', label: 'Very High Complexity' },
+  low: { bg: "bg-green-100", text: "text-green-800", label: "Low Complexity" },
+  medium: {
+    bg: "bg-yellow-100",
+    text: "text-yellow-800",
+    label: "Medium Complexity",
+  },
+  high: {
+    bg: "bg-orange-100",
+    text: "text-orange-800",
+    label: "High Complexity",
+  },
+  very_high: {
+    bg: "bg-red-100",
+    text: "text-red-800",
+    label: "Very High Complexity",
+  },
 };
 
 function ComplexityBar({ level }: { level: number }) {
   return (
     <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map(i => (
+      {[1, 2, 3, 4, 5].map((i) => (
         <div
           key={i}
           className={`w-4 h-2 rounded-sm ${
-            i <= level ? 'bg-indigo-500' : 'bg-gray-200'
+            i <= level ? "bg-indigo-500" : "bg-gray-200"
           }`}
         />
       ))}
@@ -351,11 +366,13 @@ export default function ExecutionComplexity({
   approach,
   strategy: _strategy,
   allocation,
-  className = '',
+  className = "",
 }: Props) {
   if (!approach) {
     return (
-      <div className={`bg-gray-50 rounded-lg border border-gray-200 p-6 ${className}`}>
+      <div
+        className={`bg-gray-50 rounded-lg border border-gray-200 p-6 ${className}`}
+      >
         <p className="text-gray-500 text-center">
           Select a strategic approach to see execution complexity analysis
         </p>
@@ -373,7 +390,9 @@ export default function ExecutionComplexity({
           <h3 className="text-lg font-semibold text-gray-900">
             Execution Complexity
           </h3>
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${styles.bg} ${styles.text}`}>
+          <span
+            className={`px-3 py-1 rounded-full text-sm font-medium ${styles.bg} ${styles.text}`}
+          >
             {styles.label}
           </span>
         </div>
@@ -387,7 +406,7 @@ export default function ExecutionComplexity({
           Complexity Dimensions
         </h4>
 
-        {profile.dimensions.map(dimension => (
+        {profile.dimensions.map((dimension) => (
           <div key={dimension.id} className="flex items-center gap-4">
             <span className="text-xl w-8">{dimension.icon}</span>
             <div className="flex-1 min-w-0">
@@ -416,7 +435,10 @@ export default function ExecutionComplexity({
         </h4>
         <ul className="space-y-2">
           {profile.successFactors.map((factor, idx) => (
-            <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
+            <li
+              key={idx}
+              className="flex items-start gap-2 text-sm text-gray-600"
+            >
               <svg
                 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5"
                 fill="currentColor"

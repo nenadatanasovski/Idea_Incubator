@@ -2,16 +2,16 @@
  * Convergence Detection
  * Determines when debate has reached stable conclusions
  */
-import { getConfig } from '../config/index.js';
+import { getConfig } from "../config/index.js";
 // Logger imports removed - using getConfig for debug settings
-import { type FullDebateResult, type CriterionDebate } from './debate.js';
+import { type FullDebateResult, type CriterionDebate } from "./debate.js";
 
 export type ConvergenceReason =
-  | 'SCORE_STABILITY'
-  | 'MAX_ROUNDS'
-  | 'TIMEOUT'
-  | 'BUDGET_EXCEEDED'
-  | 'UNANIMOUS_VERDICT';
+  | "SCORE_STABILITY"
+  | "MAX_ROUNDS"
+  | "TIMEOUT"
+  | "BUDGET_EXCEEDED"
+  | "UNANIMOUS_VERDICT";
 
 export interface ConvergenceState {
   round: number;
@@ -53,10 +53,10 @@ export function initConvergenceState(): ConvergenceState {
       total: 0,
       defended: 0,
       critical: 0,
-      criticalResolved: 0
+      criticalResolved: 0,
     },
     insights: [],
-    hasConverged: false
+    hasConverged: false,
   };
 }
 
@@ -65,7 +65,7 @@ export function initConvergenceState(): ConvergenceState {
  */
 export function updateConvergenceState(
   state: ConvergenceState,
-  debate: CriterionDebate
+  debate: CriterionDebate,
 ): ConvergenceState {
   const criterionId = debate.criterion.id;
 
@@ -84,7 +84,7 @@ export function updateConvergenceState(
   // Update challenge stats
   for (const challenge of debate.challenges) {
     state.challengeStats.total++;
-    if (challenge.severity === 'critical') {
+    if (challenge.severity === "critical") {
       state.challengeStats.critical++;
     }
   }
@@ -92,7 +92,7 @@ export function updateConvergenceState(
   // Count defended challenges (evaluator wins)
   for (const round of debate.rounds) {
     for (const verdict of round.verdicts) {
-      if (verdict.winner === 'EVALUATOR') {
+      if (verdict.winner === "EVALUATOR") {
         state.challengeStats.defended++;
       }
     }
@@ -121,7 +121,9 @@ export function checkConvergence(state: ConvergenceState): ConvergenceResult {
       const delta = Math.max(...recent) - Math.min(...recent);
       if (delta > criteria.scoreStability.maxDelta) {
         scoreStable = false;
-        blockers.push(`Score for "${criterionId}" still volatile (Δ=${delta.toFixed(2)})`);
+        blockers.push(
+          `Score for "${criterionId}" still volatile (Δ=${delta.toFixed(2)})`,
+        );
       }
     }
   }
@@ -132,23 +134,28 @@ export function checkConvergence(state: ConvergenceState): ConvergenceResult {
     const latest = history[history.length - 1];
     if (latest < criteria.confidenceThreshold.minimum) {
       confidenceMet = false;
-      blockers.push(`Confidence for "${criterionId}" below threshold (${(latest * 100).toFixed(0)}%)`);
+      blockers.push(
+        `Confidence for "${criterionId}" below threshold (${(latest * 100).toFixed(0)}%)`,
+      );
     }
   }
 
   // 3. Check critical challenges resolved
-  const criticalResolutionRate = state.challengeStats.critical > 0
-    ? state.challengeStats.criticalResolved / state.challengeStats.critical
-    : 1.0;
+  const criticalResolutionRate =
+    state.challengeStats.critical > 0
+      ? state.challengeStats.criticalResolved / state.challengeStats.critical
+      : 1.0;
   const challengesResolved = criticalResolutionRate >= 0.8;
 
   if (!challengesResolved && state.challengeStats.critical > 0) {
-    const unresolved = state.challengeStats.critical - state.challengeStats.criticalResolved;
+    const unresolved =
+      state.challengeStats.critical - state.challengeStats.criticalResolved;
     blockers.push(`${unresolved} critical challenges unresolved`);
   }
 
   // 4. Check information saturation (no new insights in last round)
-  const informationSaturated = state.round > 1 &&
+  const informationSaturated =
+    state.round > 1 &&
     state.insights.length === state.insights.slice(0, -1).length;
 
   // Determine convergence
@@ -156,7 +163,7 @@ export function checkConvergence(state: ConvergenceState): ConvergenceResult {
 
   let reason: ConvergenceReason | undefined;
   if (converged) {
-    reason = 'SCORE_STABILITY';
+    reason = "SCORE_STABILITY";
   }
 
   return {
@@ -167,9 +174,9 @@ export function checkConvergence(state: ConvergenceState): ConvergenceResult {
       scoreStability: scoreStable,
       confidenceMet,
       challengesResolved,
-      informationSaturated
+      informationSaturated,
     },
-    readyForSynthesis: converged || informationSaturated
+    readyForSynthesis: converged || informationSaturated,
   };
 }
 
@@ -178,12 +185,12 @@ export function checkConvergence(state: ConvergenceState): ConvergenceResult {
  */
 export function forceConvergence(
   state: ConvergenceState,
-  reason: ConvergenceReason
+  reason: ConvergenceReason,
 ): ConvergenceState {
   return {
     ...state,
     hasConverged: true,
-    reason
+    reason,
   };
 }
 
@@ -193,13 +200,13 @@ export function forceConvergence(
 export interface ContinueDecision {
   continue: boolean;
   reason: string;
-  suggestedAction?: 'more_rounds' | 'synthesis' | 'abort';
+  suggestedAction?: "more_rounds" | "synthesis" | "abort";
 }
 
 export function shouldContinueDebate(
   state: ConvergenceState,
   elapsedMs: number,
-  currentCost: number
+  currentCost: number,
 ): ContinueDecision {
   const config = getConfig();
 
@@ -208,7 +215,7 @@ export function shouldContinueDebate(
     return {
       continue: false,
       reason: `Timeout reached (${(elapsedMs / 1000).toFixed(0)}s)`,
-      suggestedAction: 'synthesis'
+      suggestedAction: "synthesis",
     };
   }
 
@@ -217,7 +224,7 @@ export function shouldContinueDebate(
     return {
       continue: false,
       reason: `Max rounds reached (${state.round})`,
-      suggestedAction: 'synthesis'
+      suggestedAction: "synthesis",
     };
   }
 
@@ -226,7 +233,7 @@ export function shouldContinueDebate(
     return {
       continue: false,
       reason: `Budget nearly exhausted ($${currentCost.toFixed(2)})`,
-      suggestedAction: 'synthesis'
+      suggestedAction: "synthesis",
     };
   }
 
@@ -235,16 +242,16 @@ export function shouldContinueDebate(
   if (convergence.converged) {
     return {
       continue: false,
-      reason: 'Debate has converged',
-      suggestedAction: 'synthesis'
+      reason: "Debate has converged",
+      suggestedAction: "synthesis",
     };
   }
 
   // Continue if not converged but making progress
   return {
     continue: true,
-    reason: `Round ${state.round + 1} needed: ${convergence.blockers.join(', ')}`,
-    suggestedAction: 'more_rounds'
+    reason: `Round ${state.round + 1} needed: ${convergence.blockers.join(", ")}`,
+    suggestedAction: "more_rounds",
   };
 }
 
@@ -265,7 +272,7 @@ export interface OverallConvergenceMetrics {
 }
 
 export function calculateOverallMetrics(
-  result: FullDebateResult
+  result: FullDebateResult,
 ): OverallConvergenceMetrics {
   const config = getConfig();
   let stableCriteria = 0;
@@ -284,34 +291,42 @@ export function calculateOverallMetrics(
     }
 
     // Check confidence
-    if (debate.finalConfidence >= config.convergence.confidenceThreshold.minimum) {
+    if (
+      debate.finalConfidence >= config.convergence.confidenceThreshold.minimum
+    ) {
       highConfidenceCriteria++;
     }
 
     // Count challenges
     totalChallenges += debate.challenges.length;
-    criticalChallenges += debate.challenges.filter(c => c.severity === 'critical').length;
+    criticalChallenges += debate.challenges.filter(
+      (c) => c.severity === "critical",
+    ).length;
 
     // Count defenses (from rounds)
     for (const round of debate.rounds) {
       for (const verdict of round.verdicts) {
-        if (verdict.winner === 'EVALUATOR') {
+        if (verdict.winner === "EVALUATOR") {
           defendedChallenges++;
         }
       }
     }
 
     // Collect unique insights
-    debate.summary.keyInsights.forEach(i => insights.add(i));
+    debate.summary.keyInsights.forEach((i) => insights.add(i));
   }
 
   const totalCriteria = result.debates.length;
-  const defenseRate = totalChallenges > 0 ? defendedChallenges / totalChallenges : 1.0;
+  const defenseRate =
+    totalChallenges > 0 ? defendedChallenges / totalChallenges : 1.0;
 
   // Calculate overall convergence score
-  const stabilityScore = totalCriteria > 0 ? stableCriteria / totalCriteria : 1.0;
-  const confidenceScore = totalCriteria > 0 ? highConfidenceCriteria / totalCriteria : 1.0;
-  const overallConvergence = (stabilityScore + confidenceScore + defenseRate) / 3;
+  const stabilityScore =
+    totalCriteria > 0 ? stableCriteria / totalCriteria : 1.0;
+  const confidenceScore =
+    totalCriteria > 0 ? highConfidenceCriteria / totalCriteria : 1.0;
+  const overallConvergence =
+    (stabilityScore + confidenceScore + defenseRate) / 3;
 
   return {
     totalCriteria,
@@ -323,31 +338,35 @@ export function calculateOverallMetrics(
     criticalChallenges,
     criticalResolved,
     uniqueInsights: insights.size,
-    overallConvergence
+    overallConvergence,
   };
 }
 
 /**
  * Format convergence metrics for display
  */
-export function formatConvergenceMetrics(metrics: OverallConvergenceMetrics): string {
+export function formatConvergenceMetrics(
+  metrics: OverallConvergenceMetrics,
+): string {
   const lines: string[] = [
-    '## Convergence Metrics\n',
-    `- Criteria Stability: ${metrics.stableCriteria}/${metrics.totalCriteria} (${(metrics.stableCriteria / metrics.totalCriteria * 100).toFixed(0)}%)`,
-    `- High Confidence: ${metrics.highConfidenceCriteria}/${metrics.totalCriteria} (${(metrics.highConfidenceCriteria / metrics.totalCriteria * 100).toFixed(0)}%)`,
+    "## Convergence Metrics\n",
+    `- Criteria Stability: ${metrics.stableCriteria}/${metrics.totalCriteria} (${((metrics.stableCriteria / metrics.totalCriteria) * 100).toFixed(0)}%)`,
+    `- High Confidence: ${metrics.highConfidenceCriteria}/${metrics.totalCriteria} (${((metrics.highConfidenceCriteria / metrics.totalCriteria) * 100).toFixed(0)}%)`,
     `- Defense Rate: ${(metrics.defenseRate * 100).toFixed(0)}%`,
     `- Critical Challenges: ${metrics.criticalChallenges} (${metrics.criticalResolved} resolved)`,
     `- Unique Insights: ${metrics.uniqueInsights}`,
-    `\n**Overall Convergence: ${(metrics.overallConvergence * 100).toFixed(0)}%**`
+    `\n**Overall Convergence: ${(metrics.overallConvergence * 100).toFixed(0)}%**`,
   ];
 
   if (metrics.overallConvergence >= 0.8) {
-    lines.push('_Status: Strong convergence achieved_');
+    lines.push("_Status: Strong convergence achieved_");
   } else if (metrics.overallConvergence >= 0.6) {
-    lines.push('_Status: Moderate convergence - synthesis recommended_');
+    lines.push("_Status: Moderate convergence - synthesis recommended_");
   } else {
-    lines.push('_Status: Weak convergence - further debate may improve results_');
+    lines.push(
+      "_Status: Weak convergence - further debate may improve results_",
+    );
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }

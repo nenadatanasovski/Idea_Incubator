@@ -10,7 +10,7 @@
 export interface LoadedTask {
   id: string;
   phase: string;
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  action: "CREATE" | "UPDATE" | "DELETE";
   file: string;
   status: string;
   requirements: string[];

@@ -12,9 +12,11 @@ updated: 2026-01-06T03:56:38.753Z
 - [ ] Defined: No
 
 ## Target Market
+
 <!-- Agent fills after market segmentation -->
 
 ## Channels
+
 <!-- Agent fills after channel analysis -->
 
 1. Channel 1
@@ -22,6 +24,7 @@ updated: 2026-01-06T03:56:38.753Z
 3. Channel 3
 
 ## Messaging
+
 <!-- Agent fills after messaging workshop -->
 
 ### Value Proposition
@@ -29,7 +32,9 @@ updated: 2026-01-06T03:56:38.753Z
 ### Key Messages
 
 ## Timeline
+
 <!-- Agent fills after planning -->
 
 ## Budget
+
 <!-- Agent fills after resource planning -->

@@ -3,42 +3,45 @@
 // Viability meter showing idea health
 // =============================================================================
 
-import 'react';
-import { AlertTriangle } from 'lucide-react';
-import type { ViabilityMeterProps } from '../../types/ideation';
+import "react";
+import { AlertTriangle } from "lucide-react";
+import type { ViabilityMeterProps } from "../../types/ideation";
 
 export function ViabilityMeter({
   value,
   risks,
   showWarning,
-  size = 'md',
+  size = "md",
 }: ViabilityMeterProps) {
   const getColor = () => {
-    if (value >= 75) return 'bg-green-500';
-    if (value >= 50) return 'bg-yellow-500';
-    if (value >= 25) return 'bg-orange-500';
-    return 'bg-red-500';
+    if (value >= 75) return "bg-green-500";
+    if (value >= 50) return "bg-yellow-500";
+    if (value >= 25) return "bg-orange-500";
+    return "bg-red-500";
   };
 
   const getLabel = () => {
-    if (value >= 75) return 'Healthy';
-    if (value >= 50) return 'Caution';
-    if (value >= 25) return 'Warning';
-    return 'Critical';
+    if (value >= 75) return "Healthy";
+    if (value >= 50) return "Caution";
+    if (value >= 25) return "Warning";
+    return "Critical";
   };
 
   const getTextColor = () => {
-    if (value >= 75) return 'text-green-600';
-    if (value >= 50) return 'text-yellow-600';
-    if (value >= 25) return 'text-orange-600';
-    return 'text-red-600';
+    if (value >= 75) return "text-green-600";
+    if (value >= 50) return "text-yellow-600";
+    if (value >= 25) return "text-orange-600";
+    return "text-red-600";
   };
 
   const getHeight = () => {
     switch (size) {
-      case 'sm': return 'h-1.5';
-      case 'lg': return 'h-3';
-      default: return 'h-2';
+      case "sm":
+        return "h-1.5";
+      case "lg":
+        return "h-3";
+      default:
+        return "h-2";
     }
   };
 
@@ -62,13 +65,15 @@ export function ViabilityMeter({
             style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }}
           />
         </div>
-        <span className={`text-xs font-medium min-w-[2.5rem] text-right ${getTextColor()}`}>
+        <span
+          className={`text-xs font-medium min-w-[2.5rem] text-right ${getTextColor()}`}
+        >
           {Math.round(value)}%
         </span>
       </div>
       {riskCount > 0 && (
         <p className="text-xs text-gray-500 mt-1">
-          {riskCount} {riskCount === 1 ? 'risk' : 'risks'} identified
+          {riskCount} {riskCount === 1 ? "risk" : "risks"} identified
         </p>
       )}
     </div>

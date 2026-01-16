@@ -12,17 +12,21 @@ updated: 2026-01-06T03:56:38.753Z
 - [ ] Defined: No
 
 ## Key Contacts
+
 <!-- Agent fills after stakeholder mapping -->
 
 | Name | Role | Relevance | Status |
-|------|------|-----------|--------|
-| | | | |
+| ---- | ---- | --------- | ------ |
+|      |      |           |        |
 
 ## Domain Experts
+
 <!-- Agent fills after expert identification -->
 
 ## Potential Partners
+
 <!-- Agent fills after partnership analysis -->
 
 ## Investors
+
 <!-- Agent fills after investor research -->

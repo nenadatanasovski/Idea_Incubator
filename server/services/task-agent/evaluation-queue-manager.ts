@@ -7,16 +7,16 @@
  * Part of: PTE-029 to PTE-033
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   Task,
   EvaluationQueueTask,
   EvaluationQueueStats,
   TaskIdentity,
   UpdateTaskInput,
-} from '../../../types/task-agent.js';
-import { generateDisplayId } from './display-id-generator.js';
+} from "../../../types/task-agent.js";
+import { generateDisplayId } from "./display-id-generator.js";
 
 /**
  * Database row type for tasks
@@ -52,16 +52,16 @@ function mapTaskRow(row: TaskRow): Task {
     displayId: row.display_id,
     title: row.title,
     description: row.description || undefined,
-    category: row.category as Task['category'],
-    status: row.status as Task['status'],
-    queue: row.queue as Task['queue'],
+    category: row.category as Task["category"],
+    status: row.status as Task["status"],
+    queue: row.queue as Task["queue"],
     taskListId: row.task_list_id || undefined,
     projectId: row.project_id || undefined,
-    priority: row.priority as Task['priority'],
-    effort: row.effort as Task['effort'],
+    priority: row.priority as Task["priority"],
+    effort: row.effort as Task["effort"],
     phase: row.phase,
     position: row.position,
-    owner: row.owner as Task['owner'],
+    owner: row.owner as Task["owner"],
     assignedAgentId: row.assigned_agent_id || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -83,7 +83,7 @@ export async function addToQueue(taskId: string): Promise<void> {
          status = 'evaluating',
          updated_at = datetime('now')
      WHERE id = ?`,
-    [taskId]
+    [taskId],
   );
   await saveDb();
 }
@@ -98,7 +98,7 @@ export async function addToQueue(taskId: string): Promise<void> {
 export async function getQueuedTasks(
   projectId?: string,
   limit = 50,
-  offset = 0
+  offset = 0,
 ): Promise<EvaluationQueueTask[]> {
   let sql = `
     SELECT
@@ -110,18 +110,18 @@ export async function getQueuedTasks(
   const params: (string | number)[] = [];
 
   if (projectId) {
-    sql += ' AND t.project_id = ?';
+    sql += " AND t.project_id = ?";
     params.push(projectId);
   }
 
-  sql += ' ORDER BY t.created_at ASC LIMIT ? OFFSET ?';
+  sql += " ORDER BY t.created_at ASC LIMIT ? OFFSET ?";
   params.push(limit, offset);
 
   const rows = await query<TaskRow & { days_in_queue: number }>(sql, params);
 
   return rows.map((row) => ({
     ...mapTaskRow(row),
-    queue: 'evaluation' as const,
+    queue: "evaluation" as const,
     taskListId: undefined,
     daysInQueue: row.days_in_queue,
     isStale: row.days_in_queue > 3,
@@ -131,14 +131,16 @@ export async function getQueuedTasks(
 /**
  * Get a single task from the Evaluation Queue by ID
  */
-export async function getQueuedTask(taskId: string): Promise<EvaluationQueueTask | null> {
+export async function getQueuedTask(
+  taskId: string,
+): Promise<EvaluationQueueTask | null> {
   const row = await getOne<TaskRow & { days_in_queue: number }>(
     `SELECT
       t.*,
       julianday('now') - julianday(t.created_at) AS days_in_queue
     FROM tasks t
     WHERE t.id = ? AND t.queue = 'evaluation'`,
-    [taskId]
+    [taskId],
   );
 
   if (!row) {
@@ -147,7 +149,7 @@ export async function getQueuedTask(taskId: string): Promise<EvaluationQueueTask
 
   return {
     ...mapTaskRow(row),
-    queue: 'evaluation' as const,
+    queue: "evaluation" as const,
     taskListId: undefined,
     daysInQueue: row.days_in_queue,
     isStale: row.days_in_queue > 3,
@@ -164,14 +166,14 @@ export async function getQueuedTask(taskId: string): Promise<EvaluationQueueTask
 export async function moveToTaskList(
   taskId: string,
   taskListId: string,
-  position?: number
+  position?: number,
 ): Promise<Task> {
   // Get current max position in target list if not specified
   let targetPosition = position;
   if (targetPosition === undefined) {
     const maxPos = await getOne<{ max_pos: number | null }>(
-      'SELECT MAX(position) as max_pos FROM tasks WHERE task_list_id = ?',
-      [taskListId]
+      "SELECT MAX(position) as max_pos FROM tasks WHERE task_list_id = ?",
+      [taskListId],
     );
     targetPosition = (maxPos?.max_pos || 0) + 1;
   }
@@ -184,7 +186,7 @@ export async function moveToTaskList(
          status = 'pending',
          updated_at = datetime('now')
      WHERE id = ?`,
-    [taskListId, targetPosition, taskId]
+    [taskListId, targetPosition, taskId],
   );
 
   // Update task list stats
@@ -193,16 +195,15 @@ export async function moveToTaskList(
      SET total_tasks = total_tasks + 1,
          updated_at = datetime('now')
      WHERE id = ?`,
-    [taskListId]
+    [taskListId],
   );
 
   await saveDb();
 
   // Return updated task
-  const row = await getOne<TaskRow>(
-    'SELECT * FROM tasks WHERE id = ?',
-    [taskId]
-  );
+  const row = await getOne<TaskRow>("SELECT * FROM tasks WHERE id = ?", [
+    taskId,
+  ]);
 
   if (!row) {
     throw new Error(`Task ${taskId} not found after move`);
@@ -219,7 +220,7 @@ export async function moveToTaskList(
  */
 export async function getStaleQueuedTasks(
   daysThreshold = 3,
-  projectId?: string
+  projectId?: string,
 ): Promise<EvaluationQueueTask[]> {
   let sql = `
     SELECT
@@ -232,17 +233,17 @@ export async function getStaleQueuedTasks(
   const params: (string | number)[] = [daysThreshold];
 
   if (projectId) {
-    sql += ' AND t.project_id = ?';
+    sql += " AND t.project_id = ?";
     params.push(projectId);
   }
 
-  sql += ' ORDER BY t.created_at ASC';
+  sql += " ORDER BY t.created_at ASC";
 
   const rows = await query<TaskRow & { days_in_queue: number }>(sql, params);
 
   return rows.map((row) => ({
     ...mapTaskRow(row),
-    queue: 'evaluation' as const,
+    queue: "evaluation" as const,
     taskListId: undefined,
     daysInQueue: row.days_in_queue,
     isStale: true,
@@ -252,7 +253,9 @@ export async function getStaleQueuedTasks(
 /**
  * Get Evaluation Queue statistics
  */
-export async function getQueueStats(projectId?: string): Promise<EvaluationQueueStats> {
+export async function getQueueStats(
+  projectId?: string,
+): Promise<EvaluationQueueStats> {
   let sql = `
     SELECT
       COUNT(*) AS total_queued,
@@ -265,7 +268,7 @@ export async function getQueueStats(projectId?: string): Promise<EvaluationQueue
   const params: string[] = [];
 
   if (projectId) {
-    sql += ' AND project_id = ?';
+    sql += " AND project_id = ?";
     params.push(projectId);
   }
 
@@ -292,72 +295,73 @@ export async function getQueueStats(projectId?: string): Promise<EvaluationQueue
  */
 export async function updateTask(
   taskId: string,
-  updates: UpdateTaskInput
+  updates: UpdateTaskInput,
 ): Promise<Task> {
   const setClauses: string[] = [];
   const params: (string | number | null)[] = [];
 
   if (updates.title !== undefined) {
-    setClauses.push('title = ?');
+    setClauses.push("title = ?");
     params.push(updates.title);
   }
   if (updates.description !== undefined) {
-    setClauses.push('description = ?');
+    setClauses.push("description = ?");
     params.push(updates.description);
   }
   if (updates.category !== undefined) {
-    setClauses.push('category = ?');
+    setClauses.push("category = ?");
     params.push(updates.category);
   }
   if (updates.status !== undefined) {
-    setClauses.push('status = ?');
+    setClauses.push("status = ?");
     params.push(updates.status);
   }
   if (updates.priority !== undefined) {
-    setClauses.push('priority = ?');
+    setClauses.push("priority = ?");
     params.push(updates.priority);
   }
   if (updates.effort !== undefined) {
-    setClauses.push('effort = ?');
+    setClauses.push("effort = ?");
     params.push(updates.effort);
   }
   if (updates.phase !== undefined) {
-    setClauses.push('phase = ?');
+    setClauses.push("phase = ?");
     params.push(updates.phase);
   }
   if (updates.position !== undefined) {
-    setClauses.push('position = ?');
+    setClauses.push("position = ?");
     params.push(updates.position);
   }
   if (updates.owner !== undefined) {
-    setClauses.push('owner = ?');
+    setClauses.push("owner = ?");
     params.push(updates.owner);
   }
   if (updates.assignedAgentId !== undefined) {
-    setClauses.push('assigned_agent_id = ?');
+    setClauses.push("assigned_agent_id = ?");
     params.push(updates.assignedAgentId);
   }
 
   if (setClauses.length === 0) {
     // No updates, just return current task
-    const row = await getOne<TaskRow>('SELECT * FROM tasks WHERE id = ?', [taskId]);
+    const row = await getOne<TaskRow>("SELECT * FROM tasks WHERE id = ?", [
+      taskId,
+    ]);
     if (!row) {
       throw new Error(`Task ${taskId} not found`);
     }
     return mapTaskRow(row);
   }
 
-  setClauses.push('updated_at = datetime(\'now\')');
+  setClauses.push("updated_at = datetime('now')");
   params.push(taskId);
 
-  await run(
-    `UPDATE tasks SET ${setClauses.join(', ')} WHERE id = ?`,
-    params
-  );
+  await run(`UPDATE tasks SET ${setClauses.join(", ")} WHERE id = ?`, params);
 
   await saveDb();
 
-  const row = await getOne<TaskRow>('SELECT * FROM tasks WHERE id = ?', [taskId]);
+  const row = await getOne<TaskRow>("SELECT * FROM tasks WHERE id = ?", [
+    taskId,
+  ]);
   if (!row) {
     throw new Error(`Task ${taskId} not found after update`);
   }
@@ -376,7 +380,7 @@ export async function removeFromQueue(taskId: string): Promise<void> {
          status = 'draft',
          updated_at = datetime('now')
      WHERE id = ? AND queue = 'evaluation'`,
-    [taskId]
+    [taskId],
   );
   await saveDb();
 }
@@ -391,7 +395,7 @@ export async function deleteFromQueue(taskId: string): Promise<boolean> {
     return false;
   }
 
-  await run('DELETE FROM tasks WHERE id = ?', [taskId]);
+  await run("DELETE FROM tasks WHERE id = ?", [taskId]);
   await saveDb();
   return true;
 }
@@ -400,11 +404,11 @@ export async function deleteFromQueue(taskId: string): Promise<boolean> {
  * Get count of tasks in Evaluation Queue
  */
 export async function getQueueCount(projectId?: string): Promise<number> {
-  let sql = 'SELECT COUNT(*) as count FROM tasks WHERE queue = \'evaluation\'';
+  let sql = "SELECT COUNT(*) as count FROM tasks WHERE queue = 'evaluation'";
   const params: string[] = [];
 
   if (projectId) {
-    sql += ' AND project_id = ?';
+    sql += " AND project_id = ?";
     params.push(projectId);
   }
 
@@ -415,9 +419,7 @@ export async function getQueueCount(projectId?: string): Promise<number> {
 /**
  * Generate daily digest content for Telegram notification
  */
-export async function generateDailyDigest(
-  projectId?: string
-): Promise<{
+export async function generateDailyDigest(projectId?: string): Promise<{
   totalQueued: number;
   staleCount: number;
   newToday: number;

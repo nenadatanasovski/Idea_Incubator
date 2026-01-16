@@ -2,25 +2,25 @@
  * Generalist Evaluator Agent
  * Evaluates ideas across all 30 criteria in 6 categories
  */
-import { client } from '../utils/anthropic-client.js';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { EvaluationParseError } from '../utils/errors.js';
-import { logDebug, logInfo } from '../utils/logger.js';
-import { getConfig } from '../config/index.js';
+import { client } from "../utils/anthropic-client.js";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { EvaluationParseError } from "../utils/errors.js";
+import { logDebug, logInfo } from "../utils/logger.js";
+import { getConfig } from "../config/index.js";
 import {
   EVALUATION_CRITERIA,
   ALL_CRITERIA,
   CATEGORIES,
   Category,
   formatAllCriteriaForPrompt,
-  type CriterionDefinition
-} from './config.js';
-import {
-  type ProfileContext
-} from '../utils/schemas.js';
+  type CriterionDefinition,
+} from "./config.js";
+import { type ProfileContext } from "../utils/schemas.js";
 
 // Broadcaster type for WebSocket events
-type Broadcaster = ReturnType<typeof import('../utils/broadcast.js').createBroadcaster>;
+type Broadcaster = ReturnType<
+  typeof import("../utils/broadcast.js").createBroadcaster
+>;
 
 const EVALUATOR_SYSTEM_PROMPT = `You are the Idea Incubator Evaluator Agent.
 
@@ -64,104 +64,104 @@ Respond in JSON format as specified.`;
  */
 export interface StructuredAnswerData {
   problem?: {
-    core_problem?: string;      // From P1_CORE
-    problem_scope?: string;     // From P1_SCOPE
-    problem_triggers?: string;  // From P1_WHEN
-    target_user?: string;       // From P3_WHO
-    user_segment?: string;      // From P3_SEGMENT
-    user_size?: string;         // From P3_SIZE
-    user_access?: string;       // From P3_ACCESS
-    pain_severity?: string;     // From P2_PAIN
-    pain_cost?: string;         // From P2_COST
-    pain_frequency?: string;    // From P2_FREQUENCY
+    core_problem?: string; // From P1_CORE
+    problem_scope?: string; // From P1_SCOPE
+    problem_triggers?: string; // From P1_WHEN
+    target_user?: string; // From P3_WHO
+    user_segment?: string; // From P3_SEGMENT
+    user_size?: string; // From P3_SIZE
+    user_access?: string; // From P3_ACCESS
+    pain_severity?: string; // From P2_PAIN
+    pain_cost?: string; // From P2_COST
+    pain_frequency?: string; // From P2_FREQUENCY
     current_workarounds?: string; // From P2_ALTERNATIVES
-    validation?: string;        // From P4_EVIDENCE
+    validation?: string; // From P4_EVIDENCE
     user_conversations?: string; // From P4_CONVERSATIONS
     willingness_to_pay?: string; // From P4_WILLINGNESS
     existing_solutions?: string; // From P5_EXISTING
-    solution_gaps?: string;     // From P5_GAP
-    unique_angle?: string;      // From P5_ANGLE
+    solution_gaps?: string; // From P5_GAP
+    unique_angle?: string; // From P5_ANGLE
   };
   solution?: {
-    description?: string;       // From S1_WHAT
+    description?: string; // From S1_WHAT
     value_proposition?: string; // From S1_VALUE_PROP
-    user_flow?: string;         // From S1_HOW
-    technology?: string;        // From S2_TECH
-    proven_approach?: string;   // From S2_PROVEN
-    hard_parts?: string;        // From S2_HARD
-    differentiation?: string;   // From S3_DIFF
-    why_better?: string;        // From S3_WHY_BETTER
-    secret_insight?: string;    // From S3_SECRET
+    user_flow?: string; // From S1_HOW
+    technology?: string; // From S2_TECH
+    proven_approach?: string; // From S2_PROVEN
+    hard_parts?: string; // From S2_HARD
+    differentiation?: string; // From S3_DIFF
+    why_better?: string; // From S3_WHY_BETTER
+    secret_insight?: string; // From S3_SECRET
     scale_bottlenecks?: string; // From S4_SCALE
-    marginal_costs?: string;    // From S4_MARGINAL
-    moat?: string;              // From S5_MOAT
-    ip_protection?: string;     // From S5_PROTECTION
-    network_effects?: string;   // From S5_NETWORK
+    marginal_costs?: string; // From S4_MARGINAL
+    moat?: string; // From S5_MOAT
+    ip_protection?: string; // From S5_PROTECTION
+    network_effects?: string; // From S5_NETWORK
   };
   feasibility?: {
-    mvp?: string;               // From F1_MVP
-    components?: string;        // From F1_COMPONENTS
-    unknowns?: string;          // From F1_UNKNOWNS
-    cost_estimate?: string;     // From F2_COST
+    mvp?: string; // From F1_MVP
+    components?: string; // From F1_COMPONENTS
+    unknowns?: string; // From F1_UNKNOWNS
+    cost_estimate?: string; // From F2_COST
     team_requirements?: string; // From F2_TEAM
-    tools_needed?: string;      // From F2_TOOLS
-    skill_gaps?: string;        // From F3_GAP
+    tools_needed?: string; // From F2_TOOLS
+    skill_gaps?: string; // From F3_GAP
     skill_acquisition?: string; // From F3_ACQUIRE
-    time_to_feedback?: string;  // From F4_FIRST_VALUE
-    time_to_revenue?: string;   // From F4_FIRST_REVENUE
-    dependencies?: string;      // From F5_DEPS
+    time_to_feedback?: string; // From F4_FIRST_VALUE
+    time_to_revenue?: string; // From F4_FIRST_REVENUE
+    dependencies?: string; // From F5_DEPS
     dependency_control?: string; // From F5_CONTROL
   };
   market?: {
-    tam?: string;               // From M1_TAM
-    sam?: string;               // From M1_SAM
-    som?: string;               // From M1_SOM
-    trends?: string;            // From M2_TREND
-    trend_drivers?: string;     // From M2_DRIVERS
-    competitors?: string;       // From M3_COMPETITORS
+    tam?: string; // From M1_TAM
+    sam?: string; // From M1_SAM
+    som?: string; // From M1_SOM
+    trends?: string; // From M2_TREND
+    trend_drivers?: string; // From M2_DRIVERS
+    competitors?: string; // From M3_COMPETITORS
     competitive_landscape?: string; // From M3_LANDSCAPE
     competitor_weaknesses?: string; // From M3_COMP_WEAKNESS
-    barriers?: string;          // From M4_BARRIERS
-    barrier_strategy?: string;  // From M4_OVERCOME
-    timing?: string;            // From M5_WHY_NOW
-    timing_catalyst?: string;   // From M5_CATALYST
+    barriers?: string; // From M4_BARRIERS
+    barrier_strategy?: string; // From M4_OVERCOME
+    timing?: string; // From M5_WHY_NOW
+    timing_catalyst?: string; // From M5_CATALYST
   };
   risk?: {
-    biggest_risk?: string;      // From R_BIGGEST
-    mitigation?: string;        // From R_MITIGATION
-    execution_risk?: string;    // From R_EXECUTION
-    market_risk?: string;       // From R_MARKET
-    technical_risk?: string;    // From R_TECHNICAL
-    financial_risk?: string;    // From R_FINANCIAL
-    regulatory_risk?: string;   // From R_REGULATORY
-    kill_conditions?: string;   // From R_KILL
-    premortem?: string;         // From R_PREMORTEM
+    biggest_risk?: string; // From R_BIGGEST
+    mitigation?: string; // From R_MITIGATION
+    execution_risk?: string; // From R_EXECUTION
+    market_risk?: string; // From R_MARKET
+    technical_risk?: string; // From R_TECHNICAL
+    financial_risk?: string; // From R_FINANCIAL
+    regulatory_risk?: string; // From R_REGULATORY
+    kill_conditions?: string; // From R_KILL
+    premortem?: string; // From R_PREMORTEM
   };
   business_model?: {
-    revenue_model?: string;     // From BM_MODEL
-    pricing?: string;           // From BM_PRICE
-    cac?: string;               // From BM_CAC
-    ltv?: string;               // From BM_LTV
-    gtm?: string;               // From BM_GTM
+    revenue_model?: string; // From BM_MODEL
+    pricing?: string; // From BM_PRICE
+    cac?: string; // From BM_CAC
+    ltv?: string; // From BM_LTV
+    gtm?: string; // From BM_GTM
     revenue_projection?: string; // From BM_REVENUE
   };
   fit?: {
-    goal_alignment?: string;    // From FT1_GOALS
-    why_this_idea?: string;     // From FT1_WHY_THIS
+    goal_alignment?: string; // From FT1_GOALS
+    why_this_idea?: string; // From FT1_WHY_THIS
     success_definition?: string; // From FT1_SUCCESS
-    passion?: string;           // From FT2_PASSION
+    passion?: string; // From FT2_PASSION
     personal_experience?: string; // From FT2_EXPERIENCE
     long_term_interest?: string; // From FT2_LONG_TERM
-    skills?: string;            // From FT3_SKILLS
-    unique_advantage?: string;  // From FT3_UNIQUE
-    skills_to_learn?: string;   // From FT3_LEARN
-    network?: string;           // From FT4_NETWORK
-    customer_access?: string;   // From FT4_ACCESS
-    community?: string;         // From FT4_COMMUNITY
-    life_timing?: string;       // From FT5_TIMING
-    time_capacity?: string;     // From FT5_CAPACITY
-    financial_runway?: string;  // From FT5_RUNWAY
-    risk_tolerance?: string;    // From FT5_RISK
+    skills?: string; // From FT3_SKILLS
+    unique_advantage?: string; // From FT3_UNIQUE
+    skills_to_learn?: string; // From FT3_LEARN
+    network?: string; // From FT4_NETWORK
+    customer_access?: string; // From FT4_ACCESS
+    community?: string; // From FT4_COMMUNITY
+    life_timing?: string; // From FT5_TIMING
+    time_capacity?: string; // From FT5_CAPACITY
+    financial_runway?: string; // From FT5_RUNWAY
+    risk_tolerance?: string; // From FT5_RISK
   };
 }
 
@@ -214,18 +214,21 @@ export interface FullEvaluationResult {
 /**
  * Generate profile context section for evaluator prompt
  */
-function formatProfileContextForPrompt(profileContext: ProfileContext | null, category: Category): string {
+function formatProfileContextForPrompt(
+  profileContext: ProfileContext | null,
+  category: Category,
+): string {
   if (!profileContext) {
     return `## Creator Profile
 No user profile available. Evaluate Personal Fit criteria (FT1-FT5) with low confidence and neutral scores (5/10) while noting what information would be needed for accurate assessment.`;
   }
 
   // For non-fit categories, include brief profile summary
-  if (category !== 'fit') {
+  if (category !== "fit") {
     return `## Creator Profile Summary
 The creator has provided their profile for context. Key points:
 - Goals: ${profileContext.goalsContext}
-- Skills: ${profileContext.skillsContext.split('\n')[0]}
+- Skills: ${profileContext.skillsContext.split("\n")[0]}
 
 Use this context when relevant to your assessment.`;
   }
@@ -256,10 +259,10 @@ ${profileContext.lifeStageContext}
  */
 export function formatStructuredDataForPrompt(
   structuredContext: StructuredEvaluationContext | null,
-  category: Category
+  category: Category,
 ): string {
   if (!structuredContext || !structuredContext.answers) {
-    return '';
+    return "";
   }
 
   const { answers, coverage } = structuredContext;
@@ -273,125 +276,202 @@ export function formatStructuredDataForPrompt(
 
   // Format answers based on category
   switch (category) {
-    case 'problem':
+    case "problem":
       if (answers.problem) {
         const p = answers.problem;
-        if (p.core_problem) structuredSection += `**Core Problem:** ${p.core_problem}\n\n`;
-        if (p.problem_scope) structuredSection += `**Problem Scope:** ${p.problem_scope}\n\n`;
-        if (p.problem_triggers) structuredSection += `**Problem Triggers:** ${p.problem_triggers}\n\n`;
-        if (p.target_user) structuredSection += `**Target User:** ${p.target_user}\n\n`;
-        if (p.user_segment) structuredSection += `**User Segment:** ${p.user_segment}\n\n`;
-        if (p.user_size) structuredSection += `**Market Size (Users):** ${p.user_size}\n\n`;
-        if (p.user_access) structuredSection += `**User Access Channels:** ${p.user_access}\n\n`;
-        if (p.pain_severity) structuredSection += `**Pain Severity:** ${p.pain_severity}\n\n`;
-        if (p.pain_cost) structuredSection += `**Pain Cost:** ${p.pain_cost}\n\n`;
-        if (p.pain_frequency) structuredSection += `**Pain Frequency:** ${p.pain_frequency}\n\n`;
-        if (p.current_workarounds) structuredSection += `**Current Workarounds:** ${p.current_workarounds}\n\n`;
-        if (p.validation) structuredSection += `**Problem Validation:** ${p.validation}\n\n`;
-        if (p.user_conversations) structuredSection += `**User Conversations:** ${p.user_conversations}\n\n`;
-        if (p.willingness_to_pay) structuredSection += `**Willingness to Pay:** ${p.willingness_to_pay}\n\n`;
-        if (p.existing_solutions) structuredSection += `**Existing Solutions:** ${p.existing_solutions}\n\n`;
-        if (p.solution_gaps) structuredSection += `**Solution Gaps:** ${p.solution_gaps}\n\n`;
-        if (p.unique_angle) structuredSection += `**Unique Angle:** ${p.unique_angle}\n\n`;
+        if (p.core_problem)
+          structuredSection += `**Core Problem:** ${p.core_problem}\n\n`;
+        if (p.problem_scope)
+          structuredSection += `**Problem Scope:** ${p.problem_scope}\n\n`;
+        if (p.problem_triggers)
+          structuredSection += `**Problem Triggers:** ${p.problem_triggers}\n\n`;
+        if (p.target_user)
+          structuredSection += `**Target User:** ${p.target_user}\n\n`;
+        if (p.user_segment)
+          structuredSection += `**User Segment:** ${p.user_segment}\n\n`;
+        if (p.user_size)
+          structuredSection += `**Market Size (Users):** ${p.user_size}\n\n`;
+        if (p.user_access)
+          structuredSection += `**User Access Channels:** ${p.user_access}\n\n`;
+        if (p.pain_severity)
+          structuredSection += `**Pain Severity:** ${p.pain_severity}\n\n`;
+        if (p.pain_cost)
+          structuredSection += `**Pain Cost:** ${p.pain_cost}\n\n`;
+        if (p.pain_frequency)
+          structuredSection += `**Pain Frequency:** ${p.pain_frequency}\n\n`;
+        if (p.current_workarounds)
+          structuredSection += `**Current Workarounds:** ${p.current_workarounds}\n\n`;
+        if (p.validation)
+          structuredSection += `**Problem Validation:** ${p.validation}\n\n`;
+        if (p.user_conversations)
+          structuredSection += `**User Conversations:** ${p.user_conversations}\n\n`;
+        if (p.willingness_to_pay)
+          structuredSection += `**Willingness to Pay:** ${p.willingness_to_pay}\n\n`;
+        if (p.existing_solutions)
+          structuredSection += `**Existing Solutions:** ${p.existing_solutions}\n\n`;
+        if (p.solution_gaps)
+          structuredSection += `**Solution Gaps:** ${p.solution_gaps}\n\n`;
+        if (p.unique_angle)
+          structuredSection += `**Unique Angle:** ${p.unique_angle}\n\n`;
       }
       break;
 
-    case 'solution':
+    case "solution":
       if (answers.solution) {
         const s = answers.solution;
-        if (s.description) structuredSection += `**Solution Description:** ${s.description}\n\n`;
-        if (s.value_proposition) structuredSection += `**Value Proposition:** ${s.value_proposition}\n\n`;
-        if (s.user_flow) structuredSection += `**User Flow:** ${s.user_flow}\n\n`;
-        if (s.technology) structuredSection += `**Technology Stack:** ${s.technology}\n\n`;
-        if (s.proven_approach) structuredSection += `**Proven Approach:** ${s.proven_approach}\n\n`;
-        if (s.hard_parts) structuredSection += `**Technical Challenges:** ${s.hard_parts}\n\n`;
-        if (s.differentiation) structuredSection += `**Differentiation:** ${s.differentiation}\n\n`;
-        if (s.why_better) structuredSection += `**Why Better:** ${s.why_better}\n\n`;
-        if (s.secret_insight) structuredSection += `**Secret Insight:** ${s.secret_insight}\n\n`;
-        if (s.scale_bottlenecks) structuredSection += `**Scale Bottlenecks:** ${s.scale_bottlenecks}\n\n`;
-        if (s.marginal_costs) structuredSection += `**Marginal Costs:** ${s.marginal_costs}\n\n`;
+        if (s.description)
+          structuredSection += `**Solution Description:** ${s.description}\n\n`;
+        if (s.value_proposition)
+          structuredSection += `**Value Proposition:** ${s.value_proposition}\n\n`;
+        if (s.user_flow)
+          structuredSection += `**User Flow:** ${s.user_flow}\n\n`;
+        if (s.technology)
+          structuredSection += `**Technology Stack:** ${s.technology}\n\n`;
+        if (s.proven_approach)
+          structuredSection += `**Proven Approach:** ${s.proven_approach}\n\n`;
+        if (s.hard_parts)
+          structuredSection += `**Technical Challenges:** ${s.hard_parts}\n\n`;
+        if (s.differentiation)
+          structuredSection += `**Differentiation:** ${s.differentiation}\n\n`;
+        if (s.why_better)
+          structuredSection += `**Why Better:** ${s.why_better}\n\n`;
+        if (s.secret_insight)
+          structuredSection += `**Secret Insight:** ${s.secret_insight}\n\n`;
+        if (s.scale_bottlenecks)
+          structuredSection += `**Scale Bottlenecks:** ${s.scale_bottlenecks}\n\n`;
+        if (s.marginal_costs)
+          structuredSection += `**Marginal Costs:** ${s.marginal_costs}\n\n`;
         if (s.moat) structuredSection += `**Competitive Moat:** ${s.moat}\n\n`;
-        if (s.ip_protection) structuredSection += `**IP Protection:** ${s.ip_protection}\n\n`;
-        if (s.network_effects) structuredSection += `**Network Effects:** ${s.network_effects}\n\n`;
+        if (s.ip_protection)
+          structuredSection += `**IP Protection:** ${s.ip_protection}\n\n`;
+        if (s.network_effects)
+          structuredSection += `**Network Effects:** ${s.network_effects}\n\n`;
       }
       break;
 
-    case 'feasibility':
+    case "feasibility":
       if (answers.feasibility) {
         const f = answers.feasibility;
         if (f.mvp) structuredSection += `**MVP Approach:** ${f.mvp}\n\n`;
-        if (f.components) structuredSection += `**Technical Components:** ${f.components}\n\n`;
-        if (f.unknowns) structuredSection += `**Technical Unknowns:** ${f.unknowns}\n\n`;
-        if (f.cost_estimate) structuredSection += `**Cost Estimate:** ${f.cost_estimate}\n\n`;
-        if (f.team_requirements) structuredSection += `**Team Requirements:** ${f.team_requirements}\n\n`;
-        if (f.tools_needed) structuredSection += `**Tools Needed:** ${f.tools_needed}\n\n`;
-        if (f.skill_gaps) structuredSection += `**Skill Gaps:** ${f.skill_gaps}\n\n`;
-        if (f.skill_acquisition) structuredSection += `**Skill Acquisition Plan:** ${f.skill_acquisition}\n\n`;
-        if (f.time_to_feedback) structuredSection += `**Time to First Feedback:** ${f.time_to_feedback}\n\n`;
-        if (f.time_to_revenue) structuredSection += `**Time to First Revenue:** ${f.time_to_revenue}\n\n`;
-        if (f.dependencies) structuredSection += `**External Dependencies:** ${f.dependencies}\n\n`;
-        if (f.dependency_control) structuredSection += `**Dependency Control:** ${f.dependency_control}\n\n`;
+        if (f.components)
+          structuredSection += `**Technical Components:** ${f.components}\n\n`;
+        if (f.unknowns)
+          structuredSection += `**Technical Unknowns:** ${f.unknowns}\n\n`;
+        if (f.cost_estimate)
+          structuredSection += `**Cost Estimate:** ${f.cost_estimate}\n\n`;
+        if (f.team_requirements)
+          structuredSection += `**Team Requirements:** ${f.team_requirements}\n\n`;
+        if (f.tools_needed)
+          structuredSection += `**Tools Needed:** ${f.tools_needed}\n\n`;
+        if (f.skill_gaps)
+          structuredSection += `**Skill Gaps:** ${f.skill_gaps}\n\n`;
+        if (f.skill_acquisition)
+          structuredSection += `**Skill Acquisition Plan:** ${f.skill_acquisition}\n\n`;
+        if (f.time_to_feedback)
+          structuredSection += `**Time to First Feedback:** ${f.time_to_feedback}\n\n`;
+        if (f.time_to_revenue)
+          structuredSection += `**Time to First Revenue:** ${f.time_to_revenue}\n\n`;
+        if (f.dependencies)
+          structuredSection += `**External Dependencies:** ${f.dependencies}\n\n`;
+        if (f.dependency_control)
+          structuredSection += `**Dependency Control:** ${f.dependency_control}\n\n`;
       }
       break;
 
-    case 'market':
+    case "market":
       if (answers.market) {
         const m = answers.market;
-        if (m.tam) structuredSection += `**Total Addressable Market:** ${m.tam}\n\n`;
-        if (m.sam) structuredSection += `**Serviceable Addressable Market:** ${m.sam}\n\n`;
-        if (m.som) structuredSection += `**Serviceable Obtainable Market:** ${m.som}\n\n`;
+        if (m.tam)
+          structuredSection += `**Total Addressable Market:** ${m.tam}\n\n`;
+        if (m.sam)
+          structuredSection += `**Serviceable Addressable Market:** ${m.sam}\n\n`;
+        if (m.som)
+          structuredSection += `**Serviceable Obtainable Market:** ${m.som}\n\n`;
         if (m.trends) structuredSection += `**Market Trends:** ${m.trends}\n\n`;
-        if (m.trend_drivers) structuredSection += `**Trend Drivers:** ${m.trend_drivers}\n\n`;
-        if (m.competitors) structuredSection += `**Competitors:** ${m.competitors}\n\n`;
-        if (m.competitive_landscape) structuredSection += `**Competitive Landscape:** ${m.competitive_landscape}\n\n`;
-        if (m.competitor_weaknesses) structuredSection += `**Competitor Weaknesses:** ${m.competitor_weaknesses}\n\n`;
-        if (m.barriers) structuredSection += `**Entry Barriers:** ${m.barriers}\n\n`;
-        if (m.barrier_strategy) structuredSection += `**Barrier Strategy:** ${m.barrier_strategy}\n\n`;
-        if (m.timing) structuredSection += `**Why Now (Timing):** ${m.timing}\n\n`;
-        if (m.timing_catalyst) structuredSection += `**Timing Catalyst:** ${m.timing_catalyst}\n\n`;
+        if (m.trend_drivers)
+          structuredSection += `**Trend Drivers:** ${m.trend_drivers}\n\n`;
+        if (m.competitors)
+          structuredSection += `**Competitors:** ${m.competitors}\n\n`;
+        if (m.competitive_landscape)
+          structuredSection += `**Competitive Landscape:** ${m.competitive_landscape}\n\n`;
+        if (m.competitor_weaknesses)
+          structuredSection += `**Competitor Weaknesses:** ${m.competitor_weaknesses}\n\n`;
+        if (m.barriers)
+          structuredSection += `**Entry Barriers:** ${m.barriers}\n\n`;
+        if (m.barrier_strategy)
+          structuredSection += `**Barrier Strategy:** ${m.barrier_strategy}\n\n`;
+        if (m.timing)
+          structuredSection += `**Why Now (Timing):** ${m.timing}\n\n`;
+        if (m.timing_catalyst)
+          structuredSection += `**Timing Catalyst:** ${m.timing_catalyst}\n\n`;
       }
       break;
 
-    case 'risk':
+    case "risk":
       if (answers.risk) {
         const r = answers.risk;
-        if (r.biggest_risk) structuredSection += `**Biggest Risk:** ${r.biggest_risk}\n\n`;
-        if (r.mitigation) structuredSection += `**Risk Mitigation:** ${r.mitigation}\n\n`;
-        if (r.execution_risk) structuredSection += `**Execution Risk:** ${r.execution_risk}\n\n`;
-        if (r.market_risk) structuredSection += `**Market Risk:** ${r.market_risk}\n\n`;
-        if (r.technical_risk) structuredSection += `**Technical Risk:** ${r.technical_risk}\n\n`;
-        if (r.financial_risk) structuredSection += `**Financial Risk:** ${r.financial_risk}\n\n`;
-        if (r.regulatory_risk) structuredSection += `**Regulatory Risk:** ${r.regulatory_risk}\n\n`;
-        if (r.kill_conditions) structuredSection += `**Kill Conditions:** ${r.kill_conditions}\n\n`;
-        if (r.premortem) structuredSection += `**Pre-mortem Analysis:** ${r.premortem}\n\n`;
+        if (r.biggest_risk)
+          structuredSection += `**Biggest Risk:** ${r.biggest_risk}\n\n`;
+        if (r.mitigation)
+          structuredSection += `**Risk Mitigation:** ${r.mitigation}\n\n`;
+        if (r.execution_risk)
+          structuredSection += `**Execution Risk:** ${r.execution_risk}\n\n`;
+        if (r.market_risk)
+          structuredSection += `**Market Risk:** ${r.market_risk}\n\n`;
+        if (r.technical_risk)
+          structuredSection += `**Technical Risk:** ${r.technical_risk}\n\n`;
+        if (r.financial_risk)
+          structuredSection += `**Financial Risk:** ${r.financial_risk}\n\n`;
+        if (r.regulatory_risk)
+          structuredSection += `**Regulatory Risk:** ${r.regulatory_risk}\n\n`;
+        if (r.kill_conditions)
+          structuredSection += `**Kill Conditions:** ${r.kill_conditions}\n\n`;
+        if (r.premortem)
+          structuredSection += `**Pre-mortem Analysis:** ${r.premortem}\n\n`;
       }
       break;
 
-    case 'fit':
+    case "fit":
       // Fit uses both profile data (handled separately) and structured fit answers
       if (answers.fit) {
         const f = answers.fit;
         // FT1: Goal Alignment
-        if (f.goal_alignment) structuredSection += `**Goal Alignment:** ${f.goal_alignment}\n\n`;
-        if (f.why_this_idea) structuredSection += `**Why This Idea:** ${f.why_this_idea}\n\n`;
-        if (f.success_definition) structuredSection += `**Success Definition:** ${f.success_definition}\n\n`;
+        if (f.goal_alignment)
+          structuredSection += `**Goal Alignment:** ${f.goal_alignment}\n\n`;
+        if (f.why_this_idea)
+          structuredSection += `**Why This Idea:** ${f.why_this_idea}\n\n`;
+        if (f.success_definition)
+          structuredSection += `**Success Definition:** ${f.success_definition}\n\n`;
         // FT2: Passion
-        if (f.passion) structuredSection += `**Passion & Connection:** ${f.passion}\n\n`;
-        if (f.personal_experience) structuredSection += `**Personal Experience:** ${f.personal_experience}\n\n`;
-        if (f.long_term_interest) structuredSection += `**Long-term Interest:** ${f.long_term_interest}\n\n`;
+        if (f.passion)
+          structuredSection += `**Passion & Connection:** ${f.passion}\n\n`;
+        if (f.personal_experience)
+          structuredSection += `**Personal Experience:** ${f.personal_experience}\n\n`;
+        if (f.long_term_interest)
+          structuredSection += `**Long-term Interest:** ${f.long_term_interest}\n\n`;
         // FT3: Skills
-        if (f.skills) structuredSection += `**Relevant Skills:** ${f.skills}\n\n`;
-        if (f.unique_advantage) structuredSection += `**Unique Advantage:** ${f.unique_advantage}\n\n`;
-        if (f.skills_to_learn) structuredSection += `**Skills to Learn:** ${f.skills_to_learn}\n\n`;
+        if (f.skills)
+          structuredSection += `**Relevant Skills:** ${f.skills}\n\n`;
+        if (f.unique_advantage)
+          structuredSection += `**Unique Advantage:** ${f.unique_advantage}\n\n`;
+        if (f.skills_to_learn)
+          structuredSection += `**Skills to Learn:** ${f.skills_to_learn}\n\n`;
         // FT4: Network
-        if (f.network) structuredSection += `**Network & Connections:** ${f.network}\n\n`;
-        if (f.customer_access) structuredSection += `**Customer Access:** ${f.customer_access}\n\n`;
-        if (f.community) structuredSection += `**Community Involvement:** ${f.community}\n\n`;
+        if (f.network)
+          structuredSection += `**Network & Connections:** ${f.network}\n\n`;
+        if (f.customer_access)
+          structuredSection += `**Customer Access:** ${f.customer_access}\n\n`;
+        if (f.community)
+          structuredSection += `**Community Involvement:** ${f.community}\n\n`;
         // FT5: Life Stage
-        if (f.life_timing) structuredSection += `**Life Timing:** ${f.life_timing}\n\n`;
-        if (f.time_capacity) structuredSection += `**Time Capacity:** ${f.time_capacity}\n\n`;
-        if (f.financial_runway) structuredSection += `**Financial Runway:** ${f.financial_runway}\n\n`;
-        if (f.risk_tolerance) structuredSection += `**Risk Tolerance:** ${f.risk_tolerance}\n\n`;
+        if (f.life_timing)
+          structuredSection += `**Life Timing:** ${f.life_timing}\n\n`;
+        if (f.time_capacity)
+          structuredSection += `**Time Capacity:** ${f.time_capacity}\n\n`;
+        if (f.financial_runway)
+          structuredSection += `**Financial Runway:** ${f.financial_runway}\n\n`;
+        if (f.risk_tolerance)
+          structuredSection += `**Risk Tolerance:** ${f.risk_tolerance}\n\n`;
       }
       break;
 
@@ -400,17 +480,26 @@ export function formatStructuredDataForPrompt(
   }
 
   // Also include business model data for relevant categories
-  if (answers.business_model && (category === 'market' || category === 'solution')) {
+  if (
+    answers.business_model &&
+    (category === "market" || category === "solution")
+  ) {
     const bm = answers.business_model;
-    if (category === 'solution') {
-      if (bm.revenue_model) structuredSection += `**Revenue Model:** ${bm.revenue_model}\n\n`;
-      if (bm.pricing) structuredSection += `**Pricing Strategy:** ${bm.pricing}\n\n`;
+    if (category === "solution") {
+      if (bm.revenue_model)
+        structuredSection += `**Revenue Model:** ${bm.revenue_model}\n\n`;
+      if (bm.pricing)
+        structuredSection += `**Pricing Strategy:** ${bm.pricing}\n\n`;
     }
-    if (category === 'market') {
-      if (bm.cac) structuredSection += `**Customer Acquisition Cost:** ${bm.cac}\n\n`;
-      if (bm.ltv) structuredSection += `**Customer Lifetime Value:** ${bm.ltv}\n\n`;
-      if (bm.gtm) structuredSection += `**Go-to-Market Strategy:** ${bm.gtm}\n\n`;
-      if (bm.revenue_projection) structuredSection += `**Revenue Projections:** ${bm.revenue_projection}\n\n`;
+    if (category === "market") {
+      if (bm.cac)
+        structuredSection += `**Customer Acquisition Cost:** ${bm.cac}\n\n`;
+      if (bm.ltv)
+        structuredSection += `**Customer Lifetime Value:** ${bm.ltv}\n\n`;
+      if (bm.gtm)
+        structuredSection += `**Go-to-Market Strategy:** ${bm.gtm}\n\n`;
+      if (bm.revenue_projection)
+        structuredSection += `**Revenue Projections:** ${bm.revenue_projection}\n\n`;
     }
   }
 
@@ -439,8 +528,8 @@ export interface PositioningRiskContext {
   riskResponses?: Array<{
     riskId: string;
     riskDescription: string;
-    riskSeverity: 'high' | 'medium' | 'low';
-    response: 'mitigate' | 'accept' | 'monitor' | 'disagree' | 'skip';
+    riskSeverity: "high" | "medium" | "low";
+    response: "mitigate" | "accept" | "monitor" | "disagree" | "skip";
     disagreeReason?: string;
     reasoning?: string;
     mitigationPlan?: string;
@@ -469,11 +558,17 @@ export interface StrategicPositioningContext {
   };
 
   // Strategic approach chosen
-  strategicApproach?: 'create' | 'copy_improve' | 'combine' | 'localize' | 'specialize' | 'time';
+  strategicApproach?:
+    | "create"
+    | "copy_improve"
+    | "combine"
+    | "localize"
+    | "specialize"
+    | "time";
 
   // Timing decision
   timing?: {
-    decision: 'proceed_now' | 'wait' | 'urgent';
+    decision: "proceed_now" | "wait" | "urgent";
     rationale?: string;
   };
 
@@ -484,7 +579,12 @@ export interface StrategicPositioningContext {
     allocatedRunwayMonths?: number;
     targetIncome?: number;
     incomeTimelineMonths?: number;
-    incomeType?: 'full_replacement' | 'partial_replacement' | 'supplement' | 'wealth_building' | 'learning';
+    incomeType?:
+      | "full_replacement"
+      | "partial_replacement"
+      | "supplement"
+      | "wealth_building"
+      | "learning";
     validationBudget?: number;
     killCriteria?: string;
   };
@@ -505,14 +605,17 @@ export interface StrategicPositioningContext {
  * Format strategic positioning context for evaluator prompt
  * This context helps evaluators score the idea within the user's stated constraints
  */
-function formatStrategicContext(ctx: StrategicPositioningContext | null, category: Category): string {
-  if (!ctx) return '';
+function formatStrategicContext(
+  ctx: StrategicPositioningContext | null,
+  category: Category,
+): string {
+  if (!ctx) return "";
 
   const parts: string[] = [];
 
   // Strategy section - relevant for all categories
   if (ctx.selectedStrategy || ctx.strategicApproach) {
-    parts.push('### Strategic Positioning');
+    parts.push("### Strategic Positioning");
     if (ctx.selectedStrategy?.name) {
       parts.push(`**Selected Strategy:** ${ctx.selectedStrategy.name}`);
       if (ctx.selectedStrategy.description) {
@@ -521,125 +624,175 @@ function formatStrategicContext(ctx: StrategicPositioningContext | null, categor
     }
     if (ctx.strategicApproach) {
       const approachDescriptions: Record<string, string> = {
-        create: 'CREATE - Building something genuinely new (expect higher risk, longer timeline)',
-        copy_improve: 'COPY & IMPROVE - Proven model, better execution (lower risk, faster)',
-        combine: 'COMBINE - Merging validated concepts (medium risk)',
-        localize: 'LOCALIZE - Proven model for new geography/segment (lower risk)',
-        specialize: 'SPECIALIZE - Narrow general solution to niche (lower risk)',
-        time: 'TIME - Retry concept whose time has come (variable risk)'
+        create:
+          "CREATE - Building something genuinely new (expect higher risk, longer timeline)",
+        copy_improve:
+          "COPY & IMPROVE - Proven model, better execution (lower risk, faster)",
+        combine: "COMBINE - Merging validated concepts (medium risk)",
+        localize:
+          "LOCALIZE - Proven model for new geography/segment (lower risk)",
+        specialize:
+          "SPECIALIZE - Narrow general solution to niche (lower risk)",
+        time: "TIME - Retry concept whose time has come (variable risk)",
       };
-      parts.push(`**Strategic Approach:** ${approachDescriptions[ctx.strategicApproach] || ctx.strategicApproach}`);
+      parts.push(
+        `**Strategic Approach:** ${approachDescriptions[ctx.strategicApproach] || ctx.strategicApproach}`,
+      );
     }
-    parts.push('');
+    parts.push("");
   }
 
   // Timing - especially relevant for Market (M5) and Risk categories
-  if (ctx.timing && (category === 'market' || category === 'risk' || category === 'feasibility')) {
-    parts.push('### Timing Decision');
+  if (
+    ctx.timing &&
+    (category === "market" || category === "risk" || category === "feasibility")
+  ) {
+    parts.push("### Timing Decision");
     const timingLabels: Record<string, string> = {
-      proceed_now: 'PROCEED NOW - User is ready to execute immediately',
-      wait: 'WAIT - User plans to delay execution',
-      urgent: 'URGENT - Time-sensitive opportunity, must move fast'
+      proceed_now: "PROCEED NOW - User is ready to execute immediately",
+      wait: "WAIT - User plans to delay execution",
+      urgent: "URGENT - Time-sensitive opportunity, must move fast",
     };
-    parts.push(`**Decision:** ${timingLabels[ctx.timing.decision] || ctx.timing.decision}`);
+    parts.push(
+      `**Decision:** ${timingLabels[ctx.timing.decision] || ctx.timing.decision}`,
+    );
     if (ctx.timing.rationale) {
       parts.push(`**Rationale:** ${ctx.timing.rationale}`);
     }
-    parts.push('');
+    parts.push("");
   }
 
   // Financial constraints - especially relevant for Feasibility (F2, F4, F5) and Fit (FT5)
-  if (ctx.financials && (category === 'feasibility' || category === 'fit' || category === 'risk')) {
-    parts.push('### Resource Constraints (User\'s Committed Allocation)');
+  if (
+    ctx.financials &&
+    (category === "feasibility" || category === "fit" || category === "risk")
+  ) {
+    parts.push("### Resource Constraints (User's Committed Allocation)");
 
-    if (ctx.financials.allocatedBudget !== undefined && ctx.financials.allocatedBudget > 0) {
-      parts.push(`**Allocated Budget:** $${ctx.financials.allocatedBudget.toLocaleString()}`);
+    if (
+      ctx.financials.allocatedBudget !== undefined &&
+      ctx.financials.allocatedBudget > 0
+    ) {
+      parts.push(
+        `**Allocated Budget:** $${ctx.financials.allocatedBudget.toLocaleString()}`,
+      );
     }
-    if (ctx.financials.allocatedWeeklyHours !== undefined && ctx.financials.allocatedWeeklyHours > 0) {
-      parts.push(`**Time Commitment:** ${ctx.financials.allocatedWeeklyHours} hours/week`);
+    if (
+      ctx.financials.allocatedWeeklyHours !== undefined &&
+      ctx.financials.allocatedWeeklyHours > 0
+    ) {
+      parts.push(
+        `**Time Commitment:** ${ctx.financials.allocatedWeeklyHours} hours/week`,
+      );
     }
-    if (ctx.financials.allocatedRunwayMonths !== undefined && ctx.financials.allocatedRunwayMonths > 0) {
+    if (
+      ctx.financials.allocatedRunwayMonths !== undefined &&
+      ctx.financials.allocatedRunwayMonths > 0
+    ) {
       parts.push(`**Runway:** ${ctx.financials.allocatedRunwayMonths} months`);
     }
-    if (ctx.financials.validationBudget !== undefined && ctx.financials.validationBudget > 0) {
-      parts.push(`**Validation Budget:** $${ctx.financials.validationBudget.toLocaleString()}`);
+    if (
+      ctx.financials.validationBudget !== undefined &&
+      ctx.financials.validationBudget > 0
+    ) {
+      parts.push(
+        `**Validation Budget:** $${ctx.financials.validationBudget.toLocaleString()}`,
+      );
     }
 
     // Income goals - affects how we evaluate feasibility and fit
-    if (ctx.financials.targetIncome !== undefined && ctx.financials.targetIncome > 0) {
+    if (
+      ctx.financials.targetIncome !== undefined &&
+      ctx.financials.targetIncome > 0
+    ) {
       const timeline = ctx.financials.incomeTimelineMonths
         ? ` within ${ctx.financials.incomeTimelineMonths} months`
-        : '';
-      parts.push(`**Income Target:** $${ctx.financials.targetIncome.toLocaleString()}/year${timeline}`);
+        : "";
+      parts.push(
+        `**Income Target:** $${ctx.financials.targetIncome.toLocaleString()}/year${timeline}`,
+      );
     }
     if (ctx.financials.incomeType) {
       const incomeLabels: Record<string, string> = {
-        full_replacement: 'Full income replacement required',
-        partial_replacement: 'Partial income replacement',
-        supplement: 'Supplemental income',
-        wealth_building: 'Equity/wealth building focus',
-        learning: 'Learning-focused (income secondary)'
+        full_replacement: "Full income replacement required",
+        partial_replacement: "Partial income replacement",
+        supplement: "Supplemental income",
+        wealth_building: "Equity/wealth building focus",
+        learning: "Learning-focused (income secondary)",
       };
-      parts.push(`**Income Type:** ${incomeLabels[ctx.financials.incomeType] || ctx.financials.incomeType}`);
+      parts.push(
+        `**Income Type:** ${incomeLabels[ctx.financials.incomeType] || ctx.financials.incomeType}`,
+      );
     }
 
     // Kill criteria - critical for Risk evaluation
     if (ctx.financials.killCriteria) {
       parts.push(`**Kill Criteria:** ${ctx.financials.killCriteria}`);
-      parts.push('  *(User will abandon if these conditions are met)*');
+      parts.push("  *(User will abandon if these conditions are met)*");
     }
 
-    parts.push('');
+    parts.push("");
   }
 
   // Differentiation insights - relevant for Market and Solution categories
-  if (ctx.differentiation && (category === 'market' || category === 'solution')) {
-    parts.push('### Differentiation Analysis Insights');
+  if (
+    ctx.differentiation &&
+    (category === "market" || category === "solution")
+  ) {
+    parts.push("### Differentiation Analysis Insights");
 
     if (ctx.differentiation.strategicSummary) {
       parts.push(`**Summary:** ${ctx.differentiation.strategicSummary}`);
     }
     if (ctx.differentiation.topOpportunities?.length) {
-      parts.push('**Top Opportunities:**');
-      ctx.differentiation.topOpportunities.slice(0, 3).forEach(opp => {
+      parts.push("**Top Opportunities:**");
+      ctx.differentiation.topOpportunities.slice(0, 3).forEach((opp) => {
         parts.push(`  - ${opp}`);
       });
     }
     if (ctx.differentiation.competitiveRisks?.length) {
-      parts.push('**Competitive Risks Identified:**');
-      ctx.differentiation.competitiveRisks.slice(0, 3).forEach(risk => {
+      parts.push("**Competitive Risks Identified:**");
+      ctx.differentiation.competitiveRisks.slice(0, 3).forEach((risk) => {
         parts.push(`  - ${risk}`);
       });
     }
     if (ctx.differentiation.marketTimingAnalysis) {
-      parts.push(`**Market Timing:** ${ctx.differentiation.marketTimingAnalysis}`);
+      parts.push(
+        `**Market Timing:** ${ctx.differentiation.marketTimingAnalysis}`,
+      );
     }
 
-    parts.push('');
+    parts.push("");
   }
 
-  if (parts.length === 0) return '';
+  if (parts.length === 0) return "";
 
   return `## Strategic Context (from Position Phase)
 
 **IMPORTANT FOR EVALUATION:** The user has completed the Position phase and made specific decisions about strategy, resources, and timing. Evaluate the idea within these stated constraints, not against an idealized scenario.
 
-${parts.join('\n')}
+${parts.join("\n")}
 **Evaluation Guidance:**
 - Score F2 (Resources) based on their allocated budget/time, not ideal resources
 - Score F4 (Time to Value) against their stated income timeline
 - Score R1-R5 (Risks) considering their mitigation plans and kill criteria
 - Score FT1/FT5 (Fit) against their income goals and life stage constraints
-- Consider their strategic approach (${ctx.strategicApproach || 'not specified'}) when assessing risk/reward tradeoffs
+- Consider their strategic approach (${ctx.strategicApproach || "not specified"}) when assessing risk/reward tradeoffs
 `;
 }
 
 /**
  * Format positioning risk context for evaluator prompt (specifically for R2 Market Risk)
  */
-function formatPositioningContextForRisk(positioningContext: PositioningRiskContext | null): string {
-  if (!positioningContext || !positioningContext.riskResponses || positioningContext.riskResponses.length === 0) {
-    return '';
+function formatPositioningContextForRisk(
+  positioningContext: PositioningRiskContext | null,
+): string {
+  if (
+    !positioningContext ||
+    !positioningContext.riskResponses ||
+    positioningContext.riskResponses.length === 0
+  ) {
+    return "";
   }
 
   const responses = positioningContext.riskResponses;
@@ -656,31 +809,33 @@ The creator has already reviewed ${stats?.responded || 0} competitive risks in t
     context += `- ${stats.accept} risks they accept\n`;
     context += `- ${stats.monitor} risks they will monitor\n`;
     context += `- ${stats.disagree} risks they dispute (may have insider knowledge)\n`;
-    context += '\n';
+    context += "\n";
   }
 
   // Detail the disagreements - this is the most important signal
-  const disagreements = responses.filter(r => r.response === 'disagree');
+  const disagreements = responses.filter((r) => r.response === "disagree");
   if (disagreements.length > 0) {
     context += `### User Disagreements (Consider these when scoring R2 Market Risk)\n\n`;
     context += `The user has disputed the following AI-identified risks, potentially indicating insider knowledge:\n\n`;
-    disagreements.forEach(r => {
+    disagreements.forEach((r) => {
       context += `- **"${r.riskDescription}"** (${r.riskSeverity} severity)\n`;
-      context += `  Reason: ${r.disagreeReason || 'Not specified'}\n`;
+      context += `  Reason: ${r.disagreeReason || "Not specified"}\n`;
       if (r.reasoning) context += `  Explanation: ${r.reasoning}\n`;
-      context += '\n';
+      context += "\n";
     });
     context += `**Impact on R2 confidence**: Consider reducing confidence if user has plausible insider knowledge that contradicts AI risk assessment.\n\n`;
   }
 
   // Detail mitigation plans - shows user is thinking about risk
-  const mitigations = responses.filter(r => r.response === 'mitigate' && r.mitigationPlan);
+  const mitigations = responses.filter(
+    (r) => r.response === "mitigate" && r.mitigationPlan,
+  );
   if (mitigations.length > 0) {
     context += `### User Mitigation Plans\n\n`;
-    mitigations.forEach(r => {
+    mitigations.forEach((r) => {
       context += `- **"${r.riskDescription}"**: ${r.mitigationPlan}\n`;
     });
-    context += '\n';
+    context += "\n";
   }
 
   return context;
@@ -698,31 +853,44 @@ export async function evaluateCategory(
   profileContext?: ProfileContext | null,
   structuredContext?: StructuredEvaluationContext | null,
   positioningContext?: PositioningRiskContext | null,
-  strategicContext?: StrategicPositioningContext | null
+  strategicContext?: StrategicPositioningContext | null,
 ): Promise<EvaluationResult[]> {
   const config = getConfig();
   const criteria = EVALUATION_CRITERIA[category];
 
-  const criteriaPrompt = criteria.map(c =>
-    `${c.id}. ${c.name}
+  const criteriaPrompt = criteria
+    .map(
+      (c) =>
+        `${c.id}. ${c.name}
     Question: ${c.question}
     10 = ${c.highScoreDescription}
-    1 = ${c.lowScoreDescription}`
-  ).join('\n\n');
+    1 = ${c.lowScoreDescription}`,
+    )
+    .join("\n\n");
 
   // Generate profile context section (especially important for 'fit' category)
-  const profileSection = formatProfileContextForPrompt(profileContext ?? null, category);
+  const profileSection = formatProfileContextForPrompt(
+    profileContext ?? null,
+    category,
+  );
 
   // Generate structured data section from dynamic questioning
-  const structuredSection = formatStructuredDataForPrompt(structuredContext ?? null, category);
+  const structuredSection = formatStructuredDataForPrompt(
+    structuredContext ?? null,
+    category,
+  );
 
   // Generate positioning risk context section (for risk category, specifically R2)
-  const positioningSection = category === 'risk'
-    ? formatPositioningContextForRisk(positioningContext ?? null)
-    : '';
+  const positioningSection =
+    category === "risk"
+      ? formatPositioningContextForRisk(positioningContext ?? null)
+      : "";
 
   // Generate strategic positioning context (from Position phase)
-  const strategicSection = formatStrategicContext(strategicContext ?? null, category);
+  const strategicSection = formatStrategicContext(
+    strategicContext ?? null,
+    category,
+  );
 
   // Note: We don't broadcast roundStarted at category level - only per criterion via evaluatorSpeaking
 
@@ -730,9 +898,10 @@ export async function evaluateCategory(
     model: config.model,
     max_tokens: 2048,
     system: EVALUATOR_SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `Evaluate this idea for the **${category.toUpperCase()}** category:
+    messages: [
+      {
+        role: "user",
+        content: `Evaluate this idea for the **${category.toUpperCase()}** category:
 
 ${structuredSection}
 ${strategicSection}
@@ -763,31 +932,35 @@ Respond in JSON:
   ]
 }
 
-Evaluate all ${criteria.length} criteria in the ${category} category.`
-    }]
+Evaluate all ${criteria.length} criteria in the ${category} category.`,
+      },
+    ],
   });
 
   costTracker.track(response.usage, `evaluator-${category}`);
   logDebug(`Evaluated ${category} category`);
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response type from evaluator');
+  if (content.type !== "text") {
+    throw new EvaluationParseError("Unexpected response type from evaluator");
   }
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError(`Could not parse ${category} evaluation response`);
+    throw new EvaluationParseError(
+      `Could not parse ${category} evaluation response`,
+    );
   }
 
   // Try to repair common JSON issues
   const repairJson = (json: string): string => {
     let repaired = json;
     // Remove trailing commas before ] or }
-    repaired = repaired.replace(/,\s*([\]}])/g, '$1');
+    repaired = repaired.replace(/,\s*([\]}])/g, "$1");
     // Try to escape unescaped newlines in strings (rough heuristic)
-    repaired = repaired.replace(/:\s*"([^"]*?)(\n)([^"]*?)"/g, (_, pre, _nl, post) =>
-      `: "${pre}\\n${post}"`
+    repaired = repaired.replace(
+      /:\s*"([^"]*?)(\n)([^"]*?)"/g,
+      (_, pre, _nl, post) => `: "${pre}\\n${post}"`,
     );
     return repaired;
   };
@@ -805,12 +978,13 @@ Evaluate all ${criteria.length} criteria in the ${category} category.`
     // Map parsed evaluations to full results with criterion definitions
     const results = parsed.evaluations.map((eval_: any) => {
       // Normalize criterion name - handle formats like "P1. Problem Clarity" or just "Problem Clarity"
-      const criterionStr = String(eval_.criterion || '').trim();
-      const criterion = criteria.find(c =>
-        c.name === criterionStr ||
-        c.id === criterionStr ||
-        criterionStr.includes(c.name) ||
-        criterionStr.endsWith(c.name)
+      const criterionStr = String(eval_.criterion || "").trim();
+      const criterion = criteria.find(
+        (c) =>
+          c.name === criterionStr ||
+          c.id === criterionStr ||
+          criterionStr.includes(c.name) ||
+          criterionStr.endsWith(c.name),
       );
 
       if (!criterion) {
@@ -821,9 +995,9 @@ Evaluate all ${criteria.length} criteria in the ${category} category.`
         criterion,
         score: Math.min(10, Math.max(1, eval_.score)),
         confidence: Math.min(1, Math.max(0, eval_.confidence)),
-        reasoning: eval_.reasoning || '',
+        reasoning: eval_.reasoning || "",
         evidenceCited: eval_.evidenceCited || [],
-        gapsIdentified: eval_.gapsIdentified || []
+        gapsIdentified: eval_.gapsIdentified || [],
       };
     });
 
@@ -834,7 +1008,7 @@ Evaluate all ${criteria.length} criteria in the ${category} category.`
           result.criterion.name,
           result.criterion.category,
           result.reasoning,
-          result.score
+          result.score,
         );
       }
       // Note: Category-level roundComplete is not broadcast here
@@ -844,7 +1018,9 @@ Evaluate all ${criteria.length} criteria in the ${category} category.`
     return results;
   } catch (error) {
     if (error instanceof EvaluationParseError) throw error;
-    throw new EvaluationParseError(`Invalid JSON in ${category} evaluation: ${error}`);
+    throw new EvaluationParseError(
+      `Invalid JSON in ${category} evaluation: ${error}`,
+    );
   }
 }
 
@@ -860,27 +1036,37 @@ export async function evaluateIdea(
   profileContext?: ProfileContext | null,
   structuredContext?: StructuredEvaluationContext | null,
   positioningContext?: PositioningRiskContext | null,
-  strategicContext?: StrategicPositioningContext | null
+  strategicContext?: StrategicPositioningContext | null,
 ): Promise<FullEvaluationResult> {
   const config = getConfig();
   logInfo(`Starting evaluation for idea: ${ideaSlug}`);
 
   if (profileContext) {
-    logInfo('Using user profile for Personal Fit evaluation');
+    logInfo("Using user profile for Personal Fit evaluation");
   } else {
-    logInfo('No user profile provided - Personal Fit scores will have low confidence');
+    logInfo(
+      "No user profile provided - Personal Fit scores will have low confidence",
+    );
   }
 
   if (structuredContext) {
-    logInfo(`Using structured answers - Overall coverage: ${Math.round(structuredContext.coverage.overall * 100)}%`);
+    logInfo(
+      `Using structured answers - Overall coverage: ${Math.round(structuredContext.coverage.overall * 100)}%`,
+    );
   } else {
-    logInfo('No structured answers available - evaluation will rely on idea content only');
+    logInfo(
+      "No structured answers available - evaluation will rely on idea content only",
+    );
   }
 
   if (strategicContext) {
-    logInfo(`Using Position phase context - Strategy: ${strategicContext.selectedStrategy?.name || 'Not specified'}, Approach: ${strategicContext.strategicApproach || 'Not specified'}`);
+    logInfo(
+      `Using Position phase context - Strategy: ${strategicContext.selectedStrategy?.name || "Not specified"}, Approach: ${strategicContext.strategicApproach || "Not specified"}`,
+    );
   } else {
-    logInfo('No Position phase context - evaluation will not consider user\'s strategic decisions');
+    logInfo(
+      "No Position phase context - evaluation will not consider user's strategic decisions",
+    );
   }
 
   const allEvaluations: EvaluationResult[] = [];
@@ -890,7 +1076,7 @@ export async function evaluateIdea(
     feasibility: 0,
     fit: 0,
     market: 0,
-    risk: 0
+    risk: 0,
   };
 
   // Evaluate each category sequentially (v1 approach)
@@ -898,13 +1084,25 @@ export async function evaluateIdea(
     const category = CATEGORIES[i];
     logDebug(`Evaluating category: ${category}`);
     // Pass positioning context only for risk category (R2 Market Risk uses it)
-    const categoryPositioningContext = category === 'risk' ? positioningContext : null;
+    const categoryPositioningContext =
+      category === "risk" ? positioningContext : null;
     // Pass strategic context to all categories
-    const categoryEvals = await evaluateCategory(category, ideaContent, costTracker, broadcaster, i + 1, profileContext, structuredContext, categoryPositioningContext, strategicContext);
+    const categoryEvals = await evaluateCategory(
+      category,
+      ideaContent,
+      costTracker,
+      broadcaster,
+      i + 1,
+      profileContext,
+      structuredContext,
+      categoryPositioningContext,
+      strategicContext,
+    );
     allEvaluations.push(...categoryEvals);
 
     // Calculate category average
-    const categoryAvg = categoryEvals.reduce((sum, e) => sum + e.score, 0) / categoryEvals.length;
+    const categoryAvg =
+      categoryEvals.reduce((sum, e) => sum + e.score, 0) / categoryEvals.length;
     categoryScores[category] = categoryAvg;
 
     // Check budget after each category
@@ -922,11 +1120,15 @@ export async function evaluateIdea(
     categoryScores.risk * weights.risk;
 
   // Calculate overall confidence (average of all confidences)
-  const overallConfidence = allEvaluations.reduce((sum, e) => sum + e.confidence, 0) / allEvaluations.length;
+  const overallConfidence =
+    allEvaluations.reduce((sum, e) => sum + e.confidence, 0) /
+    allEvaluations.length;
 
   const report = costTracker.getReport();
 
-  logInfo(`Evaluation complete for ${ideaSlug}: Overall score ${overallScore.toFixed(2)}`);
+  logInfo(
+    `Evaluation complete for ${ideaSlug}: Overall score ${overallScore.toFixed(2)}`,
+  );
 
   return {
     ideaSlug,
@@ -937,9 +1139,9 @@ export async function evaluateIdea(
     overallConfidence,
     tokensUsed: {
       input: report.inputTokens,
-      output: report.outputTokens
+      output: report.outputTokens,
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 }
 
@@ -951,29 +1153,33 @@ export async function reEvaluateCriteria(
   ideaContent: string,
   previousScores: Map<string, number>,
   debateContext: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<EvaluationResult[]> {
   const config = getConfig();
 
-  const criteria = criteriaIds.map(id => {
-    const criterion = ALL_CRITERIA.find(c => c.id === id);
-    if (!criterion) throw new EvaluationParseError(`Unknown criterion ID: ${id}`);
+  const criteria = criteriaIds.map((id) => {
+    const criterion = ALL_CRITERIA.find((c) => c.id === id);
+    if (!criterion)
+      throw new EvaluationParseError(`Unknown criterion ID: ${id}`);
     return criterion;
   });
 
-  const criteriaPrompt = criteria.map(c => {
-    const prevScore = previousScores.get(c.id);
-    return `${c.id}. ${c.name} (previous score: ${prevScore || 'N/A'})
+  const criteriaPrompt = criteria
+    .map((c) => {
+      const prevScore = previousScores.get(c.id);
+      return `${c.id}. ${c.name} (previous score: ${prevScore || "N/A"})
     Question: ${c.question}`;
-  }).join('\n\n');
+    })
+    .join("\n\n");
 
   const response = await client.messages.create({
     model: config.model,
     max_tokens: 2048,
     system: EVALUATOR_SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `Re-evaluate these criteria considering the debate context:
+    messages: [
+      {
+        role: "user",
+        content: `Re-evaluate these criteria considering the debate context:
 
 ## Idea Content
 ${ideaContent}
@@ -999,36 +1205,41 @@ Respond in JSON:
       "changeReason": "Why score changed or stayed same"
     }
   ]
-}`
-    }]
+}`,
+      },
+    ],
   });
 
-  costTracker.track(response.usage, 'evaluator-reevaluation');
+  costTracker.track(response.usage, "evaluator-reevaluation");
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response type');
+  if (content.type !== "text") {
+    throw new EvaluationParseError("Unexpected response type");
   }
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError('Could not parse re-evaluation response');
+    throw new EvaluationParseError("Could not parse re-evaluation response");
   }
 
   try {
     const parsed = JSON.parse(jsonMatch[0]);
     return parsed.evaluations.map((eval_: any) => {
-      const criterion = criteria.find(c => c.id === eval_.criterion || c.name === eval_.criterion);
+      const criterion = criteria.find(
+        (c) => c.id === eval_.criterion || c.name === eval_.criterion,
+      );
       if (!criterion) {
-        throw new EvaluationParseError(`Unknown criterion in response: ${eval_.criterion}`);
+        throw new EvaluationParseError(
+          `Unknown criterion in response: ${eval_.criterion}`,
+        );
       }
       return {
         criterion,
         score: Math.min(10, Math.max(1, eval_.score)),
         confidence: Math.min(1, Math.max(0, eval_.confidence)),
-        reasoning: eval_.reasoning || '',
+        reasoning: eval_.reasoning || "",
         evidenceCited: [],
-        gapsIdentified: []
+        gapsIdentified: [],
       };
     });
   } catch (error) {
@@ -1044,30 +1255,38 @@ export function formatEvaluationResults(result: FullEvaluationResult): string {
   const lines: string[] = [];
 
   lines.push(`# Evaluation Results: ${result.ideaSlug}`);
-  lines.push(`\nOverall Score: **${result.overallScore.toFixed(2)}/10** (Confidence: ${(result.overallConfidence * 100).toFixed(0)}%)`);
+  lines.push(
+    `\nOverall Score: **${result.overallScore.toFixed(2)}/10** (Confidence: ${(result.overallConfidence * 100).toFixed(0)}%)`,
+  );
   lines.push(`\nEvaluated: ${result.timestamp}`);
 
-  lines.push('\n## Category Scores\n');
+  lines.push("\n## Category Scores\n");
   for (const category of CATEGORIES) {
     const score = result.categoryScores[category];
-    lines.push(`- **${category.charAt(0).toUpperCase() + category.slice(1)}**: ${score.toFixed(2)}/10`);
+    lines.push(
+      `- **${category.charAt(0).toUpperCase() + category.slice(1)}**: ${score.toFixed(2)}/10`,
+    );
   }
 
-  lines.push('\n## Detailed Evaluations\n');
+  lines.push("\n## Detailed Evaluations\n");
   for (const category of CATEGORIES) {
-    const categoryEvals = result.evaluations.filter(e => e.criterion.category === category);
+    const categoryEvals = result.evaluations.filter(
+      (e) => e.criterion.category === category,
+    );
     lines.push(`### ${category.toUpperCase()}\n`);
 
     for (const eval_ of categoryEvals) {
-      lines.push(`**${eval_.criterion.name}**: ${eval_.score}/10 (${(eval_.confidence * 100).toFixed(0)}% confidence)`);
+      lines.push(
+        `**${eval_.criterion.name}**: ${eval_.score}/10 (${(eval_.confidence * 100).toFixed(0)}% confidence)`,
+      );
       lines.push(`> ${eval_.reasoning}`);
 
       if (eval_.gapsIdentified.length > 0) {
-        lines.push(`\n*Gaps:* ${eval_.gapsIdentified.join(', ')}`);
+        lines.push(`\n*Gaps:* ${eval_.gapsIdentified.join(", ")}`);
       }
-      lines.push('');
+      lines.push("");
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }

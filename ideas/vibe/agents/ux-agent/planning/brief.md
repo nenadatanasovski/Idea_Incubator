@@ -2,13 +2,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **ID** | ux-agent |
-| **Title** | UX Agent |
-| **Complexity** | medium |
-| **Author** | Human |
-| **Created** | 2026-01-11 |
+| Field          | Value      |
+| -------------- | ---------- |
+| **ID**         | ux-agent   |
+| **Title**      | UX Agent   |
+| **Complexity** | medium     |
+| **Author**     | Human      |
+| **Created**    | 2026-01-11 |
 
 ---
 
@@ -44,6 +44,7 @@ UX Agent validates that what users see and interact with matches expectations.
 ## MVP Scope
 
 **In Scope:**
+
 - Puppeteer MCP integration for browser control
 - User journey definition and execution
 - Basic accessibility checks (axe-core)
@@ -53,6 +54,7 @@ UX Agent validates that what users see and interact with matches expectations.
 - Integration with Communication Hub
 
 **Out of Scope:**
+
 - Visual regression comparison (baseline diffing) - deferred to v0.2
 - Performance metrics (LCP, FID, CLS)
 - Cross-browser testing (Chrome only for MVP)
@@ -64,7 +66,7 @@ UX Agent validates that what users see and interact with matches expectations.
 
 ## Constraints
 
-1. Must use existing Puppeteer MCP tools (mcp__puppeteer__*)
+1. Must use existing Puppeteer MCP tools (mcp**puppeteer**\*)
 2. Must not modify application code
 3. Must capture screenshots on failures
 4. Must complete journeys within timeout (60s default)
@@ -101,6 +103,7 @@ UX Agent Components:
 ```
 
 **Journey Definition Format:**
+
 ```typescript
 interface Journey {
   id: string;
@@ -111,30 +114,32 @@ interface Journey {
 }
 
 interface JourneyStep {
-  action: 'navigate' | 'click' | 'type' | 'wait' | 'screenshot' | 'assert';
-  target?: string;  // CSS selector or URL
-  value?: string;   // Text to type or assertion value
+  action: "navigate" | "click" | "type" | "wait" | "screenshot" | "assert";
+  target?: string; // CSS selector or URL
+  value?: string; // Text to type or assertion value
   timeout?: number;
 }
 ```
 
 **Example Journey:**
+
 ```typescript
 const loginJourney: Journey = {
-  id: 'login-flow',
-  name: 'User Login',
+  id: "login-flow",
+  name: "User Login",
   steps: [
-    { action: 'navigate', target: 'http://localhost:3000/login' },
-    { action: 'type', target: '#email', value: 'test@example.com' },
-    { action: 'type', target: '#password', value: 'password123' },
-    { action: 'click', target: 'button[type="submit"]' },
-    { action: 'wait', target: '.dashboard' },
-    { action: 'assert', target: '.welcome-message', value: 'Welcome' },
+    { action: "navigate", target: "http://localhost:3000/login" },
+    { action: "type", target: "#email", value: "test@example.com" },
+    { action: "type", target: "#password", value: "password123" },
+    { action: "click", target: 'button[type="submit"]' },
+    { action: "wait", target: ".dashboard" },
+    { action: "assert", target: ".welcome-message", value: "Welcome" },
   ],
 };
 ```
 
 **Execution Flow:**
+
 ```
 1. Load journey definition
 2. Navigate to starting URL via MCP
@@ -200,15 +205,15 @@ CREATE TABLE IF NOT EXISTS ux_accessibility_issues (
 
 ## API Design
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /api/ux/run | POST | Run a journey |
-| /api/ux/:id | GET | Get run status |
-| /api/ux/:id/steps | GET | Get step results |
-| /api/ux/:id/accessibility | GET | Get accessibility issues |
-| /api/ux/:id/screenshots | GET | List screenshots |
-| /api/ux/journeys | GET | List available journeys |
-| /api/ux/history | GET | Recent run history |
+| Endpoint                  | Method | Description              |
+| ------------------------- | ------ | ------------------------ |
+| /api/ux/run               | POST   | Run a journey            |
+| /api/ux/:id               | GET    | Get run status           |
+| /api/ux/:id/steps         | GET    | Get step results         |
+| /api/ux/:id/accessibility | GET    | Get accessibility issues |
+| /api/ux/:id/screenshots   | GET    | List screenshots         |
+| /api/ux/journeys          | GET    | List available journeys  |
+| /api/ux/history           | GET    | Recent run history       |
 
 ---
 
@@ -225,7 +230,7 @@ CREATE TABLE IF NOT EXISTS ux_accessibility_issues (
 
 ## Dependencies
 
-- Puppeteer MCP tools (mcp__puppeteer__*)
+- Puppeteer MCP tools (mcp**puppeteer**\*)
 - axe-core for accessibility (via npm)
 - Communication Hub for reporting
 - File system for screenshot storage

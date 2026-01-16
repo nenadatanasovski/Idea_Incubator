@@ -1,13 +1,13 @@
-import { CheckCircle, AlertTriangle, Clock, Zap } from 'lucide-react'
-import type { ReadinessScore, CriterionCoverage } from '../types'
-import { readinessLevels, categoryNames } from '../types'
+import { CheckCircle, AlertTriangle, Clock, Zap } from "lucide-react";
+import type { ReadinessScore, CriterionCoverage } from "../types";
+import { readinessLevels, categoryNames } from "../types";
 
 interface ReadinessMeterProps {
-  readiness: ReadinessScore
-  coverage?: CriterionCoverage[]
-  onDevelop?: () => void
-  onEvaluate?: () => void
-  showDetails?: boolean
+  readiness: ReadinessScore;
+  coverage?: CriterionCoverage[];
+  onDevelop?: () => void;
+  onEvaluate?: () => void;
+  showDetails?: boolean;
 }
 
 function ProgressBar({ value, color }: { value: number; color: string }) {
@@ -18,11 +18,22 @@ function ProgressBar({ value, color }: { value: number; color: string }) {
         style={{ width: `${Math.min(100, Math.max(0, value * 100))}%` }}
       />
     </div>
-  )
+  );
 }
 
-function CategoryProgress({ category, value }: { category: string; value: number }) {
-  const color = value >= 0.8 ? 'bg-green-500' : value >= 0.5 ? 'bg-yellow-500' : 'bg-red-500'
+function CategoryProgress({
+  category,
+  value,
+}: {
+  category: string;
+  value: number;
+}) {
+  const color =
+    value >= 0.8
+      ? "bg-green-500"
+      : value >= 0.5
+        ? "bg-yellow-500"
+        : "bg-red-500";
 
   return (
     <div className="flex items-center gap-2">
@@ -34,21 +45,21 @@ function CategoryProgress({ category, value }: { category: string; value: number
         {Math.round(value * 100)}%
       </span>
     </div>
-  )
+  );
 }
 
-function ReadinessIcon({ level }: { level: ReadinessScore['readinessLevel'] }) {
+function ReadinessIcon({ level }: { level: ReadinessScore["readinessLevel"] }) {
   switch (level) {
-    case 'SPARK':
-      return <Zap className="h-5 w-5 text-purple-500" />
-    case 'CLARIFY':
-      return <Clock className="h-5 w-5 text-blue-500" />
-    case 'READY':
-      return <AlertTriangle className="h-5 w-5 text-green-500" />
-    case 'CONFIDENT':
-      return <CheckCircle className="h-5 w-5 text-emerald-500" />
+    case "SPARK":
+      return <Zap className="h-5 w-5 text-purple-500" />;
+    case "CLARIFY":
+      return <Clock className="h-5 w-5 text-blue-500" />;
+    case "READY":
+      return <AlertTriangle className="h-5 w-5 text-green-500" />;
+    case "CONFIDENT":
+      return <CheckCircle className="h-5 w-5 text-emerald-500" />;
     default:
-      return null
+      return null;
   }
 }
 
@@ -57,10 +68,10 @@ export default function ReadinessMeter({
   coverage: _coverage,
   onDevelop,
   onEvaluate,
-  showDetails = true
+  showDetails = true,
 }: ReadinessMeterProps) {
-  const levelMeta = readinessLevels[readiness.readinessLevel]
-  const overallPercent = Math.round(readiness.overall * 100)
+  const levelMeta = readinessLevels[readiness.readinessLevel];
+  const overallPercent = Math.round(readiness.overall * 100);
 
   return (
     <div className="card">
@@ -76,8 +87,12 @@ export default function ReadinessMeter({
           </div>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold text-gray-900">{overallPercent}%</div>
-          <div className={`text-sm font-medium ${levelMeta.color.replace('bg-', 'text-')}`}>
+          <div className="text-2xl font-bold text-gray-900">
+            {overallPercent}%
+          </div>
+          <div
+            className={`text-sm font-medium ${levelMeta.color.replace("bg-", "text-")}`}
+          >
             {levelMeta.label}
           </div>
         </div>
@@ -91,7 +106,9 @@ export default function ReadinessMeter({
       {/* Category Breakdown */}
       {showDetails && (
         <div className="mt-4 pt-4 border-t border-gray-200">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Coverage by Category</h4>
+          <h4 className="text-sm font-medium text-gray-700 mb-3">
+            Coverage by Category
+          </h4>
           <div className="space-y-2">
             <CategoryProgress
               category={categoryNames.problem}
@@ -131,10 +148,7 @@ export default function ReadinessMeter({
       {(onDevelop || onEvaluate) && (
         <div className="mt-4 pt-4 border-t border-gray-200 flex gap-3">
           {onDevelop && (
-            <button
-              onClick={onDevelop}
-              className="btn btn-secondary flex-1"
-            >
+            <button onClick={onDevelop} className="btn btn-secondary flex-1">
               Develop Idea
             </button>
           )}
@@ -144,13 +158,13 @@ export default function ReadinessMeter({
               disabled={!readiness.readyForEvaluation}
               className={`btn flex-1 ${
                 readiness.readyForEvaluation
-                  ? 'btn-primary'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  ? "btn-primary"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
               title={
                 readiness.readyForEvaluation
-                  ? 'Run evaluation'
-                  : 'Answer more questions to enable evaluation'
+                  ? "Run evaluation"
+                  : "Answer more questions to enable evaluation"
               }
             >
               Run Evaluation
@@ -159,5 +173,5 @@ export default function ReadinessMeter({
         </div>
       )}
     </div>
-  )
+  );
 }

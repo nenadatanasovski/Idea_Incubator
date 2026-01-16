@@ -13,6 +13,7 @@ queries:
   - recruiting automation software competitive landscape
 identifier: research_ai_resume_screening_
 ---
+
 ## AI Resume Screening Tools Market Analysis 2024-2025
 
 ### Key Findings
@@ -27,7 +28,7 @@ identifier: research_ai_resume_screening_
 
 - **Acknowledged bias problem**: 67% of companies openly acknowledge bias risks in their AI screening tools
 - **Specific bias types identified**: 47% age bias, 44% socioeconomic bias, 30% gender bias, 26% racial bias
-- **Legal exposure**: The *Mobley v. Workday* lawsuit (July 2024) became the first major class action against AI hiring discrimination - a significant precedent that could reshape the market
+- **Legal exposure**: The _Mobley v. Workday_ lawsuit (July 2024) became the first major class action against AI hiring discrimination - a significant precedent that could reshape the market
 - **Privacy concerns**: 63% plan to collect facial recognition data during video interviews, 47% will scan social media profiles - potential regulatory backlash
 
 ### Opportunities Identified
@@ -51,7 +52,6 @@ identifier: research_ai_resume_screening_
 - [12 Best AI Resume Screening Software Reviewed in 2025](https://peoplemanagingpeople.com/tools/best-ai-resume-screening-software/)
 - [50+ Resume Statistics, Data & Insights in the US (2024-2025)](https://high5test.com/resume-statistics/)
 - [AI Recruitment Market Size, Share and Forecast to 2033](https://straitsresearch.com/report/ai-recruitment-market)
-
 
 ---
 

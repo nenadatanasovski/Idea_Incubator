@@ -2,13 +2,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **ID** | build-agent |
-| **Title** | Build Agent |
-| **Complexity** | complex |
-| **Author** | Spec Agent |
-| **Created** | 2026-01-11 |
+| Field          | Value       |
+| -------------- | ----------- |
+| **ID**         | build-agent |
+| **Title**      | Build Agent |
+| **Complexity** | complex     |
+| **Author**     | Spec Agent  |
+| **Created**    | 2026-01-11  |
 
 ---
 
@@ -45,6 +45,7 @@ Build Agent executes tasks in dependency order, ensuring earlier tasks complete 
 ## MVP Scope
 
 **In Scope:**
+
 - Load and parse tasks.md files
 - Execute tasks in dependency order
 - Generate code using Claude API
@@ -56,6 +57,7 @@ Build Agent executes tasks in dependency order, ensuring earlier tasks complete 
 - Git integration for commits
 
 **Out of Scope:**
+
 - Parallel task execution
 - Automatic rollback of failed builds
 - Complex conflict resolution
@@ -104,6 +106,7 @@ Build Agent Components:
 ```
 
 **Execution Flow:**
+
 ```
 1. Load tasks.md
 2. Order by dependencies
@@ -165,14 +168,14 @@ CREATE TABLE IF NOT EXISTS build_checkpoints (
 
 ## API Design
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /api/builds | POST | Start new build from spec |
-| /api/builds/:id | GET | Get build status |
-| /api/builds/:id/tasks | GET | Get task execution history |
-| /api/builds/:id/resume | POST | Resume from checkpoint |
-| /api/builds/:id/cancel | POST | Cancel running build |
-| /api/builds/:id/retry/:taskId | POST | Retry failed task |
+| Endpoint                      | Method | Description                |
+| ----------------------------- | ------ | -------------------------- |
+| /api/builds                   | POST   | Start new build from spec  |
+| /api/builds/:id               | GET    | Get build status           |
+| /api/builds/:id/tasks         | GET    | Get task execution history |
+| /api/builds/:id/resume        | POST   | Resume from checkpoint     |
+| /api/builds/:id/cancel        | POST   | Cancel running build       |
+| /api/builds/:id/retry/:taskId | POST   | Retry failed task          |
 
 ---
 

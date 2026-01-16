@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **Phase** | 3 - Core Services |
-| **Depends On** | TAK-007, TAK-013 |
-| **Blocks** | TAK-015b (SuggestionEngine), TAK-016 (TaskAgent) |
-| **Priority** | P1 |
-| **Owner** | Build Agent |
+| Field          | Value                                            |
+| -------------- | ------------------------------------------------ |
+| **Phase**      | 3 - Core Services                                |
+| **Depends On** | TAK-007, TAK-013                                 |
+| **Blocks**     | TAK-015b (SuggestionEngine), TAK-016 (TaskAgent) |
+| **Priority**   | P1                                               |
+| **Owner**      | Build Agent                                      |
 
 ---
 
@@ -33,11 +33,11 @@ priority = (blockedCount × 20)      // How many tasks this unblocks
 
 ### Example Calculations
 
-| Task | BlockedCount | QuickWin | Deadline | Strategic | Total |
-|------|--------------|----------|----------|-----------|-------|
-| A | 5 | Yes | 1 day | +5 | 5×20 + 10 + 15 + 5 = 130 |
-| B | 0 | Yes | None | 0 | 0 + 10 + 0 + 0 = 10 |
-| C | 2 | No | 3 days | +10 | 2×20 + 0 + 10 + 10 = 60 |
+| Task | BlockedCount | QuickWin | Deadline | Strategic | Total                    |
+| ---- | ------------ | -------- | -------- | --------- | ------------------------ |
+| A    | 5            | Yes      | 1 day    | +5        | 5×20 + 10 + 15 + 5 = 130 |
+| B    | 0            | Yes      | None     | 0         | 0 + 10 + 0 + 0 = 10      |
+| C    | 2            | No       | 3 days   | +10       | 2×20 + 0 + 10 + 10 = 60  |
 
 ---
 
@@ -64,14 +64,14 @@ priority = (blockedCount × 20)      // How many tasks this unblocks
 
 **PASS** when ALL of the following are true:
 
-| # | Criterion | How to Verify |
-|---|-----------|---------------|
-| 1 | File exists | `test -f server/services/task-agent/priority-calculator.ts` returns 0 |
-| 2 | Exports PriorityCalculator | `grep -q "export class PriorityCalculator" server/services/task-agent/priority-calculator.ts` returns 0 |
-| 3 | Has calculate method | `grep -q "async calculate" server/services/task-agent/priority-calculator.ts` returns 0 |
-| 4 | Has blockedCount | `grep -q "getBlockedCount\|blockedCount" server/services/task-agent/priority-calculator.ts` returns 0 |
-| 5 | Has quickWin | `grep -q "isQuickWin\|quickWin" server/services/task-agent/priority-calculator.ts` returns 0 |
-| 6 | TypeScript compiles | `npx tsc --noEmit server/services/task-agent/priority-calculator.ts` returns 0 |
+| #   | Criterion                  | How to Verify                                                                                           |
+| --- | -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 1   | File exists                | `test -f server/services/task-agent/priority-calculator.ts` returns 0                                   |
+| 2   | Exports PriorityCalculator | `grep -q "export class PriorityCalculator" server/services/task-agent/priority-calculator.ts` returns 0 |
+| 3   | Has calculate method       | `grep -q "async calculate" server/services/task-agent/priority-calculator.ts` returns 0                 |
+| 4   | Has blockedCount           | `grep -q "getBlockedCount\|blockedCount" server/services/task-agent/priority-calculator.ts` returns 0   |
+| 5   | Has quickWin               | `grep -q "isQuickWin\|quickWin" server/services/task-agent/priority-calculator.ts` returns 0            |
+| 6   | TypeScript compiles        | `npx tsc --noEmit server/services/task-agent/priority-calculator.ts` returns 0                          |
 
 **FAIL** if any criterion is not met.
 

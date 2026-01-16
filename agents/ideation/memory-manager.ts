@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from 'uuid';
-import { getDb, saveDb } from '../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { getDb, saveDb } from "../../database/db.js";
 import {
   MemoryFile,
   MemoryFileRow,
@@ -9,14 +9,14 @@ import {
   NarrowingState,
   IdeaCandidate,
   IdeaTypeSelectionState,
-} from '../../types/ideation.js';
-import { mapMemoryRowToMemory } from '../../utils/ideation-mappers.js';
+} from "../../types/ideation.js";
+import { mapMemoryRowToMemory } from "../../utils/ideation-mappers.js";
 import {
   createDefaultSelfDiscoveryState,
   createDefaultMarketDiscoveryState,
   createDefaultNarrowingState,
   createDefaultIdeaTypeSelectionState,
-} from '../../utils/ideation-defaults.js';
+} from "../../utils/ideation-defaults.js";
 
 /**
  * MEMORY MANAGER
@@ -43,17 +43,26 @@ export interface ViabilityRiskSummary {
 /**
  * Helper to convert db result to objects
  */
-function resultsToObjects(result: { columns: string[]; values: unknown[][] }): Record<string, unknown>[] {
+function resultsToObjects(result: {
+  columns: string[];
+  values: unknown[][];
+}): Record<string, unknown>[] {
   const columns = result.columns;
-  return result.values.map(values => {
-    return columns.reduce((obj, col, i) => {
-      obj[col] = values[i];
-      return obj;
-    }, {} as Record<string, unknown>);
+  return result.values.map((values) => {
+    return columns.reduce(
+      (obj, col, i) => {
+        obj[col] = values[i];
+        return obj;
+      },
+      {} as Record<string, unknown>,
+    );
   });
 }
 
-function rowToObject(result: { columns: string[]; values: unknown[][] }): Record<string, unknown> {
+function rowToObject(result: {
+  columns: string[];
+  values: unknown[][];
+}): Record<string, unknown> {
   if (result.values.length === 0) {
     return {};
   }
@@ -64,22 +73,25 @@ export class MemoryManager {
   /**
    * Generate markdown content for a memory file type.
    */
-  private generateContent(fileType: MemoryFileType, state: MemoryState): string {
+  private generateContent(
+    fileType: MemoryFileType,
+    state: MemoryState,
+  ): string {
     switch (fileType) {
-      case 'self_discovery':
+      case "self_discovery":
         return this.generateSelfDiscoveryMarkdown(state.selfDiscovery);
-      case 'market_discovery':
+      case "market_discovery":
         return this.generateMarketDiscoveryMarkdown(state.marketDiscovery);
-      case 'narrowing_state':
+      case "narrowing_state":
         return this.generateNarrowingMarkdown(state.narrowingState);
-      case 'idea_candidate':
+      case "idea_candidate":
         return this.generateCandidateMarkdown(state.candidate);
-      case 'viability_assessment':
+      case "viability_assessment":
         return this.generateViabilityMarkdown(state.viability);
-      case 'conversation_summary':
-        return '# Conversation Summary\n\nNo summary generated yet.';
-      case 'handoff_notes':
-        return '# Handoff Notes\n\nSeamless transition in progress.';
+      case "conversation_summary":
+        return "# Conversation Summary\n\nNo summary generated yet.";
+      case "handoff_notes":
+        return "# Handoff Notes\n\nSeamless transition in progress.";
       default:
         return `# ${fileType}\n\nNo content.`;
     }
@@ -89,9 +101,9 @@ export class MemoryManager {
    * Generate self-discovery markdown.
    */
   private generateSelfDiscoveryMarkdown(state: SelfDiscoveryState): string {
-    if (!state) return '# Self-Discovery\n\nNo data yet.';
+    if (!state) return "# Self-Discovery\n\nNo data yet.";
 
-    const sections: string[] = ['# Self-Discovery\n'];
+    const sections: string[] = ["# Self-Discovery\n"];
 
     // Impact Vision
     if (state.impactVision?.level) {
@@ -105,82 +117,130 @@ export class MemoryManager {
     }
 
     // Frustrations
-    if (state.frustrations && Array.isArray(state.frustrations) && state.frustrations.length > 0) {
+    if (
+      state.frustrations &&
+      Array.isArray(state.frustrations) &&
+      state.frustrations.length > 0
+    ) {
       sections.push(`## Frustrations`);
       state.frustrations.forEach((f, i) => {
-        const severity = f.severity ? f.severity.toUpperCase() : 'UNKNOWN';
-        sections.push(`${i + 1}. **${severity}**: ${f.description || 'No description'}`);
+        const severity = f.severity ? f.severity.toUpperCase() : "UNKNOWN";
+        sections.push(
+          `${i + 1}. **${severity}**: ${f.description || "No description"}`,
+        );
         if (f.source) sections.push(`   - Source: ${f.source}`);
       });
-      sections.push('');
+      sections.push("");
     }
 
     // Expertise
-    if (state.expertise && Array.isArray(state.expertise) && state.expertise.length > 0) {
+    if (
+      state.expertise &&
+      Array.isArray(state.expertise) &&
+      state.expertise.length > 0
+    ) {
       sections.push(`## Expertise Areas`);
-      state.expertise.forEach(e => {
-        sections.push(`- **${e.area || 'Unknown'}** (${e.depth || 'unknown'}): ${e.evidence || ''}`);
+      state.expertise.forEach((e) => {
+        sections.push(
+          `- **${e.area || "Unknown"}** (${e.depth || "unknown"}): ${e.evidence || ""}`,
+        );
       });
-      sections.push('');
+      sections.push("");
     }
 
     // Interests
-    if (state.interests && Array.isArray(state.interests) && state.interests.length > 0) {
+    if (
+      state.interests &&
+      Array.isArray(state.interests) &&
+      state.interests.length > 0
+    ) {
       sections.push(`## Interests`);
-      state.interests.forEach(i => {
-        const genuineMarker = i.genuine ? '✓' : '?';
-        sections.push(`- [${genuineMarker}] ${i.topic || 'Unknown'}: ${i.evidence || ''}`);
+      state.interests.forEach((i) => {
+        const genuineMarker = i.genuine ? "✓" : "?";
+        sections.push(
+          `- [${genuineMarker}] ${i.topic || "Unknown"}: ${i.evidence || ""}`,
+        );
       });
-      sections.push('');
+      sections.push("");
     }
 
     // Skills
-    if (state.skills?.identified && Array.isArray(state.skills.identified) && state.skills.identified.length > 0) {
+    if (
+      state.skills?.identified &&
+      Array.isArray(state.skills.identified) &&
+      state.skills.identified.length > 0
+    ) {
       sections.push(`## Skills`);
       sections.push(`### Identified`);
-      state.skills.identified.forEach(s => {
-        sections.push(`- ${s.skill || 'Unknown'} (${s.level || 'unknown'}) - via ${s.testedVia || 'unknown'}`);
+      state.skills.identified.forEach((s) => {
+        sections.push(
+          `- ${s.skill || "Unknown"} (${s.level || "unknown"}) - via ${s.testedVia || "unknown"}`,
+        );
       });
-      if (state.skills.strengths && Array.isArray(state.skills.strengths) && state.skills.strengths.length > 0) {
+      if (
+        state.skills.strengths &&
+        Array.isArray(state.skills.strengths) &&
+        state.skills.strengths.length > 0
+      ) {
         sections.push(`### Strengths`);
-        state.skills.strengths.forEach(s => sections.push(`- ${s}`));
+        state.skills.strengths.forEach((s) => sections.push(`- ${s}`));
       }
-      if (state.skills.gaps && Array.isArray(state.skills.gaps) && state.skills.gaps.length > 0) {
+      if (
+        state.skills.gaps &&
+        Array.isArray(state.skills.gaps) &&
+        state.skills.gaps.length > 0
+      ) {
         sections.push(`### Gaps`);
-        state.skills.gaps.forEach(g => sections.push(`- ${g}`));
+        state.skills.gaps.forEach((g) => sections.push(`- ${g}`));
       }
-      sections.push('');
+      sections.push("");
     }
 
     // Constraints
     if (state.constraints) {
       sections.push(`## Constraints`);
       const loc = state.constraints.location;
-      sections.push(`- Location: ${loc?.fixed ? 'Fixed' : 'Flexible'} - ${loc?.target || 'Not specified'}`);
-      sections.push(`- Time: ${state.constraints.timeHoursPerWeek || 'Not specified'} hours/week`);
-      sections.push(`- Capital: ${state.constraints.capital || 'Not specified'}`);
-      sections.push(`- Risk Tolerance: ${state.constraints.riskTolerance || 'Not specified'}`);
+      sections.push(
+        `- Location: ${loc?.fixed ? "Fixed" : "Flexible"} - ${loc?.target || "Not specified"}`,
+      );
+      sections.push(
+        `- Time: ${state.constraints.timeHoursPerWeek || "Not specified"} hours/week`,
+      );
+      sections.push(
+        `- Capital: ${state.constraints.capital || "Not specified"}`,
+      );
+      sections.push(
+        `- Risk Tolerance: ${state.constraints.riskTolerance || "Not specified"}`,
+      );
     }
 
-    return sections.join('\n');
+    return sections.join("\n");
   }
 
   /**
    * Generate market discovery markdown.
    */
   private generateMarketDiscoveryMarkdown(state: MarketDiscoveryState): string {
-    if (!state) return '# Market Discovery\n\nNo data yet.';
+    if (!state) return "# Market Discovery\n\nNo data yet.";
 
-    const sections: string[] = ['# Market Discovery\n'];
+    const sections: string[] = ["# Market Discovery\n"];
 
     // Competitors
-    if (state.competitors && Array.isArray(state.competitors) && state.competitors.length > 0) {
+    if (
+      state.competitors &&
+      Array.isArray(state.competitors) &&
+      state.competitors.length > 0
+    ) {
       sections.push(`## Competitors`);
       state.competitors.forEach((c, i) => {
-        sections.push(`### ${i + 1}. ${c.name || 'Unknown'}`);
-        sections.push(`${c.description || ''}`);
-        sections.push(`- Strengths: ${Array.isArray(c.strengths) ? c.strengths.join(', ') : 'None listed'}`);
-        sections.push(`- Weaknesses: ${Array.isArray(c.weaknesses) ? c.weaknesses.join(', ') : 'None listed'}`);
+        sections.push(`### ${i + 1}. ${c.name || "Unknown"}`);
+        sections.push(`${c.description || ""}`);
+        sections.push(
+          `- Strengths: ${Array.isArray(c.strengths) ? c.strengths.join(", ") : "None listed"}`,
+        );
+        sections.push(
+          `- Weaknesses: ${Array.isArray(c.weaknesses) ? c.weaknesses.join(", ") : "None listed"}`,
+        );
         if (c.source) sections.push(`- Source: ${c.source}\n`);
       });
     }
@@ -189,34 +249,38 @@ export class MemoryManager {
     if (state.gaps && Array.isArray(state.gaps) && state.gaps.length > 0) {
       sections.push(`## Market Gaps`);
       state.gaps.forEach((g, i) => {
-        const relevance = g.relevance ? g.relevance.toUpperCase() : 'UNKNOWN';
-        sections.push(`${i + 1}. **[${relevance}]** ${g.description || ''}`);
+        const relevance = g.relevance ? g.relevance.toUpperCase() : "UNKNOWN";
+        sections.push(`${i + 1}. **[${relevance}]** ${g.description || ""}`);
         if (g.evidence) sections.push(`   - Evidence: ${g.evidence}`);
       });
-      sections.push('');
+      sections.push("");
     }
 
     // Timing Signals
-    if (state.timingSignals && Array.isArray(state.timingSignals) && state.timingSignals.length > 0) {
+    if (
+      state.timingSignals &&
+      Array.isArray(state.timingSignals) &&
+      state.timingSignals.length > 0
+    ) {
       sections.push(`## Timing Signals`);
-      state.timingSignals.forEach(t => {
-        sections.push(`- ${t.signal || 'Unknown signal'}`);
+      state.timingSignals.forEach((t) => {
+        sections.push(`- ${t.signal || "Unknown signal"}`);
         if (t.implication) sections.push(`  - Implication: ${t.implication}`);
         if (t.source) sections.push(`  - Source: ${t.source}`);
       });
-      sections.push('');
+      sections.push("");
     }
 
     // Failed Attempts
     if (state.failedAttempts && state.failedAttempts.length > 0) {
       sections.push(`## Failed Attempts (Lessons)`);
       state.failedAttempts.forEach((f, i) => {
-        sections.push(`${i + 1}. **${f.what || 'Unknown'}**`);
+        sections.push(`${i + 1}. **${f.what || "Unknown"}**`);
         if (f.why) sections.push(`   - Why it failed: ${f.why}`);
         if (f.lesson) sections.push(`   - Lesson: ${f.lesson}`);
         if (f.source) sections.push(`   - Source: ${f.source}`);
       });
-      sections.push('');
+      sections.push("");
     }
 
     // Location Context
@@ -225,25 +289,32 @@ export class MemoryManager {
       if (state.locationContext.jobMarketTrends) {
         sections.push(`- Job Market: ${state.locationContext.jobMarketTrends}`);
       }
-      if (state.locationContext.localOpportunities && state.locationContext.localOpportunities.length > 0) {
+      if (
+        state.locationContext.localOpportunities &&
+        state.locationContext.localOpportunities.length > 0
+      ) {
         sections.push(`- Local Opportunities:`);
-        state.locationContext.localOpportunities.forEach(o => sections.push(`  - ${o}`));
+        state.locationContext.localOpportunities.forEach((o) =>
+          sections.push(`  - ${o}`),
+        );
       }
       if (state.locationContext.marketPresence) {
-        sections.push(`- Market Presence: ${state.locationContext.marketPresence}`);
+        sections.push(
+          `- Market Presence: ${state.locationContext.marketPresence}`,
+        );
       }
     }
 
-    return sections.join('\n');
+    return sections.join("\n");
   }
 
   /**
    * Generate narrowing state markdown.
    */
   private generateNarrowingMarkdown(state: NarrowingState): string {
-    if (!state) return '# Narrowing State\n\nNo data yet.';
+    if (!state) return "# Narrowing State\n\nNo data yet.";
 
-    const sections: string[] = ['# Narrowing State\n'];
+    const sections: string[] = ["# Narrowing State\n"];
 
     sections.push(`## Dimensions`);
     sections.push(`| Dimension | Value | Confidence |`);
@@ -253,28 +324,38 @@ export class MemoryManager {
     const geo = state.geography || { value: null, confidence: 0 };
     const sc = state.scale || { value: null, confidence: 0 };
     const td = state.technicalDepth || { value: null, confidence: 0 };
-    sections.push(`| Product Type | ${pt.value || '-'} | ${Math.round((pt.confidence ?? 0) * 100)}% |`);
-    sections.push(`| Customer Type | ${ct.value || '-'} | ${Math.round((ct.confidence ?? 0) * 100)}% |`);
-    sections.push(`| Geography | ${geo.value || '-'} | ${Math.round((geo.confidence ?? 0) * 100)}% |`);
-    sections.push(`| Scale | ${sc.value || '-'} | ${Math.round((sc.confidence ?? 0) * 100)}% |`);
-    sections.push(`| Technical Depth | ${td.value || '-'} | ${Math.round((td.confidence ?? 0) * 100)}% |`);
-    sections.push('');
+    sections.push(
+      `| Product Type | ${pt.value || "-"} | ${Math.round((pt.confidence ?? 0) * 100)}% |`,
+    );
+    sections.push(
+      `| Customer Type | ${ct.value || "-"} | ${Math.round((ct.confidence ?? 0) * 100)}% |`,
+    );
+    sections.push(
+      `| Geography | ${geo.value || "-"} | ${Math.round((geo.confidence ?? 0) * 100)}% |`,
+    );
+    sections.push(
+      `| Scale | ${sc.value || "-"} | ${Math.round((sc.confidence ?? 0) * 100)}% |`,
+    );
+    sections.push(
+      `| Technical Depth | ${td.value || "-"} | ${Math.round((td.confidence ?? 0) * 100)}% |`,
+    );
+    sections.push("");
 
     // Hypotheses
     if (state.hypotheses && state.hypotheses.length > 0) {
       sections.push(`## Working Hypotheses`);
       state.hypotheses.forEach((h, i) => {
         sections.push(`### Hypothesis ${i + 1}`);
-        sections.push(`${h.description || ''}`);
+        sections.push(`${h.description || ""}`);
         if (h.supporting && h.supporting.length > 0) {
           sections.push(`**Supporting:**`);
-          h.supporting.forEach(s => sections.push(`- ${s}`));
+          h.supporting.forEach((s) => sections.push(`- ${s}`));
         }
         if (h.contradicting && h.contradicting.length > 0) {
           sections.push(`**Contradicting:**`);
-          h.contradicting.forEach(c => sections.push(`- ${c}`));
+          h.contradicting.forEach((c) => sections.push(`- ${c}`));
         }
-        sections.push('');
+        sections.push("");
       });
     }
 
@@ -282,12 +363,12 @@ export class MemoryManager {
     if (state.questionsNeeded && state.questionsNeeded.length > 0) {
       sections.push(`## Questions to Ask`);
       state.questionsNeeded.forEach((q, i) => {
-        sections.push(`${i + 1}. ${q.question || 'Unknown'}`);
+        sections.push(`${i + 1}. ${q.question || "Unknown"}`);
         if (q.purpose) sections.push(`   - Purpose: ${q.purpose}`);
       });
     }
 
-    return sections.join('\n');
+    return sections.join("\n");
   }
 
   /**
@@ -295,19 +376,19 @@ export class MemoryManager {
    */
   private generateCandidateMarkdown(candidate: IdeaCandidate | null): string {
     if (!candidate) {
-      return '# Idea Candidate\n\nNo candidate formed yet.';
+      return "# Idea Candidate\n\nNo candidate formed yet.";
     }
 
     return `# Idea Candidate
 
 ## ${candidate.title}
 
-${candidate.summary || 'No summary yet.'}
+${candidate.summary || "No summary yet."}
 
 **Status:** ${candidate.status}
 **Confidence:** ${candidate.confidence}%
 **Viability:** ${candidate.viability}%
-**User Suggested:** ${candidate.userSuggested ? 'Yes' : 'No'}
+**User Suggested:** ${candidate.userSuggested ? "Yes" : "No"}
 **Version:** ${candidate.version}
 `;
   }
@@ -315,51 +396,66 @@ ${candidate.summary || 'No summary yet.'}
   /**
    * Generate viability markdown.
    */
-  private generateViabilityMarkdown(viability: { total: number; risks: ViabilityRiskSummary[] }): string {
-    if (!viability) return '# Viability Assessment\n\nNo data yet.';
+  private generateViabilityMarkdown(viability: {
+    total: number;
+    risks: ViabilityRiskSummary[];
+  }): string {
+    if (!viability) return "# Viability Assessment\n\nNo data yet.";
 
     const sections: string[] = [
-      '# Viability Assessment\n',
+      "# Viability Assessment\n",
       `**Overall Viability:** ${viability.total ?? 100}%\n`,
     ];
 
     if (viability.risks && viability.risks.length > 0) {
-      sections.push('## Identified Risks\n');
+      sections.push("## Identified Risks\n");
       viability.risks.forEach((r, i) => {
-        const severity = r.severity ? r.severity.toUpperCase() : 'UNKNOWN';
-        sections.push(`${i + 1}. **[${severity}]** ${r.type || 'Unknown risk'}`);
+        const severity = r.severity ? r.severity.toUpperCase() : "UNKNOWN";
+        sections.push(
+          `${i + 1}. **[${severity}]** ${r.type || "Unknown risk"}`,
+        );
         if (r.description) sections.push(`   ${r.description}\n`);
       });
     } else {
-      sections.push('No significant risks identified yet.');
+      sections.push("No significant risks identified yet.");
     }
 
-    return sections.join('\n');
+    return sections.join("\n");
   }
 
   /**
    * Update or create a memory file.
    */
-  async upsert(sessionId: string, fileType: MemoryFileType, content: string): Promise<MemoryFile> {
+  async upsert(
+    sessionId: string,
+    fileType: MemoryFileType,
+    content: string,
+  ): Promise<MemoryFile> {
     const db = await getDb();
     const now = new Date().toISOString();
 
     // Check if file exists
-    const existing = db.exec(`
+    const existing = db.exec(
+      `
       SELECT id, version FROM ideation_memory_files
       WHERE session_id = ? AND file_type = ?
-    `, [sessionId, fileType]);
+    `,
+      [sessionId, fileType],
+    );
 
     if (existing.length > 0 && existing[0].values.length > 0) {
       // Update existing
       const existingId = existing[0].values[0][0] as string;
       const currentVersion = existing[0].values[0][1] as number;
 
-      db.run(`
+      db.run(
+        `
         UPDATE ideation_memory_files
         SET content = ?, version = ?, updated_at = ?
         WHERE id = ?
-      `, [content, currentVersion + 1, now, existingId]);
+      `,
+        [content, currentVersion + 1, now, existingId],
+      );
 
       await saveDb();
       return this.get(existingId) as Promise<MemoryFile>;
@@ -367,12 +463,15 @@ ${candidate.summary || 'No summary yet.'}
       // Create new
       const id = uuidv4();
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_memory_files (
           id, session_id, file_type, content, version, created_at, updated_at
         )
         VALUES (?, ?, ?, ?, 1, ?, ?)
-      `, [id, sessionId, fileType, content, now, now]);
+      `,
+        [id, sessionId, fileType, content, now, now],
+      );
 
       await saveDb();
       return this.get(id) as Promise<MemoryFile>;
@@ -384,9 +483,12 @@ ${candidate.summary || 'No summary yet.'}
    */
   async get(fileId: string): Promise<MemoryFile | null> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_memory_files WHERE id = ?
-    `, [fileId]);
+    `,
+      [fileId],
+    );
 
     if (results.length === 0 || results[0].values.length === 0) {
       return null;
@@ -399,12 +501,18 @@ ${candidate.summary || 'No summary yet.'}
   /**
    * Get a specific memory file type for a session.
    */
-  async getByType(sessionId: string, fileType: MemoryFileType): Promise<MemoryFile | null> {
+  async getByType(
+    sessionId: string,
+    fileType: MemoryFileType,
+  ): Promise<MemoryFile | null> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_memory_files
       WHERE session_id = ? AND file_type = ?
-    `, [sessionId, fileType]);
+    `,
+      [sessionId, fileType],
+    );
 
     if (results.length === 0 || results[0].values.length === 0) {
       return null;
@@ -419,16 +527,19 @@ ${candidate.summary || 'No summary yet.'}
    */
   async getAll(sessionId: string): Promise<MemoryFile[]> {
     const db = await getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_memory_files
       WHERE session_id = ?
       ORDER BY file_type
-    `, [sessionId]);
+    `,
+      [sessionId],
+    );
 
     if (results.length === 0) return [];
 
-    return resultsToObjects(results[0]).map(row =>
-      mapMemoryRowToMemory(row as MemoryFileRow)
+    return resultsToObjects(results[0]).map((row) =>
+      mapMemoryRowToMemory(row as MemoryFileRow),
     );
   }
 
@@ -437,11 +548,11 @@ ${candidate.summary || 'No summary yet.'}
    */
   async updateAll(sessionId: string, state: MemoryState): Promise<void> {
     const fileTypes: MemoryFileType[] = [
-      'self_discovery',
-      'market_discovery',
-      'narrowing_state',
-      'idea_candidate',
-      'viability_assessment',
+      "self_discovery",
+      "market_discovery",
+      "narrowing_state",
+      "idea_candidate",
+      "viability_assessment",
     ];
 
     for (const fileType of fileTypes) {
@@ -458,7 +569,7 @@ ${candidate.summary || 'No summary yet.'}
       ideaTypeSelection: state.ideaTypeSelection,
     };
     const jsonContent = `<!-- STATE_JSON\n${JSON.stringify(jsonState)}\nSTATE_JSON -->\n\n# State Summary\n\nThis file contains structured state data.`;
-    await this.upsert(sessionId, 'conversation_summary', jsonContent);
+    await this.upsert(sessionId, "conversation_summary", jsonContent);
   }
 
   /**
@@ -466,23 +577,29 @@ ${candidate.summary || 'No summary yet.'}
    */
   async loadState(sessionId: string): Promise<MemoryState> {
     // Try to load JSON state from conversation_summary
-    const summaryFile = await this.getByType(sessionId, 'conversation_summary');
+    const summaryFile = await this.getByType(sessionId, "conversation_summary");
 
     if (summaryFile?.content) {
-      const jsonMatch = summaryFile.content.match(/<!-- STATE_JSON\n([\s\S]*?)\nSTATE_JSON -->/);
+      const jsonMatch = summaryFile.content.match(
+        /<!-- STATE_JSON\n([\s\S]*?)\nSTATE_JSON -->/,
+      );
       if (jsonMatch) {
         try {
           const parsed = JSON.parse(jsonMatch[1]);
           return {
-            selfDiscovery: parsed.selfDiscovery || createDefaultSelfDiscoveryState(),
-            marketDiscovery: parsed.marketDiscovery || createDefaultMarketDiscoveryState(),
-            narrowingState: parsed.narrowingState || createDefaultNarrowingState(),
+            selfDiscovery:
+              parsed.selfDiscovery || createDefaultSelfDiscoveryState(),
+            marketDiscovery:
+              parsed.marketDiscovery || createDefaultMarketDiscoveryState(),
+            narrowingState:
+              parsed.narrowingState || createDefaultNarrowingState(),
             candidate: null, // Candidate is loaded separately via candidateManager
             viability: parsed.viability || { total: 100, risks: [] },
-            ideaTypeSelection: parsed.ideaTypeSelection || createDefaultIdeaTypeSelectionState(),
+            ideaTypeSelection:
+              parsed.ideaTypeSelection || createDefaultIdeaTypeSelectionState(),
           };
         } catch (e) {
-          console.error('Failed to parse state JSON:', e);
+          console.error("Failed to parse state JSON:", e);
         }
       }
     }
@@ -505,10 +622,13 @@ ${candidate.summary || 'No summary yet.'}
     const db = await getDb();
 
     // Delete all memory files for this session
-    db.run(`
+    db.run(
+      `
       DELETE FROM ideation_memory_files
       WHERE session_id = ?
-    `, [sessionId]);
+    `,
+      [sessionId],
+    );
 
     await saveDb();
   }
@@ -516,7 +636,10 @@ ${candidate.summary || 'No summary yet.'}
   /**
    * Create handoff summary.
    */
-  async createHandoffSummary(sessionId: string, conversationSummary: string): Promise<void> {
+  async createHandoffSummary(
+    sessionId: string,
+    conversationSummary: string,
+  ): Promise<void> {
     const now = new Date().toISOString();
 
     const handoffContent = `# Handoff Notes
@@ -532,8 +655,12 @@ Continue the conversation naturally. The user is unaware of the handoff.
 Reference the memory files above for context.
 `;
 
-    await this.upsert(sessionId, 'handoff_notes', handoffContent);
-    await this.upsert(sessionId, 'conversation_summary', `# Conversation Summary\n\n${conversationSummary}`);
+    await this.upsert(sessionId, "handoff_notes", handoffContent);
+    await this.upsert(
+      sessionId,
+      "conversation_summary",
+      `# Conversation Summary\n\n${conversationSummary}`,
+    );
   }
 
   /**
@@ -541,7 +668,10 @@ Reference the memory files above for context.
    * This is a convenience method for the orchestrator to persist idea type selections
    * without having to update the entire state.
    */
-  async updateIdeaTypeSelection(sessionId: string, ideaTypeSelection: IdeaTypeSelectionState): Promise<void> {
+  async updateIdeaTypeSelection(
+    sessionId: string,
+    ideaTypeSelection: IdeaTypeSelectionState,
+  ): Promise<void> {
     // Load current state
     const currentState = await this.loadState(sessionId);
 
@@ -557,14 +687,16 @@ Reference the memory files above for context.
       ideaTypeSelection: currentState.ideaTypeSelection,
     };
     const jsonContent = `<!-- STATE_JSON\n${JSON.stringify(jsonState)}\nSTATE_JSON -->\n\n# State Summary\n\nThis file contains structured state data.`;
-    await this.upsert(sessionId, 'conversation_summary', jsonContent);
+    await this.upsert(sessionId, "conversation_summary", jsonContent);
   }
 
   /**
    * Load only the idea type selection state.
    * This is a convenience method for the orchestrator to check selection state.
    */
-  async loadIdeaTypeSelection(sessionId: string): Promise<IdeaTypeSelectionState> {
+  async loadIdeaTypeSelection(
+    sessionId: string,
+  ): Promise<IdeaTypeSelectionState> {
     const state = await this.loadState(sessionId);
     return state.ideaTypeSelection || createDefaultIdeaTypeSelectionState();
   }

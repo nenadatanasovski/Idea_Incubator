@@ -4,7 +4,7 @@
 export class IdeaIncubatorError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'IdeaIncubatorError';
+    this.name = "IdeaIncubatorError";
   }
 }
 
@@ -16,7 +16,7 @@ export class IdeaNotFoundError extends IdeaIncubatorError {
 
   constructor(slug: string) {
     super(`Idea not found: ${slug}`);
-    this.name = 'IdeaNotFoundError';
+    this.name = "IdeaNotFoundError";
     this.slug = slug;
   }
 }
@@ -27,7 +27,7 @@ export class IdeaNotFoundError extends IdeaIncubatorError {
 export class EvaluationParseError extends IdeaIncubatorError {
   constructor(message: string) {
     super(`Failed to parse evaluation: ${message}`);
-    this.name = 'EvaluationParseError';
+    this.name = "EvaluationParseError";
   }
 }
 
@@ -38,8 +38,8 @@ export class APIRateLimitError extends IdeaIncubatorError {
   public readonly retryAfter?: number;
 
   constructor(retryAfter?: number) {
-    super(`Rate limited. Retry after ${retryAfter || 'unknown'} seconds`);
-    this.name = 'APIRateLimitError';
+    super(`Rate limited. Retry after ${retryAfter || "unknown"} seconds`);
+    this.name = "APIRateLimitError";
     this.retryAfter = retryAfter;
   }
 }
@@ -52,8 +52,10 @@ export class BudgetExceededError extends IdeaIncubatorError {
   public readonly budget: number;
 
   constructor(spent: number, budget: number) {
-    super(`Budget exceeded: $${spent.toFixed(2)} spent of $${budget.toFixed(2)} limit`);
-    this.name = 'BudgetExceededError';
+    super(
+      `Budget exceeded: $${spent.toFixed(2)} spent of $${budget.toFixed(2)} limit`,
+    );
+    this.name = "BudgetExceededError";
     this.spent = spent;
     this.budget = budget;
   }
@@ -68,7 +70,7 @@ export class ApiCallLimitError extends IdeaIncubatorError {
 
   constructor(calls: number, maxCalls: number) {
     super(`API call limit exceeded: ${calls} calls made of ${maxCalls} limit`);
-    this.name = 'ApiCallLimitError';
+    this.name = "ApiCallLimitError";
     this.calls = calls;
     this.maxCalls = maxCalls;
   }
@@ -83,7 +85,7 @@ export class ConvergenceTimeoutError extends IdeaIncubatorError {
 
   constructor(rounds: number, maxRounds: number) {
     super(`Convergence timeout: ${rounds} rounds reached max ${maxRounds}`);
-    this.name = 'ConvergenceTimeoutError';
+    this.name = "ConvergenceTimeoutError";
     this.rounds = rounds;
     this.maxRounds = maxRounds;
   }
@@ -97,7 +99,7 @@ export class ValidationError extends IdeaIncubatorError {
 
   constructor(field: string, message: string) {
     super(`Validation failed for ${field}: ${message}`);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
     this.field = field;
   }
 }
@@ -110,7 +112,7 @@ export class DatabaseError extends IdeaIncubatorError {
 
   constructor(operation: string, message: string) {
     super(`Database error during ${operation}: ${message}`);
-    this.name = 'DatabaseError';
+    this.name = "DatabaseError";
     this.operation = operation;
   }
 }
@@ -122,8 +124,8 @@ export class SyncError extends IdeaIncubatorError {
   public readonly filePath?: string;
 
   constructor(message: string, filePath?: string) {
-    super(`Sync error: ${message}${filePath ? ` (${filePath})` : ''}`);
-    this.name = 'SyncError';
+    super(`Sync error: ${message}${filePath ? ` (${filePath})` : ""}`);
+    this.name = "SyncError";
     this.filePath = filePath;
   }
 }
@@ -136,7 +138,7 @@ export class MarkdownParseError extends IdeaIncubatorError {
 
   constructor(filePath: string, message: string) {
     super(`Failed to parse markdown at ${filePath}: ${message}`);
-    this.name = 'MarkdownParseError';
+    this.name = "MarkdownParseError";
     this.filePath = filePath;
   }
 }
@@ -149,7 +151,7 @@ export class ConfigurationError extends IdeaIncubatorError {
 
   constructor(configKey: string, message: string) {
     super(`Invalid configuration for ${configKey}: ${message}`);
-    this.name = 'ConfigurationError';
+    this.name = "ConfigurationError";
     this.configKey = configKey;
   }
 }

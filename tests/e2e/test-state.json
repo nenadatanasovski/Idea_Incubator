@@ -701,9 +701,7 @@
     {
       "bugId": "BUG-001",
       "fixDescription": "When MESSAGE_ERROR contains 'session is not active' or 'session expired', dispatch SESSION_ERROR to show full error screen with clear message 'Your session has expired. Please start a new session.' and Go Back button",
-      "files": [
-        "frontend/src/components/ideation/IdeationSession.tsx"
-      ],
+      "files": ["frontend/src/components/ideation/IdeationSession.tsx"],
       "timestamp": "2025-12-31T04:05:00Z"
     }
   ],

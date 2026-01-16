@@ -2,18 +2,34 @@
  * Email Notification Channel
  * Handles delivery via email sender service
  */
-import { Notification, NotificationDelivery } from '../../../types/notification.js';
-import { createDelivery, updateDeliveryStatus, getTemplate, getUserEmail } from '../../../database/db.js';
-import { renderTemplate, renderHtmlTemplate } from '../templates.js';
+import {
+  Notification,
+  NotificationDelivery,
+} from "../../../types/notification.js";
+import {
+  createDelivery,
+  updateDeliveryStatus,
+  getTemplate,
+  getUserEmail,
+} from "../../../database/db.js";
+import { renderTemplate, renderHtmlTemplate } from "../templates.js";
 
 interface EmailSender {
-  send(options: { to: string; subject: string; html: string; text: string }): Promise<void>;
+  send(options: {
+    to: string;
+    subject: string;
+    html: string;
+    text: string;
+  }): Promise<void>;
 }
 
 const defaultEmailSender: EmailSender = {
   async send(options) {
-    console.log('[EmailChannel] Would send email:', { to: options.to, subject: options.subject });
-  }
+    console.log("[EmailChannel] Would send email:", {
+      to: options.to,
+      subject: options.subject,
+    });
+  },
 };
 
 function toErrorMessage(error: unknown): string {
@@ -32,13 +48,21 @@ export class EmailChannel {
   }
 
   async send(notification: Notification): Promise<NotificationDelivery> {
-    const delivery = await createDelivery(notification.id, 'email');
+    const delivery = await createDelivery(notification.id, "email");
 
     try {
       const email = await getUserEmail(notification.userId);
       if (!email) {
-        await updateDeliveryStatus(delivery.id, 'skipped', 'No email address configured');
-        return { ...delivery, status: 'skipped', error: 'No email address configured' };
+        await updateDeliveryStatus(
+          delivery.id,
+          "skipped",
+          "No email address configured",
+        );
+        return {
+          ...delivery,
+          status: "skipped",
+          error: "No email address configured",
+        };
       }
 
       const template = await getTemplate(notification.type);
@@ -50,13 +74,18 @@ export class EmailChannel {
         ? renderHtmlTemplate(template.emailBody, data)
         : `<p>${notification.body}</p>`;
 
-      await this.sender.send({ to: email, subject, html, text: notification.body });
-      await updateDeliveryStatus(delivery.id, 'sent');
-      return { ...delivery, status: 'sent', sentAt: new Date().toISOString() };
+      await this.sender.send({
+        to: email,
+        subject,
+        html,
+        text: notification.body,
+      });
+      await updateDeliveryStatus(delivery.id, "sent");
+      return { ...delivery, status: "sent", sentAt: new Date().toISOString() };
     } catch (error) {
       const errorMessage = toErrorMessage(error);
-      await updateDeliveryStatus(delivery.id, 'failed', errorMessage);
-      return { ...delivery, status: 'failed', error: errorMessage };
+      await updateDeliveryStatus(delivery.id, "failed", errorMessage);
+      return { ...delivery, status: "failed", error: errorMessage };
     }
   }
 }

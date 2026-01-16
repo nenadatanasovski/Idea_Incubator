@@ -18,28 +18,28 @@
       "criterion": "Target User Clarity",
       "category": "problem",
       "score": 7,
-      "confidence": 0.80,
+      "confidence": 0.8,
       "reasoning": "Target users are identified but could be more specific about demographics and use frequency."
     },
     {
       "criterion": "Solution Clarity",
       "category": "solution",
       "score": 7,
-      "confidence": 0.70,
+      "confidence": 0.7,
       "reasoning": "Basic specifications are outlined but technical details need more work."
     },
     {
       "criterion": "Solution Feasibility",
       "category": "solution",
       "score": 9,
-      "confidence": 0.90,
+      "confidence": 0.9,
       "reasoning": "Technology exists and similar products are already on the market. This is technically very achievable."
     },
     {
       "criterion": "Market Size",
       "category": "market",
       "score": 7,
-      "confidence": 0.70,
+      "confidence": 0.7,
       "reasoning": "Outdoor gear market is substantial, but this is a niche within it."
     },
     {

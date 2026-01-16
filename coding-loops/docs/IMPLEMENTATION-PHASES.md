@@ -37,6 +37,7 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Status:** 80% complete
 
 ### Deliverables
+
 - [x] TASKS.md - Master task list
 - [x] ARCHITECTURE.md - System design
 - [x] EVENT-CATALOG.md - Event definitions
@@ -47,13 +48,14 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 - [x] system-requirements.yaml
 - [x] requirements.txt
 - [x] Folder structure
-- [x] Skeleton __init__.py files
+- [x] Skeleton **init**.py files
 - [ ] DATABASE-SCHEMA.md
 - [ ] API-REFERENCE.md
 - [ ] TEST-CATALOG.md
 - [ ] README.md update
 
 ### Exit Criteria
+
 - All docs have content (not just TODOs)
 - All folders exist
 - Schema can be applied to fresh database
@@ -67,6 +69,7 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 0
 
 ### Deliverables
+
 - database/init_db.py - Database initialization
 - database/queries.py - Common query functions
 - database/models.py - Dataclasses for rows
@@ -74,6 +77,7 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 - tests/test_database.py
 
 ### Exit Criteria
+
 - `python -m pytest tests/test_database.py` passes
 - Can migrate existing test-state.json files
 - Schema validation works
@@ -87,11 +91,13 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 1
 
 ### Deliverables
+
 - shared/message_bus.py
 - tests/test_message_bus.py
 - BUS-001 through BUS-008 passing
 
 ### Exit Criteria
+
 - Events can be published and polled
 - File locking works
 - Lock expiry works
@@ -106,11 +112,13 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 1
 
 ### Deliverables
+
 - shared/verification_gate.py
 - tests/test_verification.py
 - VER-001 through VER-007 passing
 
 ### Exit Criteria
+
 - TypeScript check works
 - Build check works
 - Lint check works
@@ -126,11 +134,13 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 1
 
 ### Deliverables
+
 - shared/git_manager.py
 - tests/test_git_manager.py
 - GIT-001 through GIT-006 passing
 
 ### Exit Criteria
+
 - Each loop has dedicated branch
 - Rebase from main works
 - Conflict detection works
@@ -144,11 +154,13 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 4
 
 ### Deliverables
+
 - shared/checkpoint_manager.py
 - tests/test_checkpoint.py
 - CHK-001 through CHK-006 passing
 
 ### Exit Criteria
+
 - Checkpoints can be created
 - Rollback restores state
 - Checkpoints can be deleted
@@ -162,6 +174,7 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 2
 
 ### Deliverables
+
 - shared/resource_registry.py
 - shared/migration_allocator.py
 - shared/budget_manager.py
@@ -170,6 +183,7 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 - tests/test_budget.py
 
 ### Exit Criteria
+
 - Resource ownership is tracked
 - Migration numbers are allocated correctly
 - Usage is recorded
@@ -183,11 +197,13 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 1
 
 ### Deliverables
+
 - shared/knowledge_base.py
 - tests/test_knowledge.py
 - KB-001 through KB-006 passing
 
 ### Exit Criteria
+
 - Facts can be recorded
 - Decisions can be recorded
 - Queries return relevant knowledge
@@ -202,12 +218,14 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 1
 
 ### Deliverables
+
 - shared/error_classifier.py
 - shared/atomic_operations.py
 - tests/test_error.py
 - tests/test_atomic.py
 
 ### Exit Criteria
+
 - Errors are classified correctly
 - Transaction log works
 - Incomplete transactions can be replayed
@@ -221,6 +239,7 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 2, Phase 4
 
 ### Deliverables
+
 - shared/regression_monitor.py
 - shared/deadlock_detector.py
 - shared/semantic_analyzer.py
@@ -229,6 +248,7 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 - tests/test_semantic.py
 
 ### Exit Criteria
+
 - Regressions are detected with blame
 - Deadlocks are detected and resolved
 - Semantic conflicts are detected
@@ -242,6 +262,7 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 2, Phase 5
 
 ### Deliverables
+
 - shared/degradation_manager.py
 - shared/orphan_cleaner.py
 - shared/context_manager.py
@@ -250,6 +271,7 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 - tests/test_context.py
 
 ### Exit Criteria
+
 - Component failures are detected
 - Loops switch to degraded mode
 - Orphaned resources are cleaned up
@@ -263,6 +285,7 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 2, Phase 9, Phase 10
 
 ### Deliverables
+
 - agents/monitor_agent.py
 - agents/watchdog_agent.py
 - tests/test_monitor.py
@@ -270,6 +293,7 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 - MON-001 through MON-008 passing
 
 ### Exit Criteria
+
 - Monitor detects stuck loops
 - Monitor detects conflicts
 - Monitor publishes alerts
@@ -284,11 +308,13 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 11
 
 ### Deliverables
+
 - agents/pm_agent.py
 - tests/test_pm.py
 - PM-001 through PM-008 passing
 
 ### Exit Criteria
+
 - PM receives conflicts
 - PM resolves conflicts
 - PM escalates to human
@@ -303,15 +329,17 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 12
 
 ### Deliverables
+
 - shared/telegram_notifier.py
 - agents/human_agent.py
 - cli.py
-- cli_commands/*.py
+- cli_commands/\*.py
 - tests/test_telegram.py
 - tests/test_human.py
 - HUM-001 through HUM-008 passing
 
 ### Exit Criteria
+
 - CLI commands work
 - Telegram notifications send
 - Decisions can be made via CLI
@@ -326,12 +354,14 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 13
 
 ### Deliverables
+
 - Updated shared/ralph_loop_base.py
-- Updated loop-*/run_loop.py
+- Updated loop-\*/run_loop.py
 - tests/test_integration.py
 - INT-001 through INT-007 passing
 
 ### Exit Criteria
+
 - Loops publish events
 - Loops use verification gate
 - Loops use checkpoints
@@ -347,12 +377,14 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 14
 
 ### Deliverables
+
 - tests/test_e2e.py
 - tests/test_acceptance.py
 - E2E-001 through E2E-005 passing
 - SAT-001 through SAT-010 passing
 
 ### Exit Criteria
+
 - 3 loops run concurrently
 - Conflicts are resolved
 - Rollback works
@@ -367,12 +399,14 @@ Phase 16: Polish        [Session 17-18] ░░░░░░░░░░ 0%
 **Dependencies:** Phase 15
 
 ### Deliverables
+
 - Complete all documentation
 - Code review
 - Performance testing
 - 24-hour stability test
 
 ### Exit Criteria
+
 - All tests pass
 - All docs complete
 - System runs 24 hours without human intervention
@@ -415,4 +449,4 @@ If any checkpoint fails, fix before proceeding.
 
 ---
 
-*See TASKS.md for detailed task checklist.*
+_See TASKS.md for detailed task checklist._

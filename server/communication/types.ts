@@ -2,13 +2,13 @@
 // Shared types for communication module
 
 export type AgentType =
-  | 'monitoring'
-  | 'orchestrator'
-  | 'spec'
-  | 'build'
-  | 'validation'
-  | 'sia'
-  | 'system';
+  | "monitoring"
+  | "orchestrator"
+  | "spec"
+  | "build"
+  | "validation"
+  | "sia"
+  | "system";
 
 export interface TelegramBot {
   id: number;
@@ -38,7 +38,7 @@ export interface InlineButton {
 export interface SendOptions {
   agentType: AgentType;
   text: string;
-  parseMode?: 'Markdown' | 'HTML';
+  parseMode?: "Markdown" | "HTML";
   buttons?: InlineButton[][];
   replyToMessageId?: number;
 }
@@ -68,17 +68,17 @@ export interface Question {
   id: string;
   agentId: string;
   sessionId: string | null;
-  type: 'blocking' | 'non-blocking' | 'approval' | 'confirmation';
+  type: "blocking" | "non-blocking" | "approval" | "confirmation";
   content: string;
   options: QuestionOption[] | null;
   context: Record<string, unknown> | null;
-  status: 'pending' | 'delivered' | 'answered' | 'timeout' | 'cancelled';
+  status: "pending" | "delivered" | "answered" | "timeout" | "cancelled";
   blocking: boolean;
   timeoutMs: number | null;
   defaultAnswer: string | null;
   telegramMessageId: string | null;
   emailMessageId: string | null;
-  deliveredVia: 'telegram' | 'email' | null;
+  deliveredVia: "telegram" | "email" | null;
   deliveredAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -93,9 +93,9 @@ export interface QuestionOption {
 export interface QuestionAnswer {
   id: number;
   questionId: string;
-  answerType: 'button' | 'text' | 'timeout' | 'default';
+  answerType: "button" | "text" | "timeout" | "default";
   answerValue: string | null;
-  answeredVia: 'telegram' | 'email' | 'web' | null;
+  answeredVia: "telegram" | "email" | "web" | null;
   answeredAt: Date;
   rawResponse: string | null;
   createdAt: Date;
@@ -107,8 +107,8 @@ export interface Notification {
   agentType: AgentType;
   notificationType: string;
   content: string;
-  channel: 'telegram' | 'email';
-  status: 'pending' | 'delivered' | 'failed';
+  channel: "telegram" | "email";
+  status: "pending" | "delivered" | "failed";
   telegramMessageId: string | null;
   emailMessageId: string | null;
   errorMessage: string | null;
@@ -121,7 +121,13 @@ export interface AgentState {
   agentId: string;
   agentType: AgentType;
   sessionId: string | null;
-  state: 'REGISTERING' | 'HELLO_SENT' | 'AWAITING_ACK' | 'READY' | 'DEGRADED' | 'DISCONNECTED';
+  state:
+    | "REGISTERING"
+    | "HELLO_SENT"
+    | "AWAITING_ACK"
+    | "READY"
+    | "DEGRADED"
+    | "DISCONNECTED";
   assignedBot: string;
   registeredAt: Date;
   lastHeartbeat: Date;
@@ -132,8 +138,8 @@ export interface AgentState {
 
 export interface CommunicationHealth {
   agentId: string;
-  checkType: 'heartbeat' | 'handshake' | 'delivery';
-  status: 'ok' | 'degraded' | 'failed';
+  checkType: "heartbeat" | "handshake" | "delivery";
+  status: "ok" | "degraded" | "failed";
   latencyMs: number | null;
   errorMessage: string | null;
   checkedAt: Date;

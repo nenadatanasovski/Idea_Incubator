@@ -1,6 +1,7 @@
 # End-to-End Issue Verification Plan
 
 ## Purpose
+
 Comprehensive browser-based testing to verify that all 3 issues identified in GAPS_ANALYSIS.md have been properly fixed and are working in production.
 
 ---
@@ -10,16 +11,19 @@ Comprehensive browser-based testing to verify that all 3 issues identified in GA
 ### What are we actually testing?
 
 **Issue 1: Q&A from development.md not picked up by evaluators**
+
 - **Root Cause**: Development Q&A pairs weren't being parsed and passed to evaluators
 - **Expected Fix**: Q&A pairs should be extracted, classified to criteria IDs, and included in evaluator prompts
 - **Evidence of Success**: Evaluation output should reference specific Q&A content from development.md
 
 **Issue 2: Profile context only used for Fit category**
+
 - **Root Cause**: Profile data was only passed to Fit evaluators, not other categories
 - **Expected Fix**: All specialized evaluators should receive profile context where relevant
 - **Evidence of Success**: Non-Fit categories (Feasibility, Market, Risk) should reference profile skills, network, life stage
 
 **Issue 3: No web search for verification**
+
 - **Root Cause**: No research phase existed before evaluation
 - **Expected Fix**: Research agent should conduct web searches to verify claims before evaluation
 - **Evidence of Success**: Research results should be in output, or research folder should contain findings
@@ -29,6 +33,7 @@ Comprehensive browser-based testing to verify that all 3 issues identified in GA
 ## Test Prerequisites
 
 ### Environment Setup
+
 1. Development server running on localhost:3000 (frontend) and localhost:3001 (backend)
 2. Database synced with latest schema
 3. At least one user profile exists (Ned)
@@ -37,10 +42,12 @@ Comprehensive browser-based testing to verify that all 3 issues identified in GA
 ### Test Data Requirements
 
 **For Issue 1 (Q&A Sync):**
+
 - An idea with a development.md file containing specific, identifiable Q&A pairs
 - Q&A should cover multiple criteria categories to verify cross-category sync
 
 **For Issue 2 (Profile Context):**
+
 - A user profile with rich data across all dimensions:
   - Goals (FT1) - specific goals like "income", "learning"
   - Passion (FT2) - domain interests
@@ -49,6 +56,7 @@ Comprehensive browser-based testing to verify that all 3 issues identified in GA
   - Life Stage (FT5) - time availability, risk tolerance
 
 **For Issue 3 (Web Research):**
+
 - An idea with verifiable claims:
   - Market size claims (e.g., "$15B market by 2027")
   - Competitor mentions (e.g., "Sense, Emporia, Neurio")
@@ -61,6 +69,7 @@ Comprehensive browser-based testing to verify that all 3 issues identified in GA
 ### Phase 1: Setup & Verification (Pre-Evaluation)
 
 #### Step 1.1: Verify Server is Running
+
 ```
 Action: Navigate to http://localhost:3000
 Expected: Dashboard loads successfully
@@ -68,6 +77,7 @@ Verify: Page title, navigation elements present
 ```
 
 #### Step 1.2: Create Test Idea with Rich Content
+
 ```
 Action: Click "New Idea" button
 Action: Fill in idea form with:
@@ -82,6 +92,7 @@ Verify: Idea appears in list with correct slug
 ```
 
 #### Step 1.3: Add Development Q&A via File System
+
 ```
 Action: Create development.md in idea folder with:
   ---
@@ -99,6 +110,7 @@ Expected: File created in ideas/[slug]/development.md
 ```
 
 #### Step 1.4: Sync Database
+
 ```
 Action: Run npm run sync (via CLI or trigger via UI if available)
 Expected: Q&A pairs synced to database
@@ -106,6 +118,7 @@ Verify: Query database for idea_answers table entries
 ```
 
 #### Step 1.5: Verify Profile Exists
+
 ```
 Action: Navigate to Profiles page
 Expected: "Ned" profile visible in list
@@ -113,6 +126,7 @@ Verify: Profile has data in all 5 dimensions (Goals, Passion, Skills, Network, L
 ```
 
 #### Step 1.6: Link Profile to Idea
+
 ```
 Action: Navigate to test idea detail page
 Action: Click "Link Profile" button
@@ -122,6 +136,7 @@ Expected: UI shows "Evaluating as: Ned"
 ```
 
 #### Step 1.7: CRITICAL - Verify Profile Link Persisted
+
 ```
 Action: Query database directly:
   SELECT ip.*, up.name
@@ -138,6 +153,7 @@ Alternative: Call API GET /api/ideas/[slug] and check profile field
 ### Phase 2: Trigger Evaluation
 
 #### Step 2.1: Start Evaluation via UI
+
 ```
 Action: Click "Run Evaluation" button on idea detail page
 Alternative: Run via CLI: npm run evaluate [slug] --budget=25
@@ -145,6 +161,7 @@ Expected: Evaluation starts, progress indicators appear
 ```
 
 #### Step 2.2: Monitor Evaluation Progress
+
 ```
 Action: Watch for:
   - Research phase indicator (if enabled)
@@ -156,6 +173,7 @@ Timeout: Set reasonable timeout (10-15 minutes for full evaluation)
 ```
 
 #### Step 2.3: Wait for Completion
+
 ```
 Action: Poll for completion status
 Expected: Evaluation status changes to "completed"
@@ -165,6 +183,7 @@ Verify: evaluation.md file exists in idea folder
 ### Phase 3: Verification of Issue Fixes
 
 #### Step 3.1: Verify Issue 1 - Q&A Sync
+
 ```
 Action: Read evaluation.md file
 Search for: References to Q&A content we added
@@ -188,6 +207,7 @@ Pass Criteria:
 ```
 
 #### Step 3.2: Verify Issue 2 - Profile Context in All Categories
+
 ```
 Action: Read evaluation.md file
 Search for: Profile-specific references in non-Fit categories
@@ -218,6 +238,7 @@ Pass Criteria:
 ```
 
 #### Step 3.3: Verify Issue 3 - Web Research Conducted
+
 ```
 Action: Check research folder
   ls ideas/[slug]/research/
@@ -253,6 +274,7 @@ Alternative Pass Criteria (if research disabled):
 ### Phase 4: Regression Checks
 
 #### Step 4.1: Verify Evaluation Quality
+
 ```
 Action: Review overall evaluation structure
 Expected:
@@ -263,6 +285,7 @@ Expected:
 ```
 
 #### Step 4.2: Verify No New Bugs Introduced
+
 ```
 Action: Check for errors in evaluation output
 Expected:
@@ -285,7 +308,7 @@ async function verifyAllIssues() {
   const testSlug = `e2e-test-${Date.now()}`;
 
   // Phase 1: Setup
-  await navigateTo('/');
+  await navigateTo("/");
   await verifyDashboardLoads();
 
   await createIdea(testSlug, testIdeaContent);
@@ -293,8 +316,8 @@ async function verifyAllIssues() {
   await syncDatabase();
 
   await navigateTo(`/ideas/${testSlug}`);
-  await linkProfile('ned');
-  await verifyProfileLinkPersisted(testSlug);  // CRITICAL
+  await linkProfile("ned");
+  await verifyProfileLinkPersisted(testSlug); // CRITICAL
 
   // Phase 2: Evaluate
   await triggerEvaluation(testSlug, { budget: 25 });
@@ -312,7 +335,7 @@ async function verifyAllIssues() {
     issue1: issue1Result,
     issue2: issue2Result,
     issue3: issue3Result,
-    overallPass: issue1Result.pass && issue2Result.pass && issue3Result.pass
+    overallPass: issue1Result.pass && issue2Result.pass && issue3Result.pass,
   };
 }
 ```
@@ -322,29 +345,35 @@ async function verifyAllIssues() {
 ## Test Data Templates
 
 ### Test Idea Content
+
 ```markdown
 # E2E Test Idea - Smart Wellness Tracker
 
 ## Problem
+
 Health-conscious professionals waste 2-3 hours weekly tracking wellness metrics manually.
 The $8.5 billion wellness tracking market is growing 12% annually.
 
 ## Solution
+
 AI-powered wearable that automatically correlates sleep, exercise, and nutrition data.
 Uses proprietary TinyML algorithms for on-device processing.
 
 ## Target Users
+
 - Tech professionals aged 25-45
 - Annual income $75k+
 - Already use 2+ health apps
 
 ## Competitors
+
 - Whoop ($30/month subscription)
 - Oura Ring ($300 + subscription)
 - Apple Watch (different price tier)
 ```
 
 ### Test Q&A Pairs (development.md)
+
 ```markdown
 ---
 last_updated: 2025-12-27
@@ -372,29 +401,32 @@ A: I'm leaving my full-time job next month to work on this 60+ hours/week.
 
 ## Expected Results Matrix
 
-| Issue | Test Method | Pass Criteria | Evidence Location |
-|-------|-------------|---------------|-------------------|
-| 1. Q&A Sync | Search eval for Q&A content | 2+ Q&A items referenced | evaluation.md body |
-| 2. Profile All Categories | Search non-Fit for profile | 3+ non-Fit profile refs | Feasibility/Market/Risk sections |
-| 3. Web Research | Check research folder | Files exist OR documented limitation | ideas/[slug]/research/ |
+| Issue                     | Test Method                 | Pass Criteria                        | Evidence Location                |
+| ------------------------- | --------------------------- | ------------------------------------ | -------------------------------- |
+| 1. Q&A Sync               | Search eval for Q&A content | 2+ Q&A items referenced              | evaluation.md body               |
+| 2. Profile All Categories | Search non-Fit for profile  | 3+ non-Fit profile refs              | Feasibility/Market/Risk sections |
+| 3. Web Research           | Check research folder       | Files exist OR documented limitation | ideas/[slug]/research/           |
 
 ---
 
 ## Failure Recovery
 
 ### If Profile Link Fails
+
 1. Check network tab for failed API calls
 2. Verify database tables exist (idea_profiles)
 3. Check server logs for errors
 4. Try CLI linking as fallback: `npm run profile link [idea] [profile]`
 
 ### If Evaluation Hangs
+
 1. Check cost tracker - may have exceeded budget
 2. Check for Claude API errors
 3. Increase budget and retry
 4. Check server logs for stack traces
 
 ### If Q&A Not Found
+
 1. Verify development.md format matches expected schema
 2. Run sync manually: `npm run sync`
 3. Query database to verify Q&A ingestion
@@ -405,14 +437,17 @@ A: I'm leaving my full-time job next month to work on this 60+ hours/week.
 ## Automation Tool Selection
 
 ### Option A: Claude-in-Chrome MCP
+
 - Pros: Direct browser control, screenshot verification, real user flow
 - Cons: Requires Chrome extension, connection can drop
 
 ### Option B: Puppeteer MCP
+
 - Pros: Stable, headless option, good for CI
 - Cons: May miss extension-specific UI elements
 
 ### Recommendation
+
 Use Claude-in-Chrome for interactive testing with screenshots, fall back to direct file/database verification for assertions that don't require UI.
 
 ---

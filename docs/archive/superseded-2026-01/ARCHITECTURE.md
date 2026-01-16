@@ -8,14 +8,14 @@ The Idea Incubator is a single-user system for capturing, developing, evaluating
 
 ## Core Design Principles
 
-| Principle | Description |
-|-----------|-------------|
-| **Zero-Friction Capture** | Ideas can be captured via markdown from any device without specifying where files go |
-| **Auto-Organization** | System determines correct file placement based on content and context |
-| **Proactive Guidance** | Claude skills ask questions and red-team angles without user prompting |
-| **Comprehensive Evaluation** | Extensive criteria matrix identifies gaps and surfaces best ideas |
-| **Flexible Visualization** | Multiple views adapt to different idea types and analysis needs |
-| **Plugin-Ready** | Skill-based architecture allows future capability expansion |
+| Principle                    | Description                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| **Zero-Friction Capture**    | Ideas can be captured via markdown from any device without specifying where files go |
+| **Auto-Organization**        | System determines correct file placement based on content and context                |
+| **Proactive Guidance**       | Claude skills ask questions and red-team angles without user prompting               |
+| **Comprehensive Evaluation** | Extensive criteria matrix identifies gaps and surfaces best ideas                    |
+| **Flexible Visualization**   | Multiple views adapt to different idea types and analysis needs                      |
+| **Plugin-Ready**             | Skill-based architecture allows future capability expansion                          |
 
 ---
 
@@ -122,27 +122,27 @@ idea_incubator/
 
 Extensive stages to cover full idea journey without future additions:
 
-| Stage | Code | Description |
-|-------|------|-------------|
-| **Spark** | `SPARK` | Initial raw capture, unrefined thought |
-| **Clarify** | `CLARIFY` | Define problem/opportunity clearly |
-| **Research** | `RESEARCH` | Gather information, prior art, context |
-| **Ideate** | `IDEATE` | Brainstorm approaches and solutions |
-| **Evaluate** | `EVALUATE` | Score against criteria matrix |
-| **Validate** | `VALIDATE` | Test core assumptions |
-| **Design** | `DESIGN` | Architecture and detailed planning |
-| **Prototype** | `PROTOTYPE` | Build minimum viable version |
-| **Test** | `TEST` | User testing and feedback |
-| **Refine** | `REFINE` | Iterate based on learnings |
-| **Build** | `BUILD` | Full implementation |
-| **Launch** | `LAUNCH` | Release to target audience |
-| **Grow** | `GROW` | Scale and optimize |
-| **Maintain** | `MAINTAIN` | Ongoing operation |
-| **Pivot** | `PIVOT` | Major direction change |
-| **Pause** | `PAUSE` | Intentionally on hold |
-| **Sunset** | `SUNSET` | Winding down |
-| **Archive** | `ARCHIVE` | Historical reference only |
-| **Abandoned** | `ABANDONED` | Decided not to pursue |
+| Stage         | Code        | Description                            |
+| ------------- | ----------- | -------------------------------------- |
+| **Spark**     | `SPARK`     | Initial raw capture, unrefined thought |
+| **Clarify**   | `CLARIFY`   | Define problem/opportunity clearly     |
+| **Research**  | `RESEARCH`  | Gather information, prior art, context |
+| **Ideate**    | `IDEATE`    | Brainstorm approaches and solutions    |
+| **Evaluate**  | `EVALUATE`  | Score against criteria matrix          |
+| **Validate**  | `VALIDATE`  | Test core assumptions                  |
+| **Design**    | `DESIGN`    | Architecture and detailed planning     |
+| **Prototype** | `PROTOTYPE` | Build minimum viable version           |
+| **Test**      | `TEST`      | User testing and feedback              |
+| **Refine**    | `REFINE`    | Iterate based on learnings             |
+| **Build**     | `BUILD`     | Full implementation                    |
+| **Launch**    | `LAUNCH`    | Release to target audience             |
+| **Grow**      | `GROW`      | Scale and optimize                     |
+| **Maintain**  | `MAINTAIN`  | Ongoing operation                      |
+| **Pivot**     | `PIVOT`     | Major direction change                 |
+| **Pause**     | `PAUSE`     | Intentionally on hold                  |
+| **Sunset**    | `SUNSET`    | Winding down                           |
+| **Archive**   | `ARCHIVE`   | Historical reference only              |
+| **Abandoned** | `ABANDONED` | Decided not to pursue                  |
 
 ---
 
@@ -152,75 +152,75 @@ Comprehensive scoring dimensions organized by category:
 
 ### 3.1 Problem/Opportunity Quality
 
-| Criterion | Description | Score Range |
-|-----------|-------------|-------------|
-| Problem Severity | How painful is the problem being solved? | 1-10 |
-| Problem Frequency | How often does the problem occur? | 1-10 |
-| Audience Size | How many people/entities affected? | 1-10 |
-| Willingness to Pay | Would people pay to solve this? | 1-10 |
-| Urgency | How time-sensitive is the need? | 1-10 |
+| Criterion          | Description                              | Score Range |
+| ------------------ | ---------------------------------------- | ----------- |
+| Problem Severity   | How painful is the problem being solved? | 1-10        |
+| Problem Frequency  | How often does the problem occur?        | 1-10        |
+| Audience Size      | How many people/entities affected?       | 1-10        |
+| Willingness to Pay | Would people pay to solve this?          | 1-10        |
+| Urgency            | How time-sensitive is the need?          | 1-10        |
 
 ### 3.2 Solution Quality
 
-| Criterion | Description | Score Range |
-|-----------|-------------|-------------|
-| Uniqueness | How differentiated from alternatives? | 1-10 |
-| Elegance | How simple and clean is the solution? | 1-10 |
-| Completeness | Does it fully address the problem? | 1-10 |
-| Defensibility | Can it be protected or is it easily copied? | 1-10 |
-| Scalability | Can it grow without proportional cost? | 1-10 |
+| Criterion     | Description                                 | Score Range |
+| ------------- | ------------------------------------------- | ----------- |
+| Uniqueness    | How differentiated from alternatives?       | 1-10        |
+| Elegance      | How simple and clean is the solution?       | 1-10        |
+| Completeness  | Does it fully address the problem?          | 1-10        |
+| Defensibility | Can it be protected or is it easily copied? | 1-10        |
+| Scalability   | Can it grow without proportional cost?      | 1-10        |
 
 ### 3.3 Feasibility
 
-| Criterion | Description | Score Range |
-|-----------|-------------|-------------|
-| Technical Complexity | How hard to build? | 1-10 (10=easy) |
-| Resource Requirements | Cost in time/money/people | 1-10 (10=low) |
-| Skill Availability | Do I have/can I get needed skills? | 1-10 |
-| Dependency Risk | Reliance on external factors | 1-10 (10=independent) |
-| Time to Value | How long until first results? | 1-10 (10=fast) |
+| Criterion             | Description                        | Score Range           |
+| --------------------- | ---------------------------------- | --------------------- |
+| Technical Complexity  | How hard to build?                 | 1-10 (10=easy)        |
+| Resource Requirements | Cost in time/money/people          | 1-10 (10=low)         |
+| Skill Availability    | Do I have/can I get needed skills? | 1-10                  |
+| Dependency Risk       | Reliance on external factors       | 1-10 (10=independent) |
+| Time to Value         | How long until first results?      | 1-10 (10=fast)        |
 
 ### 3.4 Strategic Fit
 
-| Criterion | Description | Score Range |
-|-----------|-------------|-------------|
-| Goal Alignment | Fits with personal/business goals? | 1-10 |
-| Passion Level | How excited am I about this? | 1-10 |
-| Learning Value | Will I gain valuable skills/knowledge? | 1-10 |
-| Portfolio Fit | Complements other work/ideas? | 1-10 |
-| Timing Fit | Right moment in my life/career? | 1-10 |
+| Criterion      | Description                            | Score Range |
+| -------------- | -------------------------------------- | ----------- |
+| Goal Alignment | Fits with personal/business goals?     | 1-10        |
+| Passion Level  | How excited am I about this?           | 1-10        |
+| Learning Value | Will I gain valuable skills/knowledge? | 1-10        |
+| Portfolio Fit  | Complements other work/ideas?          | 1-10        |
+| Timing Fit     | Right moment in my life/career?        | 1-10        |
 
 ### 3.5 Market/External Factors
 
-| Criterion | Description | Score Range |
-|-----------|-------------|-------------|
-| Market Timing | Is the market ready? | 1-10 |
-| Competitive Intensity | How crowded is the space? | 1-10 (10=open) |
-| Trend Alignment | Riding or fighting macro trends? | 1-10 |
-| Regulatory Risk | Legal/compliance concerns? | 1-10 (10=clear) |
-| Platform Risk | Dependent on platforms that could change? | 1-10 (10=independent) |
+| Criterion             | Description                               | Score Range           |
+| --------------------- | ----------------------------------------- | --------------------- |
+| Market Timing         | Is the market ready?                      | 1-10                  |
+| Competitive Intensity | How crowded is the space?                 | 1-10 (10=open)        |
+| Trend Alignment       | Riding or fighting macro trends?          | 1-10                  |
+| Regulatory Risk       | Legal/compliance concerns?                | 1-10 (10=clear)       |
+| Platform Risk         | Dependent on platforms that could change? | 1-10 (10=independent) |
 
 ### 3.6 Risk Assessment
 
-| Criterion | Description | Score Range |
-|-----------|-------------|-------------|
-| Reversibility | Can I undo if it fails? | 1-10 |
-| Downside Exposure | Worst case impact | 1-10 (10=limited) |
-| Upside Potential | Best case outcome | 1-10 |
-| Confidence Level | How certain am I in my assessment? | 1-10 |
-| Information Gaps | Do I know enough to decide? | 1-10 (10=complete) |
+| Criterion         | Description                        | Score Range        |
+| ----------------- | ---------------------------------- | ------------------ |
+| Reversibility     | Can I undo if it fails?            | 1-10               |
+| Downside Exposure | Worst case impact                  | 1-10 (10=limited)  |
+| Upside Potential  | Best case outcome                  | 1-10               |
+| Confidence Level  | How certain am I in my assessment? | 1-10               |
+| Information Gaps  | Do I know enough to decide?        | 1-10 (10=complete) |
 
 ### Composite Scores
 
-| Score | Calculation |
-|-------|-------------|
-| **Problem Score** | Average of Problem/Opportunity Quality |
-| **Solution Score** | Average of Solution Quality |
-| **Feasibility Score** | Average of Feasibility |
-| **Fit Score** | Average of Strategic Fit |
-| **Market Score** | Average of Market/External Factors |
-| **Risk Score** | Average of Risk Assessment |
-| **Overall Score** | Weighted average (configurable weights) |
+| Score                 | Calculation                             |
+| --------------------- | --------------------------------------- |
+| **Problem Score**     | Average of Problem/Opportunity Quality  |
+| **Solution Score**    | Average of Solution Quality             |
+| **Feasibility Score** | Average of Feasibility                  |
+| **Fit Score**         | Average of Strategic Fit                |
+| **Market Score**      | Average of Market/External Factors      |
+| **Risk Score**        | Average of Risk Assessment              |
+| **Overall Score**     | Weighted average (configurable weights) |
 
 ---
 
@@ -231,6 +231,7 @@ Comprehensive scoring dimensions organized by category:
 > **CORRECTION**: Skills are NOT simple markdown files. They are **directories** containing a required `SKILL.md` file with **YAML frontmatter**.
 
 **Key Facts:**
+
 - Skills are **model-invoked**, not user-invoked
 - Claude autonomously decides when to use them based on the `description` field matching conversation context
 - The `description` must include BOTH what the skill does AND trigger keywords/phrases
@@ -281,13 +282,13 @@ See [templates/new-idea.md](templates/new-idea.md) for the standard template.
 
 ### 4.4 Skill Definitions
 
-| Skill Directory | Description (for activation) | Purpose |
-|-----------------|------------------------------|---------|
-| `idea-capture/` | "...new idea, I have an idea, what if, concept for, opportunity..." | Create folder, populate template, ask initial questions |
-| `idea-develop/` | "...work on [idea], flesh out, develop, expand, detail..." | Ask clarifying questions, probe assumptions |
-| `idea-evaluate/` | "...evaluate, score, assess, rate, how good is..." | Walk through criteria, calculate scores |
-| `idea-redteam/` | "...red team, challenge, stress test, devil's advocate, poke holes..." | Challenge assumptions, find weaknesses |
-| `idea-organize/` | "...organize, clean up, file, sort, where should..." | Determine correct location, update index |
+| Skill Directory  | Description (for activation)                                           | Purpose                                                 |
+| ---------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| `idea-capture/`  | "...new idea, I have an idea, what if, concept for, opportunity..."    | Create folder, populate template, ask initial questions |
+| `idea-develop/`  | "...work on [idea], flesh out, develop, expand, detail..."             | Ask clarifying questions, probe assumptions             |
+| `idea-evaluate/` | "...evaluate, score, assess, rate, how good is..."                     | Walk through criteria, calculate scores                 |
+| `idea-redteam/`  | "...red team, challenge, stress test, devil's advocate, poke holes..." | Challenge assumptions, find weaknesses                  |
+| `idea-organize/` | "...organize, clean up, file, sort, where should..."                   | Determine correct location, update index                |
 
 ### 4.5 File Placement (Instructed via Skills, Not Automatic)
 
@@ -295,15 +296,15 @@ See [templates/new-idea.md](templates/new-idea.md) for the standard template.
 
 The `idea-organize` skill instructs Claude on placement rules:
 
-| Content Type | Destination | Trigger Context |
-|--------------|-------------|-----------------|
-| New idea capture | `ideas/[new-slug]/README.md` | User describes new idea |
-| Research findings | `ideas/[slug]/research/[topic].md` | User shares research about existing idea |
-| Q&A development | `ideas/[slug]/development.md` | User answers development questions |
-| Challenges/risks | `ideas/[slug]/redteam.md` | User discusses concerns or risks |
-| Evaluation scores | `ideas/[slug]/evaluation.md` | User provides scores or assessments |
-| Freeform notes | `ideas/[slug]/notes/[date]-[topic].md` | User adds misc notes |
-| Assets | `ideas/[slug]/assets/[filename]` | User provides images/files |
+| Content Type      | Destination                            | Trigger Context                          |
+| ----------------- | -------------------------------------- | ---------------------------------------- |
+| New idea capture  | `ideas/[new-slug]/README.md`           | User describes new idea                  |
+| Research findings | `ideas/[slug]/research/[topic].md`     | User shares research about existing idea |
+| Q&A development   | `ideas/[slug]/development.md`          | User answers development questions       |
+| Challenges/risks  | `ideas/[slug]/redteam.md`              | User discusses concerns or risks         |
+| Evaluation scores | `ideas/[slug]/evaluation.md`           | User provides scores or assessments      |
+| Freeform notes    | `ideas/[slug]/notes/[date]-[topic].md` | User adds misc notes                     |
+| Assets            | `ideas/[slug]/assets/[filename]`       | User provides images/files               |
 
 ### 4.6 Proactive Questioning (How It Really Works)
 
@@ -316,6 +317,7 @@ When a skill activates, Claude reads the instructions and any supporting files (
 3. **CLAUDE.md instructions** reinforcing proactive behavior
 
 **Example Flow:**
+
 ```
 User: "I have an idea for a meal planning app"
 
@@ -425,15 +427,15 @@ GROUP BY i.id;
 
 ### 6.1 Core Views
 
-| View | Purpose |
-|------|---------|
-| **Dashboard** | Overview of all ideas with key metrics |
-| **Idea Detail** | Full view of single idea with all data |
-| **Evaluation Matrix** | Heatmap of all ideas vs all criteria |
-| **Lifecycle Pipeline** | Kanban-style view of ideas by stage |
-| **Relationship Graph** | Network visualization of idea connections |
-| **Gap Analysis** | Highlights missing evaluations and unanswered questions |
-| **Comparison** | Side-by-side comparison of selected ideas |
+| View                   | Purpose                                                 |
+| ---------------------- | ------------------------------------------------------- |
+| **Dashboard**          | Overview of all ideas with key metrics                  |
+| **Idea Detail**        | Full view of single idea with all data                  |
+| **Evaluation Matrix**  | Heatmap of all ideas vs all criteria                    |
+| **Lifecycle Pipeline** | Kanban-style view of ideas by stage                     |
+| **Relationship Graph** | Network visualization of idea connections               |
+| **Gap Analysis**       | Highlights missing evaluations and unanswered questions |
+| **Comparison**         | Side-by-side comparison of selected ideas               |
 
 ### 6.2 Data Flow
 
@@ -452,14 +454,14 @@ GROUP BY i.id;
 
 ### 6.3 Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Framework | React 18 + TypeScript |
-| Build | Vite |
-| Styling | Tailwind CSS |
-| State | Zustand or React Query |
-| Charts | Recharts or D3 |
-| Graph | React Force Graph or Cytoscape |
+| Layer           | Technology                       |
+| --------------- | -------------------------------- |
+| Framework       | React 18 + TypeScript            |
+| Build           | Vite                             |
+| Styling         | Tailwind CSS                     |
+| State           | Zustand or React Query           |
+| Charts          | Recharts or D3                   |
+| Graph           | React Force Graph or Cytoscape   |
 | Database Access | better-sqlite3 (via Express API) |
 
 ---
@@ -484,12 +486,12 @@ The sync script (`scripts/sync-db.ts`) performs:
 
 ### 7.2 Trigger Points
 
-| Trigger | Action |
-|---------|--------|
-| Git commit hook | Run sync before commit |
+| Trigger                 | Action                          |
+| ----------------------- | ------------------------------- |
+| Git commit hook         | Run sync before commit          |
 | Claude skill completion | Trigger sync after file changes |
-| Frontend load | Check for updates |
-| Manual command | `npm run sync` |
+| Frontend load           | Check for updates               |
+| Manual command          | `npm run sync`                  |
 
 ---
 
@@ -566,14 +568,14 @@ Claude:
 
 The plugin-ready architecture supports future additions:
 
-| Extension | How to Add |
-|-----------|------------|
-| New evaluation criteria | Add to taxonomy/evaluation-criteria.md, update template |
-| New lifecycle stage | Add to taxonomy/lifecycle-stages.md |
-| New skill | Create `.claude/skills/[skill-name]/SKILL.md` directory with YAML frontmatter |
-| New visualization | Add React component to frontend/src/views/ |
-| External integration | Create new skill that calls external API |
-| AI-powered features | Add to existing skills or create new ones |
+| Extension               | How to Add                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| New evaluation criteria | Add to taxonomy/evaluation-criteria.md, update template                       |
+| New lifecycle stage     | Add to taxonomy/lifecycle-stages.md                                           |
+| New skill               | Create `.claude/skills/[skill-name]/SKILL.md` directory with YAML frontmatter |
+| New visualization       | Add React component to frontend/src/views/                                    |
+| External integration    | Create new skill that calls external API                                      |
+| AI-powered features     | Add to existing skills or create new ones                                     |
 
 ---
 
@@ -658,14 +660,14 @@ The plugin-ready architecture supports future additions:
 
 ### 11.2 Why Claude Agent SDK (Not Just Skills)
 
-| Requirement | Skills Can Do? | Agent SDK Can Do? |
-|-------------|----------------|-------------------|
-| Chain multiple operations automatically | Partially (within one conversation) | Yes (programmatic loop) |
-| Run parallel evaluations | No | Yes (spawn concurrent agents) |
-| Self-trigger red-teaming after evaluation | No (needs user prompt) | Yes (code-controlled sequencing) |
-| Autonomous classification and sorting | No | Yes |
-| Long-running background processing | No | Yes |
-| Retry on failure | No | Yes (error handling in code) |
+| Requirement                               | Skills Can Do?                      | Agent SDK Can Do?                |
+| ----------------------------------------- | ----------------------------------- | -------------------------------- |
+| Chain multiple operations automatically   | Partially (within one conversation) | Yes (programmatic loop)          |
+| Run parallel evaluations                  | No                                  | Yes (spawn concurrent agents)    |
+| Self-trigger red-teaming after evaluation | No (needs user prompt)              | Yes (code-controlled sequencing) |
+| Autonomous classification and sorting     | No                                  | Yes                              |
+| Long-running background processing        | No                                  | Yes                              |
+| Retry on failure                          | No                                  | Yes (error handling in code)     |
 
 ### 11.3 Agent SDK Implementation Structure
 
@@ -698,16 +700,16 @@ idea_incubator/
 
 ```typescript
 // Pseudocode for orchestrator.ts
-import { Agent } from '@anthropic-ai/agent-sdk';
+import { Agent } from "@anthropic-ai/agent-sdk";
 
 const orchestrator = new Agent({
-  name: 'idea-orchestrator',
+  name: "idea-orchestrator",
   systemPrompt: `You are the Idea Incubator orchestrator. Your job is to:
     1. Determine if user input is a NEW idea, relates to an EXISTING idea, or references an OLD/archived idea
     2. If ambiguous, ask the user to clarify
     3. Route to the appropriate workflow
     4. Ensure all downstream agents complete their work
-    5. Never let an idea pass without full evaluation and red-teaming`
+    5. Never let an idea pass without full evaluation and red-teaming`,
 });
 
 async function processInput(userInput: string) {
@@ -716,11 +718,11 @@ async function processInput(userInput: string) {
     prompt: `Classify this input: "${userInput}"
              Existing ideas: ${await listIdeas()}
              Is this: NEW, EXISTING (which one?), or AMBIGUOUS?`,
-    schema: ClassificationSchema
+    schema: ClassificationSchema,
   });
 
   // Step 2: If ambiguous, ask user
-  if (classification.type === 'AMBIGUOUS') {
+  if (classification.type === "AMBIGUOUS") {
     return await askUser(classification.candidates);
   }
 
@@ -734,7 +736,7 @@ async function processInput(userInput: string) {
     feasibilityAgent.evaluate(developedIdea),
     strategicFitAgent.evaluate(developedIdea),
     marketFactorsAgent.evaluate(developedIdea),
-    riskAssessmentAgent.evaluate(developedIdea)
+    riskAssessmentAgent.evaluate(developedIdea),
   ]);
 
   // Step 5: Aggregate scores
@@ -749,7 +751,11 @@ async function processInput(userInput: string) {
   }
 
   // Step 8: Classify and persist
-  const finalIdea = await classifierAgent.process(developedIdea, scores, redteamResults);
+  const finalIdea = await classifierAgent.process(
+    developedIdea,
+    scores,
+    redteamResults,
+  );
   await persistToMarkdown(finalIdea);
   await syncToDatabase(finalIdea);
 
@@ -762,7 +768,7 @@ async function processInput(userInput: string) {
 ```typescript
 // evaluators/problem-quality.ts
 const problemQualityAgent = new Agent({
-  name: 'problem-quality-evaluator',
+  name: "problem-quality-evaluator",
   systemPrompt: `You evaluate ideas on Problem/Opportunity Quality.
     Score each criterion 1-10 with reasoning.
     Be skeptical. Don't inflate scores.
@@ -772,13 +778,13 @@ const problemQualityAgent = new Agent({
     - Problem Frequency: How often does it occur?
     - Audience Size: How many people affected?
     - Willingness to Pay: Would people pay to solve this?
-    - Urgency: How time-sensitive is the need?`
+    - Urgency: How time-sensitive is the need?`,
 });
 
 async function evaluate(idea: Idea): Promise<ProblemQualityScores> {
   const result = await problemQualityAgent.run({
     prompt: `Evaluate this idea on Problem Quality:\n${idea.description}`,
-    schema: ProblemQualitySchema
+    schema: ProblemQualitySchema,
   });
   return result;
 }
@@ -789,7 +795,7 @@ async function evaluate(idea: Idea): Promise<ProblemQualityScores> {
 ```typescript
 // redteam.ts
 const redteamAgent = new Agent({
-  name: 'red-team',
+  name: "red-team",
   systemPrompt: `You are a ruthless critic. Your job is to find fatal flaws.
 
     Attack patterns:
@@ -805,7 +811,7 @@ const redteamAgent = new Agent({
     - CRITICAL: Would kill the idea entirely
     - MAJOR: Requires significant rethink
     - MINOR: Addressable with effort
-    - NOTE: Worth considering`
+    - NOTE: Worth considering`,
 });
 
 async function challenge(idea: Idea, scores: Scores): Promise<RedTeamResults> {
@@ -823,7 +829,7 @@ async function challenge(idea: Idea, scores: Scores): Promise<RedTeamResults> {
       Weak points to attack: ${weakPoints}
 
       Generate 5-7 critical challenges.`,
-    schema: RedTeamSchema
+    schema: RedTeamSchema,
   });
 
   return challenges;
@@ -835,7 +841,7 @@ async function challenge(idea: Idea, scores: Scores): Promise<RedTeamResults> {
 ```typescript
 // classifier.ts
 const classifierAgent = new Agent({
-  name: 'classifier',
+  name: "classifier",
   systemPrompt: `You classify ideas for visualization and discovery.
 
     Assign:
@@ -847,7 +853,7 @@ const classifierAgent = new Agent({
     Determine leaderboard position based on:
     - Overall score (weighted average)
     - Red-team survival rate
-    - Completeness of evaluation`
+    - Completeness of evaluation`,
 });
 ```
 
@@ -855,21 +861,24 @@ const classifierAgent = new Agent({
 
 ```typescript
 // Part of classifier.ts
-async function detectRelationships(newIdea: Idea, existingIdeas: Idea[]): Promise<Relationship[]> {
+async function detectRelationships(
+  newIdea: Idea,
+  existingIdeas: Idea[],
+): Promise<Relationship[]> {
   const relationships = await classifierAgent.run({
     prompt: `Analyze relationships between this new idea and existing ones:
 
       New idea: ${newIdea.summary}
 
       Existing ideas:
-      ${existingIdeas.map(i => `- ${i.slug}: ${i.summary}`).join('\n')}
+      ${existingIdeas.map((i) => `- ${i.slug}: ${i.summary}`).join("\n")}
 
       For each relationship found, specify:
       - Target idea slug
       - Relationship type: parent, child, related, combines, conflicts, inspired_by
       - Strength: strong, medium, weak
       - Reasoning`,
-    schema: RelationshipsSchema
+    schema: RelationshipsSchema,
   });
 
   return relationships;
@@ -881,6 +890,7 @@ async function detectRelationships(newIdea: Idea, existingIdeas: Idea[]): Promis
 The classification agent outputs structured data for:
 
 **Leaderboard View:**
+
 ```json
 {
   "ideas": [
@@ -905,14 +915,30 @@ The classification agent outputs structured data for:
 ```
 
 **Relationship Graph:**
+
 ```json
 {
   "nodes": [
-    { "id": "ai-garden", "label": "AI Garden", "domain": "technical", "score": 7.8 },
-    { "id": "smart-home", "label": "Smart Home Hub", "domain": "technical", "score": 6.5 }
+    {
+      "id": "ai-garden",
+      "label": "AI Garden",
+      "domain": "technical",
+      "score": 7.8
+    },
+    {
+      "id": "smart-home",
+      "label": "Smart Home Hub",
+      "domain": "technical",
+      "score": 6.5
+    }
   ],
   "edges": [
-    { "source": "ai-garden", "target": "smart-home", "type": "combines", "strength": "strong" }
+    {
+      "source": "ai-garden",
+      "target": "smart-home",
+      "type": "combines",
+      "strength": "strong"
+    }
   ]
 }
 ```
@@ -925,13 +951,13 @@ The classification agent outputs structured data for:
 
 ### 12.1 Why Debates Instead of Simple Scoring?
 
-| Simple Scoring | Debate-Based Evaluation |
-|----------------|-------------------------|
-| Agent scores in isolation | Scores must survive cross-examination |
-| No accountability for reasoning | Must defend every claim |
-| Bias goes unchallenged | Adversary actively seeks flaws |
-| Single perspective | Multiple competing viewpoints |
-| Scores feel arbitrary | Scores reflect survived arguments |
+| Simple Scoring                  | Debate-Based Evaluation               |
+| ------------------------------- | ------------------------------------- |
+| Agent scores in isolation       | Scores must survive cross-examination |
+| No accountability for reasoning | Must defend every claim               |
+| Bias goes unchallenged          | Adversary actively seeks flaws        |
+| Single perspective              | Multiple competing viewpoints         |
+| Scores feel arbitrary           | Scores reflect survived arguments     |
 
 ### 12.2 Debate Architecture Overview
 
@@ -985,32 +1011,32 @@ The classification agent outputs structured data for:
 
 #### Evaluator Agents (Defenders)
 
-| Agent | Role | First Principles Focus |
-|-------|------|------------------------|
-| **Problem Evaluator** | Defends problem severity/frequency scores | "Does this problem exist from first principles? What's the root cause?" |
-| **Solution Evaluator** | Defends solution quality scores | "Does this solution address root causes? What's the simplest version?" |
-| **Feasibility Evaluator** | Defends feasibility scores | "What are the irreducible requirements? What must be true?" |
-| **Fit Evaluator** | Defends strategic fit scores | "What are the user's actual constraints? What optimizes for their goals?" |
-| **Market Evaluator** | Defends market/timing scores | "What are the fundamental market dynamics? What's the forcing function?" |
-| **Risk Evaluator** | Defends risk assessment | "What are the true unknowns? What assumptions are load-bearing?" |
+| Agent                     | Role                                      | First Principles Focus                                                    |
+| ------------------------- | ----------------------------------------- | ------------------------------------------------------------------------- |
+| **Problem Evaluator**     | Defends problem severity/frequency scores | "Does this problem exist from first principles? What's the root cause?"   |
+| **Solution Evaluator**    | Defends solution quality scores           | "Does this solution address root causes? What's the simplest version?"    |
+| **Feasibility Evaluator** | Defends feasibility scores                | "What are the irreducible requirements? What must be true?"               |
+| **Fit Evaluator**         | Defends strategic fit scores              | "What are the user's actual constraints? What optimizes for their goals?" |
+| **Market Evaluator**      | Defends market/timing scores              | "What are the fundamental market dynamics? What's the forcing function?"  |
+| **Risk Evaluator**        | Defends risk assessment                   | "What are the true unknowns? What assumptions are load-bearing?"          |
 
 #### Red Team Agents (Challengers)
 
-| Agent | Persona | Attack Pattern |
-|-------|---------|----------------|
-| **Red Team Alpha** | The Skeptic | "I don't believe your numbers. Prove it." Questions all quantitative claims. |
-| **Red Team Beta** | The Competitor | "I'm a well-funded incumbent. Here's how I'd crush you." Competitive threats. |
-| **Red Team Gamma** | The Realist | "You're being optimistic. Here's what actually happens." Execution reality. |
-| **Red Team Delta** *(v2 only)* | The Contrarian | "What if the opposite is true?" Inverts core assumptions. |
-| **Red Team Epsilon** *(v2 only)* | The Edge-Case Finder | "What about when X happens?" Finds failure modes. |
-| **Red Team Zeta** *(v2 only)* | The First Principles Purist | "You're reasoning from analogy, not first principles." Challenges methodology. |
+| Agent                            | Persona                     | Attack Pattern                                                                 |
+| -------------------------------- | --------------------------- | ------------------------------------------------------------------------------ |
+| **Red Team Alpha**               | The Skeptic                 | "I don't believe your numbers. Prove it." Questions all quantitative claims.   |
+| **Red Team Beta**                | The Competitor              | "I'm a well-funded incumbent. Here's how I'd crush you." Competitive threats.  |
+| **Red Team Gamma**               | The Realist                 | "You're being optimistic. Here's what actually happens." Execution reality.    |
+| **Red Team Delta** _(v2 only)_   | The Contrarian              | "What if the opposite is true?" Inverts core assumptions.                      |
+| **Red Team Epsilon** _(v2 only)_ | The Edge-Case Finder        | "What about when X happens?" Finds failure modes.                              |
+| **Red Team Zeta** _(v2 only)_    | The First Principles Purist | "You're reasoning from analogy, not first principles." Challenges methodology. |
 
 #### Arbiter Agent (Judge)
 
 ```typescript
 const arbiterAgent = new Agent({
-  name: 'debate-arbiter',
-  model: 'claude-opus-4-5-20251101',
+  name: "debate-arbiter",
+  model: "claude-opus-4-5-20251101",
   systemPrompt: `You are an impartial judge evaluating debates about idea quality.
 
     Your job:
@@ -1027,7 +1053,7 @@ const arbiterAgent = new Agent({
     - DRAW: Neither side conclusively won the exchange
     - FIRST PRINCIPLES BONUS: +1 when reasoning from fundamentals
 
-    Be ruthless. Bad ideas should lose debates.`
+    Be ruthless. Bad ideas should lose debates.`,
 });
 ```
 
@@ -1128,15 +1154,15 @@ Arbiter produces final adjusted scores and confidence levels.
 
 ### 12.5 Debate Configuration Options
 
-| Parameter | Options | Default |
-|-----------|---------|---------|
-| **Rounds per evaluation** | 1-5 | 3 |
-| **Red teamers per evaluator** | 1-3 | 2 |
-| **Challenge depth** | Quick (surface), Standard, Thorough (deep) | Standard |
-| **First principles strictness** | Lenient, Moderate, Strict | Moderate |
-| **Arbiter intervention** | Passive (end only), Active (per exchange) | Active |
-| **Score adjustment range** | ±1, ±2, ±3 per round | ±2 |
-| **Minimum confidence threshold** | 0.5-0.9 | 0.7 |
+| Parameter                        | Options                                    | Default  |
+| -------------------------------- | ------------------------------------------ | -------- |
+| **Rounds per evaluation**        | 1-5                                        | 3        |
+| **Red teamers per evaluator**    | 1-3                                        | 2        |
+| **Challenge depth**              | Quick (surface), Standard, Thorough (deep) | Standard |
+| **First principles strictness**  | Lenient, Moderate, Strict                  | Moderate |
+| **Arbiter intervention**         | Passive (end only), Active (per exchange)  | Active   |
+| **Score adjustment range**       | ±1, ±2, ±3 per round                       | ±2       |
+| **Minimum confidence threshold** | 0.5-0.9                                    | 0.7      |
 
 ### 12.6 Real-Time Transcript Structure
 
@@ -1166,7 +1192,7 @@ interface Exchange {
   defender: Agent;
   challenge: string;
   defense: string;
-  arbiterVerdict: 'EVALUATOR' | 'RED_TEAM' | 'DRAW';
+  arbiterVerdict: "EVALUATOR" | "RED_TEAM" | "DRAW";
   scoreAdjustment: number;
   reasoning: string;
   firstPrinciplesBonus: boolean;
@@ -1176,7 +1202,10 @@ interface DebateSummary {
   pointsWon: { evaluators: number; redTeam: number };
   criticalChallengesLanded: Challenge[];
   successfulDefenses: Defense[];
-  scoreAdjustments: Record<string, { original: number; final: number; delta: number }>;
+  scoreAdjustments: Record<
+    string,
+    { original: number; final: number; delta: number }
+  >;
   overallConfidence: number;
   keyInsights: string[];
 }
@@ -1232,46 +1261,49 @@ interface DebateSummary {
 
 All agents are instructed to reason from first principles. The Arbiter specifically penalizes:
 
-| Fallacy | Example | Penalty |
-|---------|---------|---------|
-| **Appeal to Authority** | "Experts say this market will grow" | -1 point |
-| **Reasoning from Analogy** | "It worked for Uber so it'll work here" | -1 point |
-| **Circular Logic** | "It's a good idea because it's innovative" | -1 point |
-| **Unexamined Assumptions** | "Users want this" (without evidence) | Challenge must be addressed |
-| **Survivorship Bias** | "Successful companies did X, so X works" | -1 point |
+| Fallacy                    | Example                                    | Penalty                     |
+| -------------------------- | ------------------------------------------ | --------------------------- |
+| **Appeal to Authority**    | "Experts say this market will grow"        | -1 point                    |
+| **Reasoning from Analogy** | "It worked for Uber so it'll work here"    | -1 point                    |
+| **Circular Logic**         | "It's a good idea because it's innovative" | -1 point                    |
+| **Unexamined Assumptions** | "Users want this" (without evidence)       | Challenge must be addressed |
+| **Survivorship Bias**      | "Successful companies did X, so X works"   | -1 point                    |
 
 And rewards:
 
-| Good Reasoning | Example | Bonus |
-|----------------|---------|-------|
-| **Derived from Fundamentals** | "The physics of the situation require..." | +1 point |
-| **Falsifiable Claims** | "If X is true, we'd expect to see Y" | +1 point |
-| **Quantified Uncertainty** | "I'm 70% confident because..." | +1 point |
-| **Steel-Manning** | "The strongest version of the counter-argument is..." | +1 point |
+| Good Reasoning                | Example                                               | Bonus    |
+| ----------------------------- | ----------------------------------------------------- | -------- |
+| **Derived from Fundamentals** | "The physics of the situation require..."             | +1 point |
+| **Falsifiable Claims**        | "If X is true, we'd expect to see Y"                  | +1 point |
+| **Quantified Uncertainty**    | "I'm 70% confident because..."                        | +1 point |
+| **Steel-Manning**             | "The strongest version of the counter-argument is..." | +1 point |
 
 ### 12.9 Debate Modes
 
-| Mode | Use Case | Depth | Cost |
-|------|----------|-------|------|
-| **Quick Debate** | Initial screening | 1 round, 2 red teamers | Low |
-| **Standard Debate** | Normal evaluation | 3 rounds, 3 red teamers | Medium |
-| **Deep Debate** | High-stakes ideas | 5 rounds, 6 red teamers, multi-criteria challenges | High |
-| **Tournament** | Comparing ideas | Ideas debate each other directly | Highest |
+| Mode                | Use Case          | Depth                                              | Cost    |
+| ------------------- | ----------------- | -------------------------------------------------- | ------- |
+| **Quick Debate**    | Initial screening | 1 round, 2 red teamers                             | Low     |
+| **Standard Debate** | Normal evaluation | 3 rounds, 3 red teamers                            | Medium  |
+| **Deep Debate**     | High-stakes ideas | 5 rounds, 6 red teamers, multi-criteria challenges | High    |
+| **Tournament**      | Comparing ideas   | Ideas debate each other directly                   | Highest |
 
 ### 12.10 Implementation: Debate Orchestrator
 
 ```typescript
 // debate/orchestrator.ts
-import { Agent, ParallelExecutor } from '@anthropic-ai/agent-sdk';
+import { Agent, ParallelExecutor } from "@anthropic-ai/agent-sdk";
 
 interface DebateConfig {
   rounds: number;
   redTeamersPerEvaluator: number;
-  firstPrinciplesStrictness: 'lenient' | 'moderate' | 'strict';
+  firstPrinciplesStrictness: "lenient" | "moderate" | "strict";
   scoreAdjustmentRange: number;
 }
 
-async function runDebate(idea: Idea, config: DebateConfig): Promise<DebateResult> {
+async function runDebate(
+  idea: Idea,
+  config: DebateConfig,
+): Promise<DebateResult> {
   const transcript: DebateTranscript = initializeTranscript(idea);
 
   // Phase 1: Opening statements (parallel)
@@ -1292,28 +1324,28 @@ async function runDebate(idea: Idea, config: DebateConfig): Promise<DebateResult
     const exchanges = await runCrossExamination(
       openingStatements,
       selectRedTeamers(config.redTeamersPerEvaluator),
-      config
+      config,
     );
 
     for (const exchange of exchanges) {
       // Run exchange
       const challenge = await exchange.redTeamer.challenge(
-        exchange.evaluator.lastStatement
+        exchange.evaluator.lastStatement,
       );
-      broadcastUpdate({ type: 'challenge', ...challenge });
+      broadcastUpdate({ type: "challenge", ...challenge });
 
       const defense = await exchange.evaluator.defend(challenge);
-      broadcastUpdate({ type: 'defense', ...defense });
+      broadcastUpdate({ type: "defense", ...defense });
 
       const verdict = await arbiter.judge(exchange, config);
-      broadcastUpdate({ type: 'verdict', ...verdict });
+      broadcastUpdate({ type: "verdict", ...verdict });
 
       transcript.addExchange(round, exchange, verdict);
 
       // Adjust scores in real-time
       if (verdict.scoreAdjustment !== 0) {
         adjustScore(exchange.criterion, verdict.scoreAdjustment);
-        broadcastUpdate({ type: 'scoreChange', ...verdict });
+        broadcastUpdate({ type: "scoreChange", ...verdict });
       }
     }
   }
@@ -1321,7 +1353,7 @@ async function runDebate(idea: Idea, config: DebateConfig): Promise<DebateResult
   // Phase 5: Final verdict
   const finalVerdict = await arbiter.summarize(transcript);
   transcript.setFinalVerdict(finalVerdict);
-  broadcastUpdate({ type: 'complete', ...finalVerdict });
+  broadcastUpdate({ type: "complete", ...finalVerdict });
 
   // Persist
   await persistDebateTranscript(transcript);
@@ -1340,7 +1372,7 @@ async function runDebate(idea: Idea, config: DebateConfig): Promise<DebateResult
 
 ```typescript
 // debate/realtime.ts
-import { WebSocketServer } from 'ws';
+import { WebSocketServer } from "ws";
 
 const wss = new WebSocketServer({ port: 8080 });
 
@@ -1375,14 +1407,14 @@ After a debate, the system produces:
 
 ### 12.13 Cost Considerations
 
-| Debate Type | Agents Involved | Estimated API Calls | Approximate Cost |
-|-------------|-----------------|---------------------|------------------|
-| Quick | 6 eval + 2 red + 1 arbiter | ~20 | $0.50-1.00 |
-| Standard | 6 eval + 3 red + 1 arbiter | ~50-80 | $2-4 |
-| Deep | 6 eval + 6 red + 1 arbiter | ~150-200 | $8-15 |
-| Tournament | 2 ideas × full debate | ~300-400 | $15-30 |
+| Debate Type | Agents Involved            | Estimated API Calls | Approximate Cost |
+| ----------- | -------------------------- | ------------------- | ---------------- |
+| Quick       | 6 eval + 2 red + 1 arbiter | ~20                 | $0.50-1.00       |
+| Standard    | 6 eval + 3 red + 1 arbiter | ~50-80              | $2-4             |
+| Deep        | 6 eval + 6 red + 1 arbiter | ~150-200            | $8-15            |
+| Tournament  | 2 ideas × full debate      | ~300-400            | $15-30           |
 
-*Costs assume Claude Opus 4.5 at current pricing. Actual costs depend on response lengths.*
+_Costs assume Claude Opus 4.5 at current pricing. Actual costs depend on response lengths._
 
 ---
 
@@ -1392,13 +1424,13 @@ After a debate, the system produces:
 
 ### 12A.1 The Core Problem
 
-| Issue | Risk |
-|-------|------|
-| Debates have no natural endpoint | Infinite loops, wasted compute |
-| Multiple agents produce conflicting signals | No clear "truth" emerges |
-| Scores can oscillate between rounds | Never converges |
-| "Done" is undefined | User doesn't know when to trust results |
-| Contradictions are averaged, not resolved | Weak synthesis, mushy conclusions |
+| Issue                                       | Risk                                    |
+| ------------------------------------------- | --------------------------------------- |
+| Debates have no natural endpoint            | Infinite loops, wasted compute          |
+| Multiple agents produce conflicting signals | No clear "truth" emerges                |
+| Scores can oscillate between rounds         | Never converges                         |
+| "Done" is undefined                         | User doesn't know when to trust results |
+| Contradictions are averaged, not resolved   | Weak synthesis, mushy conclusions       |
 
 ### 12A.2 The Crystallization Metaphor
 
@@ -1583,8 +1615,8 @@ Unlike evaluators (who score) and red team (who challenge), the **Synthesis Agen
 
 ```typescript
 const synthesisAgent = new Agent({
-  name: 'synthesis',
-  model: 'claude-opus-4-5-20251101',
+  name: "synthesis",
+  model: "claude-opus-4-5-20251101",
   systemPrompt: `You are the Synthesis Agent. Your job is to resolve contradictions
     and produce a unified, coherent evaluation. You do NOT average or compromise.
 
@@ -1601,17 +1633,17 @@ const synthesisAgent = new Agent({
     - Confidence level (0-1)
     - Resolution statement for each conflict
     - Remaining open questions (if any)
-    - Synthesis narrative (3-5 sentences)`
+    - Synthesis narrative (3-5 sentences)`,
 });
 
 interface SynthesisOutput {
   criterion: string;
-  unifiedScore: number;           // Single number, not range
-  confidence: number;             // 0-1
-  prevailingPosition: string;     // Which side won
-  resolutionReasoning: string;    // WHY that side won
-  openQuestions: string[];        // What remains unknown
-  narrative: string;              // Human-readable summary
+  unifiedScore: number; // Single number, not range
+  confidence: number; // 0-1
+  prevailingPosition: string; // Which side won
+  resolutionReasoning: string; // WHY that side won
+  openQuestions: string[]; // What remains unknown
+  narrative: string; // Human-readable summary
 }
 ```
 
@@ -1762,11 +1794,12 @@ interface FinalSynthesisDocument {
   // Final Scores (immutable)
   scores: {
     criterion: string;
-    finalScore: number;       // Crystallized score
-    initialScore: number;     // What it started as
-    delta: number;            // How much it changed
-    confidence: number;       // Final confidence
-    defenseRecord: {          // How well it survived challenges
+    finalScore: number; // Crystallized score
+    initialScore: number; // What it started as
+    delta: number; // How much it changed
+    confidence: number; // Final confidence
+    defenseRecord: {
+      // How well it survived challenges
       challenged: number;
       defended: number;
       survivalRate: number;
@@ -1778,18 +1811,18 @@ interface FinalSynthesisDocument {
     overallScore: number;
     overallConfidence: number;
     redTeamSurvivalRate: number;
-    convergenceRound: number;   // Which round achieved convergence
-    stabilityIndex: number;     // How stable the final state is
+    convergenceRound: number; // Which round achieved convergence
+    stabilityIndex: number; // How stable the final state is
   };
 
   // Synthesis Narrative
   narrative: {
-    executiveSummary: string;   // 2-3 sentences
-    keyStrengths: string[];     // What survived challenge
-    keyWeaknesses: string[];    // What didn't survive
+    executiveSummary: string; // 2-3 sentences
+    keyStrengths: string[]; // What survived challenge
+    keyWeaknesses: string[]; // What didn't survive
     criticalAssumptions: string[]; // Must be true for idea to work
     unresolvedQuestions: string[]; // What remains unknown
-    recommendation: 'PURSUE' | 'REFINE' | 'PAUSE' | 'ABANDON';
+    recommendation: "PURSUE" | "REFINE" | "PAUSE" | "ABANDON";
     recommendationReasoning: string;
   };
 
@@ -1802,8 +1835,8 @@ interface FinalSynthesisDocument {
 
   // Lock Status
   locked: true;
-  lockReason: 'CONVERGENCE' | 'MAX_ROUNDS' | 'USER_APPROVED' | 'TIMEOUT';
-  reopenConditions: string[];  // What new info would justify reopening
+  lockReason: "CONVERGENCE" | "MAX_ROUNDS" | "USER_APPROVED" | "TIMEOUT";
+  reopenConditions: string[]; // What new info would justify reopening
 }
 ```
 
@@ -1811,46 +1844,49 @@ interface FinalSynthesisDocument {
 
 Once locked, an evaluation can only be reopened under specific conditions:
 
-| Trigger | Action | Scope |
-|---------|--------|-------|
-| **New Material Information** | Full re-evaluation from nucleation | Complete reset |
-| **User Disputes Score** | Targeted review of disputed criterion only | Partial reopen |
-| **Related Idea Changes** | Update relationship graph, not scores | Metadata only |
-| **Time-Based Decay** | Optional confidence decay over time | Soft reopen |
+| Trigger                      | Action                                     | Scope          |
+| ---------------------------- | ------------------------------------------ | -------------- |
+| **New Material Information** | Full re-evaluation from nucleation         | Complete reset |
+| **User Disputes Score**      | Targeted review of disputed criterion only | Partial reopen |
+| **Related Idea Changes**     | Update relationship graph, not scores      | Metadata only  |
+| **Time-Based Decay**         | Optional confidence decay over time        | Soft reopen    |
 
 ```typescript
 function canReopenEvaluation(
   evaluation: FinalSynthesisDocument,
-  trigger: ReopenTrigger
+  trigger: ReopenTrigger,
 ): ReopenDecision {
   // Check if trigger is valid
-  if (trigger.type === 'NEW_INFORMATION') {
+  if (trigger.type === "NEW_INFORMATION") {
     // New info must be material (would have changed scores by >1)
     const estimatedImpact = estimateImpact(trigger.newInfo, evaluation);
     if (estimatedImpact.scoreDelta < 1) {
-      return { allowed: false, reason: 'Information not material enough' };
+      return { allowed: false, reason: "Information not material enough" };
     }
     return {
       allowed: true,
-      scope: 'FULL',
-      action: 'RE_NUCLEATE'
+      scope: "FULL",
+      action: "RE_NUCLEATE",
     };
   }
 
-  if (trigger.type === 'USER_DISPUTE') {
+  if (trigger.type === "USER_DISPUTE") {
     // User can dispute, but must provide reasoning
     if (!trigger.reasoning || trigger.reasoning.length < 50) {
-      return { allowed: false, reason: 'Dispute requires substantive reasoning' };
+      return {
+        allowed: false,
+        reason: "Dispute requires substantive reasoning",
+      };
     }
     return {
       allowed: true,
-      scope: 'TARGETED',
+      scope: "TARGETED",
       affectedCriteria: [trigger.disputedCriterion],
-      action: 'PARTIAL_REVIEW'
+      action: "PARTIAL_REVIEW",
     };
   }
 
-  return { allowed: false, reason: 'Invalid trigger type' };
+  return { allowed: false, reason: "Invalid trigger type" };
 }
 ```
 
@@ -1907,12 +1943,11 @@ The frontend shows real-time convergence progress:
 
 async function runFiniteSynthesis(
   idea: Idea,
-  config: ConvergenceConfig
+  config: ConvergenceConfig,
 ): Promise<FinalSynthesisDocument> {
-
   // Initialize state
   let state: EvaluationState = {
-    phase: 'NUCLEATION',
+    phase: "NUCLEATION",
     roundNumber: 0,
     scoreHistory: [],
     challenges: [],
@@ -1925,21 +1960,21 @@ async function runFiniteSynthesis(
   broadcastState(state);
 
   // MAIN CONVERGENCE LOOP
-  while (state.phase !== 'LOCKED') {
+  while (state.phase !== "LOCKED") {
     // Check hard limits
     if (state.roundNumber >= config.hardLimits.maxRounds) {
-      state.phase = 'CRYSTALLIZATION';
-      state.lockReason = 'MAX_ROUNDS';
+      state.phase = "CRYSTALLIZATION";
+      state.lockReason = "MAX_ROUNDS";
       break;
     }
 
     // PHASE 2: PERTURBATION (Debate)
-    state.phase = 'PERTURBATION';
+    state.phase = "PERTURBATION";
     state = await runDebateRound(idea, state, config);
     broadcastState(state);
 
     // PHASE 3: ANNEALING (Synthesis)
-    state.phase = 'ANNEALING';
+    state.phase = "ANNEALING";
     state = await synthesize(state);
     broadcastState(state);
 
@@ -1947,8 +1982,8 @@ async function runFiniteSynthesis(
     const convergence = checkConvergence(state, config.convergenceCriteria);
 
     if (convergence.converged) {
-      state.phase = 'CRYSTALLIZATION';
-      state.lockReason = 'CONVERGENCE';
+      state.phase = "CRYSTALLIZATION";
+      state.lockReason = "CONVERGENCE";
     } else {
       state.roundNumber++;
       // Continue loop → back to PERTURBATION
@@ -1976,7 +2011,7 @@ async function synthesize(state: EvaluationState): Promise<EvaluationState> {
 
   // Resolve each conflict
   const resolutions = await Promise.all(
-    conflicts.map(conflict => synthesisAgent.resolve(conflict))
+    conflicts.map((conflict) => synthesisAgent.resolve(conflict)),
   );
 
   // Update scores based on resolutions
@@ -1999,14 +2034,14 @@ async function synthesize(state: EvaluationState): Promise<EvaluationState> {
 
 The synthesis protocol follows these design principles:
 
-| Principle | Implementation |
-|-----------|----------------|
-| **Deterministic Termination** | Hard limits + convergence criteria guarantee end state |
-| **Monotonic Confidence** | Confidence can only increase or plateau, never decrease in final rounds |
-| **Explicit Resolution** | Every conflict has a winner, not a compromise |
-| **Audit Trail** | Complete history of how final scores were derived |
-| **Immutable Final State** | Once locked, evaluation is read-only |
-| **Clear Reopening Criteria** | Only new material information can restart |
+| Principle                     | Implementation                                                          |
+| ----------------------------- | ----------------------------------------------------------------------- |
+| **Deterministic Termination** | Hard limits + convergence criteria guarantee end state                  |
+| **Monotonic Confidence**      | Confidence can only increase or plateau, never decrease in final rounds |
+| **Explicit Resolution**       | Every conflict has a winner, not a compromise                           |
+| **Audit Trail**               | Complete history of how final scores were derived                       |
+| **Immutable Final State**     | Once locked, evaluation is read-only                                    |
+| **Clear Reopening Criteria**  | Only new material information can restart                               |
 
 ---
 
@@ -2014,50 +2049,50 @@ The synthesis protocol follows these design principles:
 
 ### 13.1 Technical Challenges
 
-| Challenge | Difficulty | Why It's Hard |
-|-----------|------------|---------------|
-| **Agent SDK learning curve** | Medium-High | New paradigm; different from Claude Code skills |
-| **Parallel agent coordination** | High | Race conditions, result aggregation, error handling |
-| **Consistent scoring** | High | LLMs can be inconsistent; need calibration |
-| **Relationship detection accuracy** | Medium | Semantic similarity is fuzzy; may need embeddings |
-| **Self red-teaming that's actually critical** | High | LLMs tend to be agreeable; need strong prompting |
-| **State management across agents** | Medium | Passing context between agents without bloat |
+| Challenge                                     | Difficulty  | Why It's Hard                                       |
+| --------------------------------------------- | ----------- | --------------------------------------------------- |
+| **Agent SDK learning curve**                  | Medium-High | New paradigm; different from Claude Code skills     |
+| **Parallel agent coordination**               | High        | Race conditions, result aggregation, error handling |
+| **Consistent scoring**                        | High        | LLMs can be inconsistent; need calibration          |
+| **Relationship detection accuracy**           | Medium      | Semantic similarity is fuzzy; may need embeddings   |
+| **Self red-teaming that's actually critical** | High        | LLMs tend to be agreeable; need strong prompting    |
+| **State management across agents**            | Medium      | Passing context between agents without bloat        |
 
 ### 13.2 Conceptual Challenges
 
-| Challenge | Issue |
-|-----------|-------|
-| **When is an idea "done"?** | Evaluation loop could run forever. Need exit criteria. |
-| **Score calibration** | First ideas have no baseline. Need anchor examples. |
-| **Red-team depth vs. speed** | Deep red-teaming is slow; shallow is useless. Balance? |
-| **User interruption handling** | What if user wants to jump in mid-evaluation? |
-| **Idea identity** | When does a pivoted idea become a new idea? |
+| Challenge                      | Issue                                                  |
+| ------------------------------ | ------------------------------------------------------ |
+| **When is an idea "done"?**    | Evaluation loop could run forever. Need exit criteria. |
+| **Score calibration**          | First ideas have no baseline. Need anchor examples.    |
+| **Red-team depth vs. speed**   | Deep red-teaming is slow; shallow is useless. Balance? |
+| **User interruption handling** | What if user wants to jump in mid-evaluation?          |
+| **Idea identity**              | When does a pivoted idea become a new idea?            |
 
 ### 13.3 What Could Go Wrong
 
-| Risk | Consequence | Mitigation |
-|------|-------------|------------|
-| Agents disagree on scores | Inconsistent evaluations | Aggregation with confidence weighting |
-| Red-team is too soft | False confidence in weak ideas | Strong adversarial prompts; examples of harsh critiques |
-| Red-team is too harsh | Good ideas get killed | Require user review of CRITICAL issues |
-| Classification is wrong | Ideas miscategorized | User override capability; re-classification option |
-| Infinite loops | System never completes | Hard limits on iterations; timeouts |
-| Cost explosion | Many parallel agents = $$$  | Budget limits; prioritize expensive evals |
+| Risk                      | Consequence                    | Mitigation                                              |
+| ------------------------- | ------------------------------ | ------------------------------------------------------- |
+| Agents disagree on scores | Inconsistent evaluations       | Aggregation with confidence weighting                   |
+| Red-team is too soft      | False confidence in weak ideas | Strong adversarial prompts; examples of harsh critiques |
+| Red-team is too harsh     | Good ideas get killed          | Require user review of CRITICAL issues                  |
+| Classification is wrong   | Ideas miscategorized           | User override capability; re-classification option      |
+| Infinite loops            | System never completes         | Hard limits on iterations; timeouts                     |
+| Cost explosion            | Many parallel agents = $$$     | Budget limits; prioritize expensive evals               |
 
 ---
 
 ## 13. Questions I Need You to Answer
 
-| # | Question | Why It Matters |
-|---|----------|----------------|
-| 1 | **Should evaluation require user input or be fully autonomous?** | If fully autonomous, scores are AI-generated guesses. If user-involved, the system asks "On a scale of 1-10, how painful is this problem?" |
-| 2 | **How should ambiguous idea matching work?** | Present top 3 matches? Semantic similarity threshold? Always ask? |
-| 3 | **What's the red-team depth vs. speed tradeoff?** | Quick (3 challenges) vs. Thorough (10 challenges with rebuttals)? |
-| 4 | **Should the system run synchronously (wait for each step) or async (background processing)?** | Affects UX and architecture significantly |
-| 5 | **What's the trigger for running the full pipeline?** | Every new input? Only when user says "evaluate"? On schedule? |
-| 6 | **How should the system handle "I changed my mind" moments?** | User provides new info that invalidates prior scoring |
-| 7 | **What's the minimum viable version?** | All 6 parallel evaluators from day 1? Or start with single-pass? |
-| 8 | **Cost sensitivity?** | Agent SDK with parallel calls isn't cheap. Budget constraints? |
+| #   | Question                                                                                       | Why It Matters                                                                                                                             |
+| --- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | **Should evaluation require user input or be fully autonomous?**                               | If fully autonomous, scores are AI-generated guesses. If user-involved, the system asks "On a scale of 1-10, how painful is this problem?" |
+| 2   | **How should ambiguous idea matching work?**                                                   | Present top 3 matches? Semantic similarity threshold? Always ask?                                                                          |
+| 3   | **What's the red-team depth vs. speed tradeoff?**                                              | Quick (3 challenges) vs. Thorough (10 challenges with rebuttals)?                                                                          |
+| 4   | **Should the system run synchronously (wait for each step) or async (background processing)?** | Affects UX and architecture significantly                                                                                                  |
+| 5   | **What's the trigger for running the full pipeline?**                                          | Every new input? Only when user says "evaluate"? On schedule?                                                                              |
+| 6   | **How should the system handle "I changed my mind" moments?**                                  | User provides new info that invalidates prior scoring                                                                                      |
+| 7   | **What's the minimum viable version?**                                                         | All 6 parallel evaluators from day 1? Or start with single-pass?                                                                           |
+| 8   | **Cost sensitivity?**                                                                          | Agent SDK with parallel calls isn't cheap. Budget constraints?                                                                             |
 
 ---
 
@@ -2067,76 +2102,84 @@ The synthesis protocol follows these design principles:
 > See Implementation Plan for authoritative phase definitions. The phases below are retained for historical context only.
 
 ### Phase 0: Spike / Proof of Concept
-| Component | Purpose |
-|-----------|---------|
-| Single hardcoded idea | Test the full loop manually |
-| One evaluation agent | Prove Agent SDK works |
-| Basic markdown output | Verify persistence |
+
+| Component                                                  | Purpose                     |
+| ---------------------------------------------------------- | --------------------------- |
+| Single hardcoded idea                                      | Test the full loop manually |
+| One evaluation agent                                       | Prove Agent SDK works       |
+| Basic markdown output                                      | Verify persistence          |
 | **Goal**: Validate architecture before building everything |
 
 ### Phase 1: Foundation
-| Component | Purpose |
-|-----------|---------|
-| Folder structure | Organized file system |
-| Templates | Consistent idea format |
-| Taxonomy files | Lifecycle, criteria, domains |
-| CLAUDE.md | Project-wide Claude instructions |
-| SQLite schema | Database structure |
-| Basic sync script | Markdown → DB |
+
+| Component                      | Purpose                          |
+| ------------------------------ | -------------------------------- |
+| Folder structure               | Organized file system            |
+| Templates                      | Consistent idea format           |
+| Taxonomy files                 | Lifecycle, criteria, domains     |
+| CLAUDE.md                      | Project-wide Claude instructions |
+| SQLite schema                  | Database structure               |
+| Basic sync script              | Markdown → DB                    |
 | **Goal**: Scaffolding in place |
 
 ### Phase 2: Core Agent Loop
-| Component | Purpose |
-|-----------|---------|
-| Orchestrator agent | Route and coordinate |
-| Development agent | Ask questions, populate ideas |
-| Single evaluation agent | Score all criteria (not parallel yet) |
-| Classification agent | Auto-tag, assign domain |
-| Persist to markdown | Write results |
+
+| Component                                     | Purpose                               |
+| --------------------------------------------- | ------------------------------------- |
+| Orchestrator agent                            | Route and coordinate                  |
+| Development agent                             | Ask questions, populate ideas         |
+| Single evaluation agent                       | Score all criteria (not parallel yet) |
+| Classification agent                          | Auto-tag, assign domain               |
+| Persist to markdown                           | Write results                         |
 | **Goal**: End-to-end flow works, not parallel |
 
 ### Phase 3: Parallel Evaluation
-| Component | Purpose |
-|-----------|---------|
-| 6 specialized evaluator agents | Problem, Solution, Feasibility, Fit, Market, Risk |
-| Parallel execution | Run all 6 concurrently |
-| Score aggregation | Combine results, calculate composites |
+
+| Component                                  | Purpose                                           |
+| ------------------------------------------ | ------------------------------------------------- |
+| 6 specialized evaluator agents             | Problem, Solution, Feasibility, Fit, Market, Risk |
+| Parallel execution                         | Run all 6 concurrently                            |
+| Score aggregation                          | Combine results, calculate composites             |
 | **Goal**: Faster, more thorough evaluation |
 
 ### Phase 4: Self Red-Teaming
-| Component | Purpose |
-|-----------|---------|
-| Red-team agent | Challenge assumptions |
-| Auto-trigger after evaluation | No user prompt needed |
-| Re-evaluation loop | If critical issues found |
-| User review gate | For CRITICAL challenges |
+
+| Component                         | Purpose                  |
+| --------------------------------- | ------------------------ |
+| Red-team agent                    | Challenge assumptions    |
+| Auto-trigger after evaluation     | No user prompt needed    |
+| Re-evaluation loop                | If critical issues found |
+| User review gate                  | For CRITICAL challenges  |
 | **Goal**: System critiques itself |
 
 ### Phase 5: Relationship Detection
-| Component | Purpose |
-|-----------|---------|
-| Idea comparison | Detect similar/related ideas |
-| Relationship types | Parent, child, combines, conflicts |
-| Graph data structure | For visualization |
+
+| Component                              | Purpose                            |
+| -------------------------------------- | ---------------------------------- |
+| Idea comparison                        | Detect similar/related ideas       |
+| Relationship types                     | Parent, child, combines, conflicts |
+| Graph data structure                   | For visualization                  |
 | **Goal**: Ideas form a connected graph |
 
 ### Phase 6: Frontend Visualization
-| Component | Purpose |
-|-----------|---------|
-| Vite + React scaffold | Basic app structure |
-| Leaderboard view | Ranked ideas by score |
-| Relationship graph | D3/Cytoscape visualization |
-| Evaluation matrix | Heatmap of all ideas vs criteria |
-| Idea detail view | Full info on single idea |
+
+| Component                                      | Purpose                          |
+| ---------------------------------------------- | -------------------------------- |
+| Vite + React scaffold                          | Basic app structure              |
+| Leaderboard view                               | Ranked ideas by score            |
+| Relationship graph                             | D3/Cytoscape visualization       |
+| Evaluation matrix                              | Heatmap of all ideas vs criteria |
+| Idea detail view                               | Full info on single idea         |
 | **Goal**: Visual exploration of idea portfolio |
 
 ### Phase 7: Polish and Scale
-| Component | Purpose |
-|-----------|---------|
-| Error handling | Graceful failures |
-| Cost monitoring | Track API usage |
-| Performance optimization | Caching, batching |
-| Mobile capture | Phone-friendly input |
+
+| Component                         | Purpose              |
+| --------------------------------- | -------------------- |
+| Error handling                    | Graceful failures    |
+| Cost monitoring                   | Track API usage      |
+| Performance optimization          | Caching, batching    |
+| Mobile capture                    | Phone-friendly input |
 | **Goal**: Production-ready system |
 
 ---
@@ -2177,48 +2220,49 @@ This section documents errors, omissions, and gaps in the original architecture 
 
 ### A.1 What I Got Wrong
 
-| # | Error | What I Said | Reality |
-|---|-------|-------------|---------|
-| 1 | **Skill file format** | Skills are `.md` files in `.claude/skills/` | Skills are **directories** with `SKILL.md` + YAML frontmatter |
-| 2 | **Skill triggering** | Skills are explicitly invoked or auto-detected | Skills are **model-invoked** based on description matching |
-| 3 | **"Auto-organization"** | System automatically routes files | Claude only organizes when in conversation; no background daemon |
-| 4 | **"Proactive questions"** | Skills randomly ping users | Skills provide instructions; proactivity requires active conversation |
-| 5 | **Database sync triggers** | "Claude skill completion triggers sync" | Claude Code has no built-in hook for post-skill database operations |
+| #   | Error                      | What I Said                                    | Reality                                                               |
+| --- | -------------------------- | ---------------------------------------------- | --------------------------------------------------------------------- |
+| 1   | **Skill file format**      | Skills are `.md` files in `.claude/skills/`    | Skills are **directories** with `SKILL.md` + YAML frontmatter         |
+| 2   | **Skill triggering**       | Skills are explicitly invoked or auto-detected | Skills are **model-invoked** based on description matching            |
+| 3   | **"Auto-organization"**    | System automatically routes files              | Claude only organizes when in conversation; no background daemon      |
+| 4   | **"Proactive questions"**  | Skills randomly ping users                     | Skills provide instructions; proactivity requires active conversation |
+| 5   | **Database sync triggers** | "Claude skill completion triggers sync"        | Claude Code has no built-in hook for post-skill database operations   |
 
 ### A.2 What I Forgot / Didn't Think Through
 
-| # | Gap | Issue | Resolution Needed |
-|---|-----|-------|-------------------|
-| 1 | **Frontend database access** | Browsers can't directly access SQLite files | **RESOLVED**: Use Express API with better-sqlite3 on server (see Decision A.4.1) |
-| 2 | **Mobile capture mechanism** | "Capture from phone via frontend" requires deployment | Vite app needs hosting + API endpoint to create markdown files |
-| 3 | **Index maintenance** | `ideas/_index.md` was mentioned but no mechanism defined | Needs manual update, script, or skill instruction to maintain |
-| 4 | **Template usage** | Templates listed but not integrated into skills | Skills must explicitly reference and use templates |
-| 5 | **Taxonomy enforcement** | Taxonomy files are just documentation | Must be referenced in skills/CLAUDE.md to be enforced |
-| 6 | **Git hooks** | Mentioned "git commit hook for sync" but no implementation | Need actual hook scripts in `.git/hooks/` or husky config |
-| 7 | **Evaluation UX** | 30 criteria = tedious to score | Should offer quick-score (key criteria only) vs full evaluation modes |
-| 8 | **Sync script runtime** | Listed `sync-db.ts` but no execution context | Needs Node.js setup, package.json scripts, dependencies |
+| #   | Gap                          | Issue                                                      | Resolution Needed                                                                |
+| --- | ---------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1   | **Frontend database access** | Browsers can't directly access SQLite files                | **RESOLVED**: Use Express API with better-sqlite3 on server (see Decision A.4.1) |
+| 2   | **Mobile capture mechanism** | "Capture from phone via frontend" requires deployment      | Vite app needs hosting + API endpoint to create markdown files                   |
+| 3   | **Index maintenance**        | `ideas/_index.md` was mentioned but no mechanism defined   | Needs manual update, script, or skill instruction to maintain                    |
+| 4   | **Template usage**           | Templates listed but not integrated into skills            | Skills must explicitly reference and use templates                               |
+| 5   | **Taxonomy enforcement**     | Taxonomy files are just documentation                      | Must be referenced in skills/CLAUDE.md to be enforced                            |
+| 6   | **Git hooks**                | Mentioned "git commit hook for sync" but no implementation | Need actual hook scripts in `.git/hooks/` or husky config                        |
+| 7   | **Evaluation UX**            | 30 criteria = tedious to score                             | Should offer quick-score (key criteria only) vs full evaluation modes            |
+| 8   | **Sync script runtime**      | Listed `sync-db.ts` but no execution context               | Needs Node.js setup, package.json scripts, dependencies                          |
 
 ### A.3 Architectural Assumptions That Need Validation
 
-| # | Assumption | Risk | Mitigation |
-|---|------------|------|------------|
-| 1 | Claude will correctly identify which idea is being discussed | Ambiguity with multiple similar ideas | CLAUDE.md should instruct Claude to confirm idea context |
-| 2 | Skill descriptions will reliably trigger on intended phrases | May activate incorrectly or not at all | Test extensively; refine descriptions based on actual usage |
-| 3 | Markdown frontmatter parsing will work consistently | YAML edge cases, malformed input | Validate with schema; handle parse errors gracefully |
-| 4 | Single sync direction (MD → DB) is sufficient | Could cause data loss if DB edited directly | Enforce MD as source of truth; DB is read-only cache |
+| #   | Assumption                                                   | Risk                                        | Mitigation                                                  |
+| --- | ------------------------------------------------------------ | ------------------------------------------- | ----------------------------------------------------------- |
+| 1   | Claude will correctly identify which idea is being discussed | Ambiguity with multiple similar ideas       | CLAUDE.md should instruct Claude to confirm idea context    |
+| 2   | Skill descriptions will reliably trigger on intended phrases | May activate incorrectly or not at all      | Test extensively; refine descriptions based on actual usage |
+| 3   | Markdown frontmatter parsing will work consistently          | YAML edge cases, malformed input            | Validate with schema; handle parse errors gracefully        |
+| 4   | Single sync direction (MD → DB) is sufficient                | Could cause data loss if DB edited directly | Enforce MD as source of truth; DB is read-only cache        |
 
 ### A.4 Design Decisions
 
-| # | Question | Decision | Rationale |
-|---|----------|----------|-----------|
-| 1 | How should the Vite frontend access data? | **Local Express API** | Enables WebSocket for real-time debate streaming. More flexible than sql.js. Server can handle complex queries. |
-| 2 | How will you capture ideas from your phone? | **Notes app + manual import** | Simplest for v1. No hosting/auth complexity. Paste into CLI or Claude Code. Can upgrade to PWA in v2. |
-| 3 | Should evaluation support "quick mode"? | **Always full 30 criteria** | Consistent results. Simpler implementation. Cost is acceptable (~$10/eval). Quick mode adds complexity without clear benefit. |
-| 4 | How should the index be maintained? | **Auto-generated script** | `npm run sync` regenerates `ideas/_index.md`. Reliable, no manual effort, no AI hallucination risk. |
+| #   | Question                                    | Decision                      | Rationale                                                                                                                     |
+| --- | ------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 1   | How should the Vite frontend access data?   | **Local Express API**         | Enables WebSocket for real-time debate streaming. More flexible than sql.js. Server can handle complex queries.               |
+| 2   | How will you capture ideas from your phone? | **Notes app + manual import** | Simplest for v1. No hosting/auth complexity. Paste into CLI or Claude Code. Can upgrade to PWA in v2.                         |
+| 3   | Should evaluation support "quick mode"?     | **Always full 30 criteria**   | Consistent results. Simpler implementation. Cost is acceptable (~$10/eval). Quick mode adds complexity without clear benefit. |
+| 4   | How should the index be maintained?         | **Auto-generated script**     | `npm run sync` regenerates `ideas/_index.md`. Reliable, no manual effort, no AI hallucination risk.                           |
 
 #### Implementation Details
 
 **Express API Backend**
+
 ```
 server/
 ├── index.ts           # Express server entry
@@ -2230,27 +2274,30 @@ server/
 ```
 
 **Mobile Workflow (Decision #2)**
+
 ```
 Phone (Notes app) → Desktop (paste) → CLI capture → Markdown → Database
 ```
 
 **Evaluation Mode (Decision #3)**
+
 - Single mode: `npm run evaluate <slug>` always runs full 30 criteria
 - No `--quick` flag needed
 - Consistent evaluation depth
 
 **Index Generation (Decision #4)**
+
 - `npm run sync` includes index regeneration
 - Template: `ideas/_index.md` with table of all ideas
 
 ### A.5 Complexity I Underestimated
 
-| Area | What I Implied | Actual Complexity |
-|------|----------------|-------------------|
-| **Markdown ↔ DB sync** | "Simple sync script" | Requires: frontmatter parser, change detection, conflict handling, error recovery |
+| Area                             | What I Implied                         | Actual Complexity                                                                  |
+| -------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Markdown ↔ DB sync**           | "Simple sync script"                   | Requires: frontmatter parser, change detection, conflict handling, error recovery  |
 | **Skill activation reliability** | "Claude detects context and activates" | Requires: careful description tuning, testing, potential false positives/negatives |
-| **Frontend visualizations** | Listed 7 views casually | Each view (especially graph/matrix) requires significant implementation effort |
-| **Mobile capture** | "Phone using frontend portal" | Requires: hosting, possibly authentication, API endpoints, offline handling |
+| **Frontend visualizations**      | Listed 7 views casually                | Each view (especially graph/matrix) requires significant implementation effort     |
+| **Mobile capture**               | "Phone using frontend portal"          | Requires: hosting, possibly authentication, API endpoints, offline handling        |
 
 ---
 
@@ -2317,14 +2364,14 @@ Legend:
 
 The canonical source for criteria is `taxonomy/evaluation-criteria.md`.
 
-| Category | Criteria (5 each) |
-|----------|-------------------|
-| **Problem** | Problem Clarity, Problem Severity, Target User Clarity, Problem Validation, Problem Uniqueness |
-| **Solution** | Solution Clarity, Solution Feasibility, Solution Uniqueness, Solution Scalability, Solution Defensibility |
-| **Feasibility** | Technical Complexity, Resource Requirements, Skill Availability, Time to Value, Dependency Risk |
-| **Strategic Fit** | Personal Fit, Passion Alignment, Skill Match, Network Leverage, Life Stage Fit |
-| **Market** | Market Size, Market Growth, Competition Intensity, Entry Barriers, Timing |
-| **Risk** | Execution Risk, Market Risk, Technical Risk, Financial Risk, Regulatory Risk |
+| Category          | Criteria (5 each)                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
+| **Problem**       | Problem Clarity, Problem Severity, Target User Clarity, Problem Validation, Problem Uniqueness            |
+| **Solution**      | Solution Clarity, Solution Feasibility, Solution Uniqueness, Solution Scalability, Solution Defensibility |
+| **Feasibility**   | Technical Complexity, Resource Requirements, Skill Availability, Time to Value, Dependency Risk           |
+| **Strategic Fit** | Personal Fit, Passion Alignment, Skill Match, Network Leverage, Life Stage Fit                            |
+| **Market**        | Market Size, Market Growth, Competition Intensity, Entry Barriers, Timing                                 |
+| **Risk**          | Execution Risk, Market Risk, Technical Risk, Financial Risk, Regulatory Risk                              |
 
 ### C.2 Score Aggregation Formula
 
@@ -2371,37 +2418,37 @@ When staleness is detected, user is notified but decides whether to re-evaluate.
 
 ## Appendix D: v1 vs v2 Scope
 
-| Item | v1 (Prototype) | v2 (Enhancement) |
-|------|----------------|------------------|
-| Evaluator Agents | 1 generalist | 6 specialized (parallel) |
-| Red Team Personas | 3 core (Skeptic, Realist, First Principles) | 6 full (+ Competitor, Contrarian, Edge-Case) |
-| Relationship Detection | Keyword/tag matching | Semantic embeddings |
-| Frontend Views | 6 views | 7 views (+ Comparison) |
-| Mobile Capture | Notes app + paste | PWA with offline |
+| Item                   | v1 (Prototype)                              | v2 (Enhancement)                             |
+| ---------------------- | ------------------------------------------- | -------------------------------------------- |
+| Evaluator Agents       | 1 generalist                                | 6 specialized (parallel)                     |
+| Red Team Personas      | 3 core (Skeptic, Realist, First Principles) | 6 full (+ Competitor, Contrarian, Edge-Case) |
+| Relationship Detection | Keyword/tag matching                        | Semantic embeddings                          |
+| Frontend Views         | 6 views                                     | 7 views (+ Comparison)                       |
+| Mobile Capture         | Notes app + paste                           | PWA with offline                             |
 
 ---
 
 ## Appendix E: Design Principles
 
-| Principle | Implementation |
-|-----------|----------------|
+| Principle                  | Implementation                                         |
+| -------------------------- | ------------------------------------------------------ |
 | **Single Source of Truth** | `taxonomy/evaluation-criteria.md` defines all criteria |
-| **Fail Fast** | Zod schemas validate all agent responses |
-| **Observability** | `utils/cost-tracker.ts` tracks every API call |
-| **Testability** | Vitest + mocks before implementation |
-| **Immutable History** | Evaluations never modified, only superseded |
-| **User Control** | Explicit triggers, user overrides, cost confirmation |
+| **Fail Fast**              | Zod schemas validate all agent responses               |
+| **Observability**          | `utils/cost-tracker.ts` tracks every API call          |
+| **Testability**            | Vitest + mocks before implementation                   |
+| **Immutable History**      | Evaluations never modified, only superseded            |
+| **User Control**           | Explicit triggers, user overrides, cost confirmation   |
 
 ---
 
 ## Appendix F: Document Structure
 
-| Document | Purpose |
-|----------|---------|
-| ARCHITECTURE.md | System design, agent architecture, data flow |
-| IMPLEMENTATION-PLAN.md | Phase-by-phase build plan with code specs |
-| `taxonomy/evaluation-criteria.md` | Authoritative criteria definitions |
-| `CLAUDE.md` | Project-wide Claude Code instructions |
+| Document                          | Purpose                                      |
+| --------------------------------- | -------------------------------------------- |
+| ARCHITECTURE.md                   | System design, agent architecture, data flow |
+| IMPLEMENTATION-PLAN.md            | Phase-by-phase build plan with code specs    |
+| `taxonomy/evaluation-criteria.md` | Authoritative criteria definitions           |
+| `CLAUDE.md`                       | Project-wide Claude Code instructions        |
 
 ---
 
@@ -2412,13 +2459,14 @@ When staleness is detected, user is notified but decides whether to re-evaluate.
 ### G.1 The Problem
 
 The architecture describes:
+
 ```typescript
 // FICTIONAL - This API does not exist
-import { Agent, ParallelExecutor } from '@anthropic-ai/agent-sdk';
+import { Agent, ParallelExecutor } from "@anthropic-ai/agent-sdk";
 
 const evaluator = new Agent({
-  name: 'evaluator',
-  systemPrompt: '...'
+  name: "evaluator",
+  systemPrompt: "...",
 });
 ```
 
@@ -2436,13 +2484,13 @@ We must build `lib/agent-framework/` to provide the abstractions described in th
 export interface AgentConfig {
   name: string;
   systemPrompt: string;
-  model?: string;  // defaults to claude-opus-4-5-20251101
+  model?: string; // defaults to claude-opus-4-5-20251101
   maxTokens?: number;
   temperature?: number;
 }
 
 export interface AgentMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
@@ -2452,26 +2500,26 @@ export interface AgentResponse {
     inputTokens: number;
     outputTokens: number;
   };
-  parsed?: unknown;  // Zod-validated response
+  parsed?: unknown; // Zod-validated response
 }
 
 export interface AgentRunOptions<T> {
   prompt: string;
-  schema?: ZodType<T>;  // If provided, response is validated and parsed
+  schema?: ZodType<T>; // If provided, response is validated and parsed
   conversationHistory?: AgentMessage[];
 }
 ```
 
 #### G.2.2 BaseAgent Class
 
-```typescript
+````typescript
 // lib/agent-framework/base-agent.ts
 
-import Anthropic from '@anthropic-ai/sdk';
-import { z, ZodType } from 'zod';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { AgentConfig, AgentResponse, AgentRunOptions } from './types.js';
-import { AgentResponseParseError, AgentAPIError } from '../utils/errors.js';
+import Anthropic from "@anthropic-ai/sdk";
+import { z, ZodType } from "zod";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { AgentConfig, AgentResponse, AgentRunOptions } from "./types.js";
+import { AgentResponseParseError, AgentAPIError } from "../utils/errors.js";
 
 export class BaseAgent {
   protected client: Anthropic;
@@ -2481,18 +2529,20 @@ export class BaseAgent {
   constructor(config: AgentConfig, costTracker: CostTracker) {
     this.client = new Anthropic();
     this.config = {
-      model: 'claude-opus-4-5-20251101',
+      model: "claude-opus-4-5-20251101",
       maxTokens: 4096,
       temperature: 0.7,
-      ...config
+      ...config,
     };
     this.costTracker = costTracker;
   }
 
-  async run<T = string>(options: AgentRunOptions<T>): Promise<AgentResponse & { parsed: T }> {
+  async run<T = string>(
+    options: AgentRunOptions<T>,
+  ): Promise<AgentResponse & { parsed: T }> {
     const messages = [
       ...(options.conversationHistory || []),
-      { role: 'user' as const, content: options.prompt }
+      { role: "user" as const, content: options.prompt },
     ];
 
     const response = await this.executeWithRetry(messages);
@@ -2501,8 +2551,8 @@ export class BaseAgent {
     this.costTracker.checkBudget();
 
     const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new AgentResponseParseError('Expected text response');
+    if (content.type !== "text") {
+      throw new AgentResponseParseError("Expected text response");
     }
 
     let parsed: T;
@@ -2516,15 +2566,15 @@ export class BaseAgent {
       content: content.text,
       usage: {
         inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens
+        outputTokens: response.usage.output_tokens,
       },
-      parsed
+      parsed,
     };
   }
 
   protected async executeWithRetry(
-    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
-    maxRetries = 3
+    messages: Array<{ role: "user" | "assistant"; content: string }>,
+    maxRetries = 3,
   ): Promise<Anthropic.Message> {
     let lastError: Error | undefined;
 
@@ -2534,7 +2584,7 @@ export class BaseAgent {
           model: this.config.model!,
           max_tokens: this.config.maxTokens!,
           system: this.config.systemPrompt,
-          messages
+          messages,
         });
       } catch (error) {
         lastError = error as Error;
@@ -2547,25 +2597,25 @@ export class BaseAgent {
 
         throw new AgentAPIError(
           `Agent ${this.config.name} failed: ${lastError.message}`,
-          lastError
+          lastError,
         );
       }
     }
 
     throw new AgentAPIError(
       `Agent ${this.config.name} failed after ${maxRetries} retries`,
-      lastError
+      lastError,
     );
   }
 
   protected parseAndValidate<T>(text: string, schema: ZodType<T>): T {
     // Extract JSON from response (may be wrapped in markdown)
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) ||
-                      text.match(/(\{[\s\S]*\})/);
+    const jsonMatch =
+      text.match(/```(?:json)?\s*([\s\S]*?)```/) || text.match(/(\{[\s\S]*\})/);
 
     if (!jsonMatch) {
       throw new AgentResponseParseError(
-        `Agent ${this.config.name}: Could not extract JSON from response`
+        `Agent ${this.config.name}: Could not extract JSON from response`,
       );
     }
 
@@ -2575,11 +2625,11 @@ export class BaseAgent {
     } catch (error) {
       if (error instanceof z.ZodError) {
         throw new AgentResponseParseError(
-          `Agent ${this.config.name}: Schema validation failed - ${error.errors.map(e => e.message).join(', ')}`
+          `Agent ${this.config.name}: Schema validation failed - ${error.errors.map((e) => e.message).join(", ")}`,
         );
       }
       throw new AgentResponseParseError(
-        `Agent ${this.config.name}: JSON parse failed - ${(error as Error).message}`
+        `Agent ${this.config.name}: JSON parse failed - ${(error as Error).message}`,
       );
     }
   }
@@ -2592,18 +2642,18 @@ export class BaseAgent {
   }
 
   protected sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
-```
+````
 
 #### G.2.3 ParallelExecutor
 
 ```typescript
 // lib/agent-framework/parallel-executor.ts
 
-import { BaseAgent } from './base-agent.js';
-import { AgentRunOptions, AgentResponse } from './types.js';
+import { BaseAgent } from "./base-agent.js";
+import { AgentRunOptions, AgentResponse } from "./types.js";
 
 export interface ParallelTask<T> {
   agent: BaseAgent;
@@ -2625,7 +2675,7 @@ export class ParallelExecutor {
    */
   static async run<T>(
     tasks: ParallelTask<T>[],
-    options?: { maxConcurrency?: number }
+    options?: { maxConcurrency?: number },
   ): Promise<ParallelResult<T>[]> {
     const maxConcurrency = options?.maxConcurrency || tasks.length;
     const results: ParallelResult<T>[] = [];
@@ -2641,16 +2691,16 @@ export class ParallelExecutor {
             return {
               id: task.id,
               success: true,
-              result
+              result,
             } as ParallelResult<T>;
           } catch (error) {
             return {
               id: task.id,
               success: false,
-              error: error as Error
+              error: error as Error,
             } as ParallelResult<T>;
           }
-        })
+        }),
       );
 
       results.push(...batchResults);
@@ -2664,15 +2714,15 @@ export class ParallelExecutor {
    * Throws if any task fails
    */
   static async runAll<T>(
-    tasks: ParallelTask<T>[]
+    tasks: ParallelTask<T>[],
   ): Promise<Map<string, AgentResponse & { parsed: T }>> {
     const results = await this.run(tasks);
 
-    const failures = results.filter(r => !r.success);
+    const failures = results.filter((r) => !r.success);
     if (failures.length > 0) {
       const errorMessages = failures
-        .map(f => `${f.id}: ${f.error?.message}`)
-        .join('; ');
+        .map((f) => `${f.id}: ${f.error?.message}`)
+        .join("; ");
       throw new Error(`Parallel execution failed: ${errorMessages}`);
     }
 
@@ -2694,13 +2744,13 @@ export class ParallelExecutor {
 // lib/agent-framework/state-machine.ts
 
 export type EvaluationPhase =
-  | 'PENDING'
-  | 'EVALUATING'
-  | 'DEBATING'
-  | 'SYNTHESIZING'
-  | 'REVIEWING'
-  | 'LOCKED'
-  | 'FAILED';
+  | "PENDING"
+  | "EVALUATING"
+  | "DEBATING"
+  | "SYNTHESIZING"
+  | "REVIEWING"
+  | "LOCKED"
+  | "FAILED";
 
 export interface EvaluationState {
   runId: string;
@@ -2743,19 +2793,19 @@ export interface DebateExchange {
   evaluatorClaim: string;
   redTeamChallenge: string;
   evaluatorDefense: string;
-  arbiterVerdict: 'EVALUATOR' | 'RED_TEAM' | 'DRAW';
+  arbiterVerdict: "EVALUATOR" | "RED_TEAM" | "DRAW";
   scoreAdjustment: number;
 }
 
 // Valid state transitions
 const VALID_TRANSITIONS: Record<EvaluationPhase, EvaluationPhase[]> = {
-  PENDING: ['EVALUATING', 'FAILED'],
-  EVALUATING: ['DEBATING', 'FAILED'],
-  DEBATING: ['SYNTHESIZING', 'EVALUATING', 'FAILED'], // Can loop back for re-evaluation
-  SYNTHESIZING: ['REVIEWING', 'FAILED'],
-  REVIEWING: ['LOCKED', 'DEBATING', 'FAILED'], // Can loop back if user disputes
+  PENDING: ["EVALUATING", "FAILED"],
+  EVALUATING: ["DEBATING", "FAILED"],
+  DEBATING: ["SYNTHESIZING", "EVALUATING", "FAILED"], // Can loop back for re-evaluation
+  SYNTHESIZING: ["REVIEWING", "FAILED"],
+  REVIEWING: ["LOCKED", "DEBATING", "FAILED"], // Can loop back if user disputes
   LOCKED: [], // Terminal state
-  FAILED: ['PENDING'] // Can retry from beginning
+  FAILED: ["PENDING"], // Can retry from beginning
 };
 
 export class EvaluationStateMachine {
@@ -2765,7 +2815,7 @@ export class EvaluationStateMachine {
     this.state = {
       runId,
       ideaId,
-      phase: 'PENDING',
+      phase: "PENDING",
       startedAt: new Date(),
       updatedAt: new Date(),
       completedCriteria: [],
@@ -2775,7 +2825,7 @@ export class EvaluationStateMachine {
       checkpoint: null,
       costSoFar: 0,
       budgetLimit,
-      retryCount: 0
+      retryCount: 0,
     };
   }
 
@@ -2785,7 +2835,7 @@ export class EvaluationStateMachine {
     if (!validNextPhases.includes(newPhase)) {
       throw new Error(
         `Invalid state transition: ${this.state.phase} → ${newPhase}. ` +
-        `Valid transitions: ${validNextPhases.join(', ')}`
+          `Valid transitions: ${validNextPhases.join(", ")}`,
       );
     }
 
@@ -2799,7 +2849,7 @@ export class EvaluationStateMachine {
       completedCriteria: [...this.state.completedCriteria],
       partialScores: new Map(), // Would be populated with actual scores
       debateRound: this.state.currentRound,
-      savedAt: new Date()
+      savedAt: new Date(),
     };
   }
 
@@ -2815,11 +2865,11 @@ export class EvaluationStateMachine {
   }
 
   isTerminal(): boolean {
-    return this.state.phase === 'LOCKED' || this.state.phase === 'FAILED';
+    return this.state.phase === "LOCKED" || this.state.phase === "FAILED";
   }
 
   canRetry(): boolean {
-    return this.state.phase === 'FAILED' && this.state.retryCount < 3;
+    return this.state.phase === "FAILED" && this.state.retryCount < 3;
   }
 }
 ```
@@ -2847,23 +2897,27 @@ lib/
 ### G.4 Migration from Fictional SDK
 
 All code in ARCHITECTURE.md that references:
+
 ```typescript
-import { Agent } from '@anthropic-ai/agent-sdk';
+import { Agent } from "@anthropic-ai/agent-sdk";
 ```
 
 Should be read as:
+
 ```typescript
-import { BaseAgent } from '../lib/agent-framework/base-agent.js';
+import { BaseAgent } from "../lib/agent-framework/base-agent.js";
 ```
 
 And all references to:
+
 ```typescript
 await ParallelExecutor.run([...])
 ```
 
 Use the implementation from:
+
 ```typescript
-import { ParallelExecutor } from '../lib/agent-framework/parallel-executor.js';
+import { ParallelExecutor } from "../lib/agent-framework/parallel-executor.js";
 ```
 
 ---
@@ -2876,25 +2930,25 @@ Detect when an idea's content has changed since its last evaluation, making that
 
 ### H.2 What Gets Hashed
 
-| File | Included | Rationale |
-|------|----------|-----------|
-| `README.md` | ✓ | Core idea definition |
-| `development.md` | ✓ | Clarifying information affects evaluation |
-| `research/*.md` | ✓ | Research findings affect scores |
-| `evaluation.md` | ✗ | Output of evaluation, not input |
-| `redteam.md` | ✗ | Output of red-teaming, not input |
-| `notes/*.md` | ✗ | Freeform, not structured |
-| `assets/*` | ✗ | Binary files, not relevant to scoring |
+| File             | Included | Rationale                                 |
+| ---------------- | -------- | ----------------------------------------- |
+| `README.md`      | ✓        | Core idea definition                      |
+| `development.md` | ✓        | Clarifying information affects evaluation |
+| `research/*.md`  | ✓        | Research findings affect scores           |
+| `evaluation.md`  | ✗        | Output of evaluation, not input           |
+| `redteam.md`     | ✗        | Output of red-teaming, not input          |
+| `notes/*.md`     | ✗        | Freeform, not structured                  |
+| `assets/*`       | ✗        | Binary files, not relevant to scoring     |
 
 ### H.3 Hash Calculation
 
 ```typescript
 // utils/content-hash.ts
 
-import * as crypto from 'crypto';
-import * as fs from 'fs';
-import * as path from 'path';
-import { glob } from 'glob';
+import * as crypto from "crypto";
+import * as fs from "fs";
+import * as path from "path";
+import { glob } from "glob";
 
 export interface ContentHashResult {
   hash: string;
@@ -2903,37 +2957,37 @@ export interface ContentHashResult {
 }
 
 export async function calculateIdeaContentHash(
-  ideaPath: string
+  ideaPath: string,
 ): Promise<ContentHashResult> {
   const filesToHash = [
-    path.join(ideaPath, 'README.md'),
-    path.join(ideaPath, 'development.md'),
-    ...await glob(path.join(ideaPath, 'research', '*.md'))
+    path.join(ideaPath, "README.md"),
+    path.join(ideaPath, "development.md"),
+    ...(await glob(path.join(ideaPath, "research", "*.md"))),
   ];
 
-  const existingFiles = filesToHash.filter(f => fs.existsSync(f));
+  const existingFiles = filesToHash.filter((f) => fs.existsSync(f));
 
   // Sort for deterministic ordering
   existingFiles.sort();
 
-  const hasher = crypto.createHash('sha256');
+  const hasher = crypto.createHash("sha256");
 
   for (const file of existingFiles) {
-    const content = fs.readFileSync(file, 'utf-8');
+    const content = fs.readFileSync(file, "utf-8");
     // Include filename in hash so renames are detected
     hasher.update(`${path.basename(file)}:${content}`);
   }
 
   return {
-    hash: hasher.digest('hex'),
+    hash: hasher.digest("hex"),
     files: existingFiles,
-    calculatedAt: new Date()
+    calculatedAt: new Date(),
   };
 }
 
 export function isEvaluationStale(
   currentHash: string,
-  evaluationHash: string
+  evaluationHash: string,
 ): boolean {
   return currentHash !== evaluationHash;
 }
@@ -2973,29 +3027,38 @@ async function syncIdea(ideaPath: string): Promise<SyncResult> {
   // Calculate and store content hash
   const hashResult = await calculateIdeaContentHash(ideaPath);
 
-  db.prepare(`
+  db.prepare(
+    `
     UPDATE ideas
     SET content_hash = ?, content_hash_updated_at = ?
     WHERE folder_path = ?
-  `).run(hashResult.hash, hashResult.calculatedAt.toISOString(), ideaPath);
+  `,
+  ).run(hashResult.hash, hashResult.calculatedAt.toISOString(), ideaPath);
 
   // Check for stale evaluations
-  const currentEval = db.prepare(`
+  const currentEval = db
+    .prepare(
+      `
     SELECT fs.content_hash_at_evaluation, fs.overall_score, fs.completed_at
     FROM final_syntheses fs
     JOIN ideas i ON fs.idea_id = i.id
     WHERE i.folder_path = ? AND fs.status = 'CURRENT'
-  `).get(ideaPath) as any;
+  `,
+    )
+    .get(ideaPath) as any;
 
-  if (currentEval && isEvaluationStale(hashResult.hash, currentEval.content_hash_at_evaluation)) {
+  if (
+    currentEval &&
+    isEvaluationStale(hashResult.hash, currentEval.content_hash_at_evaluation)
+  ) {
     return {
-      status: 'STALE_EVALUATION',
+      status: "STALE_EVALUATION",
       message: `Evaluation from ${currentEval.completed_at} is stale (score was ${currentEval.overall_score})`,
-      ideaPath
+      ideaPath,
     };
   }
 
-  return { status: 'SYNCED', ideaPath };
+  return { status: "SYNCED", ideaPath };
 }
 ```
 
@@ -3024,6 +3087,7 @@ Sync complete: 3 ideas, 1 stale evaluation
 ### I.1 Contract Test Philosophy
 
 Contract tests define **what a component must do**, not **how it does it**. They are:
+
 - Written before implementation
 - Based on the interfaces defined in this architecture
 - Focused on inputs, outputs, and error conditions
@@ -3036,63 +3100,63 @@ Each agent has a contract test file that defines its behavioral requirements:
 ```typescript
 // tests/contracts/evaluator.contract.test.ts
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { EvaluatorAgent } from '../../lib/agent-framework/agents/evaluator-agent.js';
-import { ALL_CRITERIA } from '../../agents/config.js';
-import { EvaluationResponseSchema } from '../../utils/schemas.js';
+import { describe, it, expect, beforeEach } from "vitest";
+import { EvaluatorAgent } from "../../lib/agent-framework/agents/evaluator-agent.js";
+import { ALL_CRITERIA } from "../../agents/config.js";
+import { EvaluationResponseSchema } from "../../utils/schemas.js";
 
-describe('Evaluator Agent Contract', () => {
+describe("Evaluator Agent Contract", () => {
   // These tests define WHAT the evaluator must do
   // They are written BEFORE the evaluator is implemented
 
-  describe('Response Structure', () => {
-    it('must return exactly 30 criterion evaluations', async () => {
+  describe("Response Structure", () => {
+    it("must return exactly 30 criterion evaluations", async () => {
       // ARRANGE: Set up with mock or real API
       // ACT: Run evaluation
       // ASSERT: Response has 30 evaluations
     });
 
-    it('must include all criteria from taxonomy', async () => {
+    it("must include all criteria from taxonomy", async () => {
       // ASSERT: Every criterion in ALL_CRITERIA is present in response
     });
 
-    it('must return scores in range 1-10 for each criterion', async () => {
+    it("must return scores in range 1-10 for each criterion", async () => {
       // ASSERT: All scores are integers 1-10
     });
 
-    it('must return confidence in range 0-1 for each criterion', async () => {
+    it("must return confidence in range 0-1 for each criterion", async () => {
       // ASSERT: All confidence values are 0 ≤ c ≤ 1
     });
 
-    it('must provide non-empty reasoning for each score', async () => {
+    it("must provide non-empty reasoning for each score", async () => {
       // ASSERT: All reasoning strings have length > 0
     });
 
-    it('must pass Zod schema validation', async () => {
+    it("must pass Zod schema validation", async () => {
       // ASSERT: EvaluationResponseSchema.parse(response) succeeds
     });
   });
 
-  describe('Error Handling', () => {
-    it('must throw EvaluationParseError for malformed idea content', async () => {
+  describe("Error Handling", () => {
+    it("must throw EvaluationParseError for malformed idea content", async () => {
       // ASSERT: Throws specific error type
     });
 
-    it('must throw BudgetExceededError when budget is exhausted', async () => {
+    it("must throw BudgetExceededError when budget is exhausted", async () => {
       // ASSERT: Throws before making API call if budget is 0
     });
 
-    it('must retry on rate limit errors', async () => {
+    it("must retry on rate limit errors", async () => {
       // ASSERT: Retries up to 3 times with exponential backoff
     });
   });
 
-  describe('Cost Tracking', () => {
-    it('must report token usage for each API call', async () => {
+  describe("Cost Tracking", () => {
+    it("must report token usage for each API call", async () => {
       // ASSERT: CostTracker.track() called with usage
     });
 
-    it('must check budget before each API call', async () => {
+    it("must check budget before each API call", async () => {
       // ASSERT: CostTracker.checkBudget() called
     });
   });
@@ -3101,50 +3165,50 @@ describe('Evaluator Agent Contract', () => {
 
 ### I.3 Required Contract Test Files
 
-| File | Component | Key Contracts |
-|------|-----------|---------------|
-| `evaluator.contract.test.ts` | Evaluator Agent | 30 evaluations, valid scores, taxonomy coverage |
-| `redteam.contract.test.ts` | Red Team Agent | Valid challenges, persona consistency, severity ratings |
-| `arbiter.contract.test.ts` | Arbiter Agent | Valid verdicts, score adjustments in range, reasoning |
-| `synthesis.contract.test.ts` | Synthesis Agent | Complete document, all required fields, recommendations |
-| `convergence.contract.test.ts` | Convergence Logic | Correct termination, all criteria checked |
-| `state-machine.contract.test.ts` | State Machine | Valid transitions, checkpoint/restore |
-| `cost-tracker.contract.test.ts` | Cost Tracker | Accurate calculation, budget enforcement |
-| `content-hash.contract.test.ts` | Content Hash | Deterministic, includes correct files |
+| File                             | Component         | Key Contracts                                           |
+| -------------------------------- | ----------------- | ------------------------------------------------------- |
+| `evaluator.contract.test.ts`     | Evaluator Agent   | 30 evaluations, valid scores, taxonomy coverage         |
+| `redteam.contract.test.ts`       | Red Team Agent    | Valid challenges, persona consistency, severity ratings |
+| `arbiter.contract.test.ts`       | Arbiter Agent     | Valid verdicts, score adjustments in range, reasoning   |
+| `synthesis.contract.test.ts`     | Synthesis Agent   | Complete document, all required fields, recommendations |
+| `convergence.contract.test.ts`   | Convergence Logic | Correct termination, all criteria checked               |
+| `state-machine.contract.test.ts` | State Machine     | Valid transitions, checkpoint/restore                   |
+| `cost-tracker.contract.test.ts`  | Cost Tracker      | Accurate calculation, budget enforcement                |
+| `content-hash.contract.test.ts`  | Content Hash      | Deterministic, includes correct files                   |
 
 ### I.4 Boundary Test Specifications
 
 ```typescript
 // tests/boundaries/score-validation.test.ts
 
-describe('Score Boundaries', () => {
-  describe('Criterion Scores', () => {
-    it('rejects score < 1', () => {});
-    it('rejects score > 10', () => {});
-    it('rejects non-integer scores', () => {});
-    it('accepts score = 1 (minimum)', () => {});
-    it('accepts score = 10 (maximum)', () => {});
-    it('accepts score = 5 (midpoint)', () => {});
+describe("Score Boundaries", () => {
+  describe("Criterion Scores", () => {
+    it("rejects score < 1", () => {});
+    it("rejects score > 10", () => {});
+    it("rejects non-integer scores", () => {});
+    it("accepts score = 1 (minimum)", () => {});
+    it("accepts score = 10 (maximum)", () => {});
+    it("accepts score = 5 (midpoint)", () => {});
   });
 
-  describe('Confidence Values', () => {
-    it('rejects confidence < 0', () => {});
-    it('rejects confidence > 1', () => {});
-    it('accepts confidence = 0 (minimum)', () => {});
-    it('accepts confidence = 1 (maximum)', () => {});
-    it('accepts confidence = 0.5 (midpoint)', () => {});
+  describe("Confidence Values", () => {
+    it("rejects confidence < 0", () => {});
+    it("rejects confidence > 1", () => {});
+    it("accepts confidence = 0 (minimum)", () => {});
+    it("accepts confidence = 1 (maximum)", () => {});
+    it("accepts confidence = 0.5 (midpoint)", () => {});
   });
 
-  describe('Budget Limits', () => {
-    it('enforces $0 budget (no API calls allowed)', () => {});
-    it('enforces exact budget boundary', () => {});
-    it('allows operations under budget', () => {});
+  describe("Budget Limits", () => {
+    it("enforces $0 budget (no API calls allowed)", () => {});
+    it("enforces exact budget boundary", () => {});
+    it("allows operations under budget", () => {});
   });
 
-  describe('Round Limits', () => {
-    it('enforces max rounds = 5', () => {});
-    it('allows rounds 1-5', () => {});
-    it('triggers forced synthesis at max rounds', () => {});
+  describe("Round Limits", () => {
+    it("enforces max rounds = 5", () => {});
+    it("allows rounds 1-5", () => {});
+    it("triggers forced synthesis at max rounds", () => {});
   });
 });
 ```
@@ -3154,30 +3218,30 @@ describe('Score Boundaries', () => {
 ```typescript
 // tests/state-machine/evaluation-states.test.ts
 
-describe('Evaluation State Machine', () => {
-  describe('Valid Transitions', () => {
-    it('PENDING → EVALUATING', () => {});
-    it('EVALUATING → DEBATING', () => {});
-    it('DEBATING → SYNTHESIZING', () => {});
-    it('SYNTHESIZING → REVIEWING', () => {});
-    it('REVIEWING → LOCKED', () => {});
-    it('DEBATING → EVALUATING (re-evaluation loop)', () => {});
-    it('REVIEWING → DEBATING (user dispute)', () => {});
-    it('* → FAILED (any state can fail)', () => {});
-    it('FAILED → PENDING (retry)', () => {});
+describe("Evaluation State Machine", () => {
+  describe("Valid Transitions", () => {
+    it("PENDING → EVALUATING", () => {});
+    it("EVALUATING → DEBATING", () => {});
+    it("DEBATING → SYNTHESIZING", () => {});
+    it("SYNTHESIZING → REVIEWING", () => {});
+    it("REVIEWING → LOCKED", () => {});
+    it("DEBATING → EVALUATING (re-evaluation loop)", () => {});
+    it("REVIEWING → DEBATING (user dispute)", () => {});
+    it("* → FAILED (any state can fail)", () => {});
+    it("FAILED → PENDING (retry)", () => {});
   });
 
-  describe('Invalid Transitions', () => {
-    it('rejects PENDING → LOCKED', () => {});
-    it('rejects LOCKED → * (terminal state)', () => {});
-    it('rejects EVALUATING → REVIEWING (skip debate)', () => {});
+  describe("Invalid Transitions", () => {
+    it("rejects PENDING → LOCKED", () => {});
+    it("rejects LOCKED → * (terminal state)", () => {});
+    it("rejects EVALUATING → REVIEWING (skip debate)", () => {});
   });
 
-  describe('Checkpoint/Restore', () => {
-    it('creates checkpoint with current state', () => {});
-    it('restores from checkpoint accurately', () => {});
-    it('preserves completed criteria on restore', () => {});
-    it('preserves cost tracking on restore', () => {});
+  describe("Checkpoint/Restore", () => {
+    it("creates checkpoint with current state", () => {});
+    it("restores from checkpoint accurately", () => {});
+    it("preserves completed criteria on restore", () => {});
+    it("preserves cost tracking on restore", () => {});
   });
 });
 ```
@@ -3187,43 +3251,43 @@ describe('Evaluation State Machine', () => {
 ```typescript
 // tests/e2e/full-lifecycle.test.ts
 
-describe('Full Idea Lifecycle', () => {
-  it('captures idea and creates folder structure', async () => {
+describe("Full Idea Lifecycle", () => {
+  it("captures idea and creates folder structure", async () => {
     // 1. Capture idea via CLI
     // 2. Verify folder created: ideas/[slug]/
     // 3. Verify README.md has correct frontmatter
     // 4. Verify database entry created
   });
 
-  it('evaluates idea and produces scores', async () => {
+  it("evaluates idea and produces scores", async () => {
     // 1. Run evaluation on captured idea
     // 2. Verify 30 criteria scored
     // 3. Verify evaluation.md created
     // 4. Verify database records
   });
 
-  it('debates evaluation and adjusts scores', async () => {
+  it("debates evaluation and adjusts scores", async () => {
     // 1. Run debate on evaluated idea
     // 2. Verify challenges generated
     // 3. Verify defenses recorded
     // 4. Verify score adjustments applied
   });
 
-  it('synthesizes debate into final document', async () => {
+  it("synthesizes debate into final document", async () => {
     // 1. Run synthesis
     // 2. Verify convergence detected
     // 3. Verify FinalSynthesisDocument structure
     // 4. Verify locked state
   });
 
-  it('detects stale evaluation after content change', async () => {
+  it("detects stale evaluation after content change", async () => {
     // 1. Modify idea README.md
     // 2. Run sync
     // 3. Verify staleness warning
     // 4. Verify hash mismatch detected
   });
 
-  it('respects budget limit across full lifecycle', async () => {
+  it("respects budget limit across full lifecycle", async () => {
     // 1. Set low budget ($1)
     // 2. Run evaluation
     // 3. Verify BudgetExceededError thrown
@@ -3243,6 +3307,7 @@ This appendix documents specific corrections to earlier architecture sections ba
 **All references to `@anthropic-ai/agent-sdk` should be read as using the custom agent framework defined in Appendix G.**
 
 Specifically:
+
 - `import { Agent } from '@anthropic-ai/agent-sdk'` → `import { BaseAgent } from '../lib/agent-framework/base-agent.js'`
 - `new Agent({...})` → Extend `BaseAgent` for specific agent types
 - `ParallelExecutor.run([...])` → Use implementation from Appendix G.2.3
@@ -3272,6 +3337,7 @@ Any discrepancy between Section 3 criteria names and the taxonomy should be reso
 ### J.4 Debate Configuration Clarification
 
 **Correct interpretation:**
+
 - 5 challenges **per idea** (not per criterion)
 - Each of the 3 personas generates challenges targeting different criteria
 - Total: ~5 challenges × 3 rounds = 15 debate exchanges per evaluation
@@ -3282,6 +3348,7 @@ Any discrepancy between Section 3 criteria names and the taxonomy should be reso
 **Document Status**: Updated with agent orchestration framework (Appendix G), content hash mechanism (Appendix H), TDD contract specifications (Appendix I), and corrections (Appendix J).
 
 **Cross-Reference**: See IMPLEMENTATION-PLAN.md Appendices G-K for:
+
 - G: Gap remediation specifications (retry, checkpoint, rate limiting, concurrency, observability)
 - H: Schema reconciliation (authoritative Zod schemas)
 - I: Phase reconciliation (authoritative phase structure)

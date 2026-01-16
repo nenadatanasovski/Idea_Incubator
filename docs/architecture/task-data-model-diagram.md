@@ -725,19 +725,19 @@ flowchart TB
 
 ## Table Categories Summary
 
-| Category | Tables | Purpose |
-|----------|--------|---------|
-| **Core Entities** | `users`, `projects`, `ideas` | Ownership and organization |
-| **Task Core** | `tasks`, `task_lists_v2`, `task_list_items` | Task storage and grouping |
-| **Task Metadata** | `task_relationships`, `task_state_history`, `task_blocks`, `task_templates` | Task details and history |
-| **Testing** | `task_test_results`, `validation_rules` | Quality validation |
-| **Execution Log** | `task_execution_log` | Build Agent handoff + SIA analysis |
-| **Questions** | `questions` | Human-in-the-loop |
-| **File Analysis** | `task_file_impacts`, `parallelism_analysis` | Conflict detection |
-| **Execution Runs** | `task_list_execution_runs`, `parallel_execution_waves`, `wave_task_assignments` | Run isolation and waves |
-| **Build Agents** | `build_agent_instances`, `agent_heartbeats` | Worker management |
-| **Auto-Grouping** | `grouping_suggestions`, `grouping_criteria_weights` | Intelligent grouping |
-| **Task Agent** | `task_agent_instances` | Orchestrator management |
+| Category           | Tables                                                                          | Purpose                            |
+| ------------------ | ------------------------------------------------------------------------------- | ---------------------------------- |
+| **Core Entities**  | `users`, `projects`, `ideas`                                                    | Ownership and organization         |
+| **Task Core**      | `tasks`, `task_lists_v2`, `task_list_items`                                     | Task storage and grouping          |
+| **Task Metadata**  | `task_relationships`, `task_state_history`, `task_blocks`, `task_templates`     | Task details and history           |
+| **Testing**        | `task_test_results`, `validation_rules`                                         | Quality validation                 |
+| **Execution Log**  | `task_execution_log`                                                            | Build Agent handoff + SIA analysis |
+| **Questions**      | `questions`                                                                     | Human-in-the-loop                  |
+| **File Analysis**  | `task_file_impacts`, `parallelism_analysis`                                     | Conflict detection                 |
+| **Execution Runs** | `task_list_execution_runs`, `parallel_execution_waves`, `wave_task_assignments` | Run isolation and waves            |
+| **Build Agents**   | `build_agent_instances`, `agent_heartbeats`                                     | Worker management                  |
+| **Auto-Grouping**  | `grouping_suggestions`, `grouping_criteria_weights`                             | Intelligent grouping               |
+| **Task Agent**     | `task_agent_instances`                                                          | Orchestrator management            |
 
 ---
 
@@ -767,4 +767,4 @@ flowchart TB
 
 ---
 
-*This diagram represents the complete Task Agent data model as of 2026-01-13.*
+_This diagram represents the complete Task Agent data model as of 2026-01-13._

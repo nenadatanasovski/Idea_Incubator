@@ -10,18 +10,18 @@
  * Run with: npx tsx tests/puppeteer/test-fixes.ts
  */
 
-import puppeteer, { Browser, Page } from 'puppeteer';
-import * as fs from 'fs';
-import * as path from 'path';
-import { execSync, spawn, ChildProcess } from 'child_process';
+import puppeteer, { Browser, Page } from "puppeteer";
+import * as fs from "fs";
+import * as path from "path";
+import { execSync, spawn, ChildProcess } from "child_process";
 
 // Test configuration
 const CONFIG = {
-  baseUrl: 'http://localhost:3000',
+  baseUrl: "http://localhost:3000",
   serverStartTimeout: 30000,
   testTimeout: 120000,
-  testIdeaSlug: 'puppeteer-test-idea',
-  testProfileSlug: 'puppeteer-test-profile'
+  testIdeaSlug: "puppeteer-test-idea",
+  testProfileSlug: "puppeteer-test-profile",
 };
 
 // Test results tracking
@@ -50,9 +50,9 @@ function log(message: string): void {
 function runCommand(command: string): string {
   try {
     return execSync(command, {
-      cwd: path.join(__dirname, '../..'),
-      encoding: 'utf-8',
-      timeout: 60000
+      cwd: path.join(__dirname, "../.."),
+      encoding: "utf-8",
+      timeout: 60000,
     });
   } catch (error: any) {
     return error.stdout || error.message;
@@ -63,9 +63,9 @@ function runCommand(command: string): string {
  * Setup test fixtures (idea folder, development.md, profile)
  */
 async function setupTestFixtures(): Promise<void> {
-  log('Setting up test fixtures...');
+  log("Setting up test fixtures...");
 
-  const ideasDir = path.join(__dirname, '../../ideas');
+  const ideasDir = path.join(__dirname, "../../ideas");
   const testIdeaDir = path.join(ideasDir, CONFIG.testIdeaSlug);
 
   // Create test idea directory
@@ -79,7 +79,7 @@ id: test-puppeteer-${Date.now()}
 title: Puppeteer Test Idea
 type: business
 stage: EVALUATE
-created: ${new Date().toISOString().split('T')[0]}
+created: ${new Date().toISOString().split("T")[0]}
 tags:
   - test
   - puppeteer
@@ -107,12 +107,12 @@ An AI-powered plant care app that uses computer vision to identify plants and pr
 Urban millennials and Gen Z who own houseplants but lack gardening expertise.
 `;
 
-  fs.writeFileSync(path.join(testIdeaDir, 'README.md'), readmeContent);
+  fs.writeFileSync(path.join(testIdeaDir, "README.md"), readmeContent);
 
   // Create development.md with Q&A content (Phase 1 test)
   const developmentContent = `# Development Notes
 
-## Q&A Session - ${new Date().toISOString().split('T')[0]}
+## Q&A Session - ${new Date().toISOString().split("T")[0]}
 
 **Q: What is the core problem you're solving?**
 A: Plant owners, especially beginners, often overwater or underwater their plants because they lack knowledge about each plant's specific needs. This leads to plant death and frustration, causing people to give up on plant ownership.
@@ -130,10 +130,13 @@ A: Unlike Planta which relies on manual plant identification, our app uses AI to
 A: The main risks are: 1) AI accuracy for rare plant species, 2) User retention after initial novelty wears off, 3) Competition from established players who could copy our features.
 `;
 
-  fs.writeFileSync(path.join(testIdeaDir, 'development.md'), developmentContent);
+  fs.writeFileSync(
+    path.join(testIdeaDir, "development.md"),
+    developmentContent,
+  );
 
   // Create a test profile (Phase 2 test)
-  const profilesDir = path.join(__dirname, '../../profiles');
+  const profilesDir = path.join(__dirname, "../../profiles");
   if (!fs.existsSync(profilesDir)) {
     fs.mkdirSync(profilesDir, { recursive: true });
   }
@@ -170,19 +173,26 @@ slug: ${CONFIG.testProfileSlug}
 - Risk tolerance: Medium
 `;
 
-  fs.writeFileSync(path.join(profilesDir, `${CONFIG.testProfileSlug}.md`), profileContent);
+  fs.writeFileSync(
+    path.join(profilesDir, `${CONFIG.testProfileSlug}.md`),
+    profileContent,
+  );
 
-  log('Test fixtures created');
+  log("Test fixtures created");
 }
 
 /**
  * Clean up test fixtures
  */
 async function cleanupTestFixtures(): Promise<void> {
-  log('Cleaning up test fixtures...');
+  log("Cleaning up test fixtures...");
 
-  const testIdeaDir = path.join(__dirname, '../../ideas', CONFIG.testIdeaSlug);
-  const testProfilePath = path.join(__dirname, '../../profiles', `${CONFIG.testProfileSlug}.md`);
+  const testIdeaDir = path.join(__dirname, "../../ideas", CONFIG.testIdeaSlug);
+  const testProfilePath = path.join(
+    __dirname,
+    "../../profiles",
+    `${CONFIG.testProfileSlug}.md`,
+  );
 
   if (fs.existsSync(testIdeaDir)) {
     fs.rmSync(testIdeaDir, { recursive: true });
@@ -192,7 +202,7 @@ async function cleanupTestFixtures(): Promise<void> {
     fs.unlinkSync(testProfilePath);
   }
 
-  log('Test fixtures cleaned up');
+  log("Test fixtures cleaned up");
 }
 
 /**
@@ -200,67 +210,72 @@ async function cleanupTestFixtures(): Promise<void> {
  */
 async function testQASync(): Promise<TestResult> {
   const startTime = Date.now();
-  const testName = 'Phase 1: Q&A Sync';
+  const testName = "Phase 1: Q&A Sync";
 
   try {
     log(`Running test: ${testName}`);
 
     // Run sync command
-    const syncOutput = runCommand('npm run sync 2>&1');
+    const syncOutput = runCommand("npm run sync 2>&1");
     log(`Sync output: ${syncOutput.substring(0, 500)}...`);
 
     // Check if development answers were synced
-    if (!syncOutput.includes('Development Answers') && !syncOutput.includes('Synced')) {
+    if (
+      !syncOutput.includes("Development Answers") &&
+      !syncOutput.includes("Synced")
+    ) {
       // Check if the parser was at least called
-      const hasParser = fs.existsSync(path.join(__dirname, '../../questions/parser.ts'));
+      const hasParser = fs.existsSync(
+        path.join(__dirname, "../../questions/parser.ts"),
+      );
       if (!hasParser) {
-        throw new Error('Parser file not found');
+        throw new Error("Parser file not found");
       }
     }
 
     // Verify the parser module works
     const parserCode = fs.readFileSync(
-      path.join(__dirname, '../../questions/parser.ts'),
-      'utf-8'
+      path.join(__dirname, "../../questions/parser.ts"),
+      "utf-8",
     );
 
-    if (!parserCode.includes('parseQAFromMarkdown')) {
-      throw new Error('parseQAFromMarkdown function not found in parser');
+    if (!parserCode.includes("parseQAFromMarkdown")) {
+      throw new Error("parseQAFromMarkdown function not found in parser");
     }
 
-    if (!parserCode.includes('parseDevlopmentMd')) {
-      throw new Error('parseDevlopmentMd function not found in parser');
+    if (!parserCode.includes("parseDevlopmentMd")) {
+      throw new Error("parseDevlopmentMd function not found in parser");
     }
 
     // Verify the classifier module works
     const classifierCode = fs.readFileSync(
-      path.join(__dirname, '../../questions/classifier.ts'),
-      'utf-8'
+      path.join(__dirname, "../../questions/classifier.ts"),
+      "utf-8",
     );
 
-    if (!classifierCode.includes('classifyQuestionToId')) {
-      throw new Error('classifyQuestionToId function not found in classifier');
+    if (!classifierCode.includes("classifyQuestionToId")) {
+      throw new Error("classifyQuestionToId function not found in classifier");
     }
 
     // Verify sync.ts imports the parser
     const syncCode = fs.readFileSync(
-      path.join(__dirname, '../../scripts/sync.ts'),
-      'utf-8'
+      path.join(__dirname, "../../scripts/sync.ts"),
+      "utf-8",
     );
 
-    if (!syncCode.includes('syncDevelopmentAnswers')) {
-      throw new Error('syncDevelopmentAnswers not found in sync.ts');
+    if (!syncCode.includes("syncDevelopmentAnswers")) {
+      throw new Error("syncDevelopmentAnswers not found in sync.ts");
     }
 
-    if (!syncCode.includes('computeIdeaHash')) {
-      throw new Error('computeIdeaHash not found in sync.ts');
+    if (!syncCode.includes("computeIdeaHash")) {
+      throw new Error("computeIdeaHash not found in sync.ts");
     }
 
     log(`${testName} PASSED`);
     return {
       name: testName,
       passed: true,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   } catch (error: any) {
     log(`${testName} FAILED: ${error.message}`);
@@ -268,7 +283,7 @@ async function testQASync(): Promise<TestResult> {
       name: testName,
       passed: false,
       error: error.message,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   }
 }
@@ -278,50 +293,62 @@ async function testQASync(): Promise<TestResult> {
  */
 async function testProfileContext(): Promise<TestResult> {
   const startTime = Date.now();
-  const testName = 'Phase 2: Profile Context';
+  const testName = "Phase 2: Profile Context";
 
   try {
     log(`Running test: ${testName}`);
 
     // Verify profile-context.ts exists and has formatProfileForCategory
     const profileContextCode = fs.readFileSync(
-      path.join(__dirname, '../../utils/profile-context.ts'),
-      'utf-8'
+      path.join(__dirname, "../../utils/profile-context.ts"),
+      "utf-8",
     );
 
-    if (!profileContextCode.includes('formatProfileForCategory')) {
-      throw new Error('formatProfileForCategory not found in profile-context.ts');
+    if (!profileContextCode.includes("formatProfileForCategory")) {
+      throw new Error(
+        "formatProfileForCategory not found in profile-context.ts",
+      );
     }
 
     // Verify it handles all expected categories
-    const expectedCategories = ['feasibility', 'market', 'risk', 'fit'];
+    const expectedCategories = ["feasibility", "market", "risk", "fit"];
     for (const cat of expectedCategories) {
       if (!profileContextCode.includes(`case '${cat}':`)) {
-        throw new Error(`Category '${cat}' not handled in formatProfileForCategory`);
+        throw new Error(
+          `Category '${cat}' not handled in formatProfileForCategory`,
+        );
       }
     }
 
     // Verify specialized-evaluators.ts imports and uses it
     const evaluatorsCode = fs.readFileSync(
-      path.join(__dirname, '../../agents/specialized-evaluators.ts'),
-      'utf-8'
+      path.join(__dirname, "../../agents/specialized-evaluators.ts"),
+      "utf-8",
     );
 
     if (!evaluatorsCode.includes("import { formatProfileForCategory }")) {
-      throw new Error('formatProfileForCategory not imported in specialized-evaluators.ts');
+      throw new Error(
+        "formatProfileForCategory not imported in specialized-evaluators.ts",
+      );
     }
 
     // Verify the old conditional is replaced
-    if (evaluatorsCode.includes("category === 'fit'") &&
-        evaluatorsCode.includes('formatProfileContextForFitEvaluator(profileContext')) {
-      throw new Error('Old fit-only conditional still present in specialized-evaluators.ts');
+    if (
+      evaluatorsCode.includes("category === 'fit'") &&
+      evaluatorsCode.includes(
+        "formatProfileContextForFitEvaluator(profileContext",
+      )
+    ) {
+      throw new Error(
+        "Old fit-only conditional still present in specialized-evaluators.ts",
+      );
     }
 
     log(`${testName} PASSED`);
     return {
       name: testName,
       passed: true,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   } catch (error: any) {
     log(`${testName} FAILED: ${error.message}`);
@@ -329,7 +356,7 @@ async function testProfileContext(): Promise<TestResult> {
       name: testName,
       passed: false,
       error: error.message,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   }
 }
@@ -339,72 +366,76 @@ async function testProfileContext(): Promise<TestResult> {
  */
 async function testWebResearch(): Promise<TestResult> {
   const startTime = Date.now();
-  const testName = 'Phase 3: Web Research';
+  const testName = "Phase 3: Web Research";
 
   try {
     log(`Running test: ${testName}`);
 
     // Verify claims-extractor.ts exists
     const claimsExtractorCode = fs.readFileSync(
-      path.join(__dirname, '../../utils/claims-extractor.ts'),
-      'utf-8'
+      path.join(__dirname, "../../utils/claims-extractor.ts"),
+      "utf-8",
     );
 
-    if (!claimsExtractorCode.includes('extractClaimsFromContent')) {
-      throw new Error('extractClaimsFromContent not found in claims-extractor.ts');
+    if (!claimsExtractorCode.includes("extractClaimsFromContent")) {
+      throw new Error(
+        "extractClaimsFromContent not found in claims-extractor.ts",
+      );
     }
 
-    if (!claimsExtractorCode.includes('buildSearchQueries')) {
-      throw new Error('buildSearchQueries not found in claims-extractor.ts');
+    if (!claimsExtractorCode.includes("buildSearchQueries")) {
+      throw new Error("buildSearchQueries not found in claims-extractor.ts");
     }
 
     // Verify research.ts exists
     const researchCode = fs.readFileSync(
-      path.join(__dirname, '../../agents/research.ts'),
-      'utf-8'
+      path.join(__dirname, "../../agents/research.ts"),
+      "utf-8",
     );
 
-    if (!researchCode.includes('conductPreEvaluationResearch')) {
-      throw new Error('conductPreEvaluationResearch not found in research.ts');
+    if (!researchCode.includes("conductPreEvaluationResearch")) {
+      throw new Error("conductPreEvaluationResearch not found in research.ts");
     }
 
-    if (!researchCode.includes('formatResearchForCategory')) {
-      throw new Error('formatResearchForCategory not found in research.ts');
+    if (!researchCode.includes("formatResearchForCategory")) {
+      throw new Error("formatResearchForCategory not found in research.ts");
     }
 
     // Verify research is integrated into evaluate.ts
     const evaluateCode = fs.readFileSync(
-      path.join(__dirname, '../../scripts/evaluate.ts'),
-      'utf-8'
+      path.join(__dirname, "../../scripts/evaluate.ts"),
+      "utf-8",
     );
 
-    if (!evaluateCode.includes('conductPreEvaluationResearch')) {
-      throw new Error('conductPreEvaluationResearch not called in evaluate.ts');
+    if (!evaluateCode.includes("conductPreEvaluationResearch")) {
+      throw new Error("conductPreEvaluationResearch not called in evaluate.ts");
     }
 
-    if (!evaluateCode.includes('extractClaimsFromContent')) {
-      throw new Error('extractClaimsFromContent not called in evaluate.ts');
+    if (!evaluateCode.includes("extractClaimsFromContent")) {
+      throw new Error("extractClaimsFromContent not called in evaluate.ts");
     }
 
     // Verify specialized-evaluators.ts accepts research parameter
     const evaluatorsCode = fs.readFileSync(
-      path.join(__dirname, '../../agents/specialized-evaluators.ts'),
-      'utf-8'
+      path.join(__dirname, "../../agents/specialized-evaluators.ts"),
+      "utf-8",
     );
 
-    if (!evaluatorsCode.includes('research?: ResearchResult')) {
-      throw new Error('research parameter not added to specialized evaluators');
+    if (!evaluatorsCode.includes("research?: ResearchResult")) {
+      throw new Error("research parameter not added to specialized evaluators");
     }
 
-    if (!evaluatorsCode.includes('formatResearchForCategory')) {
-      throw new Error('formatResearchForCategory not used in specialized-evaluators.ts');
+    if (!evaluatorsCode.includes("formatResearchForCategory")) {
+      throw new Error(
+        "formatResearchForCategory not used in specialized-evaluators.ts",
+      );
     }
 
     log(`${testName} PASSED`);
     return {
       name: testName,
       passed: true,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   } catch (error: any) {
     log(`${testName} FAILED: ${error.message}`);
@@ -412,7 +443,7 @@ async function testWebResearch(): Promise<TestResult> {
       name: testName,
       passed: false,
       error: error.message,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   }
 }
@@ -422,36 +453,36 @@ async function testWebResearch(): Promise<TestResult> {
  */
 async function testBudgetConfig(): Promise<TestResult> {
   const startTime = Date.now();
-  const testName = 'Budget Configuration';
+  const testName = "Budget Configuration";
 
   try {
     log(`Running test: ${testName}`);
 
     // Verify default budget is $15
     const configCode = fs.readFileSync(
-      path.join(__dirname, '../../config/default.ts'),
-      'utf-8'
+      path.join(__dirname, "../../config/default.ts"),
+      "utf-8",
     );
 
-    if (!configCode.includes('default: 15')) {
-      throw new Error('Default budget not set to $15 in config/default.ts');
+    if (!configCode.includes("default: 15")) {
+      throw new Error("Default budget not set to $15 in config/default.ts");
     }
 
     // Verify CLI uses $15 default
     const evaluateCode = fs.readFileSync(
-      path.join(__dirname, '../../scripts/evaluate.ts'),
-      'utf-8'
+      path.join(__dirname, "../../scripts/evaluate.ts"),
+      "utf-8",
     );
 
     if (!evaluateCode.includes("'Budget in dollars', '15'")) {
-      throw new Error('CLI default budget not set to $15 in evaluate.ts');
+      throw new Error("CLI default budget not set to $15 in evaluate.ts");
     }
 
     log(`${testName} PASSED`);
     return {
       name: testName,
       passed: true,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   } catch (error: any) {
     log(`${testName} FAILED: ${error.message}`);
@@ -459,7 +490,7 @@ async function testBudgetConfig(): Promise<TestResult> {
       name: testName,
       passed: false,
       error: error.message,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   }
 }
@@ -469,24 +500,26 @@ async function testBudgetConfig(): Promise<TestResult> {
  */
 async function testTypeScriptCompilation(): Promise<TestResult> {
   const startTime = Date.now();
-  const testName = 'TypeScript Compilation';
+  const testName = "TypeScript Compilation";
 
   try {
     log(`Running test: ${testName}`);
 
     // Run TypeScript compiler in check mode
-    const tscOutput = runCommand('npx tsc --noEmit 2>&1');
+    const tscOutput = runCommand("npx tsc --noEmit 2>&1");
 
     // Check for errors (tsc returns error code if compilation fails)
-    if (tscOutput.includes('error TS')) {
-      throw new Error(`TypeScript errors found:\n${tscOutput.substring(0, 1000)}`);
+    if (tscOutput.includes("error TS")) {
+      throw new Error(
+        `TypeScript errors found:\n${tscOutput.substring(0, 1000)}`,
+      );
     }
 
     log(`${testName} PASSED`);
     return {
       name: testName,
       passed: true,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   } catch (error: any) {
     log(`${testName} FAILED: ${error.message}`);
@@ -494,7 +527,7 @@ async function testTypeScriptCompilation(): Promise<TestResult> {
       name: testName,
       passed: false,
       error: error.message,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   }
 }
@@ -504,22 +537,17 @@ async function testTypeScriptCompilation(): Promise<TestResult> {
  */
 async function testParserPatterns(): Promise<TestResult> {
   const startTime = Date.now();
-  const testName = 'Parser Pattern Matching';
+  const testName = "Parser Pattern Matching";
 
   try {
     log(`Running test: ${testName}`);
 
     // Import the parser dynamically
-    const parserPath = path.join(__dirname, '../../questions/parser.ts');
-    const parserCode = fs.readFileSync(parserPath, 'utf-8');
+    const parserPath = path.join(__dirname, "../../questions/parser.ts");
+    const parserCode = fs.readFileSync(parserPath, "utf-8");
 
     // Test that patterns are defined
-    const patterns = [
-      '**Q:',
-      '###',
-      'Q:',
-      'A:'
-    ];
+    const patterns = ["**Q:", "###", "Q:", "A:"];
 
     for (const pattern of patterns) {
       if (!parserCode.includes(pattern)) {
@@ -531,7 +559,7 @@ async function testParserPatterns(): Promise<TestResult> {
     return {
       name: testName,
       passed: true,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   } catch (error: any) {
     log(`${testName} FAILED: ${error.message}`);
@@ -539,7 +567,7 @@ async function testParserPatterns(): Promise<TestResult> {
       name: testName,
       passed: false,
       error: error.message,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   }
 }
@@ -548,9 +576,9 @@ async function testParserPatterns(): Promise<TestResult> {
  * Main test runner
  */
 async function runTests(): Promise<void> {
-  console.log('\n========================================');
-  console.log('  Idea Incubator - Implementation Tests');
-  console.log('========================================\n');
+  console.log("\n========================================");
+  console.log("  Idea Incubator - Implementation Tests");
+  console.log("========================================\n");
 
   const startTime = Date.now();
 
@@ -567,15 +595,17 @@ async function runTests(): Promise<void> {
     results.push(await testParserPatterns());
 
     // Print results summary
-    console.log('\n========================================');
-    console.log('            TEST RESULTS');
-    console.log('========================================\n');
+    console.log("\n========================================");
+    console.log("            TEST RESULTS");
+    console.log("========================================\n");
 
     let passed = 0;
     let failed = 0;
 
     for (const result of results) {
-      const status = result.passed ? '\x1b[32mPASSED\x1b[0m' : '\x1b[31mFAILED\x1b[0m';
+      const status = result.passed
+        ? "\x1b[32mPASSED\x1b[0m"
+        : "\x1b[31mFAILED\x1b[0m";
       console.log(`  ${status} ${result.name} (${result.duration}ms)`);
       if (!result.passed && result.error) {
         console.log(`         Error: ${result.error}\n`);
@@ -584,17 +614,19 @@ async function runTests(): Promise<void> {
       else failed++;
     }
 
-    console.log('\n----------------------------------------');
-    console.log(`  Total: ${results.length} | Passed: ${passed} | Failed: ${failed}`);
+    console.log("\n----------------------------------------");
+    console.log(
+      `  Total: ${results.length} | Passed: ${passed} | Failed: ${failed}`,
+    );
     console.log(`  Duration: ${Date.now() - startTime}ms`);
-    console.log('----------------------------------------\n');
+    console.log("----------------------------------------\n");
 
     // Exit with appropriate code
     if (failed > 0) {
       process.exit(1);
     }
   } catch (error) {
-    console.error('Test runner error:', error);
+    console.error("Test runner error:", error);
     process.exit(1);
   } finally {
     // Cleanup

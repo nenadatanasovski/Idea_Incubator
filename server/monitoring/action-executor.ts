@@ -1,23 +1,26 @@
 // server/monitoring/action-executor.ts
 // MON-007: Action Executor - Observe-Confirm-Act pattern for corrective actions
 
-import { EventEmitter } from 'events';
-import type { CommunicationHub } from '../communication/communication-hub.js';
-import type { Question, QuestionType } from '../communication/question-delivery.js';
-import { v4 as uuidv4 } from 'uuid';
+import { EventEmitter } from "events";
+import type { CommunicationHub } from "../communication/communication-hub.js";
+import type {
+  Question,
+  QuestionType,
+} from "../communication/question-delivery.js";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Action that can be executed to resolve an issue.
  */
 export interface Action {
   id: string;
-  type: 'restart' | 'retry' | 'sync' | 'notify' | 'escalate' | 'custom';
+  type: "restart" | "retry" | "sync" | "notify" | "escalate" | "custom";
   name: string;
   description: string;
   execute: () => Promise<ActionResult>;
   rollback?: () => Promise<void>;
   requiresConfirmation: boolean;
-  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  riskLevel: "low" | "medium" | "high" | "critical";
 }
 
 /**
@@ -38,7 +41,7 @@ export interface Observation {
   id: string;
   timestamp: Date;
   issueId: string;
-  type: 'metrics' | 'logs' | 'state' | 'user_report' | 'automated';
+  type: "metrics" | "logs" | "state" | "user_report" | "automated";
   summary: string;
   details: Record<string, unknown>;
   confidence: number; // 0-1
@@ -53,7 +56,13 @@ export interface ExecutionPlan {
   issueId: string;
   observations: Observation[];
   actions: Action[];
-  status: 'pending' | 'awaiting_confirmation' | 'executing' | 'completed' | 'failed' | 'cancelled';
+  status:
+    | "pending"
+    | "awaiting_confirmation"
+    | "executing"
+    | "completed"
+    | "failed"
+    | "cancelled";
   createdAt: Date;
   confirmedAt?: Date;
   confirmedBy?: string;
@@ -96,7 +105,8 @@ export class ActionExecutor extends EventEmitter {
   private plans: Map<string, ExecutionPlan> = new Map();
   private actions: Map<string, Action> = new Map();
   private communicationHub?: CommunicationHub;
-  private confirmationTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private confirmationTimers: Map<string, ReturnType<typeof setTimeout>> =
+    new Map();
 
   constructor(config: Partial<ActionExecutorConfig> = {}) {
     super();
@@ -137,11 +147,11 @@ export class ActionExecutor extends EventEmitter {
    */
   createObservation(
     issueId: string,
-    type: Observation['type'],
+    type: Observation["type"],
     summary: string,
     details: Record<string, unknown>,
     confidence: number,
-    suggestedActions: string[] = []
+    suggestedActions: string[] = [],
   ): Observation {
     const observation: Observation = {
       id: `obs_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
@@ -154,7 +164,7 @@ export class ActionExecutor extends EventEmitter {
       suggestedActions,
     };
 
-    this.emit('observation:created', observation);
+    this.emit("observation:created", observation);
     return observation;
   }
 
@@ -184,13 +194,13 @@ export class ActionExecutor extends EventEmitter {
       issueId,
       observations,
       actions,
-      status: 'pending',
+      status: "pending",
       createdAt: new Date(),
       results: [],
     };
 
     this.plans.set(plan.id, plan);
-    this.emit('plan:created', plan);
+    this.emit("plan:created", plan);
 
     return plan;
   }
@@ -206,39 +216,53 @@ export class ActionExecutor extends EventEmitter {
     }
 
     // Calculate average confidence from observations
-    const avgConfidence = plan.observations.reduce((sum, o) => sum + o.confidence, 0) / plan.observations.length;
+    const avgConfidence =
+      plan.observations.reduce((sum, o) => sum + o.confidence, 0) /
+      plan.observations.length;
 
     // Check if any action is high risk
     const hasHighRiskAction = plan.actions.some(
-      a => a.riskLevel === 'high' || a.riskLevel === 'critical'
+      (a) => a.riskLevel === "high" || a.riskLevel === "critical",
     );
 
     // Auto-confirm if high confidence and no high-risk actions
-    if (avgConfidence >= this.config.autoConfirmThreshold && !hasHighRiskAction) {
-      plan.status = 'executing';
+    if (
+      avgConfidence >= this.config.autoConfirmThreshold &&
+      !hasHighRiskAction
+    ) {
+      plan.status = "executing";
       plan.confirmedAt = new Date();
-      plan.confirmedBy = 'auto';
-      this.emit('plan:auto-confirmed', plan);
+      plan.confirmedBy = "auto";
+      this.emit("plan:auto-confirmed", plan);
       return true;
     }
 
     // Need human confirmation
-    plan.status = 'awaiting_confirmation';
+    plan.status = "awaiting_confirmation";
 
     if (!this.communicationHub) {
-      console.warn('[ActionExecutor] No CommunicationHub - cannot request confirmation');
-      this.emit('plan:confirmation-skipped', plan);
+      console.warn(
+        "[ActionExecutor] No CommunicationHub - cannot request confirmation",
+      );
+      this.emit("plan:confirmation-skipped", plan);
       return false;
     }
 
     // Build confirmation question
-    const actionSummary = plan.actions.map(a => `- ${a.name}: ${a.description}`).join('\n');
-    const observationSummary = plan.observations.map(o => `- ${o.summary} (confidence: ${Math.round(o.confidence * 100)}%)`).join('\n');
+    const actionSummary = plan.actions
+      .map((a) => `- ${a.name}: ${a.description}`)
+      .join("\n");
+    const observationSummary = plan.observations
+      .map(
+        (o) =>
+          `- ${o.summary} (confidence: ${Math.round(o.confidence * 100)}%)`,
+      )
+      .join("\n");
 
     const question: Question = {
       id: uuidv4(),
-      agentId: 'monitoring-agent',
-      type: 'APPROVAL' as QuestionType,
+      agentId: "monitoring-agent",
+      type: "APPROVAL" as QuestionType,
       priority: hasHighRiskAction ? 4 : 3,
       blocking: true,
       content: `Action Plan Confirmation Required
@@ -252,13 +276,13 @@ Proposed Actions:
 ${actionSummary}
 
 Average confidence: ${Math.round(avgConfidence * 100)}%
-Risk level: ${hasHighRiskAction ? 'HIGH' : 'MEDIUM'}
+Risk level: ${hasHighRiskAction ? "HIGH" : "MEDIUM"}
 
 Do you approve executing these actions?`,
       options: [
-        { label: 'Approve', action: 'approve' },
-        { label: 'Reject', action: 'reject' },
-        { label: 'Modify', action: 'modify' },
+        { label: "Approve", action: "approve" },
+        { label: "Reject", action: "reject" },
+        { label: "Modify", action: "modify" },
       ],
     };
 
@@ -266,38 +290,40 @@ Do you approve executing these actions?`,
       // Set timeout
       const timer = setTimeout(() => {
         this.confirmationTimers.delete(planId);
-        plan.status = 'cancelled';
-        this.emit('plan:confirmation-timeout', plan);
+        plan.status = "cancelled";
+        this.emit("plan:confirmation-timeout", plan);
         resolve(false);
       }, this.config.confirmationTimeout);
 
       this.confirmationTimers.set(planId, timer);
 
       // Ask question via hub
-      this.communicationHub!.askQuestion(question).then((result) => {
-        clearTimeout(timer);
-        this.confirmationTimers.delete(planId);
+      this.communicationHub!.askQuestion(question)
+        .then((result) => {
+          clearTimeout(timer);
+          this.confirmationTimers.delete(planId);
 
-        // If question delivered successfully, consider it approved for now
-        // TODO: Integrate with answer processor to get actual user response
-        if (result.success) {
-          plan.status = 'executing';
-          plan.confirmedAt = new Date();
-          plan.confirmedBy = 'human';
-          this.emit('plan:confirmed', plan);
-          resolve(true);
-        } else {
-          plan.status = 'cancelled';
-          this.emit('plan:rejected', plan);
+          // If question delivered successfully, consider it approved for now
+          // TODO: Integrate with answer processor to get actual user response
+          if (result.success) {
+            plan.status = "executing";
+            plan.confirmedAt = new Date();
+            plan.confirmedBy = "human";
+            this.emit("plan:confirmed", plan);
+            resolve(true);
+          } else {
+            plan.status = "cancelled";
+            this.emit("plan:rejected", plan);
+            resolve(false);
+          }
+        })
+        .catch((err: Error) => {
+          clearTimeout(timer);
+          this.confirmationTimers.delete(planId);
+          console.error("[ActionExecutor] Confirmation request failed:", err);
+          plan.status = "failed";
           resolve(false);
-        }
-      }).catch((err: Error) => {
-        clearTimeout(timer);
-        this.confirmationTimers.delete(planId);
-        console.error('[ActionExecutor] Confirmation request failed:', err);
-        plan.status = 'failed';
-        resolve(false);
-      });
+        });
     });
   }
 
@@ -310,11 +336,13 @@ Do you approve executing these actions?`,
       throw new Error(`Plan not found: ${planId}`);
     }
 
-    if (plan.status !== 'executing') {
-      throw new Error(`Plan ${planId} is not ready for execution (status: ${plan.status})`);
+    if (plan.status !== "executing") {
+      throw new Error(
+        `Plan ${planId} is not ready for execution (status: ${plan.status})`,
+      );
     }
 
-    this.emit('plan:execution-started', plan);
+    this.emit("plan:execution-started", plan);
 
     for (const action of plan.actions) {
       let result: ActionResult;
@@ -324,16 +352,16 @@ Do you approve executing these actions?`,
         const startTime = Date.now();
 
         try {
-          this.emit('action:started', { planId, action });
+          this.emit("action:started", { planId, action });
 
           result = await action.execute();
           result.duration = Date.now() - startTime;
 
           if (result.success) {
-            this.emit('action:completed', { planId, action, result });
+            this.emit("action:completed", { planId, action, result });
             break;
           } else {
-            throw new Error(result.error || 'Action failed');
+            throw new Error(result.error || "Action failed");
           }
         } catch (error) {
           result = {
@@ -345,10 +373,12 @@ Do you approve executing these actions?`,
 
           retries++;
           if (retries <= this.config.maxRetries) {
-            console.log(`[ActionExecutor] Retrying action ${action.name} (${retries}/${this.config.maxRetries})`);
+            console.log(
+              `[ActionExecutor] Retrying action ${action.name} (${retries}/${this.config.maxRetries})`,
+            );
             await this.delay(this.config.retryDelay);
           } else {
-            this.emit('action:failed', { planId, action, result });
+            this.emit("action:failed", { planId, action, result });
           }
         }
       }
@@ -357,15 +387,15 @@ Do you approve executing these actions?`,
 
       // If action failed, stop execution
       if (!result!.success) {
-        plan.status = 'failed';
-        this.emit('plan:failed', plan);
+        plan.status = "failed";
+        this.emit("plan:failed", plan);
         return plan;
       }
     }
 
-    plan.status = 'completed';
+    plan.status = "completed";
     plan.completedAt = new Date();
-    this.emit('plan:completed', plan);
+    this.emit("plan:completed", plan);
 
     return plan;
   }
@@ -375,15 +405,15 @@ Do you approve executing these actions?`,
    */
   async observeConfirmAct(
     issueId: string,
-    observations: Observation[]
+    observations: Observation[],
   ): Promise<ExecutionPlan> {
     // 1. PLAN
     const plan = this.createPlan(issueId, observations);
 
     if (plan.actions.length === 0) {
-      plan.status = 'completed';
+      plan.status = "completed";
       plan.completedAt = new Date();
-      this.emit('plan:no-actions', plan);
+      this.emit("plan:no-actions", plan);
       return plan;
     }
 
@@ -402,7 +432,10 @@ Do you approve executing these actions?`,
    */
   cancelPlan(planId: string): void {
     const plan = this.plans.get(planId);
-    if (plan && (plan.status === 'pending' || plan.status === 'awaiting_confirmation')) {
+    if (
+      plan &&
+      (plan.status === "pending" || plan.status === "awaiting_confirmation")
+    ) {
       // Clear any pending timeout
       const timer = this.confirmationTimers.get(planId);
       if (timer) {
@@ -410,8 +443,8 @@ Do you approve executing these actions?`,
         this.confirmationTimers.delete(planId);
       }
 
-      plan.status = 'cancelled';
-      this.emit('plan:cancelled', plan);
+      plan.status = "cancelled";
+      this.emit("plan:cancelled", plan);
     }
   }
 
@@ -432,8 +465,8 @@ Do you approve executing these actions?`,
   /**
    * Get plans by status.
    */
-  getPlansByStatus(status: ExecutionPlan['status']): ExecutionPlan[] {
-    return [...this.plans.values()].filter(p => p.status === status);
+  getPlansByStatus(status: ExecutionPlan["status"]): ExecutionPlan[] {
+    return [...this.plans.values()].filter((p) => p.status === status);
   }
 
   /**
@@ -451,10 +484,14 @@ Do you approve executing these actions?`,
 
     return {
       totalPlans: plans.length,
-      pending: plans.filter(p => p.status === 'pending' || p.status === 'awaiting_confirmation').length,
-      executing: plans.filter(p => p.status === 'executing').length,
-      completed: plans.filter(p => p.status === 'completed').length,
-      failed: plans.filter(p => p.status === 'failed' || p.status === 'cancelled').length,
+      pending: plans.filter(
+        (p) => p.status === "pending" || p.status === "awaiting_confirmation",
+      ).length,
+      executing: plans.filter((p) => p.status === "executing").length,
+      completed: plans.filter((p) => p.status === "completed").length,
+      failed: plans.filter(
+        (p) => p.status === "failed" || p.status === "cancelled",
+      ).length,
       registeredActions: this.actions.size,
     };
   }
@@ -466,8 +503,12 @@ Do you approve executing these actions?`,
     const cutoff = Date.now() - maxAge;
 
     for (const [planId, plan] of this.plans) {
-      if (plan.createdAt.getTime() < cutoff &&
-          (plan.status === 'completed' || plan.status === 'failed' || plan.status === 'cancelled')) {
+      if (
+        plan.createdAt.getTime() < cutoff &&
+        (plan.status === "completed" ||
+          plan.status === "failed" ||
+          plan.status === "cancelled")
+      ) {
         this.plans.delete(planId);
       }
     }
@@ -477,7 +518,7 @@ Do you approve executing these actions?`,
    * Helper: delay.
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -487,49 +528,69 @@ Do you approve executing these actions?`,
 export function createDefaultActions(): Action[] {
   return [
     {
-      id: 'restart-agent',
-      type: 'restart',
-      name: 'Restart Agent',
-      description: 'Restart the unresponsive agent',
-      execute: async () => ({ success: true, message: 'Agent restart initiated', duration: 0 }),
+      id: "restart-agent",
+      type: "restart",
+      name: "Restart Agent",
+      description: "Restart the unresponsive agent",
+      execute: async () => ({
+        success: true,
+        message: "Agent restart initiated",
+        duration: 0,
+      }),
       requiresConfirmation: true,
-      riskLevel: 'medium',
+      riskLevel: "medium",
     },
     {
-      id: 'retry-task',
-      type: 'retry',
-      name: 'Retry Task',
-      description: 'Retry the failed task',
-      execute: async () => ({ success: true, message: 'Task retry initiated', duration: 0 }),
+      id: "retry-task",
+      type: "retry",
+      name: "Retry Task",
+      description: "Retry the failed task",
+      execute: async () => ({
+        success: true,
+        message: "Task retry initiated",
+        duration: 0,
+      }),
       requiresConfirmation: false,
-      riskLevel: 'low',
+      riskLevel: "low",
     },
     {
-      id: 'sync-state',
-      type: 'sync',
-      name: 'Sync State',
-      description: 'Synchronize state from source of truth',
-      execute: async () => ({ success: true, message: 'State synchronization complete', duration: 0 }),
+      id: "sync-state",
+      type: "sync",
+      name: "Sync State",
+      description: "Synchronize state from source of truth",
+      execute: async () => ({
+        success: true,
+        message: "State synchronization complete",
+        duration: 0,
+      }),
       requiresConfirmation: true,
-      riskLevel: 'medium',
+      riskLevel: "medium",
     },
     {
-      id: 'notify-human',
-      type: 'notify',
-      name: 'Notify Human',
-      description: 'Send notification to human operator',
-      execute: async () => ({ success: true, message: 'Notification sent', duration: 0 }),
+      id: "notify-human",
+      type: "notify",
+      name: "Notify Human",
+      description: "Send notification to human operator",
+      execute: async () => ({
+        success: true,
+        message: "Notification sent",
+        duration: 0,
+      }),
       requiresConfirmation: false,
-      riskLevel: 'low',
+      riskLevel: "low",
     },
     {
-      id: 'escalate-to-halt',
-      type: 'escalate',
-      name: 'Escalate to Halt',
-      description: 'Halt the system until human resolves the issue',
-      execute: async () => ({ success: true, message: 'System halted', duration: 0 }),
+      id: "escalate-to-halt",
+      type: "escalate",
+      name: "Escalate to Halt",
+      description: "Halt the system until human resolves the issue",
+      execute: async () => ({
+        success: true,
+        message: "System halted",
+        duration: 0,
+      }),
       requiresConfirmation: true,
-      riskLevel: 'critical',
+      riskLevel: "critical",
     },
   ];
 }

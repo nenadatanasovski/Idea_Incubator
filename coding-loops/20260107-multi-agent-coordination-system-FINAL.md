@@ -75,19 +75,19 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 
 ### What Does "Autonomous Multi-Agent Development" Actually Mean?
 
-| Requirement | Description | Current State |
-|-------------|-------------|---------------|
-| **Concurrent execution** | Multiple agents work simultaneously | Partial - can run, but isolated |
-| **Awareness of each other** | Agents know what others are doing | Zero awareness |
-| **Conflict avoidance** | Don't overwrite each other's work | No mechanism |
-| **Conflict resolution** | When conflicts happen, resolve them | No mechanism |
-| **Shared context** | All agents see the same state | Each has own state |
-| **Coordination** | Work together toward common goal | No coordination |
-| **Monitoring** | Something watches for problems | Health files exist but nothing reads them |
-| **Human oversight** | Humans can intervene when needed | No interface |
-| **Verification** | Independent check that work is correct | No verification |
-| **Learning** | System improves from failures | No learning |
-| **Recovery** | Graceful handling of failures | Only basic retry |
+| Requirement                 | Description                            | Current State                             |
+| --------------------------- | -------------------------------------- | ----------------------------------------- |
+| **Concurrent execution**    | Multiple agents work simultaneously    | Partial - can run, but isolated           |
+| **Awareness of each other** | Agents know what others are doing      | Zero awareness                            |
+| **Conflict avoidance**      | Don't overwrite each other's work      | No mechanism                              |
+| **Conflict resolution**     | When conflicts happen, resolve them    | No mechanism                              |
+| **Shared context**          | All agents see the same state          | Each has own state                        |
+| **Coordination**            | Work together toward common goal       | No coordination                           |
+| **Monitoring**              | Something watches for problems         | Health files exist but nothing reads them |
+| **Human oversight**         | Humans can intervene when needed       | No interface                              |
+| **Verification**            | Independent check that work is correct | No verification                           |
+| **Learning**                | System improves from failures          | No learning                               |
+| **Recovery**                | Graceful handling of failures          | Only basic retry                          |
 
 ---
 
@@ -96,12 +96,14 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 ### Gap 1: No Communication Bus
 
 **Problem:** Agents are completely isolated. They cannot:
+
 - Tell other agents what they're working on
 - Warn about files they're modifying
 - Ask for help or coordination
 - Report completion or blocking
 
 **Consequence:**
+
 - Loop 1 modifies `server/api.ts`
 - Loop 2 also modifies `server/api.ts`
 - They overwrite each other's changes
@@ -117,6 +119,7 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 **Problem:** Nothing watches the loops. Health files are written but never read.
 
 **Consequence:**
+
 - Loop stuck for 2 hours? No one notices
 - Same error repeating 50 times? No intervention
 - API credits exhausted? Crash with no warning
@@ -131,6 +134,7 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 **Problem:** No coordination across loops.
 
 **Consequence:**
+
 - Loop 1 blocks on auth, Loop 2 is building auth - no connection
 - Priority changes? No one can tell loops to reprioritize
 - Conflicting approaches to same problem? No resolution
@@ -145,6 +149,7 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 **Problem:** Humans can only watch logs or manually edit JSON files.
 
 **Consequence:**
+
 - "What's happening?" requires reading multiple files
 - "Pause everything" requires killing processes
 - "Skip this test" requires editing JSON
@@ -159,6 +164,7 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 **Problem:** Each loop has its own transcript. No unified view.
 
 **Consequence:**
+
 - Can't see "what happened across all loops at 3pm"
 - Can't correlate events (A happened, then B failed)
 - No audit trail for debugging
@@ -173,6 +179,7 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 **Problem:** Agent says "TEST PASSED". Current system trusts the claim blindly.
 
 **What if:**
+
 - Agent hallucinated success
 - Code compiles but tests fail
 - Tests pass locally but CI fails
@@ -188,6 +195,7 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 **Problem:** Multiple agents committing to same branch = chaos.
 
 **Unanswered:**
+
 - What branch does each loop work on?
 - When/how do changes merge to main?
 - Who resolves git merge conflicts?
@@ -201,12 +209,12 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 
 **Problem:** File locking prevents byte-level conflicts but not semantic conflicts:
 
-| Agent A | Agent B | Problem |
-|---------|---------|---------|
-| Adds `function foo()` in utils/a.ts | Adds `function foo()` in utils/b.ts | Duplicate function names |
-| Exports `interface User { id: number }` | Expects `interface User { id: string }` | Type mismatch |
-| Uses camelCase | Uses snake_case | Style inconsistency |
-| Implements REST `/api/users` | Implements GraphQL `query users` | Architecture inconsistency |
+| Agent A                                 | Agent B                                 | Problem                    |
+| --------------------------------------- | --------------------------------------- | -------------------------- |
+| Adds `function foo()` in utils/a.ts     | Adds `function foo()` in utils/b.ts     | Duplicate function names   |
+| Exports `interface User { id: number }` | Expects `interface User { id: string }` | Type mismatch              |
+| Uses camelCase                          | Uses snake_case                         | Style inconsistency        |
+| Implements REST `/api/users`            | Implements GraphQL `query users`        | Architecture inconsistency |
 
 **Required:** Semantic analyzer for cross-agent compatibility
 
@@ -217,6 +225,7 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 **Problem:** Agent 1 learns "the auth system uses JWT" but Agent 2 doesn't know.
 
 **Consequence:**
+
 - Starts with fresh context
 - Rediscovers same information
 - Makes inconsistent decisions
@@ -259,11 +268,11 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 
 **Problem:** When one component dies, what happens to the rest?
 
-| Component Dies | Current Behavior | Should Happen |
-|----------------|------------------|---------------|
-| Monitor | Loops run blind | Loops slow down, alert human |
-| PM | No conflict resolution | Loops pause on any conflict |
-| Message Bus | Complete failure | Loops fall back to file-based |
+| Component Dies | Current Behavior       | Should Happen                 |
+| -------------- | ---------------------- | ----------------------------- |
+| Monitor        | Loops run blind        | Loops slow down, alert human  |
+| PM             | No conflict resolution | Loops pause on any conflict   |
+| Message Bus    | Complete failure       | Loops fall back to file-based |
 
 **Required:** Degraded mode protocols
 
@@ -287,6 +296,7 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 **Problem:** If an agent makes things worse, no way to recover.
 
 **Consequence:**
+
 - Agent breaks the build? Manual git revert needed
 - Agent introduces bugs? No detection
 - Multiple agents break things? Chaos
@@ -300,6 +310,7 @@ The current "coding loop system" is NOT autonomous. It's 3 isolated scripts that
 **Problem:** No tracking or limiting of resources.
 
 **Consequence:**
+
 - One loop consumes all API credits
 - Tests run for hours with no timeout
 - No visibility into costs
@@ -423,27 +434,27 @@ CREATE TABLE file_locks (
 
 **Event Types:**
 
-| Type | Source | Description |
-|------|--------|-------------|
-| `test_started` | loop-* | Agent started working on a test |
-| `test_passed` | loop-* | Test passed |
-| `test_failed` | loop-* | Test failed (will retry) |
-| `test_blocked` | loop-* | Test blocked (max attempts) |
-| `file_locked` | loop-* | Agent is modifying a file |
-| `file_unlocked` | loop-* | Agent finished with file |
-| `file_conflict` | monitor | Two agents touched same file |
-| `digression_detected` | monitor | Agent going off-track |
-| `stuck_detected` | monitor | Agent making no progress |
-| `resource_warning` | monitor | Budget/time running low |
-| `regression_detected` | monitor | Previously passing test now fails |
-| `decision_needed` | pm | Human decision required |
-| `priority_changed` | pm | Work priority changed |
-| `pause_requested` | pm/human | Pause a loop |
-| `resume_requested` | pm/human | Resume a loop |
-| `rollback_triggered` | pm | Rolling back changes |
-| `human_message` | human | Message from human |
-| `summary_requested` | human | Human wants status update |
-| `force_release` | deadlock_detector | Force loop to release locks |
+| Type                  | Source            | Description                       |
+| --------------------- | ----------------- | --------------------------------- |
+| `test_started`        | loop-\*           | Agent started working on a test   |
+| `test_passed`         | loop-\*           | Test passed                       |
+| `test_failed`         | loop-\*           | Test failed (will retry)          |
+| `test_blocked`        | loop-\*           | Test blocked (max attempts)       |
+| `file_locked`         | loop-\*           | Agent is modifying a file         |
+| `file_unlocked`       | loop-\*           | Agent finished with file          |
+| `file_conflict`       | monitor           | Two agents touched same file      |
+| `digression_detected` | monitor           | Agent going off-track             |
+| `stuck_detected`      | monitor           | Agent making no progress          |
+| `resource_warning`    | monitor           | Budget/time running low           |
+| `regression_detected` | monitor           | Previously passing test now fails |
+| `decision_needed`     | pm                | Human decision required           |
+| `priority_changed`    | pm                | Work priority changed             |
+| `pause_requested`     | pm/human          | Pause a loop                      |
+| `resume_requested`    | pm/human          | Resume a loop                     |
+| `rollback_triggered`  | pm                | Rolling back changes              |
+| `human_message`       | human             | Message from human                |
+| `summary_requested`   | human             | Human wants status update         |
+| `force_release`       | deadlock_detector | Force loop to release locks       |
 
 **Python API:**
 
@@ -490,16 +501,16 @@ class MessageBus:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| BUS-001 | Publish event | Event appears in database with correct fields |
-| BUS-002 | Subscribe to events | Subscription created, poll returns matching events |
-| BUS-003 | Acknowledge event | Event marked acknowledged, not returned in poll |
-| BUS-004 | Timeline query | Returns events in timestamp order with correct filters |
-| BUS-005 | File locking | Lock acquired, second attempt fails, unlock works |
-| BUS-006 | Lock expiry | Expired locks auto-released, can be reacquired |
-| BUS-007 | Concurrent access | Multiple processes can publish/poll without corruption |
-| BUS-008 | Integration with loop | Loop publishes test_started/passed/failed events |
+| Test ID | Description           | Pass Definition                                        |
+| ------- | --------------------- | ------------------------------------------------------ |
+| BUS-001 | Publish event         | Event appears in database with correct fields          |
+| BUS-002 | Subscribe to events   | Subscription created, poll returns matching events     |
+| BUS-003 | Acknowledge event     | Event marked acknowledged, not returned in poll        |
+| BUS-004 | Timeline query        | Returns events in timestamp order with correct filters |
+| BUS-005 | File locking          | Lock acquired, second attempt fails, unlock works      |
+| BUS-006 | Lock expiry           | Expired locks auto-released, can be reacquired         |
+| BUS-007 | Concurrent access     | Multiple processes can publish/poll without corruption |
+| BUS-008 | Integration with loop | Loop publishes test_started/passed/failed events       |
 
 ---
 
@@ -575,16 +586,16 @@ class MessageBus:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| MON-001 | Health check | Reads all health.json files, updates monitor-state.json |
-| MON-002 | Stale detection | Publishes alert when heartbeat >2 min old |
-| MON-003 | Stuck detection | Publishes stuck_detected after 3 consecutive failures on same test |
-| MON-004 | Conflict detection | Publishes file_conflict when two loops modify same file |
-| MON-005 | Digression detection | Publishes digression_detected when >20 files modified |
-| MON-006 | Resource warning | Publishes resource_warning at 80% budget |
-| MON-007 | Continuous operation | Runs for 10 minutes without crashing, handles loop restarts |
-| MON-008 | Integration | Monitor alerts visible in human dashboard |
+| Test ID | Description          | Pass Definition                                                    |
+| ------- | -------------------- | ------------------------------------------------------------------ |
+| MON-001 | Health check         | Reads all health.json files, updates monitor-state.json            |
+| MON-002 | Stale detection      | Publishes alert when heartbeat >2 min old                          |
+| MON-003 | Stuck detection      | Publishes stuck_detected after 3 consecutive failures on same test |
+| MON-004 | Conflict detection   | Publishes file_conflict when two loops modify same file            |
+| MON-005 | Digression detection | Publishes digression_detected when >20 files modified              |
+| MON-006 | Resource warning     | Publishes resource_warning at 80% budget                           |
+| MON-007 | Continuous operation | Runs for 10 minutes without crashing, handles loop restarts        |
+| MON-008 | Integration          | Monitor alerts visible in human dashboard                          |
 
 ---
 
@@ -627,27 +638,27 @@ class MessageBus:
 
 **Decision Types Requiring Human:**
 
-| Situation | Decision Needed |
-|-----------|-----------------|
-| Two valid approaches | Which approach to take |
-| Conflicting requirements | Which requirement to prioritize |
-| Budget exceeded | Continue or stop |
-| Loop stuck >1 hour | Skip test or investigate |
-| Architecture inconsistency | Which pattern to follow |
-| Regression detected | Rollback or fix forward |
+| Situation                  | Decision Needed                 |
+| -------------------------- | ------------------------------- |
+| Two valid approaches       | Which approach to take          |
+| Conflicting requirements   | Which requirement to prioritize |
+| Budget exceeded            | Continue or stop                |
+| Loop stuck >1 hour         | Skip test or investigate        |
+| Architecture inconsistency | Which pattern to follow         |
+| Regression detected        | Rollback or fix forward         |
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| PM-001 | Receive conflict | Subscribes to file_conflict, processes within 30s |
-| PM-002 | Resolve conflict | Publishes pause_requested to lower-priority loop |
-| PM-003 | Track dependencies | When dep satisfied, publishes resume_requested |
-| PM-004 | Escalate decision | Publishes decision_needed with clear options |
-| PM-005 | Apply human decision | Receives human response, updates priorities |
-| PM-006 | Handle loop failure | Redistributes work when loop stops unexpectedly |
-| PM-007 | Continuous operation | Runs for 10 minutes, handles all event types |
-| PM-008 | Integration | PM decisions reflected in loop behavior |
+| Test ID | Description          | Pass Definition                                   |
+| ------- | -------------------- | ------------------------------------------------- |
+| PM-001  | Receive conflict     | Subscribes to file_conflict, processes within 30s |
+| PM-002  | Resolve conflict     | Publishes pause_requested to lower-priority loop  |
+| PM-003  | Track dependencies   | When dep satisfied, publishes resume_requested    |
+| PM-004  | Escalate decision    | Publishes decision_needed with clear options      |
+| PM-005  | Apply human decision | Receives human response, updates priorities       |
+| PM-006  | Handle loop failure  | Redistributes work when loop stops unexpectedly   |
+| PM-007  | Continuous operation | Runs for 10 minutes, handles all event types      |
+| PM-008  | Integration          | PM decisions reflected in loop behavior           |
 
 ---
 
@@ -658,6 +669,7 @@ class MessageBus:
 **Location:** `coding-loops/agents/human_agent.py`
 
 **Components:**
+
 1. CLI interface (`coding-loops/cli.py`)
 2. Web dashboard (optional, Phase 2)
 3. Notification system (Slack/email, optional)
@@ -699,16 +711,16 @@ python3 coding-loops/cli.py regressions         # Show regressions
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| HUM-001 | Status command | Shows all loops with current test, progress, health |
-| HUM-002 | Timeline command | Shows recent events in readable format |
-| HUM-003 | Pause command | Loop stops working within 30s |
-| HUM-004 | Resume command | Loop resumes from where it stopped |
-| HUM-005 | Skip command | Test marked skipped, loop moves to next |
-| HUM-006 | Decision command | Decision applied, PM notified |
-| HUM-007 | Summary command | Generates coherent 1-page summary |
-| HUM-008 | Web dashboard | (Phase 2) Dashboard shows real-time status |
+| Test ID | Description      | Pass Definition                                     |
+| ------- | ---------------- | --------------------------------------------------- |
+| HUM-001 | Status command   | Shows all loops with current test, progress, health |
+| HUM-002 | Timeline command | Shows recent events in readable format              |
+| HUM-003 | Pause command    | Loop stops working within 30s                       |
+| HUM-004 | Resume command   | Loop resumes from where it stopped                  |
+| HUM-005 | Skip command     | Test marked skipped, loop moves to next             |
+| HUM-006 | Decision command | Decision applied, PM notified                       |
+| HUM-007 | Summary command  | Generates coherent 1-page summary                   |
+| HUM-008 | Web dashboard    | (Phase 2) Dashboard shows real-time status          |
 
 ---
 
@@ -764,14 +776,14 @@ class CheckpointManager:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
+| Test ID | Description       | Pass Definition                               |
+| ------- | ----------------- | --------------------------------------------- |
 | CHK-001 | Create checkpoint | Git branch/stash created, checkpoint recorded |
-| CHK-002 | Rollback | Files restored to checkpoint state |
-| CHK-003 | Delete checkpoint | Branch/stash removed, record deleted |
-| CHK-004 | List checkpoints | Returns all checkpoints with metadata |
-| CHK-005 | Integration | Loop creates checkpoint before each test |
-| CHK-006 | Auto-rollback | On build break, auto-rollback and retry |
+| CHK-002 | Rollback          | Files restored to checkpoint state            |
+| CHK-003 | Delete checkpoint | Branch/stash removed, record deleted          |
+| CHK-004 | List checkpoints  | Returns all checkpoints with metadata         |
+| CHK-005 | Integration       | Loop creates checkpoint before each test      |
+| CHK-006 | Auto-rollback     | On build break, auto-rollback and retry       |
 
 ---
 
@@ -790,12 +802,12 @@ class CheckpointManager:
 
 **Limits:**
 
-| Resource | Warning | Hard Limit |
-|----------|---------|------------|
-| Tokens per test | 100K | 500K |
-| Time per test | 30 min | 2 hours |
-| Tests per day | 50 | 100 |
-| Total tokens per day | 1M | 5M |
+| Resource             | Warning | Hard Limit |
+| -------------------- | ------- | ---------- |
+| Tokens per test      | 100K    | 500K       |
+| Time per test        | 30 min  | 2 hours    |
+| Tests per day        | 50      | 100        |
+| Total tokens per day | 1M      | 5M         |
 
 **API:**
 
@@ -814,13 +826,13 @@ class BudgetManager:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| BUD-001 | Record usage | Usage stored in database |
-| BUD-002 | Warning threshold | Publishes resource_warning at 80% |
-| BUD-003 | Hard limit | Loop paused at 100% |
+| Test ID | Description       | Pass Definition                    |
+| ------- | ----------------- | ---------------------------------- |
+| BUD-001 | Record usage      | Usage stored in database           |
+| BUD-002 | Warning threshold | Publishes resource_warning at 80%  |
+| BUD-003 | Hard limit        | Loop paused at 100%                |
 | BUD-004 | Report generation | Accurate usage report by loop/test |
-| BUD-005 | Integration | Loops report usage after each test |
+| BUD-005 | Integration       | Loops report usage after each test |
 
 ---
 
@@ -890,15 +902,15 @@ class VerificationGate:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| VER-001 | TypeScript check | `npx tsc --noEmit` exits 0 |
-| VER-002 | Test execution | Relevant test file passes |
-| VER-003 | Build check | `npm run build` exits 0 |
-| VER-004 | Lint check | `npm run lint` exits 0 (or no lint errors in changed files) |
-| VER-005 | Regression check | All previously passing tests still pass |
-| VER-006 | Verification blocks false pass | Agent claims pass, verification fails -> test NOT marked passed |
-| VER-007 | Verification confirms true pass | Agent claims pass, verification passes -> test marked passed |
+| Test ID | Description                     | Pass Definition                                                 |
+| ------- | ------------------------------- | --------------------------------------------------------------- |
+| VER-001 | TypeScript check                | `npx tsc --noEmit` exits 0                                      |
+| VER-002 | Test execution                  | Relevant test file passes                                       |
+| VER-003 | Build check                     | `npm run build` exits 0                                         |
+| VER-004 | Lint check                      | `npm run lint` exits 0 (or no lint errors in changed files)     |
+| VER-005 | Regression check                | All previously passing tests still pass                         |
+| VER-006 | Verification blocks false pass  | Agent claims pass, verification fails -> test NOT marked passed |
+| VER-007 | Verification confirms true pass | Agent claims pass, verification passes -> test marked passed    |
 
 ---
 
@@ -927,6 +939,7 @@ main (protected)
 ```
 
 **Rules:**
+
 1. Each loop works on its own branch
 2. Loops rebase from main every N tests (configurable)
 3. PM triggers merge to main when milestone reached
@@ -961,14 +974,14 @@ class GitManager:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| GIT-001 | Branch creation | Each loop has dedicated branch |
-| GIT-002 | Rebase from main | Loop rebases without human intervention (no conflicts) |
-| GIT-003 | Conflict detection | Conflicts detected BEFORE merge attempted |
-| GIT-004 | PR creation | PR created with correct base/head branches |
-| GIT-005 | PR blocks on review | Merge blocked until human approves |
-| GIT-006 | Main stays clean | Main never has failing tests |
+| Test ID | Description         | Pass Definition                                        |
+| ------- | ------------------- | ------------------------------------------------------ |
+| GIT-001 | Branch creation     | Each loop has dedicated branch                         |
+| GIT-002 | Rebase from main    | Loop rebases without human intervention (no conflicts) |
+| GIT-003 | Conflict detection  | Conflicts detected BEFORE merge attempted              |
+| GIT-004 | PR creation         | PR created with correct base/head branches             |
+| GIT-005 | PR blocks on review | Merge blocked until human approves                     |
+| GIT-006 | Main stays clean    | Main never has failing tests                           |
 
 ---
 
@@ -979,6 +992,7 @@ class GitManager:
 **Location:** `coding-loops/shared/semantic_analyzer.py`
 
 **Problem Addressed:** File locking prevents byte-level conflicts but not:
+
 - Duplicate function names across files
 - Type mismatches (one exports `id: number`, other expects `id: string`)
 - Style inconsistencies (camelCase vs snake_case)
@@ -1039,13 +1053,13 @@ prohibited:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| SEM-001 | Export detection | All new exports identified with types |
-| SEM-002 | Naming check | Violations of naming rules flagged |
-| SEM-003 | Boundary check | Cross-boundary imports flagged |
-| SEM-004 | Conflict detection | Conflicting exports across loops detected |
-| SEM-005 | Architecture compliance | Violations of architecture rules blocked |
+| Test ID | Description             | Pass Definition                           |
+| ------- | ----------------------- | ----------------------------------------- |
+| SEM-001 | Export detection        | All new exports identified with types     |
+| SEM-002 | Naming check            | Violations of naming rules flagged        |
+| SEM-003 | Boundary check          | Cross-boundary imports flagged            |
+| SEM-004 | Conflict detection      | Conflicting exports across loops detected |
+| SEM-005 | Architecture compliance | Violations of architecture rules blocked  |
 
 ---
 
@@ -1126,14 +1140,14 @@ publish a decision_needed event instead of making a different choice.
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| KB-001 | Record fact | Fact stored with correct metadata |
-| KB-002 | Record decision | Decision stored, affects future prompts |
-| KB-003 | Query by topic | Returns relevant knowledge items |
-| KB-004 | Context injection | Agent prompts include relevant knowledge |
-| KB-005 | Consistency | Agent follows recorded decisions |
-| KB-006 | Conflict detection | Agent flags when it would contradict recorded knowledge |
+| Test ID | Description        | Pass Definition                                         |
+| ------- | ------------------ | ------------------------------------------------------- |
+| KB-001  | Record fact        | Fact stored with correct metadata                       |
+| KB-002  | Record decision    | Decision stored, affects future prompts                 |
+| KB-003  | Query by topic     | Returns relevant knowledge items                        |
+| KB-004  | Context injection  | Agent prompts include relevant knowledge                |
+| KB-005  | Consistency        | Agent follows recorded decisions                        |
+| KB-006  | Conflict detection | Agent flags when it would contradict recorded knowledge |
 
 ---
 
@@ -1183,14 +1197,14 @@ class RegressionMonitor:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| REG-001 | Record passing | Passing tests recorded with commit |
-| REG-002 | Detect regression | Test that was passing now fails -> detected |
-| REG-003 | Blame attribution | Correct loop/test blamed for regression |
-| REG-004 | Event published | regression_detected event published |
-| REG-005 | PM notified | PM receives regression, pauses blamed loop |
-| REG-006 | Auto-rollback option | Regression can trigger automatic rollback |
+| Test ID | Description          | Pass Definition                             |
+| ------- | -------------------- | ------------------------------------------- |
+| REG-001 | Record passing       | Passing tests recorded with commit          |
+| REG-002 | Detect regression    | Test that was passing now fails -> detected |
+| REG-003 | Blame attribution    | Correct loop/test blamed for regression     |
+| REG-004 | Event published      | regression_detected event published         |
+| REG-005 | PM notified          | PM receives regression, pauses blamed loop  |
+| REG-006 | Auto-rollback option | Regression can trigger automatic rollback   |
 
 ---
 
@@ -1254,13 +1268,13 @@ class DeadlockDetector:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| DLK-001 | Record waits | Wait graph updated when lock fails |
-| DLK-002 | Cycle detection | Deadlock detected within 30s |
-| DLK-003 | Victim selection | Lower priority loop selected as victim |
-| DLK-004 | Force release | Victim releases locks and rolls back |
-| DLK-005 | Recovery | Both loops continue after deadlock resolved |
+| Test ID | Description      | Pass Definition                             |
+| ------- | ---------------- | ------------------------------------------- |
+| DLK-001 | Record waits     | Wait graph updated when lock fails          |
+| DLK-002 | Cycle detection  | Deadlock detected within 30s                |
+| DLK-003 | Victim selection | Lower priority loop selected as victim      |
+| DLK-004 | Force release    | Victim releases locks and rolls back        |
+| DLK-005 | Recovery         | Both loops continue after deadlock resolved |
 
 ---
 
@@ -1288,16 +1302,16 @@ class ErrorCategory(Enum):
 
 **Handling by Category:**
 
-| Category | Handling |
-|----------|----------|
-| TRANSIENT | Retry with exponential backoff (max 3) |
-| PERMANENT | Mark test blocked, try different approach |
-| SYSTEM | Alert human, stop all loops |
-| CODE | Attempt fix, if 3 failures escalate |
-| SPEC | Escalate to human for clarification |
-| RESOURCE | Pause, alert human |
-| DEPENDENCY | Wait for dependency, timeout after 30 min |
-| HUMAN | Publish decision_needed, wait for response |
+| Category   | Handling                                   |
+| ---------- | ------------------------------------------ |
+| TRANSIENT  | Retry with exponential backoff (max 3)     |
+| PERMANENT  | Mark test blocked, try different approach  |
+| SYSTEM     | Alert human, stop all loops                |
+| CODE       | Attempt fix, if 3 failures escalate        |
+| SPEC       | Escalate to human for clarification        |
+| RESOURCE   | Pause, alert human                         |
+| DEPENDENCY | Wait for dependency, timeout after 30 min  |
+| HUMAN      | Publish decision_needed, wait for response |
 
 **API:**
 
@@ -1329,14 +1343,14 @@ class ErrorClassifier:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| ERR-001 | Transient classification | Timeout classified as transient |
-| ERR-002 | Transient handling | Transient errors retried with backoff |
-| ERR-003 | System classification | Database error classified as system |
-| ERR-004 | System handling | System error stops all loops |
-| ERR-005 | Human classification | Ambiguous spec classified as human |
-| ERR-006 | Human handling | Human error triggers decision_needed |
+| Test ID | Description              | Pass Definition                       |
+| ------- | ------------------------ | ------------------------------------- |
+| ERR-001 | Transient classification | Timeout classified as transient       |
+| ERR-002 | Transient handling       | Transient errors retried with backoff |
+| ERR-003 | System classification    | Database error classified as system   |
+| ERR-004 | System handling          | System error stops all loops          |
+| ERR-005 | Human classification     | Ambiguous spec classified as human    |
+| ERR-006 | Human handling           | Human error triggers decision_needed  |
 
 ---
 
@@ -1408,13 +1422,13 @@ class DegradationManager:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
+| Test ID | Description              | Pass Definition                         |
+| ------- | ------------------------ | --------------------------------------- |
 | DEG-001 | Component death detected | Missing heartbeat detected within 2 min |
-| DEG-002 | Human alerted | Alert published when component dies |
-| DEG-003 | Loops adapt | Loops switch to degraded behavior |
-| DEG-004 | Recovery | Components recover gracefully |
-| DEG-005 | File-based fallback | Loops work (slowly) without message bus |
+| DEG-002 | Human alerted            | Alert published when component dies     |
+| DEG-003 | Loops adapt              | Loops switch to degraded behavior       |
+| DEG-004 | Recovery                 | Components recover gracefully           |
+| DEG-005 | File-based fallback      | Loops work (slowly) without message bus |
 
 ---
 
@@ -1481,13 +1495,13 @@ class OrphanCleaner:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| ORP-001 | Expired lock cleanup | Locks released after TTL |
-| ORP-002 | Stale checkpoint cleanup | Old checkpoints deleted |
-| ORP-003 | Dead loop cleanup | All resources released when loop dies |
-| ORP-004 | Partial write detection | Half-written files detected |
-| ORP-005 | Recovery after cleanup | Other loops can proceed after cleanup |
+| Test ID | Description              | Pass Definition                       |
+| ------- | ------------------------ | ------------------------------------- |
+| ORP-001 | Expired lock cleanup     | Locks released after TTL              |
+| ORP-002 | Stale checkpoint cleanup | Old checkpoints deleted               |
+| ORP-003 | Dead loop cleanup        | All resources released when loop dies |
+| ORP-004 | Partial write detection  | Half-written files detected           |
+| ORP-005 | Recovery after cleanup   | Other loops can proceed after cleanup |
 
 ---
 
@@ -1536,14 +1550,14 @@ class OrphanCleaner:
 
 **Pass Criteria:**
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| INT-001 | Event publishing | Loop publishes all required events |
-| INT-002 | Pause handling | Loop pauses within 30s of request |
-| INT-003 | Resume handling | Loop resumes correctly |
-| INT-004 | Checkpoint creation | Checkpoint exists before each test |
-| INT-005 | Budget reporting | Usage recorded after each test |
-| INT-006 | File locking | Locks acquired before file modification |
+| Test ID | Description          | Pass Definition                                 |
+| ------- | -------------------- | ----------------------------------------------- |
+| INT-001 | Event publishing     | Loop publishes all required events              |
+| INT-002 | Pause handling       | Loop pauses within 30s of request               |
+| INT-003 | Resume handling      | Loop resumes correctly                          |
+| INT-004 | Checkpoint creation  | Checkpoint exists before each test              |
+| INT-005 | Budget reporting     | Usage recorded after each test                  |
+| INT-006 | File locking         | Locks acquired before file modification         |
 | INT-007 | Concurrent operation | 3 loops run without conflicts (file locks work) |
 
 ---
@@ -1563,15 +1577,16 @@ class OrphanCleaner:
 
 **Goal:** Message bus, verification, git strategy, basic monitoring
 
-| Day | Task | Deliverable | Tests |
-|-----|------|-------------|-------|
-| 1 | Message Bus implementation | `message_bus.py`, database schema | BUS-001 to BUS-008 |
-| 2 | Verification Gate | `verification_gate.py` | VER-001 to VER-007 |
-| 3 | Git Manager | `git_manager.py`, branch strategy | GIT-001 to GIT-006 |
-| 4 | Monitor Agent basic | Health checking, stale detection | MON-001 to MON-003 |
-| 5 | Loop integration | Loops publish events | INT-001 |
+| Day | Task                       | Deliverable                       | Tests              |
+| --- | -------------------------- | --------------------------------- | ------------------ |
+| 1   | Message Bus implementation | `message_bus.py`, database schema | BUS-001 to BUS-008 |
+| 2   | Verification Gate          | `verification_gate.py`            | VER-001 to VER-007 |
+| 3   | Git Manager                | `git_manager.py`, branch strategy | GIT-001 to GIT-006 |
+| 4   | Monitor Agent basic        | Health checking, stale detection  | MON-001 to MON-003 |
+| 5   | Loop integration           | Loops publish events              | INT-001            |
 
 **Phase 1 Exit Criteria:**
+
 - [ ] Message bus operational
 - [ ] Verification gate blocks false passes
 - [ ] Each loop has dedicated branch
@@ -1584,15 +1599,16 @@ class OrphanCleaner:
 
 **Goal:** PM agent, conflict resolution, semantic analysis, deadlock handling
 
-| Day | Task | Deliverable | Tests |
-|-----|------|-------------|-------|
-| 1 | File locking | Lock mechanism in loops | BUS-005, BUS-006, INT-006 |
-| 2 | Semantic Analyzer | `semantic_analyzer.py`, architecture rules | SEM-001 to SEM-005 |
-| 3 | Deadlock Detector | `deadlock_detector.py` | DLK-001 to DLK-005 |
-| 4 | PM Agent | Conflict resolution, priority | PM-001 to PM-008 |
-| 5 | Pause/resume | CLI and loop integration | HUM-003, HUM-004, INT-002, INT-003 |
+| Day | Task              | Deliverable                                | Tests                              |
+| --- | ----------------- | ------------------------------------------ | ---------------------------------- |
+| 1   | File locking      | Lock mechanism in loops                    | BUS-005, BUS-006, INT-006          |
+| 2   | Semantic Analyzer | `semantic_analyzer.py`, architecture rules | SEM-001 to SEM-005                 |
+| 3   | Deadlock Detector | `deadlock_detector.py`                     | DLK-001 to DLK-005                 |
+| 4   | PM Agent          | Conflict resolution, priority              | PM-001 to PM-008                   |
+| 5   | Pause/resume      | CLI and loop integration                   | HUM-003, HUM-004, INT-002, INT-003 |
 
 **Phase 2 Exit Criteria:**
+
 - [ ] File locking prevents conflicts
 - [ ] Semantic conflicts detected
 - [ ] Deadlocks detected and resolved
@@ -1605,17 +1621,18 @@ class OrphanCleaner:
 
 **Goal:** Checkpoints, rollback, budget, regression detection, knowledge sharing
 
-| Day | Task | Deliverable | Tests |
-|-----|------|-------------|-------|
-| 1 | Checkpoint Manager | Git-based checkpoints | CHK-001 to CHK-006 |
-| 2 | Budget Manager | Usage tracking, limits | BUD-001 to BUD-005 |
-| 3 | Regression Monitor | Continuous testing | REG-001 to REG-006 |
-| 4 | Knowledge Base | Cross-agent context | KB-001 to KB-006 |
-| 5 | Error Classifier | Error taxonomy | ERR-001 to ERR-006 |
-| 6 | Loop integration | Checkpoints, budget, knowledge | INT-004, INT-005 |
-| 7 | End-to-end test | Rollback scenario | E2E-004 |
+| Day | Task               | Deliverable                    | Tests              |
+| --- | ------------------ | ------------------------------ | ------------------ |
+| 1   | Checkpoint Manager | Git-based checkpoints          | CHK-001 to CHK-006 |
+| 2   | Budget Manager     | Usage tracking, limits         | BUD-001 to BUD-005 |
+| 3   | Regression Monitor | Continuous testing             | REG-001 to REG-006 |
+| 4   | Knowledge Base     | Cross-agent context            | KB-001 to KB-006   |
+| 5   | Error Classifier   | Error taxonomy                 | ERR-001 to ERR-006 |
+| 6   | Loop integration   | Checkpoints, budget, knowledge | INT-004, INT-005   |
+| 7   | End-to-end test    | Rollback scenario              | E2E-004            |
 
 **Phase 3 Exit Criteria:**
+
 - [ ] Checkpoints created before each test
 - [ ] Rollback restores correct state
 - [ ] Budget tracked and limits enforced
@@ -1628,23 +1645,24 @@ class OrphanCleaner:
 
 **Goal:** Degradation, cleanup, full CLI, 24-hour stability
 
-| Day | Task | Deliverable | Tests |
-|-----|------|-------------|-------|
-| 1 | Degradation Manager | Graceful degradation | DEG-001 to DEG-005 |
-| 2 | Orphan Cleaner | Resource cleanup | ORP-001 to ORP-005 |
-| 3 | Human Interface | Full CLI | HUM-001 to HUM-008 |
-| 4 | Decision system | PM escalates, human responds | PM-004, PM-005, HUM-006 |
-| 5 | Summary generation | AI-generated status | HUM-007 |
-| 6 | Continuous operation | 24-hour test | SAT-006 |
-| 7 | Documentation | Operator runbook, user guide | SAT-* |
+| Day | Task                 | Deliverable                  | Tests                   |
+| --- | -------------------- | ---------------------------- | ----------------------- |
+| 1   | Degradation Manager  | Graceful degradation         | DEG-001 to DEG-005      |
+| 2   | Orphan Cleaner       | Resource cleanup             | ORP-001 to ORP-005      |
+| 3   | Human Interface      | Full CLI                     | HUM-001 to HUM-008      |
+| 4   | Decision system      | PM escalates, human responds | PM-004, PM-005, HUM-006 |
+| 5   | Summary generation   | AI-generated status          | HUM-007                 |
+| 6   | Continuous operation | 24-hour test                 | SAT-006                 |
+| 7   | Documentation        | Operator runbook, user guide | SAT-\*                  |
 
 **Phase 4 Exit Criteria:**
+
 - [ ] Full CLI operational
 - [ ] System survives component failures
 - [ ] Orphans cleaned up automatically
 - [ ] Decisions flow human -> PM -> loops
 - [ ] System runs 24h without intervention
-- [ ] All SAT-* tests passing
+- [ ] All SAT-\* tests passing
 
 ---
 
@@ -1684,17 +1702,20 @@ python3 -m pytest coding-loops/tests/test_acceptance.py -v
 #### Scenario E2E-001: Basic Concurrent Operation
 
 **Setup:**
+
 1. Start Monitor Agent
 2. Start PM Agent
 3. Start Loop 1, 2, 3
 
 **Expected:**
+
 - All loops publish test_started events
 - Monitor reads all health files
 - Timeline shows interleaved events from all sources
 - No conflicts (loops work on different files)
 
 **Pass Definition:**
+
 - 3 loops run for 30 minutes
 - Each passes at least 1 test
 - All tests verified by Verification Gate
@@ -1706,10 +1727,12 @@ python3 -m pytest coding-loops/tests/test_acceptance.py -v
 #### Scenario E2E-002: Conflict Resolution
 
 **Setup:**
+
 1. Start all agents
 2. Modify Loop 1 and Loop 2 to both target same file
 
 **Expected:**
+
 - Both loops attempt to lock file
 - One succeeds, one fails
 - Monitor detects conflict
@@ -1718,6 +1741,7 @@ python3 -m pytest coding-loops/tests/test_acceptance.py -v
 - PM resumes other loop
 
 **Pass Definition:**
+
 - Conflict detected within 60s
 - Lower-priority loop paused
 - No file corruption
@@ -1728,10 +1752,12 @@ python3 -m pytest coding-loops/tests/test_acceptance.py -v
 #### Scenario E2E-003: Stuck Loop Recovery
 
 **Setup:**
+
 1. Start all agents
 2. Introduce impossible test in Loop 1
 
 **Expected:**
+
 - Loop 1 fails test 3 times
 - Monitor detects stuck pattern
 - PM escalates to human (decision_needed)
@@ -1739,6 +1765,7 @@ python3 -m pytest coding-loops/tests/test_acceptance.py -v
 - Loop 1 continues to next test
 
 **Pass Definition:**
+
 - Stuck detected after 3 failures
 - Decision request published
 - CLI shows decision
@@ -1750,10 +1777,12 @@ python3 -m pytest coding-loops/tests/test_acceptance.py -v
 #### Scenario E2E-004: Rollback on Break
 
 **Setup:**
+
 1. Start all agents
 2. Loop introduces change that breaks build
 
 **Expected:**
+
 - Loop modifies file
 - Verification Gate runs TypeScript check
 - TypeScript check fails
@@ -1762,6 +1791,7 @@ python3 -m pytest coding-loops/tests/test_acceptance.py -v
 - Build passes again
 
 **Pass Definition:**
+
 - Build break detected by Verification Gate
 - Rollback executed
 - Files restored to checkpoint
@@ -1772,10 +1802,12 @@ python3 -m pytest coding-loops/tests/test_acceptance.py -v
 #### Scenario E2E-005: 24-Hour Continuous Operation
 
 **Setup:**
+
 1. Start all agents with realistic test load
 2. Run for 24 hours with periodic human checks
 
 **Expected:**
+
 - All agents remain responsive
 - No memory leaks
 - No database corruption
@@ -1784,6 +1816,7 @@ python3 -m pytest coding-loops/tests/test_acceptance.py -v
 - Stuck tests escalated properly
 
 **Pass Definition:**
+
 - All agents running after 24h
 - Logs show no crashes/restarts
 - Progress made (tests passing)
@@ -1793,18 +1826,18 @@ python3 -m pytest coding-loops/tests/test_acceptance.py -v
 
 ### System Acceptance Tests
 
-| Test ID | Description | Pass Definition |
-|---------|-------------|-----------------|
-| SAT-001 | 3 loops, 1 hour, no conflicts | All loops run 1 hour, each passes 3+ tests, zero conflicts |
-| SAT-002 | Conflict injection | Inject conflict, PM resolves within 2 min, no data loss |
-| SAT-003 | Loop death recovery | Kill loop, system recovers, other loops continue |
-| SAT-004 | Monitor death recovery | Kill monitor, loops switch to degraded, human alerted |
-| SAT-005 | PM death recovery | Kill PM, loops pause on conflict, human alerted |
-| SAT-006 | Full 24-hour run | All components run 24h, >50 tests passed total, <5 human interventions |
-| SAT-007 | Rollback effectiveness | Inject breaking change, rollback succeeds, build passes |
-| SAT-008 | Human decision flow | Escalate decision, human responds via CLI, applied correctly |
-| SAT-009 | Budget enforcement | Exhaust budget, loop pauses, no over-spend |
-| SAT-010 | Zero data loss | After 24h run, all events in database, no corruption |
+| Test ID | Description                   | Pass Definition                                                        |
+| ------- | ----------------------------- | ---------------------------------------------------------------------- |
+| SAT-001 | 3 loops, 1 hour, no conflicts | All loops run 1 hour, each passes 3+ tests, zero conflicts             |
+| SAT-002 | Conflict injection            | Inject conflict, PM resolves within 2 min, no data loss                |
+| SAT-003 | Loop death recovery           | Kill loop, system recovers, other loops continue                       |
+| SAT-004 | Monitor death recovery        | Kill monitor, loops switch to degraded, human alerted                  |
+| SAT-005 | PM death recovery             | Kill PM, loops pause on conflict, human alerted                        |
+| SAT-006 | Full 24-hour run              | All components run 24h, >50 tests passed total, <5 human interventions |
+| SAT-007 | Rollback effectiveness        | Inject breaking change, rollback succeeds, build passes                |
+| SAT-008 | Human decision flow           | Escalate decision, human responds via CLI, applied correctly           |
+| SAT-009 | Budget enforcement            | Exhaust budget, loop pauses, no over-spend                             |
+| SAT-010 | Zero data loss                | After 24h run, all events in database, no corruption                   |
 
 ---
 
@@ -1914,7 +1947,7 @@ git:
   minimum: "2.30.0"
 
 disk_space:
-  minimum: "10GB"  # For checkpoints, transcripts, database
+  minimum: "10GB" # For checkpoints, transcripts, database
 
 memory:
   minimum: "4GB"
@@ -1962,16 +1995,16 @@ def check_dependencies() -> list[str]:
 
 ### Quantitative
 
-| Metric | Target |
-|--------|--------|
-| Conflict resolution time | <2 minutes |
-| Stuck detection time | <5 minutes |
-| Verification gate latency | <60 seconds |
-| Human response to decision | <1 hour (during work hours) |
-| System uptime | >99% |
-| Tests passing per day | >10 per loop |
-| False positive alerts | <10% |
-| False positive "passed" claims | 0% (verified) |
+| Metric                         | Target                      |
+| ------------------------------ | --------------------------- |
+| Conflict resolution time       | <2 minutes                  |
+| Stuck detection time           | <5 minutes                  |
+| Verification gate latency      | <60 seconds                 |
+| Human response to decision     | <1 hour (during work hours) |
+| System uptime                  | >99%                        |
+| Tests passing per day          | >10 per loop                |
+| False positive alerts          | <10%                        |
+| False positive "passed" claims | 0% (verified)               |
 
 ### Qualitative
 
@@ -1987,19 +2020,19 @@ def check_dependencies() -> list[str]:
 
 ## Risk Mitigation
 
-| Risk | Mitigation |
-|------|------------|
-| Database corruption | WAL mode, regular backups |
-| Agent crash | Systemd/supervisor auto-restart |
-| Infinite loop in agent | Timeout all operations |
-| Git conflicts | Each loop works on branch, PM merges |
-| API rate limits | Budget manager enforces limits |
-| Human unavailable | Auto-skip after timeout |
-| False "passed" claims | Verification Gate with independent checks |
-| Semantic conflicts | Semantic Analyzer cross-checks |
-| Deadlock | Deadlock Detector with victim selection |
-| Component failure | Graceful degradation protocols |
-| Orphaned resources | Orphan Cleaner with TTLs |
+| Risk                   | Mitigation                                |
+| ---------------------- | ----------------------------------------- |
+| Database corruption    | WAL mode, regular backups                 |
+| Agent crash            | Systemd/supervisor auto-restart           |
+| Infinite loop in agent | Timeout all operations                    |
+| Git conflicts          | Each loop works on branch, PM merges      |
+| API rate limits        | Budget manager enforces limits            |
+| Human unavailable      | Auto-skip after timeout                   |
+| False "passed" claims  | Verification Gate with independent checks |
+| Semantic conflicts     | Semantic Analyzer cross-checks            |
+| Deadlock               | Deadlock Detector with victim selection   |
+| Component failure      | Graceful degradation protocols            |
+| Orphaned resources     | Orphan Cleaner with TTLs                  |
 
 ---
 
@@ -2010,12 +2043,14 @@ See `coding-loops/docs/OPERATOR-RUNBOOK.md` for full runbook.
 ### Quick Reference
 
 **Quick Status Check:**
+
 ```bash
 python3 coding-loops/cli.py status
 python3 coding-loops/cli.py health
 ```
 
 **Loop Stuck:**
+
 ```bash
 python3 coding-loops/cli.py status loop-1
 cat coding-loops/loop-1-critical-path/specs/health.json
@@ -2024,12 +2059,14 @@ python3 coding-loops/cli.py restart loop-1   # If frozen
 ```
 
 **Monitor Not Responding:**
+
 ```bash
 ps aux | grep monitor_agent
 python3 coding-loops/agents/monitor_agent.py &  # Restart
 ```
 
 **Database Corruption:**
+
 ```bash
 sqlite3 coding-loops/coordination.db "PRAGMA integrity_check"
 # Stop all agents
@@ -2038,6 +2075,7 @@ cp coding-loops/backups/coordination-*.db coding-loops/coordination.db
 ```
 
 **All Loops Blocked:**
+
 ```bash
 python3 coding-loops/cli.py locks
 python3 coding-loops/cli.py deadlocks
@@ -2074,31 +2112,32 @@ Before handing to coding agent:
 
 ### Complete Test Summary
 
-| Component | Tests |
-|-----------|-------|
-| Message Bus (BUS) | 8 |
-| Monitor (MON) | 8 |
-| PM (PM) | 8 |
-| Human (HUM) | 8 |
-| Checkpoint (CHK) | 6 |
-| Budget (BUD) | 5 |
-| Verification (VER) | 7 |
-| Git (GIT) | 6 |
-| Semantic (SEM) | 5 |
-| Knowledge (KB) | 6 |
-| Regression (REG) | 6 |
-| Deadlock (DLK) | 5 |
-| Error (ERR) | 6 |
-| Degradation (DEG) | 5 |
-| Orphan (ORP) | 5 |
-| Integration (INT) | 7 |
-| E2E | 5 |
-| Acceptance (SAT) | 10 |
-| **Total** | **116** |
+| Component          | Tests   |
+| ------------------ | ------- |
+| Message Bus (BUS)  | 8       |
+| Monitor (MON)      | 8       |
+| PM (PM)            | 8       |
+| Human (HUM)        | 8       |
+| Checkpoint (CHK)   | 6       |
+| Budget (BUD)       | 5       |
+| Verification (VER) | 7       |
+| Git (GIT)          | 6       |
+| Semantic (SEM)     | 5       |
+| Knowledge (KB)     | 6       |
+| Regression (REG)   | 6       |
+| Deadlock (DLK)     | 5       |
+| Error (ERR)        | 6       |
+| Degradation (DEG)  | 5       |
+| Orphan (ORP)       | 5       |
+| Integration (INT)  | 7       |
+| E2E                | 5       |
+| Acceptance (SAT)   | 10      |
+| **Total**          | **116** |
 
 ### Event Payload Schemas
 
 #### test_started
+
 ```json
 {
   "test_id": "CP-UFS-001",
@@ -2109,6 +2148,7 @@ Before handing to coding agent:
 ```
 
 #### test_passed/failed/blocked
+
 ```json
 {
   "test_id": "CP-UFS-001",
@@ -2118,12 +2158,13 @@ Before handing to coding agent:
   "tokens_used": 15000,
   "files_modified": ["file1.ts", "file2.ts"],
   "verified": true,
-  "verification_checks": {"typescript": true, "build": true, "tests": true},
+  "verification_checks": { "typescript": true, "build": true, "tests": true },
   "error_message": null
 }
 ```
 
 #### file_locked/unlocked
+
 ```json
 {
   "file_path": "server/api.ts",
@@ -2134,6 +2175,7 @@ Before handing to coding agent:
 ```
 
 #### file_conflict
+
 ```json
 {
   "file_path": "server/api.ts",
@@ -2145,6 +2187,7 @@ Before handing to coding agent:
 ```
 
 #### regression_detected
+
 ```json
 {
   "test_id": "CP-UFS-001",
@@ -2156,15 +2199,16 @@ Before handing to coding agent:
 ```
 
 #### decision_needed
+
 ```json
 {
   "decision_id": "DEC-001",
   "type": "conflict_resolution",
   "summary": "Loop 1 and Loop 2 both modified server/api.ts",
   "options": [
-    {"id": "A", "description": "Keep Loop 1's changes (auth middleware)"},
-    {"id": "B", "description": "Keep Loop 2's changes (credit endpoint)"},
-    {"id": "C", "description": "Manual merge required"}
+    { "id": "A", "description": "Keep Loop 1's changes (auth middleware)" },
+    { "id": "B", "description": "Keep Loop 2's changes (credit endpoint)" },
+    { "id": "C", "description": "Manual merge required" }
   ],
   "default": "A",
   "timeout_minutes": 60
@@ -2172,6 +2216,7 @@ Before handing to coding agent:
 ```
 
 #### force_release
+
 ```json
 {
   "loop_id": "loop-2-infrastructure",
@@ -2181,6 +2226,7 @@ Before handing to coding agent:
 ```
 
 #### human_message
+
 ```json
 {
   "message_type": "decision_response",
@@ -2192,8 +2238,8 @@ Before handing to coding agent:
 
 ---
 
-*Plan created: 2026-01-07*
-*Version: 2.0 FINAL*
-*Ready for coding agent handoff*
-*Total tests: 116*
-*Estimated effort: 6 weeks*
+_Plan created: 2026-01-07_
+_Version: 2.0 FINAL_
+_Ready for coding agent handoff_
+_Total tests: 116_
+_Estimated effort: 6 weeks_

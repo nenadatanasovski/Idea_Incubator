@@ -10,19 +10,27 @@
  * - Cannot be dismissed without answering (except via "Skip" with confirmation)
  */
 
-import { useState, useEffect } from 'react';
-import { AlertTriangle, Clock, Send, Sparkles, Bot, MessageSquare, X } from 'lucide-react';
+import { useState, useEffect } from "react";
+import {
+  AlertTriangle,
+  Clock,
+  Send,
+  Sparkles,
+  Bot,
+  MessageSquare,
+  X,
+} from "lucide-react";
 
 export interface BlockingQuestion {
   id: string;
   agentId: string;
   agentName: string;
   agentType: string;
-  type: 'BLOCKING' | 'APPROVAL' | 'ESCALATION' | 'DECISION';
+  type: "BLOCKING" | "APPROVAL" | "ESCALATION" | "DECISION";
   content: string;
   options: { label: string; value: string; description?: string }[];
   defaultOption?: string;
-  priority: 'critical' | 'high' | 'medium' | 'low';
+  priority: "critical" | "high" | "medium" | "low";
   taskId?: string;
   taskDescription?: string;
   projectName?: string;
@@ -40,26 +48,38 @@ interface BlockingQuestionModalProps {
 }
 
 const AGENT_COLORS: Record<string, string> = {
-  build: 'bg-blue-500',
-  spec: 'bg-purple-500',
-  validation: 'bg-green-500',
-  monitoring: 'bg-orange-500',
-  orchestrator: 'bg-indigo-500',
-  sia: 'bg-pink-500',
-  ux: 'bg-cyan-500',
-  default: 'bg-gray-500',
+  build: "bg-blue-500",
+  spec: "bg-purple-500",
+  validation: "bg-green-500",
+  monitoring: "bg-orange-500",
+  orchestrator: "bg-indigo-500",
+  sia: "bg-pink-500",
+  ux: "bg-cyan-500",
+  default: "bg-gray-500",
 };
 
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  BLOCKING: { label: 'Blocking', color: 'bg-red-100 text-red-700 border-red-200' },
-  APPROVAL: { label: 'Approval Required', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-  ESCALATION: { label: 'Escalation', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-  DECISION: { label: 'Decision Required', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  BLOCKING: {
+    label: "Blocking",
+    color: "bg-red-100 text-red-700 border-red-200",
+  },
+  APPROVAL: {
+    label: "Approval Required",
+    color: "bg-orange-100 text-orange-700 border-orange-200",
+  },
+  ESCALATION: {
+    label: "Escalation",
+    color: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  },
+  DECISION: {
+    label: "Decision Required",
+    color: "bg-blue-100 text-blue-700 border-blue-200",
+  },
 };
 
 function formatTimeAgo(dateString: string): string {
   const diff = Date.now() - new Date(dateString).getTime();
-  if (diff < 60000) return 'Just now';
+  if (diff < 60000) return "Just now";
   if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
   return `${Math.floor(diff / 86400000)}d ago`;
@@ -68,7 +88,7 @@ function formatTimeAgo(dateString: string): string {
 function getTimeRemaining(expiresAt?: string): string | null {
   if (!expiresAt) return null;
   const remaining = new Date(expiresAt).getTime() - Date.now();
-  if (remaining <= 0) return 'Expired';
+  if (remaining <= 0) return "Expired";
   if (remaining < 60000) return `${Math.floor(remaining / 1000)}s left`;
   if (remaining < 3600000) return `${Math.floor(remaining / 60000)}m left`;
   return `${Math.floor(remaining / 3600000)}h left`;
@@ -80,15 +100,16 @@ export default function BlockingQuestionModal({
   onSkip,
   onClose,
 }: BlockingQuestionModalProps): JSX.Element {
-  const [customAnswer, setCustomAnswer] = useState('');
+  const [customAnswer, setCustomAnswer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
-  const [skipReason, setSkipReason] = useState('');
+  const [skipReason, setSkipReason] = useState("");
   const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
 
   const agentColor = AGENT_COLORS[question.agentType] || AGENT_COLORS.default;
   const typeInfo = TYPE_LABELS[question.type] || TYPE_LABELS.BLOCKING;
-  const isBlocking = question.type === 'BLOCKING' || question.type === 'APPROVAL';
+  const isBlocking =
+    question.type === "BLOCKING" || question.type === "APPROVAL";
 
   // Update time remaining
   useEffect(() => {
@@ -108,7 +129,7 @@ export default function BlockingQuestionModal({
     try {
       await onAnswer(question.id, value);
     } catch (error) {
-      console.error('Failed to submit answer:', error);
+      console.error("Failed to submit answer:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -120,7 +141,7 @@ export default function BlockingQuestionModal({
     try {
       await onAnswer(question.id, customAnswer.trim());
     } catch (error) {
-      console.error('Failed to submit answer:', error);
+      console.error("Failed to submit answer:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -130,10 +151,10 @@ export default function BlockingQuestionModal({
     if (!onSkip) return;
     setIsSubmitting(true);
     try {
-      await onSkip(question.id, skipReason || 'Skipped by user');
+      await onSkip(question.id, skipReason || "Skipped by user");
       setShowSkipConfirm(false);
     } catch (error) {
-      console.error('Failed to skip question:', error);
+      console.error("Failed to skip question:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -143,20 +164,30 @@ export default function BlockingQuestionModal({
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
       <div
         className={`bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 border-2 ${
-          isBlocking ? 'border-red-400 animate-pulse-subtle' : 'border-orange-300'
+          isBlocking
+            ? "border-red-400 animate-pulse-subtle"
+            : "border-orange-300"
         }`}
       >
         {/* Header */}
-        <div className={`p-4 border-b ${isBlocking ? 'bg-red-50' : 'bg-orange-50'}`}>
+        <div
+          className={`p-4 border-b ${isBlocking ? "bg-red-50" : "bg-orange-50"}`}
+        >
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full ${agentColor} flex items-center justify-center`}>
+              <div
+                className={`w-10 h-10 rounded-full ${agentColor} flex items-center justify-center`}
+              >
                 <Bot className="h-5 w-5 text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-900">{question.agentName}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full border ${typeInfo.color}`}>
+                  <span className="font-semibold text-gray-900">
+                    {question.agentName}
+                  </span>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full border ${typeInfo.color}`}
+                  >
                     {typeInfo.label}
                   </span>
                 </div>
@@ -164,7 +195,9 @@ export default function BlockingQuestionModal({
                   <Clock className="h-3 w-3" />
                   <span>{formatTimeAgo(question.createdAt)}</span>
                   {timeRemaining && (
-                    <span className={`font-medium ${timeRemaining === 'Expired' ? 'text-red-600' : 'text-orange-600'}`}>
+                    <span
+                      className={`font-medium ${timeRemaining === "Expired" ? "text-red-600" : "text-orange-600"}`}
+                    >
                       {timeRemaining}
                     </span>
                   )}
@@ -209,7 +242,9 @@ export default function BlockingQuestionModal({
           {isBlocking && (
             <div className="flex items-center gap-2 mb-3 text-red-600 text-sm">
               <AlertTriangle className="h-4 w-4" />
-              <span className="font-medium">Agent is blocked until this is answered</span>
+              <span className="font-medium">
+                Agent is blocked until this is answered
+              </span>
             </div>
           )}
 
@@ -236,18 +271,24 @@ export default function BlockingQuestionModal({
                   disabled={isSubmitting}
                   className={`w-full text-left p-3 rounded-lg border transition-colors ${
                     option.value === question.defaultOption
-                      ? 'border-blue-300 bg-blue-50 hover:bg-blue-100'
-                      : 'border-gray-200 bg-white hover:bg-gray-50'
+                      ? "border-blue-300 bg-blue-50 hover:bg-blue-100"
+                      : "border-gray-200 bg-white hover:bg-gray-50"
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-gray-900">{option.label}</span>
+                    <span className="font-medium text-gray-900">
+                      {option.label}
+                    </span>
                     {option.value === question.defaultOption && (
-                      <span className="text-xs text-blue-600 font-medium">Recommended</span>
+                      <span className="text-xs text-blue-600 font-medium">
+                        Recommended
+                      </span>
                     )}
                   </div>
                   {option.description && (
-                    <p className="text-sm text-gray-500 mt-1">{option.description}</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {option.description}
+                    </p>
                   )}
                 </button>
               ))}
@@ -276,7 +317,7 @@ export default function BlockingQuestionModal({
                   className="btn btn-primary text-sm disabled:opacity-50"
                 >
                   <Send className="h-4 w-4 mr-1" />
-                  {isSubmitting ? 'Sending...' : 'Send Answer'}
+                  {isSubmitting ? "Sending..." : "Send Answer"}
                 </button>
               </div>
             </div>
@@ -287,7 +328,8 @@ export default function BlockingQuestionModal({
             <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
               <p className="text-sm text-yellow-800 mb-3">
                 <AlertTriangle className="h-4 w-4 inline mr-1" />
-                Skipping a blocking question may cause the agent to use a default answer or fail the task.
+                Skipping a blocking question may cause the agent to use a
+                default answer or fail the task.
               </p>
               <textarea
                 value={skipReason}
@@ -308,7 +350,7 @@ export default function BlockingQuestionModal({
                   disabled={isSubmitting}
                   className="btn bg-yellow-600 text-white hover:bg-yellow-700 text-sm"
                 >
-                  {isSubmitting ? 'Skipping...' : 'Confirm Skip'}
+                  {isSubmitting ? "Skipping..." : "Confirm Skip"}
                 </button>
               </div>
             </div>

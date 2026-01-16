@@ -8,15 +8,16 @@ sessionId: b5f570d7-b261-4c24-8c5d-eea37c8ea3a1
 createdAt: 2026-01-04 10:15:12
 updatedAt: 2026-01-04 10:15:12
 ---
+
 I notice you've shared the current state of the **Pet Sitting Marketplace** idea. Looking at the context:
 
 ## Current Status
 
-| Aspect | Value |
-|--------|-------|
+| Aspect         | Value     |
+| -------------- | --------- |
 | **Confidence** | 28% (low) |
-| **Viability** | 75% |
-| **Stage** | Forming |
+| **Viability**  | 75%       |
+| **Stage**      | Forming   |
 
 ## Key Issues Identified
 

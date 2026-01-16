@@ -17,6 +17,7 @@ The Task Agent is an **always-on autonomous orchestrator** that manages task lis
 5. **Monitors** execution progress and handles completion/failure
 
 **Key Design Decisions:**
+
 - Task Agent orchestrates, Build Agent executes (Q17)
 - Focus on TASK LISTS not individual tasks (Q24)
 - Each Telegram chat linked to exactly one task list (Q25)
@@ -30,15 +31,15 @@ The Task Agent is an **always-on autonomous orchestrator** that manages task lis
 
 ### Task Agent vs Build Agent
 
-| Aspect | Task Agent | Build Agent |
-|--------|------------|-------------|
-| **Role** | Orchestrator | Executor |
-| **Always On** | Yes | Spawned per task list |
-| **Interface** | Telegram bot | Internal/Events |
-| **Works With** | Task Lists | Individual Tasks |
-| **Determines** | Task list completion | Task pass/fail |
-| **Runs Tests** | No | Yes (iterate/refine loop) |
-| **Writes Code** | No | Yes |
+| Aspect          | Task Agent           | Build Agent               |
+| --------------- | -------------------- | ------------------------- |
+| **Role**        | Orchestrator         | Executor                  |
+| **Always On**   | Yes                  | Spawned per task list     |
+| **Interface**   | Telegram bot         | Internal/Events           |
+| **Works With**  | Task Lists           | Individual Tasks          |
+| **Determines**  | Task list completion | Task pass/fail            |
+| **Runs Tests**  | No                   | Yes (iterate/refine loop) |
+| **Writes Code** | No                   | Yes                       |
 
 ### Agent Communication Flow (Q19)
 
@@ -77,18 +78,18 @@ The Task Agent is an **always-on autonomous orchestrator** that manages task lis
 
 ### Event Bus Events
 
-| Event | Emitter | Receiver | Description |
-|-------|---------|----------|-------------|
-| `tasklist.ready` | Task Agent | Build Agent | Task list validated, ready to execute |
-| `tasklist.completed` | Build Agent | Task Agent | All tasks in list completed |
-| `tasklist.failed` | Build Agent | Task Agent | Task list execution failed |
-| `task.started` | Build Agent | Task Agent | Individual task started |
-| `task.passed` | Build Agent | Task Agent | Task tests passed |
-| `task.failed` | Build Agent | Build Agent | Task failed (iterate/refine internally) |
-| `task.suggestion` | Task Agent | User (Telegram) | Suggest next action |
-| `tasklist.approved` | User (Telegram) | Task Agent | User approved execution |
-| `question.asked` | Task Agent | User (Telegram) | Question sent |
-| `question.answered` | User (Telegram) | Task Agent | Answer received |
+| Event                | Emitter         | Receiver        | Description                             |
+| -------------------- | --------------- | --------------- | --------------------------------------- |
+| `tasklist.ready`     | Task Agent      | Build Agent     | Task list validated, ready to execute   |
+| `tasklist.completed` | Build Agent     | Task Agent      | All tasks in list completed             |
+| `tasklist.failed`    | Build Agent     | Task Agent      | Task list execution failed              |
+| `task.started`       | Build Agent     | Task Agent      | Individual task started                 |
+| `task.passed`        | Build Agent     | Task Agent      | Task tests passed                       |
+| `task.failed`        | Build Agent     | Build Agent     | Task failed (iterate/refine internally) |
+| `task.suggestion`    | Task Agent      | User (Telegram) | Suggest next action                     |
+| `tasklist.approved`  | User (Telegram) | Task Agent      | User approved execution                 |
+| `question.asked`     | Task Agent      | User (Telegram) | Question sent                           |
+| `question.answered`  | User (Telegram) | Task Agent      | Answer received                         |
 
 ---
 
@@ -147,6 +148,7 @@ The Task Agent's primary behavior is a continuous loop:
 ### Loop Triggering (Q23)
 
 **Hybrid approach:**
+
 - **Active session** (user responded within 30 min): Continuous suggestions
 - **Inactive**: Daily summary with top 3 task lists
 - **Always**: Immediate notification for blockers/failures
@@ -219,6 +221,7 @@ Bug Fixes Sprint 1    → Chat #125
 ```
 
 **Benefits:**
+
 - Clear context per conversation
 - Easy to switch between task lists
 - History preserved per list
@@ -231,7 +234,7 @@ Every question gets a **unique message with unique callback data**:
 ```typescript
 interface TelegramQuestion {
   messageId: string;
-  callbackData: string;        // Unique: "q:abc123"
+  callbackData: string; // Unique: "q:abc123"
   taskListId: string;
   questionId: string;
   questionType: QuestionType;
@@ -241,12 +244,12 @@ interface TelegramQuestion {
 
 ### Question Priority Timeouts (Q8)
 
-| Priority | Timeout | Action |
-|----------|---------|--------|
-| Critical | No timeout | Block until answered |
-| High | No timeout | Block until answered |
-| Medium | Configurable (default: no auto) | Per task list toggle |
-| Low | Configurable (default: no auto) | Per task list toggle |
+| Priority | Timeout                         | Action               |
+| -------- | ------------------------------- | -------------------- |
+| Critical | No timeout                      | Block until answered |
+| High     | No timeout                      | Block until answered |
+| Medium   | Configurable (default: no auto) | Per task list toggle |
+| Low      | Configurable (default: no auto) | Per task list toggle |
 
 ### Defer Options (Q10)
 
@@ -287,29 +290,30 @@ Where:
 
 ### Test Levels
 
-| Level | What It Tests | Tools | When Required |
-|-------|---------------|-------|---------------|
-| Codebase | Syntax, types, lint, unit tests | `tsc`, `eslint`, `vitest` | ALL tasks |
-| API | HTTP endpoints, responses, errors | `supertest`, custom | Tasks touching `server/` |
-| UI | User flows, visual elements | Puppeteer (MCP) | Tasks touching frontend |
+| Level    | What It Tests                     | Tools                     | When Required            |
+| -------- | --------------------------------- | ------------------------- | ------------------------ |
+| Codebase | Syntax, types, lint, unit tests   | `tsc`, `eslint`, `vitest` | ALL tasks                |
+| API      | HTTP endpoints, responses, errors | `supertest`, custom       | Tasks touching `server/` |
+| UI       | User flows, visual elements       | Puppeteer (MCP)           | Tasks touching frontend  |
 
 ### Test Pass Criteria (Q14, Q28)
 
 **100% tests must pass** for task completion.
 
 If tests fail:
+
 1. Build Agent attempts iterate/refine
 2. If still failing, option to create new follow-up task
 3. Task marked as failed with specific test failures noted
 
 ### Test Ownership (Q27)
 
-| Actor | Defines Tests | Runs Tests | Determines Pass/Fail |
-|-------|---------------|------------|---------------------|
-| User | Can add custom | No | Reviews failures |
-| Task Agent | Auto-generates from criteria | Triggers execution | Task LIST completion |
-| Build Agent | No | Yes (loop) | Individual TASK pass/fail |
-| Test Executor | No | Executes all levels | Returns raw results |
+| Actor         | Defines Tests                | Runs Tests          | Determines Pass/Fail      |
+| ------------- | ---------------------------- | ------------------- | ------------------------- |
+| User          | Can add custom               | No                  | Reviews failures          |
+| Task Agent    | Auto-generates from criteria | Triggers execution  | Task LIST completion      |
+| Build Agent   | No                           | Yes (loop)          | Individual TASK pass/fail |
+| Test Executor | No                           | Executes all levels | Returns raw results       |
 
 ---
 
@@ -319,19 +323,20 @@ If tests fail:
 
 A task list is ready to execute when:
 
-| Condition | Required | Toggle |
-|-----------|----------|--------|
-| All tasks validated | Yes | - |
-| All dependencies satisfied | Yes | - |
-| All tasks have codebase tests | Yes | - |
-| API tests defined (if backend) | Yes | - |
-| UI tests defined (if frontend) | Yes | - |
-| No `conflicts_with` tasks running | Yes | - |
-| User approval | Per list | `user_approval_required` |
+| Condition                         | Required | Toggle                   |
+| --------------------------------- | -------- | ------------------------ |
+| All tasks validated               | Yes      | -                        |
+| All dependencies satisfied        | Yes      | -                        |
+| All tasks have codebase tests     | Yes      | -                        |
+| API tests defined (if backend)    | Yes      | -                        |
+| UI tests defined (if frontend)    | Yes      | -                        |
+| No `conflicts_with` tasks running | Yes      | -                        |
+| User approval                     | Per list | `user_approval_required` |
 
 ### Blocking vs Non-Blocking Issues
 
 **Blocking (cannot execute):**
+
 - Missing required tests
 - Unresolved dependencies
 - Ambiguous acceptance criteria
@@ -339,6 +344,7 @@ A task list is ready to execute when:
 - Conflicting task list running
 
 **Warnings (can proceed):**
+
 - Missing effort estimates
 - Potential duplicate detected
 - Low test coverage
@@ -350,6 +356,7 @@ A task list is ready to execute when:
 **Name:** Task Agent
 
 **Personality:**
+
 - Approachable and fun
 - Occasional witty remarks based on context
 - Helpful and insightful
@@ -490,34 +497,34 @@ GET    /api/analytics/duplicates          Potential duplicates
 
 ```typescript
 // Task list lifecycle
-'tasklist:created'
-'tasklist:updated'
-'tasklist:validated'
-'tasklist:execution_started'
-'tasklist:task_started'
-'tasklist:task_completed'
-'tasklist:task_failed'
-'tasklist:completed'
-'tasklist:failed'
-'tasklist:paused'
-'tasklist:resumed'
+"tasklist:created";
+"tasklist:updated";
+"tasklist:validated";
+"tasklist:execution_started";
+"tasklist:task_started";
+"tasklist:task_completed";
+"tasklist:task_failed";
+"tasklist:completed";
+"tasklist:failed";
+"tasklist:paused";
+"tasklist:resumed";
 
 // Suggestions
-'suggestion:new'
-'suggestion:approved'
-'suggestion:rejected'
-'suggestion:deferred'
+"suggestion:new";
+"suggestion:approved";
+"suggestion:rejected";
+"suggestion:deferred";
 
 // Questions
-'question:new'
-'question:answered'
-'question:expired'
-'question:deferred'
+"question:new";
+"question:answered";
+"question:expired";
+"question:deferred";
 
 // Analytics
-'parallel:opportunity_detected'
-'duplicate:detected'
-'blocker:resolved'
+"parallel:opportunity_detected";
+"duplicate:detected";
+"blocker:resolved";
 ```
 
 ---
@@ -548,43 +555,43 @@ GET    /api/analytics/duplicates          Potential duplicates
 interface TaskAgentConfig {
   // Suggestion loop
   suggestionLoop: {
-    activeSessionTimeout: number;    // 30 min default
-    batchFrequencyInactive: string;  // "daily" | "weekly"
-    dailySummaryTime: string;        // "09:00"
+    activeSessionTimeout: number; // 30 min default
+    batchFrequencyInactive: string; // "daily" | "weekly"
+    dailySummaryTime: string; // "09:00"
   };
 
   // Validation
   validation: {
-    requireCodebaseTests: boolean;   // true
-    requireApiTests: 'always' | 'if_backend';
-    requireUiTests: 'always' | 'if_frontend';
+    requireCodebaseTests: boolean; // true
+    requireApiTests: "always" | "if_backend";
+    requireUiTests: "always" | "if_frontend";
   };
 
   // Deduplication
   deduplication: {
     enabled: boolean;
-    threshold: number;               // 0.92
-    autoMerge: boolean;              // false - always ask
+    threshold: number; // 0.92
+    autoMerge: boolean; // false - always ask
   };
 
   // Telegram
   telegram: {
     enabled: boolean;
     botToken: string;
-    oneChatPerList: boolean;         // true
+    oneChatPerList: boolean; // true
   };
 
   // Execution
   execution: {
-    maxParallelLists: number;        // 3 default
+    maxParallelLists: number; // 3 default
     defaultApprovalRequired: boolean; // true initially
   };
 
   // Persona
   persona: {
-    name: string;                    // "Task Agent"
-    style: 'witty' | 'professional' | 'minimal';
-    useEmoji: boolean;               // true
+    name: string; // "Task Agent"
+    style: "witty" | "professional" | "minimal";
+    useEmoji: boolean; // true
   };
 }
 ```
@@ -625,6 +632,7 @@ The **execution_id** is critical for parallel Build Agent operation:
 ```
 
 **Key Points:**
+
 - **execution_id** scopes all operations to one task list execution
 - Multiple Build Agents can run simultaneously without interference
 - When Build Agent 2 takes over from Build Agent 1, they use the SAME execution_id
@@ -671,12 +679,12 @@ Build Agents use the **task_execution_log** table with a **line-based log** for 
 
 ### Execution Log Uses
 
-| Reader | What They Read | Scoped By | Purpose |
-|--------|----------------|-----------|---------|
-| **Build Agent 2** | Last 500 lines | execution_id | Get bearings, resume work |
-| **SIA** | Full history | task_id (all executions) | Pattern analysis, failure diagnosis |
-| **Task Agent** | Summary/status | task_list_id | Track progress, detect stuck |
-| **Human** | Any portion | Any | Debugging, review |
+| Reader            | What They Read | Scoped By                | Purpose                             |
+| ----------------- | -------------- | ------------------------ | ----------------------------------- |
+| **Build Agent 2** | Last 500 lines | execution_id             | Get bearings, resume work           |
+| **SIA**           | Full history   | task_id (all executions) | Pattern analysis, failure diagnosis |
+| **Task Agent**    | Summary/status | task_list_id             | Track progress, detect stuck        |
+| **Human**         | Any portion    | Any                      | Debugging, review                   |
 
 ---
 
@@ -741,13 +749,13 @@ Task Agent re-queues updated task list for Build Agent
 
 ## Recovery Strategies (Q30)
 
-| Failure | Recovery |
-|---------|----------|
-| Task Agent crash | Restart, resume from DB state |
+| Failure                | Recovery                                               |
+| ---------------------- | ------------------------------------------------------ |
+| Task Agent crash       | Restart, resume from DB state                          |
 | Build Agent fails task | Build Agent iterate/refine, then create follow-up task |
-| Telegram disconnects | Auto-reconnect, queue messages, retry delivery |
-| DB corrupted | Restore from backup (DB is only source of truth now) |
-| User unresponsive | Daily reminder → weekly reminder → auto-pause list |
+| Telegram disconnects   | Auto-reconnect, queue messages, retry delivery         |
+| DB corrupted           | Restore from backup (DB is only source of truth now)   |
+| User unresponsive      | Daily reminder → weekly reminder → auto-pause list     |
 
 ---
 
@@ -756,12 +764,14 @@ Task Agent re-queues updated task list for Build Agent
 Full graph with filtering:
 
 **Nodes:**
+
 - Tasks
 - Task Lists
 - Ideas
 - Projects
 
 **Filters:**
+
 - By Project (show only one project)
 - By Idea (show only one idea's tasks)
 - By Status (active, blocked, completed)
@@ -775,30 +785,35 @@ Full graph with filtering:
 ## Rollout Strategy
 
 ### Phase 1: Foundation
+
 1. Create DB schema (task-data-model.md)
 2. Migrate existing MD tasks to DB
 3. Implement Task Agent core service
 4. Basic Telegram bot connection
 
 ### Phase 2: Suggestion Loop
+
 1. Implement suggestion engine
 2. Add priority calculator
 3. Add parallel detection
 4. Telegram suggestion UI
 
 ### Phase 3: Build Agent Integration
+
 1. Implement task list handoff
 2. Build Agent spawning
 3. Event-based communication
 4. Progress tracking
 
 ### Phase 4: Intelligence
+
 1. Deduplication engine
 2. Similarity search
 3. Test auto-generation
 4. Analytics dashboard
 
 ### Phase 5: Polish
+
 1. Agent persona refinement
 2. Graph visualization
 3. Recovery mechanisms
@@ -830,6 +845,7 @@ server/services/task-agent/
 **API Routes:** `server/routes/task-agent.ts` mounted at `/api/task-agent`
 
 **Frontend Components:**
+
 - `TaskAgentDashboard.tsx` - Main dashboard
 - `TaskCard.tsx` - Task summary card
 - `TaskCreateForm.tsx` - Multi-step creation form

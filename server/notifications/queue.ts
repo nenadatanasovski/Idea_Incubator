@@ -2,17 +2,14 @@
  * Notification Queue
  * Handles notification creation with deduplication and template rendering
  */
-import { EventEmitter } from 'events';
-import {
-  createNotification,
-  getTemplate
-} from '../../database/db.js';
+import { EventEmitter } from "events";
+import { createNotification, getTemplate } from "../../database/db.js";
 import {
   CreateNotificationInput,
   Notification,
-  NotificationCategory
-} from '../../types/notification.js';
-import { renderTemplate } from './templates.js';
+  NotificationCategory,
+} from "../../types/notification.js";
+import { renderTemplate } from "./templates.js";
 
 /**
  * NotificationQueue manages the creation and queuing of notifications
@@ -61,7 +58,7 @@ class NotificationQueue extends EventEmitter {
    * Key is based on userId + type + data hash
    */
   private getDedupeKey(input: CreateNotificationInput): string {
-    const dataStr = input.data ? JSON.stringify(input.data) : '';
+    const dataStr = input.data ? JSON.stringify(input.data) : "";
     return `${input.userId}:${input.type}:${dataStr}`;
   }
 
@@ -69,12 +66,12 @@ class NotificationQueue extends EventEmitter {
    * Determine category from notification type
    */
   private getCategoryFromType(type: string): NotificationCategory {
-    if (type.startsWith('agent_')) return 'agent';
-    if (type.startsWith('session_')) return 'session';
-    if (type.startsWith('build_')) return 'build';
-    if (type.startsWith('evaluation_')) return 'evaluation';
-    if (type.startsWith('idea_')) return 'idea';
-    return 'system';
+    if (type.startsWith("agent_")) return "agent";
+    if (type.startsWith("session_")) return "session";
+    if (type.startsWith("build_")) return "build";
+    if (type.startsWith("evaluation_")) return "evaluation";
+    if (type.startsWith("idea_")) return "idea";
+    return "system";
   }
 
   /**
@@ -103,7 +100,9 @@ class NotificationQueue extends EventEmitter {
     // Get template for this notification type
     const template = await getTemplate(input.type);
     if (!template) {
-      console.error(`[NotificationQueue] Unknown notification type: ${input.type}`);
+      console.error(
+        `[NotificationQueue] Unknown notification type: ${input.type}`,
+      );
       throw new Error(`Unknown notification type: ${input.type}`);
     }
 
@@ -118,14 +117,14 @@ class NotificationQueue extends EventEmitter {
       ...input,
       title,
       body,
-      category
+      category,
     });
 
     // Update dedup cache
     this.dedupeCache.set(dedupeKey, Date.now());
 
     // Emit event for dispatching
-    this.emit('notification', notification);
+    this.emit("notification", notification);
 
     return notification;
   }
@@ -149,14 +148,14 @@ class NotificationQueue extends EventEmitter {
       ...input,
       title,
       body,
-      category
+      category,
     });
 
     // Update dedup cache even for forced notifications
     const dedupeKey = this.getDedupeKey(input);
     this.dedupeCache.set(dedupeKey, Date.now());
 
-    this.emit('notification', notification);
+    this.emit("notification", notification);
 
     return notification;
   }

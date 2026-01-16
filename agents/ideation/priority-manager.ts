@@ -5,10 +5,10 @@
  * Determines which documents should be loaded first based on priority rules.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { getIdeaFolderPath } from '../../utils/folder-structure.js';
-import type { LifecycleStage } from '../../utils/schemas.js';
+import * as fs from "fs";
+import * as path from "path";
+import { getIdeaFolderPath } from "../../utils/folder-structure.js";
+import type { LifecycleStage } from "../../utils/schemas.js";
 
 // ============================================================================
 // PRIORITY RULES TYPES
@@ -37,30 +37,39 @@ export interface PriorityRules {
  * Provides sensible defaults for each lifecycle phase.
  */
 export const DEFAULT_PRIORITY_RULES: PriorityRules = {
-  always_show: ['README.md', 'development.md'],
+  always_show: ["README.md", "development.md"],
   by_phase: {
-    SPARK: ['README.md', 'development.md'],
-    CLARIFY: ['README.md', 'development.md', 'target-users.md', 'problem-solution.md'],
-    RESEARCH: ['research/market.md', 'research/competitive.md', 'research/user-personas.md'],
-    IDEATE: ['development.md', 'problem-solution.md'],
-    EVALUATE: ['analysis/redteam.md', 'analysis/risk-mitigation.md'],
-    VALIDATE: ['validation/assumptions.md', 'validation/results.md'],
-    DESIGN: ['planning/brief.md', 'planning/architecture.md'],
-    PROTOTYPE: ['planning/mvp-scope.md', 'build/spec.md'],
-    TEST: ['validation/results.md', 'build/tasks.md'],
-    REFINE: ['development.md', 'build/decisions.md'],
-    BUILD: ['build/spec.md', 'build/tasks.md', 'build/decisions.md'],
-    LAUNCH: ['marketing/launch-plan.md', 'marketing/gtm.md'],
-    GROW: ['marketing/channels.md', 'networking/opportunities.md'],
-    MAINTAIN: ['build/tasks.md', 'team.md'],
-    PIVOT: ['analysis/redteam.md', 'development.md'],
-    PAUSE: ['README.md'],
-    SUNSET: ['README.md'],
-    ARCHIVE: ['README.md'],
-    ABANDONED: ['README.md']
+    SPARK: ["README.md", "development.md"],
+    CLARIFY: [
+      "README.md",
+      "development.md",
+      "target-users.md",
+      "problem-solution.md",
+    ],
+    RESEARCH: [
+      "research/market.md",
+      "research/competitive.md",
+      "research/user-personas.md",
+    ],
+    IDEATE: ["development.md", "problem-solution.md"],
+    EVALUATE: ["analysis/redteam.md", "analysis/risk-mitigation.md"],
+    VALIDATE: ["validation/assumptions.md", "validation/results.md"],
+    DESIGN: ["planning/brief.md", "planning/architecture.md"],
+    PROTOTYPE: ["planning/mvp-scope.md", "build/spec.md"],
+    TEST: ["validation/results.md", "build/tasks.md"],
+    REFINE: ["development.md", "build/decisions.md"],
+    BUILD: ["build/spec.md", "build/tasks.md", "build/decisions.md"],
+    LAUNCH: ["marketing/launch-plan.md", "marketing/gtm.md"],
+    GROW: ["marketing/channels.md", "networking/opportunities.md"],
+    MAINTAIN: ["build/tasks.md", "team.md"],
+    PIVOT: ["analysis/redteam.md", "development.md"],
+    PAUSE: ["README.md"],
+    SUNSET: ["README.md"],
+    ARCHIVE: ["README.md"],
+    ABANDONED: ["README.md"],
   },
   recently_updated: [],
-  ai_recommended: []
+  ai_recommended: [],
 };
 
 // ============================================================================
@@ -76,7 +85,7 @@ export const DEFAULT_PRIORITY_RULES: PriorityRules = {
  */
 function getPriorityFilePath(userSlug: string, ideaSlug: string): string {
   const ideaPath = getIdeaFolderPath(userSlug, ideaSlug);
-  return path.join(ideaPath, '.metadata', 'priority.json');
+  return path.join(ideaPath, ".metadata", "priority.json");
 }
 
 /**
@@ -87,12 +96,15 @@ function getPriorityFilePath(userSlug: string, ideaSlug: string): string {
  * @param ideaSlug - The idea slug
  * @returns Priority rules object
  */
-export function loadPriorityRules(userSlug: string, ideaSlug: string): PriorityRules {
+export function loadPriorityRules(
+  userSlug: string,
+  ideaSlug: string,
+): PriorityRules {
   const priorityPath = getPriorityFilePath(userSlug, ideaSlug);
 
   if (fs.existsSync(priorityPath)) {
     try {
-      const content = fs.readFileSync(priorityPath, 'utf-8');
+      const content = fs.readFileSync(priorityPath, "utf-8");
       const parsed = JSON.parse(content);
 
       // Merge with defaults to ensure all fields exist
@@ -100,15 +112,16 @@ export function loadPriorityRules(userSlug: string, ideaSlug: string): PriorityR
         always_show: Array.isArray(parsed.always_show)
           ? parsed.always_show
           : DEFAULT_PRIORITY_RULES.always_show,
-        by_phase: parsed.by_phase && typeof parsed.by_phase === 'object'
-          ? { ...DEFAULT_PRIORITY_RULES.by_phase, ...parsed.by_phase }
-          : DEFAULT_PRIORITY_RULES.by_phase,
+        by_phase:
+          parsed.by_phase && typeof parsed.by_phase === "object"
+            ? { ...DEFAULT_PRIORITY_RULES.by_phase, ...parsed.by_phase }
+            : DEFAULT_PRIORITY_RULES.by_phase,
         recently_updated: Array.isArray(parsed.recently_updated)
           ? parsed.recently_updated
           : [],
         ai_recommended: Array.isArray(parsed.ai_recommended)
           ? parsed.ai_recommended
-          : []
+          : [],
       };
     } catch {
       // Return defaults if file cannot be read or parsed
@@ -128,7 +141,11 @@ export function loadPriorityRules(userSlug: string, ideaSlug: string): PriorityR
  * @param ideaSlug - The idea slug
  * @param rules - Priority rules to save
  */
-function savePriorityRules(userSlug: string, ideaSlug: string, rules: PriorityRules): void {
+function savePriorityRules(
+  userSlug: string,
+  ideaSlug: string,
+  rules: PriorityRules,
+): void {
   const priorityPath = getPriorityFilePath(userSlug, ideaSlug);
   const metadataDir = path.dirname(priorityPath);
 
@@ -138,7 +155,7 @@ function savePriorityRules(userSlug: string, ideaSlug: string, rules: PriorityRu
   }
 
   // Write the priority rules
-  fs.writeFileSync(priorityPath, JSON.stringify(rules, null, 2), 'utf-8');
+  fs.writeFileSync(priorityPath, JSON.stringify(rules, null, 2), "utf-8");
 }
 
 // ============================================================================
@@ -164,7 +181,7 @@ function savePriorityRules(userSlug: string, ideaSlug: string, rules: PriorityRu
 export async function getPriorityDocs(
   userSlug: string,
   ideaSlug: string,
-  phase: LifecycleStage
+  phase: LifecycleStage,
 ): Promise<string[]> {
   // Load priority rules (falls back to defaults if file missing)
   const rules = loadPriorityRules(userSlug, ideaSlug);
@@ -233,7 +250,7 @@ const MAX_RECENTLY_UPDATED = 10;
 export async function updateRecentlyUpdated(
   userSlug: string,
   ideaSlug: string,
-  filePath: string
+  filePath: string,
 ): Promise<void> {
   // Load current rules
   const rules = loadPriorityRules(userSlug, ideaSlug);
@@ -249,7 +266,10 @@ export async function updateRecentlyUpdated(
 
   // Limit to max items
   if (rules.recently_updated.length > MAX_RECENTLY_UPDATED) {
-    rules.recently_updated = rules.recently_updated.slice(0, MAX_RECENTLY_UPDATED);
+    rules.recently_updated = rules.recently_updated.slice(
+      0,
+      MAX_RECENTLY_UPDATED,
+    );
   }
 
   // Save changes
@@ -273,7 +293,7 @@ export async function updateRecentlyUpdated(
 export async function setAiRecommended(
   userSlug: string,
   ideaSlug: string,
-  docs: string[]
+  docs: string[],
 ): Promise<void> {
   // Load current rules
   const rules = loadPriorityRules(userSlug, ideaSlug);
@@ -294,7 +314,7 @@ export async function setAiRecommended(
  */
 export async function getAiRecommended(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<string[]> {
   const rules = loadPriorityRules(userSlug, ideaSlug);
   return rules.ai_recommended;

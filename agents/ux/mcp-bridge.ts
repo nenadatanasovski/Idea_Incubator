@@ -1,6 +1,6 @@
 // agents/ux/mcp-bridge.ts - Wrapper for Puppeteer MCP tools
 
-import { MCPTools } from '../../types/ux.js';
+import { MCPTools } from "../../types/ux.js";
 
 /**
  * Escape single quotes in CSS selectors for safe JavaScript evaluation
@@ -26,7 +26,7 @@ export class MCPBridge {
 
   private ensureTools(): MCPTools {
     if (!this.tools) {
-      throw new Error('MCP tools not initialized. Call setTools() first.');
+      throw new Error("MCP tools not initialized. Call setTools() first.");
     }
     return this.tools;
   }
@@ -76,7 +76,10 @@ export class MCPBridge {
   /**
    * Wait for a selector to appear using polling
    */
-  async waitForSelector(selector: string, timeout: number = 5000): Promise<boolean> {
+  async waitForSelector(
+    selector: string,
+    timeout: number = 5000,
+  ): Promise<boolean> {
     const tools = this.ensureTools();
     const startTime = Date.now();
     const pollInterval = 100;
@@ -120,7 +123,7 @@ export class MCPBridge {
    * Get the page title
    */
   async getTitle(): Promise<string> {
-    return this.evaluate<string>('document.title');
+    return this.evaluate<string>("document.title");
   }
 
   /**
@@ -129,7 +132,7 @@ export class MCPBridge {
   async getTextContent(selector: string): Promise<string | null> {
     const escaped = escapeSelector(selector);
     return this.evaluate<string | null>(
-      `document.querySelector('${escaped}')?.textContent || null`
+      `document.querySelector('${escaped}')?.textContent || null`,
     );
   }
 
@@ -138,18 +141,20 @@ export class MCPBridge {
    */
   async elementExists(selector: string): Promise<boolean> {
     const escaped = escapeSelector(selector);
-    return this.evaluate<boolean>(`document.querySelector('${escaped}') !== null`);
+    return this.evaluate<boolean>(
+      `document.querySelector('${escaped}') !== null`,
+    );
   }
 
   /**
    * Get current URL
    */
   async getCurrentUrl(): Promise<string> {
-    return this.evaluate<string>('window.location.href');
+    return this.evaluate<string>("window.location.href");
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

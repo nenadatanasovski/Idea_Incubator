@@ -1,47 +1,19 @@
 {
-  "always_show": [
-    "README.md",
-    "development.md"
-  ],
+  "always_show": ["README.md", "development.md"],
   "by_phase": {
-    "SPARK": [
-      "README.md",
-      "development.md",
-      "target-users.md"
-    ],
-    "CLARIFY": [
-      "problem-solution.md",
-      "target-users.md",
-      "development.md"
-    ],
-    "RESEARCH": [
-      "research/market.md",
-      "research/competitive.md"
-    ],
-    "EVALUATE": [
-      "validation/assumptions.md",
-      "analysis/redteam.md"
-    ],
-    "VALIDATE": [
-      "validation/assumptions.md"
-    ],
+    "SPARK": ["README.md", "development.md", "target-users.md"],
+    "CLARIFY": ["problem-solution.md", "target-users.md", "development.md"],
+    "RESEARCH": ["research/market.md", "research/competitive.md"],
+    "EVALUATE": ["validation/assumptions.md", "analysis/redteam.md"],
+    "VALIDATE": ["validation/assumptions.md"],
     "DESIGN": [
       "planning/brief.md",
       "planning/mvp-scope.md",
       "planning/architecture.md"
     ],
-    "PROTOTYPE": [
-      "build/spec.md",
-      "planning/mvp-scope.md"
-    ],
-    "BUILD": [
-      "build/spec.md",
-      "planning/architecture.md"
-    ],
-    "LAUNCH": [
-      "marketing/gtm.md",
-      "marketing/pitch.md"
-    ]
+    "PROTOTYPE": ["build/spec.md", "planning/mvp-scope.md"],
+    "BUILD": ["build/spec.md", "planning/architecture.md"],
+    "LAUNCH": ["marketing/gtm.md", "marketing/pitch.md"]
   },
   "recently_updated": [],
   "ai_recommended": []

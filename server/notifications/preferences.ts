@@ -5,12 +5,12 @@
 import {
   getEffectiveChannels,
   setUserChannelPrefs,
-  getAllUserChannelPrefs
-} from '../../database/db.js';
+  getAllUserChannelPrefs,
+} from "../../database/db.js";
 import {
   NotificationChannel,
-  ChannelPreference
-} from '../../types/notification.js';
+  ChannelPreference,
+} from "../../types/notification.js";
 
 /**
  * NotificationPreferences provides a cached layer over the database
@@ -46,7 +46,10 @@ class NotificationPreferences {
    * Get effective channels for a user and notification type
    * Uses cache for performance, falls back to database
    */
-  async getChannels(userId: string, type: string): Promise<NotificationChannel[]> {
+  async getChannels(
+    userId: string,
+    type: string,
+  ): Promise<NotificationChannel[]> {
     const cacheKey = this.getCacheKey(userId, type);
 
     // Check cache first
@@ -72,7 +75,7 @@ class NotificationPreferences {
     userId: string,
     type: string,
     channels: NotificationChannel[],
-    mutedUntil?: string
+    mutedUntil?: string,
   ): Promise<ChannelPreference> {
     // Update database
     const pref = await setUserChannelPrefs(userId, type, channels, mutedUntil);
@@ -97,7 +100,11 @@ class NotificationPreferences {
    * Mute a notification type for a user
    * @param duration - Duration to mute in milliseconds
    */
-  async mute(userId: string, type: string, duration: number): Promise<ChannelPreference> {
+  async mute(
+    userId: string,
+    type: string,
+    duration: number,
+  ): Promise<ChannelPreference> {
     const mutedUntil = new Date(Date.now() + duration).toISOString();
     const existing = await getEffectiveChannels(userId, type);
     return this.setPreference(userId, type, existing, mutedUntil);
@@ -140,7 +147,7 @@ class NotificationPreferences {
   getCacheStats(): { size: number; hitRate: number } {
     return {
       size: this.cache.size,
-      hitRate: 0 // Would need to track hits/misses to calculate
+      hitRate: 0, // Would need to track hits/misses to calculate
     };
   }
 }

@@ -1,12 +1,12 @@
 // agents/validation/validators/coverage-analyzer.ts - Code coverage analysis
 
-import { spawn } from 'child_process';
-import { readFile } from 'fs/promises';
-import { existsSync } from 'fs';
-import { v4 as uuid } from 'uuid';
-import { ValidatorResult } from '../../../types/validation.js';
+import { spawn } from "child_process";
+import { readFile } from "fs/promises";
+import { existsSync } from "fs";
+import { v4 as uuid } from "uuid";
+import { ValidatorResult } from "../../../types/validation.js";
 
-const COVERAGE_JSON_PATH = 'coverage/coverage-summary.json';
+const COVERAGE_JSON_PATH = "coverage/coverage-summary.json";
 
 export interface CoverageMetrics {
   lines: CoverageDetail;
@@ -33,7 +33,7 @@ export interface CoverageReport {
 export async function runCoverageAnalyzer(
   runId: string,
   args: string[],
-  timeoutMs: number
+  timeoutMs: number,
 ): Promise<ValidatorResult> {
   const startTime = Date.now();
   const id = uuid();
@@ -49,10 +49,10 @@ export async function runCoverageAnalyzer(
       return {
         id,
         runId,
-        validatorName: 'coverage',
-        status: 'completed',
+        validatorName: "coverage",
+        status: "completed",
         passed: false,
-        output: 'Coverage report not found. Run `npm run test:coverage` first.',
+        output: "Coverage report not found. Run `npm run test:coverage` first.",
         durationMs: Date.now() - startTime,
         createdAt: new Date().toISOString(),
       };
@@ -68,8 +68,8 @@ export async function runCoverageAnalyzer(
     return {
       id,
       runId,
-      validatorName: 'coverage',
-      status: 'completed',
+      validatorName: "coverage",
+      status: "completed",
       passed,
       output: formattedOutput,
       durationMs: Date.now() - startTime,
@@ -79,8 +79,8 @@ export async function runCoverageAnalyzer(
     return {
       id,
       runId,
-      validatorName: 'coverage',
-      status: 'completed',
+      validatorName: "coverage",
+      status: "completed",
       passed: false,
       output: `Coverage analysis failed: ${(error as Error).message}`,
       durationMs: Date.now() - startTime,
@@ -94,29 +94,29 @@ export async function runCoverageAnalyzer(
  */
 async function runCoverageCommand(timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = spawn('npm', ['run', 'test:coverage'], {
+    const proc = spawn("npm", ["run", "test:coverage"], {
       shell: true,
       cwd: process.cwd(),
     });
 
-    let output = '';
+    let output = "";
     let killed = false;
 
     const timeout = setTimeout(() => {
       killed = true;
       proc.kill();
-      reject(new Error('Coverage command timed out'));
+      reject(new Error("Coverage command timed out"));
     }, timeoutMs);
 
-    proc.stdout.on('data', (data) => {
+    proc.stdout.on("data", (data) => {
       output += data.toString();
     });
 
-    proc.stderr.on('data', (data) => {
+    proc.stderr.on("data", (data) => {
       output += data.toString();
     });
 
-    proc.on('close', () => {
+    proc.on("close", () => {
       clearTimeout(timeout);
       if (killed) return;
 
@@ -124,7 +124,7 @@ async function runCoverageCommand(timeoutMs: number): Promise<string> {
       resolve(output);
     });
 
-    proc.on('error', (error) => {
+    proc.on("error", (error) => {
       clearTimeout(timeout);
       reject(error);
     });
@@ -140,7 +140,7 @@ export async function parseCoverageReport(): Promise<CoverageReport | null> {
   }
 
   try {
-    const content = await readFile(COVERAGE_JSON_PATH, 'utf-8');
+    const content = await readFile(COVERAGE_JSON_PATH, "utf-8");
     const data = JSON.parse(content);
 
     // Extract total coverage
@@ -149,14 +149,14 @@ export async function parseCoverageReport(): Promise<CoverageReport | null> {
     // Extract per-file coverage
     const files: Record<string, CoverageMetrics> = {};
     for (const [path, metrics] of Object.entries(data)) {
-      if (path !== 'total') {
+      if (path !== "total") {
         files[path] = metrics as CoverageMetrics;
       }
     }
 
     return { total, files };
   } catch (error) {
-    console.error('Failed to parse coverage report:', error);
+    console.error("Failed to parse coverage report:", error);
     return null;
   }
 }
@@ -172,7 +172,7 @@ export function parseThresholds(args: string[]): Partial<CoverageMetrics> {
     const match = arg.match(/^--(\w+)=(\d+)$/);
     if (match) {
       const [, metric, value] = match;
-      if (['lines', 'branches', 'functions', 'statements'].includes(metric)) {
+      if (["lines", "branches", "functions", "statements"].includes(metric)) {
         (thresholds as Record<string, CoverageDetail>)[metric] = {
           pct: parseInt(value, 10),
         } as CoverageDetail;
@@ -188,16 +188,18 @@ export function parseThresholds(args: string[]): Partial<CoverageMetrics> {
  */
 export function checkThresholds(
   actual: CoverageMetrics,
-  thresholds: Partial<CoverageMetrics>
+  thresholds: Partial<CoverageMetrics>,
 ): { passed: boolean; failures: string[] } {
-  const metricNames = ['lines', 'branches', 'functions', 'statements'] as const;
+  const metricNames = ["lines", "branches", "functions", "statements"] as const;
   const failures: string[] = [];
 
   for (const metric of metricNames) {
     const threshold = thresholds[metric];
     if (threshold && actual[metric].pct < threshold.pct) {
       const label = metric.charAt(0).toUpperCase() + metric.slice(1);
-      failures.push(`${label}: ${actual[metric].pct}% < ${threshold.pct}% threshold`);
+      failures.push(
+        `${label}: ${actual[metric].pct}% < ${threshold.pct}% threshold`,
+      );
     }
   }
 
@@ -212,7 +214,7 @@ export function checkThresholds(
  */
 export function formatCoverageOutput(
   report: CoverageReport,
-  failures: string[]
+  failures: string[],
 ): string {
   const { total } = report;
 
@@ -250,7 +252,7 @@ export function formatCoverageOutput(
  * Get coverage for specific files (useful for incremental checks)
  */
 export async function getCoverageForFiles(
-  filePaths: string[]
+  filePaths: string[],
 ): Promise<Record<string, CoverageMetrics>> {
   const report = await parseCoverageReport();
   if (!report) return {};
@@ -259,7 +261,7 @@ export async function getCoverageForFiles(
   for (const path of filePaths) {
     // Try exact match and partial match
     const match = Object.entries(report.files).find(
-      ([key]) => key.endsWith(path) || key.includes(path)
+      ([key]) => key.endsWith(path) || key.includes(path),
     );
     if (match) {
       result[path] = match[1];

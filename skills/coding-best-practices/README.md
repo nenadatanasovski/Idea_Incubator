@@ -4,13 +4,13 @@ Skills derived from functional programming principles, critically evaluated for 
 
 ## Skill Categories
 
-| Folder | Load When | Contains |
-|--------|-----------|----------|
-| `function-design/` | Writing or refactoring functions | Purity, totality, composition |
-| `data-design/` | Designing data structures or types | Immutability, type safety, domain modeling |
-| `error-handling/` | Implementing error paths | Explicit errors, result types |
-| `architecture/` | Making structural decisions | Separation of concerns, programs as data |
-| `abstraction-guidance/` | Considering abstractions | When to abstract, tradeoffs, pragmatism |
+| Folder                  | Load When                          | Contains                                   |
+| ----------------------- | ---------------------------------- | ------------------------------------------ |
+| `function-design/`      | Writing or refactoring functions   | Purity, totality, composition              |
+| `data-design/`          | Designing data structures or types | Immutability, type safety, domain modeling |
+| `error-handling/`       | Implementing error paths           | Explicit errors, result types              |
+| `architecture/`         | Making structural decisions        | Separation of concerns, programs as data   |
+| `abstraction-guidance/` | Considering abstractions           | When to abstract, tradeoffs, pragmatism    |
 
 ## Loading Skills
 
@@ -30,6 +30,7 @@ skills = load_skills("coding-best-practices/abstraction-guidance/")
 ## Core Principles (Universal)
 
 These apply almost always:
+
 - Pure functions
 - Immutability by default
 - Composition over complexity
@@ -39,6 +40,7 @@ These apply almost always:
 ## Contextual Principles (Use Judgment)
 
 These require situational awareness:
+
 - Laziness (memory tradeoffs)
 - Higher abstractions (team familiarity)
 - Type-level programming (complexity cost)

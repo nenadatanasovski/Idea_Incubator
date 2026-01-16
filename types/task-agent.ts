@@ -23,55 +23,55 @@ export interface TaskIdentity {
  * Task category enum matching database constraint
  */
 export type TaskCategory =
-  | 'feature'
-  | 'bug'
-  | 'task'
-  | 'story'
-  | 'epic'
-  | 'spike'
-  | 'improvement'
-  | 'documentation'
-  | 'test'
-  | 'devops'
-  | 'design'
-  | 'research'
-  | 'infrastructure'
-  | 'security'
-  | 'performance'
-  | 'other';
+  | "feature"
+  | "bug"
+  | "task"
+  | "story"
+  | "epic"
+  | "spike"
+  | "improvement"
+  | "documentation"
+  | "test"
+  | "devops"
+  | "design"
+  | "research"
+  | "infrastructure"
+  | "security"
+  | "performance"
+  | "other";
 
 /**
  * Task status enum
  */
 export type TaskStatus =
-  | 'draft'
-  | 'evaluating'
-  | 'pending'
-  | 'in_progress'
-  | 'completed'
-  | 'failed'
-  | 'blocked'
-  | 'skipped';
+  | "draft"
+  | "evaluating"
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "blocked"
+  | "skipped";
 
 /**
  * Task priority levels
  */
-export type TaskPriority = 'P1' | 'P2' | 'P3' | 'P4';
+export type TaskPriority = "P1" | "P2" | "P3" | "P4";
 
 /**
  * Task effort estimation
  */
-export type TaskEffort = 'trivial' | 'small' | 'medium' | 'large' | 'epic';
+export type TaskEffort = "trivial" | "small" | "medium" | "large" | "epic";
 
 /**
  * Task owner type
  */
-export type TaskOwner = 'build_agent' | 'human' | 'task_agent';
+export type TaskOwner = "build_agent" | "human" | "task_agent";
 
 /**
  * Queue type for listless tasks
  */
-export type TaskQueue = 'evaluation' | null;
+export type TaskQueue = "evaluation" | null;
 
 /**
  * Complete Task interface
@@ -134,7 +134,7 @@ export interface UpdateTaskInput {
  * Task in the Evaluation Queue (listless task)
  */
 export interface EvaluationQueueTask extends Task {
-  queue: 'evaluation';
+  queue: "evaluation";
   taskListId: undefined;
   /** Days in queue */
   daysInQueue: number;
@@ -163,16 +163,16 @@ export interface EvaluationQueueStats {
 /**
  * File operation types
  */
-export type FileOperation = 'CREATE' | 'UPDATE' | 'DELETE' | 'READ';
+export type FileOperation = "CREATE" | "UPDATE" | "DELETE" | "READ";
 
 /**
  * Source of file impact estimation
  */
 export type FileImpactSource =
-  | 'ai_estimate'
-  | 'pattern_match'
-  | 'user_declared'
-  | 'validated';
+  | "ai_estimate"
+  | "pattern_match"
+  | "user_declared"
+  | "validated";
 
 /**
  * File impact for a task
@@ -204,11 +204,11 @@ export interface FileImpactInput {
  * Conflict type between two tasks
  */
 export type ConflictType =
-  | 'create_create'
-  | 'write_write'
-  | 'create_delete'
-  | 'read_delete'
-  | 'no_conflict';
+  | "create_create"
+  | "write_write"
+  | "create_delete"
+  | "read_delete"
+  | "no_conflict";
 
 /**
  * File conflict details
@@ -236,7 +236,7 @@ export interface ParallelismAnalysis {
   taskAId: string;
   taskBId: string;
   canParallel: boolean;
-  conflictType?: 'dependency' | 'file_conflict' | 'resource_conflict';
+  conflictType?: "dependency" | "file_conflict" | "resource_conflict";
   conflictDetails?: {
     dependencyChain?: string[];
     conflictingFiles?: FileConflict[];
@@ -253,7 +253,7 @@ export interface ExecutionWave {
   id: string;
   taskListId: string;
   waveNumber: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  status: "pending" | "in_progress" | "completed" | "failed";
   taskCount: number;
   completedCount: number;
   failedCount: number;
@@ -282,11 +282,11 @@ export interface TaskListParallelism {
  * Build Agent instance status
  */
 export type BuildAgentStatus =
-  | 'spawning'
-  | 'idle'
-  | 'running'
-  | 'completing'
-  | 'terminated';
+  | "spawning"
+  | "idle"
+  | "running"
+  | "completing"
+  | "terminated";
 
 /**
  * Build Agent instance
@@ -332,19 +332,16 @@ export interface AgentHeartbeat {
  * Grouping suggestion status
  */
 export type GroupingSuggestionStatus =
-  | 'pending'
-  | 'accepted'
-  | 'rejected'
-  | 'expired'
-  | 'modified';
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "expired"
+  | "modified";
 
 /**
  * Grouping trigger events
  */
-export type GroupingTrigger =
-  | 'task_created'
-  | 'dependency_changed'
-  | 'manual';
+export type GroupingTrigger = "task_created" | "dependency_changed" | "manual";
 
 /**
  * Grouping suggestion
@@ -360,7 +357,7 @@ export interface GroupingSuggestion {
   triggeredBy?: GroupingTrigger;
   triggerTaskId?: string;
   createdTaskListId?: string;
-  resolvedBy?: 'user' | 'system';
+  resolvedBy?: "user" | "system";
   resolvedAt?: string;
   expiresAt?: string;
   createdAt: string;
@@ -400,12 +397,12 @@ export interface GroupingCriteriaWeights {
  * Relationship types between tasks
  */
 export type RelationshipType =
-  | 'depends_on'
-  | 'blocks'
-  | 'related_to'
-  | 'duplicate_of'
-  | 'parent_of'
-  | 'child_of';
+  | "depends_on"
+  | "blocks"
+  | "related_to"
+  | "duplicate_of"
+  | "parent_of"
+  | "child_of";
 
 /**
  * Task relationship
@@ -442,12 +439,12 @@ export interface DependencyChain {
  * Task list status
  */
 export type TaskListStatus =
-  | 'draft'
-  | 'ready'
-  | 'in_progress'
-  | 'paused'
-  | 'completed'
-  | 'archived';
+  | "draft"
+  | "ready"
+  | "in_progress"
+  | "paused"
+  | "completed"
+  | "archived";
 
 /**
  * Task list (v2)
@@ -498,7 +495,7 @@ export interface TaskListWithSummary extends TaskListV2 {
 /**
  * Task Agent instance status
  */
-export type TaskAgentStatus = 'active' | 'paused' | 'terminated';
+export type TaskAgentStatus = "active" | "paused" | "terminated";
 
 /**
  * Task Agent instance
@@ -526,18 +523,18 @@ export interface TaskAgentInstance {
  * Task Agent activity types
  */
 export type TaskAgentActivityType =
-  | 'task_created'
-  | 'task_analyzed'
-  | 'suggestion_created'
-  | 'suggestion_accepted'
-  | 'suggestion_rejected'
-  | 'wave_calculated'
-  | 'agent_spawned'
-  | 'agent_completed'
-  | 'agent_failed'
-  | 'question_sent'
-  | 'question_answered'
-  | 'error_occurred';
+  | "task_created"
+  | "task_analyzed"
+  | "suggestion_created"
+  | "suggestion_accepted"
+  | "suggestion_rejected"
+  | "wave_calculated"
+  | "agent_spawned"
+  | "agent_completed"
+  | "agent_failed"
+  | "question_sent"
+  | "question_answered"
+  | "error_occurred";
 
 /**
  * Task Agent activity log entry
@@ -561,16 +558,16 @@ export interface TaskAgentActivity {
  * Component types for task classification
  */
 export type ComponentType =
-  | 'database'
-  | 'types'
-  | 'api'
-  | 'service'
-  | 'ui'
-  | 'test'
-  | 'config'
-  | 'documentation'
-  | 'infrastructure'
-  | 'other';
+  | "database"
+  | "types"
+  | "api"
+  | "service"
+  | "ui"
+  | "test"
+  | "config"
+  | "documentation"
+  | "infrastructure"
+  | "other";
 
 /**
  * Task component assignment
@@ -579,7 +576,7 @@ export interface TaskComponent {
   taskId: string;
   componentType: ComponentType;
   confidence: number;
-  source: 'inferred' | 'user' | 'validated';
+  source: "inferred" | "user" | "validated";
 }
 
 // ============================================
@@ -601,22 +598,22 @@ export interface DisplayIdConfig {
  * Category to 3-letter code mapping
  */
 export const CATEGORY_CODES: Record<TaskCategory, string> = {
-  feature: 'FEA',
-  bug: 'BUG',
-  task: 'TSK',
-  story: 'STY',
-  epic: 'EPC',
-  spike: 'SPK',
-  improvement: 'IMP',
-  documentation: 'DOC',
-  test: 'TST',
-  devops: 'OPS',
-  design: 'DSN',
-  research: 'RSH',
-  infrastructure: 'INF',
-  security: 'SEC',
-  performance: 'PRF',
-  other: 'OTH',
+  feature: "FEA",
+  bug: "BUG",
+  task: "TSK",
+  story: "STY",
+  epic: "EPC",
+  spike: "SPK",
+  improvement: "IMP",
+  documentation: "DOC",
+  test: "TST",
+  devops: "OPS",
+  design: "DSN",
+  research: "RSH",
+  infrastructure: "INF",
+  security: "SEC",
+  performance: "PRF",
+  other: "OTH",
 };
 
 // ============================================
@@ -662,44 +659,44 @@ export interface GroupingSuggestionWithTasks extends GroupingSuggestion {
  * Task event types for WebSocket
  */
 export type TaskEventType =
-  | 'task.created'
-  | 'task.updated'
-  | 'task.moved'
-  | 'task.ready'
-  | 'task.started'
-  | 'task.progress'
-  | 'task.completed'
-  | 'task.failed';
+  | "task.created"
+  | "task.updated"
+  | "task.moved"
+  | "task.ready"
+  | "task.started"
+  | "task.progress"
+  | "task.completed"
+  | "task.failed";
 
 /**
  * Build Agent event types
  */
 export type AgentEventType =
-  | 'agent.spawned'
-  | 'agent.heartbeat'
-  | 'agent.completed'
-  | 'agent.failed'
-  | 'agent.terminated';
+  | "agent.spawned"
+  | "agent.heartbeat"
+  | "agent.completed"
+  | "agent.failed"
+  | "agent.terminated";
 
 /**
  * Execution event types
  */
 export type ExecutionEventType =
-  | 'execution.started'
-  | 'execution.wave_started'
-  | 'execution.wave_completed'
-  | 'execution.completed'
-  | 'execution.paused'
-  | 'execution.resumed';
+  | "execution.started"
+  | "execution.wave_started"
+  | "execution.wave_completed"
+  | "execution.completed"
+  | "execution.paused"
+  | "execution.resumed";
 
 /**
  * Grouping event types
  */
 export type GroupingEventType =
-  | 'grouping.suggested'
-  | 'grouping.accepted'
-  | 'grouping.rejected'
-  | 'grouping.expired';
+  | "grouping.suggested"
+  | "grouping.accepted"
+  | "grouping.rejected"
+  | "grouping.expired";
 
 /**
  * All WebSocket event types
@@ -724,10 +721,10 @@ export interface WebSocketEvent<T = unknown> {
 // ============================================
 
 // Re-export types from Task System V2
-import type { TaskImpact } from './task-impact.js';
-import type { TaskAppendix } from './task-appendix.js';
-import type { TaskTestResult } from './task-test.js';
-import type { TaskStateHistoryEntry, TaskVersion } from './task-version.js';
+import type { TaskImpact } from "./task-impact.js";
+import type { TaskAppendix } from "./task-appendix.js";
+import type { TaskTestResult } from "./task-test.js";
+import type { TaskStateHistoryEntry, TaskVersion } from "./task-version.js";
 
 /**
  * Task with all related entities loaded

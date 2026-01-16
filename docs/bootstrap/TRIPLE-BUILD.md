@@ -7,6 +7,7 @@
 Triple-build verification is a technique borrowed from compiler bootstrapping that ensures agents can reliably reproduce identical output. By building the same artifact three times and comparing results, we verify determinism and correctness.
 
 **Why Triple-Build?**
+
 - Build 1 may have human errors
 - Build 2 proves the agent can reproduce
 - Build 3 proves the reproduction is stable
@@ -20,20 +21,22 @@ Triple-build verification is a technique borrowed from compiler bootstrapping th
 
 The human developer implements the agent from its specification.
 
-| Aspect | Description |
-|--------|-------------|
-| **Input** | `build/spec.md` + `build/tasks.md` |
-| **Actor** | Human developer |
-| **Output** | Working agent code |
-| **Purpose** | Establish baseline implementation |
+| Aspect      | Description                        |
+| ----------- | ---------------------------------- |
+| **Input**   | `build/spec.md` + `build/tasks.md` |
+| **Actor**   | Human developer                    |
+| **Output**  | Working agent code                 |
+| **Purpose** | Establish baseline implementation  |
 
 **Process:**
+
 1. Read the specification document
 2. Follow the task list in order
 3. Run validation commands after each task
 4. Commit when all tests pass
 
 **Artifacts:**
+
 ```
 agents/{agent-name}/
 ├── index.ts
@@ -48,20 +51,22 @@ agents/{agent-name}/
 
 The agent from Build 1 rebuilds itself from the same specification.
 
-| Aspect | Description |
-|--------|-------------|
-| **Input** | Same `build/spec.md` + `build/tasks.md` |
-| **Actor** | Build 1 agent |
-| **Output** | `build-2/` directory with rebuilt code |
-| **Purpose** | Verify agent can reproduce itself |
+| Aspect      | Description                             |
+| ----------- | --------------------------------------- |
+| **Input**   | Same `build/spec.md` + `build/tasks.md` |
+| **Actor**   | Build 1 agent                           |
+| **Output**  | `build-2/` directory with rebuilt code  |
+| **Purpose** | Verify agent can reproduce itself       |
 
 **Process:**
+
 1. Create isolated output directory `build-2/`
 2. Run Build 1 agent with spec as input
 3. Agent generates all files to `build-2/`
 4. Do NOT use Build 2 output yet
 
 **Artifacts:**
+
 ```
 verification/
 └── build-2/
@@ -77,20 +82,22 @@ verification/
 
 The agent from Build 2 rebuilds itself again.
 
-| Aspect | Description |
-|--------|-------------|
-| **Input** | Same `build/spec.md` + `build/tasks.md` |
-| **Actor** | Build 2 agent |
-| **Output** | `build-3/` directory with rebuilt code |
-| **Purpose** | Verify stability of reproduction |
+| Aspect      | Description                             |
+| ----------- | --------------------------------------- |
+| **Input**   | Same `build/spec.md` + `build/tasks.md` |
+| **Actor**   | Build 2 agent                           |
+| **Output**  | `build-3/` directory with rebuilt code  |
+| **Purpose** | Verify stability of reproduction        |
 
 **Process:**
+
 1. Create isolated output directory `build-3/`
 2. Run Build 2 agent with spec as input
 3. Agent generates all files to `build-3/`
 4. Compare Build 2 and Build 3
 
 **Artifacts:**
+
 ```
 verification/
 ├── build-2/
@@ -152,15 +159,16 @@ diff build-2.hashes build-3.hashes
 
 Some differences between builds are acceptable and should be normalized before comparison:
 
-| Difference Type | Example | Handling |
-|-----------------|---------|----------|
-| Timestamps | `createdAt: 2026-01-11T12:00:00Z` | Strip or normalize to epoch |
-| Generated IDs | `id: "abc123"` | Replace with placeholder |
-| File order in imports | Import statement ordering | Sort before compare |
-| Trailing whitespace | Extra newlines | Trim before compare |
-| Comment variations | JSDoc date stamps | Strip comments for comparison |
+| Difference Type       | Example                           | Handling                      |
+| --------------------- | --------------------------------- | ----------------------------- |
+| Timestamps            | `createdAt: 2026-01-11T12:00:00Z` | Strip or normalize to epoch   |
+| Generated IDs         | `id: "abc123"`                    | Replace with placeholder      |
+| File order in imports | Import statement ordering         | Sort before compare           |
+| Trailing whitespace   | Extra newlines                    | Trim before compare           |
+| Comment variations    | JSDoc date stamps                 | Strip comments for comparison |
 
 **Normalization Script:**
+
 ```bash
 #!/bin/bash
 # normalize-for-compare.sh
@@ -179,12 +187,12 @@ sed -i 's/[[:space:]]*$//' "$1"
 
 These differences indicate a problem:
 
-| Difference Type | Indicates |
-|-----------------|-----------|
-| Missing files | Non-deterministic file creation |
-| Different logic | Model temperature too high |
-| Wrong structure | Template not followed |
-| Different APIs | Spec misinterpretation |
+| Difference Type | Indicates                       |
+| --------------- | ------------------------------- |
+| Missing files   | Non-deterministic file creation |
+| Different logic | Model temperature too high      |
+| Wrong structure | Template not followed           |
+| Different APIs  | Spec misinterpretation          |
 
 ---
 
@@ -312,10 +320,10 @@ name: Triple-Build Verification
 on:
   push:
     paths:
-      - 'agents/**'
+      - "agents/**"
   pull_request:
     paths:
-      - 'agents/**'
+      - "agents/**"
 
 jobs:
   triple-build:
@@ -329,7 +337,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         run: npm ci
@@ -365,13 +373,13 @@ jobs:
 
 ### Escalation Matrix
 
-| Issue | Who Handles | Action |
-|-------|-------------|--------|
-| Acceptable diff not normalized | Human | Update normalization script |
-| Model producing variants | Human | Tune prompt/temperature |
-| Structural differences | Human | Review and fix spec |
-| Build 2 crashes | Human | Debug Build 1 agent |
-| Build 3 crashes | Human | Debug Build 2 output |
+| Issue                          | Who Handles | Action                      |
+| ------------------------------ | ----------- | --------------------------- |
+| Acceptable diff not normalized | Human       | Update normalization script |
+| Model producing variants       | Human       | Tune prompt/temperature     |
+| Structural differences         | Human       | Review and fix spec         |
+| Build 2 crashes                | Human       | Debug Build 1 agent         |
+| Build 3 crashes                | Human       | Debug Build 2 output        |
 
 ---
 
@@ -379,21 +387,21 @@ jobs:
 
 Track these metrics over time:
 
-| Metric | Target | Description |
-|--------|--------|-------------|
-| Pass rate | > 95% | Triple-builds that pass first try |
-| Diff count | 0 | Unacceptable differences per run |
-| Build time | < 5 min | Time for all three builds |
-| Normalization rules | < 10 | Acceptable difference types |
+| Metric              | Target  | Description                       |
+| ------------------- | ------- | --------------------------------- |
+| Pass rate           | > 95%   | Triple-builds that pass first try |
+| Diff count          | 0       | Unacceptable differences per run  |
+| Build time          | < 5 min | Time for all three builds         |
+| Normalization rules | < 10    | Acceptable difference types       |
 
 ---
 
 ## References
 
 - [Trusting Trust (Ken Thompson, 1984)](https://www.cs.cmu.edu/~rdriley/487/papers/Thompson_1984_ResearchonTrustingTrust.pdf)
-- [Bootstrapping Compilers](https://en.wikipedia.org/wiki/Bootstrapping_(compilers))
+- [Bootstrapping Compilers](<https://en.wikipedia.org/wiki/Bootstrapping_(compilers)>)
 - [Reproducible Builds](https://reproducible-builds.org/)
 
 ---
 
-*This document defines the verification process that ensures agent reliability.*
+_This document defines the verification process that ensures agent reliability._

@@ -5,11 +5,11 @@
  * Part of: Task System V2 Implementation Plan (IMPL-8.3)
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { prdService } from '../../server/services/prd-service';
-import { run, saveDb } from '../../database/db';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { prdService } from "../../server/services/prd-service";
+import { run, saveDb } from "../../database/db";
 
-const TEST_PREFIX = 'PRD-TEST-';
+const TEST_PREFIX = "PRD-TEST-";
 
 // Cleanup test data
 async function cleanupTestData(): Promise<void> {
@@ -17,7 +17,7 @@ async function cleanupTestData(): Promise<void> {
   await saveDb();
 }
 
-describe('PRDService', () => {
+describe("PRDService", () => {
   beforeAll(async () => {
     await cleanupTestData();
   });
@@ -30,41 +30,41 @@ describe('PRDService', () => {
     await cleanupTestData();
   });
 
-  describe('create', () => {
-    it('should create a new PRD', async () => {
+  describe("create", () => {
+    it("should create a new PRD", async () => {
       const prd = await prdService.create({
         title: `${TEST_PREFIX}Test PRD`,
-        description: 'A test PRD description',
-        status: 'draft'
+        description: "A test PRD description",
+        status: "draft",
       });
 
       expect(prd).toBeDefined();
       expect(prd.id).toBeDefined();
       expect(prd.title).toBe(`${TEST_PREFIX}Test PRD`);
-      expect(prd.status).toBe('draft');
+      expect(prd.status).toBe("draft");
     });
 
-    it('should create a child PRD with parent reference', async () => {
+    it("should create a child PRD with parent reference", async () => {
       const parent = await prdService.create({
         title: `${TEST_PREFIX}Parent PRD`,
-        status: 'draft'
+        status: "draft",
       });
 
       const child = await prdService.create({
         title: `${TEST_PREFIX}Child PRD`,
-        status: 'draft',
-        parentId: parent.id
+        status: "draft",
+        parentId: parent.id,
       });
 
       expect(child.parentId).toBe(parent.id);
     });
   });
 
-  describe('getById', () => {
-    it('should return a PRD by ID', async () => {
+  describe("getById", () => {
+    it("should return a PRD by ID", async () => {
       const created = await prdService.create({
         title: `${TEST_PREFIX}Get By ID Test`,
-        status: 'draft'
+        status: "draft",
       });
 
       const found = await prdService.getById(created.id);
@@ -74,104 +74,120 @@ describe('PRDService', () => {
       expect(found?.title).toBe(`${TEST_PREFIX}Get By ID Test`);
     });
 
-    it('should return null for non-existent ID', async () => {
-      const found = await prdService.getById('non-existent-id');
+    it("should return null for non-existent ID", async () => {
+      const found = await prdService.getById("non-existent-id");
       expect(found).toBeNull();
     });
   });
 
-  describe('getAll', () => {
-    it('should return all PRDs', async () => {
-      await prdService.create({ title: `${TEST_PREFIX}PRD 1`, status: 'draft' });
-      await prdService.create({ title: `${TEST_PREFIX}PRD 2`, status: 'draft' });
+  describe("getAll", () => {
+    it("should return all PRDs", async () => {
+      await prdService.create({
+        title: `${TEST_PREFIX}PRD 1`,
+        status: "draft",
+      });
+      await prdService.create({
+        title: `${TEST_PREFIX}PRD 2`,
+        status: "draft",
+      });
 
       const prds = await prdService.getAll();
 
       expect(prds.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('should filter by status', async () => {
-      await prdService.create({ title: `${TEST_PREFIX}Draft PRD`, status: 'draft' });
-      const approved = await prdService.create({ title: `${TEST_PREFIX}Approved PRD`, status: 'draft' });
-      await prdService.approve(approved.id, 'test-user');
+    it("should filter by status", async () => {
+      await prdService.create({
+        title: `${TEST_PREFIX}Draft PRD`,
+        status: "draft",
+      });
+      const approved = await prdService.create({
+        title: `${TEST_PREFIX}Approved PRD`,
+        status: "draft",
+      });
+      await prdService.approve(approved.id, "test-user");
 
-      const draftPrds = await prdService.getByStatus('draft');
-      const approvedPrds = await prdService.getByStatus('approved');
+      const draftPrds = await prdService.getByStatus("draft");
+      const approvedPrds = await prdService.getByStatus("approved");
 
-      expect(draftPrds.some(p => p.title === `${TEST_PREFIX}Draft PRD`)).toBe(true);
-      expect(approvedPrds.some(p => p.title === `${TEST_PREFIX}Approved PRD`)).toBe(true);
+      expect(draftPrds.some((p) => p.title === `${TEST_PREFIX}Draft PRD`)).toBe(
+        true,
+      );
+      expect(
+        approvedPrds.some((p) => p.title === `${TEST_PREFIX}Approved PRD`),
+      ).toBe(true);
     });
   });
 
-  describe('update', () => {
-    it('should update PRD fields', async () => {
+  describe("update", () => {
+    it("should update PRD fields", async () => {
       const prd = await prdService.create({
         title: `${TEST_PREFIX}Original Title`,
-        description: 'Original description',
-        status: 'draft'
+        description: "Original description",
+        status: "draft",
       });
 
       const updated = await prdService.update(prd.id, {
         title: `${TEST_PREFIX}Updated Title`,
-        description: 'Updated description'
+        description: "Updated description",
       });
 
       expect(updated.title).toBe(`${TEST_PREFIX}Updated Title`);
-      expect(updated.description).toBe('Updated description');
+      expect(updated.description).toBe("Updated description");
     });
   });
 
-  describe('approve', () => {
-    it('should approve a PRD', async () => {
+  describe("approve", () => {
+    it("should approve a PRD", async () => {
       const prd = await prdService.create({
         title: `${TEST_PREFIX}To Approve`,
-        status: 'draft'
+        status: "draft",
       });
 
-      const approved = await prdService.approve(prd.id, 'test-approver');
+      const approved = await prdService.approve(prd.id, "test-approver");
 
-      expect(approved.status).toBe('approved');
-      expect(approved.approvedBy).toBe('test-approver');
+      expect(approved.status).toBe("approved");
+      expect(approved.approvedBy).toBe("test-approver");
       expect(approved.approvedAt).toBeDefined();
     });
 
-    it('should throw when approving non-existent PRD', async () => {
+    it("should throw when approving non-existent PRD", async () => {
       await expect(
-        prdService.approve('non-existent-id', 'test-user')
+        prdService.approve("non-existent-id", "test-user"),
       ).rejects.toThrow();
     });
   });
 
-  describe('archive', () => {
-    it('should archive a PRD', async () => {
+  describe("archive", () => {
+    it("should archive a PRD", async () => {
       const prd = await prdService.create({
         title: `${TEST_PREFIX}To Archive`,
-        status: 'draft'
+        status: "draft",
       });
 
       const archived = await prdService.archive(prd.id);
 
-      expect(archived.status).toBe('archived');
+      expect(archived.status).toBe("archived");
     });
   });
 
-  describe('getChildren', () => {
-    it('should return child PRDs', async () => {
+  describe("getChildren", () => {
+    it("should return child PRDs", async () => {
       const parent = await prdService.create({
         title: `${TEST_PREFIX}Parent`,
-        status: 'draft'
+        status: "draft",
       });
 
       await prdService.create({
         title: `${TEST_PREFIX}Child 1`,
-        status: 'draft',
-        parentId: parent.id
+        status: "draft",
+        parentId: parent.id,
       });
 
       await prdService.create({
         title: `${TEST_PREFIX}Child 2`,
-        status: 'draft',
-        parentId: parent.id
+        status: "draft",
+        parentId: parent.id,
       });
 
       const children = await prdService.getChildren(parent.id);
@@ -180,11 +196,11 @@ describe('PRDService', () => {
     });
   });
 
-  describe('delete', () => {
-    it('should delete a PRD', async () => {
+  describe("delete", () => {
+    it("should delete a PRD", async () => {
       const prd = await prdService.create({
         title: `${TEST_PREFIX}To Delete`,
-        status: 'draft'
+        status: "draft",
       });
 
       await prdService.delete(prd.id);

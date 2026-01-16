@@ -5,12 +5,12 @@
  * Part of: Task System V2 Implementation Plan (IMPL-8.4)
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { v4 as uuidv4 } from 'uuid';
-import { taskVersionService } from '../../server/services/task-agent/task-version-service';
-import { run, saveDb, getOne } from '../../database/db';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { v4 as uuidv4 } from "uuid";
+import { taskVersionService } from "../../server/services/task-agent/task-version-service";
+import { run, saveDb, getOne } from "../../database/db";
 
-const TEST_PREFIX = 'VERSION-TEST-';
+const TEST_PREFIX = "VERSION-TEST-";
 
 // Create test task
 async function createTestTask(): Promise<string> {
@@ -18,7 +18,7 @@ async function createTestTask(): Promise<string> {
   await run(
     `INSERT INTO tasks (id, display_id, title, status, category, priority, effort, created_at, updated_at)
      VALUES (?, ?, ?, 'pending', 'feature', 'P2', 'medium', datetime('now'), datetime('now'))`,
-    [taskId, `${TEST_PREFIX}${taskId.slice(0, 8)}`, `${TEST_PREFIX}Test Task`]
+    [taskId, `${TEST_PREFIX}${taskId.slice(0, 8)}`, `${TEST_PREFIX}Test Task`],
   );
   await saveDb();
   return taskId;
@@ -26,12 +26,14 @@ async function createTestTask(): Promise<string> {
 
 // Cleanup test data
 async function cleanupTestData(): Promise<void> {
-  await run(`DELETE FROM task_versions WHERE task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`);
+  await run(
+    `DELETE FROM task_versions WHERE task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
+  );
   await run(`DELETE FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%'`);
   await saveDb();
 }
 
-describe('TaskVersionService', () => {
+describe("TaskVersionService", () => {
   let testTaskId: string;
 
   beforeAll(async () => {
@@ -47,39 +49,51 @@ describe('TaskVersionService', () => {
     testTaskId = await createTestTask();
   });
 
-  describe('createVersion', () => {
-    it('should create initial version (v1)', async () => {
-      const version = await taskVersionService.createVersion(testTaskId, 'Initial creation', 'system');
+  describe("createVersion", () => {
+    it("should create initial version (v1)", async () => {
+      const version = await taskVersionService.createVersion(
+        testTaskId,
+        "Initial creation",
+        "system",
+      );
 
       expect(version).toBeDefined();
       expect(version.version).toBe(1);
       expect(version.taskId).toBe(testTaskId);
-      expect(version.changeReason).toBe('Initial creation');
-      expect(version.changedBy).toBe('system');
+      expect(version.changeReason).toBe("Initial creation");
+      expect(version.changedBy).toBe("system");
     });
 
-    it('should increment version numbers', async () => {
-      await taskVersionService.createVersion(testTaskId, 'v1', 'user1');
-      await taskVersionService.createVersion(testTaskId, 'v2', 'user2');
-      const v3 = await taskVersionService.createVersion(testTaskId, 'v3', 'user3');
+    it("should increment version numbers", async () => {
+      await taskVersionService.createVersion(testTaskId, "v1", "user1");
+      await taskVersionService.createVersion(testTaskId, "v2", "user2");
+      const v3 = await taskVersionService.createVersion(
+        testTaskId,
+        "v3",
+        "user3",
+      );
 
       expect(v3.version).toBe(3);
     });
 
-    it('should capture task snapshot', async () => {
-      const version = await taskVersionService.createVersion(testTaskId, 'Snapshot test', 'system');
+    it("should capture task snapshot", async () => {
+      const version = await taskVersionService.createVersion(
+        testTaskId,
+        "Snapshot test",
+        "system",
+      );
 
       expect(version.snapshot).toBeDefined();
       expect(version.snapshot.title).toBe(`${TEST_PREFIX}Test Task`);
-      expect(version.snapshot.status).toBe('pending');
+      expect(version.snapshot.status).toBe("pending");
     });
   });
 
-  describe('getVersions', () => {
-    it('should return all versions for a task', async () => {
-      await taskVersionService.createVersion(testTaskId, 'v1', 'system');
-      await taskVersionService.createVersion(testTaskId, 'v2', 'system');
-      await taskVersionService.createVersion(testTaskId, 'v3', 'system');
+  describe("getVersions", () => {
+    it("should return all versions for a task", async () => {
+      await taskVersionService.createVersion(testTaskId, "v1", "system");
+      await taskVersionService.createVersion(testTaskId, "v2", "system");
+      await taskVersionService.createVersion(testTaskId, "v3", "system");
 
       const versions = await taskVersionService.getVersions(testTaskId);
 
@@ -90,10 +104,10 @@ describe('TaskVersionService', () => {
     });
   });
 
-  describe('getVersion', () => {
-    it('should return a specific version', async () => {
-      await taskVersionService.createVersion(testTaskId, 'v1', 'system');
-      await taskVersionService.createVersion(testTaskId, 'v2', 'system');
+  describe("getVersion", () => {
+    it("should return a specific version", async () => {
+      await taskVersionService.createVersion(testTaskId, "v1", "system");
+      await taskVersionService.createVersion(testTaskId, "v2", "system");
 
       const v1 = await taskVersionService.getVersion(testTaskId, 1);
       const v2 = await taskVersionService.getVersion(testTaskId, 2);
@@ -102,109 +116,118 @@ describe('TaskVersionService', () => {
       expect(v2?.version).toBe(2);
     });
 
-    it('should return null for non-existent version', async () => {
+    it("should return null for non-existent version", async () => {
       const version = await taskVersionService.getVersion(testTaskId, 999);
       expect(version).toBeNull();
     });
   });
 
-  describe('createCheckpoint', () => {
-    it('should create a named checkpoint', async () => {
+  describe("createCheckpoint", () => {
+    it("should create a named checkpoint", async () => {
       // Create initial version
-      await taskVersionService.createVersion(testTaskId, 'Initial', 'system');
+      await taskVersionService.createVersion(testTaskId, "Initial", "system");
 
       const checkpoint = await taskVersionService.createCheckpoint(
-        { taskId: testTaskId, name: 'Before Refactor', reason: 'Saving state before major changes' },
-        'developer'
+        {
+          taskId: testTaskId,
+          name: "Before Refactor",
+          reason: "Saving state before major changes",
+        },
+        "developer",
       );
 
       expect(checkpoint.isCheckpoint).toBe(true);
-      expect(checkpoint.checkpointName).toBe('Before Refactor');
+      expect(checkpoint.checkpointName).toBe("Before Refactor");
     });
   });
 
-  describe('getCheckpoints', () => {
-    it('should return only checkpoint versions', async () => {
-      await taskVersionService.createVersion(testTaskId, 'v1', 'system');
+  describe("getCheckpoints", () => {
+    it("should return only checkpoint versions", async () => {
+      await taskVersionService.createVersion(testTaskId, "v1", "system");
       await taskVersionService.createCheckpoint(
-        { taskId: testTaskId, name: 'CP1' },
-        'user'
+        { taskId: testTaskId, name: "CP1" },
+        "user",
       );
-      await taskVersionService.createVersion(testTaskId, 'v3', 'system');
+      await taskVersionService.createVersion(testTaskId, "v3", "system");
       await taskVersionService.createCheckpoint(
-        { taskId: testTaskId, name: 'CP2' },
-        'user'
+        { taskId: testTaskId, name: "CP2" },
+        "user",
       );
 
       const checkpoints = await taskVersionService.getCheckpoints(testTaskId);
 
       expect(checkpoints.length).toBe(2);
-      expect(checkpoints.every(cp => cp.isCheckpoint)).toBe(true);
+      expect(checkpoints.every((cp) => cp.isCheckpoint)).toBe(true);
     });
   });
 
-  describe('diff', () => {
-    it('should calculate diff between versions', async () => {
-      await taskVersionService.createVersion(testTaskId, 'v1', 'system');
+  describe("diff", () => {
+    it("should calculate diff between versions", async () => {
+      await taskVersionService.createVersion(testTaskId, "v1", "system");
 
       // Update task
-      await run(
-        'UPDATE tasks SET title = ?, priority = ? WHERE id = ?',
-        [`${TEST_PREFIX}Updated Title`, 'P1', testTaskId]
-      );
+      await run("UPDATE tasks SET title = ?, priority = ? WHERE id = ?", [
+        `${TEST_PREFIX}Updated Title`,
+        "P1",
+        testTaskId,
+      ]);
       await saveDb();
 
-      await taskVersionService.createVersion(testTaskId, 'v2', 'system');
+      await taskVersionService.createVersion(testTaskId, "v2", "system");
 
       const diff = await taskVersionService.diff(testTaskId, 1, 2);
 
       expect(diff.changes).toBeDefined();
-      expect(diff.changes.some(c => c.field === 'title')).toBe(true);
-      expect(diff.changes.some(c => c.field === 'priority')).toBe(true);
+      expect(diff.changes.some((c) => c.field === "title")).toBe(true);
+      expect(diff.changes.some((c) => c.field === "priority")).toBe(true);
     });
   });
 
-  describe('restore', () => {
-    it('should restore task to a previous version', async () => {
-      await taskVersionService.createVersion(testTaskId, 'v1', 'system');
+  describe("restore", () => {
+    it("should restore task to a previous version", async () => {
+      await taskVersionService.createVersion(testTaskId, "v1", "system");
 
       // Update task
-      await run(
-        'UPDATE tasks SET title = ? WHERE id = ?',
-        [`${TEST_PREFIX}Changed Title`, testTaskId]
-      );
+      await run("UPDATE tasks SET title = ? WHERE id = ?", [
+        `${TEST_PREFIX}Changed Title`,
+        testTaskId,
+      ]);
       await saveDb();
 
-      await taskVersionService.createVersion(testTaskId, 'v2', 'system');
+      await taskVersionService.createVersion(testTaskId, "v2", "system");
 
       // Restore to v1
       await taskVersionService.restore(
         { taskId: testTaskId, targetVersion: 1 },
-        'user'
+        "user",
       );
 
       // Check task was restored
-      const task = await getOne<{ title: string }>('SELECT title FROM tasks WHERE id = ?', [testTaskId]);
+      const task = await getOne<{ title: string }>(
+        "SELECT title FROM tasks WHERE id = ?",
+        [testTaskId],
+      );
       expect(task?.title).toBe(`${TEST_PREFIX}Test Task`);
 
       // Check new version was created
       const versions = await taskVersionService.getVersions(testTaskId);
       expect(versions.length).toBe(3);
-      expect(versions[0].changeReason).toContain('Restored');
+      expect(versions[0].changeReason).toContain("Restored");
     });
   });
 
-  describe('previewRestore', () => {
-    it('should show what would change on restore', async () => {
-      await taskVersionService.createVersion(testTaskId, 'v1', 'system');
+  describe("previewRestore", () => {
+    it("should show what would change on restore", async () => {
+      await taskVersionService.createVersion(testTaskId, "v1", "system");
 
-      await run(
-        'UPDATE tasks SET title = ?, status = ? WHERE id = ?',
-        [`${TEST_PREFIX}Modified`, 'in_progress', testTaskId]
-      );
+      await run("UPDATE tasks SET title = ?, status = ? WHERE id = ?", [
+        `${TEST_PREFIX}Modified`,
+        "in_progress",
+        testTaskId,
+      ]);
       await saveDb();
 
-      await taskVersionService.createVersion(testTaskId, 'v2', 'system');
+      await taskVersionService.createVersion(testTaskId, "v2", "system");
 
       const preview = await taskVersionService.previewRestore(testTaskId, 1);
 

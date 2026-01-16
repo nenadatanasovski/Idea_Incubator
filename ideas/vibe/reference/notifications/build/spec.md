@@ -15,10 +15,12 @@ complexity: "complex"
 ## Context References
 
 **Required Reading:**
+
 - [x] `README.md` - Idea overview
 - [x] `planning/brief.md` - Feature brief
 
 **Patterns to Follow:**
+
 - Section: "Database Patterns" - Use SQLite with TEXT timestamps
 - Section: "API Routes" - Express router patterns
 - Section: "WebSocket" - Real-time communication patterns
@@ -32,6 +34,7 @@ complexity: "complex"
 Implement a comprehensive notification system that centralizes all notifications, supports multiple delivery channels (in-app, email, Telegram), provides real-time updates via WebSocket, and respects user notification preferences.
 
 **Success Criteria:**
+
 1. Notifications are created when events occur
 2. In-app notifications appear in real-time via WebSocket
 3. Email notifications are sent for enabled types
@@ -42,6 +45,7 @@ Implement a comprehensive notification system that centralizes all notifications
 8. Notification count updates in real-time
 
 **Out of Scope:**
+
 - Push notifications (FCM/APNs)
 - Notification grouping/collapsing in UI
 - Notification sounds/vibration
@@ -55,18 +59,18 @@ Implement a comprehensive notification system that centralizes all notifications
 
 ## Functional Requirements
 
-| ID | Requirement | Priority | Acceptance Criteria | Source |
-|----|-------------|----------|---------------------|--------|
-| FR-001 | Notification queue | Must | Events queued and processed | Brief |
-| FR-002 | In-app channel | Must | Store in DB, broadcast via WebSocket | Brief |
-| FR-003 | Email channel | Must | Send via existing EmailSender | Brief |
-| FR-004 | Telegram channel | Should | Send via existing TelegramSender | Brief |
-| FR-005 | User preferences | Must | Respect per-type channel settings | Brief |
-| FR-006 | Read/archive | Must | Mark notifications read/archived | Brief |
-| FR-007 | Retry logic | Must | Retry failed deliveries with backoff | Brief |
-| FR-008 | Templates | Should | Consistent notification formatting | Brief |
-| FR-009 | List API | Must | Paginated notification list | Brief |
-| FR-010 | Unread count | Must | Real-time unread count | Brief |
+| ID     | Requirement        | Priority | Acceptance Criteria                  | Source |
+| ------ | ------------------ | -------- | ------------------------------------ | ------ |
+| FR-001 | Notification queue | Must     | Events queued and processed          | Brief  |
+| FR-002 | In-app channel     | Must     | Store in DB, broadcast via WebSocket | Brief  |
+| FR-003 | Email channel      | Must     | Send via existing EmailSender        | Brief  |
+| FR-004 | Telegram channel   | Should   | Send via existing TelegramSender     | Brief  |
+| FR-005 | User preferences   | Must     | Respect per-type channel settings    | Brief  |
+| FR-006 | Read/archive       | Must     | Mark notifications read/archived     | Brief  |
+| FR-007 | Retry logic        | Must     | Retry failed deliveries with backoff | Brief  |
+| FR-008 | Templates          | Should   | Consistent notification formatting   | Brief  |
+| FR-009 | List API           | Must     | Paginated notification list          | Brief  |
+| FR-010 | Unread count       | Must     | Real-time unread count               | Brief  |
 
 ### Detailed Requirements
 
@@ -77,6 +81,7 @@ Implement a comprehensive notification system that centralizes all notifications
 **User Story:** As the system, I want to queue notifications when events occur so they can be processed reliably.
 
 **Acceptance Criteria:**
+
 - [x] Events trigger notification creation
 - [x] Priority levels: urgent, high, normal, low
 - [x] Duplicate notifications are prevented within 1 hour
@@ -89,6 +94,7 @@ Implement a comprehensive notification system that centralizes all notifications
 **User Story:** As a user, I want to see notifications in real-time without refreshing the page.
 
 **Acceptance Criteria:**
+
 - [x] Notifications stored in database
 - [x] WebSocket broadcast on new notification
 - [x] Read status synced via WebSocket
@@ -101,6 +107,7 @@ Implement a comprehensive notification system that centralizes all notifications
 **User Story:** As a user, I want to receive email notifications for important events.
 
 **Acceptance Criteria:**
+
 - [x] Uses existing EmailSender
 - [x] HTML and plain text templates
 - [x] Respects user email preferences
@@ -113,6 +120,7 @@ Implement a comprehensive notification system that centralizes all notifications
 **User Story:** As a user, I want to receive Telegram notifications on my phone.
 
 **Acceptance Criteria:**
+
 - [x] Uses existing TelegramSender
 - [x] Message formatting for Telegram
 - [x] Respects user Telegram settings
@@ -122,12 +130,12 @@ Implement a comprehensive notification system that centralizes all notifications
 
 ## Non-Functional Requirements
 
-| Category | Requirement | Target | Validation Method |
-|----------|-------------|--------|-------------------|
-| Performance | Notification dispatch | < 100ms | Timing logs |
-| Reliability | Delivery success | 99% | Delivery tracking |
-| Scalability | Queue throughput | 1000/min | Load test |
-| Latency | WebSocket broadcast | < 50ms | Client timing |
+| Category    | Requirement           | Target   | Validation Method |
+| ----------- | --------------------- | -------- | ----------------- |
+| Performance | Notification dispatch | < 100ms  | Timing logs       |
+| Reliability | Delivery success      | 99%      | Delivery tracking |
+| Scalability | Queue throughput      | 1000/min | Load test         |
+| Latency     | WebSocket broadcast   | < 50ms   | Client timing     |
 
 ---
 
@@ -163,35 +171,35 @@ Implement a comprehensive notification system that centralizes all notifications
 
 ### New Files
 
-| File Path | Purpose | Owner |
-|-----------|---------|-------|
-| `database/migrations/027_notifications.sql` | Notification tables | Build Agent |
-| `database/migrations/028_notification_templates.sql` | Seed templates | Build Agent |
-| `types/notification.ts` | TypeScript interfaces | Build Agent |
-| `server/notifications/queue.ts` | Notification queue | Build Agent |
-| `server/notifications/dispatcher.ts` | Route to channels | Build Agent |
-| `server/notifications/channels/in-app.ts` | In-app channel | Build Agent |
-| `server/notifications/channels/email.ts` | Email channel | Build Agent |
-| `server/notifications/channels/telegram.ts` | Telegram channel | Build Agent |
-| `server/notifications/realtime.ts` | WebSocket integration | Build Agent |
-| `server/notifications/templates.ts` | Template rendering | Build Agent |
-| `server/notifications/preferences.ts` | Preference manager | Build Agent |
-| `server/notifications/retry.ts` | Retry logic | Build Agent |
-| `server/routes/notifications.ts` | API endpoints | Build Agent |
-| `server/notifications/index.ts` | Module exports | Build Agent |
+| File Path                                            | Purpose               | Owner       |
+| ---------------------------------------------------- | --------------------- | ----------- |
+| `database/migrations/027_notifications.sql`          | Notification tables   | Build Agent |
+| `database/migrations/028_notification_templates.sql` | Seed templates        | Build Agent |
+| `types/notification.ts`                              | TypeScript interfaces | Build Agent |
+| `server/notifications/queue.ts`                      | Notification queue    | Build Agent |
+| `server/notifications/dispatcher.ts`                 | Route to channels     | Build Agent |
+| `server/notifications/channels/in-app.ts`            | In-app channel        | Build Agent |
+| `server/notifications/channels/email.ts`             | Email channel         | Build Agent |
+| `server/notifications/channels/telegram.ts`          | Telegram channel      | Build Agent |
+| `server/notifications/realtime.ts`                   | WebSocket integration | Build Agent |
+| `server/notifications/templates.ts`                  | Template rendering    | Build Agent |
+| `server/notifications/preferences.ts`                | Preference manager    | Build Agent |
+| `server/notifications/retry.ts`                      | Retry logic           | Build Agent |
+| `server/routes/notifications.ts`                     | API endpoints         | Build Agent |
+| `server/notifications/index.ts`                      | Module exports        | Build Agent |
 
 ### Modified Files
 
-| File Path | Changes | Owner |
-|-----------|---------|-------|
-| `server/api.ts` | Mount notification routes | Build Agent |
-| `server/websocket.ts` | Add notification events | Build Agent |
+| File Path             | Changes                   | Owner       |
+| --------------------- | ------------------------- | ----------- |
+| `server/api.ts`       | Mount notification routes | Build Agent |
+| `server/websocket.ts` | Add notification events   | Build Agent |
 
 ### Files to Avoid
 
-| File Path | Reason | Owner |
-|-----------|--------|-------|
-| `server/services/email-sender.ts` | Existing service, just use it | Email team |
+| File Path                            | Reason                        | Owner         |
+| ------------------------------------ | ----------------------------- | ------------- |
+| `server/services/email-sender.ts`    | Existing service, just use it | Email team    |
 | `server/services/telegram-sender.ts` | Existing service, just use it | Telegram team |
 
 ---
@@ -200,26 +208,28 @@ Implement a comprehensive notification system that centralizes all notifications
 
 ### Endpoints
 
-| Endpoint | Method | Description | Auth | Request | Response |
-|----------|--------|-------------|------|---------|----------|
-| `/api/notifications` | GET | List notifications | Required | Query params | NotificationList |
-| `/api/notifications/unread-count` | GET | Get unread count | Required | - | { count } |
-| `/api/notifications/:id/read` | POST | Mark as read | Required | - | Notification |
-| `/api/notifications/:id/archive` | POST | Archive notification | Required | - | Notification |
-| `/api/notifications/read-all` | POST | Mark all read | Required | - | { count } |
-| `/api/notifications/preferences` | GET | Get preferences | Required | - | ChannelPrefs[] |
-| `/api/notifications/preferences` | PUT | Update preferences | Required | ChannelPrefs[] | ChannelPrefs[] |
+| Endpoint                          | Method | Description          | Auth     | Request        | Response         |
+| --------------------------------- | ------ | -------------------- | -------- | -------------- | ---------------- |
+| `/api/notifications`              | GET    | List notifications   | Required | Query params   | NotificationList |
+| `/api/notifications/unread-count` | GET    | Get unread count     | Required | -              | { count }        |
+| `/api/notifications/:id/read`     | POST   | Mark as read         | Required | -              | Notification     |
+| `/api/notifications/:id/archive`  | POST   | Archive notification | Required | -              | Notification     |
+| `/api/notifications/read-all`     | POST   | Mark all read        | Required | -              | { count }        |
+| `/api/notifications/preferences`  | GET    | Get preferences      | Required | -              | ChannelPrefs[]   |
+| `/api/notifications/preferences`  | PUT    | Update preferences   | Required | ChannelPrefs[] | ChannelPrefs[]   |
 
 ### Request/Response Examples
 
 #### GET /api/notifications
 
 **Request:**
+
 ```
 GET /api/notifications?limit=20&offset=0&unread=true
 ```
 
 **Response:**
+
 ```json
 {
   "notifications": [
@@ -244,6 +254,7 @@ GET /api/notifications?limit=20&offset=0&unread=true
 #### GET /api/notifications/unread-count
 
 **Response:**
+
 ```json
 {
   "count": 12
@@ -253,6 +264,7 @@ GET /api/notifications?limit=20&offset=0&unread=true
 #### POST /api/notifications/:id/read
 
 **Response:**
+
 ```json
 {
   "id": "notif-123",
@@ -263,6 +275,7 @@ GET /api/notifications?limit=20&offset=0&unread=true
 #### GET /api/notifications/preferences
 
 **Response:**
+
 ```json
 {
   "preferences": [
@@ -282,11 +295,11 @@ GET /api/notifications?limit=20&offset=0&unread=true
 
 ### WebSocket Events
 
-| Event | Direction | Payload | Description |
-|-------|-----------|---------|-------------|
-| `notification:new` | Server→Client | Notification | New notification |
-| `notification:read` | Server→Client | { id, readAt } | Notification read |
-| `notification:unread-count` | Server→Client | { count } | Count updated |
+| Event                       | Direction     | Payload        | Description       |
+| --------------------------- | ------------- | -------------- | ----------------- |
+| `notification:new`          | Server→Client | Notification   | New notification  |
+| `notification:read`         | Server→Client | { id, readAt } | Notification read |
+| `notification:unread-count` | Server→Client | { count }      | Count updated     |
 
 ---
 
@@ -371,9 +384,14 @@ CREATE INDEX IF NOT EXISTS idx_digest_scheduled ON notification_digest(scheduled
 ### TypeScript Interfaces
 
 ```typescript
-export type NotificationPriority = 'urgent' | 'high' | 'normal' | 'low';
-export type NotificationChannel = 'in_app' | 'email' | 'telegram';
-export type DeliveryStatus = 'pending' | 'sent' | 'delivered' | 'failed' | 'skipped';
+export type NotificationPriority = "urgent" | "high" | "normal" | "low";
+export type NotificationChannel = "in_app" | "email" | "telegram";
+export type DeliveryStatus =
+  | "pending"
+  | "sent"
+  | "delivered"
+  | "failed"
+  | "skipped";
 
 export interface Notification {
   id: string;
@@ -446,35 +464,35 @@ export interface NotificationListResult {
 
 ### Internal Dependencies
 
-| Dependency | Status | Blocks | Owner |
-|------------|--------|--------|-------|
-| Database (db.ts) | Ready | None | Core |
-| Express app | Ready | None | Core |
-| WebSocket server | Ready | None | Core |
-| EmailSender | Ready | None | Email |
-| TelegramSender | Ready | None | Telegram |
-| Users table | Ready | None | Auth |
+| Dependency       | Status | Blocks | Owner    |
+| ---------------- | ------ | ------ | -------- |
+| Database (db.ts) | Ready  | None   | Core     |
+| Express app      | Ready  | None   | Core     |
+| WebSocket server | Ready  | None   | Core     |
+| EmailSender      | Ready  | None   | Email    |
+| TelegramSender   | Ready  | None   | Telegram |
+| Users table      | Ready  | None   | Auth     |
 
 ### External Dependencies
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| express | ^4.18 | Web framework (existing) |
-| ws | ^8.x | WebSocket (existing) |
+| Package | Version | Purpose                  |
+| ------- | ------- | ------------------------ |
+| express | ^4.18   | Web framework (existing) |
+| ws      | ^8.x    | WebSocket (existing)     |
 
 ---
 
 ## Known Gotchas
 
-| ID | Gotcha | Source | Confidence |
-|----|--------|--------|------------|
-| G-001 | Use TEXT for SQLite timestamps | Knowledge Base | High |
-| G-002 | JSON columns store as TEXT in SQLite | Knowledge Base | High |
-| G-003 | Parse JSON when reading, stringify when writing | Experience | High |
-| G-004 | WebSocket may disconnect - handle reconnection | Experience | High |
-| G-005 | Email sending is async - don't block on it | Experience | High |
-| G-006 | Telegram rate limits - batch if needed | Experience | Medium |
-| G-007 | Exponential backoff: 1min, 5min, 15min, 1hr | Experience | High |
+| ID    | Gotcha                                          | Source         | Confidence |
+| ----- | ----------------------------------------------- | -------------- | ---------- |
+| G-001 | Use TEXT for SQLite timestamps                  | Knowledge Base | High       |
+| G-002 | JSON columns store as TEXT in SQLite            | Knowledge Base | High       |
+| G-003 | Parse JSON when reading, stringify when writing | Experience     | High       |
+| G-004 | WebSocket may disconnect - handle reconnection  | Experience     | High       |
+| G-005 | Email sending is async - don't block on it      | Experience     | High       |
+| G-006 | Telegram rate limits - batch if needed          | Experience     | Medium     |
+| G-007 | Exponential backoff: 1min, 5min, 15min, 1hr     | Experience     | High       |
 
 ---
 
@@ -482,12 +500,12 @@ export interface NotificationListResult {
 
 ### Unit Tests
 
-| Test File | Coverage Target | Priority |
-|-----------|-----------------|----------|
-| `tests/notification-queue.test.ts` | 85% | High |
-| `tests/notification-dispatcher.test.ts` | 80% | High |
-| `tests/notification-channels.test.ts` | 75% | Medium |
-| `tests/notification-api.test.ts` | 80% | High |
+| Test File                               | Coverage Target | Priority |
+| --------------------------------------- | --------------- | -------- |
+| `tests/notification-queue.test.ts`      | 85%             | High     |
+| `tests/notification-dispatcher.test.ts` | 80%             | High     |
+| `tests/notification-channels.test.ts`   | 75%             | Medium   |
+| `tests/notification-api.test.ts`        | 80%             | High     |
 
 ### Validation Commands
 
@@ -515,13 +533,13 @@ curl http://localhost:3000/api/notifications -H "Authorization: Bearer $TOKEN" |
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| WebSocket disconnections | Medium | Medium | Reconnection logic, fallback polling |
-| Email delivery failures | Low | Medium | Retry queue, dead letter handling |
-| Notification spam | Medium | Low | Rate limiting, digest batching |
-| Database growth | Medium | Low | TTL on old notifications |
-| Template changes break | Low | Medium | Version templates |
+| Risk                     | Likelihood | Impact | Mitigation                           |
+| ------------------------ | ---------- | ------ | ------------------------------------ |
+| WebSocket disconnections | Medium     | Medium | Reconnection logic, fallback polling |
+| Email delivery failures  | Low        | Medium | Retry queue, dead letter handling    |
+| Notification spam        | Medium     | Low    | Rate limiting, digest batching       |
+| Database growth          | Medium     | Low    | TTL on old notifications             |
+| Template changes break   | Low        | Medium | Version templates                    |
 
 ---
 
@@ -547,5 +565,5 @@ curl http://localhost:3000/api/notifications -H "Authorization: Bearer $TOKEN" |
 
 ---
 
-*Generated for Spec Agent reference*
-*See `tasks.md` for implementation breakdown*
+_Generated for Spec Agent reference_
+_See `tasks.md` for implementation breakdown_

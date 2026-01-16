@@ -9,21 +9,25 @@
  * - Provides methods to answer questions
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import type { BlockingQuestion } from '../components/agents/BlockingQuestionModal';
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { BlockingQuestion } from "../components/agents/BlockingQuestionModal";
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001/ws';
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:3001/ws";
 
 interface QuestionEvent {
-  type: 'question:new' | 'question:answered' | 'question:expired' | 'question:skipped';
+  type:
+    | "question:new"
+    | "question:answered"
+    | "question:expired"
+    | "question:skipped";
   question?: BlockingQuestion;
   questionId?: string;
   answer?: string;
 }
 
 interface AgentBlockedEvent {
-  type: 'agent:blocked' | 'agent:unblocked';
+  type: "agent:blocked" | "agent:unblocked";
   agentId: string;
   questionId?: string;
   reason?: string;
@@ -57,7 +61,10 @@ const PRIORITY_WEIGHTS = {
   blockingBonus: 25, // Extra points if agent is blocked
 };
 
-function calculatePriorityScore(question: BlockingQuestion, blockedAgents: Set<string>): PriorityScore {
+function calculatePriorityScore(
+  question: BlockingQuestion,
+  blockedAgents: Set<string>,
+): PriorityScore {
   const typeScore = PRIORITY_WEIGHTS.type[question.type] || 0;
   const priorityScore = PRIORITY_WEIGHTS.priority[question.priority] || 0;
 
@@ -67,7 +74,9 @@ function calculatePriorityScore(question: BlockingQuestion, blockedAgents: Set<s
   const ageScore = Math.min(ageMinutes * PRIORITY_WEIGHTS.ageDecay, 20); // Cap at 20 points
 
   // Blocking bonus
-  const blockingScore = blockedAgents.has(question.agentId) ? PRIORITY_WEIGHTS.blockingBonus : 0;
+  const blockingScore = blockedAgents.has(question.agentId)
+    ? PRIORITY_WEIGHTS.blockingBonus
+    : 0;
 
   return {
     score: typeScore + priorityScore + ageScore + blockingScore,
@@ -105,9 +114,10 @@ export function useBlockingQuestions(): UseBlockingQuestionsReturn {
     return scoreB.score - scoreA.score;
   });
 
-  const currentQuestion = sortedQuestions.find(q =>
-    q.type === 'BLOCKING' || q.type === 'APPROVAL'
-  ) || null;
+  const currentQuestion =
+    sortedQuestions.find(
+      (q) => q.type === "BLOCKING" || q.type === "APPROVAL",
+    ) || null;
 
   // Fetch initial questions
   const refreshQuestions = useCallback(async () => {
@@ -120,7 +130,7 @@ export function useBlockingQuestions(): UseBlockingQuestionsReturn {
         }
       }
     } catch (error) {
-      console.error('Failed to fetch questions:', error);
+      console.error("Failed to fetch questions:", error);
     }
   }, []);
 
@@ -131,38 +141,44 @@ export function useBlockingQuestions(): UseBlockingQuestionsReturn {
     const ws = new WebSocket(WS_URL);
 
     ws.onopen = () => {
-      console.log('[BlockingQuestions] WebSocket connected');
+      console.log("[BlockingQuestions] WebSocket connected");
       setIsConnected(true);
 
       // Subscribe to question events
-      ws.send(JSON.stringify({
-        type: 'subscribe',
-        channels: ['questions', 'agents'],
-      }));
+      ws.send(
+        JSON.stringify({
+          type: "subscribe",
+          channels: ["questions", "agents"],
+        }),
+      );
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
 
-        if (data.type === 'question:new' && data.question) {
-          setQuestions(prev => {
+        if (data.type === "question:new" && data.question) {
+          setQuestions((prev) => {
             // Avoid duplicates
-            if (prev.some(q => q.id === data.question.id)) return prev;
+            if (prev.some((q) => q.id === data.question.id)) return prev;
             return [...prev, data.question];
           });
         }
 
-        if (data.type === 'question:answered' || data.type === 'question:expired' || data.type === 'question:skipped') {
-          setQuestions(prev => prev.filter(q => q.id !== data.questionId));
+        if (
+          data.type === "question:answered" ||
+          data.type === "question:expired" ||
+          data.type === "question:skipped"
+        ) {
+          setQuestions((prev) => prev.filter((q) => q.id !== data.questionId));
         }
 
-        if (data.type === 'agent:blocked' && data.agentId) {
-          setBlockedAgents(prev => new Set([...prev, data.agentId]));
+        if (data.type === "agent:blocked" && data.agentId) {
+          setBlockedAgents((prev) => new Set([...prev, data.agentId]));
         }
 
-        if (data.type === 'agent:unblocked' && data.agentId) {
-          setBlockedAgents(prev => {
+        if (data.type === "agent:unblocked" && data.agentId) {
+          setBlockedAgents((prev) => {
             const next = new Set(prev);
             next.delete(data.agentId);
             return next;
@@ -170,21 +186,21 @@ export function useBlockingQuestions(): UseBlockingQuestionsReturn {
         }
 
         // Handle task:blocked events
-        if (data.type === 'task:blocked' && data.taskId) {
-          console.log('[BlockingQuestions] Task blocked:', data);
+        if (data.type === "task:blocked" && data.taskId) {
+          console.log("[BlockingQuestions] Task blocked:", data);
         }
 
         // Handle task:resumed events
-        if (data.type === 'task:resumed' && data.taskId) {
-          console.log('[BlockingQuestions] Task resumed:', data);
+        if (data.type === "task:resumed" && data.taskId) {
+          console.log("[BlockingQuestions] Task resumed:", data);
         }
       } catch (error) {
-        console.error('[BlockingQuestions] Failed to parse message:', error);
+        console.error("[BlockingQuestions] Failed to parse message:", error);
       }
     };
 
     ws.onclose = () => {
-      console.log('[BlockingQuestions] WebSocket disconnected');
+      console.log("[BlockingQuestions] WebSocket disconnected");
       setIsConnected(false);
       wsRef.current = null;
 
@@ -195,7 +211,7 @@ export function useBlockingQuestions(): UseBlockingQuestionsReturn {
     };
 
     ws.onerror = (error) => {
-      console.error('[BlockingQuestions] WebSocket error:', error);
+      console.error("[BlockingQuestions] WebSocket error:", error);
     };
 
     wsRef.current = ws;
@@ -217,48 +233,63 @@ export function useBlockingQuestions(): UseBlockingQuestionsReturn {
   }, [refreshQuestions, connectWebSocket]);
 
   // Answer a question
-  const answerQuestion = useCallback(async (questionId: string, answer: string) => {
-    const res = await fetch(`${API_BASE}/api/questions/${questionId}/answer`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answer }),
-    });
+  const answerQuestion = useCallback(
+    async (questionId: string, answer: string) => {
+      const res = await fetch(
+        `${API_BASE}/api/questions/${questionId}/answer`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answer }),
+        },
+      );
 
-    if (!res.ok) {
-      const error = await res.text();
-      throw new Error(error || 'Failed to submit answer');
-    }
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || "Failed to submit answer");
+      }
 
-    // Optimistically remove from local state
-    setQuestions(prev => prev.filter(q => q.id !== questionId));
-  }, []);
+      // Optimistically remove from local state
+      setQuestions((prev) => prev.filter((q) => q.id !== questionId));
+    },
+    [],
+  );
 
   // Skip a question
-  const skipQuestion = useCallback(async (questionId: string, reason: string) => {
-    const res = await fetch(`${API_BASE}/api/questions/${questionId}/skip`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason }),
-    });
+  const skipQuestion = useCallback(
+    async (questionId: string, reason: string) => {
+      const res = await fetch(`${API_BASE}/api/questions/${questionId}/skip`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
 
-    if (!res.ok) {
-      const error = await res.text();
-      throw new Error(error || 'Failed to skip question');
-    }
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || "Failed to skip question");
+      }
 
-    // Optimistically remove from local state
-    setQuestions(prev => prev.filter(q => q.id !== questionId));
-  }, []);
+      // Optimistically remove from local state
+      setQuestions((prev) => prev.filter((q) => q.id !== questionId));
+    },
+    [],
+  );
 
   // Dismiss a non-blocking question
-  const dismissQuestion = useCallback((questionId: string) => {
-    const question = questions.find(q => q.id === questionId);
-    if (question && (question.type === 'BLOCKING' || question.type === 'APPROVAL')) {
-      console.warn('Cannot dismiss blocking questions');
-      return;
-    }
-    setQuestions(prev => prev.filter(q => q.id !== questionId));
-  }, [questions]);
+  const dismissQuestion = useCallback(
+    (questionId: string) => {
+      const question = questions.find((q) => q.id === questionId);
+      if (
+        question &&
+        (question.type === "BLOCKING" || question.type === "APPROVAL")
+      ) {
+        console.warn("Cannot dismiss blocking questions");
+        return;
+      }
+      setQuestions((prev) => prev.filter((q) => q.id !== questionId));
+    },
+    [questions],
+  );
 
   return {
     questions: sortedQuestions,

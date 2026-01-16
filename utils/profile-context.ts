@@ -5,14 +5,14 @@
  * Replaces the empty string for non-fit categories to provide
  * focused, token-efficient context to each evaluator.
  */
-import { ProfileContext } from './schemas.js';
-import { type Category } from '../agents/config.js';
+import { ProfileContext } from "./schemas.js";
+import { type Category } from "../agents/config.js";
 
 /**
  * Extract a specific field from a context string
  */
 function extractField(context: string, fieldName: string): string | null {
-  const pattern = new RegExp(`${fieldName}[:\\s]+(.+?)(?:\\n|$)`, 'i');
+  const pattern = new RegExp(`${fieldName}[:\\s]+(.+?)(?:\\n|$)`, "i");
   const match = context.match(pattern);
   return match ? match[1].trim() : null;
 }
@@ -27,7 +27,7 @@ function extractField(context: string, fieldName: string): string | null {
  */
 export function formatProfileForCategory(
   profile: ProfileContext | null,
-  category: Category
+  category: Category,
 ): string {
   if (!profile) {
     return `## Creator Context
@@ -35,62 +35,62 @@ No user profile available. Where creator capabilities affect your assessment, no
   }
 
   switch (category) {
-    case 'feasibility':
+    case "feasibility":
       return `## Creator Capabilities (for Feasibility Assessment)
 
 **Technical Skills:**
 ${profile.skillsContext}
 
 **Time Availability:**
-${extractField(profile.lifeStageContext, 'Hours Available') || extractField(profile.lifeStageContext, 'Weekly Hours') || 'Not specified'}
+${extractField(profile.lifeStageContext, "Hours Available") || extractField(profile.lifeStageContext, "Weekly Hours") || "Not specified"}
 
 **Known Skill Gaps:**
-${extractField(profile.skillsContext, 'Gaps') || extractField(profile.skillsContext, 'Known Gaps') || 'Not specified'}
+${extractField(profile.skillsContext, "Gaps") || extractField(profile.skillsContext, "Known Gaps") || "Not specified"}
 
 **IMPORTANT**: Use this profile to assess whether the creator can realistically build this solution. Consider their skills, time, and gaps when evaluating F1-F5 criteria.`;
 
-    case 'market':
+    case "market":
       return `## Creator Network (for Market Assessment)
 
 **Industry Connections:**
 ${profile.networkContext}
 
 **Community Access:**
-${extractField(profile.networkContext, 'Community') || extractField(profile.networkContext, 'Communities') || 'Not specified'}
+${extractField(profile.networkContext, "Community") || extractField(profile.networkContext, "Communities") || "Not specified"}
 
 **Professional Network:**
-${extractField(profile.networkContext, 'Network') || extractField(profile.networkContext, 'Professional Network') || 'Not specified'}
+${extractField(profile.networkContext, "Network") || extractField(profile.networkContext, "Professional Network") || "Not specified"}
 
 **IMPORTANT**: Use this profile to assess go-to-market feasibility. Consider whether the creator has connections that could help overcome entry barriers (M4) or provide distribution advantages.`;
 
-    case 'risk':
+    case "risk":
       return `## Creator Risk Profile (for Risk Assessment)
 
 **Financial Runway:**
-${extractField(profile.lifeStageContext, 'Runway') || extractField(profile.lifeStageContext, 'Financial Runway') || 'Not specified'}
+${extractField(profile.lifeStageContext, "Runway") || extractField(profile.lifeStageContext, "Financial Runway") || "Not specified"}
 
 **Risk Tolerance:**
-${extractField(profile.lifeStageContext, 'Tolerance') || extractField(profile.lifeStageContext, 'Risk Tolerance') || 'Not specified'}
+${extractField(profile.lifeStageContext, "Tolerance") || extractField(profile.lifeStageContext, "Risk Tolerance") || "Not specified"}
 
 **Employment Status:**
-${extractField(profile.lifeStageContext, 'Status') || extractField(profile.lifeStageContext, 'Employment') || 'Not specified'}
+${extractField(profile.lifeStageContext, "Status") || extractField(profile.lifeStageContext, "Employment") || "Not specified"}
 
 **Professional Experience:**
-${extractField(profile.skillsContext, 'Experience') || extractField(profile.skillsContext, 'Professional Experience') || 'Not specified'}
+${extractField(profile.skillsContext, "Experience") || extractField(profile.skillsContext, "Professional Experience") || "Not specified"}
 
 **IMPORTANT**: Use this profile to assess execution risk (R1), financial risk (R4), and overall risk exposure. A creator with 6 months runway has different risk capacity than one with 24 months.`;
 
-    case 'fit':
+    case "fit":
       // Full profile for Fit category (existing behavior)
       return formatFullProfileContext(profile);
 
-    case 'problem':
-    case 'solution':
+    case "problem":
+    case "solution":
       // These categories don't need profile context
-      return '';
+      return "";
 
     default:
-      return '';
+      return "";
   }
 }
 

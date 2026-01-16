@@ -8,6 +8,7 @@
 ## Executive Summary
 
 This document presents a first-principles analysis of the Idea Incubator application, covering bugs, UX issues, architectural concerns, and areas for improvement. The analysis was conducted by:
+
 1. Exploring the complete codebase structure
 2. Setting up and running the application
 3. Creating a test idea and running an evaluation
@@ -25,12 +26,14 @@ This document presents a first-principles analysis of the Idea Incubator applica
 **Issue:** The debate phase runs and generates results, but **debate rounds are never saved to the database**. The `saveEvaluationResults()` function only saves initial evaluations, not the debate data.
 
 **Impact:**
+
 - The `/api/debates` endpoint always returns empty data
 - The Debate Session page shows "No debate sessions found"
 - All debate history is lost after evaluation completes
 - Users cannot review how scores were adjusted
 
 **Evidence:**
+
 ```sql
 sqlite3 database/ideas.db "SELECT COUNT(*) FROM debate_rounds;"
 -- Returns: 0 (even after evaluations have been run)
@@ -47,6 +50,7 @@ sqlite3 database/ideas.db "SELECT COUNT(*) FROM debate_rounds;"
 **Issue:** The `final_syntheses` table exists but is never populated. The synthesis phase broadcasts events but doesn't persist data.
 
 **Impact:**
+
 - No executive summary is stored
 - No recommendation (PURSUE/REFINE/PAUSE/ABANDON) is persisted
 - The synthesis data in the DebateSession page is always null
@@ -60,6 +64,7 @@ sqlite3 database/ideas.db "SELECT COUNT(*) FROM debate_rounds;"
 **Issue:** The CLAUDE.md documentation states that evaluations should be saved to `ideas/[slug]/evaluation.md`, but no code writes this file.
 
 **Evidence:**
+
 ```bash
 ls ideas/solar-phone-charger/evaluation.md
 # File does not exist, despite the idea being evaluated
@@ -86,6 +91,7 @@ ls ideas/solar-phone-charger/evaluation.md
 **Issue:** WebSocket events are broadcast in real-time but never persisted. If a user opens the Live Debate page after an evaluation starts, they see nothing.
 
 **Impact:**
+
 - No way to replay debates
 - Debate history only exists in client memory during active session
 - Refreshing the page loses all debate context
@@ -97,6 +103,7 @@ ls ideas/solar-phone-charger/evaluation.md
 **Location:** [api.ts:1151](server/api.ts#L1151), [api.ts:1192](server/api.ts#L1192)
 
 **Issue:** Missing `//` before comment lines will cause runtime errors:
+
 ```typescript
 / GET /api/debate:slug/status   // Missing slash
 / GET /api/debates:runId        // Missing slash
@@ -127,6 +134,7 @@ ls ideas/solar-phone-charger/evaluation.md
 **Location:** [IdeaList.tsx:156-157](frontend/src/pages/IdeaList.tsx#L156-L157)
 
 **Issue:** The stage filter is hardcoded to show only first 12 stages:
+
 ```typescript
 .slice(0, 12) // Show first 12 stages
 ```
@@ -166,6 +174,7 @@ ls ideas/solar-phone-charger/evaluation.md
 **Location:** [DebateList.tsx](frontend/src/pages/DebateList.tsx)
 
 **Issue:** When no debates exist, the page shows empty state without explaining:
+
 - How to start a debate
 - Why no debates exist
 - That debates require CLI command
@@ -177,6 +186,7 @@ ls ideas/solar-phone-charger/evaluation.md
 **Location:** [DebateViewer.tsx:670-680](frontend/src/pages/DebateViewer.tsx#L670-L680)
 
 **Issue:** The Live Debate page shows "Waiting for debate to start..." but doesn't explain:
+
 - That evaluation must be started via CLI
 - How to verify WebSocket connection
 - What to do if nothing happens
@@ -188,6 +198,7 @@ ls ideas/solar-phone-charger/evaluation.md
 **Location:** Dashboard shows "Total Cost: $0.00"
 
 **Issue:**
+
 - Cost is always $0 in the UI because cost_log isn't being read correctly
 - No breakdown of costs per evaluation
 - No budget warnings before expensive operations
@@ -207,6 +218,7 @@ ls ideas/solar-phone-charger/evaluation.md
 **Location:** Frontend - import/clear buttons
 
 **Issue:** No confirmation dialog before:
+
 - Importing ideas (could overwrite)
 - Clearing evaluation history
 - Force re-evaluating
@@ -224,6 +236,7 @@ ls ideas/solar-phone-charger/evaluation.md
 ### 19. Split Data Storage (Markdown + SQLite)
 
 **Concern:** Ideas live in markdown files AND database, requiring sync. This creates:
+
 - Data consistency risks
 - Need to remember `npm run sync`
 - Potential for divergence
@@ -235,6 +248,7 @@ ls ideas/solar-phone-charger/evaluation.md
 ### 20. No Authentication/Authorization
 
 **Concern:** All API endpoints are open without authentication. Anyone with network access can:
+
 - Read all ideas
 - Delete ideas
 - Start expensive evaluations
@@ -244,6 +258,7 @@ ls ideas/solar-phone-charger/evaluation.md
 ### 21. Evaluation Process Not Resumable
 
 **Concern:** If evaluation fails mid-way (budget exceeded, network error, crash):
+
 - No partial results saved
 - Must restart from beginning
 - Wasted API costs
@@ -255,6 +270,7 @@ ls ideas/solar-phone-charger/evaluation.md
 **Location:** [api.ts](server/api.ts)
 
 **Concern:** No rate limiting on API endpoints. Could lead to:
+
 - Accidental DoS
 - Excessive API costs if evaluation is triggered repeatedly
 
@@ -273,6 +289,7 @@ ls ideas/solar-phone-charger/evaluation.md
 ### 24. No Notification System
 
 **Issue:** No way to know when:
+
 - Long-running evaluation completes
 - Budget is about to be exceeded
 - Errors occur in background processes
@@ -316,6 +333,7 @@ ls ideas/solar-phone-charger/evaluation.md
 **Location:** [api.ts:95-104](server/api.ts#L95-L104)
 
 **Issue:** For each idea, a separate query fetches tags:
+
 ```typescript
 const ideasWithTags = await Promise.all(
   ideas.map(async (idea) => {
@@ -335,12 +353,14 @@ const ideasWithTags = await Promise.all(
 ## Recommendations Summary
 
 ### Immediate Actions (This Week)
+
 1. Fix debate_rounds and final_syntheses data persistence
 2. Fix API route comment syntax errors
 3. Add "Start Evaluation" button to frontend
 4. Improve empty state messaging
 
 ### Short-term (This Month)
+
 1. Add loading indicators for all async operations
 2. Implement proper error messages
 3. Generate evaluation.md files
@@ -348,6 +368,7 @@ const ideasWithTags = await Promise.all(
 5. Fix cost tracking and display
 
 ### Medium-term (This Quarter)
+
 1. Add authentication
 2. Make evaluations resumable
 3. Add rate limiting
@@ -355,6 +376,7 @@ const ideasWithTags = await Promise.all(
 5. Optimize N+1 queries
 
 ### Long-term
+
 1. Consider unified data storage approach
 2. Add comprehensive test coverage
 3. Implement proper monitoring/logging
@@ -365,6 +387,7 @@ const ideasWithTags = await Promise.all(
 ## Testing Notes
 
 ### What Was Tested
+
 - Application startup (both servers)
 - Idea creation via direct file creation
 - Database sync
@@ -374,6 +397,7 @@ const ideasWithTags = await Promise.all(
 - WebSocket connection
 
 ### What Couldn't Be Tested
+
 - Chrome browser automation (not available in this environment)
 - Full evaluation completion (still running during analysis)
 - Real-time WebSocket event viewing in browser
@@ -383,16 +407,16 @@ const ideasWithTags = await Promise.all(
 
 ## Files Analyzed
 
-| File | Purpose | Issues Found |
-|------|---------|--------------|
-| [scripts/evaluate.ts](scripts/evaluate.ts) | Evaluation CLI | Missing debate/synthesis persistence |
-| [agents/debate.ts](agents/debate.ts) | Debate orchestration | No database writes |
-| [server/api.ts](server/api.ts) | REST API | Syntax errors, N+1 queries |
-| [frontend/src/pages/DebateSession.tsx](frontend/src/pages/DebateSession.tsx) | Debate viewer | Empty due to missing data |
-| [frontend/src/pages/DebateViewer.tsx](frontend/src/pages/DebateViewer.tsx) | Live debate | Confusing empty state |
-| [frontend/src/pages/Dashboard.tsx](frontend/src/pages/Dashboard.tsx) | Main dashboard | Cost always shows $0 |
-| [utils/broadcast.ts](utils/broadcast.ts) | WebSocket events | Events not persisted |
-| [database/schema.sql](database/schema.sql) | DB schema | Tables exist but unused |
+| File                                                                         | Purpose              | Issues Found                         |
+| ---------------------------------------------------------------------------- | -------------------- | ------------------------------------ |
+| [scripts/evaluate.ts](scripts/evaluate.ts)                                   | Evaluation CLI       | Missing debate/synthesis persistence |
+| [agents/debate.ts](agents/debate.ts)                                         | Debate orchestration | No database writes                   |
+| [server/api.ts](server/api.ts)                                               | REST API             | Syntax errors, N+1 queries           |
+| [frontend/src/pages/DebateSession.tsx](frontend/src/pages/DebateSession.tsx) | Debate viewer        | Empty due to missing data            |
+| [frontend/src/pages/DebateViewer.tsx](frontend/src/pages/DebateViewer.tsx)   | Live debate          | Confusing empty state                |
+| [frontend/src/pages/Dashboard.tsx](frontend/src/pages/Dashboard.tsx)         | Main dashboard       | Cost always shows $0                 |
+| [utils/broadcast.ts](utils/broadcast.ts)                                     | WebSocket events     | Events not persisted                 |
+| [database/schema.sql](database/schema.sql)                                   | DB schema            | Tables exist but unused              |
 
 ---
 

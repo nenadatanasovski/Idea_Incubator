@@ -7,41 +7,47 @@ The Build Agent's Task Executor implements robust dependency resolution to ensur
 ## Features
 
 ### 1. Topological Sort
+
 Tasks are automatically ordered based on their dependency graph using a depth-first search algorithm. Tasks with no dependencies are executed first, followed by dependent tasks once their dependencies complete.
 
 **Example:**
+
 ```typescript
 const tasks = [
-  { id: 'T-003', dependsOn: ['T-002'] },
-  { id: 'T-001', dependsOn: [] },
-  { id: 'T-002', dependsOn: ['T-001'] }
+  { id: "T-003", dependsOn: ["T-002"] },
+  { id: "T-001", dependsOn: [] },
+  { id: "T-002", dependsOn: ["T-001"] },
 ];
 
 // Executor automatically orders as: T-001 → T-002 → T-003
 ```
 
 ### 2. Circular Dependency Detection
+
 The executor detects circular dependencies and throws an error before execution begins, preventing infinite loops.
 
 **Example:**
+
 ```typescript
 const tasks = [
-  { id: 'T-001', dependsOn: ['T-002'] },
-  { id: 'T-002', dependsOn: ['T-001'] }
+  { id: "T-001", dependsOn: ["T-002"] },
+  { id: "T-002", dependsOn: ["T-001"] },
 ];
 
 // Throws: "Circular dependency detected: T-001 -> T-002 -> T-001"
 ```
 
 ### 3. Dependency State Validation
+
 Before executing a task, the executor verifies that all dependencies have completed successfully (status = 'done'). Tasks with failed dependencies are automatically skipped.
 
 **Example:**
+
 ```typescript
 // If T-001 fails, T-002 is skipped
 const tasks = [
-  { id: 'T-001', dependsOn: [] },  // fails
-  { id: 'T-002', dependsOn: ['T-001'] }  // skipped
+  { id: "T-001", dependsOn: [] }, // fails
+  { id: "T-002", dependsOn: ["T-001"] }, // skipped
 ];
 
 // Result for T-002:
@@ -52,9 +58,11 @@ const tasks = [
 ```
 
 ### 4. Detailed Error Messages
+
 When tasks are skipped due to dependency failures, the executor provides detailed information about which dependencies failed and their current state.
 
 ### 5. Dependency Graph Validation
+
 The `validateDependencyGraph()` method performs pre-execution validation to catch common errors:
 
 - **Missing dependencies**: Task depends on non-existent task
@@ -62,30 +70,34 @@ The `validateDependencyGraph()` method performs pre-execution validation to catc
 - **Circular dependencies**: Cycle in dependency graph
 
 **Usage:**
+
 ```typescript
 const executor = createTaskExecutor();
 const errors = executor.validateDependencyGraph(tasks);
 
 if (errors.length > 0) {
-  console.error('Dependency graph errors:', errors);
+  console.error("Dependency graph errors:", errors);
   // Handle errors before execution
 }
 ```
 
 ### 6. Dependency Graph Visualization
+
 Generate a DOT format visualization of the task dependency graph, including current task states.
 
 **Usage:**
+
 ```typescript
 const executor = createTaskExecutor();
 const dotGraph = executor.visualizeDependencyGraph(tasks);
 
 // Save to file for visualization with Graphviz
-fs.writeFileSync('task-graph.dot', dotGraph);
+fs.writeFileSync("task-graph.dot", dotGraph);
 // Then run: dot -Tpng task-graph.dot -o task-graph.png
 ```
 
 **Output example:**
+
 ```dot
 digraph TaskDependencies {
   rankdir=TB;
@@ -101,6 +113,7 @@ digraph TaskDependencies {
 ```
 
 **State Colors:**
+
 - `pending`: lightgray
 - `running`: lightyellow
 - `done`: lightgreen
@@ -111,13 +124,14 @@ digraph TaskDependencies {
 ## Implementation Details
 
 ### Task Structure
+
 Tasks must include a `dependsOn` field listing their dependencies:
 
 ```typescript
 interface AtomicTask {
   id: string;
   phase: string;
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  action: "CREATE" | "UPDATE" | "DELETE";
   file: string;
   status: string;
   requirements: string[];
@@ -127,7 +141,7 @@ interface AtomicTask {
     expected: string;
   };
   codeTemplate?: string;
-  dependsOn: string[];  // List of task IDs this task depends on
+  dependsOn: string[]; // List of task IDs this task depends on
 }
 ```
 
@@ -190,43 +204,43 @@ private orderByDependency(tasks: AtomicTask[]): AtomicTask[] {
 ### Basic Usage
 
 ```typescript
-import { createTaskExecutor } from './agents/build/task-executor';
+import { createTaskExecutor } from "./agents/build/task-executor";
 
 const executor = createTaskExecutor({
   maxRetries: 3,
   onProgress: (progress) => {
     console.log(`Progress: ${progress.completed}/${progress.total}`);
-  }
+  },
 });
 
 const tasks: AtomicTask[] = [
   {
-    id: 'T-001',
-    phase: 'database',
-    action: 'CREATE',
-    file: 'database/migrations/001.sql',
+    id: "T-001",
+    phase: "database",
+    action: "CREATE",
+    file: "database/migrations/001.sql",
     dependsOn: [],
     // ... other fields
   },
   {
-    id: 'T-002',
-    phase: 'api',
-    action: 'CREATE',
-    file: 'server/routes/users.ts',
-    dependsOn: ['T-001'],  // Depends on database migration
+    id: "T-002",
+    phase: "api",
+    action: "CREATE",
+    file: "server/routes/users.ts",
+    dependsOn: ["T-001"], // Depends on database migration
     // ... other fields
-  }
+  },
 ];
 
 // Validate before execution
 const errors = executor.validateDependencyGraph(tasks);
 if (errors.length > 0) {
-  console.error('Validation errors:', errors);
+  console.error("Validation errors:", errors);
   process.exit(1);
 }
 
 // Execute tasks
-const results = await executor.execute(tasks, '/path/to/spec.md');
+const results = await executor.execute(tasks, "/path/to/spec.md");
 
 // Check results
 for (const result of results) {
@@ -242,10 +256,10 @@ for (const result of results) {
 ```typescript
 // Diamond dependency pattern
 const tasks = [
-  { id: 'T-001', dependsOn: [] },           // Database schema
-  { id: 'T-002', dependsOn: ['T-001'] },    // User model
-  { id: 'T-003', dependsOn: ['T-001'] },    // Post model
-  { id: 'T-004', dependsOn: ['T-002', 'T-003'] }  // Join query
+  { id: "T-001", dependsOn: [] }, // Database schema
+  { id: "T-002", dependsOn: ["T-001"] }, // User model
+  { id: "T-003", dependsOn: ["T-001"] }, // Post model
+  { id: "T-004", dependsOn: ["T-002", "T-003"] }, // Join query
 ];
 
 // Execution order: T-001 → (T-002, T-003 in parallel) → T-004
@@ -258,19 +272,20 @@ const executor = createTaskExecutor();
 
 // Before execution
 const dotBefore = executor.visualizeDependencyGraph(tasks);
-fs.writeFileSync('task-graph-before.dot', dotBefore);
+fs.writeFileSync("task-graph-before.dot", dotBefore);
 
 // Execute tasks
 await executor.execute(tasks, specPath);
 
 // After execution (shows task states)
 const dotAfter = executor.visualizeDependencyGraph(tasks);
-fs.writeFileSync('task-graph-after.dot', dotAfter);
+fs.writeFileSync("task-graph-after.dot", dotAfter);
 ```
 
 ## Error Handling
 
 ### Missing Dependency
+
 ```typescript
 // Task T-002 depends on non-existent T-999
 const errors = executor.validateDependencyGraph(tasks);
@@ -278,6 +293,7 @@ const errors = executor.validateDependencyGraph(tasks);
 ```
 
 ### Failed Dependency
+
 ```typescript
 // During execution, if T-001 fails:
 const results = await executor.execute(tasks, specPath);
@@ -290,6 +306,7 @@ const results = await executor.execute(tasks, specPath);
 ```
 
 ### Circular Dependency
+
 ```typescript
 // Detected during ordering, before execution
 try {
@@ -321,6 +338,7 @@ The dependency resolution system is thoroughly tested in `tests/build-agent/task
 - ✅ Dependency graph visualization
 
 Run tests:
+
 ```bash
 npm test tests/build-agent/task-executor.test.ts
 ```

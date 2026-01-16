@@ -5,7 +5,7 @@
  * Determines which documents are required, recommended, or optional at each lifecycle stage.
  */
 
-import type { LifecycleStage } from '../../utils/schemas.js';
+import type { LifecycleStage } from "../../utils/schemas.js";
 
 // ============================================================================
 // CLASSIFICATION TYPES
@@ -14,14 +14,18 @@ import type { LifecycleStage } from '../../utils/schemas.js';
 /**
  * Document classification levels.
  */
-export type Classification = 'required' | 'recommended' | 'optional';
+export type Classification = "required" | "recommended" | "optional";
 
 /**
  * Condition for classification rules.
  */
 export interface Condition {
   /** Type of condition to check */
-  type: 'content_contains' | 'document_exists' | 'phase_past' | 'keyword_present';
+  type:
+    | "content_contains"
+    | "document_exists"
+    | "phase_past"
+    | "keyword_present";
   /** Value to check against */
   value: string;
   /** Whether to negate the condition */
@@ -61,84 +65,88 @@ export interface PhaseRequirements {
 export const PHASE_REQUIREMENTS: Record<LifecycleStage, PhaseRequirements> = {
   // Early stages - minimal requirements
   SPARK: {
-    required: ['README.md'],
+    required: ["README.md"],
     recommended: [],
   },
   CLARIFY: {
-    required: ['README.md', 'development.md'],
-    recommended: ['target-users.md'],
+    required: ["README.md", "development.md"],
+    recommended: ["target-users.md"],
   },
   RESEARCH: {
-    required: ['README.md', 'development.md', 'research/market.md'],
-    recommended: ['research/competitive.md', 'target-users.md'],
+    required: ["README.md", "development.md", "research/market.md"],
+    recommended: ["research/competitive.md", "target-users.md"],
   },
   IDEATE: {
-    required: ['README.md', 'development.md'],
-    recommended: ['problem-solution.md', 'research/market.md'],
+    required: ["README.md", "development.md"],
+    recommended: ["problem-solution.md", "research/market.md"],
   },
   EVALUATE: {
-    required: ['README.md', 'development.md', 'research/market.md'],
-    recommended: ['analysis/redteam.md', 'research/competitive.md', 'target-users.md'],
+    required: ["README.md", "development.md", "research/market.md"],
+    recommended: [
+      "analysis/redteam.md",
+      "research/competitive.md",
+      "target-users.md",
+    ],
   },
   VALIDATE: {
-    required: ['README.md', 'development.md', 'validation/assumptions.md'],
-    recommended: ['validation/results.md', 'research/user-personas.md'],
+    required: ["README.md", "development.md", "validation/assumptions.md"],
+    recommended: ["validation/results.md", "research/user-personas.md"],
   },
   // Design stages - more structure needed
   DESIGN: {
-    required: ['README.md', 'development.md', 'planning/brief.md'],
-    recommended: ['planning/architecture.md', 'planning/mvp-scope.md'],
+    required: ["README.md", "development.md", "planning/brief.md"],
+    recommended: ["planning/architecture.md", "planning/mvp-scope.md"],
   },
   PROTOTYPE: {
-    required: ['README.md', 'development.md', 'planning/mvp-scope.md'],
-    recommended: ['build/spec.md', 'planning/architecture.md'],
+    required: ["README.md", "development.md", "planning/mvp-scope.md"],
+    recommended: ["build/spec.md", "planning/architecture.md"],
   },
   TEST: {
-    required: ['README.md', 'development.md', 'validation/results.md'],
-    recommended: ['build/tasks.md', 'planning/mvp-scope.md'],
+    required: ["README.md", "development.md", "validation/results.md"],
+    recommended: ["build/tasks.md", "planning/mvp-scope.md"],
   },
   REFINE: {
-    required: ['README.md', 'development.md', 'validation/results.md'],
-    recommended: ['analysis/feedback.md', 'planning/iterations.md'],
+    required: ["README.md", "development.md", "validation/results.md"],
+    recommended: ["analysis/feedback.md", "planning/iterations.md"],
   },
   // Build stages - execution focus
   BUILD: {
-    required: ['README.md', 'development.md', 'build/spec.md'],
-    recommended: ['build/tasks.md', 'build/changelog.md'],
+    required: ["README.md", "development.md", "build/spec.md"],
+    recommended: ["build/tasks.md", "build/changelog.md"],
   },
   LAUNCH: {
-    required: ['README.md', 'development.md', 'planning/launch-checklist.md'],
-    recommended: ['marketing/positioning.md', 'marketing/launch-plan.md'],
+    required: ["README.md", "development.md", "planning/launch-checklist.md"],
+    recommended: ["marketing/positioning.md", "marketing/launch-plan.md"],
   },
   // Growth stages - scaling focus
   GROW: {
-    required: ['README.md', 'development.md'],
-    recommended: ['marketing/growth-strategy.md', 'analysis/metrics.md'],
+    required: ["README.md", "development.md"],
+    recommended: ["marketing/growth-strategy.md", "analysis/metrics.md"],
   },
   MAINTAIN: {
-    required: ['README.md', 'development.md'],
-    recommended: ['build/changelog.md', 'analysis/metrics.md'],
+    required: ["README.md", "development.md"],
+    recommended: ["build/changelog.md", "analysis/metrics.md"],
   },
   // Transition stages
   PIVOT: {
-    required: ['README.md', 'development.md', 'analysis/pivot-rationale.md'],
-    recommended: ['research/market.md', 'validation/assumptions.md'],
+    required: ["README.md", "development.md", "analysis/pivot-rationale.md"],
+    recommended: ["research/market.md", "validation/assumptions.md"],
   },
   PAUSE: {
-    required: ['README.md'],
-    recommended: ['analysis/pause-rationale.md'],
+    required: ["README.md"],
+    recommended: ["analysis/pause-rationale.md"],
   },
   SUNSET: {
-    required: ['README.md', 'analysis/sunset-plan.md'],
-    recommended: ['analysis/lessons-learned.md'],
+    required: ["README.md", "analysis/sunset-plan.md"],
+    recommended: ["analysis/lessons-learned.md"],
   },
   ARCHIVE: {
-    required: ['README.md'],
-    recommended: ['analysis/lessons-learned.md'],
+    required: ["README.md"],
+    recommended: ["analysis/lessons-learned.md"],
   },
   ABANDONED: {
-    required: ['README.md'],
-    recommended: ['analysis/abandonment-reason.md'],
+    required: ["README.md"],
+    recommended: ["analysis/abandonment-reason.md"],
   },
 };
 
@@ -185,82 +193,136 @@ export interface ContentRule {
 export const CONTENT_INFERENCE_RULES: ContentRule[] = [
   // Competition-related triggers
   {
-    trigger: { keywords: ['competitor', 'competition', 'alternative'] },
-    effect: { document: 'research/competitive.md', classification: 'recommended' },
+    trigger: { keywords: ["competitor", "competition", "alternative"] },
+    effect: {
+      document: "research/competitive.md",
+      classification: "recommended",
+    },
   },
   {
-    trigger: { keywords: ['competitive advantage', 'differentiation', 'moat'] },
-    effect: { document: 'research/competitive.md', classification: 'required' },
+    trigger: { keywords: ["competitive advantage", "differentiation", "moat"] },
+    effect: { document: "research/competitive.md", classification: "required" },
   },
 
   // B2B/B2C signals
   {
-    trigger: { keywords: ['B2B', 'enterprise', 'business customer'] },
-    effect: { document: 'target-users.md', requirement: 'needs company segments section' },
+    trigger: { keywords: ["B2B", "enterprise", "business customer"] },
+    effect: {
+      document: "target-users.md",
+      requirement: "needs company segments section",
+    },
   },
   {
-    trigger: { keywords: ['B2C', 'consumer', 'individual user'] },
-    effect: { document: 'target-users.md', requirement: 'needs demographic profiles' },
+    trigger: { keywords: ["B2C", "consumer", "individual user"] },
+    effect: {
+      document: "target-users.md",
+      requirement: "needs demographic profiles",
+    },
   },
 
   // Funding and investor signals
   {
-    trigger: { keywords: ['funding', 'investor', 'raise', 'investment'] },
-    effect: { document: 'planning/investor-pitch.md', classification: 'recommended' },
+    trigger: { keywords: ["funding", "investor", "raise", "investment"] },
+    effect: {
+      document: "planning/investor-pitch.md",
+      classification: "recommended",
+    },
   },
   {
-    trigger: { keywords: ['pitch deck', 'Series A', 'seed round', 'VC'] },
-    effect: { document: 'planning/investor-pitch.md', classification: 'required' },
+    trigger: { keywords: ["pitch deck", "Series A", "seed round", "VC"] },
+    effect: {
+      document: "planning/investor-pitch.md",
+      classification: "required",
+    },
   },
 
   // Technical complexity signals
   {
-    trigger: { keywords: ['API', 'integration', 'technical', 'architecture'] },
-    effect: { document: 'planning/architecture.md', classification: 'recommended' },
+    trigger: { keywords: ["API", "integration", "technical", "architecture"] },
+    effect: {
+      document: "planning/architecture.md",
+      classification: "recommended",
+    },
   },
   {
-    trigger: { keywords: ['scalability', 'infrastructure', 'distributed', 'microservices'] },
-    effect: { document: 'planning/architecture.md', classification: 'required' },
+    trigger: {
+      keywords: [
+        "scalability",
+        "infrastructure",
+        "distributed",
+        "microservices",
+      ],
+    },
+    effect: {
+      document: "planning/architecture.md",
+      classification: "required",
+    },
   },
 
   // Legal and regulatory signals
   {
-    trigger: { keywords: ['legal', 'compliance', 'regulation', 'GDPR'] },
-    effect: { document: 'research/legal-compliance.md', classification: 'recommended' },
+    trigger: { keywords: ["legal", "compliance", "regulation", "GDPR"] },
+    effect: {
+      document: "research/legal-compliance.md",
+      classification: "recommended",
+    },
   },
   {
-    trigger: { keywords: ['healthcare', 'HIPAA', 'financial', 'FDA'] },
-    effect: { document: 'research/legal-compliance.md', classification: 'required' },
+    trigger: { keywords: ["healthcare", "HIPAA", "financial", "FDA"] },
+    effect: {
+      document: "research/legal-compliance.md",
+      classification: "required",
+    },
   },
 
   // Marketing signals
   {
-    trigger: { keywords: ['marketing', 'brand', 'positioning', 'messaging'] },
-    effect: { document: 'marketing/positioning.md', classification: 'recommended' },
+    trigger: { keywords: ["marketing", "brand", "positioning", "messaging"] },
+    effect: {
+      document: "marketing/positioning.md",
+      classification: "recommended",
+    },
   },
   {
-    trigger: { keywords: ['go-to-market', 'GTM', 'launch strategy'] },
-    effect: { document: 'marketing/launch-plan.md', classification: 'recommended' },
+    trigger: { keywords: ["go-to-market", "GTM", "launch strategy"] },
+    effect: {
+      document: "marketing/launch-plan.md",
+      classification: "recommended",
+    },
   },
 
   // User research signals
   {
-    trigger: { keywords: ['user research', 'interviews', 'personas', 'user testing'] },
-    effect: { document: 'research/user-personas.md', classification: 'recommended' },
+    trigger: {
+      keywords: ["user research", "interviews", "personas", "user testing"],
+    },
+    effect: {
+      document: "research/user-personas.md",
+      classification: "recommended",
+    },
   },
   {
-    trigger: { keywords: ['customer discovery', 'validation interviews'] },
-    effect: { document: 'validation/assumptions.md', classification: 'recommended' },
+    trigger: { keywords: ["customer discovery", "validation interviews"] },
+    effect: {
+      document: "validation/assumptions.md",
+      classification: "recommended",
+    },
   },
 
   // Risk signals
   {
-    trigger: { keywords: ['risk', 'threat', 'vulnerability', 'failure mode'] },
-    effect: { document: 'analysis/risk-mitigation.md', classification: 'recommended' },
+    trigger: { keywords: ["risk", "threat", "vulnerability", "failure mode"] },
+    effect: {
+      document: "analysis/risk-mitigation.md",
+      classification: "recommended",
+    },
   },
   {
-    trigger: { keywords: ['critical risk', 'existential threat', 'blocker'] },
-    effect: { document: 'analysis/risk-mitigation.md', classification: 'required' },
+    trigger: { keywords: ["critical risk", "existential threat", "blocker"] },
+    effect: {
+      document: "analysis/risk-mitigation.md",
+      classification: "required",
+    },
   },
 ];
 
@@ -279,8 +341,8 @@ export function getPhaseRequirements(stage: LifecycleStage): PhaseRequirements {
  * Get all lifecycle stages that have a specific document as required.
  */
 export function getStagesRequiringDocument(document: string): LifecycleStage[] {
-  return (Object.keys(PHASE_REQUIREMENTS) as LifecycleStage[]).filter(
-    (stage) => PHASE_REQUIREMENTS[stage].required.includes(document)
+  return (Object.keys(PHASE_REQUIREMENTS) as LifecycleStage[]).filter((stage) =>
+    PHASE_REQUIREMENTS[stage].required.includes(document),
   );
 }
 
@@ -290,7 +352,9 @@ export function getStagesRequiringDocument(document: string): LifecycleStage[] {
  */
 export function findDuplicatesInStage(stage: LifecycleStage): string[] {
   const requirements = PHASE_REQUIREMENTS[stage];
-  return requirements.required.filter((doc) => requirements.recommended.includes(doc));
+  return requirements.required.filter((doc) =>
+    requirements.recommended.includes(doc),
+  );
 }
 
 /**

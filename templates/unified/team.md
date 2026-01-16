@@ -10,11 +10,12 @@ updated: "{{updated}}"
 # Team: {{title}}
 
 ## Founder Context
+
 <!-- Agent fills after founder interview -->
 
 - [ ] Defined: No
 
-*Background and motivation of the idea creator.*
+_Background and motivation of the idea creator._
 
 **Background:**
 
@@ -25,28 +26,32 @@ updated: "{{updated}}"
 **Time Commitment:**
 
 ## Skills & Gaps
+
 <!-- Agent fills after skills assessment -->
 
 - [ ] Defined: No
 
-*Current skills and areas needing support.*
+_Current skills and areas needing support._
 
 ### Available Skills
+
 -
 -
 -
 
 ### Skill Gaps
+
 -
 -
 -
 
 ## Resources
+
 <!-- Agent fills after resource inventory -->
 
 - [ ] Defined: No
 
-*Resources currently available for this idea.*
+_Resources currently available for this idea._
 
 - **Financial Runway:**
 - **Tools/Infrastructure:**
@@ -54,11 +59,12 @@ updated: "{{updated}}"
 - **Existing Assets:**
 
 ## Constraints
+
 <!-- Agent fills after constraint identification -->
 
 - [ ] Defined: No
 
-*Limitations that will affect execution.*
+_Limitations that will affect execution._
 
 - **Time Constraints:**
 - **Budget Constraints:**

@@ -1,6 +1,6 @@
 // agents/sia/duplicate-detector.ts - Detect and merge duplicate knowledge entries
 
-import { KnowledgeEntry, KnowledgeType } from '../../types/sia.js';
+import { KnowledgeEntry, KnowledgeType } from "../../types/sia.js";
 
 const SIMILARITY_THRESHOLD = 0.7;
 
@@ -10,7 +10,7 @@ const SIMILARITY_THRESHOLD = 0.7;
 export async function findDuplicate(
   content: string,
   type: KnowledgeType,
-  existingEntries: KnowledgeEntry[]
+  existingEntries: KnowledgeEntry[],
 ): Promise<KnowledgeEntry | null> {
   const filtered = existingEntries.filter((e) => e.type === type);
 
@@ -52,9 +52,9 @@ function tokenize(text: string): Set<string> {
   return new Set(
     text
       .toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
+      .replace(/[^\w\s]/g, " ")
       .split(/\s+/)
-      .filter((w) => w.length > 2)
+      .filter((w) => w.length > 2),
   );
 }
 
@@ -73,7 +73,7 @@ export function mergeEntries(
   existing: KnowledgeEntry,
   newContent: string,
   newFilePatterns: string[],
-  newActionTypes: string[]
+  newActionTypes: string[],
 ): KnowledgeEntry {
   // Merge file patterns (union)
   const mergedFilePatterns = [
@@ -130,7 +130,7 @@ function levenshteinDistance(a: string, b: string): number {
       matrix[i][j] = Math.min(
         matrix[i - 1][j] + 1,
         matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + cost
+        matrix[i - 1][j - 1] + cost,
       );
     }
   }

@@ -10,65 +10,70 @@ updated: "{{updated}}"
 # Key Contacts: {{title}}
 
 ## Key Contacts
+
 <!-- Agent fills after contact identification -->
 
 - [ ] Defined: No
 
-*Important contacts for this idea.*
+_Important contacts for this idea._
 
 | Name | Role/Company | Relationship | Value | Status |
-|------|--------------|--------------|-------|--------|
-| | | | | |
-| | | | | |
-| | | | | |
+| ---- | ------------ | ------------ | ----- | ------ |
+|      |              |              |       |        |
+|      |              |              |       |        |
+|      |              |              |       |        |
 
 ## Domain Experts
+
 <!-- Agent fills after expert identification -->
 
 - [ ] Defined: No
 
-*Subject matter experts who can provide guidance.*
+_Subject matter experts who can provide guidance._
 
 | Name | Expertise | Contact Method | Notes |
-|------|-----------|----------------|-------|
-| | | | |
-| | | | |
-| | | | |
+| ---- | --------- | -------------- | ----- |
+|      |           |                |       |
+|      |           |                |       |
+|      |           |                |       |
 
 ## Potential Partners
+
 <!-- Agent fills after partnership opportunities -->
 
 - [ ] Defined: No
 
-*Organizations or individuals for potential partnerships.*
+_Organizations or individuals for potential partnerships._
 
-| Partner | Type | Value Proposition | Status |
-|---------|------|-------------------|--------|
-| | Strategic | | |
-| | Distribution | | |
-| | Technology | | |
+| Partner | Type         | Value Proposition | Status |
+| ------- | ------------ | ----------------- | ------ |
+|         | Strategic    |                   |        |
+|         | Distribution |                   |        |
+|         | Technology   |                   |        |
 
 ## Investors
+
 <!-- Agent fills after investor research -->
 
 - [ ] Defined: No
 
-*Potential investors if seeking funding.*
+_Potential investors if seeking funding._
 
-| Investor | Type | Focus | Stage | Status |
-|----------|------|-------|-------|--------|
-| | Angel | | | |
-| | VC | | | |
-| | | | | |
+| Investor | Type  | Focus | Stage | Status |
+| -------- | ----- | ----- | ----- | ------ |
+|          | Angel |       |       |        |
+|          | VC    |       |       |        |
+|          |       |       |       |        |
 
 ## Outreach Tracker
+
 <!-- Agent updates after outreach -->
 
 - [ ] Defined: No
 
-*Tracking outreach efforts.*
+_Tracking outreach efforts._
 
 | Contact | Date | Method | Response | Next Step |
-|---------|------|--------|----------|-----------|
-| | | | | |
-| | | | | |
+| ------- | ---- | ------ | -------- | --------- |
+|         |      |        |          |           |
+|         |      |        |          |           |

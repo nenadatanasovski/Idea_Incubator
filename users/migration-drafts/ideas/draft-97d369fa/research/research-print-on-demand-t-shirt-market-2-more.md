@@ -13,6 +13,7 @@ queries:
   - POD t-shirt profit margins Australia
 identifier: research_print_on_demand_t-sh
 ---
+
 ## Print on Demand T-Shirt Market Australia 2024 - Research Summary
 
 ### Key Findings
@@ -54,7 +55,6 @@ identifier: research_print_on_demand_t-sh
 - [OGO Australian Print on Demand - Shopify App Store](https://apps.shopify.com/ogo-australian-print-on-demand)
 - [#1 Custom T Shirt Printing in Australia - The Tshirt Mill](https://www.thetshirtmill.com.au/)
 - [Print-on-Demand T-shirts - Teejunction Australian Drop Shipping](https://www.teejunction.com.au/page/services/open-a-store)
-
 
 ---
 

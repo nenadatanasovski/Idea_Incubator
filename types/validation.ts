@@ -1,8 +1,18 @@
 // types/validation.ts
 
-export type ValidationLevel = 'QUICK' | 'STANDARD' | 'THOROUGH' | 'RELEASE';
-export type ValidationStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-export type ValidatorStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+export type ValidationLevel = "QUICK" | "STANDARD" | "THOROUGH" | "RELEASE";
+export type ValidationStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled";
+export type ValidatorStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped";
 
 export interface ValidationRun {
   id: string;

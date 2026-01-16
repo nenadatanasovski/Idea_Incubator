@@ -12,9 +12,11 @@ updated: 2026-01-06T03:56:38.753Z
 - [ ] Defined: No
 
 ## Problem Definition
+
 <!-- Agent fills after problem clarification -->
 
 ## Root Causes
+
 <!-- Agent fills after root cause analysis -->
 
 1. Root cause 1
@@ -22,9 +24,11 @@ updated: 2026-01-06T03:56:38.753Z
 3. Root cause 3
 
 ## Proposed Solution
+
 <!-- Agent fills after solution brainstorming -->
 
 ## Key Differentiators
+
 <!-- Agent fills after competitive positioning -->
 
 1. Differentiator 1

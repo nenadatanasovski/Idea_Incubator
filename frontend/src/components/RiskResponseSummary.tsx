@@ -1,5 +1,5 @@
-import type { RiskResponse, RiskResponseStats } from '../types';
-import { riskResponseMeta, disagreeReasonMeta } from '../types';
+import type { RiskResponse, RiskResponseStats } from "../types";
+import { riskResponseMeta, disagreeReasonMeta } from "../types";
 
 interface Props {
   responses: RiskResponse[];
@@ -7,19 +7,23 @@ interface Props {
   compact?: boolean;
 }
 
-export default function RiskResponseSummary({ responses, stats, compact = false }: Props) {
+export default function RiskResponseSummary({
+  responses,
+  stats,
+  compact = false,
+}: Props) {
   if (!responses || responses.length === 0) {
     return null;
   }
 
   const actualStats = stats || {
     total: responses.length,
-    responded: responses.filter(r => r.response !== 'skip').length,
-    mitigate: responses.filter(r => r.response === 'mitigate').length,
-    accept: responses.filter(r => r.response === 'accept').length,
-    monitor: responses.filter(r => r.response === 'monitor').length,
-    disagree: responses.filter(r => r.response === 'disagree').length,
-    skipped: responses.filter(r => r.response === 'skip').length,
+    responded: responses.filter((r) => r.response !== "skip").length,
+    mitigate: responses.filter((r) => r.response === "mitigate").length,
+    accept: responses.filter((r) => r.response === "accept").length,
+    monitor: responses.filter((r) => r.response === "monitor").length,
+    disagree: responses.filter((r) => r.response === "disagree").length,
+    skipped: responses.filter((r) => r.response === "skip").length,
   };
 
   if (compact) {
@@ -51,11 +55,11 @@ export default function RiskResponseSummary({ responses, stats, compact = false 
 
   // Group responses by type
   const grouped = {
-    mitigate: responses.filter(r => r.response === 'mitigate'),
-    accept: responses.filter(r => r.response === 'accept'),
-    monitor: responses.filter(r => r.response === 'monitor'),
-    disagree: responses.filter(r => r.response === 'disagree'),
-    skip: responses.filter(r => r.response === 'skip'),
+    mitigate: responses.filter((r) => r.response === "mitigate"),
+    accept: responses.filter((r) => r.response === "accept"),
+    monitor: responses.filter((r) => r.response === "monitor"),
+    disagree: responses.filter((r) => r.response === "disagree"),
+    skip: responses.filter((r) => r.response === "skip"),
   };
 
   return (
@@ -73,35 +77,45 @@ export default function RiskResponseSummary({ responses, stats, compact = false 
         {actualStats.mitigate > 0 && (
           <div
             className="bg-blue-500"
-            style={{ width: `${(actualStats.mitigate / actualStats.total) * 100}%` }}
+            style={{
+              width: `${(actualStats.mitigate / actualStats.total) * 100}%`,
+            }}
             title={`${actualStats.mitigate} mitigating`}
           />
         )}
         {actualStats.accept > 0 && (
           <div
             className="bg-green-500"
-            style={{ width: `${(actualStats.accept / actualStats.total) * 100}%` }}
+            style={{
+              width: `${(actualStats.accept / actualStats.total) * 100}%`,
+            }}
             title={`${actualStats.accept} accepted`}
           />
         )}
         {actualStats.monitor > 0 && (
           <div
             className="bg-yellow-500"
-            style={{ width: `${(actualStats.monitor / actualStats.total) * 100}%` }}
+            style={{
+              width: `${(actualStats.monitor / actualStats.total) * 100}%`,
+            }}
             title={`${actualStats.monitor} monitoring`}
           />
         )}
         {actualStats.disagree > 0 && (
           <div
             className="bg-red-500"
-            style={{ width: `${(actualStats.disagree / actualStats.total) * 100}%` }}
+            style={{
+              width: `${(actualStats.disagree / actualStats.total) * 100}%`,
+            }}
             title={`${actualStats.disagree} disputed`}
           />
         )}
         {actualStats.skipped > 0 && (
           <div
             className="bg-gray-400"
-            style={{ width: `${(actualStats.skipped / actualStats.total) * 100}%` }}
+            style={{
+              width: `${(actualStats.skipped / actualStats.total) * 100}%`,
+            }}
             title={`${actualStats.skipped} skipped`}
           />
         )}
@@ -144,12 +158,14 @@ export default function RiskResponseSummary({ responses, stats, compact = false 
               Disputed Risks ({grouped.disagree.length})
             </h5>
             <ul className="space-y-2 text-sm">
-              {grouped.disagree.map(r => (
+              {grouped.disagree.map((r) => (
                 <li key={r.riskId} className="text-red-700">
                   <div className="font-medium">{r.riskDescription}</div>
                   {r.disagreeReason && (
                     <div className="text-red-600 text-xs mt-0.5">
-                      Reason: {disagreeReasonMeta[r.disagreeReason]?.label || r.disagreeReason}
+                      Reason:{" "}
+                      {disagreeReasonMeta[r.disagreeReason]?.label ||
+                        r.disagreeReason}
                     </div>
                   )}
                   {r.reasoning && (
@@ -170,7 +186,7 @@ export default function RiskResponseSummary({ responses, stats, compact = false 
               Risks Being Mitigated ({grouped.mitigate.length})
             </h5>
             <ul className="space-y-2 text-sm">
-              {grouped.mitigate.map(r => (
+              {grouped.mitigate.map((r) => (
                 <li key={r.riskId} className="text-blue-700">
                   <div className="font-medium">{r.riskDescription}</div>
                   {r.mitigationPlan && (
@@ -191,7 +207,7 @@ export default function RiskResponseSummary({ responses, stats, compact = false 
               Risks Being Monitored ({grouped.monitor.length})
             </h5>
             <ul className="space-y-1 text-sm text-yellow-700">
-              {grouped.monitor.map(r => (
+              {grouped.monitor.map((r) => (
                 <li key={r.riskId}>
                   {r.riskDescription}
                   {r.mitigationPlan && (
@@ -212,7 +228,7 @@ export default function RiskResponseSummary({ responses, stats, compact = false 
               Accepted Risks ({grouped.accept.length})
             </h5>
             <ul className="space-y-1 text-sm text-green-700">
-              {grouped.accept.map(r => (
+              {grouped.accept.map((r) => (
                 <li key={r.riskId}>{r.riskDescription}</li>
               ))}
             </ul>

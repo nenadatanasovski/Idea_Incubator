@@ -2,7 +2,7 @@
  * Rate Limiter Middleware (SEC-004)
  * Simple in-memory rate limiting for API protection
  */
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
 interface RateLimitEntry {
   count: number;
@@ -10,17 +10,17 @@ interface RateLimitEntry {
 }
 
 interface RateLimitConfig {
-  windowMs: number;      // Time window in milliseconds
-  maxRequests: number;   // Max requests per window
-  message?: string;      // Error message when rate limited
+  windowMs: number; // Time window in milliseconds
+  maxRequests: number; // Max requests per window
+  message?: string; // Error message when rate limited
   keyGenerator?: (req: Request) => string; // Custom key generator
 }
 
 // Default configuration
 const DEFAULT_CONFIG: RateLimitConfig = {
-  windowMs: 60 * 1000,   // 1 minute
-  maxRequests: 100,      // 100 requests per minute
-  message: 'Too many requests, please try again later.',
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 100, // 100 requests per minute
+  message: "Too many requests, please try again later.",
 };
 
 // Store for rate limit entries (keyed by identifier)
@@ -60,12 +60,14 @@ function stopCleanup(): void {
  */
 function defaultKeyGenerator(req: Request): string {
   // Check for forwarded IP (behind proxy)
-  const forwarded = req.headers['x-forwarded-for'];
+  const forwarded = req.headers["x-forwarded-for"];
   if (forwarded) {
-    const ip = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
+    const ip = Array.isArray(forwarded)
+      ? forwarded[0]
+      : forwarded.split(",")[0];
     return ip.trim();
   }
-  return req.ip || req.socket.remoteAddress || 'unknown';
+  return req.ip || req.socket.remoteAddress || "unknown";
 }
 
 /**
@@ -93,9 +95,12 @@ export function createRateLimiter(config: Partial<RateLimitConfig> = {}) {
       });
 
       // Set rate limit headers
-      res.setHeader('X-RateLimit-Limit', options.maxRequests);
-      res.setHeader('X-RateLimit-Remaining', options.maxRequests - 1);
-      res.setHeader('X-RateLimit-Reset', Math.ceil((now + options.windowMs) / 1000));
+      res.setHeader("X-RateLimit-Limit", options.maxRequests);
+      res.setHeader("X-RateLimit-Remaining", options.maxRequests - 1);
+      res.setHeader(
+        "X-RateLimit-Reset",
+        Math.ceil((now + options.windowMs) / 1000),
+      );
 
       next();
       return;
@@ -106,14 +111,14 @@ export function createRateLimiter(config: Partial<RateLimitConfig> = {}) {
 
     // Set rate limit headers
     const remaining = Math.max(0, options.maxRequests - entry.count);
-    res.setHeader('X-RateLimit-Limit', options.maxRequests);
-    res.setHeader('X-RateLimit-Remaining', remaining);
-    res.setHeader('X-RateLimit-Reset', Math.ceil(entry.resetAt / 1000));
+    res.setHeader("X-RateLimit-Limit", options.maxRequests);
+    res.setHeader("X-RateLimit-Remaining", remaining);
+    res.setHeader("X-RateLimit-Reset", Math.ceil(entry.resetAt / 1000));
 
     if (entry.count > options.maxRequests) {
       // Rate limited
       const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
-      res.setHeader('Retry-After', retryAfter);
+      res.setHeader("Retry-After", retryAfter);
 
       res.status(429).json({
         error: options.message,
@@ -134,35 +139,35 @@ export function createRateLimiter(config: Partial<RateLimitConfig> = {}) {
 export const apiRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   maxRequests: 100,
-  message: 'Too many API requests. Please wait a moment.',
+  message: "Too many API requests. Please wait a moment.",
 });
 
 // Strict rate limiter for expensive operations (10 req/min)
 export const strictRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   maxRequests: 10,
-  message: 'Rate limit exceeded for this operation. Please wait.',
+  message: "Rate limit exceeded for this operation. Please wait.",
 });
 
 // Auth rate limiter for login/auth endpoints (5 req/min)
 export const authRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   maxRequests: 5,
-  message: 'Too many authentication attempts. Please wait.',
+  message: "Too many authentication attempts. Please wait.",
 });
 
 // Ideation session rate limiter (30 messages/min)
 export const ideationRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   maxRequests: 30,
-  message: 'Too many messages. Please slow down.',
+  message: "Too many messages. Please slow down.",
 });
 
 // Web search rate limiter (5 searches/min)
 export const searchRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   maxRequests: 5,
-  message: 'Search rate limit reached. Please wait before searching again.',
+  message: "Search rate limit reached. Please wait before searching again.",
 });
 
 // Export for testing

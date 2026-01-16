@@ -129,12 +129,12 @@ The "Ralph Loop" is Vibe's AI-assisted development cycle with human-in-the-loop.
 
 The SIA activates when it detects a "stuck loop":
 
-| Condition | Detection Method |
-|-----------|------------------|
-| **Same task reworked** | Task ID unchanged across consecutive loops |
-| **Same error repeated** | Error signature matches previous attempt |
-| **No progress on metrics** | Pass/fail criteria unchanged |
-| **Output unchanged** | Generated code diff is minimal |
+| Condition                  | Detection Method                           |
+| -------------------------- | ------------------------------------------ |
+| **Same task reworked**     | Task ID unchanged across consecutive loops |
+| **Same error repeated**    | Error signature matches previous attempt   |
+| **No progress on metrics** | Pass/fail criteria unchanged               |
+| **Output unchanged**       | Generated code diff is minimal             |
 
 **Trigger Threshold:** By default, SIA activates after 1 repeated attempt (configurable).
 
@@ -184,18 +184,18 @@ When SIA activates, it performs structured analysis:
 
 The SIA has a library of techniques it can apply. These are embedded in its system prompt:
 
-| # | Technique | When to Use | What It Does |
-|---|-----------|-------------|--------------|
-| 1 | **Decomposition** | Task has interdependent components | Break into sub-tasks with own test cases |
-| 2 | **Tool Change** | Wrong tool being used | Switch to more appropriate tool |
-| 3 | **Prompt Restructuring** | Instructions unclear or verbose | Rewrite prompt for clarity |
-| 4 | **Context Pruning** | Context window cluttered | Remove irrelevant context, focus on essentials |
-| 5 | **Example Injection** | Agent lacks pattern reference | Add concrete examples of desired output |
-| 6 | **Constraint Relaxation** | Task over-constrained | Temporarily relax constraints, re-add later |
-| 7 | **Dependency Reordering** | Wrong sequence of operations | Change order of sub-tasks |
-| 8 | **Abstraction Level Shift** | Working at wrong level of detail | Move up (high-level) or down (specific) |
-| 9 | **Error Pattern Recognition** | Repeated specific error | Add explicit instruction to avoid known error |
-| 10 | **Fresh Start** | Too much accumulated cruft | Reset with clean slate, minimal context |
+| #   | Technique                     | When to Use                        | What It Does                                   |
+| --- | ----------------------------- | ---------------------------------- | ---------------------------------------------- |
+| 1   | **Decomposition**             | Task has interdependent components | Break into sub-tasks with own test cases       |
+| 2   | **Tool Change**               | Wrong tool being used              | Switch to more appropriate tool                |
+| 3   | **Prompt Restructuring**      | Instructions unclear or verbose    | Rewrite prompt for clarity                     |
+| 4   | **Context Pruning**           | Context window cluttered           | Remove irrelevant context, focus on essentials |
+| 5   | **Example Injection**         | Agent lacks pattern reference      | Add concrete examples of desired output        |
+| 6   | **Constraint Relaxation**     | Task over-constrained              | Temporarily relax constraints, re-add later    |
+| 7   | **Dependency Reordering**     | Wrong sequence of operations       | Change order of sub-tasks                      |
+| 8   | **Abstraction Level Shift**   | Working at wrong level of detail   | Move up (high-level) or down (specific)        |
+| 9   | **Error Pattern Recognition** | Repeated specific error            | Add explicit instruction to avoid known error  |
+| 10  | **Fresh Start**               | Too much accumulated cruft         | Reset with clean slate, minimal context        |
 
 ### Technique Selection Logic
 
@@ -235,6 +235,7 @@ The SIA maintains persistent memory (stored as markdown file per task):
 # SIA Memory: Task [task-id]
 
 ## Task Details
+
 - Task: Build user authentication
 - Created: 2025-01-04 10:30:00
 - Status: In Progress
@@ -242,6 +243,7 @@ The SIA maintains persistent memory (stored as markdown file per task):
 ## Attempt History
 
 ### Attempt 1
+
 - Agent Version: coding-agent-v1.2
 - System Prompt: [hash or excerpt]
 - Outcome: FAIL
@@ -250,6 +252,7 @@ The SIA maintains persistent memory (stored as markdown file per task):
 - Credits Consumed: 12
 
 ### Attempt 2 (SIA Intervention)
+
 - Technique Applied: Decomposition
 - Modified Prompt: "Break auth into 4 phases: UI, validation, session, password reset"
 - Agent Version: coding-agent-v1.2
@@ -258,11 +261,13 @@ The SIA maintains persistent memory (stored as markdown file per task):
 - Credits Consumed: 18
 
 ## Learnings
+
 - This task type benefits from decomposition
 - Pattern: interdependent-components → decomposition
 - Improvement Delta: 100% (was failing, now passing)
 
 ## Prompts Tried
+
 1. Original prompt → FAIL
 2. Decomposition prompt → PASS
 ```
@@ -309,8 +314,8 @@ The SIA maintains persistent memory (stored as markdown file per task):
   ],
 
   "prompts_tried": [
-    {"version": 1, "hash": "abc123", "outcome": "fail"},
-    {"version": 2, "hash": "def456", "outcome": "pass"}
+    { "version": 1, "hash": "abc123", "outcome": "fail" },
+    { "version": 2, "hash": "def456", "outcome": "pass" }
   ]
 }
 ```
@@ -362,11 +367,11 @@ New Coding Agent runs
 
 ### Circuit Breakers
 
-| Failsafe | Threshold | Action |
-|----------|-----------|--------|
-| **Max SIA attempts** | 5 prompt variations | Escalate to human |
-| **Max credits per task** | Configurable limit | Pause and notify user |
-| **Time limit** | 30 minutes per task | Force checkpoint |
+| Failsafe                      | Threshold                | Action                             |
+| ----------------------------- | ------------------------ | ---------------------------------- |
+| **Max SIA attempts**          | 5 prompt variations      | Escalate to human                  |
+| **Max credits per task**      | Configurable limit       | Pause and notify user              |
+| **Time limit**                | 30 minutes per task      | Force checkpoint                   |
 | **Impossible task detection** | All techniques exhausted | Return credits, explain limitation |
 
 ### Escalation Flow
@@ -472,6 +477,7 @@ NOTES:
 **Task:** Create booking confirmation email functionality
 
 **Attempt 1 (No SIA):**
+
 ```
 Agent Transcript:
 > Generating email template...
@@ -485,6 +491,7 @@ Agent Transcript:
 ```
 
 **SIA Activation:**
+
 ```
 SIA Analysis:
 • Pattern detected: External dependency blocker
@@ -503,6 +510,7 @@ Do NOT attempt to connect to real email services in this task."
 ```
 
 **Attempt 2 (With SIA Modification):**
+
 ```
 Agent Transcript:
 > Creating EmailSender interface...
@@ -516,6 +524,7 @@ Agent Transcript:
 ```
 
 **SIA Memory Update:**
+
 ```json
 {
   "learning": {
@@ -532,18 +541,21 @@ Agent Transcript:
 ## SIA Evolution Roadmap
 
 ### MVP (Current Design)
+
 - SIA operates only in Build Phase
 - Fixed techniques library (10 techniques)
 - Simple pattern matching for technique selection
 - Human escalation as fallback
 
 ### Post-MVP
+
 - SIA learns new techniques from successful human interventions
 - Cross-task learning (patterns from Task A help Task B)
 - Confidence-weighted technique selection
 - Reduced escalation rate (<5%)
 
 ### Scale Phase
+
 - SIA improves other agent types (Ideation, Spec, Network)
 - Federated learning across all Vibe instances
 - Automatic technique discovery
@@ -555,13 +567,13 @@ Agent Transcript:
 
 ### SIA Performance Metrics
 
-| Metric | Target | Description |
-|--------|--------|-------------|
-| **Intervention Success Rate** | >70% | % of SIA interventions that resolve the stuck loop |
-| **First-Attempt Resolution** | >50% | % resolved on first SIA technique |
-| **Escalation Rate** | <30% | % that still require human after SIA |
-| **Average Techniques Tried** | <3 | Mean techniques before resolution |
-| **Credit Efficiency** | Improving | Credits per successful task (should decrease) |
+| Metric                        | Target    | Description                                        |
+| ----------------------------- | --------- | -------------------------------------------------- |
+| **Intervention Success Rate** | >70%      | % of SIA interventions that resolve the stuck loop |
+| **First-Attempt Resolution**  | >50%      | % resolved on first SIA technique                  |
+| **Escalation Rate**           | <30%      | % that still require human after SIA               |
+| **Average Techniques Tried**  | <3        | Mean techniques before resolution                  |
+| **Credit Efficiency**         | Improving | Credits per successful task (should decrease)      |
 
 ### Dashboards
 
@@ -654,6 +666,6 @@ Your purpose: When a coding agent fails to complete a task on repeated attempts,
 
 ---
 
-*This document defines the Self-Improvement Agent architecture. It is designed to be implemented incrementally, starting with the core loop and expanding to full technique library.*
+_This document defines the Self-Improvement Agent architecture. It is designed to be implemented incrementally, starting with the core loop and expanding to full technique library._
 
-*Last updated: January 4, 2025*
+_Last updated: January 4, 2025_

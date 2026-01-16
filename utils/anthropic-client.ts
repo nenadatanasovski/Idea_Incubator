@@ -9,8 +9,8 @@
  * NOTE: The CLI has its own OAuth session stored by Claude Code.
  * We don't need to pass any token - just spawn the CLI and let it authenticate.
  */
-import Anthropic from '@anthropic-ai/sdk';
-import { createCliClient, callClaudeCli } from './claude-cli-client.js';
+import Anthropic from "@anthropic-ai/sdk";
+import { createCliClient, callClaudeCli } from "./claude-cli-client.js";
 
 // Check if API key is available
 const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
@@ -25,9 +25,9 @@ export type AnthropicClient = {
       model: string;
       max_tokens: number;
       system?: string;
-      messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+      messages: Array<{ role: "user" | "assistant"; content: string }>;
     }) => Promise<{
-      content: Array<{ type: 'text'; text: string }>;
+      content: Array<{ type: "text"; text: string }>;
       model: string;
       stop_reason: string;
       usage: {
@@ -42,13 +42,15 @@ export type AnthropicClient = {
 export function createAnthropicClient(): AnthropicClient {
   if (hasApiKey) {
     // Standard API key - use SDK directly
-    console.log('[Auth] Using Anthropic SDK with API key');
+    console.log("[Auth] Using Anthropic SDK with API key");
     return new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
     }) as unknown as AnthropicClient;
   } else {
     // No API key - use Claude Code CLI (which handles OAuth internally)
-    console.log('[Auth] Using Claude Code CLI for API calls (OAuth via CLI session)');
+    console.log(
+      "[Auth] Using Claude Code CLI for API calls (OAuth via CLI session)",
+    );
     return createCliClient() as AnthropicClient;
   }
 }
@@ -63,27 +65,24 @@ export const client = createAnthropicClient();
 export async function runClaudeCliWithPrompt(
   prompt: string,
   options: {
-    model?: 'haiku' | 'sonnet' | 'opus';
+    model?: "haiku" | "sonnet" | "opus";
     maxTokens?: number;
     systemPrompt?: string;
-    tools?: string[];  // Enable specific tools like 'WebSearch'
-  } = {}
+    tools?: string[]; // Enable specific tools like 'WebSearch'
+  } = {},
 ): Promise<string> {
-  const response = await callClaudeCli(
-    [{ role: 'user', content: prompt }],
-    {
-      model: options.model || 'sonnet',
-      _maxTokens: options.maxTokens || 4096,
-      systemPrompt: options.systemPrompt,
-      tools: options.tools,
-    }
-  );
+  const response = await callClaudeCli([{ role: "user", content: prompt }], {
+    model: options.model || "sonnet",
+    _maxTokens: options.maxTokens || 4096,
+    systemPrompt: options.systemPrompt,
+    tools: options.tools,
+  });
 
   // Extract text from response
   const text = response.content
-    .filter(block => block.type === 'text')
-    .map(block => block.text)
-    .join('');
+    .filter((block) => block.type === "text")
+    .map((block) => block.text)
+    .join("");
 
   return text;
 }

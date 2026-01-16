@@ -1,7 +1,7 @@
 ---
-idea_id: {{idea_id}}
-topic: {{topic}}
-created_at: {{created_at}}
+idea_id: { { idea_id } }
+topic: { { topic } }
+created_at: { { created_at } }
 sources: []
 ---
 
@@ -9,7 +9,7 @@ sources: []
 
 ## Summary
 
-*Brief summary of research findings.*
+_Brief summary of research findings._
 
 ## Key Findings
 
@@ -20,22 +20,22 @@ sources: []
 ## Sources
 
 | Source | Type | Key Takeaway | Link |
-|--------|------|--------------|------|
-| | | | |
+| ------ | ---- | ------------ | ---- |
+|        |      |              |      |
 
 ## Detailed Notes
 
 ### Topic 1
 
-*Detailed notes...*
+_Detailed notes..._
 
 ### Topic 2
 
-*Detailed notes...*
+_Detailed notes..._
 
 ## Implications for Idea
 
-*How does this research affect the idea?*
+_How does this research affect the idea?_
 
 ## Open Questions
 

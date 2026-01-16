@@ -42,7 +42,7 @@ export class RetryHandler {
       maxRetries: config?.maxRetries ?? DEFAULT_MAX_RETRIES,
       baseDelay: config?.baseDelay ?? DEFAULT_BASE_DELAY,
       maxDelay: config?.maxDelay ?? DEFAULT_MAX_DELAY,
-      jitterFactor: config?.jitterFactor ?? DEFAULT_JITTER_FACTOR
+      jitterFactor: config?.jitterFactor ?? DEFAULT_JITTER_FACTOR,
     };
   }
 
@@ -51,7 +51,7 @@ export class RetryHandler {
    */
   async withRetry<T>(
     operation: () => Promise<T>,
-    isRetryable: RetryableCheck = () => true
+    isRetryable: RetryableCheck = () => true,
   ): Promise<RetryResult<T>> {
     const startTime = Date.now();
     let lastError: Error | undefined;
@@ -63,7 +63,7 @@ export class RetryHandler {
           success: true,
           value,
           attempts: attempt,
-          totalDuration: Date.now() - startTime
+          totalDuration: Date.now() - startTime,
         };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -74,7 +74,7 @@ export class RetryHandler {
             success: false,
             error: lastError,
             attempts: attempt,
-            totalDuration: Date.now() - startTime
+            totalDuration: Date.now() - startTime,
           };
         }
 
@@ -91,7 +91,7 @@ export class RetryHandler {
           attempt,
           delay,
           error: lastError,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
         this.onRetry?.(attemptInfo);
 
@@ -103,7 +103,7 @@ export class RetryHandler {
       success: false,
       error: lastError,
       attempts: this.config.maxRetries,
-      totalDuration: Date.now() - startTime
+      totalDuration: Date.now() - startTime,
     };
   }
 
@@ -112,11 +112,11 @@ export class RetryHandler {
    */
   async withRetryForErrors<T>(
     operation: () => Promise<T>,
-    retryableErrors: Array<new (...args: unknown[]) => Error>
+    retryableErrors: Array<new (...args: unknown[]) => Error>,
   ): Promise<RetryResult<T>> {
     const isRetryable: RetryableCheck = (error) => {
       if (!(error instanceof Error)) return false;
-      return retryableErrors.some(ErrorClass => error instanceof ErrorClass);
+      return retryableErrors.some((ErrorClass) => error instanceof ErrorClass);
     };
 
     return this.withRetry(operation, isRetryable);
@@ -130,7 +130,8 @@ export class RetryHandler {
     const exponentialDelay = this.config.baseDelay * Math.pow(2, attempt - 1);
 
     // Apply jitter: delay +/- (jitterFactor * delay)
-    const jitter = exponentialDelay * this.config.jitterFactor * (Math.random() * 2 - 1);
+    const jitter =
+      exponentialDelay * this.config.jitterFactor * (Math.random() * 2 - 1);
     const delayWithJitter = exponentialDelay + jitter;
 
     // Cap at maxDelay
@@ -141,7 +142,7 @@ export class RetryHandler {
    * Sleep for specified milliseconds
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -181,7 +182,7 @@ export class RetryHandler {
       maxRetries: 5,
       baseDelay: 2000,
       maxDelay: 120000,
-      ...config
+      ...config,
     });
   }
 
@@ -193,12 +194,12 @@ export class RetryHandler {
 
     const message = error.message.toLowerCase();
     return (
-      message.includes('network') ||
-      message.includes('timeout') ||
-      message.includes('econnrefused') ||
-      message.includes('econnreset') ||
-      message.includes('etimedout') ||
-      message.includes('socket hang up')
+      message.includes("network") ||
+      message.includes("timeout") ||
+      message.includes("econnrefused") ||
+      message.includes("econnreset") ||
+      message.includes("etimedout") ||
+      message.includes("socket hang up")
     );
   }
 
@@ -210,9 +211,9 @@ export class RetryHandler {
 
     const message = error.message.toLowerCase();
     return (
-      message.includes('rate limit') ||
-      message.includes('too many requests') ||
-      message.includes('429')
+      message.includes("rate limit") ||
+      message.includes("too many requests") ||
+      message.includes("429")
     );
   }
 
@@ -220,14 +221,18 @@ export class RetryHandler {
    * Common retryable error check - temporary errors
    */
   static isTemporaryError(error: unknown): boolean {
-    return RetryHandler.isNetworkError(error) || RetryHandler.isRateLimitError(error);
+    return (
+      RetryHandler.isNetworkError(error) || RetryHandler.isRateLimitError(error)
+    );
   }
 }
 
 /**
  * Create a retry handler instance
  */
-export function createRetryHandler(config?: Partial<RetryConfig>): RetryHandler {
+export function createRetryHandler(
+  config?: Partial<RetryConfig>,
+): RetryHandler {
   return new RetryHandler(config);
 }
 
@@ -236,13 +241,13 @@ export function createRetryHandler(config?: Partial<RetryConfig>): RetryHandler 
  */
 export async function withRetry<T>(
   operation: () => Promise<T>,
-  config?: Partial<RetryConfig>
+  config?: Partial<RetryConfig>,
 ): Promise<T> {
   const handler = new RetryHandler(config);
   const result = await handler.withRetry(operation);
 
   if (!result.success) {
-    throw result.error || new Error('Operation failed after retries');
+    throw result.error || new Error("Operation failed after retries");
   }
 
   return result.value!;

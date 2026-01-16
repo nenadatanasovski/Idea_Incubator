@@ -1,15 +1,23 @@
 // agents/validation/orchestrator.ts
 
-import { v4 as uuid } from 'uuid';
-import { ValidationRun, ValidatorResult, ValidationRunRequest } from '../../types/validation';
-import { getLevelConfig } from './level-configs';
-import { runTypescriptValidator } from './validators/typescript-validator';
-import { runTestRunner } from './validators/test-runner';
-import { runSecurityScanner } from './validators/security-scanner';
-import { runCoverageAnalyzer } from './validators/coverage-analyzer';
-import { aggregateResults } from './result-aggregator';
+import { v4 as uuid } from "uuid";
+import {
+  ValidationRun,
+  ValidatorResult,
+  ValidationRunRequest,
+} from "../../types/validation";
+import { getLevelConfig } from "./level-configs";
+import { runTypescriptValidator } from "./validators/typescript-validator";
+import { runTestRunner } from "./validators/test-runner";
+import { runSecurityScanner } from "./validators/security-scanner";
+import { runCoverageAnalyzer } from "./validators/coverage-analyzer";
+import { aggregateResults } from "./result-aggregator";
 
-type ValidatorFunction = (runId: string, args: string[], timeoutMs: number) => Promise<ValidatorResult>;
+type ValidatorFunction = (
+  runId: string,
+  args: string[],
+  timeoutMs: number,
+) => Promise<ValidatorResult>;
 
 const VALIDATOR_MAP: Record<string, ValidatorFunction> = {
   typescript: runTypescriptValidator,
@@ -35,12 +43,16 @@ export class ValidationOrchestrator {
         const result = await validator(
           runId,
           validatorConfig.args,
-          validatorConfig.timeoutMs
+          validatorConfig.timeoutMs,
         );
         results.push(result);
 
         // Fail fast if required validator fails and option set
-        if (request.options?.failFast && !result.passed && validatorConfig.required) {
+        if (
+          request.options?.failFast &&
+          !result.passed &&
+          validatorConfig.required
+        ) {
           break;
         }
       }
@@ -52,7 +64,7 @@ export class ValidationOrchestrator {
       id: runId,
       buildId: request.buildId || null,
       level: request.level,
-      status: 'completed',
+      status: "completed",
       passed,
       startedAt,
       completedAt: new Date().toISOString(),

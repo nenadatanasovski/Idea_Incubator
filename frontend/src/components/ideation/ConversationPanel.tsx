@@ -3,12 +3,12 @@
 // Conversation panel with message list and input
 // =============================================================================
 
-import { useRef, useEffect } from 'react';
-import { MessageList } from './MessageList';
-import { InputArea } from './InputArea';
-import { TypingIndicator } from './TypingIndicator';
-import { SubAgentIndicator } from './SubAgentIndicator';
-import type { ConversationPanelProps } from '../../types/ideation';
+import { useRef, useEffect } from "react";
+import { MessageList } from "./MessageList";
+import { InputArea } from "./InputArea";
+import { TypingIndicator } from "./TypingIndicator";
+import { SubAgentIndicator } from "./SubAgentIndicator";
+import type { ConversationPanelProps } from "../../types/ideation";
 
 export function ConversationPanel({
   messages,
@@ -29,7 +29,7 @@ export function ConversationPanel({
 
   // Auto-scroll to bottom on new messages or sub-agent updates
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading, subAgents]);
 
   return (
@@ -44,7 +44,10 @@ export function ConversationPanel({
           onConvertToArtifact={onConvertToArtifact}
           isLoading={isLoading}
         />
-        <TypingIndicator isVisible={isLoading} streamingContent={streamingContent} />
+        <TypingIndicator
+          isVisible={isLoading}
+          streamingContent={streamingContent}
+        />
         {subAgents.length > 0 && (
           <div className="mx-4 mb-4">
             <SubAgentIndicator agents={subAgents} />

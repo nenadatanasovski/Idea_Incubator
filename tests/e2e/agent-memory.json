@@ -4,17 +4,46 @@
 
   "schema": {
     "ideation_sessions": {
-      "columns": ["id", "profile_id", "entry_mode", "status", "started_at", "ended_at", "message_count", "idea_candidate_id"],
+      "columns": [
+        "id",
+        "profile_id",
+        "entry_mode",
+        "status",
+        "started_at",
+        "ended_at",
+        "message_count",
+        "idea_candidate_id"
+      ],
       "primary_key": "id",
       "notes": "status can be: active, completed, abandoned"
     },
     "ideation_messages": {
-      "columns": ["id", "session_id", "role", "content", "buttons", "created_at", "sequence"],
+      "columns": [
+        "id",
+        "session_id",
+        "role",
+        "content",
+        "buttons",
+        "created_at",
+        "sequence"
+      ],
       "primary_key": "id",
       "notes": "role can be: user, assistant. Order by created_at or sequence for chronological order"
     },
     "idea_candidates": {
-      "columns": ["id", "session_id", "title", "problem_statement", "target_user", "solution_approach", "unique_value", "confidence_score", "created_at", "updated_at", "captured_as_idea_id"],
+      "columns": [
+        "id",
+        "session_id",
+        "title",
+        "problem_statement",
+        "target_user",
+        "solution_approach",
+        "unique_value",
+        "confidence_score",
+        "created_at",
+        "updated_at",
+        "captured_as_idea_id"
+      ],
       "primary_key": "id",
       "notes": "confidence_score is 0-100"
     },

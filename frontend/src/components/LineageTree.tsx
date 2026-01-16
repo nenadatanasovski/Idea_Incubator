@@ -1,18 +1,18 @@
-import { GitBranch, GitMerge, ArrowRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import StatusBadge from './StatusBadge'
-import type { IdeaLineage, IdeaSummary } from '../api/client'
+import { GitBranch, GitMerge, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import StatusBadge from "./StatusBadge";
+import type { IdeaLineage, IdeaSummary } from "../api/client";
 
 interface LineageTreeProps {
-  lineage: IdeaLineage
-  currentSlug: string
+  lineage: IdeaLineage;
+  currentSlug: string;
 }
 
 interface IdeaNodeProps {
-  idea: IdeaSummary
-  isCurrent: boolean
-  isParent?: boolean
-  isChild?: boolean
+  idea: IdeaSummary;
+  isCurrent: boolean;
+  isParent?: boolean;
+  isChild?: boolean;
 }
 
 function IdeaNode({ idea, isCurrent, isParent, isChild }: IdeaNodeProps) {
@@ -20,12 +20,12 @@ function IdeaNode({ idea, isCurrent, isParent, isChild }: IdeaNodeProps) {
     <div
       className={`p-3 rounded-lg border-2 transition-all ${
         isCurrent
-          ? 'border-blue-500 bg-blue-50'
+          ? "border-blue-500 bg-blue-50"
           : isParent
-          ? 'border-purple-300 bg-purple-50'
-          : isChild
-          ? 'border-green-300 bg-green-50'
-          : 'border-gray-200 bg-white'
+            ? "border-purple-300 bg-purple-50"
+            : isChild
+              ? "border-green-300 bg-green-50"
+              : "border-gray-200 bg-white"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -33,7 +33,7 @@ function IdeaNode({ idea, isCurrent, isParent, isChild }: IdeaNodeProps) {
           <Link
             to={`/ideas/${idea.slug}`}
             className={`font-medium hover:underline truncate block ${
-              isCurrent ? 'text-blue-700' : 'text-gray-900'
+              isCurrent ? "text-blue-700" : "text-gray-900"
             }`}
           >
             {idea.title}
@@ -59,16 +59,21 @@ function IdeaNode({ idea, isCurrent, isParent, isChild }: IdeaNodeProps) {
       )}
 
       {isCurrent && (
-        <div className="mt-2 text-xs text-blue-600 font-medium">Current Idea</div>
+        <div className="mt-2 text-xs text-blue-600 font-medium">
+          Current Idea
+        </div>
       )}
     </div>
-  )
+  );
 }
 
-export default function LineageTree({ lineage, currentSlug }: LineageTreeProps) {
-  const hasAncestors = lineage.ancestors.length > 0
-  const hasParent = !!lineage.parent
-  const hasChildren = lineage.children.length > 0
+export default function LineageTree({
+  lineage,
+  currentSlug,
+}: LineageTreeProps) {
+  const hasAncestors = lineage.ancestors.length > 0;
+  const hasParent = !!lineage.parent;
+  const hasChildren = lineage.children.length > 0;
 
   if (!hasAncestors && !hasParent && !hasChildren) {
     return (
@@ -76,7 +81,7 @@ export default function LineageTree({ lineage, currentSlug }: LineageTreeProps) 
         <GitBranch className="h-8 w-8 mx-auto mb-2 opacity-50" />
         <p>This idea has no branches or parent ideas</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -117,7 +122,7 @@ export default function LineageTree({ lineage, currentSlug }: LineageTreeProps) 
         {/* Current */}
         <div
           style={{
-            marginLeft: `${(lineage.ancestors.length + (hasParent ? 1 : 0)) * 16}px`
+            marginLeft: `${(lineage.ancestors.length + (hasParent ? 1 : 0)) * 16}px`,
           }}
         >
           <IdeaNode
@@ -131,24 +136,28 @@ export default function LineageTree({ lineage, currentSlug }: LineageTreeProps) 
           <div
             className="space-y-2"
             style={{
-              marginLeft: `${(lineage.ancestors.length + (hasParent ? 1 : 0) + 1) * 16}px`
+              marginLeft: `${(lineage.ancestors.length + (hasParent ? 1 : 0) + 1) * 16}px`,
             }}
           >
             <div className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
               <GitBranch className="h-3 w-3" />
               Branches ({lineage.children.length})
             </div>
-            {lineage.children.map(child => (
+            {lineage.children.map((child) => (
               <div key={child.id}>
                 <div className="flex items-center py-1">
                   <ArrowRight className="h-4 w-4 text-gray-400 rotate-90" />
                 </div>
-                <IdeaNode idea={child} isCurrent={child.slug === currentSlug} isChild />
+                <IdeaNode
+                  idea={child}
+                  isCurrent={child.slug === currentSlug}
+                  isChild
+                />
               </div>
             ))}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }

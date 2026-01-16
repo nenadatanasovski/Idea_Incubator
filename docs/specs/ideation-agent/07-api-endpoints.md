@@ -16,10 +16,10 @@ This specification covers all REST API endpoints for the Ideation Agent system, 
 Add to `server/api.ts`:
 
 ```typescript
-import { ideationRouter } from './routes/ideation.js';
+import { ideationRouter } from "./routes/ideation.js";
 
 // Add ideation routes
-router.use('/ideation', ideationRouter);
+router.use("/ideation", ideationRouter);
 ```
 
 ---
@@ -29,17 +29,20 @@ router.use('/ideation', ideationRouter);
 Create file: `server/routes/ideation.ts`
 
 ```typescript
-import { Router, Request, Response } from 'express';
-import { z } from 'zod';
-import { sessionManager } from '../../agents/ideation/session-manager.js';
-import { messageStore } from '../../agents/ideation/message-store.js';
-import { memoryManager } from '../../agents/ideation/memory-manager.js';
-import { agentOrchestrator } from '../../agents/ideation/orchestrator.js';
-import { generateGreetingWithButtons } from '../../agents/ideation/greeting-generator.js';
-import { candidateManager } from '../../agents/ideation/candidate-manager.js';
-import { calculateTokenUsage, estimateTokens } from '../../agents/ideation/token-counter.js';
-import { getProfileById } from '../../services/profile-service.js';
-import { createIdea, syncIdea } from '../../services/idea-service.js';
+import { Router, Request, Response } from "express";
+import { z } from "zod";
+import { sessionManager } from "../../agents/ideation/session-manager.js";
+import { messageStore } from "../../agents/ideation/message-store.js";
+import { memoryManager } from "../../agents/ideation/memory-manager.js";
+import { agentOrchestrator } from "../../agents/ideation/orchestrator.js";
+import { generateGreetingWithButtons } from "../../agents/ideation/greeting-generator.js";
+import { candidateManager } from "../../agents/ideation/candidate-manager.js";
+import {
+  calculateTokenUsage,
+  estimateTokens,
+} from "../../agents/ideation/token-counter.js";
+import { getProfileById } from "../../services/profile-service.js";
+import { createIdea, syncIdea } from "../../services/idea-service.js";
 
 export const ideationRouter = Router();
 
@@ -48,26 +51,26 @@ export const ideationRouter = Router();
 // ============================================================================
 
 const StartSessionSchema = z.object({
-  profileId: z.string().min(1, 'profileId is required'),
+  profileId: z.string().min(1, "profileId is required"),
 });
 
 const SendMessageSchema = z.object({
-  sessionId: z.string().min(1, 'sessionId is required'),
-  message: z.string().min(1, 'message is required'),
+  sessionId: z.string().min(1, "sessionId is required"),
+  message: z.string().min(1, "message is required"),
 });
 
 const ButtonClickSchema = z.object({
-  sessionId: z.string().min(1, 'sessionId is required'),
-  buttonId: z.string().min(1, 'buttonId is required'),
+  sessionId: z.string().min(1, "sessionId is required"),
+  buttonId: z.string().min(1, "buttonId is required"),
   buttonValue: z.string(),
 });
 
 const CaptureIdeaSchema = z.object({
-  sessionId: z.string().min(1, 'sessionId is required'),
+  sessionId: z.string().min(1, "sessionId is required"),
 });
 
 const SessionIdSchema = z.object({
-  sessionId: z.string().min(1, 'sessionId is required'),
+  sessionId: z.string().min(1, "sessionId is required"),
 });
 
 // ============================================================================
@@ -75,13 +78,13 @@ const SessionIdSchema = z.object({
 // ============================================================================
 // Starts a new ideation session
 
-ideationRouter.post('/start', async (req: Request, res: Response) => {
+ideationRouter.post("/start", async (req: Request, res: Response) => {
   try {
     // Validate request
     const parseResult = StartSessionSchema.safeParse(req.body);
     if (!parseResult.success) {
       return res.status(400).json({
-        error: 'Validation error',
+        error: "Validation error",
         details: parseResult.error.issues,
       });
     }
@@ -91,7 +94,7 @@ ideationRouter.post('/start', async (req: Request, res: Response) => {
     // Load profile
     const profile = await getProfileById(profileId);
     if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+      return res.status(404).json({ error: "Profile not found" });
     }
 
     // Create session
@@ -106,7 +109,7 @@ ideationRouter.post('/start', async (req: Request, res: Response) => {
     // Store greeting as first assistant message
     await messageStore.create({
       sessionId: session.id,
-      role: 'assistant',
+      role: "assistant",
       content: greeting.text,
       buttonsShown: greeting.buttons,
     });
@@ -120,10 +123,9 @@ ideationRouter.post('/start', async (req: Request, res: Response) => {
       greeting: greeting.text,
       buttons: greeting.buttons,
     });
-
   } catch (error) {
-    console.error('Error starting ideation session:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error starting ideation session:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -132,13 +134,13 @@ ideationRouter.post('/start', async (req: Request, res: Response) => {
 // ============================================================================
 // Handles user message and returns agent response
 
-ideationRouter.post('/message', async (req: Request, res: Response) => {
+ideationRouter.post("/message", async (req: Request, res: Response) => {
   try {
     // Validate request
     const parseResult = SendMessageSchema.safeParse(req.body);
     if (!parseResult.success) {
       return res.status(400).json({
-        error: 'Validation error',
+        error: "Validation error",
         details: parseResult.error.issues,
       });
     }
@@ -148,33 +150,37 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     // Load session
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+      return res.status(404).json({ error: "Session not found" });
     }
 
-    if (session.status !== 'active') {
-      return res.status(400).json({ error: 'Session is not active' });
+    if (session.status !== "active") {
+      return res.status(400).json({ error: "Session is not active" });
     }
 
     // Load profile
     const profile = await getProfileById(session.profileId);
     if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+      return res.status(404).json({ error: "Profile not found" });
     }
 
     // Store user message
     await messageStore.create({
       sessionId,
-      role: 'user',
+      role: "user",
       content: message,
     });
 
     // Process message through orchestrator
-    const response = await agentOrchestrator.processMessage(session, message, profile);
+    const response = await agentOrchestrator.processMessage(
+      session,
+      message,
+      profile,
+    );
 
     // Store assistant message
     await messageStore.create({
       sessionId,
-      role: 'assistant',
+      role: "assistant",
       content: response.reply,
       buttonsShown: response.buttons || undefined,
       formShown: response.form || undefined,
@@ -191,12 +197,15 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     // Get or create candidate if confidence is high enough
     let candidateData = null;
     if (response.confidence >= 30 && response.candidateUpdate) {
-      const candidate = await candidateManager.getOrCreateForSession(sessionId, {
-        title: response.candidateUpdate.title,
-        summary: response.candidateUpdate.summary,
-        confidence: response.confidence,
-        viability: response.viability,
-      });
+      const candidate = await candidateManager.getOrCreateForSession(
+        sessionId,
+        {
+          title: response.candidateUpdate.title,
+          summary: response.candidateUpdate.summary,
+          confidence: response.confidence,
+          viability: response.viability,
+        },
+      );
       candidateData = candidate;
     }
 
@@ -204,13 +213,29 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
     let intervention = null;
     if (response.requiresIntervention) {
       intervention = {
-        type: response.viability < 25 ? 'critical' : 'warning',
-        message: 'Viability concerns detected',
+        type: response.viability < 25 ? "critical" : "warning",
+        message: "Viability concerns detected",
         options: [
-          { id: 'address', label: 'Address challenges', value: 'Let\'s address these challenges' },
-          { id: 'pivot', label: 'Pivot direction', value: 'I want to explore a different direction' },
-          { id: 'continue', label: 'Continue anyway', value: 'I understand the risks, let\'s continue' },
-          { id: 'fresh', label: 'Start fresh', value: 'Let\'s start with a completely new idea' },
+          {
+            id: "address",
+            label: "Address challenges",
+            value: "Let's address these challenges",
+          },
+          {
+            id: "pivot",
+            label: "Pivot direction",
+            value: "I want to explore a different direction",
+          },
+          {
+            id: "continue",
+            label: "Continue anyway",
+            value: "I understand the risks, let's continue",
+          },
+          {
+            id: "fresh",
+            label: "Start fresh",
+            value: "Let's start with a completely new idea",
+          },
         ],
       };
     }
@@ -220,20 +245,21 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
       reply: response.reply,
       buttons: response.buttons,
       formFields: response.form,
-      ideaCandidate: candidateData ? {
-        id: candidateData.id,
-        title: candidateData.title,
-        summary: candidateData.summary,
-        confidence: response.confidence,
-        viability: response.viability,
-      } : null,
+      ideaCandidate: candidateData
+        ? {
+            id: candidateData.id,
+            title: candidateData.title,
+            summary: candidateData.summary,
+            confidence: response.confidence,
+            viability: response.viability,
+          }
+        : null,
       intervention,
       handoffOccurred: response.handoffOccurred,
     });
-
   } catch (error) {
-    console.error('Error processing ideation message:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error processing ideation message:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -242,13 +268,13 @@ ideationRouter.post('/message', async (req: Request, res: Response) => {
 // ============================================================================
 // Handles button click as if it were a message
 
-ideationRouter.post('/button', async (req: Request, res: Response) => {
+ideationRouter.post("/button", async (req: Request, res: Response) => {
   try {
     // Validate request
     const parseResult = ButtonClickSchema.safeParse(req.body);
     if (!parseResult.success) {
       return res.status(400).json({
-        error: 'Validation error',
+        error: "Validation error",
         details: parseResult.error.issues,
       });
     }
@@ -264,10 +290,9 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
     // Forward to message handler with button value
     req.body = { sessionId, message: buttonValue };
     return ideationRouter.handle(req, res, () => {});
-
   } catch (error) {
-    console.error('Error processing button click:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error processing button click:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -276,13 +301,13 @@ ideationRouter.post('/button', async (req: Request, res: Response) => {
 // ============================================================================
 // Captures the current idea candidate to the Ideas system
 
-ideationRouter.post('/capture', async (req: Request, res: Response) => {
+ideationRouter.post("/capture", async (req: Request, res: Response) => {
   try {
     // Validate request
     const parseResult = CaptureIdeaSchema.safeParse(req.body);
     if (!parseResult.success) {
       return res.status(400).json({
-        error: 'Validation error',
+        error: "Validation error",
         details: parseResult.error.issues,
       });
     }
@@ -292,30 +317,36 @@ ideationRouter.post('/capture', async (req: Request, res: Response) => {
     // Load session
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+      return res.status(404).json({ error: "Session not found" });
     }
 
     // Get current candidate
     const candidate = await candidateManager.getActiveForSession(sessionId);
     if (!candidate) {
-      return res.status(400).json({ error: 'No idea candidate to capture' });
+      return res.status(400).json({ error: "No idea candidate to capture" });
     }
 
     // Get memory files for context
-    const selfDiscoveryFile = await memoryManager.read(sessionId, 'self_discovery');
-    const marketDiscoveryFile = await memoryManager.read(sessionId, 'market_discovery');
+    const selfDiscoveryFile = await memoryManager.read(
+      sessionId,
+      "self_discovery",
+    );
+    const marketDiscoveryFile = await memoryManager.read(
+      sessionId,
+      "market_discovery",
+    );
 
     // Create idea in system
     const idea = await createIdea({
       title: candidate.title,
-      type: 'business', // Default type
-      stage: 'SPARK',
+      type: "business", // Default type
+      stage: "SPARK",
       summary: candidate.summary || undefined,
     });
 
     // Update candidate status
     await candidateManager.update(candidate.id, {
-      status: 'captured',
+      status: "captured",
       capturedIdeaId: idea.id,
     });
 
@@ -328,7 +359,7 @@ ideationRouter.post('/capture', async (req: Request, res: Response) => {
       ideaSlug: idea.slug,
       prePopulatedFields: {
         title: candidate.title,
-        type: 'business',
+        type: "business",
         summary: candidate.summary,
       },
       ideationMetadata: {
@@ -337,10 +368,9 @@ ideationRouter.post('/capture', async (req: Request, res: Response) => {
         viabilityAtCapture: candidate.viability,
       },
     });
-
   } catch (error) {
-    console.error('Error capturing idea:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error capturing idea:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -349,73 +379,77 @@ ideationRouter.post('/capture', async (req: Request, res: Response) => {
 // ============================================================================
 // Get session details
 
-ideationRouter.get('/session/:sessionId', async (req: Request, res: Response) => {
-  try {
-    const { sessionId } = req.params;
+ideationRouter.get(
+  "/session/:sessionId",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
 
-    const session = await sessionManager.load(sessionId);
-    if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+      const session = await sessionManager.load(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      const messages = await messageStore.getBySession(sessionId);
+      const candidate = await candidateManager.getActiveForSession(sessionId);
+
+      res.json({
+        session,
+        messages,
+        candidate,
+      });
+    } catch (error) {
+      console.error("Error getting session:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-
-    const messages = await messageStore.getBySession(sessionId);
-    const candidate = await candidateManager.getActiveForSession(sessionId);
-
-    res.json({
-      session,
-      messages,
-      candidate,
-    });
-
-  } catch (error) {
-    console.error('Error getting session:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  },
+);
 
 // ============================================================================
 // POST /api/ideation/session/:sessionId/abandon
 // ============================================================================
 // Abandon a session
 
-ideationRouter.post('/session/:sessionId/abandon', async (req: Request, res: Response) => {
-  try {
-    const { sessionId } = req.params;
+ideationRouter.post(
+  "/session/:sessionId/abandon",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
 
-    const session = await sessionManager.load(sessionId);
-    if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+      const session = await sessionManager.load(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      if (session.status !== "active") {
+        return res.status(400).json({ error: "Session is not active" });
+      }
+
+      await sessionManager.abandon(sessionId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error abandoning session:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-
-    if (session.status !== 'active') {
-      return res.status(400).json({ error: 'Session is not active' });
-    }
-
-    await sessionManager.abandon(sessionId);
-
-    res.json({ success: true });
-
-  } catch (error) {
-    console.error('Error abandoning session:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  },
+);
 
 // ============================================================================
 // GET /api/ideation/sessions
 // ============================================================================
 // List sessions for a profile
 
-ideationRouter.get('/sessions', async (req: Request, res: Response) => {
+ideationRouter.get("/sessions", async (req: Request, res: Response) => {
   try {
     const { profileId, status } = req.query;
 
     if (!profileId) {
-      return res.status(400).json({ error: 'profileId is required' });
+      return res.status(400).json({ error: "profileId is required" });
     }
 
     let sessions;
-    if (status === 'active') {
+    if (status === "active") {
       sessions = await sessionManager.getActiveByProfile(profileId as string);
     } else {
       // Would need to add a getAllByProfile method
@@ -423,10 +457,9 @@ ideationRouter.get('/sessions', async (req: Request, res: Response) => {
     }
 
     res.json({ sessions });
-
   } catch (error) {
-    console.error('Error listing sessions:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error listing sessions:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -435,19 +468,21 @@ ideationRouter.get('/sessions', async (req: Request, res: Response) => {
 // ============================================================================
 
 const FormSubmitSchema = z.object({
-  sessionId: z.string().min(1, 'sessionId is required'),
-  formId: z.string().min(1, 'formId is required'),
-  responses: z.record(z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])),
+  sessionId: z.string().min(1, "sessionId is required"),
+  formId: z.string().min(1, "formId is required"),
+  responses: z.record(
+    z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
+  ),
 });
 
 const SaveForLaterSchema = z.object({
-  sessionId: z.string().min(1, 'sessionId is required'),
+  sessionId: z.string().min(1, "sessionId is required"),
   candidateId: z.string().optional(),
   notes: z.string().optional(),
 });
 
 const DiscardAndRestartSchema = z.object({
-  sessionId: z.string().min(1, 'sessionId is required'),
+  sessionId: z.string().min(1, "sessionId is required"),
   reason: z.string().optional(),
 });
 
@@ -456,13 +491,13 @@ const DiscardAndRestartSchema = z.object({
 // ============================================================================
 // Handles form submissions
 
-ideationRouter.post('/form', async (req: Request, res: Response) => {
+ideationRouter.post("/form", async (req: Request, res: Response) => {
   try {
     // Validate request
     const parseResult = FormSubmitSchema.safeParse(req.body);
     if (!parseResult.success) {
       return res.status(400).json({
-        error: 'Validation error',
+        error: "Validation error",
         details: parseResult.error.issues,
       });
     }
@@ -472,13 +507,13 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
     // Load session
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+      return res.status(404).json({ error: "Session not found" });
     }
 
     // Check session state
-    if (session.status !== 'active') {
+    if (session.status !== "active") {
       return res.status(400).json({
-        error: 'Session is not active',
+        error: "Session is not active",
         status: session.status,
       });
     }
@@ -487,16 +522,16 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
     const formattedResponse = Object.entries(responses)
       .map(([field, value]) => {
         if (Array.isArray(value)) {
-          return `${field}: ${value.join(', ')}`;
+          return `${field}: ${value.join(", ")}`;
         }
         return `${field}: ${value}`;
       })
-      .join('\n');
+      .join("\n");
 
     // Store as user message with form reference
     const userMessage = await messageStore.create({
       sessionId,
-      role: 'user',
+      role: "user",
       content: formattedResponse,
       formResponse: { formId, responses },
     });
@@ -522,7 +557,7 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
     // Store agent response
     const assistantMessage = await messageStore.create({
       sessionId,
-      role: 'assistant',
+      role: "assistant",
       content: agentResponse.text,
       buttonsShown: agentResponse.buttons,
       formShown: agentResponse.form,
@@ -531,7 +566,10 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
     // Update candidate if needed
     if (agentResponse.candidateUpdate) {
       if (candidate) {
-        await candidateManager.update(candidate.id, agentResponse.candidateUpdate);
+        await candidateManager.update(
+          candidate.id,
+          agentResponse.candidateUpdate,
+        );
       } else {
         await candidateManager.create({
           sessionId,
@@ -547,10 +585,9 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
       form: agentResponse.form,
       candidate: await candidateManager.getActiveBySession(sessionId),
     });
-
   } catch (error) {
-    console.error('Error processing form:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error processing form:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -559,13 +596,13 @@ ideationRouter.post('/form', async (req: Request, res: Response) => {
 // ============================================================================
 // Saves current idea for later
 
-ideationRouter.post('/save', async (req: Request, res: Response) => {
+ideationRouter.post("/save", async (req: Request, res: Response) => {
   try {
     // Validate request
     const parseResult = SaveForLaterSchema.safeParse(req.body);
     if (!parseResult.success) {
       return res.status(400).json({
-        error: 'Validation error',
+        error: "Validation error",
         details: parseResult.error.issues,
       });
     }
@@ -575,7 +612,7 @@ ideationRouter.post('/save', async (req: Request, res: Response) => {
     // Load session
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+      return res.status(404).json({ error: "Session not found" });
     }
 
     // Get candidate (use provided or active)
@@ -587,36 +624,39 @@ ideationRouter.post('/save', async (req: Request, res: Response) => {
     }
 
     if (!candidate) {
-      return res.status(404).json({ error: 'No candidate to save' });
+      return res.status(404).json({ error: "No candidate to save" });
     }
 
     // Update candidate status
     await candidateManager.update(candidate.id, {
-      status: 'saved',
+      status: "saved",
     });
 
     // Update session status
     await sessionManager.update(sessionId, {
-      status: 'paused',
+      status: "paused",
     });
 
     // Store save action as memory
-    await memoryManager.appendToFile(sessionId, 'conversation_summary', `
+    await memoryManager.appendToFile(
+      sessionId,
+      "conversation_summary",
+      `
 ## Saved for Later
 **Timestamp**: ${new Date().toISOString()}
 **Candidate**: ${candidate.title}
-${notes ? `**Notes**: ${notes}` : ''}
-`);
+${notes ? `**Notes**: ${notes}` : ""}
+`,
+    );
 
     res.json({
       success: true,
       candidate: await candidateManager.getById(candidate.id),
-      message: 'Idea saved for later. You can resume this session anytime.',
+      message: "Idea saved for later. You can resume this session anytime.",
     });
-
   } catch (error) {
-    console.error('Error saving for later:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error saving for later:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -625,13 +665,13 @@ ${notes ? `**Notes**: ${notes}` : ''}
 // ============================================================================
 // Discards current session and optionally starts fresh
 
-ideationRouter.post('/discard', async (req: Request, res: Response) => {
+ideationRouter.post("/discard", async (req: Request, res: Response) => {
   try {
     // Validate request
     const parseResult = DiscardAndRestartSchema.safeParse(req.body);
     if (!parseResult.success) {
       return res.status(400).json({
-        error: 'Validation error',
+        error: "Validation error",
         details: parseResult.error.issues,
       });
     }
@@ -641,24 +681,28 @@ ideationRouter.post('/discard', async (req: Request, res: Response) => {
     // Load session
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+      return res.status(404).json({ error: "Session not found" });
     }
 
     // Discard any active candidates
     const candidate = await candidateManager.getActiveBySession(sessionId);
     if (candidate) {
       await candidateManager.update(candidate.id, {
-        status: 'discarded',
+        status: "discarded",
       });
     }
 
     // Store discard reason if provided
     if (reason) {
-      await memoryManager.appendToFile(sessionId, 'conversation_summary', `
+      await memoryManager.appendToFile(
+        sessionId,
+        "conversation_summary",
+        `
 ## Session Discarded
 **Timestamp**: ${new Date().toISOString()}
 **Reason**: ${reason}
-`);
+`,
+      );
     }
 
     // Abandon the session
@@ -679,7 +723,7 @@ ideationRouter.post('/discard', async (req: Request, res: Response) => {
     // Store greeting
     await messageStore.create({
       sessionId: newSession.id,
-      role: 'assistant',
+      role: "assistant",
       content: greeting.text,
       buttonsShown: greeting.buttons,
     });
@@ -690,10 +734,9 @@ ideationRouter.post('/discard', async (req: Request, res: Response) => {
       greeting: greeting.text,
       buttons: greeting.buttons,
     });
-
   } catch (error) {
-    console.error('Error discarding session:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error discarding session:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -702,15 +745,18 @@ ideationRouter.post('/discard', async (req: Request, res: Response) => {
 // ============================================================================
 // Streaming message endpoint using Server-Sent Events
 
-import { StreamingResponseHandler, createSSEStream } from '../../agents/ideation/streaming.js';
+import {
+  StreamingResponseHandler,
+  createSSEStream,
+} from "../../agents/ideation/streaming.js";
 
-ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
+ideationRouter.post("/message/stream", async (req: Request, res: Response) => {
   try {
     // Validate request
     const parseResult = SendMessageSchema.safeParse(req.body);
     if (!parseResult.success) {
       return res.status(400).json({
-        error: 'Validation error',
+        error: "Validation error",
         details: parseResult.error.issues,
       });
     }
@@ -720,13 +766,13 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
     // Load session
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+      return res.status(404).json({ error: "Session not found" });
     }
 
     // Check session state
-    if (session.status !== 'active') {
+    if (session.status !== "active") {
       return res.status(400).json({
-        error: 'Session is not active',
+        error: "Session is not active",
         status: session.status,
       });
     }
@@ -737,7 +783,7 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
     // Store user message
     await messageStore.create({
       sessionId,
-      role: 'user',
+      role: "user",
       content: message,
     });
 
@@ -750,14 +796,14 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
     const handler = new StreamingResponseHandler(agentOrchestrator.getClient());
 
     // Listen for stream events
-    handler.on('stream', (event) => {
-      if (event.type === 'text_delta') {
-        stream.send('text_delta', { text: event.data });
-      } else if (event.type === 'message_complete') {
+    handler.on("stream", (event) => {
+      if (event.type === "text_delta") {
+        stream.send("text_delta", { text: event.data });
+      } else if (event.type === "message_complete") {
         // Store complete message
         messageStore.create({
           sessionId,
-          role: 'assistant',
+          role: "assistant",
           content: event.data.text,
           buttonsShown: event.data.buttons,
           formShown: event.data.form,
@@ -768,28 +814,30 @@ ideationRouter.post('/message/stream', async (req: Request, res: Response) => {
           candidateManager.update(candidate.id, event.data.candidateUpdate);
         }
 
-        stream.send('message_complete', {
+        stream.send("message_complete", {
           reply: event.data.text,
           buttons: event.data.buttons,
           form: event.data.form,
         });
         stream.end();
-      } else if (event.type === 'error') {
-        stream.send('error', { message: (event.data as Error).message });
+      } else if (event.type === "error") {
+        stream.send("error", { message: (event.data as Error).message });
         stream.end();
       }
     });
 
     // Start streaming
     await handler.streamMessage(
-      messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-      agentOrchestrator.getSystemPrompt(profile || {})
+      messages.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
+      agentOrchestrator.getSystemPrompt(profile || {}),
     );
-
   } catch (error) {
-    console.error('Error in streaming message:', error);
+    console.error("Error in streaming message:", error);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: "Internal server error" });
     }
   }
 });
@@ -817,10 +865,10 @@ export class IdeationError extends Error {
     message: string,
     code: string,
     statusCode: number = 500,
-    details?: unknown
+    details?: unknown,
   ) {
     super(message);
-    this.name = 'IdeationError';
+    this.name = "IdeationError";
     this.code = code;
     this.statusCode = statusCode;
     this.details = details;
@@ -838,28 +886,25 @@ export class IdeationError extends Error {
 // Session errors
 export class SessionNotFoundError extends IdeationError {
   constructor(sessionId: string) {
-    super(`Session not found: ${sessionId}`, 'SESSION_NOT_FOUND', 404);
+    super(`Session not found: ${sessionId}`, "SESSION_NOT_FOUND", 404);
   }
 }
 
 export class SessionNotActiveError extends IdeationError {
   constructor(sessionId: string, currentStatus: string) {
-    super(
-      `Session is not active: ${sessionId}`,
-      'SESSION_NOT_ACTIVE',
-      400,
-      { currentStatus }
-    );
+    super(`Session is not active: ${sessionId}`, "SESSION_NOT_ACTIVE", 400, {
+      currentStatus,
+    });
   }
 }
 
 export class SessionAlreadyExistsError extends IdeationError {
   constructor(profileId: string, existingSessionId: string) {
     super(
-      'An active session already exists for this profile',
-      'SESSION_ALREADY_EXISTS',
+      "An active session already exists for this profile",
+      "SESSION_ALREADY_EXISTS",
       409,
-      { existingSessionId }
+      { existingSessionId },
     );
   }
 }
@@ -867,31 +912,27 @@ export class SessionAlreadyExistsError extends IdeationError {
 // Candidate errors
 export class CandidateNotFoundError extends IdeationError {
   constructor(candidateId: string) {
-    super(`Candidate not found: ${candidateId}`, 'CANDIDATE_NOT_FOUND', 404);
+    super(`Candidate not found: ${candidateId}`, "CANDIDATE_NOT_FOUND", 404);
   }
 }
 
 export class NoCandidateError extends IdeationError {
   constructor(sessionId: string) {
-    super(
-      `No active candidate for session: ${sessionId}`,
-      'NO_CANDIDATE',
-      400
-    );
+    super(`No active candidate for session: ${sessionId}`, "NO_CANDIDATE", 400);
   }
 }
 
 // Profile errors
 export class ProfileNotFoundError extends IdeationError {
   constructor(profileId: string) {
-    super(`Profile not found: ${profileId}`, 'PROFILE_NOT_FOUND', 404);
+    super(`Profile not found: ${profileId}`, "PROFILE_NOT_FOUND", 404);
   }
 }
 
 // Validation errors
 export class ValidationError extends IdeationError {
   constructor(issues: unknown[]) {
-    super('Validation error', 'VALIDATION_ERROR', 400, { issues });
+    super("Validation error", "VALIDATION_ERROR", 400, { issues });
   }
 }
 
@@ -899,10 +940,10 @@ export class ValidationError extends IdeationError {
 export class ContextLimitError extends IdeationError {
   constructor(currentTokens: number, limit: number) {
     super(
-      'Context limit exceeded, handoff required',
-      'CONTEXT_LIMIT_EXCEEDED',
+      "Context limit exceeded, handoff required",
+      "CONTEXT_LIMIT_EXCEEDED",
       400,
-      { currentTokens, limit, requiresHandoff: true }
+      { currentTokens, limit, requiresHandoff: true },
     );
   }
 }
@@ -912,21 +953,19 @@ export class AgentProcessingError extends IdeationError {
   constructor(message: string, originalError?: Error) {
     super(
       `Agent processing failed: ${message}`,
-      'AGENT_PROCESSING_ERROR',
+      "AGENT_PROCESSING_ERROR",
       500,
-      { originalError: originalError?.message }
+      { originalError: originalError?.message },
     );
   }
 }
 
 export class WebSearchError extends IdeationError {
   constructor(query: string, originalError?: Error) {
-    super(
-      `Web search failed for: ${query}`,
-      'WEB_SEARCH_ERROR',
-      500,
-      { query, originalError: originalError?.message }
-    );
+    super(`Web search failed for: ${query}`, "WEB_SEARCH_ERROR", 500, {
+      query,
+      originalError: originalError?.message,
+    });
   }
 }
 
@@ -935,9 +974,9 @@ export class MemoryFileError extends IdeationError {
   constructor(sessionId: string, fileType: string, operation: string) {
     super(
       `Memory file operation failed: ${operation}`,
-      'MEMORY_FILE_ERROR',
+      "MEMORY_FILE_ERROR",
       500,
-      { sessionId, fileType, operation }
+      { sessionId, fileType, operation },
     );
   }
 }
@@ -949,18 +988,18 @@ export function ideationErrorHandler(
   error: Error,
   req: any,
   res: any,
-  next: any
+  next: any,
 ) {
   if (error instanceof IdeationError) {
     return res.status(error.statusCode).json(error.toJSON());
   }
 
   // Log unexpected errors
-  console.error('Unexpected error:', error);
+  console.error("Unexpected error:", error);
 
   return res.status(500).json({
-    error: 'Internal server error',
-    code: 'INTERNAL_ERROR',
+    error: "Internal server error",
+    code: "INTERNAL_ERROR",
   });
 }
 
@@ -968,7 +1007,7 @@ export function ideationErrorHandler(
  * Wrap async route handlers to catch errors.
  */
 export function asyncHandler(
-  fn: (req: any, res: any, next: any) => Promise<any>
+  fn: (req: any, res: any, next: any) => Promise<any>,
 ) {
   return (req: any, res: any, next: any) => {
     Promise.resolve(fn(req, res, next)).catch(next);
@@ -983,14 +1022,17 @@ export function asyncHandler(
 Create file: `agents/ideation/candidate-manager.ts`
 
 ```typescript
-import { v4 as uuidv4 } from 'uuid';
-import { getDb, saveDb } from '../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { getDb, saveDb } from "../../database/db.js";
 import {
   IdeaCandidate,
   IdeaCandidateRow,
   CandidateStatus,
-} from '../../types/ideation.js';
-import { mapCandidateRowToCandidate, mapCandidateToRow } from '../../utils/ideation-mappers.js';
+} from "../../types/ideation.js";
+import {
+  mapCandidateRowToCandidate,
+  mapCandidateToRow,
+} from "../../utils/ideation-mappers.js";
 
 /**
  * CANDIDATE MANAGER
@@ -1025,23 +1067,26 @@ export class CandidateManager {
     const id = uuidv4();
     const now = new Date().toISOString();
 
-    db.run(`
+    db.run(
+      `
       INSERT INTO ideation_candidates (
         id, session_id, title, summary, confidence, viability,
         user_suggested, status, created_at, updated_at
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, 'forming', ?, ?)
-    `, [
-      id,
-      params.sessionId,
-      params.title,
-      params.summary || null,
-      params.confidence || 0,
-      params.viability || 100,
-      params.userSuggested ? 1 : 0,
-      now,
-      now,
-    ]);
+    `,
+      [
+        id,
+        params.sessionId,
+        params.title,
+        params.summary || null,
+        params.confidence || 0,
+        params.viability || 100,
+        params.userSuggested ? 1 : 0,
+        now,
+        now,
+      ],
+    );
 
     await saveDb();
 
@@ -1053,9 +1098,12 @@ export class CandidateManager {
    */
   async getById(candidateId: string): Promise<IdeaCandidate | null> {
     const db = getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_candidates WHERE id = ?
-    `, [candidateId]);
+    `,
+      [candidateId],
+    );
 
     if (results.length === 0 || results[0].values.length === 0) {
       return null;
@@ -1063,10 +1111,13 @@ export class CandidateManager {
 
     const columns = results[0].columns;
     const values = results[0].values[0];
-    const row = columns.reduce((obj, col, i) => {
-      obj[col] = values[i];
-      return obj;
-    }, {} as Record<string, unknown>) as IdeaCandidateRow;
+    const row = columns.reduce(
+      (obj, col, i) => {
+        obj[col] = values[i];
+        return obj;
+      },
+      {} as Record<string, unknown>,
+    ) as IdeaCandidateRow;
 
     return mapCandidateRowToCandidate(row);
   }
@@ -1076,12 +1127,15 @@ export class CandidateManager {
    */
   async getActiveForSession(sessionId: string): Promise<IdeaCandidate | null> {
     const db = getDb();
-    const results = db.exec(`
+    const results = db.exec(
+      `
       SELECT * FROM ideation_candidates
       WHERE session_id = ? AND status IN ('forming', 'active')
       ORDER BY updated_at DESC
       LIMIT 1
-    `, [sessionId]);
+    `,
+      [sessionId],
+    );
 
     if (results.length === 0 || results[0].values.length === 0) {
       return null;
@@ -1089,10 +1143,13 @@ export class CandidateManager {
 
     const columns = results[0].columns;
     const values = results[0].values[0];
-    const row = columns.reduce((obj, col, i) => {
-      obj[col] = values[i];
-      return obj;
-    }, {} as Record<string, unknown>) as IdeaCandidateRow;
+    const row = columns.reduce(
+      (obj, col, i) => {
+        obj[col] = values[i];
+        return obj;
+      },
+      {} as Record<string, unknown>,
+    ) as IdeaCandidateRow;
 
     return mapCandidateRowToCandidate(row);
   }
@@ -1100,12 +1157,15 @@ export class CandidateManager {
   /**
    * Get or create candidate for session.
    */
-  async getOrCreateForSession(sessionId: string, params: {
-    title: string;
-    summary?: string;
-    confidence: number;
-    viability: number;
-  }): Promise<IdeaCandidate> {
+  async getOrCreateForSession(
+    sessionId: string,
+    params: {
+      title: string;
+      summary?: string;
+      confidence: number;
+      viability: number;
+    },
+  ): Promise<IdeaCandidate> {
     const existing = await this.getActiveForSession(sessionId);
 
     if (existing) {
@@ -1115,7 +1175,7 @@ export class CandidateManager {
         summary: params.summary,
         confidence: params.confidence,
         viability: params.viability,
-        status: params.confidence >= 50 ? 'active' : 'forming',
+        status: params.confidence >= 50 ? "active" : "forming",
       }) as Promise<IdeaCandidate>;
     }
 
@@ -1132,46 +1192,52 @@ export class CandidateManager {
   /**
    * Update candidate.
    */
-  async update(candidateId: string, params: UpdateCandidateParams): Promise<IdeaCandidate | null> {
+  async update(
+    candidateId: string,
+    params: UpdateCandidateParams,
+  ): Promise<IdeaCandidate | null> {
     const db = getDb();
     const updates: string[] = [];
     const values: unknown[] = [];
 
     if (params.title !== undefined) {
-      updates.push('title = ?');
+      updates.push("title = ?");
       values.push(params.title);
     }
     if (params.summary !== undefined) {
-      updates.push('summary = ?');
+      updates.push("summary = ?");
       values.push(params.summary);
     }
     if (params.confidence !== undefined) {
-      updates.push('confidence = ?');
+      updates.push("confidence = ?");
       values.push(params.confidence);
     }
     if (params.viability !== undefined) {
-      updates.push('viability = ?');
+      updates.push("viability = ?");
       values.push(params.viability);
     }
     if (params.status !== undefined) {
-      updates.push('status = ?');
+      updates.push("status = ?");
       values.push(params.status);
     }
     if (params.capturedIdeaId !== undefined) {
-      updates.push('captured_idea_id = ?');
+      updates.push("captured_idea_id = ?");
       values.push(params.capturedIdeaId);
     }
 
-    updates.push('updated_at = ?');
+    updates.push("updated_at = ?");
     values.push(new Date().toISOString());
 
     values.push(candidateId);
 
-    db.run(`
+    db.run(
+      `
       UPDATE ideation_candidates
-      SET ${updates.join(', ')}
+      SET ${updates.join(", ")}
       WHERE id = ?
-    `, values);
+    `,
+      values,
+    );
 
     await saveDb();
 
@@ -1182,14 +1248,14 @@ export class CandidateManager {
    * Discard a candidate.
    */
   async discard(candidateId: string): Promise<void> {
-    await this.update(candidateId, { status: 'discarded' });
+    await this.update(candidateId, { status: "discarded" });
   }
 
   /**
    * Save a candidate (for later).
    */
   async save(candidateId: string): Promise<void> {
-    await this.update(candidateId, { status: 'saved' });
+    await this.update(candidateId, { status: "saved" });
   }
 }
 
@@ -1204,12 +1270,19 @@ export const candidateManager = new CandidateManager();
 Create file: `tests/ideation/api-endpoints.test.ts`
 
 ```typescript
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import request from 'supertest';
-import { app } from '../../server/index.js';
-import { initDb, closeDb, getDb } from '../../database/db.js';
+import {
+  describe,
+  test,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+} from "vitest";
+import request from "supertest";
+import { app } from "../../server/index.js";
+import { initDb, closeDb, getDb } from "../../database/db.js";
 
-describe('Ideation API Endpoints', () => {
+describe("Ideation API Endpoints", () => {
   let testProfileId: string;
 
   beforeAll(async () => {
@@ -1217,10 +1290,13 @@ describe('Ideation API Endpoints', () => {
     // Create test profile
     testProfileId = `test_profile_${Date.now()}`;
     const db = getDb();
-    db.run(`
+    db.run(
+      `
       INSERT INTO user_profiles (id, name, slug, goals, created_at, updated_at)
       VALUES (?, 'Test User', 'test-user', '{}', datetime('now'), datetime('now'))
-    `, [testProfileId]);
+    `,
+      [testProfileId],
+    );
   });
 
   afterAll(async () => {
@@ -1237,45 +1313,43 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/start
   // ===========================================================================
 
-  describe('POST /api/ideation/start', () => {
-    test('PASS: Creates session with valid profile', async () => {
+  describe("POST /api/ideation/start", () => {
+    test("PASS: Creates session with valid profile", async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
 
       expect(res.status).toBe(200);
       expect(res.body.sessionId).toBeDefined();
-      expect(res.body.greeting).toContain('Welcome');
+      expect(res.body.greeting).toContain("Welcome");
       expect(res.body.buttons).toBeInstanceOf(Array);
     });
 
-    test('PASS: Greeting includes buttons', async () => {
+    test("PASS: Greeting includes buttons", async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
 
       expect(res.body.buttons.length).toBe(3);
-      expect(res.body.buttons[0]).toHaveProperty('id');
-      expect(res.body.buttons[0]).toHaveProperty('label');
-      expect(res.body.buttons[0]).toHaveProperty('value');
+      expect(res.body.buttons[0]).toHaveProperty("id");
+      expect(res.body.buttons[0]).toHaveProperty("label");
+      expect(res.body.buttons[0]).toHaveProperty("value");
     });
 
-    test('FAIL: Returns 404 for invalid profile', async () => {
+    test("FAIL: Returns 404 for invalid profile", async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
-        .send({ profileId: 'nonexistent_profile' });
+        .post("/api/ideation/start")
+        .send({ profileId: "nonexistent_profile" });
 
       expect(res.status).toBe(404);
-      expect(res.body.error).toContain('Profile not found');
+      expect(res.body.error).toContain("Profile not found");
     });
 
-    test('FAIL: Returns 400 for missing profileId', async () => {
-      const res = await request(app)
-        .post('/api/ideation/start')
-        .send({});
+    test("FAIL: Returns 400 for missing profileId", async () => {
+      const res = await request(app).post("/api/ideation/start").send({});
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('Validation');
+      expect(res.body.error).toContain("Validation");
     });
   });
 
@@ -1283,55 +1357,57 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/message
   // ===========================================================================
 
-  describe('POST /api/ideation/message', () => {
+  describe("POST /api/ideation/message", () => {
     let sessionId: string;
 
     beforeEach(async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
       sessionId = res.body.sessionId;
     });
 
-    test('PASS: Processes message and returns response', async () => {
-      const res = await request(app)
-        .post('/api/ideation/message')
-        .send({
-          sessionId,
-          message: 'I want to solve healthcare problems',
-        });
+    test("PASS: Processes message and returns response", async () => {
+      const res = await request(app).post("/api/ideation/message").send({
+        sessionId,
+        message: "I want to solve healthcare problems",
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.reply).toBeDefined();
-      expect(typeof res.body.reply).toBe('string');
+      expect(typeof res.body.reply).toBe("string");
     });
 
-    test('PASS: Returns ideaCandidate when confidence is high', async () => {
+    test("PASS: Returns ideaCandidate when confidence is high", async () => {
       // Send multiple messages to build confidence
-      await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId, message: 'I work in healthcare IT and have 10 years experience' });
+      await request(app).post("/api/ideation/message").send({
+        sessionId,
+        message: "I work in healthcare IT and have 10 years experience",
+      });
 
-      await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId, message: 'The biggest problem is data interoperability in emergency departments' });
+      await request(app).post("/api/ideation/message").send({
+        sessionId,
+        message:
+          "The biggest problem is data interoperability in emergency departments",
+      });
 
-      const res = await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId, message: 'I want to build a platform to solve this for hospitals' });
+      const res = await request(app).post("/api/ideation/message").send({
+        sessionId,
+        message: "I want to build a platform to solve this for hospitals",
+      });
 
       // May or may not have candidate depending on agent response
       if (res.body.ideaCandidate) {
-        expect(res.body.ideaCandidate).toHaveProperty('id');
-        expect(res.body.ideaCandidate).toHaveProperty('title');
-        expect(res.body.ideaCandidate).toHaveProperty('confidence');
+        expect(res.body.ideaCandidate).toHaveProperty("id");
+        expect(res.body.ideaCandidate).toHaveProperty("title");
+        expect(res.body.ideaCandidate).toHaveProperty("confidence");
       }
     });
 
-    test('PASS: Returns buttons when appropriate', async () => {
+    test("PASS: Returns buttons when appropriate", async () => {
       const res = await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId, message: 'I want to build something' });
+        .post("/api/ideation/message")
+        .send({ sessionId, message: "I want to build something" });
 
       // Buttons are optional depending on agent response
       if (res.body.buttons) {
@@ -1339,33 +1415,32 @@ describe('Ideation API Endpoints', () => {
       }
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       const res = await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId: 'nonexistent', message: 'Hello' });
+        .post("/api/ideation/message")
+        .send({ sessionId: "nonexistent", message: "Hello" });
 
       expect(res.status).toBe(404);
     });
 
-    test('FAIL: Returns 400 for missing message', async () => {
+    test("FAIL: Returns 400 for missing message", async () => {
       const res = await request(app)
-        .post('/api/ideation/message')
+        .post("/api/ideation/message")
         .send({ sessionId });
 
       expect(res.status).toBe(400);
     });
 
-    test('FAIL: Returns 400 for completed session', async () => {
+    test("FAIL: Returns 400 for completed session", async () => {
       // Complete the session first
-      await request(app)
-        .post(`/api/ideation/session/${sessionId}/abandon`);
+      await request(app).post(`/api/ideation/session/${sessionId}/abandon`);
 
       const res = await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId, message: 'Hello' });
+        .post("/api/ideation/message")
+        .send({ sessionId, message: "Hello" });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('not active');
+      expect(res.body.error).toContain("not active");
     });
   });
 
@@ -1373,33 +1448,31 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/button
   // ===========================================================================
 
-  describe('POST /api/ideation/button', () => {
+  describe("POST /api/ideation/button", () => {
     let sessionId: string;
 
     beforeEach(async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
       sessionId = res.body.sessionId;
     });
 
-    test('PASS: Button click is processed as message', async () => {
-      const res = await request(app)
-        .post('/api/ideation/button')
-        .send({
-          sessionId,
-          buttonId: 'btn_frustration',
-          buttonValue: "There's something that frustrates me",
-        });
+    test("PASS: Button click is processed as message", async () => {
+      const res = await request(app).post("/api/ideation/button").send({
+        sessionId,
+        buttonId: "btn_frustration",
+        buttonValue: "There's something that frustrates me",
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.reply).toBeDefined();
     });
 
-    test('FAIL: Returns 400 for missing buttonId', async () => {
+    test("FAIL: Returns 400 for missing buttonId", async () => {
       const res = await request(app)
-        .post('/api/ideation/button')
-        .send({ sessionId, buttonValue: 'test' });
+        .post("/api/ideation/button")
+        .send({ sessionId, buttonValue: "test" });
 
       expect(res.status).toBe(400);
     });
@@ -1409,29 +1482,29 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/capture
   // ===========================================================================
 
-  describe('POST /api/ideation/capture', () => {
+  describe("POST /api/ideation/capture", () => {
     let sessionId: string;
 
     beforeEach(async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
       sessionId = res.body.sessionId;
     });
 
-    test('FAIL: Returns 400 if no candidate exists', async () => {
+    test("FAIL: Returns 400 if no candidate exists", async () => {
       const res = await request(app)
-        .post('/api/ideation/capture')
+        .post("/api/ideation/capture")
         .send({ sessionId });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('No idea candidate');
+      expect(res.body.error).toContain("No idea candidate");
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       const res = await request(app)
-        .post('/api/ideation/capture')
-        .send({ sessionId: 'nonexistent' });
+        .post("/api/ideation/capture")
+        .send({ sessionId: "nonexistent" });
 
       expect(res.status).toBe(404);
     });
@@ -1441,40 +1514,37 @@ describe('Ideation API Endpoints', () => {
   // GET /api/ideation/session/:sessionId
   // ===========================================================================
 
-  describe('GET /api/ideation/session/:sessionId', () => {
+  describe("GET /api/ideation/session/:sessionId", () => {
     let sessionId: string;
 
     beforeEach(async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
       sessionId = res.body.sessionId;
     });
 
-    test('PASS: Returns session details', async () => {
-      const res = await request(app)
-        .get(`/api/ideation/session/${sessionId}`);
+    test("PASS: Returns session details", async () => {
+      const res = await request(app).get(`/api/ideation/session/${sessionId}`);
 
       expect(res.status).toBe(200);
       expect(res.body.session).toBeDefined();
       expect(res.body.messages).toBeInstanceOf(Array);
     });
 
-    test('PASS: Includes messages in response', async () => {
+    test("PASS: Includes messages in response", async () => {
       // Add a message
       await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId, message: 'Test message' });
+        .post("/api/ideation/message")
+        .send({ sessionId, message: "Test message" });
 
-      const res = await request(app)
-        .get(`/api/ideation/session/${sessionId}`);
+      const res = await request(app).get(`/api/ideation/session/${sessionId}`);
 
       expect(res.body.messages.length).toBeGreaterThan(0);
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
-      const res = await request(app)
-        .get('/api/ideation/session/nonexistent');
+    test("FAIL: Returns 404 for invalid session", async () => {
+      const res = await request(app).get("/api/ideation/session/nonexistent");
 
       expect(res.status).toBe(404);
     });
@@ -1484,47 +1554,50 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/session/:sessionId/abandon
   // ===========================================================================
 
-  describe('POST /api/ideation/session/:sessionId/abandon', () => {
+  describe("POST /api/ideation/session/:sessionId/abandon", () => {
     let sessionId: string;
 
     beforeEach(async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
       sessionId = res.body.sessionId;
     });
 
-    test('PASS: Abandons active session', async () => {
-      const res = await request(app)
-        .post(`/api/ideation/session/${sessionId}/abandon`);
+    test("PASS: Abandons active session", async () => {
+      const res = await request(app).post(
+        `/api/ideation/session/${sessionId}/abandon`,
+      );
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
 
       // Verify session is abandoned
-      const sessionRes = await request(app)
-        .get(`/api/ideation/session/${sessionId}`);
-      expect(sessionRes.body.session.status).toBe('abandoned');
+      const sessionRes = await request(app).get(
+        `/api/ideation/session/${sessionId}`,
+      );
+      expect(sessionRes.body.session.status).toBe("abandoned");
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
-      const res = await request(app)
-        .post('/api/ideation/session/nonexistent/abandon');
+    test("FAIL: Returns 404 for invalid session", async () => {
+      const res = await request(app).post(
+        "/api/ideation/session/nonexistent/abandon",
+      );
 
       expect(res.status).toBe(404);
     });
 
-    test('FAIL: Returns 400 for already abandoned session', async () => {
+    test("FAIL: Returns 400 for already abandoned session", async () => {
       // Abandon first
-      await request(app)
-        .post(`/api/ideation/session/${sessionId}/abandon`);
+      await request(app).post(`/api/ideation/session/${sessionId}/abandon`);
 
       // Try again
-      const res = await request(app)
-        .post(`/api/ideation/session/${sessionId}/abandon`);
+      const res = await request(app).post(
+        `/api/ideation/session/${sessionId}/abandon`,
+      );
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('not active');
+      expect(res.body.error).toContain("not active");
     });
   });
 
@@ -1532,33 +1605,32 @@ describe('Ideation API Endpoints', () => {
   // GET /api/ideation/sessions
   // ===========================================================================
 
-  describe('GET /api/ideation/sessions', () => {
-    test('PASS: Returns sessions for profile', async () => {
+  describe("GET /api/ideation/sessions", () => {
+    test("PASS: Returns sessions for profile", async () => {
       // Create a session
       await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
 
       const res = await request(app)
-        .get('/api/ideation/sessions')
+        .get("/api/ideation/sessions")
         .query({ profileId: testProfileId });
 
       expect(res.status).toBe(200);
       expect(res.body.sessions).toBeInstanceOf(Array);
     });
 
-    test('PASS: Returns empty array for profile with no sessions', async () => {
+    test("PASS: Returns empty array for profile with no sessions", async () => {
       const res = await request(app)
-        .get('/api/ideation/sessions')
-        .query({ profileId: 'no_sessions_profile' });
+        .get("/api/ideation/sessions")
+        .query({ profileId: "no_sessions_profile" });
 
       expect(res.status).toBe(200);
       expect(res.body.sessions).toEqual([]);
     });
 
-    test('FAIL: Returns 400 for missing profileId', async () => {
-      const res = await request(app)
-        .get('/api/ideation/sessions');
+    test("FAIL: Returns 400 for missing profileId", async () => {
+      const res = await request(app).get("/api/ideation/sessions");
 
       expect(res.status).toBe(400);
     });
@@ -1568,25 +1640,25 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/form
   // ===========================================================================
 
-  describe('POST /api/ideation/form', () => {
+  describe("POST /api/ideation/form", () => {
     let sessionId: string;
 
     beforeEach(async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
       sessionId = res.body.sessionId;
     });
 
-    test('PASS: Processes form submission', async () => {
+    test("PASS: Processes form submission", async () => {
       const res = await request(app)
-        .post('/api/ideation/form')
+        .post("/api/ideation/form")
         .send({
           sessionId,
-          formId: 'constraints_form',
+          formId: "constraints_form",
           responses: {
-            geography: 'local',
-            product_type: ['digital', 'service'],
+            geography: "local",
+            product_type: ["digital", "service"],
             hours_per_week: 20,
           },
         });
@@ -1595,39 +1667,35 @@ describe('Ideation API Endpoints', () => {
       expect(res.body.reply).toBeDefined();
     });
 
-    test('PASS: Handles array responses in form', async () => {
+    test("PASS: Handles array responses in form", async () => {
       const res = await request(app)
-        .post('/api/ideation/form')
+        .post("/api/ideation/form")
         .send({
           sessionId,
-          formId: 'interests_form',
+          formId: "interests_form",
           responses: {
-            interests: ['tech', 'sustainability', 'health'],
+            interests: ["tech", "sustainability", "health"],
           },
         });
 
       expect(res.status).toBe(200);
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
-      const res = await request(app)
-        .post('/api/ideation/form')
-        .send({
-          sessionId: 'nonexistent_session',
-          formId: 'test_form',
-          responses: {},
-        });
+    test("FAIL: Returns 404 for invalid session", async () => {
+      const res = await request(app).post("/api/ideation/form").send({
+        sessionId: "nonexistent_session",
+        formId: "test_form",
+        responses: {},
+      });
 
       expect(res.status).toBe(404);
     });
 
-    test('FAIL: Returns 400 for missing formId', async () => {
-      const res = await request(app)
-        .post('/api/ideation/form')
-        .send({
-          sessionId,
-          responses: {},
-        });
+    test("FAIL: Returns 400 for missing formId", async () => {
+      const res = await request(app).post("/api/ideation/form").send({
+        sessionId,
+        responses: {},
+      });
 
       expect(res.status).toBe(400);
     });
@@ -1637,50 +1705,46 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/save
   // ===========================================================================
 
-  describe('POST /api/ideation/save', () => {
+  describe("POST /api/ideation/save", () => {
     let sessionId: string;
 
     beforeEach(async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
       sessionId = res.body.sessionId;
     });
 
-    test('PASS: Saves session with active candidate', async () => {
+    test("PASS: Saves session with active candidate", async () => {
       // First send a message to create a candidate
-      await request(app)
-        .post('/api/ideation/message')
-        .send({
-          sessionId,
-          message: 'I want to build a marketplace for vintage synthesizers',
-        });
+      await request(app).post("/api/ideation/message").send({
+        sessionId,
+        message: "I want to build a marketplace for vintage synthesizers",
+      });
 
-      const res = await request(app)
-        .post('/api/ideation/save')
-        .send({
-          sessionId,
-          notes: 'Want to think about this more',
-        });
+      const res = await request(app).post("/api/ideation/save").send({
+        sessionId,
+        notes: "Want to think about this more",
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.message).toContain('saved');
+      expect(res.body.message).toContain("saved");
     });
 
-    test('FAIL: Returns 404 when no candidate exists', async () => {
+    test("FAIL: Returns 404 when no candidate exists", async () => {
       const res = await request(app)
-        .post('/api/ideation/save')
+        .post("/api/ideation/save")
         .send({ sessionId });
 
       expect(res.status).toBe(404);
-      expect(res.body.error).toContain('No candidate');
+      expect(res.body.error).toContain("No candidate");
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       const res = await request(app)
-        .post('/api/ideation/save')
-        .send({ sessionId: 'nonexistent_session' });
+        .post("/api/ideation/save")
+        .send({ sessionId: "nonexistent_session" });
 
       expect(res.status).toBe(404);
     });
@@ -1690,23 +1754,21 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/discard
   // ===========================================================================
 
-  describe('POST /api/ideation/discard', () => {
+  describe("POST /api/ideation/discard", () => {
     let sessionId: string;
 
     beforeEach(async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
       sessionId = res.body.sessionId;
     });
 
-    test('PASS: Discards session and creates new one', async () => {
-      const res = await request(app)
-        .post('/api/ideation/discard')
-        .send({
-          sessionId,
-          reason: 'Want to start fresh',
-        });
+    test("PASS: Discards session and creates new one", async () => {
+      const res = await request(app).post("/api/ideation/discard").send({
+        sessionId,
+        reason: "Want to start fresh",
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -1715,19 +1777,19 @@ describe('Ideation API Endpoints', () => {
       expect(res.body.greeting).toBeDefined();
     });
 
-    test('PASS: Discards without reason', async () => {
+    test("PASS: Discards without reason", async () => {
       const res = await request(app)
-        .post('/api/ideation/discard')
+        .post("/api/ideation/discard")
         .send({ sessionId });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       const res = await request(app)
-        .post('/api/ideation/discard')
-        .send({ sessionId: 'nonexistent_session' });
+        .post("/api/ideation/discard")
+        .send({ sessionId: "nonexistent_session" });
 
       expect(res.status).toBe(404);
     });
@@ -1737,34 +1799,30 @@ describe('Ideation API Endpoints', () => {
   // POST /api/ideation/message/stream
   // ===========================================================================
 
-  describe('POST /api/ideation/message/stream', () => {
+  describe("POST /api/ideation/message/stream", () => {
     let sessionId: string;
 
     beforeEach(async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: testProfileId });
       sessionId = res.body.sessionId;
     });
 
-    test('PASS: Returns SSE content type', async () => {
-      const res = await request(app)
-        .post('/api/ideation/message/stream')
-        .send({
-          sessionId,
-          message: 'Tell me about your process',
-        });
+    test("PASS: Returns SSE content type", async () => {
+      const res = await request(app).post("/api/ideation/message/stream").send({
+        sessionId,
+        message: "Tell me about your process",
+      });
 
-      expect(res.headers['content-type']).toContain('text/event-stream');
+      expect(res.headers["content-type"]).toContain("text/event-stream");
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
-      const res = await request(app)
-        .post('/api/ideation/message/stream')
-        .send({
-          sessionId: 'nonexistent_session',
-          message: 'Hello',
-        });
+    test("FAIL: Returns 404 for invalid session", async () => {
+      const res = await request(app).post("/api/ideation/message/stream").send({
+        sessionId: "nonexistent_session",
+        message: "Hello",
+      });
 
       expect(res.status).toBe(404);
     });
@@ -1777,7 +1835,7 @@ describe('Ideation API Endpoints', () => {
 Create file: `tests/ideation/error-classes.test.ts`
 
 ```typescript
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from "vitest";
 import {
   IdeationError,
   SessionNotFoundError,
@@ -1793,62 +1851,66 @@ import {
   MemoryFileError,
   ideationErrorHandler,
   asyncHandler,
-} from '../../server/errors/ideation-errors.js';
+} from "../../server/errors/ideation-errors.js";
 
-describe('IdeationErrors', () => {
+describe("IdeationErrors", () => {
+  describe("IdeationError base class", () => {
+    test("PASS: Creates error with all fields", () => {
+      const error = new IdeationError("Test error", "TEST_ERROR", 400, {
+        extra: "data",
+      });
 
-  describe('IdeationError base class', () => {
-    test('PASS: Creates error with all fields', () => {
-      const error = new IdeationError('Test error', 'TEST_ERROR', 400, { extra: 'data' });
-
-      expect(error.message).toBe('Test error');
-      expect(error.code).toBe('TEST_ERROR');
+      expect(error.message).toBe("Test error");
+      expect(error.code).toBe("TEST_ERROR");
       expect(error.statusCode).toBe(400);
-      expect(error.details).toEqual({ extra: 'data' });
+      expect(error.details).toEqual({ extra: "data" });
     });
 
-    test('PASS: toJSON returns correct structure', () => {
-      const error = new IdeationError('Test', 'TEST', 500, { foo: 'bar' });
+    test("PASS: toJSON returns correct structure", () => {
+      const error = new IdeationError("Test", "TEST", 500, { foo: "bar" });
       const json = error.toJSON();
 
-      expect(json.error).toBe('Test');
-      expect(json.code).toBe('TEST');
-      expect(json.details).toEqual({ foo: 'bar' });
+      expect(json.error).toBe("Test");
+      expect(json.code).toBe("TEST");
+      expect(json.details).toEqual({ foo: "bar" });
     });
   });
 
-  describe('SessionNotFoundError', () => {
-    test('PASS: Has correct properties', () => {
-      const error = new SessionNotFoundError('session_123');
+  describe("SessionNotFoundError", () => {
+    test("PASS: Has correct properties", () => {
+      const error = new SessionNotFoundError("session_123");
 
       expect(error.statusCode).toBe(404);
-      expect(error.code).toBe('SESSION_NOT_FOUND');
-      expect(error.message).toContain('session_123');
+      expect(error.code).toBe("SESSION_NOT_FOUND");
+      expect(error.message).toContain("session_123");
     });
   });
 
-  describe('SessionNotActiveError', () => {
-    test('PASS: Includes current status in details', () => {
-      const error = new SessionNotActiveError('session_123', 'completed');
+  describe("SessionNotActiveError", () => {
+    test("PASS: Includes current status in details", () => {
+      const error = new SessionNotActiveError("session_123", "completed");
 
       expect(error.statusCode).toBe(400);
-      expect(error.details).toEqual({ currentStatus: 'completed' });
+      expect(error.details).toEqual({ currentStatus: "completed" });
     });
   });
 
-  describe('SessionAlreadyExistsError', () => {
-    test('PASS: Returns 409 conflict', () => {
-      const error = new SessionAlreadyExistsError('profile_1', 'existing_session');
+  describe("SessionAlreadyExistsError", () => {
+    test("PASS: Returns 409 conflict", () => {
+      const error = new SessionAlreadyExistsError(
+        "profile_1",
+        "existing_session",
+      );
 
       expect(error.statusCode).toBe(409);
-      expect(error.code).toBe('SESSION_ALREADY_EXISTS');
-      expect(error.details).toEqual({ existingSessionId: 'existing_session' });
+      expect(error.code).toBe("SESSION_ALREADY_EXISTS");
+      expect(error.details).toEqual({ existingSessionId: "existing_session" });
     });
   });
 
-  describe('ValidationError', () => {
-    test('PASS: Includes validation issues', () => {
-      const issues = [{ field: 'email', message: 'Invalid email' }];
+  describe("ValidationError", () => {
+    test("PASS: Includes validation issues", () => {
+      const issues = [{ field: "email", message: "Invalid email" }];
       const error = new ValidationError(issues);
 
       expect(error.statusCode).toBe(400);
@@ -1856,8 +1918,8 @@ describe('IdeationErrors', () => {
     });
   });
 
-  describe('ContextLimitError', () => {
-    test('PASS: Includes token counts', () => {
+  describe("ContextLimitError", () => {
+    test("PASS: Includes token counts", () => {
       const error = new ContextLimitError(85000, 80000);
 
       expect(error.statusCode).toBe(400);
@@ -1869,9 +1931,9 @@ describe('IdeationErrors', () => {
     });
   });
 
-  describe('ideationErrorHandler', () => {
-    test('PASS: Handles IdeationError', () => {
-      const error = new SessionNotFoundError('test');
+  describe("ideationErrorHandler", () => {
+    test("PASS: Handles IdeationError", () => {
+      const error = new SessionNotFoundError("test");
       const mockRes = {
         status: (code: number) => ({
           json: (body: unknown) => ({ code, body }),
@@ -1883,8 +1945,8 @@ describe('IdeationErrors', () => {
       expect(result.code).toBe(404);
     });
 
-    test('PASS: Handles generic Error', () => {
-      const error = new Error('Random error');
+    test("PASS: Handles generic Error", () => {
+      const error = new Error("Random error");
       const mockRes = {
         status: (code: number) => ({
           json: (body: unknown) => ({ code, body }),
@@ -1897,17 +1959,19 @@ describe('IdeationErrors', () => {
     });
   });
 
-  describe('asyncHandler', () => {
-    test('PASS: Catches async errors', async () => {
+  describe("asyncHandler", () => {
+    test("PASS: Catches async errors", async () => {
       let caughtError: Error | null = null;
       const handler = asyncHandler(async () => {
-        throw new Error('Async error');
+        throw new Error("Async error");
       });
 
-      await handler({}, {}, (err: Error) => { caughtError = err; });
+      await handler({}, {}, (err: Error) => {
+        caughtError = err;
+      });
 
       expect(caughtError).not.toBeNull();
-      expect(caughtError!.message).toBe('Async error');
+      expect(caughtError!.message).toBe("Async error");
     });
   });
 });
@@ -1930,18 +1994,18 @@ describe('IdeationErrors', () => {
 
 ## 6. Success Criteria
 
-| Test Category | Expected Pass | Expected Fail |
-|---------------|---------------|---------------|
-| POST /start | 2 | 2 |
-| POST /message | 3 | 3 |
-| POST /button | 1 | 1 |
-| POST /capture | 0 | 2 |
-| GET /session/:id | 2 | 1 |
-| POST /session/:id/abandon | 1 | 2 |
-| GET /sessions | 2 | 1 |
-| POST /form | 2 | 2 |
-| POST /save | 1 | 2 |
-| POST /discard | 2 | 1 |
-| POST /message/stream | 1 | 1 |
-| Error Classes | 11 | 0 |
-| **Total** | **28** | **18** |
+| Test Category             | Expected Pass | Expected Fail |
+| ------------------------- | ------------- | ------------- |
+| POST /start               | 2             | 2             |
+| POST /message             | 3             | 3             |
+| POST /button              | 1             | 1             |
+| POST /capture             | 0             | 2             |
+| GET /session/:id          | 2             | 1             |
+| POST /session/:id/abandon | 1             | 2             |
+| GET /sessions             | 2             | 1             |
+| POST /form                | 2             | 2             |
+| POST /save                | 1             | 2             |
+| POST /discard             | 2             | 1             |
+| POST /message/stream      | 1             | 1             |
+| Error Classes             | 11            | 0             |
+| **Total**                 | **28**        | **18**        |

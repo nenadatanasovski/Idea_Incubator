@@ -294,6 +294,7 @@ SIA_SKILLS = {
 ```
 
 ---
+
 ## 2. Monitor Agent
 
 ### 2.1 Trigger
@@ -670,6 +671,7 @@ def prioritize_context(context: dict, budget: int) -> dict:
 ```
 
 ---
+
 ## 5. Knowledge Base Integration
 
 ### 5.1 How Agents Query Knowledge Base
@@ -804,25 +806,26 @@ class KnowledgeBase:
 
 > **Note:** "Task (P1)" = Task Agent Phase 1 (spec generation), "Task (P2)" = Task Agent Phase 2 (orchestration)
 
-| Scenario | Ideation | Task (P1) | Build | Task (P2) | SIA | Monitor | PM |
-|----------|----------|-----------|-------|-----------|-----|---------|-----|
-| User sends message | ✓ Process | | | | | | |
-| Ideation complete | | ✓ Trigger | | | Reviews | | |
-| Generate spec | | ✓ Execute | | | | | |
-| Spec/tasks created | | | | ✓ Suggest | | | |
-| Task list approved | | | ✓ Execute | ✓ Dispatch | | Watches | |
-| Task starts | | | ✓ Execute | ✓ Track | | Watches | |
-| Task fails | | | Retry/skip | ✓ Escalate | Gotcha | | |
-| Task stuck | | | | ✓ Notify | | ✓ Detects | Resolves |
-| Build complete | | | | ✓ Report | ✓ Reviews | | |
-| Telegram command | | | | ✓ Handle | | | |
-| Stale task | | | | ✓ Detect | | | |
-| Duplicate detected | | | | ✓ Merge | | | |
-| Conflict detected | | | Waits | | | | ✓ Resolves |
-| Deadlock detected | | | | | | ✓ Detects | ✓ Resolves |
-| Component down | | | | | | ✓ Alerts | Restarts |
+| Scenario           | Ideation  | Task (P1) | Build      | Task (P2)  | SIA       | Monitor   | PM         |
+| ------------------ | --------- | --------- | ---------- | ---------- | --------- | --------- | ---------- |
+| User sends message | ✓ Process |           |            |            |           |           |            |
+| Ideation complete  |           | ✓ Trigger |            |            | Reviews   |           |            |
+| Generate spec      |           | ✓ Execute |            |            |           |           |            |
+| Spec/tasks created |           |           |            | ✓ Suggest  |           |           |            |
+| Task list approved |           |           | ✓ Execute  | ✓ Dispatch |           | Watches   |            |
+| Task starts        |           |           | ✓ Execute  | ✓ Track    |           | Watches   |            |
+| Task fails         |           |           | Retry/skip | ✓ Escalate | Gotcha    |           |            |
+| Task stuck         |           |           |            | ✓ Notify   |           | ✓ Detects | Resolves   |
+| Build complete     |           |           |            | ✓ Report   | ✓ Reviews |           |            |
+| Telegram command   |           |           |            | ✓ Handle   |           |           |            |
+| Stale task         |           |           |            | ✓ Detect   |           |           |            |
+| Duplicate detected |           |           |            | ✓ Merge    |           |           |            |
+| Conflict detected  |           |           | Waits      |            |           |           | ✓ Resolves |
+| Deadlock detected  |           |           |            |            |           | ✓ Detects | ✓ Resolves |
+| Component down     |           |           |            |            |           | ✓ Alerts  | Restarts   |
 
 ---
+
 ## 6. Proactive Questioning
 
 > **See Also:** `ENGAGEMENT-AND-ORCHESTRATION-UI.md` for full UI/UX specifications
@@ -855,13 +858,19 @@ class KnowledgeBase:
 ```typescript
 interface AgentQuestion {
   id: string;
-  type: 'blocking' | 'clarifying' | 'confirming' | 'educational' | 'celebratory' | 'preference';
+  type:
+    | "blocking"
+    | "clarifying"
+    | "confirming"
+    | "educational"
+    | "celebratory"
+    | "preference";
   agent: string;
   phase: string;
 
   // Content
   text: string;
-  context: string;  // Why we're asking
+  context: string; // Why we're asking
 
   // Options
   options: Array<{
@@ -881,7 +890,7 @@ interface AgentQuestion {
   // Metadata
   ideaId: string;
   sessionId: string;
-  tags: string[];  // For pattern matching
+  tags: string[]; // For pattern matching
 }
 ```
 
@@ -1393,7 +1402,7 @@ triggers:
 
 ### 6.8 SIA Agent Questions
 
-```yaml
+````yaml
 # agents/sia/questions.yaml
 
 triggers:
@@ -1476,7 +1485,7 @@ triggers:
           - label: "Show me the new patterns"
           - label: "Review gotchas"
           - label: "Looks good, continue"
-```
+````
 
 ### 6.9 System Prompt Addition for All Agents
 
@@ -1577,9 +1586,8 @@ Structure questions as JSON in your response:
 
 ---
 
-*This document is the definitive reference for understanding agent internals. For E2E flows, see E2E-SCENARIOS.md. For implementation, see IMPLEMENTATION-PLAN.md. For UI/UX of questioning and orchestration, see ENGAGEMENT-AND-ORCHESTRATION-UI.md.*
+_This document is the definitive reference for understanding agent internals. For E2E flows, see E2E-SCENARIOS.md. For implementation, see IMPLEMENTATION-PLAN.md. For UI/UX of questioning and orchestration, see ENGAGEMENT-AND-ORCHESTRATION-UI.md._
 
 ---
 
-*This document covers infrastructure agents and cross-cutting concerns. For pipeline agents (Ideation, Task, Build), see [AGENT-SPECIFICATIONS-PIPELINE.md](./AGENT-SPECIFICATIONS-PIPELINE.md).*
-
+_This document covers infrastructure agents and cross-cutting concerns. For pipeline agents (Ideation, Task, Build), see [AGENT-SPECIFICATIONS-PIPELINE.md](./AGENT-SPECIFICATIONS-PIPELINE.md)._

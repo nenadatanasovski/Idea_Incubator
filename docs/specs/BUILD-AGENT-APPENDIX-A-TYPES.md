@@ -10,12 +10,12 @@
 // types/build-agent.ts
 
 export type BuildAgentStatus =
-  | 'initializing'
-  | 'running'
-  | 'idle'
-  | 'completed'
-  | 'failed'
-  | 'stuck';
+  | "initializing"
+  | "running"
+  | "idle"
+  | "completed"
+  | "failed"
+  | "stuck";
 
 export interface BuildAgentConfig {
   maxRetries: number;
@@ -27,7 +27,7 @@ export interface BuildAgentConfig {
 export interface BuildAgentInstance {
   instanceId: string;
   executionId: string;
-  agentType: 'build-agent';
+  agentType: "build-agent";
   currentTaskId: string | null;
   waveNumber: number;
   status: BuildAgentStatus;
@@ -76,13 +76,13 @@ export interface TaskAttempt {
   attemptNumber: number;
   startedAt: string;
   completedAt: string | null;
-  status: 'success' | 'failed' | 'timeout';
+  status: "success" | "failed" | "timeout";
   validationOutput: string | null;
   errorMessage: string | null;
 }
 
 export interface Discovery {
-  type: 'gotcha' | 'pattern' | 'decision';
+  type: "gotcha" | "pattern" | "decision";
   content: string;
   filePattern: string;
   actionType: string;
@@ -102,17 +102,17 @@ export interface ExecutionLogEntry {
 }
 
 export type ExecutionEventType =
-  | 'task_started'
-  | 'task_completed'
-  | 'task_failed'
-  | 'task_skipped'
-  | 'checkpoint_created'
-  | 'checkpoint_restored'
-  | 'discovery_recorded'
-  | 'validation_run'
-  | 'error'
-  | 'warning'
-  | 'info';
+  | "task_started"
+  | "task_completed"
+  | "task_failed"
+  | "task_skipped"
+  | "checkpoint_created"
+  | "checkpoint_restored"
+  | "discovery_recorded"
+  | "validation_run"
+  | "error"
+  | "warning"
+  | "info";
 ```
 
 ---
@@ -126,7 +126,7 @@ export interface PrimePhaseContext {
   spec: SpecificationDocument;
   tasks: Task[];
   conventions: Convention[];
-  executionLog: ExecutionLogEntry[];  // Last 500 lines for resumption
+  executionLog: ExecutionLogEntry[]; // Last 500 lines for resumption
   previousState?: ResumptionState;
 }
 
@@ -142,7 +142,7 @@ export interface SpecificationDocument {
   userSlug: string;
   specPath: string;
   tasksPath: string;
-  status: 'draft' | 'approved' | 'in_progress' | 'completed';
+  status: "draft" | "approved" | "in_progress" | "completed";
   createdAt: string;
   approvedAt?: string;
 }
@@ -150,7 +150,7 @@ export interface SpecificationDocument {
 export interface Convention {
   section: string;
   content: string;
-  source: 'CLAUDE.md' | 'project' | 'knowledge_base';
+  source: "CLAUDE.md" | "project" | "knowledge_base";
 }
 
 export interface Issue {
@@ -168,7 +168,7 @@ export interface Issue {
 ```typescript
 // types/validation.ts
 
-export type ValidationLevel = 'codebase' | 'api' | 'ui';
+export type ValidationLevel = "codebase" | "api" | "ui";
 
 export interface ValidationResult {
   level: ValidationLevel;
@@ -200,34 +200,34 @@ export interface TaskValidation {
 // types/failure.ts
 
 export type ErrorType =
-  | 'SYNTAX_ERROR'
-  | 'TYPE_ERROR'
-  | 'VALIDATION_FAILED'
-  | 'MISSING_DEPENDENCY'
-  | 'FILE_LOCK_CONFLICT'
-  | 'PERMISSION_DENIED'
-  | 'CONFLICT'
-  | 'TIMEOUT'
-  | 'TRANSIENT_ERROR'
-  | 'UNKNOWN';
+  | "SYNTAX_ERROR"
+  | "TYPE_ERROR"
+  | "VALIDATION_FAILED"
+  | "MISSING_DEPENDENCY"
+  | "FILE_LOCK_CONFLICT"
+  | "PERMISSION_DENIED"
+  | "CONFLICT"
+  | "TIMEOUT"
+  | "TRANSIENT_ERROR"
+  | "UNKNOWN";
 
 export type FailureAction =
-  | 'RETRY'
-  | 'INSTALL_AND_RETRY'
-  | 'REBASE_AND_RETRY'
-  | 'SKIP'
-  | 'ESCALATE';
+  | "RETRY"
+  | "INSTALL_AND_RETRY"
+  | "REBASE_AND_RETRY"
+  | "SKIP"
+  | "ESCALATE";
 
 export interface FailureDecision {
   action: FailureAction;
   reason: string;
-  package?: string;  // For INSTALL_AND_RETRY
+  package?: string; // For INSTALL_AND_RETRY
   retryDelay?: number;
 }
 
 export interface RetryStrategy {
   maxRetries: number;
-  backoffMs: number[];  // e.g., [1000, 5000, 15000]
+  backoffMs: number[]; // e.g., [1000, 5000, 15000]
   retryableErrors: ErrorType[];
   nonRetryableErrors: ErrorType[];
 }
@@ -237,15 +237,11 @@ export const DEFAULT_RETRY_STRATEGY: RetryStrategy = {
   maxRetries: 3,
   backoffMs: [1000, 5000, 15000],
   retryableErrors: [
-    'VALIDATION_TIMEOUT',
-    'FILE_LOCK_CONFLICT',
-    'TRANSIENT_ERROR'
+    "VALIDATION_TIMEOUT",
+    "FILE_LOCK_CONFLICT",
+    "TRANSIENT_ERROR",
   ],
-  nonRetryableErrors: [
-    'SYNTAX_ERROR',
-    'TYPE_ERROR',
-    'PERMISSION_DENIED'
-  ]
+  nonRetryableErrors: ["SYNTAX_ERROR", "TYPE_ERROR", "PERMISSION_DENIED"],
 };
 ```
 
@@ -297,7 +293,7 @@ export interface TaskFailedEvent {
 }
 
 export interface DiscoveryRecordedEvent {
-  type: 'gotcha' | 'pattern' | 'decision';
+  type: "gotcha" | "pattern" | "decision";
   content: string;
   filePattern: string;
   confidence: number;
@@ -343,7 +339,7 @@ export interface FailureContext {
     errorType: ErrorType;
     message: string;
   }>;
-  executionLogTail: string;  // Last 500 lines
+  executionLogTail: string; // Last 500 lines
 }
 ```
 
@@ -365,7 +361,7 @@ export interface ExecutionWave {
   waveId: string;
   executionId: string;
   waveNumber: number;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
   startedAt?: string;
   completedAt?: string;
   taskCount: number;
@@ -416,7 +412,7 @@ export interface Pattern {
 }
 
 export interface KnowledgeQuery {
-  type: 'gotcha' | 'pattern';
+  type: "gotcha" | "pattern";
   filePattern?: string;
   actionType?: string;
   topic?: string;
@@ -425,7 +421,7 @@ export interface KnowledgeQuery {
 }
 
 export interface KnowledgeRecord {
-  type: 'gotcha' | 'pattern' | 'decision';
+  type: "gotcha" | "pattern" | "decision";
   content: string;
   filePattern?: string;
   actionType?: string;

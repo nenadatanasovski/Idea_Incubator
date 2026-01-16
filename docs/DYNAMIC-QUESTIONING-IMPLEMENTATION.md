@@ -17,30 +17,31 @@ This document outlines a system that progressively develops ideas through dynami
 **Why do ideas fail evaluation?**
 
 Working backwards from evaluation failures:
+
 1. **Insufficient information** → Evaluator must guess → Low confidence scores
 2. **Wrong information** → Evaluator misunderstands intent → Misaligned recommendations
 3. **Scattered information** → Evaluator misses context → Incomplete analysis
 
-**Root cause**: The gap between what the user *knows* about their idea and what they *document* about their idea.
+**Root cause**: The gap between what the user _knows_ about their idea and what they _document_ about their idea.
 
 ### What Does an Evaluator Actually Need?
 
 For each of the 30 criteria, the evaluator needs **evidence** to score:
 
-| Category | What Evaluator Seeks | Current Gap |
-|----------|---------------------|-------------|
-| **Problem (P1-P5)** | Clear problem statement, severity evidence, target user specifics, validation data, competitive problem-space analysis | Often assumed or vague |
-| **Solution (S1-S5)** | Technical approach, differentiation, moat, scale characteristics | Usually aspirational |
-| **Feasibility (F1-F5)** | Technical plan, resource needs, skill assessment, timeline, dependencies | Rarely specified |
-| **Fit (FT1-FT5)** | Now covered by profile linking | **SOLVED** |
-| **Market (M1-M5)** | TAM/SAM/SOM, growth data, competition map, barriers, timing analysis | Usually absent |
-| **Risk (R1-R5)** | Identified risks, mitigation plans, kill conditions | Almost never present |
+| Category                | What Evaluator Seeks                                                                                                   | Current Gap            |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **Problem (P1-P5)**     | Clear problem statement, severity evidence, target user specifics, validation data, competitive problem-space analysis | Often assumed or vague |
+| **Solution (S1-S5)**    | Technical approach, differentiation, moat, scale characteristics                                                       | Usually aspirational   |
+| **Feasibility (F1-F5)** | Technical plan, resource needs, skill assessment, timeline, dependencies                                               | Rarely specified       |
+| **Fit (FT1-FT5)**       | Now covered by profile linking                                                                                         | **SOLVED**             |
+| **Market (M1-M5)**      | TAM/SAM/SOM, growth data, competition map, barriers, timing analysis                                                   | Usually absent         |
+| **Risk (R1-R5)**        | Identified risks, mitigation plans, kill conditions                                                                    | Almost never present   |
 
 ### The Insight
 
 **An idea is "evaluation-ready" when it provides sufficient evidence for an evaluator to score each criterion with confidence > 70%.**
 
-The question becomes: *How do we systematically elicit this evidence from the user?*
+The question becomes: _How do we systematically elicit this evidence from the user?_
 
 ---
 
@@ -59,6 +60,7 @@ Where:
 ```
 
 **Readiness Thresholds:**
+
 - `< 30%`: SPARK - Too early for meaningful evaluation
 - `30-60%`: CLARIFY - Needs more development
 - `60-80%`: READY - Can evaluate with caveats
@@ -100,6 +102,7 @@ function selectNextQuestions(idea, previousAnswers, profile):
 ### 3.1 Problem Category Questions
 
 #### P1: Problem Clarity
+
 ```yaml
 questions:
   - id: P1_CORE
@@ -118,6 +121,7 @@ questions:
 ```
 
 #### P2: Problem Severity
+
 ```yaml
 questions:
   - id: P2_PAIN
@@ -142,6 +146,7 @@ questions:
 ```
 
 #### P3: Target User Clarity
+
 ```yaml
 questions:
   - id: P3_WHO
@@ -166,6 +171,7 @@ questions:
 ```
 
 #### P4: Problem Validation
+
 ```yaml
 questions:
   - id: P4_EVIDENCE
@@ -185,6 +191,7 @@ questions:
 ```
 
 #### P5: Problem Uniqueness
+
 ```yaml
 questions:
   - id: P5_EXISTING
@@ -206,6 +213,7 @@ questions:
 ### 3.2 Solution Category Questions
 
 #### S1: Solution Clarity
+
 ```yaml
 questions:
   - id: S1_WHAT
@@ -225,6 +233,7 @@ questions:
 ```
 
 #### S2: Solution Feasibility
+
 ```yaml
 questions:
   - id: S2_TECH
@@ -245,6 +254,7 @@ questions:
 ```
 
 #### S3: Solution Uniqueness
+
 ```yaml
 questions:
   - id: S3_DIFF
@@ -264,6 +274,7 @@ questions:
 ```
 
 #### S4: Solution Scalability
+
 ```yaml
 questions:
   - id: S4_SCALE
@@ -278,6 +289,7 @@ questions:
 ```
 
 #### S5: Solution Defensibility
+
 ```yaml
 questions:
   - id: S5_MOAT
@@ -299,6 +311,7 @@ questions:
 ### 3.3 Feasibility Category Questions
 
 #### F1: Technical Complexity
+
 ```yaml
 questions:
   - id: F1_MVP
@@ -319,6 +332,7 @@ questions:
 ```
 
 #### F2: Resource Requirements
+
 ```yaml
 questions:
   - id: F2_COST
@@ -338,7 +352,9 @@ questions:
 ```
 
 #### F3: Skill Availability
-*Note: Now largely covered by profile linking, but specific idea context matters*
+
+_Note: Now largely covered by profile linking, but specific idea context matters_
+
 ```yaml
 questions:
   - id: F3_GAP
@@ -353,6 +369,7 @@ questions:
 ```
 
 #### F4: Time to Value
+
 ```yaml
 questions:
   - id: F4_FIRST_VALUE
@@ -368,6 +385,7 @@ questions:
 ```
 
 #### F5: Dependency Risk
+
 ```yaml
 questions:
   - id: F5_DEPS
@@ -384,6 +402,7 @@ questions:
 ### 3.4 Market Category Questions
 
 #### M1: Market Size
+
 ```yaml
 questions:
   - id: M1_TAM
@@ -406,6 +425,7 @@ questions:
 ```
 
 #### M2: Market Growth
+
 ```yaml
 questions:
   - id: M2_TREND
@@ -420,6 +440,7 @@ questions:
 ```
 
 #### M3: Competition Intensity
+
 ```yaml
 questions:
   - id: M3_COMPETITORS
@@ -439,6 +460,7 @@ questions:
 ```
 
 #### M4: Entry Barriers
+
 ```yaml
 questions:
   - id: M4_BARRIERS
@@ -453,6 +475,7 @@ questions:
 ```
 
 #### M5: Timing
+
 ```yaml
 questions:
   - id: M5_WHY_NOW
@@ -469,6 +492,7 @@ questions:
 ### 3.5 Risk Category Questions
 
 #### R1-R5: Risk Assessment
+
 ```yaml
 questions:
   - id: R_BIGGEST
@@ -508,6 +532,7 @@ questions:
 ```
 
 ### 3.6 Revenue & Business Model (for business ideas)
+
 ```yaml
 questions:
   - id: BM_MODEL
@@ -727,7 +752,9 @@ Response: {
 ### 6.1 New Components
 
 #### DevelopmentWizard
+
 Modal/page for guided idea development:
+
 - Shows current readiness with visual progress
 - Presents questions one at a time or in batches
 - Allows free-form answers with AI-assist suggestions
@@ -735,21 +762,27 @@ Modal/page for guided idea development:
 - Suggests when idea is ready for evaluation
 
 #### ReadinessMeter
+
 Visual component showing:
+
 - Overall readiness percentage
 - Category breakdown radar chart
 - Blocking gaps with question links
 - "Run Evaluation" button (enabled/disabled based on readiness)
 
 #### AnswerHistory
+
 Panel showing all captured answers:
+
 - Grouped by category/criterion
 - Editable inline
 - Shows source (user, extracted, inferred)
 - Confidence indicators for AI answers
 
 #### QuestionCard
+
 Individual question display:
+
 - Question text with context
 - Input area (text, select, multi-select depending on type)
 - "Skip" and "Don't know" options
@@ -759,20 +792,26 @@ Individual question display:
 ### 6.2 Modified Components
 
 #### IdeaForm
+
 Enhanced with:
+
 - Post-save prompt: "Would you like to develop this idea further?"
 - Auto-extraction option for content
 - Readiness preview
 
 #### IdeaDetail
+
 Enhanced with:
+
 - Readiness meter in header
 - "Develop Idea" button alongside "Run Evaluation"
 - Warning when evaluating underdeveloped ideas
 - Answers panel/tab
 
 #### EvaluationScorecard
+
 Enhanced with:
+
 - Per-criterion evidence links (from answers)
 - Confidence indicator based on information completeness
 - "Improve this score" → links to relevant questions
@@ -790,7 +829,7 @@ interface EvaluationContext {
   idea: {
     title: string;
     summary: string;
-    content: string;  // Original markdown
+    content: string; // Original markdown
     type: IdeaType;
     stage: LifecycleStage;
   };
@@ -798,29 +837,29 @@ interface EvaluationContext {
   // NEW: Structured answers
   structured_data: {
     problem: {
-      core_problem: string;       // From P1_CORE
-      target_user: string;        // From P3_WHO
-      severity: string;           // From P2_PAIN
-      validation: string;         // From P4_EVIDENCE
-      competitors: string[];      // From P5_EXISTING
+      core_problem: string; // From P1_CORE
+      target_user: string; // From P3_WHO
+      severity: string; // From P2_PAIN
+      validation: string; // From P4_EVIDENCE
+      competitors: string[]; // From P5_EXISTING
     };
     solution: {
-      description: string;        // From S1_WHAT
-      differentiation: string;    // From S3_DIFF
-      mvp: string;               // From F1_MVP
+      description: string; // From S1_WHAT
+      differentiation: string; // From S3_DIFF
+      mvp: string; // From F1_MVP
     };
     market: {
-      size: string;              // From M1_TAM
-      competitors: string[];      // From M3_COMPETITORS
-      timing: string;            // From M5_WHY_NOW
+      size: string; // From M1_TAM
+      competitors: string[]; // From M3_COMPETITORS
+      timing: string; // From M5_WHY_NOW
     };
     risks: {
-      biggest: string;           // From R_BIGGEST
+      biggest: string; // From R_BIGGEST
       mitigations: string[];
     };
     business_model?: {
-      revenue_model: string;     // From BM_MODEL
-      pricing: string;           // From BM_PRICE
+      revenue_model: string; // From BM_MODEL
+      pricing: string; // From BM_PRICE
     };
   };
 
@@ -866,7 +905,7 @@ INSTRUCTIONS:
 function calculateCriterionConfidence(
   criterion: string,
   coverage: CriterionCoverage,
-  debateResults: DebateResults
+  debateResults: DebateResults,
 ): number {
   // Base confidence from information completeness
   const informationConfidence = coverage.answered / coverage.total_questions;
@@ -875,7 +914,7 @@ function calculateCriterionConfidence(
   const debateModifier = debateResults.survivalRate;
 
   // Combined confidence
-  return (informationConfidence * 0.6) + (debateModifier * 0.4);
+  return informationConfidence * 0.6 + debateModifier * 0.4;
 }
 ```
 
@@ -884,6 +923,7 @@ function calculateCriterionConfidence(
 ## Part 8: Implementation Phases
 
 ### Phase 1: Foundation (Core Data Model)
+
 **Effort: 2-3 days**
 
 1. Create database migrations for new tables
@@ -892,11 +932,13 @@ function calculateCriterionConfidence(
 4. Create readiness calculation logic
 
 **Deliverables:**
+
 - `npm run migrate` adds new tables
 - Question bank populated
 - `GET /api/ideas/:slug/readiness` works
 
 ### Phase 2: Answer Capture
+
 **Effort: 3-4 days**
 
 1. Build QuestionCard component
@@ -905,11 +947,13 @@ function calculateCriterionConfidence(
 4. Add answer history panel
 
 **Deliverables:**
+
 - Users can answer questions via UI
 - Answers persist to database
 - Readiness updates automatically
 
 ### Phase 3: Smart Question Selection
+
 **Effort: 2-3 days**
 
 1. Implement question selection algorithm
@@ -918,11 +962,13 @@ function calculateCriterionConfidence(
 4. Implement question dependencies
 
 **Deliverables:**
+
 - Questions adapt to idea type
 - Questions respect dependencies
 - Priority ordering works
 
 ### Phase 4: Evaluation Integration
+
 **Effort: 3-4 days**
 
 1. Modify evaluation trigger to check readiness
@@ -931,11 +977,13 @@ function calculateCriterionConfidence(
 4. Add confidence calibration
 
 **Deliverables:**
+
 - Evaluators receive structured answers
 - Confidence reflects information completeness
 - UI shows pre-eval readiness check
 
 ### Phase 5: AI Answer Extraction
+
 **Effort: 2-3 days**
 
 1. Build content parser agent
@@ -944,11 +992,13 @@ function calculateCriterionConfidence(
 4. UI for reviewing extracted answers
 
 **Deliverables:**
+
 - `POST /api/ideas/:slug/extract-answers` works
 - Extracted answers marked with confidence
 - User can confirm/edit extractions
 
 ### Phase 6: Polish & Integration
+
 **Effort: 2-3 days**
 
 1. ReadinessMeter component
@@ -957,6 +1007,7 @@ function calculateCriterionConfidence(
 4. Development session history
 
 **Deliverables:**
+
 - Full UI integration
 - Seamless development → evaluation flow
 - Historical session tracking
@@ -966,12 +1017,14 @@ function calculateCriterionConfidence(
 ## Part 9: Success Metrics
 
 ### Quantitative
+
 - **Readiness improvement**: Track average readiness before/after development sessions
 - **Evaluation confidence**: Track average confidence scores pre/post implementation
 - **Coverage rates**: % of criteria with structured answers
 - **Time to ready**: How long from SPARK to evaluation-ready
 
 ### Qualitative
+
 - **Evaluator feedback**: Are structured answers helpful?
 - **User experience**: Is the questioning flow intuitive?
 - **Score accuracy**: Do evaluations feel more accurate?
@@ -981,28 +1034,36 @@ function calculateCriterionConfidence(
 ## Part 10: Future Enhancements
 
 ### 10.1 AI-Powered Question Generation
+
 Instead of static question bank, AI generates contextual questions:
+
 ```
 Given this idea about [topic] at [stage], and these existing answers,
 generate 3 questions that would most improve evaluation confidence.
 ```
 
 ### 10.2 Answer Synthesis
+
 AI synthesizes multiple answers into coherent narratives:
+
 ```
 Based on answers to P1-P5, generate a "Problem Statement" section
 for the idea README.
 ```
 
 ### 10.3 Competitive Intelligence
+
 Auto-fetch competitive data:
+
 ```
 Based on the described solution and market, identify and summarize
 top 5 competitors from web search.
 ```
 
 ### 10.4 Validation Suggestions
+
 Recommend validation activities:
+
 ```
 Based on current answers and gaps, suggest 3 specific validation
 activities the user could do to improve P4 (Problem Validation).
@@ -1021,7 +1082,7 @@ questions:
     text: "In one sentence, what specific problem does this solve?"
     type: factual
     priority: critical
-    idea_types: null  # all types
+    idea_types: null # all types
     lifecycle_stages: [SPARK, CLARIFY, RESEARCH]
     depends_on: null
     follow_ups: [P1_SCOPE, P1_WHEN]
@@ -1044,7 +1105,7 @@ function calculateReadiness(ideaId: string): ReadinessScore {
   const idea = getIdea(ideaId);
 
   // Weight critical questions more heavily
-  const priorityWeights = { critical: 3, important: 2, 'nice-to-have': 1 };
+  const priorityWeights = { critical: 3, important: 2, "nice-to-have": 1 };
 
   // Get relevant questions for this idea type and stage
   const relevantQuestions = getRelevantQuestions(idea.type, idea.stage);
@@ -1062,12 +1123,19 @@ function calculateReadiness(ideaId: string): ReadinessScore {
   }
 
   // Calculate per-category coverage
-  const categories = ['problem', 'solution', 'feasibility', 'fit', 'market', 'risk'];
+  const categories = [
+    "problem",
+    "solution",
+    "feasibility",
+    "fit",
+    "market",
+    "risk",
+  ];
   const byCatgeory = {};
 
   for (const cat of categories) {
-    const catQuestions = relevantQuestions.filter(q => q.category === cat);
-    const catAnswers = catQuestions.filter(q => answers.has(q.id));
+    const catQuestions = relevantQuestions.filter((q) => q.category === cat);
+    const catAnswers = catQuestions.filter((q) => answers.has(q.id));
     byCategory[cat] = catAnswers.length / catQuestions.length;
   }
 
@@ -1077,7 +1145,7 @@ function calculateReadiness(ideaId: string): ReadinessScore {
   return {
     overall: answeredWeight / totalWeight,
     byCategory,
-    readyForEvaluation: (answeredWeight / totalWeight) >= 0.6
+    readyForEvaluation: answeredWeight / totalWeight >= 0.6,
   };
 }
 ```

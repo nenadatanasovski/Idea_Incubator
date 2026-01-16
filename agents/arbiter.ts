@@ -3,14 +3,14 @@
  * Judges debate rounds between Evaluator and Red Team
  * Awards points, detects first-principles arguments
  */
-import { client } from '../utils/anthropic-client.js';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { EvaluationParseError } from '../utils/errors.js';
-import { logDebug } from '../utils/logger.js';
-import { getConfig } from '../config/index.js';
-import { type Challenge, type Defense } from './redteam.js';
+import { client } from "../utils/anthropic-client.js";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { EvaluationParseError } from "../utils/errors.js";
+import { logDebug } from "../utils/logger.js";
+import { getConfig } from "../config/index.js";
+import { type Challenge, type Defense } from "./redteam.js";
 
-export type VerdictWinner = 'EVALUATOR' | 'RED_TEAM' | 'DRAW';
+export type VerdictWinner = "EVALUATOR" | "RED_TEAM" | "DRAW";
 
 export interface ArbiterVerdict {
   challengeId: string;
@@ -74,14 +74,14 @@ export async function judgeExchange(
   challenge: Challenge,
   defense: Defense,
   previousContext: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<ArbiterVerdict> {
   const config = getConfig();
 
   const userContent = `Judge this debate exchange:
 
 ## Context
-${previousContext || 'First round of debate.'}
+${previousContext || "First round of debate."}
 
 ## Challenge from ${challenge.persona.toUpperCase()}
 Criterion: ${challenge.criterion.name}
@@ -91,9 +91,9 @@ Severity: ${challenge.severity}
 
 ## Evaluator's Defense
 Defense: ${defense.defense}
-Evidence Provided: ${defense.evidenceProvided.join(', ') || 'None cited'}
-Concedes: ${defense.concedes ? 'Yes' : 'No'}
-${defense.adjustedScore ? `Proposed New Score: ${defense.adjustedScore}` : ''}
+Evidence Provided: ${defense.evidenceProvided.join(", ") || "None cited"}
+Concedes: ${defense.concedes ? "Yes" : "No"}
+${defense.adjustedScore ? `Proposed New Score: ${defense.adjustedScore}` : ""}
 
 ## Your Verdict
 
@@ -111,34 +111,34 @@ Respond in JSON:
     model: config.model,
     max_tokens: 512,
     system: ARBITER_SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userContent }]
+    messages: [{ role: "user", content: userContent }],
   });
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response from arbiter');
+  if (content.type !== "text") {
+    throw new EvaluationParseError("Unexpected response from arbiter");
   }
 
   // Track with request/response data for API logging
   costTracker.track(
     response.usage,
-    'arbiter',
+    "arbiter",
     {
       model: config.model,
       system: ARBITER_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userContent }],
+      messages: [{ role: "user", content: userContent }],
       max_tokens: 512,
     },
     {
       content: content.text,
       stop_reason: response.stop_reason,
-    }
+    },
   );
   logDebug(`Arbiter judged ${challenge.id}`);
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError('Could not parse arbiter verdict');
+    throw new EvaluationParseError("Could not parse arbiter verdict");
   }
 
   try {
@@ -146,14 +146,14 @@ Respond in JSON:
     return {
       challengeId: challenge.id,
       winner: validateWinner(parsed.winner),
-      reasoning: parsed.reasoning || '',
+      reasoning: parsed.reasoning || "",
       firstPrinciplesBonus: Boolean(parsed.firstPrinciplesBonus),
       scoreAdjustment: clamp(parsed.scoreAdjustment || 0, -3, 3),
       confidenceImpact: clamp(parsed.confidenceImpact || 0, -0.3, 0.3),
-      keyInsight: parsed.keyInsight
+      keyInsight: parsed.keyInsight,
     };
   } catch {
-    throw new EvaluationParseError('Invalid JSON in arbiter verdict');
+    throw new EvaluationParseError("Invalid JSON in arbiter verdict");
   }
 }
 
@@ -161,9 +161,11 @@ Respond in JSON:
  * Validate winner value
  */
 function validateWinner(winner: string): VerdictWinner {
-  const valid: VerdictWinner[] = ['EVALUATOR', 'RED_TEAM', 'DRAW'];
+  const valid: VerdictWinner[] = ["EVALUATOR", "RED_TEAM", "DRAW"];
   const normalized = winner?.toUpperCase();
-  return valid.includes(normalized as VerdictWinner) ? normalized as VerdictWinner : 'DRAW';
+  return valid.includes(normalized as VerdictWinner)
+    ? (normalized as VerdictWinner)
+    : "DRAW";
 }
 
 /**
@@ -182,7 +184,7 @@ export async function judgeRoundLegacy(
   defenses: Defense[],
   roundNumber: number,
   previousRoundContext: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<RoundResult> {
   const verdicts: ArbiterVerdict[] = [];
   let evaluatorPoints = 0;
@@ -192,21 +194,27 @@ export async function judgeRoundLegacy(
   let totalOutputTokens = 0;
 
   for (const challenge of challenges) {
-    const defense = defenses.find(d => d.challengeId === challenge.id);
+    const defense = defenses.find((d) => d.challengeId === challenge.id);
     if (!defense) continue;
 
     // Build context from previous verdicts in this round
-    const roundContext = verdicts.length > 0
-      ? `Previous verdicts this round:\n${verdicts.map(v => `- ${v.challengeId}: ${v.winner}`).join('\n')}`
-      : previousRoundContext;
+    const roundContext =
+      verdicts.length > 0
+        ? `Previous verdicts this round:\n${verdicts.map((v) => `- ${v.challengeId}: ${v.winner}`).join("\n")}`
+        : previousRoundContext;
 
-    const verdict = await judgeExchange(challenge, defense, roundContext, costTracker);
+    const verdict = await judgeExchange(
+      challenge,
+      defense,
+      roundContext,
+      costTracker,
+    );
     verdicts.push(verdict);
 
     // Tally points
-    if (verdict.winner === 'EVALUATOR') {
+    if (verdict.winner === "EVALUATOR") {
       evaluatorPoints += 1 + (verdict.firstPrinciplesBonus ? 0.5 : 0);
-    } else if (verdict.winner === 'RED_TEAM') {
+    } else if (verdict.winner === "RED_TEAM") {
       redTeamPoints += 1 + (verdict.firstPrinciplesBonus ? 0.5 : 0);
     } else {
       evaluatorPoints += 0.5;
@@ -226,8 +234,8 @@ export async function judgeRoundLegacy(
     runningScore: totalScoreAdjustment,
     tokensUsed: {
       input: report.inputTokens - totalInputTokens,
-      output: report.outputTokens - totalOutputTokens
-    }
+      output: report.outputTokens - totalOutputTokens,
+    },
   };
 }
 
@@ -240,14 +248,14 @@ export async function judgeRound(
   defenses: Defense[],
   roundNumber: number,
   previousRoundContext: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<RoundResult> {
   const config = getConfig();
 
   // Build all exchanges for bundled judgment
   const exchanges: Array<{ challenge: Challenge; defense: Defense }> = [];
   for (const challenge of challenges) {
-    const defense = defenses.find(d => d.challengeId === challenge.id);
+    const defense = defenses.find((d) => d.challengeId === challenge.id);
     if (defense) {
       exchanges.push({ challenge, defense });
     }
@@ -260,12 +268,14 @@ export async function judgeRound(
       evaluatorPoints: 0,
       redTeamPoints: 0,
       runningScore: 0,
-      tokensUsed: { input: 0, output: 0 }
+      tokensUsed: { input: 0, output: 0 },
     };
   }
 
   // Format all exchanges for the prompt
-  const exchangesText = exchanges.map(({ challenge, defense }, i) => `
+  const exchangesText = exchanges
+    .map(
+      ({ challenge, defense }, i) => `
 ### Exchange ${i + 1}: ${challenge.id}
 
 **Challenge from ${challenge.persona.toUpperCase()}**
@@ -276,14 +286,16 @@ Severity: ${challenge.severity}
 
 **Evaluator's Defense**
 Defense: ${defense.defense}
-Evidence Provided: ${defense.evidenceProvided.join(', ') || 'None cited'}
-Concedes: ${defense.concedes ? 'Yes' : 'No'}
-${defense.adjustedScore ? `Proposed New Score: ${defense.adjustedScore}` : ''}`).join('\n\n---\n');
+Evidence Provided: ${defense.evidenceProvided.join(", ") || "None cited"}
+Concedes: ${defense.concedes ? "Yes" : "No"}
+${defense.adjustedScore ? `Proposed New Score: ${defense.adjustedScore}` : ""}`,
+    )
+    .join("\n\n---\n");
 
   const userContent = `Judge ALL of these debate exchanges in Round ${roundNumber}:
 
 ## Context
-${previousRoundContext || 'First round of debate.'}
+${previousRoundContext || "First round of debate."}
 
 ## Exchanges to Judge
 ${exchangesText}
@@ -306,40 +318,42 @@ Respond in JSON with verdicts for ALL ${exchanges.length} exchanges:
   ]
 }`;
 
-  const maxTokens = 1024 + (exchanges.length * 256);
+  const maxTokens = 1024 + exchanges.length * 256;
 
   const response = await client.messages.create({
     model: config.model,
     max_tokens: maxTokens,
     system: ARBITER_SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userContent }]
+    messages: [{ role: "user", content: userContent }],
   });
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response from arbiter');
+  if (content.type !== "text") {
+    throw new EvaluationParseError("Unexpected response from arbiter");
   }
 
   // Track with request/response data for API logging
   costTracker.track(
     response.usage,
-    'arbiter-bundled',
+    "arbiter-bundled",
     {
       model: config.model,
       system: ARBITER_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userContent }],
+      messages: [{ role: "user", content: userContent }],
       max_tokens: maxTokens,
     },
     {
       content: content.text,
       stop_reason: response.stop_reason,
-    }
+    },
   );
-  logDebug(`Arbiter judged ${exchanges.length} exchanges in round ${roundNumber}`);
+  logDebug(
+    `Arbiter judged ${exchanges.length} exchanges in round ${roundNumber}`,
+  );
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError('Could not parse arbiter verdicts');
+    throw new EvaluationParseError("Could not parse arbiter verdicts");
   }
 
   try {
@@ -349,17 +363,19 @@ Respond in JSON with verdicts for ALL ${exchanges.length} exchanges:
     // Map verdicts to challenge IDs and validate
     const verdicts: ArbiterVerdict[] = rawVerdicts.map((v: any, i: number) => {
       // Try to match by challengeId, fallback to index-based matching
-      const matchedExchange = exchanges.find(e => e.challenge.id === v.challengeId) || exchanges[i];
-      const challengeId = matchedExchange?.challenge.id || v.challengeId || `unknown-${i}`;
+      const matchedExchange =
+        exchanges.find((e) => e.challenge.id === v.challengeId) || exchanges[i];
+      const challengeId =
+        matchedExchange?.challenge.id || v.challengeId || `unknown-${i}`;
 
       return {
         challengeId,
         winner: validateWinner(v.winner),
-        reasoning: v.reasoning || '',
+        reasoning: v.reasoning || "",
         firstPrinciplesBonus: Boolean(v.firstPrinciplesBonus),
         scoreAdjustment: clamp(v.scoreAdjustment || 0, -3, 3),
         confidenceImpact: clamp(v.confidenceImpact || 0, -0.3, 0.3),
-        keyInsight: v.keyInsight
+        keyInsight: v.keyInsight,
       };
     });
 
@@ -369,9 +385,9 @@ Respond in JSON with verdicts for ALL ${exchanges.length} exchanges:
     let totalScoreAdjustment = 0;
 
     for (const verdict of verdicts) {
-      if (verdict.winner === 'EVALUATOR') {
+      if (verdict.winner === "EVALUATOR") {
         evaluatorPoints += 1 + (verdict.firstPrinciplesBonus ? 0.5 : 0);
-      } else if (verdict.winner === 'RED_TEAM') {
+      } else if (verdict.winner === "RED_TEAM") {
         redTeamPoints += 1 + (verdict.firstPrinciplesBonus ? 0.5 : 0);
       } else {
         evaluatorPoints += 0.5;
@@ -390,11 +406,11 @@ Respond in JSON with verdicts for ALL ${exchanges.length} exchanges:
       runningScore: totalScoreAdjustment,
       tokensUsed: {
         input: report.inputTokens,
-        output: report.outputTokens
-      }
+        output: report.outputTokens,
+      },
     };
   } catch {
-    throw new EvaluationParseError('Invalid JSON in arbiter verdicts');
+    throw new EvaluationParseError("Invalid JSON in arbiter verdicts");
   }
 }
 
@@ -415,7 +431,7 @@ export interface DebateSummary {
 
 export function summarizeDebate(
   allRounds: RoundResult[],
-  originalScore: number
+  originalScore: number,
 ): DebateSummary {
   let evaluatorWins = 0;
   let redTeamWins = 0;
@@ -427,8 +443,8 @@ export function summarizeDebate(
 
   for (const round of allRounds) {
     for (const verdict of round.verdicts) {
-      if (verdict.winner === 'EVALUATOR') evaluatorWins++;
-      else if (verdict.winner === 'RED_TEAM') redTeamWins++;
+      if (verdict.winner === "EVALUATOR") evaluatorWins++;
+      else if (verdict.winner === "RED_TEAM") redTeamWins++;
       else draws++;
 
       if (verdict.firstPrinciplesBonus) firstPrinciplesBonuses++;
@@ -445,7 +461,11 @@ export function summarizeDebate(
   netScoreAdjustment = clamp(netScoreAdjustment, -5, 5);
   netConfidenceImpact = clamp(netConfidenceImpact, -0.5, 0.5);
 
-  const recommendedFinalScore = clamp(originalScore + netScoreAdjustment, 1, 10);
+  const recommendedFinalScore = clamp(
+    originalScore + netScoreAdjustment,
+    1,
+    10,
+  );
 
   return {
     totalRounds: allRounds.length,
@@ -456,7 +476,7 @@ export function summarizeDebate(
     netScoreAdjustment,
     netConfidenceImpact,
     keyInsights,
-    recommendedFinalScore
+    recommendedFinalScore,
   };
 }
 
@@ -466,23 +486,23 @@ export function summarizeDebate(
 export function formatDebateSummary(
   summary: DebateSummary,
   criterionName: string,
-  originalScore: number
+  originalScore: number,
 ): string {
   const lines: string[] = [
     `## Debate Summary: ${criterionName}\n`,
     `Original Score: ${originalScore}/10`,
-    `Final Score: ${summary.recommendedFinalScore}/10 (${summary.netScoreAdjustment >= 0 ? '+' : ''}${summary.netScoreAdjustment})\n`,
+    `Final Score: ${summary.recommendedFinalScore}/10 (${summary.netScoreAdjustment >= 0 ? "+" : ""}${summary.netScoreAdjustment})\n`,
     `### Results`,
     `- Evaluator Wins: ${summary.evaluatorWins}`,
     `- Red Team Wins: ${summary.redTeamWins}`,
     `- Draws: ${summary.draws}`,
-    `- First Principles Bonuses: ${summary.firstPrinciplesBonuses}\n`
+    `- First Principles Bonuses: ${summary.firstPrinciplesBonuses}\n`,
   ];
 
   if (summary.keyInsights.length > 0) {
-    lines.push('### Key Insights');
-    summary.keyInsights.forEach(insight => lines.push(`- ${insight}`));
+    lines.push("### Key Insights");
+    summary.keyInsights.forEach((insight) => lines.push(`- ${insight}`));
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }

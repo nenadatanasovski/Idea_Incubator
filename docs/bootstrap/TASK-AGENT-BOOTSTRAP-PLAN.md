@@ -43,28 +43,28 @@ The goal is to get the Task Agent system bootstrapped with the **minimum viable 
 
 ### What Already Exists (Leverage)
 
-| Component | Migration | Status |
-|-----------|-----------|--------|
-| `task_queue` | 034 | ✅ Has basic task storage |
-| `executor_state` | 034 | ✅ Tracks executor status |
-| `task_executions` | 025 | ✅ Individual task runs |
-| `task_agent_bindings` | 035 | ✅ Agent assignments |
-| `questions` | 030 | ✅ Question queue exists |
-| `active_agents` | 030 | ✅ Agent registration |
-| `notifications` | 030 | ✅ Notification delivery |
+| Component             | Migration | Status                    |
+| --------------------- | --------- | ------------------------- |
+| `task_queue`          | 034       | ✅ Has basic task storage |
+| `executor_state`      | 034       | ✅ Tracks executor status |
+| `task_executions`     | 025       | ✅ Individual task runs   |
+| `task_agent_bindings` | 035       | ✅ Agent assignments      |
+| `questions`           | 030       | ✅ Question queue exists  |
+| `active_agents`       | 030       | ✅ Agent registration     |
+| `notifications`       | 030       | ✅ Notification delivery  |
 
 ### What's Missing (Must Build)
 
-| Component | Migration | Priority | Blocks |
-|-----------|-----------|----------|--------|
-| `tasks` table | 050 | P1 | Everything |
-| `task_relationships` | 051 | P1 | Dependencies, duplicates |
-| `task_lists` | 052 | P1 | Grouped execution |
-| `task_list_items` | 053 | P1 | List membership |
-| `validation_rules` | 054 | P1 | Validation gate |
-| TypeScript types | - | P1 | All services |
-| Task CRUD API | - | P1 | Frontend, importers |
-| Task Importer | - | P1 | Self-hosting |
+| Component            | Migration | Priority | Blocks                   |
+| -------------------- | --------- | -------- | ------------------------ |
+| `tasks` table        | 050       | P1       | Everything               |
+| `task_relationships` | 051       | P1       | Dependencies, duplicates |
+| `task_lists`         | 052       | P1       | Grouped execution        |
+| `task_list_items`    | 053       | P1       | List membership          |
+| `validation_rules`   | 054       | P1       | Validation gate          |
+| TypeScript types     | -         | P1       | All services             |
+| Task CRUD API        | -         | P1       | Frontend, importers      |
+| Task Importer        | -         | P1       | Self-hosting             |
 
 ---
 
@@ -74,37 +74,37 @@ Below are the **minimal bootstrap tasks** with just IDs and descriptions. These 
 
 ### Phase 1: Database (6 tasks)
 
-| ID | Description | Depends On |
-|----|-------------|------------|
-| BOOT-001 | Create migration 050_tasks_schema.sql with tasks table | - |
-| BOOT-002 | Create migration 051_task_relationships.sql with 11 relationship types | BOOT-001 |
-| BOOT-003 | Create migration 052_task_lists.sql with task_lists table | BOOT-001 |
-| BOOT-004 | Create migration 053_task_list_items.sql junction table | BOOT-001, BOOT-003 |
-| BOOT-005 | Create migration 054_validation_rules.sql with default rules | - |
-| BOOT-006 | Run migrations and verify schema with test data | BOOT-001 to BOOT-005 |
+| ID       | Description                                                            | Depends On           |
+| -------- | ---------------------------------------------------------------------- | -------------------- |
+| BOOT-001 | Create migration 050_tasks_schema.sql with tasks table                 | -                    |
+| BOOT-002 | Create migration 051_task_relationships.sql with 11 relationship types | BOOT-001             |
+| BOOT-003 | Create migration 052_task_lists.sql with task_lists table              | BOOT-001             |
+| BOOT-004 | Create migration 053_task_list_items.sql junction table                | BOOT-001, BOOT-003   |
+| BOOT-005 | Create migration 054_validation_rules.sql with default rules           | -                    |
+| BOOT-006 | Run migrations and verify schema with test data                        | BOOT-001 to BOOT-005 |
 
 ### Phase 2: Types (2 tasks)
 
-| ID | Description | Depends On |
-|----|-------------|------------|
-| BOOT-007 | Create types/task-agent.ts with Task, TaskList, TaskRelationship interfaces | BOOT-006 |
-| BOOT-008 | Create types/task-validation.ts with ValidationRule, ValidationResult interfaces | BOOT-006 |
+| ID       | Description                                                                      | Depends On |
+| -------- | -------------------------------------------------------------------------------- | ---------- |
+| BOOT-007 | Create types/task-agent.ts with Task, TaskList, TaskRelationship interfaces      | BOOT-006   |
+| BOOT-008 | Create types/task-validation.ts with ValidationRule, ValidationResult interfaces | BOOT-006   |
 
 ### Phase 3: Core API (4 tasks)
 
-| ID | Description | Depends On |
-|----|-------------|------------|
-| BOOT-009 | Create server/routes/tasks-v2.ts with CRUD endpoints | BOOT-007, BOOT-008 |
-| BOOT-010 | Create server/routes/task-lists-v2.ts with list management | BOOT-007 |
+| ID       | Description                                                         | Depends On         |
+| -------- | ------------------------------------------------------------------- | ------------------ |
+| BOOT-009 | Create server/routes/tasks-v2.ts with CRUD endpoints                | BOOT-007, BOOT-008 |
+| BOOT-010 | Create server/routes/task-lists-v2.ts with list management          | BOOT-007           |
 | BOOT-011 | Add routes to server/api.ts at /api/v2/tasks and /api/v2/task-lists | BOOT-009, BOOT-010 |
-| BOOT-012 | Add WebSocket events for task:created, task:updated, task:deleted | BOOT-011 |
+| BOOT-012 | Add WebSocket events for task:created, task:updated, task:deleted   | BOOT-011           |
 
 ### Phase 4: Importer (2 tasks)
 
-| ID | Description | Depends On |
-|----|-------------|------------|
-| BOOT-013 | Create scripts/import-tasks.ts to parse TAK-TASK-AGENT.md YAML blocks | BOOT-011 |
-| BOOT-014 | Import all TAK-* tasks into database, mark BOOT-* tasks as completed | BOOT-013 |
+| ID       | Description                                                           | Depends On |
+| -------- | --------------------------------------------------------------------- | ---------- |
+| BOOT-013 | Create scripts/import-tasks.ts to parse TAK-TASK-AGENT.md YAML blocks | BOOT-011   |
+| BOOT-014 | Import all TAK-_ tasks into database, mark BOOT-_ tasks as completed  | BOOT-013   |
 
 **Total Bootstrap Tasks: 14**
 
@@ -359,19 +359,45 @@ INSERT OR IGNORE INTO validation_rules (id, name, rule_type, config, severity, b
 // Task Agent Types - matches database schema
 
 export type TaskCategory =
-  | 'feature' | 'improvement' | 'bug' | 'investigation'
-  | 'technical_debt' | 'infrastructure' | 'documentation'
-  | 'refactoring' | 'security' | 'performance' | 'testing'
-  | 'migration' | 'integration' | 'ux_design' | 'maintenance';
+  | "feature"
+  | "improvement"
+  | "bug"
+  | "investigation"
+  | "technical_debt"
+  | "infrastructure"
+  | "documentation"
+  | "refactoring"
+  | "security"
+  | "performance"
+  | "testing"
+  | "migration"
+  | "integration"
+  | "ux_design"
+  | "maintenance";
 
 export type TaskStatus =
-  | 'draft' | 'pending' | 'blocked' | 'in_progress'
-  | 'validating' | 'failed' | 'stale' | 'completed' | 'cancelled';
+  | "draft"
+  | "pending"
+  | "blocked"
+  | "in_progress"
+  | "validating"
+  | "failed"
+  | "stale"
+  | "completed"
+  | "cancelled";
 
 export type RelationshipType =
-  | 'depends_on' | 'blocks' | 'related_to' | 'duplicate_of'
-  | 'subtask_of' | 'supersedes' | 'implements' | 'conflicts_with'
-  | 'enables' | 'inspired_by' | 'tests';
+  | "depends_on"
+  | "blocks"
+  | "related_to"
+  | "duplicate_of"
+  | "subtask_of"
+  | "supersedes"
+  | "implements"
+  | "conflicts_with"
+  | "enables"
+  | "inspired_by"
+  | "tests";
 
 export interface Task {
   id: string;
@@ -393,7 +419,7 @@ export interface Task {
   blocksCount: number;
   isQuickWin: boolean;
   deadline?: string;
-  riskLevel: 'low' | 'medium' | 'high';
+  riskLevel: "low" | "medium" | "high";
 
   assignedAgent?: string;
   estimatedEffort?: string;
@@ -416,7 +442,7 @@ export interface TaskList {
   description?: string;
   projectId?: string;
   ideaSlug?: string;
-  status: 'draft' | 'active' | 'paused' | 'completed' | 'failed' | 'archived';
+  status: "draft" | "active" | "paused" | "completed" | "failed" | "archived";
   telegramChatId?: string;
   userApprovalRequired: boolean;
   autoExecuteLowRisk: boolean;
@@ -448,7 +474,7 @@ export interface TaskListItem {
   taskListId: string;
   taskId: string;
   position: number;
-  itemStatus: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
+  itemStatus: "pending" | "in_progress" | "completed" | "failed" | "skipped";
   startedAt?: string;
   completedAt?: string;
   executionNotes?: string;
@@ -464,46 +490,46 @@ export interface TaskListItem {
 
 ```typescript
 // Task Agent API v2 - DB-backed task management
-import { Router } from 'express';
-import { v4 as uuidv4 } from 'uuid';
-import db from '../../database/db';
-import type { Task } from '../../types/task-agent';
+import { Router } from "express";
+import { v4 as uuidv4 } from "uuid";
+import db from "../../database/db";
+import type { Task } from "../../types/task-agent";
 
 const router = Router();
 
 // GET /api/v2/tasks - List tasks
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { status, category, projectId, limit = 50, offset = 0 } = req.query;
 
-    let sql = 'SELECT * FROM tasks WHERE 1=1';
+    let sql = "SELECT * FROM tasks WHERE 1=1";
     const params: any[] = [];
 
     if (status) {
-      sql += ' AND status = ?';
+      sql += " AND status = ?";
       params.push(status);
     }
     if (category) {
-      sql += ' AND category = ?';
+      sql += " AND category = ?";
       params.push(category);
     }
     if (projectId) {
-      sql += ' AND project_id = ?';
+      sql += " AND project_id = ?";
       params.push(projectId);
     }
 
-    sql += ' ORDER BY priority_score DESC, created_at DESC LIMIT ? OFFSET ?';
+    sql += " ORDER BY priority_score DESC, created_at DESC LIMIT ? OFFSET ?";
     params.push(Number(limit), Number(offset));
 
     const tasks = db.prepare(sql).all(...params);
     res.json({ tasks, total: tasks.length });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch tasks' });
+    res.status(500).json({ error: "Failed to fetch tasks" });
   }
 });
 
 // POST /api/v2/tasks - Create task
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const task: Partial<Task> = req.body;
     const id = task.id || `TASK-${uuidv4().slice(0, 8).toUpperCase()}`;
@@ -518,8 +544,8 @@ router.post('/', async (req, res) => {
       id,
       task.title,
       task.description,
-      task.category || 'feature',
-      task.status || 'draft',
+      task.category || "feature",
+      task.status || "draft",
       task.parentTaskId || null,
       task.projectId || null,
       task.ideaSlug || null,
@@ -528,66 +554,82 @@ router.post('/', async (req, res) => {
       JSON.stringify(task.apiTests || []),
       JSON.stringify(task.uiTests || []),
       task.priorityScore || 0,
-      task.riskLevel || 'medium',
+      task.riskLevel || "medium",
       task.estimatedEffort || null,
       JSON.stringify(task.affectedFiles || []),
-      task.createdBy || 'system'
+      task.createdBy || "system",
     );
 
-    const created = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    const created = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id);
     res.status(201).json(created);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create task' });
+    res.status(500).json({ error: "Failed to create task" });
   }
 });
 
 // GET /api/v2/tasks/:id - Get task
-router.get('/:id', (req, res) => {
-  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
-  if (!task) return res.status(404).json({ error: 'Task not found' });
+router.get("/:id", (req, res) => {
+  const task = db
+    .prepare("SELECT * FROM tasks WHERE id = ?")
+    .get(req.params.id);
+  if (!task) return res.status(404).json({ error: "Task not found" });
   res.json(task);
 });
 
 // PUT /api/v2/tasks/:id - Update task
-router.put('/:id', (req, res) => {
+router.put("/:id", (req, res) => {
   const updates = req.body;
-  const existing = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Task not found' });
+  const existing = db
+    .prepare("SELECT * FROM tasks WHERE id = ?")
+    .get(req.params.id);
+  if (!existing) return res.status(404).json({ error: "Task not found" });
 
   // Build dynamic update
-  const fields = Object.keys(updates).filter(k => k !== 'id');
-  const sql = `UPDATE tasks SET ${fields.map(f => `${f} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ?`;
+  const fields = Object.keys(updates).filter((k) => k !== "id");
+  const sql = `UPDATE tasks SET ${fields.map((f) => `${f} = ?`).join(", ")}, updated_at = datetime('now') WHERE id = ?`;
 
-  db.prepare(sql).run(...fields.map(f => {
-    const val = updates[f];
-    return Array.isArray(val) ? JSON.stringify(val) : val;
-  }), req.params.id);
+  db.prepare(sql).run(
+    ...fields.map((f) => {
+      const val = updates[f];
+      return Array.isArray(val) ? JSON.stringify(val) : val;
+    }),
+    req.params.id,
+  );
 
-  const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+  const updated = db
+    .prepare("SELECT * FROM tasks WHERE id = ?")
+    .get(req.params.id);
   res.json(updated);
 });
 
 // DELETE /api/v2/tasks/:id - Delete task
-router.delete('/:id', (req, res) => {
-  const result = db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
-  if (result.changes === 0) return res.status(404).json({ error: 'Task not found' });
+router.delete("/:id", (req, res) => {
+  const result = db
+    .prepare("DELETE FROM tasks WHERE id = ?")
+    .run(req.params.id);
+  if (result.changes === 0)
+    return res.status(404).json({ error: "Task not found" });
   res.json({ deleted: true });
 });
 
 // POST /api/v2/tasks/:id/status - Update status
-router.post('/:id/status', (req, res) => {
+router.post("/:id/status", (req, res) => {
   const { status } = req.body;
   const now = new Date().toISOString();
 
-  let extraFields = '';
-  if (status === 'in_progress') extraFields = ', started_at = ?';
-  if (status === 'completed') extraFields = ', completed_at = ?';
+  let extraFields = "";
+  if (status === "in_progress") extraFields = ", started_at = ?";
+  if (status === "completed") extraFields = ", completed_at = ?";
 
   const sql = `UPDATE tasks SET status = ?, updated_at = datetime('now')${extraFields} WHERE id = ?`;
-  const params = extraFields ? [status, now, req.params.id] : [status, req.params.id];
+  const params = extraFields
+    ? [status, now, req.params.id]
+    : [status, req.params.id];
 
   db.prepare(sql).run(...params);
-  const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+  const updated = db
+    .prepare("SELECT * FROM tasks WHERE id = ?")
+    .get(req.params.id);
   res.json(updated);
 });
 
@@ -600,7 +642,7 @@ export default router;
 
 **File:** `scripts/import-tasks.ts`
 
-```typescript
+````typescript
 #!/usr/bin/env npx ts-node
 /**
  * Import tasks from TAK-TASK-AGENT.md into database
@@ -608,13 +650,13 @@ export default router;
  * Usage: npx ts-node scripts/import-tasks.ts
  */
 
-import fs from 'fs';
-import path from 'path';
-import yaml from 'yaml';
-import db from '../database/db';
-import { v4 as uuidv4 } from 'uuid';
+import fs from "fs";
+import path from "path";
+import yaml from "yaml";
+import db from "../database/db";
+import { v4 as uuidv4 } from "uuid";
 
-const SOURCE_FILE = 'docs/bootstrap/tasks/TAK-TASK-AGENT.md';
+const SOURCE_FILE = "docs/bootstrap/tasks/TAK-TASK-AGENT.md";
 
 interface YamlTask {
   id: string;
@@ -640,11 +682,11 @@ function parseMarkdownTasks(content: string): YamlTask[] {
   while ((match = yamlBlockRegex.exec(content)) !== null) {
     try {
       const parsed = yaml.parse(match[1]);
-      if (parsed.id && parsed.id.startsWith('TAK-')) {
+      if (parsed.id && parsed.id.startsWith("TAK-")) {
         tasks.push(parsed);
       }
     } catch (e) {
-      console.warn('Failed to parse YAML block:', e);
+      console.warn("Failed to parse YAML block:", e);
     }
   }
 
@@ -655,35 +697,54 @@ function mapToDbTask(yamlTask: YamlTask) {
   return {
     id: yamlTask.id,
     title: `[${yamlTask.phase}] ${yamlTask.action} ${yamlTask.file}`,
-    description: yamlTask.requirements?.join('\n') || `${yamlTask.action} ${yamlTask.file}`,
-    category: yamlTask.category || 'infrastructure',
-    status: yamlTask.status === 'pending' ? 'pending' : 'draft',
-    priority_score: yamlTask.priority === 'P1' ? 100 : yamlTask.priority === 'P2' ? 50 : 25,
-    risk_level: 'medium',
-    acceptance_criteria: JSON.stringify(yamlTask.acceptance_criteria || yamlTask.requirements || []),
-    codebase_tests: JSON.stringify(yamlTask.validation ? [yamlTask.validation.command] : []),
+    description:
+      yamlTask.requirements?.join("\n") ||
+      `${yamlTask.action} ${yamlTask.file}`,
+    category: yamlTask.category || "infrastructure",
+    status: yamlTask.status === "pending" ? "pending" : "draft",
+    priority_score:
+      yamlTask.priority === "P1" ? 100 : yamlTask.priority === "P2" ? 50 : 25,
+    risk_level: "medium",
+    acceptance_criteria: JSON.stringify(
+      yamlTask.acceptance_criteria || yamlTask.requirements || [],
+    ),
+    codebase_tests: JSON.stringify(
+      yamlTask.validation ? [yamlTask.validation.command] : [],
+    ),
     api_tests: JSON.stringify([]),
     ui_tests: JSON.stringify([]),
     affected_files: JSON.stringify([yamlTask.file]),
-    estimated_effort: yamlTask.phase === 'database' ? 'small' : 'medium',
-    created_by: 'import-script'
+    estimated_effort: yamlTask.phase === "database" ? "small" : "medium",
+    created_by: "import-script",
   };
 }
 
 async function importTasks() {
-  console.log('Reading TAK-TASK-AGENT.md...');
-  const content = fs.readFileSync(path.join(process.cwd(), SOURCE_FILE), 'utf-8');
+  console.log("Reading TAK-TASK-AGENT.md...");
+  const content = fs.readFileSync(
+    path.join(process.cwd(), SOURCE_FILE),
+    "utf-8",
+  );
 
-  console.log('Parsing YAML blocks...');
+  console.log("Parsing YAML blocks...");
   const tasks = parseMarkdownTasks(content);
   console.log(`Found ${tasks.length} TAK-* tasks`);
 
   // Create task list for Task Agent implementation
-  const listId = 'TASKLIST-TASK-AGENT';
-  db.prepare(`
+  const listId = "TASKLIST-TASK-AGENT";
+  db.prepare(
+    `
     INSERT OR REPLACE INTO task_lists (id, name, description, status, total_tasks, created_by)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(listId, 'Task Agent Implementation', 'All TAK-* tasks for Task Agent', 'draft', tasks.length, 'import-script');
+  `,
+  ).run(
+    listId,
+    "Task Agent Implementation",
+    "All TAK-* tasks for Task Agent",
+    "draft",
+    tasks.length,
+    "import-script",
+  );
 
   // Import each task
   const insertTask = db.prepare(`
@@ -709,10 +770,20 @@ async function importTasks() {
     const dbTask = mapToDbTask(yamlTask);
 
     insertTask.run(
-      dbTask.id, dbTask.title, dbTask.description, dbTask.category, dbTask.status,
-      dbTask.priority_score, dbTask.risk_level, dbTask.acceptance_criteria,
-      dbTask.codebase_tests, dbTask.api_tests, dbTask.ui_tests, dbTask.affected_files,
-      dbTask.estimated_effort, dbTask.created_by
+      dbTask.id,
+      dbTask.title,
+      dbTask.description,
+      dbTask.category,
+      dbTask.status,
+      dbTask.priority_score,
+      dbTask.risk_level,
+      dbTask.acceptance_criteria,
+      dbTask.codebase_tests,
+      dbTask.api_tests,
+      dbTask.ui_tests,
+      dbTask.affected_files,
+      dbTask.estimated_effort,
+      dbTask.created_by,
     );
 
     insertListItem.run(
@@ -720,7 +791,7 @@ async function importTasks() {
       listId,
       dbTask.id,
       position++,
-      'pending'
+      "pending",
     );
 
     // Add dependencies
@@ -730,7 +801,7 @@ async function importTasks() {
           `rel-${dbTask.id}-${depId}`,
           dbTask.id,
           depId,
-          'depends_on'
+          "depends_on",
         );
       }
     }
@@ -739,14 +810,16 @@ async function importTasks() {
   }
 
   // Mark BOOT-* tasks as completed (since we just did them)
-  db.prepare(`UPDATE tasks SET status = 'completed', completed_at = datetime('now') WHERE id LIKE 'BOOT-%'`).run();
+  db.prepare(
+    `UPDATE tasks SET status = 'completed', completed_at = datetime('now') WHERE id LIKE 'BOOT-%'`,
+  ).run();
 
   console.log(`\n✅ Imported ${tasks.length} tasks into task list: ${listId}`);
-  console.log('Task Agent is now self-hosting!');
+  console.log("Task Agent is now self-hosting!");
 }
 
 importTasks().catch(console.error);
-```
+````
 
 ---
 
@@ -798,17 +871,17 @@ sqlite3 database/ideas.db "SELECT COUNT(*) FROM tasks WHERE id LIKE 'TAK-%'"
 
 ## Post-Bootstrap: Remaining Work
 
-After BOOT-014 completes, the following TAK-* tasks will be in the database and managed by the system:
+After BOOT-014 completes, the following TAK-\* tasks will be in the database and managed by the system:
 
-| Phase | Task Count | Description |
-|-------|------------|-------------|
-| Core Services | 12 | ValidationGate, Deduplication, etc. |
-| Telegram | 2 | Bot integration |
-| WebSocket | 1 | Real-time events |
-| Frontend | 6 | Dashboard, forms, graphs |
-| Tests | 12 | Unit, API, UI, E2E |
-| Documentation | 2 | CLAUDE.md, docs |
-| Enhancements | 6 | P3 features |
+| Phase         | Task Count | Description                         |
+| ------------- | ---------- | ----------------------------------- |
+| Core Services | 12         | ValidationGate, Deduplication, etc. |
+| Telegram      | 2          | Bot integration                     |
+| WebSocket     | 1          | Real-time events                    |
+| Frontend      | 6          | Dashboard, forms, graphs            |
+| Tests         | 12         | Unit, API, UI, E2E                  |
+| Documentation | 2          | CLAUDE.md, docs                     |
+| Enhancements  | 6          | P3 features                         |
 
 **Total Remaining: ~41 tasks (managed in DB)**
 

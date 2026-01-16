@@ -1,8 +1,8 @@
-import * as fs from 'fs';
-import matter from 'gray-matter';
-import { createHash } from 'crypto';
-import { IdeaFrontmatterSchema, IdeaFrontmatter } from './schemas.js';
-import { MarkdownParseError } from './errors.js';
+import * as fs from "fs";
+import matter from "gray-matter";
+import { createHash } from "crypto";
+import { IdeaFrontmatterSchema, IdeaFrontmatter } from "./schemas.js";
+import { MarkdownParseError } from "./errors.js";
 
 /**
  * Parse markdown file with YAML frontmatter
@@ -13,10 +13,10 @@ export function parseMarkdown(filePath: string): {
   hash: string;
 } {
   if (!fs.existsSync(filePath)) {
-    throw new MarkdownParseError(filePath, 'File does not exist');
+    throw new MarkdownParseError(filePath, "File does not exist");
   }
 
-  const raw = fs.readFileSync(filePath, 'utf-8');
+  const raw = fs.readFileSync(filePath, "utf-8");
   const hash = computeHash(raw);
 
   try {
@@ -49,7 +49,7 @@ export function parseMarkdownContent(content: string): {
  * Compute MD5 hash of content for staleness detection
  */
 export function computeHash(content: string): string {
-  return createHash('md5').update(content).digest('hex');
+  return createHash("md5").update(content).digest("hex");
 }
 
 /**
@@ -60,14 +60,14 @@ export function generateFrontmatter(data: Record<string, unknown>): string {
     .map(([key, value]) => {
       if (Array.isArray(value)) {
         if (value.length === 0) return `${key}: []`;
-        return `${key}:\n${value.map(v => `  - ${v}`).join('\n')}`;
+        return `${key}:\n${value.map((v) => `  - ${v}`).join("\n")}`;
       }
-      if (typeof value === 'object' && value !== null) {
+      if (typeof value === "object" && value !== null) {
         return `${key}: ${JSON.stringify(value)}`;
       }
       return `${key}: ${value}`;
     })
-    .join('\n');
+    .join("\n");
 
   return `---\n${yaml}\n---`;
 }
@@ -77,7 +77,7 @@ export function generateFrontmatter(data: Record<string, unknown>): string {
  */
 export function generateMarkdown(
   frontmatter: Record<string, unknown>,
-  content: string
+  content: string,
 ): string {
   return `${generateFrontmatter(frontmatter)}\n\n${content}`;
 }
@@ -89,10 +89,10 @@ export function titleToSlug(title: string): string {
   return title
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Remove consecutive hyphens
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[^\w\s-]/g, "") // Remove special characters
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Remove consecutive hyphens
+    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
 }
 
 /**
@@ -106,34 +106,44 @@ export function extractTitle(content: string): string | null {
 /**
  * Extract summary from markdown content (first paragraph after title)
  */
-export function extractSummary(content: string, maxLength: number = 200): string | null {
+export function extractSummary(
+  content: string,
+  maxLength: number = 200,
+): string | null {
   // Remove title
-  const withoutTitle = content.replace(/^#\s+.+\n+/, '');
+  const withoutTitle = content.replace(/^#\s+.+\n+/, "");
 
   // Get first paragraph
   const paragraphs = withoutTitle.split(/\n\n+/);
-  const firstParagraph = paragraphs.find(p => p.trim() && !p.startsWith('#'));
+  const firstParagraph = paragraphs.find((p) => p.trim() && !p.startsWith("#"));
 
   if (!firstParagraph) return null;
 
-  const summary = firstParagraph.trim().replace(/\n/g, ' ');
+  const summary = firstParagraph.trim().replace(/\n/g, " ");
   if (summary.length <= maxLength) return summary;
 
-  return summary.substring(0, maxLength - 3) + '...';
+  return summary.substring(0, maxLength - 3) + "...";
 }
 
 /**
  * Parse evaluation scores from evaluation.md content
  */
-export function parseEvaluationScores(content: string): Map<string, {
-  score: number;
-  confidence?: number;
-  reasoning?: string;
-}> {
-  const scores = new Map<string, { score: number; confidence?: number; reasoning?: string }>();
+export function parseEvaluationScores(content: string): Map<
+  string,
+  {
+    score: number;
+    confidence?: number;
+    reasoning?: string;
+  }
+> {
+  const scores = new Map<
+    string,
+    { score: number; confidence?: number; reasoning?: string }
+  >();
 
   // Match patterns like "| Problem Clarity | 8 | 0.85 | reasoning |"
-  const tableRowPattern = /\|\s*([^|]+)\s*\|\s*(\d+)\s*\|\s*([\d.]+)?\s*\|\s*([^|]*)\s*\|/g;
+  const tableRowPattern =
+    /\|\s*([^|]+)\s*\|\s*(\d+)\s*\|\s*([\d.]+)?\s*\|\s*([^|]*)\s*\|/g;
 
   let match;
   while ((match = tableRowPattern.exec(content)) !== null) {
@@ -155,13 +165,13 @@ export function parseEvaluationScores(content: string): Map<string, {
  */
 export function updateFrontmatter(
   filePath: string,
-  updates: Record<string, unknown>
+  updates: Record<string, unknown>,
 ): void {
-  const raw = fs.readFileSync(filePath, 'utf-8');
+  const raw = fs.readFileSync(filePath, "utf-8");
   const { data, content } = matter(raw);
 
   const newData = { ...data, ...updates };
   const newContent = generateMarkdown(newData, content.trim());
 
-  fs.writeFileSync(filePath, newContent, 'utf-8');
+  fs.writeFileSync(filePath, newContent, "utf-8");
 }

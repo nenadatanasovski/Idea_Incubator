@@ -1,27 +1,30 @@
 // server/communication/halt-controller.ts
 // COM-012: Halt Behavior Controller - Manages halted agent behavior
 
-import { EventEmitter } from 'events';
-import { AgentType } from './types';
-import { ExecutionGate } from './execution-gate';
-import { NotificationDispatcher } from './notification-dispatcher';
-import { v4 as uuid } from 'uuid';
+import { EventEmitter } from "events";
+import { AgentType } from "./types";
+import { ExecutionGate } from "./execution-gate";
+import { NotificationDispatcher } from "./notification-dispatcher";
+import { v4 as uuid } from "uuid";
 
 interface Database {
-  run(sql: string, params?: unknown[]): Promise<{ lastID: number; changes: number }>;
+  run(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ lastID: number; changes: number }>;
   get<T>(sql: string, params?: unknown[]): Promise<T | undefined>;
   all<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
 export type HaltReason =
-  | 'user_requested'
-  | 'question_timeout'
-  | 'approval_denied'
-  | 'error_threshold'
-  | 'budget_exceeded'
-  | 'dependency_failed'
-  | 'safety_concern'
-  | 'manual_intervention';
+  | "user_requested"
+  | "question_timeout"
+  | "approval_denied"
+  | "error_threshold"
+  | "budget_exceeded"
+  | "dependency_failed"
+  | "safety_concern"
+  | "manual_intervention";
 
 export interface HaltEvent {
   id: string;
@@ -60,11 +63,45 @@ const DEFAULT_CONFIG: HaltControllerConfig = {
 };
 
 const DEFAULT_POLICIES: HaltPolicy[] = [
-  { agentType: 'monitoring', reason: 'error_threshold', autoResume: true, autoResumeDelayMs: 5 * 60 * 1000, requireApproval: false, notifyOnHalt: true },
-  { agentType: 'monitoring', reason: 'question_timeout', autoResume: true, autoResumeDelayMs: 60 * 60 * 1000, requireApproval: false, notifyOnHalt: true },
-  { agentType: 'orchestrator', reason: 'safety_concern', autoResume: false, requireApproval: true, notifyOnHalt: true, escalateAfterMs: 15 * 60 * 1000 },
-  { agentType: 'build', reason: 'budget_exceeded', autoResume: false, requireApproval: true, notifyOnHalt: true },
-  { agentType: 'validation', reason: 'dependency_failed', autoResume: true, autoResumeDelayMs: 5 * 60 * 1000, requireApproval: false, notifyOnHalt: true },
+  {
+    agentType: "monitoring",
+    reason: "error_threshold",
+    autoResume: true,
+    autoResumeDelayMs: 5 * 60 * 1000,
+    requireApproval: false,
+    notifyOnHalt: true,
+  },
+  {
+    agentType: "monitoring",
+    reason: "question_timeout",
+    autoResume: true,
+    autoResumeDelayMs: 60 * 60 * 1000,
+    requireApproval: false,
+    notifyOnHalt: true,
+  },
+  {
+    agentType: "orchestrator",
+    reason: "safety_concern",
+    autoResume: false,
+    requireApproval: true,
+    notifyOnHalt: true,
+    escalateAfterMs: 15 * 60 * 1000,
+  },
+  {
+    agentType: "build",
+    reason: "budget_exceeded",
+    autoResume: false,
+    requireApproval: true,
+    notifyOnHalt: true,
+  },
+  {
+    agentType: "validation",
+    reason: "dependency_failed",
+    autoResume: true,
+    autoResumeDelayMs: 5 * 60 * 1000,
+    requireApproval: false,
+    notifyOnHalt: true,
+  },
 ];
 
 export class HaltController extends EventEmitter {
@@ -74,14 +111,16 @@ export class HaltController extends EventEmitter {
   private config: HaltControllerConfig;
   private policies: Map<string, HaltPolicy> = new Map();
   private activeHalts: Map<string, HaltEvent> = new Map();
-  private autoResumeTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
-  private escalationTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private autoResumeTimers: Map<string, ReturnType<typeof setTimeout>> =
+    new Map();
+  private escalationTimers: Map<string, ReturnType<typeof setTimeout>> =
+    new Map();
 
   constructor(
     db: Database,
     executionGate: ExecutionGate,
     notificationDispatcher: NotificationDispatcher,
-    config: Partial<HaltControllerConfig> = {}
+    config: Partial<HaltControllerConfig> = {},
   ) {
     super();
     this.db = db;
@@ -104,12 +143,17 @@ export class HaltController extends EventEmitter {
     await this.loadActiveHalts();
 
     // Set up listeners
-    this.executionGate.on('agent:halted', (data: { agentId: string; agentType: AgentType; reason: string }) => {
-      // External halt - record it
-      this.recordExternalHalt(data.agentId, data.agentType, data.reason);
-    });
+    this.executionGate.on(
+      "agent:halted",
+      (data: { agentId: string; agentType: AgentType; reason: string }) => {
+        // External halt - record it
+        this.recordExternalHalt(data.agentId, data.agentType, data.reason);
+      },
+    );
 
-    console.log(`[HaltController] Started with ${this.activeHalts.size} active halts`);
+    console.log(
+      `[HaltController] Started with ${this.activeHalts.size} active halts`,
+    );
   }
 
   /**
@@ -127,7 +171,7 @@ export class HaltController extends EventEmitter {
     }
     this.escalationTimers.clear();
 
-    console.log('[HaltController] Stopped');
+    console.log("[HaltController] Stopped");
   }
 
   /**
@@ -138,7 +182,7 @@ export class HaltController extends EventEmitter {
     agentType: AgentType,
     reason: HaltReason,
     details: string,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ): Promise<HaltEvent> {
     const haltEvent: HaltEvent = {
       id: uuid(),
@@ -167,7 +211,8 @@ export class HaltController extends EventEmitter {
 
     // Schedule auto-resume if configured
     if (policy?.autoResume) {
-      const delay = policy.autoResumeDelayMs || this.config.defaultAutoResumeDelayMs;
+      const delay =
+        policy.autoResumeDelayMs || this.config.defaultAutoResumeDelayMs;
       this.scheduleAutoResume(agentId, delay);
     }
 
@@ -176,7 +221,7 @@ export class HaltController extends EventEmitter {
       this.scheduleEscalation(haltEvent, policy.escalateAfterMs);
     }
 
-    this.emit('halt:created', haltEvent);
+    this.emit("halt:created", haltEvent);
     console.log(`[HaltController] Halted ${agentId} (${reason}): ${details}`);
 
     return haltEvent;
@@ -185,7 +230,10 @@ export class HaltController extends EventEmitter {
   /**
    * Resume a halted agent.
    */
-  async resumeAgent(agentId: string, resumedBy: string = 'system'): Promise<boolean> {
+  async resumeAgent(
+    agentId: string,
+    resumedBy: string = "system",
+  ): Promise<boolean> {
     const haltEvent = this.activeHalts.get(agentId);
 
     if (!haltEvent) {
@@ -195,7 +243,7 @@ export class HaltController extends EventEmitter {
 
     // Check if approval is required
     const policy = this.getPolicy(haltEvent.agentType, haltEvent.reason);
-    if (policy?.requireApproval && resumedBy === 'system') {
+    if (policy?.requireApproval && resumedBy === "system") {
       console.log(`[HaltController] Resume requires approval for ${agentId}`);
       return false;
     }
@@ -217,7 +265,7 @@ export class HaltController extends EventEmitter {
     // Send notification
     await this.sendResumeNotification(haltEvent, resumedBy);
 
-    this.emit('halt:resumed', haltEvent);
+    this.emit("halt:resumed", haltEvent);
     console.log(`[HaltController] Resumed ${agentId} by ${resumedBy}`);
 
     return true;
@@ -238,8 +286,8 @@ export class HaltController extends EventEmitter {
     await this.notificationDispatcher.dispatch({
       id: uuid(),
       agentType: haltEvent.agentType,
-      category: 'approval_needed',
-      severity: 'warning',
+      category: "approval_needed",
+      severity: "warning",
       title: `Resume Agent: ${agentId}`,
       message: `Agent ${agentId} is halted due to: ${haltEvent.reason}\n\n${haltEvent.details}\n\nApprove to resume execution.`,
       data: {
@@ -270,8 +318,9 @@ export class HaltController extends EventEmitter {
    * Get halts by agent type.
    */
   getHaltsByAgentType(agentType: AgentType): HaltEvent[] {
-    return Array.from(this.activeHalts.values())
-      .filter(h => h.agentType === agentType);
+    return Array.from(this.activeHalts.values()).filter(
+      (h) => h.agentType === agentType,
+    );
   }
 
   /**
@@ -292,7 +341,10 @@ export class HaltController extends EventEmitter {
   /**
    * Get policy for agent type and reason.
    */
-  private getPolicy(agentType: AgentType, reason: HaltReason): HaltPolicy | null {
+  private getPolicy(
+    agentType: AgentType,
+    reason: HaltReason,
+  ): HaltPolicy | null {
     // Try specific policy
     const specificKey = `${agentType}:${reason}`;
     if (this.policies.has(specificKey)) {
@@ -315,11 +367,13 @@ export class HaltController extends EventEmitter {
     const timer = setTimeout(async () => {
       this.autoResumeTimers.delete(agentId);
       console.log(`[HaltController] Auto-resuming ${agentId}`);
-      await this.resumeAgent(agentId, 'auto_resume');
+      await this.resumeAgent(agentId, "auto_resume");
     }, delayMs);
 
     this.autoResumeTimers.set(agentId, timer);
-    console.log(`[HaltController] Scheduled auto-resume for ${agentId} in ${delayMs}ms`);
+    console.log(
+      `[HaltController] Scheduled auto-resume for ${agentId} in ${delayMs}ms`,
+    );
   }
 
   /**
@@ -339,8 +393,8 @@ export class HaltController extends EventEmitter {
       await this.notificationDispatcher.dispatch({
         id: uuid(),
         agentType: haltEvent.agentType,
-        category: 'approval_needed',
-        severity: 'critical',
+        category: "approval_needed",
+        severity: "critical",
         title: `[ESCALATED] Agent Halted: ${haltEvent.agentId}`,
         message: `Agent has been halted for over ${Math.round(delayMs / 1000 / 60)} minutes!\n\nReason: ${haltEvent.reason}\n${haltEvent.details}`,
         data: {
@@ -348,10 +402,10 @@ export class HaltController extends EventEmitter {
           agentId: haltEvent.agentId,
           escalated: true,
         },
-        channel: 'both',
+        channel: "both",
       });
 
-      this.emit('halt:escalated', haltEvent);
+      this.emit("halt:escalated", haltEvent);
     }, delayMs);
 
     this.escalationTimers.set(haltEvent.agentId, timer);
@@ -377,22 +431,26 @@ export class HaltController extends EventEmitter {
   /**
    * Send halt notification.
    */
-  private async sendHaltNotification(haltEvent: HaltEvent, policy: HaltPolicy | null): Promise<void> {
-    const severity = policy?.requireApproval ? 'warning' : 'info';
+  private async sendHaltNotification(
+    haltEvent: HaltEvent,
+    policy: HaltPolicy | null,
+  ): Promise<void> {
+    const severity = policy?.requireApproval ? "warning" : "info";
 
     let message = `Reason: ${haltEvent.reason}\n\n${haltEvent.details}`;
 
     if (policy?.autoResume) {
-      const delay = policy.autoResumeDelayMs || this.config.defaultAutoResumeDelayMs;
+      const delay =
+        policy.autoResumeDelayMs || this.config.defaultAutoResumeDelayMs;
       message += `\n\nWill auto-resume in ${Math.round(delay / 1000 / 60)} minutes.`;
     } else if (policy?.requireApproval) {
-      message += '\n\nApproval required to resume.';
+      message += "\n\nApproval required to resume.";
     }
 
     await this.notificationDispatcher.dispatch({
       id: uuid(),
       agentType: haltEvent.agentType,
-      category: 'agent_status',
+      category: "agent_status",
       severity,
       title: `Agent Halted: ${haltEvent.agentId}`,
       message,
@@ -407,12 +465,15 @@ export class HaltController extends EventEmitter {
   /**
    * Send resume notification.
    */
-  private async sendResumeNotification(haltEvent: HaltEvent, resumedBy: string): Promise<void> {
+  private async sendResumeNotification(
+    haltEvent: HaltEvent,
+    resumedBy: string,
+  ): Promise<void> {
     await this.notificationDispatcher.dispatch({
       id: uuid(),
       agentType: haltEvent.agentType,
-      category: 'agent_status',
-      severity: 'info',
+      category: "agent_status",
+      severity: "info",
       title: `Agent Resumed: ${haltEvent.agentId}`,
       message: `Agent resumed by ${resumedBy}.\n\nOriginal halt reason: ${haltEvent.reason}`,
       data: {
@@ -426,7 +487,11 @@ export class HaltController extends EventEmitter {
   /**
    * Record an external halt (from execution gate).
    */
-  private async recordExternalHalt(agentId: string, agentType: AgentType, reason: string): Promise<void> {
+  private async recordExternalHalt(
+    agentId: string,
+    agentType: AgentType,
+    reason: string,
+  ): Promise<void> {
     if (this.activeHalts.has(agentId)) {
       return; // Already tracking
     }
@@ -435,7 +500,7 @@ export class HaltController extends EventEmitter {
       id: uuid(),
       agentId,
       agentType,
-      reason: 'manual_intervention' as HaltReason,
+      reason: "manual_intervention" as HaltReason,
       details: reason,
       haltedAt: new Date(),
     };
@@ -457,8 +522,8 @@ export class HaltController extends EventEmitter {
       context: string | null;
       halted_at: string;
     }>(
-      'SELECT * FROM activity_log WHERE action_type = ? AND (context IS NULL OR JSON_EXTRACT(context, \'$.resumed\') IS NULL)',
-      ['halt']
+      "SELECT * FROM activity_log WHERE action_type = ? AND (context IS NULL OR JSON_EXTRACT(context, '$.resumed') IS NULL)",
+      ["halt"],
     );
 
     for (const row of rows) {
@@ -487,12 +552,12 @@ export class HaltController extends EventEmitter {
         event.id,
         event.agentId,
         event.agentType,
-        'halt',
+        "halt",
         event.reason,
         event.details,
         event.context ? JSON.stringify(event.context) : null,
         event.haltedAt.toISOString(),
-      ]
+      ],
     );
   }
 
@@ -507,9 +572,9 @@ export class HaltController extends EventEmitter {
       resumedBy: event.resumedBy,
     };
 
-    await this.db.run(
-      'UPDATE activity_log SET context = ? WHERE id = ?',
-      [JSON.stringify(context), event.id]
-    );
+    await this.db.run("UPDATE activity_log SET context = ? WHERE id = ?", [
+      JSON.stringify(context),
+      event.id,
+    ]);
   }
 }

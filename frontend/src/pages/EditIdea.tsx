@@ -1,19 +1,19 @@
-import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Edit2, Loader2 } from 'lucide-react'
-import { useIdea } from '../hooks/useIdeas'
-import IdeaForm from '../components/IdeaForm'
-import type { LifecycleStage, IdeaType } from '../types'
+import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, Edit2, Loader2 } from "lucide-react";
+import { useIdea } from "../hooks/useIdeas";
+import IdeaForm from "../components/IdeaForm";
+import type { LifecycleStage, IdeaType } from "../types";
 
 export default function EditIdea() {
-  const { slug } = useParams<{ slug: string }>()
-  const { idea, loading, error } = useIdea(slug)
+  const { slug } = useParams<{ slug: string }>();
+  const { idea, loading, error } = useIdea(slug);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
       </div>
-    )
+    );
   }
 
   if (error || !idea) {
@@ -27,10 +27,10 @@ export default function EditIdea() {
           Back to ideas
         </Link>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-700">{error?.message || 'Idea not found'}</p>
+          <p className="text-red-700">{error?.message || "Idea not found"}</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -68,5 +68,5 @@ export default function EditIdea() {
         />
       </div>
     </div>
-  )
+  );
 }

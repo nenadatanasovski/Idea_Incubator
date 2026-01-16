@@ -136,42 +136,42 @@
 
 ### Data Sources
 
-| Source | Role | Characteristics |
-|--------|------|-----------------|
-| **Event Bus** | Primary truth | Real-time (<10ms), typed, authoritative |
+| Source            | Role          | Characteristics                            |
+| ----------------- | ------------- | ------------------------------------------ |
+| **Event Bus**     | Primary truth | Real-time (<10ms), typed, authoritative    |
 | **Puppeteer MCP** | UI validation | Validates user experience, catches UI bugs |
 
 ### How They Work Together
 
-| Scenario | Event Bus Says | Puppeteer Says | Action |
-|----------|----------------|----------------|--------|
-| Normal | Agent working | Agent working | None |
-| UI Bug | Agent working | Agent idle | Flag UI bug, trust Event Bus |
-| Stale WebSocket | Agent idle | Agent working | Reconnect WebSocket |
-| Both agree error | Agent errored | Error displayed | High confidence → take action |
-| Conflict | Agent done | Agent stuck | Investigate, don't act hastily |
+| Scenario         | Event Bus Says | Puppeteer Says  | Action                         |
+| ---------------- | -------------- | --------------- | ------------------------------ |
+| Normal           | Agent working  | Agent working   | None                           |
+| UI Bug           | Agent working  | Agent idle      | Flag UI bug, trust Event Bus   |
+| Stale WebSocket  | Agent idle     | Agent working   | Reconnect WebSocket            |
+| Both agree error | Agent errored  | Error displayed | High confidence → take action  |
+| Conflict         | Agent done     | Agent stuck     | Investigate, don't act hastily |
 
 ### Health States
 
-| State | Meaning | System Behavior |
-|-------|---------|-----------------|
-| HEALTHY | Both sources connected | Normal operation |
-| DEGRADED | One source down | Continue with caution, extra logging |
-| UNHEALTHY | Both sources down | Pause all loops, wait for recovery |
-| CRITICAL | Unhealthy > 5 min | Terminate sessions, alert human |
+| State     | Meaning                | System Behavior                      |
+| --------- | ---------------------- | ------------------------------------ |
+| HEALTHY   | Both sources connected | Normal operation                     |
+| DEGRADED  | One source down        | Continue with caution, extra logging |
+| UNHEALTHY | Both sources down      | Pause all loops, wait for recovery   |
+| CRITICAL  | Unhealthy > 5 min      | Terminate sessions, alert human      |
 
 ### Response Levels (Graduated)
 
-| Level | Name | Reversible | Human Approval |
-|-------|------|------------|----------------|
-| 0 | OBSERVE | ✓ | No |
-| 1 | LOG | ✓ | No |
-| 2 | ALERT | ✓ | No |
-| 3 | WARN | ✓ | No |
-| 4 | PAUSE | ✓ | No |
-| 5 | RESTART | ✗ | No (auto) |
-| 6 | KILL | ✗ | **Yes** |
-| 7 | EMERGENCY | ✗ | **Yes** |
+| Level | Name      | Reversible | Human Approval |
+| ----- | --------- | ---------- | -------------- |
+| 0     | OBSERVE   | ✓          | No             |
+| 1     | LOG       | ✓          | No             |
+| 2     | ALERT     | ✓          | No             |
+| 3     | WARN      | ✓          | No             |
+| 4     | PAUSE     | ✓          | No             |
+| 5     | RESTART   | ✗          | No (auto)      |
+| 6     | KILL      | ✗          | **Yes**        |
+| 7     | EMERGENCY | ✗          | **Yes**        |
 
 ---
 
@@ -179,13 +179,13 @@
 
 ### Channel Matrix
 
-| Channel | Blocking Qs | Clarifying Qs | Celebratory | Best For |
-|---------|-------------|---------------|-------------|----------|
-| **Web Dashboard** | ✓ Modal | ✓ Queue | ✓ Toast | Primary interface |
-| **Telegram** | ✓ Immediate | ✓ Digest | ✓ Summary | Mobile, away from desk |
-| **Email** | ✗ Too slow | ✓ Daily digest | ✓ Weekly | Async review |
-| **Browser Push** | ✓ Immediate | ✓ Badge | ✗ Skip | Quick attention |
-| **IDE Integration** | ✓ Inline | ✓ Sidebar | ✓ Popup | During development |
+| Channel             | Blocking Qs | Clarifying Qs  | Celebratory | Best For               |
+| ------------------- | ----------- | -------------- | ----------- | ---------------------- |
+| **Web Dashboard**   | ✓ Modal     | ✓ Queue        | ✓ Toast     | Primary interface      |
+| **Telegram**        | ✓ Immediate | ✓ Digest       | ✓ Summary   | Mobile, away from desk |
+| **Email**           | ✗ Too slow  | ✓ Daily digest | ✓ Weekly    | Async review           |
+| **Browser Push**    | ✓ Immediate | ✓ Badge        | ✗ Skip      | Quick attention        |
+| **IDE Integration** | ✓ Inline    | ✓ Sidebar      | ✓ Popup     | During development     |
 
 ### Channel Selection Logic
 
@@ -410,24 +410,24 @@ https://vibe.local/settings            # Notification preferences
 
 > Each agent type has its own Telegram bot for clear, separated communication.
 
-| Bot | Username | Purpose |
-|-----|----------|---------|
-| Monitoring Agent | @vibe_monitor_bot | Alerts, approvals, escalations |
-| Orchestrator | @vibe_orchestrator_bot | System status, coordination |
-| Spec Agent | @vibe_spec_bot | Spec questions, decisions |
-| Build Agent | @vibe_build_bot | Build questions, progress |
-| Validation Agent | @vibe_validation_bot | Test results, coverage questions |
-| SIA | @vibe_sia_bot | Learning confirmations, gotchas |
-| System | @vibe_system_bot | Fallback for all agents |
+| Bot              | Username               | Purpose                          |
+| ---------------- | ---------------------- | -------------------------------- |
+| Monitoring Agent | @vibe_monitor_bot      | Alerts, approvals, escalations   |
+| Orchestrator     | @vibe_orchestrator_bot | System status, coordination      |
+| Spec Agent       | @vibe_spec_bot         | Spec questions, decisions        |
+| Build Agent      | @vibe_build_bot        | Build questions, progress        |
+| Validation Agent | @vibe_validation_bot   | Test results, coverage questions |
+| SIA              | @vibe_sia_bot          | Learning confirmations, gotchas  |
+| System           | @vibe_system_bot       | Fallback for all agents          |
 
 ### Why One Bot Per Agent?
 
-| Benefit | Description |
-|---------|-------------|
-| **Clarity** | Know instantly which agent is messaging you |
-| **Control** | Mute noisy agents without missing critical ones |
-| **Threading** | Each bot has separate conversation history |
-| **Debugging** | Isolate issues to specific agents |
+| Benefit       | Description                                     |
+| ------------- | ----------------------------------------------- |
+| **Clarity**   | Know instantly which agent is messaging you     |
+| **Control**   | Mute noisy agents without missing critical ones |
+| **Threading** | Each bot has separate conversation history      |
+| **Debugging** | Isolate issues to specific agents               |
 
 ### Fallback Chain
 
@@ -468,6 +468,7 @@ https://vibe.local/settings            # Notification preferences
 ### Example Messages
 
 **From @vibe_spec_bot (Blocking Question):**
+
 ```
 🔴 *Blocking Question*
 
@@ -484,6 +485,7 @@ Which authentication approach should I use?
 ```
 
 **From @vibe_monitor_bot (Approval Required):**
+
 ```
 🚨 *Approval Required*
 
@@ -494,7 +496,9 @@ _Agent has failed 5 consecutive tasks with same error._
 
 *Evidence:*
 ```
+
 TypeError: Cannot read property 'id' of undefined
+
 ```
 
 ⛔ _This action requires your explicit approval_
@@ -506,6 +510,7 @@ TypeError: Cannot read property 'id' of undefined
 ```
 
 **From @vibe_monitor_bot (Summary - /summary command):**
+
 ```
 📊 *Vibe Platform Summary*
 _last hour_
@@ -589,11 +594,11 @@ The system supports two categories of question types:
 
 ```typescript
 enum QuestionState {
-  PENDING = 'pending',           // Waiting for answer
-  ANSWERED = 'answered',         // User answered
-  EXPIRED = 'expired',           // Timed out, default applied
-  SKIPPED = 'skipped',           // User skipped
-  SUPERSEDED = 'superseded',     // New question replaced this
+  PENDING = "pending", // Waiting for answer
+  ANSWERED = "answered", // User answered
+  EXPIRED = "expired", // Timed out, default applied
+  SKIPPED = "skipped", // User skipped
+  SUPERSEDED = "superseded", // New question replaced this
 }
 
 interface QueuedQuestion {
@@ -614,7 +619,7 @@ interface QueuedQuestion {
 
   // Answer
   answer?: string;
-  answeredBy?: 'user' | 'default' | 'timeout';
+  answeredBy?: "user" | "default" | "timeout";
 }
 ```
 
@@ -637,8 +642,8 @@ class QuestionQueue {
     };
 
     // Insert by priority
-    const insertIndex = this.queue.findIndex(q =>
-      this.calculatePriority(q.question) < priority
+    const insertIndex = this.queue.findIndex(
+      (q) => this.calculatePriority(q.question) < priority,
     );
 
     if (insertIndex === -1) {
@@ -655,9 +660,9 @@ class QuestionQueue {
     let score = 0;
 
     if (q.blocking) score += 1000;
-    if (q.type === 'clarifying') score += 100;
-    if (q.type === 'confirming') score += 50;
-    if (q.type === 'educational') score += 10;
+    if (q.type === "clarifying") score += 100;
+    if (q.type === "confirming") score += 50;
+    if (q.type === "educational") score += 10;
 
     // Older questions get slight boost
     const ageMinutes = (Date.now() - q.createdAt.getTime()) / 60000;
@@ -667,16 +672,16 @@ class QuestionQueue {
   }
 
   getNext(): QueuedQuestion | null {
-    return this.queue.find(q => q.state === QuestionState.PENDING) || null;
+    return this.queue.find((q) => q.state === QuestionState.PENDING) || null;
   }
 
   getPending(): QueuedQuestion[] {
-    return this.queue.filter(q => q.state === QuestionState.PENDING);
+    return this.queue.filter((q) => q.state === QuestionState.PENDING);
   }
 
   getBlocking(): QueuedQuestion[] {
-    return this.queue.filter(q =>
-      q.state === QuestionState.PENDING && q.question.blocking
+    return this.queue.filter(
+      (q) => q.state === QuestionState.PENDING && q.question.blocking,
     );
   }
 }
@@ -690,7 +695,7 @@ async function answerAllWithDefaults(queue: QuestionQueue): Promise<void> {
 
   for (const queued of pending) {
     if (!queued.question.blocking && queued.question.defaultOption) {
-      await queue.answer(queued.id, queued.question.defaultOption, 'default');
+      await queue.answer(queued.id, queued.question.defaultOption, "default");
     }
   }
 }
@@ -705,21 +710,21 @@ async function answerAllWithDefaults(queue: QuestionQueue): Promise<void> {
 ```typescript
 // Client → Server
 interface ClientMessage {
-  type: 'subscribe' | 'unsubscribe' | 'answer' | 'ping';
+  type: "subscribe" | "unsubscribe" | "answer" | "ping";
   payload: any;
 }
 
 // Server → Client
 interface ServerMessage {
   type:
-    | 'question.new'
-    | 'question.answered'
-    | 'question.expired'
-    | 'agent.status'
-    | 'agent.progress'
-    | 'timeline.event'
-    | 'milestone'
-    | 'pong';
+    | "question.new"
+    | "question.answered"
+    | "question.expired"
+    | "agent.status"
+    | "agent.progress"
+    | "timeline.event"
+    | "milestone"
+    | "pong";
   payload: any;
 }
 
@@ -729,11 +734,11 @@ class RealtimeClient {
   private reconnectAttempts = 0;
 
   connect() {
-    this.ws = new WebSocket('wss://vibe.local/ws');
+    this.ws = new WebSocket("wss://vibe.local/ws");
 
     this.ws.onopen = () => {
       this.reconnectAttempts = 0;
-      this.subscribe(['questions', 'agents', 'timeline']);
+      this.subscribe(["questions", "agents", "timeline"]);
     };
 
     this.ws.onmessage = (event) => {
@@ -748,13 +753,13 @@ class RealtimeClient {
 
   private handleMessage(message: ServerMessage) {
     switch (message.type) {
-      case 'question.new':
+      case "question.new":
         this.onNewQuestion(message.payload);
         break;
-      case 'agent.status':
+      case "agent.status":
         this.onAgentStatus(message.payload);
         break;
-      case 'milestone':
+      case "milestone":
         this.onMilestone(message.payload);
         break;
       // ...
@@ -790,30 +795,30 @@ class WebSocketServer {
   // Called by Question Queue
   onQuestionCreated(question: QueuedQuestion) {
     this.broadcast({
-      type: 'question.new',
+      type: "question.new",
       payload: {
         id: question.id,
         agent: question.question.agent,
         type: question.question.type,
         blocking: question.question.blocking,
         preview: question.question.text.substring(0, 100),
-      }
+      },
     });
   }
 
   // Called by Agent Status Tracker
   onAgentStatusChanged(agent: string, status: AgentStatus) {
     this.broadcast({
-      type: 'agent.status',
-      payload: { agent, ...status }
+      type: "agent.status",
+      payload: { agent, ...status },
     });
   }
 
   // Called by Progress Tracker
   onAgentProgress(agent: string, progress: number, task?: string) {
     this.broadcast({
-      type: 'agent.progress',
-      payload: { agent, progress, task }
+      type: "agent.progress",
+      payload: { agent, progress, task },
     });
   }
 }
@@ -838,15 +843,15 @@ interface User {
 
 interface NotificationPreferences {
   blocking: {
-    channels: ('web' | 'telegram' | 'push' | 'email')[];
+    channels: ("web" | "telegram" | "push" | "email")[];
     quietHours?: { start: string; end: string };
   };
   clarifying: {
-    channels: ('web' | 'telegram')[];
-    digestFrequency: 'immediate' | 'hourly' | 'daily';
+    channels: ("web" | "telegram")[];
+    digestFrequency: "immediate" | "hourly" | "daily";
   };
   celebratory: {
-    channels: ('web' | 'telegram')[];
+    channels: ("web" | "telegram")[];
     enabled: boolean;
   };
 }
@@ -859,7 +864,7 @@ interface NotificationPreferences {
 function generateQuestionLink(questionId: string): string {
   const token = jwt.sign(
     { questionId, exp: Date.now() + 24 * 60 * 60 * 1000 },
-    SECRET_KEY
+    SECRET_KEY,
   );
   return `https://vibe.local/questions/${questionId}?token=${token}`;
 }
@@ -868,7 +873,7 @@ function generateQuestionLink(questionId: string): string {
 function generateTelegramCallback(questionId: string, option: string): string {
   const token = jwt.sign(
     { questionId, option, exp: Date.now() + 60 * 60 * 1000 },
-    SECRET_KEY
+    SECRET_KEY,
   );
   return `answer:${token}`;
 }
@@ -880,48 +885,48 @@ function generateTelegramCallback(questionId: string, option: string): string {
 
 These tasks should be added to the main task list:
 
-| ID | Task | Pri | Category |
-|----|------|-----|----------|
-| UI-001 | Web dashboard layout and routing | P1 | Frontend |
-| UI-002 | Agent status component | P1 | Frontend |
-| UI-003 | Question queue component | P1 | Frontend |
-| UI-004 | Question detail view | P1 | Frontend |
-| UI-005 | Activity timeline component | P2 | Frontend |
-| UI-006 | Blocking question banner/modal | P1 | Frontend |
-| UI-007 | Mobile responsive design | P2 | Frontend |
-| UI-008 | Answer submission handler | P1 | Frontend |
-| WS-001 | WebSocket server setup | P1 | Backend |
-| WS-002 | Client connection management | P1 | Backend |
-| WS-003 | Event broadcasting | P1 | Backend |
-| WS-004 | Reconnection handling | P2 | Backend |
-| NTF-001 | Telegram bot setup | P2 | Integration |
-| NTF-002 | Telegram question delivery | P2 | Integration |
-| NTF-003 | Telegram inline answers | P2 | Integration |
-| NTF-004 | Browser push notifications | P3 | Integration |
-| NTF-005 | Email digest system | P4 | Integration |
-| QUE-001 | Question queue database schema | P1 | Backend |
-| QUE-002 | Queue priority management | P1 | Backend |
-| QUE-003 | Answer processing | P1 | Backend |
-| QUE-004 | Expiry and timeout handling | P2 | Backend |
-| QUE-005 | "Answer all defaults" feature | P2 | Backend |
-| SEC-001 | Authentication system | P1 | Security |
-| SEC-002 | Signed deep links | P2 | Security |
-| SEC-003 | Rate limiting | P3 | Security |
+| ID      | Task                             | Pri | Category    |
+| ------- | -------------------------------- | --- | ----------- |
+| UI-001  | Web dashboard layout and routing | P1  | Frontend    |
+| UI-002  | Agent status component           | P1  | Frontend    |
+| UI-003  | Question queue component         | P1  | Frontend    |
+| UI-004  | Question detail view             | P1  | Frontend    |
+| UI-005  | Activity timeline component      | P2  | Frontend    |
+| UI-006  | Blocking question banner/modal   | P1  | Frontend    |
+| UI-007  | Mobile responsive design         | P2  | Frontend    |
+| UI-008  | Answer submission handler        | P1  | Frontend    |
+| WS-001  | WebSocket server setup           | P1  | Backend     |
+| WS-002  | Client connection management     | P1  | Backend     |
+| WS-003  | Event broadcasting               | P1  | Backend     |
+| WS-004  | Reconnection handling            | P2  | Backend     |
+| NTF-001 | Telegram bot setup               | P2  | Integration |
+| NTF-002 | Telegram question delivery       | P2  | Integration |
+| NTF-003 | Telegram inline answers          | P2  | Integration |
+| NTF-004 | Browser push notifications       | P3  | Integration |
+| NTF-005 | Email digest system              | P4  | Integration |
+| QUE-001 | Question queue database schema   | P1  | Backend     |
+| QUE-002 | Queue priority management        | P1  | Backend     |
+| QUE-003 | Answer processing                | P1  | Backend     |
+| QUE-004 | Expiry and timeout handling      | P2  | Backend     |
+| QUE-005 | "Answer all defaults" feature    | P2  | Backend     |
+| SEC-001 | Authentication system            | P1  | Security    |
+| SEC-002 | Signed deep links                | P2  | Security    |
+| SEC-003 | Rate limiting                    | P3  | Security    |
 
 ---
 
 ## Summary
 
-| Feature | MVP (P1) | Enhanced (P2-P3) | Future (P4) |
-|---------|----------|------------------|-------------|
-| Web Dashboard | ✓ Basic layout | ✓ Rich UI | Analytics |
-| Question Queue | ✓ List + answer | ✓ Priorities | ML routing |
-| Real-time | ✓ WebSocket | ✓ Reconnect | Offline sync |
-| Telegram | | ✓ Questions | ✓ Full control |
-| Push | | ✓ Blocking only | All types |
-| Email | | | ✓ Digests |
-| Mobile | ✓ Responsive | ✓ PWA | Native app |
+| Feature        | MVP (P1)        | Enhanced (P2-P3) | Future (P4)    |
+| -------------- | --------------- | ---------------- | -------------- |
+| Web Dashboard  | ✓ Basic layout  | ✓ Rich UI        | Analytics      |
+| Question Queue | ✓ List + answer | ✓ Priorities     | ML routing     |
+| Real-time      | ✓ WebSocket     | ✓ Reconnect      | Offline sync   |
+| Telegram       |                 | ✓ Questions      | ✓ Full control |
+| Push           |                 | ✓ Blocking only  | All types      |
+| Email          |                 |                  | ✓ Digests      |
+| Mobile         | ✓ Responsive    | ✓ PWA            | Native app     |
 
 ---
 
-*The question system is how users stay connected to their agents. It must work everywhere, all the time.*
+_The question system is how users stay connected to their agents. It must work everywhere, all the time._

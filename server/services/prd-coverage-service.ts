@@ -5,12 +5,8 @@
  * Part of: Task System V2 Implementation Plan (IMPL-3.5)
  */
 
-import { query, getOne } from '../../database/db.js';
-import {
-  PrdCoverage,
-  PrdRow,
-  PrdTaskLinkRow,
-} from '../../types/prd.js';
+import { query, getOne } from "../../database/db.js";
+import { PrdCoverage, PrdRow, PrdTaskLinkRow } from "../../types/prd.js";
 
 /**
  * PRD Coverage Service class
@@ -21,10 +17,9 @@ export class PrdCoverageService {
    */
   async calculateCoverage(prdId: string): Promise<PrdCoverage> {
     // Get PRD
-    const prd = await getOne<PrdRow>(
-      'SELECT * FROM prds WHERE id = ?',
-      [prdId]
-    );
+    const prd = await getOne<PrdRow>("SELECT * FROM prds WHERE id = ?", [
+      prdId,
+    ]);
 
     if (!prd) {
       throw new Error(`PRD ${prdId} not found`);
@@ -35,14 +30,14 @@ export class PrdCoverageService {
 
     // Get linked task lists count
     const taskListCount = await getOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM prd_task_lists WHERE prd_id = ?',
-      [prdId]
+      "SELECT COUNT(*) as count FROM prd_task_lists WHERE prd_id = ?",
+      [prdId],
     );
 
     // Get linked tasks
     const linkedTasks = await query<PrdTaskLinkRow>(
-      'SELECT * FROM prd_tasks WHERE prd_id = ?',
-      [prdId]
+      "SELECT * FROM prd_tasks WHERE prd_id = ?",
+      [prdId],
     );
 
     // Get completed tasks count
@@ -50,13 +45,13 @@ export class PrdCoverageService {
       `SELECT COUNT(*) as count FROM tasks t
        INNER JOIN prd_tasks pt ON t.id = pt.task_id
        WHERE pt.prd_id = ? AND t.status = 'completed'`,
-      [prdId]
+      [prdId],
     );
 
     // Calculate which success criteria are covered
     const coveredCriteria = new Set<number>();
     for (const link of linkedTasks) {
-      if (link.requirement_ref?.startsWith('success_criteria[')) {
+      if (link.requirement_ref?.startsWith("success_criteria[")) {
         const match = link.requirement_ref.match(/success_criteria\[(\d+)\]/);
         if (match) {
           coveredCriteria.add(parseInt(match[1], 10));
@@ -67,7 +62,10 @@ export class PrdCoverageService {
     // Calculate which constraints are verified (tasks with 'tests' link type)
     const verifiedConstraints = new Set<number>();
     for (const link of linkedTasks) {
-      if (link.link_type === 'tests' && link.requirement_ref?.startsWith('constraints[')) {
+      if (
+        link.link_type === "tests" &&
+        link.requirement_ref?.startsWith("constraints[")
+      ) {
         const match = link.requirement_ref.match(/constraints\[(\d+)\]/);
         if (match) {
           verifiedConstraints.add(parseInt(match[1], 10));
@@ -77,9 +75,10 @@ export class PrdCoverageService {
 
     const totalRequirements = successCriteria.length + constraints.length;
     const coveredRequirements = coveredCriteria.size + verifiedConstraints.size;
-    const coveragePercent = totalRequirements > 0
-      ? Math.round((coveredRequirements / totalRequirements) * 100)
-      : 100;
+    const coveragePercent =
+      totalRequirements > 0
+        ? Math.round((coveredRequirements / totalRequirements) * 100)
+        : 100;
 
     return {
       prdId,
@@ -108,13 +107,23 @@ export class PrdCoverageService {
   async getCoverageBySection(prdId: string): Promise<Record<string, number>> {
     const coverage = await this.calculateCoverage(prdId);
 
-    const scCoverage = coverage.bySection.successCriteria.total > 0
-      ? Math.round((coverage.bySection.successCriteria.covered / coverage.bySection.successCriteria.total) * 100)
-      : 100;
+    const scCoverage =
+      coverage.bySection.successCriteria.total > 0
+        ? Math.round(
+            (coverage.bySection.successCriteria.covered /
+              coverage.bySection.successCriteria.total) *
+              100,
+          )
+        : 100;
 
-    const constraintsCoverage = coverage.bySection.constraints.total > 0
-      ? Math.round((coverage.bySection.constraints.verified / coverage.bySection.constraints.total) * 100)
-      : 100;
+    const constraintsCoverage =
+      coverage.bySection.constraints.total > 0
+        ? Math.round(
+            (coverage.bySection.constraints.verified /
+              coverage.bySection.constraints.total) *
+              100,
+          )
+        : 100;
 
     return {
       successCriteria: scCoverage,
@@ -127,10 +136,9 @@ export class PrdCoverageService {
    * Get uncovered requirements
    */
   async getUncoveredRequirements(prdId: string): Promise<string[]> {
-    const prd = await getOne<PrdRow>(
-      'SELECT * FROM prds WHERE id = ?',
-      [prdId]
-    );
+    const prd = await getOne<PrdRow>("SELECT * FROM prds WHERE id = ?", [
+      prdId,
+    ]);
 
     if (!prd) {
       throw new Error(`PRD ${prdId} not found`);
@@ -141,10 +149,10 @@ export class PrdCoverageService {
 
     // Get linked requirements
     const linkedTasks = await query<PrdTaskLinkRow>(
-      'SELECT requirement_ref FROM prd_tasks WHERE prd_id = ? AND requirement_ref IS NOT NULL',
-      [prdId]
+      "SELECT requirement_ref FROM prd_tasks WHERE prd_id = ? AND requirement_ref IS NOT NULL",
+      [prdId],
     );
-    const linkedRefs = new Set(linkedTasks.map(lt => lt.requirement_ref));
+    const linkedRefs = new Set(linkedTasks.map((lt) => lt.requirement_ref));
 
     const uncovered: string[] = [];
 
@@ -172,33 +180,35 @@ export class PrdCoverageService {
    */
   async getRequirementCoverage(
     prdId: string,
-    requirementRef: string
+    requirementRef: string,
   ): Promise<{ covered: boolean; tasks: string[] }> {
     const linkedTasks = await query<{ task_id: string }>(
-      'SELECT task_id FROM prd_tasks WHERE prd_id = ? AND requirement_ref = ?',
-      [prdId, requirementRef]
+      "SELECT task_id FROM prd_tasks WHERE prd_id = ? AND requirement_ref = ?",
+      [prdId, requirementRef],
     );
 
     return {
       covered: linkedTasks.length > 0,
-      tasks: linkedTasks.map(lt => lt.task_id),
+      tasks: linkedTasks.map((lt) => lt.task_id),
     };
   }
 
   /**
    * Get completion progress
    */
-  async getCompletionProgress(prdId: string): Promise<{ total: number; completed: number; percentage: number }> {
+  async getCompletionProgress(
+    prdId: string,
+  ): Promise<{ total: number; completed: number; percentage: number }> {
     const linkedTasksResult = await getOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM prd_tasks WHERE prd_id = ?',
-      [prdId]
+      "SELECT COUNT(*) as count FROM prd_tasks WHERE prd_id = ?",
+      [prdId],
     );
 
     const completedTasksResult = await getOne<{ count: number }>(
       `SELECT COUNT(*) as count FROM tasks t
        INNER JOIN prd_tasks pt ON t.id = pt.task_id
        WHERE pt.prd_id = ? AND t.status = 'completed'`,
-      [prdId]
+      [prdId],
     );
 
     const total = linkedTasksResult?.count || 0;
@@ -211,7 +221,10 @@ export class PrdCoverageService {
   /**
    * Check if coverage meets threshold
    */
-  async checkCoverageThreshold(prdId: string, threshold: number): Promise<boolean> {
+  async checkCoverageThreshold(
+    prdId: string,
+    threshold: number,
+  ): Promise<boolean> {
     const coverage = await this.calculateCoverage(prdId);
     return coverage.coveragePercent >= threshold;
   }

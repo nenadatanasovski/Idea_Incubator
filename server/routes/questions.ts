@@ -10,10 +10,13 @@
  * - POST /api/questions/answer-all-defaults - Answer all with defaults (QUE-005)
  */
 
-import { Router, Request, Response } from 'express';
-import { query, run, getOne } from '../../database/db.js';
-import { emitTaskExecutorEvent } from '../websocket.js';
-import { validateAnswerRequest, isSigningEnabled } from '../../utils/url-signer.js';
+import { Router, Request, Response } from "express";
+import { query, run, getOne } from "../../database/db.js";
+import { emitTaskExecutorEvent } from "../websocket.js";
+import {
+  validateAnswerRequest,
+  isSigningEnabled,
+} from "../../utils/url-signer.js";
 
 // Default timeout for questions without explicit expiry (24 hours)
 const DEFAULT_QUESTION_TIMEOUT_MS = 24 * 60 * 60 * 1000;
@@ -50,7 +53,7 @@ interface QuestionRow {
  * GET /api/questions/pending
  * Get all pending questions
  */
-router.get('/pending', async (_req: Request, res: Response): Promise<void> => {
+router.get("/pending", async (_req: Request, res: Response): Promise<void> => {
   try {
     const rows = await query<QuestionRow>(`
       SELECT * FROM questions
@@ -61,15 +64,25 @@ router.get('/pending', async (_req: Request, res: Response): Promise<void> => {
         created_at ASC
     `);
 
-    const questions = rows.map(row => ({
+    const questions = rows.map((row) => ({
       id: row.id,
       agentId: row.agent_id,
-      agentName: row.agent_type.charAt(0).toUpperCase() + row.agent_type.slice(1) + ' Agent',
+      agentName:
+        row.agent_type.charAt(0).toUpperCase() +
+        row.agent_type.slice(1) +
+        " Agent",
       agentType: row.agent_type,
       type: row.type,
       content: row.content,
       options: row.options ? JSON.parse(row.options) : [],
-      priority: row.priority >= 8 ? 'critical' : row.priority >= 6 ? 'high' : row.priority >= 4 ? 'medium' : 'low',
+      priority:
+        row.priority >= 8
+          ? "critical"
+          : row.priority >= 6
+            ? "high"
+            : row.priority >= 4
+              ? "medium"
+              : "low",
       blocking: row.blocking === 1,
       defaultOption: row.default_option,
       expiresAt: row.expires_at,
@@ -81,8 +94,8 @@ router.get('/pending', async (_req: Request, res: Response): Promise<void> => {
 
     res.json({ questions });
   } catch (error) {
-    console.error('[QuestionsAPI] Error fetching pending questions:', error);
-    res.status(500).json({ error: 'Failed to fetch questions' });
+    console.error("[QuestionsAPI] Error fetching pending questions:", error);
+    res.status(500).json({ error: "Failed to fetch questions" });
   }
 });
 
@@ -90,28 +103,41 @@ router.get('/pending', async (_req: Request, res: Response): Promise<void> => {
  * GET /api/questions/:id
  * Get a specific question
  */
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+router.get("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    const row = await getOne<QuestionRow>(`
+    const row = await getOne<QuestionRow>(
+      `
       SELECT * FROM questions WHERE id = ?
-    `, [id]);
+    `,
+      [id],
+    );
 
     if (!row) {
-      res.status(404).json({ error: 'Question not found' });
+      res.status(404).json({ error: "Question not found" });
       return;
     }
 
     res.json({
       id: row.id,
       agentId: row.agent_id,
-      agentName: row.agent_type.charAt(0).toUpperCase() + row.agent_type.slice(1) + ' Agent',
+      agentName:
+        row.agent_type.charAt(0).toUpperCase() +
+        row.agent_type.slice(1) +
+        " Agent",
       agentType: row.agent_type,
       type: row.type,
       content: row.content,
       options: row.options ? JSON.parse(row.options) : [],
-      priority: row.priority >= 8 ? 'critical' : row.priority >= 6 ? 'high' : row.priority >= 4 ? 'medium' : 'low',
+      priority:
+        row.priority >= 8
+          ? "critical"
+          : row.priority >= 6
+            ? "high"
+            : row.priority >= 4
+              ? "medium"
+              : "low",
       blocking: row.blocking === 1,
       defaultOption: row.default_option,
       expiresAt: row.expires_at,
@@ -119,8 +145,8 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       status: row.status,
     });
   } catch (error) {
-    console.error('[QuestionsAPI] Error fetching question:', error);
-    res.status(500).json({ error: 'Failed to fetch question' });
+    console.error("[QuestionsAPI] Error fetching question:", error);
+    res.status(500).json({ error: "Failed to fetch question" });
   }
 });
 
@@ -131,72 +157,82 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
  * - POST with JSON body { answer: "..." } (from UI)
  * - GET with signed query params (from email links, SEC-003)
  */
-router.post('/:id/answer', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    let answer: string;
-    let fromSignedLink = false;
+router.post(
+  "/:id/answer",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      let answer: string;
+      let fromSignedLink = false;
 
-    // Check if answer comes from query params (signed link) or body (UI)
-    if (req.query.value) {
-      // Validate signed URL (SEC-003)
-      const validation = validateAnswerRequest(id, {
-        value: req.query.value as string,
-        expires: req.query.expires as string,
-        sig: req.query.sig as string
-      });
+      // Check if answer comes from query params (signed link) or body (UI)
+      if (req.query.value) {
+        // Validate signed URL (SEC-003)
+        const validation = validateAnswerRequest(id, {
+          value: req.query.value as string,
+          expires: req.query.expires as string,
+          sig: req.query.sig as string,
+        });
 
-      if (!validation.valid) {
-        res.status(403).json({ error: validation.error || 'Invalid or expired link' });
+        if (!validation.valid) {
+          res
+            .status(403)
+            .json({ error: validation.error || "Invalid or expired link" });
+          return;
+        }
+
+        answer = validation.value;
+        fromSignedLink = true;
+      } else {
+        // Answer from request body (UI)
+        answer = req.body.answer;
+      }
+
+      if (!answer || typeof answer !== "string") {
+        res.status(400).json({ error: "Answer is required" });
         return;
       }
 
-      answer = validation.value;
-      fromSignedLink = true;
-    } else {
-      // Answer from request body (UI)
-      answer = req.body.answer;
-    }
-
-    if (!answer || typeof answer !== 'string') {
-      res.status(400).json({ error: 'Answer is required' });
-      return;
-    }
-
-    // Get the question
-    const row = await getOne<QuestionRow>(`
+      // Get the question
+      const row = await getOne<QuestionRow>(
+        `
       SELECT * FROM questions WHERE id = ?
-    `, [id]);
+    `,
+        [id],
+      );
 
-    if (!row) {
-      res.status(404).json({ error: 'Question not found' });
-      return;
-    }
+      if (!row) {
+        res.status(404).json({ error: "Question not found" });
+        return;
+      }
 
-    if (row.status !== 'pending') {
-      res.status(400).json({ error: `Question already ${row.status}` });
-      return;
-    }
+      if (row.status !== "pending") {
+        res.status(400).json({ error: `Question already ${row.status}` });
+        return;
+      }
 
-    // Update question status in database
-    await run(`
+      // Update question status in database
+      await run(
+        `
       UPDATE questions
       SET status = 'answered',
           answer = ?,
           answered_at = datetime('now')
       WHERE id = ?
-    `, [answer, id]);
+    `,
+        [answer, id],
+      );
 
-    // Emit event for WebSocket clients
-    emitTaskExecutorEvent('task:resumed', {
-      questionId: id,
-      agentId: row.agent_id,
-      answer,
-    });
+      // Emit event for WebSocket clients
+      emitTaskExecutorEvent("task:resumed", {
+        questionId: id,
+        agentId: row.agent_id,
+        answer,
+      });
 
-    // For signed links, redirect to a thank you page or return HTML
-    if (fromSignedLink) {
-      res.send(`
+      // For signed links, redirect to a thank you page or return HTML
+      if (fromSignedLink) {
+        res.send(`
         <!DOCTYPE html>
         <html>
         <head><title>Answer Submitted</title></head>
@@ -207,58 +243,64 @@ router.post('/:id/answer', async (req: Request, res: Response): Promise<void> =>
         </body>
         </html>
       `);
-      return;
-    }
+        return;
+      }
 
-    res.json({
-      success: true,
-      message: 'Answer submitted successfully',
-      questionId: id,
-    });
-  } catch (error) {
-    console.error('[QuestionsAPI] Error answering question:', error);
-    res.status(500).json({ error: 'Failed to submit answer' });
-  }
-});
+      res.json({
+        success: true,
+        message: "Answer submitted successfully",
+        questionId: id,
+      });
+    } catch (error) {
+      console.error("[QuestionsAPI] Error answering question:", error);
+      res.status(500).json({ error: "Failed to submit answer" });
+    }
+  },
+);
 
 /**
  * GET /api/questions/:id/answer
  * Answer a question via signed link (SEC-003)
  * Redirects to POST handler
  */
-router.get('/:id/answer', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
+router.get(
+  "/:id/answer",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
 
-    // Validate signed URL
-    const validation = validateAnswerRequest(id, {
-      value: req.query.value as string,
-      expires: req.query.expires as string,
-      sig: req.query.sig as string
-    });
+      // Validate signed URL
+      const validation = validateAnswerRequest(id, {
+        value: req.query.value as string,
+        expires: req.query.expires as string,
+        sig: req.query.sig as string,
+      });
 
-    if (!validation.valid) {
-      res.status(403).send(`
+      if (!validation.valid) {
+        res.status(403).send(`
         <!DOCTYPE html>
         <html>
         <head><title>Link Invalid</title></head>
         <body style="font-family: system-ui; padding: 40px; text-align: center;">
           <h1>⚠ Link Invalid or Expired</h1>
-          <p>${validation.error || 'This link is no longer valid.'}</p>
+          <p>${validation.error || "This link is no longer valid."}</p>
           <p style="color: #666;">Please check your email for a new link or use the dashboard.</p>
         </body>
         </html>
       `);
-      return;
-    }
+        return;
+      }
 
-    // Get the question
-    const row = await getOne<QuestionRow>(`
+      // Get the question
+      const row = await getOne<QuestionRow>(
+        `
       SELECT * FROM questions WHERE id = ?
-    `, [id]);
+    `,
+        [id],
+      );
 
-    if (!row) {
-      res.status(404).send(`
+      if (!row) {
+        res.status(404).send(`
         <!DOCTYPE html>
         <html>
         <head><title>Question Not Found</title></head>
@@ -268,11 +310,11 @@ router.get('/:id/answer', async (req: Request, res: Response): Promise<void> => 
         </body>
         </html>
       `);
-      return;
-    }
+        return;
+      }
 
-    if (row.status !== 'pending') {
-      res.send(`
+      if (row.status !== "pending") {
+        res.send(`
         <!DOCTYPE html>
         <html>
         <head><title>Already Answered</title></head>
@@ -283,26 +325,29 @@ router.get('/:id/answer', async (req: Request, res: Response): Promise<void> => 
         </body>
         </html>
       `);
-      return;
-    }
+        return;
+      }
 
-    // Update question status in database
-    await run(`
+      // Update question status in database
+      await run(
+        `
       UPDATE questions
       SET status = 'answered',
           answer = ?,
           answered_at = datetime('now')
       WHERE id = ?
-    `, [validation.value, id]);
+    `,
+        [validation.value, id],
+      );
 
-    // Emit event for WebSocket clients
-    emitTaskExecutorEvent('task:resumed', {
-      questionId: id,
-      agentId: row.agent_id,
-      answer: validation.value,
-    });
+      // Emit event for WebSocket clients
+      emitTaskExecutorEvent("task:resumed", {
+        questionId: id,
+        agentId: row.agent_id,
+        answer: validation.value,
+      });
 
-    res.send(`
+      res.send(`
       <!DOCTYPE html>
       <html>
       <head><title>Answer Submitted</title></head>
@@ -313,9 +358,9 @@ router.get('/:id/answer', async (req: Request, res: Response): Promise<void> => 
       </body>
       </html>
     `);
-  } catch (error) {
-    console.error('[QuestionsAPI] Error answering question via link:', error);
-    res.status(500).send(`
+    } catch (error) {
+      console.error("[QuestionsAPI] Error answering question via link:", error);
+      res.status(500).send(`
       <!DOCTYPE html>
       <html>
       <head><title>Error</title></head>
@@ -325,61 +370,68 @@ router.get('/:id/answer', async (req: Request, res: Response): Promise<void> => 
       </body>
       </html>
     `);
-  }
-});
+    }
+  },
+);
 
 /**
  * POST /api/questions/:id/skip
  * Skip a question
  */
-router.post('/:id/skip', async (req: Request, res: Response): Promise<void> => {
+router.post("/:id/skip", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
 
     // Get the question
-    const row = await getOne<QuestionRow>(`
+    const row = await getOne<QuestionRow>(
+      `
       SELECT * FROM questions WHERE id = ?
-    `, [id]);
+    `,
+      [id],
+    );
 
     if (!row) {
-      res.status(404).json({ error: 'Question not found' });
+      res.status(404).json({ error: "Question not found" });
       return;
     }
 
-    if (row.status !== 'pending') {
+    if (row.status !== "pending") {
       res.status(400).json({ error: `Question already ${row.status}` });
       return;
     }
 
     // Update question status - use default option as answer if available
-    const answerValue = row.default_option || (reason || 'Skipped by user');
-    await run(`
+    const answerValue = row.default_option || reason || "Skipped by user";
+    await run(
+      `
       UPDATE questions
       SET status = 'skipped',
           answered_at = datetime('now'),
           answer = ?
       WHERE id = ?
-    `, [answerValue, id]);
+    `,
+      [answerValue, id],
+    );
 
     // Emit event for WebSocket clients
-    emitTaskExecutorEvent('task:resumed', {
+    emitTaskExecutorEvent("task:resumed", {
       questionId: id,
       agentId: row.agent_id,
-      answer: row.default_option || '__skipped__',
+      answer: row.default_option || "__skipped__",
       skipped: true,
       reason,
     });
 
     res.json({
       success: true,
-      message: 'Question skipped',
+      message: "Question skipped",
       questionId: id,
       usedDefault: !!row.default_option,
     });
   } catch (error) {
-    console.error('[QuestionsAPI] Error skipping question:', error);
-    res.status(500).json({ error: 'Failed to skip question' });
+    console.error("[QuestionsAPI] Error skipping question:", error);
+    res.status(500).json({ error: "Failed to skip question" });
   }
 });
 
@@ -387,46 +439,54 @@ router.post('/:id/skip', async (req: Request, res: Response): Promise<void> => {
  * POST /api/questions/:id/remind
  * Set a reminder for a question
  */
-router.post('/:id/remind', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { remindAt, channel } = req.body;
+router.post(
+  "/:id/remind",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { remindAt, channel } = req.body;
 
-    // Get the question
-    const row = await getOne<QuestionRow>(`
+      // Get the question
+      const row = await getOne<QuestionRow>(
+        `
       SELECT * FROM questions WHERE id = ?
-    `, [id]);
+    `,
+        [id],
+      );
 
-    if (!row) {
-      res.status(404).json({ error: 'Question not found' });
-      return;
+      if (!row) {
+        res.status(404).json({ error: "Question not found" });
+        return;
+      }
+
+      // Calculate remind time (default: 30 minutes)
+      const remindTime = remindAt
+        ? new Date(remindAt).toISOString()
+        : new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+      // Store reminder (would typically go to a reminders table or use notification system)
+      console.log(
+        `[QuestionsAPI] Setting reminder for question ${id} at ${remindTime} via ${channel || "telegram"}`,
+      );
+
+      res.json({
+        success: true,
+        message: "Reminder set",
+        questionId: id,
+        remindAt: remindTime,
+      });
+    } catch (error) {
+      console.error("[QuestionsAPI] Error setting reminder:", error);
+      res.status(500).json({ error: "Failed to set reminder" });
     }
-
-    // Calculate remind time (default: 30 minutes)
-    const remindTime = remindAt
-      ? new Date(remindAt).toISOString()
-      : new Date(Date.now() + 30 * 60 * 1000).toISOString();
-
-    // Store reminder (would typically go to a reminders table or use notification system)
-    console.log(`[QuestionsAPI] Setting reminder for question ${id} at ${remindTime} via ${channel || 'telegram'}`);
-
-    res.json({
-      success: true,
-      message: 'Reminder set',
-      questionId: id,
-      remindAt: remindTime,
-    });
-  } catch (error) {
-    console.error('[QuestionsAPI] Error setting reminder:', error);
-    res.status(500).json({ error: 'Failed to set reminder' });
-  }
-});
+  },
+);
 
 /**
  * GET /api/questions/stats
  * Get question statistics
  */
-router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
+router.get("/stats", async (_req: Request, res: Response): Promise<void> => {
   try {
     const stats = await getOne<{
       total: number;
@@ -448,8 +508,8 @@ router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
 
     res.json(stats);
   } catch (error) {
-    console.error('[QuestionsAPI] Error fetching stats:', error);
-    res.status(500).json({ error: 'Failed to fetch stats' });
+    console.error("[QuestionsAPI] Error fetching stats:", error);
+    res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
 
@@ -458,90 +518,106 @@ router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
  * Answer all pending questions that have a default option
  * Returns the count of questions answered
  */
-router.post('/answer-all-defaults', async (_req: Request, res: Response): Promise<void> => {
-  try {
-    // Get all pending questions with default options
-    const pendingWithDefaults = await query<QuestionRow>(`
+router.post(
+  "/answer-all-defaults",
+  async (_req: Request, res: Response): Promise<void> => {
+    try {
+      // Get all pending questions with default options
+      const pendingWithDefaults = await query<QuestionRow>(`
       SELECT * FROM questions
       WHERE status = 'pending' AND default_option IS NOT NULL
       ORDER BY priority DESC, created_at ASC
     `);
 
-    if (pendingWithDefaults.length === 0) {
-      res.json({
-        success: true,
-        answered: 0,
-        message: 'No pending questions with default options'
-      });
-      return;
-    }
+      if (pendingWithDefaults.length === 0) {
+        res.json({
+          success: true,
+          answered: 0,
+          message: "No pending questions with default options",
+        });
+        return;
+      }
 
-    const answered: string[] = [];
-    const now = new Date().toISOString();
+      const answered: string[] = [];
+      const now = new Date().toISOString();
 
-    for (const question of pendingWithDefaults) {
-      try {
-        // Update question status to answered with default
-        await run(`
+      for (const question of pendingWithDefaults) {
+        try {
+          // Update question status to answered with default
+          await run(
+            `
           UPDATE questions
           SET status = 'answered',
               answer = ?,
               answered_at = ?,
               used_default = 1
           WHERE id = ?
-        `, [question.default_option, now, question.id]);
+        `,
+            [question.default_option, now, question.id],
+          );
 
-        answered.push(question.id);
+          answered.push(question.id);
 
-        // Emit WebSocket event for each answered question
-        emitTaskExecutorEvent('question:answered', {
-          questionId: question.id,
-          answer: question.default_option,
-          usedDefault: true
-        });
-
-        // If it was blocking, emit task resumed event
-        if (question.blocking) {
-          emitTaskExecutorEvent('task:resumed', {
-            taskId: question.task_id,
+          // Emit WebSocket event for each answered question
+          emitTaskExecutorEvent("question:answered", {
             questionId: question.id,
-            reason: 'Question answered with default'
+            answer: question.default_option,
+            usedDefault: true,
           });
+
+          // If it was blocking, emit task resumed event
+          if (question.blocking) {
+            emitTaskExecutorEvent("task:resumed", {
+              taskId: question.task_id,
+              questionId: question.id,
+              reason: "Question answered with default",
+            });
+          }
+        } catch (err) {
+          console.error(
+            `[QuestionsAPI] Failed to answer question ${question.id}:`,
+            err,
+          );
+          // Continue with other questions
         }
-      } catch (err) {
-        console.error(`[QuestionsAPI] Failed to answer question ${question.id}:`, err);
-        // Continue with other questions
       }
+
+      console.log(
+        `[QuestionsAPI] Answered ${answered.length} questions with defaults`,
+      );
+
+      res.json({
+        success: true,
+        answered: answered.length,
+        questionIds: answered,
+        message: `Answered ${answered.length} question(s) with their default options`,
+      });
+    } catch (error) {
+      console.error("[QuestionsAPI] Error answering all defaults:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to answer questions with defaults" });
     }
-
-    console.log(`[QuestionsAPI] Answered ${answered.length} questions with defaults`);
-
-    res.json({
-      success: true,
-      answered: answered.length,
-      questionIds: answered,
-      message: `Answered ${answered.length} question(s) with their default options`
-    });
-  } catch (error) {
-    console.error('[QuestionsAPI] Error answering all defaults:', error);
-    res.status(500).json({ error: 'Failed to answer questions with defaults' });
-  }
-});
+  },
+);
 
 /**
  * POST /api/questions/expire-old (QUE-004)
  * Expire questions that have passed their expiry time or default timeout
  * Auto-answers with default if available, otherwise marks as expired
  */
-router.post('/expire-old', async (_req: Request, res: Response): Promise<void> => {
-  try {
-    const result = await expireOldQuestions();
-    res.json(result);
-  } catch (error) {
-    console.error('[QuestionsAPI] Error expiring old questions:', error);
-    res.status(500).json({ error: 'Failed to expire old questions' });
-  }
-});
+router.post(
+  "/expire-old",
+  async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const result = await expireOldQuestions();
+      res.json(result);
+    } catch (error) {
+      console.error("[QuestionsAPI] Error expiring old questions:", error);
+      res.status(500).json({ error: "Failed to expire old questions" });
+    }
+  },
+);
 
 /**
  * Expire old questions - can be called manually or by interval
@@ -553,11 +629,14 @@ async function expireOldQuestions(): Promise<{
   autoAnsweredIds: string[];
 }> {
   const now = new Date();
-  const defaultCutoff = new Date(now.getTime() - DEFAULT_QUESTION_TIMEOUT_MS).toISOString();
+  const defaultCutoff = new Date(
+    now.getTime() - DEFAULT_QUESTION_TIMEOUT_MS,
+  ).toISOString();
 
   // Get pending questions that should be expired
   // Either: expires_at is set and past, OR no expires_at and created > 24h ago
-  const expiredQuestions = await query<QuestionRow>(`
+  const expiredQuestions = await query<QuestionRow>(
+    `
     SELECT * FROM questions
     WHERE status = 'pending'
     AND (
@@ -565,7 +644,9 @@ async function expireOldQuestions(): Promise<{
       OR (expires_at IS NULL AND created_at < ?)
     )
     ORDER BY created_at ASC
-  `, [now.toISOString(), defaultCutoff]);
+  `,
+    [now.toISOString(), defaultCutoff],
+  );
 
   const expiredIds: string[] = [];
   const autoAnsweredIds: string[] = [];
@@ -575,66 +656,79 @@ async function expireOldQuestions(): Promise<{
     try {
       if (question.default_option) {
         // Auto-answer with default
-        await run(`
+        await run(
+          `
           UPDATE questions
           SET status = 'answered',
               answer = ?,
               answered_at = ?,
               used_default = 1
           WHERE id = ?
-        `, [question.default_option, nowStr, question.id]);
+        `,
+          [question.default_option, nowStr, question.id],
+        );
 
         autoAnsweredIds.push(question.id);
 
-        emitTaskExecutorEvent('question:answered', {
+        emitTaskExecutorEvent("question:answered", {
           questionId: question.id,
           answer: question.default_option,
           usedDefault: true,
-          autoExpired: true
+          autoExpired: true,
         });
 
         if (question.blocking) {
-          emitTaskExecutorEvent('task:resumed', {
+          emitTaskExecutorEvent("task:resumed", {
             taskId: question.task_id,
             questionId: question.id,
-            reason: 'Question auto-answered on expiry'
+            reason: "Question auto-answered on expiry",
           });
         }
       } else {
         // Mark as expired
-        await run(`
+        await run(
+          `
           UPDATE questions
           SET status = 'expired',
               expired_at = ?
           WHERE id = ?
-        `, [nowStr, question.id]);
+        `,
+          [nowStr, question.id],
+        );
 
         expiredIds.push(question.id);
 
-        emitTaskExecutorEvent('question:expired', {
+        emitTaskExecutorEvent("question:expired", {
           questionId: question.id,
-          reason: 'Question timed out without answer'
+          reason: "Question timed out without answer",
         });
 
         // If blocking, the task remains blocked - user needs to handle
         if (question.blocking) {
-          console.warn(`[QuestionsAPI] Blocking question ${question.id} expired without answer`);
+          console.warn(
+            `[QuestionsAPI] Blocking question ${question.id} expired without answer`,
+          );
         }
       }
     } catch (err) {
-      console.error(`[QuestionsAPI] Failed to expire question ${question.id}:`, err);
+      console.error(
+        `[QuestionsAPI] Failed to expire question ${question.id}:`,
+        err,
+      );
     }
   }
 
   if (expiredIds.length > 0 || autoAnsweredIds.length > 0) {
-    console.log(`[QuestionsAPI] Expired ${expiredIds.length}, auto-answered ${autoAnsweredIds.length} questions`);
+    console.log(
+      `[QuestionsAPI] Expired ${expiredIds.length}, auto-answered ${autoAnsweredIds.length} questions`,
+    );
   }
 
   return {
     expired: expiredIds.length,
     autoAnswered: autoAnsweredIds.length,
     expiredIds,
-    autoAnsweredIds
+    autoAnsweredIds,
   };
 }
 
@@ -643,21 +737,23 @@ async function expireOldQuestions(): Promise<{
  */
 export function startExpiryChecker(): void {
   if (expiryCheckInterval) {
-    console.log('[QuestionsAPI] Expiry checker already running');
+    console.log("[QuestionsAPI] Expiry checker already running");
     return;
   }
 
-  console.log(`[QuestionsAPI] Starting expiry checker (interval: ${EXPIRY_CHECK_INTERVAL_MS}ms)`);
+  console.log(
+    `[QuestionsAPI] Starting expiry checker (interval: ${EXPIRY_CHECK_INTERVAL_MS}ms)`,
+  );
 
   // Run immediately on start
-  expireOldQuestions().catch(err => {
-    console.error('[QuestionsAPI] Initial expiry check failed:', err);
+  expireOldQuestions().catch((err) => {
+    console.error("[QuestionsAPI] Initial expiry check failed:", err);
   });
 
   // Then run periodically
   expiryCheckInterval = setInterval(() => {
-    expireOldQuestions().catch(err => {
-      console.error('[QuestionsAPI] Periodic expiry check failed:', err);
+    expireOldQuestions().catch((err) => {
+      console.error("[QuestionsAPI] Periodic expiry check failed:", err);
     });
   }, EXPIRY_CHECK_INTERVAL_MS);
 }
@@ -669,7 +765,7 @@ export function stopExpiryChecker(): void {
   if (expiryCheckInterval) {
     clearInterval(expiryCheckInterval);
     expiryCheckInterval = null;
-    console.log('[QuestionsAPI] Expiry checker stopped');
+    console.log("[QuestionsAPI] Expiry checker stopped");
   }
 }
 

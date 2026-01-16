@@ -3,13 +3,20 @@
 // Lists previous ideation sessions for resume/delete
 // =============================================================================
 
-import { useState, useEffect, useMemo } from 'react';
-import { MessageSquare, Trash2, Clock, Lightbulb, Loader2, Search } from 'lucide-react';
+import { useState, useEffect, useMemo } from "react";
+import {
+  MessageSquare,
+  Trash2,
+  Clock,
+  Lightbulb,
+  Loader2,
+  Search,
+} from "lucide-react";
 import {
   getIdeationSessions,
   deleteIdeationSession,
   type IdeationSessionSummary,
-} from '../../api/client';
+} from "../../api/client";
 
 interface SessionListProps {
   profileId: string;
@@ -22,14 +29,15 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   const filteredSessions = useMemo(() => {
     if (!searchQuery.trim()) return sessions;
     const query = searchQuery.toLowerCase();
-    return sessions.filter(session =>
-      (session.candidateTitle?.toLowerCase().includes(query)) ||
-      (session.lastMessagePreview?.toLowerCase().includes(query))
+    return sessions.filter(
+      (session) =>
+        session.candidateTitle?.toLowerCase().includes(query) ||
+        session.lastMessagePreview?.toLowerCase().includes(query),
     );
   }, [sessions, searchQuery]);
 
@@ -44,7 +52,7 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
       const data = await getIdeationSessions(profileId, { includeAll: true });
       setSessions(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load sessions');
+      setError(err instanceof Error ? err.message : "Failed to load sessions");
     } finally {
       setLoading(false);
     }
@@ -52,16 +60,20 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
 
   const handleDelete = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this session? This cannot be undone.')) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this session? This cannot be undone.",
+      )
+    ) {
       return;
     }
 
     try {
       setDeletingId(sessionId);
       await deleteIdeationSession(sessionId);
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete session');
+      setError(err instanceof Error ? err.message : "Failed to delete session");
     } finally {
       setDeletingId(null);
     }
@@ -75,7 +87,7 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
+    if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
@@ -84,13 +96,13 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active':
+      case "active":
         return (
           <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">
             Active
           </span>
         );
-      case 'completed':
+      case "completed":
         return (
           <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">
             Completed
@@ -160,61 +172,63 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
               <p className="text-sm">Try a different search term.</p>
             </div>
           ) : (
-          filteredSessions.map(session => (
-          <div
-            key={session.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectSession(session.id)}
-            onKeyDown={(e) => e.key === 'Enter' && onSelectSession(session.id)}
-            className="w-full p-3 border border-gray-200 rounded-lg hover:border-blue-400
+            filteredSessions.map((session) => (
+              <div
+                key={session.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelectSession(session.id)}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && onSelectSession(session.id)
+                }
+                className="w-full p-3 border border-gray-200 rounded-lg hover:border-blue-400
                        hover:bg-blue-50/50 transition-all text-left group relative cursor-pointer"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  {session.candidateTitle ? (
-                    <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                  ) : (
-                    <MessageSquare className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  )}
-                  <span className="font-medium text-gray-900 truncate">
-                    {session.candidateTitle || 'Untitled Session'}
-                  </span>
-                  {getStatusBadge(session.status)}
-                </div>
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {session.candidateTitle ? (
+                        <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                      ) : (
+                        <MessageSquare className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      )}
+                      <span className="font-medium text-gray-900 truncate">
+                        {session.candidateTitle || "Untitled Session"}
+                      </span>
+                      {getStatusBadge(session.status)}
+                    </div>
 
-                {session.lastMessagePreview && (
-                  <p className="text-sm text-gray-500 line-clamp-2 mb-1">
-                    {session.lastMessagePreview}
-                  </p>
-                )}
+                    {session.lastMessagePreview && (
+                      <p className="text-sm text-gray-500 line-clamp-2 mb-1">
+                        {session.lastMessagePreview}
+                      </p>
+                    )}
 
-                <div className="flex items-center gap-3 text-xs text-gray-400">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {formatDate(session.lastMessageAt)}
-                  </span>
-                  <span>{session.messageCount} messages</span>
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDate(session.lastMessageAt)}
+                      </span>
+                      <span>{session.messageCount} messages</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={(e) => handleDelete(session.id, e)}
+                    disabled={deletingId === session.id}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50
+                           rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                    title="Delete session"
+                  >
+                    {deletingId === session.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
-
-              <button
-                onClick={(e) => handleDelete(session.id, e)}
-                disabled={deletingId === session.id}
-                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50
-                           rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                title="Delete session"
-              >
-                {deletingId === session.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-          </div>
-        ))
+            ))
           )}
         </div>
       </div>

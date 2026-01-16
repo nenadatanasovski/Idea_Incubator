@@ -10,48 +10,52 @@ updated: "{{updated}}"
 # Competitive Analysis: {{title}}
 
 ## Direct Competitors
+
 <!-- Agent fills after competitor research -->
 
 - [ ] Defined: No
 
-*Companies or products that directly compete for the same customers with similar solutions.*
+_Companies or products that directly compete for the same customers with similar solutions._
 
 | Competitor | Strengths | Weaknesses | Market Share |
-|------------|-----------|------------|--------------|
-| | | | |
-| | | | |
-| | | | |
+| ---------- | --------- | ---------- | ------------ |
+|            |           |            |              |
+|            |           |            |              |
+|            |           |            |              |
 
 ## Indirect Competitors
+
 <!-- Agent fills after market analysis -->
 
 - [ ] Defined: No
 
-*Alternative solutions that address the same problem differently.*
+_Alternative solutions that address the same problem differently._
 
 | Competitor | Approach | Why Users Choose Them |
-|------------|----------|----------------------|
-| | | |
-| | | |
-| | | |
+| ---------- | -------- | --------------------- |
+|            |          |                       |
+|            |          |                       |
+|            |          |                       |
 
 ## Competitive Advantages
+
 <!-- Agent fills after differentiation analysis -->
 
 - [ ] Defined: No
 
-*What makes this idea better or different from existing solutions?*
+_What makes this idea better or different from existing solutions?_
 
 -
 -
 -
 
 ## Market Positioning
+
 <!-- Agent fills after positioning strategy -->
 
 - [ ] Defined: No
 
-*How will this idea be positioned relative to competitors?*
+_How will this idea be positioned relative to competitors?_
 
 - **Primary Differentiator**:
 - **Target Segment**:

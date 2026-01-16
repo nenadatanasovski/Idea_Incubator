@@ -5,7 +5,7 @@
  * Part of: Task System V2 Implementation Plan (IMPL-7.7)
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react";
 import {
   Workflow,
   AlertTriangle,
@@ -18,148 +18,199 @@ import {
   Play,
   Pause,
   CheckSquare,
-  Square
-} from 'lucide-react'
+  Square,
+} from "lucide-react";
 
-type CascadeTrigger = 'status_change' | 'priority_change' | 'effort_change' | 'requirement_change' | 'impact_change'
-type CascadeEffectType = 'recalculate_priority' | 'update_status' | 'notify_dependents' | 'invalidate_analysis' | 'reorder_waves'
+type CascadeTrigger =
+  | "status_change"
+  | "priority_change"
+  | "effort_change"
+  | "requirement_change"
+  | "impact_change";
+type CascadeEffectType =
+  | "recalculate_priority"
+  | "update_status"
+  | "notify_dependents"
+  | "invalidate_analysis"
+  | "reorder_waves";
 
 interface CascadeEffect {
-  id: string
-  effectType: CascadeEffectType
-  targetTaskId: string
-  targetTaskTitle?: string
-  targetTaskDisplayId?: string
-  description: string
-  autoApprove: boolean
-  applied: boolean
+  id: string;
+  effectType: CascadeEffectType;
+  targetTaskId: string;
+  targetTaskTitle?: string;
+  targetTaskDisplayId?: string;
+  description: string;
+  autoApprove: boolean;
+  applied: boolean;
 }
 
 interface CascadeAnalysis {
-  sourceTaskId: string
-  trigger: CascadeTrigger
-  effects: CascadeEffect[]
-  totalAffected: number
-  requiresApproval: number
-  autoApprovable: number
-  analyzedAt: string
+  sourceTaskId: string;
+  trigger: CascadeTrigger;
+  effects: CascadeEffect[];
+  totalAffected: number;
+  requiresApproval: number;
+  autoApprovable: number;
+  analyzedAt: string;
 }
 
 interface CascadeEffectViewerProps {
-  taskId: string
-  trigger?: CascadeTrigger
-  onExecute?: (result: { applied: number; failed: number }) => void
+  taskId: string;
+  trigger?: CascadeTrigger;
+  onExecute?: (result: { applied: number; failed: number }) => void;
 }
 
 const triggerLabels: Record<CascadeTrigger, string> = {
-  status_change: 'Status Change',
-  priority_change: 'Priority Change',
-  effort_change: 'Effort Change',
-  requirement_change: 'Requirement Change',
-  impact_change: 'Impact Change'
-}
+  status_change: "Status Change",
+  priority_change: "Priority Change",
+  effort_change: "Effort Change",
+  requirement_change: "Requirement Change",
+  impact_change: "Impact Change",
+};
 
-const effectTypeConfig: Record<CascadeEffectType, { color: string; bgColor: string; label: string }> = {
-  recalculate_priority: { color: 'text-purple-600', bgColor: 'bg-purple-100', label: 'Recalculate Priority' },
-  update_status: { color: 'text-blue-600', bgColor: 'bg-blue-100', label: 'Update Status' },
-  notify_dependents: { color: 'text-green-600', bgColor: 'bg-green-100', label: 'Notify Dependents' },
-  invalidate_analysis: { color: 'text-amber-600', bgColor: 'bg-amber-100', label: 'Invalidate Analysis' },
-  reorder_waves: { color: 'text-cyan-600', bgColor: 'bg-cyan-100', label: 'Reorder Waves' }
-}
+const effectTypeConfig: Record<
+  CascadeEffectType,
+  { color: string; bgColor: string; label: string }
+> = {
+  recalculate_priority: {
+    color: "text-purple-600",
+    bgColor: "bg-purple-100",
+    label: "Recalculate Priority",
+  },
+  update_status: {
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
+    label: "Update Status",
+  },
+  notify_dependents: {
+    color: "text-green-600",
+    bgColor: "bg-green-100",
+    label: "Notify Dependents",
+  },
+  invalidate_analysis: {
+    color: "text-amber-600",
+    bgColor: "bg-amber-100",
+    label: "Invalidate Analysis",
+  },
+  reorder_waves: {
+    color: "text-cyan-600",
+    bgColor: "bg-cyan-100",
+    label: "Reorder Waves",
+  },
+};
 
-export default function CascadeEffectViewer({ taskId, trigger, onExecute }: CascadeEffectViewerProps) {
-  const [analysis, setAnalysis] = useState<CascadeAnalysis | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [executing, setExecuting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedEffects, setSelectedEffects] = useState<Set<string>>(new Set())
-  const [expandedEffects, setExpandedEffects] = useState<Set<string>>(new Set())
+export default function CascadeEffectViewer({
+  taskId,
+  trigger,
+  onExecute,
+}: CascadeEffectViewerProps) {
+  const [analysis, setAnalysis] = useState<CascadeAnalysis | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [executing, setExecuting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedEffects, setSelectedEffects] = useState<Set<string>>(
+    new Set(),
+  );
+  const [expandedEffects, setExpandedEffects] = useState<Set<string>>(
+    new Set(),
+  );
 
   const analyzeEffects = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      const response = await fetch(`/api/task-agent/tasks/${taskId}/cascade/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ changeType: trigger || 'status_change' })
-      })
+      setLoading(true);
+      setError(null);
+      const response = await fetch(
+        `/api/task-agent/tasks/${taskId}/cascade/analyze`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ changeType: trigger || "status_change" }),
+        },
+      );
 
-      if (!response.ok) throw new Error('Failed to analyze cascade effects')
+      if (!response.ok) throw new Error("Failed to analyze cascade effects");
 
-      const data = await response.json()
-      setAnalysis(data)
+      const data = await response.json();
+      setAnalysis(data);
 
       // Auto-select auto-approvable effects
       const autoSelected = new Set(
-        data.effects.filter((e: CascadeEffect) => e.autoApprove).map((e: CascadeEffect) => e.id)
-      )
-      setSelectedEffects(autoSelected)
+        data.effects
+          .filter((e: CascadeEffect) => e.autoApprove)
+          .map((e: CascadeEffect) => e.id),
+      );
+      setSelectedEffects(autoSelected);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const executeEffects = async (approveAll: boolean = false) => {
-    if (!analysis) return
+    if (!analysis) return;
 
     try {
-      setExecuting(true)
-      const response = await fetch(`/api/task-agent/tasks/${taskId}/cascade/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          analysis,
-          approveAll,
-          selectedTaskIds: approveAll ? undefined : Array.from(selectedEffects)
-        })
-      })
+      setExecuting(true);
+      const response = await fetch(
+        `/api/task-agent/tasks/${taskId}/cascade/execute`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            analysis,
+            approveAll,
+            selectedTaskIds: approveAll
+              ? undefined
+              : Array.from(selectedEffects),
+          }),
+        },
+      );
 
-      if (!response.ok) throw new Error('Failed to execute cascade effects')
+      if (!response.ok) throw new Error("Failed to execute cascade effects");
 
-      const result = await response.json()
-      onExecute?.(result)
+      const result = await response.json();
+      onExecute?.(result);
 
       // Refresh analysis
-      analyzeEffects()
+      analyzeEffects();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setExecuting(false)
+      setExecuting(false);
     }
-  }
+  };
 
   const toggleEffect = (id: string) => {
-    const newSelected = new Set(selectedEffects)
+    const newSelected = new Set(selectedEffects);
     if (newSelected.has(id)) {
-      newSelected.delete(id)
+      newSelected.delete(id);
     } else {
-      newSelected.add(id)
+      newSelected.add(id);
     }
-    setSelectedEffects(newSelected)
-  }
+    setSelectedEffects(newSelected);
+  };
 
   const toggleExpanded = (id: string) => {
-    const newExpanded = new Set(expandedEffects)
+    const newExpanded = new Set(expandedEffects);
     if (newExpanded.has(id)) {
-      newExpanded.delete(id)
+      newExpanded.delete(id);
     } else {
-      newExpanded.add(id)
+      newExpanded.add(id);
     }
-    setExpandedEffects(newExpanded)
-  }
+    setExpandedEffects(newExpanded);
+  };
 
   const selectAll = () => {
     if (analysis) {
-      setSelectedEffects(new Set(analysis.effects.map(e => e.id)))
+      setSelectedEffects(new Set(analysis.effects.map((e) => e.id)));
     }
-  }
+  };
 
   const selectNone = () => {
-    setSelectedEffects(new Set())
-  }
+    setSelectedEffects(new Set());
+  };
 
   return (
     <div className="space-y-4">
@@ -174,8 +225,8 @@ export default function CascadeEffectViewer({ taskId, trigger, onExecute }: Casc
           disabled={loading}
           className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Analyzing...' : 'Analyze'}
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          {loading ? "Analyzing..." : "Analyze"}
         </button>
       </div>
 
@@ -192,15 +243,21 @@ export default function CascadeEffectViewer({ taskId, trigger, onExecute }: Casc
             </div>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-gray-900">{analysis.totalAffected}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {analysis.totalAffected}
+                </div>
                 <div className="text-xs text-gray-500">Total Effects</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-green-600">{analysis.autoApprovable}</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {analysis.autoApprovable}
+                </div>
                 <div className="text-xs text-gray-500">Auto-approve</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-amber-600">{analysis.requiresApproval}</div>
+                <div className="text-2xl font-bold text-amber-600">
+                  {analysis.requiresApproval}
+                </div>
                 <div className="text-xs text-gray-500">Need Approval</div>
               </div>
             </div>
@@ -248,17 +305,17 @@ export default function CascadeEffectViewer({ taskId, trigger, onExecute }: Casc
 
           {/* Effects List */}
           <div className="space-y-2">
-            {analysis.effects.map(effect => {
-              const config = effectTypeConfig[effect.effectType]
-              const isSelected = selectedEffects.has(effect.id)
-              const isExpanded = expandedEffects.has(effect.id)
+            {analysis.effects.map((effect) => {
+              const config = effectTypeConfig[effect.effectType];
+              const isSelected = selectedEffects.has(effect.id);
+              const isExpanded = expandedEffects.has(effect.id);
 
               return (
                 <div
                   key={effect.id}
                   className={`
                     border rounded-lg overflow-hidden transition-all
-                    ${effect.applied ? 'border-green-200 bg-green-50' : 'border-gray-200'}
+                    ${effect.applied ? "border-green-200 bg-green-50" : "border-gray-200"}
                   `}
                 >
                   <div className="flex items-center gap-2 p-3">
@@ -282,15 +339,25 @@ export default function CascadeEffectViewer({ taskId, trigger, onExecute }: Casc
                       onClick={() => toggleExpanded(effect.id)}
                       className="flex items-center gap-2 flex-1"
                     >
-                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                      <span className={`px-2 py-0.5 rounded text-xs ${config.bgColor} ${config.color}`}>
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs ${config.bgColor} ${config.color}`}
+                      >
                         {config.label}
                       </span>
                       <ArrowRight className="h-3 w-3 text-gray-400" />
                       {effect.targetTaskDisplayId ? (
-                        <span className="font-mono text-sm text-blue-600">{effect.targetTaskDisplayId}</span>
+                        <span className="font-mono text-sm text-blue-600">
+                          {effect.targetTaskDisplayId}
+                        </span>
                       ) : (
-                        <span className="text-sm text-gray-500">{effect.targetTaskId.slice(0, 8)}</span>
+                        <span className="text-sm text-gray-500">
+                          {effect.targetTaskId.slice(0, 8)}
+                        </span>
                       )}
                     </button>
 
@@ -312,7 +379,7 @@ export default function CascadeEffectViewer({ taskId, trigger, onExecute }: Casc
                     </div>
                   )}
                 </div>
-              )
+              );
             })}
           </div>
 
@@ -341,5 +408,5 @@ export default function CascadeEffectViewer({ taskId, trigger, onExecute }: Casc
         </div>
       )}
     </div>
-  )
+  );
 }

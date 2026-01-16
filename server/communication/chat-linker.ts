@@ -1,17 +1,25 @@
 // server/communication/chat-linker.ts
 // COM-003: Chat ID Linking (User Verification)
 
-import { AgentType, ChatLink } from './types';
-import { CommunicationConfig } from './config';
+import { AgentType, ChatLink } from "./types";
+import { CommunicationConfig } from "./config";
 
 interface Database {
-  run(sql: string, params?: unknown[]): Promise<{ lastID: number; changes: number }>;
+  run(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ lastID: number; changes: number }>;
   get<T>(sql: string, params?: unknown[]): Promise<T | undefined>;
   all<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
 interface EmailSender {
-  send(options: { to: string; subject: string; text: string; html?: string }): Promise<boolean>;
+  send(options: {
+    to: string;
+    subject: string;
+    text: string;
+    html?: string;
+  }): Promise<boolean>;
 }
 
 export class ChatLinker {
@@ -19,7 +27,11 @@ export class ChatLinker {
   private emailSender: EmailSender | null;
   private config: CommunicationConfig;
 
-  constructor(db: Database, emailSender: EmailSender | null, config: CommunicationConfig) {
+  constructor(
+    db: Database,
+    emailSender: EmailSender | null,
+    config: CommunicationConfig,
+  ) {
     this.db = db;
     this.emailSender = emailSender;
     this.config = config;
@@ -29,7 +41,11 @@ export class ChatLinker {
    * Handle /start command from a user.
    * Initiates verification process.
    */
-  async handleStartCommand(botAgentType: AgentType, chatId: string, userId: string): Promise<string> {
+  async handleStartCommand(
+    botAgentType: AgentType,
+    chatId: string,
+    userId: string,
+  ): Promise<string> {
     // Check if already linked and verified
     const existing = await this.getLink(userId, botAgentType);
 
@@ -57,7 +73,7 @@ export class ChatLinker {
           text: `Your verification code is: ${code}\n\nEnter this code in Telegram to link your account.\n\nExpires in ${this.config.verificationCodeExpiryMinutes} minutes.`,
         });
       } catch (error) {
-        console.error('[ChatLinker] Failed to send verification email:', error);
+        console.error("[ChatLinker] Failed to send verification email:", error);
       }
     }
 
@@ -70,32 +86,44 @@ export class ChatLinker {
   async handleVerificationCode(
     botAgentType: AgentType,
     chatId: string,
-    code: string
+    code: string,
   ): Promise<{ success: boolean; message: string }> {
     const link = await this.getLinkByChatId(chatId, botAgentType);
 
     if (!link) {
-      return { success: false, message: 'No pending verification. Send /start first.' };
+      return {
+        success: false,
+        message: "No pending verification. Send /start first.",
+      };
     }
 
     if (link.verified) {
-      return { success: false, message: 'Already verified!' };
+      return { success: false, message: "Already verified!" };
     }
 
     if (!link.verificationCode) {
-      return { success: false, message: 'No verification code found. Send /start to get a new code.' };
+      return {
+        success: false,
+        message: "No verification code found. Send /start to get a new code.",
+      };
     }
 
     // Check expiry
     if (link.verificationSentAt) {
-      const expiresAt = new Date(link.verificationSentAt.getTime() + this.config.verificationCodeExpiryMinutes * 60 * 1000);
+      const expiresAt = new Date(
+        link.verificationSentAt.getTime() +
+          this.config.verificationCodeExpiryMinutes * 60 * 1000,
+      );
       if (new Date() > expiresAt) {
-        return { success: false, message: 'Code expired. Send /start to get a new code.' };
+        return {
+          success: false,
+          message: "Code expired. Send /start to get a new code.",
+        };
       }
     }
 
     if (link.verificationCode !== code) {
-      return { success: false, message: 'Invalid code. Please try again.' };
+      return { success: false, message: "Invalid code. Please try again." };
     }
 
     // Mark as verified
@@ -111,7 +139,10 @@ export class ChatLinker {
    * Get chat ID for a user and bot type.
    * Returns null if not linked or not verified.
    */
-  async getChatId(userId: string, botAgentType: AgentType): Promise<string | null> {
+  async getChatId(
+    userId: string,
+    botAgentType: AgentType,
+  ): Promise<string | null> {
     const link = await this.getLink(userId, botAgentType);
     return link?.verified ? link.chatId : null;
   }
@@ -144,7 +175,15 @@ export class ChatLinker {
    * Link all bots with the same chat ID (user verified once).
    */
   async linkAllBots(userId: string, chatId: string): Promise<void> {
-    const botTypes: AgentType[] = ['monitoring', 'orchestrator', 'spec', 'build', 'validation', 'sia', 'system'];
+    const botTypes: AgentType[] = [
+      "monitoring",
+      "orchestrator",
+      "spec",
+      "build",
+      "validation",
+      "sia",
+      "system",
+    ];
 
     for (const botType of botTypes) {
       await this.storePendingLink({
@@ -168,13 +207,16 @@ export class ChatLinker {
    * Mask email for display (ne***@gmail.com).
    */
   private maskEmail(email: string): string {
-    const [local, domain] = email.split('@');
+    const [local, domain] = email.split("@");
     return `${local.substring(0, 2)}***@${domain}`;
   }
 
   // Database methods
 
-  private async getLink(userId: string, botAgentType: AgentType): Promise<ChatLink | null> {
+  private async getLink(
+    userId: string,
+    botAgentType: AgentType,
+  ): Promise<ChatLink | null> {
     const row = await this.db.get<{
       id: string;
       user_id: string;
@@ -188,8 +230,8 @@ export class ChatLinker {
       created_at: string;
       updated_at: string;
     }>(
-      'SELECT * FROM telegram_chat_links WHERE user_id = ? AND bot_agent_type = ?',
-      [userId, botAgentType]
+      "SELECT * FROM telegram_chat_links WHERE user_id = ? AND bot_agent_type = ?",
+      [userId, botAgentType],
     );
 
     if (!row) return null;
@@ -197,7 +239,10 @@ export class ChatLinker {
     return this.mapRowToLink(row);
   }
 
-  private async getLinkByChatId(chatId: string, botAgentType: AgentType): Promise<ChatLink | null> {
+  private async getLinkByChatId(
+    chatId: string,
+    botAgentType: AgentType,
+  ): Promise<ChatLink | null> {
     const row = await this.db.get<{
       id: string;
       user_id: string;
@@ -211,8 +256,8 @@ export class ChatLinker {
       created_at: string;
       updated_at: string;
     }>(
-      'SELECT * FROM telegram_chat_links WHERE chat_id = ? AND bot_agent_type = ?',
-      [chatId, botAgentType]
+      "SELECT * FROM telegram_chat_links WHERE chat_id = ? AND bot_agent_type = ?",
+      [chatId, botAgentType],
     );
 
     if (!row) return null;
@@ -233,12 +278,9 @@ export class ChatLinker {
       verified_at: string | null;
       created_at: string;
       updated_at: string;
-    }>(
-      'SELECT * FROM telegram_chat_links WHERE user_id = ?',
-      [userId]
-    );
+    }>("SELECT * FROM telegram_chat_links WHERE user_id = ?", [userId]);
 
-    return rows.map(row => this.mapRowToLink(row));
+    return rows.map((row) => this.mapRowToLink(row));
   }
 
   private async storePendingLink(link: {
@@ -257,23 +299,34 @@ export class ChatLinker {
          verification_code = excluded.verification_code,
          verification_sent_at = excluded.verification_sent_at,
          updated_at = excluded.updated_at`,
-      [link.userId, link.botAgentType, link.chatId, link.verificationCode, link.verificationCode ? now : null, now, now]
+      [
+        link.userId,
+        link.botAgentType,
+        link.chatId,
+        link.verificationCode,
+        link.verificationCode ? now : null,
+        now,
+        now,
+      ],
     );
   }
 
   private async markVerified(linkId: string): Promise<void> {
     const now = new Date().toISOString();
     await this.db.run(
-      'UPDATE telegram_chat_links SET verified = 1, verified_at = ?, verification_code = NULL WHERE id = ?',
-      [now, linkId]
+      "UPDATE telegram_chat_links SET verified = 1, verified_at = ?, verification_code = NULL WHERE id = ?",
+      [now, linkId],
     );
   }
 
-  private async markVerifiedByUserId(userId: string, botAgentType: AgentType): Promise<void> {
+  private async markVerifiedByUserId(
+    userId: string,
+    botAgentType: AgentType,
+  ): Promise<void> {
     const now = new Date().toISOString();
     await this.db.run(
-      'UPDATE telegram_chat_links SET verified = 1, verified_at = ?, verification_code = NULL WHERE user_id = ? AND bot_agent_type = ?',
-      [now, userId, botAgentType]
+      "UPDATE telegram_chat_links SET verified = 1, verified_at = ?, verification_code = NULL WHERE user_id = ? AND bot_agent_type = ?",
+      [now, userId, botAgentType],
     );
   }
 
@@ -298,7 +351,9 @@ export class ChatLinker {
       phoneNumber: row.phone_number,
       verified: row.verified === 1,
       verificationCode: row.verification_code,
-      verificationSentAt: row.verification_sent_at ? new Date(row.verification_sent_at) : null,
+      verificationSentAt: row.verification_sent_at
+        ? new Date(row.verification_sent_at)
+        : null,
       verifiedAt: row.verified_at ? new Date(row.verified_at) : null,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),

@@ -1,21 +1,21 @@
 // agents/sia/knowledge-writer.ts - Write knowledge entries to the database
 
-import { v4 as uuid } from 'uuid';
+import { v4 as uuid } from "uuid";
 import {
   KnowledgeEntry,
   ExtractedGotcha,
   ExtractedPattern,
-} from '../../types/sia.js';
-import { findDuplicate, mergeEntries } from './duplicate-detector.js';
+} from "../../types/sia.js";
+import { findDuplicate, mergeEntries } from "./duplicate-detector.js";
 import {
   CONFIDENCE_CONFIG,
   calculateInitialConfidence,
-} from './confidence-tracker.js';
+} from "./confidence-tracker.js";
 import {
   saveKnowledgeEntry,
   updateKnowledgeEntry,
   queryKnowledge,
-} from './db.js';
+} from "./db.js";
 
 /**
  * Write a gotcha to the knowledge base
@@ -24,13 +24,13 @@ import {
 export async function writeGotcha(
   gotcha: ExtractedGotcha,
   executionId: string,
-  agentType: string
+  agentType: string,
 ): Promise<KnowledgeEntry> {
   // Get existing entries for duplicate check
-  const existingEntries = await queryKnowledge({ type: 'gotcha' });
+  const existingEntries = await queryKnowledge({ type: "gotcha" });
 
   // Check for duplicates
-  const duplicate = await findDuplicate(gotcha.fix, 'gotcha', existingEntries);
+  const duplicate = await findDuplicate(gotcha.fix, "gotcha", existingEntries);
 
   if (duplicate) {
     // Merge with existing
@@ -38,7 +38,7 @@ export async function writeGotcha(
       duplicate,
       gotcha.fix,
       [gotcha.filePattern],
-      [gotcha.actionType]
+      [gotcha.actionType],
     );
     await updateKnowledgeEntry(merged);
     return merged;
@@ -47,7 +47,7 @@ export async function writeGotcha(
   // Create new entry
   const entry: KnowledgeEntry = {
     id: uuid(),
-    type: 'gotcha',
+    type: "gotcha",
     content: gotcha.fix,
     filePatterns: [gotcha.filePattern],
     actionTypes: [gotcha.actionType],
@@ -72,16 +72,16 @@ export async function writeGotcha(
 export async function writePattern(
   pattern: ExtractedPattern,
   executionId: string,
-  agentType: string
+  agentType: string,
 ): Promise<KnowledgeEntry> {
   // Get existing entries for duplicate check
-  const existingEntries = await queryKnowledge({ type: 'pattern' });
+  const existingEntries = await queryKnowledge({ type: "pattern" });
 
   // Check for duplicates
   const duplicate = await findDuplicate(
     pattern.description,
-    'pattern',
-    existingEntries
+    "pattern",
+    existingEntries,
   );
 
   if (duplicate) {
@@ -90,7 +90,7 @@ export async function writePattern(
       duplicate,
       pattern.codeTemplate,
       [pattern.filePattern],
-      [pattern.actionType]
+      [pattern.actionType],
     );
     await updateKnowledgeEntry(merged);
     return merged;
@@ -99,7 +99,7 @@ export async function writePattern(
   // Create new entry
   const entry: KnowledgeEntry = {
     id: uuid(),
-    type: 'pattern',
+    type: "pattern",
     content: `${pattern.description}\n\n\`\`\`typescript\n${pattern.codeTemplate}\n\`\`\``,
     filePatterns: [pattern.filePattern],
     actionTypes: [pattern.actionType],
@@ -126,11 +126,11 @@ export async function writeDecision(
   context: string,
   executionId: string,
   taskId: string,
-  agentType: string
+  agentType: string,
 ): Promise<KnowledgeEntry> {
   const entry: KnowledgeEntry = {
     id: uuid(),
-    type: 'decision',
+    type: "decision",
     content: `${decision}\n\nContext: ${context}`,
     filePatterns: [],
     actionTypes: [],
@@ -171,7 +171,7 @@ export async function incrementOccurrences(entryId: string): Promise<void> {
 export async function writeGotchas(
   gotchas: ExtractedGotcha[],
   executionId: string,
-  agentType: string
+  agentType: string,
 ): Promise<KnowledgeEntry[]> {
   const entries: KnowledgeEntry[] = [];
 
@@ -189,7 +189,7 @@ export async function writeGotchas(
 export async function writePatterns(
   patterns: ExtractedPattern[],
   executionId: string,
-  agentType: string
+  agentType: string,
 ): Promise<KnowledgeEntry[]> {
   const entries: KnowledgeEntry[] = [];
 

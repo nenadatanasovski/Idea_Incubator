@@ -16,36 +16,39 @@ export interface ClassifiedQuestion {
  * Keyword patterns for each question ID.
  * Each ID maps to an array of regex patterns that match related questions.
  */
-const QUESTION_PATTERNS: Record<string, { patterns: RegExp[]; category: string }> = {
+const QUESTION_PATTERNS: Record<
+  string,
+  { patterns: RegExp[]; category: string }
+> = {
   // ==========================================
   // PROBLEM CATEGORY (P1-P5)
   // ==========================================
 
   // P1 - Problem Clarity
-  'P1_CORE': {
+  P1_CORE: {
     patterns: [
       /core problem/i,
       /main problem/i,
       /what problem/i,
       /problem.*solving/i,
       /fundamental issue/i,
-      /what.*trying to solve/i
+      /what.*trying to solve/i,
     ],
-    category: 'problem'
+    category: "problem",
   },
-  'P1_SCOPE': {
+  P1_SCOPE: {
     patterns: [
       /scope/i,
       /how big.*problem/i,
       /widespread/i,
       /how many.*affected/i,
-      /scale of.*problem/i
+      /scale of.*problem/i,
     ],
-    category: 'problem'
+    category: "problem",
   },
 
   // P2 - Problem Severity
-  'P2_PAIN': {
+  P2_PAIN: {
     patterns: [
       /pain.*sever/i,
       /how.*bad/i,
@@ -53,91 +56,91 @@ const QUESTION_PATTERNS: Record<string, { patterns: RegExp[]; category: string }
       /frustrat/i,
       /suffer/i,
       /severity/i,
-      /how much.*hurt/i
+      /how much.*hurt/i,
     ],
-    category: 'problem'
+    category: "problem",
   },
-  'P2_COST': {
+  P2_COST: {
     patterns: [
       /cost of.*problem/i,
       /how much.*cost/i,
       /price.*pay/i,
       /financial impact/i,
       /money.*losing/i,
-      /economic cost/i
+      /economic cost/i,
     ],
-    category: 'problem'
+    category: "problem",
   },
 
   // P3 - Target User
-  'P3_WHO': {
+  P3_WHO: {
     patterns: [
       /target user/i,
       /who.*experience/i,
       /customer.*who/i,
       /who.*problem/i,
       /ideal customer/i,
-      /who are.*users/i
+      /who are.*users/i,
     ],
-    category: 'problem'
+    category: "problem",
   },
-  'P3_SEGMENT': {
+  P3_SEGMENT: {
     patterns: [
       /segment/i,
       /demographic/i,
       /type of user/i,
       /customer profile/i,
-      /user persona/i
+      /user persona/i,
     ],
-    category: 'problem'
+    category: "problem",
   },
 
   // P4 - Problem Validation
-  'P4_EVIDENCE': {
+  P4_EVIDENCE: {
     patterns: [
       /evidence/i,
       /validation/i,
       /proof/i,
       /research/i,
       /data.*support/i,
-      /verified/i
+      /verified/i,
     ],
-    category: 'problem'
+    category: "problem",
   },
-  'P4_CONVERSATIONS': {
+  P4_CONVERSATIONS: {
     patterns: [
       /conversation/i,
       /talked to/i,
       /interview/i,
       /spoke with/i,
       /customer.*feedback/i,
-      /user research/i
+      /user research/i,
     ],
-    category: 'problem'
+    category: "problem",
   },
 
   // P5 - Problem Uniqueness (existing solutions, not competitors directly)
-  'P5_EXISTING': {
+  P5_EXISTING: {
     patterns: [
       /existing solution/i,
       /current.*solution/i,
       /alternative.*solution/i,
       /current.*solving/i,
       /how.*solved today/i,
-      /what.*people.*use.*now/i
+      /what.*people.*use.*now/i,
     ],
-    category: 'problem'
+    category: "problem",
   },
-  'P5_GAP': {
+  P5_GAP: {
     patterns: [
       /gap/i,
       /missing/i,
       /fail/i,
       /why.*not work/i,
       /shortcoming/i,
-      /limitation/i
+      /limitation/i,
     ],
-    category: 'problem'
+    category: "problem",
   },
 
   // ==========================================
@@ -145,89 +148,89 @@ const QUESTION_PATTERNS: Record<string, { patterns: RegExp[]; category: string }
   // ==========================================
 
   // S1 - Solution Clarity
-  'S1_WHAT': {
+  S1_WHAT: {
     patterns: [
       /what.*solution/i,
       /solution.*description/i,
       /how.*work/i,
       /describe.*product/i,
-      /what.*building/i
+      /what.*building/i,
     ],
-    category: 'solution'
+    category: "solution",
   },
-  'S1_VALUE_PROP': {
+  S1_VALUE_PROP: {
     patterns: [
       /value prop/i,
       /why.*buy/i,
       /benefit/i,
       /value.*offer/i,
       /unique value/i,
-      /key benefit/i
+      /key benefit/i,
     ],
-    category: 'solution'
+    category: "solution",
   },
 
   // S2 - Technical Feasibility
-  'S2_TECH': {
+  S2_TECH: {
     patterns: [
       /technology/i,
       /tech stack/i,
       /technical/i,
       /built with/i,
       /architecture/i,
-      /infrastructure/i
+      /infrastructure/i,
     ],
-    category: 'solution'
+    category: "solution",
   },
-  'S2_HARD': {
+  S2_HARD: {
     patterns: [
       /hard.*part/i,
       /difficult/i,
       /challenge/i,
       /complex/i,
       /technical.*risk/i,
-      /biggest.*obstacle/i
+      /biggest.*obstacle/i,
     ],
-    category: 'solution'
+    category: "solution",
   },
 
   // S3 - Solution Uniqueness
-  'S3_DIFF': {
+  S3_DIFF: {
     patterns: [
       /different/i,
       /differentiat/i,
       /unique/i,
       /better than/i,
       /stand.*out/i,
-      /competitive advantage/i
+      /competitive advantage/i,
     ],
-    category: 'solution'
+    category: "solution",
   },
 
   // S4 - Scalability
-  'S4_SCALE': {
+  S4_SCALE: {
     patterns: [
       /scale/i,
       /grow/i,
       /expand/i,
       /10x/i,
       /scaling/i,
-      /growth potential/i
+      /growth potential/i,
     ],
-    category: 'solution'
+    category: "solution",
   },
 
   // S5 - Defensibility
-  'S5_MOAT': {
+  S5_MOAT: {
     patterns: [
       /moat/i,
       /defend/i,
       /barrier/i,
       /protect/i,
       /competitive.*advantage/i,
-      /hard to copy/i
+      /hard to copy/i,
     ],
-    category: 'solution'
+    category: "solution",
   },
 
   // ==========================================
@@ -235,7 +238,7 @@ const QUESTION_PATTERNS: Record<string, { patterns: RegExp[]; category: string }
   // ==========================================
 
   // M1 - Market Size
-  'M1_TAM': {
+  M1_TAM: {
     patterns: [
       /market size/i,
       /tam/i,
@@ -243,70 +246,70 @@ const QUESTION_PATTERNS: Record<string, { patterns: RegExp[]; category: string }
       /how big.*market/i,
       /how large.*market/i,
       /target.*market/i,
-      /addressable market/i
+      /addressable market/i,
     ],
-    category: 'market'
+    category: "market",
   },
-  'M1_SAM': {
+  M1_SAM: {
     patterns: [
       /sam/i,
       /serviceable/i,
       /available market/i,
-      /reachable market/i
+      /reachable market/i,
     ],
-    category: 'market'
+    category: "market",
   },
 
   // M2 - Market Growth
-  'M2_TREND': {
+  M2_TREND: {
     patterns: [
       /trend/i,
       /grow.*market/i,
       /direction/i,
       /market.*grow/i,
       /market.*trajectory/i,
-      /growth rate/i
+      /growth rate/i,
     ],
-    category: 'market'
+    category: "market",
   },
 
   // M3 - Competition
-  'M3_COMPETITORS': {
+  M3_COMPETITORS: {
     patterns: [
       /competitor/i,
       /competition/i,
       /who else/i,
       /rival/i,
       /competitive landscape/i,
-      /market player/i
+      /market player/i,
     ],
-    category: 'market'
+    category: "market",
   },
 
   // M4 - Entry Barriers
-  'M4_BARRIERS': {
+  M4_BARRIERS: {
     patterns: [
       /barrier/i,
       /entry/i,
       /hard to enter/i,
       /obstacles/i,
       /entry cost/i,
-      /switching cost/i
+      /switching cost/i,
     ],
-    category: 'market'
+    category: "market",
   },
 
   // M5 - Timing
-  'M5_WHY_NOW': {
+  M5_WHY_NOW: {
     patterns: [
       /timing/i,
       /why now/i,
       /right time/i,
       /market timing/i,
       /opportunity now/i,
-      /window/i
+      /window/i,
     ],
-    category: 'market'
+    category: "market",
   },
 
   // ==========================================
@@ -314,160 +317,142 @@ const QUESTION_PATTERNS: Record<string, { patterns: RegExp[]; category: string }
   // ==========================================
 
   // F1 - Technical Complexity
-  'F1_MVP': {
+  F1_MVP: {
     patterns: [
       /mvp/i,
       /minimum.*viable/i,
       /first version/i,
       /prototype/i,
       /initial product/i,
-      /v1/i
+      /v1/i,
     ],
-    category: 'feasibility'
+    category: "feasibility",
   },
-  'F1_COMPONENTS': {
-    patterns: [
-      /component/i,
-      /pieces/i,
-      /parts/i,
-      /modules/i,
-      /system.*parts/i
-    ],
-    category: 'feasibility'
+  F1_COMPONENTS: {
+    patterns: [/component/i, /pieces/i, /parts/i, /modules/i, /system.*parts/i],
+    category: "feasibility",
   },
 
   // F2 - Resource Requirements
-  'F2_COST': {
+  F2_COST: {
     patterns: [
       /cost to build/i,
       /budget/i,
       /how much.*build/i,
       /development cost/i,
       /investment needed/i,
-      /funding/i
+      /funding/i,
     ],
-    category: 'feasibility'
+    category: "feasibility",
   },
-  'F2_TEAM': {
-    patterns: [
-      /team/i,
-      /hire/i,
-      /people/i,
-      /staff/i,
-      /talent/i,
-      /who.*need/i
-    ],
-    category: 'feasibility'
+  F2_TEAM: {
+    patterns: [/team/i, /hire/i, /people/i, /staff/i, /talent/i, /who.*need/i],
+    category: "feasibility",
   },
 
   // F3 - Skill Availability
-  'F3_GAP': {
+  F3_GAP: {
     patterns: [
       /skill.*gap/i,
       /skill.*need/i,
       /what.*learn/i,
       /expertise.*need/i,
-      /capability gap/i
+      /capability gap/i,
     ],
-    category: 'feasibility'
+    category: "feasibility",
   },
 
   // F4 - Time to Value
-  'F4_FIRST_VALUE': {
+  F4_FIRST_VALUE: {
     patterns: [
       /first.*value/i,
       /time to/i,
       /how long/i,
       /timeline/i,
       /when.*launch/i,
-      /launch date/i
+      /launch date/i,
     ],
-    category: 'feasibility'
+    category: "feasibility",
   },
 
   // F5 - Dependencies
-  'F5_DEPS': {
+  F5_DEPS: {
     patterns: [
       /depend/i,
       /rely on/i,
       /third party/i,
       /external/i,
       /vendor/i,
-      /partnership/i
+      /partnership/i,
     ],
-    category: 'feasibility'
+    category: "feasibility",
   },
 
   // ==========================================
   // RISK CATEGORY (R1-R5)
   // ==========================================
 
-  'R_BIGGEST': {
+  R_BIGGEST: {
     patterns: [
       /biggest risk/i,
       /main risk/i,
       /what.*risk/i,
       /primary concern/i,
-      /top risk/i
+      /top risk/i,
     ],
-    category: 'risk'
+    category: "risk",
   },
-  'R_MITIGATION': {
+  R_MITIGATION: {
     patterns: [
       /mitigat/i,
       /handle.*risk/i,
       /reduce.*risk/i,
       /address.*risk/i,
-      /manage.*risk/i
+      /manage.*risk/i,
     ],
-    category: 'risk'
+    category: "risk",
   },
-  'R_EXECUTION': {
+  R_EXECUTION: {
     patterns: [
       /execution risk/i,
       /fail.*build/i,
       /delivery risk/i,
-      /operational risk/i
+      /operational risk/i,
     ],
-    category: 'risk'
+    category: "risk",
   },
-  'R_MARKET': {
-    patterns: [
-      /market risk/i,
-      /demand/i,
-      /adoption risk/i,
-      /customer risk/i
-    ],
-    category: 'risk'
+  R_MARKET: {
+    patterns: [/market risk/i, /demand/i, /adoption risk/i, /customer risk/i],
+    category: "risk",
   },
-  'R_TECHNICAL': {
+  R_TECHNICAL: {
     patterns: [
       /technical risk/i,
       /tech.*fail/i,
       /technology risk/i,
-      /implementation risk/i
+      /implementation risk/i,
     ],
-    category: 'risk'
+    category: "risk",
   },
-  'R_FINANCIAL': {
+  R_FINANCIAL: {
     patterns: [
       /financial risk/i,
       /money.*risk/i,
       /run out/i,
       /cash.*flow/i,
-      /funding risk/i
+      /funding risk/i,
     ],
-    category: 'risk'
+    category: "risk",
   },
-  'R_REGULATORY': {
+  R_REGULATORY: {
     patterns: [
       /regulatory/i,
       /compliance/i,
       /legal/i,
       /regulation/i,
-      /license/i
+      /license/i,
     ],
-    category: 'risk'
+    category: "risk",
   },
 
   // ==========================================
@@ -475,58 +460,58 @@ const QUESTION_PATTERNS: Record<string, { patterns: RegExp[]; category: string }
   // ==========================================
 
   // FT1 - Personal Goals
-  'FT1_GOALS': {
+  FT1_GOALS: {
     patterns: [
       /goal/i,
       /why.*this idea/i,
       /motivation/i,
       /align/i,
       /personal objective/i,
-      /what.*want to achieve/i
+      /what.*want to achieve/i,
     ],
-    category: 'fit'
+    category: "fit",
   },
 
   // FT2 - Passion
-  'FT2_PASSION': {
+  FT2_PASSION: {
     patterns: [
       /passion/i,
       /interest/i,
       /excited/i,
       /care about/i,
       /love/i,
-      /enthusias/i
+      /enthusias/i,
     ],
-    category: 'fit'
+    category: "fit",
   },
 
   // FT3 - Skills
-  'FT3_SKILLS': {
+  FT3_SKILLS: {
     patterns: [
       /skill/i,
       /experience/i,
       /background/i,
       /qualified/i,
       /expertise/i,
-      /capable/i
+      /capable/i,
     ],
-    category: 'fit'
+    category: "fit",
   },
 
   // FT4 - Network
-  'FT4_NETWORK': {
+  FT4_NETWORK: {
     patterns: [
       /network/i,
       /connection/i,
       /know.*people/i,
       /contact/i,
-      /relationship/i
+      /relationship/i,
     ],
-    category: 'fit'
+    category: "fit",
   },
 
   // FT5 - Life Stage
-  'FT5_TIMING': {
+  FT5_TIMING: {
     patterns: [
       /life.*stage/i,
       /right time.*life/i,
@@ -536,20 +521,20 @@ const QUESTION_PATTERNS: Record<string, { patterns: RegExp[]; category: string }
       /how much time/i,
       /time.*dedicate/i,
       /hours.*week/i,
-      /availability/i
+      /availability/i,
     ],
-    category: 'fit'
+    category: "fit",
   },
-  'FT5_RUNWAY': {
+  FT5_RUNWAY: {
     patterns: [
       /runway/i,
       /savings/i,
       /how long.*fund/i,
       /financial.*capacity/i,
-      /burn rate/i
+      /burn rate/i,
     ],
-    category: 'fit'
-  }
+    category: "fit",
+  },
 };
 
 /**
@@ -580,7 +565,8 @@ export function classifyQuestionToId(question: string): string | null {
  */
 export function classifyQuestion(question: string): ClassifiedQuestion {
   const lowerQ = question.toLowerCase();
-  let bestMatch: { id: string; category: string; matchCount: number } | null = null;
+  let bestMatch: { id: string; category: string; matchCount: number } | null =
+    null;
 
   for (const [questionId, config] of Object.entries(QUESTION_PATTERNS)) {
     let matchCount = 0;
@@ -595,7 +581,7 @@ export function classifyQuestion(question: string): ClassifiedQuestion {
         bestMatch = {
           id: questionId,
           category: config.category,
-          matchCount
+          matchCount,
         };
       }
     }
@@ -603,12 +589,12 @@ export function classifyQuestion(question: string): ClassifiedQuestion {
 
   if (bestMatch) {
     // Confidence based on number of pattern matches
-    const confidence = Math.min(0.9, 0.5 + (bestMatch.matchCount * 0.1));
+    const confidence = Math.min(0.9, 0.5 + bestMatch.matchCount * 0.1);
     return {
       originalQuestion: question,
       questionId: bestMatch.id,
       confidence,
-      category: bestMatch.category
+      category: bestMatch.category,
     };
   }
 
@@ -616,7 +602,7 @@ export function classifyQuestion(question: string): ClassifiedQuestion {
     originalQuestion: question,
     questionId: null,
     confidence: 0,
-    category: null
+    category: null,
   };
 }
 

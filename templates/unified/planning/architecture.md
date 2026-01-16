@@ -10,72 +10,77 @@ updated: "{{updated}}"
 # Architecture: {{title}}
 
 ## System Overview
+
 <!-- Agent fills after architecture design -->
 
 - [ ] Defined: No
 
-*High-level description of the system architecture and design philosophy.*
+_High-level description of the system architecture and design philosophy._
 
 ## Components
+
 <!-- Agent fills after component identification -->
 
 - [ ] Defined: No
 
-*Major components and their responsibilities.*
+_Major components and their responsibilities._
 
 | Component | Responsibility | Technology | Notes |
-|-----------|---------------|------------|-------|
-| | | | |
-| | | | |
-| | | | |
+| --------- | -------------- | ---------- | ----- |
+|           |                |            |       |
+|           |                |            |       |
+|           |                |            |       |
 
 ## Data Flow
+
 <!-- Agent fills after data flow analysis -->
 
 - [ ] Defined: No
 
-*How data moves through the system.*
+_How data moves through the system._
 
 ```
 [Describe data flow or include diagram reference]
 ```
 
-**Key Data Entities:**
--
+## **Key Data Entities:**
+
 -
 -
 
 ## Technology Stack
+
 <!-- Agent fills after technology selection -->
 
 - [ ] Defined: No
 
-*Selected technologies and rationale.*
+_Selected technologies and rationale._
 
-| Layer | Technology | Rationale |
-|-------|------------|-----------|
-| Frontend | | |
-| Backend | | |
-| Database | | |
-| Infrastructure | | |
-| Third-party Services | | |
+| Layer                | Technology | Rationale |
+| -------------------- | ---------- | --------- |
+| Frontend             |            |           |
+| Backend              |            |           |
+| Database             |            |           |
+| Infrastructure       |            |           |
+| Third-party Services |            |           |
 
 ## Deployment
+
 <!-- Agent fills after deployment planning -->
 
 - [ ] Defined: No
 
-*Deployment strategy and infrastructure requirements.*
+_Deployment strategy and infrastructure requirements._
 
 **Environment Strategy:**
+
 - Development:
 - Staging:
 - Production:
 
-**Scaling Considerations:**
--
--
+## **Scaling Considerations:**
 
-**Security Requirements:**
+- **Security Requirements:**
+
 -
 -

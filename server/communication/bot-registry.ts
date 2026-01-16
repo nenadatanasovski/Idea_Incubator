@@ -1,8 +1,8 @@
 // server/communication/bot-registry.ts
 // COM-002: Bot Registry and Token Management
 
-import { AgentType, RegisteredBot, TelegramBot } from './types';
-import { BOT_CONFIGS } from './config';
+import { AgentType, RegisteredBot, TelegramBot } from "./types";
+import { BOT_CONFIGS } from "./config";
 
 export class BotRegistry {
   private bots: Map<AgentType, RegisteredBot> = new Map();
@@ -14,13 +14,15 @@ export class BotRegistry {
   }
 
   async initialize(): Promise<void> {
-    console.log('[BotRegistry] Initializing bot registry...');
+    console.log("[BotRegistry] Initializing bot registry...");
 
     for (const config of BOT_CONFIGS) {
       const token = process.env[config.envTokenVar];
 
       if (!token) {
-        console.warn(`[BotRegistry] Missing token for ${config.agentType}: ${config.envTokenVar}`);
+        console.warn(
+          `[BotRegistry] Missing token for ${config.agentType}: ${config.envTokenVar}`,
+        );
         continue;
       }
 
@@ -36,9 +38,13 @@ export class BotRegistry {
           healthy: true,
           lastChecked: new Date(),
         });
-        console.log(`[BotRegistry] Registered ${config.agentType} bot: @${botInfo.username}`);
+        console.log(
+          `[BotRegistry] Registered ${config.agentType} bot: @${botInfo.username}`,
+        );
       } else {
-        console.error(`[BotRegistry] Failed to validate token for ${config.agentType}`);
+        console.error(
+          `[BotRegistry] Failed to validate token for ${config.agentType}`,
+        );
       }
     }
 
@@ -60,10 +66,12 @@ export class BotRegistry {
     }
 
     // Fallback to system bot
-    if (agentType !== 'system') {
-      const systemBot = this.bots.get('system');
+    if (agentType !== "system") {
+      const systemBot = this.bots.get("system");
       if (systemBot?.healthy) {
-        console.warn(`[BotRegistry] Using system bot as fallback for ${agentType}`);
+        console.warn(
+          `[BotRegistry] Using system bot as fallback for ${agentType}`,
+        );
         return systemBot;
       }
     }
@@ -90,14 +98,14 @@ export class BotRegistry {
    * Get all healthy bots.
    */
   getHealthyBots(): RegisteredBot[] {
-    return this.getAllBots().filter(b => b.healthy);
+    return this.getAllBots().filter((b) => b.healthy);
   }
 
   /**
    * Get all unhealthy bots.
    */
   getUnhealthyBots(): RegisteredBot[] {
-    return this.getAllBots().filter(b => !b.healthy);
+    return this.getAllBots().filter((b) => !b.healthy);
   }
 
   /**
@@ -113,7 +121,7 @@ export class BotRegistry {
    */
   getStatus(): { total: number; healthy: number; unhealthy: number } {
     const all = this.getAllBots();
-    const healthy = all.filter(b => b.healthy);
+    const healthy = all.filter((b) => b.healthy);
     return {
       total: all.length,
       healthy: healthy.length,
@@ -126,17 +134,19 @@ export class BotRegistry {
    */
   private async validateToken(token: string): Promise<TelegramBot | null> {
     try {
-      const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+      const response = await fetch(
+        `https://api.telegram.org/bot${token}/getMe`,
+      );
       const data = await response.json();
 
       if (data.ok) {
         return data.result as TelegramBot;
       }
 
-      console.error('[BotRegistry] getMe failed:', data.description);
+      console.error("[BotRegistry] getMe failed:", data.description);
       return null;
     } catch (error) {
-      console.error('[BotRegistry] Failed to validate bot token:', error);
+      console.error("[BotRegistry] Failed to validate bot token:", error);
       return null;
     }
   }
@@ -150,7 +160,7 @@ export class BotRegistry {
     }
 
     this.healthCheckInterval = setInterval(async () => {
-      console.log('[BotRegistry] Running health check...');
+      console.log("[BotRegistry] Running health check...");
 
       const entries = Array.from(this.bots.entries());
       for (const [agentType, bot] of entries) {
@@ -167,7 +177,9 @@ export class BotRegistry {
       }
 
       const status = this.getStatus();
-      console.log(`[BotRegistry] Health check complete: ${status.healthy}/${status.total} healthy`);
+      console.log(
+        `[BotRegistry] Health check complete: ${status.healthy}/${status.total} healthy`,
+      );
     }, this.healthCheckIntervalMs);
   }
 
@@ -175,7 +187,7 @@ export class BotRegistry {
    * Force an immediate health check for all bots.
    */
   async forceHealthCheck(): Promise<void> {
-    console.log('[BotRegistry] Forcing health check...');
+    console.log("[BotRegistry] Forcing health check...");
 
     const entries = Array.from(this.bots.entries());
     for (const [_agentType, bot] of entries) {
@@ -195,14 +207,14 @@ export class BotRegistry {
   private extractAgentType(agentId: string): AgentType {
     const id = agentId.toLowerCase();
 
-    if (id.includes('monitor')) return 'monitoring';
-    if (id.includes('orchestrat')) return 'orchestrator';
-    if (id.includes('spec')) return 'spec';
-    if (id.includes('build')) return 'build';
-    if (id.includes('valid')) return 'validation';
-    if (id.includes('sia')) return 'sia';
+    if (id.includes("monitor")) return "monitoring";
+    if (id.includes("orchestrat")) return "orchestrator";
+    if (id.includes("spec")) return "spec";
+    if (id.includes("build")) return "build";
+    if (id.includes("valid")) return "validation";
+    if (id.includes("sia")) return "sia";
 
-    return 'system';
+    return "system";
   }
 
   /**

@@ -5,6 +5,7 @@
 There are fundamental architectural issues causing score discrepancies and recommendation mismatches. This document provides a first-principles analysis and implementation plan.
 
 **Current Status:**
+
 - Step 1 (recommendation recalculation in API) - **COMPLETED**
 - Steps 2-4 - **PENDING** (required for full fix)
 
@@ -13,6 +14,7 @@ There are fundamental architectural issues causing score discrepancies and recom
 ## Issue 1: Score Discrepancy (6.9 vs 7.0)
 
 ### Observed Behavior
+
 - "Evaluation Complete" modal shows: **6.9**
 - Scorecard "Overall Evaluation Score" shows: **7.0**
 - Difference: **0.1** (approximately 1.4%)
@@ -22,6 +24,7 @@ There are fundamental architectural issues causing score discrepancies and recom
 **Question: Where should the "true" score come from?**
 
 The post-debate score should be:
+
 ```
 POST_DEBATE_SCORE = Σ (category_avg × category_weight)
 
@@ -89,18 +92,20 @@ Where:
 **`evaluations.final_score` is NEVER updated after debate.**
 
 This creates data inconsistency:
+
 - `evaluations.final_score` = PRE-debate scores
 - `debate_rounds.score_adjustment` = debate adjustments (stored separately)
 - `final_syntheses.overall_score` = POST-debate score (but calculated by synthesis agent, unreliable)
 
 ### Why 6.9 vs 7.0?
 
-| Display Location | Data Source | Calculation | Score |
-|------------------|-------------|-------------|-------|
-| "Evaluation Complete" | `/api/ideas/:slug/synthesis` | `AVG(evaluations.final_score)` × weights | **6.9** |
-| Scorecard | `/api/ideas/:slug/category-scores` | Same calculation | **7.0** |
+| Display Location      | Data Source                        | Calculation                              | Score   |
+| --------------------- | ---------------------------------- | ---------------------------------------- | ------- |
+| "Evaluation Complete" | `/api/ideas/:slug/synthesis`       | `AVG(evaluations.final_score)` × weights | **6.9** |
+| Scorecard             | `/api/ideas/:slug/category-scores` | Same calculation                         | **7.0** |
 
 **The 0.1 difference is likely due to:**
+
 1. **Rounding at different stages** - one rounds before averaging, one after
 2. **Different query execution** - floating point arithmetic differences
 3. **Missing debate adjustments in both** - both use PRE-debate scores
@@ -112,6 +117,7 @@ This creates data inconsistency:
 ## Issue 2: Recommendation "ABANDON" with Score 7.0
 
 ### Observed Behavior
+
 - Displayed score: **7.0** (Promising)
 - Displayed recommendation: **ABANDON** (Should be PURSUE for score >= 7.0)
 
@@ -152,6 +158,7 @@ This creates data inconsistency:
 **Investigation needed:** Why did the synthesis agent calculate 3.26 when evaluations average 7.0?
 
 Possible causes:
+
 1. **Bug in synthesis agent's score aggregation logic**
 2. **Synthesis agent received partial/corrupted data**
 3. **Timing issue** - synthesis ran before all evaluations were saved
@@ -164,23 +171,29 @@ Possible causes:
 ## Issue 3: Frontend Reverse-Engineering Initial Score
 
 ### Observed Behavior
+
 - Scorecard shows "Initial: 8.3, After Debate: 7.0"
 
 ### The Hack
 
 **EvaluationScorecard.tsx:333-335:**
+
 ```javascript
 const initialScore = synthesis?.overall_score
-  ? synthesis.overall_score + (rounds.reduce((sum, r) => sum + r.score_adjustment, 0) * -1) / rounds.length
+  ? synthesis.overall_score +
+    (rounds.reduce((sum, r) => sum + r.score_adjustment, 0) * -1) /
+      rounds.length
   : weightedAvg;
 ```
 
 **What this does:**
+
 ```
 initialScore = synthesis.overall_score - (total_adjustments / round_count)
 ```
 
 **Why this is wrong:**
+
 1. Divides by `rounds.length` (total rounds) but adjustments are per-criterion, not per-round
 2. Assumes `synthesis.overall_score` is POST-debate (but we established it might be wrong)
 3. Reverse-engineering indicates architectural debt
@@ -191,14 +204,14 @@ initialScore = synthesis.overall_score - (total_adjustments / round_count)
 
 ## Architectural Problems Summary
 
-| # | Problem | Location | Impact | Fix Complexity |
-|---|---------|----------|--------|----------------|
-| 1 | Split Score Storage | DB Schema | Scores inconsistent | HIGH |
-| 2 | No Score Reconciliation | evaluate.ts | `final_score` never updated | MEDIUM |
-| 3 | Recommendation Lock-in | evaluate.ts | Wrong recommendations persist | LOW (DONE) |
-| 4 | Inconsistent Recalculation | server/api.ts | Different scores in different views | MEDIUM |
-| 5 | Frontend Workarounds | EvaluationScorecard.tsx | Fragile, incorrect math | LOW |
-| 6 | Synthesis Agent Bug | agents/synthesis.ts | Wrong scores saved | UNKNOWN |
+| #   | Problem                    | Location                | Impact                              | Fix Complexity |
+| --- | -------------------------- | ----------------------- | ----------------------------------- | -------------- |
+| 1   | Split Score Storage        | DB Schema               | Scores inconsistent                 | HIGH           |
+| 2   | No Score Reconciliation    | evaluate.ts             | `final_score` never updated         | MEDIUM         |
+| 3   | Recommendation Lock-in     | evaluate.ts             | Wrong recommendations persist       | LOW (DONE)     |
+| 4   | Inconsistent Recalculation | server/api.ts           | Different scores in different views | MEDIUM         |
+| 5   | Frontend Workarounds       | EvaluationScorecard.tsx | Fragile, incorrect math             | LOW            |
+| 6   | Synthesis Agent Bug        | agents/synthesis.ts     | Wrong scores saved                  | UNKNOWN        |
 
 ---
 
@@ -209,16 +222,18 @@ initialScore = synthesis.overall_score - (total_adjustments / round_count)
 **Files modified:** `server/api.ts`
 
 **Endpoints fixed:**
+
 1. `/api/ideas/:slug/synthesis` - now recalculates recommendation from score
 2. `/api/debates/:runId` - now recalculates recommendation from score
 
 **Logic added:**
+
 ```typescript
 function getRecommendationFromScore(score: number): string {
-  if (score >= 7.0) return 'PURSUE';
-  if (score >= 5.0) return 'REFINE';
-  if (score >= 4.0) return 'PAUSE';
-  return 'ABANDON';
+  if (score >= 7.0) return "PURSUE";
+  if (score >= 5.0) return "REFINE";
+  if (score >= 4.0) return "PAUSE";
+  return "ABANDON";
 }
 ```
 
@@ -242,6 +257,7 @@ sqlite3 database/ideas.db ".schema evaluations"
 ```
 
 Expected columns:
+
 - `initial_score` - score before debate
 - `final_score` - should be score after debate (currently same as initial)
 
@@ -250,6 +266,7 @@ sqlite3 database/ideas.db ".schema debate_rounds"
 ```
 
 Expected columns:
+
 - `criterion` - which criterion this adjustment is for
 - `score_adjustment` - the adjustment value (-2 to +2)
 
@@ -258,17 +275,19 @@ Expected columns:
 **File:** `server/api.ts`
 
 **Current (WRONG) - line ~808:**
+
 ```typescript
 const categoryScores = await query<{ category: string; avg_score: number }>(
   `SELECT category, AVG(final_score) as avg_score
    FROM evaluations
    WHERE idea_id = ? AND evaluation_run_id = ?
    GROUP BY category`,
-  [idea.id, targetRunId]
+  [idea.id, targetRunId],
 );
 ```
 
 **Fixed:**
+
 ```typescript
 const categoryScores = await query<{ category: string; avg_score: number }>(
   `SELECT
@@ -288,11 +307,12 @@ const categoryScores = await query<{ category: string; avg_score: number }>(
         AND e.criterion = adj.criterion
    WHERE e.idea_id = ? AND e.evaluation_run_id = ?
    GROUP BY e.category`,
-  [idea.id, targetRunId]
+  [idea.id, targetRunId],
 );
 ```
 
 **Also update these endpoints:**
+
 - `/api/ideas/:slug/category-scores` (used by Scorecard)
 - `/api/debates/:runId` (same pattern)
 
@@ -317,7 +337,7 @@ After saving debate rounds, update evaluations:
 async function saveDebateResults(
   ideaId: string,
   sessionId: string,
-  debateResult: FullDebateResult
+  debateResult: FullDebateResult,
 ): Promise<void> {
   // ... existing code to save debate_rounds ...
 
@@ -331,7 +351,7 @@ async function saveDebateResults(
        WHERE idea_id = ?
          AND evaluation_run_id = ?
          AND criterion = ?`,
-      [adjustment, ideaId, sessionId, debate.criterion.name]
+      [adjustment, ideaId, sessionId, debate.criterion.name],
     );
   }
 }
@@ -344,8 +364,8 @@ Check that `debate.finalScore` and `debate.originalScore` exist in `FullDebateRe
 ```typescript
 interface CriterionDebate {
   criterion: CriterionDefinition;
-  originalScore: number;  // Pre-debate
-  finalScore: number;     // Post-debate
+  originalScore: number; // Pre-debate
+  finalScore: number; // Post-debate
   // ...
 }
 ```
@@ -430,31 +450,37 @@ const initialScore = /* get from API or calculate */;
 ### Manual Test Cases
 
 #### Test 1: New Evaluation Without Debate
+
 ```bash
 npm run evaluate my-idea -- --skip-debate
 ```
 
 **Expected:**
+
 - [ ] All score displays show same value
 - [ ] Recommendation matches score threshold
 - [ ] No "Initial/After Debate" shown (no debate)
 
 #### Test 2: New Evaluation With Debate
+
 ```bash
 npm run evaluate my-idea
 ```
 
 **Expected:**
+
 - [ ] "Evaluation Complete" score = Scorecard score = Synthesis score
 - [ ] Recommendation matches displayed score
 - [ ] "Initial" score > "After Debate" score (if red team won rounds)
 - [ ] Delta shown is mathematically correct
 
 #### Test 3: Historical Data (After Migration)
+
 1. Open an idea that was evaluated before the fix
 2. Check all score displays
 
 **Expected:**
+
 - [ ] Scores now correct and consistent
 - [ ] Recommendation matches score
 
@@ -463,21 +489,21 @@ npm run evaluate my-idea
 **File:** `tests/score-consistency.test.ts`
 
 ```typescript
-describe('Score Consistency', () => {
-  it('API returns same score from /synthesis and /category-scores', async () => {
-    const synthesis = await getSynthesis('test-idea');
-    const categories = await getCategoryScores('test-idea');
+describe("Score Consistency", () => {
+  it("API returns same score from /synthesis and /category-scores", async () => {
+    const synthesis = await getSynthesis("test-idea");
+    const categories = await getCategoryScores("test-idea");
     const calculatedScore = calculateWeightedAverage(categories);
     expect(synthesis.overall_score).toBeCloseTo(calculatedScore, 1);
   });
 
-  it('Recommendation matches score threshold', async () => {
-    const synthesis = await getSynthesis('test-idea');
+  it("Recommendation matches score threshold", async () => {
+    const synthesis = await getSynthesis("test-idea");
     const expectedRec = getExpectedRecommendation(synthesis.overall_score);
     expect(synthesis.recommendation).toBe(expectedRec);
   });
 
-  it('Debate adjustments are included in final score', async () => {
+  it("Debate adjustments are included in final score", async () => {
     // Run evaluation with debate
     // Check that final_score = initial_score + sum(adjustments)
   });
@@ -535,26 +561,26 @@ curl http://localhost:3001/api/ideas/YOUR_SLUG/category-scores | jq '.[] | {cate
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Breaking existing evaluations | LOW | HIGH | Backup database before migration |
-| Score calculation edge cases | MEDIUM | MEDIUM | Add unit tests for edge cases |
-| Frontend cache showing stale data | MEDIUM | LOW | Document need to refresh after changes |
-| Performance impact of complex queries | LOW | LOW | Add index on (idea_id, evaluation_run_id, criterion) |
-| Migration script fails on bad data | MEDIUM | MEDIUM | Add validation queries before UPDATE |
+| Risk                                  | Likelihood | Impact | Mitigation                                           |
+| ------------------------------------- | ---------- | ------ | ---------------------------------------------------- |
+| Breaking existing evaluations         | LOW        | HIGH   | Backup database before migration                     |
+| Score calculation edge cases          | MEDIUM     | MEDIUM | Add unit tests for edge cases                        |
+| Frontend cache showing stale data     | MEDIUM     | LOW    | Document need to refresh after changes               |
+| Performance impact of complex queries | LOW        | LOW    | Add index on (idea_id, evaluation_run_id, criterion) |
+| Migration script fails on bad data    | MEDIUM     | MEDIUM | Add validation queries before UPDATE                 |
 
 ---
 
 ## Files Summary
 
-| File | Status | Change Required |
-|------|--------|-----------------|
-| `server/api.ts` | PARTIAL | Add debate adjustments to score calc |
-| `scripts/evaluate.ts` | PENDING | Update final_score after debate |
-| `database/migrations/015_fix_debate_scores.sql` | PENDING | Data migration |
-| `frontend/src/components/EvaluationScorecard.tsx` | PENDING | Remove reverse calculation |
-| `frontend/src/hooks/useEvaluations.ts` | PENDING | Verify after API fix |
-| `agents/synthesis.ts` | INVESTIGATE | Find why it calculated wrong score |
+| File                                              | Status      | Change Required                      |
+| ------------------------------------------------- | ----------- | ------------------------------------ |
+| `server/api.ts`                                   | PARTIAL     | Add debate adjustments to score calc |
+| `scripts/evaluate.ts`                             | PENDING     | Update final_score after debate      |
+| `database/migrations/015_fix_debate_scores.sql`   | PENDING     | Data migration                       |
+| `frontend/src/components/EvaluationScorecard.tsx` | PENDING     | Remove reverse calculation           |
+| `frontend/src/hooks/useEvaluations.ts`            | PENDING     | Verify after API fix                 |
+| `agents/synthesis.ts`                             | INVESTIGATE | Find why it calculated wrong score   |
 
 ---
 

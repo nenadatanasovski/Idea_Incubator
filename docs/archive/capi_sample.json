@@ -30,9 +30,7 @@
       "minor": 0
     },
     "target": {
-      "domains": [
-        "theaustralian.com.au"
-      ],
+      "domains": ["theaustralian.com.au"],
       "urlTitle": "test-collection-newsletters-gutenberg"
     },
     "accessType": "free",
@@ -1439,15 +1437,9 @@
             "aspectRatio": "16:9",
             "height": 1080,
             "width": 1920,
-            "videoTypes": [
-              "video episode"
-            ],
-            "videoCategories": [
-              "news"
-            ],
-            "videoGenres": [
-              "news"
-            ],
+            "videoTypes": ["video episode"],
+            "videoCategories": ["news"],
+            "videoGenres": ["news"],
             "related": {
               "primary": {
                 "default": [
@@ -1521,10 +1513,7 @@
           "default": true
         },
         "seoTitle": "Captain William Byrnes completes final Qantas flight after 55 years",
-        "topics": [
-          "qantas",
-          "Qantas"
-        ],
+        "topics": ["qantas", "Qantas"],
         "body": {
           "default": "<p><a href=\"http://www.theaustralian.com.au/business/aviation/head-in-the-clouds-for-50-years-for-qantas-pilot-william-byrnes/news-story/0aa74402d5c083f07361edb362840e08\">William Byrnes</a> captained his final flight on Tuesday with his wife, children and grandkids on board the Adelaide to Sydney service to mark the end of his remarkable 55 year career. </p><p>Having started with Qantas as a 16-year-old apprentice engineer in 1971, Captain Byrnes has seen enormous change at the airline, which was then headed by Sir Bert Ritchie.  Over the decades, he served under multiple chairs and chief executives including Keith Hamilton, John Menadue, James Strong and <a href=\"http://www.theaustralian.com.au/business/aviation/qantas-boss-alan-joyce-hails-decision-to-order-planes-during-covid-as-airline-looks-for-growth/news-story/d425c1fe24571957d50d2fd08e5e30eb\">Alan Joyce </a>— but declined to nominate a favourite. </p><p>“CEOs were a lot different in the early days and naturally, have had to change their style because the company has changed over the years,” said Captain Byrnes, 71.  “If the company was run now like it was in the early days when I started, we wouldn’t be here having this talk.” </p><p>He did confess to being “gobsmacked” to be greeted by current chief executive Vanessa Hudson when he disembarked from his last flight in Sydney. </p><p>Ms Hudson had “taken the time to come down and congratulate” Captain Byrnes which he declared was “a bit above and beyond I think”. </p><p><a class=\"capi-image\" capiid=\"a78dd9ba0098341f667cf7193c747f80\"></a></p><p>Throughout his long tenure, there was no shortage of drama on the ground at Qantas, from the chaotic 1989 pilots dispute and Mr Joyce’s <a href=\"http://www.theaustralian.com.au/business/latest/qantas-pilots-query-lockout-timing/news-story/f7a5a6d1f41d6101b352310df613ce5c\">controversial 2011 lockout of staff </a>to the bleak Covid years. Yet Captain Byrnes said he never seriously considered leaving the airline for another carrier.</p><p>“It’s the old story of the grass is always greener, but we were only talking the other day about chaps my colleagues know who have ventured out to other airlines and now they’re trying to get back into Qantas,” he said.  “It becomes a bit difficult once you’ve left Qantas and gone elsewhere.” </p><p>In the air, Captain Byrnes also experienced his fair share of excitement from “engine shutdowns and tyres blowing up on takeoff, to people having heart attacks just after takeoff”. </p><p>He said the most challenging part of the job was “weather” which he believed was probably getting worse, and nominated Beijing as his least favourite port to fly into due to the “erratic air traffic control”. </p><p>“I was still flight engineering at the time when we flew into Beijing when it first opened to Australian tourism,” he recalled. </p><p>“That was very interesting, the air traffic control, you had to keep your wits about you. But they’re as good as any now, they’ve come a long way very rapidly.” </p><p>On the other hand New York remained his favourite destination, with fond memories of operating Boeing 747s to the city. </p><p>“We had many great times in New York, always alive, always fantastic,” Captain Byrnes said. </p><p>Unlike some of his former colleagues, Captain Byrnes had no plans to “downsize” his flying to private aircraft, nor would he seek to renew his licence when it expired next month. </p><p>And despite spending most of his working life travelling to all corners of the globe, Captain Byrnes said he was looking forward to doing a lot more flying — as a passenger. </p><p>“It’s a different kind of travel when you’re on holidays. You’re not constrained to crew hotels, or commercial pressures of having to be in a place at a certain time,” he said. </p><p>Although his children had chosen not to follow him into aviation, Captain Byrnes was convinced it remained a tremendous career “for the right person”. </p><p>“It becomes a passion, and once you start flying you either know that you have it or you don’t. So you’re sort of a slave to the industry. You become enmeshed with the joy of flying, and you just can’t say no.” <br/></p>"
         },
@@ -2484,9 +2473,7 @@
               "link": "https://www.theaustralian.com.au/culture/books/louise-adler-resigns-from-adelaide-writers-week/news-story/be106ec225ea4a527c691554293ce83c"
             }
           },
-          "domains": [
-            "theaustralian.com.au"
-          ],
+          "domains": ["theaustralian.com.au"],
           "sections": [
             {
               "id": "8d549d5514fadf4f99a394d35cc4ed27",
@@ -2590,14 +2577,10 @@
             ]
           },
           "optional": {
-            "default": [
-              "f42d0680e179a241067d6f46a2a22d6c"
-            ]
+            "default": ["f42d0680e179a241067d6f46a2a22d6c"]
           },
           "primary": {
-            "default": [
-              "335cdb7245bd7906ec284a046ddacf28"
-            ]
+            "default": ["335cdb7245bd7906ec284a046ddacf28"]
           }
         },
         "references": {
@@ -3053,9 +3036,7 @@
               "link": "https://www.theaustralian.com.au/culture/becoming-the-boss-how-jeremy-allen-white-embodied-bruce-springsteen-to-tell-the-story-of-nebraska/news-story/856bd6d8f47a502f47dac5f368ff72c7"
             }
           },
-          "domains": [
-            "theaustralian.com.au"
-          ],
+          "domains": ["theaustralian.com.au"],
           "sections": [
             {
               "id": "98567e8cebad4514ff1bb2316cc2b608",
@@ -3134,9 +3115,7 @@
             ]
           },
           "optional": {
-            "default": [
-              "b080807799f2823dd33e65cf375a2e1b"
-            ]
+            "default": ["b080807799f2823dd33e65cf375a2e1b"]
           }
         },
         "references": {
@@ -4105,9 +4084,7 @@
             ]
           },
           "primary": {
-            "default": [
-              "fc0f4d178ca0a5aa4f74571f6eb8824c"
-            ]
+            "default": ["fc0f4d178ca0a5aa4f74571f6eb8824c"]
           }
         },
         "references": {
@@ -4479,9 +4456,7 @@
               "link": "https://www.theaustralian.com.au/culture/best-tv-series-of-all-time-top-25-most-transformative-shows-to-watch/news-story/e36a3f37ecb86f1e62ab6566dc27c2bd"
             }
           },
-          "domains": [
-            "theaustralian.com.au"
-          ],
+          "domains": ["theaustralian.com.au"],
           "sections": [
             {
               "id": "98567e8cebad4514ff1bb2316cc2b608",
@@ -4559,9 +4534,7 @@
         },
         "related": {
           "primary": {
-            "default": [
-              "c19d456b64ab5843c0f81761c3777a85"
-            ]
+            "default": ["c19d456b64ab5843c0f81761c3777a85"]
           },
           "thumbnail": {
             "default": [
@@ -4578,9 +4551,7 @@
             ]
           },
           "optional": {
-            "default": [
-              "4d6b0cb0f737d259d65fbb6b28e60871"
-            ]
+            "default": ["4d6b0cb0f737d259d65fbb6b28e60871"]
           }
         },
         "references": {

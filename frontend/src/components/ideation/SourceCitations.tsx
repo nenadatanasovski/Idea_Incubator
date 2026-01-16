@@ -3,9 +3,9 @@
 // Source citations for web search results
 // =============================================================================
 
-import { useState } from 'react';
-import { Globe, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
-import type { SourceCitationsProps } from '../../types/ideation';
+import { useState } from "react";
+import { Globe, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import type { SourceCitationsProps } from "../../types/ideation";
 
 export function SourceCitations({ sources }: SourceCitationsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -36,7 +36,8 @@ export function SourceCitations({ sources }: SourceCitationsProps) {
               </>
             ) : (
               <>
-                Show {sources.length - 3} more <ChevronDown className="w-3 h-3" />
+                Show {sources.length - 3} more{" "}
+                <ChevronDown className="w-3 h-3" />
               </>
             )}
           </button>
@@ -61,11 +62,15 @@ export function SourceCitations({ sources }: SourceCitationsProps) {
                   </span>
                   <ExternalLink className="w-3 h-3 text-gray-400 flex-shrink-0" />
                 </div>
-                <p className="text-xs text-gray-500 truncate">{source.source}</p>
+                <p className="text-xs text-gray-500 truncate">
+                  {source.source}
+                </p>
               </div>
             </div>
             {source.snippet && (
-              <p className="text-xs text-gray-600 mt-1 line-clamp-2">{source.snippet}</p>
+              <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                {source.snippet}
+              </p>
             )}
           </a>
         ))}

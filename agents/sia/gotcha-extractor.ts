@@ -1,11 +1,11 @@
 // agents/sia/gotcha-extractor.ts - Extract gotchas from execution failures
 
-import { ExtractedGotcha, FailureInfo } from '../../types/sia.js';
+import { ExtractedGotcha, FailureInfo } from "../../types/sia.js";
 import {
   matchExtractionRule,
   inferFilePattern,
   inferActionType,
-} from './extraction-rules.js';
+} from "./extraction-rules.js";
 
 /**
  * Extract gotchas from a list of task failures
@@ -26,7 +26,9 @@ export function extractGotchas(failures: FailureInfo[]): ExtractedGotcha[] {
 /**
  * Extract a single gotcha from a failure
  */
-export function extractGotchaFromFailure(failure: FailureInfo): ExtractedGotcha | null {
+export function extractGotchaFromFailure(
+  failure: FailureInfo,
+): ExtractedGotcha | null {
   // Try to match against predefined rules
   const matchedRule = matchExtractionRule(failure.errorMessage, failure.file);
 
@@ -62,29 +64,53 @@ export function extractGotchaFromFailure(failure: FailureInfo): ExtractedGotcha 
 export function categorizeError(errorMessage: string): string {
   const lower = errorMessage.toLowerCase();
 
-  if (lower.includes('typescript') || lower.includes('ts') || lower.includes('type')) {
-    return 'typescript';
+  if (
+    lower.includes("typescript") ||
+    lower.includes("ts") ||
+    lower.includes("type")
+  ) {
+    return "typescript";
   }
-  if (lower.includes('sql') || lower.includes('database') || lower.includes('sqlite')) {
-    return 'database';
+  if (
+    lower.includes("sql") ||
+    lower.includes("database") ||
+    lower.includes("sqlite")
+  ) {
+    return "database";
   }
-  if (lower.includes('import') || lower.includes('module') || lower.includes('require')) {
-    return 'module';
+  if (
+    lower.includes("import") ||
+    lower.includes("module") ||
+    lower.includes("require")
+  ) {
+    return "module";
   }
-  if (lower.includes('async') || lower.includes('await') || lower.includes('promise')) {
-    return 'async';
+  if (
+    lower.includes("async") ||
+    lower.includes("await") ||
+    lower.includes("promise")
+  ) {
+    return "async";
   }
-  if (lower.includes('test') || lower.includes('expect') || lower.includes('vitest')) {
-    return 'test';
+  if (
+    lower.includes("test") ||
+    lower.includes("expect") ||
+    lower.includes("vitest")
+  ) {
+    return "test";
   }
-  if (lower.includes('route') || lower.includes('express') || lower.includes('api')) {
-    return 'api';
+  if (
+    lower.includes("route") ||
+    lower.includes("express") ||
+    lower.includes("api")
+  ) {
+    return "api";
   }
-  if (lower.includes('json') || lower.includes('parse')) {
-    return 'json';
+  if (lower.includes("json") || lower.includes("parse")) {
+    return "json";
   }
 
-  return 'unknown';
+  return "unknown";
 }
 
 /**
@@ -97,13 +123,13 @@ function truncateMessage(message: string, maxLength: number = 200): string {
 
   // Try to truncate at a word boundary
   const truncated = message.slice(0, maxLength);
-  const lastSpace = truncated.lastIndexOf(' ');
+  const lastSpace = truncated.lastIndexOf(" ");
 
   if (lastSpace > maxLength * 0.8) {
-    return truncated.slice(0, lastSpace) + '...';
+    return truncated.slice(0, lastSpace) + "...";
   }
 
-  return truncated + '...';
+  return truncated + "...";
 }
 
 /**

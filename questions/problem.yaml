@@ -8,7 +8,7 @@ questions:
     text: "In one sentence, what specific problem does this solve?"
     type: factual
     priority: critical
-    idea_types: null  # all types
+    idea_types: null # all types
     lifecycle_stages: [SPARK, CLARIFY, RESEARCH]
     depends_on: null
     follow_ups: [P1_SCOPE, P1_WHEN]

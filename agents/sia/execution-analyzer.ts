@@ -1,6 +1,6 @@
 // agents/sia/execution-analyzer.ts - Analyze Build Agent executions
 
-import { getDb } from '../../database/db.js';
+import { getDb } from "../../database/db.js";
 import {
   ExecutionAnalysis,
   TaskResult,
@@ -8,9 +8,9 @@ import {
   RetryInfo,
   ExtractedGotcha,
   ExtractedPattern,
-} from '../../types/sia.js';
-import { extractGotchas } from './gotcha-extractor.js';
-import { extractPatterns } from './pattern-extractor.js';
+} from "../../types/sia.js";
+import { extractGotchas } from "./gotcha-extractor.js";
+import { extractPatterns } from "./pattern-extractor.js";
 
 /**
  * Database row types (from task_executions table)
@@ -51,7 +51,7 @@ interface BuildExecutionRow {
  * Analyze a build execution and extract learnings
  */
 export async function analyzeExecution(
-  executionId: string
+  executionId: string,
 ): Promise<ExecutionAnalysis> {
   // Load build execution
   const build = await loadBuildExecution(executionId);
@@ -76,18 +76,20 @@ export async function analyzeExecution(
 
   // Extract patterns from successful tasks with generated code
   const successfulTasks = taskResults.filter(
-    (t) => t.status === 'success' && t.codeWritten
+    (t) => t.status === "success" && t.codeWritten,
   );
   const extractedPatterns = extractPatterns(successfulTasks);
 
   // Calculate statistics
-  const successfulCount = taskResults.filter((t) => t.status === 'success').length;
-  const failedCount = taskResults.filter((t) => t.status === 'failed').length;
+  const successfulCount = taskResults.filter(
+    (t) => t.status === "success",
+  ).length;
+  const failedCount = taskResults.filter((t) => t.status === "failed").length;
   const retriedCount = retries.length;
 
   return {
     executionId,
-    agentType: 'build',
+    agentType: "build",
     totalTasks: taskResults.length,
     successfulTasks: successfulCount,
     failedTasks: failedCount,
@@ -102,10 +104,10 @@ export async function analyzeExecution(
  * Load a build execution from the database
  */
 export async function loadBuildExecution(
-  id: string
+  id: string,
 ): Promise<BuildExecutionRow | null> {
   const db = await getDb();
-  const stmt = db.prepare('SELECT * FROM build_executions WHERE id = ?');
+  const stmt = db.prepare("SELECT * FROM build_executions WHERE id = ?");
   stmt.bind([id]);
 
   if (!stmt.step()) {
@@ -122,7 +124,7 @@ export async function loadBuildExecution(
  * Load all task executions for a build
  */
 export async function loadTaskExecutions(
-  buildId: string
+  buildId: string,
 ): Promise<TaskExecutionRow[]> {
   const db = await getDb();
   const stmt = db.prepare(`
@@ -145,11 +147,11 @@ export async function loadTaskExecutions(
  * Convert a database row to a TaskResult
  */
 function rowToTaskResult(row: TaskExecutionRow): TaskResult {
-  let status: TaskResult['status'] = 'failed';
-  if (row.status === 'completed') {
-    status = 'success';
-  } else if (row.status === 'skipped') {
-    status = 'skipped';
+  let status: TaskResult["status"] = "failed";
+  if (row.status === "completed") {
+    status = "success";
+  } else if (row.status === "skipped") {
+    status = "skipped";
   }
 
   return {
@@ -171,13 +173,13 @@ export function identifyFailures(rows: TaskExecutionRow[]): FailureInfo[] {
   const failures: FailureInfo[] = [];
 
   for (const row of rows) {
-    if (row.status === 'failed' && row.error_message) {
+    if (row.status === "failed" && row.error_message) {
       // Check if this failure was eventually fixed (retry succeeded)
       const laterSuccess = rows.find(
         (r) =>
           r.task_id === row.task_id &&
           r.attempt > row.attempt &&
-          r.status === 'completed'
+          r.status === "completed",
       );
 
       failures.push({
@@ -222,7 +224,7 @@ export function identifyRetries(rows: TaskExecutionRow[]): RetryInfo[] {
       retries.push({
         taskId,
         attempts: attempts.length,
-        finalStatus: lastAttempt.status === 'completed' ? 'success' : 'failed',
+        finalStatus: lastAttempt.status === "completed" ? "success" : "failed",
         errors,
       });
     }
@@ -237,26 +239,42 @@ export function identifyRetries(rows: TaskExecutionRow[]): RetryInfo[] {
 function categorizeErrorFromMessage(message: string): string {
   const lower = message.toLowerCase();
 
-  if (lower.includes('typescript') || lower.includes('ts') || lower.includes('type ')) {
-    return 'typescript';
+  if (
+    lower.includes("typescript") ||
+    lower.includes("ts") ||
+    lower.includes("type ")
+  ) {
+    return "typescript";
   }
-  if (lower.includes('sql') || lower.includes('database') || lower.includes('sqlite')) {
-    return 'database';
+  if (
+    lower.includes("sql") ||
+    lower.includes("database") ||
+    lower.includes("sqlite")
+  ) {
+    return "database";
   }
-  if (lower.includes('import') || lower.includes('module') || lower.includes('require')) {
-    return 'module';
+  if (
+    lower.includes("import") ||
+    lower.includes("module") ||
+    lower.includes("require")
+  ) {
+    return "module";
   }
-  if (lower.includes('async') || lower.includes('await') || lower.includes('promise')) {
-    return 'async';
+  if (
+    lower.includes("async") ||
+    lower.includes("await") ||
+    lower.includes("promise")
+  ) {
+    return "async";
   }
-  if (lower.includes('validation') || lower.includes('test')) {
-    return 'validation';
+  if (lower.includes("validation") || lower.includes("test")) {
+    return "validation";
   }
-  if (lower.includes('timeout') || lower.includes('timed out')) {
-    return 'timeout';
+  if (lower.includes("timeout") || lower.includes("timed out")) {
+    return "timeout";
   }
 
-  return 'unknown';
+  return "unknown";
 }
 
 /**
@@ -268,7 +286,7 @@ function extractStackTrace(output: string | null): string | undefined {
   // Look for common stack trace patterns
   const stackMatch = output.match(/at\s+\S+\s+\([^)]+\)/g);
   if (stackMatch && stackMatch.length > 0) {
-    return stackMatch.slice(0, 5).join('\n');
+    return stackMatch.slice(0, 5).join("\n");
   }
 
   return undefined;
@@ -278,7 +296,7 @@ function extractStackTrace(output: string | null): string | undefined {
  * Get recent completed builds for analysis
  */
 export async function getRecentCompletedBuilds(
-  limit: number = 10
+  limit: number = 10,
 ): Promise<BuildExecutionRow[]> {
   const db = await getDb();
   const stmt = db.prepare(`
@@ -302,7 +320,7 @@ export async function getRecentCompletedBuilds(
  * Analyze multiple executions and aggregate results
  */
 export async function analyzeMultipleExecutions(
-  executionIds: string[]
+  executionIds: string[],
 ): Promise<{
   analyses: ExecutionAnalysis[];
   aggregatedGotchas: ExtractedGotcha[];

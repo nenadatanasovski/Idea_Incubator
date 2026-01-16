@@ -11,8 +11,8 @@
  * Part of: PTE-072 to PTE-076
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   GroupingSuggestion,
   GroupingSuggestionStatus,
@@ -21,7 +21,7 @@ import {
   TaskIdentity,
   TaskCategory,
   CreateTaskListInput,
-} from '../../../types/task-agent.js';
+} from "../../../types/task-agent.js";
 
 /**
  * Database row for grouping suggestion
@@ -58,7 +58,7 @@ function mapSuggestionRow(row: GroupingSuggestionRow): GroupingSuggestion {
     triggeredBy: row.triggered_by as GroupingTrigger | undefined,
     triggerTaskId: row.trigger_task_id || undefined,
     createdTaskListId: row.created_task_list_id || undefined,
-    resolvedBy: row.resolved_by as 'user' | 'system' | undefined,
+    resolvedBy: row.resolved_by as "user" | "system" | undefined,
     resolvedAt: row.resolved_at || undefined,
     expiresAt: row.expires_at || undefined,
     createdAt: row.created_at,
@@ -69,11 +69,11 @@ function mapSuggestionRow(row: GroupingSuggestionRow): GroupingSuggestion {
  * Default grouping criteria weights
  */
 const DEFAULT_WEIGHTS: GroupingCriteriaWeights = {
-  projectId: 'default',
+  projectId: "default",
   fileOverlapWeight: 0.25,
-  dependencyWeight: 0.30,
-  semanticWeight: 0.20,
-  categoryWeight: 0.10,
+  dependencyWeight: 0.3,
+  semanticWeight: 0.2,
+  categoryWeight: 0.1,
   componentWeight: 0.15,
   minGroupSize: 2,
   maxGroupSize: 20,
@@ -100,7 +100,7 @@ interface TaskInfo {
  * @param projectId Optional project filter
  */
 export async function analyzeTasks(
-  projectId?: string
+  projectId?: string,
 ): Promise<GroupingSuggestion[]> {
   // Get ungrouped tasks
   const tasks = await query<{
@@ -114,9 +114,9 @@ export async function analyzeTasks(
     `SELECT id, display_id, title, description, category, project_id
      FROM tasks
      WHERE queue = 'evaluation'
-     ${projectId ? 'AND project_id = ?' : ''}
+     ${projectId ? "AND project_id = ?" : ""}
      ORDER BY created_at ASC`,
-    projectId ? [projectId] : []
+    projectId ? [projectId] : [],
   );
 
   if (tasks.length < 2) {
@@ -127,36 +127,36 @@ export async function analyzeTasks(
   const enrichedTasks: TaskInfo[] = await Promise.all(
     tasks.map(async (task) => {
       const filePaths = await query<{ file_path: string }>(
-        'SELECT file_path FROM task_file_impacts WHERE task_id = ?',
-        [task.id]
+        "SELECT file_path FROM task_file_impacts WHERE task_id = ?",
+        [task.id],
       );
 
       const dependencies = await query<{ target_task_id: string }>(
         `SELECT target_task_id FROM task_relationships
          WHERE source_task_id = ? AND relationship_type = 'depends_on'`,
-        [task.id]
+        [task.id],
       );
 
       const components = await query<{ component_type: string }>(
-        'SELECT component_type FROM task_components WHERE task_id = ?',
-        [task.id]
+        "SELECT component_type FROM task_components WHERE task_id = ?",
+        [task.id],
       );
 
       return {
         id: task.id,
         displayId: task.display_id,
         title: task.title,
-        description: task.description || '',
+        description: task.description || "",
         category: task.category as TaskCategory,
         filePaths: filePaths.map((f) => f.file_path),
         dependencies: dependencies.map((d) => d.target_task_id),
         componentTypes: components.map((c) => c.component_type),
       };
-    })
+    }),
   );
 
   // Get weights for project
-  const weights = await getWeights(projectId || 'default');
+  const weights = await getWeights(projectId || "default");
 
   // Calculate pairwise similarity scores
   const pairs: Array<{
@@ -171,7 +171,7 @@ export async function analyzeTasks(
       const result = calculateGroupingScore(
         enrichedTasks[i],
         enrichedTasks[j],
-        weights
+        weights,
       );
       if (result.score >= weights.similarityThreshold) {
         pairs.push({
@@ -185,7 +185,12 @@ export async function analyzeTasks(
   }
 
   // Cluster high-scoring pairs into groups
-  const suggestions = clusterIntoSuggestions(pairs, enrichedTasks, weights, projectId);
+  const suggestions = clusterIntoSuggestions(
+    pairs,
+    enrichedTasks,
+    weights,
+    projectId,
+  );
 
   return suggestions;
 }
@@ -196,7 +201,7 @@ export async function analyzeTasks(
 export function calculateGroupingScore(
   task1: TaskInfo,
   task2: TaskInfo,
-  weights: GroupingCriteriaWeights
+  weights: GroupingCriteriaWeights,
 ): { score: number; reasons: string[] } {
   let totalScore = 0;
   const reasons: string[] = [];
@@ -212,7 +217,7 @@ export function calculateGroupingScore(
   const dependencyScore = calculateDependencyScore(task1, task2);
   if (dependencyScore > 0) {
     totalScore += dependencyScore * weights.dependencyWeight;
-    reasons.push('Related by dependencies');
+    reasons.push("Related by dependencies");
   }
 
   // Semantic similarity (simple word overlap for now)
@@ -231,11 +236,11 @@ export function calculateGroupingScore(
   // Component type overlap
   const componentOverlap = calculateComponentOverlap(
     task1.componentTypes,
-    task2.componentTypes
+    task2.componentTypes,
   );
   if (componentOverlap > 0) {
     totalScore += componentOverlap * weights.componentWeight;
-    reasons.push('Same component types');
+    reasons.push("Same component types");
   }
 
   return { score: totalScore, reasons };
@@ -269,10 +274,10 @@ function calculateFileOverlap(paths1: string[], paths2: string[]): number {
 function normalizeFilePath(path: string): string {
   // Remove glob wildcards and get directory
   return path
-    .replace(/\*\*/g, '')
-    .replace(/\*/g, '')
-    .replace(/\/+/g, '/')
-    .replace(/\/$/, '');
+    .replace(/\*\*/g, "")
+    .replace(/\*/g, "")
+    .replace(/\/+/g, "/")
+    .replace(/\/$/, "");
 }
 
 /**
@@ -289,7 +294,7 @@ function calculateDependencyScore(task1: TaskInfo, task2: TaskInfo): number {
 
   // Check for common dependencies
   const common = task1.dependencies.filter((d) =>
-    task2.dependencies.includes(d)
+    task2.dependencies.includes(d),
   );
   if (common.length > 0) {
     return 0.7;
@@ -303,16 +308,16 @@ function calculateDependencyScore(task1: TaskInfo, task2: TaskInfo): number {
  */
 function calculateSemanticScore(task1: TaskInfo, task2: TaskInfo): number {
   const words1 = new Set(
-    (task1.title + ' ' + task1.description)
+    (task1.title + " " + task1.description)
       .toLowerCase()
       .split(/\s+/)
-      .filter((w) => w.length > 3)
+      .filter((w) => w.length > 3),
   );
   const words2 = new Set(
-    (task2.title + ' ' + task2.description)
+    (task2.title + " " + task2.description)
       .toLowerCase()
       .split(/\s+/)
-      .filter((w) => w.length > 3)
+      .filter((w) => w.length > 3),
   );
 
   if (words1.size === 0 || words2.size === 0) {
@@ -344,10 +349,15 @@ function calculateComponentOverlap(types1: string[], types2: string[]): number {
  * Cluster similar pairs into group suggestions
  */
 function clusterIntoSuggestions(
-  pairs: Array<{ task1: TaskInfo; task2: TaskInfo; score: number; reasons: string[] }>,
+  pairs: Array<{
+    task1: TaskInfo;
+    task2: TaskInfo;
+    score: number;
+    reasons: string[];
+  }>,
   allTasks: TaskInfo[],
   weights: GroupingCriteriaWeights,
-  projectId?: string
+  projectId?: string,
 ): GroupingSuggestion[] {
   // Simple greedy clustering
   const taskGroups: Map<string, Set<string>> = new Map();
@@ -359,7 +369,8 @@ function clusterIntoSuggestions(
 
     if (group1 && group2 && group1 !== group2) {
       // Merge groups if combined size is within limit
-      const combinedSize = taskGroups.get(group1)!.size + taskGroups.get(group2)!.size;
+      const combinedSize =
+        taskGroups.get(group1)!.size + taskGroups.get(group2)!.size;
       if (combinedSize <= weights.maxGroupSize) {
         const merged = new Set([
           ...taskGroups.get(group1)!,
@@ -416,13 +427,13 @@ function clusterIntoSuggestions(
 
     suggestions.push({
       id: uuidv4(),
-      status: 'pending',
+      status: "pending",
       suggestedName,
       suggestedTasks: Array.from(taskIds),
-      groupingReason: reasons.join('; '),
+      groupingReason: reasons.join("; "),
       similarityScore: 0.7, // Placeholder
       projectId,
-      triggeredBy: 'task_created',
+      triggeredBy: "task_created",
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     });
@@ -436,7 +447,7 @@ function clusterIntoSuggestions(
  */
 function findGroupForTask(
   taskId: string,
-  groups: Map<string, Set<string>>
+  groups: Map<string, Set<string>>,
 ): string | null {
   for (const [groupId, members] of groups) {
     if (members.has(taskId)) {
@@ -469,7 +480,7 @@ function generateGroupName(tasks: TaskInfo[]): string {
     .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1));
 
   if (commonWords.length > 0) {
-    return `${commonWords.join(' ')} Tasks`;
+    return `${commonWords.join(" ")} Tasks`;
   }
 
   return `Related Tasks (${tasks.length} items)`;
@@ -482,19 +493,19 @@ export async function generateSuggestion(
   taskIds: string[],
   reason: string,
   projectId?: string,
-  triggerTaskId?: string
+  triggerTaskId?: string,
 ): Promise<GroupingSuggestion> {
   const tasks = await query<{ id: string; title: string }>(
-    `SELECT id, title FROM tasks WHERE id IN (${taskIds.map(() => '?').join(', ')})`,
-    taskIds
+    `SELECT id, title FROM tasks WHERE id IN (${taskIds.map(() => "?").join(", ")})`,
+    taskIds,
   );
 
   const taskInfos = tasks.map((t) => ({
     id: t.id,
-    displayId: '',
+    displayId: "",
     title: t.title,
-    description: '',
-    category: 'task' as TaskCategory,
+    description: "",
+    category: "task" as TaskCategory,
     filePaths: [],
     dependencies: [],
     componentTypes: [],
@@ -504,12 +515,12 @@ export async function generateSuggestion(
 
   const suggestion: GroupingSuggestion = {
     id: uuidv4(),
-    status: 'pending',
+    status: "pending",
     suggestedName,
     suggestedTasks: taskIds,
     groupingReason: reason,
     projectId,
-    triggeredBy: 'task_created',
+    triggeredBy: "task_created",
     triggerTaskId,
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -531,7 +542,7 @@ export async function generateSuggestion(
       suggestion.triggeredBy || null,
       suggestion.triggerTaskId || null,
       suggestion.expiresAt || null,
-    ]
+    ],
   );
 
   // Save suggestion-task links
@@ -539,7 +550,7 @@ export async function generateSuggestion(
     await run(
       `INSERT INTO suggestion_tasks (id, suggestion_id, task_id)
        VALUES (?, ?, ?)`,
-      [uuidv4(), suggestion.id, taskId]
+      [uuidv4(), suggestion.id, taskId],
     );
   }
 
@@ -554,21 +565,21 @@ export async function generateSuggestion(
 export async function handleTrigger(
   trigger: GroupingTrigger,
   taskId: string,
-  projectId?: string
+  projectId?: string,
 ): Promise<GroupingSuggestion | null> {
   // Run analysis
   const suggestions = await analyzeTasks(projectId);
 
   // Find suggestion containing the trigger task
   const relevantSuggestion = suggestions.find((s) =>
-    s.suggestedTasks.includes(taskId)
+    s.suggestedTasks.includes(taskId),
   );
 
   if (relevantSuggestion) {
     // Save if not already saved
     const existing = await getOne<{ id: string }>(
-      'SELECT id FROM grouping_suggestions WHERE id = ?',
-      [relevantSuggestion.id]
+      "SELECT id FROM grouping_suggestions WHERE id = ?",
+      [relevantSuggestion.id],
     );
 
     if (!existing) {
@@ -588,14 +599,14 @@ export async function handleTrigger(
           trigger,
           taskId,
           relevantSuggestion.expiresAt || null,
-        ]
+        ],
       );
 
       for (const tid of relevantSuggestion.suggestedTasks) {
         await run(
           `INSERT INTO suggestion_tasks (id, suggestion_id, task_id)
            VALUES (?, ?, ?)`,
-          [uuidv4(), relevantSuggestion.id, tid]
+          [uuidv4(), relevantSuggestion.id, tid],
         );
       }
 
@@ -609,7 +620,9 @@ export async function handleTrigger(
 /**
  * Get grouping weights for a project
  */
-export async function getWeights(projectId: string): Promise<GroupingCriteriaWeights> {
+export async function getWeights(
+  projectId: string,
+): Promise<GroupingCriteriaWeights> {
   const row = await getOne<{
     project_id: string;
     file_overlap_weight: number;
@@ -620,7 +633,9 @@ export async function getWeights(projectId: string): Promise<GroupingCriteriaWei
     min_group_size: number;
     max_group_size: number;
     similarity_threshold: number;
-  }>('SELECT * FROM grouping_criteria_weights WHERE project_id = ?', [projectId]);
+  }>("SELECT * FROM grouping_criteria_weights WHERE project_id = ?", [
+    projectId,
+  ]);
 
   if (!row) {
     return DEFAULT_WEIGHTS;
@@ -644,7 +659,7 @@ export async function getWeights(projectId: string): Promise<GroupingCriteriaWei
  */
 export async function updateWeights(
   projectId: string,
-  weights: Partial<GroupingCriteriaWeights>
+  weights: Partial<GroupingCriteriaWeights>,
 ): Promise<GroupingCriteriaWeights> {
   const current = await getWeights(projectId);
   const updated = { ...current, ...weights, projectId };
@@ -675,7 +690,7 @@ export async function updateWeights(
       updated.minGroupSize,
       updated.maxGroupSize,
       updated.similarityThreshold,
-    ]
+    ],
   );
 
   await saveDb();
@@ -711,7 +726,7 @@ export async function expireOldSuggestions(): Promise<number> {
  * Get pending suggestions
  */
 export async function getPendingSuggestions(
-  projectId?: string
+  projectId?: string,
 ): Promise<GroupingSuggestion[]> {
   let sql = `
     SELECT * FROM grouping_suggestions
@@ -721,11 +736,11 @@ export async function getPendingSuggestions(
   const params: string[] = [];
 
   if (projectId) {
-    sql += ' AND project_id = ?';
+    sql += " AND project_id = ?";
     params.push(projectId);
   }
 
-  sql += ' ORDER BY created_at DESC';
+  sql += " ORDER BY created_at DESC";
 
   const rows = await query<GroupingSuggestionRow>(sql, params);
   return rows.map(mapSuggestionRow);
@@ -736,11 +751,11 @@ export async function getPendingSuggestions(
  */
 export async function acceptSuggestion(
   suggestionId: string,
-  listName?: string
+  listName?: string,
 ): Promise<{ taskListId: string; tasksMoved: number }> {
   const suggestion = await getOne<GroupingSuggestionRow>(
-    'SELECT * FROM grouping_suggestions WHERE id = ?',
-    [suggestionId]
+    "SELECT * FROM grouping_suggestions WHERE id = ?",
+    [suggestionId],
   );
 
   if (!suggestion) {
@@ -755,7 +770,7 @@ export async function acceptSuggestion(
   await run(
     `INSERT INTO task_lists_v2 (id, name, project_id, status, total_tasks)
      VALUES (?, ?, ?, 'draft', ?)`,
-    [taskListId, name, suggestion.project_id, taskIds.length]
+    [taskListId, name, suggestion.project_id, taskIds.length],
   );
 
   // Move tasks to list
@@ -769,7 +784,7 @@ export async function acceptSuggestion(
            position = ?,
            updated_at = datetime('now')
        WHERE id = ?`,
-      [taskListId, position++, taskId]
+      [taskListId, position++, taskId],
     );
   }
 
@@ -781,7 +796,7 @@ export async function acceptSuggestion(
          resolved_by = 'user',
          resolved_at = datetime('now')
      WHERE id = ?`,
-    [taskListId, suggestionId]
+    [taskListId, suggestionId],
   );
 
   await saveDb();
@@ -799,7 +814,7 @@ export async function rejectSuggestion(suggestionId: string): Promise<void> {
          resolved_by = 'user',
          resolved_at = datetime('now')
      WHERE id = ?`,
-    [suggestionId]
+    [suggestionId],
   );
   await saveDb();
 }

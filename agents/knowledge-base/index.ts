@@ -10,7 +10,7 @@ export {
   ExtractedPattern,
   ClaudeMdProposal,
   ProposalStatus,
-} from '../../types/sia.js';
+} from "../../types/sia.js";
 
 // Database operations
 export {
@@ -24,7 +24,7 @@ export {
   getProposals,
   getProposal,
   updateProposalStatus,
-} from '../sia/db.js';
+} from "../sia/db.js";
 
 // Writing operations
 export {
@@ -34,7 +34,7 @@ export {
   writeGotchas,
   writePatterns,
   incrementOccurrences,
-} from '../sia/knowledge-writer.js';
+} from "../sia/knowledge-writer.js";
 
 // Confidence tracking
 export {
@@ -45,14 +45,14 @@ export {
   recordPrevention,
   updateConfidence,
   applyDecay,
-} from '../sia/confidence-tracker.js';
+} from "../sia/confidence-tracker.js";
 
 // Duplicate detection
 export {
   findDuplicate,
   calculateSimilarity,
   mergeEntries,
-} from '../sia/duplicate-detector.js';
+} from "../sia/duplicate-detector.js";
 
 // CLAUDE.md updates
 export {
@@ -61,4 +61,4 @@ export {
   rejectProposal,
   generatePendingProposals,
   isEligibleForPromotion,
-} from '../sia/claude-md-updater.js';
+} from "../sia/claude-md-updater.js";

@@ -5,19 +5,19 @@
  * Tracks full lineage tree for idea families.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { v4 as uuid } from 'uuid';
-import { run, query, getOne } from '../database/db.js';
-import { logInfo } from '../utils/logger.js';
-import { pauseIdea, abandonIdea } from './status.js';
-import { createInitialVersionSnapshot } from './versioning.js';
+import * as fs from "fs";
+import * as path from "path";
+import { v4 as uuid } from "uuid";
+import { run, query, getOne } from "../database/db.js";
+import { logInfo } from "../utils/logger.js";
+import { pauseIdea, abandonIdea } from "./status.js";
+import { createInitialVersionSnapshot } from "./versioning.js";
 import {
   IdeaLineage,
   IdeaSummary,
   IdeaStatus,
-  BranchRequest
-} from '../types/incubation.js';
+  BranchRequest,
+} from "../types/incubation.js";
 
 /**
  * Generate a slug from a title
@@ -25,8 +25,8 @@ import {
 function generateSlug(title: string): string {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
     .substring(0, 50);
 }
 
@@ -46,8 +46,8 @@ export async function createBranch(request: BranchRequest): Promise<string> {
     lifecycle_stage: string;
     current_version: number;
   }>(
-    'SELECT id, slug, title, folder_path, idea_type, lifecycle_stage, current_version FROM ideas WHERE id = ?',
-    [parentIdeaId]
+    "SELECT id, slug, title, folder_path, idea_type, lifecycle_stage, current_version FROM ideas WHERE id = ?",
+    [parentIdeaId],
   );
 
   if (!parent) {
@@ -62,8 +62,8 @@ export async function createBranch(request: BranchRequest): Promise<string> {
   // Check for existing slugs
   while (true) {
     const existing = await getOne<{ id: string }>(
-      'SELECT id FROM ideas WHERE slug = ?',
-      [slug]
+      "SELECT id FROM ideas WHERE slug = ?",
+      [slug],
     );
     if (!existing) break;
     slug = `${baseSlug}-${counter++}`;
@@ -83,8 +83,8 @@ id: ${uuid()}
 title: "${newTitle}"
 type: ${parent.idea_type}
 stage: SPARK
-created: ${new Date().toISOString().split('T')[0]}
-updated: ${new Date().toISOString().split('T')[0]}
+created: ${new Date().toISOString().split("T")[0]}
+updated: ${new Date().toISOString().split("T")[0]}
 tags: []
 summary: "Branched from ${parent.title}"
 ---
@@ -116,7 +116,7 @@ See parent idea for original context.
 (To be defined)
 `;
 
-  fs.writeFileSync(path.join(newFolderPath, 'README.md'), readmeContent);
+  fs.writeFileSync(path.join(newFolderPath, "README.md"), readmeContent);
 
   // Create new idea record
   const newIdeaId = uuid();
@@ -134,11 +134,11 @@ See parent idea for original context.
       newTitle,
       `Branched from ${parent.title}: ${branchReason}`,
       parent.idea_type,
-      'SPARK',
+      "SPARK",
       newFolderPath,
       parentIdeaId,
-      branchReason
-    ]
+      branchReason,
+    ],
   );
 
   // Create initial version snapshot for new idea
@@ -146,19 +146,21 @@ See parent idea for original context.
 
   // Handle parent action
   switch (parentAction) {
-    case 'pause':
+    case "pause":
       await pauseIdea(parentIdeaId, `Branched to ${slug}`);
       break;
-    case 'abandon':
+    case "abandon":
       await abandonIdea(parentIdeaId, `Replaced by ${slug}`);
       break;
-    case 'keep_active':
+    case "keep_active":
     default:
       // No change to parent
       break;
   }
 
-  logInfo(`Created branch ${slug} from ${parent.slug} (parent action: ${parentAction})`);
+  logInfo(
+    `Created branch ${slug} from ${parent.slug} (parent action: ${parentAction})`,
+  );
 
   return slug;
 }
@@ -175,18 +177,18 @@ export async function getLineage(ideaId: string): Promise<IdeaLineage> {
 
   // Get parent (if exists)
   const parentId = await getOne<{ parent_idea_id: string | null }>(
-    'SELECT parent_idea_id FROM ideas WHERE id = ?',
-    [ideaId]
+    "SELECT parent_idea_id FROM ideas WHERE id = ?",
+    [ideaId],
   );
   let parent: IdeaSummary | undefined;
   if (parentId?.parent_idea_id) {
-    parent = await getIdeaSummary(parentId.parent_idea_id) || undefined;
+    parent = (await getIdeaSummary(parentId.parent_idea_id)) || undefined;
   }
 
   // Get children
   const childRows = await query<{ id: string }>(
-    'SELECT id FROM ideas WHERE parent_idea_id = ?',
-    [ideaId]
+    "SELECT id FROM ideas WHERE parent_idea_id = ?",
+    [ideaId],
   );
   const children: IdeaSummary[] = [];
   for (const row of childRows) {
@@ -202,8 +204,8 @@ export async function getLineage(ideaId: string): Promise<IdeaLineage> {
     if (ancestor) {
       ancestors.push(ancestor);
       const nextParent = await getOne<{ parent_idea_id: string | null }>(
-        'SELECT parent_idea_id FROM ideas WHERE id = ?',
-        [ancestorId]
+        "SELECT parent_idea_id FROM ideas WHERE id = ?",
+        [ancestorId],
       );
       ancestorId = nextParent?.parent_idea_id || null;
     } else {
@@ -215,7 +217,7 @@ export async function getLineage(ideaId: string): Promise<IdeaLineage> {
     current,
     parent,
     children,
-    ancestors
+    ancestors,
   };
 }
 
@@ -231,8 +233,8 @@ async function getIdeaSummary(ideaId: string): Promise<IdeaSummary | null> {
     current_version: number;
     branch_reason: string | null;
   }>(
-    'SELECT id, slug, title, status, current_version, branch_reason FROM ideas WHERE id = ?',
-    [ideaId]
+    "SELECT id, slug, title, status, current_version, branch_reason FROM ideas WHERE id = ?",
+    [ideaId],
   );
 
   if (!row) return null;
@@ -241,7 +243,7 @@ async function getIdeaSummary(ideaId: string): Promise<IdeaSummary | null> {
   const scoreRow = await getOne<{ overall_score: number }>(
     `SELECT overall_score FROM final_syntheses
      WHERE idea_id = ? ORDER BY completed_at DESC LIMIT 1`,
-    [ideaId]
+    [ideaId],
   );
 
   return {
@@ -251,7 +253,7 @@ async function getIdeaSummary(ideaId: string): Promise<IdeaSummary | null> {
     status: row.status as IdeaStatus,
     currentVersion: row.current_version,
     latestScore: scoreRow?.overall_score,
-    branchReason: row.branch_reason || undefined
+    branchReason: row.branch_reason || undefined,
   };
 }
 
@@ -260,8 +262,8 @@ async function getIdeaSummary(ideaId: string): Promise<IdeaSummary | null> {
  */
 export async function getBranchReason(ideaId: string): Promise<string | null> {
   const row = await getOne<{ branch_reason: string | null }>(
-    'SELECT branch_reason FROM ideas WHERE id = ?',
-    [ideaId]
+    "SELECT branch_reason FROM ideas WHERE id = ?",
+    [ideaId],
   );
   return row?.branch_reason || null;
 }
@@ -269,7 +271,9 @@ export async function getBranchReason(ideaId: string): Promise<string | null> {
 /**
  * Get all descendants of an idea (children, grandchildren, etc.)
  */
-export async function getAllDescendants(ideaId: string): Promise<IdeaSummary[]> {
+export async function getAllDescendants(
+  ideaId: string,
+): Promise<IdeaSummary[]> {
   const descendants: IdeaSummary[] = [];
   const queue = [ideaId];
 
@@ -277,8 +281,8 @@ export async function getAllDescendants(ideaId: string): Promise<IdeaSummary[]> 
     const currentId = queue.shift()!;
 
     const children = await query<{ id: string }>(
-      'SELECT id FROM ideas WHERE parent_idea_id = ?',
-      [currentId]
+      "SELECT id FROM ideas WHERE parent_idea_id = ?",
+      [currentId],
     );
 
     for (const child of children) {
@@ -296,7 +300,9 @@ export async function getAllDescendants(ideaId: string): Promise<IdeaSummary[]> 
 /**
  * Get root ancestor of an idea
  */
-export async function getRootAncestor(ideaId: string): Promise<IdeaSummary | null> {
+export async function getRootAncestor(
+  ideaId: string,
+): Promise<IdeaSummary | null> {
   let currentId = ideaId;
   let lastSummary: IdeaSummary | null = null;
 
@@ -304,10 +310,7 @@ export async function getRootAncestor(ideaId: string): Promise<IdeaSummary | nul
     const row = await getOne<{
       id: string;
       parent_idea_id: string | null;
-    }>(
-      'SELECT id, parent_idea_id FROM ideas WHERE id = ?',
-      [currentId]
-    );
+    }>("SELECT id, parent_idea_id FROM ideas WHERE id = ?", [currentId]);
 
     if (!row) break;
 
@@ -326,56 +329,58 @@ export async function getRootAncestor(ideaId: string): Promise<IdeaSummary | nul
  */
 export function formatLineageTree(lineage: IdeaLineage): string {
   const width = 64;
-  const border = '═'.repeat(width - 2);
+  const border = "═".repeat(width - 2);
 
   let output = `
 ╔${border}╗
-║${' '.repeat((width - 18) / 2)}IDEA FAMILY TREE${' '.repeat((width - 18) / 2)}║
+║${" ".repeat((width - 18) / 2)}IDEA FAMILY TREE${" ".repeat((width - 18) / 2)}║
 ╠${border}╣
-║${' '.repeat(width - 2)}║
+║${" ".repeat(width - 2)}║
 `;
 
   // Show ancestors (in reverse order - oldest first)
   for (let i = lineage.ancestors.length - 1; i >= 0; i--) {
     const ancestor = lineage.ancestors[i];
-    const indent = '  '.repeat(lineage.ancestors.length - i - 1);
+    const indent = "  ".repeat(lineage.ancestors.length - i - 1);
     output += formatLineageNode(ancestor, indent, false, width);
-    output += `║${' '.repeat(2)}${indent}│${' '.repeat(width - 5 - indent.length)}║\n`;
+    output += `║${" ".repeat(2)}${indent}│${" ".repeat(width - 5 - indent.length)}║\n`;
   }
 
   // Show parent
   if (lineage.parent) {
-    const indent = lineage.ancestors.length > 0 ? '  '.repeat(lineage.ancestors.length) : '';
+    const indent =
+      lineage.ancestors.length > 0 ? "  ".repeat(lineage.ancestors.length) : "";
     output += formatLineageNode(lineage.parent, indent, false, width);
-    output += `║${' '.repeat(2)}${indent}│${' '.repeat(width - 5 - indent.length)}║\n`;
+    output += `║${" ".repeat(2)}${indent}│${" ".repeat(width - 5 - indent.length)}║\n`;
   }
 
   // Show current (highlighted)
   const currentIndent = lineage.parent
-    ? '  '.repeat(lineage.ancestors.length + 1)
-    : '';
+    ? "  ".repeat(lineage.ancestors.length + 1)
+    : "";
   output += formatLineageNode(lineage.current, currentIndent, true, width);
 
   // Show children
   if (lineage.children.length > 0) {
-    output += `║${' '.repeat(2)}${currentIndent}│${' '.repeat(width - 5 - currentIndent.length)}║\n`;
+    output += `║${" ".repeat(2)}${currentIndent}│${" ".repeat(width - 5 - currentIndent.length)}║\n`;
 
     for (let i = 0; i < lineage.children.length; i++) {
       const child = lineage.children[i];
       const isLast = i === lineage.children.length - 1;
-      const prefix = isLast ? '└──► ' : '├──► ';
+      const prefix = isLast ? "└──► " : "├──► ";
       output += formatLineageNode(child, currentIndent + prefix, false, width);
 
       if (child.branchReason) {
-        const reasonText = child.branchReason.length > 40
-          ? child.branchReason.substring(0, 37) + '...'
-          : child.branchReason;
-        output += `║${' '.repeat(4)}${currentIndent}     Reason: ${reasonText}${' '.repeat(Math.max(0, width - 17 - currentIndent.length - reasonText.length))}║\n`;
+        const reasonText =
+          child.branchReason.length > 40
+            ? child.branchReason.substring(0, 37) + "..."
+            : child.branchReason;
+        output += `║${" ".repeat(4)}${currentIndent}     Reason: ${reasonText}${" ".repeat(Math.max(0, width - 17 - currentIndent.length - reasonText.length))}║\n`;
       }
     }
   }
 
-  output += `║${' '.repeat(width - 2)}║\n`;
+  output += `║${" ".repeat(width - 2)}║\n`;
   output += `╚${border}╝`;
 
   return output;
@@ -388,27 +393,29 @@ function formatLineageNode(
   idea: IdeaSummary,
   indent: string,
   isCurrent: boolean,
-  width: number
+  width: number,
 ): string {
   const statusBadge = `[${idea.status.toUpperCase()}]`;
-  const currentMarker = isCurrent ? ' ← current' : '';
+  const currentMarker = isCurrent ? " ← current" : "";
   const name = `${idea.slug} (v${idea.currentVersion})`;
 
   const firstLine = `${indent}${name} ${statusBadge}${currentMarker}`;
-  const truncated = firstLine.length > width - 4
-    ? firstLine.substring(0, width - 7) + '...'
-    : firstLine;
+  const truncated =
+    firstLine.length > width - 4
+      ? firstLine.substring(0, width - 7) + "..."
+      : firstLine;
 
-  let output = `║  ${truncated}${' '.repeat(Math.max(0, width - 4 - truncated.length))}║\n`;
+  let output = `║  ${truncated}${" ".repeat(Math.max(0, width - 4 - truncated.length))}║\n`;
 
   // Score line
   const scoreLine = idea.latestScore
     ? `${indent}  └─ Score: ${idea.latestScore.toFixed(1)}/10`
     : `${indent}  └─ Score: (not evaluated)`;
-  const truncatedScore = scoreLine.length > width - 4
-    ? scoreLine.substring(0, width - 7) + '...'
-    : scoreLine;
-  output += `║  ${truncatedScore}${' '.repeat(Math.max(0, width - 4 - truncatedScore.length))}║\n`;
+  const truncatedScore =
+    scoreLine.length > width - 4
+      ? scoreLine.substring(0, width - 7) + "..."
+      : scoreLine;
+  output += `║  ${truncatedScore}${" ".repeat(Math.max(0, width - 4 - truncatedScore.length))}║\n`;
 
   return output;
 }

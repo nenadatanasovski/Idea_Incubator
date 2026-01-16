@@ -13,6 +13,7 @@ queries:
   - Mad Paws Pawshake Australia market share
 identifier: research_dog_walking_app_mark
 ---
+
 ## Dog Walking App Market Australia 2024 - Research Summary
 
 ### Key Findings
@@ -50,7 +51,6 @@ identifier: research_dog_walking_app_mark
 - [PetCloud App - App Store](https://apps.apple.com/au/app/petcloud-pet-sitters-walkers/id1539909889)
 - [Dog Walking Service App Market Future Growth 2024-2031 - LinkedIn](https://www.linkedin.com/pulse/2024-2031-dog-walking-service-app-market-bospf)
 - [On-Demand Dog Walking App Development Insights - OpenGeeksLab](https://opengeekslab.com/blog/on-demand-dog-walking-app-development/)
-
 
 ---
 

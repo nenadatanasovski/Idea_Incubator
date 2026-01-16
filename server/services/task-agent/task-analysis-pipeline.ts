@@ -7,15 +7,15 @@
  * Part of: PTE-039 to PTE-043
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   Task,
   TaskIdentity,
   GroupingSuggestion,
   DependencyChain,
   RelationshipType,
-} from '../../../types/task-agent.js';
+} from "../../../types/task-agent.js";
 
 /**
  * Analysis result for a task
@@ -50,8 +50,8 @@ interface TaskMinimalRow {
  */
 export async function analyzeTask(taskId: string): Promise<TaskAnalysisResult> {
   const task = await getOne<TaskMinimalRow>(
-    'SELECT id, display_id, title, description, category, project_id FROM tasks WHERE id = ?',
-    [taskId]
+    "SELECT id, display_id, title, description, category, project_id FROM tasks WHERE id = ?",
+    [taskId],
   );
 
   if (!task) {
@@ -60,8 +60,18 @@ export async function analyzeTask(taskId: string): Promise<TaskAnalysisResult> {
 
   // Run all analyses in parallel
   const [relatedTasks, duplicateCandidates, circularCheck] = await Promise.all([
-    findRelatedTasks(taskId, task.title, task.description || '', task.project_id),
-    detectDuplicates(taskId, task.title, task.description || '', task.project_id),
+    findRelatedTasks(
+      taskId,
+      task.title,
+      task.description || "",
+      task.project_id,
+    ),
+    detectDuplicates(
+      taskId,
+      task.title,
+      task.description || "",
+      task.project_id,
+    ),
     validateDependencies(taskId),
   ]);
 
@@ -71,7 +81,7 @@ export async function analyzeTask(taskId: string): Promise<TaskAnalysisResult> {
     const suggestion = await suggestGrouping(
       taskId,
       relatedTasks.map((t) => t.id),
-      task.project_id
+      task.project_id,
     );
     groupingSuggestion = suggestion ?? undefined;
   }
@@ -100,12 +110,16 @@ export async function findRelatedTasks(
   taskId: string,
   title: string,
   description: string,
-  projectId: string | null
+  projectId: string | null,
 ): Promise<Array<TaskIdentity & { similarity: number; reason: string }>> {
-  const related: Array<TaskIdentity & { similarity: number; reason: string }> = [];
+  const related: Array<TaskIdentity & { similarity: number; reason: string }> =
+    [];
 
   // Find tasks in same project with similar titles
-  const titleWords = title.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+  const titleWords = title
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 3);
 
   if (titleWords.length > 0) {
     // Simple word-based similarity
@@ -114,15 +128,18 @@ export async function findRelatedTasks(
        FROM tasks
        WHERE id != ?
          AND queue = 'evaluation'
-         ${projectId ? 'AND project_id = ?' : ''}
+         ${projectId ? "AND project_id = ?" : ""}
        LIMIT 50`,
-      projectId ? [taskId, projectId] : [taskId]
+      projectId ? [taskId, projectId] : [taskId],
     );
 
     for (const candidate of similarTasks) {
       const candidateWords = candidate.title.toLowerCase().split(/\s+/);
-      const overlap = titleWords.filter((w) => candidateWords.includes(w)).length;
-      const similarity = overlap / Math.max(titleWords.length, candidateWords.length);
+      const overlap = titleWords.filter((w) =>
+        candidateWords.includes(w),
+      ).length;
+      const similarity =
+        overlap / Math.max(titleWords.length, candidateWords.length);
 
       if (similarity >= 0.3) {
         related.push({
@@ -142,13 +159,13 @@ export async function findRelatedTasks(
      WHERE id != ?
        AND queue = 'evaluation'
        AND category = (SELECT category FROM tasks WHERE id = ?)
-       ${projectId ? 'AND project_id = ?' : ''}
+       ${projectId ? "AND project_id = ?" : ""}
        AND id NOT IN (SELECT source_task_id FROM task_relationships WHERE target_task_id = ?)
        AND id NOT IN (SELECT target_task_id FROM task_relationships WHERE source_task_id = ?)
      LIMIT 20`,
     projectId
       ? [taskId, taskId, projectId, taskId, taskId]
-      : [taskId, taskId, taskId, taskId]
+      : [taskId, taskId, taskId, taskId],
   );
 
   for (const candidate of sameCategoryTasks) {
@@ -161,7 +178,7 @@ export async function findRelatedTasks(
       id: candidate.id,
       displayId: candidate.display_id,
       similarity: 0.5, // Category match
-      reason: 'Same category',
+      reason: "Same category",
     });
   }
 
@@ -183,30 +200,42 @@ export async function detectDuplicates(
   taskId: string,
   title: string,
   description: string,
-  projectId: string | null
+  projectId: string | null,
 ): Promise<Array<{ taskId: string; similarity: number }>> {
   const duplicates: Array<{ taskId: string; similarity: number }> = [];
 
   // Check for tasks with very similar titles
-  const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const normalizedTitle = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 
   const candidates = await query<TaskMinimalRow>(
     `SELECT id, display_id, title, description, category, project_id
      FROM tasks
      WHERE id != ?
-       ${projectId ? 'AND project_id = ?' : ''}
+       ${projectId ? "AND project_id = ?" : ""}
      LIMIT 100`,
-    projectId ? [taskId, projectId] : [taskId]
+    projectId ? [taskId, projectId] : [taskId],
   );
 
   for (const candidate of candidates) {
-    const candidateNormalized = candidate.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const candidateNormalized = candidate.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
 
     // Simple Jaccard similarity on words
-    const titleWordsA = new Set(normalizedTitle.split(' ').filter((w) => w.length > 2));
-    const titleWordsB = new Set(candidateNormalized.split(' ').filter((w) => w.length > 2));
+    const titleWordsA = new Set(
+      normalizedTitle.split(" ").filter((w) => w.length > 2),
+    );
+    const titleWordsB = new Set(
+      candidateNormalized.split(" ").filter((w) => w.length > 2),
+    );
 
-    const intersection = new Set([...titleWordsA].filter((x) => titleWordsB.has(x)));
+    const intersection = new Set(
+      [...titleWordsA].filter((x) => titleWordsB.has(x)),
+    );
     const union = new Set([...titleWordsA, ...titleWordsB]);
 
     const similarity = union.size > 0 ? intersection.size / union.size : 0;
@@ -234,7 +263,7 @@ export async function detectDuplicates(
 export async function suggestGrouping(
   triggerTaskId: string,
   relatedTaskIds: string[],
-  projectId: string | null
+  projectId: string | null,
 ): Promise<GroupingSuggestion | null> {
   const allTaskIds = [triggerTaskId, ...relatedTaskIds];
 
@@ -242,8 +271,8 @@ export async function suggestGrouping(
   const tasks = await query<TaskMinimalRow>(
     `SELECT id, display_id, title, description, category, project_id
      FROM tasks
-     WHERE id IN (${allTaskIds.map(() => '?').join(', ')})`,
-    allTaskIds
+     WHERE id IN (${allTaskIds.map(() => "?").join(", ")})`,
+    allTaskIds,
   );
 
   if (tasks.length < 2) {
@@ -268,21 +297,24 @@ export async function suggestGrouping(
     .slice(0, 3)
     .map(([word]) => word);
 
-  const suggestedName = commonWords.length > 0
-    ? commonWords.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ' Tasks'
-    : `Related Tasks (${tasks.length} items)`;
+  const suggestedName =
+    commonWords.length > 0
+      ? commonWords
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ") + " Tasks"
+      : `Related Tasks (${tasks.length} items)`;
 
   // Create the suggestion
   const suggestionId = uuidv4();
   const suggestion: GroupingSuggestion = {
     id: suggestionId,
-    status: 'pending',
+    status: "pending",
     suggestedName,
     suggestedTasks: allTaskIds,
     groupingReason: `These ${tasks.length} tasks appear to be related based on their titles and descriptions.`,
     similarityScore: 0.7, // Placeholder - would be calculated more precisely
     projectId: projectId || undefined,
-    triggeredBy: 'task_created',
+    triggeredBy: "task_created",
     triggerTaskId,
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
@@ -305,7 +337,7 @@ export async function suggestGrouping(
       suggestion.triggeredBy || null,
       suggestion.triggerTaskId || null,
       suggestion.expiresAt || null,
-    ]
+    ],
   );
 
   // Save suggestion-task links
@@ -313,7 +345,12 @@ export async function suggestGrouping(
     await run(
       `INSERT INTO suggestion_tasks (id, suggestion_id, task_id, inclusion_reason)
        VALUES (?, ?, ?, ?)`,
-      [uuidv4(), suggestionId, tid, tid === triggerTaskId ? 'Trigger task' : 'Related task']
+      [
+        uuidv4(),
+        suggestionId,
+        tid,
+        tid === triggerTaskId ? "Trigger task" : "Related task",
+      ],
     );
   }
 
@@ -329,7 +366,7 @@ export async function suggestGrouping(
  * @returns Validation result
  */
 export async function validateDependencies(
-  taskId: string
+  taskId: string,
 ): Promise<{ hasCircle: boolean; circlePath?: string[] }> {
   // Use recursive CTE to detect cycles
   const cycleCheck = await getOne<{ cycle_path: string }>(
@@ -357,11 +394,11 @@ export async function validateDependencies(
     FROM path
     WHERE current = ?
     LIMIT 1`,
-    [taskId, taskId]
+    [taskId, taskId],
   );
 
   if (cycleCheck?.cycle_path) {
-    const circlePath = cycleCheck.cycle_path.split(' -> ');
+    const circlePath = cycleCheck.cycle_path.split(" -> ");
     return { hasCircle: true, circlePath };
   }
 
@@ -377,7 +414,7 @@ export async function validateDependencies(
  */
 export async function wouldCreateCycle(
   sourceTaskId: string,
-  targetTaskId: string
+  targetTaskId: string,
 ): Promise<boolean> {
   // Check if target task transitively depends on source
   const cycleCheck = await getOne<{ found: number }>(
@@ -403,7 +440,7 @@ export async function wouldCreateCycle(
     FROM path
     WHERE current = ?
     LIMIT 1`,
-    [targetTaskId, sourceTaskId]
+    [targetTaskId, sourceTaskId],
   );
 
   return cycleCheck?.found === 1;
@@ -412,7 +449,9 @@ export async function wouldCreateCycle(
 /**
  * Get dependency chain for a task
  */
-export async function getDependencyChain(taskId: string): Promise<DependencyChain> {
+export async function getDependencyChain(
+  taskId: string,
+): Promise<DependencyChain> {
   const dependencies = await query<{
     task_id: string;
     depth: number;
@@ -447,7 +486,7 @@ export async function getDependencyChain(taskId: string): Promise<DependencyChai
     FROM dep_chain dc
     JOIN tasks t ON dc.task_id = t.id
     ORDER BY dc.depth`,
-    [taskId]
+    [taskId],
   );
 
   const circularCheck = await validateDependencies(taskId);
@@ -475,7 +514,7 @@ export async function getDependencyChain(taskId: string): Promise<DependencyChai
  */
 export async function addDependency(
   sourceTaskId: string,
-  targetTaskId: string
+  targetTaskId: string,
 ): Promise<boolean> {
   // Check for cycle
   if (await wouldCreateCycle(sourceTaskId, targetTaskId)) {
@@ -485,7 +524,7 @@ export async function addDependency(
   await run(
     `INSERT OR IGNORE INTO task_relationships (id, source_task_id, target_task_id, relationship_type)
      VALUES (?, ?, ?, 'depends_on')`,
-    [uuidv4(), sourceTaskId, targetTaskId]
+    [uuidv4(), sourceTaskId, targetTaskId],
   );
 
   await saveDb();
@@ -497,14 +536,14 @@ export async function addDependency(
  */
 export async function removeDependency(
   sourceTaskId: string,
-  targetTaskId: string
+  targetTaskId: string,
 ): Promise<void> {
   await run(
     `DELETE FROM task_relationships
      WHERE source_task_id = ?
        AND target_task_id = ?
        AND relationship_type = 'depends_on'`,
-    [sourceTaskId, targetTaskId]
+    [sourceTaskId, targetTaskId],
   );
   await saveDb();
 }

@@ -167,30 +167,44 @@ Create file: `types/ideation.ts`
 // CORE TYPES
 // ============================================================================
 
-export type SessionStatus = 'active' | 'completed' | 'abandoned';
-export type SessionPhase = 'exploring' | 'narrowing' | 'validating' | 'refining';
-export type EntryMode = 'have_idea' | 'discover';
-export type CandidateStatus = 'forming' | 'active' | 'captured' | 'discarded' | 'saved';
+export type SessionStatus = "active" | "completed" | "abandoned";
+export type SessionPhase =
+  | "exploring"
+  | "narrowing"
+  | "validating"
+  | "refining";
+export type EntryMode = "have_idea" | "discover";
+export type CandidateStatus =
+  | "forming"
+  | "active"
+  | "captured"
+  | "discarded"
+  | "saved";
 export type RiskType =
-  | 'impossible'
-  | 'unrealistic'
-  | 'too_complex'
-  | 'too_vague'
-  | 'saturated_market'
-  | 'wrong_timing'
-  | 'resource_mismatch';
-export type RiskSeverity = 'critical' | 'high' | 'medium' | 'low';
-export type MessageRole = 'user' | 'assistant' | 'system';
-export type SignalType = 'self_discovery' | 'market_discovery' | 'narrowing' | 'confidence' | 'viability';
-export type ButtonStyle = 'primary' | 'secondary' | 'outline' | 'danger';
+  | "impossible"
+  | "unrealistic"
+  | "too_complex"
+  | "too_vague"
+  | "saturated_market"
+  | "wrong_timing"
+  | "resource_mismatch";
+export type RiskSeverity = "critical" | "high" | "medium" | "low";
+export type MessageRole = "user" | "assistant" | "system";
+export type SignalType =
+  | "self_discovery"
+  | "market_discovery"
+  | "narrowing"
+  | "confidence"
+  | "viability";
+export type ButtonStyle = "primary" | "secondary" | "outline" | "danger";
 export type MemoryFileType =
-  | 'self_discovery'
-  | 'market_discovery'
-  | 'narrowing_state'
-  | 'conversation_summary'
-  | 'idea_candidate'
-  | 'viability_assessment'
-  | 'handoff_notes';
+  | "self_discovery"
+  | "market_discovery"
+  | "narrowing_state"
+  | "conversation_summary"
+  | "idea_candidate"
+  | "viability_assessment"
+  | "handoff_notes";
 
 // ============================================================================
 // SESSION TYPES
@@ -261,8 +275,8 @@ export interface IdeaCandidate {
   sessionId: string;
   title: string;
   summary: string | null;
-  confidence: number;  // 0-100
-  viability: number;   // 0-100
+  confidence: number; // 0-100
+  viability: number; // 0-100
   userSuggested: boolean;
   status: CandidateStatus;
   capturedIdeaId: string | null;
@@ -328,7 +342,14 @@ export interface ButtonOption {
 
 export interface FormField {
   id: string;
-  type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'slider' | 'dropdown' | 'date';
+  type:
+    | "text"
+    | "textarea"
+    | "radio"
+    | "checkbox"
+    | "slider"
+    | "dropdown"
+    | "date";
   label: string;
   placeholder?: string;
   required?: boolean;
@@ -361,7 +382,7 @@ export interface MemoryFile {
   id: string;
   sessionId: string;
   fileType: MemoryFileType;
-  content: string;  // Markdown
+  content: string; // Markdown
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -383,18 +404,18 @@ export interface MemoryFileRow {
 
 export interface SelfDiscoveryState {
   impactVision: {
-    level: 'world' | 'country' | 'city' | 'community' | null;
+    level: "world" | "country" | "city" | "community" | null;
     description: string | null;
     confidence: number;
   };
   frustrations: Array<{
     description: string;
     source: string;
-    severity: 'high' | 'medium' | 'low';
+    severity: "high" | "medium" | "low";
   }>;
   expertise: Array<{
     area: string;
-    depth: 'expert' | 'competent' | 'novice';
+    depth: "expert" | "competent" | "novice";
     evidence: string;
   }>;
   interests: Array<{
@@ -410,8 +431,8 @@ export interface SelfDiscoveryState {
   constraints: {
     location: { fixed: boolean; target: string | null };
     timeHoursPerWeek: number | null;
-    capital: 'bootstrap' | 'seeking_funding' | null;
-    riskTolerance: 'low' | 'medium' | 'high' | null;
+    capital: "bootstrap" | "seeking_funding" | null;
+    riskTolerance: "low" | "medium" | "high" | null;
   };
 }
 
@@ -426,7 +447,7 @@ export interface MarketDiscoveryState {
   gaps: Array<{
     description: string;
     evidence: string;
-    relevance: 'high' | 'medium' | 'low';
+    relevance: "high" | "medium" | "low";
   }>;
   timingSignals: Array<{
     signal: string;
@@ -494,8 +515,8 @@ export interface ExtractedSignal {
   type: SignalType;
   key: string;
   value: string;
-  confidence: number;  // 0.0-1.0
-  source: 'user_message' | 'agent_inference' | 'web_search';
+  confidence: number; // 0.0-1.0
+  source: "user_message" | "agent_inference" | "web_search";
   messageId?: string;
 }
 
@@ -538,13 +559,15 @@ import {
   RiskSeverity,
   MessageRole,
   MemoryFileType,
-} from '../types/ideation.js';
+} from "../types/ideation.js";
 
 // ============================================================================
 // SESSION MAPPERS
 // ============================================================================
 
-export function mapSessionRowToSession(row: IdeationSessionRow): IdeationSession {
+export function mapSessionRowToSession(
+  row: IdeationSessionRow,
+): IdeationSession {
   return {
     id: row.id,
     profileId: row.profile_id,
@@ -559,19 +582,27 @@ export function mapSessionRowToSession(row: IdeationSessionRow): IdeationSession
   };
 }
 
-export function mapSessionToRow(session: Partial<IdeationSession>): Partial<IdeationSessionRow> {
+export function mapSessionToRow(
+  session: Partial<IdeationSession>,
+): Partial<IdeationSessionRow> {
   const row: Partial<IdeationSessionRow> = {};
 
   if (session.id !== undefined) row.id = session.id;
   if (session.profileId !== undefined) row.profile_id = session.profileId;
   if (session.status !== undefined) row.status = session.status;
-  if (session.startedAt !== undefined) row.started_at = session.startedAt.toISOString();
-  if (session.completedAt !== undefined) row.completed_at = session.completedAt?.toISOString() ?? null;
-  if (session.lastActivityAt !== undefined) row.last_activity_at = session.lastActivityAt.toISOString();
-  if (session.handoffCount !== undefined) row.handoff_count = session.handoffCount;
+  if (session.startedAt !== undefined)
+    row.started_at = session.startedAt.toISOString();
+  if (session.completedAt !== undefined)
+    row.completed_at = session.completedAt?.toISOString() ?? null;
+  if (session.lastActivityAt !== undefined)
+    row.last_activity_at = session.lastActivityAt.toISOString();
+  if (session.handoffCount !== undefined)
+    row.handoff_count = session.handoffCount;
   if (session.tokenCount !== undefined) row.token_count = session.tokenCount;
-  if (session.messageCount !== undefined) row.message_count = session.messageCount;
-  if (session.currentPhase !== undefined) row.current_phase = session.currentPhase;
+  if (session.messageCount !== undefined)
+    row.message_count = session.messageCount;
+  if (session.currentPhase !== undefined)
+    row.current_phase = session.currentPhase;
 
   return row;
 }
@@ -580,34 +611,53 @@ export function mapSessionToRow(session: Partial<IdeationSession>): Partial<Idea
 // MESSAGE MAPPERS
 // ============================================================================
 
-export function mapMessageRowToMessage(row: IdeationMessageRow): IdeationMessage {
+export function mapMessageRowToMessage(
+  row: IdeationMessageRow,
+): IdeationMessage {
   return {
     id: row.id,
     sessionId: row.session_id,
     role: row.role as MessageRole,
     content: row.content,
-    buttonsShown: row.buttons_shown ? JSON.parse(row.buttons_shown) as ButtonOption[] : null,
+    buttonsShown: row.buttons_shown
+      ? (JSON.parse(row.buttons_shown) as ButtonOption[])
+      : null,
     buttonClicked: row.button_clicked,
-    formShown: row.form_shown ? JSON.parse(row.form_shown) as FormDefinition : null,
+    formShown: row.form_shown
+      ? (JSON.parse(row.form_shown) as FormDefinition)
+      : null,
     formResponse: row.form_response ? JSON.parse(row.form_response) : null,
     tokenCount: row.token_count,
     createdAt: new Date(row.created_at),
   };
 }
 
-export function mapMessageToRow(message: Partial<IdeationMessage>): Partial<IdeationMessageRow> {
+export function mapMessageToRow(
+  message: Partial<IdeationMessage>,
+): Partial<IdeationMessageRow> {
   const row: Partial<IdeationMessageRow> = {};
 
   if (message.id !== undefined) row.id = message.id;
   if (message.sessionId !== undefined) row.session_id = message.sessionId;
   if (message.role !== undefined) row.role = message.role;
   if (message.content !== undefined) row.content = message.content;
-  if (message.buttonsShown !== undefined) row.buttons_shown = message.buttonsShown ? JSON.stringify(message.buttonsShown) : null;
-  if (message.buttonClicked !== undefined) row.button_clicked = message.buttonClicked;
-  if (message.formShown !== undefined) row.form_shown = message.formShown ? JSON.stringify(message.formShown) : null;
-  if (message.formResponse !== undefined) row.form_response = message.formResponse ? JSON.stringify(message.formResponse) : null;
+  if (message.buttonsShown !== undefined)
+    row.buttons_shown = message.buttonsShown
+      ? JSON.stringify(message.buttonsShown)
+      : null;
+  if (message.buttonClicked !== undefined)
+    row.button_clicked = message.buttonClicked;
+  if (message.formShown !== undefined)
+    row.form_shown = message.formShown
+      ? JSON.stringify(message.formShown)
+      : null;
+  if (message.formResponse !== undefined)
+    row.form_response = message.formResponse
+      ? JSON.stringify(message.formResponse)
+      : null;
   if (message.tokenCount !== undefined) row.token_count = message.tokenCount;
-  if (message.createdAt !== undefined) row.created_at = message.createdAt.toISOString();
+  if (message.createdAt !== undefined)
+    row.created_at = message.createdAt.toISOString();
 
   return row;
 }
@@ -616,7 +666,9 @@ export function mapMessageToRow(message: Partial<IdeationMessage>): Partial<Idea
 // CANDIDATE MAPPERS
 // ============================================================================
 
-export function mapCandidateRowToCandidate(row: IdeaCandidateRow): IdeaCandidate {
+export function mapCandidateRowToCandidate(
+  row: IdeaCandidateRow,
+): IdeaCandidate {
   return {
     id: row.id,
     sessionId: row.session_id,
@@ -632,7 +684,9 @@ export function mapCandidateRowToCandidate(row: IdeaCandidateRow): IdeaCandidate
   };
 }
 
-export function mapCandidateToRow(candidate: Partial<IdeaCandidate>): Partial<IdeaCandidateRow> {
+export function mapCandidateToRow(
+  candidate: Partial<IdeaCandidate>,
+): Partial<IdeaCandidateRow> {
   const row: Partial<IdeaCandidateRow> = {};
 
   if (candidate.id !== undefined) row.id = candidate.id;
@@ -641,11 +695,15 @@ export function mapCandidateToRow(candidate: Partial<IdeaCandidate>): Partial<Id
   if (candidate.summary !== undefined) row.summary = candidate.summary;
   if (candidate.confidence !== undefined) row.confidence = candidate.confidence;
   if (candidate.viability !== undefined) row.viability = candidate.viability;
-  if (candidate.userSuggested !== undefined) row.user_suggested = candidate.userSuggested ? 1 : 0;
+  if (candidate.userSuggested !== undefined)
+    row.user_suggested = candidate.userSuggested ? 1 : 0;
   if (candidate.status !== undefined) row.status = candidate.status;
-  if (candidate.capturedIdeaId !== undefined) row.captured_idea_id = candidate.capturedIdeaId;
-  if (candidate.createdAt !== undefined) row.created_at = candidate.createdAt.toISOString();
-  if (candidate.updatedAt !== undefined) row.updated_at = candidate.updatedAt.toISOString();
+  if (candidate.capturedIdeaId !== undefined)
+    row.captured_idea_id = candidate.capturedIdeaId;
+  if (candidate.createdAt !== undefined)
+    row.created_at = candidate.createdAt.toISOString();
+  if (candidate.updatedAt !== undefined)
+    row.updated_at = candidate.updatedAt.toISOString();
 
   return row;
 }
@@ -669,7 +727,9 @@ export function mapRiskRowToRisk(row: ViabilityRiskRow): ViabilityRisk {
   };
 }
 
-export function mapRiskToRow(risk: Partial<ViabilityRisk>): Partial<ViabilityRiskRow> {
+export function mapRiskToRow(
+  risk: Partial<ViabilityRisk>,
+): Partial<ViabilityRiskRow> {
   const row: Partial<ViabilityRiskRow> = {};
 
   if (risk.id !== undefined) row.id = risk.id;
@@ -679,9 +739,11 @@ export function mapRiskToRow(risk: Partial<ViabilityRisk>): Partial<ViabilityRis
   if (risk.evidenceUrl !== undefined) row.evidence_url = risk.evidenceUrl;
   if (risk.evidenceText !== undefined) row.evidence_text = risk.evidenceText;
   if (risk.severity !== undefined) row.severity = risk.severity;
-  if (risk.userAcknowledged !== undefined) row.user_acknowledged = risk.userAcknowledged ? 1 : 0;
+  if (risk.userAcknowledged !== undefined)
+    row.user_acknowledged = risk.userAcknowledged ? 1 : 0;
   if (risk.userResponse !== undefined) row.user_response = risk.userResponse;
-  if (risk.createdAt !== undefined) row.created_at = risk.createdAt.toISOString();
+  if (risk.createdAt !== undefined)
+    row.created_at = risk.createdAt.toISOString();
 
   return row;
 }
@@ -710,7 +772,11 @@ export function mapMemoryRowToMemory(row: MemoryFileRow): MemoryFile {
 Create file: `utils/ideation-defaults.ts`
 
 ```typescript
-import { SelfDiscoveryState, MarketDiscoveryState, NarrowingState } from '../types/ideation.js';
+import {
+  SelfDiscoveryState,
+  MarketDiscoveryState,
+  NarrowingState,
+} from "../types/ideation.js";
 
 export function createDefaultSelfDiscoveryState(): SelfDiscoveryState {
   return {
@@ -773,22 +839,22 @@ export function createDefaultNarrowingState(): NarrowingState {
 Create file: `tests/ideation/data-models.test.ts`
 
 ```typescript
-import { describe, test, expect, beforeAll, afterAll } from 'vitest';
-import { getDb, initDb, closeDb } from '../../database/db.js';
+import { describe, test, expect, beforeAll, afterAll } from "vitest";
+import { getDb, initDb, closeDb } from "../../database/db.js";
 import {
   mapSessionRowToSession,
   mapSessionToRow,
   mapMessageRowToMessage,
   mapCandidateRowToCandidate,
   mapRiskRowToRisk,
-} from '../../utils/ideation-mappers.js';
+} from "../../utils/ideation-mappers.js";
 import {
   createDefaultSelfDiscoveryState,
   createDefaultMarketDiscoveryState,
   createDefaultNarrowingState,
-} from '../../utils/ideation-defaults.js';
+} from "../../utils/ideation-defaults.js";
 
-describe('Database Schema', () => {
+describe("Database Schema", () => {
   beforeAll(async () => {
     await initDb();
   });
@@ -797,57 +863,68 @@ describe('Database Schema', () => {
     await closeDb();
   });
 
-  describe('ideation_sessions table', () => {
-    test('PASS: Table exists after migration', async () => {
+  describe("ideation_sessions table", () => {
+    test("PASS: Table exists after migration", async () => {
       const db = getDb();
       const result = db.exec(`
         SELECT name FROM sqlite_master
         WHERE type='table' AND name='ideation_sessions'
       `);
       expect(result.length).toBe(1);
-      expect(result[0].values[0][0]).toBe('ideation_sessions');
+      expect(result[0].values[0][0]).toBe("ideation_sessions");
     });
 
-    test('PASS: Can insert valid session', async () => {
+    test("PASS: Can insert valid session", async () => {
       const db = getDb();
       const id = `test_session_${Date.now()}`;
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_sessions (id, profile_id, status, current_phase)
         VALUES (?, ?, 'active', 'exploring')
-      `, [id, 'test_profile']);
+      `,
+        [id, "test_profile"],
+      );
 
-      const result = db.exec(`SELECT * FROM ideation_sessions WHERE id = ?`, [id]);
+      const result = db.exec(`SELECT * FROM ideation_sessions WHERE id = ?`, [
+        id,
+      ]);
       expect(result.length).toBe(1);
     });
 
-    test('FAIL: Rejects invalid status', async () => {
+    test("FAIL: Rejects invalid status", async () => {
       const db = getDb();
       const id = `test_session_invalid_${Date.now()}`;
 
       expect(() => {
-        db.run(`
+        db.run(
+          `
           INSERT INTO ideation_sessions (id, profile_id, status, current_phase)
           VALUES (?, ?, 'invalid_status', 'exploring')
-        `, [id, 'test_profile']);
+        `,
+          [id, "test_profile"],
+        );
       }).toThrow();
     });
 
-    test('FAIL: Rejects invalid phase', async () => {
+    test("FAIL: Rejects invalid phase", async () => {
       const db = getDb();
       const id = `test_session_invalid_phase_${Date.now()}`;
 
       expect(() => {
-        db.run(`
+        db.run(
+          `
           INSERT INTO ideation_sessions (id, profile_id, status, current_phase)
           VALUES (?, ?, 'active', 'invalid_phase')
-        `, [id, 'test_profile']);
+        `,
+          [id, "test_profile"],
+        );
       }).toThrow();
     });
   });
 
-  describe('ideation_messages table', () => {
-    test('PASS: Table exists after migration', async () => {
+  describe("ideation_messages table", () => {
+    test("PASS: Table exists after migration", async () => {
       const db = getDb();
       const result = db.exec(`
         SELECT name FROM sqlite_master
@@ -856,277 +933,356 @@ describe('Database Schema', () => {
       expect(result.length).toBe(1);
     });
 
-    test('PASS: Can insert valid message with JSON fields', async () => {
+    test("PASS: Can insert valid message with JSON fields", async () => {
       const db = getDb();
       const sessionId = `test_session_msg_${Date.now()}`;
       const messageId = `test_message_${Date.now()}`;
 
       // Create session first
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_sessions (id, profile_id, status, current_phase)
         VALUES (?, ?, 'active', 'exploring')
-      `, [sessionId, 'test_profile']);
+      `,
+        [sessionId, "test_profile"],
+      );
 
       // Insert message with JSON
-      const buttons = JSON.stringify([{ id: 'btn1', label: 'Option 1' }]);
-      db.run(`
+      const buttons = JSON.stringify([{ id: "btn1", label: "Option 1" }]);
+      db.run(
+        `
         INSERT INTO ideation_messages (id, session_id, role, content, buttons_shown)
         VALUES (?, ?, 'assistant', 'Hello', ?)
-      `, [messageId, sessionId, buttons]);
+      `,
+        [messageId, sessionId, buttons],
+      );
 
-      const result = db.exec(`SELECT buttons_shown FROM ideation_messages WHERE id = ?`, [messageId]);
-      expect(JSON.parse(result[0].values[0][0] as string)).toEqual([{ id: 'btn1', label: 'Option 1' }]);
+      const result = db.exec(
+        `SELECT buttons_shown FROM ideation_messages WHERE id = ?`,
+        [messageId],
+      );
+      expect(JSON.parse(result[0].values[0][0] as string)).toEqual([
+        { id: "btn1", label: "Option 1" },
+      ]);
     });
 
-    test('PASS: Cascade delete removes messages when session deleted', async () => {
+    test("PASS: Cascade delete removes messages when session deleted", async () => {
       const db = getDb();
       const sessionId = `test_cascade_${Date.now()}`;
       const messageId = `test_cascade_msg_${Date.now()}`;
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_sessions (id, profile_id, status, current_phase)
         VALUES (?, ?, 'active', 'exploring')
-      `, [sessionId, 'test_profile']);
+      `,
+        [sessionId, "test_profile"],
+      );
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_messages (id, session_id, role, content)
         VALUES (?, ?, 'user', 'Test')
-      `, [messageId, sessionId]);
+      `,
+        [messageId, sessionId],
+      );
 
       db.run(`DELETE FROM ideation_sessions WHERE id = ?`, [sessionId]);
 
-      const result = db.exec(`SELECT * FROM ideation_messages WHERE id = ?`, [messageId]);
+      const result = db.exec(`SELECT * FROM ideation_messages WHERE id = ?`, [
+        messageId,
+      ]);
       expect(result.length).toBe(0);
     });
   });
 
-  describe('ideation_candidates table', () => {
-    test('PASS: Confidence must be 0-100', async () => {
+  describe("ideation_candidates table", () => {
+    test("PASS: Confidence must be 0-100", async () => {
       const db = getDb();
       const sessionId = `test_session_cand_${Date.now()}`;
       const candidateId = `test_candidate_${Date.now()}`;
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_sessions (id, profile_id, status, current_phase)
         VALUES (?, ?, 'active', 'exploring')
-      `, [sessionId, 'test_profile']);
+      `,
+        [sessionId, "test_profile"],
+      );
 
       // Valid confidence
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_candidates (id, session_id, title, confidence, viability, status)
         VALUES (?, ?, 'Test Idea', 75, 80, 'active')
-      `, [candidateId, sessionId]);
+      `,
+        [candidateId, sessionId],
+      );
 
-      const result = db.exec(`SELECT confidence FROM ideation_candidates WHERE id = ?`, [candidateId]);
+      const result = db.exec(
+        `SELECT confidence FROM ideation_candidates WHERE id = ?`,
+        [candidateId],
+      );
       expect(result[0].values[0][0]).toBe(75);
     });
 
-    test('FAIL: Rejects confidence > 100', async () => {
+    test("FAIL: Rejects confidence > 100", async () => {
       const db = getDb();
       const sessionId = `test_session_cand_invalid_${Date.now()}`;
       const candidateId = `test_candidate_invalid_${Date.now()}`;
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_sessions (id, profile_id, status, current_phase)
         VALUES (?, ?, 'active', 'exploring')
-      `, [sessionId, 'test_profile']);
+      `,
+        [sessionId, "test_profile"],
+      );
 
       expect(() => {
-        db.run(`
+        db.run(
+          `
           INSERT INTO ideation_candidates (id, session_id, title, confidence, viability, status)
           VALUES (?, ?, 'Test Idea', 150, 80, 'active')
-        `, [candidateId, sessionId]);
+        `,
+          [candidateId, sessionId],
+        );
       }).toThrow();
     });
 
-    test('FAIL: Rejects confidence < 0', async () => {
+    test("FAIL: Rejects confidence < 0", async () => {
       const db = getDb();
       const sessionId = `test_session_cand_neg_${Date.now()}`;
       const candidateId = `test_candidate_neg_${Date.now()}`;
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_sessions (id, profile_id, status, current_phase)
         VALUES (?, ?, 'active', 'exploring')
-      `, [sessionId, 'test_profile']);
+      `,
+        [sessionId, "test_profile"],
+      );
 
       expect(() => {
-        db.run(`
+        db.run(
+          `
           INSERT INTO ideation_candidates (id, session_id, title, confidence, viability, status)
           VALUES (?, ?, 'Test Idea', -10, 80, 'active')
-        `, [candidateId, sessionId]);
+        `,
+          [candidateId, sessionId],
+        );
       }).toThrow();
     });
   });
 
-  describe('ideation_viability_risks table', () => {
-    test('PASS: Valid risk types accepted', async () => {
+  describe("ideation_viability_risks table", () => {
+    test("PASS: Valid risk types accepted", async () => {
       const validTypes = [
-        'impossible', 'unrealistic', 'too_complex', 'too_vague',
-        'saturated_market', 'wrong_timing', 'resource_mismatch'
+        "impossible",
+        "unrealistic",
+        "too_complex",
+        "too_vague",
+        "saturated_market",
+        "wrong_timing",
+        "resource_mismatch",
       ];
 
       const db = getDb();
       const sessionId = `test_session_risk_${Date.now()}`;
       const candidateId = `test_candidate_risk_${Date.now()}`;
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_sessions (id, profile_id, status, current_phase)
         VALUES (?, ?, 'active', 'exploring')
-      `, [sessionId, 'test_profile']);
+      `,
+        [sessionId, "test_profile"],
+      );
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_candidates (id, session_id, title, confidence, viability, status)
         VALUES (?, ?, 'Test', 50, 50, 'active')
-      `, [candidateId, sessionId]);
+      `,
+        [candidateId, sessionId],
+      );
 
       for (const riskType of validTypes) {
         const riskId = `risk_${riskType}_${Date.now()}`;
-        db.run(`
+        db.run(
+          `
           INSERT INTO ideation_viability_risks (id, candidate_id, risk_type, description, severity)
           VALUES (?, ?, ?, 'Test description', 'medium')
-        `, [riskId, candidateId, riskType]);
+        `,
+          [riskId, candidateId, riskType],
+        );
 
-        const result = db.exec(`SELECT risk_type FROM ideation_viability_risks WHERE id = ?`, [riskId]);
+        const result = db.exec(
+          `SELECT risk_type FROM ideation_viability_risks WHERE id = ?`,
+          [riskId],
+        );
         expect(result[0].values[0][0]).toBe(riskType);
       }
     });
 
-    test('FAIL: Invalid risk type rejected', async () => {
+    test("FAIL: Invalid risk type rejected", async () => {
       const db = getDb();
       const sessionId = `test_session_risk_invalid_${Date.now()}`;
       const candidateId = `test_candidate_risk_invalid_${Date.now()}`;
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_sessions (id, profile_id, status, current_phase)
         VALUES (?, ?, 'active', 'exploring')
-      `, [sessionId, 'test_profile']);
+      `,
+        [sessionId, "test_profile"],
+      );
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_candidates (id, session_id, title, confidence, viability, status)
         VALUES (?, ?, 'Test', 50, 50, 'active')
-      `, [candidateId, sessionId]);
+      `,
+        [candidateId, sessionId],
+      );
 
       expect(() => {
-        db.run(`
+        db.run(
+          `
           INSERT INTO ideation_viability_risks (id, candidate_id, risk_type, description, severity)
           VALUES (?, ?, 'invalid_type', 'Test', 'medium')
-        `, [`risk_invalid_${Date.now()}`, candidateId]);
+        `,
+          [`risk_invalid_${Date.now()}`, candidateId],
+        );
       }).toThrow();
     });
   });
 
-  describe('ideation_memory table', () => {
-    test('PASS: Unique constraint on session_id + file_type', async () => {
+  describe("ideation_memory table", () => {
+    test("PASS: Unique constraint on session_id + file_type", async () => {
       const db = getDb();
       const sessionId = `test_session_mem_${Date.now()}`;
       const memoryId1 = `memory_1_${Date.now()}`;
       const memoryId2 = `memory_2_${Date.now()}`;
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_sessions (id, profile_id, status, current_phase)
         VALUES (?, ?, 'active', 'exploring')
-      `, [sessionId, 'test_profile']);
+      `,
+        [sessionId, "test_profile"],
+      );
 
-      db.run(`
+      db.run(
+        `
         INSERT INTO ideation_memory (id, session_id, file_type, content)
         VALUES (?, ?, 'self_discovery', '# Self Discovery')
-      `, [memoryId1, sessionId]);
+      `,
+        [memoryId1, sessionId],
+      );
 
       // Second insert with same file_type should fail
       expect(() => {
-        db.run(`
+        db.run(
+          `
           INSERT INTO ideation_memory (id, session_id, file_type, content)
           VALUES (?, ?, 'self_discovery', '# Updated')
-        `, [memoryId2, sessionId]);
+        `,
+          [memoryId2, sessionId],
+        );
       }).toThrow();
     });
   });
 });
 
-describe('Row Mappers', () => {
-  describe('mapSessionRowToSession', () => {
-    test('PASS: Maps all fields correctly', () => {
+describe("Row Mappers", () => {
+  describe("mapSessionRowToSession", () => {
+    test("PASS: Maps all fields correctly", () => {
       const row = {
-        id: 'session_123',
-        profile_id: 'profile_456',
-        status: 'active',
-        started_at: '2024-01-01T00:00:00.000Z',
+        id: "session_123",
+        profile_id: "profile_456",
+        status: "active",
+        started_at: "2024-01-01T00:00:00.000Z",
         completed_at: null,
-        last_activity_at: '2024-01-01T01:00:00.000Z',
+        last_activity_at: "2024-01-01T01:00:00.000Z",
         handoff_count: 0,
         token_count: 1000,
         message_count: 5,
-        current_phase: 'exploring',
+        current_phase: "exploring",
       };
 
       const session = mapSessionRowToSession(row);
 
-      expect(session.id).toBe('session_123');
-      expect(session.profileId).toBe('profile_456');
-      expect(session.status).toBe('active');
+      expect(session.id).toBe("session_123");
+      expect(session.profileId).toBe("profile_456");
+      expect(session.status).toBe("active");
       expect(session.startedAt).toBeInstanceOf(Date);
       expect(session.completedAt).toBeNull();
       expect(session.handoffCount).toBe(0);
       expect(session.tokenCount).toBe(1000);
       expect(session.messageCount).toBe(5);
-      expect(session.currentPhase).toBe('exploring');
+      expect(session.currentPhase).toBe("exploring");
     });
 
-    test('PASS: Handles completed_at when present', () => {
+    test("PASS: Handles completed_at when present", () => {
       const row = {
-        id: 'session_123',
-        profile_id: 'profile_456',
-        status: 'completed',
-        started_at: '2024-01-01T00:00:00.000Z',
-        completed_at: '2024-01-01T02:00:00.000Z',
-        last_activity_at: '2024-01-01T02:00:00.000Z',
+        id: "session_123",
+        profile_id: "profile_456",
+        status: "completed",
+        started_at: "2024-01-01T00:00:00.000Z",
+        completed_at: "2024-01-01T02:00:00.000Z",
+        last_activity_at: "2024-01-01T02:00:00.000Z",
         handoff_count: 1,
         token_count: 5000,
         message_count: 20,
-        current_phase: 'refining',
+        current_phase: "refining",
       };
 
       const session = mapSessionRowToSession(row);
 
       expect(session.completedAt).toBeInstanceOf(Date);
-      expect(session.completedAt?.toISOString()).toBe('2024-01-01T02:00:00.000Z');
+      expect(session.completedAt?.toISOString()).toBe(
+        "2024-01-01T02:00:00.000Z",
+      );
     });
   });
 
-  describe('mapMessageRowToMessage', () => {
-    test('PASS: Parses JSON fields correctly', () => {
+  describe("mapMessageRowToMessage", () => {
+    test("PASS: Parses JSON fields correctly", () => {
       const row = {
-        id: 'msg_123',
-        session_id: 'session_456',
-        role: 'assistant',
-        content: 'Hello there',
-        buttons_shown: JSON.stringify([{ id: 'btn1', label: 'Click me', value: 'clicked', style: 'primary' }]),
+        id: "msg_123",
+        session_id: "session_456",
+        role: "assistant",
+        content: "Hello there",
+        buttons_shown: JSON.stringify([
+          { id: "btn1", label: "Click me", value: "clicked", style: "primary" },
+        ]),
         button_clicked: null,
         form_shown: null,
         form_response: null,
         token_count: 50,
-        created_at: '2024-01-01T00:00:00.000Z',
+        created_at: "2024-01-01T00:00:00.000Z",
       };
 
       const message = mapMessageRowToMessage(row);
 
       expect(message.buttonsShown).toHaveLength(1);
-      expect(message.buttonsShown![0].id).toBe('btn1');
+      expect(message.buttonsShown![0].id).toBe("btn1");
       expect(message.formShown).toBeNull();
     });
 
-    test('PASS: Handles null JSON fields', () => {
+    test("PASS: Handles null JSON fields", () => {
       const row = {
-        id: 'msg_123',
-        session_id: 'session_456',
-        role: 'user',
-        content: 'Hello',
+        id: "msg_123",
+        session_id: "session_456",
+        role: "user",
+        content: "Hello",
         buttons_shown: null,
         button_clicked: null,
         form_shown: null,
         form_response: null,
         token_count: 10,
-        created_at: '2024-01-01T00:00:00.000Z',
+        created_at: "2024-01-01T00:00:00.000Z",
       };
 
       const message = mapMessageRowToMessage(row);
@@ -1137,41 +1293,41 @@ describe('Row Mappers', () => {
     });
   });
 
-  describe('mapCandidateRowToCandidate', () => {
-    test('PASS: Converts SQLite boolean to JavaScript boolean', () => {
+  describe("mapCandidateRowToCandidate", () => {
+    test("PASS: Converts SQLite boolean to JavaScript boolean", () => {
       const row = {
-        id: 'cand_123',
-        session_id: 'session_456',
-        title: 'Test Idea',
-        summary: 'A test idea',
+        id: "cand_123",
+        session_id: "session_456",
+        title: "Test Idea",
+        summary: "A test idea",
         confidence: 75,
         viability: 80,
-        user_suggested: 1,  // SQLite true
-        status: 'active',
+        user_suggested: 1, // SQLite true
+        status: "active",
         captured_idea_id: null,
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-01-01T01:00:00.000Z',
+        created_at: "2024-01-01T00:00:00.000Z",
+        updated_at: "2024-01-01T01:00:00.000Z",
       };
 
       const candidate = mapCandidateRowToCandidate(row);
 
       expect(candidate.userSuggested).toBe(true);
-      expect(typeof candidate.userSuggested).toBe('boolean');
+      expect(typeof candidate.userSuggested).toBe("boolean");
     });
 
-    test('PASS: Handles user_suggested = 0 as false', () => {
+    test("PASS: Handles user_suggested = 0 as false", () => {
       const row = {
-        id: 'cand_123',
-        session_id: 'session_456',
-        title: 'Test Idea',
+        id: "cand_123",
+        session_id: "session_456",
+        title: "Test Idea",
         summary: null,
         confidence: 50,
         viability: 60,
-        user_suggested: 0,  // SQLite false
-        status: 'forming',
+        user_suggested: 0, // SQLite false
+        status: "forming",
         captured_idea_id: null,
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-01-01T00:00:00.000Z',
+        created_at: "2024-01-01T00:00:00.000Z",
+        updated_at: "2024-01-01T00:00:00.000Z",
       };
 
       const candidate = mapCandidateRowToCandidate(row);
@@ -1181,9 +1337,9 @@ describe('Row Mappers', () => {
   });
 });
 
-describe('Default State Factories', () => {
-  describe('createDefaultSelfDiscoveryState', () => {
-    test('PASS: Returns valid empty state', () => {
+describe("Default State Factories", () => {
+  describe("createDefaultSelfDiscoveryState", () => {
+    test("PASS: Returns valid empty state", () => {
       const state = createDefaultSelfDiscoveryState();
 
       expect(state.impactVision.level).toBeNull();
@@ -1197,18 +1353,22 @@ describe('Default State Factories', () => {
       expect(state.constraints.timeHoursPerWeek).toBeNull();
     });
 
-    test('PASS: Each call returns new object', () => {
+    test("PASS: Each call returns new object", () => {
       const state1 = createDefaultSelfDiscoveryState();
       const state2 = createDefaultSelfDiscoveryState();
 
       expect(state1).not.toBe(state2);
-      state1.frustrations.push({ description: 'test', source: 'user', severity: 'high' });
+      state1.frustrations.push({
+        description: "test",
+        source: "user",
+        severity: "high",
+      });
       expect(state2.frustrations).toHaveLength(0);
     });
   });
 
-  describe('createDefaultMarketDiscoveryState', () => {
-    test('PASS: Returns valid empty state', () => {
+  describe("createDefaultMarketDiscoveryState", () => {
+    test("PASS: Returns valid empty state", () => {
       const state = createDefaultMarketDiscoveryState();
 
       expect(state.competitors).toEqual([]);
@@ -1219,8 +1379,8 @@ describe('Default State Factories', () => {
     });
   });
 
-  describe('createDefaultNarrowingState', () => {
-    test('PASS: Returns valid empty state with zero confidence', () => {
+  describe("createDefaultNarrowingState", () => {
+    test("PASS: Returns valid empty state with zero confidence", () => {
       const state = createDefaultNarrowingState();
 
       expect(state.productType.value).toBeNull();
@@ -1250,11 +1410,11 @@ describe('Default State Factories', () => {
 
 ## 7. Success Criteria
 
-| Test Category | Expected Pass | Expected Fail |
-|---------------|---------------|---------------|
-| Schema validation | 8 | 4 |
-| Row mappers | 6 | 0 |
-| Default factories | 4 | 0 |
-| **Total** | **18** | **4** |
+| Test Category     | Expected Pass | Expected Fail |
+| ----------------- | ------------- | ------------- |
+| Schema validation | 8             | 4             |
+| Row mappers       | 6             | 0             |
+| Default factories | 4             | 0             |
+| **Total**         | **18**        | **4**         |
 
 All FAIL tests should fail with appropriate constraint violation errors.

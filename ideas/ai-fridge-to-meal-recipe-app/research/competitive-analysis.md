@@ -20,16 +20,18 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 ## Market Landscape
 
 ### Market Size & Growth
-| Metric | Value | Source |
-|--------|-------|--------|
-| Recipe Apps Market (2025) | $6.41 billion | Straits Research |
-| Recipe Apps Market (2033) | $14.27 billion | Straits Research |
-| Recipe Apps CAGR | 10.52% | Straits Research |
-| AI Meal Planning Apps (2024) | $972 million | Market.us |
-| AI Meal Planning Apps (2034) | $11.57 billion | Market.us |
-| AI Meal Planning CAGR | 28.10% | Market.us |
+
+| Metric                       | Value          | Source           |
+| ---------------------------- | -------------- | ---------------- |
+| Recipe Apps Market (2025)    | $6.41 billion  | Straits Research |
+| Recipe Apps Market (2033)    | $14.27 billion | Straits Research |
+| Recipe Apps CAGR             | 10.52%         | Straits Research |
+| AI Meal Planning Apps (2024) | $972 million   | Market.us        |
+| AI Meal Planning Apps (2034) | $11.57 billion | Market.us        |
+| AI Meal Planning CAGR        | 28.10%         | Market.us        |
 
 ### Recent Market Events
+
 - **PlateJoy shutdown** (July 2025): Major health-focused meal planning app discontinued, creating user migration opportunity
 - **Apple News Plus Food** (April 2025): Apple entered with iOS 18.4, adding mainstream competition
 - **Samsung Family Hub + Gemini** (CES 2026): Deep Google integration sets new AI expectations
@@ -38,50 +40,50 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 
 ## Direct Competitors
 
-*Companies competing for the same "what can I cook with what I have?" problem*
+_Companies competing for the same "what can I cook with what I have?" problem_
 
 ### Tier 1: AI/Camera-Enabled Solutions
 
-| Competitor | Type | AI Vision | Pricing | Key Strength | Key Weakness |
-|------------|------|-----------|---------|--------------|--------------|
-| **Samsung Food (Whisk)** | App + Smart Fridge | Yes (fridge-only) | Free + Smart fridge ($2,800+) | Best-in-class AI recognition with Gemini; auto-inventory | Requires $2,800+ Samsung fridge for full features |
-| **Ollie AI** | App | Fridge photo upload | $8.99/mo | Natural language meal planning; grocery integration | New entrant; smaller recipe database |
-| **Portions Master AI** | App | Cart/pantry scanning | Free + Premium | Goal-based meal planning; nutrition focus | Limited recipe variety; fitness-focused |
-| **LG ThinQ Food** | Smart Fridge | Yes (fridge-only) | Free + Smart fridge ($3,000+) | T-OLED display; recipe suggestions | LG ecosystem lock-in |
-| **GE Profile Smart Fridge** | Smart Fridge | FridgeFocus camera | Free + Smart fridge ($3,500+) | Barcode scanning; Instacart integration | Limited to high-end fridge buyers |
+| Competitor                  | Type               | AI Vision            | Pricing                       | Key Strength                                             | Key Weakness                                      |
+| --------------------------- | ------------------ | -------------------- | ----------------------------- | -------------------------------------------------------- | ------------------------------------------------- |
+| **Samsung Food (Whisk)**    | App + Smart Fridge | Yes (fridge-only)    | Free + Smart fridge ($2,800+) | Best-in-class AI recognition with Gemini; auto-inventory | Requires $2,800+ Samsung fridge for full features |
+| **Ollie AI**                | App                | Fridge photo upload  | $8.99/mo                      | Natural language meal planning; grocery integration      | New entrant; smaller recipe database              |
+| **Portions Master AI**      | App                | Cart/pantry scanning | Free + Premium                | Goal-based meal planning; nutrition focus                | Limited recipe variety; fitness-focused           |
+| **LG ThinQ Food**           | Smart Fridge       | Yes (fridge-only)    | Free + Smart fridge ($3,000+) | T-OLED display; recipe suggestions                       | LG ecosystem lock-in                              |
+| **GE Profile Smart Fridge** | Smart Fridge       | FridgeFocus camera   | Free + Smart fridge ($3,500+) | Barcode scanning; Instacart integration                  | Limited to high-end fridge buyers                 |
 
 ### Tier 2: Manual Entry Ingredient Apps
 
-| Competitor | Type | Recipe Database | Pricing | Key Strength | Key Weakness |
-|------------|------|-----------------|---------|--------------|--------------|
-| **SuperCook** | Web/App | 11M+ recipes | Free (ad-supported) | Largest database; 18,000 sources | Manual ingredient entry only; cluttered ads |
-| **Yummly** | App | 2M+ recipes | Free / $4.99/mo | Personalization; smart appliance integration | No camera scanning; owned by Whirlpool |
-| **BigOven** | App | 500K+ recipes | Free / $4.99/mo | Leftover-focused; grocery integration | Dated UI; manual entry only |
-| **Mealime** | App | Curated recipes | Free / $2.99-5.99/mo | 30-minute meals; diet customization | Small recipe database; no scanning |
+| Competitor    | Type    | Recipe Database | Pricing              | Key Strength                                 | Key Weakness                                |
+| ------------- | ------- | --------------- | -------------------- | -------------------------------------------- | ------------------------------------------- |
+| **SuperCook** | Web/App | 11M+ recipes    | Free (ad-supported)  | Largest database; 18,000 sources             | Manual ingredient entry only; cluttered ads |
+| **Yummly**    | App     | 2M+ recipes     | Free / $4.99/mo      | Personalization; smart appliance integration | No camera scanning; owned by Whirlpool      |
+| **BigOven**   | App     | 500K+ recipes   | Free / $4.99/mo      | Leftover-focused; grocery integration        | Dated UI; manual entry only                 |
+| **Mealime**   | App     | Curated recipes | Free / $2.99-5.99/mo | 30-minute meals; diet customization          | Small recipe database; no scanning          |
 
 ### Tier 3: General Meal Planning
 
-| Competitor | Type | AI Features | Pricing | Key Strength | Key Weakness |
-|------------|------|-------------|---------|--------------|--------------|
-| **SideChef** | App | Voice guidance | Free / $4.99/mo | IoT integration; step-by-step | No ingredient scanning |
-| **Tasty (BuzzFeed)** | App | Recommendations | Free | Massive brand; video content | Entertainment-focused; no pantry management |
-| **Allrecipes** | Web/App | Basic | Free | Community; user reviews | Legacy platform; minimal AI |
-| **Kitchen Stories** | App | Recommendations | Free / Premium | Beautiful design; video | No ingredient-based search |
+| Competitor           | Type    | AI Features     | Pricing         | Key Strength                  | Key Weakness                                |
+| -------------------- | ------- | --------------- | --------------- | ----------------------------- | ------------------------------------------- |
+| **SideChef**         | App     | Voice guidance  | Free / $4.99/mo | IoT integration; step-by-step | No ingredient scanning                      |
+| **Tasty (BuzzFeed)** | App     | Recommendations | Free            | Massive brand; video content  | Entertainment-focused; no pantry management |
+| **Allrecipes**       | Web/App | Basic           | Free            | Community; user reviews       | Legacy platform; minimal AI                 |
+| **Kitchen Stories**  | App     | Recommendations | Free / Premium  | Beautiful design; video       | No ingredient-based search                  |
 
 ---
 
 ## Indirect Competitors
 
-*Alternative solutions addressing the same user need differently*
+_Alternative solutions addressing the same user need differently_
 
-| Competitor | Approach | Why Users Choose Them | Our Counter-Position |
-|------------|----------|----------------------|---------------------|
-| **ChatGPT / Claude** | Ask AI for recipe ideas | Free; conversational; no app install | No ingredient tracking; no food waste features; generic responses |
-| **Pinterest** | Visual recipe discovery | Inspiration browsing; large library | No ingredient matching; discovery not efficiency |
-| **Google Search** | "Recipes with chicken spinach" | Universal access; no signup | Manual; no personalization; no tracking |
-| **Cookbook / Recipe Keeper** | Personal recipe storage | Own recipes; offline | Not discovery-focused; no AI |
-| **Meal Kit Services (HelloFresh, Blue Apron)** | Pre-portioned ingredient delivery | Zero decision fatigue | Expensive ($10-15/meal); no flexibility |
-| **Grocery Store Apps** | Meal planning + delivery | One-stop shop | Locked to store; no fridge visibility |
+| Competitor                                     | Approach                          | Why Users Choose Them                | Our Counter-Position                                              |
+| ---------------------------------------------- | --------------------------------- | ------------------------------------ | ----------------------------------------------------------------- |
+| **ChatGPT / Claude**                           | Ask AI for recipe ideas           | Free; conversational; no app install | No ingredient tracking; no food waste features; generic responses |
+| **Pinterest**                                  | Visual recipe discovery           | Inspiration browsing; large library  | No ingredient matching; discovery not efficiency                  |
+| **Google Search**                              | "Recipes with chicken spinach"    | Universal access; no signup          | Manual; no personalization; no tracking                           |
+| **Cookbook / Recipe Keeper**                   | Personal recipe storage           | Own recipes; offline                 | Not discovery-focused; no AI                                      |
+| **Meal Kit Services (HelloFresh, Blue Apron)** | Pre-portioned ingredient delivery | Zero decision fatigue                | Expensive ($10-15/meal); no flexibility                           |
+| **Grocery Store Apps**                         | Meal planning + delivery          | One-stop shop                        | Locked to store; no fridge visibility                             |
 
 ---
 
@@ -94,18 +96,21 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 **Business Model:** Free, ad-supported
 
 **Key Features:**
+
 - Real-time recipe matching as ingredients are added
 - Dietary preference filters (vegan, keto, gluten-free, etc.)
 - Integration with grocery delivery services
 - Recipe scaling and shopping list generation
 
 **Strengths:**
+
 - Massive recipe database (11M+)
 - Established brand in ingredient-based search
 - No cost to users
 - Cross-platform availability
 
 **Weaknesses:**
+
 - **Manual ingredient entry only** — friction point
 - Ad-heavy experience degrades UX
 - No food waste/expiration features
@@ -124,6 +129,7 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 **Business Model:** Free app; monetizes through Samsung appliance sales and grocery delivery partnerships
 
 **Key Features:**
+
 - AI Vision Inside recognizes 37 fresh foods + 50 packaged items (Gemini-powered in 2026)
 - Automatic inventory management via in-fridge cameras
 - Recipe recommendations based on fridge contents
@@ -131,12 +137,14 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 - Expiration alerts and waste reduction
 
 **Strengths:**
+
 - Best-in-class AI food recognition (Google Gemini)
 - Zero-friction inventory management (fridge cameras)
 - Massive R&D budget and Google partnership
 - Full ecosystem integration
 
 **Weaknesses:**
+
 - **Requires $2,800+ Samsung smart fridge** for AI features
 - App alone has limited functionality without hardware
 - Privacy concerns about in-home cameras
@@ -155,6 +163,7 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 **Business Model:** Subscription ($8.99/month)
 
 **Key Features:**
+
 - Natural language meal planning ("Plan two easy Italian dinners")
 - Fridge photo analysis
 - Grocery list sync with Instacart/Amazon Fresh
@@ -162,12 +171,14 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 - Waste reduction suggestions
 
 **Strengths:**
+
 - Modern AI-first approach
 - Conversational interface
 - PlateJoy migration target (recommended alternative)
 - Growing user base
 
 **Weaknesses:**
+
 - New entrant (limited track record)
 - Smaller recipe database
 - Higher price point than competitors
@@ -186,6 +197,7 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 **Business Model:** Freemium ($4.99/month premium)
 
 **Key Features:**
+
 - Personalized recipe discovery based on taste profile
 - "Pantry-ready" search (manual ingredient list)
 - Step-by-step video instructions (Premium)
@@ -193,12 +205,14 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 - Nutritional information
 
 **Strengths:**
+
 - Large recipe database (2M+)
 - Strong personalization engine
 - Celebrity chef content
 - Whirlpool appliance integration
 
 **Weaknesses:**
+
 - **No camera/AI scanning**
 - Manual pantry management
 - No food waste features
@@ -217,18 +231,21 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 **Business Model:** Freemium ($2.99-5.99/month premium)
 
 **Key Features:**
+
 - 30-minute recipe specialization
 - Diet customization (keto, paleo, vegan, etc.)
 - Auto-generated shopping lists organized by aisle
 - Calorie counting (Premium)
 
 **Strengths:**
+
 - Excellent UX for meal planning workflow
 - Strong dietary restriction support
 - Lowest price point in category
 - Time-conscious positioning
 
 **Weaknesses:**
+
 - **Small, curated recipe database**
 - No ingredient scanning
 - No food waste features
@@ -242,25 +259,25 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 
 ## Competitive Feature Matrix
 
-| Feature | Our MVP | Samsung Food | SuperCook | Ollie AI | Yummly | Mealime |
-|---------|---------|--------------|-----------|----------|--------|---------|
-| **AI Camera Scanning** | ✅ Core | ✅ Fridge cameras | ❌ | 📸 Photo upload | ❌ | ❌ |
-| **Real-time Detection Overlay** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Works with Any Fridge** | ✅ | ❌ Samsung only | ✅ | ✅ | ✅ | ✅ |
-| **Recipe by Ingredient** | ✅ | ✅ | ✅ | ✅ | ⚠️ Limited | ❌ |
-| **Recipe Database Size** | 5K+ (API) | Large | 11M+ | Medium | 2M+ | Small |
-| **Expiration Tracking** | ✅ | ✅ | ❌ | ⚠️ Basic | ❌ | ❌ |
-| **"Use First" Prioritization** | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
-| **Expiration Push Alerts** | ✅ | ✅ | ❌ | ⚠️ | ❌ | ❌ |
-| **Dietary Filtering** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Allergen Management** | ✅ | ✅ | ✅ | ⚠️ | ✅ | ✅ |
-| **Grocery List** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Grocery Delivery Integration** | ❌ Post-MVP | ✅ Instacart | ⚠️ | ✅ | ✅ | ❌ |
-| **Meal Planning Calendar** | ❌ Post-MVP | ✅ | ⚠️ | ✅ | ✅ | ✅ |
-| **Smart Appliance Integration** | ❌ | ✅ | ❌ | ❌ | ✅ | ❌ |
-| **Voice Control** | ❌ | ✅ | ❌ | ❌ | ✅ | ❌ |
-| **Free Tier** | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
-| **Price (Premium)** | $7.99/mo | Free + $2,800 fridge | Free | $8.99/mo | $4.99/mo | $2.99/mo |
+| Feature                          | Our MVP     | Samsung Food         | SuperCook | Ollie AI        | Yummly     | Mealime  |
+| -------------------------------- | ----------- | -------------------- | --------- | --------------- | ---------- | -------- |
+| **AI Camera Scanning**           | ✅ Core     | ✅ Fridge cameras    | ❌        | 📸 Photo upload | ❌         | ❌       |
+| **Real-time Detection Overlay**  | ✅          | ❌                   | ❌        | ❌              | ❌         | ❌       |
+| **Works with Any Fridge**        | ✅          | ❌ Samsung only      | ✅        | ✅              | ✅         | ✅       |
+| **Recipe by Ingredient**         | ✅          | ✅                   | ✅        | ✅              | ⚠️ Limited | ❌       |
+| **Recipe Database Size**         | 5K+ (API)   | Large                | 11M+      | Medium          | 2M+        | Small    |
+| **Expiration Tracking**          | ✅          | ✅                   | ❌        | ⚠️ Basic        | ❌         | ❌       |
+| **"Use First" Prioritization**   | ✅          | ✅                   | ❌        | ✅              | ❌         | ❌       |
+| **Expiration Push Alerts**       | ✅          | ✅                   | ❌        | ⚠️              | ❌         | ❌       |
+| **Dietary Filtering**            | ✅          | ✅                   | ✅        | ✅              | ✅         | ✅       |
+| **Allergen Management**          | ✅          | ✅                   | ✅        | ⚠️              | ✅         | ✅       |
+| **Grocery List**                 | ✅          | ✅                   | ✅        | ✅              | ✅         | ✅       |
+| **Grocery Delivery Integration** | ❌ Post-MVP | ✅ Instacart         | ⚠️        | ✅              | ✅         | ❌       |
+| **Meal Planning Calendar**       | ❌ Post-MVP | ✅                   | ⚠️        | ✅              | ✅         | ✅       |
+| **Smart Appliance Integration**  | ❌          | ✅                   | ❌        | ❌              | ✅         | ❌       |
+| **Voice Control**                | ❌          | ✅                   | ❌        | ❌              | ✅         | ❌       |
+| **Free Tier**                    | ✅          | ✅                   | ✅        | ❌              | ✅         | ✅       |
+| **Price (Premium)**              | $7.99/mo    | Free + $2,800 fridge | Free      | $8.99/mo        | $4.99/mo   | $2.99/mo |
 
 ---
 
@@ -320,28 +337,31 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 
 ### Risks to Competitive Position
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Apple/Google native feature | Medium | Critical | Speed to market; build engagement moat via expiration tracking |
-| Samsung Food adds mobile scanning | Medium | High | Privacy positioning; already-trained user base |
-| SuperCook adds AI scanning | Low-Medium | High | Superior UX; food waste differentiation |
-| Ollie gains market share | High | Medium | Feature parity + lower price; better scanning UX |
+| Risk                              | Likelihood | Impact   | Mitigation                                                     |
+| --------------------------------- | ---------- | -------- | -------------------------------------------------------------- |
+| Apple/Google native feature       | Medium     | Critical | Speed to market; build engagement moat via expiration tracking |
+| Samsung Food adds mobile scanning | Medium     | High     | Privacy positioning; already-trained user base                 |
+| SuperCook adds AI scanning        | Low-Medium | High     | Superior UX; food waste differentiation                        |
+| Ollie gains market share          | High       | Medium   | Feature parity + lower price; better scanning UX               |
 
 ---
 
 ## Competitive Response Scenarios
 
 ### If Samsung Adds Mobile-Only Scanning
+
 - Emphasize privacy (no corporate data collection)
 - Highlight cross-platform (Android + iOS)
 - Maintain feature velocity advantage
 
 ### If SuperCook Adds AI Scanning
+
 - Our advantage shifts to food waste features
 - Emphasize premium experience vs. ad-supported
 - Build community/social features faster
 
 ### If Apple Announces "Apple Recipes" with Scanning
+
 - Pivot to Android-first growth
 - Add features Apple won't (grocery delivery, B2B)
 - Consider acquisition positioning
@@ -353,11 +373,13 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 ### PlateJoy (Shutdown: July 2025)
 
 **What They Did:**
+
 - Health-focused meal planning with dietitian-crafted plans
 - Partnerships with MyFitnessPal, Noom
 - Custom plans for diabetes, PCOS, celiac
 
 **Why They Failed:**
+
 - Niche positioning (health conditions) limited market size
 - High customer acquisition cost for subscription model
 - No defensible technology moat
@@ -396,26 +418,26 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 
 ### Strategic Partnerships to Explore
 
-| Partner | Value Proposition | Priority |
-|---------|-------------------|----------|
-| Instacart | Missing ingredients → delivery | High |
-| Spoonacular | Recipe database backbone | High (MVP) |
-| Kroger/Walmart | Store-branded version | Medium |
-| Weight Watchers/Noom | Health-focused co-marketing | Medium |
-| Smart display makers | Kitchen hardware integration | Low (post-MVP) |
+| Partner              | Value Proposition              | Priority       |
+| -------------------- | ------------------------------ | -------------- |
+| Instacart            | Missing ingredients → delivery | High           |
+| Spoonacular          | Recipe database backbone       | High (MVP)     |
+| Kroger/Walmart       | Store-branded version          | Medium         |
+| Weight Watchers/Noom | Health-focused co-marketing    | Medium         |
+| Smart display makers | Kitchen hardware integration   | Low (post-MVP) |
 
 ---
 
 ## Summary: Competitive Outlook
 
-| Factor | Assessment |
-|--------|------------|
-| **Market Opportunity** | 🟢 Strong — $6B+ growing at 10%+ |
-| **Direct Competition** | 🟡 Moderate — Crowded but fragmented |
-| **Differentiation Potential** | 🟢 Strong — AI scanning + food waste is unique combo |
-| **Defensibility** | 🟡 Medium — Need to build training data and engagement moats fast |
-| **Timing** | 🟢 Favorable — Post-PlateJoy migration; pre-Apple entry |
-| **Overall Competitive Position** | 🟢 Favorable with execution risk |
+| Factor                           | Assessment                                                        |
+| -------------------------------- | ----------------------------------------------------------------- |
+| **Market Opportunity**           | 🟢 Strong — $6B+ growing at 10%+                                  |
+| **Direct Competition**           | 🟡 Moderate — Crowded but fragmented                              |
+| **Differentiation Potential**    | 🟢 Strong — AI scanning + food waste is unique combo              |
+| **Defensibility**                | 🟡 Medium — Need to build training data and engagement moats fast |
+| **Timing**                       | 🟢 Favorable — Post-PlateJoy migration; pre-Apple entry           |
+| **Overall Competitive Position** | 🟢 Favorable with execution risk                                  |
 
 **Bottom Line:** The competitive landscape is busy but beatable. No single player owns the "scan your fridge, get dinner ideas, reduce waste" experience end-to-end. Our combination of smartphone-based AI scanning (democratizing Samsung's feature) plus food waste prevention (engagement moat) represents a genuine market gap — if we execute fast and nail the scanning UX.
 
@@ -442,4 +464,4 @@ The AI-powered recipe/meal planning space is a **$6.4B market** (2025) growing a
 
 ---
 
-*Version 1.0 | Created: 2026-01-10 | Next Review: Before MVP launch*
+_Version 1.0 | Created: 2026-01-10 | Next Review: Before MVP launch_

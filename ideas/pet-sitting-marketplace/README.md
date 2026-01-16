@@ -19,11 +19,13 @@ A mobile/web application that serves as a two-sided marketplace connecting pet o
 ## Problem Statement
 
 Sydney pet owners struggle to find reliable, trustworthy pet care when they travel, work long hours, or have emergencies. Current options include:
+
 - Expensive boarding kennels that can be stressful for pets
 - Informal arrangements with friends/family (unreliable, limited availability)
 - Existing platforms that lack local focus or proper verification
 
 **Who experiences this problem?**
+
 - Busy professionals with pets who work long hours
 - Travelers who need pet care during trips
 - Pet owners during emergencies or unexpected situations
@@ -32,12 +34,14 @@ Sydney pet owners struggle to find reliable, trustworthy pet care when they trav
 ## Target Users
 
 ### Pet Owners (Demand Side)
+
 - Sydney-based professionals aged 25-45
 - Dog and cat owners primarily
 - Income bracket: middle to upper-middle class
 - Value convenience and peace of mind
 
 ### Pet Sitters (Supply Side)
+
 - Animal lovers looking for flexible income
 - Students, retirees, work-from-home professionals
 - People with pet care experience
@@ -46,6 +50,7 @@ Sydney pet owners struggle to find reliable, trustworthy pet care when they trav
 ## Proposed Solution
 
 A digital marketplace platform with:
+
 - **Verified sitter profiles** with background checks, reviews, and pet care certifications
 - **Real-time booking system** with calendar availability
 - **In-app messaging** for owner-sitter communication

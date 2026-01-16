@@ -3,16 +3,27 @@
  */
 
 // Priority levels for notifications
-export type NotificationPriority = 'urgent' | 'high' | 'normal' | 'low';
+export type NotificationPriority = "urgent" | "high" | "normal" | "low";
 
 // Available delivery channels
-export type NotificationChannel = 'in_app' | 'email' | 'telegram';
+export type NotificationChannel = "in_app" | "email" | "telegram";
 
 // Delivery status
-export type DeliveryStatus = 'pending' | 'sent' | 'delivered' | 'failed' | 'skipped';
+export type DeliveryStatus =
+  | "pending"
+  | "sent"
+  | "delivered"
+  | "failed"
+  | "skipped";
 
 // Notification categories
-export type NotificationCategory = 'agent' | 'session' | 'system' | 'build' | 'evaluation' | 'idea';
+export type NotificationCategory =
+  | "agent"
+  | "session"
+  | "system"
+  | "build"
+  | "evaluation"
+  | "idea";
 
 /**
  * Main notification interface
@@ -190,7 +201,7 @@ export interface NotificationEvent {
 /**
  * Digest configuration
  */
-export type DigestType = 'hourly' | 'daily' | 'weekly';
+export type DigestType = "hourly" | "daily" | "weekly";
 
 export interface NotificationDigest {
   id: string;

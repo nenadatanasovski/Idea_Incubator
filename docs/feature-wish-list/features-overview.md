@@ -1,6 +1,6 @@
 - [ ] Ability to address any leftover assumptions identified by AI - ‘Scan for assumptions’ button?
 - [ ] Building a network of contacts allowing their ideas to recognise each other to surface collaboration opportunities
-- [x] Ability to identify ‘differentiation opportunities’ in order to discover new markets 
+- [x] Ability to identify ‘differentiation opportunities’ in order to discover new markets
 - [x] Get AI to create smart suggestions to the questions asked. Base it on the user profile and web search results as well if needed.
 - [ ] Business intelligence powered AI agent driven process to first dot all the I's and cross all the t's so the coding agent in the background has all it needs before it starts
 - [ ] Imagine people having different app ideas. Those apps all have a certain demographic, data set and integration points. The overlap in customers or technology can be served as an opportunity for collaboration to cross-expand audiences.

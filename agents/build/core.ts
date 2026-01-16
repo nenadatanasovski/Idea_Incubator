@@ -5,30 +5,34 @@
  * execution, and progress reporting.
  */
 
-import { TaskLoader } from './task-loader.js';
-import { TaskExecutor, ExecutionResult, ExecutionProgress } from './task-executor.js';
-import { ContextPrimer } from './context-primer.js';
-import { CodeGenerator } from './code-generator.js';
-import { FileWriter } from './file-writer.js';
-import { ValidationRunner } from './validation-runner.js';
-import { CheckpointManager } from './checkpoint-manager.js';
-import { GitIntegration } from './git-integration.js';
+import { TaskLoader } from "./task-loader.js";
+import {
+  TaskExecutor,
+  ExecutionResult,
+  ExecutionProgress,
+} from "./task-executor.js";
+import { ContextPrimer } from "./context-primer.js";
+import { CodeGenerator } from "./code-generator.js";
+import { FileWriter } from "./file-writer.js";
+import { ValidationRunner } from "./validation-runner.js";
+import { CheckpointManager } from "./checkpoint-manager.js";
+import { GitIntegration } from "./git-integration.js";
 import {
   createBuildExecution,
   updateBuildExecution,
   createTaskExecution,
   updateTaskExecution,
   createBuildCheckpoint,
-  saveDb
-} from '../../database/db.js';
+  saveDb,
+} from "../../database/db.js";
 import {
   emitBuildEvent,
   emitTaskStarted,
   emitTaskCompleted,
   emitTaskFailed,
-  emitBuildProgress
-} from '../../server/websocket.js';
-import { BuildOptions, AtomicTask } from '../../types/build-agent.js';
+  emitBuildProgress,
+} from "../../server/websocket.js";
+import { BuildOptions, AtomicTask } from "../../types/build-agent.js";
 
 export interface BuildAgentOptions {
   apiKey?: string;
@@ -45,7 +49,7 @@ export interface BuildAgentOptions {
 
 export interface BuildResult {
   buildId: string;
-  status: 'completed' | 'failed' | 'cancelled';
+  status: "completed" | "failed" | "cancelled";
   tasksTotal: number;
   tasksCompleted: number;
   tasksFailed: number;
@@ -74,7 +78,10 @@ export class BuildAgent {
 
     // Initialize components
     this.taskLoader = new TaskLoader({ projectRoot });
-    this.contextPrimer = new ContextPrimer({ projectRoot, tokenLimit: options.tokenLimit });
+    this.contextPrimer = new ContextPrimer({
+      projectRoot,
+      tokenLimit: options.tokenLimit,
+    });
     this.codeGenerator = new CodeGenerator({ apiKey: options.apiKey });
     this.fileWriter = new FileWriter({ projectRoot });
     this.validationRunner = new ValidationRunner({ cwd: projectRoot });
@@ -89,21 +96,26 @@ export class BuildAgent {
       onTaskFailed: options.onTaskFailed,
       codeGenerator: options.dryRun ? undefined : this.codeGenerator,
       fileWriter: options.dryRun ? undefined : this.fileWriter,
-      validationRunner: options.skipValidation ? undefined : this.validationRunner
+      validationRunner: options.skipValidation
+        ? undefined
+        : this.validationRunner,
     });
   }
 
   /**
    * Run a build from a tasks.md file
    */
-  async run(tasksPath: string, buildOptions?: BuildOptions): Promise<BuildResult> {
+  async run(
+    tasksPath: string,
+    buildOptions?: BuildOptions,
+  ): Promise<BuildResult> {
     const startTime = Date.now();
     const opts = { ...this.options, ...buildOptions };
 
     // Load and parse tasks
     const parseResult = this.taskLoader.load(tasksPath);
     if (!parseResult.success || !parseResult.file) {
-      throw new Error(parseResult.error || 'Failed to parse tasks file');
+      throw new Error(parseResult.error || "Failed to parse tasks file");
     }
 
     const { frontmatter, tasks } = parseResult.file;
@@ -113,28 +125,28 @@ export class BuildAgent {
       specId: frontmatter.id,
       specPath: tasksPath,
       tasksTotal: tasks.length,
-      options: opts
+      options: opts,
     });
 
     // Update status to running
     await updateBuildExecution(buildId, {
-      status: 'running',
-      startedAt: new Date().toISOString()
+      status: "running",
+      startedAt: new Date().toISOString(),
     });
     await saveDb();
 
     // Emit build started event
-    emitBuildEvent('build:started', buildId, {
+    emitBuildEvent("build:started", buildId, {
       specId: frontmatter.id,
       specPath: tasksPath,
-      tasksTotal: tasks.length
+      tasksTotal: tasks.length,
     });
 
     // Order tasks by dependencies
     const orderedTasks = this.taskLoader.orderByDependency(tasks);
 
     // Convert LoadedTask to AtomicTask
-    const atomicTasks: AtomicTask[] = orderedTasks.map(t => ({
+    const atomicTasks: AtomicTask[] = orderedTasks.map((t) => ({
       id: t.id,
       phase: t.phase,
       action: t.action,
@@ -144,7 +156,7 @@ export class BuildAgent {
       gotchas: t.gotchas,
       validation: t.validation,
       codeTemplate: t.codeTemplate,
-      dependsOn: t.dependsOn
+      dependsOn: t.dependsOn,
     }));
 
     // Execute tasks
@@ -159,7 +171,7 @@ export class BuildAgent {
         taskId: task.id,
         phase: task.phase,
         action: task.action,
-        filePath: task.file
+        filePath: task.file,
       });
 
       // Emit task started event
@@ -167,12 +179,16 @@ export class BuildAgent {
 
       // Update task status
       await updateTaskExecution(taskExecId, {
-        status: 'running',
-        startedAt: new Date().toISOString()
+        status: "running",
+        startedAt: new Date().toISOString(),
       });
 
       // Load context for task
-      const context = await this.contextPrimer.loadTask(task, atomicTasks, tasksPath);
+      const context = await this.contextPrimer.loadTask(
+        task,
+        atomicTasks,
+        tasksPath,
+      );
 
       // Execute task
       const result = await this.taskExecutor.executeOne(task, context);
@@ -180,14 +196,14 @@ export class BuildAgent {
 
       // Update task execution record
       await updateTaskExecution(taskExecId, {
-        status: result.state === 'done' ? 'completed' : 'failed',
+        status: result.state === "done" ? "completed" : "failed",
         completedAt: new Date().toISOString(),
         generatedCode: result.output,
         errorMessage: result.error,
-        durationMs: result.duration
+        durationMs: result.duration,
       });
 
-      if (result.state === 'done') {
+      if (result.state === "done") {
         tasksCompleted++;
         emitTaskCompleted(buildId, task.id, tasksCompleted, atomicTasks.length);
 
@@ -201,13 +217,15 @@ export class BuildAgent {
           buildId,
           taskId: task.id,
           state: {
-            completedTasks: results.filter(r => r.state === 'done').map(r => r.taskId),
-            currentIndex: atomicTasks.findIndex(t => t.id === task.id)
-          }
+            completedTasks: results
+              .filter((r) => r.state === "done")
+              .map((r) => r.taskId),
+            currentIndex: atomicTasks.findIndex((t) => t.id === task.id),
+          },
         });
       } else {
         tasksFailed++;
-        emitTaskFailed(buildId, task.id, result.error || 'Unknown error');
+        emitTaskFailed(buildId, task.id, result.error || "Unknown error");
 
         // Stop on failure (could make this configurable)
         break;
@@ -217,17 +235,23 @@ export class BuildAgent {
       await updateBuildExecution(buildId, {
         currentTaskId: task.id,
         tasksCompleted,
-        tasksFailed
+        tasksFailed,
       });
 
       // Emit progress
-      emitBuildProgress(buildId, tasksCompleted, atomicTasks.length, tasksFailed, task.id);
+      emitBuildProgress(
+        buildId,
+        tasksCompleted,
+        atomicTasks.length,
+        tasksFailed,
+        task.id,
+      );
 
       await saveDb();
     }
 
     // Determine final status
-    const status = tasksFailed > 0 ? 'failed' : 'completed';
+    const status = tasksFailed > 0 ? "failed" : "completed";
     const duration = Date.now() - startTime;
 
     // Update build execution
@@ -237,17 +261,21 @@ export class BuildAgent {
       tasksCompleted,
       tasksFailed,
       currentTaskId: null,
-      errorMessage: tasksFailed > 0 ? `${tasksFailed} task(s) failed` : null
+      errorMessage: tasksFailed > 0 ? `${tasksFailed} task(s) failed` : null,
     });
     await saveDb();
 
     // Emit build completed/failed event
-    emitBuildEvent(status === 'completed' ? 'build:completed' : 'build:failed', buildId, {
-      tasksTotal: atomicTasks.length,
-      tasksCompleted,
-      tasksFailed,
-      progressPct: 100
-    });
+    emitBuildEvent(
+      status === "completed" ? "build:completed" : "build:failed",
+      buildId,
+      {
+        tasksTotal: atomicTasks.length,
+        tasksCompleted,
+        tasksFailed,
+        progressPct: 100,
+      },
+    );
 
     return {
       buildId,
@@ -257,7 +285,7 @@ export class BuildAgent {
       tasksFailed,
       results,
       duration,
-      error: tasksFailed > 0 ? `${tasksFailed} task(s) failed` : undefined
+      error: tasksFailed > 0 ? `${tasksFailed} task(s) failed` : undefined,
     };
   }
 
@@ -274,13 +302,15 @@ export class BuildAgent {
     // Load tasks
     const parseResult = this.taskLoader.load(tasksPath);
     if (!parseResult.success || !parseResult.file) {
-      throw new Error(parseResult.error || 'Failed to parse tasks file');
+      throw new Error(parseResult.error || "Failed to parse tasks file");
     }
 
     // Filter out completed tasks
     const completedTaskIds = new Set(checkpoint.completedTasks);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const pendingCount = parseResult.file.tasks.filter(t => !completedTaskIds.has(t.id)).length;
+    const pendingCount = parseResult.file.tasks.filter(
+      (t) => !completedTaskIds.has(t.id),
+    ).length;
 
     // TODO: Continue execution with pending tasks only
     // For now, just run the full build again from the checkpoint state
@@ -316,7 +346,7 @@ export function createBuildAgent(options?: BuildAgentOptions): BuildAgent {
  */
 export async function runBuild(
   tasksPath: string,
-  options?: BuildAgentOptions
+  options?: BuildAgentOptions,
 ): Promise<BuildResult> {
   const agent = createBuildAgent(options);
   return agent.run(tasksPath);

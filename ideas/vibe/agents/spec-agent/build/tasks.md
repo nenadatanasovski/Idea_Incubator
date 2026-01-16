@@ -15,14 +15,14 @@ phases:
 
 ## Task Summary
 
-| Phase | Count |
-|-------|-------|
-| database | 1 |
-| types | 1 |
-| queries | 1 |
-| services | 1 |
-| api | 2 |
-| tests | 1 |
+| Phase    | Count |
+| -------- | ----- |
+| database | 1     |
+| types    | 1     |
+| queries  | 1     |
+| services | 1     |
+| api      | 2     |
+| tests    | 1     |
 
 ---
 
@@ -51,7 +51,7 @@ validation:
   expected: "OK"
 code_template: |
   -- GOTCHA [SQL-001]: Always use parameterized queries to prevent SQL injection 
-  
+
   -- Specification runs (existing in specifications table)
   CREATE TABLE IF NOT EXISTS specifications (
       id TEXT PRIMARY KEY,
@@ -66,12 +66,11 @@ code_template: |
       approved_at TEXT,
       completed_at TEXT
   );
-  
+
   -- Spec Agent questions (uses existing questions table)
   -- Questions generated during spec creation
   -- stored with agent_type = 'spec'
-depends_on:
-  []
+depends_on: []
 ```
 
 ### T-002: types - CREATE unknown.ts

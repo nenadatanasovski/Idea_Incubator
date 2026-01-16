@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **Phase** | 3 - Core Services |
-| **Depends On** | TAK-008, TAK-015a |
-| **Blocks** | TAK-016 (TaskAgent), TAK-020 (TelegramHandler) |
-| **Priority** | P1 |
-| **Owner** | Build Agent |
+| Field          | Value                                          |
+| -------------- | ---------------------------------------------- |
+| **Phase**      | 3 - Core Services                              |
+| **Depends On** | TAK-008, TAK-015a                              |
+| **Blocks**     | TAK-016 (TaskAgent), TAK-020 (TelegramHandler) |
+| **Priority**   | P1                                             |
+| **Owner**      | Build Agent                                    |
 
 ---
 
@@ -48,14 +48,14 @@ Implement the SuggestionEngine class that implements the continuous suggestion l
 
 **PASS** when ALL of the following are true:
 
-| # | Criterion | How to Verify |
-|---|-----------|---------------|
-| 1 | File exists | `test -f server/services/task-agent/suggestion-engine.ts` returns 0 |
-| 2 | Exports SuggestionEngine | `grep -q "export class SuggestionEngine" server/services/task-agent/suggestion-engine.ts` returns 0 |
-| 3 | Has getSuggestions | `grep -q "getSuggestions" server/services/task-agent/suggestion-engine.ts` returns 0 |
-| 4 | Has getNextTask | `grep -q "getNextTask" server/services/task-agent/suggestion-engine.ts` returns 0 |
-| 5 | Has parallelization | `grep -q "findParallelizable\|parallel" server/services/task-agent/suggestion-engine.ts` returns 0 |
-| 6 | TypeScript compiles | `npx tsc --noEmit server/services/task-agent/suggestion-engine.ts` returns 0 |
+| #   | Criterion                | How to Verify                                                                                       |
+| --- | ------------------------ | --------------------------------------------------------------------------------------------------- |
+| 1   | File exists              | `test -f server/services/task-agent/suggestion-engine.ts` returns 0                                 |
+| 2   | Exports SuggestionEngine | `grep -q "export class SuggestionEngine" server/services/task-agent/suggestion-engine.ts` returns 0 |
+| 3   | Has getSuggestions       | `grep -q "getSuggestions" server/services/task-agent/suggestion-engine.ts` returns 0                |
+| 4   | Has getNextTask          | `grep -q "getNextTask" server/services/task-agent/suggestion-engine.ts` returns 0                   |
+| 5   | Has parallelization      | `grep -q "findParallelizable\|parallel" server/services/task-agent/suggestion-engine.ts` returns 0  |
+| 6   | TypeScript compiles      | `npx tsc --noEmit server/services/task-agent/suggestion-engine.ts` returns 0                        |
 
 **FAIL** if any criterion is not met.
 

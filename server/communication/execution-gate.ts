@@ -1,17 +1,20 @@
 // server/communication/execution-gate.ts
 // COM-011: Execution Gate - Controls whether agents can proceed
 
-import { EventEmitter } from 'events';
-import { AgentType } from './types';
-import { AnswerProcessor, ProcessedAnswer } from './answer-processor';
+import { EventEmitter } from "events";
+import { AgentType } from "./types";
+import { AnswerProcessor, ProcessedAnswer } from "./answer-processor";
 
 interface Database {
-  run(sql: string, params?: unknown[]): Promise<{ lastID: number; changes: number }>;
+  run(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ lastID: number; changes: number }>;
   get<T>(sql: string, params?: unknown[]): Promise<T | undefined>;
   all<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
-export type GateStatus = 'open' | 'blocked' | 'halted' | 'error';
+export type GateStatus = "open" | "blocked" | "halted" | "error";
 
 export interface GateState {
   agentId: string;
@@ -56,7 +59,7 @@ export class ExecutionGate extends EventEmitter {
   constructor(
     db: Database,
     answerProcessor: AnswerProcessor,
-    config: Partial<ExecutionGateConfig> = {}
+    config: Partial<ExecutionGateConfig> = {},
   ) {
     super();
     this.db = db;
@@ -64,13 +67,16 @@ export class ExecutionGate extends EventEmitter {
     this.config = { ...DEFAULT_CONFIG, ...config };
 
     // Listen for answers to unblock agents
-    this.answerProcessor.on('agent:unblocked', (data: {
-      agentId: string;
-      agentType: AgentType;
-      answer: ProcessedAnswer;
-    }) => {
-      this.handleUnblock(data.agentId, data.answer);
-    });
+    this.answerProcessor.on(
+      "agent:unblocked",
+      (data: {
+        agentId: string;
+        agentType: AgentType;
+        answer: ProcessedAnswer;
+      }) => {
+        this.handleUnblock(data.agentId, data.answer);
+      },
+    );
   }
 
   /**
@@ -85,7 +91,9 @@ export class ExecutionGate extends EventEmitter {
       this.checkBlockTimeouts();
     }, this.config.checkIntervalMs);
 
-    console.log(`[ExecutionGate] Started with ${this.gateStates.size} tracked agents`);
+    console.log(
+      `[ExecutionGate] Started with ${this.gateStates.size} tracked agents`,
+    );
   }
 
   /**
@@ -96,7 +104,7 @@ export class ExecutionGate extends EventEmitter {
       clearInterval(this.checkInterval);
       this.checkInterval = undefined;
     }
-    console.log('[ExecutionGate] Stopped');
+    console.log("[ExecutionGate] Stopped");
   }
 
   /**
@@ -107,8 +115,8 @@ export class ExecutionGate extends EventEmitter {
     if (this.globalHalt) {
       return {
         canProceed: false,
-        status: 'halted',
-        reason: this.globalHaltReason || 'System halted',
+        status: "halted",
+        reason: this.globalHaltReason || "System halted",
       };
     }
 
@@ -116,56 +124,57 @@ export class ExecutionGate extends EventEmitter {
     const state = this.gateStates.get(agentId);
 
     if (!state) {
-      return { canProceed: true, status: 'open' };
+      return { canProceed: true, status: "open" };
     }
 
     // Update last checked
     state.lastCheckedAt = new Date();
 
-    if (state.status === 'open') {
-      return { canProceed: true, status: 'open' };
+    if (state.status === "open") {
+      return { canProceed: true, status: "open" };
     }
 
-    if (state.status === 'halted') {
+    if (state.status === "halted") {
       return {
         canProceed: false,
-        status: 'halted',
+        status: "halted",
         reason: state.reason,
       };
     }
 
-    if (state.status === 'blocked') {
+    if (state.status === "blocked") {
       // Check if still blocked
-      const pendingQuestions = this.answerProcessor.getPendingQuestionsForAgent(agentId)
-        .filter(q => q.blocking);
+      const pendingQuestions = this.answerProcessor
+        .getPendingQuestionsForAgent(agentId)
+        .filter((q) => q.blocking);
 
       if (pendingQuestions.length === 0) {
         // No longer blocked
-        state.status = 'open';
+        state.status = "open";
         state.blockedBy = undefined;
         state.blockedSince = undefined;
         this.updateStateInDb(state);
 
-        return { canProceed: true, status: 'open' };
+        return { canProceed: true, status: "open" };
       }
 
       return {
         canProceed: false,
-        status: 'blocked',
+        status: "blocked",
         reason: `Waiting for ${pendingQuestions.length} question(s)`,
-        waitingFor: pendingQuestions.map(q => q.id),
+        waitingFor: pendingQuestions.map((q) => q.id),
       };
     }
 
-    if (state.status === 'error') {
+    if (state.status === "error") {
       return {
         canProceed: false,
-        status: 'error',
+        status: "error",
         reason: state.reason,
       };
     }
 
-    return { canProceed: true, status: 'open' };
+    return { canProceed: true, status: "open" };
   }
 
   /**
@@ -175,14 +184,14 @@ export class ExecutionGate extends EventEmitter {
     agentId: string,
     agentType: AgentType,
     reason: string,
-    questionIds: string[]
+    questionIds: string[],
   ): Promise<void> {
     const now = new Date();
 
     const state: GateState = {
       agentId,
       agentType,
-      status: 'blocked',
+      status: "blocked",
       reason,
       blockedBy: questionIds,
       blockedSince: now,
@@ -192,7 +201,7 @@ export class ExecutionGate extends EventEmitter {
     this.gateStates.set(agentId, state);
     await this.updateStateInDb(state);
 
-    this.emit('agent:blocked', { agentId, agentType, reason, questionIds });
+    this.emit("agent:blocked", { agentId, agentType, reason, questionIds });
     console.log(`[ExecutionGate] Blocked agent ${agentId}: ${reason}`);
   }
 
@@ -202,12 +211,12 @@ export class ExecutionGate extends EventEmitter {
   async unblockAgent(agentId: string): Promise<void> {
     const state = this.gateStates.get(agentId);
 
-    if (!state || state.status === 'open') {
+    if (!state || state.status === "open") {
       return;
     }
 
     const previousStatus = state.status;
-    state.status = 'open';
+    state.status = "open";
     state.blockedBy = undefined;
     state.blockedSince = undefined;
     state.reason = undefined;
@@ -215,20 +224,28 @@ export class ExecutionGate extends EventEmitter {
 
     await this.updateStateInDb(state);
 
-    this.emit('agent:unblocked', { agentId, agentType: state.agentType, previousStatus });
+    this.emit("agent:unblocked", {
+      agentId,
+      agentType: state.agentType,
+      previousStatus,
+    });
     console.log(`[ExecutionGate] Unblocked agent ${agentId}`);
   }
 
   /**
    * Halt an agent (more severe than block).
    */
-  async haltAgent(agentId: string, agentType: AgentType, reason: string): Promise<void> {
+  async haltAgent(
+    agentId: string,
+    agentType: AgentType,
+    reason: string,
+  ): Promise<void> {
     const now = new Date();
 
     const state: GateState = {
       agentId,
       agentType,
-      status: 'halted',
+      status: "halted",
       reason,
       haltedSince: now,
       lastCheckedAt: now,
@@ -237,7 +254,7 @@ export class ExecutionGate extends EventEmitter {
     this.gateStates.set(agentId, state);
     await this.updateStateInDb(state);
 
-    this.emit('agent:halted', { agentId, agentType, reason });
+    this.emit("agent:halted", { agentId, agentType, reason });
     console.log(`[ExecutionGate] Halted agent ${agentId}: ${reason}`);
   }
 
@@ -247,31 +264,35 @@ export class ExecutionGate extends EventEmitter {
   async resumeAgent(agentId: string): Promise<void> {
     const state = this.gateStates.get(agentId);
 
-    if (!state || state.status !== 'halted') {
+    if (!state || state.status !== "halted") {
       return;
     }
 
-    state.status = 'open';
+    state.status = "open";
     state.haltedSince = undefined;
     state.reason = undefined;
     state.lastCheckedAt = new Date();
 
     await this.updateStateInDb(state);
 
-    this.emit('agent:resumed', { agentId, agentType: state.agentType });
+    this.emit("agent:resumed", { agentId, agentType: state.agentType });
     console.log(`[ExecutionGate] Resumed agent ${agentId}`);
   }
 
   /**
    * Set an agent to error state.
    */
-  async setAgentError(agentId: string, agentType: AgentType, error: string): Promise<void> {
+  async setAgentError(
+    agentId: string,
+    agentType: AgentType,
+    error: string,
+  ): Promise<void> {
     const now = new Date();
 
     const state: GateState = {
       agentId,
       agentType,
-      status: 'error',
+      status: "error",
       reason: error,
       lastCheckedAt: now,
     };
@@ -279,7 +300,7 @@ export class ExecutionGate extends EventEmitter {
     this.gateStates.set(agentId, state);
     await this.updateStateInDb(state);
 
-    this.emit('agent:error', { agentId, agentType, error });
+    this.emit("agent:error", { agentId, agentType, error });
     console.log(`[ExecutionGate] Error state for ${agentId}: ${error}`);
   }
 
@@ -289,17 +310,17 @@ export class ExecutionGate extends EventEmitter {
   async clearAgentError(agentId: string): Promise<void> {
     const state = this.gateStates.get(agentId);
 
-    if (!state || state.status !== 'error') {
+    if (!state || state.status !== "error") {
       return;
     }
 
-    state.status = 'open';
+    state.status = "open";
     state.reason = undefined;
     state.lastCheckedAt = new Date();
 
     await this.updateStateInDb(state);
 
-    this.emit('agent:error_cleared', { agentId, agentType: state.agentType });
+    this.emit("agent:error_cleared", { agentId, agentType: state.agentType });
   }
 
   /**
@@ -309,7 +330,7 @@ export class ExecutionGate extends EventEmitter {
     this.globalHalt = true;
     this.globalHaltReason = reason;
 
-    this.emit('global:halt', { reason });
+    this.emit("global:halt", { reason });
     console.log(`[ExecutionGate] GLOBAL HALT: ${reason}`);
   }
 
@@ -320,8 +341,8 @@ export class ExecutionGate extends EventEmitter {
     this.globalHalt = false;
     this.globalHaltReason = undefined;
 
-    this.emit('global:resume');
-    console.log('[ExecutionGate] Global resume');
+    this.emit("global:resume");
+    console.log("[ExecutionGate] Global resume");
   }
 
   /**
@@ -337,7 +358,7 @@ export class ExecutionGate extends EventEmitter {
   getBlockedAgents(): GateState[] {
     const blocked: GateState[] = [];
     for (const state of this.gateStates.values()) {
-      if (state.status === 'blocked') {
+      if (state.status === "blocked") {
         blocked.push(state);
       }
     }
@@ -350,7 +371,7 @@ export class ExecutionGate extends EventEmitter {
   getHaltedAgents(): GateState[] {
     const halted: GateState[] = [];
     for (const state of this.gateStates.values()) {
-      if (state.status === 'halted') {
+      if (state.status === "halted") {
         halted.push(state);
       }
     }
@@ -367,10 +388,14 @@ export class ExecutionGate extends EventEmitter {
   /**
    * Handle answer unblocking an agent.
    */
-  private async handleUnblock(agentId: string, _answer: ProcessedAnswer): Promise<void> {
+  private async handleUnblock(
+    agentId: string,
+    _answer: ProcessedAnswer,
+  ): Promise<void> {
     // Check if agent still has other blocking questions
-    const pendingBlocking = this.answerProcessor.getPendingQuestionsForAgent(agentId)
-      .filter(q => q.blocking);
+    const pendingBlocking = this.answerProcessor
+      .getPendingQuestionsForAgent(agentId)
+      .filter((q) => q.blocking);
 
     if (pendingBlocking.length === 0) {
       await this.unblockAgent(agentId);
@@ -378,7 +403,7 @@ export class ExecutionGate extends EventEmitter {
       // Still blocked by other questions
       const state = this.gateStates.get(agentId);
       if (state) {
-        state.blockedBy = pendingBlocking.map(q => q.id);
+        state.blockedBy = pendingBlocking.map((q) => q.id);
         await this.updateStateInDb(state);
       }
     }
@@ -391,7 +416,7 @@ export class ExecutionGate extends EventEmitter {
     const now = new Date();
 
     for (const state of this.gateStates.values()) {
-      if (state.status !== 'blocked' || !state.blockedSince) {
+      if (state.status !== "blocked" || !state.blockedSince) {
         continue;
       }
 
@@ -399,15 +424,20 @@ export class ExecutionGate extends EventEmitter {
 
       if (blockedDuration > this.config.maxBlockDurationMs) {
         if (this.config.autoHaltOnTimeout) {
-          console.log(`[ExecutionGate] Block timeout for ${state.agentId}, halting`);
+          console.log(
+            `[ExecutionGate] Block timeout for ${state.agentId}, halting`,
+          );
           await this.haltAgent(
             state.agentId,
             state.agentType,
-            `Block timeout after ${Math.round(blockedDuration / 1000 / 60)} minutes`
+            `Block timeout after ${Math.round(blockedDuration / 1000 / 60)} minutes`,
           );
         }
 
-        this.emit('block:timeout', { agentId: state.agentId, duration: blockedDuration });
+        this.emit("block:timeout", {
+          agentId: state.agentId,
+          duration: blockedDuration,
+        });
       }
     }
   }
@@ -425,10 +455,7 @@ export class ExecutionGate extends EventEmitter {
       blocked_since: string | null;
       halted_since: string | null;
       last_checked_at: string;
-    }>(
-      'SELECT * FROM agent_states WHERE status != ?',
-      ['open']
-    );
+    }>("SELECT * FROM agent_states WHERE status != ?", ["open"]);
 
     for (const row of rows) {
       const state: GateState = {
@@ -437,7 +464,9 @@ export class ExecutionGate extends EventEmitter {
         status: row.status as GateStatus,
         reason: row.reason ?? undefined,
         blockedBy: row.blocked_by ? JSON.parse(row.blocked_by) : undefined,
-        blockedSince: row.blocked_since ? new Date(row.blocked_since) : undefined,
+        blockedSince: row.blocked_since
+          ? new Date(row.blocked_since)
+          : undefined,
         haltedSince: row.halted_since ? new Date(row.halted_since) : undefined,
         lastCheckedAt: new Date(row.last_checked_at),
       };
@@ -473,7 +502,7 @@ export class ExecutionGate extends EventEmitter {
         state.haltedSince?.toISOString() ?? null,
         state.lastCheckedAt.toISOString(),
         now,
-      ]
+      ],
     );
   }
 }

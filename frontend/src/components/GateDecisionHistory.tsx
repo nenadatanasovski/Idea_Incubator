@@ -1,86 +1,98 @@
-import { Shield, CheckCircle, XCircle, AlertTriangle, Clock } from 'lucide-react'
-import type { GateDecision } from '../api/client'
+import {
+  Shield,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Clock,
+} from "lucide-react";
+import type { GateDecision } from "../api/client";
 
 interface GateDecisionHistoryProps {
-  decisions: GateDecision[]
+  decisions: GateDecision[];
 }
 
-const gateTypeLabels: Record<string, { label: string; icon: typeof Shield; color: string }> = {
+const gateTypeLabels: Record<
+  string,
+  { label: string; icon: typeof Shield; color: string }
+> = {
   viability: {
-    label: 'Viability Gate',
+    label: "Viability Gate",
     icon: Shield,
-    color: 'text-purple-600'
+    color: "text-purple-600",
   },
   evaluation: {
-    label: 'Evaluation Gate',
+    label: "Evaluation Gate",
     icon: CheckCircle,
-    color: 'text-blue-600'
-  }
-}
+    color: "text-blue-600",
+  },
+};
 
-const choiceLabels: Record<string, { label: string; icon: typeof CheckCircle; color: string }> = {
+const choiceLabels: Record<
+  string,
+  { label: string; icon: typeof CheckCircle; color: string }
+> = {
   proceed_confident: {
-    label: 'Proceeded Confidently',
+    label: "Proceeded Confidently",
     icon: CheckCircle,
-    color: 'text-green-600'
+    color: "text-green-600",
   },
   proceed_cautious: {
-    label: 'Proceeded with Caution',
+    label: "Proceeded with Caution",
     icon: AlertTriangle,
-    color: 'text-yellow-600'
+    color: "text-yellow-600",
   },
   more_development: {
-    label: 'More Development',
+    label: "More Development",
     icon: Clock,
-    color: 'text-blue-600'
+    color: "text-blue-600",
   },
   pause: {
-    label: 'Paused',
+    label: "Paused",
     icon: Clock,
-    color: 'text-yellow-600'
+    color: "text-yellow-600",
   },
   abandon: {
-    label: 'Abandoned',
+    label: "Abandoned",
     icon: XCircle,
-    color: 'text-red-600'
+    color: "text-red-600",
   },
   iterate: {
-    label: 'Iteration Started',
+    label: "Iteration Started",
     icon: Clock,
-    color: 'text-amber-600'
+    color: "text-amber-600",
   },
   complete: {
-    label: 'Completed',
+    label: "Completed",
     icon: CheckCircle,
-    color: 'text-green-600'
-  }
-}
+    color: "text-green-600",
+  },
+};
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function GateDecisionItem({ decision }: { decision: GateDecision }) {
   const gateType = gateTypeLabels[decision.gate_type] || {
     label: decision.gate_type,
     icon: Shield,
-    color: 'text-gray-600'
-  }
+    color: "text-gray-600",
+  };
   const choice = choiceLabels[decision.user_choice] || {
     label: decision.user_choice,
     icon: CheckCircle,
-    color: 'text-gray-600'
-  }
+    color: "text-gray-600",
+  };
 
-  const GateIcon = gateType.icon
-  const ChoiceIcon = choice.icon
+  const GateIcon = gateType.icon;
+  const ChoiceIcon = choice.icon;
 
   return (
     <div className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg">
@@ -119,18 +131,23 @@ function GateDecisionItem({ decision }: { decision: GateDecision }) {
         )}
       </div>
     </div>
-  )
+  );
 }
 
-export default function GateDecisionHistory({ decisions }: GateDecisionHistoryProps) {
+export default function GateDecisionHistory({
+  decisions,
+}: GateDecisionHistoryProps) {
   if (decisions.length === 0) {
     return (
       <div className="card text-center py-8 text-gray-500">
         <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
         <p>No gate decisions recorded</p>
-        <p className="text-xs mt-1">Decisions will appear here as you progress through the incubation process</p>
+        <p className="text-xs mt-1">
+          Decisions will appear here as you progress through the incubation
+          process
+        </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -141,10 +158,10 @@ export default function GateDecisionHistory({ decisions }: GateDecisionHistoryPr
       </div>
 
       <div className="space-y-3">
-        {decisions.map(decision => (
+        {decisions.map((decision) => (
           <GateDecisionItem key={decision.id} decision={decision} />
         ))}
       </div>
     </div>
-  )
+  );
 }

@@ -1,38 +1,42 @@
 // agents/validation/validators/test-runner.ts
 
-import { spawn } from 'child_process';
-import { ValidatorResult } from '../../../types/validation';
-import { v4 as uuid } from 'uuid';
+import { spawn } from "child_process";
+import { ValidatorResult } from "../../../types/validation";
+import { v4 as uuid } from "uuid";
 
 export async function runTestRunner(
   runId: string,
-  args: string[] = ['run'],
-  timeoutMs: number = 120000
+  args: string[] = ["run"],
+  timeoutMs: number = 120000,
 ): Promise<ValidatorResult> {
   const startTime = Date.now();
   const id = uuid();
 
   return new Promise((resolve) => {
-    let output = '';
-    const proc = spawn('npx', ['vitest', ...args], { shell: true });
+    let output = "";
+    const proc = spawn("npx", ["vitest", ...args], { shell: true });
 
     const timeout = setTimeout(() => {
-      proc.kill('SIGTERM');
-      setTimeout(() => proc.kill('SIGKILL'), 5000);
+      proc.kill("SIGTERM");
+      setTimeout(() => proc.kill("SIGKILL"), 5000);
     }, timeoutMs);
 
-    proc.stdout.on('data', (data) => { output += data.toString(); });
-    proc.stderr.on('data', (data) => { output += data.toString(); });
+    proc.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+    proc.stderr.on("data", (data) => {
+      output += data.toString();
+    });
 
-    proc.on('close', (code) => {
+    proc.on("close", (code) => {
       clearTimeout(timeout);
       const durationMs = Date.now() - startTime;
 
       resolve({
         id,
         runId,
-        validatorName: 'vitest',
-        status: 'completed',
+        validatorName: "vitest",
+        status: "completed",
         passed: code === 0,
         output,
         durationMs,
@@ -40,13 +44,13 @@ export async function runTestRunner(
       });
     });
 
-    proc.on('error', (err) => {
+    proc.on("error", (err) => {
       clearTimeout(timeout);
       resolve({
         id,
         runId,
-        validatorName: 'vitest',
-        status: 'failed',
+        validatorName: "vitest",
+        status: "failed",
         passed: false,
         output: err.message,
         durationMs: Date.now() - startTime,

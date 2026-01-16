@@ -22,17 +22,18 @@ It should answer: "Is there a market for this idea **where I am**, and what are 
 
 ### Why Geography Matters for Each Market Criterion
 
-| Criterion | Why Geography Matters |
-|-----------|----------------------|
-| **M1: Market Size** | TAM/SAM/SOM differ dramatically by region. Australia's pet market ≠ US pet market. |
-| **M2: Market Growth** | Growth rates vary - emerging markets may grow faster than mature ones. |
-| **M3: Competition** | Local competitors differ from global players. Australian fintech landscape ≠ US. |
-| **M4: Entry Barriers** | Regulations, capital requirements, relationships are all geography-specific. |
-| **M5: Timing** | Market readiness varies - a market may be mature in US but nascent in AU. |
+| Criterion              | Why Geography Matters                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| **M1: Market Size**    | TAM/SAM/SOM differ dramatically by region. Australia's pet market ≠ US pet market. |
+| **M2: Market Growth**  | Growth rates vary - emerging markets may grow faster than mature ones.             |
+| **M3: Competition**    | Local competitors differ from global players. Australian fintech landscape ≠ US.   |
+| **M4: Entry Barriers** | Regulations, capital requirements, relationships are all geography-specific.       |
+| **M5: Timing**         | Market readiness varies - a market may be mature in US but nascent in AU.          |
 
 ### The Network Effect Intersection
 
 The user profile already captures **industry connections** and **professional network** (FT4), but without geographic context for these networks, we can't assess:
+
 - Whether the user has **local** connections that help with **local** entry barriers
 - Whether global expansion requires building entirely new networks
 - The go-to-market advantage of starting locally vs. globally
@@ -44,6 +45,7 @@ The user profile already captures **industry connections** and **professional ne
 ### What Geographic Data Exists
 
 **User Profile (Database Schema):**
+
 ```sql
 country TEXT,           -- e.g., "Australia"
 city TEXT,              -- e.g., "Sydney"
@@ -52,6 +54,7 @@ currency TEXT,          -- e.g., "USD"
 ```
 
 **Example Profile (ned):**
+
 - Country: Australia
 - City: Sydney
 - Timezone: UTC+10:00 (Sydney)
@@ -83,16 +86,16 @@ currency TEXT,          -- e.g., "USD"
 
 ### Gap Identification
 
-| Component | Current State | Missing |
-|-----------|---------------|---------|
-| `UserProfileSchema` | Has country/city/timezone | ✅ Already exists |
-| `ProfileContext` | Has networkContext | ❌ No geographic context extraction |
-| `formatProfileForCategory('market')` | Shows network | ❌ Doesn't include location |
-| `research.ts` | Web search queries | ❌ No geo-filtered queries |
-| `ResearchResult` | Global data only | ❌ No local/global split |
-| `specialized-evaluators.ts` | Market Analyst prompt | ❌ No location context |
-| `market.yaml` questions | Generic questions | ❌ No local market questions |
-| `evaluation.md` output | Single market section | ❌ No local/global sections |
+| Component                            | Current State             | Missing                             |
+| ------------------------------------ | ------------------------- | ----------------------------------- |
+| `UserProfileSchema`                  | Has country/city/timezone | ✅ Already exists                   |
+| `ProfileContext`                     | Has networkContext        | ❌ No geographic context extraction |
+| `formatProfileForCategory('market')` | Shows network             | ❌ Doesn't include location         |
+| `research.ts`                        | Web search queries        | ❌ No geo-filtered queries          |
+| `ResearchResult`                     | Global data only          | ❌ No local/global split            |
+| `specialized-evaluators.ts`          | Market Analyst prompt     | ❌ No location context              |
+| `market.yaml` questions              | Generic questions         | ❌ No local market questions        |
+| `evaluation.md` output               | Single market section     | ❌ No local/global sections         |
 
 ---
 
@@ -165,23 +168,29 @@ export const ProfileContextSchema = z.object({
   lifeStageContext: z.string(),
 
   // NEW: Geographic context
-  geographicContext: z.object({
-    primaryLocation: z.object({
-      country: z.string(),
-      city: z.string().optional(),
-      timezone: z.string().optional(),
-    }).optional(),
-    currency: z.string().optional(),
-    networkGeography: z.object({
-      localConnections: z.string(),      // Connections in user's country
-      regionalConnections: z.string(),   // Connections in nearby regions
-      globalConnections: z.string(),     // Connections worldwide
-    }).optional(),
-  }).optional(),
+  geographicContext: z
+    .object({
+      primaryLocation: z
+        .object({
+          country: z.string(),
+          city: z.string().optional(),
+          timezone: z.string().optional(),
+        })
+        .optional(),
+      currency: z.string().optional(),
+      networkGeography: z
+        .object({
+          localConnections: z.string(), // Connections in user's country
+          regionalConnections: z.string(), // Connections in nearby regions
+          globalConnections: z.string(), // Connections worldwide
+        })
+        .optional(),
+    })
+    .optional(),
 
   // Raw data
   profile: UserProfileSchema.optional(),
-  ideaOverrides: IdeaProfileLinkSchema.optional()
+  ideaOverrides: IdeaProfileLinkSchema.optional(),
 });
 ```
 
@@ -193,7 +202,7 @@ Add geographic breakdown to research results:
 
 ```typescript
 export interface GeographicMarketData {
-  region: string;  // e.g., "Australia", "Global", "United States"
+  region: string; // e.g., "Australia", "Global", "United States"
   marketSize: {
     tam: string | null;
     sam: string | null;
@@ -202,7 +211,7 @@ export interface GeographicMarketData {
   };
   competitors: {
     players: string[];
-    intensity: 'low' | 'moderate' | 'high' | 'intense';
+    intensity: "low" | "moderate" | "high" | "intense";
     sources: string[];
   };
   entryBarriers: {
@@ -212,21 +221,33 @@ export interface GeographicMarketData {
     sources: string[];
   };
   marketTiming: {
-    readiness: 'emerging' | 'growing' | 'mature' | 'declining';
+    readiness: "emerging" | "growing" | "mature" | "declining";
     catalysts: string[];
   };
 }
 
 export interface ResearchResult {
   // Existing fields (keep for backwards compatibility)
-  marketSize: { userClaim: string | null; verified: string | null; sources: string[] };
-  competitors: { userMentioned: string[]; discovered: string[]; sources: string[] };
+  marketSize: {
+    userClaim: string | null;
+    verified: string | null;
+    sources: string[];
+  };
+  competitors: {
+    userMentioned: string[];
+    discovered: string[];
+    sources: string[];
+  };
   trends: { direction: string; evidence: string; sources: string[] };
-  techFeasibility: { assessment: string; examples: string[]; sources: string[] };
+  techFeasibility: {
+    assessment: string;
+    examples: string[];
+    sources: string[];
+  };
 
   // NEW: Geographic breakdown
   geographicAnalysis?: {
-    localMarket: GeographicMarketData | null;  // User's country
+    localMarket: GeographicMarketData | null; // User's country
     globalMarket: GeographicMarketData | null; // Worldwide
     expansionMarkets?: GeographicMarketData[]; // Key expansion opportunities
     creatorLocation: { country: string; city?: string } | null;
@@ -250,14 +271,16 @@ export async function conductPreEvaluationResearch(
   ideaContent: string,
   claims: ExtractedClaims,
   costTracker: CostTracker,
-  creatorLocation?: { country: string; city?: string } // NEW PARAMETER
+  creatorLocation?: { country: string; city?: string }, // NEW PARAMETER
 ): Promise<ResearchResult> {
   // Build geographic-specific queries
-  const localQueries = creatorLocation ? [
-    `${claims.domain} market ${creatorLocation.country} ${currentYear}`,
-    `${claims.domain} competitors ${creatorLocation.country}`,
-    `${claims.domain} regulations ${creatorLocation.country}`,
-  ] : [];
+  const localQueries = creatorLocation
+    ? [
+        `${claims.domain} market ${creatorLocation.country} ${currentYear}`,
+        `${claims.domain} competitors ${creatorLocation.country}`,
+        `${claims.domain} regulations ${creatorLocation.country}`,
+      ]
+    : [];
 
   const globalQueries = [
     `${claims.domain} market global ${currentYear}`,
@@ -280,14 +303,14 @@ Update the research prompt to request geographic breakdown:
 const researchPrompt = `You are a market research analyst. Use WebSearch to research this business idea.
 
 ## Creator Context
-${creatorLocation ? `The creator is based in **${creatorLocation.city || ''}, ${creatorLocation.country}**.` : 'Creator location unknown.'}
+${creatorLocation ? `The creator is based in **${creatorLocation.city || ""}, ${creatorLocation.country}**.` : "Creator location unknown."}
 
 ## Research Tasks
 
-### Local Market Research (${creatorLocation?.country || 'Unknown'})
-1. Market size for: ${claims.domain} market ${creatorLocation?.country || ''} ${currentYear}
-2. Key LOCAL competitors in: ${claims.domain} ${creatorLocation?.country || ''}
-3. LOCAL regulations/barriers for: ${claims.domain} ${creatorLocation?.country || ''}
+### Local Market Research (${creatorLocation?.country || "Unknown"})
+1. Market size for: ${claims.domain} market ${creatorLocation?.country || ""} ${currentYear}
+2. Key LOCAL competitors in: ${claims.domain} ${creatorLocation?.country || ""}
+3. LOCAL regulations/barriers for: ${claims.domain} ${creatorLocation?.country || ""}
 
 ### Global Market Research
 4. Global market size for: ${claims.domain} market ${currentYear}
@@ -297,7 +320,7 @@ ${creatorLocation ? `The creator is based in **${creatorLocation.city || ''}, ${
 ## Output Format
 {
   "localMarket": {
-    "region": "${creatorLocation?.country || 'Unknown'}",
+    "region": "${creatorLocation?.country || "Unknown"}",
     "marketSize": { "tam": "...", "sam": "...", "sources": [...] },
     "competitors": { "players": [...], "intensity": "...", "sources": [...] },
     "entryBarriers": { "regulatory": "...", "capital": "...", "sources": [...] },
@@ -323,7 +346,9 @@ ${creatorLocation ? `The creator is based in **${creatorLocation.city || ''}, ${
 Add new function to extract geographic context:
 
 ```typescript
-export function extractGeographicContext(profile: UserProfile | null): ProfileContext['geographicContext'] {
+export function extractGeographicContext(
+  profile: UserProfile | null,
+): ProfileContext["geographicContext"] {
   if (!profile) return undefined;
 
   const hasLocation = profile.country || profile.city;
@@ -331,28 +356,37 @@ export function extractGeographicContext(profile: UserProfile | null): ProfileCo
 
   // Analyze industry connections for geographic distribution
   const connections = profile.industryConnections || [];
-  const networkText = profile.professionalNetwork || '';
+  const networkText = profile.professionalNetwork || "";
   const communities = profile.communityAccess || [];
 
   // Simple heuristic: check if network mentions are local or global
   const localIndicators = [profile.country, profile.city].filter(Boolean);
-  const hasLocalNetwork = connections.some(c =>
-    localIndicators.some(loc => c.description?.toLowerCase().includes(loc!.toLowerCase()))
-  ) || localIndicators.some(loc =>
-    networkText.toLowerCase().includes(loc!.toLowerCase())
-  );
+  const hasLocalNetwork =
+    connections.some((c) =>
+      localIndicators.some((loc) =>
+        c.description?.toLowerCase().includes(loc!.toLowerCase()),
+      ),
+    ) ||
+    localIndicators.some((loc) =>
+      networkText.toLowerCase().includes(loc!.toLowerCase()),
+    );
 
   return {
     primaryLocation: {
-      country: profile.country || 'Unknown',
+      country: profile.country || "Unknown",
       city: profile.city,
       timezone: profile.timezone,
     },
     currency: profile.currency,
     networkGeography: {
-      localConnections: hasLocalNetwork ? 'Has local connections' : 'Limited local connections',
-      regionalConnections: 'Not specified',
-      globalConnections: connections.length > 0 ? 'Has industry connections' : 'Limited global network',
+      localConnections: hasLocalNetwork
+        ? "Has local connections"
+        : "Limited local connections",
+      regionalConnections: "Not specified",
+      globalConnections:
+        connections.length > 0
+          ? "Has industry connections"
+          : "Limited global network",
     },
   };
 }
@@ -477,33 +511,33 @@ Modify `formatResearchForCategory`:
 ```typescript
 export function formatResearchForCategory(
   research: ResearchResult | null,
-  category: string
+  category: string,
 ): string {
-  if (!research) return '';
+  if (!research) return "";
 
-  if (category === 'market') {
+  if (category === "market") {
     const geo = research.geographicAnalysis;
 
     let output = `## External Research (Web Search Results)\n\n`;
 
     if (geo?.localMarket) {
-      output += `### Local Market (${geo.creatorLocation?.country || 'Unknown Region'})\n\n`;
+      output += `### Local Market (${geo.creatorLocation?.country || "Unknown Region"})\n\n`;
       output += `**Market Size:**\n`;
-      output += `- TAM: ${geo.localMarket.marketSize.tam || 'Not found'}\n`;
-      output += `- SAM: ${geo.localMarket.marketSize.sam || 'Not found'}\n\n`;
-      output += `**Local Competitors:** ${geo.localMarket.competitors.players.join(', ') || 'None discovered'}\n`;
+      output += `- TAM: ${geo.localMarket.marketSize.tam || "Not found"}\n`;
+      output += `- SAM: ${geo.localMarket.marketSize.sam || "Not found"}\n\n`;
+      output += `**Local Competitors:** ${geo.localMarket.competitors.players.join(", ") || "None discovered"}\n`;
       output += `**Competition Intensity:** ${geo.localMarket.competitors.intensity}\n\n`;
       output += `**Entry Barriers:**\n`;
-      output += `- Regulatory: ${geo.localMarket.entryBarriers.regulatory || 'Unknown'}\n`;
-      output += `- Capital: ${geo.localMarket.entryBarriers.capital || 'Unknown'}\n\n`;
+      output += `- Regulatory: ${geo.localMarket.entryBarriers.regulatory || "Unknown"}\n`;
+      output += `- Capital: ${geo.localMarket.entryBarriers.capital || "Unknown"}\n\n`;
       output += `**Market Timing:** ${geo.localMarket.marketTiming.readiness}\n\n`;
     }
 
     if (geo?.globalMarket) {
       output += `### Global Market\n\n`;
       output += `**Market Size:**\n`;
-      output += `- Global TAM: ${geo.globalMarket.marketSize.tam || 'Not found'}\n\n`;
-      output += `**Global Competitors:** ${geo.globalMarket.competitors.players.join(', ') || 'None discovered'}\n`;
+      output += `- Global TAM: ${geo.globalMarket.marketSize.tam || "Not found"}\n\n`;
+      output += `**Global Competitors:** ${geo.globalMarket.competitors.players.join(", ") || "None discovered"}\n`;
       output += `**Competition Intensity:** ${geo.globalMarket.competitors.intensity}\n\n`;
       output += `**Market Timing:** ${geo.globalMarket.marketTiming.readiness}\n\n`;
     }
@@ -511,8 +545,8 @@ export function formatResearchForCategory(
     // Include original format for backwards compatibility
     output += `### Combined Research Summary\n\n`;
     output += `**Market Size (User Claim vs Verified):**\n`;
-    output += `- User claimed: ${research.marketSize.userClaim || 'Not specified'}\n`;
-    output += `- Verified: ${research.marketSize.verified || 'Could not verify'}\n\n`;
+    output += `- User claimed: ${research.marketSize.userClaim || "Not specified"}\n`;
+    output += `- Verified: ${research.marketSize.verified || "Could not verify"}\n\n`;
 
     return output;
   }
@@ -533,6 +567,7 @@ Update evaluation markdown format to include geographic sections:
 ### Market
 
 **Market Size:** 8/10
+
 > **LOCAL (Australia):** The Australian pet care market is valued at $15B with
 > healthy growth. The AI pet health segment is nascent but growing.
 >
@@ -543,6 +578,7 @@ Update evaluation markdown format to include geographic sections:
 > and less competitive - good testing ground before global expansion.
 
 **Market Growth:** 9/10
+
 > **LOCAL:** Australian market growing at 8% CAGR, driven by pet humanization.
 >
 > **GLOBAL:** Global AI pet care growing at 12.5% CAGR with tailwinds from
@@ -552,6 +588,7 @@ Update evaluation markdown format to include geographic sections:
 > local launch then rapid international expansion.
 
 **Competition Intensity:** 4/10
+
 > **LOCAL:** Limited direct AI pet health competitors in Australia. Opportunity
 > to establish market leadership locally.
 >
@@ -562,6 +599,7 @@ Update evaluation markdown format to include geographic sections:
 > for local-first strategy.
 
 **Entry Barriers:** 5/10
+
 > **LOCAL:** Australian health regulations less stringent for pet apps.
 > Creator's Sydney network may help with local vet partnerships.
 >
@@ -572,6 +610,7 @@ Update evaluation markdown format to include geographic sections:
 > High global barriers without significant funding.
 
 **Timing:** 7/10
+
 > **LOCAL:** Australian market ready but smaller. Good timing for first-mover
 > advantage locally.
 >
@@ -588,24 +627,28 @@ Update evaluation markdown format to include geographic sections:
 ### Recommendation: Start Local, Scale Global
 
 **Local Market Score:** 7.2/10
+
 - Smaller but growing market
 - Less competition (blue ocean opportunity)
 - Lower entry barriers
 - Creator's network advantage in Sydney
 
 **Global Market Score:** 5.8/10
+
 - Massive market opportunity
 - Intense competition
 - High entry barriers
 - No significant network advantage
 
 **Strategy:** Launch in Australia first to:
+
 1. Validate product-market fit with lower risk
 2. Build initial traction and case studies
 3. Develop AI models with real user data
 4. Prepare for global expansion with proof points
 
 **Expansion Path:**
+
 1. Australia (Year 1) - Prove model, build brand
 2. New Zealand (Year 2) - Similar market, easy expansion
 3. UK/US (Year 3+) - With funding and proven product
@@ -697,7 +740,11 @@ interface GeographicMarketProps {
 }
 
 function GeographicMarketBreakdown({
-  localScore, globalScore, localAnalysis, globalAnalysis, recommendation
+  localScore,
+  globalScore,
+  localAnalysis,
+  globalAnalysis,
+  recommendation,
 }: GeographicMarketProps) {
   return (
     <div className="bg-gray-50 rounded-lg p-4 mt-4">
@@ -706,14 +753,18 @@ function GeographicMarketBreakdown({
       </h4>
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white rounded p-3 border">
-          <div className="text-xs text-gray-500 uppercase mb-1">Local Market</div>
+          <div className="text-xs text-gray-500 uppercase mb-1">
+            Local Market
+          </div>
           <div className={`text-2xl font-bold ${getScoreColor(localScore)}`}>
             {localScore.toFixed(1)}/10
           </div>
           <p className="text-xs text-gray-600 mt-2">{localAnalysis}</p>
         </div>
         <div className="bg-white rounded p-3 border">
-          <div className="text-xs text-gray-500 uppercase mb-1">Global Market</div>
+          <div className="text-xs text-gray-500 uppercase mb-1">
+            Global Market
+          </div>
           <div className={`text-2xl font-bold ${getScoreColor(globalScore)}`}>
             {globalScore.toFixed(1)}/10
           </div>
@@ -784,31 +835,34 @@ function GeographicMarketBreakdown({
 
 ## File Change Summary
 
-| File | Change Type | Changes |
-|------|-------------|---------|
-| `utils/schemas.ts` | Modify | Add geographicContext to ProfileContextSchema |
-| `agents/research.ts` | Modify | Add GeographicMarketData interface, update research queries |
-| `utils/profile-context.ts` | Modify | Add extractGeographicContext(), update market formatting |
-| `scripts/profile.ts` | Modify | Update generateProfileContext() for geo data |
-| `agents/specialized-evaluators.ts` | Modify | Update Market Analyst prompt |
-| `agents/synthesis.ts` | Modify | Update output formatting for geo sections |
-| `questions/market.yaml` | Modify | Add 6 new geographic questions |
-| `frontend/src/components/EvaluationScorecard.tsx` | Modify | Add GeographicMarketBreakdown |
-| `database/migrations/009_profile_geography.sql` | Create | Ensure geo columns exist (already present) |
+| File                                              | Change Type | Changes                                                     |
+| ------------------------------------------------- | ----------- | ----------------------------------------------------------- |
+| `utils/schemas.ts`                                | Modify      | Add geographicContext to ProfileContextSchema               |
+| `agents/research.ts`                              | Modify      | Add GeographicMarketData interface, update research queries |
+| `utils/profile-context.ts`                        | Modify      | Add extractGeographicContext(), update market formatting    |
+| `scripts/profile.ts`                              | Modify      | Update generateProfileContext() for geo data                |
+| `agents/specialized-evaluators.ts`                | Modify      | Update Market Analyst prompt                                |
+| `agents/synthesis.ts`                             | Modify      | Update output formatting for geo sections                   |
+| `questions/market.yaml`                           | Modify      | Add 6 new geographic questions                              |
+| `frontend/src/components/EvaluationScorecard.tsx` | Modify      | Add GeographicMarketBreakdown                               |
+| `database/migrations/009_profile_geography.sql`   | Create      | Ensure geo columns exist (already present)                  |
 
 ---
 
 ## Backwards Compatibility
 
 ### Existing Evaluations
+
 - No changes to existing evaluation.md files
 - New format only applies to new evaluations
 
 ### Missing Profile Location
+
 - If user profile has no location: Fall back to global-only analysis
 - Add prompt: "For more accurate market analysis, add your location to your profile"
 
 ### Research Fallback
+
 - If geo-specific search fails: Use global results
 - Log warning but don't fail evaluation
 
@@ -817,16 +871,19 @@ function GeographicMarketBreakdown({
 ## Testing Strategy
 
 ### Unit Tests
+
 1. `extractGeographicContext()` with various profile configurations
 2. Geographic query builder with different locations
 3. Research result parsing with geo data
 
 ### Integration Tests
+
 1. Full evaluation with geo-enabled profile
 2. Full evaluation with profile missing location
 3. Research phase with/without location
 
 ### E2E Test (via Puppeteer)
+
 1. Create idea through UI
 2. Link "ned" profile (has Australia/Sydney)
 3. Run evaluation
@@ -839,13 +896,13 @@ function GeographicMarketBreakdown({
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Geo-specific search returns poor results | Medium | Low | Fall back to global search |
-| Increased token usage from dual analysis | Medium | Medium | Use efficient prompting, cache research |
-| Breaking existing evaluations | Low | High | Backwards compatible schema |
-| Profile location data incomplete | Medium | Low | Graceful fallback to global-only |
-| Research API rate limits | Low | Medium | Batch geographic queries |
+| Risk                                     | Likelihood | Impact | Mitigation                              |
+| ---------------------------------------- | ---------- | ------ | --------------------------------------- |
+| Geo-specific search returns poor results | Medium     | Low    | Fall back to global search              |
+| Increased token usage from dual analysis | Medium     | Medium | Use efficient prompting, cache research |
+| Breaking existing evaluations            | Low        | High   | Backwards compatible schema             |
+| Profile location data incomplete         | Medium     | Low    | Graceful fallback to global-only        |
+| Research API rate limits                 | Low        | Medium | Batch geographic queries                |
 
 ---
 

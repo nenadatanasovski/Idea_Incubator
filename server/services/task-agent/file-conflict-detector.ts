@@ -20,71 +20,73 @@
  * Part of: PTE-049 to PTE-052
  */
 
-import { query, getOne } from '../../../database/db.js';
+import { query, getOne } from "../../../database/db.js";
 import {
   FileConflict,
   FileOperation,
   ConflictType,
   TaskIdentity,
-} from '../../../types/task-agent.js';
+} from "../../../types/task-agent.js";
 
 /**
  * Determine conflict type between two operations
  */
 export function getConflictType(
   operationA: FileOperation,
-  operationB: FileOperation
+  operationB: FileOperation,
 ): ConflictType {
   // Both just reading - no conflict
-  if (operationA === 'READ' && operationB === 'READ') {
-    return 'no_conflict';
+  if (operationA === "READ" && operationB === "READ") {
+    return "no_conflict";
   }
 
   // One reads while other creates/updates - safe
   if (
-    (operationA === 'READ' && (operationB === 'CREATE' || operationB === 'UPDATE')) ||
-    (operationB === 'READ' && (operationA === 'CREATE' || operationA === 'UPDATE'))
+    (operationA === "READ" &&
+      (operationB === "CREATE" || operationB === "UPDATE")) ||
+    (operationB === "READ" &&
+      (operationA === "CREATE" || operationA === "UPDATE"))
   ) {
-    return 'no_conflict';
+    return "no_conflict";
   }
 
   // Both create same file
-  if (operationA === 'CREATE' && operationB === 'CREATE') {
-    return 'create_create';
+  if (operationA === "CREATE" && operationB === "CREATE") {
+    return "create_create";
   }
 
   // Both write (update or delete)
   if (
-    (operationA === 'UPDATE' || operationA === 'DELETE') &&
-    (operationB === 'UPDATE' || operationB === 'DELETE')
+    (operationA === "UPDATE" || operationA === "DELETE") &&
+    (operationB === "UPDATE" || operationB === "DELETE")
   ) {
-    return 'write_write';
+    return "write_write";
   }
 
   // Create and delete - race condition
   if (
-    (operationA === 'CREATE' && operationB === 'DELETE') ||
-    (operationA === 'DELETE' && operationB === 'CREATE')
+    (operationA === "CREATE" && operationB === "DELETE") ||
+    (operationA === "DELETE" && operationB === "CREATE")
   ) {
-    return 'create_delete';
+    return "create_delete";
   }
 
   // Read and delete - file may not exist
   if (
-    (operationA === 'READ' && operationB === 'DELETE') ||
-    (operationA === 'DELETE' && operationB === 'READ')
+    (operationA === "READ" && operationB === "DELETE") ||
+    (operationA === "DELETE" && operationB === "READ")
   ) {
-    return 'read_delete';
+    return "read_delete";
   }
 
-  return 'no_conflict';
+  return "no_conflict";
 }
 
 /**
  * Check if a conflict type represents an actual conflict
  */
 export function isConflict(conflictType: ConflictType): boolean {
-  return conflictType !== 'no_conflict';
+  return conflictType !== "no_conflict";
 }
 
 /**
@@ -96,7 +98,7 @@ export function isConflict(conflictType: ConflictType): boolean {
  */
 export async function detectConflicts(
   taskAId: string,
-  taskBId: string
+  taskBId: string,
 ): Promise<FileConflict[]> {
   const conflicts = await query<{
     file_path: string;
@@ -115,7 +117,7 @@ export async function detectConflicts(
     JOIN task_file_impacts fi2 ON fi1.file_path = fi2.file_path
     WHERE fi1.task_id = ?
       AND fi2.task_id = ?`,
-    [taskAId, taskBId]
+    [taskAId, taskBId],
   );
 
   const result: FileConflict[] = [];
@@ -123,7 +125,7 @@ export async function detectConflicts(
   for (const row of conflicts) {
     const conflictType = getConflictType(
       row.operation_a as FileOperation,
-      row.operation_b as FileOperation
+      row.operation_b as FileOperation,
     );
 
     if (isConflict(conflictType)) {
@@ -152,7 +154,7 @@ export async function detectConflicts(
  */
 export async function canRunParallel(
   taskAId: string,
-  taskBId: string
+  taskBId: string,
 ): Promise<boolean> {
   // Check for dependency relationship
   const hasDependency = await getOne<{ found: number }>(
@@ -162,7 +164,7 @@ export async function canRunParallel(
         OR (source_task_id = ? AND target_task_id = ?))
        AND relationship_type = 'depends_on'
      LIMIT 1`,
-    [taskAId, taskBId, taskBId, taskAId]
+    [taskAId, taskBId, taskBId, taskAId],
   );
 
   if (hasDependency?.found) {
@@ -174,7 +176,7 @@ export async function canRunParallel(
 
   // Only consider high-confidence conflicts
   const significantConflicts = conflicts.filter(
-    (c) => c.confidenceA >= 0.6 && c.confidenceB >= 0.6
+    (c) => c.confidenceA >= 0.6 && c.confidenceB >= 0.6,
   );
 
   return significantConflicts.length === 0;
@@ -185,11 +187,11 @@ export async function canRunParallel(
  */
 export async function getConflictDetails(
   taskAId: string,
-  taskBId: string
+  taskBId: string,
 ): Promise<{
   canRunParallel: boolean;
   hasDependency: boolean;
-  dependencyDirection?: 'a_depends_on_b' | 'b_depends_on_a';
+  dependencyDirection?: "a_depends_on_b" | "b_depends_on_a";
   fileConflicts: FileConflict[];
   conflictSummary: string;
 }> {
@@ -204,28 +206,31 @@ export async function getConflictDetails(
         OR (source_task_id = ? AND target_task_id = ?))
        AND relationship_type = 'depends_on'
      LIMIT 1`,
-    [taskAId, taskBId, taskBId, taskAId]
+    [taskAId, taskBId, taskBId, taskAId],
   );
 
   const hasDependency = !!dependencyCheck;
-  let dependencyDirection: 'a_depends_on_b' | 'b_depends_on_a' | undefined;
+  let dependencyDirection: "a_depends_on_b" | "b_depends_on_a" | undefined;
   if (dependencyCheck) {
     dependencyDirection =
-      dependencyCheck.source_task_id === taskAId ? 'a_depends_on_b' : 'b_depends_on_a';
+      dependencyCheck.source_task_id === taskAId
+        ? "a_depends_on_b"
+        : "b_depends_on_a";
   }
 
   // Get file conflicts
   const fileConflicts = await detectConflicts(taskAId, taskBId);
 
   // Generate summary
-  let conflictSummary = '';
+  let conflictSummary = "";
   if (hasDependency) {
-    conflictSummary = dependencyDirection === 'a_depends_on_b'
-      ? 'Task A depends on Task B - must run sequentially'
-      : 'Task B depends on Task A - must run sequentially';
+    conflictSummary =
+      dependencyDirection === "a_depends_on_b"
+        ? "Task A depends on Task B - must run sequentially"
+        : "Task B depends on Task A - must run sequentially";
   } else if (fileConflicts.length > 0) {
     const highConfidenceCount = fileConflicts.filter(
-      (c) => c.confidenceA >= 0.6 && c.confidenceB >= 0.6
+      (c) => c.confidenceA >= 0.6 && c.confidenceB >= 0.6,
     ).length;
     if (highConfidenceCount > 0) {
       conflictSummary = `${highConfidenceCount} file conflict(s) detected - recommend sequential execution`;
@@ -233,12 +238,12 @@ export async function getConflictDetails(
       conflictSummary = `${fileConflicts.length} potential file conflict(s) with low confidence - parallel may be possible`;
     }
   } else {
-    conflictSummary = 'No conflicts detected - safe to run in parallel';
+    conflictSummary = "No conflicts detected - safe to run in parallel";
   }
 
   // Determine if can run parallel
   const significantConflicts = fileConflicts.filter(
-    (c) => c.confidenceA >= 0.6 && c.confidenceB >= 0.6
+    (c) => c.confidenceA >= 0.6 && c.confidenceB >= 0.6,
   );
   const canRun = !hasDependency && significantConflicts.length === 0;
 
@@ -257,15 +262,15 @@ export async function getConflictDetails(
  * @param taskListId Task list ID
  * @returns List of task pairs with conflicts
  */
-export async function findConflictsInTaskList(
-  taskListId: string
-): Promise<Array<{
-  taskAId: string;
-  taskADisplayId: string;
-  taskBId: string;
-  taskBDisplayId: string;
-  conflicts: FileConflict[];
-}>> {
+export async function findConflictsInTaskList(taskListId: string): Promise<
+  Array<{
+    taskAId: string;
+    taskADisplayId: string;
+    taskBId: string;
+    taskBDisplayId: string;
+    conflicts: FileConflict[];
+  }>
+> {
   // Get all pending tasks in the list
   const tasks = await query<{ id: string; display_id: string }>(
     `SELECT id, display_id
@@ -273,7 +278,7 @@ export async function findConflictsInTaskList(
      WHERE task_list_id = ?
        AND status IN ('pending', 'evaluating')
      ORDER BY position`,
-    [taskListId]
+    [taskListId],
   );
 
   const results: Array<{
@@ -307,12 +312,12 @@ export async function findConflictsInTaskList(
  * Get tasks that conflict with a specific task
  */
 export async function getConflictingTasks(
-  taskId: string
+  taskId: string,
 ): Promise<Array<TaskIdentity & { conflicts: FileConflict[] }>> {
   // Get task's task list
   const task = await getOne<{ task_list_id: string | null }>(
-    'SELECT task_list_id FROM tasks WHERE id = ?',
-    [taskId]
+    "SELECT task_list_id FROM tasks WHERE id = ?",
+    [taskId],
   );
 
   if (!task?.task_list_id) {
@@ -326,7 +331,7 @@ export async function getConflictingTasks(
      WHERE task_list_id = ?
        AND id != ?
        AND status IN ('pending', 'evaluating')`,
-    [task.task_list_id, taskId]
+    [task.task_list_id, taskId],
   );
 
   const results: Array<TaskIdentity & { conflicts: FileConflict[] }> = [];
@@ -365,7 +370,10 @@ export function calculateConflictSeverity(conflicts: FileConflict[]): number {
   let totalSeverity = 0;
   for (const conflict of conflicts) {
     const baseWeight = severityWeights[conflict.conflictType];
-    const confidenceWeight = Math.min(conflict.confidenceA, conflict.confidenceB);
+    const confidenceWeight = Math.min(
+      conflict.confidenceA,
+      conflict.confidenceB,
+    );
     totalSeverity += baseWeight * confidenceWeight;
   }
 

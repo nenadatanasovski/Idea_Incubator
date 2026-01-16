@@ -1,6 +1,6 @@
-import { AlertTriangle, MessageSquare, HelpCircle, Bell } from 'lucide-react';
-import type { AgentQuestion, AgentQuestionType } from '../../types/agent.js';
-import { priorityColors, priorityBadgeColors } from '../../types/agent.js';
+import { AlertTriangle, MessageSquare, HelpCircle, Bell } from "lucide-react";
+import type { AgentQuestion, AgentQuestionType } from "../../types/agent.js";
+import { priorityColors, priorityBadgeColors } from "../../types/agent.js";
 
 interface QuestionQueueProps {
   questions: AgentQuestion[];
@@ -17,7 +17,7 @@ const TYPE_ICONS: Record<AgentQuestionType, typeof MessageSquare> = {
 
 function formatTimeAgo(dateString: string): string {
   const diff = Date.now() - new Date(dateString).getTime();
-  if (diff < 60000) return 'Just now';
+  if (diff < 60000) return "Just now";
   if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
   return `${Math.floor(diff / 86400000)}d ago`;
@@ -63,7 +63,9 @@ export default function QuestionQueue({
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-2">
                 <TypeIcon className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-900">{question.agentName}</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {question.agentName}
+                </span>
                 {question.projectName && (
                   <span className="px-1.5 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded">
                     {question.projectName}
@@ -89,7 +91,9 @@ export default function QuestionQueue({
               </div>
             </div>
 
-            <p className="text-sm text-gray-700 line-clamp-2 mb-2">{question.content}</p>
+            <p className="text-sm text-gray-700 line-clamp-2 mb-2">
+              {question.content}
+            </p>
 
             {question.options && question.options.length <= 3 && (
               <div className="flex flex-wrap gap-2 mb-2">
@@ -106,12 +110,16 @@ export default function QuestionQueue({
                   </button>
                 ))}
                 {question.options.length > 2 && (
-                  <span className="text-xs text-gray-400 py-1">+{question.options.length - 2} more</span>
+                  <span className="text-xs text-gray-400 py-1">
+                    +{question.options.length - 2} more
+                  </span>
                 )}
               </div>
             )}
 
-            <div className="text-xs text-gray-400">{formatTimeAgo(question.createdAt)}</div>
+            <div className="text-xs text-gray-400">
+              {formatTimeAgo(question.createdAt)}
+            </div>
           </div>
         );
       })}

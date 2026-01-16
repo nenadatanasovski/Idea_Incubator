@@ -2,13 +2,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **ID** | sia |
-| **Title** | Self-Improvement Agent |
-| **Complexity** | high |
-| **Author** | Human |
-| **Created** | 2026-01-11 |
+| Field          | Value                  |
+| -------------- | ---------------------- |
+| **ID**         | sia                    |
+| **Title**      | Self-Improvement Agent |
+| **Complexity** | high                   |
+| **Author**     | Human                  |
+| **Created**    | 2026-01-11             |
 
 ---
 
@@ -45,6 +45,7 @@ SIA runs asynchronously after agent executions, never blocking the main workflow
 ## MVP Scope
 
 **In Scope:**
+
 - Execution analyzer (parse Build Agent logs and results)
 - Gotcha extractor (identify mistakes and fixes from failures)
 - Pattern extractor (find reusable code approaches)
@@ -54,6 +55,7 @@ SIA runs asynchronously after agent executions, never blocking the main workflow
 - File pattern tagging (associate gotchas with file types)
 
 **Out of Scope:**
+
 - Real-time learning during execution
 - Automated template modification (human approval required)
 - Cross-project learning (single codebase only)
@@ -100,15 +102,16 @@ SIA Components:
 ```
 
 **Knowledge Entry Types:**
+
 ```typescript
 type KnowledgeEntry = {
   id: string;
-  type: 'gotcha' | 'pattern' | 'decision';
+  type: "gotcha" | "pattern" | "decision";
   content: string;
-  filePatterns: string[];      // e.g., ["*.sql", "server/routes/*"]
-  actionTypes: string[];       // e.g., ["CREATE", "UPDATE"]
-  confidence: number;          // 0.0 - 1.0
-  occurrences: number;         // Times this prevented errors
+  filePatterns: string[]; // e.g., ["*.sql", "server/routes/*"]
+  actionTypes: string[]; // e.g., ["CREATE", "UPDATE"]
+  confidence: number; // 0.0 - 1.0
+  occurrences: number; // Times this prevented errors
   source: {
     executionId: string;
     taskId: string;
@@ -120,6 +123,7 @@ type KnowledgeEntry = {
 ```
 
 **Execution Flow:**
+
 ```
 1. Receive execution completion event (via Message Bus)
 2. Load execution logs and results
@@ -134,6 +138,7 @@ type KnowledgeEntry = {
 ```
 
 **Gotcha Extraction Rules:**
+
 ```
 1. TypeScript error → SQL fix = SQLite gotcha
 2. Import error → path fix = Module resolution gotcha
@@ -192,16 +197,16 @@ CREATE TABLE IF NOT EXISTS gotcha_applications (
 
 ## API Design
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /api/sia/analyze | POST | Trigger analysis of an execution |
-| /api/sia/knowledge | GET | Query Knowledge Base |
-| /api/sia/knowledge/:id | GET | Get specific entry |
-| /api/sia/gotchas | GET | Get gotchas (filtered by file pattern) |
-| /api/sia/patterns | GET | Get patterns |
-| /api/sia/proposals | GET | Get CLAUDE.md update proposals |
-| /api/sia/proposals/:id/approve | POST | Approve a proposal |
-| /api/sia/proposals/:id/reject | POST | Reject a proposal |
+| Endpoint                       | Method | Description                            |
+| ------------------------------ | ------ | -------------------------------------- |
+| /api/sia/analyze               | POST   | Trigger analysis of an execution       |
+| /api/sia/knowledge             | GET    | Query Knowledge Base                   |
+| /api/sia/knowledge/:id         | GET    | Get specific entry                     |
+| /api/sia/gotchas               | GET    | Get gotchas (filtered by file pattern) |
+| /api/sia/patterns              | GET    | Get patterns                           |
+| /api/sia/proposals             | GET    | Get CLAUDE.md update proposals         |
+| /api/sia/proposals/:id/approve | POST   | Approve a proposal                     |
+| /api/sia/proposals/:id/reject  | POST   | Reject a proposal                      |
 
 ---
 

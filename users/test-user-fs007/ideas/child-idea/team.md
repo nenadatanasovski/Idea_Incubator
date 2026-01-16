@@ -12,9 +12,11 @@ updated: 2026-01-06T03:56:38.753Z
 - [ ] Defined: No
 
 ## Founder Context
+
 <!-- Agent fills after creator profile discussion -->
 
 ## Skills & Gaps
+
 <!-- Agent fills after skills assessment -->
 
 ### Available Skills
@@ -28,6 +30,7 @@ updated: 2026-01-06T03:56:38.753Z
 - Gap 2
 
 ## Resources
+
 <!-- Agent fills after resource assessment -->
 
 ### Time Available
@@ -37,6 +40,7 @@ updated: 2026-01-06T03:56:38.753Z
 ### Tools & Technology
 
 ## Constraints
+
 <!-- Agent fills after constraint identification -->
 
 - Constraint 1

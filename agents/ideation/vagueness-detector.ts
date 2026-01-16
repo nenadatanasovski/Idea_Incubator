@@ -50,7 +50,7 @@ const DEFAULT_PATTERNS: VaguenessPatterns = {
  */
 export function detectVagueness(
   message: string,
-  patterns: VaguenessPatterns = DEFAULT_PATTERNS
+  patterns: VaguenessPatterns = DEFAULT_PATTERNS,
 ): VaguenessAnalysis {
   const reasons: string[] = [];
   let score = 0;
@@ -63,16 +63,23 @@ export function detectVagueness(
   }
 
   // Check non-committal patterns
-  const nonCommittalMatches = countPatternMatches(message, patterns.nonCommittal);
+  const nonCommittalMatches = countPatternMatches(
+    message,
+    patterns.nonCommittal,
+  );
   if (nonCommittalMatches > 0) {
-    reasons.push(`Non-committal language detected (${nonCommittalMatches} instances)`);
+    reasons.push(
+      `Non-committal language detected (${nonCommittalMatches} instances)`,
+    );
     score += Math.min(0.4, nonCommittalMatches * 0.15);
   }
 
   // Check deflecting patterns
   const deflectingMatches = countPatternMatches(message, patterns.deflecting);
   if (deflectingMatches > 0) {
-    reasons.push(`Deflecting language detected (${deflectingMatches} instances)`);
+    reasons.push(
+      `Deflecting language detected (${deflectingMatches} instances)`,
+    );
     score += Math.min(0.4, deflectingMatches * 0.15);
   }
 
@@ -84,9 +91,9 @@ export function detectVagueness(
   }
 
   // Check message length (very short responses may be vague)
-  const wordCount = message.split(/\s+/).filter(w => w.length > 0).length;
+  const wordCount = message.split(/\s+/).filter((w) => w.length > 0).length;
   if (wordCount < 5) {
-    reasons.push('Very short response');
+    reasons.push("Very short response");
     score += 0.15;
   }
 
@@ -114,7 +121,7 @@ function countPatternMatches(text: string, patterns: RegExp[]): number {
   let count = 0;
   for (const pattern of patterns) {
     // Create a new regex with global flag to find all matches
-    const globalPattern = new RegExp(pattern.source, 'gi');
+    const globalPattern = new RegExp(pattern.source, "gi");
     const matches = text.match(globalPattern);
     if (matches) {
       count += matches.length;
@@ -133,43 +140,43 @@ function generateFollowUp(reasons: string[], score: number): string | null {
 
   const followUps = [];
 
-  if (reasons.some(r => r.includes('Hedging'))) {
+  if (reasons.some((r) => r.includes("Hedging"))) {
     followUps.push(
       "Can you be more specific about that?",
       "What would make you more certain?",
-      "Let's break this down - what's the core of what you're saying?"
+      "Let's break this down - what's the core of what you're saying?",
     );
   }
 
-  if (reasons.some(r => r.includes('Non-committal'))) {
+  if (reasons.some((r) => r.includes("Non-committal"))) {
     followUps.push(
       "If you had to choose one direction, which would it be?",
       "What's your gut telling you?",
-      "What would need to be true for you to commit to one option?"
+      "What would need to be true for you to commit to one option?",
     );
   }
 
-  if (reasons.some(r => r.includes('Deflecting'))) {
+  if (reasons.some((r) => r.includes("Deflecting"))) {
     followUps.push(
       "Take a moment - what's your initial reaction?",
       "Even if you haven't thought about it deeply, what's your instinct?",
-      "What's the first thing that comes to mind?"
+      "What's the first thing that comes to mind?",
     );
   }
 
-  if (reasons.some(r => r.includes('Unclear'))) {
+  if (reasons.some((r) => r.includes("Unclear"))) {
     followUps.push(
       "Could you give me a specific example?",
       "What exactly do you mean by that?",
-      "Can you elaborate on that point?"
+      "Can you elaborate on that point?",
     );
   }
 
-  if (reasons.some(r => r.includes('Very short'))) {
+  if (reasons.some((r) => r.includes("Very short"))) {
     followUps.push(
       "Tell me more about that.",
       "Can you expand on that?",
-      "What else comes to mind?"
+      "What else comes to mind?",
     );
   }
 
@@ -209,7 +216,7 @@ export function isQuestionBack(message: string): boolean {
   const trimmed = message.trim();
 
   // Ends with question mark
-  if (trimmed.endsWith('?')) {
+  if (trimmed.endsWith("?")) {
     return true;
   }
 
@@ -252,12 +259,12 @@ export function isConfused(message: string): boolean {
  * Analyze message type for conversation flow.
  */
 export type MessageType =
-  | 'substantive'
-  | 'vague'
-  | 'confirmation'
-  | 'question'
-  | 'confused'
-  | 'short';
+  | "substantive"
+  | "vague"
+  | "confirmation"
+  | "question"
+  | "confused"
+  | "short";
 
 export function classifyMessage(message: string): {
   type: MessageType;
@@ -266,27 +273,27 @@ export function classifyMessage(message: string): {
   const analysis = detectVagueness(message);
 
   if (isConfused(message)) {
-    return { type: 'confused', analysis };
+    return { type: "confused", analysis };
   }
 
   if (isQuestionBack(message)) {
-    return { type: 'question', analysis };
+    return { type: "question", analysis };
   }
 
   if (isSimpleConfirmation(message)) {
-    return { type: 'confirmation', analysis };
+    return { type: "confirmation", analysis };
   }
 
-  const wordCount = message.split(/\s+/).filter(w => w.length > 0).length;
+  const wordCount = message.split(/\s+/).filter((w) => w.length > 0).length;
   if (wordCount < 5 && !analysis.isVague) {
-    return { type: 'short', analysis };
+    return { type: "short", analysis };
   }
 
   if (analysis.isVague) {
-    return { type: 'vague', analysis };
+    return { type: "vague", analysis };
   }
 
-  return { type: 'substantive', analysis };
+  return { type: "substantive", analysis };
 }
 
 /**
@@ -295,56 +302,56 @@ export function classifyMessage(message: string): {
 export function getResponseStrategy(messageType: MessageType): {
   strategy: string;
   shouldProbe: boolean;
-  probeType: 'specific' | 'expand' | 'clarify' | 'confirm' | 'none';
+  probeType: "specific" | "expand" | "clarify" | "confirm" | "none";
 } {
   switch (messageType) {
-    case 'substantive':
+    case "substantive":
       return {
-        strategy: 'Continue conversation naturally',
+        strategy: "Continue conversation naturally",
         shouldProbe: false,
-        probeType: 'none',
+        probeType: "none",
       };
 
-    case 'vague':
+    case "vague":
       return {
-        strategy: 'Ask for specifics or commitment',
+        strategy: "Ask for specifics or commitment",
         shouldProbe: true,
-        probeType: 'specific',
+        probeType: "specific",
       };
 
-    case 'confirmation':
+    case "confirmation":
       return {
-        strategy: 'Acknowledge and move to next topic or probe for more',
+        strategy: "Acknowledge and move to next topic or probe for more",
         shouldProbe: true,
-        probeType: 'expand',
+        probeType: "expand",
       };
 
-    case 'question':
+    case "question":
       return {
-        strategy: 'Answer the question, then redirect to exploration',
+        strategy: "Answer the question, then redirect to exploration",
         shouldProbe: false,
-        probeType: 'none',
+        probeType: "none",
       };
 
-    case 'confused':
+    case "confused":
       return {
-        strategy: 'Clarify the previous question or statement',
+        strategy: "Clarify the previous question or statement",
         shouldProbe: true,
-        probeType: 'clarify',
+        probeType: "clarify",
       };
 
-    case 'short':
+    case "short":
       return {
-        strategy: 'Encourage elaboration',
+        strategy: "Encourage elaboration",
         shouldProbe: true,
-        probeType: 'expand',
+        probeType: "expand",
       };
 
     default:
       return {
-        strategy: 'Continue conversation',
+        strategy: "Continue conversation",
         shouldProbe: false,
-        probeType: 'none',
+        probeType: "none",
       };
   }
 }

@@ -4,8 +4,8 @@
  * Executes validation commands and checks expected output.
  */
 
-import { spawn } from 'child_process';
-import { ValidationRunnerInterface } from './task-executor.js';
+import { spawn } from "child_process";
+import { ValidationRunnerInterface } from "./task-executor.js";
 
 const DEFAULT_TIMEOUT = 60000; // 60 seconds
 
@@ -41,18 +41,22 @@ export class ValidationRunner implements ValidationRunnerInterface {
       const result = await this.execute(command);
 
       // Check if expected output matches
-      const success = this.checkExpected(result.output, expected, result.exitCode);
+      const success = this.checkExpected(
+        result.output,
+        expected,
+        result.exitCode,
+      );
 
       return {
         ...result,
-        success
+        success,
       };
     } catch (error) {
       return {
         success: false,
-        output: '',
+        output: "",
         exitCode: 1,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -60,35 +64,37 @@ export class ValidationRunner implements ValidationRunnerInterface {
   /**
    * Execute a command and capture output
    */
-  async execute(command: string): Promise<{ output: string; exitCode: number }> {
+  async execute(
+    command: string,
+  ): Promise<{ output: string; exitCode: number }> {
     return new Promise((resolve, reject) => {
-      const proc = spawn('sh', ['-c', command], {
+      const proc = spawn("sh", ["-c", command], {
         cwd: this.cwd,
         env: { ...process.env, ...this.env },
-        timeout: this.timeout
+        timeout: this.timeout,
       });
 
-      let stdout = '';
-      let stderr = '';
+      let stdout = "";
+      let stderr = "";
 
-      proc.stdout.on('data', (data) => {
+      proc.stdout.on("data", (data) => {
         stdout += data.toString();
       });
 
-      proc.stderr.on('data', (data) => {
+      proc.stderr.on("data", (data) => {
         stderr += data.toString();
       });
 
-      proc.on('close', (code) => {
+      proc.on("close", (code) => {
         const output = (stdout + stderr).trim();
         resolve({
           output,
-          exitCode: code ?? 0
+          exitCode: code ?? 0,
         });
       });
 
-      proc.on('error', (error) => {
-        if ((error as NodeJS.ErrnoException).code === 'ETIMEDOUT') {
+      proc.on("error", (error) => {
+        if ((error as NodeJS.ErrnoException).code === "ETIMEDOUT") {
           reject(new Error(`Command timed out after ${this.timeout}ms`));
         } else {
           reject(error);
@@ -102,16 +108,16 @@ export class ValidationRunner implements ValidationRunnerInterface {
    */
   checkExpected(output: string, expected: string, exitCode: number): boolean {
     // If expected is empty, success is based on exit code
-    if (expected.trim() === '') {
+    if (expected.trim() === "") {
       return exitCode === 0;
     }
 
     // Handle exit code expectations
-    if (expected.toLowerCase().includes('exit code 0')) {
+    if (expected.toLowerCase().includes("exit code 0")) {
       return exitCode === 0;
     }
 
-    if (expected.toLowerCase().includes('exit code')) {
+    if (expected.toLowerCase().includes("exit code")) {
       const match = expected.match(/exit code (\d+)/i);
       if (match) {
         const expectedCode = parseInt(match[1], 10);
@@ -120,12 +126,12 @@ export class ValidationRunner implements ValidationRunnerInterface {
     }
 
     // Handle "OK" or similar success indicators
-    if (expected.toLowerCase() === 'ok') {
-      return output.toLowerCase().includes('ok') && exitCode === 0;
+    if (expected.toLowerCase() === "ok") {
+      return output.toLowerCase().includes("ok") && exitCode === 0;
     }
 
     // Handle "all tests pass" or similar
-    if (expected.toLowerCase().includes('all tests pass')) {
+    if (expected.toLowerCase().includes("all tests pass")) {
       return exitCode === 0;
     }
 
@@ -145,7 +151,9 @@ export class ValidationRunner implements ValidationRunnerInterface {
   /**
    * Run multiple validations in sequence
    */
-  async runMultiple(validations: Array<{ command: string; expected: string }>): Promise<ValidationResult[]> {
+  async runMultiple(
+    validations: Array<{ command: string; expected: string }>,
+  ): Promise<ValidationResult[]> {
     const results: ValidationResult[] = [];
 
     for (const validation of validations) {
@@ -207,6 +215,8 @@ export class ValidationRunner implements ValidationRunnerInterface {
 /**
  * Create a validation runner instance
  */
-export function createValidationRunner(options?: ValidationRunnerOptions): ValidationRunner {
+export function createValidationRunner(
+  options?: ValidationRunnerOptions,
+): ValidationRunner {
   return new ValidationRunner(options);
 }

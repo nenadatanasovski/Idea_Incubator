@@ -5,10 +5,17 @@
  * Part of: PTE-082 to PTE-095
  */
 
-export { default as QuickAddTask, QuickAddTask as QuickAddTaskComponent } from './QuickAddTask';
+export {
+  default as QuickAddTask,
+  QuickAddTask as QuickAddTaskComponent,
+} from "./QuickAddTask";
 export {
   default as EvaluationQueueLane,
   QueueTaskCard,
   GroupingSuggestionCard,
-} from './EvaluationQueueLane';
-export { default as ParallelismView, WaveCard, AgentCard } from './ParallelismView';
+} from "./EvaluationQueueLane";
+export {
+  default as ParallelismView,
+  WaveCard,
+  AgentCard,
+} from "./ParallelismView";

@@ -24,6 +24,7 @@ The Ideation Agent is a conversational AI system that guides users from vague in
 **Problem**: Users often know they want to build something but can't articulate what. The current capture process assumes users already have a formed idea.
 
 **Solution**: A conversational agent that:
+
 - Discovers user interests, skills, and constraints through natural dialogue
 - Searches the web for market validation in real-time
 - Builds idea candidates progressively as confidence grows
@@ -32,10 +33,10 @@ The Ideation Agent is a conversational AI system that guides users from vague in
 
 ### Key Metrics (Dual Metering System)
 
-| Metric | Purpose | Range | Threshold |
-|--------|---------|-------|-----------|
-| **Confidence** | How well-defined is the idea? | 0-100 | Display at 30%, Ready at 75% |
-| **Viability** | How realistic/achievable is it? | 0-100 | Healthy 75+, Caution 50-74, Warning 25-49, Critical <25 |
+| Metric         | Purpose                         | Range | Threshold                                               |
+| -------------- | ------------------------------- | ----- | ------------------------------------------------------- |
+| **Confidence** | How well-defined is the idea?   | 0-100 | Display at 30%, Ready at 75%                            |
+| **Viability**  | How realistic/achievable is it? | 0-100 | Healthy 75+, Caution 50-74, Warning 25-49, Critical <25 |
 
 ---
 
@@ -44,26 +45,31 @@ The Ideation Agent is a conversational AI system that guides users from vague in
 ### Why This Architecture?
 
 **Principle 1: Conversation is Discovery**
+
 - Ideas don't emerge fully formed; they crystallize through dialogue
 - Each user message reveals signals about interests, expertise, and constraints
 - The agent must extract meaning covertly (not interrogate)
 
 **Principle 2: Evidence Over Opinion**
+
 - Viability must be grounded in real market data
 - Web search provides external validation/invalidation
 - Risks must cite sources, not just assert problems
 
 **Principle 3: Progressive Revelation**
+
 - Don't show candidates until they're meaningful (30% threshold)
 - Don't alarm about risks until they're significant
 - Intervention should feel helpful, not gatekeeping
 
 **Principle 4: Preserve Context, Survive Limits**
+
 - 100K token context window will eventually fill
 - Memory files persist insights across handoffs
 - Handoff should feel seamless to the user
 
 **Principle 5: Integration, Not Isolation**
+
 - Ideas captured here feed directly into the Development phase
 - Pre-answered questions reduce redundant questioning
 - Metadata (confidence, viability, risks) travels with the idea
@@ -115,81 +121,87 @@ The Ideation Agent is a conversational AI system that guides users from vague in
 ## Implementation Phases
 
 ### Phase 1: Foundation (Specs 01-03)
+
 **Goal**: Establish data structures and core algorithms
 
-| Component | Spec | Priority | Complexity |
-|-----------|------|----------|------------|
-| Database Migration | 01 | Critical | Low |
-| TypeScript Types | 01 | Critical | Low |
-| Row Mappers | 01 | Critical | Low |
-| Confidence Calculator | 02 | Critical | Medium |
-| Viability Calculator | 02 | Critical | Medium |
-| Token Counter | 02 | High | Low |
-| Communication Classifier | 03 | Medium | Medium |
-| Pre-Answered Mapper | 03 | Medium | Medium |
+| Component                | Spec | Priority | Complexity |
+| ------------------------ | ---- | -------- | ---------- |
+| Database Migration       | 01   | Critical | Low        |
+| TypeScript Types         | 01   | Critical | Low        |
+| Row Mappers              | 01   | Critical | Low        |
+| Confidence Calculator    | 02   | Critical | Medium     |
+| Viability Calculator     | 02   | Critical | Medium     |
+| Token Counter            | 02   | High     | Low        |
+| Communication Classifier | 03   | Medium   | Medium     |
+| Pre-Answered Mapper      | 03   | Medium   | Medium     |
 
 ### Phase 2: Core Backend (Specs 04-06)
+
 **Goal**: Build session management and agent orchestration
 
-| Component | Spec | Priority | Complexity |
-|-----------|------|----------|------------|
-| SessionManager | 04 | Critical | Medium |
-| MessageStore | 04 | Critical | Low |
-| MemoryManager | 04 | Critical | Medium |
-| Signal Extraction | 05 | Critical | High |
-| AgentOrchestrator | 06 | Critical | High |
-| GreetingGenerator | 06 | High | Low |
-| StreamingHandler | 06 | High | Medium |
-| WebSearchService | 06 | High | Medium |
+| Component         | Spec | Priority | Complexity |
+| ----------------- | ---- | -------- | ---------- |
+| SessionManager    | 04   | Critical | Medium     |
+| MessageStore      | 04   | Critical | Low        |
+| MemoryManager     | 04   | Critical | Medium     |
+| Signal Extraction | 05   | Critical | High       |
+| AgentOrchestrator | 06   | Critical | High       |
+| GreetingGenerator | 06   | High     | Low        |
+| StreamingHandler  | 06   | High     | Medium     |
+| WebSearchService  | 06   | High     | Medium     |
 
 ### Phase 3: API Layer (Spec 07)
+
 **Goal**: Expose functionality via REST endpoints
 
-| Component | Spec | Priority | Complexity |
-|-----------|------|----------|------------|
-| Route Registration | 07 | Critical | Low |
-| /start endpoint | 07 | Critical | Medium |
-| /message endpoint | 07 | Critical | High |
-| /button endpoint | 07 | High | Low |
-| /form endpoint | 07 | High | Medium |
-| /capture endpoint | 07 | Critical | Medium |
-| /save endpoint | 07 | Medium | Low |
-| /discard endpoint | 07 | Medium | Low |
-| Error Classes | 07 | High | Low |
-| CandidateManager | 07 | Critical | Medium |
+| Component          | Spec | Priority | Complexity |
+| ------------------ | ---- | -------- | ---------- |
+| Route Registration | 07   | Critical | Low        |
+| /start endpoint    | 07   | Critical | Medium     |
+| /message endpoint  | 07   | Critical | High       |
+| /button endpoint   | 07   | High     | Low        |
+| /form endpoint     | 07   | High     | Medium     |
+| /capture endpoint  | 07   | Critical | Medium     |
+| /save endpoint     | 07   | Medium   | Low        |
+| /discard endpoint  | 07   | Medium   | Low        |
+| Error Classes      | 07   | High     | Low        |
+| CandidateManager   | 07   | Critical | Medium     |
 
 ### Phase 4: Frontend (Specs 08-09)
+
 **Goal**: Build the interactive UI
 
-| Component | Spec | Priority | Complexity |
-|-----------|------|----------|------------|
-| TypeScript Types | 08 | Critical | Low |
-| IdeationPage | 08 | Critical | Low |
-| IdeationEntryModal | 08 | Critical | Low |
-| IdeationSession | 08 | Critical | High |
-| ConversationPanel | 08 | Critical | Medium |
-| MessageList/Components | 08 | Critical | Medium |
-| ButtonGroup | 08 | Critical | Low |
-| FormRenderer | 08 | High | Medium |
-| IdeaCandidatePanel | 08 | Critical | Medium |
-| ConfidenceMeter | 08 | High | Low |
-| ViabilityMeter | 08 | High | Low |
-| RisksList | 08 | High | Low |
-| InputArea | 08 | Critical | Low |
-| ideationReducer | 09 | Critical | Medium |
-| useIdeationAPI | 09 | Critical | Medium |
-| useSSEStream | 09 | Medium | Medium |
+| Component              | Spec | Priority | Complexity |
+| ---------------------- | ---- | -------- | ---------- |
+| TypeScript Types       | 08   | Critical | Low        |
+| IdeationPage           | 08   | Critical | Low        |
+| IdeationEntryModal     | 08   | Critical | Low        |
+| IdeationSession        | 08   | Critical | High       |
+| ConversationPanel      | 08   | Critical | Medium     |
+| MessageList/Components | 08   | Critical | Medium     |
+| ButtonGroup            | 08   | Critical | Low        |
+| FormRenderer           | 08   | High     | Medium     |
+| IdeaCandidatePanel     | 08   | Critical | Medium     |
+| ConfidenceMeter        | 08   | High     | Low        |
+| ViabilityMeter         | 08   | High     | Low        |
+| RisksList              | 08   | High     | Low        |
+| InputArea              | 08   | Critical | Low        |
+| ideationReducer        | 09   | Critical | Medium     |
+| useIdeationAPI         | 09   | Critical | Medium     |
+| useSSEStream           | 09   | Medium   | Medium     |
 
 ---
 
 ## Spec-by-Spec Breakdown
 
 ### Spec 01: Database & Data Models
+
 > **Spec File**: [`01-database-data-models.md`](./01-database-data-models.md)
 
 **Purpose**: Foundation for all data persistence
 
 **Key Deliverables**:
+
 - Migration `018_ideation_agent.sql`
 - Types file `types/ideation.ts`
 - Mappers `utils/ideation-mappers.ts`
@@ -211,6 +223,7 @@ The Ideation Agent is a conversational AI system that guides users from vague in
 ---
 
 ### Spec 02: Core Calculators
+
 > **Spec File**: [`02-core-calculators.md`](./02-core-calculators.md)
 
 **Purpose**: The dual metering system algorithms
@@ -234,6 +247,7 @@ The Ideation Agent is a conversational AI system that guides users from vague in
 | Clarity Score | 15 |
 
 **Token Counter**:
+
 - Context limit: 100,000 tokens
 - Handoff threshold: 80,000 tokens (80%)
 - Estimation: ~4 chars per token
@@ -243,21 +257,25 @@ The Ideation Agent is a conversational AI system that guides users from vague in
 ---
 
 ### Spec 03: Core Utilities
+
 > **Spec File**: [`03-core-utilities.md`](./03-core-utilities.md)
 
 **Purpose**: Supporting utilities for personalization and handoff
 
 **Communication Classifier**:
+
 - Analyzes user message patterns
 - Outputs: `verbose` | `terse` | `analytical` | `emotional`
 - Used for agent tone adaptation
 
 **Pre-Answered Questions Mapper**:
+
 - Maps ideation signals → Development questions
 - Example: `narrowingState.customerType` → `DEV_TARGET_USER`
 - Includes confidence thresholds and evidence quotes
 
 **Context Helpers**:
+
 - `extractSurroundingContext()` - Get conversation window
 - `extractTopicFromContext()` - Identify current topic
 - `generateBriefSummary()` - Create handoff summaries
@@ -265,11 +283,13 @@ The Ideation Agent is a conversational AI system that guides users from vague in
 ---
 
 ### Spec 04: Session Management & Memory
+
 > **Spec File**: [`04-session-management.md`](./04-session-management.md)
 
 **Purpose**: Persistent session state and handoff preparation
 
 **SessionManager**:
+
 - `create(profileId)` → new session
 - `load(sessionId)` → restore session
 - `update(sessionId, changes)` → modify state
@@ -277,6 +297,7 @@ The Ideation Agent is a conversational AI system that guides users from vague in
 - `abandon(sessionId)` → mark abandoned
 
 **MessageStore**:
+
 - CRUD for conversation messages
 - Token counting per message
 - Button/form tracking
@@ -294,6 +315,7 @@ Memory file types:
 | `handoff_notes` | Context for new agent |
 
 **Handoff Preparation**:
+
 - Triggered at 80% token usage
 - Compresses context into memory files
 - Creates handoff notes with communication style
@@ -301,6 +323,7 @@ Memory file types:
 ---
 
 ### Spec 05: Signal Extraction
+
 > **Spec File**: [`05-signal-extraction.md`](./05-signal-extraction.md)
 
 **Purpose**: Extract meaning from user messages
@@ -320,6 +343,7 @@ Memory file types:
 | Impact Vision | World/Country/City/Community/Individual |
 
 **Rule-Based Patterns**:
+
 ```javascript
 // Frustration detection
 /I hate|I can't stand|It frustrates me|Why isn't there/i
@@ -332,11 +356,13 @@ Memory file types:
 ---
 
 ### Spec 06: Agent Orchestration & LLM Integration
+
 > **Spec File**: [`06-agent-orchestration.md`](./06-agent-orchestration.md)
 
 **Purpose**: The conversational AI core
 
 **System Prompt Key Points**:
+
 - Dual-mode questioning (covert vs transparent)
 - Signal extraction in parallel
 - Web search triggering rules
@@ -344,6 +370,7 @@ Memory file types:
 - Handoff preparation
 
 **AgentOrchestrator**:
+
 ```typescript
 interface ProcessResult {
   reply: string;
@@ -358,16 +385,19 @@ interface ProcessResult {
 ```
 
 **GreetingGenerator**:
+
 - Personalized based on profile
 - Entry mode variants (have_idea vs discover)
 - Initial button options
 
 **StreamingResponseHandler**:
+
 - SSE implementation
 - Chunk-by-chunk delivery
 - Error handling
 
 **WebSearchService**:
+
 - Query construction from context
 - Result parsing
 - Market data extraction
@@ -375,6 +405,7 @@ interface ProcessResult {
 ---
 
 ### Spec 07: API Endpoints
+
 > **Spec File**: [`07-api-endpoints.md`](./07-api-endpoints.md)
 
 **Purpose**: RESTful interface to backend
@@ -395,11 +426,13 @@ interface ProcessResult {
 | GET | `/api/ideation/sessions` | List profile's sessions |
 
 **CandidateManager**:
+
 - `create()`, `getById()`, `getActiveForSession()`
 - `getOrCreateForSession()` - upsert pattern
 - `update()`, `discard()`, `save()`
 
 **Error Classes**:
+
 - `SessionNotFoundError` (404)
 - `SessionNotActiveError` (400)
 - `ValidationError` (400)
@@ -411,11 +444,13 @@ interface ProcessResult {
 ---
 
 ### Spec 08: Frontend Components
+
 > **Spec File**: [`08-frontend-components.md`](./08-frontend-components.md)
 
 **Purpose**: React component implementations
 
 **Component Tree**:
+
 ```
 IdeationPage
 ├── IdeationEntryModal
@@ -441,17 +476,20 @@ IdeationPage
 ```
 
 **Key Thresholds**:
+
 - Candidate appears: 30% confidence
 - Capture enabled: 60% confidence
 
 ---
 
 ### Spec 09: Frontend State & Hooks
+
 > **Spec File**: [`09-frontend-state-hooks.md`](./09-frontend-state-hooks.md)
 
 **Purpose**: State management and API integration
 
 **State Structure** (IdeationStore):
+
 ```typescript
 {
   session: { sessionId, profileId, status, entryMode, error },
@@ -462,6 +500,7 @@ IdeationPage
 ```
 
 **Actions**:
+
 - Session: `START`, `CREATED`, `ERROR`, `COMPLETE`, `ABANDON`
 - Message: `SEND`, `STREAM_START`, `STREAM_CHUNK`, `STREAM_END`, `RECEIVED`, `ERROR`
 - Candidate: `UPDATE`, `CLEAR`, `CONFIDENCE_UPDATE`, `VIABILITY_UPDATE`
@@ -469,6 +508,7 @@ IdeationPage
 - Tokens: `UPDATE`, `HANDOFF_PENDING`, `HANDOFF_COMPLETE`
 
 **Hooks**:
+
 - `useIdeationAPI()` - API client methods
 - `useSSEStream()` - SSE connection management
 
@@ -509,6 +549,7 @@ Spec 08 ─────────────> Spec 09
 ### Phase 1: Foundation ✅ COMPLETE
 
 #### Spec 01: Database & Data Models
+
 - [x] Create migration `database/migrations/018_ideation_agent.sql`
 - [x] Create types file `types/ideation.ts`
 - [x] Create mappers file `utils/ideation-mappers.ts`
@@ -518,6 +559,7 @@ Spec 08 ─────────────> Spec 09
 - [x] Run tests and verify 23 pass (all schema and mapper tests)
 
 #### Spec 02: Core Calculators
+
 - [x] Create `agents/ideation/` directory
 - [x] Create `agents/ideation/confidence-calculator.ts`
 - [x] Create `agents/ideation/viability-calculator.ts`
@@ -528,6 +570,7 @@ Spec 08 ─────────────> Spec 09
 - [x] Run tests and verify 90 pass (34 confidence + 32 viability + 24 token)
 
 #### Spec 03: Core Utilities
+
 - [x] Create `agents/ideation/communication-classifier.ts`
 - [x] Create `agents/ideation/pre-answered-mapper.ts`
 - [x] Create `agents/ideation/context-helpers.ts`
@@ -537,6 +580,7 @@ Spec 08 ─────────────> Spec 09
 ### Phase 2: Core Backend ✅ COMPLETE
 
 #### Spec 04: Session Management
+
 - [x] Create `agents/ideation/session-manager.ts`
 - [x] Create `agents/ideation/message-store.ts`
 - [x] Create `agents/ideation/memory-manager.ts`
@@ -546,6 +590,7 @@ Spec 08 ─────────────> Spec 09
 - [x] Create tests for all managers (37 tests: 13 session + 13 message + 12 memory)
 
 #### Spec 05: Signal Extraction
+
 - [x] Create `agents/ideation/signal-extractor.ts`
 - [x] Create `agents/ideation/vagueness-detector.ts`
 - [x] Implement LLM extraction prompts
@@ -559,6 +604,7 @@ Spec 08 ─────────────> Spec 09
 - [x] Create comprehensive tests (71 tests: 34 signal + 37 vagueness)
 
 #### Spec 06: Agent Orchestration
+
 - [x] Create `agents/ideation/orchestrator.ts`
 - [x] Create `agents/ideation/greeting-generator.ts`
 - [x] Create `agents/ideation/streaming.ts`
@@ -572,6 +618,7 @@ Spec 08 ─────────────> Spec 09
 ### Phase 3: API Layer ✅ COMPLETE
 
 #### Spec 07: API Endpoints
+
 - [x] Add ideation route registration to `server/api.ts`
 - [x] Create `server/routes/ideation.ts`
 - [x] Implement POST `/start` endpoint
@@ -594,6 +641,7 @@ Spec 08 ─────────────> Spec 09
 ### Phase 4: Frontend ✅ COMPLETE
 
 #### Spec 08: Frontend Components
+
 - [x] Create `frontend/src/types/ideation.ts`
 - [x] Create `frontend/src/types/ideation-state.ts`
 - [x] Create `frontend/src/pages/IdeationPage.tsx`
@@ -619,6 +667,7 @@ Spec 08 ─────────────> Spec 09
 - [x] Create `frontend/src/components/ideation/ExistingIdeaModal.tsx`
 
 #### Spec 09: Frontend State & Hooks
+
 - [x] Create `frontend/src/reducers/ideationReducer.ts`
 - [x] Create `frontend/src/hooks/useIdeationAPI.ts`
 - [x] Create `frontend/src/hooks/useSSEStream.ts`
@@ -644,16 +693,16 @@ Spec 08 ─────────────> Spec 09
 
 ### Unit Tests by Spec
 
-| Spec | Test File(s) | Expected Pass | Expected Fail |
-|------|--------------|---------------|---------------|
-| 01 | data-models.test.ts | 18 | 4 |
-| 02 | confidence-calculator.test.ts, viability-calculator.test.ts, token-counter.test.ts | 70+ | 0 |
-| 03 | communication-classifier.test.ts, pre-answered-mapper.test.ts | ~20 | 0 |
-| 04 | session-manager.test.ts, message-store.test.ts, memory-manager.test.ts | ~30 | 0 |
-| 05 | signal-extraction.test.ts | ~40 | 0 |
-| 06 | orchestrator.test.ts, greeting.test.ts, streaming.test.ts | ~30 | 0 |
-| 07 | api-endpoints.test.ts, error-classes.test.ts | 46 | 0 |
-| 08-09 | Frontend component tests | 95 | 0 |
+| Spec  | Test File(s)                                                                       | Expected Pass | Expected Fail |
+| ----- | ---------------------------------------------------------------------------------- | ------------- | ------------- |
+| 01    | data-models.test.ts                                                                | 18            | 4             |
+| 02    | confidence-calculator.test.ts, viability-calculator.test.ts, token-counter.test.ts | 70+           | 0             |
+| 03    | communication-classifier.test.ts, pre-answered-mapper.test.ts                      | ~20           | 0             |
+| 04    | session-manager.test.ts, message-store.test.ts, memory-manager.test.ts             | ~30           | 0             |
+| 05    | signal-extraction.test.ts                                                          | ~40           | 0             |
+| 06    | orchestrator.test.ts, greeting.test.ts, streaming.test.ts                          | ~30           | 0             |
+| 07    | api-endpoints.test.ts, error-classes.test.ts                                       | 46            | 0             |
+| 08-09 | Frontend component tests                                                           | 95            | 0             |
 
 ### Integration Test Scenarios
 
@@ -705,47 +754,47 @@ Spec 08 ─────────────> Spec 09
 
 ### File Locations
 
-| Content | Location |
-|---------|----------|
-| Migration | `database/migrations/018_ideation_agent.sql` |
-| Types | `types/ideation.ts` |
-| Calculators | `agents/ideation/*-calculator.ts` |
-| Managers | `agents/ideation/*-manager.ts` |
-| Orchestrator | `agents/ideation/orchestrator.ts` |
-| API Routes | `server/routes/ideation.ts` |
-| Frontend Components | `frontend/src/components/ideation/` |
-| Frontend State | `frontend/src/reducers/ideationReducer.ts` |
-| Backend Tests | `tests/ideation/` |
-| Frontend Tests | `frontend/src/__tests__/ideation/` |
+| Content             | Location                                     |
+| ------------------- | -------------------------------------------- |
+| Migration           | `database/migrations/018_ideation_agent.sql` |
+| Types               | `types/ideation.ts`                          |
+| Calculators         | `agents/ideation/*-calculator.ts`            |
+| Managers            | `agents/ideation/*-manager.ts`               |
+| Orchestrator        | `agents/ideation/orchestrator.ts`            |
+| API Routes          | `server/routes/ideation.ts`                  |
+| Frontend Components | `frontend/src/components/ideation/`          |
+| Frontend State      | `frontend/src/reducers/ideationReducer.ts`   |
+| Backend Tests       | `tests/ideation/`                            |
+| Frontend Tests      | `frontend/src/__tests__/ideation/`           |
 
 ### Key Thresholds
 
-| Threshold | Value | Purpose |
-|-----------|-------|---------|
-| Candidate Display | 30% confidence | Show in right panel |
-| Capture Enabled | 60% confidence | Enable capture button |
-| Idea Ready | 75% confidence | Full confidence |
-| Viability Healthy | 75%+ | Green status |
-| Viability Caution | 50-74% | Yellow status |
-| Viability Warning | 25-49% | Orange status |
-| Viability Critical | <25% | Red status, intervention |
-| Handoff Threshold | 80% of 100K tokens | Trigger handoff |
+| Threshold          | Value              | Purpose                  |
+| ------------------ | ------------------ | ------------------------ |
+| Candidate Display  | 30% confidence     | Show in right panel      |
+| Capture Enabled    | 60% confidence     | Enable capture button    |
+| Idea Ready         | 75% confidence     | Full confidence          |
+| Viability Healthy  | 75%+               | Green status             |
+| Viability Caution  | 50-74%             | Yellow status            |
+| Viability Warning  | 25-49%             | Orange status            |
+| Viability Critical | <25%               | Red status, intervention |
+| Handoff Threshold  | 80% of 100K tokens | Trigger handoff          |
 
 ### Risk Types
 
-| Type | Description | Severity Range |
-|------|-------------|----------------|
-| `impossible` | Technology doesn't exist | Critical |
-| `unrealistic` | Beyond user's capacity | High |
-| `too_complex` | Too many hard problems | Medium-High |
-| `too_vague` | Can't be validated | Medium |
-| `saturated_market` | Too many competitors | Medium-High |
-| `wrong_timing` | Too early or too late | Medium |
-| `resource_mismatch` | User lacks resources | Medium |
+| Type                | Description              | Severity Range |
+| ------------------- | ------------------------ | -------------- |
+| `impossible`        | Technology doesn't exist | Critical       |
+| `unrealistic`       | Beyond user's capacity   | High           |
+| `too_complex`       | Too many hard problems   | Medium-High    |
+| `too_vague`         | Can't be validated       | Medium         |
+| `saturated_market`  | Too many competitors     | Medium-High    |
+| `wrong_timing`      | Too early or too late    | Medium         |
+| `resource_mismatch` | User lacks resources     | Medium         |
 
 ---
 
-*Document Version: 1.0*
-*Created: Auto-generated from Specs 01-09*
-*Last Updated: Session creation date*
-*Status: Ready for Implementation*
+_Document Version: 1.0_
+_Created: Auto-generated from Specs 01-09_
+_Last Updated: Session creation date_
+_Status: Ready for Implementation_

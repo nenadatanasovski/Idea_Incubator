@@ -1,59 +1,79 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Lightbulb, TrendingUp, DollarSign, BarChart3, Download, Upload, Play, Loader2, Plus } from 'lucide-react'
-import { getStats, getExportAllIdeasUrl, getExportCsvUrl, downloadExport, importIdeas, triggerEvaluation } from '../api/client'
-import { useIdeas } from '../hooks/useIdeas'
-import { lifecycleStages, scoreInterpretation } from '../types'
-import type { LifecycleStage, IdeaType } from '../types'
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Lightbulb,
+  TrendingUp,
+  DollarSign,
+  BarChart3,
+  Download,
+  Upload,
+  Play,
+  Loader2,
+  Plus,
+} from "lucide-react";
+import {
+  getStats,
+  getExportAllIdeasUrl,
+  getExportCsvUrl,
+  downloadExport,
+  importIdeas,
+  triggerEvaluation,
+} from "../api/client";
+import { useIdeas } from "../hooks/useIdeas";
+import { lifecycleStages, scoreInterpretation } from "../types";
+import type { LifecycleStage, IdeaType } from "../types";
 
 interface Stats {
-  totalIdeas: number
-  byType: Record<string, number>
-  byStage: Record<string, number>
-  avgScore: number
-  totalCost: number
+  totalIdeas: number;
+  byType: Record<string, number>;
+  byStage: Record<string, number>;
+  avgScore: number;
+  totalCost: number;
 }
 
 export default function Dashboard() {
-  const navigate = useNavigate()
-  const [stats, setStats] = useState<Stats | null>(null)
-  const { ideas, loading: ideasLoading } = useIdeas({ sortBy: 'updated_at', sortOrder: 'desc' })
-  const [evaluatingSlug, setEvaluatingSlug] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<Stats | null>(null);
+  const { ideas, loading: ideasLoading } = useIdeas({
+    sortBy: "updated_at",
+    sortOrder: "desc",
+  });
+  const [evaluatingSlug, setEvaluatingSlug] = useState<string | null>(null);
 
   useEffect(() => {
-    getStats().then(setStats).catch(console.error)
-  }, [])
+    getStats().then(setStats).catch(console.error);
+  }, []);
 
   const handleQuickEvaluate = async (slug: string, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setEvaluatingSlug(slug)
+    e.preventDefault();
+    e.stopPropagation();
+    setEvaluatingSlug(slug);
     try {
-      await triggerEvaluation(slug)
-      navigate(`/debate/live/${slug}`)
+      await triggerEvaluation(slug);
+      navigate(`/debate/live/${slug}`);
     } catch (error) {
-      console.error('Failed to start evaluation:', error)
-      setEvaluatingSlug(null)
+      console.error("Failed to start evaluation:", error);
+      setEvaluatingSlug(null);
     }
-  }
+  };
 
-  const recentIdeas = ideas.slice(0, 5)
+  const recentIdeas = ideas.slice(0, 5);
 
   const ideaTypeLabels: Record<IdeaType, string> = {
-    business: 'Business',
-    creative: 'Creative',
-    technical: 'Technical',
-    personal: 'Personal',
-    research: 'Research',
-  }
+    business: "Business",
+    creative: "Creative",
+    technical: "Technical",
+    personal: "Personal",
+    research: "Research",
+  };
 
   const ideaTypeColors: Record<IdeaType, string> = {
-    business: 'bg-blue-100 text-blue-800',
-    creative: 'bg-purple-100 text-purple-800',
-    technical: 'bg-green-100 text-green-800',
-    personal: 'bg-orange-100 text-orange-800',
-    research: 'bg-cyan-100 text-cyan-800',
-  }
+    business: "bg-blue-100 text-blue-800",
+    creative: "bg-purple-100 text-purple-800",
+    technical: "bg-green-100 text-green-800",
+    personal: "bg-orange-100 text-orange-800",
+    research: "bg-cyan-100 text-cyan-800",
+  };
 
   return (
     <div className="space-y-8">
@@ -71,7 +91,9 @@ export default function Dashboard() {
             <Lightbulb className="h-5 w-5 text-primary-600" />
             <div>
               <p className="text-xs text-gray-500">Ideas</p>
-              <p className="text-xl font-bold text-gray-900">{stats?.totalIdeas ?? '-'}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {stats?.totalIdeas ?? "-"}
+              </p>
             </div>
           </div>
 
@@ -79,7 +101,9 @@ export default function Dashboard() {
             <TrendingUp className="h-5 w-5 text-green-600" />
             <div>
               <p className="text-xs text-gray-500">Avg Score</p>
-              <p className="text-xl font-bold text-gray-900">{stats?.avgScore ? stats.avgScore.toFixed(1) : '-'}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {stats?.avgScore ? stats.avgScore.toFixed(1) : "-"}
+              </p>
             </div>
           </div>
 
@@ -87,7 +111,9 @@ export default function Dashboard() {
             <DollarSign className="h-5 w-5 text-amber-600" />
             <div>
               <p className="text-xs text-gray-500">Total Cost</p>
-              <p className="text-xl font-bold text-gray-900">${stats?.totalCost?.toFixed(2) ?? '0.00'}</p>
+              <p className="text-xl font-bold text-gray-900">
+                ${stats?.totalCost?.toFixed(2) ?? "0.00"}
+              </p>
             </div>
           </div>
 
@@ -95,7 +121,9 @@ export default function Dashboard() {
             <BarChart3 className="h-5 w-5 text-indigo-600" />
             <div>
               <p className="text-xs text-gray-500">Evaluated</p>
-              <p className="text-xl font-bold text-gray-900">{ideas.filter(i => i.avg_final_score !== null).length}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {ideas.filter((i) => i.avg_final_score !== null).length}
+              </p>
             </div>
           </div>
         </div>
@@ -105,7 +133,9 @@ export default function Dashboard() {
         {/* Recent Ideas */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Ideas</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Recent Ideas
+            </h2>
             <Link
               to="/ideas"
               className="text-sm text-primary-600 hover:text-primary-700"
@@ -118,7 +148,9 @@ export default function Dashboard() {
           ) : recentIdeas.length === 0 ? (
             <div className="text-center py-6">
               <Lightbulb className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 mb-3">No ideas yet. Start capturing your ideas!</p>
+              <p className="text-gray-500 mb-3">
+                No ideas yet. Start capturing your ideas!
+              </p>
               <Link
                 to="/ideas/new"
                 className="btn btn-primary inline-flex items-center"
@@ -169,7 +201,9 @@ export default function Dashboard() {
                       )}
                       <span
                         className={`inline-block h-2 w-2 rounded-full ${
-                          lifecycleStages[idea.lifecycle_stage as LifecycleStage]?.color || 'bg-gray-400'
+                          lifecycleStages[
+                            idea.lifecycle_stage as LifecycleStage
+                          ]?.color || "bg-gray-400"
                         }`}
                       />
                     </div>
@@ -221,8 +255,8 @@ export default function Dashboard() {
               {Object.entries(lifecycleStages)
                 .sort((a, b) => a[1].order - b[1].order)
                 .map(([stage, meta]) => {
-                  const count = stats.byStage[stage] || 0
-                  if (count === 0) return null
+                  const count = stats.byStage[stage] || 0;
+                  if (count === 0) return null;
                   return (
                     <div
                       key={stage}
@@ -230,7 +264,7 @@ export default function Dashboard() {
                     >
                       {meta.label}: {count}
                     </div>
-                  )
+                  );
                 })}
             </div>
           ) : (
@@ -241,7 +275,9 @@ export default function Dashboard() {
         {/* Export/Import - Compact toolbar */}
         <div className="card lg:col-span-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-gray-500">Data Management</h2>
+            <h2 className="text-sm font-medium text-gray-500">
+              Data Management
+            </h2>
             <div className="flex gap-2">
               <button
                 onClick={() => downloadExport(getExportAllIdeasUrl())}
@@ -265,18 +301,20 @@ export default function Dashboard() {
                   accept=".json"
                   className="hidden"
                   onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
+                    const file = e.target.files?.[0];
+                    if (!file) return;
                     try {
-                      const text = await file.text()
-                      const data = JSON.parse(text)
-                      const result = await importIdeas(data)
-                      alert(`Import complete: ${result.imported} imported, ${result.skipped} skipped${result.errors.length ? '\nErrors: ' + result.errors.join(', ') : ''}`)
-                      window.location.reload()
+                      const text = await file.text();
+                      const data = JSON.parse(text);
+                      const result = await importIdeas(data);
+                      alert(
+                        `Import complete: ${result.imported} imported, ${result.skipped} skipped${result.errors.length ? "\nErrors: " + result.errors.join(", ") : ""}`,
+                      );
+                      window.location.reload();
                     } catch (error) {
-                      alert('Import failed: ' + (error as Error).message)
+                      alert("Import failed: " + (error as Error).message);
                     }
-                    e.target.value = ''
+                    e.target.value = "";
                   }}
                 />
               </label>
@@ -285,5 +323,5 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
-  )
+  );
 }

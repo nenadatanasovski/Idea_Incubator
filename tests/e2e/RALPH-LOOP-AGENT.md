@@ -12,9 +12,11 @@ A code-fixing system where a single E2E-AGENT **fixes code to make tests pass**.
 ## Core Principles
 
 ### 1. Fix Code, Don't Just Report Failures
+
 **Your job is to make tests pass by writing code fixes.**
 
 The agent is a developer, not a reporter. When a test fails:
+
 - Read the source code
 - Understand the bug
 - Write a fix
@@ -22,27 +24,33 @@ The agent is a developer, not a reporter. When a test fails:
 - Commit the change
 
 ### 2. Verification Before New Work
+
 Before working on new tests, verify 1-2 previously passing tests still work.
 If you find regressions, fix them BEFORE moving to new work.
 
 ### 3. Mandatory Orientation
+
 Every session MUST start by reading:
+
 1. `agent-memory.json` - Schema, patterns, known bugs
 2. `test-state.json` - Current progress
 3. `HANDOFF.md` - Context from previous session
 4. `git log` - Recent changes
 
 ### 4. Fix First, Then Verify
+
 ```
 Test fails → Read source code → Write fix → Verify via browser → Commit
 ```
 
 **Not:**
+
 ```
 Test fails → Document failure → Move on
 ```
 
 ### 5. Single Tab / Single Session Discipline (CRITICAL)
+
 - Start ONE browser tab
 - Start ONE ideation session
 - When something fails: **FIX THE CODE**, don't start a new session
@@ -51,7 +59,9 @@ Test fails → Document failure → Move on
 **This was the #1 problem in the original agent.** It created dozens of orphaned sessions because every failure triggered "navigate to /ideate → start new session" instead of "fix code → retry".
 
 ### 6. Git Commits
+
 Commit progress after each fix:
+
 ```bash
 git add -A
 git commit -m "Fix TEST-XXX: [description]"
@@ -99,13 +109,16 @@ tests/e2e/
     }
   },
   "workingPatterns": [
-    {"pattern": "Use button clicks", "reason": "More reliable than form submit"}
+    {
+      "pattern": "Use button clicks",
+      "reason": "More reliable than form submit"
+    }
   ],
   "failingPatterns": [
-    {"pattern": "setTimeout stacking", "symptom": "Unpredictable timing"}
+    { "pattern": "setTimeout stacking", "symptom": "Unpredictable timing" }
   ],
   "knownBugs": [
-    {"id": "BUG-001", "symptom": "Silent redirect on expired session"}
+    { "id": "BUG-001", "symptom": "Silent redirect on expired session" }
   ]
 }
 ```
@@ -117,12 +130,13 @@ tests/e2e/
 When an action fails, complete this before retrying:
 
 ### 1. Collect Evidence
+
 ```javascript
 // Check UI for errors
-document.querySelectorAll('.error, .text-red-500, [role="alert"]')
+document.querySelectorAll('.error, .text-red-500, [role="alert"]');
 
 // Check current URL
-window.location.href
+window.location.href;
 ```
 
 ```bash
@@ -134,12 +148,14 @@ tail -20 tests/e2e/logs/backend.log | grep -i error
 ```
 
 ### 2. Form Hypothesis
+
 - What failed?
 - What evidence did you find?
 - Why do you think it happened?
 - What will you change to fix it?
 
 ### 3. Fix and Verify
+
 - Make minimal code change
 - Restart server if needed
 - Re-run test
@@ -149,31 +165,33 @@ tail -20 tests/e2e/logs/backend.log | grep -i error
 ## Waiting Patterns
 
 ### Wait for Element
+
 ```javascript
-(async function() {
+(async function () {
   const timeout = 30000;
   const start = Date.now();
   while (Date.now() - start < timeout) {
-    const el = document.querySelector('.expected');
+    const el = document.querySelector(".expected");
     if (el) return { success: true };
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
   }
-  return { success: false, error: 'timeout' };
-})()
+  return { success: false, error: "timeout" };
+})();
 ```
 
 ### Wait for Loading Complete
+
 ```javascript
-(async function() {
+(async function () {
   const timeout = 30000;
   const start = Date.now();
   while (Date.now() - start < timeout) {
     const loading = document.querySelector('.loading, [aria-busy="true"]');
     if (!loading) return { success: true };
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 300));
   }
   return { success: false };
-})()
+})();
 ```
 
 ---
@@ -220,6 +238,7 @@ tail -20 tests/e2e/logs/backend.log | grep -i error
 ## State File Format
 
 ### test-state.json
+
 ```json
 {
   "tests": [
@@ -251,20 +270,21 @@ tail -20 tests/e2e/logs/backend.log | grep -i error
 
 ## Anti-Patterns to Avoid
 
-| Anti-Pattern | Problem | Correct Pattern |
-|--------------|---------|-----------------|
-| `setTimeout` stacking | Wastes time, unreliable | Event-based polling |
-| Screenshot spam | Fills context, no insight | 4 screenshots max per test |
-| Blind retries | Never fixes root cause | Diagnose → Fix → Retry |
-| New session per failure | Tab proliferation | Reuse single tab |
-| Wrong schema columns | Query errors | Check agent-memory.json |
-| Skip orientation | Repeat past mistakes | ALWAYS read memory first |
+| Anti-Pattern            | Problem                   | Correct Pattern            |
+| ----------------------- | ------------------------- | -------------------------- |
+| `setTimeout` stacking   | Wastes time, unreliable   | Event-based polling        |
+| Screenshot spam         | Fills context, no insight | 4 screenshots max per test |
+| Blind retries           | Never fixes root cause    | Diagnose → Fix → Retry     |
+| New session per failure | Tab proliferation         | Reuse single tab           |
+| Wrong schema columns    | Query errors              | Check agent-memory.json    |
+| Skip orientation        | Repeat past mistakes      | ALWAYS read memory first   |
 
 ---
 
 ## Running the Loop
 
 ### Prerequisites
+
 ```bash
 cd /Users/nenadatanasovski/idea_incurator
 
@@ -275,6 +295,7 @@ pip install -r tests/e2e/requirements.txt
 ```
 
 ### Run with Claude Agent SDK (Recommended)
+
 ```bash
 cd tests/e2e
 python ralph_loop.py
@@ -285,6 +306,7 @@ python ralph_loop.py --model claude-opus-4-5-20251101
 ```
 
 ### Legacy Bash Script
+
 ```bash
 ./tests/e2e/ralph-loop.sh
 ```
@@ -294,6 +316,7 @@ python ralph_loop.py --model claude-opus-4-5-20251101
 ## Completion Criteria
 
 The test suite is complete when:
+
 - [ ] All 64 tests attempted
 - [ ] All automatable tests passed or blocked (with documented bugs)
 - [ ] Summary shows 0 pending
@@ -303,6 +326,7 @@ The test suite is complete when:
 ## Quick Reference
 
 ### Schema (from agent-memory.json)
+
 ```sql
 -- Sessions
 SELECT id, status, started_at, message_count FROM ideation_sessions;
@@ -314,6 +338,7 @@ SELECT id, role, content, created_at FROM ideation_messages;
 ```
 
 ### Key Selectors
+
 ```
 Profile dropdown:  select
 Start button:      button.bg-gradient-to-r
@@ -325,6 +350,7 @@ Error messages:    .text-red-500, [role="alert"]
 ```
 
 ### API Endpoints
+
 ```
 POST /api/ideation/start     - Start session
 POST /api/ideation/message   - Send message

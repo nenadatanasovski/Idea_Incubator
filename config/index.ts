@@ -1,6 +1,6 @@
-import { config as defaultConfig } from './default.js';
-import type { Config } from './default.js';
-import { ConfigurationError } from '../utils/errors.js';
+import { config as defaultConfig } from "./default.js";
+import type { Config } from "./default.js";
+import { ConfigurationError } from "../utils/errors.js";
 
 let currentConfig: Config = { ...defaultConfig };
 
@@ -33,27 +33,42 @@ export function resetConfig(): Config {
 export function validateConfig(config: Config): void {
   // Validate budget
   if (config.budget.default <= 0) {
-    throw new ConfigurationError('budget.default', 'must be positive');
+    throw new ConfigurationError("budget.default", "must be positive");
   }
   if (config.budget.max < config.budget.default) {
-    throw new ConfigurationError('budget.max', 'must be greater than or equal to default');
+    throw new ConfigurationError(
+      "budget.max",
+      "must be greater than or equal to default",
+    );
   }
 
   // Validate debate settings
   if (config.debate.challengesPerCriterion < 1) {
-    throw new ConfigurationError('debate.challengesPerCriterion', 'must be at least 1');
+    throw new ConfigurationError(
+      "debate.challengesPerCriterion",
+      "must be at least 1",
+    );
   }
   if (config.debate.roundsPerChallenge < 1) {
-    throw new ConfigurationError('debate.roundsPerChallenge', 'must be at least 1');
+    throw new ConfigurationError(
+      "debate.roundsPerChallenge",
+      "must be at least 1",
+    );
   }
   if (config.debate.maxRounds < 1) {
-    throw new ConfigurationError('debate.maxRounds', 'must be at least 1');
+    throw new ConfigurationError("debate.maxRounds", "must be at least 1");
   }
 
   // Validate weights sum to 1.0
-  const weightSum = Object.values(config.categoryWeights).reduce((a, b) => a + b, 0);
+  const weightSum = Object.values(config.categoryWeights).reduce(
+    (a, b) => a + b,
+    0,
+  );
   if (Math.abs(weightSum - 1.0) > 0.01) {
-    throw new ConfigurationError('categoryWeights', `must sum to 1.0, got ${weightSum}`);
+    throw new ConfigurationError(
+      "categoryWeights",
+      `must sum to 1.0, got ${weightSum}`,
+    );
   }
 }
 
@@ -69,12 +84,15 @@ function deepMerge<T extends object>(target: T, source: Partial<T>): T {
 
     if (
       sourceValue !== undefined &&
-      typeof sourceValue === 'object' &&
+      typeof sourceValue === "object" &&
       !Array.isArray(sourceValue) &&
-      typeof targetValue === 'object' &&
+      typeof targetValue === "object" &&
       !Array.isArray(targetValue)
     ) {
-      output[key] = deepMerge(targetValue as object, sourceValue as object) as T[keyof T];
+      output[key] = deepMerge(
+        targetValue as object,
+        sourceValue as object,
+      ) as T[keyof T];
     } else if (sourceValue !== undefined) {
       output[key] = sourceValue as T[keyof T];
     }

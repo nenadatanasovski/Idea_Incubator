@@ -8,12 +8,15 @@ sessionId: afda70d2-5ae0-497e-9ab2-8e7596c9da07
 createdAt: 2026-01-05 21:55:09
 updatedAt: 2026-01-05 21:55:09
 ---
+
 I've created a comprehensive **Target Customer Definition** document for Vibe. Here's what it addresses:
 
 ## Summary of the New Document
 
 ### Primary Target Customer: **"The Capable Dreamer"**
+
 Specifically **corporate employees with side project ambitions** (age 28-45, $80-200K income) who:
+
 - Have ideas sitting in notebooks
 - Tried no-code tools and gave up
 - Have 5-15 hours/week available
@@ -21,13 +24,14 @@ Specifically **corporate employees with side project ambitions** (age 28-45, $80
 
 ### Key Decisions Made:
 
-| Decision | Rationale |
-|----------|-----------|
+| Decision                                | Rationale                                                                           |
+| --------------------------------------- | ----------------------------------------------------------------------------------- |
 | **Beachhead = Corporate side-hustlers** | Large market, relatable pain, moderate WTP ($49-99/mo), reachable on Twitter/Reddit |
-| **Anti-personas defined** | Technical founders, enterprise IT, get-rich-quick seekers, budget-zero users |
-| **Price validation target** | $29-49/mo for ideation, scaling up as value delivered |
+| **Anti-personas defined**               | Technical founders, enterprise IT, get-rich-quick seekers, budget-zero users        |
+| **Price validation target**             | $29-49/mo for ideation, scaling up as value delivered                               |
 
 ### What's Included:
+
 1. **Demographics & psychographics** of primary segment
 2. **Jobs to be done** with current failing solutions
 3. **Where to find them** (Reddit, Twitter/X, Indie Hackers, podcasts)
@@ -37,7 +41,9 @@ Specifically **corporate employees with side project ambitions** (age 28-45, $80
 7. **One-sentence customer definition** for alignment
 
 ### This Addresses the Viability Risk:
+
 The risk "Target customer not clearly defined" is now mitigated with:
+
 - Specific, actionable customer profile
 - Clear validation steps to prove/disprove assumptions
 - Anti-personas to avoid wasted effort

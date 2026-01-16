@@ -6,13 +6,20 @@
  */
 
 // Task statuses
-export type TaskStatus = 'pending' | 'evaluating' | 'in_progress' | 'completed' | 'failed' | 'blocked' | 'skipped';
+export type TaskStatus =
+  | "pending"
+  | "evaluating"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "blocked"
+  | "skipped";
 
 // Task queue types
-export type TaskQueue = 'evaluation' | null;
+export type TaskQueue = "evaluation" | null;
 
 // File operation types
-export type FileOperation = 'CREATE' | 'UPDATE' | 'DELETE' | 'READ';
+export type FileOperation = "CREATE" | "UPDATE" | "DELETE" | "READ";
 
 // Task identity with UUID + display_id
 export interface TaskIdentity {
@@ -44,7 +51,7 @@ export interface FileImpact {
   filePath: string;
   operation: FileOperation;
   confidence: number;
-  source: 'ai' | 'pattern' | 'user' | 'validated';
+  source: "ai" | "pattern" | "user" | "validated";
 }
 
 // File conflict between tasks
@@ -52,7 +59,11 @@ export interface FileConflict {
   filePath: string;
   operationA: FileOperation;
   operationB: FileOperation;
-  conflictType: 'write_write' | 'write_delete' | 'create_create' | 'delete_read';
+  conflictType:
+    | "write_write"
+    | "write_delete"
+    | "create_create"
+    | "delete_read";
 }
 
 // Parallelism analysis result
@@ -63,7 +74,7 @@ export interface ParallelismAnalysis {
   taskBId: string;
   taskBDisplayId: string;
   canParallel: boolean;
-  conflictType?: 'dependency' | 'file_conflict' | null;
+  conflictType?: "dependency" | "file_conflict" | null;
   conflictDetails?: {
     dependencyChain?: string[];
     conflictingFiles?: FileConflict[];
@@ -76,7 +87,7 @@ export interface ExecutionWave {
   id: string;
   taskListId: string;
   waveNumber: number;
-  status: 'pending' | 'executing' | 'completed' | 'failed';
+  status: "pending" | "executing" | "completed" | "failed";
   tasks: TaskIdentity[];
   taskCount: number;
   completedCount: number;
@@ -91,7 +102,7 @@ export interface BuildAgentInstance {
   taskListId: string;
   taskId: string;
   taskDisplayId: string;
-  status: 'spawning' | 'running' | 'completed' | 'failed' | 'terminated';
+  status: "spawning" | "running" | "completed" | "failed" | "terminated";
   waveId?: string;
   spawnedAt: string;
   lastHeartbeat?: string;
@@ -103,7 +114,7 @@ export interface BuildAgentInstance {
 export interface GroupingSuggestion {
   id: string;
   suggestedListName: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'expired';
+  status: "pending" | "accepted" | "rejected" | "expired";
   tasks: TaskIdentity[];
   taskCount: number;
   score: number;
@@ -143,7 +154,13 @@ export interface QuickAddTaskInput {
 }
 
 // Task relationship type
-export type RelationshipType = 'depends_on' | 'blocks' | 'related_to' | 'parent_of' | 'child_of' | 'duplicate_of';
+export type RelationshipType =
+  | "depends_on"
+  | "blocks"
+  | "related_to"
+  | "parent_of"
+  | "child_of"
+  | "duplicate_of";
 
 // Task relationship
 export interface TaskRelationship {
@@ -165,7 +182,7 @@ export interface CircularDependencyResult {
   cyclePath?: string[];
   cycleDisplayIds?: string[];
   recommendation?: {
-    action: 'remove_dependency';
+    action: "remove_dependency";
     sourceTaskId: string;
     targetTaskId: string;
     reason: string;
@@ -173,62 +190,91 @@ export interface CircularDependencyResult {
 }
 
 // Wave execution status
-export type WaveStatus = 'pending' | 'executing' | 'completed' | 'failed';
+export type WaveStatus = "pending" | "executing" | "completed" | "failed";
 
 // Agent status
-export type AgentStatus = 'spawning' | 'running' | 'completed' | 'failed' | 'terminated';
+export type AgentStatus =
+  | "spawning"
+  | "running"
+  | "completed"
+  | "failed"
+  | "terminated";
 
 // Status configuration for consistent styling
 export const taskStatusConfig: Record<
   TaskStatus,
   { color: string; bg: string; label: string }
 > = {
-  pending: { color: 'text-gray-500', bg: 'bg-gray-100', label: 'Pending' },
-  evaluating: { color: 'text-blue-500', bg: 'bg-blue-100', label: 'Evaluating' },
-  in_progress: { color: 'text-amber-600', bg: 'bg-amber-100', label: 'In Progress' },
-  completed: { color: 'text-green-600', bg: 'bg-green-100', label: 'Completed' },
-  failed: { color: 'text-red-600', bg: 'bg-red-100', label: 'Failed' },
-  blocked: { color: 'text-orange-600', bg: 'bg-orange-100', label: 'Blocked' },
-  skipped: { color: 'text-gray-400', bg: 'bg-gray-50', label: 'Skipped' },
+  pending: { color: "text-gray-500", bg: "bg-gray-100", label: "Pending" },
+  evaluating: {
+    color: "text-blue-500",
+    bg: "bg-blue-100",
+    label: "Evaluating",
+  },
+  in_progress: {
+    color: "text-amber-600",
+    bg: "bg-amber-100",
+    label: "In Progress",
+  },
+  completed: {
+    color: "text-green-600",
+    bg: "bg-green-100",
+    label: "Completed",
+  },
+  failed: { color: "text-red-600", bg: "bg-red-100", label: "Failed" },
+  blocked: { color: "text-orange-600", bg: "bg-orange-100", label: "Blocked" },
+  skipped: { color: "text-gray-400", bg: "bg-gray-50", label: "Skipped" },
 };
 
 export const waveStatusConfig: Record<
   WaveStatus,
   { color: string; bg: string; label: string }
 > = {
-  pending: { color: 'text-gray-500', bg: 'bg-gray-100', label: 'Pending' },
-  executing: { color: 'text-blue-600', bg: 'bg-blue-100', label: 'Executing' },
-  completed: { color: 'text-green-600', bg: 'bg-green-100', label: 'Completed' },
-  failed: { color: 'text-red-600', bg: 'bg-red-100', label: 'Failed' },
+  pending: { color: "text-gray-500", bg: "bg-gray-100", label: "Pending" },
+  executing: { color: "text-blue-600", bg: "bg-blue-100", label: "Executing" },
+  completed: {
+    color: "text-green-600",
+    bg: "bg-green-100",
+    label: "Completed",
+  },
+  failed: { color: "text-red-600", bg: "bg-red-100", label: "Failed" },
 };
 
 export const agentStatusConfig: Record<
   AgentStatus,
   { color: string; bg: string; label: string }
 > = {
-  spawning: { color: 'text-yellow-600', bg: 'bg-yellow-100', label: 'Spawning' },
-  running: { color: 'text-green-600', bg: 'bg-green-100', label: 'Running' },
-  completed: { color: 'text-blue-600', bg: 'bg-blue-100', label: 'Completed' },
-  failed: { color: 'text-red-600', bg: 'bg-red-100', label: 'Failed' },
-  terminated: { color: 'text-gray-600', bg: 'bg-gray-100', label: 'Terminated' },
+  spawning: {
+    color: "text-yellow-600",
+    bg: "bg-yellow-100",
+    label: "Spawning",
+  },
+  running: { color: "text-green-600", bg: "bg-green-100", label: "Running" },
+  completed: { color: "text-blue-600", bg: "bg-blue-100", label: "Completed" },
+  failed: { color: "text-red-600", bg: "bg-red-100", label: "Failed" },
+  terminated: {
+    color: "text-gray-600",
+    bg: "bg-gray-100",
+    label: "Terminated",
+  },
 };
 
 // Category codes for display IDs
 export const CATEGORY_CODES: Record<string, string> = {
-  feature: 'FEA',
-  bug: 'BUG',
-  enhancement: 'ENH',
-  refactor: 'REF',
-  documentation: 'DOC',
-  test: 'TST',
-  infrastructure: 'INF',
-  design: 'DES',
-  research: 'RES',
-  planning: 'PLN',
-  review: 'REV',
-  deployment: 'DEP',
-  security: 'SEC',
-  performance: 'PRF',
-  maintenance: 'MNT',
-  other: 'OTH',
+  feature: "FEA",
+  bug: "BUG",
+  enhancement: "ENH",
+  refactor: "REF",
+  documentation: "DOC",
+  test: "TST",
+  infrastructure: "INF",
+  design: "DES",
+  research: "RES",
+  planning: "PLN",
+  review: "REV",
+  deployment: "DEP",
+  security: "SEC",
+  performance: "PRF",
+  maintenance: "MNT",
+  other: "OTH",
 };

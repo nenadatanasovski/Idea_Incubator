@@ -93,12 +93,14 @@ The Task Agent is the orchestration layer that manages task lifecycle, automatic
 **Location:** `server/services/task-agent/task-creation-service.ts`
 
 **Responsibilities:**
+
 - Create tasks with or without task list assignment
 - Generate human-readable display IDs
 - Trigger analysis pipeline on creation
 - Handle bulk task creation
 
 **Key Functions:**
+
 ```typescript
 createListlessTask(input: CreateTaskInput): Promise<CreateTaskResponse>
 createTaskInList(input: CreateTaskInput & { taskListId: string }): Promise<CreateTaskResponse>
@@ -111,11 +113,13 @@ updateTaskStatus(taskId: string, status: TaskStatus): Promise<Task | null>
 **Location:** `server/services/task-agent/evaluation-queue-manager.ts`
 
 **Responsibilities:**
+
 - Manage the Evaluation Queue (tasks without a list)
 - Track queue statistics and stale tasks
 - Move tasks from queue to task lists
 
 **Key Functions:**
+
 ```typescript
 addToQueue(taskId: string): Promise<void>
 getQueuedTasks(): Promise<EvaluationQueueTask[]>
@@ -129,11 +133,13 @@ getStaleQueuedTasks(): Promise<EvaluationQueueTask[]>
 **Location:** `server/services/task-agent/task-analysis-pipeline.ts`
 
 **Responsibilities:**
+
 - Analyze tasks for relationships and duplicates
 - Detect circular dependencies
 - Suggest groupings based on analysis
 
 **Key Functions:**
+
 ```typescript
 analyzeTask(taskId: string): Promise<TaskAnalysisResult>
 findRelatedTasks(taskId: string): Promise<TaskIdentity[]>
@@ -147,12 +153,14 @@ validateDependencies(taskId: string): Promise<{ hasCircle: boolean; circlePath?:
 **Location:** `server/services/task-agent/auto-grouping-engine.ts`
 
 **Responsibilities:**
+
 - Score task groupings based on multiple criteria
 - Generate grouping suggestions
 - Handle suggestion acceptance/rejection
 - Manage suggestion lifecycle (expiration)
 
 **Key Functions:**
+
 ```typescript
 analyzeTasks(): Promise<GroupingSuggestion[]>
 calculateGroupingScore(taskIds: string[]): Promise<number>
@@ -166,12 +174,14 @@ rejectSuggestion(suggestionId: string): Promise<void>
 **Location:** `server/services/task-agent/file-impact-analyzer.ts`
 
 **Responsibilities:**
+
 - Estimate file impacts using AI and patterns
 - Merge estimates from multiple sources
 - Validate predictions after execution
 - Record actual file changes
 
 **Key Functions:**
+
 ```typescript
 estimateFileImpacts(taskId: string): Promise<FileImpact[]>
 matchHistoricalPatterns(taskTitle: string, category: TaskCategory): Promise<FileImpact[]>
@@ -185,11 +195,13 @@ recordActualImpact(taskId: string, filePath: string, operation: FileOperation): 
 **Location:** `server/services/task-agent/file-conflict-detector.ts`
 
 **Responsibilities:**
+
 - Detect file conflicts between tasks
 - Determine conflict types (write-write, write-delete, etc.)
 - Check if two tasks can run in parallel
 
 **Key Functions:**
+
 ```typescript
 canRunParallel(taskAId: string, taskBId: string): Promise<boolean>
 detectConflicts(taskAId: string, taskBId: string): Promise<FileConflict[]>
@@ -202,11 +214,13 @@ getConflictType(opA: FileOperation, opB: FileOperation): ConflictType | null
 **Location:** `server/services/task-agent/parallelism-calculator.ts`
 
 **Responsibilities:**
+
 - Calculate execution waves for a task list
 - Determine maximum parallelism
 - Cache and invalidate analysis results
 
 **Key Functions:**
+
 ```typescript
 calculateWaves(taskListId: string): Promise<ExecutionWave[]>
 getMaxParallelism(taskListId: string): Promise<number>
@@ -219,12 +233,14 @@ invalidateAnalysis(taskListId: string): Promise<void>
 **Location:** `server/services/task-agent/circular-dependency-prevention.ts`
 
 **Responsibilities:**
+
 - Detect potential cycles before dependency creation
 - Find existing cycles in the dependency graph
 - Generate and apply resolutions
 - Warn about near-cycle situations
 
 **Key Functions:**
+
 ```typescript
 wouldCreateCycle(sourceTaskId: string, targetTaskId: string): Promise<CycleDetectionResult>
 detectExistingCycles(taskListId?: string): Promise<CycleInfo[]>
@@ -238,6 +254,7 @@ safeAddDependency(sourceTaskId: string, targetTaskId: string): Promise<SafeAddRe
 **Location:** `server/services/task-agent/build-agent-orchestrator.ts`
 
 **Responsibilities:**
+
 - Spawn and manage Build Agent instances
 - Assign tasks to agents (1:1 mapping)
 - Monitor agent health via heartbeats
@@ -245,6 +262,7 @@ safeAddDependency(sourceTaskId: string, targetTaskId: string): Promise<SafeAddRe
 - Coordinate wave-based execution
 
 **Key Functions:**
+
 ```typescript
 spawnBuildAgent(taskId: string, waveId: string): Promise<BuildAgentInstance>
 assignTaskToAgent(agentId: string, taskId: string): Promise<void>
@@ -346,56 +364,56 @@ Task Created → Analysis Pipeline
 
 ### Task Management
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/task-agent/tasks` | Create a task |
-| GET | `/api/task-agent/tasks/:id` | Get task by ID |
-| PUT | `/api/task-agent/tasks/:id` | Update task |
-| DELETE | `/api/task-agent/tasks/:id` | Delete task |
+| Method | Endpoint                    | Description    |
+| ------ | --------------------------- | -------------- |
+| POST   | `/api/task-agent/tasks`     | Create a task  |
+| GET    | `/api/task-agent/tasks/:id` | Get task by ID |
+| PUT    | `/api/task-agent/tasks/:id` | Update task    |
+| DELETE | `/api/task-agent/tasks/:id` | Delete task    |
 
 ### Evaluation Queue
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/task-agent/queue` | Get queued tasks |
-| GET | `/api/task-agent/queue/stats` | Get queue statistics |
-| POST | `/api/task-agent/queue/:taskId/move` | Move task to list |
+| Method | Endpoint                             | Description          |
+| ------ | ------------------------------------ | -------------------- |
+| GET    | `/api/task-agent/queue`              | Get queued tasks     |
+| GET    | `/api/task-agent/queue/stats`        | Get queue statistics |
+| POST   | `/api/task-agent/queue/:taskId/move` | Move task to list    |
 
 ### Grouping
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/task-agent/suggestions` | Get pending suggestions |
-| POST | `/api/task-agent/suggestions/:id/accept` | Accept suggestion |
-| POST | `/api/task-agent/suggestions/:id/reject` | Reject suggestion |
+| Method | Endpoint                                 | Description             |
+| ------ | ---------------------------------------- | ----------------------- |
+| GET    | `/api/task-agent/suggestions`            | Get pending suggestions |
+| POST   | `/api/task-agent/suggestions/:id/accept` | Accept suggestion       |
+| POST   | `/api/task-agent/suggestions/:id/reject` | Reject suggestion       |
 
 ### Parallelism
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/task-agent/parallelism/:taskListId` | Get parallelism info |
-| GET | `/api/task-agent/parallelism/:taskListId/waves` | Get execution waves |
+| Method | Endpoint                                        | Description          |
+| ------ | ----------------------------------------------- | -------------------- |
+| GET    | `/api/task-agent/parallelism/:taskListId`       | Get parallelism info |
+| GET    | `/api/task-agent/parallelism/:taskListId/waves` | Get execution waves  |
 
 ### Execution
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/task-agent/execution/:taskListId/start` | Start execution |
-| POST | `/api/task-agent/execution/:taskListId/pause` | Pause execution |
-| POST | `/api/task-agent/execution/:taskListId/resume` | Resume execution |
-| GET | `/api/task-agent/agents` | Get active agents |
+| Method | Endpoint                                       | Description       |
+| ------ | ---------------------------------------------- | ----------------- |
+| POST   | `/api/task-agent/execution/:taskListId/start`  | Start execution   |
+| POST   | `/api/task-agent/execution/:taskListId/pause`  | Pause execution   |
+| POST   | `/api/task-agent/execution/:taskListId/resume` | Resume execution  |
+| GET    | `/api/task-agent/agents`                       | Get active agents |
 
 ---
 
 ## Telegram Commands
 
-| Command | Description |
-|---------|-------------|
-| `/newtask <description>` | Create a new task |
-| `/queue` | Show Evaluation Queue status |
-| `/suggest` | Get grouping suggestions |
-| `/parallel [taskListId]` | Show parallelism status |
-| `/agents` | Show active Build Agents |
+| Command                  | Description                  |
+| ------------------------ | ---------------------------- |
+| `/newtask <description>` | Create a new task            |
+| `/queue`                 | Show Evaluation Queue status |
+| `/suggest`               | Get grouping suggestions     |
+| `/parallel [taskListId]` | Show parallelism status      |
+| `/agents`                | Show active Build Agents     |
 
 ---
 

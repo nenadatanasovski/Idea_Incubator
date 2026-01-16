@@ -149,8 +149,6 @@ This idea faces significant execution risk due to the complexity of building mul
 Score: 4/10
 Debating: Solution Clarit
 
-
-
 User Profile
 New Profile
 Comprehensive profile for accurate Personal Fit evaluation (FT1-FT5). More detail = better scores.
@@ -160,9 +158,9 @@ Select Profile
 Test Profile
 Failed to save profile
 Location & Demographics
-Profile Name *
+Profile Name _
 Ned
-Country *
+Country _
 Australia
 Affects market access, regulations, costs
 
@@ -264,7 +262,7 @@ English, Dutch, German, Spanish, Macedonian.
 Affects markets you can target
 
 Professional Experience
-10 years of programming, system architecting and running iterations on existing applications in a custom app ecosystem. 
+10 years of programming, system architecting and running iterations on existing applications in a custom app ecosystem.
 Domain Expertise
 Fintech, healthcare
 Network & Resources (FT4)

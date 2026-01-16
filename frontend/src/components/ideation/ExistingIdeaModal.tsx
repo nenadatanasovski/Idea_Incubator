@@ -3,8 +3,8 @@
 // Modal for handling existing sessions
 // =============================================================================
 
-import { useState, useEffect } from 'react';
-import { Clock, ArrowRight, Plus, X } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Clock, ArrowRight, Plus, X } from "lucide-react";
 
 interface ExistingSession {
   id: string;
@@ -55,7 +55,9 @@ export function ExistingIdeaModal({
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-lg font-semibold mb-1">You Have an Active Session</h2>
+        <h2 className="text-lg font-semibold mb-1">
+          You Have an Active Session
+        </h2>
         <p className="text-sm text-gray-500 mb-6">
           One idea at a time keeps focus sharp
         </p>
@@ -64,7 +66,7 @@ export function ExistingIdeaModal({
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
           <div className="flex justify-between items-start mb-3">
             <p className="font-medium text-gray-700">
-              {existingSession.candidateTitle || 'Exploring ideas...'}
+              {existingSession.candidateTitle || "Exploring ideas..."}
             </p>
             <div className="flex items-center gap-1 text-gray-500 text-xs">
               <Clock className="w-3 h-3" />
@@ -128,14 +130,15 @@ export function ExistingIdeaModal({
  * Hook to check for existing sessions.
  */
 export function useExistingSessionCheck(profileId: string) {
-  const [existingSession, setExistingSession] = useState<ExistingSession | null>(null);
+  const [existingSession, setExistingSession] =
+    useState<ExistingSession | null>(null);
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     async function checkForExisting() {
       try {
         const response = await fetch(
-          `/api/ideation/sessions?profileId=${profileId}&status=active`
+          `/api/ideation/sessions?profileId=${profileId}&status=active`,
         );
         const data = await response.json();
 
@@ -143,7 +146,7 @@ export function useExistingSessionCheck(profileId: string) {
           setExistingSession(data.sessions[0]);
         }
       } catch (error) {
-        console.error('Failed to check for existing sessions:', error);
+        console.error("Failed to check for existing sessions:", error);
       } finally {
         setIsChecking(false);
       }

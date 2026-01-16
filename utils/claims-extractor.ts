@@ -4,9 +4,9 @@
  * Extract verifiable claims from idea content for research verification.
  * Used to build targeted search queries for market and technology validation.
  */
-import { client, useClaudeCli } from './anthropic-client.js';
-import { CostTracker } from './cost-tracker.js';
-import { logDebug, logWarning } from './logger.js';
+import { client, useClaudeCli } from "./anthropic-client.js";
+import { CostTracker } from "./cost-tracker.js";
+import { logDebug, logWarning } from "./logger.js";
 
 export interface ExtractedClaims {
   domain: string;
@@ -26,21 +26,22 @@ export interface ExtractedClaims {
  */
 export async function extractClaimsFromContent(
   content: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<ExtractedClaims> {
   // Use manual extraction if using CLI (to avoid unexpected costs)
   if (useClaudeCli) {
-    logDebug('Using manual claims extraction (CLI mode)');
+    logDebug("Using manual claims extraction (CLI mode)");
     return extractClaimsManually(content);
   }
 
   try {
     const response = await client.messages.create({
-      model: 'claude-haiku-3-5-20240307',
+      model: "claude-haiku-3-5-20240307",
       max_tokens: 1000,
-      messages: [{
-        role: 'user',
-        content: `Extract key claims from this idea description for research verification.
+      messages: [
+        {
+          role: "user",
+          content: `Extract key claims from this idea description for research verification.
 
 ${content.substring(0, 6000)}
 
@@ -52,28 +53,32 @@ Return JSON:
   "marketSize": "any market size claims or null (e.g., '$50B TAM')",
   "targetMarket": "target customer description (e.g., 'small business owners', 'home gardeners')",
   "keyAssumptions": ["key assumptions the idea relies on (e.g., 'users willing to pay $10/month', 'AI can accurately identify plants')"]
-}`
-      }]
+}`,
+        },
+      ],
     });
 
-    costTracker.track(response.usage, 'claims-extraction');
+    costTracker.track(response.usage, "claims-extraction");
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const text =
+      response.content[0].type === "text" ? response.content[0].text : "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
-      logDebug('Claims extraction: No JSON found in response');
+      logDebug("Claims extraction: No JSON found in response");
       return extractClaimsManually(content);
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
     return {
-      domain: parsed.domain || 'general',
+      domain: parsed.domain || "general",
       technology: Array.isArray(parsed.technology) ? parsed.technology : [],
       competitors: Array.isArray(parsed.competitors) ? parsed.competitors : [],
       marketSize: parsed.marketSize || null,
-      targetMarket: parsed.targetMarket || 'general consumers',
-      keyAssumptions: Array.isArray(parsed.keyAssumptions) ? parsed.keyAssumptions : []
+      targetMarket: parsed.targetMarket || "general consumers",
+      keyAssumptions: Array.isArray(parsed.keyAssumptions)
+        ? parsed.keyAssumptions
+        : [],
     };
   } catch (error) {
     logWarning(`LLM claims extraction failed: ${error}`);
@@ -90,14 +95,45 @@ function extractClaimsManually(content: string): ExtractedClaims {
 
   // Extract technology mentions
   const techPatterns = [
-    'ai', 'machine learning', 'ml', 'deep learning', 'neural network',
-    'computer vision', 'nlp', 'natural language', 'gpt', 'llm',
-    'react', 'vue', 'angular', 'node', 'python', 'typescript',
-    'aws', 'gcp', 'azure', 'kubernetes', 'docker',
-    'blockchain', 'web3', 'nft', 'crypto',
-    'mobile app', 'ios', 'android', 'react native', 'flutter',
-    'api', 'saas', 'paas', 'microservices', 'iot', 'wearable',
-    'cloud', 'telemedicine', 'telehealth'
+    "ai",
+    "machine learning",
+    "ml",
+    "deep learning",
+    "neural network",
+    "computer vision",
+    "nlp",
+    "natural language",
+    "gpt",
+    "llm",
+    "react",
+    "vue",
+    "angular",
+    "node",
+    "python",
+    "typescript",
+    "aws",
+    "gcp",
+    "azure",
+    "kubernetes",
+    "docker",
+    "blockchain",
+    "web3",
+    "nft",
+    "crypto",
+    "mobile app",
+    "ios",
+    "android",
+    "react native",
+    "flutter",
+    "api",
+    "saas",
+    "paas",
+    "microservices",
+    "iot",
+    "wearable",
+    "cloud",
+    "telemedicine",
+    "telehealth",
   ];
   for (const tech of techPatterns) {
     if (lowerContent.includes(tech)) {
@@ -106,13 +142,17 @@ function extractClaimsManually(content: string): ExtractedClaims {
   }
 
   // Extract market size claims
-  const marketSizeMatch = content.match(/\$[\d,]+\s*(billion|million|B|M|bn|mn)/i);
+  const marketSizeMatch = content.match(
+    /\$[\d,]+\s*(billion|million|B|M|bn|mn)/i,
+  );
   if (marketSizeMatch) {
     claims.marketSize = marketSizeMatch[0];
   }
 
   // Extract TAM/SAM/SOM claims
-  const tamMatch = content.match(/TAM[:\s]+\$?[\d,]+\s*(billion|million|B|M)?/i);
+  const tamMatch = content.match(
+    /TAM[:\s]+\$?[\d,]+\s*(billion|million|B|M)?/i,
+  );
   if (tamMatch) {
     claims.marketSize = claims.marketSize || tamMatch[0];
   }
@@ -124,8 +164,13 @@ function extractClaimsManually(content: string): ExtractedClaims {
     const listItems = competitionMatch[0].match(/^[-*]\s*(.+?)(?:\s*\(|$)/gm);
     if (listItems) {
       claims.competitors = listItems
-        .map(item => item.replace(/^[-*]\s*/, '').replace(/\s*\(.*$/, '').trim())
-        .filter(c => c.length > 0 && c.length < 50);
+        .map((item) =>
+          item
+            .replace(/^[-*]\s*/, "")
+            .replace(/\s*\(.*$/, "")
+            .trim(),
+        )
+        .filter((c) => c.length > 0 && c.length < 50);
     }
   }
 
@@ -135,10 +180,27 @@ function extractClaimsManually(content: string): ExtractedClaims {
     // Extract key domain words from summary
     const summaryWords = summaryMatch[1].toLowerCase();
     const domainPatterns = [
-      'pet', 'health', 'wellness', 'fitness', 'finance', 'fintech',
-      'education', 'edtech', 'food', 'travel', 'real estate',
-      'e-commerce', 'social', 'gaming', 'entertainment', 'healthcare',
-      'insurance', 'legal', 'hr', 'marketing', 'productivity'
+      "pet",
+      "health",
+      "wellness",
+      "fitness",
+      "finance",
+      "fintech",
+      "education",
+      "edtech",
+      "food",
+      "travel",
+      "real estate",
+      "e-commerce",
+      "social",
+      "gaming",
+      "entertainment",
+      "healthcare",
+      "insurance",
+      "legal",
+      "hr",
+      "marketing",
+      "productivity",
     ];
     for (const domain of domainPatterns) {
       if (summaryWords.includes(domain)) {
@@ -149,19 +211,23 @@ function extractClaimsManually(content: string): ExtractedClaims {
   }
 
   // Fallback: Try to extract domain from title
-  if (claims.domain === 'general') {
+  if (claims.domain === "general") {
     const titleMatch = content.match(/^#\s+(.+)/m);
     if (titleMatch) {
-      claims.domain = titleMatch[1].split(' ').slice(0, 3).join(' ').toLowerCase();
+      claims.domain = titleMatch[1]
+        .split(" ")
+        .slice(0, 3)
+        .join(" ")
+        .toLowerCase();
     }
   }
 
   // Extract target market
   const targetMatch = content.match(/##\s*Target\s*Market[\s\S]*?(?=##|$)/i);
   if (targetMatch) {
-    const firstLine = targetMatch[0].split('\n').find(l => l.match(/^[-*]/));
+    const firstLine = targetMatch[0].split("\n").find((l) => l.match(/^[-*]/));
     if (firstLine) {
-      claims.targetMarket = firstLine.replace(/^[-*]\s*/, '').trim();
+      claims.targetMarket = firstLine.replace(/^[-*]\s*/, "").trim();
     }
   }
 
@@ -173,12 +239,12 @@ function extractClaimsManually(content: string): ExtractedClaims {
  */
 function createEmptyClaims(): ExtractedClaims {
   return {
-    domain: 'general',
+    domain: "general",
     technology: [],
     competitors: [],
     marketSize: null,
-    targetMarket: 'general consumers',
-    keyAssumptions: []
+    targetMarket: "general consumers",
+    keyAssumptions: [],
   };
 }
 
@@ -191,23 +257,25 @@ export function buildSearchQueries(claims: ExtractedClaims): string[] {
   const queries: string[] = [];
 
   // Market size verification
-  if (claims.domain && claims.domain !== 'general') {
+  if (claims.domain && claims.domain !== "general") {
     queries.push(`${claims.domain} market size ${year}`);
     queries.push(`${claims.domain} industry analysis report ${year}`);
   }
 
   // Competitor discovery
-  if (claims.domain && claims.domain !== 'general') {
+  if (claims.domain && claims.domain !== "general") {
     queries.push(`${claims.domain} companies startups ${year}`);
   }
 
   // Verify mentioned competitors
   if (claims.competitors.length > 0) {
-    queries.push(`${claims.competitors.slice(0, 3).join(' ')} alternatives competitors`);
+    queries.push(
+      `${claims.competitors.slice(0, 3).join(" ")} alternatives competitors`,
+    );
   }
 
   // Market trends
-  if (claims.domain && claims.domain !== 'general') {
+  if (claims.domain && claims.domain !== "general") {
     queries.push(`${claims.domain} market trends growth ${year}`);
   }
 

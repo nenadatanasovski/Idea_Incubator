@@ -4,10 +4,16 @@
  * Executes atomic tasks in dependency order, managing state and handling failures.
  */
 
-import { AtomicTask, TaskContext } from '../../types/build-agent.js';
-import { ContextPrimer } from './context-primer.js';
+import { AtomicTask, TaskContext } from "../../types/build-agent.js";
+import { ContextPrimer } from "./context-primer.js";
 
-export type TaskState = 'pending' | 'running' | 'done' | 'failed' | 'blocked' | 'skipped';
+export type TaskState =
+  | "pending"
+  | "running"
+  | "done"
+  | "failed"
+  | "blocked"
+  | "skipped";
 
 export interface ExecutionResult {
   taskId: string;
@@ -43,11 +49,17 @@ export interface CodeGeneratorInterface {
 }
 
 export interface FileWriterInterface {
-  write(filePath: string, content: string): Promise<{ success: boolean; error?: string }>;
+  write(
+    filePath: string,
+    content: string,
+  ): Promise<{ success: boolean; error?: string }>;
 }
 
 export interface ValidationRunnerInterface {
-  run(command: string, expected: string): Promise<{ success: boolean; output: string }>;
+  run(
+    command: string,
+    expected: string,
+  ): Promise<{ success: boolean; output: string }>;
 }
 
 const DEFAULT_MAX_RETRIES = 3;
@@ -83,12 +95,15 @@ export class TaskExecutor {
   /**
    * Execute all tasks in dependency order
    */
-  async execute(tasks: AtomicTask[], specPath: string): Promise<ExecutionResult[]> {
+  async execute(
+    tasks: AtomicTask[],
+    specPath: string,
+  ): Promise<ExecutionResult[]> {
     const results: ExecutionResult[] = [];
 
     // Initialize task states
     for (const task of tasks) {
-      this.taskStates.set(task.id, 'pending');
+      this.taskStates.set(task.id, "pending");
     }
 
     // Order tasks by dependencies
@@ -100,20 +115,20 @@ export class TaskExecutor {
       const unsatisfiedDeps = this.getUnsatisfiedDependencies(task);
       if (unsatisfiedDeps.length > 0) {
         const depDetails = unsatisfiedDeps
-          .map(depId => {
+          .map((depId) => {
             const depState = this.taskStates.get(depId);
-            return `${depId} (${depState || 'not found'})`;
+            return `${depId} (${depState || "not found"})`;
           })
-          .join(', ');
+          .join(", ");
         const result: ExecutionResult = {
           taskId: task.id,
-          state: 'skipped',
+          state: "skipped",
           error: `Dependencies not satisfied: ${depDetails}`,
           duration: 0,
-          attempt: 0
+          attempt: 0,
         };
         results.push(result);
-        this.taskStates.set(task.id, 'skipped');
+        this.taskStates.set(task.id, "skipped");
         continue;
       }
 
@@ -129,10 +144,13 @@ export class TaskExecutor {
       this.emitProgress(tasks, task.id);
 
       // Notify completion or failure
-      if (result.state === 'done') {
+      if (result.state === "done") {
         this.onTaskComplete?.(result);
-      } else if (result.state === 'failed') {
-        this.onTaskFailed?.(task.id, new Error(result.error || 'Unknown error'));
+      } else if (result.state === "failed") {
+        this.onTaskFailed?.(
+          task.id,
+          new Error(result.error || "Unknown error"),
+        );
       }
     }
 
@@ -142,20 +160,26 @@ export class TaskExecutor {
   /**
    * Execute a single task
    */
-  async executeOne(task: AtomicTask, context: TaskContext): Promise<ExecutionResult> {
+  async executeOne(
+    task: AtomicTask,
+    context: TaskContext,
+  ): Promise<ExecutionResult> {
     const startTime = Date.now();
-    this.taskStates.set(task.id, 'running');
+    this.taskStates.set(task.id, "running");
 
     try {
       // Step 1: Generate code if we have a generator
-      let generatedCode = task.codeTemplate || '';
+      let generatedCode = task.codeTemplate || "";
       if (this.codeGenerator) {
         generatedCode = await this.codeGenerator.generate(task, context);
       }
 
       // Step 2: Write file if we have a writer
       if (this.fileWriter && generatedCode) {
-        const writeResult = await this.fileWriter.write(task.file, generatedCode);
+        const writeResult = await this.fileWriter.write(
+          task.file,
+          generatedCode,
+        );
         if (!writeResult.success) {
           throw new Error(`Failed to write file: ${writeResult.error}`);
         }
@@ -165,7 +189,7 @@ export class TaskExecutor {
       if (this.validationRunner && task.validation.command) {
         const validationResult = await this.validationRunner.run(
           task.validation.command,
-          task.validation.expected
+          task.validation.expected,
         );
         if (!validationResult.success) {
           throw new Error(`Validation failed: ${validationResult.output}`);
@@ -173,25 +197,25 @@ export class TaskExecutor {
       }
 
       const duration = Date.now() - startTime;
-      this.taskStates.set(task.id, 'done');
+      this.taskStates.set(task.id, "done");
 
       return {
         taskId: task.id,
-        state: 'done',
+        state: "done",
         output: generatedCode,
         duration,
-        attempt: 1
+        attempt: 1,
       };
     } catch (error) {
       const duration = Date.now() - startTime;
-      this.taskStates.set(task.id, 'failed');
+      this.taskStates.set(task.id, "failed");
 
       return {
         taskId: task.id,
-        state: 'failed',
+        state: "failed",
         error: error instanceof Error ? error.message : String(error),
         duration,
-        attempt: 1
+        attempt: 1,
       };
     }
   }
@@ -199,7 +223,10 @@ export class TaskExecutor {
   /**
    * Execute task with retry logic
    */
-  private async executeWithRetry(task: AtomicTask, context: TaskContext): Promise<ExecutionResult> {
+  private async executeWithRetry(
+    task: AtomicTask,
+    context: TaskContext,
+  ): Promise<ExecutionResult> {
     let lastResult: ExecutionResult | null = null;
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
@@ -207,7 +234,7 @@ export class TaskExecutor {
       result.attempt = attempt;
       lastResult = result;
 
-      if (result.state === 'done') {
+      if (result.state === "done") {
         return result;
       }
 
@@ -218,13 +245,15 @@ export class TaskExecutor {
     }
 
     // All retries exhausted
-    return lastResult || {
-      taskId: task.id,
-      state: 'failed',
-      error: 'Max retries exceeded',
-      duration: 0,
-      attempt: this.maxRetries
-    };
+    return (
+      lastResult || {
+        taskId: task.id,
+        state: "failed",
+        error: "Max retries exceeded",
+        duration: 0,
+        attempt: this.maxRetries,
+      }
+    );
   }
 
   /**
@@ -232,7 +261,7 @@ export class TaskExecutor {
    * Throws error if circular dependencies are detected
    */
   private orderByDependency(tasks: AtomicTask[]): AtomicTask[] {
-    const taskMap = new Map(tasks.map(t => [t.id, t]));
+    const taskMap = new Map(tasks.map((t) => [t.id, t]));
     const visited = new Set<string>();
     const visiting = new Set<string>();
     const result: AtomicTask[] = [];
@@ -243,7 +272,7 @@ export class TaskExecutor {
       if (visiting.has(taskId)) {
         // Circular dependency detected
         const cycle = [...path, taskId].slice(path.indexOf(taskId));
-        throw new Error(`Circular dependency detected: ${cycle.join(' -> ')}`);
+        throw new Error(`Circular dependency detected: ${cycle.join(" -> ")}`);
       }
 
       visiting.add(taskId);
@@ -279,7 +308,7 @@ export class TaskExecutor {
   private _areDependenciesSatisfied(task: AtomicTask): boolean {
     for (const depId of task.dependsOn) {
       const depState = this.taskStates.get(depId);
-      if (depState !== 'done') {
+      if (depState !== "done") {
         return false;
       }
     }
@@ -293,7 +322,7 @@ export class TaskExecutor {
     const unsatisfied: string[] = [];
     for (const depId of task.dependsOn) {
       const depState = this.taskStates.get(depId);
-      if (depState !== 'done') {
+      if (depState !== "done") {
         unsatisfied.push(depId);
       }
     }
@@ -313,7 +342,7 @@ export class TaskExecutor {
    * Sleep for specified milliseconds
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -322,15 +351,19 @@ export class TaskExecutor {
   private emitProgress(tasks: AtomicTask[], currentTaskId: string): void {
     if (!this.onProgress) return;
 
-    const completed = Array.from(this.taskStates.values()).filter(s => s === 'done').length;
-    const failed = Array.from(this.taskStates.values()).filter(s => s === 'failed').length;
+    const completed = Array.from(this.taskStates.values()).filter(
+      (s) => s === "done",
+    ).length;
+    const failed = Array.from(this.taskStates.values()).filter(
+      (s) => s === "failed",
+    ).length;
 
     this.onProgress({
       total: tasks.length,
       completed,
       failed,
       current: currentTaskId,
-      percentage: Math.round((completed / tasks.length) * 100)
+      percentage: Math.round((completed / tasks.length) * 100),
     });
   }
 
@@ -390,7 +423,7 @@ export class TaskExecutor {
    */
   validateDependencyGraph(tasks: AtomicTask[]): string[] {
     const errors: string[] = [];
-    const taskIds = new Set(tasks.map(t => t.id));
+    const taskIds = new Set(tasks.map((t) => t.id));
 
     for (const task of tasks) {
       // Check for missing dependencies
@@ -423,20 +456,22 @@ export class TaskExecutor {
    * Can be rendered with Graphviz
    */
   visualizeDependencyGraph(tasks: AtomicTask[]): string {
-    const lines: string[] = ['digraph TaskDependencies {'];
-    lines.push('  rankdir=TB;');
-    lines.push('  node [shape=box];');
-    lines.push('');
+    const lines: string[] = ["digraph TaskDependencies {"];
+    lines.push("  rankdir=TB;");
+    lines.push("  node [shape=box];");
+    lines.push("");
 
     // Add nodes with state colors
     for (const task of tasks) {
-      const state = this.taskStates.get(task.id) || 'pending';
+      const state = this.taskStates.get(task.id) || "pending";
       const color = this.getStateColor(state);
       const label = `${task.id}\\n${task.phase}\\n${task.action}`;
-      lines.push(`  "${task.id}" [label="${label}", fillcolor="${color}", style=filled];`);
+      lines.push(
+        `  "${task.id}" [label="${label}", fillcolor="${color}", style=filled];`,
+      );
     }
 
-    lines.push('');
+    lines.push("");
 
     // Add edges
     for (const task of tasks) {
@@ -445,8 +480,8 @@ export class TaskExecutor {
       }
     }
 
-    lines.push('}');
-    return lines.join('\n');
+    lines.push("}");
+    return lines.join("\n");
   }
 
   /**
@@ -454,20 +489,22 @@ export class TaskExecutor {
    */
   private getStateColor(state: TaskState): string {
     const colors: Record<TaskState, string> = {
-      pending: 'lightgray',
-      running: 'lightyellow',
-      done: 'lightgreen',
-      failed: 'lightcoral',
-      blocked: 'orange',
-      skipped: 'lightblue'
+      pending: "lightgray",
+      running: "lightyellow",
+      done: "lightgreen",
+      failed: "lightcoral",
+      blocked: "orange",
+      skipped: "lightblue",
     };
-    return colors[state] || 'white';
+    return colors[state] || "white";
   }
 }
 
 /**
  * Create a task executor instance
  */
-export function createTaskExecutor(options?: TaskExecutorOptions): TaskExecutor {
+export function createTaskExecutor(
+  options?: TaskExecutorOptions,
+): TaskExecutor {
   return new TaskExecutor(options);
 }

@@ -1,8 +1,8 @@
 // agents/validation/validators/security-scanner.ts
 
-import { spawn } from 'child_process';
-import { ValidatorResult } from '../../../types/validation';
-import { v4 as uuid } from 'uuid';
+import { spawn } from "child_process";
+import { ValidatorResult } from "../../../types/validation";
+import { v4 as uuid } from "uuid";
 
 interface AuditResult {
   vulnerabilities: {
@@ -17,23 +17,27 @@ interface AuditResult {
 export async function runSecurityScanner(
   runId: string,
   _args: string[] = [],
-  timeoutMs: number = 60000
+  timeoutMs: number = 60000,
 ): Promise<ValidatorResult> {
   const startTime = Date.now();
   const id = uuid();
 
   return new Promise((resolve) => {
-    let output = '';
-    const proc = spawn('npm', ['audit', '--json'], { shell: true });
+    let output = "";
+    const proc = spawn("npm", ["audit", "--json"], { shell: true });
 
     const timeout = setTimeout(() => {
-      proc.kill('SIGTERM');
+      proc.kill("SIGTERM");
     }, timeoutMs);
 
-    proc.stdout.on('data', (data) => { output += data.toString(); });
-    proc.stderr.on('data', (data) => { output += data.toString(); });
+    proc.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+    proc.stderr.on("data", (data) => {
+      output += data.toString();
+    });
 
-    proc.on('close', () => {
+    proc.on("close", () => {
       clearTimeout(timeout);
       const durationMs = Date.now() - startTime;
 
@@ -41,8 +45,9 @@ export async function runSecurityScanner(
       try {
         const audit: AuditResult = JSON.parse(output);
         // Only fail on high or critical
-        passed = audit.vulnerabilities.high === 0 &&
-                 audit.vulnerabilities.critical === 0;
+        passed =
+          audit.vulnerabilities.high === 0 &&
+          audit.vulnerabilities.critical === 0;
       } catch {
         // If we can't parse, assume pass (npm audit may not be available)
         passed = true;
@@ -51,8 +56,8 @@ export async function runSecurityScanner(
       resolve({
         id,
         runId,
-        validatorName: 'security',
-        status: 'completed',
+        validatorName: "security",
+        status: "completed",
         passed,
         output,
         durationMs,
@@ -60,13 +65,13 @@ export async function runSecurityScanner(
       });
     });
 
-    proc.on('error', (err) => {
+    proc.on("error", (err) => {
       clearTimeout(timeout);
       resolve({
         id,
         runId,
-        validatorName: 'security',
-        status: 'failed',
+        validatorName: "security",
+        status: "failed",
         passed: true, // Don't fail build if npm audit fails
         output: err.message,
         durationMs: Date.now() - startTime,

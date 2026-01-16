@@ -1,6 +1,6 @@
 # AI Resume Screening Tool - Market Research
 
-*Research Date: January 4, 2026*
+_Research Date: January 4, 2026_
 
 ---
 
@@ -16,21 +16,21 @@ The AI recruitment market is **validated and growing rapidly** — projected to 
 
 ### Global AI Recruitment Market
 
-| Metric | Value | Source |
-|--------|-------|--------|
-| 2024 Market Size | $617.5M | [Research Nester](https://www.researchnester.com/reports/ai-recruitment-market/6828) |
-| 2025 Market Size | $654-661M | Multiple sources |
-| 2030 Projection | $1.12B | Industry analysis |
-| 2037 Projection | $1.56B | Research Nester |
-| CAGR | 6.1-7.4% | Various |
+| Metric           | Value     | Source                                                                               |
+| ---------------- | --------- | ------------------------------------------------------------------------------------ |
+| 2024 Market Size | $617.5M   | [Research Nester](https://www.researchnester.com/reports/ai-recruitment-market/6828) |
+| 2025 Market Size | $654-661M | Multiple sources                                                                     |
+| 2030 Projection  | $1.12B    | Industry analysis                                                                    |
+| 2037 Projection  | $1.56B    | Research Nester                                                                      |
+| CAGR             | 6.1-7.4%  | Various                                                                              |
 
 ### ATS Market Specifically
 
-| Metric | Value |
-|--------|-------|
+| Metric                 | Value |
+| ---------------------- | ----- |
 | 2024 Global ATS Market | $2.5B |
-| 2029 Projection | $3.6B |
-| YoY Growth | 12.3% |
+| 2029 Projection        | $3.6B |
+| YoY Growth             | 12.3% |
 
 ### Adoption Metrics
 
@@ -45,36 +45,36 @@ The AI recruitment market is **validated and growing rapidly** — projected to 
 
 ### Market Leaders (Enterprise)
 
-| Company | Market Share | Key Strength |
-|---------|--------------|--------------|
-| iCIMS | 10.7% (leader) | Scale, integrations |
-| Oracle | Part of HCM suite | Enterprise bundling |
-| Workday | Growing (acquired HiredScore 2024) | AI + HCM integration |
-| Greenhouse | Top 5 | Structured hiring, 500+ integrations |
-| Lever | Top 5 | CRM + ATS combined |
-| SmartRecruiters | Major player | Open API ecosystem |
+| Company         | Market Share                       | Key Strength                         |
+| --------------- | ---------------------------------- | ------------------------------------ |
+| iCIMS           | 10.7% (leader)                     | Scale, integrations                  |
+| Oracle          | Part of HCM suite                  | Enterprise bundling                  |
+| Workday         | Growing (acquired HiredScore 2024) | AI + HCM integration                 |
+| Greenhouse      | Top 5                              | Structured hiring, 500+ integrations |
+| Lever           | Top 5                              | CRM + ATS combined                   |
+| SmartRecruiters | Major player                       | Open API ecosystem                   |
 
-*Top 10 vendors control 51.1% of market* — fragmented opportunity remains.
+_Top 10 vendors control 51.1% of market_ — fragmented opportunity remains.
 
 ### AI-First Challengers
 
-| Company | Total Funding | Key Differentiator |
-|---------|---------------|-------------------|
-| Eightfold | $424M | Talent intelligence platform |
-| Mercor | $133.6M ($2B valuation) | AI-native, fast interviews |
-| Findem | $105M | AI-powered talent search |
-| Gloat | $192.6M | Career development focus |
-| Ashby | $70M | High-growth company focus |
+| Company   | Total Funding           | Key Differentiator           |
+| --------- | ----------------------- | ---------------------------- |
+| Eightfold | $424M                   | Talent intelligence platform |
+| Mercor    | $133.6M ($2B valuation) | AI-native, fast interviews   |
+| Findem    | $105M                   | AI-powered talent search     |
+| Gloat     | $192.6M                 | Career development focus     |
+| Ashby     | $70M                    | High-growth company focus    |
 
 ### Point Solutions
 
-| Tool | Pricing | Best For |
-|------|---------|----------|
-| Workable | $149-299/mo | Mid-market, global hiring |
-| Zoho Recruit | $30-60/recruiter/mo | Budget-conscious SMBs |
-| JazzHR | $75/mo | SMB simple hiring |
-| HireVue | Enterprise pricing | Video + assessments |
-| CVViZ | Affordable | Contextual AI ranking |
+| Tool         | Pricing             | Best For                  |
+| ------------ | ------------------- | ------------------------- |
+| Workable     | $149-299/mo         | Mid-market, global hiring |
+| Zoho Recruit | $30-60/recruiter/mo | Budget-conscious SMBs     |
+| JazzHR       | $75/mo              | SMB simple hiring         |
+| HireVue      | Enterprise pricing  | Video + assessments       |
+| CVViZ        | Affordable          | Contextual AI ranking     |
 
 ---
 
@@ -130,11 +130,13 @@ SMB tools typically charge **$75-299/month** for core features. There may be roo
 - 67% of companies acknowledge bias concerns but use AI anyway
 
 **Key Lawsuits:**
+
 - **Mobley v. Workday** — Class action certified (May 2025), alleging racial/age/disability discrimination
 - **iTutorGroup** — Paid $365K to settle EEOC suit (auto-rejected candidates over 55/60)
 - **CVS/HireVue** — Settled over AI video interview discrimination
 
 **Regulatory Wave:**
+
 - Colorado AI Act (May 2024) — First state AI bias law
 - California Civil Rights Council Regulations (Oct 2025) — Most detailed yet
 - 40+ states have introduced AI employment bills
@@ -168,14 +170,14 @@ SMB tools typically charge **$75-299/month** for core features. There may be roo
 
 ### Where Incumbents Are Weak
 
-| Problem | Incumbent Response | Opportunity |
-|---------|-------------------|-------------|
-| Bias/discrimination | Reactive, getting sued | Proactive bias detection, audit trails |
-| Accuracy | Keyword matching | True semantic understanding |
-| Integration | 100+ integrations but shallow | Deep, two-way key integrations |
-| Candidate experience | Afterthought | Primary design focus |
-| SMB affordability | Freemium or enterprise | Right-sized premium |
-| Transparency | Black box AI | Explainable scoring |
+| Problem              | Incumbent Response            | Opportunity                            |
+| -------------------- | ----------------------------- | -------------------------------------- |
+| Bias/discrimination  | Reactive, getting sued        | Proactive bias detection, audit trails |
+| Accuracy             | Keyword matching              | True semantic understanding            |
+| Integration          | 100+ integrations but shallow | Deep, two-way key integrations         |
+| Candidate experience | Afterthought                  | Primary design focus                   |
+| SMB affordability    | Freemium or enterprise        | Right-sized premium                    |
+| Transparency         | Black box AI                  | Explainable scoring                    |
 
 ### Potential Wedges
 
@@ -189,12 +191,12 @@ SMB tools typically charge **$75-299/month** for core features. There may be roo
 
 ## Key Value Propositions from Successful Tools
 
-| Tool | Value Prop | Why It Works |
-|------|-----------|--------------|
-| Greenhouse | "Structured hiring" | Process > gut feel |
-| Lever | "Talent nurturing" | CRM approach to relationships |
-| Eightfold | "Skills, not keywords" | Potential-based matching |
-| Mercor | "Speed + AI interviews" | End-to-end automation |
+| Tool       | Value Prop              | Why It Works                  |
+| ---------- | ----------------------- | ----------------------------- |
+| Greenhouse | "Structured hiring"     | Process > gut feel            |
+| Lever      | "Talent nurturing"      | CRM approach to relationships |
+| Eightfold  | "Skills, not keywords"  | Potential-based matching      |
+| Mercor     | "Speed + AI interviews" | End-to-end automation         |
 
 ### ROI Metrics That Resonate
 
@@ -208,12 +210,12 @@ SMB tools typically charge **$75-299/month** for core features. There may be roo
 
 ### Recent Funding Signals
 
-| Company | Round | Amount | Investors |
-|---------|-------|--------|-----------|
-| Mercor | Series A → $2B valuation | $100M (Feb 2025) | Benchmark, General Catalyst |
-| Perfect | Seed | $23M (Feb 2025) | Target Global, RTP Global |
-| Findem | Series C | $36M + $15M debt | SLW, Wing VC |
-| Alex | Series A | $20M (Sep 2025) | Peak XV, Y Combinator |
+| Company | Round                    | Amount           | Investors                   |
+| ------- | ------------------------ | ---------------- | --------------------------- |
+| Mercor  | Series A → $2B valuation | $100M (Feb 2025) | Benchmark, General Catalyst |
+| Perfect | Seed                     | $23M (Feb 2025)  | Target Global, RTP Global   |
+| Findem  | Series C                 | $36M + $15M debt | SLW, Wing VC                |
+| Alex    | Series A                 | $20M (Sep 2025)  | Peak XV, Y Combinator       |
 
 **Total 2025 HR/recruiting startup investment:** ~$2.3B (YTD September)
 
@@ -296,36 +298,42 @@ SMB tools typically charge **$75-299/month** for core features. There may be roo
 ## Sources
 
 ### Market Size & Adoption
+
 - [Research Nester - AI Recruitment Market](https://www.researchnester.com/reports/ai-recruitment-market/6828)
 - [The Interview Guys - AI Screening Statistics](https://blog.theinterviewguys.com/83-of-companies-will-use-ai-resume-screening-by-2025-despite-67-acknowledging-bias-concerns/)
 - [HeroHunt - AI Adoption in Recruiting 2025](https://www.herohunt.ai/blog/ai-adoption-in-recruiting-2025-year-in-review)
 - [Shortlistd - AI Recruiting Statistics](https://www.shortlistd.io/blog/the-ai-recruiting-revolution-50-statistics-that-matter)
 
 ### Competitive Analysis
+
 - [People Managing People - AI Resume Screening Software 2026](https://peoplemanagingpeople.com/tools/best-ai-resume-screening-software/)
 - [Recruiterflow - AI Screening Tools 2026](https://recruiterflow.com/blog/ai-screening-tools/)
 - [SSR - Lever vs Greenhouse](https://www.selectsoftwarereviews.com/blog/lever-vs-greenhouse)
 - [Apps Run The World - Top ATS Vendors](https://www.appsruntheworld.com/top-10-hcm-software-vendors-in-applicant-tracking-market-segment/)
 
 ### Pain Points
+
 - [SHRM - Recruitment Is Broken](https://www.shrm.org/topics-tools/news/hr-trends/recruitment-is-broken)
 - [Inc - How AI Resume Screening Broke Hiring](https://www.inc.com/joe-procopio/how-ai-resume-screening-broke-hiring-and-how-we-can-fix-it/91266763)
 - [Taggd - AI Recruitment Challenges](https://taggd.in/blogs/ai-recruitment-challenges/)
 - [LinkedIn - Why Recruiters Stop Using ATS](https://www.linkedin.com/pulse/i-stopped-using-recruitment-software-purchase-year-ago-colin-ng)
 
 ### Legal & Compliance
+
 - [FairNow - Workday Lawsuit](https://fairnow.ai/workday-lawsuit-resume-screening/)
 - [The Interview Guys - AI Bias Research](https://blog.theinterviewguys.com/85-of-ai-resume-screeners-prefer-white-names/)
 - [ClassAction.org - AI Hiring Lawsuits](https://www.classaction.org/ai-interview-screening-lawsuits)
 - [HR Defense Blog - AI Hiring Compliance 2026](https://www.hrdefenseblog.com/2025/11/ai-in-hiring-emerging-legal-developments-and-compliance-guidance-for-2026/)
 
 ### Funding & Investment
+
 - [TechCrunch - Mercor $100M Raise](https://techcrunch.com/2025/02/20/mercor-an-ai-recruiting-startup-founded-by-21-year-olds-raises-100m-at-2b-valuation/)
 - [TechCrunch - Perfect $23M Raise](https://techcrunch.com/2025/02/25/perfect-taps-23m-to-fix-the-flaws-in-recruitment-with-ai/)
 - [Crunchbase - Findem Series C](https://news.crunchbase.com/ai/findem-funding-ai-powered-hiring-recruiting-startups/)
 - [Gaps - Recruiting Startups](https://gaps.com/recruiting/)
 
 ### Pricing & SMB
+
 - [People Managing People - Recruiting Software Pricing](https://peoplemanagingpeople.com/recruitment/recruiting-software-pricing/)
 - [Geekflare - ATS Pricing](https://geekflare.com/guide/ats-pricing/)
 - [Flexos - Best Recruiting Software for Small Business](https://www.flexos.work/learn/best-recruiting-software-for-small-business)

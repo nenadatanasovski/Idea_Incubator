@@ -43,8 +43,8 @@ memory:
 # Network requirements
 network:
   anthropic_api: true
-  github_api: false  # Optional, for PR creation
-  telegram_api: true  # For notifications
+  github_api: false # Optional, for PR creation
+  telegram_api: true # For notifications
   notes: "Stable internet for Claude API calls"
 
 # Operating system

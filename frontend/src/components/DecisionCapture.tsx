@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import type {
   PositioningDecision,
   EnhancedStrategy,
@@ -8,14 +8,18 @@ import type {
   RiskResponseType,
   DisagreeReason,
   RiskResponseStats,
-} from '../types';
-import { strategicApproachMeta, riskResponseMeta, disagreeReasonMeta } from '../types';
-import { savePositioningDecision } from '../api/client';
+} from "../types";
+import {
+  strategicApproachMeta,
+  riskResponseMeta,
+  disagreeReasonMeta,
+} from "../types";
+import { savePositioningDecision } from "../api/client";
 
 interface Risk {
   id: string;
   description: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: "high" | "medium" | "low";
   mitigation?: string;
 }
 
@@ -25,7 +29,7 @@ interface Props {
   risks: Risk[];
   selectedStrategyId: string | null;
   selectedApproach: StrategicApproach | null;
-  timingUrgency?: 'high' | 'medium' | 'low';
+  timingUrgency?: "high" | "medium" | "low";
   timingWindow?: string;
   onComplete: (decision: PositioningDecision) => void;
   onBack?: () => void;
@@ -44,7 +48,9 @@ export default function DecisionCapture({
 }: Props) {
   const [decision, setDecision] = useState<Partial<PositioningDecision>>({
     primaryStrategyId: selectedStrategyId,
-    primaryStrategyName: strategies.find(s => (s.id || s.name) === selectedStrategyId)?.name,
+    primaryStrategyName: strategies.find(
+      (s) => (s.id || s.name) === selectedStrategyId,
+    )?.name,
     selectedApproach,
     acknowledgedRiskIds: [],
     riskResponses: [],
@@ -59,18 +65,18 @@ export default function DecisionCapture({
 
   // Build a map of risk responses for easy lookup
   const riskResponseMap = new Map<string, RiskResponse>(
-    (decision.riskResponses || []).map(r => [r.riskId, r])
+    (decision.riskResponses || []).map((r) => [r.riskId, r]),
   );
 
   // Calculate stats
   const calculateStats = (responses: RiskResponse[]): RiskResponseStats => ({
     total: risks.length,
-    responded: responses.filter(r => r.response !== 'skip').length,
-    mitigate: responses.filter(r => r.response === 'mitigate').length,
-    accept: responses.filter(r => r.response === 'accept').length,
-    monitor: responses.filter(r => r.response === 'monitor').length,
-    disagree: responses.filter(r => r.response === 'disagree').length,
-    skipped: responses.filter(r => r.response === 'skip').length,
+    responded: responses.filter((r) => r.response !== "skip").length,
+    mitigate: responses.filter((r) => r.response === "mitigate").length,
+    accept: responses.filter((r) => r.response === "accept").length,
+    monitor: responses.filter((r) => r.response === "monitor").length,
+    disagree: responses.filter((r) => r.response === "disagree").length,
+    skipped: responses.filter((r) => r.response === "skip").length,
   });
 
   const stats = calculateStats(decision.riskResponses || []);
@@ -79,10 +85,14 @@ export default function DecisionCapture({
   const handleRiskResponse = (
     risk: Risk,
     responseType: RiskResponseType,
-    details?: { disagreeReason?: DisagreeReason; reasoning?: string; mitigationPlan?: string }
+    details?: {
+      disagreeReason?: DisagreeReason;
+      reasoning?: string;
+      mitigationPlan?: string;
+    },
   ) => {
     const existingResponses = decision.riskResponses || [];
-    const filtered = existingResponses.filter(r => r.riskId !== risk.id);
+    const filtered = existingResponses.filter((r) => r.riskId !== risk.id);
 
     const newResponse: RiskResponse = {
       riskId: risk.id,
@@ -96,9 +106,10 @@ export default function DecisionCapture({
     };
 
     // Also update legacy acknowledgedRiskIds for backward compatibility
-    const acknowledgedRiskIds = responseType !== 'skip' && responseType !== 'disagree'
-      ? [...new Set([...(decision.acknowledgedRiskIds || []), risk.id])]
-      : (decision.acknowledgedRiskIds || []).filter(id => id !== risk.id);
+    const acknowledgedRiskIds =
+      responseType !== "skip" && responseType !== "disagree"
+        ? [...new Set([...(decision.acknowledgedRiskIds || []), risk.id])]
+        : (decision.acknowledgedRiskIds || []).filter((id) => id !== risk.id);
 
     setDecision({
       ...decision,
@@ -107,7 +118,7 @@ export default function DecisionCapture({
     });
 
     // Collapse after selecting
-    if (responseType !== 'disagree' && responseType !== 'mitigate') {
+    if (responseType !== "disagree" && responseType !== "mitigate") {
       setExpandedRiskId(null);
     }
   };
@@ -119,11 +130,11 @@ export default function DecisionCapture({
   const handleSubmit = async () => {
     // Validation - only require strategy and timing
     if (!decision.primaryStrategyId) {
-      setError('Please select a primary strategy');
+      setError("Please select a primary strategy");
       return;
     }
     if (!decision.timingDecision) {
-      setError('Please make a timing decision');
+      setError("Please make a timing decision");
       return;
     }
 
@@ -140,20 +151,22 @@ export default function DecisionCapture({
       setError(null);
 
       const finalDecision: PositioningDecision = {
-        ...decision as PositioningDecision,
+        ...(decision as PositioningDecision),
         riskResponseStats: calculateStats(decision.riskResponses || []),
       };
 
       await savePositioningDecision(slug, finalDecision);
       onComplete(finalDecision);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save decision');
+      setError(err instanceof Error ? err.message : "Failed to save decision");
     } finally {
       setSaving(false);
     }
   };
 
-  const selectedStrategy = strategies.find(s => (s.id || s.name) === decision.primaryStrategyId);
+  const selectedStrategy = strategies.find(
+    (s) => (s.id || s.name) === decision.primaryStrategyId,
+  );
 
   // Sort risks: high severity first, then by whether they have a response
   const sortedRisks = [...risks].sort((a, b) => {
@@ -169,9 +182,12 @@ export default function DecisionCapture({
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h3 className="text-lg font-semibold">Capture Your Positioning Decision</h3>
+        <h3 className="text-lg font-semibold">
+          Capture Your Positioning Decision
+        </h3>
         <p className="text-gray-600 mt-1">
-          Review your choices and confirm your strategic direction before updating the idea.
+          Review your choices and confirm your strategic direction before
+          updating the idea.
         </p>
       </div>
 
@@ -180,8 +196,12 @@ export default function DecisionCapture({
         <h4 className="font-medium text-blue-800 mb-2">Selected Strategy</h4>
         {selectedStrategy ? (
           <div>
-            <p className="font-semibold text-gray-900">{selectedStrategy.name}</p>
-            <p className="text-sm text-gray-600 mt-1">{selectedStrategy.description}</p>
+            <p className="font-semibold text-gray-900">
+              {selectedStrategy.name}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              {selectedStrategy.description}
+            </p>
             <div className="flex items-center gap-4 mt-2 text-sm">
               <span className="text-blue-600">
                 Fit Score: {selectedStrategy.fitWithProfile}/10
@@ -194,7 +214,9 @@ export default function DecisionCapture({
             </div>
           </div>
         ) : (
-          <p className="text-amber-600">No strategy selected. Please go back and select one.</p>
+          <p className="text-amber-600">
+            No strategy selected. Please go back and select one.
+          </p>
         )}
 
         {/* Optional: Secondary Strategy */}
@@ -205,10 +227,11 @@ export default function DecisionCapture({
             </label>
             <select
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              value={decision.secondaryStrategyId || ''}
+              value={decision.secondaryStrategyId || ""}
               onChange={(e) => {
                 const id = e.target.value || null;
-                const name = strategies.find(s => (s.id || s.name) === id)?.name || null;
+                const name =
+                  strategies.find((s) => (s.id || s.name) === id)?.name || null;
                 setDecision({
                   ...decision,
                   secondaryStrategyId: id,
@@ -218,8 +241,8 @@ export default function DecisionCapture({
             >
               <option value="">None</option>
               {strategies
-                .filter(s => (s.id || s.name) !== decision.primaryStrategyId)
-                .map(s => (
+                .filter((s) => (s.id || s.name) !== decision.primaryStrategyId)
+                .map((s) => (
                   <option key={s.id || s.name} value={s.id || s.name}>
                     {s.name}
                   </option>
@@ -241,7 +264,8 @@ export default function DecisionCapture({
                 </span>
               </h4>
               <p className="text-sm text-gray-500 mt-1">
-                Review the identified risks and share your perspective. Your responses help refine Update phase suggestions.
+                Review the identified risks and share your perspective. Your
+                responses help refine Update phase suggestions.
               </p>
             </div>
             {stats.responded > 0 && (
@@ -252,13 +276,13 @@ export default function DecisionCapture({
           </div>
 
           <div className="space-y-3">
-            {sortedRisks.map(risk => {
+            {sortedRisks.map((risk) => {
               const existingResponse = riskResponseMap.get(risk.id);
               const isExpanded = expandedRiskId === risk.id;
               const severityColors = {
-                high: 'bg-red-100 text-red-700 border-red-200',
-                medium: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-                low: 'bg-gray-100 text-gray-600 border-gray-200'
+                high: "bg-red-100 text-red-700 border-red-200",
+                medium: "bg-yellow-100 text-yellow-700 border-yellow-200",
+                low: "bg-gray-100 text-gray-600 border-gray-200",
               };
 
               return (
@@ -267,20 +291,25 @@ export default function DecisionCapture({
                   className={`border rounded-lg overflow-hidden transition-all ${
                     existingResponse
                       ? riskResponseMeta[existingResponse.response].bgColor
-                      : 'border-gray-200 bg-white'
+                      : "border-gray-200 bg-white"
                   }`}
                 >
                   {/* Risk Header */}
                   <div className="p-4">
                     <div className="flex items-start gap-3">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded border ${severityColors[risk.severity]}`}>
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded border ${severityColors[risk.severity]}`}
+                      >
                         {risk.severity.toUpperCase()}
                       </span>
                       <div className="flex-1">
-                        <p className="text-gray-900 font-medium">{risk.description}</p>
+                        <p className="text-gray-900 font-medium">
+                          {risk.description}
+                        </p>
                         {risk.mitigation && (
                           <p className="text-sm text-gray-600 mt-1">
-                            <span className="font-medium">AI Suggested:</span> {risk.mitigation}
+                            <span className="font-medium">AI Suggested:</span>{" "}
+                            {risk.mitigation}
                           </p>
                         )}
                       </div>
@@ -288,16 +317,33 @@ export default function DecisionCapture({
 
                     {/* Response Buttons */}
                     <div className="flex flex-wrap gap-2 mt-4">
-                      {(['mitigate', 'accept', 'monitor', 'disagree', 'skip'] as RiskResponseType[]).map(responseType => {
+                      {(
+                        [
+                          "mitigate",
+                          "accept",
+                          "monitor",
+                          "disagree",
+                          "skip",
+                        ] as RiskResponseType[]
+                      ).map((responseType) => {
                         const meta = riskResponseMeta[responseType];
-                        const isSelected = existingResponse?.response === responseType;
+                        const isSelected =
+                          existingResponse?.response === responseType;
 
                         return (
                           <button
                             key={responseType}
                             onClick={() => {
-                              if (responseType === 'disagree' || responseType === 'mitigate') {
-                                setExpandedRiskId(isExpanded && existingResponse?.response === responseType ? null : risk.id);
+                              if (
+                                responseType === "disagree" ||
+                                responseType === "mitigate"
+                              ) {
+                                setExpandedRiskId(
+                                  isExpanded &&
+                                    existingResponse?.response === responseType
+                                    ? null
+                                    : risk.id,
+                                );
                                 handleRiskResponse(risk, responseType);
                               } else {
                                 handleRiskResponse(risk, responseType);
@@ -307,7 +353,7 @@ export default function DecisionCapture({
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all border ${
                               isSelected
                                 ? `${meta.bgColor} ${meta.color} ring-2 ring-offset-1`
-                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                                : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
                             }`}
                             title={meta.description}
                           >
@@ -322,22 +368,37 @@ export default function DecisionCapture({
                   {/* Expanded Details Section */}
                   {isExpanded && existingResponse && (
                     <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-4">
-                      {existingResponse.response === 'disagree' && (
+                      {existingResponse.response === "disagree" && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Why do you disagree?
                           </label>
                           <div className="space-y-2">
-                            {(['not_applicable', 'already_addressed', 'low_likelihood', 'insider_knowledge', 'other'] as DisagreeReason[]).map(reason => (
-                              <label key={reason} className="flex items-start gap-2 cursor-pointer">
+                            {(
+                              [
+                                "not_applicable",
+                                "already_addressed",
+                                "low_likelihood",
+                                "insider_knowledge",
+                                "other",
+                              ] as DisagreeReason[]
+                            ).map((reason) => (
+                              <label
+                                key={reason}
+                                className="flex items-start gap-2 cursor-pointer"
+                              >
                                 <input
                                   type="radio"
                                   name={`disagree-${risk.id}`}
-                                  checked={existingResponse.disagreeReason === reason}
-                                  onChange={() => handleRiskResponse(risk, 'disagree', {
-                                    ...existingResponse,
-                                    disagreeReason: reason
-                                  })}
+                                  checked={
+                                    existingResponse.disagreeReason === reason
+                                  }
+                                  onChange={() =>
+                                    handleRiskResponse(risk, "disagree", {
+                                      ...existingResponse,
+                                      disagreeReason: reason,
+                                    })
+                                  }
                                   className="mt-1"
                                 />
                                 <div>
@@ -354,7 +415,8 @@ export default function DecisionCapture({
                         </div>
                       )}
 
-                      {(existingResponse.response === 'mitigate' || existingResponse.response === 'monitor') && (
+                      {(existingResponse.response === "mitigate" ||
+                        existingResponse.response === "monitor") && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Your mitigation plan
@@ -363,11 +425,17 @@ export default function DecisionCapture({
                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                             rows={2}
                             placeholder="How will you address this risk?"
-                            value={existingResponse.mitigationPlan || ''}
-                            onChange={(e) => handleRiskResponse(risk, existingResponse.response, {
-                              ...existingResponse,
-                              mitigationPlan: e.target.value
-                            })}
+                            value={existingResponse.mitigationPlan || ""}
+                            onChange={(e) =>
+                              handleRiskResponse(
+                                risk,
+                                existingResponse.response,
+                                {
+                                  ...existingResponse,
+                                  mitigationPlan: e.target.value,
+                                },
+                              )
+                            }
                           />
                         </div>
                       )}
@@ -380,11 +448,17 @@ export default function DecisionCapture({
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                           rows={2}
                           placeholder="Any additional context..."
-                          value={existingResponse.reasoning || ''}
-                          onChange={(e) => handleRiskResponse(risk, existingResponse.response, {
-                            ...existingResponse,
-                            reasoning: e.target.value
-                          })}
+                          value={existingResponse.reasoning || ""}
+                          onChange={(e) =>
+                            handleRiskResponse(
+                              risk,
+                              existingResponse.response,
+                              {
+                                ...existingResponse,
+                                reasoning: e.target.value,
+                              },
+                            )
+                          }
                         />
                       </div>
 
@@ -405,13 +479,17 @@ export default function DecisionCapture({
           {stats.responded > 0 && (
             <div className="mt-4 flex flex-wrap gap-3 text-sm">
               {stats.mitigate > 0 && (
-                <span className="text-blue-600">{stats.mitigate} mitigating</span>
+                <span className="text-blue-600">
+                  {stats.mitigate} mitigating
+                </span>
               )}
               {stats.accept > 0 && (
                 <span className="text-green-600">{stats.accept} accepted</span>
               )}
               {stats.monitor > 0 && (
-                <span className="text-yellow-600">{stats.monitor} monitoring</span>
+                <span className="text-yellow-600">
+                  {stats.monitor} monitoring
+                </span>
               )}
               {stats.disagree > 0 && (
                 <span className="text-red-600">{stats.disagree} disputed</span>
@@ -431,14 +509,14 @@ export default function DecisionCapture({
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 text-sm">
             {timingUrgency && (
               <p>
-                <strong>Market Urgency:</strong>{' '}
+                <strong>Market Urgency:</strong>{" "}
                 <span
                   className={
-                    timingUrgency === 'high'
-                      ? 'text-red-600'
-                      : timingUrgency === 'medium'
-                      ? 'text-yellow-600'
-                      : 'text-green-600'
+                    timingUrgency === "high"
+                      ? "text-red-600"
+                      : timingUrgency === "medium"
+                        ? "text-yellow-600"
+                        : "text-green-600"
                   }
                 >
                   {timingUrgency.toUpperCase()}
@@ -450,36 +528,38 @@ export default function DecisionCapture({
         )}
 
         <div className="grid grid-cols-3 gap-3">
-          {(['proceed_now', 'wait', 'urgent'] as TimingDecision[]).map(timing => {
-            const isSelected = decision.timingDecision === timing;
-            return (
-              <button
-                key={timing}
-                onClick={() => handleTimingChange(timing)}
-                className={`p-4 border rounded-lg text-center transition-colors ${
-                  isSelected
-                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className="text-2xl mb-1">
-                  {timing === 'proceed_now' && '▶️'}
-                  {timing === 'wait' && '⏸️'}
-                  {timing === 'urgent' && '🚀'}
-                </div>
-                <div className="font-medium text-gray-900">
-                  {timing === 'proceed_now' && 'Proceed Now'}
-                  {timing === 'wait' && 'Wait'}
-                  {timing === 'urgent' && 'Urgent'}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {timing === 'proceed_now' && 'Start work at normal pace'}
-                  {timing === 'wait' && 'Hold for better timing'}
-                  {timing === 'urgent' && 'Act fast, window closing'}
-                </div>
-              </button>
-            );
-          })}
+          {(["proceed_now", "wait", "urgent"] as TimingDecision[]).map(
+            (timing) => {
+              const isSelected = decision.timingDecision === timing;
+              return (
+                <button
+                  key={timing}
+                  onClick={() => handleTimingChange(timing)}
+                  className={`p-4 border rounded-lg text-center transition-colors ${
+                    isSelected
+                      ? "border-blue-500 bg-blue-50 ring-2 ring-blue-500"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="text-2xl mb-1">
+                    {timing === "proceed_now" && "▶️"}
+                    {timing === "wait" && "⏸️"}
+                    {timing === "urgent" && "🚀"}
+                  </div>
+                  <div className="font-medium text-gray-900">
+                    {timing === "proceed_now" && "Proceed Now"}
+                    {timing === "wait" && "Wait"}
+                    {timing === "urgent" && "Urgent"}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {timing === "proceed_now" && "Start work at normal pace"}
+                    {timing === "wait" && "Hold for better timing"}
+                    {timing === "urgent" && "Act fast, window closing"}
+                  </div>
+                </button>
+              );
+            },
+          )}
         </div>
 
         {decision.timingDecision && (
@@ -491,9 +571,12 @@ export default function DecisionCapture({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               rows={2}
               placeholder="Why this timing decision?"
-              value={decision.timingRationale || ''}
+              value={decision.timingRationale || ""}
               onChange={(e) =>
-                setDecision({ ...decision, timingRationale: e.target.value || null })
+                setDecision({
+                  ...decision,
+                  timingRationale: e.target.value || null,
+                })
               }
             />
           </div>
@@ -507,8 +590,10 @@ export default function DecisionCapture({
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           rows={3}
           placeholder="Any additional context or decisions to capture..."
-          value={decision.notes || ''}
-          onChange={(e) => setDecision({ ...decision, notes: e.target.value || null })}
+          value={decision.notes || ""}
+          onChange={(e) =>
+            setDecision({ ...decision, notes: e.target.value || null })
+          }
         />
       </section>
 
@@ -519,35 +604,39 @@ export default function DecisionCapture({
           <div className="flex">
             <dt className="w-32 text-gray-500">Primary Strategy:</dt>
             <dd className="font-medium text-gray-900">
-              {decision.primaryStrategyName || 'Not selected'}
+              {decision.primaryStrategyName || "Not selected"}
             </dd>
           </div>
           {decision.secondaryStrategyName && (
             <div className="flex">
               <dt className="w-32 text-gray-500">Secondary:</dt>
-              <dd className="text-gray-900">{decision.secondaryStrategyName}</dd>
+              <dd className="text-gray-900">
+                {decision.secondaryStrategyName}
+              </dd>
             </div>
           )}
           {selectedApproach && (
             <div className="flex">
               <dt className="w-32 text-gray-500">Approach:</dt>
-              <dd className="text-gray-900">{strategicApproachMeta[selectedApproach].label}</dd>
+              <dd className="text-gray-900">
+                {strategicApproachMeta[selectedApproach].label}
+              </dd>
             </div>
           )}
           <div className="flex">
             <dt className="w-32 text-gray-500">Timing:</dt>
             <dd className="text-gray-900 capitalize">
-              {decision.timingDecision?.replace('_', ' ') || 'Not decided'}
+              {decision.timingDecision?.replace("_", " ") || "Not decided"}
             </dd>
           </div>
           <div className="flex">
             <dt className="w-32 text-gray-500">Risks:</dt>
             <dd className="text-gray-900">
               {risks.length === 0
-                ? 'No risks identified'
+                ? "No risks identified"
                 : stats.responded === 0
-                ? `${risks.length} risks (not yet reviewed)`
-                : `${stats.responded}/${risks.length} reviewed`}
+                  ? `${risks.length} risks (not yet reviewed)`
+                  : `${stats.responded}/${risks.length} reviewed`}
             </dd>
           </div>
         </dl>
@@ -559,8 +648,14 @@ export default function DecisionCapture({
           <div className="flex items-start gap-3">
             <span className="text-xl">💡</span>
             <div>
-              <p className="font-medium">Tip: Responding to risks helps generate better Update suggestions</p>
-              <p className="text-sm mt-1">You can still proceed without reviewing risks, or go back and add your responses.</p>
+              <p className="font-medium">
+                Tip: Responding to risks helps generate better Update
+                suggestions
+              </p>
+              <p className="text-sm mt-1">
+                You can still proceed without reviewing risks, or go back and
+                add your responses.
+              </p>
               <div className="flex gap-3 mt-3">
                 <button
                   onClick={() => setShowHint(false)}
@@ -602,10 +697,12 @@ export default function DecisionCapture({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={saving || !decision.primaryStrategyId || !decision.timingDecision}
+          disabled={
+            saving || !decision.primaryStrategyId || !decision.timingDecision
+          }
           className="px-6 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {saving ? 'Saving...' : 'Confirm & Continue to Update'}
+          {saving ? "Saving..." : "Confirm & Continue to Update"}
         </button>
       </div>
     </div>

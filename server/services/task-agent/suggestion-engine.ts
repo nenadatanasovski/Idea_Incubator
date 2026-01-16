@@ -21,35 +21,35 @@
  * Part of: PTE-144 Continuous Suggestion Loop
  */
 
-import { EventEmitter } from 'events';
-import evaluationQueueManager from './evaluation-queue-manager.js';
-import autoGroupingEngine from './auto-grouping-engine.js';
-import taskListOrchestrator from './task-list-orchestrator.js';
-import parallelismCalculator from './parallelism-calculator.js';
-import buildAgentOrchestrator from './build-agent-orchestrator.js';
+import { EventEmitter } from "events";
+import evaluationQueueManager from "./evaluation-queue-manager.js";
+import autoGroupingEngine from "./auto-grouping-engine.js";
+import taskListOrchestrator from "./task-list-orchestrator.js";
+import parallelismCalculator from "./parallelism-calculator.js";
+import buildAgentOrchestrator from "./build-agent-orchestrator.js";
 import {
   incrementSuggestionsMade,
   getActiveTaskAgents,
-} from './task-agent-instance-manager.js';
+} from "./task-agent-instance-manager.js";
 
 // Import TelegramSender types (we'll create a singleton instance)
-import { TelegramSender } from '../../communication/telegram-sender.js';
-import { BotRegistry } from '../../communication/bot-registry.js';
-import { ChatLinker } from '../../communication/chat-linker.js';
-import { InlineButton } from '../../communication/types.js';
+import { TelegramSender } from "../../communication/telegram-sender.js";
+import { BotRegistry } from "../../communication/bot-registry.js";
+import { ChatLinker } from "../../communication/chat-linker.js";
+import { InlineButton } from "../../communication/types.js";
 
 /**
  * Suggestion types that can be sent to the user
  */
 type SuggestionType =
-  | 'task_list_ready'
-  | 'parallel_opportunity'
-  | 'grouping_suggestion'
-  | 'blocker_detected'
-  | 'stale_tasks'
-  | 'daily_summary'
-  | 'execution_complete'
-  | 'execution_failed';
+  | "task_list_ready"
+  | "parallel_opportunity"
+  | "grouping_suggestion"
+  | "blocker_detected"
+  | "stale_tasks"
+  | "daily_summary"
+  | "execution_complete"
+  | "execution_failed";
 
 interface SuggestionContext {
   type: SuggestionType;
@@ -81,9 +81,9 @@ const DEFAULT_CONFIG: SuggestionEngineConfig = {
   activeCheckIntervalMs: 30000, // 30 seconds
   inactiveCheckIntervalMs: 3600000, // 1 hour
   sessionTimeoutMs: 1800000, // 30 minutes
-  dailySummaryTime: '09:00',
+  dailySummaryTime: "09:00",
   enabled: true,
-  primaryUserId: 'default_user',
+  primaryUserId: "default_user",
 };
 
 /**
@@ -111,9 +111,9 @@ class SuggestionEngine extends EventEmitter {
     this.sender = new TelegramSender(
       botRegistry,
       chatLinker,
-      this.config.primaryUserId
+      this.config.primaryUserId,
     );
-    console.log('[SuggestionEngine] Initialized with Telegram sender');
+    console.log("[SuggestionEngine] Initialized with Telegram sender");
   }
 
   /**
@@ -121,22 +121,24 @@ class SuggestionEngine extends EventEmitter {
    */
   start(): void {
     if (this.isRunning) {
-      console.log('[SuggestionEngine] Already running');
+      console.log("[SuggestionEngine] Already running");
       return;
     }
 
     if (!this.config.enabled) {
-      console.log('[SuggestionEngine] Disabled by configuration');
+      console.log("[SuggestionEngine] Disabled by configuration");
       return;
     }
 
     if (!this.sender) {
-      console.log('[SuggestionEngine] Not initialized - call initialize() first');
+      console.log(
+        "[SuggestionEngine] Not initialized - call initialize() first",
+      );
       return;
     }
 
     this.isRunning = true;
-    console.log('[SuggestionEngine] Starting continuous suggestion loop');
+    console.log("[SuggestionEngine] Starting continuous suggestion loop");
 
     // Start the check interval
     this.scheduleNextCheck();
@@ -166,7 +168,7 @@ class SuggestionEngine extends EventEmitter {
       this.dailySummaryTimeout = null;
     }
 
-    console.log('[SuggestionEngine] Stopped');
+    console.log("[SuggestionEngine] Stopped");
   }
 
   /**
@@ -174,11 +176,11 @@ class SuggestionEngine extends EventEmitter {
    */
   recordUserActivity(): void {
     this.lastUserActivity = new Date();
-    console.log('[SuggestionEngine] User activity recorded');
+    console.log("[SuggestionEngine] User activity recorded");
 
     // If we were in inactive mode, switch to active mode
     if (this.getCheckInterval() === this.config.inactiveCheckIntervalMs) {
-      console.log('[SuggestionEngine] Switching to active mode');
+      console.log("[SuggestionEngine] Switching to active mode");
       this.scheduleNextCheck();
     }
   }
@@ -221,8 +223,8 @@ class SuggestionEngine extends EventEmitter {
     const interval = this.getCheckInterval();
     console.log(
       `[SuggestionEngine] Scheduling checks every ${interval / 1000}s (${
-        this.isSessionActive() ? 'active' : 'inactive'
-      } mode)`
+        this.isSessionActive() ? "active" : "inactive"
+      } mode)`,
     );
 
     this.checkInterval = setInterval(() => this.runSuggestionLoop(), interval);
@@ -232,7 +234,9 @@ class SuggestionEngine extends EventEmitter {
    * Schedule daily summary
    */
   private scheduleDailySummary(): void {
-    const [hours, minutes] = this.config.dailySummaryTime.split(':').map(Number);
+    const [hours, minutes] = this.config.dailySummaryTime
+      .split(":")
+      .map(Number);
     const now = new Date();
     const targetTime = new Date(now);
     targetTime.setHours(hours, minutes, 0, 0);
@@ -245,7 +249,7 @@ class SuggestionEngine extends EventEmitter {
     const msUntilSummary = targetTime.getTime() - now.getTime();
 
     console.log(
-      `[SuggestionEngine] Daily summary scheduled for ${targetTime.toISOString()}`
+      `[SuggestionEngine] Daily summary scheduled for ${targetTime.toISOString()}`,
     );
 
     this.dailySummaryTimeout = setTimeout(() => {
@@ -259,13 +263,13 @@ class SuggestionEngine extends EventEmitter {
    */
   private async sendGreeting(): Promise<void> {
     if (!this.sender) {
-      console.log('[SuggestionEngine] No sender available for greeting');
+      console.log("[SuggestionEngine] No sender available for greeting");
       return;
     }
 
     try {
       const result = await this.sender.sendMessage({
-        agentType: 'orchestrator',
+        agentType: "orchestrator",
         text: `🤖 *Task Agent Online*
 
 Hey! I'm your Task Agent. I'll proactively suggest task lists to execute and keep you updated on progress.
@@ -276,16 +280,19 @@ Hey! I'm your Task Agent. I'll proactively suggest task lists to execute and kee
 • Ready to help organize your work
 
 Type /queue to see pending tasks or /suggest for grouping ideas.`,
-        parseMode: 'Markdown',
+        parseMode: "Markdown",
       });
 
       if (result.success) {
-        console.log('[SuggestionEngine] Greeting sent successfully, messageId:', result.messageId);
+        console.log(
+          "[SuggestionEngine] Greeting sent successfully, messageId:",
+          result.messageId,
+        );
       } else {
-        console.error('[SuggestionEngine] Greeting failed:', result.error);
+        console.error("[SuggestionEngine] Greeting failed:", result.error);
       }
     } catch (error) {
-      console.error('[SuggestionEngine] Failed to send greeting:', error);
+      console.error("[SuggestionEngine] Failed to send greeting:", error);
     }
   }
 
@@ -297,12 +304,14 @@ Type /queue to see pending tasks or /suggest for grouping ideas.`,
 
     // Skip if we have a pending suggestion waiting for response
     if (this.pendingSuggestionId) {
-      console.log('[SuggestionEngine] Waiting for response to pending suggestion');
+      console.log(
+        "[SuggestionEngine] Waiting for response to pending suggestion",
+      );
       return;
     }
 
     try {
-      console.log('[SuggestionEngine] Running suggestion loop...');
+      console.log("[SuggestionEngine] Running suggestion loop...");
 
       // 1. Check for blockers/failures (highest priority - always notify)
       const blockerSuggestion = await this.checkForBlockers();
@@ -346,9 +355,9 @@ Type /queue to see pending tasks or /suggest for grouping ideas.`,
         return;
       }
 
-      console.log('[SuggestionEngine] No suggestions to send');
+      console.log("[SuggestionEngine] No suggestions to send");
     } catch (error) {
-      console.error('[SuggestionEngine] Error in suggestion loop:', error);
+      console.error("[SuggestionEngine] Error in suggestion loop:", error);
     }
   }
 
@@ -359,32 +368,35 @@ Type /queue to see pending tasks or /suggest for grouping ideas.`,
     try {
       const agents = await buildAgentOrchestrator.getActiveAgents();
       const blockedAgents = agents.filter(
-        (a) => a.status === 'blocked' || a.status === 'waiting'
+        (a) => a.status === "blocked" || a.status === "waiting",
       );
 
       if (blockedAgents.length > 0) {
         const agent = blockedAgents[0];
         return {
-          type: 'blocker_detected',
+          type: "blocker_detected",
           priority: 100,
           message: `🚨 *Build Agent Blocked*
 
 Agent \`${agent.id.slice(0, 8)}\` is waiting for input.
 
-📋 *Task:* ${agent.taskId || 'Unknown'}
+📋 *Task:* ${agent.taskId || "Unknown"}
 ⏱️ *Blocked since:* ${agent.createdAt}
 
 Please review and provide guidance.`,
           buttons: [
             [
-              { text: '📋 View Details', callbackData: `agent:view:${agent.id}` },
-              { text: '⏭️ Skip Task', callbackData: `agent:skip:${agent.id}` },
+              {
+                text: "📋 View Details",
+                callbackData: `agent:view:${agent.id}`,
+              },
+              { text: "⏭️ Skip Task", callbackData: `agent:skip:${agent.id}` },
             ],
           ],
         };
       }
     } catch (error) {
-      console.error('[SuggestionEngine] Error checking blockers:', error);
+      console.error("[SuggestionEngine] Error checking blockers:", error);
     }
 
     return null;
@@ -401,7 +413,7 @@ Please review and provide guidance.`,
       for (const list of status.activeLists) {
         if (list.completedTasks === list.totalTasks && list.totalTasks > 0) {
           return {
-            type: 'execution_complete',
+            type: "execution_complete",
             priority: 90,
             message: `🎉 *Task List Complete!*
 
@@ -411,15 +423,21 @@ Please review and provide guidance.`,
 Nice work! What's next?`,
             buttons: [
               [
-                { text: '📋 View Results', callbackData: `list:view:${list.id}` },
-                { text: '➡️ Next Suggestion', callbackData: 'suggest:next' },
+                {
+                  text: "📋 View Results",
+                  callbackData: `list:view:${list.id}`,
+                },
+                { text: "➡️ Next Suggestion", callbackData: "suggest:next" },
               ],
             ],
           };
         }
       }
     } catch (error) {
-      console.error('[SuggestionEngine] Error checking execution status:', error);
+      console.error(
+        "[SuggestionEngine] Error checking execution status:",
+        error,
+      );
     }
 
     return null;
@@ -433,9 +451,7 @@ Nice work! What's next?`,
       const status = await taskListOrchestrator.getOrchestratorStatus();
 
       // Check if we have capacity for more lists
-      if (
-        status.activeLists.length >= status.config.maxConcurrentLists
-      ) {
+      if (status.activeLists.length >= status.config.maxConcurrentLists) {
         return null; // At capacity
       }
 
@@ -444,7 +460,7 @@ Nice work! What's next?`,
 
       return null;
     } catch (error) {
-      console.error('[SuggestionEngine] Error checking ready lists:', error);
+      console.error("[SuggestionEngine] Error checking ready lists:", error);
       return null;
     }
   }
@@ -467,7 +483,10 @@ Nice work! What's next?`,
 
       return null;
     } catch (error) {
-      console.error('[SuggestionEngine] Error checking parallel opportunities:', error);
+      console.error(
+        "[SuggestionEngine] Error checking parallel opportunities:",
+        error,
+      );
       return null;
     }
   }
@@ -484,38 +503,39 @@ Nice work! What's next?`,
         const taskCount = topSuggestion.suggestedTasks?.length || 0;
 
         return {
-          type: 'grouping_suggestion',
+          type: "grouping_suggestion",
           priority: 60,
           message: `💡 *Grouping Suggestion*
 
-I found ${suggestions.length} grouping opportunit${suggestions.length > 1 ? 'ies' : 'y'}!
+I found ${suggestions.length} grouping opportunit${suggestions.length > 1 ? "ies" : "y"}!
 
 *Top suggestion:* ${topSuggestion.suggestedName}
 📦 ${taskCount} related tasks
 📝 ${topSuggestion.groupingReason?.substring(0, 100)}${
-            (topSuggestion.groupingReason?.length || 0) > 100 ? '...' : ''
+            (topSuggestion.groupingReason?.length || 0) > 100 ? "..." : ""
           }
 
 Want to group these tasks together?`,
           buttons: [
             [
               {
-                text: '✅ Accept',
+                text: "✅ Accept",
                 callbackData: `grouping:accept:${topSuggestion.id}`,
               },
               {
-                text: '❌ Reject',
+                text: "❌ Reject",
                 callbackData: `grouping:reject:${topSuggestion.id}`,
               },
             ],
-            [
-              { text: '📋 View All', callbackData: 'grouping:viewall' },
-            ],
+            [{ text: "📋 View All", callbackData: "grouping:viewall" }],
           ],
         };
       }
     } catch (error) {
-      console.error('[SuggestionEngine] Error checking grouping suggestions:', error);
+      console.error(
+        "[SuggestionEngine] Error checking grouping suggestions:",
+        error,
+      );
     }
 
     return null;
@@ -530,11 +550,11 @@ Want to group these tasks together?`,
 
       if (stats.staleCount > 0) {
         return {
-          type: 'stale_tasks',
+          type: "stale_tasks",
           priority: 40,
           message: `⚠️ *Stale Tasks Alert*
 
-You have ${stats.staleCount} task${stats.staleCount > 1 ? 's' : ''} in the Evaluation Queue for more than 3 days.
+You have ${stats.staleCount} task${stats.staleCount > 1 ? "s" : ""} in the Evaluation Queue for more than 3 days.
 
 📊 Queue Status:
 • Total: ${stats.totalQueued}
@@ -545,14 +565,14 @@ You have ${stats.staleCount} task${stats.staleCount > 1 ? 's' : ''} in the Evalu
 Want me to suggest groupings for these tasks?`,
           buttons: [
             [
-              { text: '💡 Get Suggestions', callbackData: 'stale:suggest' },
-              { text: '📋 View Queue', callbackData: 'queue:view' },
+              { text: "💡 Get Suggestions", callbackData: "stale:suggest" },
+              { text: "📋 View Queue", callbackData: "queue:view" },
             ],
           ],
         };
       }
     } catch (error) {
-      console.error('[SuggestionEngine] Error checking stale tasks:', error);
+      console.error("[SuggestionEngine] Error checking stale tasks:", error);
     }
 
     return null;
@@ -568,9 +588,9 @@ Want me to suggest groupings for these tasks?`,
       const suggestionId = `sug-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       const result = await this.sender.sendWithButtons(
-        'orchestrator',
+        "orchestrator",
         suggestion.message,
-        suggestion.buttons
+        suggestion.buttons,
       );
 
       if (result.success) {
@@ -584,19 +604,22 @@ Want me to suggest groupings for these tasks?`,
         }
 
         console.log(
-          `[SuggestionEngine] Sent ${suggestion.type} suggestion (id: ${suggestionId})`
+          `[SuggestionEngine] Sent ${suggestion.type} suggestion (id: ${suggestionId})`,
         );
 
-        this.emit('suggestion:sent', {
+        this.emit("suggestion:sent", {
           id: suggestionId,
           type: suggestion.type,
           priority: suggestion.priority,
         });
       } else {
-        console.error('[SuggestionEngine] Failed to send suggestion:', result.error);
+        console.error(
+          "[SuggestionEngine] Failed to send suggestion:",
+          result.error,
+        );
       }
     } catch (error) {
-      console.error('[SuggestionEngine] Error sending suggestion:', error);
+      console.error("[SuggestionEngine] Error sending suggestion:", error);
     }
   }
 
@@ -608,7 +631,8 @@ Want me to suggest groupings for these tasks?`,
 
     try {
       const queueStats = await evaluationQueueManager.getQueueStats();
-      const orchestratorStatus = await taskListOrchestrator.getOrchestratorStatus();
+      const orchestratorStatus =
+        await taskListOrchestrator.getOrchestratorStatus();
       const agents = await buildAgentOrchestrator.getActiveAgents();
 
       const summary = `📊 *Daily Summary*
@@ -628,25 +652,21 @@ Good morning! Here's your task status:
 ${
   queueStats.staleCount > 0
     ? `⚠️ Review ${queueStats.staleCount} stale tasks`
-    : '✅ No stale tasks'
+    : "✅ No stale tasks"
 }
-${
-  queueStats.totalQueued > 5
-    ? '💡 Consider grouping tasks into lists'
-    : ''
-}
+${queueStats.totalQueued > 5 ? "💡 Consider grouping tasks into lists" : ""}
 
 Reply /suggest for grouping ideas or /queue to view pending tasks.`;
 
       await this.sender.sendMessage({
-        agentType: 'orchestrator',
+        agentType: "orchestrator",
         text: summary,
-        parseMode: 'Markdown',
+        parseMode: "Markdown",
       });
 
-      console.log('[SuggestionEngine] Daily summary sent');
+      console.log("[SuggestionEngine] Daily summary sent");
     } catch (error) {
-      console.error('[SuggestionEngine] Failed to send daily summary:', error);
+      console.error("[SuggestionEngine] Failed to send daily summary:", error);
     }
   }
 
@@ -684,7 +704,7 @@ export function getSuggestionEngine(): SuggestionEngine {
 
 export function initializeSuggestionEngine(
   botRegistry: BotRegistry,
-  chatLinker: ChatLinker
+  chatLinker: ChatLinker,
 ): SuggestionEngine {
   const engine = getSuggestionEngine();
   engine.initialize(botRegistry, chatLinker);

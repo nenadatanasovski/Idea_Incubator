@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   Mail,
@@ -12,220 +12,235 @@ import {
   Volume2,
   ArrowLeft,
   Save,
-} from 'lucide-react'
-import clsx from 'clsx'
+} from "lucide-react";
+import clsx from "clsx";
 
-type NotificationChannel = 'in_app' | 'email' | 'telegram'
+type NotificationChannel = "in_app" | "email" | "telegram";
 
 interface ChannelPreference {
-  id: string
-  userId: string
-  notificationType: string
-  channels: NotificationChannel[]
-  mutedUntil: string | null
+  id: string;
+  userId: string;
+  notificationType: string;
+  channels: NotificationChannel[];
+  mutedUntil: string | null;
 }
 
 interface NotificationType {
-  type: string
-  title: string
-  defaultChannels: NotificationChannel[]
+  type: string;
+  title: string;
+  defaultChannels: NotificationChannel[];
 }
 
 interface PreferencesResponse {
-  preferences: ChannelPreference[]
-  availableTypes: NotificationType[]
+  preferences: ChannelPreference[];
+  availableTypes: NotificationType[];
 }
 
 const CHANNEL_ICONS: Record<NotificationChannel, typeof Bell> = {
   in_app: Monitor,
   email: Mail,
   telegram: MessageCircle,
-}
+};
 
 const CHANNEL_LABELS: Record<NotificationChannel, string> = {
-  in_app: 'In-App',
-  email: 'Email',
-  telegram: 'Telegram',
-}
+  in_app: "In-App",
+  email: "Email",
+  telegram: "Telegram",
+};
 
 const MUTE_DURATIONS = [
-  { value: 60, label: '1 hour' },
-  { value: 240, label: '4 hours' },
-  { value: 480, label: '8 hours' },
-  { value: 1440, label: '24 hours' },
-  { value: 10080, label: '1 week' },
-]
+  { value: 60, label: "1 hour" },
+  { value: 240, label: "4 hours" },
+  { value: 480, label: "8 hours" },
+  { value: 1440, label: "24 hours" },
+  { value: 10080, label: "1 week" },
+];
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 export default function NotificationPreferences() {
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [preferences, setPreferences] = useState<ChannelPreference[]>([])
-  const [availableTypes, setAvailableTypes] = useState<NotificationType[]>([])
-  const [pendingChanges, setPendingChanges] = useState<Map<string, NotificationChannel[]>>(new Map())
-  const [muteModalOpen, setMuteModalOpen] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [preferences, setPreferences] = useState<ChannelPreference[]>([]);
+  const [availableTypes, setAvailableTypes] = useState<NotificationType[]>([]);
+  const [pendingChanges, setPendingChanges] = useState<
+    Map<string, NotificationChannel[]>
+  >(new Map());
+  const [muteModalOpen, setMuteModalOpen] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPreferences()
-  }, [])
+    fetchPreferences();
+  }, []);
 
   const fetchPreferences = async () => {
     try {
-      setLoading(true)
-      const res = await fetch(`${API_URL}/api/notifications/preferences`)
-      if (!res.ok) throw new Error('Failed to fetch preferences')
-      const data: PreferencesResponse = await res.json()
-      setPreferences(data.preferences)
-      setAvailableTypes(data.availableTypes)
+      setLoading(true);
+      const res = await fetch(`${API_URL}/api/notifications/preferences`);
+      if (!res.ok) throw new Error("Failed to fetch preferences");
+      const data: PreferencesResponse = await res.json();
+      setPreferences(data.preferences);
+      setAvailableTypes(data.availableTypes);
     } catch (err) {
-      setError('Failed to load notification preferences')
-      console.error('Failed to fetch preferences:', err)
+      setError("Failed to load notification preferences");
+      console.error("Failed to fetch preferences:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const getEffectiveChannels = (type: string): NotificationChannel[] => {
     // Check pending changes first
     if (pendingChanges.has(type)) {
-      return pendingChanges.get(type)!
+      return pendingChanges.get(type)!;
     }
     // Then check saved preferences
-    const pref = preferences.find(p => p.notificationType === type)
+    const pref = preferences.find((p) => p.notificationType === type);
     if (pref) {
-      return pref.channels
+      return pref.channels;
     }
     // Fall back to default
-    const typeInfo = availableTypes.find(t => t.type === type)
-    return typeInfo?.defaultChannels || ['in_app']
-  }
+    const typeInfo = availableTypes.find((t) => t.type === type);
+    return typeInfo?.defaultChannels || ["in_app"];
+  };
 
-  const getMuteStatus = (type: string): { muted: boolean; until: Date | null } => {
-    const pref = preferences.find(p => p.notificationType === type)
+  const getMuteStatus = (
+    type: string,
+  ): { muted: boolean; until: Date | null } => {
+    const pref = preferences.find((p) => p.notificationType === type);
     if (pref?.mutedUntil) {
-      const until = new Date(pref.mutedUntil)
+      const until = new Date(pref.mutedUntil);
       if (until > new Date()) {
-        return { muted: true, until }
+        return { muted: true, until };
       }
     }
-    return { muted: false, until: null }
-  }
+    return { muted: false, until: null };
+  };
 
   const toggleChannel = (type: string, channel: NotificationChannel) => {
-    const current = getEffectiveChannels(type)
-    let updated: NotificationChannel[]
+    const current = getEffectiveChannels(type);
+    let updated: NotificationChannel[];
 
     if (current.includes(channel)) {
       // Don't allow removing the last channel
       if (current.length === 1) {
-        setError('At least one notification channel must be enabled')
-        setTimeout(() => setError(null), 3000)
-        return
+        setError("At least one notification channel must be enabled");
+        setTimeout(() => setError(null), 3000);
+        return;
       }
-      updated = current.filter(c => c !== channel)
+      updated = current.filter((c) => c !== channel);
     } else {
-      updated = [...current, channel]
+      updated = [...current, channel];
     }
 
-    setPendingChanges(new Map(pendingChanges).set(type, updated))
-  }
+    setPendingChanges(new Map(pendingChanges).set(type, updated));
+  };
 
   const savePreferences = async () => {
-    if (pendingChanges.size === 0) return
+    if (pendingChanges.size === 0) return;
 
     try {
-      setSaving(true)
-      setError(null)
+      setSaving(true);
+      setError(null);
 
-      const updates = Array.from(pendingChanges.entries()).map(([type, channels]) => ({
-        notificationType: type,
-        channels,
-      }))
+      const updates = Array.from(pendingChanges.entries()).map(
+        ([type, channels]) => ({
+          notificationType: type,
+          channels,
+        }),
+      );
 
       const res = await fetch(`${API_URL}/api/notifications/preferences`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ preferences: updates }),
-      })
+      });
 
-      if (!res.ok) throw new Error('Failed to save preferences')
+      if (!res.ok) throw new Error("Failed to save preferences");
 
-      const data = await res.json()
-      setPreferences(data.preferences)
-      setPendingChanges(new Map())
-      setSuccess('Preferences saved successfully')
-      setTimeout(() => setSuccess(null), 3000)
+      const data = await res.json();
+      setPreferences(data.preferences);
+      setPendingChanges(new Map());
+      setSuccess("Preferences saved successfully");
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError('Failed to save preferences')
-      console.error('Failed to save preferences:', err)
+      setError("Failed to save preferences");
+      console.error("Failed to save preferences:", err);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
-  const muteNotificationType = async (type: string, durationMinutes: number) => {
+  const muteNotificationType = async (
+    type: string,
+    durationMinutes: number,
+  ) => {
     try {
-      const res = await fetch(`${API_URL}/api/notifications/preferences/${encodeURIComponent(type)}/mute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ duration: durationMinutes }),
-      })
+      const res = await fetch(
+        `${API_URL}/api/notifications/preferences/${encodeURIComponent(type)}/mute`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ duration: durationMinutes }),
+        },
+      );
 
-      if (!res.ok) throw new Error('Failed to mute notification type')
+      if (!res.ok) throw new Error("Failed to mute notification type");
 
-      await fetchPreferences()
-      setMuteModalOpen(null)
-      setSuccess(`Muted ${type} notifications`)
-      setTimeout(() => setSuccess(null), 3000)
+      await fetchPreferences();
+      setMuteModalOpen(null);
+      setSuccess(`Muted ${type} notifications`);
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError('Failed to mute notification type')
-      console.error('Failed to mute:', err)
+      setError("Failed to mute notification type");
+      console.error("Failed to mute:", err);
     }
-  }
+  };
 
   const unmuteNotificationType = async (type: string) => {
     try {
-      const res = await fetch(`${API_URL}/api/notifications/preferences/${encodeURIComponent(type)}/unmute`, {
-        method: 'POST',
-      })
+      const res = await fetch(
+        `${API_URL}/api/notifications/preferences/${encodeURIComponent(type)}/unmute`,
+        {
+          method: "POST",
+        },
+      );
 
-      if (!res.ok) throw new Error('Failed to unmute notification type')
+      if (!res.ok) throw new Error("Failed to unmute notification type");
 
-      await fetchPreferences()
-      setSuccess(`Unmuted ${type} notifications`)
-      setTimeout(() => setSuccess(null), 3000)
+      await fetchPreferences();
+      setSuccess(`Unmuted ${type} notifications`);
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError('Failed to unmute notification type')
-      console.error('Failed to unmute:', err)
+      setError("Failed to unmute notification type");
+      console.error("Failed to unmute:", err);
     }
-  }
+  };
 
   const formatMuteUntil = (date: Date): string => {
-    const now = new Date()
-    const diff = date.getTime() - now.getTime()
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    const now = new Date();
+    const diff = date.getTime() - now.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     if (hours > 24) {
-      const days = Math.floor(hours / 24)
-      return `${days} day${days > 1 ? 's' : ''}`
+      const days = Math.floor(hours / 24);
+      return `${days} day${days > 1 ? "s" : ""}`;
     }
     if (hours > 0) {
-      return `${hours}h ${minutes}m`
+      return `${hours}h ${minutes}m`;
     }
-    return `${minutes}m`
-  }
+    return `${minutes}m`;
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
       </div>
-    )
+    );
   }
 
   return (
@@ -240,7 +255,9 @@ export default function NotificationPreferences() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <Bell className="h-8 w-8 text-primary-600" />
-          <h1 className="text-2xl font-bold text-gray-900">Notification Preferences</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Notification Preferences
+          </h1>
         </div>
         {pendingChanges.size > 0 && (
           <button
@@ -248,7 +265,11 @@ export default function NotificationPreferences() {
             disabled={saving}
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
             Save Changes
           </button>
         )}
@@ -274,40 +295,49 @@ export default function NotificationPreferences() {
 
       {/* Channel Legend */}
       <div className="bg-gray-50 rounded-lg p-4 mb-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Notification Channels</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-2">
+          Notification Channels
+        </h3>
         <div className="flex flex-wrap gap-4">
-          {(Object.keys(CHANNEL_ICONS) as NotificationChannel[]).map((channel) => {
-            const Icon = CHANNEL_ICONS[channel]
-            return (
-              <div key={channel} className="flex items-center gap-2 text-sm text-gray-600">
-                <Icon className="h-4 w-4" />
-                <span>{CHANNEL_LABELS[channel]}</span>
-              </div>
-            )
-          })}
+          {(Object.keys(CHANNEL_ICONS) as NotificationChannel[]).map(
+            (channel) => {
+              const Icon = CHANNEL_ICONS[channel];
+              return (
+                <div
+                  key={channel}
+                  className="flex items-center gap-2 text-sm text-gray-600"
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{CHANNEL_LABELS[channel]}</span>
+                </div>
+              );
+            },
+          )}
         </div>
       </div>
 
       {/* Notification Types */}
       <div className="space-y-4">
         {availableTypes.map((typeInfo) => {
-          const channels = getEffectiveChannels(typeInfo.type)
-          const muteStatus = getMuteStatus(typeInfo.type)
-          const hasChanges = pendingChanges.has(typeInfo.type)
+          const channels = getEffectiveChannels(typeInfo.type);
+          const muteStatus = getMuteStatus(typeInfo.type);
+          const hasChanges = pendingChanges.has(typeInfo.type);
 
           return (
             <div
               key={typeInfo.type}
               className={clsx(
-                'bg-white rounded-lg shadow-sm border p-4',
-                hasChanges && 'ring-2 ring-primary-200',
-                muteStatus.muted && 'opacity-60'
+                "bg-white rounded-lg shadow-sm border p-4",
+                hasChanges && "ring-2 ring-primary-200",
+                muteStatus.muted && "opacity-60",
               )}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-gray-900">{typeInfo.title}</h3>
+                    <h3 className="font-medium text-gray-900">
+                      {typeInfo.title}
+                    </h3>
                     {muteStatus.muted && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
                         <VolumeX className="h-3 w-3" />
@@ -345,36 +375,47 @@ export default function NotificationPreferences() {
 
               {/* Channel Toggles */}
               <div className="flex gap-2 mt-3">
-                {(Object.keys(CHANNEL_ICONS) as NotificationChannel[]).map((channel) => {
-                  const Icon = CHANNEL_ICONS[channel]
-                  const isActive = channels.includes(channel)
-                  const isDefault = typeInfo.defaultChannels.includes(channel)
+                {(Object.keys(CHANNEL_ICONS) as NotificationChannel[]).map(
+                  (channel) => {
+                    const Icon = CHANNEL_ICONS[channel];
+                    const isActive = channels.includes(channel);
+                    const isDefault =
+                      typeInfo.defaultChannels.includes(channel);
 
-                  return (
-                    <button
-                      key={channel}
-                      onClick={() => toggleChannel(typeInfo.type, channel)}
-                      disabled={muteStatus.muted}
-                      className={clsx(
-                        'inline-flex items-center gap-2 px-3 py-2 rounded-lg border transition',
-                        isActive
-                          ? 'bg-primary-50 border-primary-300 text-primary-700'
-                          : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300',
-                        muteStatus.muted && 'cursor-not-allowed'
-                      )}
-                      title={isDefault ? `${CHANNEL_LABELS[channel]} (default)` : CHANNEL_LABELS[channel]}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-sm">{CHANNEL_LABELS[channel]}</span>
-                      {isDefault && !isActive && (
-                        <span className="text-xs text-gray-400">(default)</span>
-                      )}
-                    </button>
-                  )
-                })}
+                    return (
+                      <button
+                        key={channel}
+                        onClick={() => toggleChannel(typeInfo.type, channel)}
+                        disabled={muteStatus.muted}
+                        className={clsx(
+                          "inline-flex items-center gap-2 px-3 py-2 rounded-lg border transition",
+                          isActive
+                            ? "bg-primary-50 border-primary-300 text-primary-700"
+                            : "bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300",
+                          muteStatus.muted && "cursor-not-allowed",
+                        )}
+                        title={
+                          isDefault
+                            ? `${CHANNEL_LABELS[channel]} (default)`
+                            : CHANNEL_LABELS[channel]
+                        }
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="text-sm">
+                          {CHANNEL_LABELS[channel]}
+                        </span>
+                        {isDefault && !isActive && (
+                          <span className="text-xs text-gray-400">
+                            (default)
+                          </span>
+                        )}
+                      </button>
+                    );
+                  },
+                )}
               </div>
             </div>
-          )
+          );
         })}
 
         {availableTypes.length === 0 && (
@@ -392,13 +433,16 @@ export default function NotificationPreferences() {
               Mute Notifications
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              How long do you want to mute <strong>{muteModalOpen}</strong> notifications?
+              How long do you want to mute <strong>{muteModalOpen}</strong>{" "}
+              notifications?
             </p>
             <div className="space-y-2">
               {MUTE_DURATIONS.map((duration) => (
                 <button
                   key={duration.value}
-                  onClick={() => muteNotificationType(muteModalOpen, duration.value)}
+                  onClick={() =>
+                    muteNotificationType(muteModalOpen, duration.value)
+                  }
                   className="w-full px-4 py-2 text-left rounded-lg border border-gray-200 hover:bg-gray-50 transition"
                 >
                   {duration.label}
@@ -420,7 +464,8 @@ export default function NotificationPreferences() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <span className="text-sm text-gray-600">
-              {pendingChanges.size} unsaved change{pendingChanges.size > 1 ? 's' : ''}
+              {pendingChanges.size} unsaved change
+              {pendingChanges.size > 1 ? "s" : ""}
             </span>
             <div className="flex gap-3">
               <button
@@ -434,7 +479,11 @@ export default function NotificationPreferences() {
                 disabled={saving}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
                 Save Changes
               </button>
             </div>
@@ -442,5 +491,5 @@ export default function NotificationPreferences() {
         </div>
       )}
     </div>
-  )
+  );
 }

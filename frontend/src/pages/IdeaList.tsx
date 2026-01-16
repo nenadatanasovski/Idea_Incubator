@@ -1,55 +1,56 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Search, Filter, ChevronRight, Plus } from 'lucide-react'
-import { useIdeas } from '../hooks/useIdeas'
-import { lifecycleStages, scoreInterpretation } from '../types'
-import type { IdeaType, LifecycleStage, IdeaFilters } from '../types'
-import clsx from 'clsx'
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Search, Filter, ChevronRight, Plus } from "lucide-react";
+import { useIdeas } from "../hooks/useIdeas";
+import { lifecycleStages, scoreInterpretation } from "../types";
+import type { IdeaType, LifecycleStage, IdeaFilters } from "../types";
+import clsx from "clsx";
 
 const ideaTypes: { value: IdeaType; label: string }[] = [
-  { value: 'business', label: 'Business' },
-  { value: 'creative', label: 'Creative' },
-  { value: 'technical', label: 'Technical' },
-  { value: 'personal', label: 'Personal' },
-  { value: 'research', label: 'Research' },
-]
+  { value: "business", label: "Business" },
+  { value: "creative", label: "Creative" },
+  { value: "technical", label: "Technical" },
+  { value: "personal", label: "Personal" },
+  { value: "research", label: "Research" },
+];
 
 const ideaTypeColors: Record<IdeaType, string> = {
-  business: 'bg-blue-100 text-blue-800',
-  creative: 'bg-purple-100 text-purple-800',
-  technical: 'bg-green-100 text-green-800',
-  personal: 'bg-orange-100 text-orange-800',
-  research: 'bg-cyan-100 text-cyan-800',
-}
+  business: "bg-blue-100 text-blue-800",
+  creative: "bg-purple-100 text-purple-800",
+  technical: "bg-green-100 text-green-800",
+  personal: "bg-orange-100 text-orange-800",
+  research: "bg-cyan-100 text-cyan-800",
+};
 
 export default function IdeaList() {
   const [filters, setFilters] = useState<IdeaFilters>({
-    sortBy: 'updated_at',
-    sortOrder: 'desc',
-  })
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
+    sortBy: "updated_at",
+    sortOrder: "desc",
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
 
   const { ideas, loading, error } = useIdeas({
     ...filters,
     search: searchQuery || undefined,
-  })
+  });
 
   const handleTypeFilter = (type: IdeaType | undefined) => {
-    setFilters((prev) => ({ ...prev, type }))
-  }
+    setFilters((prev) => ({ ...prev, type }));
+  };
 
   const handleStageFilter = (stage: LifecycleStage | undefined) => {
-    setFilters((prev) => ({ ...prev, stage }))
-  }
+    setFilters((prev) => ({ ...prev, stage }));
+  };
 
-  const handleSort = (sortBy: IdeaFilters['sortBy']) => {
+  const handleSort = (sortBy: IdeaFilters["sortBy"]) => {
     setFilters((prev) => ({
       ...prev,
       sortBy,
-      sortOrder: prev.sortBy === sortBy && prev.sortOrder === 'desc' ? 'asc' : 'desc',
-    }))
-  }
+      sortOrder:
+        prev.sortBy === sortBy && prev.sortOrder === "desc" ? "asc" : "desc",
+    }));
+  };
 
   return (
     <div className="space-y-6">
@@ -57,7 +58,7 @@ export default function IdeaList() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Ideas</h1>
           <p className="mt-1 text-sm text-gray-500">
-            {ideas.length} idea{ideas.length !== 1 ? 's' : ''} in your incubator
+            {ideas.length} idea{ideas.length !== 1 ? "s" : ""} in your incubator
           </p>
         </div>
         <Link
@@ -88,8 +89,8 @@ export default function IdeaList() {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={clsx(
-              'btn-secondary',
-              showFilters && 'bg-primary-50 text-primary-700'
+              "btn-secondary",
+              showFilters && "bg-primary-50 text-primary-700",
             )}
           >
             <Filter className="h-4 w-4 mr-2" />
@@ -109,10 +110,10 @@ export default function IdeaList() {
                 <button
                   onClick={() => handleTypeFilter(undefined)}
                   className={clsx(
-                    'badge cursor-pointer',
+                    "badge cursor-pointer",
                     !filters.type
-                      ? 'bg-primary-100 text-primary-800'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? "bg-primary-100 text-primary-800"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200",
                   )}
                 >
                   All
@@ -122,10 +123,10 @@ export default function IdeaList() {
                     key={type.value}
                     onClick={() => handleTypeFilter(type.value)}
                     className={clsx(
-                      'badge cursor-pointer',
+                      "badge cursor-pointer",
                       filters.type === type.value
                         ? ideaTypeColors[type.value]
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200",
                     )}
                   >
                     {type.label}
@@ -143,10 +144,10 @@ export default function IdeaList() {
                 <button
                   onClick={() => handleStageFilter(undefined)}
                   className={clsx(
-                    'badge cursor-pointer',
+                    "badge cursor-pointer",
                     !filters.stage
-                      ? 'bg-primary-100 text-primary-800'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? "bg-primary-100 text-primary-800"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200",
                   )}
                 >
                   All
@@ -159,10 +160,10 @@ export default function IdeaList() {
                       key={stage}
                       onClick={() => handleStageFilter(stage as LifecycleStage)}
                       className={clsx(
-                        'badge cursor-pointer',
+                        "badge cursor-pointer",
                         filters.stage === stage
                           ? `${meta.color} text-white`
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200",
                       )}
                     >
                       {meta.label}
@@ -178,25 +179,27 @@ export default function IdeaList() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { value: 'updated_at', label: 'Updated' },
-                  { value: 'created_at', label: 'Created' },
-                  { value: 'title', label: 'Title' },
-                  { value: 'score', label: 'Score' },
+                  { value: "updated_at", label: "Updated" },
+                  { value: "created_at", label: "Created" },
+                  { value: "title", label: "Title" },
+                  { value: "score", label: "Score" },
                 ].map((option) => (
                   <button
                     key={option.value}
-                    onClick={() => handleSort(option.value as IdeaFilters['sortBy'])}
+                    onClick={() =>
+                      handleSort(option.value as IdeaFilters["sortBy"])
+                    }
                     className={clsx(
-                      'badge cursor-pointer',
+                      "badge cursor-pointer",
                       filters.sortBy === option.value
-                        ? 'bg-primary-100 text-primary-800'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? "bg-primary-100 text-primary-800"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200",
                     )}
                   >
                     {option.label}
                     {filters.sortBy === option.value && (
                       <span className="ml-1">
-                        {filters.sortOrder === 'asc' ? '↑' : '↓'}
+                        {filters.sortOrder === "asc" ? "↑" : "↓"}
                       </span>
                     )}
                   </button>
@@ -239,10 +242,12 @@ export default function IdeaList() {
                     </span>
                     <span
                       className={`badge ${
-                        lifecycleStages[idea.lifecycle_stage]?.color || 'bg-gray-500'
+                        lifecycleStages[idea.lifecycle_stage]?.color ||
+                        "bg-gray-500"
                       } text-white`}
                     >
-                      {lifecycleStages[idea.lifecycle_stage]?.label || idea.lifecycle_stage}
+                      {lifecycleStages[idea.lifecycle_stage]?.label ||
+                        idea.lifecycle_stage}
                     </span>
                   </div>
                   <h3 className="mt-2 text-lg font-medium text-gray-900">
@@ -271,7 +276,7 @@ export default function IdeaList() {
                     <div className="text-right mr-4">
                       <div
                         className={`text-2xl font-bold ${scoreInterpretation.getColor(
-                          idea.avg_final_score
+                          idea.avg_final_score,
                         )}`}
                       >
                         {idea.avg_final_score.toFixed(2)}
@@ -289,5 +294,5 @@ export default function IdeaList() {
         </div>
       )}
     </div>
-  )
+  );
 }

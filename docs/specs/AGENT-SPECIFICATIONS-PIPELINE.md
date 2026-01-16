@@ -26,17 +26,17 @@
 
 ### 1.1 Agent Registry
 
-| Agent | Location | Language | Trigger Type | Primary Role | Status |
-|-------|----------|----------|--------------|--------------|--------|
-| **Ideation Agent** | `agents/ideation/` | TypeScript | User message | Explore & develop ideas | Active |
-| **Specification Agent** | `agents/specification/` | TypeScript | Event / API | Generate specs from ideas | ⚠️ DEPRECATED |
-| **Build Agent** | `coding-loops/agents/` | Python | Event | Execute code tasks | Active |
-| **Task Agent** | `server/services/task-agent/` | TypeScript | Always-on + Event | Orchestrate task execution | Active |
-| **SIA** | `coding-loops/agents/` | Python | Event | Learn from outcomes | Active |
-| **Monitor Agent** | `coding-loops/agents/` | Python | Timer | Watch system health | Active |
-| **PM Agent** | `coding-loops/agents/` | Python | Event | Coordinate & resolve | Active |
-| **Validation Agent** | `coding-loops/agents/` | Python | Event | Validate build output | 📋 Planned |
-| **UX Agent** | `coding-loops/agents/` | Python | Event | Test user experience | 📋 Planned |
+| Agent                   | Location                      | Language   | Trigger Type      | Primary Role               | Status        |
+| ----------------------- | ----------------------------- | ---------- | ----------------- | -------------------------- | ------------- |
+| **Ideation Agent**      | `agents/ideation/`            | TypeScript | User message      | Explore & develop ideas    | Active        |
+| **Specification Agent** | `agents/specification/`       | TypeScript | Event / API       | Generate specs from ideas  | ⚠️ DEPRECATED |
+| **Build Agent**         | `coding-loops/agents/`        | Python     | Event             | Execute code tasks         | Active        |
+| **Task Agent**          | `server/services/task-agent/` | TypeScript | Always-on + Event | Orchestrate task execution | Active        |
+| **SIA**                 | `coding-loops/agents/`        | Python     | Event             | Learn from outcomes        | Active        |
+| **Monitor Agent**       | `coding-loops/agents/`        | Python     | Timer             | Watch system health        | Active        |
+| **PM Agent**            | `coding-loops/agents/`        | Python     | Event             | Coordinate & resolve       | Active        |
+| **Validation Agent**    | `coding-loops/agents/`        | Python     | Event             | Validate build output      | 📋 Planned    |
+| **UX Agent**            | `coding-loops/agents/`        | Python     | Event             | Test user experience       | 📋 Planned    |
 
 > **Note on Specification Agent Deprecation (2026-01-12):**
 > The Specification Agent's functionality has been merged into Task Agent Phase 1. The Spec Agent
@@ -59,15 +59,15 @@
 
 ### 1.3 Key Terminology
 
-| Term | Definition |
-|------|------------|
-| **Task** | A single atomic unit of work with file, action, requirements, and validation |
-| **Task List** | A grouped collection of tasks for a specific idea/feature, managed together |
-| **Task List Item** | Linking record that associates a task with a task list (position-ordered) |
-| **Execution** | A single run of the Build Agent processing a task list |
-| **Loop** | A Build Agent instance (e.g., loop-1-critical-path, loop-2-infrastructure) |
-| **Phase 1** | Task Agent's spec generation phase (triggered by `ideation.completed`) |
-| **Phase 2** | Task Agent's ongoing orchestration phase (always-on) |
+| Term               | Definition                                                                   |
+| ------------------ | ---------------------------------------------------------------------------- |
+| **Task**           | A single atomic unit of work with file, action, requirements, and validation |
+| **Task List**      | A grouped collection of tasks for a specific idea/feature, managed together  |
+| **Task List Item** | Linking record that associates a task with a task list (position-ordered)    |
+| **Execution**      | A single run of the Build Agent processing a task list                       |
+| **Loop**           | A Build Agent instance (e.g., loop-1-critical-path, loop-2-infrastructure)   |
+| **Phase 1**        | Task Agent's spec generation phase (triggered by `ideation.completed`)       |
+| **Phase 2**        | Task Agent's ongoing orchestration phase (always-on)                         |
 
 > **Note on Table Naming:** The data model uses `tasks`, `task_lists`, and `task_list_items` tables.
 > Legacy documentation may reference `atomic_tasks` which is deprecated in favor of `tasks`.
@@ -207,17 +207,17 @@ AGENT_SUBSCRIPTIONS = {
 
 ### 2.3 Handoff Conditions
 
-| From Agent | To Agent | Condition | Mechanism |
-|------------|----------|-----------|-----------|
-| Ideation → Task | All 4 phases complete | `ideation.completed` event |
-| Task → Build | Task list validated and approved | `tasklist.ready` event |
-| Build → Task | List completed or failed | `tasklist.completed` / `tasklist.failed` event |
-| Build → SIA | Build completes (for learning) | `build.completed` event |
-| Task → SIA | 3+ failures with no progress | Direct spawn (not event) |
-| SIA → Task | Analysis complete | Returns fix proposal to spawning Task Agent |
-| Monitor → PM | Alert threshold exceeded | `alert.*` event |
-| PM → Task | Build Agent interrupted | `session.ended` event |
-| Any → Human | Decision needed | Telegram notification |
+| From Agent      | To Agent                         | Condition                                      | Mechanism |
+| --------------- | -------------------------------- | ---------------------------------------------- | --------- |
+| Ideation → Task | All 4 phases complete            | `ideation.completed` event                     |
+| Task → Build    | Task list validated and approved | `tasklist.ready` event                         |
+| Build → Task    | List completed or failed         | `tasklist.completed` / `tasklist.failed` event |
+| Build → SIA     | Build completes (for learning)   | `build.completed` event                        |
+| Task → SIA      | 3+ failures with no progress     | Direct spawn (not event)                       |
+| SIA → Task      | Analysis complete                | Returns fix proposal to spawning Task Agent    |
+| Monitor → PM    | Alert threshold exceeded         | `alert.*` event                                |
+| PM → Task       | Build Agent interrupted          | `session.ended` event                          |
+| Any → Human     | Decision needed                  | Telegram notification                          |
 
 ### 2.4 Agent Responsibility Levels (Failure Handling)
 
@@ -246,12 +246,12 @@ LEVEL 4: LEARNING (SIA Agent)
 
 ### 2.5 Terminology Glossary
 
-| Term | Definition | Owner | Time Scale |
-|------|------------|-------|------------|
-| **Stuck** | Build Agent PROCESS running too long | Monitor → PM | 5-30 min |
-| **Failed** | Task execution completed with error | Task Agent | Per attempt |
-| **Stale** | Task has no activity | Task Agent | 7+ days |
-| **Blocked** | Task waiting on dependency | Task Agent | Until resolved |
+| Term        | Definition                           | Owner        | Time Scale     |
+| ----------- | ------------------------------------ | ------------ | -------------- |
+| **Stuck**   | Build Agent PROCESS running too long | Monitor → PM | 5-30 min       |
+| **Failed**  | Task execution completed with error  | Task Agent   | Per attempt    |
+| **Stale**   | Task has no activity                 | Task Agent   | 7+ days        |
+| **Blocked** | Task waiting on dependency           | Task Agent   | Until resolved |
 
 ---
 
@@ -270,15 +270,14 @@ TRIGGER: User sends message via /api/ideation/sessions/:id/messages
 // agents/ideation/orchestrator.ts
 
 async function loadContext(sessionId: string): Promise<IdeationContext> {
-
   // 1. LOAD SESSION STATE
   const session = await SessionManager.getSession(sessionId);
   // Returns: { phase, userId, ideaSlug, status, createdAt }
 
   // 2. LOAD CONVERSATION MEMORY
   const memory = await MemoryManager.getRecentMessages(sessionId, {
-    limit: 20,           // Last 20 messages
-    includeSignals: true // Include extracted signals
+    limit: 20, // Last 20 messages
+    includeSignals: true, // Include extracted signals
   });
   // Returns: [{ role, content, signals, timestamp }]
 
@@ -296,7 +295,7 @@ async function loadContext(sessionId: string): Promise<IdeationContext> {
   if (session.ideaSlug) {
     ideaContext = await IdeaContextBuilder.build(
       session.userId,
-      session.ideaSlug
+      session.ideaSlug,
     );
     // Returns: {
     //   readme: "...",
@@ -320,7 +319,7 @@ async function loadContext(sessionId: string): Promise<IdeationContext> {
     signals,
     ideaContext,
     userProfile,
-    phasePrompt
+    phasePrompt,
   };
 }
 ```
@@ -331,55 +330,62 @@ async function loadContext(sessionId: string): Promise<IdeationContext> {
 // agents/ideation/phase-manager.ts
 
 class PhaseManager {
-
   // DECISION: Should we transition to next phase?
   async evaluateTransition(sessionId: string): Promise<TransitionDecision> {
-
     const signals = await SignalExtractor.getSessionSignals(sessionId);
     const currentPhase = await SessionManager.getPhase(sessionId);
 
     switch (currentPhase) {
-
-      case 'EXPLORING':
+      case "EXPLORING":
         // TRANSITION WHEN: Basic idea shape is clear
-        const hasTargetUser = signals.artifacts.some(a => a.type === 'target-user');
-        const hasProblem = signals.artifacts.some(a => a.type === 'problem');
-        const hasSolutionConcept = signals.artifacts.some(a => a.type === 'solution-concept');
+        const hasTargetUser = signals.artifacts.some(
+          (a) => a.type === "target-user",
+        );
+        const hasProblem = signals.artifacts.some((a) => a.type === "problem");
+        const hasSolutionConcept = signals.artifacts.some(
+          (a) => a.type === "solution-concept",
+        );
 
         if (hasTargetUser && hasProblem && hasSolutionConcept) {
-          return { shouldTransition: true, nextPhase: 'NARROWING' };
+          return { shouldTransition: true, nextPhase: "NARROWING" };
         }
         break;
 
-      case 'NARROWING':
+      case "NARROWING":
         // TRANSITION WHEN: Scope is defined
-        const hasMVPFeatures = signals.artifacts.some(a => a.type === 'mvp-features');
-        const hasDifferentiator = signals.artifacts.some(a => a.type === 'differentiator');
+        const hasMVPFeatures = signals.artifacts.some(
+          (a) => a.type === "mvp-features",
+        );
+        const hasDifferentiator = signals.artifacts.some(
+          (a) => a.type === "differentiator",
+        );
         const avgConfidence = this.calculateAverageConfidence(signals);
 
         if (hasMVPFeatures && hasDifferentiator && avgConfidence > 0.6) {
-          return { shouldTransition: true, nextPhase: 'VALIDATING' };
+          return { shouldTransition: true, nextPhase: "VALIDATING" };
         }
         break;
 
-      case 'VALIDATING':
+      case "VALIDATING":
         // TRANSITION WHEN: Key assumptions validated
-        const validatedAssumptions = signals.decisions.filter(d => d.type === 'validation');
+        const validatedAssumptions = signals.decisions.filter(
+          (d) => d.type === "validation",
+        );
         const hasMarketValidation = validatedAssumptions.length >= 3;
         const risksIdentified = signals.risks.length > 0;
 
         if (hasMarketValidation && risksIdentified) {
-          return { shouldTransition: true, nextPhase: 'REFINING' };
+          return { shouldTransition: true, nextPhase: "REFINING" };
         }
         break;
 
-      case 'REFINING':
+      case "REFINING":
         // TRANSITION WHEN: Idea is ready for specification
         const overallConfidence = signals.confidence;
-        const hasBrief = signals.artifacts.some(a => a.type === 'brief');
+        const hasBrief = signals.artifacts.some((a) => a.type === "brief");
 
         if (overallConfidence > 0.75 || hasBrief) {
-          return { shouldTransition: true, nextPhase: 'COMPLETE' };
+          return { shouldTransition: true, nextPhase: "COMPLETE" };
         }
         break;
     }
@@ -395,48 +401,47 @@ class PhaseManager {
 // Ideation Agent Skills
 
 const IDEATION_SKILLS = {
-
   // CORE CONVERSATION
   chat: {
     description: "Respond to user messages with context-aware dialogue",
     uses: ["Claude API"],
-    contextRequired: ["memory", "signals", "phasePrompt"]
+    contextRequired: ["memory", "signals", "phasePrompt"],
   },
 
   // SIGNAL EXTRACTION
   extractSignals: {
     description: "Parse Claude response for artifacts, decisions, risks",
     uses: ["Regex patterns", "Claude for complex extraction"],
-    triggers: "After every Claude response"
+    triggers: "After every Claude response",
   },
 
   // ARTIFACT MANAGEMENT
   saveArtifact: {
     description: "Save extracted content to idea folder",
     uses: ["File system", "UnifiedArtifactStore"],
-    triggers: "When high-confidence artifact detected"
+    triggers: "When high-confidence artifact detected",
   },
 
   // WEB SEARCH (optional)
   webSearch: {
     description: "Search web for market/competitive data",
     uses: ["WebSearchService", "Tavily API"],
-    triggers: "User asks about market, competitors, or validation"
+    triggers: "User asks about market, competitors, or validation",
   },
 
   // HANDOFF
   generateBrief: {
     description: "Create handoff brief for Specification Agent",
     uses: ["HandoffGenerator", "File system"],
-    triggers: "Phase = COMPLETE"
+    triggers: "Phase = COMPLETE",
   },
 
   // CANDIDATE MANAGEMENT
   createCandidate: {
     description: "Create idea candidate record",
     uses: ["CandidateManager", "Database"],
-    triggers: "First artifact saved"
-  }
+    triggers: "First artifact saved",
+  },
 };
 ```
 
@@ -446,7 +451,6 @@ const IDEATION_SKILLS = {
 // agents/ideation/system-prompt.ts
 
 function buildSystemPrompt(context: IdeationContext): string {
-
   const sections = [];
 
   // 1. BASE ROLE
@@ -466,7 +470,7 @@ function buildSystemPrompt(context: IdeationContext): string {
   if (context.signals.artifacts.length > 0) {
     sections.push(`
       ## What We Know So Far
-      ${context.signals.artifacts.map(a => `- ${a.type}: ${a.summary}`).join('\n')}
+      ${context.signals.artifacts.map((a) => `- ${a.type}: ${a.summary}`).join("\n")}
     `);
   }
 
@@ -484,8 +488,8 @@ function buildSystemPrompt(context: IdeationContext): string {
   if (context.userProfile) {
     sections.push(`
       ## About This User
-      Goals: ${context.userProfile.goals.join(', ')}
-      Skills: ${context.userProfile.skills.join(', ')}
+      Goals: ${context.userProfile.goals.join(", ")}
+      Skills: ${context.userProfile.skills.join(", ")}
     `);
   }
 
@@ -498,7 +502,7 @@ function buildSystemPrompt(context: IdeationContext): string {
     - Current confidence: ${Math.round(context.signals.confidence * 100)}%
   `);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 ```
 
@@ -532,8 +536,10 @@ REQUIRED INPUT:
 ```typescript
 // agents/specification/context-loader.ts
 
-async function loadSpecContext(ideaSlug: string, userSlug: string): Promise<SpecContext> {
-
+async function loadSpecContext(
+  ideaSlug: string,
+  userSlug: string,
+): Promise<SpecContext> {
   const ideaPath = `users/${userSlug}/ideas/${ideaSlug}`;
 
   // 1. REQUIRED DOCUMENTS (must exist)
@@ -543,7 +549,7 @@ async function loadSpecContext(ideaSlug: string, userSlug: string): Promise<Spec
   };
 
   if (!required.readme || !required.brief) {
-    throw new Error('Missing required documents for spec generation');
+    throw new Error("Missing required documents for spec generation");
   }
 
   // 2. OPTIONAL DOCUMENTS (enhance spec quality)
@@ -552,36 +558,40 @@ async function loadSpecContext(ideaSlug: string, userSlug: string): Promise<Spec
     problemSolution: await readFileIfExists(`${ideaPath}/problem-solution.md`),
     development: await readFileIfExists(`${ideaPath}/development.md`),
     marketResearch: await readFileIfExists(`${ideaPath}/research/market.md`),
-    competitiveResearch: await readFileIfExists(`${ideaPath}/research/competitive.md`),
-    technicalResearch: await readFileIfExists(`${ideaPath}/research/technical.md`),
+    competitiveResearch: await readFileIfExists(
+      `${ideaPath}/research/competitive.md`,
+    ),
+    technicalResearch: await readFileIfExists(
+      `${ideaPath}/research/technical.md`,
+    ),
     mvpScope: await readFileIfExists(`${ideaPath}/planning/mvp-scope.md`),
   };
 
   // 3. PROJECT CONVENTIONS (from CLAUDE.md)
   const conventions = await loadClaudeMdSections([
-    'Database Conventions',
-    'API Conventions',
-    'File Locations',
-    'Atomic Task Conventions'
+    "Database Conventions",
+    "API Conventions",
+    "File Locations",
+    "Atomic Task Conventions",
   ]);
 
   // 4. KNOWLEDGE BASE QUERIES
   const gotchas = await KnowledgeBase.query({
-    itemType: 'gotcha',
-    filePatterns: ['*.sql', 'server/routes/*', 'types/*'],
-    minConfidence: 0.7
+    itemType: "gotcha",
+    filePatterns: ["*.sql", "server/routes/*", "types/*"],
+    minConfidence: 0.7,
   });
 
   const patterns = await KnowledgeBase.query({
-    itemType: 'pattern',
+    itemType: "pattern",
     topics: extractTopics(required.readme), // e.g., ['habits', 'tracking', 'mobile']
-    minConfidence: 0.7
+    minConfidence: 0.7,
   });
 
   // 5. EXISTING CODEBASE ANALYSIS
   const existingFiles = await analyzeCodebase({
-    patterns: ['server/routes/*.ts', 'types/*.ts', 'database/migrations/*.sql'],
-    purpose: 'understand existing patterns'
+    patterns: ["server/routes/*.ts", "types/*.ts", "database/migrations/*.sql"],
+    purpose: "understand existing patterns",
   });
 
   return {
@@ -590,7 +600,7 @@ async function loadSpecContext(ideaSlug: string, userSlug: string): Promise<Spec
     conventions,
     gotchas,
     patterns,
-    existingFiles
+    existingFiles,
   };
 }
 ```
@@ -601,10 +611,8 @@ async function loadSpecContext(ideaSlug: string, userSlug: string): Promise<Spec
 // agents/specification/decisions.ts
 
 class SpecificationDecisions {
-
   // DECISION: What files need to be created?
   async identifyNewFiles(context: SpecContext): Promise<FileSpec[]> {
-
     const features = this.extractFeatures(context.required.brief);
     const newFiles: FileSpec[] = [];
 
@@ -615,7 +623,7 @@ class SpecificationDecisions {
         newFiles.push({
           path: `database/migrations/${migrationNumber}_${feature.slug}.sql`,
           purpose: `Create ${feature.name} table`,
-          owner: 'build-agent'
+          owner: "build-agent",
         });
       }
 
@@ -624,7 +632,7 @@ class SpecificationDecisions {
         newFiles.push({
           path: `types/${feature.slug}.ts`,
           purpose: `Types for ${feature.name}`,
-          owner: 'build-agent'
+          owner: "build-agent",
         });
       }
 
@@ -633,7 +641,7 @@ class SpecificationDecisions {
         newFiles.push({
           path: `server/routes/${feature.slug}.ts`,
           purpose: `API endpoints for ${feature.name}`,
-          owner: 'build-agent'
+          owner: "build-agent",
         });
       }
 
@@ -641,7 +649,7 @@ class SpecificationDecisions {
       newFiles.push({
         path: `tests/${feature.slug}.test.ts`,
         purpose: `Tests for ${feature.name}`,
-        owner: 'build-agent'
+        owner: "build-agent",
       });
     }
 
@@ -649,27 +657,29 @@ class SpecificationDecisions {
   }
 
   // DECISION: What files need to be modified?
-  async identifyModifiedFiles(context: SpecContext, newFiles: FileSpec[]): Promise<FileModification[]> {
-
+  async identifyModifiedFiles(
+    context: SpecContext,
+    newFiles: FileSpec[],
+  ): Promise<FileModification[]> {
     const modifications: FileModification[] = [];
 
     // api.ts needs to import new routes
-    const newRoutes = newFiles.filter(f => f.path.includes('server/routes/'));
+    const newRoutes = newFiles.filter((f) => f.path.includes("server/routes/"));
     if (newRoutes.length > 0) {
       modifications.push({
-        path: 'server/api.ts',
-        changes: `Import and mount: ${newRoutes.map(r => r.path).join(', ')}`,
-        owner: await ResourceRegistry.getOwner('server/api.ts')
+        path: "server/api.ts",
+        changes: `Import and mount: ${newRoutes.map((r) => r.path).join(", ")}`,
+        owner: await ResourceRegistry.getOwner("server/api.ts"),
       });
     }
 
     // types/index.ts needs to export new types
-    const newTypes = newFiles.filter(f => f.path.includes('types/'));
+    const newTypes = newFiles.filter((f) => f.path.includes("types/"));
     if (newTypes.length > 0) {
       modifications.push({
-        path: 'types/index.ts',
-        changes: `Export: ${newTypes.map(t => t.path).join(', ')}`,
-        owner: await ResourceRegistry.getOwner('types/index.ts')
+        path: "types/index.ts",
+        changes: `Export: ${newTypes.map((t) => t.path).join(", ")}`,
+        owner: await ResourceRegistry.getOwner("types/index.ts"),
       });
     }
 
@@ -678,17 +688,14 @@ class SpecificationDecisions {
 
   // DECISION: What gotchas apply to each task?
   async assignGotchas(tasks: AtomicTask[], gotchas: Gotcha[]): Promise<void> {
-
     for (const task of tasks) {
       // Match by file pattern
-      const fileGotchas = gotchas.filter(g =>
-        this.matchPattern(task.file, g.filePattern)
+      const fileGotchas = gotchas.filter((g) =>
+        this.matchPattern(task.file, g.filePattern),
       );
 
       // Match by action type
-      const actionGotchas = gotchas.filter(g =>
-        g.actionType === task.action
-      );
+      const actionGotchas = gotchas.filter((g) => g.actionType === task.action);
 
       // Combine and deduplicate
       task.gotchas = [...new Set([...fileGotchas, ...actionGotchas])]
@@ -699,9 +706,8 @@ class SpecificationDecisions {
 
   // DECISION: What order should tasks execute?
   determineTaskOrder(tasks: AtomicTask[]): AtomicTask[] {
-
     // Phase order priority
-    const phaseOrder = ['database', 'types', 'queries', 'api', 'ui', 'tests'];
+    const phaseOrder = ["database", "types", "queries", "api", "ui", "tests"];
 
     return tasks.sort((a, b) => {
       const phaseA = phaseOrder.indexOf(a.phase);
@@ -723,55 +729,54 @@ class SpecificationDecisions {
 
 ```typescript
 const SPECIFICATION_SKILLS = {
-
   // DOCUMENT PARSING
   parseIdeationArtifacts: {
     description: "Extract requirements from ideation documents",
     uses: ["File system", "Claude for interpretation"],
-    inputs: ["README.md", "brief.md", "development.md"]
+    inputs: ["README.md", "brief.md", "development.md"],
   },
 
   // REQUIREMENT EXTRACTION
   extractRequirements: {
     description: "Convert natural language to formal requirements",
     uses: ["Claude API"],
-    outputs: ["Functional requirements", "Non-functional requirements"]
+    outputs: ["Functional requirements", "Non-functional requirements"],
   },
 
   // ARCHITECTURE DESIGN
   designArchitecture: {
     description: "Determine files, APIs, data models",
     uses: ["Claude API", "Codebase analysis"],
-    outputs: ["New files list", "Modified files list", "Data models"]
+    outputs: ["New files list", "Modified files list", "Data models"],
   },
 
   // TASK GENERATION
   generateTasks: {
     description: "Break down into atomic tasks",
     uses: ["Claude API", "Task templates"],
-    outputs: ["tasks.md with YAML task blocks"]
+    outputs: ["tasks.md with YAML task blocks"],
   },
 
   // GOTCHA INJECTION
   injectGotchas: {
     description: "Add relevant gotchas to each task",
     uses: ["Knowledge Base queries"],
-    triggers: "During task generation"
+    triggers: "During task generation",
   },
 
   // VALIDATION
   validateSpec: {
     description: "Check spec completeness and consistency",
     uses: ["Schema validation", "Dependency checking"],
-    outputs: ["Validation report", "Missing inputs list"]
+    outputs: ["Validation report", "Missing inputs list"],
   },
 
   // OUTPUT GENERATION
   renderSpec: {
     description: "Generate spec.md and tasks.md files",
     uses: ["Template rendering", "File system"],
-    outputs: ["build/spec.md", "build/tasks.md"]
-  }
+    outputs: ["build/spec.md", "build/tasks.md"],
+  },
 };
 ```
 
@@ -1107,7 +1112,9 @@ def build_task_prompt(
 
 ## Code Template (use as starting point)
 ```
+
 {task.code_template}
+
 ```
 
 ## Context: What This Idea Is About
@@ -1116,7 +1123,9 @@ def build_task_prompt(
 ## Validation
 After generating the code, it will be validated with:
 ```
+
 {task.validation_command}
+
 ```
 Expected result: {task.expected_validation}
 
@@ -1209,13 +1218,13 @@ class ExecutionIsolation:
 
 **Lane Isolation Rules:**
 
-| Scenario | Isolation Behavior |
-|----------|-------------------|
-| Parallel builds on same idea | Each gets unique execution_id, separate logs |
-| Task failure | Only affects current execution lane |
-| SIA analysis | Receives only current execution's logs (last 500 lines) |
-| Rollback | Only reverts changes from current execution |
-| Context loading | Tasks filtered by execution_id assignment |
+| Scenario                     | Isolation Behavior                                      |
+| ---------------------------- | ------------------------------------------------------- |
+| Parallel builds on same idea | Each gets unique execution_id, separate logs            |
+| Task failure                 | Only affects current execution lane                     |
+| SIA analysis                 | Receives only current execution's logs (last 500 lines) |
+| Rollback                     | Only reverts changes from current execution             |
+| Context loading              | Tasks filtered by execution_id assignment               |
 
 **Why Lane Isolation Matters:**
 
@@ -1226,12 +1235,12 @@ class ExecutionIsolation:
 
 ---
 
-
 ## 6. Task Agent
 
 The Task Agent is the always-on orchestrator that manages task lists, suggests next actions via Telegram, and coordinates with the Build Agent for execution.
 
 > **Task Agent operates in two phases:**
+>
 > - **Phase 1: Specification Generation** - Triggered by `ideation.completed`, generates spec.md and tasks.md using the logic documented in Section 4 (deprecated Spec Agent). This phase replaces the standalone Specification Agent.
 > - **Phase 2: Task Orchestration** - Always-on service that manages task execution, suggestions, and Build Agent coordination.
 
@@ -1284,9 +1293,7 @@ TRIGGER: Always-on service with continuous suggestion loop
 // server/services/task-agent/task-agent.ts
 
 class TaskAgent {
-
   async loadContext(taskListId?: string): Promise<TaskAgentContext> {
-
     // 1. LOAD ACTIVE TASK LISTS
     const activeLists = await db.query(`
       SELECT * FROM task_lists
@@ -1338,14 +1345,15 @@ class TaskAgent {
     `);
 
     // 6. CALCULATE PRIORITIES
-    const prioritizedTasks = await this.priorityCalculator.calculate(readyTasks);
+    const prioritizedTasks =
+      await this.priorityCalculator.calculate(readyTasks);
 
     return {
       activeLists,
       readyTasks: prioritizedTasks,
       blockedTasks,
       questions,
-      telegramChats
+      telegramChats,
     };
   }
 }
@@ -1357,34 +1365,35 @@ class TaskAgent {
 // server/services/task-agent/suggestion-engine.ts
 
 class SuggestionEngine {
-
   // DECISION: What to suggest next?
-  async getNextSuggestion(context: TaskAgentContext): Promise<Suggestion | null> {
-
+  async getNextSuggestion(
+    context: TaskAgentContext,
+  ): Promise<Suggestion | null> {
     // 1. Check for blocking questions first
     if (context.questions.length > 0) {
       const topQuestion = context.questions[0];
       return {
-        type: 'question',
+        type: "question",
         content: topQuestion,
         priority: 100,
-        reason: 'Blocking question needs answer'
+        reason: "Blocking question needs answer",
       };
     }
 
     // 2. Check for ready task lists
-    const readyLists = context.activeLists.filter(list =>
-      list.status === 'active' &&
-      this.hasReadyTasks(list, context.readyTasks)
+    const readyLists = context.activeLists.filter(
+      (list) =>
+        list.status === "active" &&
+        this.hasReadyTasks(list, context.readyTasks),
     );
 
     if (readyLists.length > 0) {
       const topList = this.selectBestList(readyLists, context);
       return {
-        type: 'task_list',
+        type: "task_list",
         content: topList,
         priority: topList.priority,
-        reason: this.explainWhyThisList(topList)
+        reason: this.explainWhyThisList(topList),
       };
     }
 
@@ -1392,10 +1401,10 @@ class SuggestionEngine {
     if (context.readyTasks.length > 0) {
       const topTask = context.readyTasks[0]; // Already sorted by priority
       return {
-        type: 'task',
+        type: "task",
         content: topTask,
         priority: topTask.priority,
-        reason: this.explainWhyThisTask(topTask)
+        reason: this.explainWhyThisTask(topTask),
       };
     }
 
@@ -1403,10 +1412,10 @@ class SuggestionEngine {
     const parallelOpportunities = this.findParallelOpportunities(context);
     if (parallelOpportunities.length > 0) {
       return {
-        type: 'parallel_opportunity',
+        type: "parallel_opportunity",
         content: parallelOpportunities,
         priority: 50,
-        reason: 'These tasks can run in parallel'
+        reason: "These tasks can run in parallel",
       };
     }
 
@@ -1416,12 +1425,11 @@ class SuggestionEngine {
 
   // DECISION: Should we send a notification?
   shouldNotify(suggestion: Suggestion, lastNotification: Date): boolean {
-
     const timeSinceLast = Date.now() - lastNotification.getTime();
     const MIN_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
     // Always notify for blocking questions
-    if (suggestion.type === 'question') {
+    if (suggestion.type === "question") {
       return true;
     }
 
@@ -1443,10 +1451,8 @@ class SuggestionEngine {
 // server/services/task-agent/priority-calculator.ts
 
 class PriorityCalculator {
-
   // Priority Formula: BlockedCount × 20 + QuickWinBonus + DeadlineBonus + TaskAgentAdvice
   async calculate(tasks: Task[]): Promise<Task[]> {
-
     for (const task of tasks) {
       let priority = 0;
 
@@ -1455,7 +1461,7 @@ class PriorityCalculator {
       priority += blockedCount * 20;
 
       // 2. Quick win bonus (small tasks get priority)
-      if (task.effort === 'small' || task.estimated_minutes < 30) {
+      if (task.effort === "small" || task.estimated_minutes < 30) {
         priority += 10;
       }
 
@@ -1477,11 +1483,14 @@ class PriorityCalculator {
   }
 
   private async getBlockedCount(taskId: string): Promise<number> {
-    const result = await db.query(`
+    const result = await db.query(
+      `
       SELECT COUNT(*) as count
       FROM task_relationships
       WHERE target_task_id = ? AND relationship_type = 'depends_on'
-    `, [taskId]);
+    `,
+      [taskId],
+    );
     return result[0].count;
   }
 }
@@ -1493,43 +1502,63 @@ class PriorityCalculator {
 // server/services/task-agent/telegram-handler.ts
 
 class TelegramHandler {
-
   // One chat per task list
   async sendSuggestion(suggestion: Suggestion, chatId: string): Promise<void> {
-
     let message: string;
     let buttons: InlineKeyboard;
 
     switch (suggestion.type) {
-      case 'task_list':
+      case "task_list":
         message = this.formatTaskListSuggestion(suggestion.content);
         buttons = [
-          [{ text: '✅ Execute Now', callback_data: `execute:${suggestion.content.id}` }],
-          [{ text: '⏸️ Later', callback_data: `later:${suggestion.content.id}` }],
-          [{ text: '📄 Details', callback_data: `details:${suggestion.content.id}` }]
+          [
+            {
+              text: "✅ Execute Now",
+              callback_data: `execute:${suggestion.content.id}`,
+            },
+          ],
+          [
+            {
+              text: "⏸️ Later",
+              callback_data: `later:${suggestion.content.id}`,
+            },
+          ],
+          [
+            {
+              text: "📄 Details",
+              callback_data: `details:${suggestion.content.id}`,
+            },
+          ],
         ];
         break;
 
-      case 'task':
+      case "task":
         message = this.formatTaskSuggestion(suggestion.content);
         buttons = [
-          [{ text: '▶️ Execute', callback_data: `execute_task:${suggestion.content.id}` }],
-          [{ text: '❌ Skip', callback_data: `skip:${suggestion.content.id}` }]
+          [
+            {
+              text: "▶️ Execute",
+              callback_data: `execute_task:${suggestion.content.id}`,
+            },
+          ],
+          [{ text: "❌ Skip", callback_data: `skip:${suggestion.content.id}` }],
         ];
         break;
 
-      case 'question':
+      case "question":
         message = this.formatQuestion(suggestion.content);
-        buttons = suggestion.content.options.map(opt => [{
-          text: opt.label,
-          callback_data: `answer:${suggestion.content.id}:${opt.value}`
-        }]);
+        buttons = suggestion.content.options.map((opt) => [
+          {
+            text: opt.label,
+            callback_data: `answer:${suggestion.content.id}:${opt.value}`,
+          },
+        ]);
         break;
     }
 
     await this.telegram.sendMessage(chatId, message, {
       reply_markup: { inline_keyboard: buttons },
-      parse_mode: 'Markdown'
+      parse_mode: "Markdown",
     });
   }
 
@@ -1542,50 +1571,53 @@ I recommend executing task list: *${list.name}*
 ⚠️ *Risk:* ${list.risk_level}
 ⏱️ *Tasks:* ${list.tasks_total}
 
-${list.description || ''}`;
+${list.description || ""}`;
   }
 
   // Handle Telegram commands
-  async handleCommand(command: string, args: string[], chatId: string): Promise<void> {
-
+  async handleCommand(
+    command: string,
+    args: string[],
+    chatId: string,
+  ): Promise<void> {
     switch (command) {
-      case '/start':
+      case "/start":
         await this.handleStart(chatId);
         break;
-      case '/status':
+      case "/status":
         await this.sendStatus(chatId);
         break;
-      case '/lists':
+      case "/lists":
         await this.sendActiveLists(chatId);
         break;
-      case '/list':
+      case "/list":
         await this.sendListDetails(args[0], chatId);
         break;
-      case '/suggest':
+      case "/suggest":
         await this.sendNextSuggestion(chatId);
         break;
-      case '/execute':
+      case "/execute":
         await this.executeTaskList(args[0], chatId);
         break;
-      case '/pause':
+      case "/pause":
         await this.pauseExecution(args[0], chatId);
         break;
-      case '/resume':
+      case "/resume":
         await this.resumeExecution(args[0], chatId);
         break;
-      case '/questions':
+      case "/questions":
         await this.sendPendingQuestions(chatId);
         break;
-      case '/answer':
-        await this.handleAnswer(args[0], args.slice(1).join(' '), chatId);
+      case "/answer":
+        await this.handleAnswer(args[0], args.slice(1).join(" "), chatId);
         break;
-      case '/parallel':
+      case "/parallel":
         await this.sendParallelOpportunities(chatId);
         break;
-      case '/duplicates':
+      case "/duplicates":
         await this.sendDuplicates(chatId);
         break;
-      case '/help':
+      case "/help":
         await this.sendHelp(chatId);
         break;
     }
@@ -1597,69 +1629,68 @@ ${list.description || ''}`;
 
 ```typescript
 const TASK_AGENT_SKILLS = {
-
   // VALIDATION
   validateTask: {
-    description: 'Check task has required fields and passes rules',
-    uses: ['ValidationService', 'Database'],
-    outputs: ['validation result', 'blocking issues']
+    description: "Check task has required fields and passes rules",
+    uses: ["ValidationService", "Database"],
+    outputs: ["validation result", "blocking issues"],
   },
 
   // PRIORITY
   calculatePriority: {
-    description: 'Calculate task priority using formula',
-    uses: ['PriorityCalculator', 'Database'],
-    outputs: ['priority score', 'explanation']
+    description: "Calculate task priority using formula",
+    uses: ["PriorityCalculator", "Database"],
+    outputs: ["priority score", "explanation"],
   },
 
   // SUGGESTION
   generateSuggestion: {
-    description: 'Determine next best action for user',
-    uses: ['SuggestionEngine', 'Context'],
-    outputs: ['suggestion with reasoning']
+    description: "Determine next best action for user",
+    uses: ["SuggestionEngine", "Context"],
+    outputs: ["suggestion with reasoning"],
   },
 
   // DEPENDENCY MANAGEMENT
   resolveDependencies: {
-    description: 'Auto-unblock tasks when dependencies complete',
-    uses: ['Database', 'MessageBus'],
-    triggers: 'On task.completed event'
+    description: "Auto-unblock tasks when dependencies complete",
+    uses: ["Database", "MessageBus"],
+    triggers: "On task.completed event",
   },
 
   // DUPLICATE DETECTION
   findDuplicates: {
-    description: 'Find similar tasks and suggest merge',
-    uses: ['DuplicateDetector', 'Similarity scoring'],
-    outputs: ['duplicate pairs with scores']
+    description: "Find similar tasks and suggest merge",
+    uses: ["DuplicateDetector", "Similarity scoring"],
+    outputs: ["duplicate pairs with scores"],
   },
 
   // TASK LIST MANAGEMENT
   manageTaskList: {
-    description: 'Create, update, track task lists',
-    uses: ['TaskListManager', 'Database'],
-    outputs: ['task list state changes']
+    description: "Create, update, track task lists",
+    uses: ["TaskListManager", "Database"],
+    outputs: ["task list state changes"],
   },
 
   // TELEGRAM COMMUNICATION
   notifyUser: {
-    description: 'Send messages and suggestions via Telegram',
-    uses: ['TelegramHandler', 'MessageFormatting'],
-    triggers: 'On suggestion ready or event'
+    description: "Send messages and suggestions via Telegram",
+    uses: ["TelegramHandler", "MessageFormatting"],
+    triggers: "On suggestion ready or event",
   },
 
   // BUILD AGENT COORDINATION
   dispatchToBuild: {
-    description: 'Send approved task list to Build Agent',
-    uses: ['MessageBus', 'Event publishing'],
-    triggers: 'On user approval via Telegram'
+    description: "Send approved task list to Build Agent",
+    uses: ["MessageBus", "Event publishing"],
+    triggers: "On user approval via Telegram",
   },
 
   // STALE DETECTION
   checkStale: {
-    description: 'Find tasks inactive for 7+ days',
-    uses: ['Database query', 'Timer'],
-    triggers: 'Every 6 hours'
-  }
+    description: "Find tasks inactive for 7+ days",
+    uses: ["Database query", "Timer"],
+    triggers: "Every 6 hours",
+  },
 };
 ```
 
@@ -1669,17 +1700,17 @@ const TASK_AGENT_SKILLS = {
 // Task Agent event subscriptions
 
 const TASK_AGENT_SUBSCRIPTIONS = [
-  'task.created',           // New task available
-  'task.updated',           // Task modified
-  'task.completed',         // Task finished - trigger unblock
-  'task.failed',            // Task failed - handle escalation
-  'task_list.approved',     // User approved list - dispatch to Build
-  'task_list.paused',       // User paused execution
-  'task_list.resumed',      // User resumed execution
-  'question.answered',      // User answered question
-  'build.completed',        // Build Agent finished
-  'build.failed',           // Build Agent failed
-  'stale.check'             // Timer event for stale detection
+  "task.created", // New task available
+  "task.updated", // Task modified
+  "task.completed", // Task finished - trigger unblock
+  "task.failed", // Task failed - handle escalation
+  "task_list.approved", // User approved list - dispatch to Build
+  "task_list.paused", // User paused execution
+  "task_list.resumed", // User resumed execution
+  "question.answered", // User answered question
+  "build.completed", // Build Agent finished
+  "build.failed", // Build Agent failed
+  "stale.check", // Timer event for stale detection
 ];
 ```
 
@@ -1687,25 +1718,22 @@ const TASK_AGENT_SUBSCRIPTIONS = [
 
 The Task Agent tracks 11 relationship types between tasks:
 
-| Type | Direction | Description |
-|------|-----------|-------------|
-| `depends_on` | A → B | A cannot start until B completes |
-| `blocks` | A → B | A blocks B (inverse of depends_on) |
-| `related_to` | A ↔ B | Thematic connection |
-| `duplicate_of` | A → B | A is duplicate of B |
-| `subtask_of` | A → B | A is part of B |
-| `supersedes` | A → B | A replaces B |
-| `implements` | A → B | A implements spec/requirement B |
-| `conflicts_with` | A ↔ B | Cannot run simultaneously |
-| `enables` | A → B | A enables/unlocks B |
-| `inspired_by` | A → B | A was inspired by B |
-| `tests` | A → B | A tests/validates B |
+| Type             | Direction | Description                        |
+| ---------------- | --------- | ---------------------------------- |
+| `depends_on`     | A → B     | A cannot start until B completes   |
+| `blocks`         | A → B     | A blocks B (inverse of depends_on) |
+| `related_to`     | A ↔ B     | Thematic connection                |
+| `duplicate_of`   | A → B     | A is duplicate of B                |
+| `subtask_of`     | A → B     | A is part of B                     |
+| `supersedes`     | A → B     | A replaces B                       |
+| `implements`     | A → B     | A implements spec/requirement B    |
+| `conflicts_with` | A ↔ B     | Cannot run simultaneously          |
+| `enables`        | A → B     | A enables/unlocks B                |
+| `inspired_by`    | A → B     | A was inspired by B                |
+| `tests`          | A → B     | A tests/validates B                |
 
 ---
 
-
-
 ---
 
-*This document covers pipeline agents. For SIA, Monitor, PM agents and cross-cutting concerns, see [AGENT-SPECIFICATIONS-INFRASTRUCTURE.md](./AGENT-SPECIFICATIONS-INFRASTRUCTURE.md).*
-
+_This document covers pipeline agents. For SIA, Monitor, PM agents and cross-cutting concerns, see [AGENT-SPECIFICATIONS-INFRASTRUCTURE.md](./AGENT-SPECIFICATIONS-INFRASTRUCTURE.md)._

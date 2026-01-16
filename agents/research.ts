@@ -5,25 +5,28 @@
  * market intelligence before evaluation begins. Provides external
  * context with proper source attribution to Market and Solution evaluators.
  */
-import { runClaudeCliWithPrompt } from '../utils/anthropic-client.js';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { logInfo, logDebug, logWarning } from '../utils/logger.js';
-import { ExtractedClaims, buildSearchQueries } from '../utils/claims-extractor.js';
+import { runClaudeCliWithPrompt } from "../utils/anthropic-client.js";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { logInfo, logDebug, logWarning } from "../utils/logger.js";
+import {
+  ExtractedClaims,
+  buildSearchQueries,
+} from "../utils/claims-extractor.js";
 
 /**
  * Geographic market data for a specific region (local or global)
  */
 export interface GeographicMarketData {
-  region: string;  // e.g., "Australia", "Global", "United States"
+  region: string; // e.g., "Australia", "Global", "United States"
   marketSize: {
-    tam: string | null;   // Total Addressable Market
-    sam: string | null;   // Serviceable Addressable Market
-    som: string | null;   // Serviceable Obtainable Market
+    tam: string | null; // Total Addressable Market
+    sam: string | null; // Serviceable Addressable Market
+    som: string | null; // Serviceable Obtainable Market
     sources: string[];
   };
   competitors: {
     players: string[];
-    intensity: 'low' | 'moderate' | 'high' | 'intense' | 'unknown';
+    intensity: "low" | "moderate" | "high" | "intense" | "unknown";
     sources: string[];
   };
   entryBarriers: {
@@ -33,7 +36,7 @@ export interface GeographicMarketData {
     sources: string[];
   };
   marketTiming: {
-    readiness: 'emerging' | 'growing' | 'mature' | 'declining' | 'unknown';
+    readiness: "emerging" | "growing" | "mature" | "declining" | "unknown";
     catalysts: string[];
   };
 }
@@ -58,21 +61,21 @@ export interface ResearchResult {
     sources: string[];
   };
   trends: {
-    direction: 'growing' | 'stable' | 'declining' | 'unknown';
+    direction: "growing" | "stable" | "declining" | "unknown";
     evidence: string;
     sources: string[];
   };
   techFeasibility: {
-    assessment: 'proven' | 'emerging' | 'experimental' | 'unknown';
+    assessment: "proven" | "emerging" | "experimental" | "unknown";
     examples: string[];
     sources: string[];
   };
 
   // NEW: Geographic breakdown for local vs global market analysis
   geographicAnalysis?: {
-    localMarket: GeographicMarketData | null;   // User's country
-    globalMarket: GeographicMarketData | null;  // Worldwide
-    expansionMarkets?: GeographicMarketData[];  // Key expansion opportunities
+    localMarket: GeographicMarketData | null; // User's country
+    globalMarket: GeographicMarketData | null; // Worldwide
+    expansionMarkets?: GeographicMarketData[]; // Key expansion opportunities
     creatorLocation: CreatorLocation | null;
   };
 
@@ -90,26 +93,33 @@ export interface ResearchResult {
  * @returns Research results with market and technology findings
  */
 export async function conductPreEvaluationResearch(
-  _ideaContent: string,  // Reserved for future use
+  _ideaContent: string, // Reserved for future use
   claims: ExtractedClaims,
   costTracker: CostTracker,
-  creatorLocation?: CreatorLocation
+  creatorLocation?: CreatorLocation,
 ): Promise<ResearchResult> {
-  logInfo('Starting pre-evaluation research phase...');
+  logInfo("Starting pre-evaluation research phase...");
   if (creatorLocation) {
-    logInfo(`Creator location: ${creatorLocation.city || ''}, ${creatorLocation.country}`);
+    logInfo(
+      `Creator location: ${creatorLocation.city || ""}, ${creatorLocation.country}`,
+    );
   }
 
   const queries = buildSearchQueries(claims);
   logDebug(`Built ${queries.length} research queries`);
 
   if (queries.length === 0) {
-    logWarning('No research queries generated - insufficient claim data');
+    logWarning("No research queries generated - insufficient claim data");
     return createEmptyResult(claims);
   }
 
   // Always use Claude's native WebSearch tool for research
-  return await conductResearchViaCli(claims, queries, costTracker, creatorLocation);
+  return await conductResearchViaCli(
+    claims,
+    queries,
+    costTracker,
+    creatorLocation,
+  );
 }
 
 /**
@@ -120,43 +130,51 @@ async function conductResearchViaCli(
   claims: ExtractedClaims,
   queries: string[],
   costTracker: CostTracker,
-  creatorLocation?: CreatorLocation
+  creatorLocation?: CreatorLocation,
 ): Promise<ResearchResult> {
-  logInfo('Using Claude native WebSearch tool...');
+  logInfo("Using Claude native WebSearch tool...");
 
   try {
     const currentYear = new Date().getFullYear();
     const hasLocation = !!creatorLocation?.country;
-    const localRegion = creatorLocation?.country || 'Unknown';
-    const localCity = creatorLocation?.city || '';
+    const localRegion = creatorLocation?.country || "Unknown";
+    const localCity = creatorLocation?.city || "";
 
     // Build a research prompt that instructs Claude to use WebSearch
     // Include geographic-specific queries if location is known
     const researchPrompt = `You are a market research analyst. Use the WebSearch tool to research this business idea.
 
 ## Creator Context
-${hasLocation ? `**The creator is based in ${localCity ? localCity + ', ' : ''}${localRegion}.**
-You MUST research BOTH local (${localRegion}) AND global market data.` : 'Creator location unknown - focus on global market data.'}
+${
+  hasLocation
+    ? `**The creator is based in ${localCity ? localCity + ", " : ""}${localRegion}.**
+You MUST research BOTH local (${localRegion}) AND global market data.`
+    : "Creator location unknown - focus on global market data."
+}
 
 ## Research Tasks
 Search for information about:
 
-${hasLocation ? `### LOCAL MARKET RESEARCH (${localRegion})
+${
+  hasLocation
+    ? `### LOCAL MARKET RESEARCH (${localRegion})
 1. Market size for: ${claims.domain} market ${localRegion} ${currentYear}
 2. Key LOCAL competitors in: ${claims.domain} ${localRegion}
 3. LOCAL regulations/barriers for: ${claims.domain} ${localRegion}
 4. Market trends in ${localRegion} for: ${claims.domain}
 
-### GLOBAL MARKET RESEARCH` : '### GLOBAL MARKET RESEARCH'}
-${hasLocation ? '5' : '1'}. Global market size for: ${claims.domain} market ${currentYear}
-${hasLocation ? '6' : '2'}. Top GLOBAL competitors in: ${claims.domain} ${claims.technology.join(' ')}
-${hasLocation ? '7' : '3'}. Global market trends and growth rates for: ${claims.domain}
-${hasLocation ? '8' : '4'}. Technology feasibility: ${claims.technology.join(', ')} applications
+### GLOBAL MARKET RESEARCH`
+    : "### GLOBAL MARKET RESEARCH"
+}
+${hasLocation ? "5" : "1"}. Global market size for: ${claims.domain} market ${currentYear}
+${hasLocation ? "6" : "2"}. Top GLOBAL competitors in: ${claims.domain} ${claims.technology.join(" ")}
+${hasLocation ? "7" : "3"}. Global market trends and growth rates for: ${claims.domain}
+${hasLocation ? "8" : "4"}. Technology feasibility: ${claims.technology.join(", ")} applications
 
 ## User's Claims to Verify
-- Market size claimed: ${claims.marketSize || 'Not specified'}
-- Competitors mentioned: ${claims.competitors.join(', ') || 'None'}
-- Technology: ${claims.technology.join(', ') || 'Not specified'}
+- Market size claimed: ${claims.marketSize || "Not specified"}
+- Competitors mentioned: ${claims.competitors.join(", ") || "None"}
+- Technology: ${claims.technology.join(", ") || "Not specified"}
 - Target market: ${claims.targetMarket}
 
 ## Instructions
@@ -180,7 +198,9 @@ ${hasLocation ? '8' : '4'}. Technology feasibility: ${claims.technology.join(', 
     "assessment": "proven|emerging|experimental|unknown",
     "examples": ["real company or product examples using this technology"]
   },
-  ${hasLocation ? `"geographicAnalysis": {
+  ${
+    hasLocation
+      ? `"geographicAnalysis": {
     "localMarket": {
       "region": "${localRegion}",
       "marketSize": {
@@ -231,64 +251,143 @@ ${hasLocation ? '8' : '4'}. Technology feasibility: ${claims.technology.join(', 
     },
     "creatorLocation": {
       "country": "${localRegion}",
-      "city": "${localCity || ''}"
+      "city": "${localCity || ""}"
     }
-  },` : ''}
+  },`
+      : ""
+  }
   "searchesPerformed": number
 }
 
 Return ONLY the JSON object after completing your searches.`;
 
     const researchResult = await runClaudeCliWithPrompt(researchPrompt, {
-      model: 'sonnet',  // Use Sonnet for better tool use
+      model: "sonnet", // Use Sonnet for better tool use
       maxTokens: 4000,
-      systemPrompt: 'You are a market research analyst with access to WebSearch. Search for current market data and return structured findings. Always include source URLs.',
-      tools: ['WebSearch']  // Enable WebSearch tool
+      systemPrompt:
+        "You are a market research analyst with access to WebSearch. Search for current market data and return structured findings. Always include source URLs.",
+      tools: ["WebSearch"], // Enable WebSearch tool
     });
 
     // Estimate token usage for CLI call
-    costTracker.track({ input_tokens: 3000, output_tokens: 1500 }, 'research-websearch-cli');
+    costTracker.track(
+      { input_tokens: 3000, output_tokens: 1500 },
+      "research-websearch-cli",
+    );
 
     // Parse the JSON response
     const jsonMatch = researchResult.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      logWarning('Could not parse synthesis response as JSON');
+      logWarning("Could not parse synthesis response as JSON");
       return createEmptyResult(claims, queries.length);
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
 
     // Parse geographic analysis if present
-    let geographicAnalysis: ResearchResult['geographicAnalysis'] = undefined;
+    let geographicAnalysis: ResearchResult["geographicAnalysis"] = undefined;
     if (parsed.geographicAnalysis && creatorLocation) {
       const geoData = parsed.geographicAnalysis;
 
       const parseMarketData = (data: unknown): GeographicMarketData | null => {
-        if (!data || typeof data !== 'object') return null;
+        if (!data || typeof data !== "object") return null;
         const d = data as Record<string, unknown>;
         return {
-          region: String(d.region || 'Unknown'),
+          region: String(d.region || "Unknown"),
           marketSize: {
-            tam: d.marketSize && typeof d.marketSize === 'object' ? String((d.marketSize as Record<string, unknown>).tam || '') || null : null,
-            sam: d.marketSize && typeof d.marketSize === 'object' ? String((d.marketSize as Record<string, unknown>).sam || '') || null : null,
-            som: d.marketSize && typeof d.marketSize === 'object' ? String((d.marketSize as Record<string, unknown>).som || '') || null : null,
-            sources: d.marketSize && typeof d.marketSize === 'object' && Array.isArray((d.marketSize as Record<string, unknown>).sources) ? (d.marketSize as Record<string, unknown>).sources as string[] : []
+            tam:
+              d.marketSize && typeof d.marketSize === "object"
+                ? String((d.marketSize as Record<string, unknown>).tam || "") ||
+                  null
+                : null,
+            sam:
+              d.marketSize && typeof d.marketSize === "object"
+                ? String((d.marketSize as Record<string, unknown>).sam || "") ||
+                  null
+                : null,
+            som:
+              d.marketSize && typeof d.marketSize === "object"
+                ? String((d.marketSize as Record<string, unknown>).som || "") ||
+                  null
+                : null,
+            sources:
+              d.marketSize &&
+              typeof d.marketSize === "object" &&
+              Array.isArray((d.marketSize as Record<string, unknown>).sources)
+                ? ((d.marketSize as Record<string, unknown>)
+                    .sources as string[])
+                : [],
           },
           competitors: {
-            players: d.competitors && typeof d.competitors === 'object' && Array.isArray((d.competitors as Record<string, unknown>).players) ? (d.competitors as Record<string, unknown>).players as string[] : [],
-            intensity: d.competitors && typeof d.competitors === 'object' ? ((d.competitors as Record<string, unknown>).intensity as GeographicMarketData['competitors']['intensity']) || 'unknown' : 'unknown',
-            sources: d.competitors && typeof d.competitors === 'object' && Array.isArray((d.competitors as Record<string, unknown>).sources) ? (d.competitors as Record<string, unknown>).sources as string[] : []
+            players:
+              d.competitors &&
+              typeof d.competitors === "object" &&
+              Array.isArray((d.competitors as Record<string, unknown>).players)
+                ? ((d.competitors as Record<string, unknown>)
+                    .players as string[])
+                : [],
+            intensity:
+              d.competitors && typeof d.competitors === "object"
+                ? ((d.competitors as Record<string, unknown>)
+                    .intensity as GeographicMarketData["competitors"]["intensity"]) ||
+                  "unknown"
+                : "unknown",
+            sources:
+              d.competitors &&
+              typeof d.competitors === "object" &&
+              Array.isArray((d.competitors as Record<string, unknown>).sources)
+                ? ((d.competitors as Record<string, unknown>)
+                    .sources as string[])
+                : [],
           },
           entryBarriers: {
-            regulatory: d.entryBarriers && typeof d.entryBarriers === 'object' ? String((d.entryBarriers as Record<string, unknown>).regulatory || '') || null : null,
-            capital: d.entryBarriers && typeof d.entryBarriers === 'object' ? String((d.entryBarriers as Record<string, unknown>).capital || '') || null : null,
-            relationships: d.entryBarriers && typeof d.entryBarriers === 'object' ? String((d.entryBarriers as Record<string, unknown>).relationships || '') || null : null,
-            sources: d.entryBarriers && typeof d.entryBarriers === 'object' && Array.isArray((d.entryBarriers as Record<string, unknown>).sources) ? (d.entryBarriers as Record<string, unknown>).sources as string[] : []
+            regulatory:
+              d.entryBarriers && typeof d.entryBarriers === "object"
+                ? String(
+                    (d.entryBarriers as Record<string, unknown>).regulatory ||
+                      "",
+                  ) || null
+                : null,
+            capital:
+              d.entryBarriers && typeof d.entryBarriers === "object"
+                ? String(
+                    (d.entryBarriers as Record<string, unknown>).capital || "",
+                  ) || null
+                : null,
+            relationships:
+              d.entryBarriers && typeof d.entryBarriers === "object"
+                ? String(
+                    (d.entryBarriers as Record<string, unknown>)
+                      .relationships || "",
+                  ) || null
+                : null,
+            sources:
+              d.entryBarriers &&
+              typeof d.entryBarriers === "object" &&
+              Array.isArray(
+                (d.entryBarriers as Record<string, unknown>).sources,
+              )
+                ? ((d.entryBarriers as Record<string, unknown>)
+                    .sources as string[])
+                : [],
           },
           marketTiming: {
-            readiness: d.marketTiming && typeof d.marketTiming === 'object' ? ((d.marketTiming as Record<string, unknown>).readiness as GeographicMarketData['marketTiming']['readiness']) || 'unknown' : 'unknown',
-            catalysts: d.marketTiming && typeof d.marketTiming === 'object' && Array.isArray((d.marketTiming as Record<string, unknown>).catalysts) ? (d.marketTiming as Record<string, unknown>).catalysts as string[] : []
-          }
+            readiness:
+              d.marketTiming && typeof d.marketTiming === "object"
+                ? ((d.marketTiming as Record<string, unknown>)
+                    .readiness as GeographicMarketData["marketTiming"]["readiness"]) ||
+                  "unknown"
+                : "unknown",
+            catalysts:
+              d.marketTiming &&
+              typeof d.marketTiming === "object" &&
+              Array.isArray(
+                (d.marketTiming as Record<string, unknown>).catalysts,
+              )
+                ? ((d.marketTiming as Record<string, unknown>)
+                    .catalysts as string[])
+                : [],
+          },
         };
       };
 
@@ -297,15 +396,19 @@ Return ONLY the JSON object after completing your searches.`;
         globalMarket: parseMarketData(geoData.globalMarket),
         creatorLocation: {
           country: creatorLocation.country,
-          city: creatorLocation.city
-        }
+          city: creatorLocation.city,
+        },
       };
 
       if (geographicAnalysis.localMarket) {
-        logInfo(`Local market (${geographicAnalysis.localMarket.region}): TAM ${geographicAnalysis.localMarket.marketSize.tam || 'unknown'}`);
+        logInfo(
+          `Local market (${geographicAnalysis.localMarket.region}): TAM ${geographicAnalysis.localMarket.marketSize.tam || "unknown"}`,
+        );
       }
       if (geographicAnalysis.globalMarket) {
-        logInfo(`Global market: TAM ${geographicAnalysis.globalMarket.marketSize.tam || 'unknown'}`);
+        logInfo(
+          `Global market: TAM ${geographicAnalysis.globalMarket.marketSize.tam || "unknown"}`,
+        );
       }
     }
 
@@ -313,26 +416,34 @@ Return ONLY the JSON object after completing your searches.`;
       marketSize: {
         userClaim: claims.marketSize,
         verified: parsed.marketSize?.verified || null,
-        sources: Array.isArray(parsed.marketSize?.sources) ? parsed.marketSize.sources : []
+        sources: Array.isArray(parsed.marketSize?.sources)
+          ? parsed.marketSize.sources
+          : [],
       },
       competitors: {
         userMentioned: claims.competitors,
-        discovered: Array.isArray(parsed.competitors?.discovered) ? parsed.competitors.discovered : [],
-        sources: Array.isArray(parsed.competitors?.sources) ? parsed.competitors.sources : []
+        discovered: Array.isArray(parsed.competitors?.discovered)
+          ? parsed.competitors.discovered
+          : [],
+        sources: Array.isArray(parsed.competitors?.sources)
+          ? parsed.competitors.sources
+          : [],
       },
       trends: {
-        direction: parsed.trends?.direction || 'unknown',
-        evidence: parsed.trends?.evidence || '',
-        sources: []
+        direction: parsed.trends?.direction || "unknown",
+        evidence: parsed.trends?.evidence || "",
+        sources: [],
       },
       techFeasibility: {
-        assessment: parsed.techFeasibility?.assessment || 'unknown',
-        examples: Array.isArray(parsed.techFeasibility?.examples) ? parsed.techFeasibility.examples : [],
-        sources: []
+        assessment: parsed.techFeasibility?.assessment || "unknown",
+        examples: Array.isArray(parsed.techFeasibility?.examples)
+          ? parsed.techFeasibility.examples
+          : [],
+        sources: [],
       },
       geographicAnalysis,
       timestamp: new Date().toISOString(),
-      searchesPerformed: queries.length
+      searchesPerformed: queries.length,
     };
   } catch (error) {
     logWarning(`CLI research phase failed: ${error}`);
@@ -340,18 +451,24 @@ Return ONLY the JSON object after completing your searches.`;
   }
 }
 
-
 /**
  * Create empty research result.
  */
-function createEmptyResult(claims: ExtractedClaims, searchCount: number = 0): ResearchResult {
+function createEmptyResult(
+  claims: ExtractedClaims,
+  searchCount: number = 0,
+): ResearchResult {
   return {
     marketSize: { userClaim: claims.marketSize, verified: null, sources: [] },
-    competitors: { userMentioned: claims.competitors, discovered: [], sources: [] },
-    trends: { direction: 'unknown', evidence: '', sources: [] },
-    techFeasibility: { assessment: 'unknown', examples: [], sources: [] },
+    competitors: {
+      userMentioned: claims.competitors,
+      discovered: [],
+      sources: [],
+    },
+    trends: { direction: "unknown", evidence: "", sources: [] },
+    techFeasibility: { assessment: "unknown", examples: [], sources: [] },
     timestamp: new Date().toISOString(),
-    searchesPerformed: searchCount
+    searchesPerformed: searchCount,
   };
 }
 
@@ -365,14 +482,14 @@ function createEmptyResult(claims: ExtractedClaims, searchCount: number = 0): Re
  */
 export function formatResearchForCategory(
   research: ResearchResult | null,
-  category: string
+  category: string,
 ): string {
-  if (!research) return '';
+  if (!research) return "";
 
   switch (category) {
-    case 'market':
+    case "market":
       const geo = research.geographicAnalysis;
-      let geoSection = '';
+      let geoSection = "";
 
       // Add geographic analysis section if available
       if (geo) {
@@ -381,48 +498,48 @@ export function formatResearchForCategory(
 ---
 
 ## Geographic Market Analysis
-${geo.creatorLocation ? `**Creator Location:** ${geo.creatorLocation.city ? geo.creatorLocation.city + ', ' : ''}${geo.creatorLocation.country}` : ''}
+${geo.creatorLocation ? `**Creator Location:** ${geo.creatorLocation.city ? geo.creatorLocation.city + ", " : ""}${geo.creatorLocation.country}` : ""}
 
-### LOCAL MARKET (${geo.localMarket?.region || geo.creatorLocation?.country || 'Unknown Region'})
+### LOCAL MARKET (${geo.localMarket?.region || geo.creatorLocation?.country || "Unknown Region"})
 
 **Local Market Size:**
-- TAM: ${geo.localMarket?.marketSize.tam || 'Not found'}
-- SAM: ${geo.localMarket?.marketSize.sam || 'Not found'}
-- SOM: ${geo.localMarket?.marketSize.som || 'Not found'}
-${geo.localMarket?.marketSize.sources.length ? `- Sources: ${geo.localMarket.marketSize.sources.join(', ')}` : ''}
+- TAM: ${geo.localMarket?.marketSize.tam || "Not found"}
+- SAM: ${geo.localMarket?.marketSize.sam || "Not found"}
+- SOM: ${geo.localMarket?.marketSize.som || "Not found"}
+${geo.localMarket?.marketSize.sources.length ? `- Sources: ${geo.localMarket.marketSize.sources.join(", ")}` : ""}
 
 **Local Competitors:**
-- Key Players: ${geo.localMarket?.competitors.players.join(', ') || 'None discovered'}
-- Competition Intensity: ${geo.localMarket?.competitors.intensity || 'Unknown'}
-${geo.localMarket?.competitors.sources.length ? `- Sources: ${geo.localMarket.competitors.sources.join(', ')}` : ''}
+- Key Players: ${geo.localMarket?.competitors.players.join(", ") || "None discovered"}
+- Competition Intensity: ${geo.localMarket?.competitors.intensity || "Unknown"}
+${geo.localMarket?.competitors.sources.length ? `- Sources: ${geo.localMarket.competitors.sources.join(", ")}` : ""}
 
 **Local Entry Barriers:**
-- Regulatory: ${geo.localMarket?.entryBarriers.regulatory || 'Unknown'}
-- Capital Requirements: ${geo.localMarket?.entryBarriers.capital || 'Unknown'}
-- Relationship/Network: ${geo.localMarket?.entryBarriers.relationships || 'Unknown'}
+- Regulatory: ${geo.localMarket?.entryBarriers.regulatory || "Unknown"}
+- Capital Requirements: ${geo.localMarket?.entryBarriers.capital || "Unknown"}
+- Relationship/Network: ${geo.localMarket?.entryBarriers.relationships || "Unknown"}
 
 **Local Market Timing:**
-- Readiness: ${geo.localMarket?.marketTiming.readiness || 'Unknown'}
-- Catalysts: ${geo.localMarket?.marketTiming.catalysts.join(', ') || 'None identified'}
+- Readiness: ${geo.localMarket?.marketTiming.readiness || "Unknown"}
+- Catalysts: ${geo.localMarket?.marketTiming.catalysts.join(", ") || "None identified"}
 
 ### GLOBAL MARKET
 
 **Global Market Size:**
-- TAM: ${geo.globalMarket?.marketSize.tam || 'Not found'}
-- SAM: ${geo.globalMarket?.marketSize.sam || 'Not found'}
-${geo.globalMarket?.marketSize.sources.length ? `- Sources: ${geo.globalMarket.marketSize.sources.join(', ')}` : ''}
+- TAM: ${geo.globalMarket?.marketSize.tam || "Not found"}
+- SAM: ${geo.globalMarket?.marketSize.sam || "Not found"}
+${geo.globalMarket?.marketSize.sources.length ? `- Sources: ${geo.globalMarket.marketSize.sources.join(", ")}` : ""}
 
 **Global Competitors:**
-- Key Players: ${geo.globalMarket?.competitors.players.join(', ') || 'None discovered'}
-- Competition Intensity: ${geo.globalMarket?.competitors.intensity || 'Unknown'}
+- Key Players: ${geo.globalMarket?.competitors.players.join(", ") || "None discovered"}
+- Competition Intensity: ${geo.globalMarket?.competitors.intensity || "Unknown"}
 
 **Global Entry Barriers:**
-- Regulatory: ${geo.globalMarket?.entryBarriers.regulatory || 'Unknown'}
-- Capital Requirements: ${geo.globalMarket?.entryBarriers.capital || 'Unknown'}
+- Regulatory: ${geo.globalMarket?.entryBarriers.regulatory || "Unknown"}
+- Capital Requirements: ${geo.globalMarket?.entryBarriers.capital || "Unknown"}
 
 **Global Market Timing:**
-- Readiness: ${geo.globalMarket?.marketTiming.readiness || 'Unknown'}
-- Catalysts: ${geo.globalMarket?.marketTiming.catalysts.join(', ') || 'None identified'}
+- Readiness: ${geo.globalMarket?.marketTiming.readiness || "Unknown"}
+- Catalysts: ${geo.globalMarket?.marketTiming.catalysts.join(", ") || "None identified"}
 
 ---
 
@@ -439,33 +556,33 @@ ${geo.globalMarket?.marketSize.sources.length ? `- Sources: ${geo.globalMarket.m
       return `## External Research (Web Search Results)
 
 **Market Size (Global Overview):**
-- User claimed: ${research.marketSize.userClaim || 'Not specified'}
-- Verified: ${research.marketSize.verified || 'Could not verify'}
-${research.marketSize.sources.length > 0 ? `- Sources: ${research.marketSize.sources.join(', ')}` : ''}
+- User claimed: ${research.marketSize.userClaim || "Not specified"}
+- Verified: ${research.marketSize.verified || "Could not verify"}
+${research.marketSize.sources.length > 0 ? `- Sources: ${research.marketSize.sources.join(", ")}` : ""}
 
 **Competitors (Global Overview):**
-- User mentioned: ${research.competitors.userMentioned.join(', ') || 'None'}
-- Discovered: ${research.competitors.discovered.join(', ') || 'None additional'}
-${research.competitors.sources.length > 0 ? `- Sources: ${research.competitors.sources.join(', ')}` : ''}
+- User mentioned: ${research.competitors.userMentioned.join(", ") || "None"}
+- Discovered: ${research.competitors.discovered.join(", ") || "None additional"}
+${research.competitors.sources.length > 0 ? `- Sources: ${research.competitors.sources.join(", ")}` : ""}
 
 **Market Trends:**
 - Direction: ${research.trends.direction}
-- Evidence: ${research.trends.evidence || 'No specific evidence found'}
+- Evidence: ${research.trends.evidence || "No specific evidence found"}
 ${geoSection}
 
 **IMPORTANT**: Use this research to validate or challenge the user's market claims. Discovered competitors should factor into M3 (Competition) assessment. If market size could not be verified, note this uncertainty.`;
 
-    case 'solution':
+    case "solution":
       return `## Technology Research (Web Search Results)
 
 **Technical Feasibility Assessment:**
 - Status: ${research.techFeasibility.assessment}
-- Production Examples: ${research.techFeasibility.examples.join(', ') || 'None found'}
+- Production Examples: ${research.techFeasibility.examples.join(", ") || "None found"}
 
 **IMPORTANT**: Use this research when assessing S2 (Technical Feasibility). If the technology is "proven" with production examples, confidence should be higher. If "experimental" or "unknown", note this as a risk.`;
 
     default:
-      return '';
+      return "";
   }
 }
 
@@ -474,5 +591,5 @@ ${geoSection}
  * Now returns false since we support both API and CLI modes.
  */
 export function shouldSkipResearch(): boolean {
-  return false;  // Research now works in both API and CLI modes
+  return false; // Research now works in both API and CLI modes
 }

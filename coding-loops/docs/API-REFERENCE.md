@@ -419,4 +419,4 @@ class HumanAgent:
 
 ---
 
-*For implementation details, see the source files.*
+_For implementation details, see the source files._

@@ -3,6 +3,7 @@
 ## Overview
 
 This specification covers state management and hooks for the Ideation Agent frontend:
+
 - **State Management (Reducer)**: Centralized state handling for ideation sessions
 - **API Hooks**: Custom hooks for API interactions
 - **SSE Streaming Hook**: Real-time streaming for AI responses
@@ -18,7 +19,6 @@ This specification covers state management and hooks for the Ideation Agent fron
 
 ---
 
-
 ## 4. State Management (Reducer)
 
 ```typescript
@@ -30,7 +30,7 @@ import type {
   IdeationStore,
   IdeationAction,
   TokenUsageInfo,
-} from '../types/ideation-state';
+} from "../types/ideation-state";
 
 const DEFAULT_TOKEN_USAGE: TokenUsageInfo = {
   total: 0,
@@ -42,8 +42,8 @@ const DEFAULT_TOKEN_USAGE: TokenUsageInfo = {
 export const initialState: IdeationStore = {
   session: {
     sessionId: null,
-    profileId: '',
-    status: 'idle',
+    profileId: "",
+    status: "idle",
     entryMode: null,
     error: null,
   },
@@ -51,7 +51,7 @@ export const initialState: IdeationStore = {
     messages: [],
     isLoading: false,
     isStreaming: false,
-    streamingContent: '',
+    streamingContent: "",
     error: null,
   },
   candidate: {
@@ -71,66 +71,66 @@ export const initialState: IdeationStore = {
 
 export function ideationReducer(
   state: IdeationStore,
-  action: IdeationAction
+  action: IdeationAction,
 ): IdeationStore {
   switch (action.type) {
     // =========================================================================
     // Session Actions
     // =========================================================================
-    case 'SESSION_START':
+    case "SESSION_START":
       return {
         ...state,
         session: {
           ...state.session,
           profileId: action.payload.profileId,
           entryMode: action.payload.entryMode,
-          status: 'loading',
+          status: "loading",
           error: null,
         },
       };
 
-    case 'SESSION_CREATED':
+    case "SESSION_CREATED":
       return {
         ...state,
         session: {
           ...state.session,
           sessionId: action.payload.sessionId,
-          status: 'active',
+          status: "active",
         },
       };
 
-    case 'SESSION_ERROR':
+    case "SESSION_ERROR":
       return {
         ...state,
         session: {
           ...state.session,
-          status: 'error',
+          status: "error",
           error: action.payload.error,
         },
       };
 
-    case 'SESSION_COMPLETE':
+    case "SESSION_COMPLETE":
       return {
         ...state,
         session: {
           ...state.session,
-          status: 'completed',
+          status: "completed",
         },
       };
 
-    case 'SESSION_ABANDON':
+    case "SESSION_ABANDON":
       return {
         ...state,
         session: {
           ...state.session,
-          status: 'abandoned',
+          status: "abandoned",
         },
       };
 
     // =========================================================================
     // Message Actions
     // =========================================================================
-    case 'MESSAGE_SEND':
+    case "MESSAGE_SEND":
       return {
         ...state,
         conversation: {
@@ -140,26 +140,27 @@ export function ideationReducer(
         },
       };
 
-    case 'MESSAGE_STREAM_START':
+    case "MESSAGE_STREAM_START":
       return {
         ...state,
         conversation: {
           ...state.conversation,
           isStreaming: true,
-          streamingContent: '',
+          streamingContent: "",
         },
       };
 
-    case 'MESSAGE_STREAM_CHUNK':
+    case "MESSAGE_STREAM_CHUNK":
       return {
         ...state,
         conversation: {
           ...state.conversation,
-          streamingContent: state.conversation.streamingContent + action.payload.chunk,
+          streamingContent:
+            state.conversation.streamingContent + action.payload.chunk,
         },
       };
 
-    case 'MESSAGE_STREAM_END':
+    case "MESSAGE_STREAM_END":
       return {
         ...state,
         conversation: {
@@ -167,11 +168,11 @@ export function ideationReducer(
           messages: [...state.conversation.messages, action.payload.message],
           isLoading: false,
           isStreaming: false,
-          streamingContent: '',
+          streamingContent: "",
         },
       };
 
-    case 'MESSAGE_RECEIVED':
+    case "MESSAGE_RECEIVED":
       return {
         ...state,
         conversation: {
@@ -181,7 +182,7 @@ export function ideationReducer(
         },
       };
 
-    case 'MESSAGE_ERROR':
+    case "MESSAGE_ERROR":
       return {
         ...state,
         conversation: {
@@ -192,11 +193,11 @@ export function ideationReducer(
         },
       };
 
-    case 'BUTTON_CLICK':
+    case "BUTTON_CLICK":
       // Mark the button as clicked in the last message
       const messagesWithClick = [...state.conversation.messages];
       const lastIdx = messagesWithClick.length - 1;
-      if (lastIdx >= 0 && messagesWithClick[lastIdx].role === 'assistant') {
+      if (lastIdx >= 0 && messagesWithClick[lastIdx].role === "assistant") {
         messagesWithClick[lastIdx] = {
           ...messagesWithClick[lastIdx],
           buttonClicked: action.payload.buttonId,
@@ -211,7 +212,7 @@ export function ideationReducer(
         },
       };
 
-    case 'FORM_SUBMIT':
+    case "FORM_SUBMIT":
       return {
         ...state,
         conversation: {
@@ -223,7 +224,7 @@ export function ideationReducer(
     // =========================================================================
     // Candidate Actions
     // =========================================================================
-    case 'CANDIDATE_UPDATE':
+    case "CANDIDATE_UPDATE":
       return {
         ...state,
         candidate: {
@@ -232,7 +233,7 @@ export function ideationReducer(
         },
       };
 
-    case 'CANDIDATE_CLEAR':
+    case "CANDIDATE_CLEAR":
       return {
         ...state,
         candidate: {
@@ -244,7 +245,7 @@ export function ideationReducer(
         },
       };
 
-    case 'CONFIDENCE_UPDATE':
+    case "CONFIDENCE_UPDATE":
       return {
         ...state,
         candidate: {
@@ -253,7 +254,7 @@ export function ideationReducer(
         },
       };
 
-    case 'VIABILITY_UPDATE':
+    case "VIABILITY_UPDATE":
       return {
         ...state,
         candidate: {
@@ -263,7 +264,7 @@ export function ideationReducer(
         },
       };
 
-    case 'INTERVENTION_SHOW':
+    case "INTERVENTION_SHOW":
       return {
         ...state,
         candidate: {
@@ -273,7 +274,7 @@ export function ideationReducer(
         },
       };
 
-    case 'INTERVENTION_DISMISS':
+    case "INTERVENTION_DISMISS":
       return {
         ...state,
         candidate: {
@@ -286,7 +287,7 @@ export function ideationReducer(
     // =========================================================================
     // Token Actions
     // =========================================================================
-    case 'TOKEN_UPDATE':
+    case "TOKEN_UPDATE":
       return {
         ...state,
         tokens: {
@@ -295,7 +296,7 @@ export function ideationReducer(
         },
       };
 
-    case 'HANDOFF_PENDING':
+    case "HANDOFF_PENDING":
       return {
         ...state,
         tokens: {
@@ -304,7 +305,7 @@ export function ideationReducer(
         },
       };
 
-    case 'HANDOFF_COMPLETE':
+    case "HANDOFF_COMPLETE":
       return {
         ...state,
         tokens: {
@@ -329,10 +330,10 @@ export function ideationReducer(
 // FILE: frontend/src/hooks/useIdeationAPI.ts
 // =============================================================================
 
-import { useCallback, useMemo } from 'react';
-import type { EntryMode } from '../types/ideation';
+import { useCallback, useMemo } from "react";
+import type { EntryMode } from "../types/ideation";
 
-const API_BASE = '/api/ideation';
+const API_BASE = "/api/ideation";
 
 interface StartSessionResponse {
   sessionId: string;
@@ -349,7 +350,7 @@ interface MessageResponse {
   confidence?: number;
   viability?: number;
   risks?: ViabilityRisk[];
-  intervention?: { type: 'warning' | 'critical' };
+  intervention?: { type: "warning" | "critical" };
   tokenUsage?: TokenUsageInfo;
 }
 
@@ -359,113 +360,140 @@ interface CaptureResponse {
 }
 
 export function useIdeationAPI() {
-  const startSession = useCallback(async (
-    profileId: string,
-    entryMode: EntryMode
-  ): Promise<StartSessionResponse> => {
-    const response = await fetch(`${API_BASE}/start`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profileId, entryMode }),
-    });
+  const startSession = useCallback(
+    async (
+      profileId: string,
+      entryMode: EntryMode,
+    ): Promise<StartSessionResponse> => {
+      const response = await fetch(`${API_BASE}/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId, entryMode }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Failed to start session');
-    }
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to start session");
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
-  const sendMessage = useCallback(async (
-    sessionId: string,
-    message: string
-  ): Promise<MessageResponse> => {
-    const response = await fetch(`${API_BASE}/message`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, message }),
-    });
+  const sendMessage = useCallback(
+    async (sessionId: string, message: string): Promise<MessageResponse> => {
+      const response = await fetch(`${API_BASE}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, message }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Failed to send message');
-    }
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to send message");
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
-  const clickButton = useCallback(async (
-    sessionId: string,
-    buttonId: string,
-    buttonValue: string
-  ): Promise<MessageResponse> => {
-    const response = await fetch(`${API_BASE}/button`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, buttonId, buttonValue }),
-    });
+  const clickButton = useCallback(
+    async (
+      sessionId: string,
+      buttonId: string,
+      buttonValue: string,
+    ): Promise<MessageResponse> => {
+      const response = await fetch(`${API_BASE}/button`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, buttonId, buttonValue }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Failed to process button click');
-    }
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          error.error?.message || "Failed to process button click",
+        );
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
-  const captureIdea = useCallback(async (
-    sessionId: string
-  ): Promise<CaptureResponse> => {
-    const response = await fetch(`${API_BASE}/capture`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId }),
-    });
+  const captureIdea = useCallback(
+    async (sessionId: string): Promise<CaptureResponse> => {
+      const response = await fetch(`${API_BASE}/capture`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Failed to capture idea');
-    }
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to capture idea");
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
   const saveForLater = useCallback(async (sessionId: string): Promise<void> => {
     const response = await fetch(`${API_BASE}/session/${sessionId}/save`, {
-      method: 'POST',
+      method: "POST",
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error?.message || 'Failed to save idea');
+      throw new Error(error.error?.message || "Failed to save idea");
     }
   }, []);
 
-  const abandonSession = useCallback(async (sessionId: string): Promise<void> => {
-    const response = await fetch(`${API_BASE}/session/${sessionId}/abandon`, {
-      method: 'POST',
-    });
+  const abandonSession = useCallback(
+    async (sessionId: string): Promise<void> => {
+      const response = await fetch(`${API_BASE}/session/${sessionId}/abandon`, {
+        method: "POST",
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Failed to abandon session');
-    }
-  }, []);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to abandon session");
+      }
+    },
+    [],
+  );
 
-  return useMemo(() => ({
-    startSession,
-    sendMessage,
-    clickButton,
-    captureIdea,
-    saveForLater,
-    abandonSession,
-  }), [startSession, sendMessage, clickButton, captureIdea, saveForLater, abandonSession]);
+  return useMemo(
+    () => ({
+      startSession,
+      sendMessage,
+      clickButton,
+      captureIdea,
+      saveForLater,
+      abandonSession,
+    }),
+    [
+      startSession,
+      sendMessage,
+      clickButton,
+      captureIdea,
+      saveForLater,
+      abandonSession,
+    ],
+  );
 }
 
 // Import types
-import type { ButtonOption, FormDefinition, IdeaCandidate, ViabilityRisk } from '../types';
-import type { TokenUsageInfo } from '../types/ideation';
+import type {
+  ButtonOption,
+  FormDefinition,
+  IdeaCandidate,
+  ViabilityRisk,
+} from "../types";
+import type { TokenUsageInfo } from "../types/ideation";
 ```
 
 ---
@@ -477,7 +505,7 @@ import type { TokenUsageInfo } from '../types/ideation';
 // FILE: frontend/src/hooks/useSSEStream.ts
 // =============================================================================
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef } from "react";
 
 interface SSEStreamOptions {
   onChunk: (chunk: string) => void;
@@ -501,19 +529,19 @@ export function useSSEStream() {
       try {
         const data = JSON.parse(event.data);
 
-        if (data.type === 'chunk') {
+        if (data.type === "chunk") {
           options.onChunk(data.content);
-        } else if (data.type === 'complete') {
+        } else if (data.type === "complete") {
           options.onComplete();
           eventSource.close();
         }
       } catch (error) {
-        options.onError(new Error('Failed to parse SSE data'));
+        options.onError(new Error("Failed to parse SSE data"));
       }
     };
 
     eventSource.onerror = () => {
-      options.onError(new Error('SSE connection failed'));
+      options.onError(new Error("SSE connection failed"));
       eventSource.close();
     };
 
@@ -1919,58 +1947,58 @@ describe('RisksList', () => {
 // FILE: frontend/src/__tests__/ideation/ideationReducer.test.ts
 // =============================================================================
 
-import { ideationReducer, initialState } from '../../reducers/ideationReducer';
+import { ideationReducer, initialState } from "../../reducers/ideationReducer";
 
-describe('ideationReducer', () => {
+describe("ideationReducer", () => {
   // ===========================================================================
   // SESSION ACTIONS
   // ===========================================================================
 
-  describe('SESSION_START', () => {
-    test('PASS: Sets status to loading and stores profile', () => {
+  describe("SESSION_START", () => {
+    test("PASS: Sets status to loading and stores profile", () => {
       const action = {
-        type: 'SESSION_START' as const,
-        payload: { profileId: 'profile_123', entryMode: 'discover' as const },
+        type: "SESSION_START" as const,
+        payload: { profileId: "profile_123", entryMode: "discover" as const },
       };
 
       const result = ideationReducer(initialState, action);
 
-      expect(result.session.status).toBe('loading');
-      expect(result.session.profileId).toBe('profile_123');
-      expect(result.session.entryMode).toBe('discover');
+      expect(result.session.status).toBe("loading");
+      expect(result.session.profileId).toBe("profile_123");
+      expect(result.session.entryMode).toBe("discover");
     });
   });
 
-  describe('SESSION_CREATED', () => {
-    test('PASS: Sets sessionId and status to active', () => {
+  describe("SESSION_CREATED", () => {
+    test("PASS: Sets sessionId and status to active", () => {
       const startState = {
         ...initialState,
-        session: { ...initialState.session, status: 'loading' as const },
+        session: { ...initialState.session, status: "loading" as const },
       };
 
       const action = {
-        type: 'SESSION_CREATED' as const,
-        payload: { sessionId: 'session_abc', greeting: 'Hello!' },
+        type: "SESSION_CREATED" as const,
+        payload: { sessionId: "session_abc", greeting: "Hello!" },
       };
 
       const result = ideationReducer(startState, action);
 
-      expect(result.session.sessionId).toBe('session_abc');
-      expect(result.session.status).toBe('active');
+      expect(result.session.sessionId).toBe("session_abc");
+      expect(result.session.status).toBe("active");
     });
   });
 
-  describe('SESSION_ERROR', () => {
-    test('PASS: Sets status to error and stores message', () => {
+  describe("SESSION_ERROR", () => {
+    test("PASS: Sets status to error and stores message", () => {
       const action = {
-        type: 'SESSION_ERROR' as const,
-        payload: { error: 'Connection failed' },
+        type: "SESSION_ERROR" as const,
+        payload: { error: "Connection failed" },
       };
 
       const result = ideationReducer(initialState, action);
 
-      expect(result.session.status).toBe('error');
-      expect(result.session.error).toBe('Connection failed');
+      expect(result.session.status).toBe("error");
+      expect(result.session.error).toBe("Connection failed");
     });
   });
 
@@ -1978,11 +2006,11 @@ describe('ideationReducer', () => {
   // MESSAGE ACTIONS
   // ===========================================================================
 
-  describe('MESSAGE_SEND', () => {
-    test('PASS: Sets isLoading to true', () => {
+  describe("MESSAGE_SEND", () => {
+    test("PASS: Sets isLoading to true", () => {
       const action = {
-        type: 'MESSAGE_SEND' as const,
-        payload: { content: 'Hello' },
+        type: "MESSAGE_SEND" as const,
+        payload: { content: "Hello" },
       };
 
       const result = ideationReducer(initialState, action);
@@ -1992,20 +2020,20 @@ describe('ideationReducer', () => {
     });
   });
 
-  describe('MESSAGE_RECEIVED', () => {
-    test('PASS: Adds message to messages array', () => {
+  describe("MESSAGE_RECEIVED", () => {
+    test("PASS: Adds message to messages array", () => {
       const message = {
-        id: 'msg_1',
-        sessionId: 'session_1',
-        role: 'assistant' as const,
-        content: 'Hi there',
+        id: "msg_1",
+        sessionId: "session_1",
+        role: "assistant" as const,
+        content: "Hi there",
         buttons: null,
         form: null,
-        createdAt: '2025-01-01T00:00:00Z',
+        createdAt: "2025-01-01T00:00:00Z",
       };
 
       const action = {
-        type: 'MESSAGE_RECEIVED' as const,
+        type: "MESSAGE_RECEIVED" as const,
         payload: { message },
       };
 
@@ -2017,32 +2045,41 @@ describe('ideationReducer', () => {
     });
   });
 
-  describe('BUTTON_CLICK', () => {
-    test('PASS: Marks button as clicked on last message', () => {
+  describe("BUTTON_CLICK", () => {
+    test("PASS: Marks button as clicked on last message", () => {
       const stateWithMessage = {
         ...initialState,
         conversation: {
           ...initialState.conversation,
-          messages: [{
-            id: 'msg_1',
-            sessionId: 'session_1',
-            role: 'assistant' as const,
-            content: 'Choose one',
-            buttons: [{ id: 'btn_1', label: 'A', value: 'a', style: 'primary' as const }],
-            form: null,
-            createdAt: '2025-01-01T00:00:00Z',
-          }],
+          messages: [
+            {
+              id: "msg_1",
+              sessionId: "session_1",
+              role: "assistant" as const,
+              content: "Choose one",
+              buttons: [
+                {
+                  id: "btn_1",
+                  label: "A",
+                  value: "a",
+                  style: "primary" as const,
+                },
+              ],
+              form: null,
+              createdAt: "2025-01-01T00:00:00Z",
+            },
+          ],
         },
       };
 
       const action = {
-        type: 'BUTTON_CLICK' as const,
-        payload: { buttonId: 'btn_1', buttonValue: 'a' },
+        type: "BUTTON_CLICK" as const,
+        payload: { buttonId: "btn_1", buttonValue: "a" },
       };
 
       const result = ideationReducer(stateWithMessage, action);
 
-      expect(result.conversation.messages[0].buttonClicked).toBe('btn_1');
+      expect(result.conversation.messages[0].buttonClicked).toBe("btn_1");
       expect(result.conversation.isLoading).toBe(true);
     });
   });
@@ -2051,24 +2088,24 @@ describe('ideationReducer', () => {
   // CANDIDATE ACTIONS
   // ===========================================================================
 
-  describe('CANDIDATE_UPDATE', () => {
-    test('PASS: Updates candidate in state', () => {
+  describe("CANDIDATE_UPDATE", () => {
+    test("PASS: Updates candidate in state", () => {
       const candidate = {
-        id: 'cand_1',
-        sessionId: 'session_1',
-        title: 'New Idea',
-        summary: 'Summary',
-        status: 'active' as const,
+        id: "cand_1",
+        sessionId: "session_1",
+        title: "New Idea",
+        summary: "Summary",
+        status: "active" as const,
         confidence: 50,
         viability: 70,
         userSuggested: false,
         version: 1,
-        createdAt: '2025-01-01T00:00:00Z',
-        updatedAt: '2025-01-01T00:00:00Z',
+        createdAt: "2025-01-01T00:00:00Z",
+        updatedAt: "2025-01-01T00:00:00Z",
       };
 
       const action = {
-        type: 'CANDIDATE_UPDATE' as const,
+        type: "CANDIDATE_UPDATE" as const,
         payload: { candidate },
       };
 
@@ -2078,20 +2115,27 @@ describe('ideationReducer', () => {
     });
   });
 
-  describe('CANDIDATE_CLEAR', () => {
-    test('PASS: Resets candidate state', () => {
+  describe("CANDIDATE_CLEAR", () => {
+    test("PASS: Resets candidate state", () => {
       const stateWithCandidate = {
         ...initialState,
         candidate: {
           ...initialState.candidate,
-          candidate: { id: 'cand_1' } as any,
+          candidate: { id: "cand_1" } as any,
           confidence: 60,
           viability: 40,
-          risks: [{ riskType: 'test', severity: 'high', description: 'desc', source: null }],
+          risks: [
+            {
+              riskType: "test",
+              severity: "high",
+              description: "desc",
+              source: null,
+            },
+          ],
         },
       };
 
-      const action = { type: 'CANDIDATE_CLEAR' as const };
+      const action = { type: "CANDIDATE_CLEAR" as const };
 
       const result = ideationReducer(stateWithCandidate, action);
 
@@ -2102,10 +2146,10 @@ describe('ideationReducer', () => {
     });
   });
 
-  describe('CONFIDENCE_UPDATE', () => {
-    test('PASS: Updates confidence value', () => {
+  describe("CONFIDENCE_UPDATE", () => {
+    test("PASS: Updates confidence value", () => {
       const action = {
-        type: 'CONFIDENCE_UPDATE' as const,
+        type: "CONFIDENCE_UPDATE" as const,
         payload: { confidence: 45 },
       };
 
@@ -2115,14 +2159,19 @@ describe('ideationReducer', () => {
     });
   });
 
-  describe('VIABILITY_UPDATE', () => {
-    test('PASS: Updates viability and risks', () => {
+  describe("VIABILITY_UPDATE", () => {
+    test("PASS: Updates viability and risks", () => {
       const risks = [
-        { riskType: 'saturated_market', severity: 'high' as const, description: 'Many competitors', source: null },
+        {
+          riskType: "saturated_market",
+          severity: "high" as const,
+          description: "Many competitors",
+          source: null,
+        },
       ];
 
       const action = {
-        type: 'VIABILITY_UPDATE' as const,
+        type: "VIABILITY_UPDATE" as const,
         payload: { viability: 35, risks },
       };
 
@@ -2137,32 +2186,32 @@ describe('ideationReducer', () => {
   // INTERVENTION ACTIONS
   // ===========================================================================
 
-  describe('INTERVENTION_SHOW', () => {
-    test('PASS: Shows intervention with type', () => {
+  describe("INTERVENTION_SHOW", () => {
+    test("PASS: Shows intervention with type", () => {
       const action = {
-        type: 'INTERVENTION_SHOW' as const,
-        payload: { type: 'warning' as const },
+        type: "INTERVENTION_SHOW" as const,
+        payload: { type: "warning" as const },
       };
 
       const result = ideationReducer(initialState, action);
 
       expect(result.candidate.showIntervention).toBe(true);
-      expect(result.candidate.interventionType).toBe('warning');
+      expect(result.candidate.interventionType).toBe("warning");
     });
   });
 
-  describe('INTERVENTION_DISMISS', () => {
-    test('PASS: Hides intervention', () => {
+  describe("INTERVENTION_DISMISS", () => {
+    test("PASS: Hides intervention", () => {
       const stateWithIntervention = {
         ...initialState,
         candidate: {
           ...initialState.candidate,
           showIntervention: true,
-          interventionType: 'critical' as const,
+          interventionType: "critical" as const,
         },
       };
 
-      const action = { type: 'INTERVENTION_DISMISS' as const };
+      const action = { type: "INTERVENTION_DISMISS" as const };
 
       const result = ideationReducer(stateWithIntervention, action);
 
@@ -2175,8 +2224,8 @@ describe('ideationReducer', () => {
   // TOKEN ACTIONS
   // ===========================================================================
 
-  describe('TOKEN_UPDATE', () => {
-    test('PASS: Updates token usage', () => {
+  describe("TOKEN_UPDATE", () => {
+    test("PASS: Updates token usage", () => {
       const usage = {
         total: 50000,
         limit: 100000,
@@ -2185,7 +2234,7 @@ describe('ideationReducer', () => {
       };
 
       const action = {
-        type: 'TOKEN_UPDATE' as const,
+        type: "TOKEN_UPDATE" as const,
         payload: { usage },
       };
 
@@ -2195,8 +2244,8 @@ describe('ideationReducer', () => {
     });
   });
 
-  describe('HANDOFF_COMPLETE', () => {
-    test('PASS: Increments handoff count and clears pending', () => {
+  describe("HANDOFF_COMPLETE", () => {
+    test("PASS: Increments handoff count and clears pending", () => {
       const stateWithPendingHandoff = {
         ...initialState,
         tokens: {
@@ -2206,7 +2255,7 @@ describe('ideationReducer', () => {
         },
       };
 
-      const action = { type: 'HANDOFF_COMPLETE' as const };
+      const action = { type: "HANDOFF_COMPLETE" as const };
 
       const result = ideationReducer(stateWithPendingHandoff, action);
 
@@ -2410,22 +2459,22 @@ describe('IdeationSession Integration', () => {
 
 ### 7.4 Test Summary
 
-| Category | Test Count | Expected Pass | Expected Fail |
-|----------|------------|---------------|---------------|
-| IdeationEntryModal | 6 | 6 | 0 |
-| ButtonGroup | 6 | 6 | 0 |
-| ConfidenceMeter | 8 | 8 | 0 |
-| ViabilityMeter | 8 | 8 | 0 |
-| InputArea | 9 | 9 | 0 |
-| RisksList | 8 | 8 | 0 |
-| SessionHeader | 6 | 6 | 0 |
-| TokenUsageIndicator | 6 | 6 | 0 |
-| SourceCitations | 8 | 8 | 0 |
-| StreamingText | 6 | 6 | 0 |
-| ExistingIdeaModal | 5 | 5 | 0 |
-| ideationReducer | 14 | 14 | 0 |
-| Integration | 5 | 5 | 0 |
-| **TOTAL** | **95** | **95** | **0** |
+| Category            | Test Count | Expected Pass | Expected Fail |
+| ------------------- | ---------- | ------------- | ------------- |
+| IdeationEntryModal  | 6          | 6             | 0             |
+| ButtonGroup         | 6          | 6             | 0             |
+| ConfidenceMeter     | 8          | 8             | 0             |
+| ViabilityMeter      | 8          | 8             | 0             |
+| InputArea           | 9          | 9             | 0             |
+| RisksList           | 8          | 8             | 0             |
+| SessionHeader       | 6          | 6             | 0             |
+| TokenUsageIndicator | 6          | 6             | 0             |
+| SourceCitations     | 8          | 8             | 0             |
+| StreamingText       | 6          | 6             | 0             |
+| ExistingIdeaModal   | 5          | 5             | 0             |
+| ideationReducer     | 14         | 14            | 0             |
+| Integration         | 5          | 5             | 0             |
+| **TOTAL**           | **95**     | **95**        | **0**         |
 
 ---
 
@@ -2491,7 +2540,7 @@ frontend/src/
 
 ---
 
-*Document Version: 1.0*
-*Spec: 09 of 09*
-*Dependencies: Spec 1, Spec 7, Spec 8*
-*Status: Implementation Ready*
+_Document Version: 1.0_
+_Spec: 09 of 09_
+_Dependencies: Spec 1, Spec 7, Spec 8_
+_Status: Implementation Ready_

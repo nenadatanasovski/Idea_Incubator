@@ -13,6 +13,7 @@ queries:
   - millennial targeted apparel brands
 identifier: research_millennial_humour_t-
 ---
+
 ## Key Findings
 
 1. **Market is dominated by print-on-demand platforms** - Redbubble, TeePublic, and Etsy are the primary destinations for millennial humour tees, with independent artists driving most of the content. No single dominant Australian brand owns this niche.
@@ -51,7 +52,6 @@ identifier: research_millennial_humour_t-
 2. **Quality + specificity combination** - Combine Threadheads-level quality positioning with hyper-specific millennial Australian humour (not just generic Aussie jokes)
 3. **Community/brand-building potential** - Marketplaces lack brand loyalty; a direct brand could build community around shared millennial experiences
 4. **Underserved "elder millennial" sub-niche** - "Geriatric millennial" designs suggest demand for 35-44 age-specific content that feels distinct from Gen Z meme culture
-
 
 ---
 
@@ -94,7 +94,6 @@ identifier: research_millennial_humour_t-
 - **Underserved niches** - While fashion is saturated, other categories (tech accessories, home goods, gaming memorabilia) may have room
 - **Sustainability positioning** - Combining nostalgia with eco-friendly materials resonates with both generations
 - **Community/experience layer** - Digital platforms are driving nostalgia discovery; products paired with community experiences could differentiate
-
 
 ---
 

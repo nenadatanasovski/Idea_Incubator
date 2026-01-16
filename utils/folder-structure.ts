@@ -4,22 +4,27 @@
  * Utilities for creating and managing user-scoped folder structures
  * in the unified file system.
  */
-import * as fs from 'fs';
-import * as path from 'path';
-import { getConfig } from '../config/index.js';
+import * as fs from "fs";
+import * as path from "path";
+import { getConfig } from "../config/index.js";
 
 /**
  * Supported idea types for classification
  */
-export type IdeaType = 'business' | 'feature_internal' | 'feature_external' | 'service' | 'pivot';
+export type IdeaType =
+  | "business"
+  | "feature_internal"
+  | "feature_external"
+  | "service"
+  | "pivot";
 
 /**
  * Parent information for idea relationships
  */
 export interface ParentInfo {
-  type: 'internal' | 'external';
-  slug?: string;  // For internal parents (existing idea slug)
-  name?: string;  // For external parents (platform name)
+  type: "internal" | "external";
+  slug?: string; // For internal parents (existing idea slug)
+  name?: string; // For external parents (platform name)
 }
 
 /**
@@ -29,7 +34,7 @@ function getUsersRoot(): string {
   const config = getConfig();
   // Users directory is at the same level as ideas directory
   const projectRoot = path.dirname(config.paths.ideas);
-  return path.join(projectRoot, 'users');
+  return path.join(projectRoot, "users");
 }
 
 /**
@@ -49,8 +54,8 @@ function getUsersRoot(): string {
 export async function createUserFolder(userSlug: string): Promise<string> {
   const usersRoot = getUsersRoot();
   const userFolder = path.resolve(usersRoot, userSlug);
-  const ideasFolder = path.join(userFolder, 'ideas');
-  const profilePath = path.join(userFolder, 'profile.md');
+  const ideasFolder = path.join(userFolder, "ideas");
+  const profilePath = path.join(userFolder, "profile.md");
 
   // Create the user folder (recursive creates parent 'users/' if needed)
   if (!fs.existsSync(userFolder)) {
@@ -66,7 +71,7 @@ export async function createUserFolder(userSlug: string): Promise<string> {
   if (!fs.existsSync(profilePath)) {
     const now = new Date().toISOString();
     const profileContent = generateProfileTemplate(userSlug, now);
-    fs.writeFileSync(profilePath, profileContent, 'utf-8');
+    fs.writeFileSync(profilePath, profileContent, "utf-8");
   }
 
   return userFolder;
@@ -86,22 +91,22 @@ export async function createUserFolder(userSlug: string): Promise<string> {
  * @returns Object with path (absolute path to draft folder) and draftId (folder name)
  */
 export async function createDraftFolder(
-  userSlug: string
+  userSlug: string,
 ): Promise<{ path: string; draftId: string }> {
   // Ensure user folder exists first
   await createUserFolder(userSlug);
 
   const usersRoot = getUsersRoot();
-  const ideasFolder = path.join(usersRoot, userSlug, 'ideas');
+  const ideasFolder = path.join(usersRoot, userSlug, "ideas");
 
   // Generate timestamp-based draft ID (exactly yyyymmddhhmmss - 14 digits)
   const now = new Date();
   const year = now.getFullYear().toString();
-  const month = (now.getMonth() + 1).toString().padStart(2, '0');
-  const day = now.getDate().toString().padStart(2, '0');
-  const hours = now.getHours().toString().padStart(2, '0');
-  const minutes = now.getMinutes().toString().padStart(2, '0');
-  const seconds = now.getSeconds().toString().padStart(2, '0');
+  const month = (now.getMonth() + 1).toString().padStart(2, "0");
+  const day = now.getDate().toString().padStart(2, "0");
+  const hours = now.getHours().toString().padStart(2, "0");
+  const minutes = now.getMinutes().toString().padStart(2, "0");
+  const seconds = now.getSeconds().toString().padStart(2, "0");
   const ms = now.getMilliseconds();
 
   // Create base timestamp (14 digits: yyyymmddhhmmss)
@@ -119,7 +124,7 @@ export async function createDraftFolder(
     let attempts = 0;
     do {
       // Replace seconds with counter (2 digits)
-      const counterStr = counter.toString().padStart(2, '0').slice(-2);
+      const counterStr = counter.toString().padStart(2, "0").slice(-2);
       draftId = `draft_${basePrefix}${counterStr}`; // 12 + 2 = 14 digits
       draftPath = path.join(ideasFolder, draftId);
       counter = (counter + 1) % 100;
@@ -219,13 +224,13 @@ export async function createIdeaFolder(
   userSlug: string,
   ideaSlug: string,
   ideaType: IdeaType,
-  parent?: ParentInfo
+  parent?: ParentInfo,
 ): Promise<string> {
   // Ensure user folder exists first
   await createUserFolder(userSlug);
 
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
   const now = new Date().toISOString();
 
   // Create main idea folder
@@ -235,16 +240,16 @@ export async function createIdeaFolder(
 
   // Create all subdirectories
   const subdirectories = [
-    'research',
-    'validation',
-    'planning',
-    'build',
-    'marketing',
-    'networking',
-    'analysis',
-    'assets/diagrams',
-    'assets/images',
-    '.metadata',
+    "research",
+    "validation",
+    "planning",
+    "build",
+    "marketing",
+    "networking",
+    "analysis",
+    "assets/diagrams",
+    "assets/images",
+    ".metadata",
   ];
 
   for (const subdir of subdirectories) {
@@ -257,7 +262,7 @@ export async function createIdeaFolder(
   // Template variables
   const templateVars = {
     id: ideaSlug,
-    title: ideaSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    title: ideaSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
     idea_type: ideaType,
     creator: userSlug,
     created: now,
@@ -265,34 +270,94 @@ export async function createIdeaFolder(
   };
 
   // Create all template files
-  createTemplateFile(ideaFolder, 'README.md', generateReadmeTemplate(templateVars));
-  createTemplateFile(ideaFolder, 'development.md', generateDevelopmentTemplate(templateVars));
-  createTemplateFile(ideaFolder, 'target-users.md', generateTargetUsersTemplate(templateVars));
-  createTemplateFile(ideaFolder, 'problem-solution.md', generateProblemSolutionTemplate(templateVars));
-  createTemplateFile(ideaFolder, 'business-model.md', generateBusinessModelTemplate(templateVars));
-  createTemplateFile(ideaFolder, 'team.md', generateTeamTemplate(templateVars));
+  createTemplateFile(
+    ideaFolder,
+    "README.md",
+    generateReadmeTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaFolder,
+    "development.md",
+    generateDevelopmentTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaFolder,
+    "target-users.md",
+    generateTargetUsersTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaFolder,
+    "problem-solution.md",
+    generateProblemSolutionTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaFolder,
+    "business-model.md",
+    generateBusinessModelTemplate(templateVars),
+  );
+  createTemplateFile(ideaFolder, "team.md", generateTeamTemplate(templateVars));
 
   // Research templates
-  createTemplateFile(ideaFolder, 'research/market.md', generateMarketTemplate(templateVars));
-  createTemplateFile(ideaFolder, 'research/competitive.md', generateCompetitiveTemplate(templateVars));
+  createTemplateFile(
+    ideaFolder,
+    "research/market.md",
+    generateMarketTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaFolder,
+    "research/competitive.md",
+    generateCompetitiveTemplate(templateVars),
+  );
 
   // Validation templates
-  createTemplateFile(ideaFolder, 'validation/assumptions.md', generateAssumptionsTemplate(templateVars));
+  createTemplateFile(
+    ideaFolder,
+    "validation/assumptions.md",
+    generateAssumptionsTemplate(templateVars),
+  );
 
   // Planning templates
-  createTemplateFile(ideaFolder, 'planning/brief.md', generateBriefTemplate(templateVars));
-  createTemplateFile(ideaFolder, 'planning/mvp-scope.md', generateMvpScopeTemplate(templateVars));
-  createTemplateFile(ideaFolder, 'planning/architecture.md', generateArchitectureTemplate(templateVars));
+  createTemplateFile(
+    ideaFolder,
+    "planning/brief.md",
+    generateBriefTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaFolder,
+    "planning/mvp-scope.md",
+    generateMvpScopeTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaFolder,
+    "planning/architecture.md",
+    generateArchitectureTemplate(templateVars),
+  );
 
   // Marketing templates
-  createTemplateFile(ideaFolder, 'marketing/gtm.md', generateGtmTemplate(templateVars));
-  createTemplateFile(ideaFolder, 'marketing/pitch.md', generatePitchTemplate(templateVars));
+  createTemplateFile(
+    ideaFolder,
+    "marketing/gtm.md",
+    generateGtmTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaFolder,
+    "marketing/pitch.md",
+    generatePitchTemplate(templateVars),
+  );
 
   // Networking templates
-  createTemplateFile(ideaFolder, 'networking/contacts.md', generateContactsTemplate(templateVars));
+  createTemplateFile(
+    ideaFolder,
+    "networking/contacts.md",
+    generateContactsTemplate(templateVars),
+  );
 
   // Build templates
-  createTemplateFile(ideaFolder, 'build/spec.md', generateSpecTemplate(templateVars));
+  createTemplateFile(
+    ideaFolder,
+    "build/spec.md",
+    generateSpecTemplate(templateVars),
+  );
 
   // Create metadata files
   createMetadataFiles(ideaFolder, templateVars, parent);
@@ -303,10 +368,14 @@ export async function createIdeaFolder(
 /**
  * Helper function to create a template file if it doesn't exist
  */
-function createTemplateFile(ideaFolder: string, relativePath: string, content: string): void {
+function createTemplateFile(
+  ideaFolder: string,
+  relativePath: string,
+  content: string,
+): void {
   const filePath = path.join(ideaFolder, relativePath);
   if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, content, 'utf-8');
+    fs.writeFileSync(filePath, content, "utf-8");
   }
 }
 
@@ -316,26 +385,28 @@ function createTemplateFile(ideaFolder: string, relativePath: string, content: s
 function createMetadataFiles(
   ideaFolder: string,
   templateVars: { id: string; idea_type: IdeaType; creator: string },
-  parent?: ParentInfo
+  parent?: ParentInfo,
 ): void {
-  const metadataFolder = path.join(ideaFolder, '.metadata');
+  const metadataFolder = path.join(ideaFolder, ".metadata");
 
   // index.json - empty object
-  const indexPath = path.join(metadataFolder, 'index.json');
+  const indexPath = path.join(metadataFolder, "index.json");
   if (!fs.existsSync(indexPath)) {
-    fs.writeFileSync(indexPath, '{}', 'utf-8');
+    fs.writeFileSync(indexPath, "{}", "utf-8");
   }
 
   // relationships.json
-  const relationshipsPath = path.join(metadataFolder, 'relationships.json');
+  const relationshipsPath = path.join(metadataFolder, "relationships.json");
   if (!fs.existsSync(relationshipsPath)) {
     const relationships = {
       idea_type: templateVars.idea_type,
-      parent: parent ? {
-        type: parent.type,
-        slug: parent.slug || null,
-        name: parent.name || null,
-      } : null,
+      parent: parent
+        ? {
+            type: parent.type,
+            slug: parent.slug || null,
+            name: parent.name || null,
+          }
+        : null,
       integrates_with: [],
       evolved_from: null,
       forked_from: null,
@@ -349,29 +420,37 @@ function createMetadataFiles(
         shares_audience_with: [],
       },
     };
-    fs.writeFileSync(relationshipsPath, JSON.stringify(relationships, null, 2), 'utf-8');
+    fs.writeFileSync(
+      relationshipsPath,
+      JSON.stringify(relationships, null, 2),
+      "utf-8",
+    );
   }
 
   // priority.json
-  const priorityPath = path.join(metadataFolder, 'priority.json');
+  const priorityPath = path.join(metadataFolder, "priority.json");
   if (!fs.existsSync(priorityPath)) {
     const priority = {
-      always_show: ['README.md', 'development.md'],
+      always_show: ["README.md", "development.md"],
       by_phase: {
-        SPARK: ['README.md', 'development.md', 'target-users.md'],
-        CLARIFY: ['problem-solution.md', 'target-users.md', 'development.md'],
-        RESEARCH: ['research/market.md', 'research/competitive.md'],
-        EVALUATE: ['validation/assumptions.md', 'analysis/redteam.md'],
-        VALIDATE: ['validation/assumptions.md'],
-        DESIGN: ['planning/brief.md', 'planning/mvp-scope.md', 'planning/architecture.md'],
-        PROTOTYPE: ['build/spec.md', 'planning/mvp-scope.md'],
-        BUILD: ['build/spec.md', 'planning/architecture.md'],
-        LAUNCH: ['marketing/gtm.md', 'marketing/pitch.md'],
+        SPARK: ["README.md", "development.md", "target-users.md"],
+        CLARIFY: ["problem-solution.md", "target-users.md", "development.md"],
+        RESEARCH: ["research/market.md", "research/competitive.md"],
+        EVALUATE: ["validation/assumptions.md", "analysis/redteam.md"],
+        VALIDATE: ["validation/assumptions.md"],
+        DESIGN: [
+          "planning/brief.md",
+          "planning/mvp-scope.md",
+          "planning/architecture.md",
+        ],
+        PROTOTYPE: ["build/spec.md", "planning/mvp-scope.md"],
+        BUILD: ["build/spec.md", "planning/architecture.md"],
+        LAUNCH: ["marketing/gtm.md", "marketing/pitch.md"],
       },
       recently_updated: [],
       ai_recommended: [],
     };
-    fs.writeFileSync(priorityPath, JSON.stringify(priority, null, 2), 'utf-8');
+    fs.writeFileSync(priorityPath, JSON.stringify(priority, null, 2), "utf-8");
   }
 }
 
@@ -1076,11 +1155,11 @@ export async function renameDraftToIdea(
   userSlug: string,
   draftId: string,
   ideaSlug: string,
-  ideaType: IdeaType
+  ideaType: IdeaType,
 ): Promise<string> {
   const usersRoot = getUsersRoot();
-  const draftPath = path.resolve(usersRoot, userSlug, 'ideas', draftId);
-  const ideaPath = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const draftPath = path.resolve(usersRoot, userSlug, "ideas", draftId);
+  const ideaPath = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 
   // Verify draft folder exists
   if (!fs.existsSync(draftPath)) {
@@ -1101,16 +1180,16 @@ export async function renameDraftToIdea(
 
   // Create all subdirectories if they don't exist
   const subdirectories = [
-    'research',
-    'validation',
-    'planning',
-    'build',
-    'marketing',
-    'networking',
-    'analysis',
-    'assets/diagrams',
-    'assets/images',
-    '.metadata',
+    "research",
+    "validation",
+    "planning",
+    "build",
+    "marketing",
+    "networking",
+    "analysis",
+    "assets/diagrams",
+    "assets/images",
+    ".metadata",
   ];
 
   for (const subdir of subdirectories) {
@@ -1123,7 +1202,7 @@ export async function renameDraftToIdea(
   // Template variables
   const templateVars = {
     id: ideaSlug,
-    title: ideaSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    title: ideaSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
     idea_type: ideaType,
     creator: userSlug,
     created: now,
@@ -1131,34 +1210,94 @@ export async function renameDraftToIdea(
   };
 
   // Create all template files if they don't exist
-  createTemplateFile(ideaPath, 'README.md', generateReadmeTemplate(templateVars));
-  createTemplateFile(ideaPath, 'development.md', generateDevelopmentTemplate(templateVars));
-  createTemplateFile(ideaPath, 'target-users.md', generateTargetUsersTemplate(templateVars));
-  createTemplateFile(ideaPath, 'problem-solution.md', generateProblemSolutionTemplate(templateVars));
-  createTemplateFile(ideaPath, 'business-model.md', generateBusinessModelTemplate(templateVars));
-  createTemplateFile(ideaPath, 'team.md', generateTeamTemplate(templateVars));
+  createTemplateFile(
+    ideaPath,
+    "README.md",
+    generateReadmeTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaPath,
+    "development.md",
+    generateDevelopmentTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaPath,
+    "target-users.md",
+    generateTargetUsersTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaPath,
+    "problem-solution.md",
+    generateProblemSolutionTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaPath,
+    "business-model.md",
+    generateBusinessModelTemplate(templateVars),
+  );
+  createTemplateFile(ideaPath, "team.md", generateTeamTemplate(templateVars));
 
   // Research templates
-  createTemplateFile(ideaPath, 'research/market.md', generateMarketTemplate(templateVars));
-  createTemplateFile(ideaPath, 'research/competitive.md', generateCompetitiveTemplate(templateVars));
+  createTemplateFile(
+    ideaPath,
+    "research/market.md",
+    generateMarketTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaPath,
+    "research/competitive.md",
+    generateCompetitiveTemplate(templateVars),
+  );
 
   // Validation templates
-  createTemplateFile(ideaPath, 'validation/assumptions.md', generateAssumptionsTemplate(templateVars));
+  createTemplateFile(
+    ideaPath,
+    "validation/assumptions.md",
+    generateAssumptionsTemplate(templateVars),
+  );
 
   // Planning templates
-  createTemplateFile(ideaPath, 'planning/brief.md', generateBriefTemplate(templateVars));
-  createTemplateFile(ideaPath, 'planning/mvp-scope.md', generateMvpScopeTemplate(templateVars));
-  createTemplateFile(ideaPath, 'planning/architecture.md', generateArchitectureTemplate(templateVars));
+  createTemplateFile(
+    ideaPath,
+    "planning/brief.md",
+    generateBriefTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaPath,
+    "planning/mvp-scope.md",
+    generateMvpScopeTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaPath,
+    "planning/architecture.md",
+    generateArchitectureTemplate(templateVars),
+  );
 
   // Marketing templates
-  createTemplateFile(ideaPath, 'marketing/gtm.md', generateGtmTemplate(templateVars));
-  createTemplateFile(ideaPath, 'marketing/pitch.md', generatePitchTemplate(templateVars));
+  createTemplateFile(
+    ideaPath,
+    "marketing/gtm.md",
+    generateGtmTemplate(templateVars),
+  );
+  createTemplateFile(
+    ideaPath,
+    "marketing/pitch.md",
+    generatePitchTemplate(templateVars),
+  );
 
   // Networking templates
-  createTemplateFile(ideaPath, 'networking/contacts.md', generateContactsTemplate(templateVars));
+  createTemplateFile(
+    ideaPath,
+    "networking/contacts.md",
+    generateContactsTemplate(templateVars),
+  );
 
   // Build templates
-  createTemplateFile(ideaPath, 'build/spec.md', generateSpecTemplate(templateVars));
+  createTemplateFile(
+    ideaPath,
+    "build/spec.md",
+    generateSpecTemplate(templateVars),
+  );
 
   // Create metadata files
   createMetadataFiles(ideaPath, templateVars, undefined);
@@ -1178,7 +1317,7 @@ export async function renameDraftToIdea(
  */
 export function ideaFolderExists(userSlug: string, ideaSlug: string): boolean {
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
   return fs.existsSync(ideaFolder);
 }
 
@@ -1191,7 +1330,7 @@ export function ideaFolderExists(userSlug: string, ideaSlug: string): boolean {
  */
 export function getIdeaFolderPath(userSlug: string, ideaSlug: string): string {
   const usersRoot = getUsersRoot();
-  return path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  return path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 }
 
 /**
@@ -1201,21 +1340,21 @@ export function getIdeaFolderPath(userSlug: string, ideaSlug: string): string {
 async function updateDatabaseReferences(
   userSlug: string,
   oldSlug: string,
-  newSlug: string
+  newSlug: string,
 ): Promise<void> {
   // Dynamic import to avoid circular dependencies
-  const { run, saveDb } = await import('../database/db.js');
+  const { run, saveDb } = await import("../database/db.js");
 
   // Update ideation_sessions
   await run(
     `UPDATE ideation_sessions SET idea_slug = ? WHERE user_slug = ? AND idea_slug = ?`,
-    [newSlug, userSlug, oldSlug]
+    [newSlug, userSlug, oldSlug],
   );
 
   // Update ideation_artifacts
   await run(
     `UPDATE ideation_artifacts SET idea_slug = ? WHERE user_slug = ? AND idea_slug = ?`,
-    [newSlug, userSlug, oldSlug]
+    [newSlug, userSlug, oldSlug],
   );
 
   // Save changes to disk
@@ -1244,7 +1383,7 @@ export interface IdeaInfo {
  */
 export async function listUserIdeas(userSlug: string): Promise<IdeaInfo[]> {
   const usersRoot = getUsersRoot();
-  const ideasFolder = path.join(usersRoot, userSlug, 'ideas');
+  const ideasFolder = path.join(usersRoot, userSlug, "ideas");
 
   // Check if ideas folder exists
   if (!fs.existsSync(ideasFolder)) {
@@ -1259,22 +1398,24 @@ export async function listUserIdeas(userSlug: string): Promise<IdeaInfo[]> {
 
     const ideaSlug = entry.name;
     const ideaFolder = path.join(ideasFolder, ideaSlug);
-    const readmePath = path.join(ideaFolder, 'README.md');
+    const readmePath = path.join(ideaFolder, "README.md");
 
     // Check if this is a draft folder
     const isDraft = /^draft_\d{14}$/.test(ideaSlug);
 
     // Default values
-    let title = ideaSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    let ideaType: IdeaType = 'business';
-    let stage = 'SPARK';
-    let created = '';
-    let updated = '';
+    let title = ideaSlug
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    let ideaType: IdeaType = "business";
+    let stage = "SPARK";
+    let created = "";
+    let updated = "";
 
     // Try to read README.md for metadata
     if (fs.existsSync(readmePath)) {
       try {
-        const content = fs.readFileSync(readmePath, 'utf-8');
+        const content = fs.readFileSync(readmePath, "utf-8");
 
         // Extract frontmatter
         const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
@@ -1332,7 +1473,9 @@ export async function listUserIdeas(userSlug: string): Promise<IdeaInfo[]> {
   }
 
   // Sort by updated date (newest first)
-  ideas.sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime());
+  ideas.sort(
+    (a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime(),
+  );
 
   return ideas;
 }

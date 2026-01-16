@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import type {
   IdeaFinancialAllocation,
   AllocationPriority,
@@ -6,12 +6,9 @@ import type {
   PivotWillingness,
   RiskTolerance,
   UserProfileSummary,
-} from '../types';
-import {
-  allocationPriorityMeta,
-  incomeTypeMeta,
-} from '../types';
-import { getFinancialAllocation, saveFinancialAllocation } from '../api/client';
+} from "../types";
+import { allocationPriorityMeta, incomeTypeMeta } from "../types";
+import { getFinancialAllocation, saveFinancialAllocation } from "../api/client";
 
 interface Props {
   slug: string;
@@ -21,34 +18,41 @@ interface Props {
 }
 
 const formatCurrency = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  if (value === null || value === undefined) return "";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
 };
 
 const parseCurrency = (value: string): number | null => {
-  const cleaned = value.replace(/[^0-9.-]/g, '');
+  const cleaned = value.replace(/[^0-9.-]/g, "");
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? null : parsed;
 };
 
-export default function FinancialAllocationForm({ slug, profile, onSave, onNext }: Props) {
-  const [allocation, setAllocation] = useState<Partial<IdeaFinancialAllocation>>({
+export default function FinancialAllocationForm({
+  slug,
+  profile,
+  onSave,
+  onNext,
+}: Props) {
+  const [allocation, setAllocation] = useState<
+    Partial<IdeaFinancialAllocation>
+  >({
     allocatedBudget: 0,
     allocatedWeeklyHours: 0,
     allocatedRunwayMonths: 0,
-    allocationPriority: 'exploration',
+    allocationPriority: "exploration",
     targetIncomeFromIdea: null,
     incomeTimelineMonths: null,
-    incomeType: 'supplement',
+    incomeType: "supplement",
     exitIntent: false,
     ideaRiskTolerance: null,
     maxAcceptableLoss: null,
-    pivotWillingness: 'moderate',
+    pivotWillingness: "moderate",
     validationBudget: 0,
     maxTimeToValidateMonths: null,
     killCriteria: null,
@@ -67,7 +71,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
           setAllocation(data);
         }
       } catch (err) {
-        console.error('Failed to load allocation:', err);
+        console.error("Failed to load allocation:", err);
       } finally {
         setLoading(false);
       }
@@ -84,7 +88,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
         onSave(allocation as IdeaFinancialAllocation);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(false);
     }
@@ -114,24 +118,26 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
       {/* Header with Profile Context */}
       {profile && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-800 mb-2">Your Total Capacity</h4>
+          <h4 className="font-medium text-blue-800 mb-2">
+            Your Total Capacity
+          </h4>
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
-              <span className="text-blue-600">Investment:</span>{' '}
+              <span className="text-blue-600">Investment:</span>{" "}
               <span className="font-medium">
-                {totalCapacity ? formatCurrency(totalCapacity) : 'Not set'}
+                {totalCapacity ? formatCurrency(totalCapacity) : "Not set"}
               </span>
             </div>
             <div>
-              <span className="text-blue-600">Time:</span>{' '}
+              <span className="text-blue-600">Time:</span>{" "}
               <span className="font-medium">
-                {totalHours ? `${totalHours} hrs/week` : 'Not set'}
+                {totalHours ? `${totalHours} hrs/week` : "Not set"}
               </span>
             </div>
             <div>
-              <span className="text-blue-600">Base Risk:</span>{' '}
+              <span className="text-blue-600">Base Risk:</span>{" "}
               <span className="font-medium capitalize">
-                {profile.risk_tolerance ?? 'Not set'}
+                {profile.risk_tolerance ?? "Not set"}
               </span>
             </div>
           </div>
@@ -140,7 +146,9 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
 
       {/* Resource Allocation Section */}
       <section>
-        <h3 className="text-lg font-semibold mb-4">Resource Allocation for This Idea</h3>
+        <h3 className="text-lg font-semibold mb-4">
+          Resource Allocation for This Idea
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Budget */}
           <div>
@@ -152,7 +160,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
               <input
                 type="text"
                 className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={allocation.allocatedBudget || ''}
+                value={allocation.allocatedBudget || ""}
                 onChange={(e) => {
                   const val = parseCurrency(e.target.value);
                   setAllocation({ ...allocation, allocatedBudget: val ?? 0 });
@@ -177,7 +185,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
               min="0"
               max="80"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              value={allocation.allocatedWeeklyHours || ''}
+              value={allocation.allocatedWeeklyHours || ""}
               onChange={(e) => {
                 setAllocation({
                   ...allocation,
@@ -187,7 +195,9 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
               placeholder="0"
             />
             {totalHours && (
-              <p className="text-xs text-gray-500 mt-1">Max: {totalHours} hrs/week</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Max: {totalHours} hrs/week
+              </p>
             )}
           </div>
 
@@ -200,7 +210,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
               type="number"
               min="0"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              value={allocation.allocatedRunwayMonths || ''}
+              value={allocation.allocatedRunwayMonths || ""}
               onChange={(e) => {
                 setAllocation({
                   ...allocation,
@@ -221,7 +231,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
             </label>
             <select
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              value={allocation.allocationPriority || 'exploration'}
+              value={allocation.allocationPriority || "exploration"}
               onChange={(e) => {
                 setAllocation({
                   ...allocation,
@@ -241,7 +251,9 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
 
       {/* Income Goals Section */}
       <section>
-        <h3 className="text-lg font-semibold mb-4">Income Goals from This Idea</h3>
+        <h3 className="text-lg font-semibold mb-4">
+          Income Goals from This Idea
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Target Income */}
           <div>
@@ -253,7 +265,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
               <input
                 type="text"
                 className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={allocation.targetIncomeFromIdea || ''}
+                value={allocation.targetIncomeFromIdea || ""}
                 onChange={(e) => {
                   setAllocation({
                     ...allocation,
@@ -274,7 +286,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
               type="number"
               min="0"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              value={allocation.incomeTimelineMonths || ''}
+              value={allocation.incomeTimelineMonths || ""}
               onChange={(e) => {
                 setAllocation({
                   ...allocation,
@@ -296,8 +308,8 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
                   key={key}
                   className={`flex flex-col items-center p-3 border rounded-lg cursor-pointer transition-colors ${
                     allocation.incomeType === key
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <input
@@ -306,7 +318,10 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
                     value={key}
                     checked={allocation.incomeType === key}
                     onChange={() => {
-                      setAllocation({ ...allocation, incomeType: key as IncomeType });
+                      setAllocation({
+                        ...allocation,
+                        incomeType: key as IncomeType,
+                      });
                     }}
                     className="sr-only"
                   />
@@ -326,7 +341,10 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
                 type="checkbox"
                 checked={allocation.exitIntent || false}
                 onChange={(e) => {
-                  setAllocation({ ...allocation, exitIntent: e.target.checked });
+                  setAllocation({
+                    ...allocation,
+                    exitIntent: e.target.checked,
+                  });
                 }}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
@@ -340,7 +358,9 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
 
       {/* Risk Section */}
       <section>
-        <h3 className="text-lg font-semibold mb-4">Risk Tolerance for This Idea</h3>
+        <h3 className="text-lg font-semibold mb-4">
+          Risk Tolerance for This Idea
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Risk Tolerance */}
           <div>
@@ -348,34 +368,41 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
               Risk Level
               {profile?.risk_tolerance && (
                 <span className="text-gray-500 font-normal">
-                  {' '}
+                  {" "}
                   (Your baseline: {profile.risk_tolerance})
                 </span>
               )}
             </label>
             <div className="flex gap-2">
-              {(['low', 'medium', 'high', 'very_high'] as RiskTolerance[]).map((level) => (
-                <label
-                  key={level}
-                  className={`flex-1 text-center py-2 px-3 border rounded-lg cursor-pointer transition-colors ${
-                    allocation.ideaRiskTolerance === level
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="riskTolerance"
-                    value={level}
-                    checked={allocation.ideaRiskTolerance === level}
-                    onChange={() => {
-                      setAllocation({ ...allocation, ideaRiskTolerance: level });
-                    }}
-                    className="sr-only"
-                  />
-                  <span className="text-sm capitalize">{level.replace('_', ' ')}</span>
-                </label>
-              ))}
+              {(["low", "medium", "high", "very_high"] as RiskTolerance[]).map(
+                (level) => (
+                  <label
+                    key={level}
+                    className={`flex-1 text-center py-2 px-3 border rounded-lg cursor-pointer transition-colors ${
+                      allocation.ideaRiskTolerance === level
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="riskTolerance"
+                      value={level}
+                      checked={allocation.ideaRiskTolerance === level}
+                      onChange={() => {
+                        setAllocation({
+                          ...allocation,
+                          ideaRiskTolerance: level,
+                        });
+                      }}
+                      className="sr-only"
+                    />
+                    <span className="text-sm capitalize">
+                      {level.replace("_", " ")}
+                    </span>
+                  </label>
+                ),
+              )}
             </div>
           </div>
 
@@ -389,7 +416,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
               <input
                 type="text"
                 className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={allocation.maxAcceptableLoss || ''}
+                value={allocation.maxAcceptableLoss || ""}
                 onChange={(e) => {
                   setAllocation({
                     ...allocation,
@@ -407,30 +434,37 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
               Pivot Willingness
             </label>
             <div className="flex gap-2">
-              {(['rigid', 'moderate', 'flexible', 'very_flexible'] as PivotWillingness[]).map(
-                (level) => (
-                  <label
-                    key={level}
-                    className={`flex-1 text-center py-2 px-3 border rounded-lg cursor-pointer transition-colors ${
-                      allocation.pivotWillingness === level
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="pivotWillingness"
-                      value={level}
-                      checked={allocation.pivotWillingness === level}
-                      onChange={() => {
-                        setAllocation({ ...allocation, pivotWillingness: level });
-                      }}
-                      className="sr-only"
-                    />
-                    <span className="text-sm capitalize">{level.replace('_', ' ')}</span>
-                  </label>
-                )
-              )}
+              {(
+                [
+                  "rigid",
+                  "moderate",
+                  "flexible",
+                  "very_flexible",
+                ] as PivotWillingness[]
+              ).map((level) => (
+                <label
+                  key={level}
+                  className={`flex-1 text-center py-2 px-3 border rounded-lg cursor-pointer transition-colors ${
+                    allocation.pivotWillingness === level
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="pivotWillingness"
+                    value={level}
+                    checked={allocation.pivotWillingness === level}
+                    onChange={() => {
+                      setAllocation({ ...allocation, pivotWillingness: level });
+                    }}
+                    className="sr-only"
+                  />
+                  <span className="text-sm capitalize">
+                    {level.replace("_", " ")}
+                  </span>
+                </label>
+              ))}
             </div>
           </div>
         </div>
@@ -450,7 +484,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
               <input
                 type="text"
                 className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={allocation.validationBudget || ''}
+                value={allocation.validationBudget || ""}
                 onChange={(e) => {
                   setAllocation({
                     ...allocation,
@@ -474,7 +508,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
               type="number"
               min="0"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              value={allocation.maxTimeToValidateMonths || ''}
+              value={allocation.maxTimeToValidateMonths || ""}
               onChange={(e) => {
                 setAllocation({
                   ...allocation,
@@ -493,9 +527,12 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
             <textarea
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               rows={2}
-              value={allocation.killCriteria || ''}
+              value={allocation.killCriteria || ""}
               onChange={(e) => {
-                setAllocation({ ...allocation, killCriteria: e.target.value || null });
+                setAllocation({
+                  ...allocation,
+                  killCriteria: e.target.value || null,
+                });
               }}
               placeholder="When should you stop? e.g., 'No paying customers after 3 months'"
             />
@@ -518,7 +555,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
           disabled={saving}
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
         >
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? "Saving..." : "Save"}
         </button>
         <button
           type="button"
@@ -526,7 +563,7 @@ export default function FinancialAllocationForm({ slug, profile, onSave, onNext 
           disabled={saving}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
         >
-          {saving ? 'Saving...' : 'Continue to Approach Selection'}
+          {saving ? "Saving..." : "Continue to Approach Selection"}
         </button>
       </div>
     </div>

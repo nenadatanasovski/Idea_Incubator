@@ -9,22 +9,22 @@
  * All supported appendix types
  */
 export type AppendixType =
-  | 'prd_reference'
-  | 'code_context'
-  | 'gotcha_list'
-  | 'rollback_plan'
-  | 'test_context'
-  | 'dependency_notes'
-  | 'architecture_decision'
-  | 'user_story'
-  | 'acceptance_criteria'
-  | 'research_notes'
-  | 'api_contract';
+  | "prd_reference"
+  | "code_context"
+  | "gotcha_list"
+  | "rollback_plan"
+  | "test_context"
+  | "dependency_notes"
+  | "architecture_decision"
+  | "user_story"
+  | "acceptance_criteria"
+  | "research_notes"
+  | "api_contract";
 
 /**
  * Storage type for appendix content
  */
-export type AppendixContentType = 'inline' | 'reference';
+export type AppendixContentType = "inline" | "reference";
 
 /**
  * Task Appendix entity
@@ -117,15 +117,15 @@ export function mapTaskAppendixRow(row: TaskAppendixRow): TaskAppendix {
  * Appendix type descriptions for UI
  */
 export const APPENDIX_TYPE_DESCRIPTIONS: Record<AppendixType, string> = {
-  prd_reference: 'Reference to a Product Requirements Document',
-  code_context: 'Relevant code snippets and context',
-  gotcha_list: 'Known issues and pitfalls to avoid',
-  rollback_plan: 'Plan for reverting changes if needed',
-  test_context: 'Test scenarios and expected outcomes',
-  dependency_notes: 'Notes about dependencies and prerequisites',
-  architecture_decision: 'Architecture decision records (ADRs)',
-  user_story: 'User story with acceptance criteria',
-  acceptance_criteria: 'Explicit acceptance criteria for completion',
-  research_notes: 'Research findings and notes',
-  api_contract: 'API contract definitions (OpenAPI, GraphQL, etc.)',
+  prd_reference: "Reference to a Product Requirements Document",
+  code_context: "Relevant code snippets and context",
+  gotcha_list: "Known issues and pitfalls to avoid",
+  rollback_plan: "Plan for reverting changes if needed",
+  test_context: "Test scenarios and expected outcomes",
+  dependency_notes: "Notes about dependencies and prerequisites",
+  architecture_decision: "Architecture decision records (ADRs)",
+  user_story: "User story with acceptance criteria",
+  acceptance_criteria: "Explicit acceptance criteria for completion",
+  research_notes: "Research findings and notes",
+  api_contract: "API contract definitions (OpenAPI, GraphQL, etc.)",
 };

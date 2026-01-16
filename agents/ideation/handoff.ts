@@ -5,10 +5,10 @@ import {
   NarrowingState,
   IdeaCandidate,
   ViabilityRisk,
-} from '../../types/ideation.js';
-import { sessionManager } from './session-manager.js';
-import { memoryManager } from './memory-manager.js';
-import { messageStore } from './message-store.js';
+} from "../../types/ideation.js";
+import { sessionManager } from "./session-manager.js";
+import { memoryManager } from "./memory-manager.js";
+import { messageStore } from "./message-store.js";
 
 /**
  * HANDOFF MODULE
@@ -39,7 +39,7 @@ export interface HandoffResult {
  */
 export async function prepareHandoff(
   session: IdeationSession,
-  state: HandoffState
+  state: HandoffState,
 ): Promise<HandoffResult> {
   const handoffId = `handoff-${session.handoffCount + 1}`;
 
@@ -55,7 +55,7 @@ export async function prepareHandoff(
     candidate: state.candidate,
     viability: {
       total: state.viability,
-      risks: state.risks.map(r => ({
+      risks: state.risks.map((r) => ({
         type: r.riskType,
         description: r.description,
         severity: r.severity,
@@ -87,22 +87,23 @@ export async function prepareHandoff(
  */
 function generateConversationSummary(
   messages: { role: string; content: string }[],
-  state: HandoffState
+  state: HandoffState,
 ): string {
   const sections: string[] = [];
 
   // Recent conversation highlights
-  sections.push('## Recent Conversation');
+  sections.push("## Recent Conversation");
   const recentExchanges = messages.slice(-10);
-  recentExchanges.forEach(m => {
-    const prefix = m.role === 'user' ? 'User' : 'Agent';
+  recentExchanges.forEach((m) => {
+    const prefix = m.role === "user" ? "User" : "Agent";
     // Truncate long messages
-    const content = m.content.length > 200 ? m.content.slice(0, 200) + '...' : m.content;
+    const content =
+      m.content.length > 200 ? m.content.slice(0, 200) + "..." : m.content;
     sections.push(`**${prefix}:** ${content}`);
   });
 
   // Current state summary
-  sections.push('\n## Current State');
+  sections.push("\n## Current State");
 
   // Candidate status
   if (state.candidate) {
@@ -110,57 +111,71 @@ function generateConversationSummary(
     sections.push(`- **Confidence:** ${state.confidence}%`);
     sections.push(`- **Viability:** ${state.viability}%`);
   } else {
-    sections.push('- No candidate formed yet, still exploring');
+    sections.push("- No candidate formed yet, still exploring");
   }
 
   // Key discoveries
   if (state.selfDiscovery.frustrations.length > 0) {
-    sections.push(`- **Key Frustrations:** ${state.selfDiscovery.frustrations.map(f => f.description).join('; ')}`);
+    sections.push(
+      `- **Key Frustrations:** ${state.selfDiscovery.frustrations.map((f) => f.description).join("; ")}`,
+    );
   }
 
   if (state.selfDiscovery.expertise.length > 0) {
-    sections.push(`- **Expertise:** ${state.selfDiscovery.expertise.map(e => e.area).join(', ')}`);
+    sections.push(
+      `- **Expertise:** ${state.selfDiscovery.expertise.map((e) => e.area).join(", ")}`,
+    );
   }
 
   // Narrowing progress
   const narrowed: string[] = [];
-  if (state.narrowingState.productType.value) narrowed.push(`Product: ${state.narrowingState.productType.value}`);
-  if (state.narrowingState.customerType.value) narrowed.push(`Customer: ${state.narrowingState.customerType.value}`);
-  if (state.narrowingState.geography.value) narrowed.push(`Geography: ${state.narrowingState.geography.value}`);
+  if (state.narrowingState.productType.value)
+    narrowed.push(`Product: ${state.narrowingState.productType.value}`);
+  if (state.narrowingState.customerType.value)
+    narrowed.push(`Customer: ${state.narrowingState.customerType.value}`);
+  if (state.narrowingState.geography.value)
+    narrowed.push(`Geography: ${state.narrowingState.geography.value}`);
   if (narrowed.length > 0) {
-    sections.push(`- **Narrowing:** ${narrowed.join(', ')}`);
+    sections.push(`- **Narrowing:** ${narrowed.join(", ")}`);
   }
 
   // Active risks
   if (state.risks.length > 0) {
-    const criticalRisks = state.risks.filter(r => r.severity === 'critical' || r.severity === 'high');
+    const criticalRisks = state.risks.filter(
+      (r) => r.severity === "critical" || r.severity === "high",
+    );
     if (criticalRisks.length > 0) {
-      sections.push(`- **Active Risks:** ${criticalRisks.map(r => r.description).join('; ')}`);
+      sections.push(
+        `- **Active Risks:** ${criticalRisks.map((r) => r.description).join("; ")}`,
+      );
     }
   }
 
   // Next steps
-  sections.push('\n## Suggested Next Steps');
+  sections.push("\n## Suggested Next Steps");
   if (state.narrowingState.questionsNeeded.length > 0) {
-    sections.push('- Questions to ask:');
-    state.narrowingState.questionsNeeded.slice(0, 3).forEach(q => {
+    sections.push("- Questions to ask:");
+    state.narrowingState.questionsNeeded.slice(0, 3).forEach((q) => {
       sections.push(`  - ${q.question}`);
     });
   } else if (state.confidence < 30) {
-    sections.push('- Continue exploring to build confidence');
+    sections.push("- Continue exploring to build confidence");
   } else if (state.viability < 50) {
-    sections.push('- Address viability concerns before proceeding');
+    sections.push("- Address viability concerns before proceeding");
   } else {
-    sections.push('- Continue refining the current candidate');
+    sections.push("- Continue refining the current candidate");
   }
 
-  return sections.join('\n');
+  return sections.join("\n");
 }
 
 /**
  * Check if handoff is needed based on token count.
  */
-export function shouldHandoff(tokenCount: number, threshold: number = 80000): boolean {
+export function shouldHandoff(
+  tokenCount: number,
+  threshold: number = 80000,
+): boolean {
   return tokenCount >= threshold;
 }
 
@@ -176,8 +191,10 @@ export async function loadHandoffContext(sessionId: string): Promise<{
 
   // Build system prompt addition
   const memoryContent = memoryFiles
-    .map(f => `## ${f.fileType.replace(/_/g, ' ').toUpperCase()}\n${f.content}`)
-    .join('\n\n');
+    .map(
+      (f) => `## ${f.fileType.replace(/_/g, " ").toUpperCase()}\n${f.content}`,
+    )
+    .join("\n\n");
 
   const systemPromptAddition = `
 ## HANDOFF CONTEXT
@@ -189,7 +206,7 @@ ${memoryContent}
 
   // Get recent messages (just a few for continuity)
   const recentMessages = await messageStore.getRecent(sessionId, 5);
-  const formattedMessages = recentMessages.map(m => ({
+  const formattedMessages = recentMessages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
@@ -205,7 +222,7 @@ ${memoryContent}
  */
 export async function cleanupAfterHandoff(
   sessionId: string,
-  keepRecentCount: number = 10
+  keepRecentCount: number = 10,
 ): Promise<{ deletedCount: number }> {
   const messages = await messageStore.getBySession(sessionId);
 
@@ -215,7 +232,10 @@ export async function cleanupAfterHandoff(
 
   // Keep the most recent messages
   const cutoffMessage = messages[messages.length - keepRecentCount];
-  const deletedCount = await messageStore.deleteOlderThan(sessionId, cutoffMessage.id);
+  const deletedCount = await messageStore.deleteOlderThan(
+    sessionId,
+    cutoffMessage.id,
+  );
 
   return { deletedCount };
 }

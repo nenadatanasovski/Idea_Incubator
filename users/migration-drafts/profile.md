@@ -10,6 +10,7 @@ updated: 2026-01-06T04:54:29.631Z
 ## Personal Goals (FT1)
 
 **Primary Goals:**
+
 <!-- Select from: income, impact, learning, portfolio, lifestyle, exit, passion, legacy -->
 
 **Success Definition:**
@@ -45,6 +46,7 @@ updated: 2026-01-06T04:54:29.631Z
 ## Life Stage & Capacity (FT5)
 
 **Employment Status:**
+
 <!-- Select from: employed, self-employed, unemployed, student, retired -->
 
 **Weekly Hours Available:**
@@ -52,6 +54,7 @@ updated: 2026-01-06T04:54:29.631Z
 **Financial Runway:**
 
 **Risk Tolerance:**
+
 <!-- Select from: low, medium, high, very_high -->
 
 **Other Commitments:**

@@ -3,33 +3,36 @@
 // Confidence meter showing idea clarity
 // =============================================================================
 
-import 'react';
-import type { ConfidenceMeterProps } from '../../types/ideation';
+import "react";
+import type { ConfidenceMeterProps } from "../../types/ideation";
 
 export function ConfidenceMeter({
   value,
   showLabel,
-  size = 'md',
+  size = "md",
 }: ConfidenceMeterProps) {
   const getColor = () => {
-    if (value >= 80) return 'bg-green-500';
-    if (value >= 60) return 'bg-blue-500';
-    if (value >= 30) return 'bg-yellow-500';
-    return 'bg-gray-400';
+    if (value >= 80) return "bg-green-500";
+    if (value >= 60) return "bg-blue-500";
+    if (value >= 30) return "bg-yellow-500";
+    return "bg-gray-400";
   };
 
   const getLabel = () => {
-    if (value >= 80) return 'Clear';
-    if (value >= 60) return 'Good';
-    if (value >= 30) return 'Forming';
-    return 'Exploring';
+    if (value >= 80) return "Clear";
+    if (value >= 60) return "Good";
+    if (value >= 30) return "Forming";
+    return "Exploring";
   };
 
   const getHeight = () => {
     switch (size) {
-      case 'sm': return 'h-1.5';
-      case 'lg': return 'h-3';
-      default: return 'h-2';
+      case "sm":
+        return "h-1.5";
+      case "lg":
+        return "h-3";
+      default:
+        return "h-2";
     }
   };
 

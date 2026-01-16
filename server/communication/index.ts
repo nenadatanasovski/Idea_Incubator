@@ -2,23 +2,36 @@
 // Communication Module - Main Export File
 
 // Core types
-export * from './types';
-export * from './config';
+export * from "./types";
+export * from "./config";
 
 // Bot management
-export { BotRegistry, getBotRegistry, initializeBotRegistry } from './bot-registry';
+export {
+  BotRegistry,
+  getBotRegistry,
+  initializeBotRegistry,
+} from "./bot-registry";
 
 // User linking
-export { ChatLinker } from './chat-linker';
+export { ChatLinker } from "./chat-linker";
 
 // Message sending
-export { TelegramSender } from './telegram-sender';
+export { TelegramSender } from "./telegram-sender";
 
 // Message receiving
-export { TelegramReceiver, ReceivedMessage, ReceivedCallback } from './telegram-receiver';
+export {
+  TelegramReceiver,
+  ReceivedMessage,
+  ReceivedCallback,
+} from "./telegram-receiver";
 
 // Question delivery
-export { QuestionDelivery, QuestionType, Question, DeliveryResult } from './question-delivery';
+export {
+  QuestionDelivery,
+  QuestionType,
+  Question,
+  DeliveryResult,
+} from "./question-delivery";
 
 // Answer processing
 export {
@@ -26,11 +39,20 @@ export {
   PendingQuestion,
   ProcessedAnswer,
   AnswerProcessorConfig,
-} from './answer-processor';
+} from "./answer-processor";
 
 // Email (fallback)
-export { EmailSender, EmailConfig, EmailSendResult, EmailQuestion } from './email-sender';
-export { EmailChecker, ParsedEmailAnswer, createEmailChecker } from './email-checker';
+export {
+  EmailSender,
+  EmailConfig,
+  EmailSendResult,
+  EmailQuestion,
+} from "./email-sender";
+export {
+  EmailChecker,
+  ParsedEmailAnswer,
+  createEmailChecker,
+} from "./email-checker";
 
 // Notifications
 export {
@@ -40,7 +62,7 @@ export {
   NotificationChannel,
   NotificationSeverity,
   NotificationCategory,
-} from './notification-dispatcher';
+} from "./notification-dispatcher";
 
 // Execution control
 export {
@@ -48,7 +70,7 @@ export {
   GateStatus,
   GateState,
   GateCheckResult,
-} from './execution-gate';
+} from "./execution-gate";
 
 // Halt management
 export {
@@ -56,10 +78,15 @@ export {
   HaltReason,
   HaltEvent,
   HaltPolicy,
-} from './halt-controller';
+} from "./halt-controller";
 
 // Message templates
-export { MessageTemplates, TemplateCategory, TemplateContext, MessageTemplate } from './message-templates';
+export {
+  MessageTemplates,
+  TemplateCategory,
+  TemplateContext,
+  MessageTemplate,
+} from "./message-templates";
 
 // Agent handshake
 export {
@@ -67,11 +94,11 @@ export {
   AgentRegistration,
   HandshakeSession,
   HandshakeState,
-} from './agent-handshake';
+} from "./agent-handshake";
 
 // Main hub
 export {
   CommunicationHub,
   CommunicationHubConfig,
   getCommunicationHub,
-} from './communication-hub';
+} from "./communication-hub";

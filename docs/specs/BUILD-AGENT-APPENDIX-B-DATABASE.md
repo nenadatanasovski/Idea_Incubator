@@ -334,28 +334,28 @@ ORDER BY tel1.timestamp;
 
 ## B.9 Database Migrations Sequence
 
-| Migration | Description |
-|-----------|-------------|
-| `070_task_file_impacts.sql` | File impact tracking for conflict detection |
-| `071_parallelism_analysis.sql` | Task pair parallelism analysis cache |
-| `072_grouping_suggestions.sql` | Auto-grouping suggestions |
-| `073_parallel_execution.sql` | Waves and wave task assignments |
-| `074_build_agent_instances.sql` | Build Agent instances and heartbeats |
-| `075_execution_runs.sql` | Execution run tracking |
-| `076_checkpoints.sql` | Checkpoint management |
+| Migration                       | Description                                 |
+| ------------------------------- | ------------------------------------------- |
+| `070_task_file_impacts.sql`     | File impact tracking for conflict detection |
+| `071_parallelism_analysis.sql`  | Task pair parallelism analysis cache        |
+| `072_grouping_suggestions.sql`  | Auto-grouping suggestions                   |
+| `073_parallel_execution.sql`    | Waves and wave task assignments             |
+| `074_build_agent_instances.sql` | Build Agent instances and heartbeats        |
+| `075_execution_runs.sql`        | Execution run tracking                      |
+| `076_checkpoints.sql`           | Checkpoint management                       |
 
 ---
 
 ## B.10 Index Strategy Summary
 
-| Table | Index | Purpose |
-|-------|-------|---------|
-| `build_agent_instances` | `idx_build_agents_execution` | Find agents for an execution |
-| `build_agent_instances` | `idx_build_agents_status` | Find agents by status |
-| `build_agent_instances` | `idx_build_agents_heartbeat` | Find stale agents |
-| `agent_heartbeats` | `idx_heartbeats_instance` | Recent heartbeats per agent |
-| `task_execution_log` | `idx_exec_log_execution` | Lane-isolated log queries |
-| `task_execution_log` | `idx_exec_log_errors` | Find failures quickly |
-| `parallel_execution_waves` | `idx_waves_active` | Find active waves |
-| `wave_task_assignments` | `idx_wave_tasks` | Tasks in a wave |
-| `checkpoints` | `idx_checkpoints_execution` | Checkpoints for rollback |
+| Table                      | Index                        | Purpose                      |
+| -------------------------- | ---------------------------- | ---------------------------- |
+| `build_agent_instances`    | `idx_build_agents_execution` | Find agents for an execution |
+| `build_agent_instances`    | `idx_build_agents_status`    | Find agents by status        |
+| `build_agent_instances`    | `idx_build_agents_heartbeat` | Find stale agents            |
+| `agent_heartbeats`         | `idx_heartbeats_instance`    | Recent heartbeats per agent  |
+| `task_execution_log`       | `idx_exec_log_execution`     | Lane-isolated log queries    |
+| `task_execution_log`       | `idx_exec_log_errors`        | Find failures quickly        |
+| `parallel_execution_waves` | `idx_waves_active`           | Find active waves            |
+| `wave_task_assignments`    | `idx_wave_tasks`             | Tasks in a wave              |
+| `checkpoints`              | `idx_checkpoints_execution`  | Checkpoints for rollback     |

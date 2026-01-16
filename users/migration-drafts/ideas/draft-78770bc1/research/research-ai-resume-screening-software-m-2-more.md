@@ -13,6 +13,7 @@ queries:
   - ATS AI matching technology Australia
 identifier: research_ai_resume_screening_
 ---
+
 ## AI Resume Screening Software Market Research
 
 ### Key Findings
@@ -53,7 +54,6 @@ identifier: research_ai_resume_screening_
 - [AI Adoption in Recruiting: 2025 Year in Review](https://www.herohunt.ai/blog/ai-adoption-in-recruiting-2025-year-in-review)
 - [12 Best AI Resume Screening Software Reviewed in 2025](https://peoplemanagingpeople.com/tools/best-ai-resume-screening-software/)
 - [AI resume screening in 2024](https://developdiverse.com/blog/ai-resume-screening)
-
 
 ---
 

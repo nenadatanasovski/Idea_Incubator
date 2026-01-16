@@ -4,19 +4,19 @@
  */
 
 // Core components
-export { notificationQueue } from './queue.js';
-export { notificationDispatcher } from './dispatcher.js';
-export { notificationPreferences } from './preferences.js';
-export { notificationRealtime } from './realtime.js';
-export { retryProcessor } from './retry.js';
+export { notificationQueue } from "./queue.js";
+export { notificationDispatcher } from "./dispatcher.js";
+export { notificationPreferences } from "./preferences.js";
+export { notificationRealtime } from "./realtime.js";
+export { retryProcessor } from "./retry.js";
 
 // Template utilities
-export { renderTemplate, renderHtmlTemplate, escapeHtml } from './templates.js';
+export { renderTemplate, renderHtmlTemplate, escapeHtml } from "./templates.js";
 
 // Channels
-export { inAppChannel } from './channels/in-app.js';
-export { emailChannel } from './channels/email.js';
-export { telegramChannel } from './channels/telegram.js';
+export { inAppChannel } from "./channels/in-app.js";
+export { emailChannel } from "./channels/email.js";
+export { telegramChannel } from "./channels/telegram.js";
 
 // Re-export types
 export type {
@@ -30,8 +30,8 @@ export type {
   DeliveryStatus,
   CreateNotificationInput,
   NotificationListFilters,
-  NotificationListResult
-} from '../../types/notification.js';
+  NotificationListResult,
+} from "../../types/notification.js";
 
 /**
  * Convenience function to send a notification
@@ -47,9 +47,9 @@ export async function notify(
   userId: string,
   type: string,
   data?: Record<string, unknown>,
-  priority?: 'urgent' | 'high' | 'normal' | 'low'
-): Promise<import('../../types/notification.js').Notification | null> {
-  const { notificationQueue } = await import('./queue.js');
+  priority?: "urgent" | "high" | "normal" | "low",
+): Promise<import("../../types/notification.js").Notification | null> {
+  const { notificationQueue } = await import("./queue.js");
   return notificationQueue.enqueue({ userId, type, data, priority });
 }
 
@@ -61,17 +61,17 @@ export async function notifyForce(
   userId: string,
   type: string,
   data?: Record<string, unknown>,
-  priority?: 'urgent' | 'high' | 'normal' | 'low'
-): Promise<import('../../types/notification.js').Notification> {
-  const { notificationQueue } = await import('./queue.js');
+  priority?: "urgent" | "high" | "normal" | "low",
+): Promise<import("../../types/notification.js").Notification> {
+  const { notificationQueue } = await import("./queue.js");
   return notificationQueue.forceEnqueue({ userId, type, data, priority });
 }
 
 // Import instances for init/shutdown functions
-import { notificationRealtime as realtime } from './realtime.js';
-import { retryProcessor as retry } from './retry.js';
-import { notificationQueue as queue } from './queue.js';
-import { notificationPreferences as prefs } from './preferences.js';
+import { notificationRealtime as realtime } from "./realtime.js";
+import { retryProcessor as retry } from "./retry.js";
+import { notificationQueue as queue } from "./queue.js";
+import { notificationPreferences as prefs } from "./preferences.js";
 
 /**
  * Initialize the notification system
@@ -84,7 +84,7 @@ export function initNotificationSystem(): void {
   // Start retry processor (default: check every minute)
   retry.start(60000);
 
-  console.log('[Notifications] System initialized');
+  console.log("[Notifications] System initialized");
 }
 
 /**
@@ -101,5 +101,5 @@ export function shutdownNotificationSystem(): void {
   // Clear caches
   prefs.clearCache();
 
-  console.log('[Notifications] System shut down');
+  console.log("[Notifications] System shut down");
 }

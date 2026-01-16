@@ -10,7 +10,7 @@ import type {
   StrategicApproach,
   ValidatedOpportunity,
   CompetitiveRisk,
-} from '../types';
+} from "../types";
 
 interface Props {
   approach?: StrategicApproach;
@@ -24,143 +24,177 @@ interface ValidationStep {
   id: string;
   title: string;
   description: string;
-  priority: 'critical' | 'high' | 'medium' | 'low';
-  effort: 'minimal' | 'moderate' | 'significant';
-  category: 'market' | 'technical' | 'financial' | 'customer';
+  priority: "critical" | "high" | "medium" | "low";
+  effort: "minimal" | "moderate" | "significant";
+  category: "market" | "technical" | "financial" | "customer";
   approaches: StrategicApproach[];
 }
 
 const VALIDATION_STEPS: ValidationStep[] = [
   {
-    id: 'customer_interviews',
-    title: 'Customer Discovery Interviews',
-    description: 'Talk to 10-20 potential customers to validate the problem exists and understand their current solutions',
-    priority: 'critical',
-    effort: 'moderate',
-    category: 'customer',
-    approaches: ['create', 'copy_improve', 'combine', 'localize', 'specialize', 'time'],
+    id: "customer_interviews",
+    title: "Customer Discovery Interviews",
+    description:
+      "Talk to 10-20 potential customers to validate the problem exists and understand their current solutions",
+    priority: "critical",
+    effort: "moderate",
+    category: "customer",
+    approaches: [
+      "create",
+      "copy_improve",
+      "combine",
+      "localize",
+      "specialize",
+      "time",
+    ],
   },
   {
-    id: 'competitor_analysis',
-    title: 'Deep Competitor Analysis',
-    description: 'Map existing solutions, their pricing, and gaps they leave unaddressed',
-    priority: 'high',
-    effort: 'moderate',
-    category: 'market',
-    approaches: ['copy_improve', 'combine', 'localize', 'specialize'],
+    id: "competitor_analysis",
+    title: "Deep Competitor Analysis",
+    description:
+      "Map existing solutions, their pricing, and gaps they leave unaddressed",
+    priority: "high",
+    effort: "moderate",
+    category: "market",
+    approaches: ["copy_improve", "combine", "localize", "specialize"],
   },
   {
-    id: 'unique_value_test',
-    title: 'Unique Value Proposition Test',
-    description: 'A/B test messaging to validate your differentiation resonates with target audience',
-    priority: 'high',
-    effort: 'moderate',
-    category: 'customer',
-    approaches: ['create', 'combine', 'specialize'],
+    id: "unique_value_test",
+    title: "Unique Value Proposition Test",
+    description:
+      "A/B test messaging to validate your differentiation resonates with target audience",
+    priority: "high",
+    effort: "moderate",
+    category: "customer",
+    approaches: ["create", "combine", "specialize"],
   },
   {
-    id: 'mvp_prototype',
-    title: 'MVP/Prototype Build',
-    description: 'Create minimal version to test core functionality and gather feedback',
-    priority: 'high',
-    effort: 'significant',
-    category: 'technical',
-    approaches: ['create', 'combine', 'time'],
+    id: "mvp_prototype",
+    title: "MVP/Prototype Build",
+    description:
+      "Create minimal version to test core functionality and gather feedback",
+    priority: "high",
+    effort: "significant",
+    category: "technical",
+    approaches: ["create", "combine", "time"],
   },
   {
-    id: 'pricing_validation',
-    title: 'Pricing Validation',
-    description: 'Test willingness to pay through landing pages or direct conversations',
-    priority: 'high',
-    effort: 'minimal',
-    category: 'financial',
-    approaches: ['create', 'copy_improve', 'combine', 'localize', 'specialize', 'time'],
+    id: "pricing_validation",
+    title: "Pricing Validation",
+    description:
+      "Test willingness to pay through landing pages or direct conversations",
+    priority: "high",
+    effort: "minimal",
+    category: "financial",
+    approaches: [
+      "create",
+      "copy_improve",
+      "combine",
+      "localize",
+      "specialize",
+      "time",
+    ],
   },
   {
-    id: 'local_market_research',
-    title: 'Local Market Research',
-    description: 'Validate demand exists in target geography through surveys and interviews',
-    priority: 'critical',
-    effort: 'moderate',
-    category: 'market',
-    approaches: ['localize'],
+    id: "local_market_research",
+    title: "Local Market Research",
+    description:
+      "Validate demand exists in target geography through surveys and interviews",
+    priority: "critical",
+    effort: "moderate",
+    category: "market",
+    approaches: ["localize"],
   },
   {
-    id: 'niche_size_validation',
-    title: 'Niche Size Validation',
-    description: 'Confirm the specialized niche is large enough to sustain your income goals',
-    priority: 'critical',
-    effort: 'moderate',
-    category: 'market',
-    approaches: ['specialize'],
+    id: "niche_size_validation",
+    title: "Niche Size Validation",
+    description:
+      "Confirm the specialized niche is large enough to sustain your income goals",
+    priority: "critical",
+    effort: "moderate",
+    category: "market",
+    approaches: ["specialize"],
   },
   {
-    id: 'timing_window',
-    title: 'Timing Window Analysis',
-    description: 'Validate the market timing opportunity has sufficient runway before competition arrives',
-    priority: 'critical',
-    effort: 'minimal',
-    category: 'market',
-    approaches: ['time'],
+    id: "timing_window",
+    title: "Timing Window Analysis",
+    description:
+      "Validate the market timing opportunity has sufficient runway before competition arrives",
+    priority: "critical",
+    effort: "minimal",
+    category: "market",
+    approaches: ["time"],
   },
   {
-    id: 'landing_page',
-    title: 'Landing Page Test',
-    description: 'Create a landing page to measure interest and collect signups',
-    priority: 'medium',
-    effort: 'minimal',
-    category: 'customer',
-    approaches: ['create', 'copy_improve', 'combine', 'localize', 'specialize', 'time'],
+    id: "landing_page",
+    title: "Landing Page Test",
+    description:
+      "Create a landing page to measure interest and collect signups",
+    priority: "medium",
+    effort: "minimal",
+    category: "customer",
+    approaches: [
+      "create",
+      "copy_improve",
+      "combine",
+      "localize",
+      "specialize",
+      "time",
+    ],
   },
   {
-    id: 'technical_feasibility',
-    title: 'Technical Feasibility Spike',
-    description: 'Build proof-of-concept for technically risky components',
-    priority: 'high',
-    effort: 'significant',
-    category: 'technical',
-    approaches: ['create', 'combine', 'time'],
+    id: "technical_feasibility",
+    title: "Technical Feasibility Spike",
+    description: "Build proof-of-concept for technically risky components",
+    priority: "high",
+    effort: "significant",
+    category: "technical",
+    approaches: ["create", "combine", "time"],
   },
   {
-    id: 'partnership_outreach',
-    title: 'Partnership/Channel Validation',
-    description: 'Test potential distribution channels or partnership opportunities',
-    priority: 'medium',
-    effort: 'moderate',
-    category: 'market',
-    approaches: ['localize', 'specialize'],
+    id: "partnership_outreach",
+    title: "Partnership/Channel Validation",
+    description:
+      "Test potential distribution channels or partnership opportunities",
+    priority: "medium",
+    effort: "moderate",
+    category: "market",
+    approaches: ["localize", "specialize"],
   },
   {
-    id: 'cost_structure',
-    title: 'Cost Structure Validation',
-    description: 'Map all costs to ensure unit economics work at your price point',
-    priority: 'high',
-    effort: 'moderate',
-    category: 'financial',
-    approaches: ['copy_improve', 'localize'],
+    id: "cost_structure",
+    title: "Cost Structure Validation",
+    description:
+      "Map all costs to ensure unit economics work at your price point",
+    priority: "high",
+    effort: "moderate",
+    category: "financial",
+    approaches: ["copy_improve", "localize"],
   },
 ];
 
 function getStepsForApproach(approach?: StrategicApproach): ValidationStep[] {
   if (!approach) return VALIDATION_STEPS.slice(0, 5); // Default selection
-  return VALIDATION_STEPS.filter(step => step.approaches.includes(approach));
+  return VALIDATION_STEPS.filter((step) => step.approaches.includes(approach));
 }
 
 function prioritizeSteps(
   steps: ValidationStep[],
-  risks?: CompetitiveRisk[]
+  risks?: CompetitiveRisk[],
 ): ValidationStep[] {
   // Boost priority for steps that address identified risks
-  const boosted = steps.map(step => {
+  const boosted = steps.map((step) => {
     let boost = 0;
 
     if (risks) {
       // If there are high-severity risks, boost related categories
-      const highRisks = risks.filter(r => r.severity === 'high');
-      highRisks.forEach(risk => {
-        if (risk.type === 'market_saturation' && step.category === 'market') boost++;
-        if (risk.type === 'price_war' && step.category === 'financial') boost++;
-        if (risk.type === 'feature_parity' && step.category === 'technical') boost++;
+      const highRisks = risks.filter((r) => r.severity === "high");
+      highRisks.forEach((risk) => {
+        if (risk.type === "market_saturation" && step.category === "market")
+          boost++;
+        if (risk.type === "price_war" && step.category === "financial") boost++;
+        if (risk.type === "feature_parity" && step.category === "technical")
+          boost++;
       });
     }
 
@@ -181,38 +215,38 @@ function prioritizeSteps(
 
 const priorityStyles = {
   critical: {
-    bg: 'bg-red-100',
-    text: 'text-red-700',
-    border: 'border-red-200',
+    bg: "bg-red-100",
+    text: "text-red-700",
+    border: "border-red-200",
   },
   high: {
-    bg: 'bg-orange-100',
-    text: 'text-orange-700',
-    border: 'border-orange-200',
+    bg: "bg-orange-100",
+    text: "text-orange-700",
+    border: "border-orange-200",
   },
   medium: {
-    bg: 'bg-yellow-100',
-    text: 'text-yellow-700',
-    border: 'border-yellow-200',
+    bg: "bg-yellow-100",
+    text: "text-yellow-700",
+    border: "border-yellow-200",
   },
   low: {
-    bg: 'bg-gray-100',
-    text: 'text-gray-700',
-    border: 'border-gray-200',
+    bg: "bg-gray-100",
+    text: "text-gray-700",
+    border: "border-gray-200",
   },
 };
 
 const effortStyles = {
-  minimal: { icon: '⚡', label: 'Quick win' },
-  moderate: { icon: '🔧', label: 'Moderate effort' },
-  significant: { icon: '🏗️', label: 'Major effort' },
+  minimal: { icon: "⚡", label: "Quick win" },
+  moderate: { icon: "🔧", label: "Moderate effort" },
+  significant: { icon: "🏗️", label: "Major effort" },
 };
 
 const categoryIcons = {
-  market: '📊',
-  technical: '💻',
-  financial: '💰',
-  customer: '👥',
+  market: "📊",
+  technical: "💻",
+  financial: "💰",
+  customer: "👥",
 };
 
 export default function ValidationRoadmap({
@@ -220,7 +254,7 @@ export default function ValidationRoadmap({
   strategies: _strategies,
   opportunities: _opportunities,
   risks,
-  className = '',
+  className = "",
 }: Props) {
   const baseSteps = getStepsForApproach(approach);
   const prioritizedSteps = prioritizeSteps(baseSteps, risks);
@@ -229,20 +263,23 @@ export default function ValidationRoadmap({
   const displaySteps = prioritizedSteps.slice(0, 6);
 
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 p-6 ${className}`}>
+    <div
+      className={`bg-white rounded-lg border border-gray-200 p-6 ${className}`}
+    >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Validation Roadmap
         </h3>
         {approach && (
           <span className="text-sm text-gray-500 capitalize">
-            For: {approach.replace('_', ' ')} approach
+            For: {approach.replace("_", " ")} approach
           </span>
         )}
       </div>
 
       <p className="text-sm text-gray-600 mb-6">
-        Prioritized steps to validate your idea before committing significant resources.
+        Prioritized steps to validate your idea before committing significant
+        resources.
       </p>
 
       <div className="space-y-4">
@@ -263,7 +300,9 @@ export default function ValidationRoadmap({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-lg">{catIcon}</span>
-                  <h4 className={`font-medium ${pStyles.text}`}>{step.title}</h4>
+                  <h4 className={`font-medium ${pStyles.text}`}>
+                    {step.title}
+                  </h4>
                 </div>
                 <p className="text-sm text-gray-600">{step.description}</p>
                 <div className="flex items-center gap-4 mt-2">
@@ -293,9 +332,9 @@ export default function ValidationRoadmap({
           Validation Best Practice
         </h4>
         <p className="text-sm text-blue-700">
-          Start with customer interviews. Understanding real customer pain points
-          will inform all subsequent validation activities and help you avoid
-          building something nobody wants.
+          Start with customer interviews. Understanding real customer pain
+          points will inform all subsequent validation activities and help you
+          avoid building something nobody wants.
         </p>
       </div>
     </div>

@@ -3,53 +3,120 @@
 // Right side panel for displaying artifacts with tabs
 // =============================================================================
 
-import React, { useState, useEffect } from 'react';
-import { useCreateBlockNote } from '@blocknote/react';
-import { BlockNoteView } from '@blocknote/mantine';
-import '@blocknote/mantine/style.css';
-import type { Artifact, ArtifactPanelProps } from '../../types/ideation';
-import { ArtifactRenderer } from './ArtifactRenderer';
+import React, { useState, useEffect } from "react";
+import { useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
+import "@blocknote/mantine/style.css";
+import type { Artifact, ArtifactPanelProps } from "../../types/ideation";
+import { ArtifactRenderer } from "./ArtifactRenderer";
 
 // Icon components
 const CloseIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M6 18L18 6M6 6l12 12"
+    />
   </svg>
 );
 
 const ExpandIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+    />
   </svg>
 );
 
 const CollapseIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+    />
   </svg>
 );
 
 const CopyIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+    />
   </svg>
 );
 
 const TrashIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
   </svg>
 );
 
 const EditIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+    />
   </svg>
 );
 
 const LoadingSpinner = () => (
   <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    />
     <path
       className="opacity-75"
       fill="currentColor"
@@ -61,42 +128,102 @@ const LoadingSpinner = () => (
 // Artifact type icons
 const getArtifactIcon = (type: string) => {
   switch (type) {
-    case 'code':
+    case "code":
       return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+          />
         </svg>
       );
-    case 'research':
+    case "research":
       return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
         </svg>
       );
-    case 'mermaid':
+    case "mermaid":
       return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+          />
         </svg>
       );
-    case 'markdown':
-    case 'text':
+    case "markdown":
+    case "text":
       return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
         </svg>
       );
-    case 'idea-summary':
-    case 'analysis':
+    case "idea-summary":
+    case "analysis":
       return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+          />
         </svg>
       );
     default:
       return (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+          />
         </svg>
       );
   }
@@ -104,8 +231,18 @@ const getArtifactIcon = (type: string) => {
 
 // Small pencil icon for tab rename
 const TabEditIcon = () => (
-  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+  <svg
+    className="w-3 h-3"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+    />
   </svg>
 );
 
@@ -115,7 +252,10 @@ interface BlockNoteMarkdownEditorProps {
   onContentChange: (markdown: string) => void;
 }
 
-const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({ content, onContentChange }) => {
+const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({
+  content,
+  onContentChange,
+}) => {
   const [isReady, setIsReady] = useState(false);
 
   // Create editor instance
@@ -132,7 +272,7 @@ const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({ conte
           editor.replaceBlocks(editor.document, blocks);
           setIsReady(true);
         } catch (err) {
-          console.error('[BlockNote] Failed to parse markdown:', err);
+          console.error("[BlockNote] Failed to parse markdown:", err);
           setIsReady(true);
         }
       } else {
@@ -147,10 +287,10 @@ const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({ conte
     if (editor && isReady) {
       try {
         const markdown = await editor.blocksToMarkdownLossy(editor.document);
-        console.log('[BlockNote] Content changed, length:', markdown.length);
+        console.log("[BlockNote] Content changed, length:", markdown.length);
         onContentChange(markdown);
       } catch (err) {
-        console.error('[BlockNote] Failed to convert to markdown:', err);
+        console.error("[BlockNote] Failed to convert to markdown:", err);
       }
     }
   };
@@ -159,11 +299,7 @@ const BlockNoteMarkdownEditor: React.FC<BlockNoteMarkdownEditorProps> = ({ conte
 
   return (
     <div className="h-full overflow-auto blocknote-editor">
-      <BlockNoteView
-        editor={editor}
-        onChange={handleChange}
-        theme="light"
-      />
+      <BlockNoteView editor={editor} onChange={handleChange} theme="light" />
     </div>
   );
 };
@@ -176,7 +312,12 @@ interface ArtifactTabProps {
   onRename?: (newTitle: string) => void;
 }
 
-const ArtifactTab: React.FC<ArtifactTabProps> = ({ artifact, isSelected, onSelect, onRename }) => {
+const ArtifactTab: React.FC<ArtifactTabProps> = ({
+  artifact,
+  isSelected,
+  onSelect,
+  onRename,
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(artifact.title);
   const [isHovered, setIsHovered] = useState(false);
@@ -217,27 +358,28 @@ const ArtifactTab: React.FC<ArtifactTabProps> = ({ artifact, isSelected, onSelec
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSave();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       setEditedTitle(artifact.title);
       setIsEditing(false);
     }
   };
 
-  const isUpdating = artifact.status === 'updating';
-  const isLoading = artifact.status === 'loading';
+  const isUpdating = artifact.status === "updating";
+  const isLoading = artifact.status === "loading";
 
   return (
     <div
       className={`
         relative flex items-center gap-2 px-3 py-2 text-sm rounded-t-lg border-b-2 transition-all duration-150
         cursor-pointer flex-shrink-0 select-none group
-        ${isSelected
-          ? 'bg-white dark:bg-gray-600 border-blue-500 text-gray-900 dark:text-gray-100 font-medium shadow-sm z-10'
-          : 'bg-transparent border-transparent text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+        ${
+          isSelected
+            ? "bg-white dark:bg-gray-600 border-blue-500 text-gray-900 dark:text-gray-100 font-medium shadow-sm z-10"
+            : "bg-transparent border-transparent text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
         }
-        ${isUpdating ? 'animate-pulse bg-blue-50 dark:bg-blue-900/30' : ''}
+        ${isUpdating ? "animate-pulse bg-blue-50 dark:bg-blue-900/30" : ""}
       `}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
@@ -266,7 +408,9 @@ const ArtifactTab: React.FC<ArtifactTabProps> = ({ artifact, isSelected, onSelec
         <>
           <span className="truncate max-w-[100px]" title={artifact.title}>
             {isUpdating ? (
-              <span className="text-blue-600 dark:text-blue-400 font-medium">Updating...</span>
+              <span className="text-blue-600 dark:text-blue-400 font-medium">
+                Updating...
+              </span>
             ) : (
               artifact.title
             )}
@@ -285,8 +429,11 @@ const ArtifactTab: React.FC<ArtifactTabProps> = ({ artifact, isSelected, onSelec
         </>
       )}
 
-      {artifact.status === 'error' && (
-        <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" title="Error" />
+      {artifact.status === "error" && (
+        <span
+          className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"
+          title="Error"
+        />
       )}
     </div>
   );
@@ -294,16 +441,36 @@ const ArtifactTab: React.FC<ArtifactTabProps> = ({ artifact, isSelected, onSelec
 
 // Expand icon for minimized state
 const ChevronLeftIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M15 19l-7-7 7-7"
+    />
   </svg>
 );
 
 // Main panel component
 // Link icon for copying artifact reference
 const LinkIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+    />
   </svg>
 );
 
@@ -324,19 +491,19 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
   const [copiedId, setCopiedId] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState('');
+  const [editedContent, setEditedContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   // Reset edit mode when artifact changes
   useEffect(() => {
     setIsEditing(false);
-    setEditedContent('');
+    setEditedContent("");
   }, [currentArtifact?.id]);
 
   // Get content as string for editing
   const getContentAsString = (artifact: Artifact | null): string => {
-    if (!artifact) return '';
-    if (typeof artifact.content === 'string') return artifact.content;
+    if (!artifact) return "";
+    if (typeof artifact.content === "string") return artifact.content;
     return JSON.stringify(artifact.content, null, 2);
   };
 
@@ -348,33 +515,36 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditedContent('');
+    setEditedContent("");
   };
 
   const handleSaveEdit = async () => {
-    console.log('[ArtifactPanel] handleSaveEdit called');
-    console.log('[ArtifactPanel] currentArtifact:', currentArtifact?.id);
-    console.log('[ArtifactPanel] editedContent length:', editedContent.length);
+    console.log("[ArtifactPanel] handleSaveEdit called");
+    console.log("[ArtifactPanel] currentArtifact:", currentArtifact?.id);
+    console.log("[ArtifactPanel] editedContent length:", editedContent.length);
 
     if (!currentArtifact || !onEditArtifact) {
-      console.log('[ArtifactPanel] Early return - missing artifact or handler');
+      console.log("[ArtifactPanel] Early return - missing artifact or handler");
       return;
     }
 
     if (!editedContent) {
-      console.log('[ArtifactPanel] No content to save!');
+      console.log("[ArtifactPanel] No content to save!");
       return;
     }
 
     setIsSaving(true);
     try {
-      console.log('[ArtifactPanel] Calling onEditArtifact with content length:', editedContent.length);
+      console.log(
+        "[ArtifactPanel] Calling onEditArtifact with content length:",
+        editedContent.length,
+      );
       await onEditArtifact(currentArtifact.id, editedContent);
-      console.log('[ArtifactPanel] Save successful!');
+      console.log("[ArtifactPanel] Save successful!");
       setIsEditing(false);
-      setEditedContent('');
+      setEditedContent("");
     } catch (error) {
-      console.error('[ArtifactPanel] Failed to save edit:', error);
+      console.error("[ArtifactPanel] Failed to save edit:", error);
     } finally {
       setIsSaving(false);
     }
@@ -388,9 +558,10 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
 
   const handleCopy = async () => {
     if (!currentArtifact) return;
-    const content = typeof currentArtifact.content === 'string'
-      ? currentArtifact.content
-      : JSON.stringify(currentArtifact.content, null, 2);
+    const content =
+      typeof currentArtifact.content === "string"
+        ? currentArtifact.content
+        : JSON.stringify(currentArtifact.content, null, 2);
 
     await navigator.clipboard.writeText(content);
     setCopied(true);
@@ -419,7 +590,10 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
           title="Expand artifacts panel"
         >
           <ChevronLeftIcon />
-          <span className="text-xs text-gray-500 dark:text-gray-400 writing-mode-vertical transform rotate-180" style={{ writingMode: 'vertical-rl' }}>
+          <span
+            className="text-xs text-gray-500 dark:text-gray-400 writing-mode-vertical transform rotate-180"
+            style={{ writingMode: "vertical-rl" }}
+          >
             Artifacts ({artifacts.length})
           </span>
         </button>
@@ -432,7 +606,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
               className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
               title={artifact.title}
             >
-              {artifact.status === 'loading' ? (
+              {artifact.status === "loading" ? (
                 <LoadingSpinner />
               ) : (
                 getArtifactIcon(artifact.type)
@@ -440,7 +614,9 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
             </button>
           ))}
           {artifacts.length > 5 && (
-            <span className="text-xs text-gray-400 dark:text-gray-500">+{artifacts.length - 5}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">
+              +{artifacts.length - 5}
+            </span>
           )}
         </div>
       </div>
@@ -451,7 +627,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
     <div
       className={`
         flex flex-col bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 relative
-        ${isFullscreen ? 'fixed inset-0 z-50' : 'w-[450px] h-full'}
+        ${isFullscreen ? "fixed inset-0 z-50" : "w-[450px] h-full"}
       `}
     >
       {/* Header */}
@@ -464,11 +640,21 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
             <button
               onClick={handleCopy}
               className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
-              title={copied ? 'Copied!' : 'Copy content'}
+              title={copied ? "Copied!" : "Copy content"}
             >
               {copied ? (
-                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-4 h-4 text-green-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               ) : (
                 <CopyIcon />
@@ -478,7 +664,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
-            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
           >
             {isFullscreen ? <CollapseIcon /> : <ExpandIcon />}
           </button>
@@ -495,17 +681,30 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
       {/* Tabs */}
       <div className="flex overflow-x-auto px-2 pt-2 pb-0 gap-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-10">
         {artifacts.map((artifact, index) => {
-          console.log(`[ArtifactPanel] Rendering tab ${index}:`, artifact.id, 'currentArtifact:', currentArtifact?.id);
+          console.log(
+            `[ArtifactPanel] Rendering tab ${index}:`,
+            artifact.id,
+            "currentArtifact:",
+            currentArtifact?.id,
+          );
           return (
             <ArtifactTab
               key={artifact.id}
               artifact={artifact}
               isSelected={currentArtifact?.id === artifact.id}
               onSelect={() => {
-                console.log('[ArtifactPanel] Tab onSelect called for:', artifact.id, artifact.title);
+                console.log(
+                  "[ArtifactPanel] Tab onSelect called for:",
+                  artifact.id,
+                  artifact.title,
+                );
                 onSelectArtifact(artifact);
               }}
-              onRename={onRenameArtifact ? (newTitle) => onRenameArtifact(artifact.id, newTitle) : undefined}
+              onRename={
+                onRenameArtifact
+                  ? (newTitle) => onRenameArtifact(artifact.id, newTitle)
+                  : undefined
+              }
             />
           );
         })}
@@ -531,7 +730,10 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
               }}
             />
           ) : (
-            <ArtifactRenderer artifact={currentArtifact} isFullscreen={isFullscreen} />
+            <ArtifactRenderer
+              artifact={currentArtifact}
+              isFullscreen={isFullscreen}
+            />
           )
         ) : (
           <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
@@ -575,7 +777,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
                         Saving...
                       </>
                     ) : (
-                      'Save'
+                      "Save"
                     )}
                   </button>
                 </>
@@ -606,8 +808,18 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
                   >
                     {copiedId ? (
                       <>
-                        <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        <svg
+                          className="w-3.5 h-3.5 text-green-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                         <span className="text-green-500">Copied!</span>
                       </>
@@ -635,7 +847,8 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
               Delete Artifact?
             </h4>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Are you sure you want to delete "{currentArtifact?.title}"? This action cannot be undone.
+              Are you sure you want to delete "{currentArtifact?.title}"? This
+              action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button

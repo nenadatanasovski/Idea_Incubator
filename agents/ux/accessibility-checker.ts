@@ -1,18 +1,19 @@
 // agents/ux/accessibility-checker.ts - axe-core accessibility checking
 
-import { AccessibilityIssue } from '../../types/ux.js';
-import { MCPBridge } from './mcp-bridge.js';
+import { AccessibilityIssue } from "../../types/ux.js";
+import { MCPBridge } from "./mcp-bridge.js";
 
 // axe-core CDN URL
-const AXE_CORE_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.3/axe.min.js';
+const AXE_CORE_CDN =
+  "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.3/axe.min.js";
 
 export interface AccessibilityCheckOptions {
-  rules?: string[];       // Specific rules to run
-  impactThreshold?: 'critical' | 'serious' | 'moderate' | 'minor';
+  rules?: string[]; // Specific rules to run
+  impactThreshold?: "critical" | "serious" | "moderate" | "minor";
 }
 
 // Impact levels in order of severity
-const IMPACT_ORDER = ['critical', 'serious', 'moderate', 'minor'] as const;
+const IMPACT_ORDER = ["critical", "serious", "moderate", "minor"] as const;
 
 /**
  * Raw axe-core result structure
@@ -26,7 +27,7 @@ interface AxeResult {
 
 interface AxeViolation {
   id: string;
-  impact: 'critical' | 'serious' | 'moderate' | 'minor';
+  impact: "critical" | "serious" | "moderate" | "minor";
   description: string;
   help: string;
   helpUrl: string;
@@ -43,7 +44,7 @@ interface AxeNode {
  */
 export async function checkAccessibility(
   bridge: MCPBridge,
-  options: AccessibilityCheckOptions = {}
+  options: AccessibilityCheckOptions = {},
 ): Promise<AccessibilityIssue[]> {
   // Inject axe-core if not already present
   await injectAxe(bridge);
@@ -57,7 +58,7 @@ export async function checkAccessibility(
   // Filter by impact threshold if specified
   if (options.impactThreshold) {
     const thresholdIndex = IMPACT_ORDER.indexOf(options.impactThreshold);
-    return issues.filter(issue => {
+    return issues.filter((issue) => {
       const issueIndex = IMPACT_ORDER.indexOf(issue.impact);
       return issueIndex <= thresholdIndex;
     });
@@ -71,7 +72,9 @@ export async function checkAccessibility(
  */
 async function injectAxe(bridge: MCPBridge): Promise<void> {
   // Check if axe is already loaded
-  const axeLoaded = await bridge.evaluate<boolean>('typeof axe !== "undefined"');
+  const axeLoaded = await bridge.evaluate<boolean>(
+    'typeof axe !== "undefined"',
+  );
   if (axeLoaded) {
     return;
   }
@@ -94,12 +97,12 @@ async function injectAxe(bridge: MCPBridge): Promise<void> {
   await bridge.evaluate(injectScript);
 
   // Wait a bit for axe to initialize
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   // Verify axe loaded
   const loaded = await bridge.evaluate<boolean>('typeof axe !== "undefined"');
   if (!loaded) {
-    throw new Error('Failed to load axe-core');
+    throw new Error("Failed to load axe-core");
   }
 }
 
@@ -108,8 +111,8 @@ async function injectAxe(bridge: MCPBridge): Promise<void> {
  */
 async function runAxe(bridge: MCPBridge, rules?: string[]): Promise<AxeResult> {
   const runOptions = rules?.length
-    ? JSON.stringify({ runOnly: { type: 'rule', values: rules } })
-    : '{}';
+    ? JSON.stringify({ runOnly: { type: "rule", values: rules } })
+    : "{}";
 
   const script = `
     (async () => {
@@ -135,7 +138,7 @@ function parseAxeResults(results: AxeResult): AccessibilityIssue[] {
         ruleId: violation.id,
         impact: violation.impact,
         description: violation.help || violation.description,
-        selector: node.target.join(' '),
+        selector: node.target.join(" "),
         helpUrl: violation.helpUrl,
       });
     }
@@ -152,7 +155,9 @@ function parseAxeResults(results: AxeResult): AccessibilityIssue[] {
 /**
  * Get a summary of accessibility issues by impact
  */
-export function summarizeIssues(issues: AccessibilityIssue[]): Record<string, number> {
+export function summarizeIssues(
+  issues: AccessibilityIssue[],
+): Record<string, number> {
   const summary: Record<string, number> = {
     critical: 0,
     serious: 0,
@@ -173,7 +178,7 @@ export function summarizeIssues(issues: AccessibilityIssue[]): Record<string, nu
 export function meetsThreshold(
   issues: AccessibilityIssue[],
   maxCritical: number = 0,
-  maxSerious: number = 0
+  maxSerious: number = 0,
 ): boolean {
   const summary = summarizeIssues(issues);
   return summary.critical <= maxCritical && summary.serious <= maxSerious;

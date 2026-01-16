@@ -3,30 +3,41 @@
  * Challenges evaluations with adversarial personas
  * v1: 3 personas (Skeptic, Realist, First Principles Purist)
  */
-import { client } from '../utils/anthropic-client.js';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { EvaluationParseError } from '../utils/errors.js';
-import { logDebug, logInfo } from '../utils/logger.js';
-import { getConfig } from '../config/index.js';
-import { type CriterionDefinition } from './config.js';
+import { client } from "../utils/anthropic-client.js";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { EvaluationParseError } from "../utils/errors.js";
+import { logDebug, logInfo } from "../utils/logger.js";
+import { getConfig } from "../config/index.js";
+import { type CriterionDefinition } from "./config.js";
 
 // v1 Personas (3 core)
-export type CorePersona = 'skeptic' | 'realist' | 'first-principles';
+export type CorePersona = "skeptic" | "realist" | "first-principles";
 
 // v2 Extended Personas (3 additional)
-export type ExtendedPersona = 'competitor' | 'contrarian' | 'edge-case';
+export type ExtendedPersona = "competitor" | "contrarian" | "edge-case";
 
 // All personas (v2)
 export type RedTeamPersona = CorePersona | ExtendedPersona;
 
 // Core personas (v1 compatibility)
-export const CORE_PERSONAS: CorePersona[] = ['skeptic', 'realist', 'first-principles'];
+export const CORE_PERSONAS: CorePersona[] = [
+  "skeptic",
+  "realist",
+  "first-principles",
+];
 
 // Extended personas (v2)
-export const EXTENDED_PERSONAS: ExtendedPersona[] = ['competitor', 'contrarian', 'edge-case'];
+export const EXTENDED_PERSONAS: ExtendedPersona[] = [
+  "competitor",
+  "contrarian",
+  "edge-case",
+];
 
 // All personas (v2)
-export const ALL_PERSONAS: RedTeamPersona[] = [...CORE_PERSONAS, ...EXTENDED_PERSONAS];
+export const ALL_PERSONAS: RedTeamPersona[] = [
+  ...CORE_PERSONAS,
+  ...EXTENDED_PERSONAS,
+];
 
 // Default export for backward compatibility (now includes all 6)
 export const PERSONAS: RedTeamPersona[] = ALL_PERSONAS;
@@ -37,7 +48,7 @@ export const PERSONAS: RedTeamPersona[] = ALL_PERSONAS;
  */
 export function getActivePersonas(): RedTeamPersona[] {
   const config = getConfig();
-  return config.redTeamMode === 'extended' ? ALL_PERSONAS : CORE_PERSONAS;
+  return config.redTeamMode === "extended" ? ALL_PERSONAS : CORE_PERSONAS;
 }
 
 export interface PersonaDefinition {
@@ -49,10 +60,10 @@ export interface PersonaDefinition {
 }
 
 export const PERSONA_DEFINITIONS: Record<RedTeamPersona, PersonaDefinition> = {
-  'skeptic': {
-    id: 'skeptic',
-    name: 'The Skeptic',
-    role: 'Questions assumptions, demands evidence',
+  skeptic: {
+    id: "skeptic",
+    name: "The Skeptic",
+    role: "Questions assumptions, demands evidence",
     systemPrompt: `You are The Skeptic, a red team challenger.
 
 Your approach:
@@ -66,13 +77,13 @@ Your approach:
 You are not hostile, but rigorously skeptical. You believe extraordinary claims require extraordinary evidence.
 
 When challenging, be specific and cite the exact claim you're questioning.`,
-    challengeStyle: 'evidence-demanding'
+    challengeStyle: "evidence-demanding",
   },
 
-  'realist': {
-    id: 'realist',
-    name: 'The Realist',
-    role: 'Identifies practical obstacles, execution gaps',
+  realist: {
+    id: "realist",
+    name: "The Realist",
+    role: "Identifies practical obstacles, execution gaps",
     systemPrompt: `You are The Realist, a red team challenger.
 
 Your approach:
@@ -87,13 +98,13 @@ Your approach:
 You've seen many ideas fail in execution. You want to surface the hard truths about what it takes to succeed.
 
 When challenging, be specific about the practical obstacle and why it matters.`,
-    challengeStyle: 'execution-focused'
+    challengeStyle: "execution-focused",
   },
 
-  'first-principles': {
-    id: 'first-principles',
-    name: 'The First Principles Purist',
-    role: 'Attacks logical foundations, rewards rigor',
+  "first-principles": {
+    id: "first-principles",
+    name: "The First Principles Purist",
+    role: "Attacks logical foundations, rewards rigor",
     systemPrompt: `You are The First Principles Purist, a red team challenger.
 
 Your approach:
@@ -108,15 +119,15 @@ Your approach:
 You believe most ideas fail because they're built on shaky foundations. You want to stress-test the logical structure.
 
 When challenging, identify the specific logical flaw or unsupported leap.`,
-    challengeStyle: 'logic-testing'
+    challengeStyle: "logic-testing",
   },
 
   // v2 Extended Personas
 
-  'competitor': {
-    id: 'competitor',
-    name: 'The Competitor Analyst',
-    role: 'Analyzes competitive threats, market positioning',
+  competitor: {
+    id: "competitor",
+    name: "The Competitor Analyst",
+    role: "Analyzes competitive threats, market positioning",
     systemPrompt: `You are The Competitor Analyst, a red team challenger.
 
 Your approach:
@@ -131,13 +142,13 @@ Your approach:
 You've studied countless competitive battles. You know that most ideas underestimate competitive response.
 
 When challenging, name specific competitor actions that could neutralize this advantage.`,
-    challengeStyle: 'competitive-analysis'
+    challengeStyle: "competitive-analysis",
   },
 
-  'contrarian': {
-    id: 'contrarian',
-    name: 'The Contrarian',
-    role: 'Takes opposite viewpoint, challenges consensus',
+  contrarian: {
+    id: "contrarian",
+    name: "The Contrarian",
+    role: "Takes opposite viewpoint, challenges consensus",
     systemPrompt: `You are The Contrarian, a red team challenger.
 
 Your approach:
@@ -152,13 +163,13 @@ Your approach:
 You believe the crowd is often wrong. The best ideas are often initially rejected.
 
 When challenging, articulate a coherent opposite thesis and explain why it might be right.`,
-    challengeStyle: 'inverse-thinking'
+    challengeStyle: "inverse-thinking",
   },
 
-  'edge-case': {
-    id: 'edge-case',
-    name: 'The Edge-Case Finder',
-    role: 'Identifies corner cases, stress scenarios',
+  "edge-case": {
+    id: "edge-case",
+    name: "The Edge-Case Finder",
+    role: "Identifies corner cases, stress scenarios",
     systemPrompt: `You are The Edge-Case Finder, a red team challenger.
 
 Your approach:
@@ -173,8 +184,8 @@ Your approach:
 You've seen systems fail in unexpected ways. You hunt for the scenarios that weren't planned for.
 
 When challenging, describe a specific edge case scenario and its consequences.`,
-    challengeStyle: 'stress-testing'
-  }
+    challengeStyle: "stress-testing",
+  },
 };
 
 export interface Challenge {
@@ -184,7 +195,7 @@ export interface Challenge {
   originalClaim: string;
   originalScore: number;
   challenge: string;
-  severity: 'critical' | 'significant' | 'minor';
+  severity: "critical" | "significant" | "minor";
   requiredEvidence: string[];
 }
 
@@ -205,7 +216,7 @@ export async function generateChallenges(
   claim: string,
   score: number,
   reasoning: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<Challenge[]> {
   const config = getConfig();
   const personaDef = PERSONA_DEFINITIONS[persona];
@@ -244,12 +255,12 @@ Respond in JSON:
     model: config.model,
     max_tokens: 1024,
     system: systemPrompt,
-    messages: [{ role: 'user', content: userContent }]
+    messages: [{ role: "user", content: userContent }],
   });
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response from red team');
+  if (content.type !== "text") {
+    throw new EvaluationParseError("Unexpected response from red team");
   }
 
   // Track with request/response data for API logging
@@ -259,19 +270,19 @@ Respond in JSON:
     {
       model: config.model,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userContent }],
+      messages: [{ role: "user", content: userContent }],
       max_tokens: 1024,
     },
     {
       content: content.text,
       stop_reason: response.stop_reason,
-    }
+    },
   );
   logDebug(`Generated challenges from ${persona} for ${criterion.name}`);
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError('Could not parse red team response');
+    throw new EvaluationParseError("Could not parse red team response");
   }
 
   try {
@@ -284,19 +295,23 @@ Respond in JSON:
       originalScore: score,
       challenge: c.challenge,
       severity: validateSeverity(c.severity),
-      requiredEvidence: c.requiredEvidence || []
+      requiredEvidence: c.requiredEvidence || [],
     }));
   } catch {
-    throw new EvaluationParseError('Invalid JSON in red team response');
+    throw new EvaluationParseError("Invalid JSON in red team response");
   }
 }
 
 /**
  * Validate severity value
  */
-function validateSeverity(severity: string): 'critical' | 'significant' | 'minor' {
-  const valid = ['critical', 'significant', 'minor'];
-  return valid.includes(severity) ? severity as 'critical' | 'significant' | 'minor' : 'minor';
+function validateSeverity(
+  severity: string,
+): "critical" | "significant" | "minor" {
+  const valid = ["critical", "significant", "minor"];
+  return valid.includes(severity)
+    ? (severity as "critical" | "significant" | "minor")
+    : "minor";
 }
 
 /**
@@ -309,24 +324,41 @@ export async function generateAllChallengesLegacy(
   claim: string,
   score: number,
   reasoning: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<Challenge[]> {
   const activePersonas = getActivePersonas();
-  logInfo(`Generating red team challenges for: ${criterion.name} (${activePersonas.length} personas)`);
+  logInfo(
+    `Generating red team challenges for: ${criterion.name} (${activePersonas.length} personas)`,
+  );
 
   // Run all active personas in parallel
-  const challengePromises = activePersonas.map(persona =>
-    generateChallenges(persona, criterion, claim, score, reasoning, costTracker)
+  const challengePromises = activePersonas.map((persona) =>
+    generateChallenges(
+      persona,
+      criterion,
+      claim,
+      score,
+      reasoning,
+      costTracker,
+    ),
   );
 
   const results = await Promise.all(challengePromises);
   const allChallenges = results.flat();
 
   // Sort by severity (critical first)
-  const severityOrder: Record<string, number> = { critical: 0, significant: 1, minor: 2 };
-  allChallenges.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+  const severityOrder: Record<string, number> = {
+    critical: 0,
+    significant: 1,
+    minor: 2,
+  };
+  allChallenges.sort(
+    (a, b) => severityOrder[a.severity] - severityOrder[b.severity],
+  );
 
-  logDebug(`Generated ${allChallenges.length} challenges for ${criterion.name}`);
+  logDebug(
+    `Generated ${allChallenges.length} challenges for ${criterion.name}`,
+  );
   return allChallenges;
 }
 
@@ -339,18 +371,22 @@ export async function generateAllChallenges(
   claim: string,
   score: number,
   reasoning: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<Challenge[]> {
   const config = getConfig();
   const activePersonas = getActivePersonas();
-  logInfo(`Generating red team challenges for: ${criterion.name} (${activePersonas.length} personas, bundled)`);
+  logInfo(
+    `Generating red team challenges for: ${criterion.name} (${activePersonas.length} personas, bundled)`,
+  );
 
   // Build persona descriptions for the prompt - use FULL system prompts
-  const personaDescriptions = activePersonas.map(persona => {
-    const def = PERSONA_DEFINITIONS[persona];
-    return `### ${def.name} (id: ${persona})
+  const personaDescriptions = activePersonas
+    .map((persona) => {
+      const def = PERSONA_DEFINITIONS[persona];
+      return `### ${def.name} (id: ${persona})
 ${def.systemPrompt}`;
-  }).join('\n\n');
+    })
+    .join("\n\n");
 
   const systemPrompt = `You are a Red Team composed of multiple adversarial personas. Your job is to challenge evaluations from different perspectives simultaneously.
 
@@ -370,7 +406,7 @@ Score: ${score}/10
 Reasoning: ${reasoning}
 
 ## Your Task
-Generate challenges from EACH persona (${activePersonas.join(', ')}).
+Generate challenges from EACH persona (${activePersonas.join(", ")}).
 
 For each challenge:
 1. Identify which persona is speaking
@@ -395,34 +431,34 @@ Respond in JSON:
     model: config.model,
     max_tokens: 2048,
     system: systemPrompt,
-    messages: [{ role: 'user', content: userContent }]
+    messages: [{ role: "user", content: userContent }],
   });
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response from red team');
+  if (content.type !== "text") {
+    throw new EvaluationParseError("Unexpected response from red team");
   }
 
   // Track with request/response data for API logging
   costTracker.track(
     response.usage,
-    'redteam-bundled',
+    "redteam-bundled",
     {
       model: config.model,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userContent }],
+      messages: [{ role: "user", content: userContent }],
       max_tokens: 2048,
     },
     {
       content: content.text,
       stop_reason: response.stop_reason,
-    }
+    },
   );
   logDebug(`Generated bundled challenges for ${criterion.name}`);
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError('Could not parse red team response');
+    throw new EvaluationParseError("Could not parse red team response");
   }
 
   try {
@@ -437,18 +473,27 @@ Respond in JSON:
         originalScore: score,
         challenge: c.challenge,
         severity: validateSeverity(c.severity),
-        requiredEvidence: c.requiredEvidence || []
+        requiredEvidence: c.requiredEvidence || [],
       };
     });
 
     // Sort by severity (critical first)
-    const severityOrder: Record<string, number> = { critical: 0, significant: 1, minor: 2 };
-    allChallenges.sort((a: Challenge, b: Challenge) => severityOrder[a.severity] - severityOrder[b.severity]);
+    const severityOrder: Record<string, number> = {
+      critical: 0,
+      significant: 1,
+      minor: 2,
+    };
+    allChallenges.sort(
+      (a: Challenge, b: Challenge) =>
+        severityOrder[a.severity] - severityOrder[b.severity],
+    );
 
-    logDebug(`Generated ${allChallenges.length} challenges for ${criterion.name}`);
+    logDebug(
+      `Generated ${allChallenges.length} challenges for ${criterion.name}`,
+    );
     return allChallenges;
   } catch {
-    throw new EvaluationParseError('Invalid JSON in red team response');
+    throw new EvaluationParseError("Invalid JSON in red team response");
   }
 }
 
@@ -456,7 +501,10 @@ Respond in JSON:
  * Validate persona value against active personas
  * Handles various formats: "skeptic", "The Skeptic", "SKEPTIC", etc.
  */
-function validatePersona(persona: string, activePersonas: RedTeamPersona[]): RedTeamPersona {
+function validatePersona(
+  persona: string,
+  activePersonas: RedTeamPersona[],
+): RedTeamPersona {
   if (!persona) return activePersonas[0];
 
   // Try exact match first
@@ -466,14 +514,17 @@ function validatePersona(persona: string, activePersonas: RedTeamPersona[]): Red
   }
 
   // Try normalized match (remove "the ", spaces, special chars)
-  const normalized = lower.replace(/^the\s+/i, '').replace(/[^a-z-]/g, '');
+  const normalized = lower.replace(/^the\s+/i, "").replace(/[^a-z-]/g, "");
   if (activePersonas.includes(normalized as RedTeamPersona)) {
     return normalized as RedTeamPersona;
   }
 
   // Try partial match (e.g., "first principles" -> "first-principles")
   for (const active of activePersonas) {
-    if (normalized.includes(active.replace('-', '')) || active.replace('-', '').includes(normalized)) {
+    if (
+      normalized.includes(active.replace("-", "")) ||
+      active.replace("-", "").includes(normalized)
+    ) {
       return active;
     }
   }
@@ -500,13 +551,16 @@ export interface Defense {
 export async function generateDefense(
   challenges: Challenge[],
   ideaContent: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<Defense[]> {
   const config = getConfig();
 
-  const challengeList = challenges.map(c =>
-    `[${c.id}] ${c.persona.toUpperCase()}: ${c.challenge}\n  Severity: ${c.severity}`
-  ).join('\n\n');
+  const challengeList = challenges
+    .map(
+      (c) =>
+        `[${c.id}] ${c.persona.toUpperCase()}: ${c.challenge}\n  Severity: ${c.severity}`,
+    )
+    .join("\n\n");
 
   const systemPrompt = `You are the Evaluator defending your assessment.
 
@@ -542,40 +596,42 @@ For each challenge, respond in JSON:
     model: config.model,
     max_tokens: 2048,
     system: systemPrompt,
-    messages: [{ role: 'user', content: userContent }]
+    messages: [{ role: "user", content: userContent }],
   });
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response from evaluator defense');
+  if (content.type !== "text") {
+    throw new EvaluationParseError(
+      "Unexpected response from evaluator defense",
+    );
   }
 
   // Track with request/response data for API logging
   costTracker.track(
     response.usage,
-    'evaluator-defense',
+    "evaluator-defense",
     {
       model: config.model,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userContent }],
+      messages: [{ role: "user", content: userContent }],
       max_tokens: 2048,
     },
     {
       content: content.text,
       stop_reason: response.stop_reason,
-    }
+    },
   );
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError('Could not parse defense response');
+    throw new EvaluationParseError("Could not parse defense response");
   }
 
   try {
     const parsed = JSON.parse(jsonMatch[0]);
     return parsed.defenses || [];
   } catch {
-    throw new EvaluationParseError('Invalid JSON in defense response');
+    throw new EvaluationParseError("Invalid JSON in defense response");
   }
 }
 
@@ -583,7 +639,7 @@ For each challenge, respond in JSON:
  * Format challenges for display
  */
 export function formatChallenges(challenges: Challenge[]): string {
-  const lines: string[] = ['# Red Team Challenges\n'];
+  const lines: string[] = ["# Red Team Challenges\n"];
 
   const byPersona: Record<string, Challenge[]> = {};
   for (const c of challenges) {
@@ -597,17 +653,21 @@ export function formatChallenges(challenges: Challenge[]): string {
     lines.push(`*${def.role}*\n`);
 
     for (const c of personaChallenges) {
-      const severityEmoji = c.severity === 'critical' ? '🔴' :
-                           c.severity === 'significant' ? '🟡' : '🟢';
+      const severityEmoji =
+        c.severity === "critical"
+          ? "🔴"
+          : c.severity === "significant"
+            ? "🟡"
+            : "🟢";
       lines.push(`### ${severityEmoji} ${c.criterion.name}`);
       lines.push(`> ${c.challenge}\n`);
       if (c.requiredEvidence.length > 0) {
-        lines.push('**Required Evidence:**');
-        c.requiredEvidence.forEach(e => lines.push(`- ${e}`));
+        lines.push("**Required Evidence:**");
+        c.requiredEvidence.forEach((e) => lines.push(`- ${e}`));
       }
-      lines.push('');
+      lines.push("");
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }

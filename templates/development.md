@@ -1,7 +1,7 @@
 ---
-idea_id: {{idea_id}}
-created_at: {{created_at}}
-last_updated: {{last_updated}}
+idea_id: { { idea_id } }
+created_at: { { created_at } }
+last_updated: { { last_updated } }
 ---
 
 # Development Notes: {{title}}
@@ -11,32 +11,32 @@ last_updated: {{last_updated}}
 ### Target Users
 
 | Question | Answer | Source | Date |
-|----------|--------|--------|------|
-| | | | |
+| -------- | ------ | ------ | ---- |
+|          |        |        |      |
 
 ### Problem Definition
 
 | Question | Answer | Source | Date |
-|----------|--------|--------|------|
-| | | | |
+| -------- | ------ | ------ | ---- |
+|          |        |        |      |
 
 ### Solution Details
 
 | Question | Answer | Source | Date |
-|----------|--------|--------|------|
-| | | | |
+| -------- | ------ | ------ | ---- |
+|          |        |        |      |
 
 ### Market Understanding
 
 | Question | Answer | Source | Date |
-|----------|--------|--------|------|
-| | | | |
+| -------- | ------ | ------ | ---- |
+|          |        |        |      |
 
 ### Execution Plan
 
 | Question | Answer | Source | Date |
-|----------|--------|--------|------|
-| | | | |
+| -------- | ------ | ------ | ---- |
+|          |        |        |      |
 
 ## Identified Gaps
 
@@ -45,7 +45,7 @@ last_updated: {{last_updated}}
 
 ## Key Insights
 
-*Summary of important learnings from development discussions.*
+_Summary of important learnings from development discussions._
 
 ## Next Steps
 
@@ -56,4 +56,4 @@ last_updated: {{last_updated}}
 
 ### Session 1 - {{date}}
 
-*Notes from development session.*
+_Notes from development session._

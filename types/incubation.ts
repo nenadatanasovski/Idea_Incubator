@@ -10,108 +10,142 @@
  * - Lineage and branching
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // ============================================================================
 // Status and Phase Enums
 // ============================================================================
 
-export const IdeaStatusSchema = z.enum(['active', 'paused', 'abandoned', 'completed', 'archived']);
+export const IdeaStatusSchema = z.enum([
+  "active",
+  "paused",
+  "abandoned",
+  "completed",
+  "archived",
+]);
 export type IdeaStatus = z.infer<typeof IdeaStatusSchema>;
 
 // Note: 'position' replaces 'differentiation' as the phase name
-export const IncubationPhaseSchema = z.enum(['capture', 'clarify', 'position', 'update', 'evaluate', 'iterate']);
+export const IncubationPhaseSchema = z.enum([
+  "capture",
+  "clarify",
+  "position",
+  "update",
+  "evaluate",
+  "iterate",
+]);
 export type IncubationPhase = z.infer<typeof IncubationPhaseSchema>;
 
 // Legacy alias for backward compatibility
-export const LegacyIncubationPhaseSchema = z.enum(['capture', 'clarify', 'differentiation', 'update', 'evaluate', 'iterate']);
+export const LegacyIncubationPhaseSchema = z.enum([
+  "capture",
+  "clarify",
+  "differentiation",
+  "update",
+  "evaluate",
+  "iterate",
+]);
 
 // ============================================================================
 // Strategic Approach Types
 // ============================================================================
 
 export const StrategicApproachSchema = z.enum([
-  'create',         // Build something genuinely new - for VC-backed, long runway
-  'copy_improve',   // Take proven model, execute better - for bootstrapped, income goals
-  'combine',        // Merge two validated concepts - for unique insight at intersection
-  'localize',       // Proven model, new geography/segment - for local market knowledge
-  'specialize',     // Narrow general solution to niche - for deep domain expertise
-  'time'            // Retry failed concept, market now ready - for timing insight
+  "create", // Build something genuinely new - for VC-backed, long runway
+  "copy_improve", // Take proven model, execute better - for bootstrapped, income goals
+  "combine", // Merge two validated concepts - for unique insight at intersection
+  "localize", // Proven model, new geography/segment - for local market knowledge
+  "specialize", // Narrow general solution to niche - for deep domain expertise
+  "time", // Retry failed concept, market now ready - for timing insight
 ]);
 export type StrategicApproach = z.infer<typeof StrategicApproachSchema>;
 
 // Strategic approach metadata
-export const STRATEGIC_APPROACH_META: Record<StrategicApproach, {
-  label: string;
-  description: string;
-  bestFor: string;
-  riskLevel: 'low' | 'medium' | 'high';
-  timeToRevenue: string;
-}> = {
+export const STRATEGIC_APPROACH_META: Record<
+  StrategicApproach,
+  {
+    label: string;
+    description: string;
+    bestFor: string;
+    riskLevel: "low" | "medium" | "high";
+    timeToRevenue: string;
+  }
+> = {
   create: {
-    label: 'Create',
-    description: 'Build something genuinely new',
-    bestFor: 'VC-backed, long runway, high risk tolerance',
-    riskLevel: 'high',
-    timeToRevenue: '12-24+ months'
+    label: "Create",
+    description: "Build something genuinely new",
+    bestFor: "VC-backed, long runway, high risk tolerance",
+    riskLevel: "high",
+    timeToRevenue: "12-24+ months",
   },
   copy_improve: {
-    label: 'Copy & Improve',
-    description: 'Take proven model, execute better',
-    bestFor: 'Bootstrapped, income goals, proven demand',
-    riskLevel: 'low',
-    timeToRevenue: '3-6 months'
+    label: "Copy & Improve",
+    description: "Take proven model, execute better",
+    bestFor: "Bootstrapped, income goals, proven demand",
+    riskLevel: "low",
+    timeToRevenue: "3-6 months",
   },
   combine: {
-    label: 'Combine',
-    description: 'Merge two validated concepts',
-    bestFor: 'Unique insight at intersection',
-    riskLevel: 'medium',
-    timeToRevenue: '6-12 months'
+    label: "Combine",
+    description: "Merge two validated concepts",
+    bestFor: "Unique insight at intersection",
+    riskLevel: "medium",
+    timeToRevenue: "6-12 months",
   },
   localize: {
-    label: 'Localize',
-    description: 'Proven model, new geography/segment',
-    bestFor: 'Local market knowledge',
-    riskLevel: 'low',
-    timeToRevenue: '3-6 months'
+    label: "Localize",
+    description: "Proven model, new geography/segment",
+    bestFor: "Local market knowledge",
+    riskLevel: "low",
+    timeToRevenue: "3-6 months",
   },
   specialize: {
-    label: 'Specialize',
-    description: 'Narrow general solution to niche',
-    bestFor: 'Deep domain expertise',
-    riskLevel: 'low',
-    timeToRevenue: '4-8 months'
+    label: "Specialize",
+    description: "Narrow general solution to niche",
+    bestFor: "Deep domain expertise",
+    riskLevel: "low",
+    timeToRevenue: "4-8 months",
   },
   time: {
-    label: 'Time',
-    description: 'Retry failed concept, market now ready',
-    bestFor: 'Timing insight, patience',
-    riskLevel: 'high',
-    timeToRevenue: 'Variable'
-  }
+    label: "Time",
+    description: "Retry failed concept, market now ready",
+    bestFor: "Timing insight, patience",
+    riskLevel: "high",
+    timeToRevenue: "Variable",
+  },
 };
 
 // Valid status transitions
 export const VALID_STATUS_TRANSITIONS: Record<IdeaStatus, IdeaStatus[]> = {
-  active: ['paused', 'abandoned', 'completed'],
-  paused: ['active', 'abandoned', 'archived'],
-  abandoned: ['active', 'archived'],
-  completed: ['archived'],
-  archived: ['active']
+  active: ["paused", "abandoned", "completed"],
+  paused: ["active", "abandoned", "archived"],
+  abandoned: ["active", "archived"],
+  completed: ["archived"],
+  archived: ["active"],
 };
 
 // ============================================================================
 // Gap Analysis Types
 // ============================================================================
 
-export const AssumptionCategorySchema = z.enum(['problem', 'solution', 'market', 'user', 'technical', 'execution']);
+export const AssumptionCategorySchema = z.enum([
+  "problem",
+  "solution",
+  "market",
+  "user",
+  "technical",
+  "execution",
+]);
 export type AssumptionCategory = z.infer<typeof AssumptionCategorySchema>;
 
-export const AssumptionImpactSchema = z.enum(['critical', 'significant', 'minor']);
+export const AssumptionImpactSchema = z.enum([
+  "critical",
+  "significant",
+  "minor",
+]);
 export type AssumptionImpact = z.infer<typeof AssumptionImpactSchema>;
 
-export const AssumptionConfidenceSchema = z.enum(['low', 'medium', 'high']);
+export const AssumptionConfidenceSchema = z.enum(["low", "medium", "high"]);
 export type AssumptionConfidence = z.infer<typeof AssumptionConfidenceSchema>;
 
 export interface Assumption {
@@ -129,38 +163,42 @@ export interface GapAnalysis {
   assumptions: Assumption[];
   criticalGapsCount: number;
   significantGapsCount: number;
-  readinessScore: number;  // 0-100, calculated from gaps
+  readinessScore: number; // 0-100, calculated from gaps
 }
 
 // Impact and confidence weights for prioritization
 export const IMPACT_WEIGHTS: Record<AssumptionImpact, number> = {
   critical: 3,
   significant: 2,
-  minor: 1
+  minor: 1,
 };
 
 export const CONFIDENCE_WEIGHTS: Record<AssumptionConfidence, number> = {
-  low: 3,      // Higher weight for low confidence (more urgent)
+  low: 3, // Higher weight for low confidence (more urgent)
   medium: 2,
-  high: 1
+  high: 1,
 };
 
 // ============================================================================
 // Gap Suggestion Types
 // ============================================================================
 
-export type GapSuggestionSource = 'profile' | 'web_research' | 'synthesis';
+export type GapSuggestionSource = "profile" | "web_research" | "synthesis";
 
 export interface GapSuggestion {
   id: string;
   suggestion: string;
   rationale: string;
   tradeoffs: string[];
-  confidence: number;  // 0-1
+  confidence: number; // 0-1
   source: GapSuggestionSource;
 }
 
-export type GapResolutionSource = 'suggestion_selected' | 'suggestion_modified' | 'user_provided' | 'skipped';
+export type GapResolutionSource =
+  | "suggestion_selected"
+  | "suggestion_modified"
+  | "user_provided"
+  | "skipped";
 
 export interface GapResolution {
   gapId: string;
@@ -208,7 +246,7 @@ export interface ProfileContext {
 // Soft Gates / Advisory Types
 // ============================================================================
 
-export type ViabilityRecommendation = 'proceed' | 'research_more' | 'pause';
+export type ViabilityRecommendation = "proceed" | "research_more" | "pause";
 
 export interface ViabilityAdvisory {
   criticalGaps: Assumption[];
@@ -219,15 +257,20 @@ export interface ViabilityAdvisory {
 }
 
 export interface WeakCriterion {
-  code: string;        // e.g., "P1", "S2"
-  name: string;        // e.g., "Problem Clarity"
-  score: number;       // 1-10
-  confidence: number;  // 0-1
+  code: string; // e.g., "P1", "S2"
+  name: string; // e.g., "Problem Clarity"
+  score: number; // 1-10
+  confidence: number; // 0-1
   addressable: boolean;
   suggestedAction: string;
 }
 
-export type EvaluationRecommendation = 'pursue' | 'iterate' | 'branch' | 'pause' | 'abandon';
+export type EvaluationRecommendation =
+  | "pursue"
+  | "iterate"
+  | "branch"
+  | "pause"
+  | "abandon";
 
 export interface EvaluationAdvisory {
   overallScore: number;
@@ -238,7 +281,7 @@ export interface EvaluationAdvisory {
 }
 
 // Gate types
-export type GateType = 'viability' | 'evaluation';
+export type GateType = "viability" | "evaluation";
 
 export interface GateDecision {
   id: string;
@@ -254,7 +297,13 @@ export interface GateDecision {
 // Versioning Types
 // ============================================================================
 
-export type VersionChangeType = 'initial' | 'post-clarify' | 'post-differentiation' | 'post-evaluation' | 'iteration' | 'manual';
+export type VersionChangeType =
+  | "initial"
+  | "post-clarify"
+  | "post-differentiation"
+  | "post-evaluation"
+  | "iteration"
+  | "manual";
 
 export interface IdeaVersion {
   id: string;
@@ -296,8 +345,8 @@ export interface VersionDiff {
 export interface IterationContext {
   iterationNumber: number;
   previousScore: number;
-  triggerCriteria: string[];  // Criteria codes that were weak
-  userDirection: string;      // What user wants to focus on
+  triggerCriteria: string[]; // Criteria codes that were weak
+  userDirection: string; // What user wants to focus on
 }
 
 export interface IterationLog {
@@ -314,46 +363,46 @@ export interface IterationLog {
 // Criteria-to-question category mapping for focused iteration
 export const CRITERIA_TO_QUESTION_CATEGORIES: Record<string, string[]> = {
   // Problem criteria
-  'P1': ['problem_clarity', 'problem_scope'],
-  'P2': ['problem_severity', 'problem_frequency'],
-  'P3': ['target_user', 'user_segments'],
-  'P4': ['problem_validation', 'user_interviews'],
-  'P5': ['problem_uniqueness', 'existing_solutions'],
+  P1: ["problem_clarity", "problem_scope"],
+  P2: ["problem_severity", "problem_frequency"],
+  P3: ["target_user", "user_segments"],
+  P4: ["problem_validation", "user_interviews"],
+  P5: ["problem_uniqueness", "existing_solutions"],
 
   // Solution criteria
-  'S1': ['solution_clarity', 'solution_mechanism'],
-  'S2': ['technical_approach', 'build_complexity'],
-  'S3': ['solution_uniqueness', 'innovation'],
-  'S4': ['scalability', 'growth_constraints'],
-  'S5': ['defensibility', 'moats'],
+  S1: ["solution_clarity", "solution_mechanism"],
+  S2: ["technical_approach", "build_complexity"],
+  S3: ["solution_uniqueness", "innovation"],
+  S4: ["scalability", "growth_constraints"],
+  S5: ["defensibility", "moats"],
 
   // Feasibility criteria
-  'F1': ['technical_stack', 'technical_risks'],
-  'F2': ['resource_requirements', 'costs'],
-  'F3': ['skills_needed', 'team_gaps'],
-  'F4': ['time_to_value', 'milestones'],
-  'F5': ['dependencies', 'partnerships'],
+  F1: ["technical_stack", "technical_risks"],
+  F2: ["resource_requirements", "costs"],
+  F3: ["skills_needed", "team_gaps"],
+  F4: ["time_to_value", "milestones"],
+  F5: ["dependencies", "partnerships"],
 
   // Fit criteria
-  'FT1': ['personal_goals', 'motivation'],
-  'FT2': ['passion', 'interest_areas'],
-  'FT3': ['skills_match', 'experience'],
-  'FT4': ['network', 'connections'],
-  'FT5': ['life_stage', 'availability'],
+  FT1: ["personal_goals", "motivation"],
+  FT2: ["passion", "interest_areas"],
+  FT3: ["skills_match", "experience"],
+  FT4: ["network", "connections"],
+  FT5: ["life_stage", "availability"],
 
   // Market criteria
-  'M1': ['market_size', 'market_segments'],
-  'M2': ['market_growth', 'trends'],
-  'M3': ['competitors', 'competitive_advantage'],
-  'M4': ['entry_barriers', 'switching_costs'],
-  'M5': ['market_timing', 'readiness'],
+  M1: ["market_size", "market_segments"],
+  M2: ["market_growth", "trends"],
+  M3: ["competitors", "competitive_advantage"],
+  M4: ["entry_barriers", "switching_costs"],
+  M5: ["market_timing", "readiness"],
 
   // Risk criteria
-  'R1': ['execution_risks', 'mitigation'],
-  'R2': ['market_risks', 'demand_uncertainty'],
-  'R3': ['technical_risks', 'unknowns'],
-  'R4': ['financial_risks', 'runway'],
-  'R5': ['regulatory_risks', 'compliance']
+  R1: ["execution_risks", "mitigation"],
+  R2: ["market_risks", "demand_uncertainty"],
+  R3: ["technical_risks", "unknowns"],
+  R4: ["financial_risks", "runway"],
+  R5: ["regulatory_risks", "compliance"],
 };
 
 // ============================================================================
@@ -374,10 +423,10 @@ export interface IdeaLineage {
   current: IdeaSummary;
   parent?: IdeaSummary;
   children: IdeaSummary[];
-  ancestors: IdeaSummary[];  // Full parent chain to root
+  ancestors: IdeaSummary[]; // Full parent chain to root
 }
 
-export type ParentAction = 'keep_active' | 'pause' | 'abandon';
+export type ParentAction = "keep_active" | "pause" | "abandon";
 
 export interface BranchRequest {
   parentIdeaId: string;
@@ -390,8 +439,8 @@ export interface BranchRequest {
 // Differentiation Types
 // ============================================================================
 
-export type ImpactLevel = 'high' | 'medium' | 'low';
-export type FeasibilityLevel = 'high' | 'medium' | 'low';
+export type ImpactLevel = "high" | "medium" | "low";
+export type FeasibilityLevel = "high" | "medium" | "low";
 
 export interface Opportunity {
   description: string;
@@ -399,28 +448,28 @@ export interface Opportunity {
   potentialImpact: ImpactLevel;
   feasibility: FeasibilityLevel;
   // Extended 5W+H fields
-  why?: string;           // Why this opportunity exists
-  marketSize?: string;    // Estimated market size
-  timing?: string;        // Why now is the right time
+  why?: string; // Why this opportunity exists
+  marketSize?: string; // Estimated market size
+  timing?: string; // Why now is the right time
 }
 
 export interface FiveWH {
-  what?: string;     // Exactly what to do/build/offer
-  why?: string;      // Strategic rationale and value proposition
-  how?: string;      // Step-by-step implementation approach
-  when?: string;     // Timeline with key milestones
-  where?: string;    // Target markets, channels, go-to-market
-  howMuch?: string;  // Resource estimate and expected ROI
+  what?: string; // Exactly what to do/build/offer
+  why?: string; // Strategic rationale and value proposition
+  how?: string; // Step-by-step implementation approach
+  when?: string; // Timeline with key milestones
+  where?: string; // Target markets, channels, go-to-market
+  howMuch?: string; // Resource estimate and expected ROI
 }
 
 export interface Strategy {
-  id?: string;             // Unique identifier
+  id?: string; // Unique identifier
   name: string;
   description: string;
   differentiators: string[];
   tradeoffs: string[];
-  fitWithProfile: number;  // 1-10
-  fiveWH?: FiveWH;         // Comprehensive 5W+H breakdown
+  fitWithProfile: number; // 1-10
+  fiveWH?: FiveWH; // Comprehensive 5W+H breakdown
 }
 
 export interface Risk {
@@ -428,8 +477,8 @@ export interface Risk {
   likelihood: ImpactLevel;
   severity: ImpactLevel;
   mitigation?: string;
-  competitors?: string[];  // Names of competitors posing this risk
-  timeframe?: string;      // When this risk might materialize
+  competitors?: string[]; // Names of competitors posing this risk
+  timeframe?: string; // When this risk might materialize
 }
 
 export interface MarketTiming {
@@ -444,14 +493,14 @@ export interface DifferentiationAnalysis {
   competitiveRisks: Risk[];
   differentiationStrategies: Strategy[];
   summary: string;
-  marketTiming?: MarketTiming;  // Overall market timing analysis
+  marketTiming?: MarketTiming; // Overall market timing analysis
 }
 
 // Validated versions with confidence ratings
 export interface ValidatedOpportunity extends Opportunity {
-  validationConfidence: number;  // 0-1
-  validationWarnings: string[];  // Empty if no issues
-  contradictions?: string[];     // Any conflicts with earlier findings
+  validationConfidence: number; // 0-1
+  validationWarnings: string[]; // Empty if no issues
+  contradictions?: string[]; // Any conflicts with earlier findings
 }
 
 export interface ValidatedStrategy extends Strategy {
@@ -467,11 +516,11 @@ export interface ValidatedStrategy extends Strategy {
 
 export interface ValidatedDifferentiationAnalysis {
   marketOpportunities: ValidatedOpportunity[];
-  competitiveRisks: Risk[];  // Risks don't need validation
+  competitiveRisks: Risk[]; // Risks don't need validation
   differentiationStrategies: ValidatedStrategy[];
   summary: string;
-  validationSummary: string;  // Overall validation notes
-  overallConfidence: number;  // 0-1, average of all validations
+  validationSummary: string; // Overall validation notes
+  overallConfidence: number; // 0-1, average of all validations
 }
 
 // ============================================================================
@@ -517,19 +566,29 @@ export interface IdeaWithIncubation {
 // Idea Financial Allocation Types (Per-Idea Resource Commitment)
 // ============================================================================
 
-export const AllocationPrioritySchema = z.enum(['primary', 'secondary', 'exploration', 'parked']);
+export const AllocationPrioritySchema = z.enum([
+  "primary",
+  "secondary",
+  "exploration",
+  "parked",
+]);
 export type AllocationPriority = z.infer<typeof AllocationPrioritySchema>;
 
 export const IncomeTypeSchema = z.enum([
-  'full_replacement',    // This idea replaces job
-  'partial_replacement', // This idea + other income = target
-  'supplement',          // Extra income on top
-  'wealth_building',     // Equity play, income later
-  'learning'             // Not income focused
+  "full_replacement", // This idea replaces job
+  "partial_replacement", // This idea + other income = target
+  "supplement", // Extra income on top
+  "wealth_building", // Equity play, income later
+  "learning", // Not income focused
 ]);
 export type IncomeType = z.infer<typeof IncomeTypeSchema>;
 
-export const PivotWillingnessSchema = z.enum(['rigid', 'moderate', 'flexible', 'very_flexible']);
+export const PivotWillingnessSchema = z.enum([
+  "rigid",
+  "moderate",
+  "flexible",
+  "very_flexible",
+]);
 export type PivotWillingness = z.infer<typeof PivotWillingnessSchema>;
 
 export const IdeaFinancialAllocationSchema = z.object({
@@ -540,18 +599,18 @@ export const IdeaFinancialAllocationSchema = z.object({
   allocatedBudget: z.number().min(0).default(0),
   allocatedWeeklyHours: z.number().min(0).max(80).default(0),
   allocatedRunwayMonths: z.number().min(0).default(0),
-  allocationPriority: AllocationPrioritySchema.default('exploration'),
+  allocationPriority: AllocationPrioritySchema.default("exploration"),
 
   // Idea-Specific Goals
   targetIncomeFromIdea: z.number().min(0).optional(),
   incomeTimelineMonths: z.number().min(0).optional(),
-  incomeType: IncomeTypeSchema.default('supplement'),
+  incomeType: IncomeTypeSchema.default("supplement"),
   exitIntent: z.boolean().default(false),
 
   // Idea-Specific Risk
-  ideaRiskTolerance: z.enum(['low', 'medium', 'high', 'very_high']).optional(),
+  ideaRiskTolerance: z.enum(["low", "medium", "high", "very_high"]).optional(),
   maxAcceptableLoss: z.number().min(0).optional(),
-  pivotWillingness: PivotWillingnessSchema.default('moderate'),
+  pivotWillingness: PivotWillingnessSchema.default("moderate"),
 
   // Validation Budget
   validationBudget: z.number().min(0).default(0),
@@ -564,25 +623,30 @@ export const IdeaFinancialAllocationSchema = z.object({
 
   // Timestamps
   createdAt: z.string().datetime().optional(),
-  updatedAt: z.string().datetime().optional()
+  updatedAt: z.string().datetime().optional(),
 });
 
-export type IdeaFinancialAllocation = z.infer<typeof IdeaFinancialAllocationSchema>;
+export type IdeaFinancialAllocation = z.infer<
+  typeof IdeaFinancialAllocationSchema
+>;
 
 // Input schema for creating/updating allocation
-export const IdeaFinancialAllocationInputSchema = IdeaFinancialAllocationSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
-});
+export const IdeaFinancialAllocationInputSchema =
+  IdeaFinancialAllocationSchema.omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  });
 
-export type IdeaFinancialAllocationInput = z.infer<typeof IdeaFinancialAllocationInputSchema>;
+export type IdeaFinancialAllocationInput = z.infer<
+  typeof IdeaFinancialAllocationInputSchema
+>;
 
 // ============================================================================
 // Positioning Decision Types (Captures user decisions for Update phase)
 // ============================================================================
 
-export const TimingDecisionSchema = z.enum(['proceed_now', 'wait', 'urgent']);
+export const TimingDecisionSchema = z.enum(["proceed_now", "wait", "urgent"]);
 export type TimingDecision = z.infer<typeof TimingDecisionSchema>;
 
 export const PositioningDecisionSchema = z.object({
@@ -610,7 +674,7 @@ export const PositioningDecisionSchema = z.object({
 
   // Timestamps
   createdAt: z.string().datetime().optional(),
-  updatedAt: z.string().datetime().optional()
+  updatedAt: z.string().datetime().optional(),
 });
 
 export type PositioningDecision = z.infer<typeof PositioningDecisionSchema>;
@@ -628,20 +692,20 @@ export interface RevenueEstimate {
 export interface UnitEconomics {
   estimatedCAC: { low: number; high: number };
   estimatedLTV: { low: number; high: number };
-  estimatedMargin: number;  // Percentage
+  estimatedMargin: number; // Percentage
   breakEvenCustomers: number;
 }
 
 export interface InvestmentRequired {
   upfront: { low: number; high: number };
   monthly: { low: number; high: number };
-  timeToBreakEven: { low: number; high: number };  // Months
+  timeToBreakEven: { low: number; high: number }; // Months
 }
 
 export interface GoalAlignment {
   meetsIncomeTarget: boolean;
   gapToTarget: number | null;
-  timelineAlignment: 'faster' | 'aligned' | 'slower' | 'unlikely';
+  timelineAlignment: "faster" | "aligned" | "slower" | "unlikely";
   runwaySufficient: boolean;
   investmentFeasible: boolean;
 }
@@ -661,15 +725,15 @@ export interface ValidationPlan {
 }
 
 export interface Reversibility {
-  score: number;  // 1-10
+  score: number; // 1-10
   pivotOptions: string[];
   sunkCostAtMonth6: number;
   transferableAssets: string[];
 }
 
 export interface ExecutionComplexity {
-  score: number;  // 1-10
-  soloFounderFeasibility: number;  // 1-10
+  score: number; // 1-10
+  soloFounderFeasibility: number; // 1-10
   criticalDependencies: string[];
   teamSizeRecommendation: string;
 }
@@ -683,7 +747,11 @@ export interface AllocationFeasibility {
   runwayGap: number | null;
   overallFeasible: boolean;
   adjustmentOptions: Array<{
-    type: 'increase_allocation' | 'reduce_scope' | 'extend_timeline' | 'seek_funding';
+    type:
+      | "increase_allocation"
+      | "reduce_scope"
+      | "extend_timeline"
+      | "seek_funding";
     description: string;
     newRequirement: number;
   }>;
@@ -701,7 +769,7 @@ export interface EnhancedStrategy extends Strategy {
   // Relationship tracking
   addressesOpportunities: string[];
   mitigatesRisks: string[];
-  timingAlignment: 'favorable' | 'neutral' | 'challenging';
+  timingAlignment: "favorable" | "neutral" | "challenging";
 
   // Financial analysis
   revenueEstimates?: RevenueEstimate;
@@ -728,16 +796,16 @@ export interface StrategicSummary {
   primaryOpportunity: {
     id: string;
     segment: string;
-    fit: 'high' | 'medium' | 'low';
+    fit: "high" | "medium" | "low";
   };
   criticalRisk: {
     id: string;
     description: string;
-    severity: 'high' | 'medium' | 'low';
+    severity: "high" | "medium" | "low";
     mitigation: string;
   };
   timingAssessment: {
-    urgency: 'high' | 'medium' | 'low';
+    urgency: "high" | "medium" | "low";
     window: string;
   };
   overallConfidence: number;

@@ -4,12 +4,12 @@
 
 The following changes have been made:
 
-| File | Change | Status |
-|------|--------|--------|
-| `utils/broadcast.ts:6` | Port 3000 → 3001 | ✅ Done |
-| `frontend/src/hooks/useDebateStream.ts:65` | Port 3000 → 3001 | ✅ Done |
-| `server/websocket.ts:8-22` | Added new event types | ✅ Done |
-| Frontend build | Verified compiles | ✅ Done |
+| File                                       | Change                | Status  |
+| ------------------------------------------ | --------------------- | ------- |
+| `utils/broadcast.ts:6`                     | Port 3000 → 3001      | ✅ Done |
+| `frontend/src/hooks/useDebateStream.ts:65` | Port 3000 → 3001      | ✅ Done |
+| `server/websocket.ts:8-22`                 | Added new event types | ✅ Done |
+| Frontend build                             | Verified compiles     | ✅ Done |
 
 ### ⚠️ IMPORTANT: You must restart the API server for changes to take effect!
 
@@ -37,13 +37,14 @@ The live debate viewer displays incorrectly because of **three critical issues**
 
 The system has THREE different port configurations that don't match:
 
-| Component | File | Port Used |
-|-----------|------|-----------|
-| API Server | `server/api.ts:9` | `3001` (via `API_PORT`) |
-| Broadcast Client | `utils/broadcast.ts:6` | `3000` (hardcoded fallback) |
-| Frontend WebSocket | `frontend/src/hooks/useDebateStream.ts:65` | `3000` (hardcoded) |
+| Component          | File                                       | Port Used                   |
+| ------------------ | ------------------------------------------ | --------------------------- |
+| API Server         | `server/api.ts:9`                          | `3001` (via `API_PORT`)     |
+| Broadcast Client   | `utils/broadcast.ts:6`                     | `3000` (hardcoded fallback) |
+| Frontend WebSocket | `frontend/src/hooks/useDebateStream.ts:65` | `3000` (hardcoded)          |
 
 **What happens:**
+
 1. API server starts on port `3001`
 2. Evaluation script tries to POST events to `http://localhost:3000`
 3. Events never reach the API server
@@ -57,16 +58,16 @@ The server's `websocket.ts` doesn't include the new event types:
 ```typescript
 // server/websocket.ts lines 8-18 - OUTDATED
 export type DebateEventType =
-  | 'debate:started'
-  | 'debate:round:started'
-  | 'evaluator:speaking'         // OLD - no new types
-  | 'redteam:challenge'
-  | 'arbiter:verdict'
-  | 'debate:round:complete'
-  | 'debate:complete'
-  | 'synthesis:started'
-  | 'synthesis:complete'
-  | 'error';
+  | "debate:started"
+  | "debate:round:started"
+  | "evaluator:speaking" // OLD - no new types
+  | "redteam:challenge"
+  | "arbiter:verdict"
+  | "debate:round:complete"
+  | "debate:complete"
+  | "synthesis:started"
+  | "synthesis:complete"
+  | "error";
 
 // MISSING:
 // - 'debate:criterion:start'
@@ -76,6 +77,7 @@ export type DebateEventType =
 ```
 
 **What happens:**
+
 1. TypeScript compilation may fail or emit warnings
 2. Type checking doesn't validate new event types
 3. Code relies on runtime behavior that may be inconsistent
@@ -105,41 +107,46 @@ Current flow has multiple handoff points that can fail silently:
 ### Phase 1: Fix Port Configuration (5 files)
 
 #### 1.1 Update `utils/broadcast.ts`
+
 ```typescript
 // Line 6 - Change from 3000 to 3001
-const API_URL = process.env.API_URL || 'http://localhost:3001';
+const API_URL = process.env.API_URL || "http://localhost:3001";
 ```
 
 #### 1.2 Update `frontend/src/hooks/useDebateStream.ts`
+
 ```typescript
 // Lines 64-66 - Change port from 3000 to 3001
 if (import.meta.env.DEV) {
-  return 'ws://localhost:3001';
+  return "ws://localhost:3001";
 }
 ```
 
 #### 1.3 Update `server/websocket.ts` - Add new event types
+
 ```typescript
 // Replace lines 8-18 with:
 export type DebateEventType =
-  | 'debate:started'
-  | 'debate:criterion:start'     // NEW
-  | 'debate:round:started'
-  | 'evaluator:initial'          // NEW
-  | 'evaluator:speaking'         // DEPRECATED but keep for backwards compat
-  | 'evaluator:defense'          // NEW
-  | 'redteam:challenge'
-  | 'arbiter:verdict'
-  | 'debate:round:complete'
-  | 'debate:criterion:complete'  // NEW
-  | 'debate:complete'
-  | 'synthesis:started'
-  | 'synthesis:complete'
-  | 'error';
+  | "debate:started"
+  | "debate:criterion:start" // NEW
+  | "debate:round:started"
+  | "evaluator:initial" // NEW
+  | "evaluator:speaking" // DEPRECATED but keep for backwards compat
+  | "evaluator:defense" // NEW
+  | "redteam:challenge"
+  | "arbiter:verdict"
+  | "debate:round:complete"
+  | "debate:criterion:complete" // NEW
+  | "debate:complete"
+  | "synthesis:started"
+  | "synthesis:complete"
+  | "error";
 ```
 
 #### 1.4 Create Environment Configuration (Optional but Recommended)
+
 Create `.env` file to centralize port configuration:
+
 ```env
 API_PORT=3001
 API_URL=http://localhost:3001
@@ -193,21 +200,22 @@ The event flow should be:
 
 The `groupEventsByCriterion` function (already updated) should handle events as follows:
 
-| Event Type | Action |
-|------------|--------|
-| `evaluator:initial` | Set `evaluatorAssessment` with initial score |
-| `debate:criterion:start` | Set `evaluatorAssessment` with score and start time |
-| `debate:round:started` | Create new round in `rounds` array |
-| `redteam:challenge` | Add to current round's `challenges` array |
-| `evaluator:defense` | Add to current round's `defenses` array |
-| `arbiter:verdict` | Add to current round's `arbiterVerdicts` array |
-| `debate:criterion:complete` | Set `finalScore` and `isComplete` |
+| Event Type                  | Action                                              |
+| --------------------------- | --------------------------------------------------- |
+| `evaluator:initial`         | Set `evaluatorAssessment` with initial score        |
+| `debate:criterion:start`    | Set `evaluatorAssessment` with score and start time |
+| `debate:round:started`      | Create new round in `rounds` array                  |
+| `redteam:challenge`         | Add to current round's `challenges` array           |
+| `evaluator:defense`         | Add to current round's `defenses` array             |
+| `arbiter:verdict`           | Add to current round's `arbiterVerdicts` array      |
+| `debate:criterion:complete` | Set `finalScore` and `isComplete`                   |
 
 ### Phase 4: Testing Verification
 
 After fixes, verify:
 
 1. **Port connectivity:**
+
    ```bash
    # Terminal 1: Start API server
    npm run server
@@ -219,6 +227,7 @@ After fixes, verify:
    ```
 
 2. **Event emission:**
+
    ```bash
    # Terminal 3: Run evaluation
    npm run evaluate test-idea --budget=5
@@ -237,12 +246,12 @@ After fixes, verify:
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `utils/broadcast.ts:6` | Port 3000 → 3001 |
-| `frontend/src/hooks/useDebateStream.ts:65` | Port 3000 → 3001 |
-| `server/websocket.ts:8-18` | Add new event types |
-| `.env` (create) | Add port configuration |
+| File                                       | Change                 |
+| ------------------------------------------ | ---------------------- |
+| `utils/broadcast.ts:6`                     | Port 3000 → 3001       |
+| `frontend/src/hooks/useDebateStream.ts:65` | Port 3000 → 3001       |
+| `server/websocket.ts:8-18`                 | Add new event types    |
+| `.env` (create)                            | Add port configuration |
 
 ---
 
@@ -317,6 +326,7 @@ After debate display is working, add a Scorecard component that shows:
 5. **Cost Summary** - Tokens used and estimated cost
 
 This should be accessible from:
+
 - `/ideas/:slug/scorecard` route
 - A "View Scorecard" button on the DebateViewer when complete
 

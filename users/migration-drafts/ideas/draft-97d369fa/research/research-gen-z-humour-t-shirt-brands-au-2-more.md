@@ -13,6 +13,7 @@ queries:
   - successful niche POD t-shirt brands examples
 identifier: research_gen_z_humour_t-shirt
 ---
+
 ## Gen Z Humour T-Shirt Brands Australia - Research Findings
 
 ### Key Findings
@@ -49,7 +50,6 @@ identifier: research_gen_z_humour_t-shirt
 - **Australian-specific Gen Z humour** - Spicy Baboon does "Aussie humour" generally but not Gen Z-specific; opportunity for localized meme culture (Aussie TikTok trends, local references)
 - **Community-driven design model** - Could leverage Discord/TikTok community to co-create designs, reducing trend risk and building loyalty
 - **Beyond t-shirts** - Hoodies, accessories, stickers could expand offering once brand established
-
 
 ---
 
@@ -96,7 +96,6 @@ identifier: research_gen_z_humour_t-shirt
 - [Market.us - Print-on-Demand Statistics and Facts (2025)](https://scoop.market.us/print-on-demand-statistics/)
 - [Technavio - Print on Demand Market Analysis](https://www.technavio.com/report/print-on-demand-market-analysis)
 - [IMARC Group - Print On Demand Market Size, Share & Growth Report 2033](https://www.imarcgroup.com/print-on-demand-market)
-
 
 ---
 

@@ -10,44 +10,48 @@ updated: "{{updated}}"
 # Development Notes: {{title}}
 
 ## Questions & Answers
+
 <!-- Agent fills after Q&A sessions -->
 
 - [ ] Defined: No
 
-*Record of clarifying questions and answers during idea development.*
+_Record of clarifying questions and answers during idea development._
 
 | Question | Answer | Date |
-|----------|--------|------|
-| | | |
+| -------- | ------ | ---- |
+|          |        |      |
 
 ## Identified Gaps
+
 <!-- Agent fills after gap analysis -->
 
 - [ ] Defined: No
 
-*Areas that need more research, clarification, or validation.*
+_Areas that need more research, clarification, or validation._
 
 -
 -
 -
 
 ## Key Insights
+
 <!-- Agent fills after insight synthesis -->
 
 - [ ] Defined: No
 
-*Important discoveries and learnings from the development process.*
+_Important discoveries and learnings from the development process._
 
 -
 -
 -
 
 ## Next Steps
+
 <!-- Agent fills after action planning -->
 
 - [ ] Defined: No
 
-*Immediate actions to move this idea forward.*
+_Immediate actions to move this idea forward._
 
 - [ ]
 - [ ]

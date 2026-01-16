@@ -1,70 +1,70 @@
 /**
  * WebSocket server for real-time debate streaming and ideation updates
  */
-import { WebSocketServer, WebSocket } from 'ws';
-import type { Server } from 'http';
+import { WebSocketServer, WebSocket } from "ws";
+import type { Server } from "http";
 
 // Event types that can be broadcast during a debate
 export type DebateEventType =
-  | 'debate:started'
-  | 'debate:criterion:start'     // Marks start of debate for a specific criterion
-  | 'debate:round:started'
-  | 'evaluator:initial'          // Initial assessment (before debate)
-  | 'evaluator:speaking'         // DEPRECATED: Use evaluator:initial or evaluator:defense
-  | 'evaluator:defense'          // Defense against red team (during debate)
-  | 'redteam:challenge'
-  | 'arbiter:verdict'
-  | 'debate:round:complete'
-  | 'debate:criterion:complete'  // Marks end of debate for a specific criterion
-  | 'debate:complete'
-  | 'synthesis:started'
-  | 'synthesis:complete'
-  | 'error';
+  | "debate:started"
+  | "debate:criterion:start" // Marks start of debate for a specific criterion
+  | "debate:round:started"
+  | "evaluator:initial" // Initial assessment (before debate)
+  | "evaluator:speaking" // DEPRECATED: Use evaluator:initial or evaluator:defense
+  | "evaluator:defense" // Defense against red team (during debate)
+  | "redteam:challenge"
+  | "arbiter:verdict"
+  | "debate:round:complete"
+  | "debate:criterion:complete" // Marks end of debate for a specific criterion
+  | "debate:complete"
+  | "synthesis:started"
+  | "synthesis:complete"
+  | "error";
 
 // Event types for ideation sessions
 export type IdeationEventType =
-  | 'artifact:updating'    // Artifact edit in progress
-  | 'artifact:updated'     // Artifact edit completed
-  | 'artifact:created'     // New artifact created (e.g., by sub-agent)
-  | 'artifact:deleted'     // Artifact deleted
-  | 'artifact:error'       // Artifact edit failed
-  | 'classifications:updated' // Classifications have been updated
-  | 'subagent:spawn'       // When a sub-agent starts
-  | 'subagent:status'      // When a sub-agent status changes (running/completed/failed)
-  | 'subagent:result';     // When a sub-agent produces results
+  | "artifact:updating" // Artifact edit in progress
+  | "artifact:updated" // Artifact edit completed
+  | "artifact:created" // New artifact created (e.g., by sub-agent)
+  | "artifact:deleted" // Artifact deleted
+  | "artifact:error" // Artifact edit failed
+  | "classifications:updated" // Classifications have been updated
+  | "subagent:spawn" // When a sub-agent starts
+  | "subagent:status" // When a sub-agent status changes (running/completed/failed)
+  | "subagent:result"; // When a sub-agent produces results
 
 // Event types for agent/monitoring system (WSK-001)
 export type AgentEventType =
-  | 'agent:registered'     // Agent registered with Communication Hub
-  | 'agent:started'        // Agent started working
-  | 'agent:heartbeat'      // Agent heartbeat
-  | 'agent:blocked'        // Agent blocked waiting for answer
-  | 'agent:unblocked'      // Agent unblocked (answer received)
-  | 'agent:completed'      // Agent completed work
-  | 'agent:error'          // Agent encountered error
-  | 'agent:halted'         // Agent halted (timeout/error)
-  | 'question:created'     // New question created
-  | 'question:delivered'   // Question delivered to user
-  | 'question:answered'    // Question answered
-  | 'question:timeout'     // Question timed out
-  | 'notification:sent'    // Notification sent
-  | 'system:health'        // System health update
-  | 'system:alert';        // System alert
+  | "agent:registered" // Agent registered with Communication Hub
+  | "agent:started" // Agent started working
+  | "agent:heartbeat" // Agent heartbeat
+  | "agent:blocked" // Agent blocked waiting for answer
+  | "agent:unblocked" // Agent unblocked (answer received)
+  | "agent:completed" // Agent completed work
+  | "agent:error" // Agent encountered error
+  | "agent:halted" // Agent halted (timeout/error)
+  | "question:created" // New question created
+  | "question:delivered" // Question delivered to user
+  | "question:answered" // Question answered
+  | "question:timeout" // Question timed out
+  | "notification:sent" // Notification sent
+  | "system:health" // System health update
+  | "system:alert"; // System alert
 
 // Sub-agent status types
-export type SubAgentStatus = 'spawning' | 'running' | 'completed' | 'failed';
+export type SubAgentStatus = "spawning" | "running" | "completed" | "failed";
 
 // Sub-agent types (extended to support orchestrator task types)
 export type SubAgentType =
-  | 'research'              // Web research agent
-  | 'evaluator'             // Idea evaluation agent
-  | 'redteam'               // Red team challenge agent
-  | 'development'           // Idea development agent
-  | 'synthesis'             // Synthesis agent
-  | 'action-plan'           // Action plan generator
-  | 'pitch-refine'          // Pitch refinement agent
-  | 'architecture-explore'  // Architecture exploration agent
-  | 'custom';               // Custom task agent
+  | "research" // Web research agent
+  | "evaluator" // Idea evaluation agent
+  | "redteam" // Red team challenge agent
+  | "development" // Idea development agent
+  | "synthesis" // Synthesis agent
+  | "action-plan" // Action plan generator
+  | "pitch-refine" // Pitch refinement agent
+  | "architecture-explore" // Architecture exploration agent
+  | "custom"; // Custom task agent
 
 export interface SubAgentInfo {
   id: string;
@@ -130,7 +130,7 @@ export interface AgentEvent {
     questionId?: string;
     questionType?: string;
     notificationId?: string;
-    severity?: 'info' | 'warning' | 'error' | 'critical';
+    severity?: "info" | "warning" | "error" | "critical";
     metrics?: Record<string, number>;
     error?: string;
     [key: string]: unknown;
@@ -150,7 +150,10 @@ const agentMonitorClients = new Set<WebSocket>();
 const userConnections = new Map<string, Set<WebSocket>>();
 
 // Event handlers for user-specific events (notifications)
-const userEventHandlers = new Map<string, (userId: string, data: Record<string, unknown>) => void>();
+const userEventHandlers = new Map<
+  string,
+  (userId: string, data: Record<string, unknown>) => void
+>();
 
 // WebSocket server instance
 let wss: WebSocketServer | null = null;
@@ -159,34 +162,48 @@ let wss: WebSocketServer | null = null;
  * Initialize WebSocket server attached to HTTP server
  */
 export function initWebSocket(server: Server): WebSocketServer {
-  wss = new WebSocketServer({ server, path: '/ws' });
+  wss = new WebSocketServer({ server, path: "/ws" });
 
-  wss.on('connection', (ws, req) => {
-    const url = new URL(req.url || '', `http://${req.headers.host}`);
-    const ideaSlug = url.searchParams.get('idea');
-    const sessionId = url.searchParams.get('session');
-    const monitor = url.searchParams.get('monitor'); // WSK-002: agent monitoring
-    const userId = url.searchParams.get('user'); // User ID for notifications
-    const executor = url.searchParams.get('executor'); // Task executor monitoring
+  wss.on("connection", (ws, req) => {
+    const url = new URL(req.url || "", `http://${req.headers.host}`);
+    const ideaSlug = url.searchParams.get("idea");
+    const sessionId = url.searchParams.get("session");
+    const monitor = url.searchParams.get("monitor"); // WSK-002: agent monitoring
+    const userId = url.searchParams.get("user"); // User ID for notifications
+    const executor = url.searchParams.get("executor"); // Task executor monitoring
 
     // Must have either idea, session, monitor, user, or executor parameter
-    if (!ideaSlug && !sessionId && monitor !== 'agents' && !userId && executor !== 'tasks') {
-      ws.close(4000, 'Missing idea, session, monitor, user, or executor parameter');
+    if (
+      !ideaSlug &&
+      !sessionId &&
+      monitor !== "agents" &&
+      !userId &&
+      executor !== "tasks"
+    ) {
+      ws.close(
+        4000,
+        "Missing idea, session, monitor, user, or executor parameter",
+      );
       return;
     }
 
     // Join the appropriate room
-    if (executor === 'tasks') {
+    if (executor === "tasks") {
       // Task executor monitoring
       taskExecutorClients.add(ws);
-      console.log(`Client joined task executor (${taskExecutorClients.size} connected)`);
+      console.log(
+        `Client joined task executor (${taskExecutorClients.size} connected)`,
+      );
 
       ws.send(
         JSON.stringify({
-          type: 'connected',
+          type: "connected",
           timestamp: new Date().toISOString(),
-          data: { message: 'Connected to task executor', clientCount: taskExecutorClients.size },
-        })
+          data: {
+            message: "Connected to task executor",
+            clientCount: taskExecutorClients.size,
+          },
+        }),
       );
     } else if (userId) {
       // User notifications connection
@@ -194,27 +211,34 @@ export function initWebSocket(server: Server): WebSocketServer {
         userConnections.set(userId, new Set());
       }
       userConnections.get(userId)!.add(ws);
-      console.log(`User ${userId} connected for notifications (${userConnections.get(userId)!.size} connections)`);
+      console.log(
+        `User ${userId} connected for notifications (${userConnections.get(userId)!.size} connections)`,
+      );
 
       ws.send(
         JSON.stringify({
-          type: 'connected',
+          type: "connected",
           timestamp: new Date().toISOString(),
           userId,
-          data: { message: 'Connected for notifications' },
-        })
+          data: { message: "Connected for notifications" },
+        }),
       );
-    } else if (monitor === 'agents') {
+    } else if (monitor === "agents") {
       // Agent monitoring dashboard (WSK-002)
       agentMonitorClients.add(ws);
-      console.log(`Client joined agent monitoring (${agentMonitorClients.size} connected)`);
+      console.log(
+        `Client joined agent monitoring (${agentMonitorClients.size} connected)`,
+      );
 
       ws.send(
         JSON.stringify({
-          type: 'connected',
+          type: "connected",
           timestamp: new Date().toISOString(),
-          data: { message: 'Connected to agent monitoring', clientCount: agentMonitorClients.size },
-        })
+          data: {
+            message: "Connected to agent monitoring",
+            clientCount: agentMonitorClients.size,
+          },
+        }),
       );
     } else if (sessionId) {
       // Ideation session room
@@ -226,11 +250,11 @@ export function initWebSocket(server: Server): WebSocketServer {
 
       ws.send(
         JSON.stringify({
-          type: 'connected',
+          type: "connected",
           timestamp: new Date().toISOString(),
           sessionId,
-          data: { message: 'Connected to ideation session' },
-        })
+          data: { message: "Connected to ideation session" },
+        }),
       );
     } else if (ideaSlug) {
       // Debate room
@@ -242,20 +266,25 @@ export function initWebSocket(server: Server): WebSocketServer {
 
       ws.send(
         JSON.stringify({
-          type: 'connected',
+          type: "connected",
           timestamp: new Date().toISOString(),
           ideaSlug,
-          data: { message: 'Connected to debate stream' },
-        })
+          data: { message: "Connected to debate stream" },
+        }),
       );
     }
 
     // Handle client messages (e.g., ping/pong, notification events)
-    ws.on('message', (message) => {
+    ws.on("message", (message) => {
       try {
         const data = JSON.parse(message.toString());
-        if (data.type === 'ping') {
-          ws.send(JSON.stringify({ type: 'pong', timestamp: new Date().toISOString() }));
+        if (data.type === "ping") {
+          ws.send(
+            JSON.stringify({
+              type: "pong",
+              timestamp: new Date().toISOString(),
+            }),
+          );
         } else if (userId && data.event) {
           // Route notification-related events to handlers
           const handler = userEventHandlers.get(data.event);
@@ -269,10 +298,12 @@ export function initWebSocket(server: Server): WebSocketServer {
     });
 
     // Clean up on disconnect
-    ws.on('close', () => {
-      if (executor === 'tasks') {
+    ws.on("close", () => {
+      if (executor === "tasks") {
         taskExecutorClients.delete(ws);
-        console.log(`Client left task executor (${taskExecutorClients.size} connected)`);
+        console.log(
+          `Client left task executor (${taskExecutorClients.size} connected)`,
+        );
       } else if (userId) {
         const connections = userConnections.get(userId);
         if (connections) {
@@ -281,10 +312,14 @@ export function initWebSocket(server: Server): WebSocketServer {
             userConnections.delete(userId);
           }
         }
-        console.log(`User ${userId} disconnected (${userConnections.get(userId)?.size || 0} connections remaining)`);
-      } else if (monitor === 'agents') {
+        console.log(
+          `User ${userId} disconnected (${userConnections.get(userId)?.size || 0} connections remaining)`,
+        );
+      } else if (monitor === "agents") {
         agentMonitorClients.delete(ws);
-        console.log(`Client left agent monitoring (${agentMonitorClients.size} connected)`);
+        console.log(
+          `Client left agent monitoring (${agentMonitorClients.size} connected)`,
+        );
       } else if (sessionId) {
         const room = sessionRooms.get(sessionId);
         if (room) {
@@ -306,12 +341,12 @@ export function initWebSocket(server: Server): WebSocketServer {
       }
     });
 
-    ws.on('error', (err) => {
+    ws.on("error", (err) => {
       console.error(`WebSocket error:`, err);
     });
   });
 
-  console.log('WebSocket server initialized on /ws');
+  console.log("WebSocket server initialized on /ws");
   return wss;
 }
 
@@ -340,7 +375,7 @@ export function emitDebateEvent(
   type: DebateEventType,
   ideaSlug: string,
   runId: string,
-  data: DebateEvent['data'] = {}
+  data: DebateEvent["data"] = {},
 ): void {
   broadcastDebateEvent({
     type,
@@ -382,12 +417,16 @@ export function closeWebSocket(): void {
 export function broadcastSessionEvent(event: IdeationEvent): void {
   const room = sessionRooms.get(event.sessionId);
   if (!room || room.size === 0) {
-    console.log(`[WS] No clients in session ${event.sessionId} to receive event`);
+    console.log(
+      `[WS] No clients in session ${event.sessionId} to receive event`,
+    );
     return;
   }
 
   const message = JSON.stringify(event);
-  console.log(`[WS] Broadcasting ${event.type} to ${room.size} clients in session ${event.sessionId}`);
+  console.log(
+    `[WS] Broadcasting ${event.type} to ${room.size} clients in session ${event.sessionId}`,
+  );
 
   for (const client of room) {
     if (client.readyState === WebSocket.OPEN) {
@@ -402,7 +441,7 @@ export function broadcastSessionEvent(event: IdeationEvent): void {
 export function emitSessionEvent(
   type: IdeationEventType,
   sessionId: string,
-  data: IdeationEvent['data'] = {}
+  data: IdeationEvent["data"] = {},
 ): void {
   broadcastSessionEvent({
     type,
@@ -419,13 +458,13 @@ export function emitSubAgentSpawn(
   sessionId: string,
   subAgentId: string,
   subAgentType: SubAgentType,
-  subAgentName: string
+  subAgentName: string,
 ): void {
-  emitSessionEvent('subagent:spawn', sessionId, {
+  emitSessionEvent("subagent:spawn", sessionId, {
     subAgentId,
     subAgentType,
     subAgentName,
-    subAgentStatus: 'spawning' as SubAgentStatus,
+    subAgentStatus: "spawning" as SubAgentStatus,
   });
 }
 
@@ -436,9 +475,9 @@ export function emitSubAgentStatus(
   sessionId: string,
   subAgentId: string,
   status: SubAgentStatus,
-  error?: string
+  error?: string,
 ): void {
-  emitSessionEvent('subagent:status', sessionId, {
+  emitSessionEvent("subagent:status", sessionId, {
     subAgentId,
     subAgentStatus: status,
     error,
@@ -451,11 +490,11 @@ export function emitSubAgentStatus(
 export function emitSubAgentResult(
   sessionId: string,
   subAgentId: string,
-  result: unknown
+  result: unknown,
 ): void {
-  emitSessionEvent('subagent:result', sessionId, {
+  emitSessionEvent("subagent:result", sessionId, {
     subAgentId,
-    subAgentStatus: 'completed' as SubAgentStatus,
+    subAgentStatus: "completed" as SubAgentStatus,
     result,
   });
 }
@@ -488,7 +527,7 @@ export function emitAgentEvent(
   type: AgentEventType,
   agentId?: string,
   agentType?: string,
-  data: AgentEvent['data'] = {}
+  data: AgentEvent["data"] = {},
 ): void {
   broadcastAgentEvent({
     type,
@@ -503,8 +542,8 @@ export function emitAgentEvent(
  * Emit agent registration event
  */
 export function emitAgentRegistered(agentId: string, agentType: string): void {
-  emitAgentEvent('agent:registered', agentId, agentType, {
-    status: 'registered',
+  emitAgentEvent("agent:registered", agentId, agentType, {
+    status: "registered",
     message: `Agent ${agentId} registered`,
   });
 }
@@ -512,36 +551,48 @@ export function emitAgentRegistered(agentId: string, agentType: string): void {
 /**
  * Emit agent started event
  */
-export function emitAgentStarted(agentId: string, agentType: string, sessionId?: string): void {
+export function emitAgentStarted(
+  agentId: string,
+  agentType: string,
+  sessionId?: string,
+): void {
   broadcastAgentEvent({
-    type: 'agent:started',
+    type: "agent:started",
     timestamp: new Date().toISOString(),
     agentId,
     agentType,
     sessionId,
-    data: { status: 'working' },
+    data: { status: "working" },
   });
 }
 
 /**
  * Emit agent blocked event (waiting for user input)
  */
-export function emitAgentBlocked(agentId: string, agentType: string, questionId: string): void {
-  emitAgentEvent('agent:blocked', agentId, agentType, {
-    status: 'blocked',
+export function emitAgentBlocked(
+  agentId: string,
+  agentType: string,
+  questionId: string,
+): void {
+  emitAgentEvent("agent:blocked", agentId, agentType, {
+    status: "blocked",
     questionId,
-    message: 'Waiting for user input',
+    message: "Waiting for user input",
   });
 }
 
 /**
  * Emit agent unblocked event
  */
-export function emitAgentUnblocked(agentId: string, agentType: string, questionId: string): void {
-  emitAgentEvent('agent:unblocked', agentId, agentType, {
-    status: 'working',
+export function emitAgentUnblocked(
+  agentId: string,
+  agentType: string,
+  questionId: string,
+): void {
+  emitAgentEvent("agent:unblocked", agentId, agentType, {
+    status: "working",
     questionId,
-    message: 'User input received',
+    message: "User input received",
   });
 }
 
@@ -552,9 +603,9 @@ export function emitQuestionCreated(
   questionId: string,
   questionType: string,
   agentId: string,
-  agentType: string
+  agentType: string,
 ): void {
-  emitAgentEvent('question:created', agentId, agentType, {
+  emitAgentEvent("question:created", agentId, agentType, {
     questionId,
     questionType,
   });
@@ -563,8 +614,12 @@ export function emitQuestionCreated(
 /**
  * Emit question answered event
  */
-export function emitQuestionAnswered(questionId: string, agentId: string, agentType: string): void {
-  emitAgentEvent('question:answered', agentId, agentType, {
+export function emitQuestionAnswered(
+  questionId: string,
+  agentId: string,
+  agentType: string,
+): void {
+  emitAgentEvent("question:answered", agentId, agentType, {
     questionId,
   });
 }
@@ -573,7 +628,7 @@ export function emitQuestionAnswered(questionId: string, agentId: string, agentT
  * Emit system health event
  */
 export function emitSystemHealth(metrics: Record<string, number>): void {
-  emitAgentEvent('system:health', undefined, undefined, {
+  emitAgentEvent("system:health", undefined, undefined, {
     metrics,
   });
 }
@@ -583,9 +638,9 @@ export function emitSystemHealth(metrics: Record<string, number>): void {
  */
 export function emitSystemAlert(
   message: string,
-  severity: 'info' | 'warning' | 'error' | 'critical'
+  severity: "info" | "warning" | "error" | "critical",
 ): void {
-  emitAgentEvent('system:alert', undefined, undefined, {
+  emitAgentEvent("system:alert", undefined, undefined, {
     message,
     severity,
   });
@@ -604,19 +659,19 @@ export function getMonitorClientCount(): number {
 
 // Build event types
 export type BuildEventType =
-  | 'build:created'      // Build execution created
-  | 'build:started'      // Build execution started
-  | 'build:paused'       // Build execution paused
-  | 'build:resumed'      // Build execution resumed
-  | 'build:completed'    // Build execution completed successfully
-  | 'build:failed'       // Build execution failed
-  | 'build:cancelled'    // Build execution cancelled
-  | 'task:started'       // Task execution started
-  | 'task:completed'     // Task execution completed
-  | 'task:failed'        // Task execution failed
-  | 'task:skipped'       // Task execution skipped
-  | 'task:validating'    // Task validation in progress
-  | 'build:progress';    // Build progress update
+  | "build:created" // Build execution created
+  | "build:started" // Build execution started
+  | "build:paused" // Build execution paused
+  | "build:resumed" // Build execution resumed
+  | "build:completed" // Build execution completed successfully
+  | "build:failed" // Build execution failed
+  | "build:cancelled" // Build execution cancelled
+  | "task:started" // Task execution started
+  | "task:completed" // Task execution completed
+  | "task:failed" // Task execution failed
+  | "task:skipped" // Task execution skipped
+  | "task:validating" // Task validation in progress
+  | "build:progress"; // Build progress update
 
 export interface BuildEvent {
   type: BuildEventType;
@@ -667,7 +722,7 @@ export function broadcastBuildEvent(event: BuildEvent): void {
 export function emitBuildEvent(
   type: BuildEventType,
   buildId: string,
-  data: BuildEvent['data'] = {}
+  data: BuildEvent["data"] = {},
 ): void {
   broadcastBuildEvent({
     type,
@@ -685,14 +740,14 @@ export function emitTaskStarted(
   taskId: string,
   phase: string,
   action: string,
-  filePath: string
+  filePath: string,
 ): void {
-  emitBuildEvent('task:started', buildId, {
+  emitBuildEvent("task:started", buildId, {
     taskId,
     phase,
     action,
     filePath,
-    status: 'running'
+    status: "running",
   });
 }
 
@@ -703,14 +758,14 @@ export function emitTaskCompleted(
   buildId: string,
   taskId: string,
   tasksCompleted: number,
-  tasksTotal: number
+  tasksTotal: number,
 ): void {
-  emitBuildEvent('task:completed', buildId, {
+  emitBuildEvent("task:completed", buildId, {
     taskId,
-    status: 'completed',
+    status: "completed",
     tasksCompleted,
     tasksTotal,
-    progressPct: Math.round((tasksCompleted / tasksTotal) * 100)
+    progressPct: Math.round((tasksCompleted / tasksTotal) * 100),
   });
 }
 
@@ -720,12 +775,12 @@ export function emitTaskCompleted(
 export function emitTaskFailed(
   buildId: string,
   taskId: string,
-  error: string
+  error: string,
 ): void {
-  emitBuildEvent('task:failed', buildId, {
+  emitBuildEvent("task:failed", buildId, {
     taskId,
-    status: 'failed',
-    error
+    status: "failed",
+    error,
   });
 }
 
@@ -737,14 +792,14 @@ export function emitBuildProgress(
   tasksCompleted: number,
   tasksTotal: number,
   tasksFailed: number,
-  currentTaskId?: string
+  currentTaskId?: string,
 ): void {
-  emitBuildEvent('build:progress', buildId, {
+  emitBuildEvent("build:progress", buildId, {
     taskId: currentTaskId,
     tasksCompleted,
     tasksTotal,
     tasksFailed,
-    progressPct: Math.round((tasksCompleted / tasksTotal) * 100)
+    progressPct: Math.round((tasksCompleted / tasksTotal) * 100),
   });
 }
 
@@ -762,7 +817,11 @@ export function getBuildClientCount(buildId: string): number {
 /**
  * Broadcast an event to all connections for a specific user
  */
-export function broadcastToUser(userId: string, event: string, data: unknown): void {
+export function broadcastToUser(
+  userId: string,
+  event: string,
+  data: unknown,
+): void {
   const connections = userConnections.get(userId);
   if (!connections || connections.size === 0) {
     return;
@@ -783,7 +842,7 @@ export function broadcastToUser(userId: string, event: string, data: unknown): v
  */
 export function onUserEvent(
   event: string,
-  handler: (userId: string, data: Record<string, unknown>) => void
+  handler: (userId: string, data: Record<string, unknown>) => void,
 ): void {
   userEventHandlers.set(event, handler);
 }
@@ -823,22 +882,22 @@ export function isUserConnected(userId: string): boolean {
 
 // Task executor event types
 export type TaskExecutorEventType =
-  | 'executor:started'    // Executor started autonomous execution
-  | 'executor:paused'     // Executor paused
-  | 'executor:resumed'    // Executor resumed
-  | 'executor:stopped'    // Executor stopped
-  | 'executor:complete'   // All tasks completed
-  | 'task:queued'         // Task added to queue
-  | 'task:started'        // Task execution started
-  | 'task:completed'      // Task execution completed
-  | 'task:failed'         // Task execution failed
-  | 'task:skipped'        // Task skipped
-  | 'task:requeued'       // Task requeued
-  | 'task:blocked'        // Task blocked waiting for user input
-  | 'task:resumed'        // Task resumed after user input
-  | 'task:claimed'        // Task claimed by an agent
-  | 'task:released'       // Task released back to queue
-  | 'tasklist:loaded';    // Task list loaded
+  | "executor:started" // Executor started autonomous execution
+  | "executor:paused" // Executor paused
+  | "executor:resumed" // Executor resumed
+  | "executor:stopped" // Executor stopped
+  | "executor:complete" // All tasks completed
+  | "task:queued" // Task added to queue
+  | "task:started" // Task execution started
+  | "task:completed" // Task execution completed
+  | "task:failed" // Task execution failed
+  | "task:skipped" // Task skipped
+  | "task:requeued" // Task requeued
+  | "task:blocked" // Task blocked waiting for user input
+  | "task:resumed" // Task resumed after user input
+  | "task:claimed" // Task claimed by an agent
+  | "task:released" // Task released back to queue
+  | "tasklist:loaded"; // Task list loaded
 
 export interface TaskExecutorEvent {
   type: TaskExecutorEventType;
@@ -869,7 +928,9 @@ const taskExecutorClients = new Set<WebSocket>();
  */
 export function addTaskExecutorClient(ws: WebSocket): void {
   taskExecutorClients.add(ws);
-  console.log(`Client joined task executor (${taskExecutorClients.size} connected)`);
+  console.log(
+    `Client joined task executor (${taskExecutorClients.size} connected)`,
+  );
 }
 
 /**
@@ -877,7 +938,9 @@ export function addTaskExecutorClient(ws: WebSocket): void {
  */
 export function removeTaskExecutorClient(ws: WebSocket): void {
   taskExecutorClients.delete(ws);
-  console.log(`Client left task executor (${taskExecutorClients.size} connected)`);
+  console.log(
+    `Client left task executor (${taskExecutorClients.size} connected)`,
+  );
 }
 
 /**
@@ -889,7 +952,9 @@ export function broadcastTaskExecutorEvent(event: TaskExecutorEvent): void {
   }
 
   const message = JSON.stringify(event);
-  console.log(`[WS] Broadcasting ${event.type} to ${taskExecutorClients.size} task executor clients`);
+  console.log(
+    `[WS] Broadcasting ${event.type} to ${taskExecutorClients.size} task executor clients`,
+  );
 
   for (const client of taskExecutorClients) {
     if (client.readyState === WebSocket.OPEN) {
@@ -903,7 +968,7 @@ export function broadcastTaskExecutorEvent(event: TaskExecutorEvent): void {
  */
 export function emitTaskExecutorEvent(
   type: TaskExecutorEventType,
-  data: TaskExecutorEvent['data'] = {}
+  data: TaskExecutorEvent["data"] = {},
 ): void {
   broadcastTaskExecutorEvent({
     type,

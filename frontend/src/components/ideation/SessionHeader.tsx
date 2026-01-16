@@ -3,11 +3,11 @@
 // Session header with token usage, metrics, and actions
 // =============================================================================
 
-import { useState, useRef, useEffect } from 'react';
-import { Minimize2, CheckCircle, Save, Trash2, Pencil } from 'lucide-react';
-import { TokenUsageIndicator } from './TokenUsageIndicator';
-import { IdeaSelector } from './IdeaSelector';
-import type { IdeaCandidate } from '../../types/ideation';
+import { useState, useRef, useEffect } from "react";
+import { Minimize2, CheckCircle, Save, Trash2, Pencil } from "lucide-react";
+import { TokenUsageIndicator } from "./TokenUsageIndicator";
+import { IdeaSelector } from "./IdeaSelector";
+import type { IdeaCandidate } from "../../types/ideation";
 
 export interface SessionHeaderProps {
   sessionId: string;
@@ -36,27 +36,35 @@ export interface SessionHeaderProps {
 function CompactMeter({
   label,
   value,
-  color
+  color,
 }: {
   label: string;
   value: number;
-  color: 'blue' | 'green' | 'yellow' | 'red';
+  color: "blue" | "green" | "yellow" | "red";
 }) {
   const getColorClasses = () => {
     switch (color) {
-      case 'green': return 'bg-green-500';
-      case 'yellow': return 'bg-yellow-500';
-      case 'red': return 'bg-red-500';
-      default: return 'bg-blue-500';
+      case "green":
+        return "bg-green-500";
+      case "yellow":
+        return "bg-yellow-500";
+      case "red":
+        return "bg-red-500";
+      default:
+        return "bg-blue-500";
     }
   };
 
   const getTextColorClass = () => {
     switch (color) {
-      case 'green': return 'text-green-600';
-      case 'yellow': return 'text-yellow-600';
-      case 'red': return 'text-red-600';
-      default: return 'text-blue-600';
+      case "green":
+        return "text-green-600";
+      case "yellow":
+        return "text-yellow-600";
+      case "red":
+        return "text-red-600";
+      default:
+        return "text-blue-600";
     }
   };
 
@@ -69,7 +77,9 @@ function CompactMeter({
           style={{ width: `${value}%` }}
         />
       </div>
-      <span className={`text-xs font-medium ${getTextColorClass()}`}>{value}%</span>
+      <span className={`text-xs font-medium ${getTextColorClass()}`}>
+        {value}%
+      </span>
     </div>
   );
 }
@@ -91,13 +101,13 @@ export function SessionHeader({
   onNewIdea,
 }: SessionHeaderProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(candidate?.title || '');
+  const [editedTitle, setEditedTitle] = useState(candidate?.title || "");
   const [isHoveringTitle, setIsHoveringTitle] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Update edited title when candidate changes
   useEffect(() => {
-    setEditedTitle(candidate?.title || '');
+    setEditedTitle(candidate?.title || "");
   }, [candidate?.title]);
 
   // Focus input when entering edit mode
@@ -119,32 +129,32 @@ export function SessionHeader({
     if (trimmed && trimmed !== candidate?.title && onUpdateTitle) {
       onUpdateTitle(trimmed);
     } else {
-      setEditedTitle(candidate?.title || '');
+      setEditedTitle(candidate?.title || "");
     }
     setIsEditingTitle(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSaveTitle();
-    } else if (e.key === 'Escape') {
-      setEditedTitle(candidate?.title || '');
+    } else if (e.key === "Escape") {
+      setEditedTitle(candidate?.title || "");
       setIsEditingTitle(false);
     }
   };
 
   // Determine viability color
-  const getViabilityColor = (): 'green' | 'yellow' | 'red' => {
-    if (viability >= 70) return 'green';
-    if (viability >= 40) return 'yellow';
-    return 'red';
+  const getViabilityColor = (): "green" | "yellow" | "red" => {
+    if (viability >= 70) return "green";
+    if (viability >= 40) return "yellow";
+    return "red";
   };
 
   // Determine confidence color
-  const getConfidenceColor = (): 'blue' | 'green' | 'yellow' => {
-    if (confidence >= 70) return 'green';
-    if (confidence >= 30) return 'blue';
-    return 'yellow';
+  const getConfidenceColor = (): "blue" | "green" | "yellow" => {
+    if (confidence >= 70) return "green";
+    if (confidence >= 30) return "blue";
+    return "yellow";
   };
 
   return (
@@ -173,12 +183,16 @@ export function SessionHeader({
             >
               <h1
                 className={`text-sm font-semibold text-gray-900 truncate ${
-                  candidate && onUpdateTitle ? 'cursor-pointer hover:text-blue-600' : ''
+                  candidate && onUpdateTitle
+                    ? "cursor-pointer hover:text-blue-600"
+                    : ""
                 }`}
                 onClick={handleStartEdit}
-                title={candidate && onUpdateTitle ? 'Click to edit title' : undefined}
+                title={
+                  candidate && onUpdateTitle ? "Click to edit title" : undefined
+                }
               >
-                {candidate?.title || 'Ideation Session'}
+                {candidate?.title || "Ideation Session"}
               </h1>
               {candidate && onUpdateTitle && isHoveringTitle && (
                 <button

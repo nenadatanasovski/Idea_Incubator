@@ -6,20 +6,20 @@
  * 3 actionable suggestions per gap.
  */
 
-import { client } from '../utils/anthropic-client.js';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { logInfo } from '../utils/logger.js';
-import { getConfig } from '../config/index.js';
-import { EvaluationParseError } from '../utils/errors.js';
-import { v4 as uuid } from 'uuid';
+import { client } from "../utils/anthropic-client.js";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { logInfo } from "../utils/logger.js";
+import { getConfig } from "../config/index.js";
+import { EvaluationParseError } from "../utils/errors.js";
+import { v4 as uuid } from "uuid";
 import {
   Assumption,
   GapSuggestion,
   GapResolution,
   GapSuggestionSource,
   IdeaContext,
-  ProfileContext
-} from '../types/incubation.js';
+  ProfileContext,
+} from "../types/incubation.js";
 
 const GAP_SUGGESTION_SYSTEM_PROMPT = `You are a Gap Suggestion Agent for idea incubation.
 
@@ -46,7 +46,7 @@ export async function generateGapSuggestions(
   gap: Assumption,
   ideaContext: IdeaContext,
   profile: ProfileContext,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<GapSuggestion[]> {
   const config = getConfig();
 
@@ -56,14 +56,15 @@ export async function generateGapSuggestions(
     model: config.model,
     max_tokens: 2048,
     system: GAP_SUGGESTION_SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `Generate 3 suggestions for addressing this critical gap:
+    messages: [
+      {
+        role: "user",
+        content: `Generate 3 suggestions for addressing this critical gap:
 
 GAP TO ADDRESS:
 ${gap.text}
 Category: ${gap.category}
-Current Evidence: ${gap.evidence || 'None'}
+Current Evidence: ${gap.evidence || "None"}
 
 IDEA CONTEXT:
 Problem: ${ideaContext.problem}
@@ -71,15 +72,17 @@ Solution: ${ideaContext.solution}
 Target User: ${ideaContext.targetUser}
 
 USER PROFILE:
-Goals: ${profile.goals?.join(', ') || 'Not specified'}
-Skills: ${profile.skills?.join(', ') || 'Not specified'}
-Network: ${profile.network?.join(', ') || 'Not specified'}
-Constraints: ${profile.constraints?.join(', ') || 'Not specified'}
+Goals: ${profile.goals?.join(", ") || "Not specified"}
+Skills: ${profile.skills?.join(", ") || "Not specified"}
+Network: ${profile.network?.join(", ") || "Not specified"}
+Constraints: ${profile.constraints?.join(", ") || "Not specified"}
 
 EXISTING ANSWERS:
-${Object.entries(ideaContext.currentAnswers)
-  .map(([q, a]) => `Q: ${q}\nA: ${a}`)
-  .join('\n\n') || 'No answers yet'}
+${
+  Object.entries(ideaContext.currentAnswers)
+    .map(([q, a]) => `Q: ${q}\nA: ${a}`)
+    .join("\n\n") || "No answers yet"
+}
 
 Generate exactly 3 distinct suggestions. Each should take a different approach.
 
@@ -94,55 +97,66 @@ Respond in JSON:
       "source": "profile|web_research|synthesis"
     }
   ]
-}`
-    }]
+}`,
+      },
+    ],
   });
 
-  costTracker.track(response.usage, 'gap-suggestion');
+  costTracker.track(response.usage, "gap-suggestion");
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response type from gap suggestion agent');
+  if (content.type !== "text") {
+    throw new EvaluationParseError(
+      "Unexpected response type from gap suggestion agent",
+    );
   }
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError('Could not parse gap suggestion response');
+    throw new EvaluationParseError("Could not parse gap suggestion response");
   }
 
-  let parsed: { suggestions: Array<{
-    suggestion: string;
-    rationale: string;
-    tradeoffs: string[];
-    confidence: number;
-    source: string;
-  }> };
+  let parsed: {
+    suggestions: Array<{
+      suggestion: string;
+      rationale: string;
+      tradeoffs: string[];
+      confidence: number;
+      source: string;
+    }>;
+  };
 
   try {
     parsed = JSON.parse(jsonMatch[0]);
   } catch {
-    throw new EvaluationParseError('Invalid JSON in gap suggestion response');
+    throw new EvaluationParseError("Invalid JSON in gap suggestion response");
   }
 
   // Transform and validate suggestions
-  const suggestions: GapSuggestion[] = parsed.suggestions.slice(0, 3).map(s => ({
-    id: uuid(),
-    suggestion: s.suggestion,
-    rationale: s.rationale,
-    tradeoffs: s.tradeoffs,
-    confidence: Math.max(0, Math.min(1, s.confidence)),
-    source: validateSource(s.source)
-  }));
+  const suggestions: GapSuggestion[] = parsed.suggestions
+    .slice(0, 3)
+    .map((s) => ({
+      id: uuid(),
+      suggestion: s.suggestion,
+      rationale: s.rationale,
+      tradeoffs: s.tradeoffs,
+      confidence: Math.max(0, Math.min(1, s.confidence)),
+      source: validateSource(s.source),
+    }));
 
   // Ensure we have exactly 3 suggestions
   while (suggestions.length < 3) {
     suggestions.push({
       id: uuid(),
-      suggestion: 'Consider consulting domain experts for additional perspectives.',
-      rationale: 'External expertise can provide validation and new insights.',
-      tradeoffs: ['Requires time investment', 'May need to build new connections'],
+      suggestion:
+        "Consider consulting domain experts for additional perspectives.",
+      rationale: "External expertise can provide validation and new insights.",
+      tradeoffs: [
+        "Requires time investment",
+        "May need to build new connections",
+      ],
       confidence: 0.5,
-      source: 'synthesis'
+      source: "synthesis",
     });
   }
 
@@ -156,10 +170,14 @@ Respond in JSON:
  */
 function validateSource(source: string): GapSuggestionSource {
   const normalized = source.toLowerCase().trim();
-  if (normalized === 'profile' || normalized === 'web_research' || normalized === 'synthesis') {
+  if (
+    normalized === "profile" ||
+    normalized === "web_research" ||
+    normalized === "synthesis"
+  ) {
     return normalized as GapSuggestionSource;
   }
-  return 'synthesis';
+  return "synthesis";
 }
 
 /**
@@ -170,11 +188,13 @@ export async function generateProactiveSuggestions(
   questionText: string,
   ideaContext: IdeaContext,
   profile: ProfileContext,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<GapSuggestion[]> {
   const config = getConfig();
 
-  logInfo(`Generating proactive suggestions for question: ${questionText.substring(0, 50)}...`);
+  logInfo(
+    `Generating proactive suggestions for question: ${questionText.substring(0, 50)}...`,
+  );
 
   const response = await client.messages.create({
     model: config.model,
@@ -182,9 +202,10 @@ export async function generateProactiveSuggestions(
     system: `You are a helpful assistant generating answer suggestions for idea development questions.
 Your suggestions should be specific, actionable, and relevant to the user's context.
 Output valid JSON only.`,
-    messages: [{
-      role: 'user',
-      content: `Generate 2-3 suggested answers for this question:
+    messages: [
+      {
+        role: "user",
+        content: `Generate 2-3 suggested answers for this question:
 
 QUESTION:
 ${questionText}
@@ -195,9 +216,9 @@ Solution: ${ideaContext.solution}
 Target User: ${ideaContext.targetUser}
 
 USER PROFILE:
-Goals: ${profile.goals?.join(', ') || 'Not specified'}
-Skills: ${profile.skills?.join(', ') || 'Not specified'}
-Network: ${profile.network?.join(', ') || 'Not specified'}
+Goals: ${profile.goals?.join(", ") || "Not specified"}
+Skills: ${profile.skills?.join(", ") || "Not specified"}
+Network: ${profile.network?.join(", ") || "Not specified"}
 
 Respond in JSON:
 {
@@ -208,41 +229,44 @@ Respond in JSON:
       "source": "profile|web_research|synthesis"
     }
   ]
-}`
-    }]
+}`,
+      },
+    ],
   });
 
-  costTracker.track(response.usage, 'proactive-suggestion');
+  costTracker.track(response.usage, "proactive-suggestion");
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response type');
+  if (content.type !== "text") {
+    throw new EvaluationParseError("Unexpected response type");
   }
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError('Could not parse suggestions');
+    throw new EvaluationParseError("Could not parse suggestions");
   }
 
-  let parsed: { suggestions: Array<{
-    suggestion: string;
-    rationale: string;
-    source: string;
-  }> };
+  let parsed: {
+    suggestions: Array<{
+      suggestion: string;
+      rationale: string;
+      source: string;
+    }>;
+  };
 
   try {
     parsed = JSON.parse(jsonMatch[0]);
   } catch {
-    throw new EvaluationParseError('Invalid JSON in suggestions');
+    throw new EvaluationParseError("Invalid JSON in suggestions");
   }
 
-  return parsed.suggestions.map(s => ({
+  return parsed.suggestions.map((s) => ({
     id: uuid(),
     suggestion: s.suggestion,
     rationale: s.rationale,
     tradeoffs: [],
     confidence: 0.7,
-    source: validateSource(s.source)
+    source: validateSource(s.source),
   }));
 }
 
@@ -252,33 +276,43 @@ Respond in JSON:
 export function createGapResolution(
   gapId: string,
   resolution: string,
-  source: 'suggestion_selected' | 'suggestion_modified' | 'user_provided' | 'skipped',
-  selectedSuggestionId?: string
+  source:
+    | "suggestion_selected"
+    | "suggestion_modified"
+    | "user_provided"
+    | "skipped",
+  selectedSuggestionId?: string,
 ): GapResolution {
   return {
     gapId,
     resolution,
     source,
-    selectedSuggestionId
+    selectedSuggestionId,
   };
 }
 
 /**
  * Format suggestions for display
  */
-export function formatSuggestionsForDisplay(suggestions: GapSuggestion[]): string {
-  return suggestions.map((s, i) => {
-    const confidenceBar = '█'.repeat(Math.round(s.confidence * 10)) + '░'.repeat(10 - Math.round(s.confidence * 10));
-    return `
+export function formatSuggestionsForDisplay(
+  suggestions: GapSuggestion[],
+): string {
+  return suggestions
+    .map((s, i) => {
+      const confidenceBar =
+        "█".repeat(Math.round(s.confidence * 10)) +
+        "░".repeat(10 - Math.round(s.confidence * 10));
+      return `
 [${i + 1}] ${s.suggestion}
 
     Rationale: ${s.rationale}
 
     Tradeoffs:
-    ${s.tradeoffs.map(t => `  • ${t}`).join('\n')}
+    ${s.tradeoffs.map((t) => `  • ${t}`).join("\n")}
 
     Confidence: ${confidenceBar} ${Math.round(s.confidence * 100)}%
     Source: ${s.source}
 `;
-  }).join('\n' + '─'.repeat(60) + '\n');
+    })
+    .join("\n" + "─".repeat(60) + "\n");
 }

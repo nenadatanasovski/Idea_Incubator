@@ -10,11 +10,12 @@ updated: "{{updated}}"
 # Target Users: {{title}}
 
 ## Primary Segment
+
 <!-- Agent fills after user research -->
 
 - [ ] Defined: No
 
-*The main user segment this idea serves.*
+_The main user segment this idea serves._
 
 **Segment Name:**
 
@@ -23,11 +24,12 @@ updated: "{{updated}}"
 **Size Estimate:**
 
 ## Demographics
+
 <!-- Agent fills after demographic analysis -->
 
 - [ ] Defined: No
 
-*Key demographic characteristics of target users.*
+_Key demographic characteristics of target users._
 
 - **Age Range:**
 - **Location:**
@@ -36,25 +38,27 @@ updated: "{{updated}}"
 - **Education:**
 
 ## Pain Points
+
 <!-- Agent fills after pain point discovery -->
 
 - [ ] Defined: No
 
-*What problems and frustrations do these users face?*
+_What problems and frustrations do these users face?_
 
 1.
 2.
 3.
 
 ## Current Solutions
+
 <!-- Agent fills after competitive analysis -->
 
 - [ ] Defined: No
 
-*How are users currently solving these problems?*
+_How are users currently solving these problems?_
 
 | Current Solution | Pros | Cons |
-|-----------------|------|------|
-| | | |
-| | | |
-| | | |
+| ---------------- | ---- | ---- |
+|                  |      |      |
+|                  |      |      |
+|                  |      |      |

@@ -754,7 +754,9 @@ def build_task_prompt(
 
 ## Code Template (use as starting point)
 ```
+
 {task.get('code_template', '# No template provided')}
+
 ```
 
 ## Context: What This Idea Is About
@@ -763,7 +765,9 @@ def build_task_prompt(
 ## Validation
 After generating the code, it will be validated with:
 ```
+
 {task.get('validation', {}).get('command', 'npx tsc --noEmit')}
+
 ```
 Expected result: {task.get('validation', {}).get('expected', 'exit code 0')}
 

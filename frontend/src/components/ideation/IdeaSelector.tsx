@@ -4,7 +4,13 @@
 // Implements TEST-UI-008 requirements
 // =============================================================================
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -13,7 +19,12 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 export interface IdeaInfo {
   slug: string;
   title: string;
-  ideaType: 'business' | 'feature_internal' | 'feature_external' | 'service' | 'pivot';
+  ideaType:
+    | "business"
+    | "feature_internal"
+    | "feature_external"
+    | "service"
+    | "pivot";
   stage: string;
   created: string;
   updated: string;
@@ -40,61 +51,146 @@ const ChevronDownIcon = () => (
     stroke="currentColor"
     viewBox="0 0 24 24"
   >
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 9l-7 7-7-7"
+    />
   </svg>
 );
 
 const SearchIcon = () => (
-  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  <svg
+    className="w-4 h-4 text-gray-400"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    />
   </svg>
 );
 
 const PlusIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 4v16m8-8H4"
+    />
   </svg>
 );
 
 const IdeaIcon = ({ type }: { type: string }) => {
   switch (type) {
-    case 'business':
+    case "business":
       return (
-        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        <svg
+          className="w-4 h-4 text-blue-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+          />
         </svg>
       );
-    case 'feature_internal':
-    case 'feature_external':
+    case "feature_internal":
+    case "feature_external":
       return (
-        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+        <svg
+          className="w-4 h-4 text-green-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"
+          />
         </svg>
       );
-    case 'service':
+    case "service":
       return (
-        <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+        <svg
+          className="w-4 h-4 text-purple-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
+          />
         </svg>
       );
-    case 'pivot':
+    case "pivot":
       return (
-        <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        <svg
+          className="w-4 h-4 text-amber-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          />
         </svg>
       );
     default:
       return (
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        <svg
+          className="w-4 h-4 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+          />
         </svg>
       );
   }
 };
 
 const DraftIcon = () => (
-  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  <svg
+    className="w-4 h-4 text-gray-400"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+    />
   </svg>
 );
 
@@ -107,12 +203,18 @@ const DraftIcon = () => (
  */
 function getTypeDisplayName(type: string): string {
   switch (type) {
-    case 'business': return 'Business';
-    case 'feature_internal': return 'Feature';
-    case 'feature_external': return 'Integration';
-    case 'service': return 'Service';
-    case 'pivot': return 'Pivot';
-    default: return type;
+    case "business":
+      return "Business";
+    case "feature_internal":
+      return "Feature";
+    case "feature_external":
+      return "Integration";
+    case "service":
+      return "Service";
+    case "pivot":
+      return "Pivot";
+    default:
+      return type;
   }
 }
 
@@ -134,7 +236,20 @@ function formatRelativeDate(dateString: string): string {
   } else if (diffDays < 7) {
     return `${diffDays}d ago`;
   } else {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     return `${months[date.getMonth()]} ${date.getDate()}`;
   }
 }
@@ -148,14 +263,14 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
   selectedIdea,
   onSelectIdea,
   onNewIdea,
-  className = '',
+  className = "",
 }) => {
   // State
   const [isOpen, setIsOpen] = useState(false);
   const [ideas, setIdeas] = useState<IdeaInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Refs
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -180,8 +295,8 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
         setIdeas([]);
       }
     } catch (err) {
-      console.error('Error fetching ideas:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load ideas');
+      console.error("Error fetching ideas:", err);
+      setError(err instanceof Error ? err.message : "Failed to load ideas");
       setIdeas([]);
     } finally {
       setIsLoading(false);
@@ -205,42 +320,46 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
   // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
-        setSearchQuery('');
+        setSearchQuery("");
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
 
   // Handle escape key
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
+      if (event.key === "Escape" && isOpen) {
         setIsOpen(false);
-        setSearchQuery('');
+        setSearchQuery("");
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
   // Filter ideas based on search query
   const filteredIdeas = useMemo(() => {
     if (!searchQuery.trim()) return ideas;
     const query = searchQuery.toLowerCase();
-    return ideas.filter(idea =>
-      idea.title.toLowerCase().includes(query) ||
-      idea.slug.toLowerCase().includes(query) ||
-      idea.ideaType.toLowerCase().includes(query)
+    return ideas.filter(
+      (idea) =>
+        idea.title.toLowerCase().includes(query) ||
+        idea.slug.toLowerCase().includes(query) ||
+        idea.ideaType.toLowerCase().includes(query),
     );
   }, [ideas, searchQuery]);
 
@@ -252,7 +371,7 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
 
     // Get last 5 accessed (sorted by updated date)
     const sortedByDate = [...filteredIdeas].sort(
-      (a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime()
+      (a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime(),
     );
 
     for (const idea of sortedByDate.slice(0, 5)) {
@@ -278,29 +397,32 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
   }, [filteredIdeas]);
 
   // Handle idea selection
-  const handleSelectIdea = useCallback((idea: IdeaInfo) => {
-    onSelectIdea({ userSlug, ideaSlug: idea.slug });
-    setIsOpen(false);
-    setSearchQuery('');
-  }, [userSlug, onSelectIdea]);
+  const handleSelectIdea = useCallback(
+    (idea: IdeaInfo) => {
+      onSelectIdea({ userSlug, ideaSlug: idea.slug });
+      setIsOpen(false);
+      setSearchQuery("");
+    },
+    [userSlug, onSelectIdea],
+  );
 
   // Handle new idea click
   const handleNewIdea = useCallback(() => {
     setIsOpen(false);
-    setSearchQuery('');
+    setSearchQuery("");
     onNewIdea?.();
   }, [onNewIdea]);
 
   // Get current idea info
   const currentIdea = useMemo(() => {
     if (!selectedIdea) return null;
-    return ideas.find(idea => idea.slug === selectedIdea.ideaSlug) || null;
+    return ideas.find((idea) => idea.slug === selectedIdea.ideaSlug) || null;
   }, [selectedIdea, ideas]);
 
   // Display text for the selector button
   const displayText = currentIdea
     ? `Working on: ${currentIdea.title}`
-    : 'Select an idea to work on...';
+    : "Select an idea to work on...";
 
   return (
     <div
@@ -359,9 +481,7 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
 
           {/* Error State */}
           {error && (
-            <div className="p-4 text-center text-red-500 text-sm">
-              {error}
-            </div>
+            <div className="p-4 text-center text-red-500 text-sm">{error}</div>
           )}
 
           {/* Ideas List */}
@@ -387,32 +507,40 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
 
               {/* By Type */}
               {Object.keys(groupedIdeas.byType).length > 0 && (
-                <div data-testid="group-by-type" className="py-1 border-t border-gray-200 dark:border-gray-700">
+                <div
+                  data-testid="group-by-type"
+                  className="py-1 border-t border-gray-200 dark:border-gray-700"
+                >
                   <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     By Type
                   </div>
-                  {Object.entries(groupedIdeas.byType).map(([typeName, typeIdeas]) => (
-                    <div key={typeName}>
-                      <div className="px-3 py-0.5 text-xs text-gray-400 dark:text-gray-500">
-                        {typeName}
+                  {Object.entries(groupedIdeas.byType).map(
+                    ([typeName, typeIdeas]) => (
+                      <div key={typeName}>
+                        <div className="px-3 py-0.5 text-xs text-gray-400 dark:text-gray-500">
+                          {typeName}
+                        </div>
+                        {typeIdeas.map((idea) => (
+                          <IdeaOption
+                            key={idea.slug}
+                            idea={idea}
+                            isSelected={selectedIdea?.ideaSlug === idea.slug}
+                            onSelect={handleSelectIdea}
+                            searchQuery={searchQuery}
+                          />
+                        ))}
                       </div>
-                      {typeIdeas.map((idea) => (
-                        <IdeaOption
-                          key={idea.slug}
-                          idea={idea}
-                          isSelected={selectedIdea?.ideaSlug === idea.slug}
-                          onSelect={handleSelectIdea}
-                          searchQuery={searchQuery}
-                        />
-                      ))}
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               )}
 
               {/* Drafts */}
               {groupedIdeas.drafts.length > 0 && (
-                <div data-testid="group-drafts" className="py-1 border-t border-gray-200 dark:border-gray-700">
+                <div
+                  data-testid="group-drafts"
+                  className="py-1 border-t border-gray-200 dark:border-gray-700"
+                >
                   <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Drafts
                   </div>
@@ -432,7 +560,7 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
               {/* Empty State */}
               {filteredIdeas.length === 0 && (
                 <div className="p-4 text-center text-gray-500 text-sm">
-                  {searchQuery ? 'No ideas match your search' : 'No ideas yet'}
+                  {searchQuery ? "No ideas match your search" : "No ideas yet"}
                 </div>
               )}
             </div>
@@ -475,7 +603,8 @@ const IdeaOption: React.FC<IdeaOptionProps> = ({
   isDraft = false,
 }) => {
   // Check if this option should be visible based on search
-  const isVisible = !searchQuery ||
+  const isVisible =
+    !searchQuery ||
     idea.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     idea.slug.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -487,9 +616,10 @@ const IdeaOption: React.FC<IdeaOptionProps> = ({
       onClick={() => onSelect(idea)}
       className={`
         w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors
-        ${isSelected
-          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+        ${
+          isSelected
+            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+            : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
         }
       `}
     >
@@ -503,8 +633,16 @@ const IdeaOption: React.FC<IdeaOptionProps> = ({
         </div>
       </div>
       {isSelected && (
-        <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        <svg
+          className="w-4 h-4 text-blue-500"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path
+            fillRule="evenodd"
+            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+            clipRule="evenodd"
+          />
         </svg>
       )}
     </button>

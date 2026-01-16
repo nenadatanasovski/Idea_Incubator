@@ -14,6 +14,7 @@ This document applies first-principles reasoning to identify root causes and pro
 
 **Current State:**
 The DifferentiationView renders four collapsible sections as independent accordion panels:
+
 - Market Opportunities (Target segments with fit levels)
 - Differentiation Strategies (Approaches with 5W+H details)
 - Competitive Risks (Threats with severity)
@@ -21,15 +22,17 @@ The DifferentiationView renders four collapsible sections as independent accordi
 
 **Why This Is Broken:**
 
-From first principles, differentiation analysis exists to answer one question: *"How should this idea position itself to win in the market?"*
+From first principles, differentiation analysis exists to answer one question: _"How should this idea position itself to win in the market?"_
 
 The answer requires **relational reasoning**:
+
 - A strategy should ADDRESS specific opportunities
 - A strategy should MITIGATE specific risks
 - Timing should INFORM which strategies are viable now vs. later
 - Opportunities should BE VALIDATED against competitive landscape
 
 The current implementation breaks these relationships by presenting each data type in isolation. The user sees:
+
 ```
 [Opportunity A] [Opportunity B] [Opportunity C]
 [Strategy 1] [Strategy 2] [Strategy 3]
@@ -37,6 +40,7 @@ The current implementation breaks these relationships by presenting each data ty
 ```
 
 But never:
+
 ```
 Strategy 1 → targets Opportunity A → mitigates Risk X → viable in current timing window
 ```
@@ -46,6 +50,7 @@ Strategy 1 → targets Opportunity A → mitigates Risk X → viable in current 
 ### 1.2 The Shallowness Problem
 
 **Current State:**
+
 - Opportunities show: segment, description, fit level, confidence, reasons
 - Strategies show: approach, description, aligned with, risks, 5W+H (hidden)
 - Risks show: competitor, threat, severity, mitigation
@@ -67,12 +72,14 @@ Strategy 1 → targets Opportunity A → mitigates Risk X → viable in current 
 
 **Problem 1: Accordion Anti-Pattern**
 Only one section can be expanded at a time. This prevents:
+
 - Comparing opportunities while looking at strategies
 - Checking risks while evaluating a strategy
 - Cross-referencing timing with opportunities
 
 **Problem 2: Passive Strategy Selection**
 The "Select Strategy" button:
+
 - Doesn't explain what selection means
 - Doesn't persist after leaving the page
 - Doesn't influence the Update phase
@@ -80,6 +87,7 @@ The "Select Strategy" button:
 
 **Problem 3: No Decision Framework**
 Users aren't guided through a decision process:
+
 - No "start here" indicator
 - No recommended sequence
 - No decision tree or checklist
@@ -87,6 +95,7 @@ Users aren't guided through a decision process:
 
 **Problem 4: Summary Is Just Text**
 The summary field is unstructured prose. It should be:
+
 - Key insights (bulleted)
 - Recommended primary strategy (highlighted)
 - Critical risks to address (flagged)
@@ -95,16 +104,19 @@ The summary field is unstructured prose. It should be:
 ### 1.4 The Disconnection from Adjacent Phases
 
 **No Connection to Clarify:**
+
 - Q&A answers from Clarify inform the analysis but aren't referenced
 - User can't see HOW their answers shaped the opportunities/strategies
 - No feedback loop: "Your answer about X led to Opportunity Y"
 
 **Weak Connection to Update:**
+
 - Selected strategies should directly inform Update phase suggestions
 - Currently, Update phase runs independently with no awareness of strategy selection
 - No continuity: "Since you selected Strategy 1, here's how to refine your idea..."
 
 **No Connection to User Profile:**
+
 - Profile data is used in fitWithProfile calculation but not displayed
 - Users can't see: "This strategy scored high because your skills include X"
 - No gap analysis: "This strategy would score higher if you addressed skill gap Y"
@@ -118,6 +130,7 @@ The summary field is unstructured prose. It should be:
 The Differentiate step should answer: **"Which positioning strategy should I pursue, and why?"**
 
 This requires:
+
 1. **Comparative framework** - See all options at once
 2. **Relationship visibility** - Understand connections
 3. **Recommendation engine** - Get guided suggestions
@@ -196,14 +209,18 @@ This requires:
 ### 2.3 Key Design Changes
 
 #### Change 1: Strategic Summary Always Visible
+
 Instead of hiding the summary in a text block, create a structured "recommendation card" at the top that synthesizes:
+
 - **Recommended strategy** (the highest-fit option)
 - **Why it's recommended** (key factors)
 - **What to watch out for** (primary risk)
 - **When to act** (timing urgency)
 
 #### Change 2: Strategy Comparison Matrix
+
 Replace isolated strategy cards with a comparison table that allows side-by-side evaluation. Include:
+
 - Profile fit score with breakdown
 - Addressed opportunities (linked)
 - Mitigated risks (linked)
@@ -212,10 +229,13 @@ Replace isolated strategy cards with a comparison table that allows side-by-side
 - Reversibility/pivot potential
 
 #### Change 3: 5W+H as Primary View, Not Hidden
+
 When a strategy is selected, show its full 5W+H breakdown as the main content, not behind an expand button. This is the actionable detail users need.
 
 #### Change 4: Visual Relationship Map
+
 Add a simple graph/diagram showing:
+
 - Which opportunities each strategy addresses
 - Which risks each strategy mitigates
 - Timing alignment
@@ -223,7 +243,9 @@ Add a simple graph/diagram showing:
 This can be a simple node-link diagram or even a structured list with visual connectors.
 
 #### Change 5: Explicit Decision Capture
+
 Add a "Your Decisions" section that:
+
 - Records which strategy the user selected as primary
 - Optionally records a secondary strategy
 - Acknowledges key risks
@@ -232,7 +254,9 @@ Add a "Your Decisions" section that:
 This decision object flows to the Update phase.
 
 #### Change 6: Profile Fit Transparency
+
 Show WHY a strategy scored high/low on profile fit:
+
 - Which skills matched
 - Which network connections are relevant
 - Which constraints apply
@@ -249,21 +273,23 @@ Show WHY a strategy scored high/low on profile fit:
 **Changes to `agents/differentiation.ts`:**
 
 1. Add relationship fields to the prompt and response schema:
+
 ```typescript
 interface EnrichedStrategy {
   // Existing fields...
-  addressesOpportunities: string[];  // IDs of opportunities this targets
-  mitigatesRisks: string[];          // IDs of risks this helps with
-  timingAlignment: 'favorable' | 'neutral' | 'challenging';
+  addressesOpportunities: string[]; // IDs of opportunities this targets
+  mitigatesRisks: string[]; // IDs of risks this helps with
+  timingAlignment: "favorable" | "neutral" | "challenging";
   profileFitBreakdown: {
-    strengths: string[];    // Profile attributes that help
-    gaps: string[];         // Profile attributes missing
-    suggestions: string[];  // How to address gaps
+    strengths: string[]; // Profile attributes that help
+    gaps: string[]; // Profile attributes missing
+    suggestions: string[]; // How to address gaps
   };
 }
 ```
 
 2. Modify prompt to generate these relationships:
+
 ```
 For each strategy, explicitly state:
 - Which market opportunities (by ID) this strategy addresses
@@ -273,6 +299,7 @@ For each strategy, explicitly state:
 ```
 
 3. Add a structured summary object:
+
 ```typescript
 interface StrategicSummary {
   recommendedStrategy: {
@@ -338,6 +365,7 @@ interface StrategicSummary {
 **Changes:**
 
 1. **Database Schema:**
+
 ```sql
 CREATE TABLE differentiation_decisions (
   id TEXT PRIMARY KEY,
@@ -397,6 +425,7 @@ CREATE TABLE differentiation_decisions (
 **Purpose:** Provide at-a-glance strategic guidance.
 
 **Props:**
+
 ```typescript
 interface StrategicSummaryCardProps {
   recommendedStrategy: {
@@ -407,15 +436,15 @@ interface StrategicSummaryCardProps {
   };
   primaryOpportunity: {
     segment: string;
-    fit: 'high' | 'medium' | 'low';
+    fit: "high" | "medium" | "low";
   };
   criticalRisk: {
     description: string;
-    severity: 'high' | 'medium' | 'low';
+    severity: "high" | "medium" | "low";
     mitigation: string;
   };
   timingAssessment: {
-    urgency: 'high' | 'medium' | 'low';
+    urgency: "high" | "medium" | "low";
     window: string;
   };
   overallConfidence: number;
@@ -423,6 +452,7 @@ interface StrategicSummaryCardProps {
 ```
 
 **Visual Design:**
+
 - Card with 4 quadrants or horizontal sections
 - Each section: Icon + Label + Value + Brief reason
 - Confidence shown as progress bar or percentage badge
@@ -433,26 +463,28 @@ interface StrategicSummaryCardProps {
 **Purpose:** Enable side-by-side strategy evaluation.
 
 **Props:**
+
 ```typescript
 interface StrategyComparisonMatrixProps {
   strategies: Array<{
     id: string;
     name: string;
     profileFit: number;
-    opportunityAlignment: 'high' | 'medium' | 'low';
-    riskLevel: 'high' | 'medium' | 'low';
-    timeToValue: string;  // e.g., "1-3 months"
-    resourceNeed: 'low' | 'medium' | 'high';
+    opportunityAlignment: "high" | "medium" | "low";
+    riskLevel: "high" | "medium" | "low";
+    timeToValue: string; // e.g., "1-3 months"
+    resourceNeed: "low" | "medium" | "high";
     isRecommended: boolean;
   }>;
   selectedStrategyId: string | null;
   onSelectStrategy: (id: string) => void;
-  activeFilter: 'all' | 'quick-win' | 'best-fit' | 'high-upside' | null;
+  activeFilter: "all" | "quick-win" | "best-fit" | "high-upside" | null;
   onFilterChange: (filter: string) => void;
 }
 ```
 
 **Visual Design:**
+
 - Table with strategies as rows, metrics as columns
 - Color-coded cells (green/amber/red) for quick scanning
 - Selected row highlighted with border/background
@@ -464,6 +496,7 @@ interface StrategyComparisonMatrixProps {
 **Purpose:** Show full context for selected strategy.
 
 **Props:**
+
 ```typescript
 interface StrategyDetailPanelProps {
   strategy: {
@@ -481,12 +514,12 @@ interface StrategyDetailPanelProps {
     addressesOpportunities: Array<{
       id: string;
       segment: string;
-      fit: 'high' | 'medium' | 'low';
+      fit: "high" | "medium" | "low";
     }>;
     mitigatesRisks: Array<{
       id: string;
       description: string;
-      severity: 'high' | 'medium' | 'low';
+      severity: "high" | "medium" | "low";
     }>;
     profileFitBreakdown: {
       score: number;
@@ -500,6 +533,7 @@ interface StrategyDetailPanelProps {
 ```
 
 **Visual Design:**
+
 - 5W+H as tab strip or stacked sections (all visible, no accordion)
 - Each 5W+H section: Icon + Title + Content
 - Right sidebar or bottom section for related opportunities/risks
@@ -510,21 +544,22 @@ interface StrategyDetailPanelProps {
 **Purpose:** Record user's strategic choices for downstream use.
 
 **Props:**
+
 ```typescript
 interface DecisionCaptureProps {
   strategies: Array<{ id: string; name: string }>;
   risks: Array<{ id: string; description: string }>;
-  timingUrgency: 'high' | 'medium' | 'low';
+  timingUrgency: "high" | "medium" | "low";
 
   selectedPrimary: string | null;
   selectedSecondary: string | null;
   acknowledgedRisks: string[];
-  timingDecision: 'proceed' | 'wait' | null;
+  timingDecision: "proceed" | "wait" | null;
 
   onPrimaryChange: (id: string) => void;
   onSecondaryChange: (id: string | null) => void;
   onRiskAcknowledge: (id: string) => void;
-  onTimingDecision: (decision: 'proceed' | 'wait') => void;
+  onTimingDecision: (decision: "proceed" | "wait") => void;
   onContinue: () => void;
 
   canContinue: boolean;
@@ -532,6 +567,7 @@ interface DecisionCaptureProps {
 ```
 
 **Visual Design:**
+
 - "Your Decisions" header with checklist icon
 - Strategy selection as radio buttons (primary) + optional checkbox (secondary)
 - Risk acknowledgment as checkboxes with severity colors
@@ -543,16 +579,19 @@ interface DecisionCaptureProps {
 ## Part 5: Success Metrics
 
 ### User Behavior Metrics
+
 1. **Time to decision:** Reduce from X minutes to Y minutes
 2. **Decision confidence:** Post-decision survey score increase
 3. **Strategy utilization:** % of users who proceed to Update with selected strategy
 
 ### Quality Metrics
+
 1. **Strategy-Update alignment:** % of Update suggestions that reference selected strategy
 2. **Decision completeness:** % of users who acknowledge risks before proceeding
 3. **Return rate:** % of users who return to Differentiate to change decisions
 
 ### Technical Metrics
+
 1. **Component render time:** Target < 200ms for comparison matrix
 2. **API response time:** Target < 3s for differentiation analysis
 3. **Decision persistence:** 100% of decisions saved successfully
@@ -563,26 +602,26 @@ interface DecisionCaptureProps {
 
 ### Technical Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Agent output doesn't match new schema | Medium | High | Extensive prompt testing, fallback parsing |
-| Relationship diagram performance on large datasets | Low | Medium | Limit to top 5 strategies, lazy render |
-| State management complexity with optimistic updates | Medium | Medium | Use React Query mutation patterns |
+| Risk                                                | Likelihood | Impact | Mitigation                                 |
+| --------------------------------------------------- | ---------- | ------ | ------------------------------------------ |
+| Agent output doesn't match new schema               | Medium     | High   | Extensive prompt testing, fallback parsing |
+| Relationship diagram performance on large datasets  | Low        | Medium | Limit to top 5 strategies, lazy render     |
+| State management complexity with optimistic updates | Medium     | Medium | Use React Query mutation patterns          |
 
 ### UX Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Comparison matrix overwhelming for non-technical users | Medium | High | Progressive disclosure, tooltips, tutorial |
-| Users skip reading 5W+H details | High | Medium | Visual hierarchy that draws attention |
-| Decision capture feels like homework | Low | Medium | Frame as "confirming your direction" |
+| Risk                                                   | Likelihood | Impact | Mitigation                                 |
+| ------------------------------------------------------ | ---------- | ------ | ------------------------------------------ |
+| Comparison matrix overwhelming for non-technical users | Medium     | High   | Progressive disclosure, tooltips, tutorial |
+| Users skip reading 5W+H details                        | High       | Medium | Visual hierarchy that draws attention      |
+| Decision capture feels like homework                   | Low        | Medium | Frame as "confirming your direction"       |
 
 ### Product Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Analysis accuracy reduces with structured output | Low | High | A/B test output quality before/after |
-| Users game the system by selecting "easy" strategies | Low | Low | Show tradeoffs clearly, no gaming benefit |
+| Risk                                                 | Likelihood | Impact | Mitigation                                |
+| ---------------------------------------------------- | ---------- | ------ | ----------------------------------------- |
+| Analysis accuracy reduces with structured output     | Low        | High   | A/B test output quality before/after      |
+| Users game the system by selecting "easy" strategies | Low        | Low    | Show tradeoffs clearly, no gaming benefit |
 
 ---
 
@@ -623,34 +662,35 @@ The current system would recommend Strategy A. This is a fundamental failure.
 
 The profile schema (`utils/schemas.ts`) has `financialRunwayMonths` but is missing:
 
-| Missing Field | Why Critical | Example |
-|---------------|--------------|---------|
-| `targetAnnualIncome` | Can't evaluate if strategy meets goals | $150,000 |
-| `currentAnnualIncome` | Baseline for "replacement" goals | $120,000 |
-| `investmentCapacity` | Can they fund strategy requirements? | $25,000 |
-| `monthlyBurnRate` | Runway is meaningless without burn | $8,000/mo |
-| `revenueTimelineExpectation` | Patience for returns | "12 months" |
-| `incomeRequirementType` | Full replace vs. supplement | "supplement" |
+| Missing Field                | Why Critical                           | Example      |
+| ---------------------------- | -------------------------------------- | ------------ |
+| `targetAnnualIncome`         | Can't evaluate if strategy meets goals | $150,000     |
+| `currentAnnualIncome`        | Baseline for "replacement" goals       | $120,000     |
+| `investmentCapacity`         | Can they fund strategy requirements?   | $25,000      |
+| `monthlyBurnRate`            | Runway is meaningless without burn     | $8,000/mo    |
+| `revenueTimelineExpectation` | Patience for returns                   | "12 months"  |
+| `incomeRequirementType`      | Full replace vs. supplement            | "supplement" |
 
 #### In Strategy Analysis (Output Gaps)
 
 The differentiation agent generates strategies but doesn't estimate:
 
-| Missing Output | Why Critical | Should Include |
-|----------------|--------------|----------------|
-| `estimatedRevenueYear1` | Compare vs income goals | $0-50k range |
-| `estimatedRevenueYear3` | Long-term viability | $100-200k range |
-| `customersNeededForTarget` | Reality check on scale | "500 @ $300/mo" |
-| `monthsToFirstRevenue` | Compare vs runway | 4-6 months |
-| `upfrontInvestmentRequired` | Compare vs capacity | $5,000-15,000 |
-| `monthlyOperatingCost` | Ongoing sustainability | $200-500/mo |
-| `unitEconomics` | Is business viable? | CAC, LTV, margin |
+| Missing Output              | Why Critical            | Should Include   |
+| --------------------------- | ----------------------- | ---------------- |
+| `estimatedRevenueYear1`     | Compare vs income goals | $0-50k range     |
+| `estimatedRevenueYear3`     | Long-term viability     | $100-200k range  |
+| `customersNeededForTarget`  | Reality check on scale  | "500 @ $300/mo"  |
+| `monthsToFirstRevenue`      | Compare vs runway       | 4-6 months       |
+| `upfrontInvestmentRequired` | Compare vs capacity     | $5,000-15,000    |
+| `monthlyOperatingCost`      | Ongoing sustainability  | $200-500/mo      |
+| `unitEconomics`             | Is business viable?     | CAC, LTV, margin |
 
 ### 7.3 The Niche Trap
 
 **Problem:** Without revenue estimation, the system can enthusiastically recommend strategies targeting markets too small to matter.
 
 **Current Behavior:**
+
 ```
 Market Opportunity: "Vegan sourdough enthusiasts in Brisbane"
 - Fit: HIGH (user is passionate about this)
@@ -662,6 +702,7 @@ Market Opportunity: "Vegan sourdough enthusiasts in Brisbane"
 ```
 
 **What Should Happen:**
+
 ```
 Market Opportunity: "Vegan sourdough enthusiasts in Brisbane"
 - Fit: HIGH
@@ -877,30 +918,32 @@ Before committing to a strategy, users need to know:
 // New fields needed in UserProfileSchema
 export const ExtendedFinancialContextSchema = z.object({
   // Income Goals
-  targetAnnualIncome: z.number().optional(),        // e.g., 150000
-  currentAnnualIncome: z.number().optional(),       // Baseline
-  incomeGoalType: z.enum([
-    'full_replacement',    // Replace current job
-    'supplement',          // Add to existing income
-    'side_project',        // Modest extra income
-    'wealth_building'      // Long-term equity play
-  ]).optional(),
-  incomeTimelineMonths: z.number().optional(),      // When to hit target
+  targetAnnualIncome: z.number().optional(), // e.g., 150000
+  currentAnnualIncome: z.number().optional(), // Baseline
+  incomeGoalType: z
+    .enum([
+      "full_replacement", // Replace current job
+      "supplement", // Add to existing income
+      "side_project", // Modest extra income
+      "wealth_building", // Long-term equity play
+    ])
+    .optional(),
+  incomeTimelineMonths: z.number().optional(), // When to hit target
 
   // Investment Capacity
-  availableInvestment: z.number().optional(),       // Upfront capital
+  availableInvestment: z.number().optional(), // Upfront capital
   monthlyInvestmentCapacity: z.number().optional(), // Ongoing
   willingnessToRaiseFunding: z.boolean().optional(),
-  debtTolerance: z.enum(['none', 'low', 'moderate', 'high']).optional(),
+  debtTolerance: z.enum(["none", "low", "moderate", "high"]).optional(),
 
   // Burn Rate Reality
-  monthlyBurnRate: z.number().optional(),           // Living expenses
-  minimumMonthlyIncome: z.number().optional(),      // Floor needed
-  hasAlternativeIncome: z.boolean().optional(),     // Spouse, savings, etc.
+  monthlyBurnRate: z.number().optional(), // Living expenses
+  minimumMonthlyIncome: z.number().optional(), // Floor needed
+  hasAlternativeIncome: z.boolean().optional(), // Spouse, savings, etc.
 
   // Time Preferences
-  maxTimeToFirstRevenue: z.number().optional(),     // Months willing to wait
-  preferredExitTimeline: z.number().optional(),     // For exit-focused goals
+  maxTimeToFirstRevenue: z.number().optional(), // Months willing to wait
+  preferredExitTimeline: z.number().optional(), // For exit-focused goals
 });
 ```
 
@@ -913,14 +956,14 @@ export interface FinanciallyAwareStrategy extends Strategy {
   revenueEstimates: {
     year1: { low: number; mid: number; high: number };
     year3: { low: number; mid: number; high: number };
-    assumptions: string[];  // What these estimates assume
+    assumptions: string[]; // What these estimates assume
   };
 
   // Unit Economics
   unitEconomics: {
     estimatedCAC: { low: number; high: number };
     estimatedLTV: { low: number; high: number };
-    estimatedMargin: number;  // Percentage
+    estimatedMargin: number; // Percentage
     breakEvenCustomers: number;
   };
 
@@ -928,14 +971,14 @@ export interface FinanciallyAwareStrategy extends Strategy {
   investmentRequired: {
     upfront: { low: number; high: number };
     monthly: { low: number; high: number };
-    timeToBreakEven: { low: number; high: number };  // Months
+    timeToBreakEven: { low: number; high: number }; // Months
   };
 
   // Goal Alignment
   goalAlignment: {
     meetsIncomeTarget: boolean;
-    gapToTarget: number | null;  // If doesn't meet
-    timelineAlignment: 'faster' | 'aligned' | 'slower' | 'unlikely';
+    gapToTarget: number | null; // If doesn't meet
+    timelineAlignment: "faster" | "aligned" | "slower" | "unlikely";
     runwaySufficient: boolean;
     investmentFeasible: boolean;
   };
@@ -955,7 +998,7 @@ export interface FinanciallyAwareStrategy extends Strategy {
 
   // Reversibility
   reversibility: {
-    score: number;  // 1-10
+    score: number; // 1-10
     pivotOptions: string[];
     sunkCostAtMonth6: number;
     transferableAssets: string[];
@@ -963,8 +1006,8 @@ export interface FinanciallyAwareStrategy extends Strategy {
 
   // Execution
   executionComplexity: {
-    score: number;  // 1-10
-    soloFounderFeasibility: number;  // 1-10
+    score: number; // 1-10
+    soloFounderFeasibility: number; // 1-10
     criticalDependencies: string[];
     teamSizeRecommendation: string;
   };
@@ -984,6 +1027,7 @@ export interface FinanciallyAwareStrategy extends Strategy {
 > "How should I approach this market to achieve MY goals?"
 
 Differentiation is ONE valid answer. But it's often not the BEST answer, especially for:
+
 - Bootstrapped founders (need revenue fast)
 - Risk-averse users (proven > novel)
 - Income-replacement goals (predictable > moonshot)
@@ -991,14 +1035,14 @@ Differentiation is ONE valid answer. But it's often not the BEST answer, especia
 
 ### 9.2 Strategic Approach Taxonomy
 
-| Approach | Description | Best For | Risk | Time to Revenue |
-|----------|-------------|----------|------|-----------------|
-| **Create** | Build something genuinely new | VC-backed, long runway, high risk tolerance | High | 12-24+ months |
-| **Copy & Improve** | Take proven model, execute better | Bootstrapped, income goals, proven demand | Low | 3-6 months |
-| **Combine** | Merge two validated concepts | Unique insight at intersection | Medium | 6-12 months |
-| **Localize** | Proven model, new geography/segment | Local market knowledge | Low | 3-6 months |
-| **Specialize** | Narrow general solution to niche | Deep domain expertise | Low-Medium | 4-8 months |
-| **Time** | Retry failed concept, market now ready | Timing insight, patience | High | Variable |
+| Approach           | Description                            | Best For                                    | Risk       | Time to Revenue |
+| ------------------ | -------------------------------------- | ------------------------------------------- | ---------- | --------------- |
+| **Create**         | Build something genuinely new          | VC-backed, long runway, high risk tolerance | High       | 12-24+ months   |
+| **Copy & Improve** | Take proven model, execute better      | Bootstrapped, income goals, proven demand   | Low        | 3-6 months      |
+| **Combine**        | Merge two validated concepts           | Unique insight at intersection              | Medium     | 6-12 months     |
+| **Localize**       | Proven model, new geography/segment    | Local market knowledge                      | Low        | 3-6 months      |
+| **Specialize**     | Narrow general solution to niche       | Deep domain expertise                       | Low-Medium | 4-8 months      |
+| **Time**           | Retry failed concept, market now ready | Timing insight, patience                    | High       | Variable        |
 
 ### 9.3 Why This Matters for the System
 
@@ -1053,28 +1097,32 @@ Differentiation is ONE valid answer. But it's often not the BEST answer, especia
 The system should RECOMMEND an approach based on user profile + idea context:
 
 ```typescript
-function recommendApproach(profile: UserProfile, idea: Idea, allocation: IdeaAllocation): ApproachRecommendation {
+function recommendApproach(
+  profile: UserProfile,
+  idea: Idea,
+  allocation: IdeaAllocation,
+): ApproachRecommendation {
   // High runway + high risk tolerance + wealth-building goal → Create
-  if (allocation.runwayMonths >= 18 &&
-      profile.riskTolerance === 'high' &&
-      profile.primaryGoals.includes('exit')) {
-    return { primary: 'create', reasoning: '...' };
+  if (
+    allocation.runwayMonths >= 18 &&
+    profile.riskTolerance === "high" &&
+    profile.primaryGoals.includes("exit")
+  ) {
+    return { primary: "create", reasoning: "..." };
   }
 
   // Short runway + income goal → Copy or Localize
-  if (allocation.runwayMonths <= 8 &&
-      profile.primaryGoals.includes('income')) {
+  if (allocation.runwayMonths <= 8 && profile.primaryGoals.includes("income")) {
     return {
-      primary: 'copy_improve',
-      secondary: 'localize',
-      reasoning: 'Your runway and income goals favor proven models...'
+      primary: "copy_improve",
+      secondary: "localize",
+      reasoning: "Your runway and income goals favor proven models...",
     };
   }
 
   // Domain expertise + general solution exists → Specialize
-  if (profile.domainExpertise.length > 0 &&
-      idea.hasGeneralSolutions) {
-    return { primary: 'specialize', reasoning: '...' };
+  if (profile.domainExpertise.length > 0 && idea.hasGeneralSolutions) {
+    return { primary: "specialize", reasoning: "..." };
   }
 
   // ... more logic
@@ -1099,12 +1147,14 @@ The phase should be renamed to **Position** and include:
 
 **The Problem:**
 A user with $100k capacity might want to run 3 ideas in parallel, allocating:
+
 - Idea A: $50k (high conviction)
 - Idea B: $20k (exploration)
 - Idea C: $10k (quick test)
 - Reserve: $20k (future opportunities)
 
 If we only store financial data at the User level, we can't:
+
 - Track allocation per idea
 - Compare strategy viability against ALLOCATED (not total) resources
 - Support portfolio thinking
@@ -1186,8 +1236,8 @@ export const UserFinancialProfileSchema = z.object({
   financialRunwayMonths: z.number().min(0).optional(),
 
   // Preferences (personality)
-  baseRiskTolerance: z.enum(['low', 'medium', 'high', 'very_high']).optional(),
-  debtTolerance: z.enum(['none', 'low', 'moderate', 'high']).optional(),
+  baseRiskTolerance: z.enum(["low", "medium", "high", "very_high"]).optional(),
+  debtTolerance: z.enum(["none", "low", "moderate", "high"]).optional(),
   willingnessToRaiseFunding: z.boolean().optional(),
   lifestyleIncomeTarget: z.number().optional(),
 });
@@ -1201,24 +1251,24 @@ export const IdeaFinancialAllocationSchema = z.object({
   allocatedBudget: z.number().min(0),
   allocatedWeeklyHours: z.number().min(0).max(80),
   allocatedRunwayMonths: z.number().min(0),
-  allocationPriority: z.enum(['primary', 'secondary', 'exploration', 'parked']),
+  allocationPriority: z.enum(["primary", "secondary", "exploration", "parked"]),
 
   // Idea-Specific Goals
   targetIncomeFromIdea: z.number().optional(),
   incomeTimelineMonths: z.number().optional(),
   incomeType: z.enum([
-    'full_replacement',   // This idea replaces job
-    'partial_replacement', // This idea + other income = target
-    'supplement',         // Extra income on top
-    'wealth_building',    // Equity play, income later
-    'learning',           // Not income focused
+    "full_replacement", // This idea replaces job
+    "partial_replacement", // This idea + other income = target
+    "supplement", // Extra income on top
+    "wealth_building", // Equity play, income later
+    "learning", // Not income focused
   ]),
   exitIntent: z.boolean().default(false),
 
   // Idea-Specific Risk
-  ideaRiskTolerance: z.enum(['low', 'medium', 'high', 'very_high']).optional(),
+  ideaRiskTolerance: z.enum(["low", "medium", "high", "very_high"]).optional(),
   maxAcceptableLoss: z.number().optional(),
-  pivotWillingness: z.enum(['rigid', 'moderate', 'flexible', 'very_flexible']),
+  pivotWillingness: z.enum(["rigid", "moderate", "flexible", "very_flexible"]),
 
   // Validation Budget
   validationBudget: z.number().min(0).default(0),
@@ -1230,7 +1280,9 @@ export const IdeaFinancialAllocationSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export type IdeaFinancialAllocation = z.infer<typeof IdeaFinancialAllocationSchema>;
+export type IdeaFinancialAllocation = z.infer<
+  typeof IdeaFinancialAllocationSchema
+>;
 ```
 
 ### 10.4 Database Schema
@@ -1281,6 +1333,7 @@ CREATE INDEX idx_idea_allocations_idea_id ON idea_financial_allocations(idea_id)
 ### 10.5 How This Changes Strategy Evaluation
 
 **Before (broken):**
+
 ```
 User has $100k capacity
 Strategy requires $50k
@@ -1290,6 +1343,7 @@ Strategy requires $50k
 ```
 
 **After (correct):**
+
 ```
 User Profile: $100k total capacity
 Idea Allocation: $20k for this idea
@@ -1359,17 +1413,21 @@ Strategy requires: $50k
 interface StrategyWithAllocationCheck extends FinanciallyAwareStrategy {
   allocationFeasibility: {
     budgetSufficient: boolean;
-    budgetGap: number | null;        // How much more needed
+    budgetGap: number | null; // How much more needed
     timeSufficient: boolean;
-    timeGap: number | null;          // Hours/week needed
+    timeGap: number | null; // Hours/week needed
     runwaySufficient: boolean;
-    runwayGap: number | null;        // Months needed
+    runwayGap: number | null; // Months needed
 
     overallFeasible: boolean;
 
     // If not feasible, what would make it work
     adjustmentOptions: Array<{
-      type: 'increase_allocation' | 'reduce_scope' | 'extend_timeline' | 'seek_funding';
+      type:
+        | "increase_allocation"
+        | "reduce_scope"
+        | "extend_timeline"
+        | "seek_funding";
       description: string;
       newRequirement: number;
     }>;
@@ -1449,6 +1507,7 @@ CAPTURE → CLARIFY → POSITION → UPDATE → EVALUATE → ITERATE
 ### 11.3 Key Integration Points
 
 **1. Approach → Analysis Agent**
+
 ```typescript
 // The analysis agent receives approach as context
 async function runPositioningAnalysis(
@@ -1456,9 +1515,8 @@ async function runPositioningAnalysis(
   approach: StrategicApproach,
   profile: UserProfile,
   allocation: IdeaFinancialAllocation,
-  gapAnalysis: GapAnalysis
+  gapAnalysis: GapAnalysis,
 ): Promise<PositioningAnalysis> {
-
   const systemPrompt = APPROACH_PROMPTS[approach.type];
   // Different prompts for create/copy/combine/localize/specialize/time
 
@@ -1477,13 +1535,14 @@ async function runPositioningAnalysis(
 ```
 
 **2. Allocation → Strategy Filtering**
+
 ```typescript
 // Filter strategies that can't work with allocation
 function filterViableStrategies(
   strategies: Strategy[],
-  allocation: IdeaFinancialAllocation
+  allocation: IdeaFinancialAllocation,
 ): Strategy[] {
-  return strategies.filter(s => {
+  return strategies.filter((s) => {
     // Hard filters
     if (s.investmentRequired.upfront.low > allocation.allocatedBudget) {
       return false; // Can't afford even minimum
@@ -1497,6 +1556,7 @@ function filterViableStrategies(
 ```
 
 **3. Decision → Update Phase**
+
 ```typescript
 // Update phase receives decision context
 interface UpdatePhaseContext {
@@ -1538,6 +1598,7 @@ interface UpdatePhaseContext {
    - Store selected approach per idea
 
 **Files to modify:**
+
 - `utils/schemas.ts` - Add schemas
 - `database/migrations/011_financial_allocation.sql` - New migration
 - `server/api.ts` - New endpoints
@@ -1570,6 +1631,7 @@ interface UpdatePhaseContext {
    - `PositionPhaseContainer.tsx` - Orchestrates sub-steps
 
 **Files to modify:**
+
 - `frontend/src/components/IncubationStepper.tsx`
 - `frontend/src/pages/IdeaDetailPhased.tsx`
 - `types/incubation.ts`
@@ -1607,6 +1669,7 @@ interface UpdatePhaseContext {
    - Add `allocationFeasibility` check
 
 **Files to modify:**
+
 - `agents/differentiation.ts` → rename to `agents/positioning.ts`
 - New: `agents/approach-prompts.ts` - Prompt templates per approach
 - `types/incubation.ts` - Extended strategy types
@@ -1642,6 +1705,7 @@ interface UpdatePhaseContext {
    - Suggests expansion options
 
 **Files to create:**
+
 - `frontend/src/components/FinancialViabilityCard.tsx`
 - `frontend/src/components/RunwaySurvivalChart.tsx`
 - `frontend/src/components/AllocationFeasibilityCheck.tsx`
@@ -1676,6 +1740,7 @@ interface UpdatePhaseContext {
    - Visual connectors or tag-based linking
 
 **Files to modify:**
+
 - `frontend/src/components/DifferentiationView.tsx` → refactor significantly
 - New: `frontend/src/components/StrategyComparisonMatrix.tsx`
 - New: `frontend/src/components/StrategyDetailPanel.tsx`
@@ -1707,6 +1772,7 @@ interface UpdatePhaseContext {
    - Reference selected strategy in prompt
 
 **Files to modify:**
+
 - New: `frontend/src/components/DecisionCapture.tsx`
 - `database/migrations/012_positioning_decisions.sql`
 - `agents/update-generator.ts` - Accept decision context
@@ -1744,15 +1810,15 @@ interface UpdatePhaseContext {
 
 ## Summary: Implementation Priority
 
-| Phase | Focus | Dependencies | Effort | Value |
-|-------|-------|--------------|--------|-------|
-| 0 | Data Model | None | Medium | Foundation |
-| 1 | UI Shell | Phase 0 | High | Structure |
-| 2 | Agent Refactoring | Phase 0 | High | Core capability |
-| 3 | Financial Viability UI | Phase 0, 2 | High | **Highest user value** |
-| 4 | Comparison Matrix | Phase 2 | High | Usability |
-| 5 | Decision Integration | Phase 3, 4 | Medium | Flow completion |
-| 6 | Polish | All | Medium | Quality |
+| Phase | Focus                  | Dependencies | Effort | Value                  |
+| ----- | ---------------------- | ------------ | ------ | ---------------------- |
+| 0     | Data Model             | None         | Medium | Foundation             |
+| 1     | UI Shell               | Phase 0      | High   | Structure              |
+| 2     | Agent Refactoring      | Phase 0      | High   | Core capability        |
+| 3     | Financial Viability UI | Phase 0, 2   | High   | **Highest user value** |
+| 4     | Comparison Matrix      | Phase 2      | High   | Usability              |
+| 5     | Decision Integration   | Phase 3, 4   | Medium | Flow completion        |
+| 6     | Polish                 | All          | Medium | Quality                |
 
 **Critical Path:** Phase 0 → Phase 2 → Phase 3
 
@@ -1771,15 +1837,15 @@ The current "Differentiate" step fails on multiple levels:
 
 The redesigned **"Position"** phase addresses all of these:
 
-| Problem | Solution |
-|---------|----------|
-| Differentiation bias | Strategic Approach taxonomy (6 options) |
-| No financial analysis | Revenue estimates, goal alignment, viability checks |
-| User-level finances only | Idea-level allocation model |
-| Fragmented sections | Integrated comparison matrix with relationships |
-| Hidden actionable content | 5W+H visible by default |
-| Passive data display | Active decision capture with downstream integration |
-| No validation guidance | Validation roadmaps with kill criteria |
+| Problem                   | Solution                                            |
+| ------------------------- | --------------------------------------------------- |
+| Differentiation bias      | Strategic Approach taxonomy (6 options)             |
+| No financial analysis     | Revenue estimates, goal alignment, viability checks |
+| User-level finances only  | Idea-level allocation model                         |
+| Fragmented sections       | Integrated comparison matrix with relationships     |
+| Hidden actionable content | 5W+H visible by default                             |
+| Passive data display      | Active decision capture with downstream integration |
+| No validation guidance    | Validation roadmaps with kill criteria              |
 
 **The fundamental reframe:**
 
@@ -1787,6 +1853,7 @@ The redesigned **"Position"** phase addresses all of these:
 > To: "How should I approach this market to achieve MY goals, with the resources I'm willing to commit?"
 
 This question acknowledges that:
+
 - Differentiation is optional
 - Resources are finite and allocated per-idea
 - Goals vary (income vs. equity vs. learning)
@@ -1794,6 +1861,7 @@ This question acknowledges that:
 - Financial viability trumps strategic elegance
 
 **The most critical additions are:**
+
 1. **Strategic approach selection** - because differentiation isn't always the answer
 2. **Idea-level financial allocation** - because users run portfolios, not single ideas
 3. **Revenue-to-goal alignment** - because strategies must meet user's actual needs

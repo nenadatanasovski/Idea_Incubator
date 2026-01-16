@@ -1,6 +1,7 @@
 # SKILL: Types as Documentation
 
 ## When to Load
+
 - Defining function signatures
 - Creating domain models
 - Reviewing type definitions
@@ -33,36 +34,32 @@ function createUser(
   name: string,
   email: string,
   age: number,
-  role: string
-): string  // returns what? ID? name? error?
+  role: string,
+): string; // returns what? ID? name? error?
 
 // Easy to make mistakes
-createUser(email, name, role, age)  // args swapped, compiles fine
+createUser(email, name, role, age); // args swapped, compiles fine
 ```
 
 ## Domain Types (Pattern)
 
 ```typescript
 // GOOD - meaningful types
-type UserId = string & { readonly brand: unique symbol }
-type Email = string & { readonly brand: unique symbol }
-type Age = number & { readonly brand: unique symbol }
-type Role = 'admin' | 'user' | 'guest'
+type UserId = string & { readonly brand: unique symbol };
+type Email = string & { readonly brand: unique symbol };
+type Age = number & { readonly brand: unique symbol };
+type Role = "admin" | "user" | "guest";
 
-function createUser(
-  name: string,
-  email: Email,
-  age: Age,
-  role: Role
-): UserId
+function createUser(name: string, email: Email, age: Age, role: Role): UserId;
 
 // Compile error if you swap arguments
-createUser(email, name, role, age)  // Type error!
+createUser(email, name, role, age); // Type error!
 ```
 
 ## Practical Patterns
 
 ### Branded Types (Lightweight)
+
 ```typescript
 type UserId = string & { readonly __brand: 'UserId' }
 type OrderId = string & { readonly __brand: 'OrderId' }
@@ -73,15 +70,17 @@ getUser(orderId)  // Type error!
 ```
 
 ### Union Types for States
+
 ```typescript
 // BAD - stringly typed
-type Status = string  // 'loading' | 'error' | 'success' | anything...
+type Status = string; // 'loading' | 'error' | 'success' | anything...
 
 // GOOD - explicit states
-type Status = 'loading' | 'error' | 'success'
+type Status = "loading" | "error" | "success";
 ```
 
 ### Discriminated Unions for Variants
+
 ```typescript
 type ApiResponse<T> =
   | { status: 'loading' }
@@ -99,6 +98,7 @@ function render(response: ApiResponse<User>) {
 ```
 
 ### Units in Types
+
 ```typescript
 // BAD - what unit?
 function delay(time: number) { ... }
@@ -114,14 +114,15 @@ function delay(time: Milliseconds) { ... }
 ## When NOT to Over-Type
 
 Don't create types for everything:
+
 ```typescript
 // OVERKILL
-type X = number
-type Y = number
-type Point = { x: X, y: Y }
+type X = number;
+type Y = number;
+type Point = { x: X; y: Y };
 
 // FINE - context is clear
-type Point = { x: number, y: number }
+type Point = { x: number; y: number };
 ```
 
 The goal is clarity, not type bureaucracy.

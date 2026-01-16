@@ -20,13 +20,13 @@
 
 ### 1.1 Sources Consulted
 
-| Domain | Key Sources | Relevance |
-|--------|-------------|-----------|
-| **Compiler Bootstrapping** | [Wikipedia](https://en.wikipedia.org/wiki/Bootstrapping_(compilers)), [Bootstrappable.org](https://www.bootstrappable.org/best-practices.html), [Rust Compiler Guide](https://rustc-dev-guide.rust-lang.org/building/bootstrapping/what-bootstrapping-does.html) | Core patterns for self-hosting |
-| **Self-Modifying AI Safety** | [ISACA](https://www.isaca.org/resources/news-and-trends/isaca-now-blog/2025/unseen-unchecked-unraveling-inside-the-risky-code-of-self-modifying-ai), [Martin Fowler](https://martinfowler.com/articles/pushing-ai-autonomy.html), [OpenSSF](https://best.openssf.org/Security-Focused-Guide-for-AI-Code-Assistant-Instructions) | Safety guardrails |
-| **Meta-Circular Interpreters** | [Wikipedia](https://en.wikipedia.org/wiki/Meta-circular_evaluator), [SICP tradition](http://weblog.raganwald.com/2006/11/significance-of-meta-circular_22.html) | Self-definition patterns |
-| **Agentic AI Patterns** | [MongoDB patterns](https://medium.com/mongodb/here-are-7-design-patterns-for-agentic-systems-you-need-to-know-d74a4b5835a5), [Azure Agent Factory](https://azure.microsoft.com/en-us/blog/agent-factory-the-new-era-of-agentic-ai-common-use-cases-and-design-patterns/), [MarkTechPost](https://www.marktechpost.com/2025/10/12/5-most-popular-agentic-ai-design-patterns-every-ai-engineer-should-know/) | Modern agent design |
-| **Self-Improving Agents** | [SICA Paper](https://arxiv.org/html/2504.15228v2), [Yohei Nakajima](https://yoheinakajima.com/better-ways-to-build-self-improving-ai-agents/), [Emergence.ai](https://www.emergence.ai/blog/building-narrow-self-improving-agents) | LLM-specific patterns |
+| Domain                         | Key Sources                                                                                                                                                                                                                                                                                                                                                                                                | Relevance                      |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **Compiler Bootstrapping**     | [Wikipedia](<https://en.wikipedia.org/wiki/Bootstrapping_(compilers)>), [Bootstrappable.org](https://www.bootstrappable.org/best-practices.html), [Rust Compiler Guide](https://rustc-dev-guide.rust-lang.org/building/bootstrapping/what-bootstrapping-does.html)                                                                                                                                         | Core patterns for self-hosting |
+| **Self-Modifying AI Safety**   | [ISACA](https://www.isaca.org/resources/news-and-trends/isaca-now-blog/2025/unseen-unchecked-unraveling-inside-the-risky-code-of-self-modifying-ai), [Martin Fowler](https://martinfowler.com/articles/pushing-ai-autonomy.html), [OpenSSF](https://best.openssf.org/Security-Focused-Guide-for-AI-Code-Assistant-Instructions)                                                                            | Safety guardrails              |
+| **Meta-Circular Interpreters** | [Wikipedia](https://en.wikipedia.org/wiki/Meta-circular_evaluator), [SICP tradition](http://weblog.raganwald.com/2006/11/significance-of-meta-circular_22.html)                                                                                                                                                                                                                                            | Self-definition patterns       |
+| **Agentic AI Patterns**        | [MongoDB patterns](https://medium.com/mongodb/here-are-7-design-patterns-for-agentic-systems-you-need-to-know-d74a4b5835a5), [Azure Agent Factory](https://azure.microsoft.com/en-us/blog/agent-factory-the-new-era-of-agentic-ai-common-use-cases-and-design-patterns/), [MarkTechPost](https://www.marktechpost.com/2025/10/12/5-most-popular-agentic-ai-design-patterns-every-ai-engineer-should-know/) | Modern agent design            |
+| **Self-Improving Agents**      | [SICA Paper](https://arxiv.org/html/2504.15228v2), [Yohei Nakajima](https://yoheinakajima.com/better-ways-to-build-self-improving-ai-agents/), [Emergence.ai](https://www.emergence.ai/blog/building-narrow-self-improving-agents)                                                                                                                                                                         | LLM-specific patterns          |
 
 ### 1.2 Key Insights by Domain
 
@@ -48,6 +48,7 @@ Verify: Stage 2 output == Stage 3 output (proves correctness)
 ```
 
 **Critical Lessons:**
+
 1. **Start with a working subset** - Don't try to build everything at once
 2. **Multi-stage verification** - Each stage compiles the next, outputs must match
 3. **Maintain escape hatch** - Always keep ability to build from external tools
@@ -68,6 +69,7 @@ THE SAFE-AI FRAMEWORK
 ```
 
 **Critical Lessons:**
+
 1. **Code drift is real** - Small changes accumulate into unrecognizable systems
 2. **Observability is mandatory** - Can't trust what you can't see
 3. **Human-in-the-loop remains essential** - Especially as complexity increases
@@ -89,6 +91,7 @@ THE REFLEXION PATTERN
 ```
 
 **Critical Lessons:**
+
 1. **Separate generation from evaluation** - Actor/Critic pattern works
 2. **Verbal RL is powerful** - Natural language critique improves next attempt
 3. **Sandbox execution required** - Run code to find real bugs, not just static analysis
@@ -143,6 +146,7 @@ If they differ → there's a bug somewhere
 ```
 
 **For Vibe**: Once Spec Agent exists:
+
 1. Use it to generate its own spec
 2. Use that spec to rebuild Spec Agent
 3. Use rebuilt agent to generate spec again
@@ -191,6 +195,7 @@ Why: Prevents runaway drift, keeps improvements measurable
 ```
 
 **For Vibe**: Self-improvement should be scoped:
+
 - Improve gotcha detection for SQL files
 - Improve spec generation for API routes
 - NOT: Improve the overall system architecture
@@ -213,6 +218,7 @@ BEFORE ANY SELF-MODIFICATION
 ```
 
 **For Vibe**: Every agent action should be logged with:
+
 - What it's doing
 - Why (which task, which spec, which gotcha)
 - What it expects to happen
@@ -224,26 +230,26 @@ BEFORE ANY SELF-MODIFICATION
 
 ### 3.1 Alignment with Best Practices
 
-| Best Practice | Our Plan | Status |
-|--------------|----------|--------|
-| Multi-stage bootstrap | Phases 0-4 | ✅ Aligned |
-| Subset first | "Minimal Spec Agent" | ✅ Aligned |
-| Human-in-the-loop | Question framework | ✅ Aligned |
-| Actor-Critic | Build + Validation agents | ✅ Aligned |
-| Rollback mechanisms | Git checkpoints, version branches | ✅ Aligned |
-| Observability | Event logging, dashboards | ✅ Aligned |
-| Narrow improvement scope | SIA focuses on gotchas/patterns | ✅ Aligned |
+| Best Practice            | Our Plan                          | Status     |
+| ------------------------ | --------------------------------- | ---------- |
+| Multi-stage bootstrap    | Phases 0-4                        | ✅ Aligned |
+| Subset first             | "Minimal Spec Agent"              | ✅ Aligned |
+| Human-in-the-loop        | Question framework                | ✅ Aligned |
+| Actor-Critic             | Build + Validation agents         | ✅ Aligned |
+| Rollback mechanisms      | Git checkpoints, version branches | ✅ Aligned |
+| Observability            | Event logging, dashboards         | ✅ Aligned |
+| Narrow improvement scope | SIA focuses on gotchas/patterns   | ✅ Aligned |
 
 ### 3.2 Gaps vs Best Practices
 
-| Best Practice | Gap in Our Plan | Severity |
-|--------------|-----------------|----------|
-| **Triple Build Verification** | Not specified how to verify self-consistency | HIGH |
-| **Stage 0 Escape Hatch** | No explicit fallback if agents fail | HIGH |
-| **Trust Chain / Provenance** | Don't track "what built what" | MEDIUM |
-| **Code Drift Detection** | No mechanism to detect accumulated drift | MEDIUM |
-| **Sandbox Execution** | Validation mentions it but no spec | MEDIUM |
-| **Explicit Improvement Scope** | SIA scope is broad, needs narrowing | LOW |
+| Best Practice                  | Gap in Our Plan                              | Severity |
+| ------------------------------ | -------------------------------------------- | -------- |
+| **Triple Build Verification**  | Not specified how to verify self-consistency | HIGH     |
+| **Stage 0 Escape Hatch**       | No explicit fallback if agents fail          | HIGH     |
+| **Trust Chain / Provenance**   | Don't track "what built what"                | MEDIUM   |
+| **Code Drift Detection**       | No mechanism to detect accumulated drift     | MEDIUM   |
+| **Sandbox Execution**          | Validation mentions it but no spec           | MEDIUM   |
+| **Explicit Improvement Scope** | SIA scope is broad, needs narrowing          | LOW      |
 
 ### 3.3 What's Missing Entirely
 
@@ -286,6 +292,7 @@ CRITICAL MISSING PIECES
 **The Problem**: We say "build minimal Spec Agent" but haven't defined what that means.
 
 **Industry Guidance**: From compiler bootstrapping, the minimal version should:
+
 - Handle the most common case only
 - Not try to be complete
 - Be simple enough to verify by hand
@@ -295,7 +302,6 @@ CRITICAL MISSING PIECES
 
 ```yaml
 Minimal Spec Agent v0.1:
-
   CAN do:
     - Read a brief.md file
     - Generate a spec.md following the template
@@ -561,13 +567,13 @@ Based on industry research, I recommend modifying our approach:
 
 ### Key Differences from Original Plan
 
-| Original Plan | Revised Approach | Why |
-|--------------|------------------|-----|
-| Jump into Spec Agent code | Preparation phase first | Need reference specs to validate |
-| 5 sessions for Spec Agent | 6-10 sessions (split into minimal + intelligent) | Subset-first pattern |
-| Vague acceptance criteria | Explicit acceptance tests | Industry best practice |
-| No triple verification | Phase 6 verification | Compiler bootstrapping standard |
-| Escape hatches implied | Explicit escape procedures | SAFE-AI framework |
+| Original Plan             | Revised Approach                                 | Why                              |
+| ------------------------- | ------------------------------------------------ | -------------------------------- |
+| Jump into Spec Agent code | Preparation phase first                          | Need reference specs to validate |
+| 5 sessions for Spec Agent | 6-10 sessions (split into minimal + intelligent) | Subset-first pattern             |
+| Vague acceptance criteria | Explicit acceptance tests                        | Industry best practice           |
+| No triple verification    | Phase 6 verification                             | Compiler bootstrapping standard  |
+| Escape hatches implied    | Explicit escape procedures                       | SAFE-AI framework                |
 
 ---
 
@@ -718,27 +724,27 @@ Start building Spec Agent based on:
 
 ## Summary: What Industry Research Tells Us
 
-| Finding | Source | Implication for Vibe |
-|---------|--------|---------------------|
-| Start with minimal subset | Compiler bootstrapping | Define "minimal Spec Agent" precisely |
-| Need golden references | Meta-circular interpreters | Create hand-written reference specs |
-| Triple build verification | GCC, Rust | Plan verification after self-build |
-| Observability is mandatory | SAFE-AI Framework | Log everything agents do |
-| Human-in-loop remains essential | Martin Fowler, SICA | Keep question framework, use it |
-| Separate actor from critic | Agentic AI patterns | Build Validation Agent early |
-| Narrow improvement scope | Emergence.ai | SIA should focus on specific domains |
-| Code drift is real | ISACA | Monitor for accumulated changes |
-| Declare success honestly | Research findings | Don't trust "done" claims without verification |
+| Finding                         | Source                     | Implication for Vibe                           |
+| ------------------------------- | -------------------------- | ---------------------------------------------- |
+| Start with minimal subset       | Compiler bootstrapping     | Define "minimal Spec Agent" precisely          |
+| Need golden references          | Meta-circular interpreters | Create hand-written reference specs            |
+| Triple build verification       | GCC, Rust                  | Plan verification after self-build             |
+| Observability is mandatory      | SAFE-AI Framework          | Log everything agents do                       |
+| Human-in-loop remains essential | Martin Fowler, SICA        | Keep question framework, use it                |
+| Separate actor from critic      | Agentic AI patterns        | Build Validation Agent early                   |
+| Narrow improvement scope        | Emergence.ai               | SIA should focus on specific domains           |
+| Code drift is real              | ISACA                      | Monitor for accumulated changes                |
+| Declare success honestly        | Research findings          | Don't trust "done" claims without verification |
 
 ---
 
-*This analysis synthesizes industry best practices to ensure our bootstrap approach follows proven patterns while adapting to the unique challenges of LLM-based agent systems.*
+_This analysis synthesizes industry best practices to ensure our bootstrap approach follows proven patterns while adapting to the unique challenges of LLM-based agent systems._
 
 ---
 
 ## Sources
 
-- [Wikipedia: Bootstrapping (compilers)](https://en.wikipedia.org/wiki/Bootstrapping_(compilers))
+- [Wikipedia: Bootstrapping (compilers)](<https://en.wikipedia.org/wiki/Bootstrapping_(compilers)>)
 - [Bootstrappable.org: Best Practices](https://www.bootstrappable.org/best-practices.html)
 - [Rust Compiler Development Guide](https://rustc-dev-guide.rust-lang.org/building/bootstrapping/what-bootstrapping-does.html)
 - [ISACA: Self-Modifying AI Risks](https://www.isaca.org/resources/news-and-trends/isaca-now-blog/2025/unseen-unchecked-unraveling-inside-the-risky-code-of-self-modifying-ai)

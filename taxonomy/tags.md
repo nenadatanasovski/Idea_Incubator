@@ -5,6 +5,7 @@
 ## Domain Tags
 
 ### Technology
+
 - `ai` - Artificial intelligence, machine learning
 - `web` - Web applications, browsers
 - `mobile` - Mobile apps, iOS, Android
@@ -16,6 +17,7 @@
 - `security` - Cybersecurity
 
 ### Industry
+
 - `fintech` - Financial technology
 - `healthtech` - Healthcare technology
 - `edtech` - Education technology
@@ -25,6 +27,7 @@
 - `agtech` - Agriculture technology
 
 ### Business Model
+
 - `saas` - Software as a Service
 - `marketplace` - Two-sided marketplace
 - `subscription` - Recurring revenue
@@ -36,24 +39,28 @@
 ## Characteristic Tags
 
 ### Effort Level
+
 - `quick-win` - Can be done in days
 - `side-project` - Part-time work
 - `full-time` - Requires dedicated focus
 - `team-required` - Needs multiple people
 
 ### Resource Requirements
+
 - `low-cost` - Minimal capital needed
 - `bootstrappable` - Self-fundable
 - `needs-funding` - Requires investment
 - `capital-intensive` - Large investment required
 
 ### Risk Level
+
 - `low-risk` - Limited downside
 - `medium-risk` - Moderate downside
 - `high-risk` - Significant downside
 - `experimental` - Unproven territory
 
 ### Timing
+
 - `evergreen` - Always relevant
 - `trending` - Currently hot
 - `emerging` - Early stage trend
@@ -62,12 +69,14 @@
 ## Status Tags
 
 ### Priority
+
 - `priority-high` - Focus on this
 - `priority-medium` - Important but not urgent
 - `priority-low` - Backlog
 - `someday-maybe` - Far future
 
 ### Action Needed
+
 - `needs-research` - Requires more information
 - `needs-validation` - Needs user feedback
 - `needs-prototype` - Ready to build MVP
@@ -75,6 +84,7 @@
 - `blocked` - Waiting on something
 
 ### Relationships
+
 - `has-synergy` - Complements other ideas
 - `has-conflict` - Conflicts with other ideas
 - `is-pivot` - Evolved from another idea
@@ -83,6 +93,7 @@
 ## Creating New Tags
 
 When creating new tags:
+
 1. Use lowercase with hyphens
 2. Keep under 20 characters
 3. Be specific but not too narrow

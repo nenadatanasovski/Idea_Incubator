@@ -16,6 +16,7 @@ AI-Powered Real-Time Trading System
 Core Concept
 An autonomous trading platform that continuously ingests and analyzes publicly available information across the internet—news, social media, regulatory filings, earnings calls, macroeconomic data—to identify market-moving signals and execute trades in real time.
 Key Components
+
 1. Data Ingestion Layer
 
 News feeds (Reuters, Bloomberg, AP, sector-specific outlets)

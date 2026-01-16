@@ -5,22 +5,22 @@
  * Part of: Task System V2 Implementation Plan (IMPL-4.7)
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
-import { Task } from '../../../types/task-agent.js';
+import { v4 as uuidv4 } from "uuid";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
+import { Task } from "../../../types/task-agent.js";
 
 /**
  * Question categories (8 categories)
  */
 export type QuestionCategory =
-  | 'outcome'
-  | 'scope'
-  | 'implementation'
-  | 'dependencies'
-  | 'testing'
-  | 'risks'
-  | 'acceptance'
-  | 'context';
+  | "outcome"
+  | "scope"
+  | "implementation"
+  | "dependencies"
+  | "testing"
+  | "risks"
+  | "acceptance"
+  | "context";
 
 /**
  * Question entity
@@ -29,8 +29,8 @@ export interface Question {
   id: string;
   category: QuestionCategory;
   text: string;
-  priority: number;  // 1-10, higher = more important
-  targetField?: string;  // Which task field this helps clarify
+  priority: number; // 1-10, higher = more important
+  targetField?: string; // Which task field this helps clarify
 }
 
 /**
@@ -58,7 +58,7 @@ export interface ProcessedAnswer {
 export interface GapAnalysis {
   taskId: string;
   missingCategories: QuestionCategory[];
-  gapScore: number;  // 0-100, lower = more gaps
+  gapScore: number; // 0-100, lower = more gaps
   recommendations: string[];
 }
 
@@ -67,7 +67,7 @@ export interface GapAnalysis {
  */
 export interface CompletenessScore {
   taskId: string;
-  score: number;  // 0-100
+  score: number; // 0-100
   byCategory: Record<QuestionCategory, number>;
   isComplete: boolean;
 }
@@ -75,46 +75,84 @@ export interface CompletenessScore {
 /**
  * Question templates by category
  */
-const QUESTION_TEMPLATES: Record<QuestionCategory, Array<{ text: string; priority: number; targetField?: string }>> = {
+const QUESTION_TEMPLATES: Record<
+  QuestionCategory,
+  Array<{ text: string; priority: number; targetField?: string }>
+> = {
   outcome: [
-    { text: 'What is the expected end result of this task?', priority: 10, targetField: 'description' },
-    { text: 'How will you know when this task is complete?', priority: 9, targetField: 'acceptance' },
-    { text: 'What problem does this task solve?', priority: 8 },
+    {
+      text: "What is the expected end result of this task?",
+      priority: 10,
+      targetField: "description",
+    },
+    {
+      text: "How will you know when this task is complete?",
+      priority: 9,
+      targetField: "acceptance",
+    },
+    { text: "What problem does this task solve?", priority: 8 },
   ],
   scope: [
-    { text: 'What is explicitly out of scope for this task?', priority: 8 },
-    { text: 'What files or components will this task modify?', priority: 7, targetField: 'impacts' },
-    { text: 'Are there any edge cases that need to be handled?', priority: 6 },
+    { text: "What is explicitly out of scope for this task?", priority: 8 },
+    {
+      text: "What files or components will this task modify?",
+      priority: 7,
+      targetField: "impacts",
+    },
+    { text: "Are there any edge cases that need to be handled?", priority: 6 },
   ],
   implementation: [
-    { text: 'What approach will you take to implement this?', priority: 7 },
-    { text: 'Are there any existing patterns in the codebase to follow?', priority: 6 },
-    { text: 'What APIs or services will this task interact with?', priority: 5 },
+    { text: "What approach will you take to implement this?", priority: 7 },
+    {
+      text: "Are there any existing patterns in the codebase to follow?",
+      priority: 6,
+    },
+    {
+      text: "What APIs or services will this task interact with?",
+      priority: 5,
+    },
   ],
   dependencies: [
-    { text: 'Does this task depend on any other tasks being completed first?', priority: 8, targetField: 'dependencies' },
-    { text: 'Are there any external dependencies (packages, APIs, etc.)?', priority: 6 },
-    { text: 'Will this task block any other tasks?', priority: 5 },
+    {
+      text: "Does this task depend on any other tasks being completed first?",
+      priority: 8,
+      targetField: "dependencies",
+    },
+    {
+      text: "Are there any external dependencies (packages, APIs, etc.)?",
+      priority: 6,
+    },
+    { text: "Will this task block any other tasks?", priority: 5 },
   ],
   testing: [
-    { text: 'How will this task be tested?', priority: 7 },
-    { text: 'What test cases should be created?', priority: 6 },
-    { text: 'Are there any existing tests that need to be updated?', priority: 5 },
+    { text: "How will this task be tested?", priority: 7 },
+    { text: "What test cases should be created?", priority: 6 },
+    {
+      text: "Are there any existing tests that need to be updated?",
+      priority: 5,
+    },
   ],
   risks: [
-    { text: 'What could go wrong during implementation?', priority: 6 },
-    { text: 'Are there any performance implications?', priority: 5 },
-    { text: 'Could this change break existing functionality?', priority: 7 },
+    { text: "What could go wrong during implementation?", priority: 6 },
+    { text: "Are there any performance implications?", priority: 5 },
+    { text: "Could this change break existing functionality?", priority: 7 },
   ],
   acceptance: [
-    { text: 'What are the acceptance criteria for this task?', priority: 9, targetField: 'acceptance' },
-    { text: 'Who needs to approve this task as complete?', priority: 5 },
-    { text: 'Are there any non-functional requirements?', priority: 6 },
+    {
+      text: "What are the acceptance criteria for this task?",
+      priority: 9,
+      targetField: "acceptance",
+    },
+    { text: "Who needs to approve this task as complete?", priority: 5 },
+    { text: "Are there any non-functional requirements?", priority: 6 },
   ],
   context: [
-    { text: 'Why is this task needed now?', priority: 5 },
-    { text: 'Is there any related documentation or PRDs?', priority: 4 },
-    { text: 'Are there any constraints or limitations to consider?', priority: 6 },
+    { text: "Why is this task needed now?", priority: 5 },
+    { text: "Is there any related documentation or PRDs?", priority: 4 },
+    {
+      text: "Are there any constraints or limitations to consider?",
+      priority: 6,
+    },
   ],
 };
 
@@ -125,7 +163,10 @@ export class QuestionEngine {
   /**
    * Generate questions for a task
    */
-  async generateQuestions(task: Task, maxQuestions?: number): Promise<Question[]> {
+  async generateQuestions(
+    task: Task,
+    maxQuestions?: number,
+  ): Promise<Question[]> {
     const gaps = await this.analyzeGaps(task);
     const questions: Question[] = [];
 
@@ -157,24 +198,28 @@ export class QuestionEngine {
   /**
    * Get next questions based on previous answers
    */
-  async getNextQuestions(taskId: string, previousAnswers: Answer[]): Promise<Question[]> {
-    const task = await getOne<Task>(
-      'SELECT * FROM tasks WHERE id = ?',
-      [taskId]
-    );
+  async getNextQuestions(
+    taskId: string,
+    previousAnswers: Answer[],
+  ): Promise<Question[]> {
+    const task = await getOne<Task>("SELECT * FROM tasks WHERE id = ?", [
+      taskId,
+    ]);
 
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
     }
 
     // Get categories already answered
-    const answeredQuestionIds = new Set(previousAnswers.map(a => a.questionId));
+    const answeredQuestionIds = new Set(
+      previousAnswers.map((a) => a.questionId),
+    );
 
     // Generate new questions
     const allQuestions = await this.generateQuestions(task);
 
     // Filter out answered questions
-    return allQuestions.filter(q => !answeredQuestionIds.has(q.id));
+    return allQuestions.filter((q) => !answeredQuestionIds.has(q.id));
   }
 
   /**
@@ -198,13 +243,21 @@ export class QuestionEngine {
     };
 
     // Analyze task data
-    const description = task.description || '';
+    const description = task.description || "";
     const hasDescription = description.length > 20;
-    const hasOutcome = /will\s+|should\s+|must\s+|result\s+in/i.test(description);
-    const hasScope = /not\s+include|out\s+of\s+scope|exclude/i.test(description);
-    const hasImplementation = /approach|implement|use|pattern/i.test(description);
+    const hasOutcome = /will\s+|should\s+|must\s+|result\s+in/i.test(
+      description,
+    );
+    const hasScope = /not\s+include|out\s+of\s+scope|exclude/i.test(
+      description,
+    );
+    const hasImplementation = /approach|implement|use|pattern/i.test(
+      description,
+    );
     const hasTests = /test|verify|validate|check/i.test(description);
-    const hasAcceptance = /accept|criteria|complete\s+when|done\s+when/i.test(description);
+    const hasAcceptance = /accept|criteria|complete\s+when|done\s+when/i.test(
+      description,
+    );
 
     // Score categories
     categoryScores.outcome = hasOutcome ? 80 : hasDescription ? 40 : 0;
@@ -217,24 +270,24 @@ export class QuestionEngine {
     // Check dependencies
     const deps = await query<{ id: string }>(
       `SELECT id FROM task_relationships WHERE source_task_id = ? AND relationship_type = 'depends_on'`,
-      [task.id]
+      [task.id],
     );
     categoryScores.dependencies = deps.length > 0 || hasDescription ? 60 : 30;
 
     // Check appendices for risk/acceptance
     const appendices = await query<{ appendix_type: string }>(
-      'SELECT appendix_type FROM task_appendices WHERE task_id = ?',
-      [task.id]
+      "SELECT appendix_type FROM task_appendices WHERE task_id = ?",
+      [task.id],
     );
-    const appendixTypes = new Set(appendices.map(a => a.appendix_type));
+    const appendixTypes = new Set(appendices.map((a) => a.appendix_type));
 
-    if (appendixTypes.has('acceptance_criteria')) {
+    if (appendixTypes.has("acceptance_criteria")) {
       categoryScores.acceptance = 100;
     }
-    if (appendixTypes.has('rollback_plan')) {
+    if (appendixTypes.has("rollback_plan")) {
       categoryScores.risks = Math.max(categoryScores.risks, 70);
     }
-    if (appendixTypes.has('test_context')) {
+    if (appendixTypes.has("test_context")) {
       categoryScores.testing = Math.max(categoryScores.testing, 80);
     }
 
@@ -266,14 +319,16 @@ export class QuestionEngine {
 
     // Calculate per-category scores
     const byCategory: Record<QuestionCategory, number> = {
-      outcome: gaps.missingCategories.includes('outcome') ? 30 : 80,
-      scope: gaps.missingCategories.includes('scope') ? 30 : 70,
-      implementation: gaps.missingCategories.includes('implementation') ? 30 : 70,
-      dependencies: gaps.missingCategories.includes('dependencies') ? 30 : 70,
-      testing: gaps.missingCategories.includes('testing') ? 30 : 70,
-      risks: gaps.missingCategories.includes('risks') ? 30 : 60,
-      acceptance: gaps.missingCategories.includes('acceptance') ? 30 : 80,
-      context: gaps.missingCategories.includes('context') ? 30 : 60,
+      outcome: gaps.missingCategories.includes("outcome") ? 30 : 80,
+      scope: gaps.missingCategories.includes("scope") ? 30 : 70,
+      implementation: gaps.missingCategories.includes("implementation")
+        ? 30
+        : 70,
+      dependencies: gaps.missingCategories.includes("dependencies") ? 30 : 70,
+      testing: gaps.missingCategories.includes("testing") ? 30 : 70,
+      risks: gaps.missingCategories.includes("risks") ? 30 : 60,
+      acceptance: gaps.missingCategories.includes("acceptance") ? 30 : 80,
+      context: gaps.missingCategories.includes("context") ? 30 : 60,
     };
 
     return {
@@ -287,18 +342,24 @@ export class QuestionEngine {
   /**
    * Process an answer and extract useful information
    */
-  async processAnswer(taskId: string, questionId: string, answer: string): Promise<ProcessedAnswer> {
+  async processAnswer(
+    taskId: string,
+    questionId: string,
+    answer: string,
+  ): Promise<ProcessedAnswer> {
     const extractedInfo: Record<string, unknown> = {};
     const suggestedUpdates: Record<string, unknown> = {};
 
     // Extract file paths
-    const filePaths = answer.match(/[a-zA-Z0-9_\-/.]+\.(ts|tsx|js|jsx|sql|md|json|yaml|yml)/g);
+    const filePaths = answer.match(
+      /[a-zA-Z0-9_\-/.]+\.(ts|tsx|js|jsx|sql|md|json|yaml|yml)/g,
+    );
     if (filePaths) {
       extractedInfo.mentionedFiles = filePaths;
-      suggestedUpdates.impacts = filePaths.map(fp => ({
+      suggestedUpdates.impacts = filePaths.map((fp) => ({
         targetPath: fp,
-        operation: 'UPDATE',
-        impactType: 'file',
+        operation: "UPDATE",
+        impactType: "file",
       }));
     }
 
@@ -311,7 +372,9 @@ export class QuestionEngine {
     // Extract acceptance criteria (bullet points)
     const bullets = answer.match(/^[-*]\s+.+$/gm);
     if (bullets) {
-      extractedInfo.acceptanceCriteria = bullets.map(b => b.replace(/^[-*]\s+/, ''));
+      extractedInfo.acceptanceCriteria = bullets.map((b) =>
+        b.replace(/^[-*]\s+/, ""),
+      );
     }
 
     return {
@@ -326,10 +389,9 @@ export class QuestionEngine {
    * Apply answers to update a task
    */
   async applyAnswers(taskId: string, answers: Answer[]): Promise<Task> {
-    const task = await getOne<Task>(
-      'SELECT * FROM tasks WHERE id = ?',
-      [taskId]
-    );
+    const task = await getOne<Task>("SELECT * FROM tasks WHERE id = ?", [
+      taskId,
+    ]);
 
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -338,7 +400,11 @@ export class QuestionEngine {
     // Process all answers
     const allUpdates: Record<string, unknown>[] = [];
     for (const answer of answers) {
-      const processed = await this.processAnswer(taskId, answer.questionId, answer.answer);
+      const processed = await this.processAnswer(
+        taskId,
+        answer.questionId,
+        answer.answer,
+      );
       allUpdates.push(processed.suggestedUpdates);
     }
 
@@ -362,20 +428,19 @@ export class QuestionEngine {
           impact.operation,
           impact.targetPath,
           0.7,
-          'user',
+          "user",
           new Date().toISOString(),
           new Date().toISOString(),
-        ]
+        ],
       );
     }
 
     await saveDb();
 
     // Return updated task
-    const updated = await getOne<Task>(
-      'SELECT * FROM tasks WHERE id = ?',
-      [taskId]
-    );
+    const updated = await getOne<Task>("SELECT * FROM tasks WHERE id = ?", [
+      taskId,
+    ]);
     return updated!;
   }
 
@@ -383,7 +448,16 @@ export class QuestionEngine {
    * Get available question categories
    */
   getQuestionCategories(): QuestionCategory[] {
-    return ['outcome', 'scope', 'implementation', 'dependencies', 'testing', 'risks', 'acceptance', 'context'];
+    return [
+      "outcome",
+      "scope",
+      "implementation",
+      "dependencies",
+      "testing",
+      "risks",
+      "acceptance",
+      "context",
+    ];
   }
 }
 

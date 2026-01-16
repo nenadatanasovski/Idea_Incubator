@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **Phase** | 1 - Database Schema |
-| **Depends On** | TAK-001, TAK-006a |
-| **Blocks** | TAK-015c (TaskListManager) |
-| **Priority** | P1 |
-| **Owner** | Build Agent |
+| Field          | Value                      |
+| -------------- | -------------------------- |
+| **Phase**      | 1 - Database Schema        |
+| **Depends On** | TAK-001, TAK-006a          |
+| **Blocks**     | TAK-015c (TaskListManager) |
+| **Priority**   | P1                         |
+| **Owner**      | Build Agent                |
 
 ---
 
@@ -40,13 +40,13 @@ Create the task_list_items junction table linking tasks to task lists. Supports 
 
 **PASS** when ALL of the following are true:
 
-| # | Criterion | How to Verify |
-|---|-----------|---------------|
-| 1 | Migration file exists | `test -f database/migrations/057_task_list_items.sql` returns 0 |
-| 2 | Has table | `grep -q "CREATE TABLE IF NOT EXISTS task_list_items" database/migrations/057_task_list_items.sql` returns 0 |
-| 3 | Has unique constraints | `grep -q "UNIQUE.*task_list_id.*task_id" database/migrations/057_task_list_items.sql` returns 0 |
-| 4 | Has position unique | `grep -q "UNIQUE.*task_list_id.*position" database/migrations/057_task_list_items.sql` returns 0 |
-| 5 | Migration runs | `sqlite3 :memory: < database/migrations/057_task_list_items.sql && echo 'OK'` returns "OK" |
+| #   | Criterion              | How to Verify                                                                                                |
+| --- | ---------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 1   | Migration file exists  | `test -f database/migrations/057_task_list_items.sql` returns 0                                              |
+| 2   | Has table              | `grep -q "CREATE TABLE IF NOT EXISTS task_list_items" database/migrations/057_task_list_items.sql` returns 0 |
+| 3   | Has unique constraints | `grep -q "UNIQUE.*task_list_id.*task_id" database/migrations/057_task_list_items.sql` returns 0              |
+| 4   | Has position unique    | `grep -q "UNIQUE.*task_list_id.*position" database/migrations/057_task_list_items.sql` returns 0             |
+| 5   | Migration runs         | `sqlite3 :memory: < database/migrations/057_task_list_items.sql && echo 'OK'` returns "OK"                   |
 
 **FAIL** if any criterion is not met.
 

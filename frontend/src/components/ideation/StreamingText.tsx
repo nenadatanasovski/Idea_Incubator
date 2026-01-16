@@ -3,7 +3,7 @@
 // Streaming text display with cursor animation
 // =============================================================================
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 interface StreamingTextProps {
   text: string;
@@ -20,7 +20,7 @@ export function StreamingText({
   showCursor = true,
   onComplete,
 }: StreamingTextProps) {
-  const [displayedText, setDisplayedText] = useState('');
+  const [displayedText, setDisplayedText] = useState("");
   const [isComplete, setIsComplete] = useState(false);
   const indexRef = useRef(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,7 +34,7 @@ export function StreamingText({
     }
 
     // Reset for new streaming
-    setDisplayedText('');
+    setDisplayedText("");
     setIsComplete(false);
     indexRef.current = 0;
 

@@ -2,8 +2,8 @@
  * Task generation prompts for Spec Agent
  */
 
-import { ParsedBrief } from '../brief-parser.js';
-import { Gotcha } from '../context-loader.js';
+import { ParsedBrief } from "../brief-parser.js";
+import { Gotcha } from "../context-loader.js";
 
 export interface AnalyzedRequirements {
   functionalRequirements: FunctionalRequirement[];
@@ -16,7 +16,7 @@ export interface AnalyzedRequirements {
 export interface FunctionalRequirement {
   id: string;
   description: string;
-  priority: 'must' | 'should' | 'could';
+  priority: "must" | "should" | "could";
 }
 
 export interface NonFunctionalRequirement {
@@ -33,7 +33,7 @@ export interface Ambiguity {
 export function buildTaskGenerationPrompt(
   brief: ParsedBrief,
   requirements: AnalyzedRequirements,
-  gotchas: Gotcha[]
+  gotchas: Gotcha[],
 ): string {
   const taskCount = getTaskCountForComplexity(brief.complexity);
 
@@ -48,18 +48,18 @@ export function buildTaskGenerationPrompt(
 ## Analyzed Requirements
 
 ### Functional Requirements
-${requirements.functionalRequirements.map(r => `- [${r.id}] ${r.description} (${r.priority})`).join('\n')}
+${requirements.functionalRequirements.map((r) => `- [${r.id}] ${r.description} (${r.priority})`).join("\n")}
 
 ### Non-Functional Requirements
-${requirements.nonFunctionalRequirements.map(r => `- ${r.category}: ${r.requirement} (target: ${r.target})`).join('\n')}
+${requirements.nonFunctionalRequirements.map((r) => `- ${r.category}: ${r.requirement} (target: ${r.target})`).join("\n")}
 
 ### Constraints
-${requirements.constraints.map(c => `- ${c}`).join('\n')}
+${requirements.constraints.map((c) => `- ${c}`).join("\n")}
 
 ## Available Gotchas
 
 Include relevant gotchas in each task:
-${gotchas.map(g => `- [${g.id}] ${g.content} (applies to: ${g.filePattern}, ${g.actionType})`).join('\n')}
+${gotchas.map((g) => `- [${g.id}] ${g.content} (applies to: ${g.filePattern}, ${g.actionType})`).join("\n")}
 
 ## Instructions
 
@@ -109,13 +109,15 @@ depends_on: []
 Generate all tasks now:`;
 }
 
-export function getTaskCountForComplexity(complexity: 'simple' | 'medium' | 'complex'): { min: number; max: number } {
+export function getTaskCountForComplexity(
+  complexity: "simple" | "medium" | "complex",
+): { min: number; max: number } {
   switch (complexity) {
-    case 'simple':
+    case "simple":
       return { min: 5, max: 8 };
-    case 'medium':
+    case "medium":
       return { min: 10, max: 15 };
-    case 'complex':
+    case "complex":
       return { min: 20, max: 30 };
   }
 }

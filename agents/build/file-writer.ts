@@ -4,13 +4,13 @@
  * Writes files with backup, atomic operations, and locking.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { FileWriterInterface } from './task-executor.js';
+import * as fs from "fs";
+import * as path from "path";
+import { FileWriterInterface } from "./task-executor.js";
 
-const BACKUP_SUFFIX = '.backup';
-const TEMP_SUFFIX = '.tmp';
-const DEFAULT_BACKUP_DIR = '.build-backups';
+const BACKUP_SUFFIX = ".backup";
+const TEMP_SUFFIX = ".tmp";
+const DEFAULT_BACKUP_DIR = ".build-backups";
 
 export interface WriteResult {
   success: boolean;
@@ -50,7 +50,7 @@ export class FileWriter implements FileWriterInterface {
     if (this.isLocked(fullPath)) {
       return {
         success: false,
-        error: `File is locked: ${filePath}`
+        error: `File is locked: ${filePath}`,
       };
     }
 
@@ -76,7 +76,7 @@ export class FileWriter implements FileWriterInterface {
 
       // Write to temp file first
       const tempPath = fullPath + TEMP_SUFFIX;
-      fs.writeFileSync(tempPath, content, 'utf-8');
+      fs.writeFileSync(tempPath, content, "utf-8");
 
       // Apply permissions to temp file if preserved
       if (mode !== undefined) {
@@ -88,7 +88,7 @@ export class FileWriter implements FileWriterInterface {
 
       return {
         success: true,
-        backupPath
+        backupPath,
       };
     } catch (error) {
       // Clean up temp file if it exists
@@ -103,7 +103,7 @@ export class FileWriter implements FileWriterInterface {
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     } finally {
       // Release lock
@@ -129,7 +129,7 @@ export class FileWriter implements FileWriterInterface {
       }
 
       // Create backup filename with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const basename = path.basename(fullPath);
       const backupName = `${basename}.${timestamp}${BACKUP_SUFFIX}`;
       const backupPath = path.join(backupDirPath, backupName);
@@ -240,7 +240,7 @@ export class FileWriter implements FileWriterInterface {
     }
 
     try {
-      return fs.readFileSync(fullPath, 'utf-8');
+      return fs.readFileSync(fullPath, "utf-8");
     } catch {
       return null;
     }
@@ -281,12 +281,13 @@ export class FileWriter implements FileWriterInterface {
     }
 
     try {
-      const files = fs.readdirSync(backupDirPath)
-        .filter(f => f.endsWith(BACKUP_SUFFIX))
-        .map(f => ({
+      const files = fs
+        .readdirSync(backupDirPath)
+        .filter((f) => f.endsWith(BACKUP_SUFFIX))
+        .map((f) => ({
           name: f,
           path: path.join(backupDirPath, f),
-          mtime: fs.statSync(path.join(backupDirPath, f)).mtime
+          mtime: fs.statSync(path.join(backupDirPath, f)).mtime,
         }))
         .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
 

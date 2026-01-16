@@ -5,23 +5,33 @@
  * Handles rate limiting, retries, and response parsing.
  */
 
-import { ParsedBrief } from './brief-parser.js';
-import { LoadedContext, Gotcha } from './context-loader.js';
+import { ParsedBrief } from "./brief-parser.js";
+import { LoadedContext, Gotcha } from "./context-loader.js";
 import {
   SPEC_AGENT_SYSTEM_PROMPT,
   BRIEF_ANALYSIS_SYSTEM_PROMPT,
-  TASK_GENERATION_SYSTEM_PROMPT
-} from './prompts/system.js';
-import { buildAnalysisPrompt, buildArchitecturePrompt } from './prompts/analyze.js';
-import { buildTaskGenerationPrompt, AnalyzedRequirements, getTaskCountForComplexity } from './prompts/tasks.js';
-import { createAnthropicClient, type AnthropicClient } from '../../utils/anthropic-client.js';
+  TASK_GENERATION_SYSTEM_PROMPT,
+} from "./prompts/system.js";
+import {
+  buildAnalysisPrompt,
+  buildArchitecturePrompt,
+} from "./prompts/analyze.js";
+import {
+  buildTaskGenerationPrompt,
+  AnalyzedRequirements,
+  getTaskCountForComplexity,
+} from "./prompts/tasks.js";
+import {
+  createAnthropicClient,
+  type AnthropicClient,
+} from "../../utils/anthropic-client.js";
 
 export interface AtomicTask {
   id: string;
   phase: string;
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  action: "CREATE" | "UPDATE" | "DELETE";
   file: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  status: "pending" | "in_progress" | "completed" | "failed";
   requirements: string[];
   gotchas: string[];
   validation: {
@@ -47,7 +57,7 @@ export interface ClaudeClientOptions {
   baseDelay?: number;
 }
 
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
+const DEFAULT_MODEL = "claude-sonnet-4-20250514";
 const DEFAULT_MAX_TOKENS = 8192;
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_BASE_DELAY = 1000;
@@ -72,12 +82,15 @@ export class ClaudeClient {
   /**
    * Analyze a brief and extract structured requirements
    */
-  async analyzeBrief(brief: ParsedBrief, context: LoadedContext): Promise<AnalyzedRequirements> {
+  async analyzeBrief(
+    brief: ParsedBrief,
+    context: LoadedContext,
+  ): Promise<AnalyzedRequirements> {
     const prompt = buildAnalysisPrompt(brief, context);
 
     const response = await this.callWithRetry(
       BRIEF_ANALYSIS_SYSTEM_PROMPT,
-      prompt
+      prompt,
     );
 
     return this.parseRequirements(response);
@@ -86,13 +99,13 @@ export class ClaudeClient {
   /**
    * Generate architecture documentation
    */
-  async generateArchitecture(brief: ParsedBrief, context: LoadedContext): Promise<string> {
+  async generateArchitecture(
+    brief: ParsedBrief,
+    context: LoadedContext,
+  ): Promise<string> {
     const prompt = buildArchitecturePrompt(brief, context);
 
-    return this.callWithRetry(
-      SPEC_AGENT_SYSTEM_PROMPT,
-      prompt
-    );
+    return this.callWithRetry(SPEC_AGENT_SYSTEM_PROMPT, prompt);
   }
 
   /**
@@ -101,13 +114,13 @@ export class ClaudeClient {
   async generateTasks(
     brief: ParsedBrief,
     requirements: AnalyzedRequirements,
-    gotchas: Gotcha[]
+    gotchas: Gotcha[],
   ): Promise<AtomicTask[]> {
     const prompt = buildTaskGenerationPrompt(brief, requirements, gotchas);
 
     const response = await this.callWithRetry(
       TASK_GENERATION_SYSTEM_PROMPT,
-      prompt
+      prompt,
     );
 
     return this.parseTasks(response);
@@ -116,7 +129,10 @@ export class ClaudeClient {
   /**
    * Generate complete spec from brief
    */
-  async generateSpec(brief: ParsedBrief, context: LoadedContext): Promise<SpecGenerationResult> {
+  async generateSpec(
+    brief: ParsedBrief,
+    context: LoadedContext,
+  ): Promise<SpecGenerationResult> {
     // Step 1: Analyze brief
     const requirements = await this.analyzeBrief(brief, context);
 
@@ -124,13 +140,17 @@ export class ClaudeClient {
     const architecture = await this.generateArchitecture(brief, context);
 
     // Step 3: Generate tasks
-    const tasks = await this.generateTasks(brief, requirements, context.gotchas);
+    const tasks = await this.generateTasks(
+      brief,
+      requirements,
+      context.gotchas,
+    );
 
     // Validate task count
     const expected = getTaskCountForComplexity(brief.complexity);
     if (tasks.length < expected.min || tasks.length > expected.max) {
       console.warn(
-        `Task count ${tasks.length} outside expected range ${expected.min}-${expected.max} for ${brief.complexity} complexity`
+        `Task count ${tasks.length} outside expected range ${expected.min}-${expected.max} for ${brief.complexity} complexity`,
       );
     }
 
@@ -138,7 +158,7 @@ export class ClaudeClient {
       requirements,
       architecture,
       tasks,
-      tokensUsed: this.totalTokensUsed
+      tokensUsed: this.totalTokensUsed,
     };
   }
 
@@ -148,27 +168,27 @@ export class ClaudeClient {
   private async callWithRetry(
     systemPrompt: string,
     userPrompt: string,
-    retryCount: number = 0
+    retryCount: number = 0,
   ): Promise<string> {
     try {
       const response = await this.client.messages.create({
         model: this.model,
         max_tokens: this.maxTokens,
         system: systemPrompt,
-        messages: [
-          { role: 'user', content: userPrompt }
-        ]
+        messages: [{ role: "user", content: userPrompt }],
       });
 
       // Track token usage (may be 0 for CLI client)
       if (response.usage) {
-        this.totalTokensUsed += (response.usage.input_tokens || 0) + (response.usage.output_tokens || 0);
+        this.totalTokensUsed +=
+          (response.usage.input_tokens || 0) +
+          (response.usage.output_tokens || 0);
       }
 
       // Extract text content
-      const textContent = response.content.find(c => c.type === 'text');
-      if (!textContent || textContent.type !== 'text') {
-        throw new Error('No text content in response');
+      const textContent = response.content.find((c) => c.type === "text");
+      if (!textContent || textContent.type !== "text") {
+        throw new Error("No text content in response");
       }
 
       return textContent.text;
@@ -176,7 +196,9 @@ export class ClaudeClient {
       // Check if we should retry
       if (retryCount < this.maxRetries && this.isRetryableError(error)) {
         const delay = this.calculateBackoff(retryCount);
-        console.log(`Retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})...`);
+        console.log(
+          `Retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})...`,
+        );
         await this.sleep(delay);
         return this.callWithRetry(systemPrompt, userPrompt, retryCount + 1);
       }
@@ -196,7 +218,7 @@ export class ClaudeClient {
     if (error.status >= 500) return true;
 
     // Network errors
-    if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT') return true;
+    if (error.code === "ECONNRESET" || error.code === "ETIMEDOUT") return true;
 
     return false;
   }
@@ -215,7 +237,7 @@ export class ClaudeClient {
    * Sleep for specified milliseconds
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -228,7 +250,7 @@ export class ClaudeClient {
       try {
         return JSON.parse(jsonMatch[1]);
       } catch (e) {
-        console.error('Failed to parse JSON from code block:', e);
+        console.error("Failed to parse JSON from code block:", e);
       }
     }
 
@@ -236,7 +258,7 @@ export class ClaudeClient {
     try {
       return JSON.parse(response);
     } catch (e) {
-      console.error('Failed to parse response as JSON:', e);
+      console.error("Failed to parse response as JSON:", e);
     }
 
     // Return empty requirements if parsing fails
@@ -245,7 +267,7 @@ export class ClaudeClient {
       nonFunctionalRequirements: [],
       constraints: [],
       successCriteria: [],
-      ambiguities: []
+      ambiguities: [],
     };
   }
 
@@ -261,11 +283,11 @@ export class ClaudeClient {
       try {
         const taskYaml = match[1];
         const task = this.parseTaskYaml(taskYaml);
-        if (task && task.id && task.id.startsWith('T-')) {
+        if (task && task.id && task.id.startsWith("T-")) {
           tasks.push(task);
         }
       } catch (e) {
-        console.error('Failed to parse task YAML:', e);
+        console.error("Failed to parse task YAML:", e);
       }
     }
 
@@ -277,14 +299,14 @@ export class ClaudeClient {
    */
   private parseTaskYaml(yamlContent: string): AtomicTask | null {
     // Simple YAML parsing for task blocks
-    const lines = yamlContent.split('\n');
+    const lines = yamlContent.split("\n");
     const task: Partial<AtomicTask> = {
       requirements: [],
       gotchas: [],
-      dependsOn: []
+      dependsOn: [],
     };
 
-    let currentKey = '';
+    let currentKey = "";
     let inCodeTemplate = false;
     let codeTemplateLines: string[] = [];
 
@@ -293,7 +315,7 @@ export class ClaudeClient {
         if (line.match(/^[a-z_]+:/)) {
           // End of code template
           inCodeTemplate = false;
-          task.codeTemplate = codeTemplateLines.join('\n');
+          task.codeTemplate = codeTemplateLines.join("\n");
         } else {
           codeTemplateLines.push(line);
           continue;
@@ -305,64 +327,66 @@ export class ClaudeClient {
         const [, key, value] = keyMatch;
         currentKey = key;
 
-        if (key === 'code_template' && value === '|') {
+        if (key === "code_template" && value === "|") {
           inCodeTemplate = true;
           codeTemplateLines = [];
-        } else if (value && !value.startsWith('|')) {
+        } else if (value && !value.startsWith("|")) {
           // Clean value
-          const cleanValue = value.replace(/^["']|["']$/g, '');
+          const cleanValue = value.replace(/^["']|["']$/g, "");
 
           switch (key) {
-            case 'id':
+            case "id":
               task.id = cleanValue;
               break;
-            case 'phase':
+            case "phase":
               task.phase = cleanValue;
               break;
-            case 'action':
-              task.action = cleanValue as 'CREATE' | 'UPDATE' | 'DELETE';
+            case "action":
+              task.action = cleanValue as "CREATE" | "UPDATE" | "DELETE";
               break;
-            case 'file':
+            case "file":
               task.file = cleanValue;
               break;
-            case 'status':
-              task.status = cleanValue as 'pending';
+            case "status":
+              task.status = cleanValue as "pending";
               break;
           }
         }
       } else if (line.match(/^\s+-\s+/)) {
         // List item
-        const itemValue = line.replace(/^\s+-\s+/, '').replace(/^["']|["']$/g, '');
+        const itemValue = line
+          .replace(/^\s+-\s+/, "")
+          .replace(/^["']|["']$/g, "");
 
         switch (currentKey) {
-          case 'requirements':
+          case "requirements":
             task.requirements?.push(itemValue);
             break;
-          case 'gotchas':
+          case "gotchas":
             task.gotchas?.push(itemValue);
             break;
-          case 'depends_on':
+          case "depends_on":
             task.dependsOn?.push(itemValue);
             break;
         }
       } else if (line.match(/^\s+command:/)) {
         const cmdMatch = line.match(/command:\s*["']?(.*)["']?$/);
         if (cmdMatch) {
-          task.validation = task.validation || { command: '', expected: '' };
-          task.validation.command = cmdMatch[1].replace(/^["']|["']$/g, '');
+          task.validation = task.validation || { command: "", expected: "" };
+          task.validation.command = cmdMatch[1].replace(/^["']|["']$/g, "");
         }
       } else if (line.match(/^\s+expected:/)) {
         const expMatch = line.match(/expected:\s*["']?(.*)["']?$/);
         if (expMatch) {
-          task.validation = task.validation || { command: '', expected: '' };
-          task.validation.expected = expMatch[1].replace(/^["']|["']$/g, '');
+          task.validation = task.validation || { command: "", expected: "" };
+          task.validation.expected = expMatch[1].replace(/^["']|["']$/g, "");
         }
       }
     }
 
     // Handle code template at end
     if (inCodeTemplate) {
-      task.codeTemplate = codeTemplateLines.join('\n');
+      task.codeTemplate = codeTemplateLines.join("\n");
     }
 
     // Validate required fields

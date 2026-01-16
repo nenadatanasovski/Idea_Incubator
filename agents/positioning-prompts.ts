@@ -5,7 +5,7 @@
  * Combine, Localize, Specialize, Time) to guide the positioning analysis.
  */
 
-import type { StrategicApproach } from '../types/incubation.js';
+import type { StrategicApproach } from "../types/incubation.js";
 
 export interface ApproachPromptContext {
   approach: StrategicApproach;
@@ -214,7 +214,7 @@ The founder is pursuing a "Time" strategy - revisiting a concept that previously
    - Who else might be seeing the same timing opportunity?
 
 ### Strategy Generation:
-Generate strategies that validate timing assumptions while positioning for rapid execution when signals are right.`
+Generate strategies that validate timing assumptions while positioning for rapid execution when signals are right.`,
 };
 
 // Financial context template
@@ -225,13 +225,13 @@ The founder has specified the following resources for this idea:
 - **Budget:** $${allocation.allocatedBudget?.toLocaleString() || 0}
 - **Weekly Hours:** ${allocation.allocatedWeeklyHours || 0} hours/week
 - **Runway:** ${allocation.allocatedRunwayMonths || 0} months
-- **Priority:** ${allocation.allocationPriority || 'exploration'}
-- **Income Target:** ${allocation.targetIncomeFromIdea ? '$' + allocation.targetIncomeFromIdea.toLocaleString() : 'Not specified'}
-- **Income Type:** ${allocation.incomeType || 'supplement'}
-- **Risk Tolerance:** ${allocation.ideaRiskTolerance || 'Not specified'}
-- **Pivot Willingness:** ${allocation.pivotWillingness || 'moderate'}
+- **Priority:** ${allocation.allocationPriority || "exploration"}
+- **Income Target:** ${allocation.targetIncomeFromIdea ? "$" + allocation.targetIncomeFromIdea.toLocaleString() : "Not specified"}
+- **Income Type:** ${allocation.incomeType || "supplement"}
+- **Risk Tolerance:** ${allocation.ideaRiskTolerance || "Not specified"}
+- **Pivot Willingness:** ${allocation.pivotWillingness || "moderate"}
 - **Validation Budget:** $${allocation.validationBudget?.toLocaleString() || 0}
-${allocation.killCriteria ? `- **Kill Criteria:** ${allocation.killCriteria}` : ''}
+${allocation.killCriteria ? `- **Kill Criteria:** ${allocation.killCriteria}` : ""}
 
 Strategies should be evaluated against these resource constraints and goals.`;
 
@@ -240,12 +240,12 @@ const PROFILE_CONTEXT_TEMPLATE = (profile: any) => `
 ## Founder Profile Context
 
 Consider the following founder characteristics when evaluating fit:
-${profile.goals ? `- **Primary Goals:** ${profile.goals.join(', ')}` : ''}
-${profile.skills ? `- **Key Skills:** ${profile.skills.join(', ')}` : ''}
-${profile.network ? `- **Network:** ${profile.network.join(', ')}` : ''}
-${profile.constraints ? `- **Constraints:** ${profile.constraints.join(', ')}` : ''}
-${profile.riskTolerance ? `- **Base Risk Tolerance:** ${profile.riskTolerance}` : ''}
-${profile.weeklyHoursAvailable ? `- **Available Hours:** ${profile.weeklyHoursAvailable} hrs/week` : ''}`;
+${profile.goals ? `- **Primary Goals:** ${profile.goals.join(", ")}` : ""}
+${profile.skills ? `- **Key Skills:** ${profile.skills.join(", ")}` : ""}
+${profile.network ? `- **Network:** ${profile.network.join(", ")}` : ""}
+${profile.constraints ? `- **Constraints:** ${profile.constraints.join(", ")}` : ""}
+${profile.riskTolerance ? `- **Base Risk Tolerance:** ${profile.riskTolerance}` : ""}
+${profile.weeklyHoursAvailable ? `- **Available Hours:** ${profile.weeklyHoursAvailable} hrs/week` : ""}`;
 
 // Output format instructions
 const OUTPUT_FORMAT = `
@@ -371,9 +371,9 @@ ${OUTPUT_FORMAT}`;
 ### Full Description:
 ${context.ideaContent}
 
-${context.allocationContext || ''}
+${context.allocationContext || ""}
 
-${context.profileContext || ''}
+${context.profileContext || ""}
 
 ---
 
@@ -384,12 +384,12 @@ Please analyze this idea using the ${context.approach.toUpperCase()} strategic a
 
 // Export helper to build financial context
 export function buildFinancialContext(allocation: any): string {
-  if (!allocation) return '';
+  if (!allocation) return "";
   return FINANCIAL_CONTEXT_TEMPLATE(allocation);
 }
 
 // Export helper to build profile context
 export function buildProfileContext(profile: any): string {
-  if (!profile) return '';
+  if (!profile) return "";
   return PROFILE_CONTEXT_TEMPLATE(profile);
 }

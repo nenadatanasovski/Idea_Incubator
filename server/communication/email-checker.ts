@@ -1,7 +1,7 @@
 // server/communication/email-checker.ts
 // COM-009: Email Checker - Check for email replies as answers
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
 interface ImapConfig {
   host: string;
@@ -25,9 +25,15 @@ interface EmailMessage {
 interface ImapClient {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
-  openBox(mailbox: string, readOnly: boolean): Promise<{ messages: { total: number } }>;
+  openBox(
+    mailbox: string,
+    readOnly: boolean,
+  ): Promise<{ messages: { total: number } }>;
   search(criteria: string[]): Promise<number[]>;
-  fetch(ids: number[], options: { bodies: string[]; markSeen: boolean }): AsyncIterable<{
+  fetch(
+    ids: number[],
+    options: { bodies: string[]; markSeen: boolean },
+  ): AsyncIterable<{
     uid: number;
     attrs: { envelope: unknown; date: Date };
     parts: Array<{ which: string; body: string }>;
@@ -40,7 +46,7 @@ export interface ParsedEmailAnswer {
   questionId?: string;
   approvalId?: string;
   answer: string;
-  answerType: 'approval' | 'question' | 'unknown';
+  answerType: "approval" | "question" | "unknown";
   fromEmail: string;
   receivedAt: Date;
   originalMessageId: string;
@@ -54,7 +60,7 @@ export interface EmailCheckerConfig {
 
 const DEFAULT_CONFIG: EmailCheckerConfig = {
   pollIntervalMs: 60 * 1000, // 1 minute
-  processedFolder: 'Processed',
+  processedFolder: "Processed",
   lookbackDays: 7,
 };
 
@@ -66,7 +72,7 @@ export class EmailChecker extends EventEmitter {
 
   constructor(
     imapConfig: ImapConfig,
-    config: Partial<EmailCheckerConfig> = {}
+    config: Partial<EmailCheckerConfig> = {},
   ) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -77,24 +83,24 @@ export class EmailChecker extends EventEmitter {
    */
   async start(): Promise<void> {
     if (this.running) {
-      console.warn('[EmailChecker] Already running');
+      console.warn("[EmailChecker] Already running");
       return;
     }
 
     this.running = true;
-    console.log('[EmailChecker] Starting email checker');
+    console.log("[EmailChecker] Starting email checker");
 
     // Do initial check
     await this.checkEmails();
 
-    this.emit('checker:started');
+    this.emit("checker:started");
   }
 
   /**
    * Stop checking for emails.
    */
   async stop(): Promise<void> {
-    console.log('[EmailChecker] Stopping');
+    console.log("[EmailChecker] Stopping");
     this.running = false;
 
     if (this.pollTimeout) {
@@ -106,12 +112,12 @@ export class EmailChecker extends EventEmitter {
       try {
         await this.client.disconnect();
       } catch (error) {
-        console.error('[EmailChecker] Error disconnecting:', error);
+        console.error("[EmailChecker] Error disconnecting:", error);
       }
       this.client = null;
     }
 
-    this.emit('checker:stopped');
+    this.emit("checker:stopped");
   }
 
   /**
@@ -127,16 +133,18 @@ export class EmailChecker extends EventEmitter {
         const parsed = this.parseEmailReply(email);
 
         if (parsed) {
-          this.emit('email:answer', parsed);
-          console.log(`[EmailChecker] Found answer: ${parsed.answerType} - "${parsed.answer.substring(0, 50)}..."`);
+          this.emit("email:answer", parsed);
+          console.log(
+            `[EmailChecker] Found answer: ${parsed.answerType} - "${parsed.answer.substring(0, 50)}..."`,
+          );
         }
       }
 
-      this.emit('check:complete', { emailsProcessed: emails.length });
+      this.emit("check:complete", { emailsProcessed: emails.length });
     } catch (error) {
       const errorMessage = (error as Error).message;
       console.error(`[EmailChecker] Check failed: ${errorMessage}`);
-      this.emit('check:error', { error: errorMessage });
+      this.emit("check:error", { error: errorMessage });
     }
 
     // Schedule next check
@@ -154,7 +162,7 @@ export class EmailChecker extends EventEmitter {
     // This is a stub implementation
     // In production, this would use a real IMAP library like 'imap' or 'imapflow'
 
-    console.log('[EmailChecker] Fetching unread replies (stub implementation)');
+    console.log("[EmailChecker] Fetching unread replies (stub implementation)");
 
     // Return empty array - actual implementation would:
     // 1. Connect to IMAP server
@@ -184,8 +192,8 @@ export class EmailChecker extends EventEmitter {
       const approved = approvalMatch && !rejectMatch;
       return {
         approvalId: approvalIdMatch[1],
-        answer: approved ? 'yes' : 'no',
-        answerType: 'approval',
+        answer: approved ? "yes" : "no",
+        answerType: "approval",
         fromEmail: email.from,
         receivedAt: email.date,
         originalMessageId: email.id,
@@ -200,7 +208,7 @@ export class EmailChecker extends EventEmitter {
       return {
         questionId: questionIdMatch[1],
         answer: numberMatch ? numberMatch[1] : text.trim(),
-        answerType: 'question',
+        answerType: "question",
         fromEmail: email.from,
         receivedAt: email.date,
         originalMessageId: email.id,
@@ -210,7 +218,7 @@ export class EmailChecker extends EventEmitter {
     // Unknown reply format
     return {
       answer: text.trim(),
-      answerType: 'unknown',
+      answerType: "unknown",
       fromEmail: email.from,
       receivedAt: email.date,
       originalMessageId: email.id,
@@ -266,7 +274,7 @@ export function createEmailChecker(
   port: number,
   user: string,
   password: string,
-  config?: Partial<EmailCheckerConfig>
+  config?: Partial<EmailCheckerConfig>,
 ): EmailChecker {
   return new EmailChecker(
     {
@@ -276,6 +284,6 @@ export function createEmailChecker(
       password,
       tls: port === 993,
     },
-    config
+    config,
   );
 }

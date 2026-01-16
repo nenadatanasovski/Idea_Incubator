@@ -9,11 +9,11 @@
 
 The Idea Incubator has three architectural gaps that significantly undermine evaluation quality:
 
-| Issue | Severity | Root Cause |
-|-------|----------|------------|
-| Q&A not picked up | **Critical** | Two parallel systems that don't communicate |
-| Profile not considered | **High** | Hard-coded category restriction in evaluator |
-| No web search | **Medium** | Capability simply doesn't exist |
+| Issue                  | Severity     | Root Cause                                   |
+| ---------------------- | ------------ | -------------------------------------------- |
+| Q&A not picked up      | **Critical** | Two parallel systems that don't communicate  |
+| Profile not considered | **High**     | Hard-coded category restriction in evaluator |
+| No web search          | **Medium**   | Capability simply doesn't exist              |
 
 These issues compound: without Q&A data, evaluators rely on sparse README content; without profiles, Fit scores are guesses; without web search, Market/Competition claims are unverifiable.
 
@@ -40,16 +40,18 @@ npm run evaluate → getStructuredContext() → queries idea_answers table → E
 ### Evidence
 
 **Skill instruction** (`.claude/skills/idea-develop/SKILL.md:38`):
+
 ```markdown
 4. **Record answers**
    - Save Q&A to `ideas/[slug]/development.md`
 ```
 
 **Evaluation code** (`scripts/evaluate.ts:310`):
+
 ```typescript
 const answers = await getAnswersForIdea(ideaId);
 if (answers.length === 0) {
-  return null;  // Always null because idea_answers is never populated
+  return null; // Always null because idea_answers is never populated
 }
 ```
 
@@ -63,6 +65,7 @@ if (answers.length === 0) {
 ### Why This Happened
 
 Two development paths were designed in parallel without integration:
+
 1. **Skills system** (Claude Code) - uses markdown for human-readable persistence
 2. **Question bank system** (database) - designed for structured machine-readable storage
 
@@ -71,6 +74,7 @@ The YAML question bank (`questions/*.yaml`) and `idea_answers` table were built 
 ### Complexity Assessment
 
 **Fix Difficulty**: Medium
+
 - Need to either:
   - A) Add markdown→database sync (parse `development.md` into `idea_answers`)
   - B) Modify skill to dual-write (markdown + database)
@@ -88,38 +92,42 @@ User profile data is **explicitly excluded** from all non-Fit evaluators:
 
 ```typescript
 // specialized-evaluators.ts:306-309
-const profileSection = category === 'fit'
-  ? formatProfileContextForFitEvaluator(profileContext ?? null)
-  : '';  // ← Empty for ALL other categories!
+const profileSection =
+  category === "fit"
+    ? formatProfileContextForFitEvaluator(profileContext ?? null)
+    : ""; // ← Empty for ALL other categories!
 ```
 
 ### What Profile Contains vs. Where It's Used
 
-| Profile Data | Relevant To | Currently Used? |
-|--------------|-------------|-----------------|
-| Primary Goals (FT1) | Fit only | ✅ Yes |
-| Passion/Interests (FT2) | Fit only | ✅ Yes |
-| Technical Skills (FT3) | Fit, **Feasibility** | ❌ Fit only |
-| Professional Experience | **Feasibility**, **Risk** | ❌ Fit only |
-| Industry Connections (FT4) | Fit, **Market** | ❌ Fit only |
-| Professional Network | **Market** (GTM/distribution) | ❌ Fit only |
-| Community Access | **Market** | ❌ Fit only |
-| Employment Status (FT5) | Fit, **Risk** | ❌ Fit only |
-| Weekly Hours Available | Fit, **Feasibility** | ❌ Fit only |
-| Financial Runway | Fit, **Risk** | ❌ Fit only |
-| Risk Tolerance | Fit, **Risk** | ❌ Fit only |
+| Profile Data               | Relevant To                   | Currently Used? |
+| -------------------------- | ----------------------------- | --------------- |
+| Primary Goals (FT1)        | Fit only                      | ✅ Yes          |
+| Passion/Interests (FT2)    | Fit only                      | ✅ Yes          |
+| Technical Skills (FT3)     | Fit, **Feasibility**          | ❌ Fit only     |
+| Professional Experience    | **Feasibility**, **Risk**     | ❌ Fit only     |
+| Industry Connections (FT4) | Fit, **Market**               | ❌ Fit only     |
+| Professional Network       | **Market** (GTM/distribution) | ❌ Fit only     |
+| Community Access           | **Market**                    | ❌ Fit only     |
+| Employment Status (FT5)    | Fit, **Risk**                 | ❌ Fit only     |
+| Weekly Hours Available     | Fit, **Feasibility**          | ❌ Fit only     |
+| Financial Runway           | Fit, **Risk**                 | ❌ Fit only     |
+| Risk Tolerance             | Fit, **Risk**                 | ❌ Fit only     |
 
 ### Impact
 
 **Feasibility evaluator** cannot answer:
+
 - "Do you have the skills to build this?" → Should check profile's `technicalSkills`
 - "Can you dedicate enough time?" → Should check `weeklyHoursAvailable`
 
 **Market evaluator** cannot answer:
+
 - "Can you reach target customers?" → Should check `industryConnections`, `communityAccess`
 - "Do you have distribution advantages?" → Should check `professionalNetwork`
 
 **Risk evaluator** cannot answer:
+
 - "What's your financial risk tolerance?" → Should check `riskTolerance`, `financialRunwayMonths`
 - "Are you exposed to career risk?" → Should check `employmentStatus`
 
@@ -132,6 +140,7 @@ The `evaluator.ts` file has a `formatProfileContextForPrompt()` function that in
 ### Complexity Assessment
 
 **Fix Difficulty**: Low
+
 - Create `formatProfileForCategory(profile, category)` function
 - Return category-relevant excerpts (skills for Feasibility, network for Market, runway for Risk)
 - Update specialized evaluators to use it
@@ -143,10 +152,12 @@ The `evaluator.ts` file has a `formatProfileContextForPrompt()` function that in
 ### The Problem
 
 Evaluators make market and technology assessments based purely on:
+
 1. Whatever the user wrote in their README.md
 2. The LLM's training data (January 2025 cutoff)
 
 There is **no mechanism** to verify claims like:
+
 - "The market is $50B and growing"
 - "There are no direct competitors"
 - "This technology is mature enough"
@@ -155,6 +166,7 @@ There is **no mechanism** to verify claims like:
 ### Evidence
 
 No web search tools are imported or used anywhere in:
+
 - `agents/evaluator.ts`
 - `agents/specialized-evaluators.ts`
 - `agents/redteam.ts`
@@ -162,20 +174,21 @@ No web search tools are imported or used anywhere in:
 
 ### Impact
 
-| Criterion | Problem Without Web Search |
-|-----------|---------------------------|
-| M1 (Market Size) | User's TAM/SAM/SOM claims taken at face value |
-| M2 (Market Growth) | Trend analysis based on possibly-stale training data |
-| M3 (Competition) | Competitor list may be incomplete or outdated |
-| M5 (Timing) | "Why now" claims unverifiable |
+| Criterion             | Problem Without Web Search                            |
+| --------------------- | ----------------------------------------------------- |
+| M1 (Market Size)      | User's TAM/SAM/SOM claims taken at face value         |
+| M2 (Market Growth)    | Trend analysis based on possibly-stale training data  |
+| M3 (Competition)      | Competitor list may be incomplete or outdated         |
+| M5 (Timing)           | "Why now" claims unverifiable                         |
 | S2 (Tech Feasibility) | New AI/tech capabilities unknown if post-January 2025 |
-| R3 (Technical Risk) | Emerging tech risks not identified |
+| R3 (Technical Risk)   | Emerging tech risks not identified                    |
 
 ### Example Failure Mode
 
 User claims: "No competitors in AI-powered plant care"
 
 Reality (verifiable via web search):
+
 - Planta: 10M+ downloads
 - Greg: 2M+ downloads
 - Florish: Growing AI features
@@ -185,6 +198,7 @@ Evaluator gives high "uniqueness" score based on incomplete information.
 ### Why This Happened
 
 Web search adds:
+
 - Cost (API calls)
 - Latency
 - Complexity (which searches to run?)
@@ -195,6 +209,7 @@ The system was designed for fast, contained evaluation. Web search was likely de
 ### Complexity Assessment
 
 **Fix Difficulty**: Medium-High
+
 - Need to determine which criteria benefit from search
 - Design search strategy (what queries, how many per criterion)
 - Handle search failures gracefully
@@ -211,10 +226,10 @@ The system was designed for fast, contained evaluation. Web search was likely de
 
 ```typescript
 // evaluator.ts - includes brief summary for non-fit categories
-formatProfileContextForPrompt(profileContext, category)
+formatProfileContextForPrompt(profileContext, category);
 
 // specialized-evaluators.ts - returns empty for non-fit
-formatProfileContextForFitEvaluator(profileContext)
+formatProfileContextForFitEvaluator(profileContext);
 ```
 
 **Impact**: Inconsistent behavior between v1 (sequential) and v2 (parallel) evaluation modes.
@@ -222,6 +237,7 @@ formatProfileContextForFitEvaluator(profileContext)
 ### Gap 5: Structured Answer Mapping is Brittle
 
 `evaluate.ts:323-463` has a massive manual mapping:
+
 ```typescript
 const questionIdMapping: Record<string, (answer: string) => void> = {
   'P1_CORE': (a) => { ... },
@@ -231,6 +247,7 @@ const questionIdMapping: Record<string, (answer: string) => void> = {
 ```
 
 **Impact**:
+
 - Adding/renaming questions requires code changes
 - No validation that question IDs match
 - Easy to miss mappings silently
@@ -247,6 +264,7 @@ fit: await hasLinkedProfile(ideaId) ? 1.0 : 0,
 ### Gap 7: Development Session Tracking Unused
 
 `readiness.ts` has full session tracking infrastructure:
+
 - `startDevelopmentSession()`
 - `completeDevelopmentSession()`
 - `updateSessionProgress()`
@@ -257,6 +275,7 @@ But `development_sessions` table is never populated by the skill or CLI.
 ### Gap 8: Frontend Q&A Flow Incomplete
 
 The server has endpoints for dynamic questioning:
+
 ```
 GET /api/questions/{ideaId}
 POST /api/answers

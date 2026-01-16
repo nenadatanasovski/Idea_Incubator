@@ -1,10 +1,10 @@
 ---
-id: {{id}}
-title: {{title}}
-type: {{type}}
+id: { { id } }
+title: { { title } }
+type: { { type } }
 stage: SPARK
-created: {{created}}
-updated: {{created}}
+created: { { created } }
+updated: { { created } }
 tags: []
 related: []
 summary: ""
@@ -14,22 +14,22 @@ summary: ""
 
 ## Overview
 
-*Brief description of the idea.*
+_Brief description of the idea._
 
 ## Problem Statement
 
-*What problem does this solve? Who experiences this problem?*
+_What problem does this solve? Who experiences this problem?_
 
 ## Target Users
 
-*Who specifically would benefit from this?*
+_Who specifically would benefit from this?_
 
 - User type 1
 - User type 2
 
 ## Proposed Solution
 
-*How does this idea solve the problem?*
+_How does this idea solve the problem?_
 
 ## Key Features
 
@@ -45,4 +45,4 @@ summary: ""
 
 ## Initial Notes
 
-*Any other thoughts, inspirations, or context.*
+_Any other thoughts, inspirations, or context._

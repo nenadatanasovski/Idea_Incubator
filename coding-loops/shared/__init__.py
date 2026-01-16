@@ -8,6 +8,7 @@ Components (implemented):
 - HealthCheck: Health heartbeat management
 - load_config, validate_json: Configuration utilities
 - MessageBus: Event bus for inter-agent communication
+- ObservabilitySkills: 39 SQL tools for validation, troubleshooting, investigation, aggregation
 
 Components (TODO - see TASKS.md):
 - VerificationGate: Independent verification of agent claims
@@ -39,6 +40,19 @@ from .ralph_loop_base import (
 
 # New components - uncomment as implemented
 from .message_bus import MessageBus, get_message_bus
+from .observability_skills import (
+    ObservabilitySkills,
+    ValidationIssue,
+    ErrorRecord,
+    StuckOperation,
+    ParallelHealthReport,
+    AnomalyReport,
+    obs_validate,
+    obs_errors,
+    obs_parallel_health,
+    obs_anomalies,
+    obs_summary,
+)
 # from .verification_gate import VerificationGate, VerificationResult
 # from .git_manager import GitManager, RebaseResult
 # from .checkpoint_manager import CheckpointManager
@@ -66,6 +80,18 @@ __all__ = [
     # New - uncomment as implemented
     "MessageBus",
     "get_message_bus",
+    # Observability Skills
+    "ObservabilitySkills",
+    "ValidationIssue",
+    "ErrorRecord",
+    "StuckOperation",
+    "ParallelHealthReport",
+    "AnomalyReport",
+    "obs_validate",
+    "obs_errors",
+    "obs_parallel_health",
+    "obs_anomalies",
+    "obs_summary",
     # "VerificationGate",
     # "VerificationResult",
     # "GitManager",

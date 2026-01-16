@@ -7,10 +7,10 @@
  * Part of: PTE-062 to PTE-067
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { spawn, ChildProcess } from 'child_process';
-import { EventEmitter } from 'events';
-import { query, run, getOne, saveDb } from '../../../database/db.js';
+import { v4 as uuidv4 } from "uuid";
+import { spawn, ChildProcess } from "child_process";
+import { EventEmitter } from "events";
+import { query, run, getOne, saveDb } from "../../../database/db.js";
 
 /**
  * Orchestrator event emitter for execution events
@@ -22,9 +22,12 @@ import {
   AgentHeartbeat,
   TaskIdentity,
   Task,
-} from '../../../types/task-agent.js';
-import { calculateWaves, getTaskListParallelism } from './parallelism-calculator.js';
-import { updateTaskStatus } from './task-creation-service.js';
+} from "../../../types/task-agent.js";
+import {
+  calculateWaves,
+  getTaskListParallelism,
+} from "./parallelism-calculator.js";
+import { updateTaskStatus } from "./task-creation-service.js";
 
 /**
  * Database row for Build Agent instance
@@ -92,7 +95,7 @@ const HEARTBEAT_TIMEOUT_MS = 90000; // 90 seconds
  */
 export async function spawnBuildAgent(
   taskId: string,
-  taskListId: string
+  taskListId: string,
 ): Promise<BuildAgentInstance> {
   const id = uuidv4();
 
@@ -101,29 +104,36 @@ export async function spawnBuildAgent(
     `INSERT INTO build_agent_instances (
       id, task_id, task_list_id, status, spawned_at
     ) VALUES (?, ?, ?, 'spawning', datetime('now'))`,
-    [id, taskId, taskListId]
+    [id, taskId, taskListId],
   );
 
   // Update task status
-  await updateTaskStatus(taskId, 'in_progress');
+  await updateTaskStatus(taskId, "in_progress");
 
   // Spawn the Python Build Agent process
   try {
-    const agentProcess = spawn('python3', [
-      'coding-loops/agents/build_agent_worker.py',
-      '--agent-id', id,
-      '--task-id', taskId,
-      '--task-list-id', taskListId,
-    ], {
-      cwd: process.cwd(),
-      env: {
-        ...process.env,
-        AGENT_ID: id,
-        TASK_ID: taskId,
-        TASK_LIST_ID: taskListId,
+    const agentProcess = spawn(
+      "python3",
+      [
+        "coding-loops/agents/build_agent_worker.py",
+        "--agent-id",
+        id,
+        "--task-id",
+        taskId,
+        "--task-list-id",
+        taskListId,
+      ],
+      {
+        cwd: process.cwd(),
+        env: {
+          ...process.env,
+          AGENT_ID: id,
+          TASK_ID: taskId,
+          TASK_LIST_ID: taskListId,
+        },
+        stdio: ["pipe", "pipe", "pipe"],
       },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    );
 
     // Track the process
     activeProcesses.set(id, agentProcess);
@@ -136,27 +146,26 @@ export async function spawnBuildAgent(
            hostname = ?,
            last_heartbeat_at = datetime('now')
        WHERE id = ?`,
-      [agentProcess.pid?.toString() || null, require('os').hostname(), id]
+      [agentProcess.pid?.toString() || null, require("os").hostname(), id],
     );
 
     // Handle process events
-    agentProcess.on('exit', async (code, signal) => {
+    agentProcess.on("exit", async (code, signal) => {
       await handleAgentExit(id, taskId, code, signal);
     });
 
-    agentProcess.on('error', async (error) => {
+    agentProcess.on("error", async (error) => {
       await handleAgentError(id, taskId, error);
     });
 
     // Log stdout/stderr
-    agentProcess.stdout?.on('data', (data) => {
+    agentProcess.stdout?.on("data", (data) => {
       console.log(`[BuildAgent ${id}] stdout: ${data}`);
     });
 
-    agentProcess.stderr?.on('data', (data) => {
+    agentProcess.stderr?.on("data", (data) => {
       console.error(`[BuildAgent ${id}] stderr: ${data}`);
     });
-
   } catch (error) {
     // Failed to spawn
     await run(
@@ -166,10 +175,10 @@ export async function spawnBuildAgent(
            termination_reason = 'spawn_failed',
            error_message = ?
        WHERE id = ?`,
-      [(error as Error).message, id]
+      [(error as Error).message, id],
     );
 
-    await updateTaskStatus(taskId, 'failed');
+    await updateTaskStatus(taskId, "failed");
     throw error;
   }
 
@@ -177,8 +186,8 @@ export async function spawnBuildAgent(
 
   // Return the agent instance
   const row = await getOne<BuildAgentRow>(
-    'SELECT * FROM build_agent_instances WHERE id = ?',
-    [id]
+    "SELECT * FROM build_agent_instances WHERE id = ?",
+    [id],
   );
 
   return mapAgentRow(row!);
@@ -191,13 +200,13 @@ async function handleAgentExit(
   agentId: string,
   taskId: string,
   code: number | null,
-  signal: NodeJS.Signals | null
+  signal: NodeJS.Signals | null,
 ): Promise<void> {
   activeProcesses.delete(agentId);
 
   const success = code === 0;
-  const status = success ? 'completed' : 'failed';
-  const taskStatus = success ? 'completed' : 'failed';
+  const status = success ? "completed" : "failed";
+  const taskStatus = success ? "completed" : "failed";
 
   await run(
     `UPDATE build_agent_instances
@@ -208,11 +217,11 @@ async function handleAgentExit(
          tasks_failed = tasks_failed + ?
      WHERE id = ?`,
     [
-      success ? 'success' : `exit_code_${code || signal}`,
+      success ? "success" : `exit_code_${code || signal}`,
       success ? 1 : 0,
       success ? 0 : 1,
       agentId,
-    ]
+    ],
   );
 
   await updateTaskStatus(taskId, taskStatus);
@@ -221,8 +230,8 @@ async function handleAgentExit(
   // Trigger next wave if successful
   if (success) {
     const agent = await getOne<BuildAgentRow>(
-      'SELECT * FROM build_agent_instances WHERE id = ?',
-      [agentId]
+      "SELECT * FROM build_agent_instances WHERE id = ?",
+      [agentId],
     );
     if (agent?.task_list_id) {
       await handleAgentCompletion(agentId, agent.task_list_id);
@@ -230,8 +239,8 @@ async function handleAgentExit(
   } else {
     // Handle failure
     const agent = await getOne<BuildAgentRow>(
-      'SELECT * FROM build_agent_instances WHERE id = ?',
-      [agentId]
+      "SELECT * FROM build_agent_instances WHERE id = ?",
+      [agentId],
     );
     if (agent?.task_list_id) {
       await handleAgentFailure(agentId, taskId, agent.task_list_id);
@@ -245,7 +254,7 @@ async function handleAgentExit(
 async function handleAgentError(
   agentId: string,
   taskId: string,
-  error: Error
+  error: Error,
 ): Promise<void> {
   activeProcesses.delete(agentId);
 
@@ -257,10 +266,10 @@ async function handleAgentError(
          error_message = ?,
          tasks_failed = tasks_failed + 1
      WHERE id = ?`,
-    [error.message, agentId]
+    [error.message, agentId],
   );
 
-  await updateTaskStatus(taskId, 'failed');
+  await updateTaskStatus(taskId, "failed");
   await saveDb();
 }
 
@@ -272,19 +281,19 @@ async function handleAgentError(
  */
 export async function assignTaskToAgent(
   agentId: string,
-  taskId: string
+  taskId: string,
 ): Promise<void> {
   // Verify agent is idle
   const agent = await getOne<BuildAgentRow>(
-    'SELECT * FROM build_agent_instances WHERE id = ?',
-    [agentId]
+    "SELECT * FROM build_agent_instances WHERE id = ?",
+    [agentId],
   );
 
   if (!agent) {
     throw new Error(`Agent ${agentId} not found`);
   }
 
-  if (agent.status !== 'idle') {
+  if (agent.status !== "idle") {
     throw new Error(`Agent ${agentId} is not idle (status: ${agent.status})`);
   }
 
@@ -298,10 +307,10 @@ export async function assignTaskToAgent(
          status = 'running',
          last_heartbeat_at = datetime('now')
      WHERE id = ?`,
-    [taskId, agentId]
+    [taskId, agentId],
   );
 
-  await updateTaskStatus(taskId, 'in_progress');
+  await updateTaskStatus(taskId, "in_progress");
   await saveDb();
 }
 
@@ -339,12 +348,12 @@ export async function monitorAgents(): Promise<{
         `UPDATE build_agent_instances
          SET consecutive_missed_heartbeats = consecutive_missed_heartbeats + 1
          WHERE id = ?`,
-        [agent.id]
+        [agent.id],
       );
 
       // Terminate if too many missed heartbeats
       if (agent.consecutive_missed_heartbeats >= 3) {
-        await terminateAgent(agent.id, 'heartbeat_timeout');
+        await terminateAgent(agent.id, "heartbeat_timeout");
         terminated.push(agent.id);
       }
     } else {
@@ -355,7 +364,7 @@ export async function monitorAgents(): Promise<{
           `UPDATE build_agent_instances
            SET consecutive_missed_heartbeats = 0
            WHERE id = ?`,
-          [agent.id]
+          [agent.id],
         );
       }
     }
@@ -374,19 +383,19 @@ export async function monitorAgents(): Promise<{
  */
 export async function terminateAgent(
   agentId: string,
-  reason: string
+  reason: string,
 ): Promise<void> {
   // Kill the process if still running
   const process = activeProcesses.get(agentId);
   if (process) {
-    process.kill('SIGTERM');
+    process.kill("SIGTERM");
     activeProcesses.delete(agentId);
   }
 
   // Get agent info
   const agent = await getOne<BuildAgentRow>(
-    'SELECT * FROM build_agent_instances WHERE id = ?',
-    [agentId]
+    "SELECT * FROM build_agent_instances WHERE id = ?",
+    [agentId],
   );
 
   // Update database
@@ -396,12 +405,12 @@ export async function terminateAgent(
          terminated_at = datetime('now'),
          termination_reason = ?
      WHERE id = ?`,
-    [reason, agentId]
+    [reason, agentId],
   );
 
   // If agent had a task, mark it as failed or blocked
   if (agent?.task_id) {
-    await updateTaskStatus(agent.task_id, 'failed');
+    await updateTaskStatus(agent.task_id, "failed");
   }
 
   await saveDb();
@@ -415,9 +424,11 @@ export async function terminateAgent(
  */
 export async function handleAgentCompletion(
   agentId: string,
-  taskListId: string
+  taskListId: string,
 ): Promise<void> {
-  console.log(`[BuildAgentOrchestrator] Agent ${agentId} completed, checking for next tasks`);
+  console.log(
+    `[BuildAgentOrchestrator] Agent ${agentId} completed, checking for next tasks`,
+  );
 
   // Get tasks that are now ready to execute
   const readyTasks = await query<{ id: string; display_id: string }>(
@@ -439,16 +450,21 @@ export async function handleAgentCompletion(
        )
      ORDER BY t.position
      LIMIT 10`,
-    [taskListId]
+    [taskListId],
   );
 
   // Spawn agents for ready tasks
   for (const task of readyTasks) {
     try {
       await spawnBuildAgent(task.id, taskListId);
-      console.log(`[BuildAgentOrchestrator] Spawned agent for task ${task.display_id}`);
+      console.log(
+        `[BuildAgentOrchestrator] Spawned agent for task ${task.display_id}`,
+      );
     } catch (error) {
-      console.error(`[BuildAgentOrchestrator] Failed to spawn agent for task ${task.display_id}:`, error);
+      console.error(
+        `[BuildAgentOrchestrator] Failed to spawn agent for task ${task.display_id}:`,
+        error,
+      );
     }
   }
 
@@ -457,7 +473,7 @@ export async function handleAgentCompletion(
     `SELECT COUNT(*) as count FROM tasks
      WHERE task_list_id = ?
        AND status IN ('pending', 'in_progress', 'blocked')`,
-    [taskListId]
+    [taskListId],
   );
 
   if (remaining?.count === 0) {
@@ -468,7 +484,7 @@ export async function handleAgentCompletion(
            completed_at = datetime('now'),
            updated_at = datetime('now')
        WHERE id = ?`,
-      [taskListId]
+      [taskListId],
     );
     await saveDb();
     console.log(`[BuildAgentOrchestrator] Task list ${taskListId} completed`);
@@ -485,9 +501,11 @@ export async function handleAgentCompletion(
 export async function handleAgentFailure(
   agentId: string,
   failedTaskId: string,
-  taskListId: string
+  taskListId: string,
 ): Promise<void> {
-  console.log(`[BuildAgentOrchestrator] Agent ${agentId} failed on task ${failedTaskId}`);
+  console.log(
+    `[BuildAgentOrchestrator] Agent ${agentId} failed on task ${failedTaskId}`,
+  );
 
   // Get tasks that depend on the failed task (direct and transitive)
   const dependentTasks = await query<{ id: string; display_id: string }>(
@@ -509,16 +527,18 @@ export async function handleAgentFailure(
     JOIN dependent_chain dc ON t.id = dc.task_id
     WHERE t.task_list_id = ?
       AND t.status = 'pending'`,
-    [failedTaskId, taskListId]
+    [failedTaskId, taskListId],
   );
 
   // Mark dependent tasks as blocked
   for (const task of dependentTasks) {
     await run(
       `UPDATE tasks SET status = 'blocked', updated_at = datetime('now') WHERE id = ?`,
-      [task.id]
+      [task.id],
     );
-    console.log(`[BuildAgentOrchestrator] Blocked task ${task.display_id} (depends on failed task)`);
+    console.log(
+      `[BuildAgentOrchestrator] Blocked task ${task.display_id} (depends on failed task)`,
+    );
   }
 
   await saveDb();
@@ -531,7 +551,7 @@ export async function handleAgentFailure(
  * Record a heartbeat from a Build Agent
  */
 export async function recordHeartbeat(
-  heartbeat: AgentHeartbeat
+  heartbeat: AgentHeartbeat,
 ): Promise<void> {
   // Update agent record
   await run(
@@ -541,7 +561,7 @@ export async function recordHeartbeat(
          consecutive_missed_heartbeats = 0,
          status = ?
      WHERE id = ?`,
-    [heartbeat.status, heartbeat.agentId]
+    [heartbeat.status, heartbeat.agentId],
   );
 
   // Record detailed heartbeat
@@ -557,7 +577,7 @@ export async function recordHeartbeat(
       heartbeat.currentStep || null,
       heartbeat.memoryMb || null,
       heartbeat.cpuPercent || null,
-    ]
+    ],
   );
 
   await saveDb();
@@ -567,17 +587,17 @@ export async function recordHeartbeat(
  * Get all active Build Agents
  */
 export async function getActiveAgents(
-  taskListId?: string
+  taskListId?: string,
 ): Promise<BuildAgentInstance[]> {
   let sql = `SELECT * FROM build_agent_instances WHERE status NOT IN ('terminated')`;
   const params: string[] = [];
 
   if (taskListId) {
-    sql += ' AND task_list_id = ?';
+    sql += " AND task_list_id = ?";
     params.push(taskListId);
   }
 
-  sql += ' ORDER BY spawned_at DESC';
+  sql += " ORDER BY spawned_at DESC";
 
   const rows = await query<BuildAgentRow>(sql, params);
   return rows.map(mapAgentRow);
@@ -586,10 +606,12 @@ export async function getActiveAgents(
 /**
  * Get Build Agent by ID
  */
-export async function getAgent(agentId: string): Promise<BuildAgentInstance | null> {
+export async function getAgent(
+  agentId: string,
+): Promise<BuildAgentInstance | null> {
   const row = await getOne<BuildAgentRow>(
-    'SELECT * FROM build_agent_instances WHERE id = ?',
-    [agentId]
+    "SELECT * FROM build_agent_instances WHERE id = ?",
+    [agentId],
   );
 
   if (!row) {
@@ -607,23 +629,25 @@ export async function getAgent(agentId: string): Promise<BuildAgentInstance | nu
  */
 export async function startExecution(
   taskListId: string,
-  maxAgents?: number
+  maxAgents?: number,
 ): Promise<{
   started: boolean;
   agentsSpawned: number;
   firstWaveTasks: TaskIdentity[];
 }> {
   // Get task list config
-  const taskList = await getOne<{ max_parallel_agents: number; status: string }>(
-    'SELECT max_parallel_agents, status FROM task_lists_v2 WHERE id = ?',
-    [taskListId]
-  );
+  const taskList = await getOne<{
+    max_parallel_agents: number;
+    status: string;
+  }>("SELECT max_parallel_agents, status FROM task_lists_v2 WHERE id = ?", [
+    taskListId,
+  ]);
 
   if (!taskList) {
     throw new Error(`Task list ${taskListId} not found`);
   }
 
-  if (taskList.status === 'in_progress') {
+  if (taskList.status === "in_progress") {
     throw new Error(`Task list ${taskListId} is already in progress`);
   }
 
@@ -641,7 +665,7 @@ export async function startExecution(
          started_at = datetime('now'),
          updated_at = datetime('now')
      WHERE id = ?`,
-    [taskListId]
+    [taskListId],
   );
 
   // Spawn agents for first wave
@@ -655,7 +679,10 @@ export async function startExecution(
       await spawnBuildAgent(task.id, taskListId);
       agentsSpawned++;
     } catch (error) {
-      console.error(`[BuildAgentOrchestrator] Failed to spawn agent for ${task.displayId}:`, error);
+      console.error(
+        `[BuildAgentOrchestrator] Failed to spawn agent for ${task.displayId}:`,
+        error,
+      );
     }
   }
 
@@ -678,7 +705,7 @@ export async function pauseExecution(taskListId: string): Promise<void> {
      SET status = 'paused',
          updated_at = datetime('now')
      WHERE id = ?`,
-    [taskListId]
+    [taskListId],
   );
   await saveDb();
 }
@@ -692,12 +719,12 @@ export async function resumeExecution(taskListId: string): Promise<void> {
      SET status = 'in_progress',
          updated_at = datetime('now')
      WHERE id = ?`,
-    [taskListId]
+    [taskListId],
   );
   await saveDb();
 
   // Spawn agents for any ready tasks
-  await handleAgentCompletion('resume', taskListId);
+  await handleAgentCompletion("resume", taskListId);
 }
 
 /**
@@ -707,7 +734,7 @@ export async function resumeExecution(taskListId: string): Promise<void> {
  * @returns List of blocked tasks
  */
 export async function getBlockedTasks(
-  failedTaskId: string
+  failedTaskId: string,
 ): Promise<Array<{ id: string; displayId: string }>> {
   const tasks = await query<{ id: string; display_id: string }>(
     `WITH RECURSIVE dependent_chain AS (
@@ -726,10 +753,10 @@ export async function getBlockedTasks(
     SELECT t.id, t.display_id
     FROM tasks t
     JOIN dependent_chain dc ON t.id = dc.task_id`,
-    [failedTaskId]
+    [failedTaskId],
   );
 
-  return tasks.map(t => ({ id: t.id, displayId: t.display_id }));
+  return tasks.map((t) => ({ id: t.id, displayId: t.display_id }));
 }
 
 /**
@@ -746,24 +773,28 @@ export async function getOrchestratorStatus(): Promise<{
 }> {
   // Get active task lists
   const activeLists = await getOne<{ count: number }>(
-    `SELECT COUNT(*) as count FROM task_lists_v2 WHERE status = 'in_progress'`
+    `SELECT COUNT(*) as count FROM task_lists_v2 WHERE status = 'in_progress'`,
   );
 
   // Get running agents
   const runningAgents = await getOne<{ count: number }>(
-    `SELECT COUNT(*) as count FROM build_agent_instances WHERE status = 'running'`
+    `SELECT COUNT(*) as count FROM build_agent_instances WHERE status = 'running'`,
   );
 
   // Get tasks from today
-  const today = new Date().toISOString().split('T')[0];
-  const tasksToday = await getOne<{ total: number; completed: number; failed: number }>(
+  const today = new Date().toISOString().split("T")[0];
+  const tasksToday = await getOne<{
+    total: number;
+    completed: number;
+    failed: number;
+  }>(
     `SELECT
       COUNT(*) as total,
       SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
       SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
      FROM tasks
      WHERE date(updated_at) = date(?)`,
-    [today]
+    [today],
   );
 
   return {

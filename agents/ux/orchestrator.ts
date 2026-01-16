@@ -1,11 +1,23 @@
 // agents/ux/orchestrator.ts - Main entry point for UX Agent
 
-import { Journey, UXRunResult, UXRun, AccessibilityIssue } from '../../types/ux.js';
-import { MCPBridge } from './mcp-bridge.js';
-import { runJourney, RunJourneyOptions } from './journey-runner.js';
-import { checkAccessibility, AccessibilityCheckOptions } from './accessibility-checker.js';
-import { getJourney, getJourneysByTag, getAllJourneys } from './journey-definitions.js';
-import { saveUXRun, saveStepResults, saveAccessibilityIssues } from './db.js';
+import {
+  Journey,
+  UXRunResult,
+  UXRun,
+  AccessibilityIssue,
+} from "../../types/ux.js";
+import { MCPBridge } from "./mcp-bridge.js";
+import { runJourney, RunJourneyOptions } from "./journey-runner.js";
+import {
+  checkAccessibility,
+  AccessibilityCheckOptions,
+} from "./accessibility-checker.js";
+import {
+  getJourney,
+  getJourneysByTag,
+  getAllJourneys,
+} from "./journey-definitions.js";
+import { saveUXRun, saveStepResults, saveAccessibilityIssues } from "./db.js";
 
 export interface UXRunOptions {
   buildId?: string;
@@ -28,7 +40,10 @@ export class UXOrchestrator {
   /**
    * Run a journey by ID
    */
-  async runJourneyById(journeyId: string, options: UXRunOptions = {}): Promise<UXRunResult> {
+  async runJourneyById(
+    journeyId: string,
+    options: UXRunOptions = {},
+  ): Promise<UXRunResult> {
     const journey = getJourney(journeyId);
     if (!journey) {
       throw new Error(`Journey not found: ${journeyId}`);
@@ -39,7 +54,10 @@ export class UXOrchestrator {
   /**
    * Run a custom journey
    */
-  async runCustomJourney(journey: Journey, options: UXRunOptions = {}): Promise<UXRunResult> {
+  async runCustomJourney(
+    journey: Journey,
+    options: UXRunOptions = {},
+  ): Promise<UXRunResult> {
     const journeyWithTimeout: Journey = {
       ...journey,
       timeout: options.timeout || journey.timeout,
@@ -49,10 +67,16 @@ export class UXOrchestrator {
       screenshotOnFailure: options.screenshotOnFailure ?? true,
     };
 
-    const result = await runJourney(journeyWithTimeout, this.bridge, runOptions);
+    const result = await runJourney(
+      journeyWithTimeout,
+      this.bridge,
+      runOptions,
+    );
 
     if (options.runAccessibility && result.passed) {
-      result.accessibilityIssues = await this.tryAccessibilityCheck(options.accessibilityOptions);
+      result.accessibilityIssues = await this.tryAccessibilityCheck(
+        options.accessibilityOptions,
+      );
     }
 
     await this.saveRun(result, options.buildId);
@@ -64,12 +88,12 @@ export class UXOrchestrator {
    * Run accessibility check, logging errors but not failing
    */
   private async tryAccessibilityCheck(
-    options?: AccessibilityCheckOptions
+    options?: AccessibilityCheckOptions,
   ): Promise<AccessibilityIssue[]> {
     try {
       return await checkAccessibility(this.bridge, options);
     } catch (error) {
-      console.error('Accessibility check failed:', error);
+      console.error("Accessibility check failed:", error);
       return [];
     }
   }
@@ -79,17 +103,20 @@ export class UXOrchestrator {
    */
   async checkAccessibilityUrl(
     url: string,
-    options: AccessibilityCheckOptions = {}
+    options: AccessibilityCheckOptions = {},
   ): Promise<AccessibilityIssue[]> {
     await this.bridge.navigate(url);
-    await this.bridge.waitForSelector('body', 5000);
+    await this.bridge.waitForSelector("body", 5000);
     return checkAccessibility(this.bridge, options);
   }
 
   /**
    * Run all journeys with a specific tag
    */
-  async runJourneysByTag(tag: string, options: UXRunOptions = {}): Promise<UXRunResult[]> {
+  async runJourneysByTag(
+    tag: string,
+    options: UXRunOptions = {},
+  ): Promise<UXRunResult[]> {
     const journeys = getJourneysByTag(tag);
     return this.runJourneys(journeys, options);
   }
@@ -105,7 +132,10 @@ export class UXOrchestrator {
   /**
    * Run multiple journeys sequentially
    */
-  private async runJourneys(journeys: Journey[], options: UXRunOptions): Promise<UXRunResult[]> {
+  private async runJourneys(
+    journeys: Journey[],
+    options: UXRunOptions,
+  ): Promise<UXRunResult[]> {
     const results: UXRunResult[] = [];
     for (const journey of journeys) {
       const result = await this.runCustomJourney(journey, options);
@@ -128,7 +158,7 @@ export class UXOrchestrator {
       passed: result.passed ? 1 : 0,
       summaryJson: JSON.stringify({
         stepsTotal: result.steps.length,
-        stepsPassed: result.steps.filter(s => s.status === 'passed').length,
+        stepsPassed: result.steps.filter((s) => s.status === "passed").length,
         accessibilityIssues: result.accessibilityIssues.length,
         screenshots: result.screenshots.length,
         durationMs: result.durationMs,

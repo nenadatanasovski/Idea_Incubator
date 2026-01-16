@@ -3,9 +3,14 @@
 // List of viability risks
 // =============================================================================
 
-import { useState } from 'react';
-import { AlertTriangle, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
-import type { RisksListProps, ViabilityRisk } from '../../types/ideation';
+import { useState } from "react";
+import {
+  AlertTriangle,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import type { RisksListProps, ViabilityRisk } from "../../types/ideation";
 
 export function RisksList({ risks, maxDisplay = 3 }: RisksListProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -18,7 +23,9 @@ export function RisksList({ risks, maxDisplay = 3 }: RisksListProps) {
 
   return (
     <div className="risks-list">
-      <h4 className="text-xs font-medium text-gray-700 mb-2">Identified Risks</h4>
+      <h4 className="text-xs font-medium text-gray-700 mb-2">
+        Identified Risks
+      </h4>
       <div className="space-y-2">
         {visibleRisks.map((risk, index) => (
           <RiskItem key={risk.id || index} risk={risk} />
@@ -47,30 +54,30 @@ export function RisksList({ risks, maxDisplay = 3 }: RisksListProps) {
 function RiskItem({ risk }: { risk: ViabilityRisk }) {
   const getSeverityStyles = () => {
     switch (risk.severity) {
-      case 'critical':
-        return 'text-red-600 bg-red-50 border-red-200';
-      case 'high':
-        return 'text-orange-600 bg-orange-50 border-orange-200';
-      case 'medium':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'low':
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+      case "critical":
+        return "text-red-600 bg-red-50 border-red-200";
+      case "high":
+        return "text-orange-600 bg-orange-50 border-orange-200";
+      case "medium":
+        return "text-yellow-600 bg-yellow-50 border-yellow-200";
+      case "low":
+        return "text-gray-600 bg-gray-50 border-gray-200";
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+        return "text-gray-600 bg-gray-50 border-gray-200";
     }
   };
 
   const getRiskTypeLabel = () => {
     const typeLabels: Record<string, string> = {
-      impossible: 'impossible',
-      unrealistic: 'unrealistic',
-      too_complex: 'too complex',
-      too_vague: 'too vague',
-      saturated_market: 'saturated market',
-      wrong_timing: 'wrong timing',
-      resource_mismatch: 'resource mismatch',
+      impossible: "impossible",
+      unrealistic: "unrealistic",
+      too_complex: "too complex",
+      too_vague: "too vague",
+      saturated_market: "saturated market",
+      wrong_timing: "wrong timing",
+      resource_mismatch: "resource mismatch",
     };
-    return typeLabels[risk.riskType] || risk.riskType.replace(/_/g, ' ');
+    return typeLabels[risk.riskType] || risk.riskType.replace(/_/g, " ");
   };
 
   return (
@@ -80,7 +87,9 @@ function RiskItem({ risk }: { risk: ViabilityRisk }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-medium">{getRiskTypeLabel()}</span>
-            <span className={`text-xs px-1.5 py-0.5 rounded ${getSeverityStyles()}`}>
+            <span
+              className={`text-xs px-1.5 py-0.5 rounded ${getSeverityStyles()}`}
+            >
               {risk.severity}
             </span>
           </div>

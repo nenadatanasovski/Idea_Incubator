@@ -101,14 +101,14 @@ This document provides **complete technical specifications** for developers impl
 
 ### 1.2 Component Responsibilities
 
-| Component | Responsibility | Key Methods |
-|-----------|----------------|-------------|
-| **SessionManager** | CRUD for ideation sessions, state tracking | `create()`, `load()`, `update()`, `handoff()` |
-| **AgentOrchestrator** | Claude Code CLI communication, response handling | `sendMessage()`, `parseResponse()`, `checkHandoff()` |
-| **MemoryManager** | Markdown file operations for memory | `writeMemory()`, `readMemory()`, `prepareHandoff()` |
-| **ConfidenceCalculator** | Compute confidence score from signals | `calculate()`, `extractSignals()` |
-| **ViabilityCalculator** | Compute viability from evidence | `calculate()`, `detectRisks()`, `checkThreshold()` |
-| **WebSearchService** | Web search via Claude Code CLI tools | `search()`, `parseResults()`, `cacheResults()` |
+| Component                | Responsibility                                   | Key Methods                                          |
+| ------------------------ | ------------------------------------------------ | ---------------------------------------------------- |
+| **SessionManager**       | CRUD for ideation sessions, state tracking       | `create()`, `load()`, `update()`, `handoff()`        |
+| **AgentOrchestrator**    | Claude Code CLI communication, response handling | `sendMessage()`, `parseResponse()`, `checkHandoff()` |
+| **MemoryManager**        | Markdown file operations for memory              | `writeMemory()`, `readMemory()`, `prepareHandoff()`  |
+| **ConfidenceCalculator** | Compute confidence score from signals            | `calculate()`, `extractSignals()`                    |
+| **ViabilityCalculator**  | Compute viability from evidence                  | `calculate()`, `detectRisks()`, `checkThreshold()`   |
+| **WebSearchService**     | Web search via Claude Code CLI tools             | `search()`, `parseResults()`, `cacheResults()`       |
 
 ### 1.3 Claude Code CLI Integration
 
@@ -116,12 +116,12 @@ This system uses the existing Claude Code CLI integration pattern from `utils/an
 
 ```typescript
 // Import the shared client (handles API key vs CLI auth automatically)
-import { client, runClaudeCliWithPrompt } from '../utils/anthropic-client.js';
-import { getConfig } from '../config/index.js';
+import { client, runClaudeCliWithPrompt } from "../utils/anthropic-client.js";
+import { getConfig } from "../config/index.js";
 
 // For standard agent conversations: use client.messages.create()
 const response = await client.messages.create({
-  model: getConfig().model,  // Uses config model (sonnet/opus/haiku)
+  model: getConfig().model, // Uses config model (sonnet/opus/haiku)
   max_tokens: 4096,
   system: IDEATION_AGENT_SYSTEM_PROMPT,
   messages: conversationHistory,
@@ -131,10 +131,10 @@ const response = await client.messages.create({
 const searchResults = await runClaudeCliWithPrompt(
   `Search for market data on: ${query}\n\nReturn as JSON array.`,
   {
-    model: 'sonnet',
-    tools: ['WebSearch'],  // Enables Claude Code's WebSearch tool
+    model: "sonnet",
+    tools: ["WebSearch"], // Enables Claude Code's WebSearch tool
     maxTokens: 2000,
-  }
+  },
 );
 
 // Parse JSON from response (LLM may include preamble)
@@ -146,6 +146,7 @@ const parsed = JSON.parse(jsonMatch[0]);
 ```
 
 **Key patterns from existing codebase:**
+
 - `client.messages.create()` for structured conversations (see `agents/development.ts`)
 - `runClaudeCliWithPrompt()` with `tools: ['WebSearch']` for market research (see `agents/research.ts`)
 - JSON extraction via regex: `response.match(/\{[\s\S]*\}/)` for robust parsing
@@ -368,21 +369,35 @@ CREATE INDEX idx_ideation_signals_session ON ideation_signals(session_id);
 // CORE TYPES
 // ============================================================================
 
-export type SessionStatus = 'active' | 'completed' | 'abandoned';
-export type SessionPhase = 'exploring' | 'narrowing' | 'validating' | 'refining';
-export type CandidateStatus = 'forming' | 'active' | 'captured' | 'discarded' | 'saved';
+export type SessionStatus = "active" | "completed" | "abandoned";
+export type SessionPhase =
+  | "exploring"
+  | "narrowing"
+  | "validating"
+  | "refining";
+export type CandidateStatus =
+  | "forming"
+  | "active"
+  | "captured"
+  | "discarded"
+  | "saved";
 export type RiskType =
-  | 'impossible'
-  | 'unrealistic'
-  | 'too_complex'
-  | 'too_vague'
-  | 'saturated_market'
-  | 'wrong_timing'
-  | 'resource_mismatch';
-export type RiskSeverity = 'critical' | 'high' | 'medium' | 'low';
-export type MessageRole = 'user' | 'assistant' | 'system';
-export type SignalType = 'self_discovery' | 'market_discovery' | 'narrowing' | 'confidence' | 'viability';
-export type ButtonStyle = 'primary' | 'secondary' | 'outline' | 'danger';
+  | "impossible"
+  | "unrealistic"
+  | "too_complex"
+  | "too_vague"
+  | "saturated_market"
+  | "wrong_timing"
+  | "resource_mismatch";
+export type RiskSeverity = "critical" | "high" | "medium" | "low";
+export type MessageRole = "user" | "assistant" | "system";
+export type SignalType =
+  | "self_discovery"
+  | "market_discovery"
+  | "narrowing"
+  | "confidence"
+  | "viability";
+export type ButtonStyle = "primary" | "secondary" | "outline" | "danger";
 
 // ============================================================================
 // SESSION TYPES
@@ -423,8 +438,8 @@ export interface IdeaCandidate {
   sessionId: string;
   title: string;
   summary: string | null;
-  confidence: number;  // 0-100
-  viability: number;   // 0-100
+  confidence: number; // 0-100
+  viability: number; // 0-100
   userSuggested: boolean;
   status: CandidateStatus;
   capturedIdeaId: string | null;
@@ -461,7 +476,14 @@ export interface ButtonOption {
 
 export interface FormField {
   id: string;
-  type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'slider' | 'dropdown' | 'date';
+  type:
+    | "text"
+    | "textarea"
+    | "radio"
+    | "checkbox"
+    | "slider"
+    | "dropdown"
+    | "date";
   label: string;
   placeholder?: string;
   required?: boolean;
@@ -518,7 +540,7 @@ export interface IdeaCandidateUpdate {
 }
 
 export interface ViabilityIntervention {
-  type: 'warning' | 'critical';
+  type: "warning" | "critical";
   message: string;
   risks: ViabilityRisk[];
   options: ButtonOption[];
@@ -532,25 +554,25 @@ export interface ExtractedSignal {
   type: SignalType;
   key: string;
   value: string;
-  confidence: number;  // 0.0-1.0
-  source: 'user_message' | 'agent_inference' | 'web_search';
+  confidence: number; // 0.0-1.0
+  source: "user_message" | "agent_inference" | "web_search";
   messageId?: string;
 }
 
 export interface SelfDiscoveryState {
   impactVision: {
-    level: 'world' | 'country' | 'city' | 'community' | null;
+    level: "world" | "country" | "city" | "community" | null;
     description: string | null;
     confidence: number;
   };
   frustrations: Array<{
     description: string;
     source: string;
-    severity: 'high' | 'medium' | 'low';
+    severity: "high" | "medium" | "low";
   }>;
   expertise: Array<{
     area: string;
-    depth: 'expert' | 'competent' | 'novice';
+    depth: "expert" | "competent" | "novice";
     evidence: string;
   }>;
   interests: Array<{
@@ -566,8 +588,8 @@ export interface SelfDiscoveryState {
   constraints: {
     location: { fixed: boolean; target: string | null };
     timeHoursPerWeek: number | null;
-    capital: 'bootstrap' | 'seeking_funding' | null;
-    riskTolerance: 'low' | 'medium' | 'high' | null;
+    capital: "bootstrap" | "seeking_funding" | null;
+    riskTolerance: "low" | "medium" | "high" | null;
   };
 }
 
@@ -582,7 +604,7 @@ export interface MarketDiscoveryState {
   gaps: Array<{
     description: string;
     evidence: string;
-    relevance: 'high' | 'medium' | 'low';
+    relevance: "high" | "medium" | "low";
   }>;
   timingSignals: Array<{
     signal: string;
@@ -625,19 +647,19 @@ export interface NarrowingState {
 // ============================================================================
 
 export type MemoryFileType =
-  | 'self_discovery'
-  | 'market_discovery'
-  | 'narrowing_state'
-  | 'conversation_summary'
-  | 'idea_candidate'
-  | 'viability_assessment'
-  | 'handoff_notes';
+  | "self_discovery"
+  | "market_discovery"
+  | "narrowing_state"
+  | "conversation_summary"
+  | "idea_candidate"
+  | "viability_assessment"
+  | "handoff_notes";
 
 export interface MemoryFile {
   id: string;
   sessionId: string;
   fileType: MemoryFileType;
-  content: string;  // Markdown
+  content: string; // Markdown
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -653,14 +675,14 @@ export interface HandoffPackage {
   };
   immediateNextSteps: string[];
   userRapport: {
-    communicationStyle: 'verbose' | 'terse' | 'analytical' | 'emotional';
-    engagementLevel: 'high' | 'medium' | 'low';
+    communicationStyle: "verbose" | "terse" | "analytical" | "emotional";
+    engagementLevel: "high" | "medium" | "low";
     topicsThatEnergize: string[];
     topicsToAvoid: string[];
   };
   userSuggestedIdeas: Array<{
     idea: string;
-    status: 'exploring' | 'validated' | 'flagged';
+    status: "exploring" | "validated" | "flagged";
   }>;
   criticalContext: string;
 }
@@ -1006,17 +1028,17 @@ interface ConfidenceInput {
   marketDiscovery: MarketDiscoveryState;
   narrowingState: NarrowingState;
   candidate: Partial<IdeaCandidate>;
-  userConfirmations: number;  // Times user expressed resonance
+  userConfirmations: number; // Times user expressed resonance
 }
 
 interface ConfidenceBreakdown {
   total: number;
   components: {
-    problemDefinition: number;   // 0-25 points
-    targetUser: number;          // 0-20 points
-    solutionDirection: number;   // 0-20 points
-    differentiation: number;     // 0-20 points
-    userFit: number;             // 0-15 points
+    problemDefinition: number; // 0-25 points
+    targetUser: number; // 0-20 points
+    solutionDirection: number; // 0-20 points
+    differentiation: number; // 0-20 points
+    userFit: number; // 0-15 points
   };
   missingAreas: string[];
 }
@@ -1041,26 +1063,30 @@ function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown {
 
   // Has frustration with specifics? (+10)
   if (input.selfDiscovery.frustrations.length > 0) {
-    const highSeverity = input.selfDiscovery.frustrations.filter(f => f.severity === 'high');
+    const highSeverity = input.selfDiscovery.frustrations.filter(
+      (f) => f.severity === "high",
+    );
     if (highSeverity.length > 0) {
       problemScore += 10;
     } else {
       problemScore += 5;
     }
   } else {
-    breakdown.missingAreas.push('specific problem or frustration');
+    breakdown.missingAreas.push("specific problem or frustration");
   }
 
   // Market validates problem? (+10)
   if (input.marketDiscovery.gaps.length > 0) {
-    const highRelevance = input.marketDiscovery.gaps.filter(g => g.relevance === 'high');
+    const highRelevance = input.marketDiscovery.gaps.filter(
+      (g) => g.relevance === "high",
+    );
     if (highRelevance.length > 0) {
       problemScore += 10;
     } else {
       problemScore += 5;
     }
   } else {
-    breakdown.missingAreas.push('market-validated problem');
+    breakdown.missingAreas.push("market-validated problem");
   }
 
   // Clear problem statement in candidate? (+5)
@@ -1083,7 +1109,7 @@ function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown {
       targetScore += 5;
     }
   } else {
-    breakdown.missingAreas.push('clear target customer type');
+    breakdown.missingAreas.push("clear target customer type");
   }
 
   // Location context established? (+5)
@@ -1107,7 +1133,7 @@ function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown {
   if (input.narrowingState.productType.value) {
     solutionScore += 7;
   } else {
-    breakdown.missingAreas.push('product type (digital/physical/service)');
+    breakdown.missingAreas.push("product type (digital/physical/service)");
   }
 
   // Has technical depth assessed? (+7)
@@ -1119,7 +1145,7 @@ function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown {
   if (input.candidate.title && input.candidate.title.length > 5) {
     solutionScore += 6;
   } else {
-    breakdown.missingAreas.push('concrete solution direction');
+    breakdown.missingAreas.push("concrete solution direction");
   }
 
   breakdown.components.solutionDirection = Math.min(20, solutionScore);
@@ -1133,19 +1159,23 @@ function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown {
   if (input.marketDiscovery.competitors.length > 0) {
     diffScore += 8;
   } else {
-    breakdown.missingAreas.push('competitor awareness');
+    breakdown.missingAreas.push("competitor awareness");
   }
 
   // Gaps or weaknesses in competitors found? (+7)
-  const hasCompetitorWeaknesses = input.marketDiscovery.competitors.some(c => c.weaknesses.length > 0);
+  const hasCompetitorWeaknesses = input.marketDiscovery.competitors.some(
+    (c) => c.weaknesses.length > 0,
+  );
   if (hasCompetitorWeaknesses) {
     diffScore += 7;
   }
 
   // User expertise aligns with gap? (+5)
-  const expertiseAreas = input.selfDiscovery.expertise.map(e => e.area.toLowerCase());
-  const hasExpertiseMatch = input.marketDiscovery.gaps.some(g =>
-    expertiseAreas.some(e => g.description.toLowerCase().includes(e))
+  const expertiseAreas = input.selfDiscovery.expertise.map((e) =>
+    e.area.toLowerCase(),
+  );
+  const hasExpertiseMatch = input.marketDiscovery.gaps.some((g) =>
+    expertiseAreas.some((e) => g.description.toLowerCase().includes(e)),
   );
   if (hasExpertiseMatch) {
     diffScore += 5;
@@ -1218,11 +1248,11 @@ interface ViabilityInput {
 interface ViabilityBreakdown {
   total: number;
   components: {
-    marketExists: number;           // 0-25 points
-    technicalFeasibility: number;   // 0-20 points
-    competitiveSpace: number;       // 0-20 points
-    resourceReality: number;        // 0-20 points
-    clarityScore: number;           // 0-15 points
+    marketExists: number; // 0-25 points
+    technicalFeasibility: number; // 0-20 points
+    competitiveSpace: number; // 0-20 points
+    resourceReality: number; // 0-20 points
+    clarityScore: number; // 0-15 points
   };
   risks: ViabilityRisk[];
   requiresIntervention: boolean;
@@ -1230,7 +1260,7 @@ interface ViabilityBreakdown {
 
 function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   const breakdown: ViabilityBreakdown = {
-    total: 100,  // Start at 100, subtract for issues
+    total: 100, // Start at 100, subtract for issues
     components: {
       marketExists: 25,
       technicalFeasibility: 20,
@@ -1247,17 +1277,21 @@ function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // ============================================================================
 
   // No market data found? (-15)
-  if (input.marketDiscovery.competitors.length === 0 &&
-      input.marketDiscovery.gaps.length === 0) {
+  if (
+    input.marketDiscovery.competitors.length === 0 &&
+    input.marketDiscovery.gaps.length === 0
+  ) {
     breakdown.components.marketExists -= 15;
     breakdown.risks.push({
       id: generateId(),
-      candidateId: input.candidate.id || '',
-      riskType: 'too_vague',
-      description: 'No market data found - market may not exist or idea is too vague',
+      candidateId: input.candidate.id || "",
+      riskType: "too_vague",
+      description:
+        "No market data found - market may not exist or idea is too vague",
       evidenceUrl: null,
-      evidenceText: 'Web search returned no relevant competitors or market gaps',
-      severity: 'high',
+      evidenceText:
+        "Web search returned no relevant competitors or market gaps",
+      severity: "high",
       userAcknowledged: false,
       userResponse: null,
       createdAt: new Date(),
@@ -1266,17 +1300,19 @@ function calculateViability(input: ViabilityInput): ViabilityBreakdown {
 
   // Failed attempts with no clear differentiation? (-10)
   const hasFailedAttempts = input.marketDiscovery.failedAttempts.length > 0;
-  const hasClearDifferentiation = input.marketDiscovery.gaps.some(g => g.relevance === 'high');
+  const hasClearDifferentiation = input.marketDiscovery.gaps.some(
+    (g) => g.relevance === "high",
+  );
   if (hasFailedAttempts && !hasClearDifferentiation) {
     breakdown.components.marketExists -= 10;
     breakdown.risks.push({
       id: generateId(),
-      candidateId: input.candidate.id || '',
-      riskType: 'wrong_timing',
+      candidateId: input.candidate.id || "",
+      riskType: "wrong_timing",
       description: `Similar attempts have failed: ${input.marketDiscovery.failedAttempts[0].what}`,
       evidenceUrl: input.marketDiscovery.failedAttempts[0].source,
       evidenceText: input.marketDiscovery.failedAttempts[0].why,
-      severity: 'medium',
+      severity: "medium",
       userAcknowledged: false,
       userResponse: null,
       createdAt: new Date(),
@@ -1289,25 +1325,25 @@ function calculateViability(input: ViabilityInput): ViabilityBreakdown {
 
   // Check for impossible technology requirements
   const impossibleKeywords = [
-    'does not exist',
-    'impossible',
-    'no solution',
-    'years away',
-    'not technically feasible',
+    "does not exist",
+    "impossible",
+    "no solution",
+    "years away",
+    "not technically feasible",
   ];
 
   for (const result of input.webSearchResults) {
     const snippetLower = result.snippet.toLowerCase();
-    if (impossibleKeywords.some(kw => snippetLower.includes(kw))) {
+    if (impossibleKeywords.some((kw) => snippetLower.includes(kw))) {
       breakdown.components.technicalFeasibility -= 15;
       breakdown.risks.push({
         id: generateId(),
-        candidateId: input.candidate.id || '',
-        riskType: 'impossible',
-        description: 'Technology may not exist or be feasible',
+        candidateId: input.candidate.id || "",
+        riskType: "impossible",
+        description: "Technology may not exist or be feasible",
         evidenceUrl: result.url,
         evidenceText: result.snippet,
-        severity: 'critical',
+        severity: "critical",
         userAcknowledged: false,
         userResponse: null,
         createdAt: new Date(),
@@ -1321,12 +1357,12 @@ function calculateViability(input: ViabilityInput): ViabilityBreakdown {
     breakdown.components.technicalFeasibility -= 10;
     breakdown.risks.push({
       id: generateId(),
-      candidateId: input.candidate.id || '',
-      riskType: 'resource_mismatch',
-      description: `Multiple skill gaps identified: ${input.selfDiscovery.skills.gaps.join(', ')}`,
+      candidateId: input.candidate.id || "",
+      riskType: "resource_mismatch",
+      description: `Multiple skill gaps identified: ${input.selfDiscovery.skills.gaps.join(", ")}`,
       evidenceUrl: null,
-      evidenceText: 'Based on skill assessment during conversation',
-      severity: 'medium',
+      evidenceText: "Based on skill assessment during conversation",
+      severity: "medium",
       userAcknowledged: false,
       userResponse: null,
       createdAt: new Date(),
@@ -1342,20 +1378,26 @@ function calculateViability(input: ViabilityInput): ViabilityBreakdown {
     breakdown.components.competitiveSpace -= 15;
     breakdown.risks.push({
       id: generateId(),
-      candidateId: input.candidate.id || '',
-      riskType: 'saturated_market',
+      candidateId: input.candidate.id || "",
+      riskType: "saturated_market",
       description: `Highly competitive market with ${input.marketDiscovery.competitors.length}+ competitors`,
       evidenceUrl: null,
-      evidenceText: `Competitors include: ${input.marketDiscovery.competitors.slice(0, 5).map(c => c.name).join(', ')}`,
-      severity: 'high',
+      evidenceText: `Competitors include: ${input.marketDiscovery.competitors
+        .slice(0, 5)
+        .map((c) => c.name)
+        .join(", ")}`,
+      severity: "high",
       userAcknowledged: false,
       userResponse: null,
       createdAt: new Date(),
     });
   }
   // 5-10 competitors without clear gap? (-10)
-  else if (input.marketDiscovery.competitors.length > 5 &&
-           input.marketDiscovery.gaps.filter(g => g.relevance === 'high').length === 0) {
+  else if (
+    input.marketDiscovery.competitors.length > 5 &&
+    input.marketDiscovery.gaps.filter((g) => g.relevance === "high").length ===
+      0
+  ) {
     breakdown.components.competitiveSpace -= 10;
   }
 
@@ -1364,20 +1406,26 @@ function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // ============================================================================
 
   // Check for resource requirements in search results
-  const highCapitalKeywords = ['million', 'funding required', 'venture capital', 'significant investment'];
+  const highCapitalKeywords = [
+    "million",
+    "funding required",
+    "venture capital",
+    "significant investment",
+  ];
   for (const result of input.webSearchResults) {
     const snippetLower = result.snippet.toLowerCase();
-    if (highCapitalKeywords.some(kw => snippetLower.includes(kw))) {
-      if (input.selfDiscovery.constraints.capital === 'bootstrap') {
+    if (highCapitalKeywords.some((kw) => snippetLower.includes(kw))) {
+      if (input.selfDiscovery.constraints.capital === "bootstrap") {
         breakdown.components.resourceReality -= 15;
         breakdown.risks.push({
           id: generateId(),
-          candidateId: input.candidate.id || '',
-          riskType: 'unrealistic',
-          description: 'Market typically requires significant capital investment',
+          candidateId: input.candidate.id || "",
+          riskType: "unrealistic",
+          description:
+            "Market typically requires significant capital investment",
           evidenceUrl: result.url,
           evidenceText: result.snippet,
-          severity: 'high',
+          severity: "high",
           userAcknowledged: false,
           userResponse: null,
           createdAt: new Date(),
@@ -1388,18 +1436,21 @@ function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   }
 
   // Time constraints vs complexity mismatch? (-10)
-  if (input.selfDiscovery.constraints.timeHoursPerWeek !== null &&
-      input.selfDiscovery.constraints.timeHoursPerWeek < 10 &&
-      input.narrowingState.technicalDepth.value === 'full_custom') {
+  if (
+    input.selfDiscovery.constraints.timeHoursPerWeek !== null &&
+    input.selfDiscovery.constraints.timeHoursPerWeek < 10 &&
+    input.narrowingState.technicalDepth.value === "full_custom"
+  ) {
     breakdown.components.resourceReality -= 10;
     breakdown.risks.push({
       id: generateId(),
-      candidateId: input.candidate.id || '',
-      riskType: 'resource_mismatch',
-      description: 'Limited time availability vs complex technical requirements',
+      candidateId: input.candidate.id || "",
+      riskType: "resource_mismatch",
+      description:
+        "Limited time availability vs complex technical requirements",
       evidenceUrl: null,
       evidenceText: `${input.selfDiscovery.constraints.timeHoursPerWeek} hours/week for custom development`,
-      severity: 'medium',
+      severity: "medium",
       userAcknowledged: false,
       userResponse: null,
       createdAt: new Date(),
@@ -1415,12 +1466,12 @@ function calculateViability(input: ViabilityInput): ViabilityBreakdown {
     breakdown.components.clarityScore -= 10;
     breakdown.risks.push({
       id: generateId(),
-      candidateId: input.candidate.id || '',
-      riskType: 'too_vague',
-      description: 'Target customer not clearly defined',
+      candidateId: input.candidate.id || "",
+      riskType: "too_vague",
+      description: "Target customer not clearly defined",
       evidenceUrl: null,
-      evidenceText: 'Cannot validate market without clear target user',
-      severity: 'medium',
+      evidenceText: "Cannot validate market without clear target user",
+      severity: "medium",
       userAcknowledged: false,
       userResponse: null,
       createdAt: new Date(),
@@ -1436,11 +1487,26 @@ function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // TOTAL & INTERVENTION CHECK
   // ============================================================================
 
-  breakdown.components.marketExists = Math.max(0, breakdown.components.marketExists);
-  breakdown.components.technicalFeasibility = Math.max(0, breakdown.components.technicalFeasibility);
-  breakdown.components.competitiveSpace = Math.max(0, breakdown.components.competitiveSpace);
-  breakdown.components.resourceReality = Math.max(0, breakdown.components.resourceReality);
-  breakdown.components.clarityScore = Math.max(0, breakdown.components.clarityScore);
+  breakdown.components.marketExists = Math.max(
+    0,
+    breakdown.components.marketExists,
+  );
+  breakdown.components.technicalFeasibility = Math.max(
+    0,
+    breakdown.components.technicalFeasibility,
+  );
+  breakdown.components.competitiveSpace = Math.max(
+    0,
+    breakdown.components.competitiveSpace,
+  );
+  breakdown.components.resourceReality = Math.max(
+    0,
+    breakdown.components.resourceReality,
+  );
+  breakdown.components.clarityScore = Math.max(
+    0,
+    breakdown.components.clarityScore,
+  );
 
   breakdown.total =
     breakdown.components.marketExists +
@@ -1452,7 +1518,7 @@ function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // Intervention required if any critical risk OR total < 50
   breakdown.requiresIntervention =
     breakdown.total < 50 ||
-    breakdown.risks.some(r => r.severity === 'critical');
+    breakdown.risks.some((r) => r.severity === "critical");
 
   return breakdown;
 }
@@ -1491,14 +1557,14 @@ interface TokenUsage {
 
 function calculateTokenUsage(
   conversationHistory: IdeationMessage[],
-  currentMessage: string
+  currentMessage: string,
 ): TokenUsage {
   // Simple estimation: ~4 chars per token for English
   const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
 
   const conversationTokens = conversationHistory.reduce(
     (sum, msg) => sum + estimateTokens(msg.content),
-    0
+    0,
   );
   const currentMessageTokens = estimateTokens(currentMessage);
 
@@ -1544,36 +1610,43 @@ async function prepareHandoff(
     candidate: IdeaCandidate | null;
     confidence: number;
     viability: number;
-  }
+  },
 ): Promise<HandoffPreparation> {
   // Generate conversation summary (use LLM for this)
-  const conversationSummary = await generateConversationSummary(conversationHistory);
+  const conversationSummary =
+    await generateConversationSummary(conversationHistory);
 
   // Generate memory files
   const memoryFiles = {
     selfDiscovery: formatSelfDiscoveryMarkdown(currentState.selfDiscovery),
-    marketDiscovery: formatMarketDiscoveryMarkdown(currentState.marketDiscovery),
+    marketDiscovery: formatMarketDiscoveryMarkdown(
+      currentState.marketDiscovery,
+    ),
     narrowingState: formatNarrowingStateMarkdown(currentState.narrowingState),
     conversationSummary,
     ideaCandidate: currentState.candidate
       ? formatCandidateMarkdown(currentState.candidate)
-      : '# No Candidate Yet\n\nNo idea candidate has formed.',
+      : "# No Candidate Yet\n\nNo idea candidate has formed.",
     viabilityAssessment: formatViabilityMarkdown(currentState.viability),
-    handoffNotes: generateHandoffNotes(session, currentState, conversationHistory),
+    handoffNotes: generateHandoffNotes(
+      session,
+      currentState,
+      conversationHistory,
+    ),
   };
 
   // Message to continue conversation naturally
   const lastUserMessage = conversationHistory
-    .filter(m => m.role === 'user')
+    .filter((m) => m.role === "user")
     .pop();
 
   const resumptionMessage = `Let me take a moment to organize my thoughts on everything we've discussed...
 
 Alright, I've got it all mapped out. ${
-  lastUserMessage
-    ? `You were telling me about ${extractLastTopic(lastUserMessage.content)}...`
-    : 'Where would you like to continue?'
-}`;
+    lastUserMessage
+      ? `You were telling me about ${extractLastTopic(lastUserMessage.content)}...`
+      : "Where would you like to continue?"
+  }`;
 
   return { memoryFiles, resumptionMessage };
 }
@@ -1581,32 +1654,32 @@ Alright, I've got it all mapped out. ${
 function generateHandoffNotes(
   session: IdeationSession,
   state: any,
-  history: IdeationMessage[]
+  history: IdeationMessage[],
 ): string {
   const lastUserMessages = history
-    .filter(m => m.role === 'user')
+    .filter((m) => m.role === "user")
     .slice(-5)
-    .map(m => m.content);
+    .map((m) => m.content);
 
   return `# Agent Handoff Notes
 
 ## Session Summary
-Session ${session.id} has been exploring ${state.candidate?.title || 'ideas'}
+Session ${session.id} has been exploring ${state.candidate?.title || "ideas"}
 with the user. Current phase: ${session.currentPhase}.
 
 ${generateBriefSummary(history)}
 
 ## Current State
-- Idea candidate: ${state.candidate ? 'Yes' : 'No'}
-${state.candidate ? `- Title: ${state.candidate.title}` : ''}
+- Idea candidate: ${state.candidate ? "Yes" : "No"}
+${state.candidate ? `- Title: ${state.candidate.title}` : ""}
 - Confidence level: ${state.confidence}%
 - Viability level: ${state.viability}%
 - Conversation phase: ${session.currentPhase}
 
 ## Immediate Next Steps
 1. Continue exploring ${getNextExplorationArea(state)}
-2. ${state.viability < 75 ? 'Address viability concerns' : 'Validate with more market research'}
-3. ${state.confidence < 75 ? 'Clarify remaining gaps' : 'Prepare for capture'}
+2. ${state.viability < 75 ? "Address viability concerns" : "Validate with more market research"}
+3. ${state.confidence < 75 ? "Clarify remaining gaps" : "Prepare for capture"}
 
 ## User Rapport Notes
 - Communication style: ${detectCommunicationStyle(lastUserMessages)}
@@ -1642,7 +1715,7 @@ interface ExtractedSignals {
 function extractSignals(
   userMessage: string,
   agentResponse: ParsedAgentResponse,
-  existingState: SessionState
+  existingState: SessionState,
 ): ExtractedSignals {
   // Primary: LLM-provided signals (if agent returned them)
   const llmSignals = agentResponse.signals || {};
@@ -1658,7 +1731,10 @@ function extractSignals(
 // RULE-BASED SIGNAL EXTRACTION (Fallback)
 // ============================================================================
 
-function extractSignalsFromText(userMessage: string, agentReply: string): ExtractedSignals {
+function extractSignalsFromText(
+  userMessage: string,
+  agentReply: string,
+): ExtractedSignals {
   const signals: ExtractedSignals = {
     selfDiscovery: {},
     marketDiscovery: {},
@@ -1671,26 +1747,36 @@ function extractSignalsFromText(userMessage: string, agentReply: string): Extrac
   // FRUSTRATION DETECTION
   // ---------------------------------------------------------------------------
   const frustrationPatterns = [
-    { pattern: /i('m| am) (so )?frustrat(ed|ing)/i, severity: 'high' as const },
-    { pattern: /drives me (crazy|nuts|insane)/i, severity: 'high' as const },
-    { pattern: /i hate (when|how|that)/i, severity: 'high' as const },
-    { pattern: /annoy(s|ed|ing)/i, severity: 'medium' as const },
-    { pattern: /wish (i|there was|someone would)/i, severity: 'medium' as const },
-    { pattern: /pain(ful)? (to|when)/i, severity: 'medium' as const },
-    { pattern: /takes (forever|too long|way too)/i, severity: 'medium' as const },
-    { pattern: /hard(er)? than it should/i, severity: 'medium' as const },
-    { pattern: /doesn't work (well|properly|right)/i, severity: 'low' as const },
-    { pattern: /could be better/i, severity: 'low' as const },
+    { pattern: /i('m| am) (so )?frustrat(ed|ing)/i, severity: "high" as const },
+    { pattern: /drives me (crazy|nuts|insane)/i, severity: "high" as const },
+    { pattern: /i hate (when|how|that)/i, severity: "high" as const },
+    { pattern: /annoy(s|ed|ing)/i, severity: "medium" as const },
+    {
+      pattern: /wish (i|there was|someone would)/i,
+      severity: "medium" as const,
+    },
+    { pattern: /pain(ful)? (to|when)/i, severity: "medium" as const },
+    {
+      pattern: /takes (forever|too long|way too)/i,
+      severity: "medium" as const,
+    },
+    { pattern: /hard(er)? than it should/i, severity: "medium" as const },
+    {
+      pattern: /doesn't work (well|properly|right)/i,
+      severity: "low" as const,
+    },
+    { pattern: /could be better/i, severity: "low" as const },
   ];
 
   for (const { pattern, severity } of frustrationPatterns) {
     const match = userMessage.match(pattern);
     if (match) {
       const context = extractSurroundingContext(userMessage, match.index!, 100);
-      signals.selfDiscovery.frustrations = signals.selfDiscovery.frustrations || [];
+      signals.selfDiscovery.frustrations =
+        signals.selfDiscovery.frustrations || [];
       signals.selfDiscovery.frustrations.push({
         description: context,
-        source: 'user_message',
+        source: "user_message",
         severity,
       });
       break; // Only capture strongest frustration per message
@@ -1701,10 +1787,19 @@ function extractSignalsFromText(userMessage: string, agentReply: string): Extrac
   // CUSTOMER TYPE DETECTION
   // ---------------------------------------------------------------------------
   const customerPatterns = [
-    { pattern: /\b(B2B|business(es)?|enterprise|companies|corporate)\b/i, value: 'B2B' },
-    { pattern: /\b(B2C|consumer|individual|people|everyone|person)\b/i, value: 'B2C' },
-    { pattern: /\b(marketplace|platform|two[- ]sided)\b/i, value: 'Marketplace' },
-    { pattern: /\b(small business|SMB|SME|startup)\b/i, value: 'B2B_SMB' },
+    {
+      pattern: /\b(B2B|business(es)?|enterprise|companies|corporate)\b/i,
+      value: "B2B",
+    },
+    {
+      pattern: /\b(B2C|consumer|individual|people|everyone|person)\b/i,
+      value: "B2C",
+    },
+    {
+      pattern: /\b(marketplace|platform|two[- ]sided)\b/i,
+      value: "Marketplace",
+    },
+    { pattern: /\b(small business|SMB|SME|startup)\b/i, value: "B2B_SMB" },
   ];
 
   for (const { pattern, value } of customerPatterns) {
@@ -1721,10 +1816,16 @@ function extractSignalsFromText(userMessage: string, agentReply: string): Extrac
   // PRODUCT TYPE DETECTION
   // ---------------------------------------------------------------------------
   const productPatterns = [
-    { pattern: /\b(app|software|saas|platform|website|tool)\b/i, value: 'Digital' },
-    { pattern: /\b(physical|hardware|device|gadget|product)\b/i, value: 'Physical' },
-    { pattern: /\b(service|consulting|agency|freelance)\b/i, value: 'Service' },
-    { pattern: /\b(marketplace|platform connecting)\b/i, value: 'Marketplace' },
+    {
+      pattern: /\b(app|software|saas|platform|website|tool)\b/i,
+      value: "Digital",
+    },
+    {
+      pattern: /\b(physical|hardware|device|gadget|product)\b/i,
+      value: "Physical",
+    },
+    { pattern: /\b(service|consulting|agency|freelance)\b/i, value: "Service" },
+    { pattern: /\b(marketplace|platform connecting)\b/i, value: "Marketplace" },
   ];
 
   for (const { pattern, value } of productPatterns) {
@@ -1741,10 +1842,16 @@ function extractSignalsFromText(userMessage: string, agentReply: string): Extrac
   // GEOGRAPHY DETECTION
   // ---------------------------------------------------------------------------
   const geoPatterns = [
-    { pattern: /\b(local|my city|nearby|neighborhood)\b/i, value: 'Local' },
-    { pattern: /\b(australia|australian|sydney|melbourne|brisbane)\b/i, value: 'Australia' },
-    { pattern: /\b(global|worldwide|international|anywhere)\b/i, value: 'Global' },
-    { pattern: /\b(us|usa|america|states)\b/i, value: 'USA' },
+    { pattern: /\b(local|my city|nearby|neighborhood)\b/i, value: "Local" },
+    {
+      pattern: /\b(australia|australian|sydney|melbourne|brisbane)\b/i,
+      value: "Australia",
+    },
+    {
+      pattern: /\b(global|worldwide|international|anywhere)\b/i,
+      value: "Global",
+    },
+    { pattern: /\b(us|usa|america|states)\b/i, value: "USA" },
   ];
 
   for (const { pattern, value } of geoPatterns) {
@@ -1775,7 +1882,7 @@ function extractSignalsFromText(userMessage: string, agentReply: string): Extrac
       signals.selfDiscovery.expertise = signals.selfDiscovery.expertise || [];
       signals.selfDiscovery.expertise.push({
         area: extractTopicFromContext(context),
-        depth: 'competent', // Conservative estimate
+        depth: "competent", // Conservative estimate
         evidence: context,
       });
     }
@@ -1810,33 +1917,41 @@ function extractSignalsFromText(userMessage: string, agentReply: string): Extrac
   // CONSTRAINT INDICATORS
   // ---------------------------------------------------------------------------
   // Time constraints
-  const timeMatch = userMessage.match(/(\d+)\s*(hours?|hrs?)\s*(per|a|\/)\s*week/i);
+  const timeMatch = userMessage.match(
+    /(\d+)\s*(hours?|hrs?)\s*(per|a|\/)\s*week/i,
+  );
   if (timeMatch) {
     signals.selfDiscovery.constraints = signals.selfDiscovery.constraints || {};
     signals.selfDiscovery.constraints.timeHoursPerWeek = parseInt(timeMatch[1]);
   }
 
   // Capital constraints
-  if (/bootstrap|self[- ]fund|no (outside )?funding|own money/i.test(msgLower)) {
+  if (
+    /bootstrap|self[- ]fund|no (outside )?funding|own money/i.test(msgLower)
+  ) {
     signals.selfDiscovery.constraints = signals.selfDiscovery.constraints || {};
-    signals.selfDiscovery.constraints.capital = 'bootstrap';
+    signals.selfDiscovery.constraints.capital = "bootstrap";
   } else if (/raise|funding|investors|vc|venture/i.test(msgLower)) {
     signals.selfDiscovery.constraints = signals.selfDiscovery.constraints || {};
-    signals.selfDiscovery.constraints.capital = 'seeking_funding';
+    signals.selfDiscovery.constraints.capital = "seeking_funding";
   }
 
   return signals;
 }
 
 // Helper: Extract surrounding context from a match
-function extractSurroundingContext(text: string, matchIndex: number, radius: number): string {
+function extractSurroundingContext(
+  text: string,
+  matchIndex: number,
+  radius: number,
+): string {
   const start = Math.max(0, matchIndex - radius);
   const end = Math.min(text.length, matchIndex + radius);
   let context = text.slice(start, end).trim();
 
   // Add ellipsis if truncated
-  if (start > 0) context = '...' + context;
-  if (end < text.length) context = context + '...';
+  if (start > 0) context = "..." + context;
+  if (end < text.length) context = context + "...";
 
   return context;
 }
@@ -1845,8 +1960,8 @@ function extractSurroundingContext(text: string, matchIndex: number, radius: num
 function extractTopicFromContext(context: string): string {
   // Remove common filler words and extract key phrase
   const cleaned = context
-    .replace(/^.*?(about|with|in|on|for)\s+/i, '')
-    .replace(/[.!?,;].*$/, '')
+    .replace(/^.*?(about|with|in|on|for)\s+/i, "")
+    .replace(/[.!?,;].*$/, "")
     .trim();
 
   return cleaned.slice(0, 50); // Limit length
@@ -1856,7 +1971,7 @@ function extractTopicFromContext(context: string): string {
 function mergeSignals(
   llmSignals: Partial<ExtractedSignals>,
   textSignals: ExtractedSignals,
-  existingState: SessionState
+  existingState: SessionState,
 ): ExtractedSignals {
   // Deep merge with LLM signals taking precedence
   return {
@@ -1869,7 +1984,9 @@ function mergeSignals(
         ...(existingState.selfDiscovery?.frustrations || []),
         ...(textSignals.selfDiscovery?.frustrations || []),
         ...(llmSignals.selfDiscovery?.frustrations || []),
-      ].filter((v, i, a) => a.findIndex(t => t.description === v.description) === i), // Dedupe
+      ].filter(
+        (v, i, a) => a.findIndex((t) => t.description === v.description) === i,
+      ), // Dedupe
     },
     marketDiscovery: {
       ...existingState.marketDiscovery,
@@ -1882,31 +1999,31 @@ function mergeSignals(
       productType: selectHigherConfidence(
         existingState.narrowing?.productType,
         textSignals.narrowing?.productType,
-        llmSignals.narrowing?.productType
+        llmSignals.narrowing?.productType,
       ),
       customerType: selectHigherConfidence(
         existingState.narrowing?.customerType,
         textSignals.narrowing?.customerType,
-        llmSignals.narrowing?.customerType
+        llmSignals.narrowing?.customerType,
       ),
       geography: selectHigherConfidence(
         existingState.narrowing?.geography,
         textSignals.narrowing?.geography,
-        llmSignals.narrowing?.geography
+        llmSignals.narrowing?.geography,
       ),
     },
   };
 }
 
-function selectHigherConfidence<T extends { value: string | null; confidence: number }>(
-  ...options: (T | undefined)[]
-): T {
-  const validOptions = options.filter(o => o && o.value !== null) as T[];
+function selectHigherConfidence<
+  T extends { value: string | null; confidence: number },
+>(...options: (T | undefined)[]): T {
+  const validOptions = options.filter((o) => o && o.value !== null) as T[];
   if (validOptions.length === 0) {
     return { value: null, confidence: 0 } as T;
   }
   return validOptions.reduce((best, current) =>
-    current.confidence > best.confidence ? current : best
+    current.confidence > best.confidence ? current : best,
   );
 }
 ```
@@ -1925,13 +2042,18 @@ Detects when an idea is too vague to validate, triggering intervention.
 
 interface VaguenessAssessment {
   isVague: boolean;
-  score: number;  // 0-100, higher = more vague
+  score: number; // 0-100, higher = more vague
   issues: VaguenessIssue[];
   clarifyingQuestions: string[];
 }
 
 interface VaguenessIssue {
-  type: 'abstract_problem' | 'undefined_user' | 'handwavy_solution' | 'no_scope' | 'buzzword_heavy';
+  type:
+    | "abstract_problem"
+    | "undefined_user"
+    | "handwavy_solution"
+    | "no_scope"
+    | "buzzword_heavy";
   description: string;
   evidence: string;
 }
@@ -1940,17 +2062,17 @@ function assessVagueness(
   candidate: IdeaCandidate | null,
   selfDiscovery: SelfDiscoveryState,
   narrowingState: NarrowingState,
-  conversationHistory: IdeationMessage[]
+  conversationHistory: IdeationMessage[],
 ): VaguenessAssessment {
   const issues: VaguenessIssue[] = [];
   const clarifyingQuestions: string[] = [];
 
   // Get recent user messages for analysis
   const recentUserMessages = conversationHistory
-    .filter(m => m.role === 'user')
+    .filter((m) => m.role === "user")
     .slice(-10)
-    .map(m => m.content)
-    .join(' ');
+    .map((m) => m.content)
+    .join(" ");
 
   // ---------------------------------------------------------------------------
   // VAGUENESS PATTERN DETECTION
@@ -1960,19 +2082,22 @@ function assessVagueness(
   const abstractProblemPatterns = [
     /make (things|it|the world) better/i,
     /improve (the |)(experience|situation|things)/i,
-    /help people/i,  // Too broad without specifics
-    /solve (a|the) problem/i,  // Meta - doesn't say which problem
+    /help people/i, // Too broad without specifics
+    /solve (a|the) problem/i, // Meta - doesn't say which problem
   ];
 
   for (const pattern of abstractProblemPatterns) {
-    if (pattern.test(recentUserMessages) && selfDiscovery.frustrations.length === 0) {
+    if (
+      pattern.test(recentUserMessages) &&
+      selfDiscovery.frustrations.length === 0
+    ) {
       issues.push({
-        type: 'abstract_problem',
-        description: 'Problem statement is too abstract to validate',
-        evidence: recentUserMessages.match(pattern)?.[0] || '',
+        type: "abstract_problem",
+        description: "Problem statement is too abstract to validate",
+        evidence: recentUserMessages.match(pattern)?.[0] || "",
       });
       clarifyingQuestions.push(
-        'Can you describe a specific moment when you experienced this problem? What exactly happened?'
+        "Can you describe a specific moment when you experienced this problem? What exactly happened?",
       );
       break;
     }
@@ -1988,12 +2113,12 @@ function assessVagueness(
   for (const pattern of undefinedUserPatterns) {
     if (pattern.test(recentUserMessages)) {
       issues.push({
-        type: 'undefined_user',
+        type: "undefined_user",
         description: 'Target user is undefined - "everyone" means no one',
-        evidence: recentUserMessages.match(pattern)?.[0] || '',
+        evidence: recentUserMessages.match(pattern)?.[0] || "",
       });
       clarifyingQuestions.push(
-        'Who would be desperate to use this? Not "nice to have" - who NEEDS it?'
+        'Who would be desperate to use this? Not "nice to have" - who NEEDS it?',
       );
       break;
     }
@@ -2001,23 +2126,23 @@ function assessVagueness(
 
   // 3. Handwavy solution
   const handwavySolutionPatterns = [
-    /use (AI|ML|blockchain|technology) to/i,  // Tech as magic wand
+    /use (AI|ML|blockchain|technology) to/i, // Tech as magic wand
     /some (kind|sort|type) of/i,
     /something (like|similar to)/i,
     /basically (just |)a/i,
-    /leverage.*to/i,  // Corporate speak
+    /leverage.*to/i, // Corporate speak
   ];
 
   if (!candidate?.summary || candidate.summary.length < 20) {
     for (const pattern of handwavySolutionPatterns) {
       if (pattern.test(recentUserMessages)) {
         issues.push({
-          type: 'handwavy_solution',
-          description: 'Solution is described in vague terms',
-          evidence: recentUserMessages.match(pattern)?.[0] || '',
+          type: "handwavy_solution",
+          description: "Solution is described in vague terms",
+          evidence: recentUserMessages.match(pattern)?.[0] || "",
         });
         clarifyingQuestions.push(
-          'Walk me through exactly what happens when someone uses this. They open it and then what?'
+          "Walk me through exactly what happens when someone uses this. They open it and then what?",
         );
         break;
       }
@@ -2032,36 +2157,47 @@ function assessVagueness(
 
   if (!hasScope && conversationHistory.length > 10) {
     issues.push({
-      type: 'no_scope',
-      description: 'No clear scope defined after extended conversation',
-      evidence: 'Product type, customer type, and geography all undefined',
+      type: "no_scope",
+      description: "No clear scope defined after extended conversation",
+      evidence: "Product type, customer type, and geography all undefined",
     });
     clarifyingQuestions.push(
-      'Let\'s narrow this down: Would this be software, a physical product, or a service?'
+      "Let's narrow this down: Would this be software, a physical product, or a service?",
     );
   }
 
   // 5. Buzzword heavy
   const buzzwords = [
-    'synergy', 'leverage', 'disrupt', 'revolutionize', 'paradigm',
-    'ecosystem', 'holistic', 'scalable', 'robust', 'seamless',
-    'cutting-edge', 'next-gen', 'innovative', 'game-changing',
+    "synergy",
+    "leverage",
+    "disrupt",
+    "revolutionize",
+    "paradigm",
+    "ecosystem",
+    "holistic",
+    "scalable",
+    "robust",
+    "seamless",
+    "cutting-edge",
+    "next-gen",
+    "innovative",
+    "game-changing",
   ];
 
-  const buzzwordCount = buzzwords.filter(bw =>
-    recentUserMessages.toLowerCase().includes(bw)
+  const buzzwordCount = buzzwords.filter((bw) =>
+    recentUserMessages.toLowerCase().includes(bw),
   ).length;
 
   if (buzzwordCount >= 3) {
     issues.push({
-      type: 'buzzword_heavy',
-      description: 'Description relies on buzzwords instead of specifics',
-      evidence: `Found ${buzzwordCount} buzzwords: ${buzzwords.filter(bw =>
-        recentUserMessages.toLowerCase().includes(bw)
-      ).join(', ')}`,
+      type: "buzzword_heavy",
+      description: "Description relies on buzzwords instead of specifics",
+      evidence: `Found ${buzzwordCount} buzzwords: ${buzzwords
+        .filter((bw) => recentUserMessages.toLowerCase().includes(bw))
+        .join(", ")}`,
     });
     clarifyingQuestions.push(
-      'Let\'s get concrete: What does V1 actually DO? Not the vision - the minimum first version.'
+      "Let's get concrete: What does V1 actually DO? Not the vision - the minimum first version.",
     );
   }
 
@@ -2071,11 +2207,11 @@ function assessVagueness(
   let score = 0;
 
   // Each issue type adds to score
-  score += issues.filter(i => i.type === 'abstract_problem').length * 25;
-  score += issues.filter(i => i.type === 'undefined_user').length * 25;
-  score += issues.filter(i => i.type === 'handwavy_solution').length * 20;
-  score += issues.filter(i => i.type === 'no_scope').length * 15;
-  score += issues.filter(i => i.type === 'buzzword_heavy').length * 15;
+  score += issues.filter((i) => i.type === "abstract_problem").length * 25;
+  score += issues.filter((i) => i.type === "undefined_user").length * 25;
+  score += issues.filter((i) => i.type === "handwavy_solution").length * 20;
+  score += issues.filter((i) => i.type === "no_scope").length * 15;
+  score += issues.filter((i) => i.type === "buzzword_heavy").length * 15;
 
   // Reduce score if we have concrete signals
   if (selfDiscovery.frustrations.length > 0) score -= 15;
@@ -2112,7 +2248,9 @@ function generateGreeting(profile: UserProfile): string {
   const parts: string[] = [];
 
   // Opening
-  parts.push("Welcome! I'm here to help you discover a business idea that's genuinely right for you.");
+  parts.push(
+    "Welcome! I'm here to help you discover a business idea that's genuinely right for you.",
+  );
 
   // Process explanation
   parts.push(`
@@ -2126,24 +2264,39 @@ Feel free to suggest any ideas you've been thinking about — I'll help you expl
   const personalizations: string[] = [];
 
   // Technical skills
-  const technicalSkills = profile.skills?.filter(s =>
-    ['programming', 'software', 'development', 'engineering', 'data', 'design'].some(t =>
-      s.toLowerCase().includes(t)
-    )
-  ) || [];
+  const technicalSkills =
+    profile.skills?.filter((s) =>
+      [
+        "programming",
+        "software",
+        "development",
+        "engineering",
+        "data",
+        "design",
+      ].some((t) => s.toLowerCase().includes(t)),
+    ) || [];
 
   if (technicalSkills.length > 0) {
-    personalizations.push(`technical background in ${technicalSkills.slice(0, 2).join(' and ')}`);
+    personalizations.push(
+      `technical background in ${technicalSkills.slice(0, 2).join(" and ")}`,
+    );
   }
 
   // Domain experience
-  if (profile.experience?.industries && profile.experience.industries.length > 0) {
-    personalizations.push(`experience in ${profile.experience.industries.slice(0, 2).join(' and ')}`);
+  if (
+    profile.experience?.industries &&
+    profile.experience.industries.length > 0
+  ) {
+    personalizations.push(
+      `experience in ${profile.experience.industries.slice(0, 2).join(" and ")}`,
+    );
   }
 
   // Interests from profile
   if (profile.interests && profile.interests.length > 0) {
-    personalizations.push(`interest in ${profile.interests.slice(0, 2).join(' and ')}`);
+    personalizations.push(
+      `interest in ${profile.interests.slice(0, 2).join(" and ")}`,
+    );
   }
 
   // Location
@@ -2152,16 +2305,20 @@ Feel free to suggest any ideas you've been thinking about — I'll help you expl
   }
 
   if (personalizations.length > 0) {
-    parts.push(`\nI've loaded your profile, so I know you have ${personalizations.join(', ')}. Let's use that as our starting point.`);
+    parts.push(
+      `\nI've loaded your profile, so I know you have ${personalizations.join(", ")}. Let's use that as our starting point.`,
+    );
   } else {
-    parts.push(`\nI've loaded your profile. Let's use what I know about you as our starting point.`);
+    parts.push(
+      `\nI've loaded your profile. Let's use what I know about you as our starting point.`,
+    );
   }
 
   // Opening question
   parts.push(`
 What's been occupying your mind lately? Any problems you've noticed, frustrations you've had, or opportunities you've wondered about?`);
 
-  return parts.join('\n');
+  return parts.join("\n");
 }
 
 // Generate greeting with buttons for common starting points
@@ -2173,22 +2330,23 @@ function generateGreetingWithButtons(profile: UserProfile): {
     text: generateGreeting(profile),
     buttons: [
       {
-        id: 'btn_frustration',
-        label: 'Something frustrates me',
-        value: "There's something that frustrates me that I think could be better",
-        style: 'secondary',
+        id: "btn_frustration",
+        label: "Something frustrates me",
+        value:
+          "There's something that frustrates me that I think could be better",
+        style: "secondary",
       },
       {
-        id: 'btn_idea',
-        label: 'I have a rough idea',
+        id: "btn_idea",
+        label: "I have a rough idea",
         value: "I have a rough idea I've been thinking about",
-        style: 'secondary',
+        style: "secondary",
       },
       {
-        id: 'btn_explore',
-        label: 'Help me explore',
+        id: "btn_explore",
+        label: "Help me explore",
         value: "I don't have anything specific, help me explore",
-        style: 'secondary',
+        style: "secondary",
       },
     ],
   };
@@ -2207,46 +2365,53 @@ Analyzes user's communication patterns for handoff context.
  * Used in handoff notes so new agent instance can maintain rapport.
  */
 
-type CommunicationStyle = 'verbose' | 'terse' | 'analytical' | 'emotional';
-type EngagementLevel = 'high' | 'medium' | 'low';
+type CommunicationStyle = "verbose" | "terse" | "analytical" | "emotional";
+type EngagementLevel = "high" | "medium" | "low";
 
 interface CommunicationProfile {
   style: CommunicationStyle;
   engagement: EngagementLevel;
   characteristics: string[];
   topicsThatEnergize: string[];
-  responsePreference: 'detailed' | 'concise' | 'adaptive';
+  responsePreference: "detailed" | "concise" | "adaptive";
 }
 
 function classifyCommunicationStyle(
-  userMessages: string[]
+  userMessages: string[],
 ): CommunicationProfile {
   if (userMessages.length === 0) {
     return {
-      style: 'terse',
-      engagement: 'medium',
+      style: "terse",
+      engagement: "medium",
       characteristics: [],
       topicsThatEnergize: [],
-      responsePreference: 'adaptive',
+      responsePreference: "adaptive",
     };
   }
 
   // ---------------------------------------------------------------------------
   // MESSAGE LENGTH ANALYSIS
   // ---------------------------------------------------------------------------
-  const avgLength = userMessages.reduce((sum, m) => sum + m.length, 0) / userMessages.length;
-  const avgWords = userMessages.reduce((sum, m) => sum + m.split(/\s+/).length, 0) / userMessages.length;
+  const avgLength =
+    userMessages.reduce((sum, m) => sum + m.length, 0) / userMessages.length;
+  const avgWords =
+    userMessages.reduce((sum, m) => sum + m.split(/\s+/).length, 0) /
+    userMessages.length;
 
   // ---------------------------------------------------------------------------
   // STYLE INDICATORS
   // ---------------------------------------------------------------------------
-  const allText = userMessages.join(' ');
+  const allText = userMessages.join(" ");
 
   // Emotional indicators
   const emotionalIndicators = {
     exclamations: (allText.match(/!/g) || []).length,
     emoticons: (allText.match(/[:;][-']?[)D(P]/g) || []).length,
-    emotionalWords: (allText.match(/\b(love|hate|amazing|terrible|excited|frustrated|passionate)\b/gi) || []).length,
+    emotionalWords: (
+      allText.match(
+        /\b(love|hate|amazing|terrible|excited|frustrated|passionate)\b/gi,
+      ) || []
+    ).length,
     allCaps: (allText.match(/\b[A-Z]{3,}\b/g) || []).length,
   };
 
@@ -2259,8 +2424,12 @@ function classifyCommunicationStyle(
   // Analytical indicators
   const analyticalIndicators = {
     numbers: (allText.match(/\d+%?/g) || []).length,
-    comparisons: (allText.match(/\b(compared|versus|vs|than|better|worse)\b/gi) || []).length,
-    hedging: (allText.match(/\b(probably|might|could|perhaps|maybe|possibly)\b/gi) || []).length,
+    comparisons: (
+      allText.match(/\b(compared|versus|vs|than|better|worse)\b/gi) || []
+    ).length,
+    hedging: (
+      allText.match(/\b(probably|might|could|perhaps|maybe|possibly)\b/gi) || []
+    ).length,
     structuredLists: (allText.match(/(\d\.|•|-)\s/g) || []).length,
   };
 
@@ -2276,15 +2445,15 @@ function classifyCommunicationStyle(
   let style: CommunicationStyle;
 
   if (avgWords < 15) {
-    style = 'terse';
+    style = "terse";
   } else if (emotionalScore > analyticalScore && emotionalScore > 5) {
-    style = 'emotional';
+    style = "emotional";
   } else if (analyticalScore > emotionalScore && analyticalScore > 5) {
-    style = 'analytical';
+    style = "analytical";
   } else if (avgWords > 50) {
-    style = 'verbose';
+    style = "verbose";
   } else {
-    style = 'terse';
+    style = "terse";
   }
 
   // ---------------------------------------------------------------------------
@@ -2293,20 +2462,20 @@ function classifyCommunicationStyle(
   let engagement: EngagementLevel;
 
   const questionsAsked = (allText.match(/\?/g) || []).length;
-  const elaborations = userMessages.filter(m => m.length > 100).length;
-  const quickResponses = userMessages.filter(m => m.split(/\s+/).length < 5).length;
+  const elaborations = userMessages.filter((m) => m.length > 100).length;
+  const quickResponses = userMessages.filter(
+    (m) => m.split(/\s+/).length < 5,
+  ).length;
 
   const engagementScore =
-    (questionsAsked * 2) +
-    (elaborations * 3) -
-    (quickResponses * 1);
+    questionsAsked * 2 + elaborations * 3 - quickResponses * 1;
 
   if (engagementScore > userMessages.length * 2) {
-    engagement = 'high';
+    engagement = "high";
   } else if (engagementScore < 0) {
-    engagement = 'low';
+    engagement = "low";
   } else {
-    engagement = 'medium';
+    engagement = "medium";
   }
 
   // ---------------------------------------------------------------------------
@@ -2314,12 +2483,15 @@ function classifyCommunicationStyle(
   // ---------------------------------------------------------------------------
   const characteristics: string[] = [];
 
-  if (avgWords > 50) characteristics.push('gives detailed responses');
-  if (avgWords < 15) characteristics.push('prefers brief responses');
-  if (questionsAsked > 2) characteristics.push('asks clarifying questions');
-  if (emotionalIndicators.exclamations > 3) characteristics.push('uses expressive punctuation');
-  if (analyticalIndicators.numbers > 3) characteristics.push('thinks in numbers/metrics');
-  if (analyticalIndicators.hedging > 5) characteristics.push('hedges statements carefully');
+  if (avgWords > 50) characteristics.push("gives detailed responses");
+  if (avgWords < 15) characteristics.push("prefers brief responses");
+  if (questionsAsked > 2) characteristics.push("asks clarifying questions");
+  if (emotionalIndicators.exclamations > 3)
+    characteristics.push("uses expressive punctuation");
+  if (analyticalIndicators.numbers > 3)
+    characteristics.push("thinks in numbers/metrics");
+  if (analyticalIndicators.hedging > 5)
+    characteristics.push("hedges statements carefully");
 
   // ---------------------------------------------------------------------------
   // TOPICS THAT ENERGIZE
@@ -2328,17 +2500,17 @@ function classifyCommunicationStyle(
 
   // Find messages with high engagement (longer, more punctuation)
   const energizedMessages = userMessages
-    .filter(m => m.length > avgLength * 1.5 || m.includes('!'))
+    .filter((m) => m.length > avgLength * 1.5 || m.includes("!"))
     .slice(0, 3);
 
   for (const msg of energizedMessages) {
     // Extract key nouns/topics (simplified - would use NLP in production)
     const topic = msg
-      .replace(/[^a-zA-Z\s]/g, '')
+      .replace(/[^a-zA-Z\s]/g, "")
       .split(/\s+/)
-      .filter(w => w.length > 5)
+      .filter((w) => w.length > 5)
       .slice(0, 2)
-      .join(' ');
+      .join(" ");
 
     if (topic) topicsThatEnergize.push(topic);
   }
@@ -2346,14 +2518,14 @@ function classifyCommunicationStyle(
   // ---------------------------------------------------------------------------
   // RESPONSE PREFERENCE
   // ---------------------------------------------------------------------------
-  let responsePreference: 'detailed' | 'concise' | 'adaptive';
+  let responsePreference: "detailed" | "concise" | "adaptive";
 
-  if (style === 'verbose' || style === 'analytical') {
-    responsePreference = 'detailed';
-  } else if (style === 'terse') {
-    responsePreference = 'concise';
+  if (style === "verbose" || style === "analytical") {
+    responsePreference = "detailed";
+  } else if (style === "terse") {
+    responsePreference = "concise";
   } else {
-    responsePreference = 'adaptive';
+    responsePreference = "adaptive";
   }
 
   return {
@@ -2366,11 +2538,13 @@ function classifyCommunicationStyle(
 }
 
 // Format for handoff notes
-function formatCommunicationStyleForHandoff(profile: CommunicationProfile): string {
+function formatCommunicationStyleForHandoff(
+  profile: CommunicationProfile,
+): string {
   return `- Communication style: ${profile.style}
 - Engagement level: ${profile.engagement}
-- Characteristics: ${profile.characteristics.join(', ') || 'none identified'}
-- Topics that energize: ${profile.topicsThatEnergize.join(', ') || 'none identified yet'}
+- Characteristics: ${profile.characteristics.join(", ") || "none identified"}
+- Topics that energize: ${profile.topicsThatEnergize.join(", ") || "none identified yet"}
 - Response preference: ${profile.responsePreference}`;
 }
 ```
@@ -2389,148 +2563,161 @@ Maps ideation signals to Development phase questions for pre-population.
 
 interface PreAnsweredQuestion {
   questionId: string;
-  category: 'user' | 'problem' | 'solution' | 'market' | 'execution';
+  category: "user" | "problem" | "solution" | "market" | "execution";
   answer: string;
-  source: 'ideation_agent';
-  confidence: number;  // 0-1, how confident we are in this answer
+  source: "ideation_agent";
+  confidence: number; // 0-1, how confident we are in this answer
 }
 
 // Development phase question IDs (from agents/development.ts categories)
-const DEVELOPMENT_QUESTION_MAP: Record<string, {
-  questionId: string;
-  category: 'user' | 'problem' | 'solution' | 'market' | 'execution';
-  signalPath: string;  // Path in ideation state to get answer
-  transformer?: (value: any) => string;  // Transform signal to answer
-}> = {
+const DEVELOPMENT_QUESTION_MAP: Record<
+  string,
+  {
+    questionId: string;
+    category: "user" | "problem" | "solution" | "market" | "execution";
+    signalPath: string; // Path in ideation state to get answer
+    transformer?: (value: any) => string; // Transform signal to answer
+  }
+> = {
   // USER category
-  'target_user_type': {
-    questionId: 'U1',
-    category: 'user',
-    signalPath: 'narrowing.customerType.value',
-    transformer: (v) => v === 'B2B' ? 'Businesses' : v === 'B2C' ? 'Individual consumers' : v,
+  target_user_type: {
+    questionId: "U1",
+    category: "user",
+    signalPath: "narrowing.customerType.value",
+    transformer: (v) =>
+      v === "B2B" ? "Businesses" : v === "B2C" ? "Individual consumers" : v,
   },
-  'target_user_specifics': {
-    questionId: 'U2',
-    category: 'user',
-    signalPath: 'selfDiscovery.frustrations',
+  target_user_specifics: {
+    questionId: "U2",
+    category: "user",
+    signalPath: "selfDiscovery.frustrations",
     transformer: (frustrations) => {
-      if (!frustrations?.length) return '';
-      return `People who experience: ${frustrations.map((f: any) => f.description).join('; ')}`;
+      if (!frustrations?.length) return "";
+      return `People who experience: ${frustrations.map((f: any) => f.description).join("; ")}`;
     },
   },
-  'user_geography': {
-    questionId: 'U3',
-    category: 'user',
-    signalPath: 'narrowing.geography.value',
+  user_geography: {
+    questionId: "U3",
+    category: "user",
+    signalPath: "narrowing.geography.value",
   },
 
   // PROBLEM category
-  'core_problem': {
-    questionId: 'P1',
-    category: 'problem',
-    signalPath: 'selfDiscovery.frustrations',
+  core_problem: {
+    questionId: "P1",
+    category: "problem",
+    signalPath: "selfDiscovery.frustrations",
     transformer: (frustrations) => {
-      const highSeverity = frustrations?.filter((f: any) => f.severity === 'high') || [];
-      return highSeverity.map((f: any) => f.description).join('. ') || '';
+      const highSeverity =
+        frustrations?.filter((f: any) => f.severity === "high") || [];
+      return highSeverity.map((f: any) => f.description).join(". ") || "";
     },
   },
-  'problem_severity': {
-    questionId: 'P2',
-    category: 'problem',
-    signalPath: 'selfDiscovery.frustrations',
+  problem_severity: {
+    questionId: "P2",
+    category: "problem",
+    signalPath: "selfDiscovery.frustrations",
     transformer: (frustrations) => {
-      if (!frustrations?.length) return '';
+      if (!frustrations?.length) return "";
       const severities = frustrations.map((f: any) => f.severity);
-      if (severities.includes('high')) return 'High - significant pain point';
-      if (severities.includes('medium')) return 'Medium - noticeable inconvenience';
-      return 'Low - minor annoyance';
+      if (severities.includes("high")) return "High - significant pain point";
+      if (severities.includes("medium"))
+        return "Medium - noticeable inconvenience";
+      return "Low - minor annoyance";
     },
   },
 
   // SOLUTION category
-  'solution_type': {
-    questionId: 'S1',
-    category: 'solution',
-    signalPath: 'narrowing.productType.value',
+  solution_type: {
+    questionId: "S1",
+    category: "solution",
+    signalPath: "narrowing.productType.value",
   },
-  'technical_approach': {
-    questionId: 'S2',
-    category: 'solution',
-    signalPath: 'narrowing.technicalDepth.value',
+  technical_approach: {
+    questionId: "S2",
+    category: "solution",
+    signalPath: "narrowing.technicalDepth.value",
     transformer: (v) => {
       const map: Record<string, string> = {
-        'no_code': 'No-code tools (Bubble, Webflow, etc.)',
-        'low_code': 'Low-code with some custom development',
-        'full_custom': 'Fully custom development',
+        no_code: "No-code tools (Bubble, Webflow, etc.)",
+        low_code: "Low-code with some custom development",
+        full_custom: "Fully custom development",
       };
       return map[v] || v;
     },
   },
 
   // MARKET category
-  'market_size': {
-    questionId: 'M1',
-    category: 'market',
-    signalPath: 'marketDiscovery.gaps',
+  market_size: {
+    questionId: "M1",
+    category: "market",
+    signalPath: "marketDiscovery.gaps",
     transformer: (gaps) => {
-      if (!gaps?.length) return '';
-      return `Identified market gaps: ${gaps.map((g: any) => g.description).join('; ')}`;
+      if (!gaps?.length) return "";
+      return `Identified market gaps: ${gaps.map((g: any) => g.description).join("; ")}`;
     },
   },
-  'competitors': {
-    questionId: 'M2',
-    category: 'market',
-    signalPath: 'marketDiscovery.competitors',
+  competitors: {
+    questionId: "M2",
+    category: "market",
+    signalPath: "marketDiscovery.competitors",
     transformer: (competitors) => {
-      if (!competitors?.length) return 'No competitors identified yet';
-      return competitors.map((c: any) => `${c.name}: ${c.description}`).join('\n');
+      if (!competitors?.length) return "No competitors identified yet";
+      return competitors
+        .map((c: any) => `${c.name}: ${c.description}`)
+        .join("\n");
     },
   },
-  'timing': {
-    questionId: 'M3',
-    category: 'market',
-    signalPath: 'marketDiscovery.timingSignals',
+  timing: {
+    questionId: "M3",
+    category: "market",
+    signalPath: "marketDiscovery.timingSignals",
     transformer: (signals) => {
-      if (!signals?.length) return '';
-      return signals.map((s: any) => `${s.signal} (${s.implication})`).join('; ');
+      if (!signals?.length) return "";
+      return signals
+        .map((s: any) => `${s.signal} (${s.implication})`)
+        .join("; ");
     },
   },
 
   // EXECUTION category
-  'founder_skills': {
-    questionId: 'E1',
-    category: 'execution',
-    signalPath: 'selfDiscovery.skills',
+  founder_skills: {
+    questionId: "E1",
+    category: "execution",
+    signalPath: "selfDiscovery.skills",
     transformer: (skills) => {
-      if (!skills?.strengths?.length) return '';
-      return `Strengths: ${skills.strengths.join(', ')}. Gaps: ${skills.gaps?.join(', ') || 'None identified'}`;
+      if (!skills?.strengths?.length) return "";
+      return `Strengths: ${skills.strengths.join(", ")}. Gaps: ${skills.gaps?.join(", ") || "None identified"}`;
     },
   },
-  'time_commitment': {
-    questionId: 'E2',
-    category: 'execution',
-    signalPath: 'selfDiscovery.constraints.timeHoursPerWeek',
-    transformer: (hours) => hours ? `${hours} hours per week` : '',
+  time_commitment: {
+    questionId: "E2",
+    category: "execution",
+    signalPath: "selfDiscovery.constraints.timeHoursPerWeek",
+    transformer: (hours) => (hours ? `${hours} hours per week` : ""),
   },
-  'funding_approach': {
-    questionId: 'E3',
-    category: 'execution',
-    signalPath: 'selfDiscovery.constraints.capital',
-    transformer: (v) => v === 'bootstrap' ? 'Self-funded / Bootstrap' : 'Seeking external funding',
+  funding_approach: {
+    questionId: "E3",
+    category: "execution",
+    signalPath: "selfDiscovery.constraints.capital",
+    transformer: (v) =>
+      v === "bootstrap"
+        ? "Self-funded / Bootstrap"
+        : "Seeking external funding",
   },
 };
 
 function generatePreAnsweredQuestions(
   selfDiscovery: SelfDiscoveryState,
   marketDiscovery: MarketDiscoveryState,
-  narrowingState: NarrowingState
+  narrowingState: NarrowingState,
 ): PreAnsweredQuestion[] {
   const state = { selfDiscovery, marketDiscovery, narrowing: narrowingState };
   const preAnswered: PreAnsweredQuestion[] = [];
 
   for (const [key, mapping] of Object.entries(DEVELOPMENT_QUESTION_MAP)) {
     // Navigate to the signal value
-    const pathParts = mapping.signalPath.split('.');
+    const pathParts = mapping.signalPath.split(".");
     let value: any = state;
 
     for (const part of pathParts) {
@@ -2543,14 +2730,16 @@ function generatePreAnsweredQuestions(
     if (Array.isArray(value) && value.length === 0) continue;
 
     // Transform if needed
-    const answer = mapping.transformer ? mapping.transformer(value) : String(value);
+    const answer = mapping.transformer
+      ? mapping.transformer(value)
+      : String(value);
 
     // Skip empty answers
-    if (!answer || answer.trim() === '') continue;
+    if (!answer || answer.trim() === "") continue;
 
     // Calculate confidence based on signal source
     let confidence = 0.7; // Default
-    if (typeof value === 'object' && 'confidence' in value) {
+    if (typeof value === "object" && "confidence" in value) {
       confidence = value.confidence;
     }
 
@@ -2558,7 +2747,7 @@ function generatePreAnsweredQuestions(
       questionId: mapping.questionId,
       category: mapping.category,
       answer,
-      source: 'ideation_agent',
+      source: "ideation_agent",
       confidence,
     });
   }
@@ -2589,16 +2778,15 @@ Clarifies when and how web search happens within the agent flow.
 interface WebSearchEnabledCall {
   sessionId: string;
   message: string;
-  includeWebSearch: boolean;  // Enable search tool
-  searchContext?: string;     // Additional context for searches
+  includeWebSearch: boolean; // Enable search tool
+  searchContext?: string; // Additional context for searches
 }
 
 async function callAgentWithWebSearch(
   session: IdeationSession,
   userMessage: string,
-  enableSearch: boolean = true
+  enableSearch: boolean = true,
 ): Promise<ParsedAgentResponse> {
-
   // Build context
   const context = await buildAgentContext(session, userMessage);
 
@@ -2608,11 +2796,11 @@ async function callAgentWithWebSearch(
     const response = await runClaudeCliWithPrompt(
       formatMessagesAsPrompt(context.messages),
       {
-        model: 'sonnet',
-        tools: ['WebSearch'],  // Agent can invoke search when needed
+        model: "sonnet",
+        tools: ["WebSearch"], // Agent can invoke search when needed
         maxTokens: 4096,
         systemPrompt: IDEATION_AGENT_SYSTEM_PROMPT,
-      }
+      },
     );
 
     return parseAgentResponse(response);
@@ -2633,7 +2821,7 @@ async function callAgentWithWebSearch(
 function shouldEnableWebSearch(
   session: IdeationSession,
   userMessage: string,
-  candidate: IdeaCandidate | null
+  candidate: IdeaCandidate | null,
 ): boolean {
   // Always enable if:
   // 1. User suggests a specific idea
@@ -2662,12 +2850,13 @@ function shouldEnableWebSearch(
 
 // Extract market data from agent response that includes search results
 function extractMarketDataFromResponse(
-  response: ParsedAgentResponse
+  response: ParsedAgentResponse,
 ): Partial<MarketDiscoveryState> {
   const marketData: Partial<MarketDiscoveryState> = {};
 
   // Look for competitor mentions with URLs
-  const competitorPattern = /(?:competitor|player|company|startup).*?([A-Z][a-zA-Z]+(?:\.com|\.io)?)/gi;
+  const competitorPattern =
+    /(?:competitor|player|company|startup).*?([A-Z][a-zA-Z]+(?:\.com|\.io)?)/gi;
   const urlPattern = /https?:\/\/[^\s)]+/gi;
 
   const competitorMatches = response.reply.matchAll(competitorPattern);
@@ -2680,20 +2869,21 @@ function extractMarketDataFromResponse(
       description: extractSurroundingContext(response.reply, match.index!, 100),
       strengths: [],
       weaknesses: [],
-      source: urls[0] || 'agent_research',
+      source: urls[0] || "agent_research",
     });
   }
 
   // Look for market gap mentions
-  const gapPattern = /(?:gap|missing|opportunity|underserved|no one).*?([^.!?]+)/gi;
+  const gapPattern =
+    /(?:gap|missing|opportunity|underserved|no one).*?([^.!?]+)/gi;
   const gapMatches = response.reply.matchAll(gapPattern);
 
   for (const match of gapMatches) {
     if (!marketData.gaps) marketData.gaps = [];
     marketData.gaps.push({
       description: match[1].trim(),
-      evidence: urls[0] || 'agent_analysis',
-      relevance: 'medium',
+      evidence: urls[0] || "agent_analysis",
+      relevance: "medium",
     });
   }
 
@@ -2713,26 +2903,26 @@ For real-time chat UX, responses should stream to the frontend.
  * Uses Server-Sent Events (SSE) for streaming.
  */
 
-import { Response } from 'express';
+import { Response } from "express";
 
 interface StreamChunk {
-  type: 'text' | 'button' | 'form' | 'candidate_update' | 'done' | 'error';
+  type: "text" | "button" | "form" | "candidate_update" | "done" | "error";
   content: string | ButtonOption[] | FormDefinition | IdeaCandidateUpdate;
 }
 
 // Streaming endpoint
-router.post('/message/stream', async (req: Request, res: Response) => {
+router.post("/message/stream", async (req: Request, res: Response) => {
   const { sessionId, message } = req.body as SendMessageRequest;
 
   // Set up SSE headers
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
 
   try {
     const session = await sessionManager.load(sessionId);
     if (!session) {
-      sendStreamChunk(res, { type: 'error', content: 'Session not found' });
+      sendStreamChunk(res, { type: "error", content: "Session not found" });
       res.end();
       return;
     }
@@ -2740,7 +2930,7 @@ router.post('/message/stream', async (req: Request, res: Response) => {
     // Store user message
     await messageStore.create({
       sessionId,
-      role: 'user',
+      role: "user",
       content: message,
       tokenCount: estimateTokens(message),
     });
@@ -2756,27 +2946,32 @@ router.post('/message/stream', async (req: Request, res: Response) => {
       messages: context.messages,
     });
 
-    let fullResponse = '';
+    let fullResponse = "";
 
     // Stream text chunks as they arrive
     for await (const event of stream) {
-      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      if (
+        event.type === "content_block_delta" &&
+        event.delta.type === "text_delta"
+      ) {
         fullResponse += event.delta.text;
-        sendStreamChunk(res, { type: 'text', content: event.delta.text });
+        sendStreamChunk(res, { type: "text", content: event.delta.text });
       }
     }
 
     // Parse complete response for structured elements
-    const parsed = parseAgentResponse({ content: [{ type: 'text', text: fullResponse }] });
+    const parsed = parseAgentResponse({
+      content: [{ type: "text", text: fullResponse }],
+    });
 
     // Send buttons if present
     if (parsed.buttons) {
-      sendStreamChunk(res, { type: 'button', content: parsed.buttons });
+      sendStreamChunk(res, { type: "button", content: parsed.buttons });
     }
 
     // Send form if present
     if (parsed.formFields) {
-      sendStreamChunk(res, { type: 'form', content: parsed.formFields });
+      sendStreamChunk(res, { type: "form", content: parsed.formFields });
     }
 
     // Process signals and update state (non-streaming)
@@ -2796,7 +2991,7 @@ router.post('/message/stream', async (req: Request, res: Response) => {
       });
 
       sendStreamChunk(res, {
-        type: 'candidate_update',
+        type: "candidate_update",
         content: {
           id: candidate.id,
           title: candidate.title,
@@ -2810,7 +3005,7 @@ router.post('/message/stream', async (req: Request, res: Response) => {
     // Store assistant message
     await messageStore.create({
       sessionId,
-      role: 'assistant',
+      role: "assistant",
       content: parsed.reply,
       buttonsShown: parsed.buttons,
       formShown: parsed.formFields,
@@ -2818,10 +3013,9 @@ router.post('/message/stream', async (req: Request, res: Response) => {
     });
 
     // Signal completion
-    sendStreamChunk(res, { type: 'done', content: 'complete' });
-
+    sendStreamChunk(res, { type: "done", content: "complete" });
   } catch (error) {
-    sendStreamChunk(res, { type: 'error', content: error.message });
+    sendStreamChunk(res, { type: "error", content: error.message });
   } finally {
     res.end();
   }
@@ -2868,18 +3062,18 @@ eventSource.onmessage = (event) => {
 // ============================================================================
 // Starts a new ideation session
 
-router.post('/start', async (req: Request, res: Response) => {
+router.post("/start", async (req: Request, res: Response) => {
   const { profileId } = req.body as StartSessionRequest;
 
   // Validation
   if (!profileId) {
-    return res.status(400).json({ error: 'profileId is required' });
+    return res.status(400).json({ error: "profileId is required" });
   }
 
   // Load profile
   const profile = await profileService.load(profileId);
   if (!profile) {
-    return res.status(404).json({ error: 'Profile not found' });
+    return res.status(404).json({ error: "Profile not found" });
   }
 
   // Create session
@@ -2895,7 +3089,7 @@ router.post('/start', async (req: Request, res: Response) => {
   const response: StartSessionResponse = {
     sessionId: session.id,
     greeting,
-    buttons: null,  // First message is open-ended
+    buttons: null, // First message is open-ended
   };
 
   res.json(response);
@@ -2906,22 +3100,24 @@ router.post('/start', async (req: Request, res: Response) => {
 // ============================================================================
 // Handles user message and returns agent response
 
-router.post('/message', async (req: Request, res: Response) => {
+router.post("/message", async (req: Request, res: Response) => {
   const { sessionId, message } = req.body as SendMessageRequest;
 
   // Validation
   if (!sessionId || !message) {
-    return res.status(400).json({ error: 'sessionId and message are required' });
+    return res
+      .status(400)
+      .json({ error: "sessionId and message are required" });
   }
 
   // Load session
   const session = await sessionManager.load(sessionId);
   if (!session) {
-    return res.status(404).json({ error: 'Session not found' });
+    return res.status(404).json({ error: "Session not found" });
   }
 
-  if (session.status !== 'active') {
-    return res.status(400).json({ error: 'Session is not active' });
+  if (session.status !== "active") {
+    return res.status(400).json({ error: "Session is not active" });
   }
 
   // Check token usage
@@ -2936,7 +3132,7 @@ router.post('/message', async (req: Request, res: Response) => {
   // Store user message
   await messageStore.create({
     sessionId,
-    role: 'user',
+    role: "user",
     content: message,
     tokenCount: tokenUsage.currentMessage,
   });
@@ -2984,7 +3180,9 @@ router.post('/message', async (req: Request, res: Response) => {
   let ideaCandidate = null;
   if (confidence.total >= 30) {
     ideaCandidate = await candidateManager.updateOrCreate(session.id, {
-      title: parsed.candidateTitle || generateCandidateTitle(selfDiscovery, narrowingState),
+      title:
+        parsed.candidateTitle ||
+        generateCandidateTitle(selfDiscovery, narrowingState),
       confidence: confidence.total,
       viability: viability.total,
     });
@@ -2994,7 +3192,7 @@ router.post('/message', async (req: Request, res: Response) => {
   let intervention = null;
   if (viability.requiresIntervention) {
     intervention = {
-      type: viability.total < 25 ? 'critical' : 'warning',
+      type: viability.total < 25 ? "critical" : "warning",
       message: generateInterventionMessage(viability.risks),
       risks: viability.risks,
       options: generateInterventionButtons(),
@@ -3004,7 +3202,7 @@ router.post('/message', async (req: Request, res: Response) => {
   // Store assistant message
   await messageStore.create({
     sessionId,
-    role: 'assistant',
+    role: "assistant",
     content: parsed.reply,
     buttonsShown: parsed.buttons,
     formShown: parsed.formFields,
@@ -3030,13 +3228,15 @@ router.post('/message', async (req: Request, res: Response) => {
   // Return response
   const response: SendMessageResponse = {
     reply: parsed.reply,
-    ideaCandidate: ideaCandidate ? {
-      id: ideaCandidate.id,
-      title: ideaCandidate.title,
-      confidence: confidence.total,
-      viability: viability.total,
-      risks: viability.risks,
-    } : null,
+    ideaCandidate: ideaCandidate
+      ? {
+          id: ideaCandidate.id,
+          title: ideaCandidate.title,
+          confidence: confidence.total,
+          viability: viability.total,
+          risks: viability.risks,
+        }
+      : null,
     buttons: parsed.buttons,
     formFields: parsed.formFields,
     intervention,
@@ -3051,7 +3251,7 @@ router.post('/message', async (req: Request, res: Response) => {
 // ============================================================================
 // Handles button click as if it were a message
 
-router.post('/button', async (req: Request, res: Response) => {
+router.post("/button", async (req: Request, res: Response) => {
   const { sessionId, buttonId, buttonValue } = req.body as ButtonClickRequest;
 
   // Treat button click as a message with the button value
@@ -3068,7 +3268,7 @@ router.post('/button', async (req: Request, res: Response) => {
 
   // Process as regular message
   req.body.message = buttonValue;
-  return router.handle('/message', req, res);
+  return router.handle("/message", req, res);
 });
 
 // ============================================================================
@@ -3076,24 +3276,27 @@ router.post('/button', async (req: Request, res: Response) => {
 // ============================================================================
 // Captures the current idea candidate to the Ideas system
 
-router.post('/capture', async (req: Request, res: Response) => {
+router.post("/capture", async (req: Request, res: Response) => {
   const { sessionId } = req.body as CaptureIdeaRequest;
 
   const session = await sessionManager.load(sessionId);
   if (!session?.currentCandidate) {
-    return res.status(400).json({ error: 'No idea candidate to capture' });
+    return res.status(400).json({ error: "No idea candidate to capture" });
   }
 
   // Get all state
-  const selfDiscovery = await memoryManager.read(sessionId, 'self_discovery');
-  const marketDiscovery = await memoryManager.read(sessionId, 'market_discovery');
+  const selfDiscovery = await memoryManager.read(sessionId, "self_discovery");
+  const marketDiscovery = await memoryManager.read(
+    sessionId,
+    "market_discovery",
+  );
   const candidate = session.currentCandidate;
 
   // Create idea in Ideas system
   const idea = await ideaService.create({
     title: candidate.title,
     type: classifyIdeaType(selfDiscovery, marketDiscovery),
-    stage: 'SPARK',
+    stage: "SPARK",
     summary: candidate.summary,
   });
 
@@ -3109,17 +3312,20 @@ router.post('/capture', async (req: Request, res: Response) => {
   await fileSystem.write(`ideas/${idea.slug}/README.md`, readme);
 
   // Store ideation metadata
-  await ideaService.setMetadata(idea.id, 'ideation', {
+  await ideaService.setMetadata(idea.id, "ideation", {
     sessionId,
     confidenceAtCapture: candidate.confidence,
     viabilityAtCapture: candidate.viability,
     viabilityRisks: await riskStore.getForCandidate(candidate.id),
-    conversationSummary: await memoryManager.read(sessionId, 'conversation_summary'),
+    conversationSummary: await memoryManager.read(
+      sessionId,
+      "conversation_summary",
+    ),
   });
 
   // Update candidate status
   await candidateManager.update(candidate.id, {
-    status: 'captured',
+    status: "captured",
     capturedIdeaId: idea.id,
   });
 
@@ -3442,13 +3648,13 @@ interface IdeaCandidatePanelProps {
 
 // ConfidenceMeter.tsx
 interface ConfidenceMeterProps {
-  value: number;  // 0-100
+  value: number; // 0-100
   showLabel: boolean;
 }
 
 // ViabilityMeter.tsx
 interface ViabilityMeterProps {
-  value: number;  // 0-100
+  value: number; // 0-100
   risks: ViabilityRisk[];
   showWarning: boolean;
 }
@@ -3463,27 +3669,28 @@ interface ViabilityMeterProps {
 #### 8.1.1 Confidence Calculator Tests
 
 ```typescript
-describe('ConfidenceCalculator', () => {
-  describe('calculateConfidence', () => {
-
+describe("ConfidenceCalculator", () => {
+  describe("calculateConfidence", () => {
     // =========================================================================
     // PROBLEM DEFINITION COMPONENT (0-25 points)
     // =========================================================================
 
-    test('PASS: High-severity frustration adds 10 points', () => {
+    test("PASS: High-severity frustration adds 10 points", () => {
       const input = createBaseInput({
         selfDiscovery: {
-          frustrations: [{ description: 'X', source: 'user', severity: 'high' }],
+          frustrations: [
+            { description: "X", source: "user", severity: "high" },
+          ],
         },
       });
       const result = calculateConfidence(input);
       expect(result.components.problemDefinition).toBeGreaterThanOrEqual(10);
     });
 
-    test('PASS: Low-severity frustration adds only 5 points', () => {
+    test("PASS: Low-severity frustration adds only 5 points", () => {
       const input = createBaseInput({
         selfDiscovery: {
-          frustrations: [{ description: 'X', source: 'user', severity: 'low' }],
+          frustrations: [{ description: "X", source: "user", severity: "low" }],
         },
       });
       const result = calculateConfidence(input);
@@ -3491,20 +3698,20 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.problemDefinition).toBeGreaterThanOrEqual(5);
     });
 
-    test('PASS: No frustrations = 0 points for that component', () => {
+    test("PASS: No frustrations = 0 points for that component", () => {
       const input = createBaseInput({
         selfDiscovery: { frustrations: [] },
         marketDiscovery: { gaps: [] },
       });
       const result = calculateConfidence(input);
       expect(result.components.problemDefinition).toBe(0);
-      expect(result.missingAreas).toContain('specific problem or frustration');
+      expect(result.missingAreas).toContain("specific problem or frustration");
     });
 
-    test('PASS: Market gaps add to problem definition', () => {
+    test("PASS: Market gaps add to problem definition", () => {
       const input = createBaseInput({
         marketDiscovery: {
-          gaps: [{ description: 'Gap', evidence: 'url', relevance: 'high' }],
+          gaps: [{ description: "Gap", evidence: "url", relevance: "high" }],
         },
       });
       const result = calculateConfidence(input);
@@ -3515,49 +3722,49 @@ describe('ConfidenceCalculator', () => {
     // TARGET USER COMPONENT (0-20 points)
     // =========================================================================
 
-    test('PASS: Narrowed customer type with high confidence adds 10 points', () => {
+    test("PASS: Narrowed customer type with high confidence adds 10 points", () => {
       const input = createBaseInput({
         narrowingState: {
-          customerType: { value: 'B2B', confidence: 0.8 },
+          customerType: { value: "B2B", confidence: 0.8 },
         },
       });
       const result = calculateConfidence(input);
       expect(result.components.targetUser).toBeGreaterThanOrEqual(10);
     });
 
-    test('PASS: No customer type = missing area flagged', () => {
+    test("PASS: No customer type = missing area flagged", () => {
       const input = createBaseInput({
         narrowingState: {
           customerType: { value: null, confidence: 0 },
         },
       });
       const result = calculateConfidence(input);
-      expect(result.missingAreas).toContain('clear target customer type');
+      expect(result.missingAreas).toContain("clear target customer type");
     });
 
     // =========================================================================
     // TOTAL SCORE
     // =========================================================================
 
-    test('PASS: Empty input returns 0 total', () => {
+    test("PASS: Empty input returns 0 total", () => {
       const input = createEmptyInput();
       const result = calculateConfidence(input);
       expect(result.total).toBe(0);
     });
 
-    test('PASS: Full input returns near-100 total', () => {
+    test("PASS: Full input returns near-100 total", () => {
       const input = createFullInput();
       const result = calculateConfidence(input);
       expect(result.total).toBeGreaterThanOrEqual(90);
     });
 
-    test('PASS: Total never exceeds 100', () => {
-      const input = createOverflowInput();  // Input that would exceed bounds
+    test("PASS: Total never exceeds 100", () => {
+      const input = createOverflowInput(); // Input that would exceed bounds
       const result = calculateConfidence(input);
       expect(result.total).toBeLessThanOrEqual(100);
     });
 
-    test('PASS: Missing areas are correctly identified', () => {
+    test("PASS: Missing areas are correctly identified", () => {
       const input = createPartialInput();
       const result = calculateConfidence(input);
       expect(result.missingAreas.length).toBeGreaterThan(0);
@@ -3569,30 +3776,31 @@ describe('ConfidenceCalculator', () => {
 #### 8.1.2 Viability Calculator Tests
 
 ```typescript
-describe('ViabilityCalculator', () => {
-  describe('calculateViability', () => {
-
+describe("ViabilityCalculator", () => {
+  describe("calculateViability", () => {
     // =========================================================================
     // MARKET EXISTS COMPONENT
     // =========================================================================
 
-    test('PASS: No market data reduces score by 15', () => {
+    test("PASS: No market data reduces score by 15", () => {
       const input = createBaseViabilityInput({
         marketDiscovery: { competitors: [], gaps: [] },
       });
       const result = calculateViability(input);
-      expect(result.components.marketExists).toBe(10);  // 25 - 15
+      expect(result.components.marketExists).toBe(10); // 25 - 15
     });
 
-    test('PASS: Failed attempts without differentiation creates risk', () => {
+    test("PASS: Failed attempts without differentiation creates risk", () => {
       const input = createBaseViabilityInput({
         marketDiscovery: {
-          failedAttempts: [{ what: 'X', why: 'Y', lesson: 'Z', source: 'url' }],
+          failedAttempts: [{ what: "X", why: "Y", lesson: "Z", source: "url" }],
           gaps: [],
         },
       });
       const result = calculateViability(input);
-      expect(result.risks.some(r => r.riskType === 'wrong_timing')).toBe(true);
+      expect(result.risks.some((r) => r.riskType === "wrong_timing")).toBe(
+        true,
+      );
     });
 
     // =========================================================================
@@ -3601,24 +3809,26 @@ describe('ViabilityCalculator', () => {
 
     test('PASS: "impossible" in search results triggers critical risk', () => {
       const input = createBaseViabilityInput({
-        webSearchResults: [{
-          title: 'Article',
-          url: 'http://example.com',
-          snippet: 'This technology is impossible with current methods',
-          source: 'TechSite',
-        }],
+        webSearchResults: [
+          {
+            title: "Article",
+            url: "http://example.com",
+            snippet: "This technology is impossible with current methods",
+            source: "TechSite",
+          },
+        ],
       });
       const result = calculateViability(input);
-      expect(result.risks.some(r => r.riskType === 'impossible')).toBe(true);
-      expect(result.risks.some(r => r.severity === 'critical')).toBe(true);
+      expect(result.risks.some((r) => r.riskType === "impossible")).toBe(true);
+      expect(result.risks.some((r) => r.severity === "critical")).toBe(true);
     });
 
-    test('PASS: Multiple skill gaps reduce feasibility', () => {
+    test("PASS: Multiple skill gaps reduce feasibility", () => {
       const input = createBaseViabilityInput({
         selfDiscovery: {
           skills: {
             identified: [],
-            gaps: ['gap1', 'gap2', 'gap3'],
+            gaps: ["gap1", "gap2", "gap3"],
             strengths: [],
           },
         },
@@ -3631,79 +3841,87 @@ describe('ViabilityCalculator', () => {
     // COMPETITIVE SPACE COMPONENT
     // =========================================================================
 
-    test('PASS: 10+ competitors triggers saturated_market risk', () => {
+    test("PASS: 10+ competitors triggers saturated_market risk", () => {
       const competitors = Array.from({ length: 12 }, (_, i) => ({
         name: `Competitor ${i}`,
-        description: 'Desc',
+        description: "Desc",
         strengths: [],
         weaknesses: [],
-        source: 'url',
+        source: "url",
       }));
       const input = createBaseViabilityInput({
         marketDiscovery: { competitors },
       });
       const result = calculateViability(input);
-      expect(result.risks.some(r => r.riskType === 'saturated_market')).toBe(true);
+      expect(result.risks.some((r) => r.riskType === "saturated_market")).toBe(
+        true,
+      );
     });
 
     // =========================================================================
     // RESOURCE REALITY COMPONENT
     // =========================================================================
 
-    test('PASS: Bootstrap user with high capital requirements = risk', () => {
+    test("PASS: Bootstrap user with high capital requirements = risk", () => {
       const input = createBaseViabilityInput({
         selfDiscovery: {
-          constraints: { capital: 'bootstrap' },
+          constraints: { capital: "bootstrap" },
         },
-        webSearchResults: [{
-          title: 'Startup Guide',
-          url: 'http://example.com',
-          snippet: 'Typically requires $5 million in funding',
-          source: 'VentureBeat',
-        }],
+        webSearchResults: [
+          {
+            title: "Startup Guide",
+            url: "http://example.com",
+            snippet: "Typically requires $5 million in funding",
+            source: "VentureBeat",
+          },
+        ],
       });
       const result = calculateViability(input);
-      expect(result.risks.some(r => r.riskType === 'unrealistic')).toBe(true);
+      expect(result.risks.some((r) => r.riskType === "unrealistic")).toBe(true);
     });
 
-    test('PASS: Low time + high complexity = resource_mismatch', () => {
+    test("PASS: Low time + high complexity = resource_mismatch", () => {
       const input = createBaseViabilityInput({
         selfDiscovery: {
           constraints: { timeHoursPerWeek: 5 },
         },
         narrowingState: {
-          technicalDepth: { value: 'full_custom', confidence: 0.9 },
+          technicalDepth: { value: "full_custom", confidence: 0.9 },
         },
       });
       const result = calculateViability(input);
-      expect(result.risks.some(r => r.riskType === 'resource_mismatch')).toBe(true);
+      expect(result.risks.some((r) => r.riskType === "resource_mismatch")).toBe(
+        true,
+      );
     });
 
     // =========================================================================
     // INTERVENTION TRIGGERS
     // =========================================================================
 
-    test('PASS: Viability < 50 requires intervention', () => {
+    test("PASS: Viability < 50 requires intervention", () => {
       const input = createLowViabilityInput();
       const result = calculateViability(input);
       expect(result.total).toBeLessThan(50);
       expect(result.requiresIntervention).toBe(true);
     });
 
-    test('PASS: Critical risk requires intervention regardless of score', () => {
+    test("PASS: Critical risk requires intervention regardless of score", () => {
       const input = createBaseViabilityInput({
-        webSearchResults: [{
-          title: 'Analysis',
-          url: 'http://example.com',
-          snippet: 'This is technically impossible',
-          source: 'Expert',
-        }],
+        webSearchResults: [
+          {
+            title: "Analysis",
+            url: "http://example.com",
+            snippet: "This is technically impossible",
+            source: "Expert",
+          },
+        ],
       });
       const result = calculateViability(input);
       expect(result.requiresIntervention).toBe(true);
     });
 
-    test('PASS: Healthy viability (>75) does not require intervention', () => {
+    test("PASS: Healthy viability (>75) does not require intervention", () => {
       const input = createHealthyViabilityInput();
       const result = calculateViability(input);
       expect(result.total).toBeGreaterThanOrEqual(75);
@@ -3716,40 +3934,39 @@ describe('ViabilityCalculator', () => {
 #### 8.1.3 Token Counter Tests
 
 ```typescript
-describe('TokenCounter', () => {
-  describe('calculateTokenUsage', () => {
-
-    test('PASS: Empty conversation returns baseline tokens', () => {
-      const result = calculateTokenUsage([], '');
+describe("TokenCounter", () => {
+  describe("calculateTokenUsage", () => {
+    test("PASS: Empty conversation returns baseline tokens", () => {
+      const result = calculateTokenUsage([], "");
       expect(result.total).toBe(
-        SYSTEM_PROMPT_ESTIMATE + PROFILE_ESTIMATE + MEMORY_FILES_ESTIMATE
+        SYSTEM_PROMPT_ESTIMATE + PROFILE_ESTIMATE + MEMORY_FILES_ESTIMATE,
       );
     });
 
-    test('PASS: Token estimation is approximately 4 chars per token', () => {
-      const message = 'a'.repeat(400);  // Should be ~100 tokens
+    test("PASS: Token estimation is approximately 4 chars per token", () => {
+      const message = "a".repeat(400); // Should be ~100 tokens
       const result = calculateTokenUsage([], message);
       expect(result.currentMessage).toBeGreaterThanOrEqual(90);
       expect(result.currentMessage).toBeLessThanOrEqual(110);
     });
 
-    test('PASS: shouldHandoff is true at 80k tokens', () => {
-      const longHistory = createLongConversationHistory(75000);  // ~75k tokens
-      const result = calculateTokenUsage(longHistory, 'new message');
+    test("PASS: shouldHandoff is true at 80k tokens", () => {
+      const longHistory = createLongConversationHistory(75000); // ~75k tokens
+      const result = calculateTokenUsage(longHistory, "new message");
       expect(result.shouldHandoff).toBe(true);
     });
 
-    test('PASS: shouldHandoff is false below threshold', () => {
-      const shortHistory = createShortConversationHistory();  // ~10k tokens
-      const result = calculateTokenUsage(shortHistory, 'new message');
+    test("PASS: shouldHandoff is false below threshold", () => {
+      const shortHistory = createShortConversationHistory(); // ~10k tokens
+      const result = calculateTokenUsage(shortHistory, "new message");
       expect(result.shouldHandoff).toBe(false);
     });
 
-    test('PASS: percentUsed is calculated correctly', () => {
-      const result = calculateTokenUsage([], '');
+    test("PASS: percentUsed is calculated correctly", () => {
+      const result = calculateTokenUsage([], "");
       expect(result.percentUsed).toBeCloseTo(
         (result.total / CONTEXT_LIMIT) * 100,
-        1
+        1,
       );
     });
   });
@@ -3759,125 +3976,122 @@ describe('TokenCounter', () => {
 ### 8.2 Integration Tests
 
 ```typescript
-describe('Ideation API Integration', () => {
-
+describe("Ideation API Integration", () => {
   // ===========================================================================
   // SESSION LIFECYCLE
   // ===========================================================================
 
-  describe('POST /api/ideation/start', () => {
-
-    test('PASS: Creates session with valid profile', async () => {
+  describe("POST /api/ideation/start", () => {
+    test("PASS: Creates session with valid profile", async () => {
       const profile = await createTestProfile();
       const res = await request(app)
-        .post('/api/ideation/start')
+        .post("/api/ideation/start")
         .send({ profileId: profile.id });
 
       expect(res.status).toBe(200);
       expect(res.body.sessionId).toBeDefined();
-      expect(res.body.greeting).toContain('Welcome');
+      expect(res.body.greeting).toContain("Welcome");
     });
 
-    test('FAIL: Returns 404 for invalid profile', async () => {
+    test("FAIL: Returns 404 for invalid profile", async () => {
       const res = await request(app)
-        .post('/api/ideation/start')
-        .send({ profileId: 'nonexistent' });
+        .post("/api/ideation/start")
+        .send({ profileId: "nonexistent" });
 
       expect(res.status).toBe(404);
     });
 
-    test('FAIL: Returns 400 for missing profileId', async () => {
-      const res = await request(app)
-        .post('/api/ideation/start')
-        .send({});
+    test("FAIL: Returns 400 for missing profileId", async () => {
+      const res = await request(app).post("/api/ideation/start").send({});
 
       expect(res.status).toBe(400);
     });
   });
 
-  describe('POST /api/ideation/message', () => {
-
-    test('PASS: Processes message and returns response', async () => {
+  describe("POST /api/ideation/message", () => {
+    test("PASS: Processes message and returns response", async () => {
       const session = await createTestSession();
-      const res = await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId: session.id, message: 'I want to solve healthcare problems' });
+      const res = await request(app).post("/api/ideation/message").send({
+        sessionId: session.id,
+        message: "I want to solve healthcare problems",
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.reply).toBeDefined();
-      expect(typeof res.body.reply).toBe('string');
+      expect(typeof res.body.reply).toBe("string");
     });
 
-    test('PASS: Returns buttons when appropriate', async () => {
+    test("PASS: Returns buttons when appropriate", async () => {
       const session = await createTestSession();
       // Send message that should trigger buttons
-      const res = await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId: session.id, message: 'I want to build something for businesses' });
+      const res = await request(app).post("/api/ideation/message").send({
+        sessionId: session.id,
+        message: "I want to build something for businesses",
+      });
 
       expect(res.status).toBe(200);
       // Buttons may or may not be present depending on agent response
       if (res.body.buttons) {
         expect(Array.isArray(res.body.buttons)).toBe(true);
-        expect(res.body.buttons[0]).toHaveProperty('id');
-        expect(res.body.buttons[0]).toHaveProperty('label');
-        expect(res.body.buttons[0]).toHaveProperty('value');
+        expect(res.body.buttons[0]).toHaveProperty("id");
+        expect(res.body.buttons[0]).toHaveProperty("label");
+        expect(res.body.buttons[0]).toHaveProperty("value");
       }
     });
 
-    test('PASS: Updates confidence when signals detected', async () => {
+    test("PASS: Updates confidence when signals detected", async () => {
       const session = await createTestSession();
       // Send messages that build confidence
-      await sendMessage(session.id, 'I work in healthcare IT');
-      await sendMessage(session.id, 'The biggest problem is data interoperability');
-      await sendMessage(session.id, 'Specifically in emergency departments');
+      await sendMessage(session.id, "I work in healthcare IT");
+      await sendMessage(
+        session.id,
+        "The biggest problem is data interoperability",
+      );
+      await sendMessage(session.id, "Specifically in emergency departments");
 
       const candidate = await getCandidateForSession(session.id);
       expect(candidate).toBeDefined();
       expect(candidate.confidence).toBeGreaterThan(30);
     });
 
-    test('PASS: Triggers viability warning when risks detected', async () => {
+    test("PASS: Triggers viability warning when risks detected", async () => {
       const session = await createTestSession();
       // Send message describing unrealistic idea
-      const res = await request(app)
-        .post('/api/ideation/message')
-        .send({
-          sessionId: session.id,
-          message: 'I want to build a quantum computer for personal use with no budget'
-        });
+      const res = await request(app).post("/api/ideation/message").send({
+        sessionId: session.id,
+        message:
+          "I want to build a quantum computer for personal use with no budget",
+      });
 
       // After a few exchanges, viability should flag concerns
       // This may take multiple messages to accumulate evidence
       expect(res.status).toBe(200);
     });
 
-    test('PASS: Handles user-suggested ideas', async () => {
+    test("PASS: Handles user-suggested ideas", async () => {
       const session = await createTestSession();
-      const res = await request(app)
-        .post('/api/ideation/message')
-        .send({
-          sessionId: session.id,
-          message: 'What about a marketplace for vintage synthesizers?'
-        });
+      const res = await request(app).post("/api/ideation/message").send({
+        sessionId: session.id,
+        message: "What about a marketplace for vintage synthesizers?",
+      });
 
       expect(res.status).toBe(200);
-      expect(res.body.reply.toLowerCase()).toContain('explore');
+      expect(res.body.reply.toLowerCase()).toContain("explore");
     });
 
-    test('FAIL: Returns 404 for invalid session', async () => {
+    test("FAIL: Returns 404 for invalid session", async () => {
       const res = await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId: 'nonexistent', message: 'Hello' });
+        .post("/api/ideation/message")
+        .send({ sessionId: "nonexistent", message: "Hello" });
 
       expect(res.status).toBe(404);
     });
 
-    test('FAIL: Returns 400 for completed session', async () => {
+    test("FAIL: Returns 400 for completed session", async () => {
       const session = await createCompletedSession();
       const res = await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId: session.id, message: 'Hello' });
+        .post("/api/ideation/message")
+        .send({ sessionId: session.id, message: "Hello" });
 
       expect(res.status).toBe(400);
     });
@@ -3887,44 +4101,39 @@ describe('Ideation API Integration', () => {
   // BUTTON INTERACTIONS
   // ===========================================================================
 
-  describe('POST /api/ideation/button', () => {
-
-    test('PASS: Button click is processed as message', async () => {
+  describe("POST /api/ideation/button", () => {
+    test("PASS: Button click is processed as message", async () => {
       const session = await createTestSession();
       // First, get a response with buttons
-      await sendMessage(session.id, 'I want to build something');
+      await sendMessage(session.id, "I want to build something");
 
-      const res = await request(app)
-        .post('/api/ideation/button')
-        .send({
-          sessionId: session.id,
-          buttonId: 'btn_b2b',
-          buttonValue: 'B2B businesses'
-        });
+      const res = await request(app).post("/api/ideation/button").send({
+        sessionId: session.id,
+        buttonId: "btn_b2b",
+        buttonValue: "B2B businesses",
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.reply).toBeDefined();
     });
 
-    test('PASS: Button click is recorded in message history', async () => {
+    test("PASS: Button click is recorded in message history", async () => {
       const session = await createTestSession();
-      await sendMessage(session.id, 'I want to build something');
+      await sendMessage(session.id, "I want to build something");
 
-      await request(app)
-        .post('/api/ideation/button')
-        .send({
-          sessionId: session.id,
-          buttonId: 'btn_test',
-          buttonValue: 'Test value'
-        });
+      await request(app).post("/api/ideation/button").send({
+        sessionId: session.id,
+        buttonId: "btn_test",
+        buttonValue: "Test value",
+      });
 
       const messages = await getSessionMessages(session.id);
       const lastAssistantMsg = messages
-        .filter(m => m.role === 'assistant')
+        .filter((m) => m.role === "assistant")
         .pop();
 
       // Button click should be recorded
-      expect(lastAssistantMsg.buttonClicked).toBe('btn_test');
+      expect(lastAssistantMsg.buttonClicked).toBe("btn_test");
     });
   });
 
@@ -3932,13 +4141,12 @@ describe('Ideation API Integration', () => {
   // CAPTURE FLOW
   // ===========================================================================
 
-  describe('POST /api/ideation/capture', () => {
-
-    test('PASS: Captures idea with valid candidate', async () => {
+  describe("POST /api/ideation/capture", () => {
+    test("PASS: Captures idea with valid candidate", async () => {
       const session = await createSessionWithCandidate();
 
       const res = await request(app)
-        .post('/api/ideation/capture')
+        .post("/api/ideation/capture")
         .send({ sessionId: session.id });
 
       expect(res.status).toBe(200);
@@ -3947,47 +4155,47 @@ describe('Ideation API Integration', () => {
       expect(res.body.prePopulatedFields.title).toBeDefined();
     });
 
-    test('PASS: Creates README with correct content', async () => {
+    test("PASS: Creates README with correct content", async () => {
       const session = await createSessionWithCandidate();
 
       const res = await request(app)
-        .post('/api/ideation/capture')
+        .post("/api/ideation/capture")
         .send({ sessionId: session.id });
 
       const readme = await readFile(`ideas/${res.body.ideaSlug}/README.md`);
       expect(readme).toContain(res.body.prePopulatedFields.title);
-      expect(readme).toContain('## Problem Statement');
+      expect(readme).toContain("## Problem Statement");
     });
 
-    test('PASS: Stores ideation metadata', async () => {
+    test("PASS: Stores ideation metadata", async () => {
       const session = await createSessionWithCandidate();
 
       const res = await request(app)
-        .post('/api/ideation/capture')
+        .post("/api/ideation/capture")
         .send({ sessionId: session.id });
 
-      const metadata = await getIdeaMetadata(res.body.ideaId, 'ideation');
+      const metadata = await getIdeaMetadata(res.body.ideaId, "ideation");
       expect(metadata.sessionId).toBe(session.id);
       expect(metadata.confidenceAtCapture).toBeDefined();
       expect(metadata.viabilityAtCapture).toBeDefined();
     });
 
-    test('PASS: Completes session after capture', async () => {
+    test("PASS: Completes session after capture", async () => {
       const session = await createSessionWithCandidate();
 
       await request(app)
-        .post('/api/ideation/capture')
+        .post("/api/ideation/capture")
         .send({ sessionId: session.id });
 
       const updatedSession = await getSession(session.id);
-      expect(updatedSession.status).toBe('completed');
+      expect(updatedSession.status).toBe("completed");
     });
 
-    test('FAIL: Returns 400 if no candidate exists', async () => {
-      const session = await createTestSession();  // No candidate yet
+    test("FAIL: Returns 400 if no candidate exists", async () => {
+      const session = await createTestSession(); // No candidate yet
 
       const res = await request(app)
-        .post('/api/ideation/capture')
+        .post("/api/ideation/capture")
         .send({ sessionId: session.id });
 
       expect(res.status).toBe(400);
@@ -3998,15 +4206,14 @@ describe('Ideation API Integration', () => {
   // HANDOFF
   // ===========================================================================
 
-  describe('Agent Handoff', () => {
-
-    test('PASS: Handoff preserves state in memory files', async () => {
-      const session = await createLongSession();  // Near 80k tokens
+  describe("Agent Handoff", () => {
+    test("PASS: Handoff preserves state in memory files", async () => {
+      const session = await createLongSession(); // Near 80k tokens
 
       // Send message to trigger handoff
       const res = await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId: session.id, message: 'Continue exploring' });
+        .post("/api/ideation/message")
+        .send({ sessionId: session.id, message: "Continue exploring" });
 
       expect(res.body.handoffOccurred).toBe(true);
 
@@ -4017,30 +4224,30 @@ describe('Ideation API Integration', () => {
       expect(memory.handoffNotes).toBeDefined();
     });
 
-    test('PASS: Conversation continues naturally after handoff', async () => {
+    test("PASS: Conversation continues naturally after handoff", async () => {
       const session = await createLongSession();
 
       // Trigger handoff
       await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId: session.id, message: 'Tell me more' });
+        .post("/api/ideation/message")
+        .send({ sessionId: session.id, message: "Tell me more" });
 
       // Send another message
       const res = await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId: session.id, message: 'What about the market?' });
+        .post("/api/ideation/message")
+        .send({ sessionId: session.id, message: "What about the market?" });
 
       expect(res.status).toBe(200);
       expect(res.body.reply).toBeDefined();
       // Reply should reference prior context
     });
 
-    test('PASS: Handoff count is incremented', async () => {
+    test("PASS: Handoff count is incremented", async () => {
       const session = await createLongSession();
 
       await request(app)
-        .post('/api/ideation/message')
-        .send({ sessionId: session.id, message: 'Continue' });
+        .post("/api/ideation/message")
+        .send({ sessionId: session.id, message: "Continue" });
 
       const updatedSession = await getSession(session.id);
       expect(updatedSession.handoffCount).toBe(1);
@@ -4052,36 +4259,37 @@ describe('Ideation API Integration', () => {
 ### 8.3 E2E Tests
 
 ```typescript
-describe('Ideation Agent E2E', () => {
-
-  describe('Complete Flow: User with no idea discovers one', () => {
-
-    test('PASS: Full journey from start to capture', async () => {
+describe("Ideation Agent E2E", () => {
+  describe("Complete Flow: User with no idea discovers one", () => {
+    test("PASS: Full journey from start to capture", async () => {
       // 1. Start session
       const profile = await createTestProfile({
-        interests: ['technology', 'healthcare'],
-        skills: ['software development'],
-        location: 'Sydney',
+        interests: ["technology", "healthcare"],
+        skills: ["software development"],
+        location: "Sydney",
       });
 
       const startRes = await startSession(profile.id);
       const sessionId = startRes.sessionId;
 
       // 2. Initial exploration
-      let res = await sendMessage(sessionId,
-        "I've been frustrated with how hard it is to find good doctors in Sydney"
+      let res = await sendMessage(
+        sessionId,
+        "I've been frustrated with how hard it is to find good doctors in Sydney",
       );
       expect(res.reply).toBeDefined();
 
       // 3. Answer follow-up questions
-      res = await sendMessage(sessionId,
-        "Specifically, finding specialists who bulk bill and have availability"
+      res = await sendMessage(
+        sessionId,
+        "Specifically, finding specialists who bulk bill and have availability",
       );
       expect(res.reply).toBeDefined();
 
       // 4. Provide more context
-      res = await sendMessage(sessionId,
-        "I've worked in healthcare IT for 5 years, I understand how the systems work"
+      res = await sendMessage(
+        sessionId,
+        "I've worked in healthcare IT for 5 years, I understand how the systems work",
       );
       expect(res.reply).toBeDefined();
 
@@ -4091,8 +4299,9 @@ describe('Ideation Agent E2E', () => {
       expect(candidate.confidence).toBeGreaterThan(30);
 
       // 6. Continue to build confidence
-      res = await sendMessage(sessionId,
-        "Yes, I think B2C targeting patients directly would work best"
+      res = await sendMessage(
+        sessionId,
+        "Yes, I think B2C targeting patients directly would work best",
       );
 
       // 7. Verify viability is being tracked
@@ -4105,33 +4314,35 @@ describe('Ideation Agent E2E', () => {
       // 9. Verify idea was created correctly
       const idea = await getIdea(captureRes.ideaId);
       expect(idea.title).toBeDefined();
-      expect(idea.stage).toBe('SPARK');
+      expect(idea.stage).toBe("SPARK");
     });
   });
 
-  describe('Complete Flow: User suggests their own idea', () => {
-
-    test('PASS: User-suggested idea is explored and captured', async () => {
+  describe("Complete Flow: User suggests their own idea", () => {
+    test("PASS: User-suggested idea is explored and captured", async () => {
       const profile = await createTestProfile();
       const startRes = await startSession(profile.id);
       const sessionId = startRes.sessionId;
 
       // 1. User suggests idea immediately
-      let res = await sendMessage(sessionId,
-        "I've been thinking about building a marketplace for vintage synthesizers"
+      let res = await sendMessage(
+        sessionId,
+        "I've been thinking about building a marketplace for vintage synthesizers",
       );
 
       // Agent should acknowledge and explore
       expect(res.reply.toLowerCase()).toMatch(/explore|interesting|tell me/);
 
       // 2. Provide context
-      res = await sendMessage(sessionId,
-        "I've been buying and selling synths for 10 years, I know the community well"
+      res = await sendMessage(
+        sessionId,
+        "I've been buying and selling synths for 10 years, I know the community well",
       );
 
       // 3. Continue exploration
-      res = await sendMessage(sessionId,
-        "The main problem with Reverb is the fees and it's not specialized for synths"
+      res = await sendMessage(
+        sessionId,
+        "The main problem with Reverb is the fees and it's not specialized for synths",
       );
 
       // 4. Candidate should form with user_suggested flag
@@ -4145,24 +4356,25 @@ describe('Ideation Agent E2E', () => {
     });
   });
 
-  describe('Complete Flow: Viability intervention', () => {
-
-    test('PASS: User is warned about unviable idea', async () => {
+  describe("Complete Flow: Viability intervention", () => {
+    test("PASS: User is warned about unviable idea", async () => {
       const profile = await createTestProfile({
-        capital: 'bootstrap',
+        capital: "bootstrap",
         hoursPerWeek: 10,
       });
       const startRes = await startSession(profile.id);
       const sessionId = startRes.sessionId;
 
       // 1. Propose difficult idea
-      let res = await sendMessage(sessionId,
-        "I want to build an autonomous vehicle company"
+      let res = await sendMessage(
+        sessionId,
+        "I want to build an autonomous vehicle company",
       );
 
       // 2. Continue with unrealistic parameters
-      res = await sendMessage(sessionId,
-        "I want to do this solo with no funding"
+      res = await sendMessage(
+        sessionId,
+        "I want to do this solo with no funding",
       );
 
       // 3. Check for intervention
@@ -4172,13 +4384,13 @@ describe('Ideation Agent E2E', () => {
       expect(res.intervention.risks.length).toBeGreaterThan(0);
 
       // 4. User acknowledges and pivots
-      res = await clickButton(sessionId, 'btn_pivot');
+      res = await clickButton(sessionId, "btn_pivot");
 
       // 5. Conversation continues with new direction
       expect(res.reply).toBeDefined();
     });
 
-    test('PASS: User can continue despite warnings', async () => {
+    test("PASS: User can continue despite warnings", async () => {
       const profile = await createTestProfile();
       const startRes = await startSession(profile.id);
       const sessionId = startRes.sessionId;
@@ -4187,11 +4399,14 @@ describe('Ideation Agent E2E', () => {
       await sendMessage(sessionId, "I want to compete with Google Search");
 
       // Get intervention
-      const res = await sendMessage(sessionId, "I know it's hard but I want to try");
+      const res = await sendMessage(
+        sessionId,
+        "I know it's hard but I want to try",
+      );
 
       if (res.intervention) {
         // Click "continue anyway"
-        const continueRes = await clickButton(sessionId, 'btn_continue_anyway');
+        const continueRes = await clickButton(sessionId, "btn_continue_anyway");
 
         // Conversation should continue
         expect(continueRes.reply).toBeDefined();
@@ -4203,9 +4418,8 @@ describe('Ideation Agent E2E', () => {
     });
   });
 
-  describe('Complete Flow: Save for later', () => {
-
-    test('PASS: Idea is saved to Ideas list', async () => {
+  describe("Complete Flow: Save for later", () => {
+    test("PASS: Idea is saved to Ideas list", async () => {
       const profile = await createTestProfile();
       const startRes = await startSession(profile.id);
       const sessionId = startRes.sessionId;
@@ -4221,7 +4435,7 @@ describe('Ideation Agent E2E', () => {
 
       // Verify it's in Ideas list with saved status
       const candidate = await getCandidate(saveRes.savedCandidateId);
-      expect(candidate.status).toBe('saved');
+      expect(candidate.status).toBe("saved");
     });
   });
 });
@@ -4240,22 +4454,19 @@ class IdeationError extends Error {
     message: string,
     public code: string,
     public statusCode: number = 500,
-    public context?: Record<string, unknown>
+    public context?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = 'IdeationError';
+    this.name = "IdeationError";
   }
 }
 
 // Specific errors
 class SessionNotFoundError extends IdeationError {
   constructor(sessionId: string) {
-    super(
-      `Session not found: ${sessionId}`,
-      'SESSION_NOT_FOUND',
-      404,
-      { sessionId }
-    );
+    super(`Session not found: ${sessionId}`, "SESSION_NOT_FOUND", 404, {
+      sessionId,
+    });
   }
 }
 
@@ -4263,9 +4474,9 @@ class SessionNotActiveError extends IdeationError {
   constructor(sessionId: string, status: string) {
     super(
       `Session is not active: ${sessionId} (status: ${status})`,
-      'SESSION_NOT_ACTIVE',
+      "SESSION_NOT_ACTIVE",
       400,
-      { sessionId, status }
+      { sessionId, status },
     );
   }
 }
@@ -4274,54 +4485,45 @@ class NoCandidateError extends IdeationError {
   constructor(sessionId: string) {
     super(
       `No idea candidate exists for session: ${sessionId}`,
-      'NO_CANDIDATE',
+      "NO_CANDIDATE",
       400,
-      { sessionId }
+      { sessionId },
     );
   }
 }
 
 class ProfileNotFoundError extends IdeationError {
   constructor(profileId: string) {
-    super(
-      `Profile not found: ${profileId}`,
-      'PROFILE_NOT_FOUND',
-      404,
-      { profileId }
-    );
+    super(`Profile not found: ${profileId}`, "PROFILE_NOT_FOUND", 404, {
+      profileId,
+    });
   }
 }
 
 class AgentResponseError extends IdeationError {
   constructor(message: string, rawResponse?: string) {
-    super(
-      `Agent response error: ${message}`,
-      'AGENT_RESPONSE_ERROR',
-      500,
-      { rawResponse }
-    );
+    super(`Agent response error: ${message}`, "AGENT_RESPONSE_ERROR", 500, {
+      rawResponse,
+    });
   }
 }
 
 class WebSearchError extends IdeationError {
   constructor(query: string, originalError: Error) {
-    super(
-      `Web search failed for query: ${query}`,
-      'WEB_SEARCH_ERROR',
-      500,
-      { query, originalError: originalError.message }
-    );
+    super(`Web search failed for query: ${query}`, "WEB_SEARCH_ERROR", 500, {
+      query,
+      originalError: originalError.message,
+    });
   }
 }
 
 class HandoffError extends IdeationError {
   constructor(sessionId: string, step: string, originalError: Error) {
-    super(
-      `Handoff failed at step: ${step}`,
-      'HANDOFF_ERROR',
-      500,
-      { sessionId, step, originalError: originalError.message }
-    );
+    super(`Handoff failed at step: ${step}`, "HANDOFF_ERROR", 500, {
+      sessionId,
+      step,
+      originalError: originalError.message,
+    });
   }
 }
 ```
@@ -4334,9 +4536,9 @@ function errorHandler(
   err: Error,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
-  console.error('Ideation API Error:', {
+  console.error("Ideation API Error:", {
     name: err.name,
     message: err.message,
     stack: err.stack,
@@ -4357,8 +4559,8 @@ function errorHandler(
   // Unknown errors
   return res.status(500).json({
     error: {
-      code: 'INTERNAL_ERROR',
-      message: 'An unexpected error occurred',
+      code: "INTERNAL_ERROR",
+      message: "An unexpected error occurred",
     },
   });
 }
@@ -4370,33 +4572,33 @@ function errorHandler(
 
 ### 10.1 Response Time Targets
 
-| Operation | Target | Maximum |
-|-----------|--------|---------|
-| Start session | 500ms | 2s |
-| Send message (no search) | 3s | 10s |
-| Send message (with search) | 5s | 15s |
-| Button click | 3s | 10s |
-| Capture idea | 1s | 3s |
-| Handoff | 2s | 5s |
+| Operation                  | Target | Maximum |
+| -------------------------- | ------ | ------- |
+| Start session              | 500ms  | 2s      |
+| Send message (no search)   | 3s     | 10s     |
+| Send message (with search) | 5s     | 15s     |
+| Button click               | 3s     | 10s     |
+| Capture idea               | 1s     | 3s      |
+| Handoff                    | 2s     | 5s      |
 
 ### 10.2 Throughput Requirements
 
-| Metric | Target |
-|--------|--------|
-| Concurrent sessions | 100 |
-| Messages per minute per session | 10 |
-| Web searches per session | 20 |
+| Metric                          | Target |
+| ------------------------------- | ------ |
+| Concurrent sessions             | 100    |
+| Messages per minute per session | 10     |
+| Web searches per session        | 20     |
 
 ### 10.3 Resource Limits
 
-| Resource | Limit |
-|----------|-------|
-| Max session duration | 4 hours |
-| Max messages per session | 500 |
-| Max token count before handoff | 80,000 |
-| Max web searches per message | 3 |
-| Max candidates per session | 10 (historical) |
-| Max risks per candidate | 20 |
+| Resource                       | Limit           |
+| ------------------------------ | --------------- |
+| Max session duration           | 4 hours         |
+| Max messages per session       | 500             |
+| Max token count before handoff | 80,000          |
+| Max web searches per message   | 3               |
+| Max candidates per session     | 10 (historical) |
+| Max risks per candidate        | 20              |
 
 ---
 
@@ -4438,6 +4640,6 @@ const rateLimits = {
 
 ---
 
-*Document Version: 1.0*
-*Created: 2025-12-30*
-*Status: Implementation Ready*
+_Document Version: 1.0_
+_Created: 2025-12-30_
+_Status: Implementation Ready_

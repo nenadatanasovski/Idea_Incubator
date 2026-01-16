@@ -227,8 +227,8 @@ Your response must be valid JSON in this structure:
 {{MEMORY_FILES}}
 `;
 
-export const USER_PROFILE_PLACEHOLDER = '{{USER_PROFILE}}';
-export const MEMORY_FILES_PLACEHOLDER = '{{MEMORY_FILES}}';
+export const USER_PROFILE_PLACEHOLDER = "{{USER_PROFILE}}";
+export const MEMORY_FILES_PLACEHOLDER = "{{MEMORY_FILES}}";
 ```
 
 ---
@@ -237,10 +237,10 @@ export const MEMORY_FILES_PLACEHOLDER = '{{MEMORY_FILES}}';
 
 Create file: `agents/ideation/orchestrator.ts`
 
-```typescript
-import Anthropic from '@anthropic-ai/sdk';
-import { getConfig } from '../../config/index.js';
-import { getAnthropicClient } from '../../utils/anthropic-client.js';
+````typescript
+import Anthropic from "@anthropic-ai/sdk";
+import { getConfig } from "../../config/index.js";
+import { getAnthropicClient } from "../../utils/anthropic-client.js";
 import {
   IdeationSession,
   IdeationMessage,
@@ -249,16 +249,20 @@ import {
   SelfDiscoveryState,
   MarketDiscoveryState,
   NarrowingState,
-} from '../../types/ideation.js';
-import { sessionManager } from './session-manager.js';
-import { messageStore } from './message-store.js';
-import { memoryManager } from './memory-manager.js';
-import { extractSignals, ParsedAgentResponse } from './signal-extractor.js';
-import { calculateConfidence } from './confidence-calculator.js';
-import { calculateViability } from './viability-calculator.js';
-import { calculateTokenUsage } from './token-counter.js';
-import { prepareHandoff } from './handoff.js';
-import { IDEATION_AGENT_SYSTEM_PROMPT, USER_PROFILE_PLACEHOLDER, MEMORY_FILES_PLACEHOLDER } from './system-prompt.js';
+} from "../../types/ideation.js";
+import { sessionManager } from "./session-manager.js";
+import { messageStore } from "./message-store.js";
+import { memoryManager } from "./memory-manager.js";
+import { extractSignals, ParsedAgentResponse } from "./signal-extractor.js";
+import { calculateConfidence } from "./confidence-calculator.js";
+import { calculateViability } from "./viability-calculator.js";
+import { calculateTokenUsage } from "./token-counter.js";
+import { prepareHandoff } from "./handoff.js";
+import {
+  IDEATION_AGENT_SYSTEM_PROMPT,
+  USER_PROFILE_PLACEHOLDER,
+  MEMORY_FILES_PLACEHOLDER,
+} from "./system-prompt.js";
 
 /**
  * AGENT ORCHESTRATOR
@@ -268,7 +272,7 @@ import { IDEATION_AGENT_SYSTEM_PROMPT, USER_PROFILE_PLACEHOLDER, MEMORY_FILES_PL
  */
 
 export interface AgentContext {
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
   systemPrompt: string;
 }
 
@@ -299,7 +303,7 @@ export class AgentOrchestrator {
   async processMessage(
     session: IdeationSession,
     userMessage: string,
-    userProfile: Record<string, unknown>
+    userProfile: Record<string, unknown>,
   ): Promise<OrchestratorResponse> {
     // Get existing messages
     const messages = await messageStore.getBySession(session.id);
@@ -315,14 +319,19 @@ export class AgentOrchestrator {
     }
 
     // Build context
-    const context = await this.buildContext(session, messages, userProfile, handoffOccurred);
+    const context = await this.buildContext(
+      session,
+      messages,
+      userProfile,
+      handoffOccurred,
+    );
 
     // Add user message to context
-    context.messages.push({ role: 'user', content: userMessage });
+    context.messages.push({ role: "user", content: userMessage });
 
     // Call Claude
     const response = await this.client.messages.create({
-      model: getConfig().model || 'claude-sonnet-4-20250514',
+      model: getConfig().model || "claude-sonnet-4-20250514",
       max_tokens: 4096,
       system: context.systemPrompt,
       messages: context.messages,
@@ -336,16 +345,27 @@ export class AgentOrchestrator {
     const signals = extractSignals(userMessage, parsed, currentState);
 
     // Update states
-    const selfDiscovery = this.mergeState(currentState.selfDiscovery, signals.selfDiscovery);
-    const marketDiscovery = this.mergeState(currentState.marketDiscovery, signals.marketDiscovery);
-    const narrowingState = this.mergeState(currentState.narrowing, signals.narrowing);
+    const selfDiscovery = this.mergeState(
+      currentState.selfDiscovery,
+      signals.selfDiscovery,
+    );
+    const marketDiscovery = this.mergeState(
+      currentState.marketDiscovery,
+      signals.marketDiscovery,
+    );
+    const narrowingState = this.mergeState(
+      currentState.narrowing,
+      signals.narrowing,
+    );
 
     // Calculate meters
     const confidenceResult = calculateConfidence({
       selfDiscovery: selfDiscovery as SelfDiscoveryState,
       marketDiscovery: marketDiscovery as MarketDiscoveryState,
       narrowingState: narrowingState as NarrowingState,
-      candidate: parsed.candidateTitle ? { title: parsed.candidateTitle, summary: parsed.candidateSummary } : null,
+      candidate: parsed.candidateTitle
+        ? { title: parsed.candidateTitle, summary: parsed.candidateSummary }
+        : null,
       userConfirmations: this.countConfirmations(messages),
     });
 
@@ -354,7 +374,9 @@ export class AgentOrchestrator {
       marketDiscovery: marketDiscovery as MarketDiscoveryState,
       narrowingState: narrowingState as NarrowingState,
       webSearchResults: [], // Populated from web search if available
-      candidate: parsed.candidateTitle ? { id: '', title: parsed.candidateTitle } : null,
+      candidate: parsed.candidateTitle
+        ? { id: "", title: parsed.candidateTitle }
+        : null,
     });
 
     // Update memory files
@@ -362,30 +384,34 @@ export class AgentOrchestrator {
       selfDiscovery: selfDiscovery as SelfDiscoveryState,
       marketDiscovery: marketDiscovery as MarketDiscoveryState,
       narrowingState: narrowingState as NarrowingState,
-      candidate: parsed.candidateTitle ? {
-        id: '',
-        sessionId: session.id,
-        title: parsed.candidateTitle,
-        summary: parsed.candidateSummary || null,
-        confidence: confidenceResult.total,
-        viability: viabilityResult.total,
-        userSuggested: false,
-        status: 'forming',
-        capturedIdeaId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } : null,
+      candidate: parsed.candidateTitle
+        ? {
+            id: "",
+            sessionId: session.id,
+            title: parsed.candidateTitle,
+            summary: parsed.candidateSummary || null,
+            confidence: confidenceResult.total,
+            viability: viabilityResult.total,
+            userSuggested: false,
+            status: "forming",
+            capturedIdeaId: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+        : null,
       viability: { total: viabilityResult.total, risks: viabilityResult.risks },
     });
 
     return {
       reply: parsed.reply,
       buttons: parsed.buttons || null,
-      form: parsed.formFields as FormDefinition || null,
-      candidateUpdate: parsed.candidateTitle ? {
-        title: parsed.candidateTitle,
-        summary: parsed.candidateSummary,
-      } : null,
+      form: (parsed.formFields as FormDefinition) || null,
+      candidateUpdate: parsed.candidateTitle
+        ? {
+            title: parsed.candidateTitle,
+            summary: parsed.candidateSummary,
+          }
+        : null,
       confidence: confidenceResult.total,
       viability: viabilityResult.total,
       requiresIntervention: viabilityResult.requiresIntervention,
@@ -400,30 +426,36 @@ export class AgentOrchestrator {
     session: IdeationSession,
     messages: IdeationMessage[],
     userProfile: Record<string, unknown>,
-    isHandoff: boolean
+    isHandoff: boolean,
   ): Promise<AgentContext> {
     let systemPrompt = IDEATION_AGENT_SYSTEM_PROMPT;
 
     // Insert user profile
     systemPrompt = systemPrompt.replace(
       USER_PROFILE_PLACEHOLDER,
-      JSON.stringify(userProfile, null, 2)
+      JSON.stringify(userProfile, null, 2),
     );
 
     // Insert memory files if handoff
     if (isHandoff || session.handoffCount > 0) {
       const memoryFiles = await memoryManager.getAll(session.id);
       const memoryContent = memoryFiles
-        .map(f => `## ${f.fileType}\n${f.content}`)
-        .join('\n\n');
-      systemPrompt = systemPrompt.replace(MEMORY_FILES_PLACEHOLDER, memoryContent);
+        .map((f) => `## ${f.fileType}\n${f.content}`)
+        .join("\n\n");
+      systemPrompt = systemPrompt.replace(
+        MEMORY_FILES_PLACEHOLDER,
+        memoryContent,
+      );
     } else {
-      systemPrompt = systemPrompt.replace(MEMORY_FILES_PLACEHOLDER, 'No previous handoff.');
+      systemPrompt = systemPrompt.replace(
+        MEMORY_FILES_PLACEHOLDER,
+        "No previous handoff.",
+      );
     }
 
     // Convert messages to API format
-    const apiMessages = messages.map(m => ({
-      role: m.role as 'user' | 'assistant',
+    const apiMessages = messages.map((m) => ({
+      role: m.role as "user" | "assistant",
       content: m.content,
     }));
 
@@ -434,9 +466,12 @@ export class AgentOrchestrator {
    * Parse agent response from Claude.
    */
   private parseResponse(response: Anthropic.Message): ParsedAgentResponse {
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      return { reply: 'I apologize, but I encountered an issue. Could you repeat that?' };
+    const textContent = response.content.find((c) => c.type === "text");
+    if (!textContent || textContent.type !== "text") {
+      return {
+        reply:
+          "I apologize, but I encountered an issue. Could you repeat that?",
+      };
     }
 
     const text = textContent.text;
@@ -444,7 +479,10 @@ export class AgentOrchestrator {
     // Try to parse as JSON
     try {
       // Find JSON in response (may be wrapped in markdown code blocks)
-      const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) || [null, text];
+      const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) || [
+        null,
+        text,
+      ];
       const jsonStr = jsonMatch[1] || text;
 
       const parsed = JSON.parse(jsonStr);
@@ -483,7 +521,10 @@ export class AgentOrchestrator {
   /**
    * Merge existing state with new signals.
    */
-  private mergeState<T extends Record<string, unknown>>(existing: Partial<T>, updates: Partial<T>): Partial<T> {
+  private mergeState<T extends Record<string, unknown>>(
+    existing: Partial<T>,
+    updates: Partial<T>,
+  ): Partial<T> {
     return { ...existing, ...updates };
   }
 
@@ -500,15 +541,18 @@ export class AgentOrchestrator {
     ];
 
     return messages
-      .filter(m => m.role === 'user')
-      .filter(m => confirmationPatterns.some(p => p.test(m.content)))
+      .filter((m) => m.role === "user")
+      .filter((m) => confirmationPatterns.some((p) => p.test(m.content)))
       .length;
   }
 
   /**
    * Perform handoff preparation.
    */
-  private async performHandoff(session: IdeationSession, messages: IdeationMessage[]): Promise<void> {
+  private async performHandoff(
+    session: IdeationSession,
+    messages: IdeationMessage[],
+  ): Promise<void> {
     const state = await this.loadSessionState(session.id);
 
     await prepareHandoff(session, {
@@ -525,7 +569,7 @@ export class AgentOrchestrator {
 
 // Singleton
 export const agentOrchestrator = new AgentOrchestrator();
-```
+````
 
 ---
 
@@ -534,7 +578,7 @@ export const agentOrchestrator = new AgentOrchestrator();
 Create file: `agents/ideation/greeting-generator.ts`
 
 ```typescript
-import { ButtonOption } from '../../types/ideation.js';
+import { ButtonOption } from "../../types/ideation.js";
 
 /**
  * GREETING GENERATOR
@@ -568,7 +612,9 @@ export function generateGreeting(profile: UserProfile): string {
   const parts: string[] = [];
 
   // Opening
-  parts.push("Welcome! I'm here to help you discover a business idea that's genuinely right for you.");
+  parts.push(
+    "Welcome! I'm here to help you discover a business idea that's genuinely right for you.",
+  );
 
   // Process explanation
   parts.push(`
@@ -582,24 +628,39 @@ Feel free to suggest any ideas you've been thinking about — I'll help you expl
   const personalizations: string[] = [];
 
   // Technical skills
-  const technicalSkills = profile.skills?.filter(s =>
-    ['programming', 'software', 'development', 'engineering', 'data', 'design'].some(t =>
-      s.toLowerCase().includes(t)
-    )
-  ) || [];
+  const technicalSkills =
+    profile.skills?.filter((s) =>
+      [
+        "programming",
+        "software",
+        "development",
+        "engineering",
+        "data",
+        "design",
+      ].some((t) => s.toLowerCase().includes(t)),
+    ) || [];
 
   if (technicalSkills.length > 0) {
-    personalizations.push(`technical background in ${technicalSkills.slice(0, 2).join(' and ')}`);
+    personalizations.push(
+      `technical background in ${technicalSkills.slice(0, 2).join(" and ")}`,
+    );
   }
 
   // Domain experience
-  if (profile.experience?.industries && profile.experience.industries.length > 0) {
-    personalizations.push(`experience in ${profile.experience.industries.slice(0, 2).join(' and ')}`);
+  if (
+    profile.experience?.industries &&
+    profile.experience.industries.length > 0
+  ) {
+    personalizations.push(
+      `experience in ${profile.experience.industries.slice(0, 2).join(" and ")}`,
+    );
   }
 
   // Interests from profile
   if (profile.interests && profile.interests.length > 0) {
-    personalizations.push(`interest in ${profile.interests.slice(0, 2).join(' and ')}`);
+    personalizations.push(
+      `interest in ${profile.interests.slice(0, 2).join(" and ")}`,
+    );
   }
 
   // Location
@@ -608,42 +669,49 @@ Feel free to suggest any ideas you've been thinking about — I'll help you expl
   }
 
   if (personalizations.length > 0) {
-    parts.push(`\nI've loaded your profile, so I know you have ${personalizations.join(', ')}. Let's use that as our starting point.`);
+    parts.push(
+      `\nI've loaded your profile, so I know you have ${personalizations.join(", ")}. Let's use that as our starting point.`,
+    );
   } else {
-    parts.push(`\nI've loaded your profile. Let's use what I know about you as our starting point.`);
+    parts.push(
+      `\nI've loaded your profile. Let's use what I know about you as our starting point.`,
+    );
   }
 
   // Opening question
   parts.push(`
 What's been occupying your mind lately? Any problems you've noticed, frustrations you've had, or opportunities you've wondered about?`);
 
-  return parts.join('\n');
+  return parts.join("\n");
 }
 
 /**
  * Generate greeting with buttons for common starting points.
  */
-export function generateGreetingWithButtons(profile: UserProfile): GreetingWithButtons {
+export function generateGreetingWithButtons(
+  profile: UserProfile,
+): GreetingWithButtons {
   return {
     text: generateGreeting(profile),
     buttons: [
       {
-        id: 'btn_frustration',
-        label: 'Something frustrates me',
-        value: "There's something that frustrates me that I think could be better",
-        style: 'secondary',
+        id: "btn_frustration",
+        label: "Something frustrates me",
+        value:
+          "There's something that frustrates me that I think could be better",
+        style: "secondary",
       },
       {
-        id: 'btn_idea',
-        label: 'I have a rough idea',
+        id: "btn_idea",
+        label: "I have a rough idea",
         value: "I have a rough idea I've been thinking about",
-        style: 'secondary',
+        style: "secondary",
       },
       {
-        id: 'btn_explore',
-        label: 'Help me explore',
+        id: "btn_explore",
+        label: "Help me explore",
         value: "I don't have anything specific, help me explore",
-        style: 'secondary',
+        style: "secondary",
       },
     ],
   };
@@ -654,16 +722,16 @@ export function generateGreetingWithButtons(profile: UserProfile): GreetingWithB
  */
 export function generateReturningGreeting(
   profile: UserProfile,
-  lastSessionSummary?: string
+  lastSessionSummary?: string,
 ): string {
-  let greeting = `Welcome back${profile.name ? `, ${profile.name}` : ''}! `;
+  let greeting = `Welcome back${profile.name ? `, ${profile.name}` : ""}! `;
 
   if (lastSessionSummary) {
     greeting += `Last time, ${lastSessionSummary}\n\n`;
     greeting += `Would you like to continue where we left off, or start fresh with something new?`;
   } else {
     greeting += `Ready to explore some ideas?\n\n`;
-    greeting += generateGreeting(profile).split('\n\n').slice(-1)[0];
+    greeting += generateGreeting(profile).split("\n\n").slice(-1)[0];
   }
 
   return greeting;
@@ -677,8 +745,8 @@ export function generateReturningGreeting(
 Create file: `agents/ideation/streaming.ts`
 
 ```typescript
-import Anthropic from '@anthropic-ai/sdk';
-import { EventEmitter } from 'events';
+import Anthropic from "@anthropic-ai/sdk";
+import { EventEmitter } from "events";
 
 /**
  * STREAMING RESPONSE HANDLER
@@ -688,7 +756,7 @@ import { EventEmitter } from 'events';
  */
 
 export interface StreamEvent {
-  type: 'text_delta' | 'message_complete' | 'error' | 'tool_use';
+  type: "text_delta" | "message_complete" | "error" | "tool_use";
   data: string | AgentResponse | Error | ToolUseBlock;
 }
 
@@ -711,7 +779,7 @@ export interface ButtonOption {
   id: string;
   label: string;
   value: string;
-  style: 'primary' | 'secondary' | 'danger';
+  style: "primary" | "secondary" | "danger";
 }
 
 export interface FormDefinition {
@@ -722,7 +790,7 @@ export interface FormDefinition {
 export interface FormField {
   id: string;
   label: string;
-  type: 'text' | 'radio' | 'checkbox' | 'slider' | 'select';
+  type: "text" | "radio" | "checkbox" | "slider" | "select";
   options?: string[];
   min?: number;
   max?: number;
@@ -739,10 +807,10 @@ import {
   SelfDiscoveryState,
   MarketDiscoveryState,
   NarrowingState,
-} from '../../types/ideation.js';
+} from "../../types/ideation.js";
 
 export class StreamingResponseHandler extends EventEmitter {
-  private accumulatedText: string = '';
+  private accumulatedText: string = "";
   private client: Anthropic;
   private isStreaming: boolean = false;
 
@@ -755,16 +823,16 @@ export class StreamingResponseHandler extends EventEmitter {
    * Stream a message and emit events as tokens arrive.
    */
   async streamMessage(
-    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    messages: Array<{ role: "user" | "assistant"; content: string }>,
     systemPrompt: string,
-    tools?: Anthropic.Tool[]
+    tools?: Anthropic.Tool[],
   ): Promise<AgentResponse> {
     this.isStreaming = true;
-    this.accumulatedText = '';
+    this.accumulatedText = "";
 
     try {
       const stream = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: "claude-sonnet-4-20250514",
         max_tokens: 4096,
         system: systemPrompt,
         messages,
@@ -775,19 +843,19 @@ export class StreamingResponseHandler extends EventEmitter {
       for await (const event of stream) {
         if (!this.isStreaming) break;
 
-        if (event.type === 'content_block_delta') {
-          if (event.delta.type === 'text_delta') {
+        if (event.type === "content_block_delta") {
+          if (event.delta.type === "text_delta") {
             const textDelta = event.delta.text;
             this.accumulatedText += textDelta;
-            this.emit('stream', {
-              type: 'text_delta',
+            this.emit("stream", {
+              type: "text_delta",
               data: textDelta,
             } as StreamEvent);
           }
-        } else if (event.type === 'content_block_start') {
-          if (event.content_block.type === 'tool_use') {
-            this.emit('stream', {
-              type: 'tool_use',
+        } else if (event.type === "content_block_start") {
+          if (event.content_block.type === "tool_use") {
+            this.emit("stream", {
+              type: "tool_use",
               data: {
                 id: event.content_block.id,
                 name: event.content_block.name,
@@ -795,11 +863,11 @@ export class StreamingResponseHandler extends EventEmitter {
               },
             } as StreamEvent);
           }
-        } else if (event.type === 'message_stop') {
+        } else if (event.type === "message_stop") {
           // Message complete, parse the full response
           const response = this.parseResponse(this.accumulatedText);
-          this.emit('stream', {
-            type: 'message_complete',
+          this.emit("stream", {
+            type: "message_complete",
             data: response,
           } as StreamEvent);
           return response;
@@ -809,8 +877,8 @@ export class StreamingResponseHandler extends EventEmitter {
       // Fallback if stream ends without message_stop
       return this.parseResponse(this.accumulatedText);
     } catch (error) {
-      this.emit('stream', {
-        type: 'error',
+      this.emit("stream", {
+        type: "error",
         data: error as Error,
       } as StreamEvent);
       throw error;
@@ -824,9 +892,9 @@ export class StreamingResponseHandler extends EventEmitter {
    */
   cancel(): void {
     this.isStreaming = false;
-    this.emit('stream', {
-      type: 'error',
-      data: new Error('Stream cancelled by user'),
+    this.emit("stream", {
+      type: "error",
+      data: new Error("Stream cancelled by user"),
     } as StreamEvent);
   }
 
@@ -851,7 +919,7 @@ export class StreamingResponseHandler extends EventEmitter {
     try {
       const parsed = JSON.parse(jsonMatch[0]);
       return {
-        text: parsed.text || '',
+        text: parsed.text || "",
         buttons: parsed.buttons || null,
         form: parsed.form || null,
         webSearchNeeded: parsed.webSearchNeeded || null,
@@ -876,7 +944,7 @@ export class StreamingResponseHandler extends EventEmitter {
  * SSE encoder for server-side streaming.
  */
 export function encodeSSE(event: string, data: unknown): string {
-  const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
+  const dataStr = typeof data === "string" ? data : JSON.stringify(data);
   return `event: ${event}\ndata: ${dataStr}\n\n`;
 }
 
@@ -887,9 +955,9 @@ export function createSSEStream(res: any): {
   send: (event: string, data: unknown) => void;
   end: () => void;
 } {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
   return {
@@ -897,7 +965,7 @@ export function createSSEStream(res: any): {
       res.write(encodeSSE(event, data));
     },
     end: () => {
-      res.write(encodeSSE('done', {}));
+      res.write(encodeSSE("done", {}));
       res.end();
     },
   };
@@ -911,8 +979,8 @@ export function createSSEStream(res: any): {
 Create file: `agents/ideation/web-search.ts`
 
 ```typescript
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { exec } from "child_process";
+import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
@@ -938,7 +1006,12 @@ export interface SearchResultItem {
 }
 
 export interface SearchPurpose {
-  type: 'competitor_check' | 'market_validation' | 'timing_signal' | 'failed_attempts' | 'general';
+  type:
+    | "competitor_check"
+    | "market_validation"
+    | "timing_signal"
+    | "failed_attempts"
+    | "general";
   context: string;
 }
 
@@ -947,7 +1020,7 @@ export interface SearchPurpose {
  */
 export async function performWebSearch(
   query: string,
-  purpose: SearchPurpose
+  purpose: SearchPurpose,
 ): Promise<WebSearchResult> {
   const timestamp = new Date().toISOString();
 
@@ -975,7 +1048,7 @@ export async function performWebSearch(
  * Build a search prompt based on purpose.
  */
 function buildSearchPrompt(query: string, purpose: SearchPurpose): string {
-  const purposeInstructions: Record<SearchPurpose['type'], string> = {
+  const purposeInstructions: Record<SearchPurpose["type"], string> = {
     competitor_check: `Search for competitors and alternatives in this space. Focus on: company names, their offerings, pricing models, and market position.`,
     market_validation: `Validate if there's a real market for this. Look for: market size data, user demand signals, industry reports.`,
     timing_signal: `Check if the timing is right for this idea. Look for: recent trends, regulatory changes, technology shifts, market events.`,
@@ -1002,7 +1075,7 @@ Please search for this and return:
  * Execute Claude CLI with WebSearch tool.
  */
 async function runClaudeCliWithSearch(prompt: string): Promise<string> {
-  const escapedPrompt = prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  const escapedPrompt = prompt.replace(/"/g, '\\"').replace(/\n/g, "\\n");
 
   try {
     const { stdout } = await execAsync(
@@ -1010,7 +1083,7 @@ async function runClaudeCliWithSearch(prompt: string): Promise<string> {
       {
         timeout: 30000, // 30 second timeout
         maxBuffer: 1024 * 1024, // 1MB buffer
-      }
+      },
     );
 
     return stdout;
@@ -1041,9 +1114,9 @@ function parseSearchResults(output: string): SearchResultItem[] {
   // Also check for bare URLs
   const urlPattern = /(https?:\/\/[^\s]+)/g;
   while ((match = urlPattern.exec(output)) !== null) {
-    if (!results.some(r => r.url === match[1])) {
+    if (!results.some((r) => r.url === match[1])) {
       results.push({
-        title: 'Source',
+        title: "Source",
         url: match[1],
         snippet: extractSnippet(output, match.index),
         source: new URL(match[1]).hostname,
@@ -1063,10 +1136,10 @@ function extractSnippet(text: string, matchIndex: number): string {
   let snippet = text.slice(start, end).trim();
 
   // Clean up and add ellipsis
-  if (start > 0) snippet = '...' + snippet;
-  if (end < text.length) snippet = snippet + '...';
+  if (start > 0) snippet = "..." + snippet;
+  if (end < text.length) snippet = snippet + "...";
 
-  return snippet.replace(/\[.*?\]\(.*?\)/g, '').trim();
+  return snippet.replace(/\[.*?\]\(.*?\)/g, "").trim();
 }
 
 /**
@@ -1080,7 +1153,11 @@ export interface SearchStrategy {
 
 export function determineSearchStrategy(
   candidateTitle: string,
-  narrowingState: { productType?: string; customerType?: string; geography?: string }
+  narrowingState: {
+    productType?: string;
+    customerType?: string;
+    geography?: string;
+  },
 ): SearchStrategy {
   const queries: string[] = [];
   const purposes: SearchPurpose[] = [];
@@ -1088,31 +1165,31 @@ export function determineSearchStrategy(
   // Always check for competitors
   queries.push(`${candidateTitle} competitors alternatives`);
   purposes.push({
-    type: 'competitor_check',
+    type: "competitor_check",
     context: `Looking for direct competitors to: ${candidateTitle}`,
   });
 
   // Check market validation
   queries.push(`${candidateTitle} market size demand`);
   purposes.push({
-    type: 'market_validation',
+    type: "market_validation",
     context: `Validating market demand for: ${candidateTitle}`,
   });
 
   // Check for failed attempts if B2C
-  if (narrowingState.customerType === 'B2C') {
+  if (narrowingState.customerType === "B2C") {
     queries.push(`${candidateTitle} startup failed shutdown`);
     purposes.push({
-      type: 'failed_attempts',
+      type: "failed_attempts",
       context: `Looking for previous failed attempts in: ${candidateTitle}`,
     });
   }
 
   // Add geography-specific search if local
-  if (narrowingState.geography === 'local') {
+  if (narrowingState.geography === "local") {
     queries.push(`${candidateTitle} australia local market`);
     purposes.push({
-      type: 'market_validation',
+      type: "market_validation",
       context: `Checking Australian/local market for: ${candidateTitle}`,
     });
   }
@@ -1124,17 +1201,20 @@ export function determineSearchStrategy(
  * Batch execute searches with rate limiting.
  */
 export async function executeSearchBatch(
-  strategy: SearchStrategy
+  strategy: SearchStrategy,
 ): Promise<WebSearchResult[]> {
   const results: WebSearchResult[] = [];
 
   for (let i = 0; i < strategy.queries.length; i++) {
-    const result = await performWebSearch(strategy.queries[i], strategy.purposes[i]);
+    const result = await performWebSearch(
+      strategy.queries[i],
+      strategy.purposes[i],
+    );
     results.push(result);
 
     // Rate limit: wait 1 second between searches
     if (i < strategy.queries.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 
@@ -1158,7 +1238,11 @@ Create file: `agents/ideation/witty-interjections.ts`
 
 export interface WittyInterjection {
   text: string;
-  category: 'self_awareness' | 'market_reality' | 'encouragement' | 'gentle_push';
+  category:
+    | "self_awareness"
+    | "market_reality"
+    | "encouragement"
+    | "gentle_push";
   triggers: string[];
 }
 
@@ -1167,84 +1251,89 @@ const INTERJECTIONS: WittyInterjection[] = [
   // Self-awareness
   {
     text: "Ah, the classic 'surely someone's solved this' moment. Usually they haven't, or they've done it poorly.",
-    category: 'self_awareness',
-    triggers: ['surely', 'someone must have', 'already exists', 'been done'],
+    category: "self_awareness",
+    triggers: ["surely", "someone must have", "already exists", "been done"],
   },
   {
     text: "That's either a terrible idea or a brilliant one. Often the same thing.",
-    category: 'self_awareness',
-    triggers: ['crazy idea', 'might be dumb', 'sounds weird', 'probably stupid'],
+    category: "self_awareness",
+    triggers: [
+      "crazy idea",
+      "might be dumb",
+      "sounds weird",
+      "probably stupid",
+    ],
   },
   {
     text: "Most people say 'everyone' when asked who'd use their idea. You didn't. That's good.",
-    category: 'self_awareness',
-    triggers: ['specific audience', 'niche', 'particular group'],
+    category: "self_awareness",
+    triggers: ["specific audience", "niche", "particular group"],
   },
   {
     text: "The graveyard of startups is full of 'obvious' ideas no one could make work.",
-    category: 'self_awareness',
-    triggers: ['obvious', 'easy', 'simple', 'straightforward'],
+    category: "self_awareness",
+    triggers: ["obvious", "easy", "simple", "straightforward"],
   },
   {
     text: "Passion and patience are both P-words. You'll need both.",
-    category: 'self_awareness',
-    triggers: ['passionate', 'love this', 'excited about'],
+    category: "self_awareness",
+    triggers: ["passionate", "love this", "excited about"],
   },
 
   // Market reality
   {
     text: "Competition can be good news — it means people are actually paying for solutions.",
-    category: 'market_reality',
-    triggers: ['competitor', 'competition', 'already doing this'],
+    category: "market_reality",
+    triggers: ["competitor", "competition", "already doing this"],
   },
   {
     text: "The difference between a feature and a product is often just marketing.",
-    category: 'market_reality',
-    triggers: ['just a feature', 'too small', 'add-on'],
+    category: "market_reality",
+    triggers: ["just a feature", "too small", "add-on"],
   },
   {
     text: "Timing is the silent killer of good ideas. Right idea, wrong decade.",
-    category: 'market_reality',
-    triggers: ['too early', 'too late', 'timing', 'market ready'],
+    category: "market_reality",
+    triggers: ["too early", "too late", "timing", "market ready"],
   },
   {
     text: "The best businesses solve problems people didn't know they'd pay to fix.",
-    category: 'market_reality',
-    triggers: ['pain point', 'frustration', 'annoyance'],
+    category: "market_reality",
+    triggers: ["pain point", "frustration", "annoyance"],
   },
 
   // Encouragement
   {
     text: "Naivety is an asset in early stages. Experts often can't see the obvious gaps.",
-    category: 'encouragement',
-    triggers: ["don't know enough", 'no experience', 'not an expert'],
+    category: "encouragement",
+    triggers: ["don't know enough", "no experience", "not an expert"],
   },
   {
     text: "The best founders often come from outside the industry they disrupt.",
-    category: 'encouragement',
-    triggers: ['outsider', 'never worked in', 'different background'],
+    category: "encouragement",
+    triggers: ["outsider", "never worked in", "different background"],
   },
   {
     text: "Constraints breed creativity. Limited time or money can be a feature, not a bug.",
-    category: 'encouragement',
-    triggers: ['limited time', 'no money', 'bootstrap', 'part-time'],
+    category: "encouragement",
+    triggers: ["limited time", "no money", "bootstrap", "part-time"],
   },
 
   // Gentle push
   {
     text: "Ideas are cheap. Execution is expensive. Let's make sure this one's worth the price.",
-    category: 'gentle_push',
-    triggers: ['many ideas', 'could do anything', 'options'],
+    category: "gentle_push",
+    triggers: ["many ideas", "could do anything", "options"],
   },
   {
     text: "Shall we dig deeper, or is this comfortable surface-level chat?",
-    category: 'gentle_push',
-    triggers: ['maybe', 'could be', 'not sure', 'possibly'],
+    category: "gentle_push",
+    triggers: ["maybe", "could be", "not sure", "possibly"],
   },
   {
     text: "I notice you're hedging. What would it take to commit to exploring this seriously?",
-    category: 'gentle_push',
-    triggers: ['might work', 'could try', 'not sure if'],
+    category: "gentle_push",
+    triggers: ["might work", "could try", "not sure if"],
   },
 ];
 
@@ -1253,7 +1342,7 @@ const INTERJECTIONS: WittyInterjection[] = [
  * Target: ~10% of responses.
  */
 export function shouldInjectWit(): boolean {
-  return Math.random() < 0.10;
+  return Math.random() < 0.1;
 }
 
 /**
@@ -1261,13 +1350,15 @@ export function shouldInjectWit(): boolean {
  */
 export function findRelevantInterjection(
   userMessage: string,
-  agentReply: string
+  agentReply: string,
 ): WittyInterjection | null {
   const combinedText = `${userMessage} ${agentReply}`.toLowerCase();
 
   // Find interjections with matching triggers
-  const matches = INTERJECTIONS.filter(interjection =>
-    interjection.triggers.some(trigger => combinedText.includes(trigger.toLowerCase()))
+  const matches = INTERJECTIONS.filter((interjection) =>
+    interjection.triggers.some((trigger) =>
+      combinedText.includes(trigger.toLowerCase()),
+    ),
   );
 
   if (matches.length === 0) return null;
@@ -1279,7 +1370,10 @@ export function findRelevantInterjection(
 /**
  * Inject witty interjection into response if appropriate.
  */
-export function maybeInjectWit(userMessage: string, agentReply: string): string {
+export function maybeInjectWit(
+  userMessage: string,
+  agentReply: string,
+): string {
   // Check probability
   if (!shouldInjectWit()) return agentReply;
 
@@ -1296,12 +1390,12 @@ export function maybeInjectWit(userMessage: string, agentReply: string): string 
  */
 function injectAtNaturalBreak(text: string, injection: string): string {
   // Look for paragraph breaks
-  const paragraphs = text.split('\n\n');
+  const paragraphs = text.split("\n\n");
 
   if (paragraphs.length >= 2) {
     // Insert after first paragraph
     paragraphs.splice(1, 0, `*${injection}*`);
-    return paragraphs.join('\n\n');
+    return paragraphs.join("\n\n");
   }
 
   // Look for sentence breaks
@@ -1309,7 +1403,7 @@ function injectAtNaturalBreak(text: string, injection: string): string {
   if (sentences.length >= 2) {
     // Insert after first sentence
     sentences.splice(1, 0, `*${injection}*`);
-    return sentences.join(' ');
+    return sentences.join(" ");
   }
 
   // Just append with emphasis
@@ -1319,8 +1413,10 @@ function injectAtNaturalBreak(text: string, injection: string): string {
 /**
  * Get random interjection by category for explicit use.
  */
-export function getRandomByCategory(category: WittyInterjection['category']): string {
-  const matches = INTERJECTIONS.filter(i => i.category === category);
+export function getRandomByCategory(
+  category: WittyInterjection["category"],
+): string {
+  const matches = INTERJECTIONS.filter((i) => i.category === category);
   return matches[Math.floor(Math.random() * matches.length)].text;
 }
 
@@ -1335,7 +1431,7 @@ export class InterjectionTracker {
   }
 
   getUnused(candidates: WittyInterjection[]): WittyInterjection | null {
-    const unused = candidates.filter(c => !this.usedInSession.has(c.text));
+    const unused = candidates.filter((c) => !this.usedInSession.has(c.text));
     if (unused.length === 0) return null;
 
     const selected = unused[Math.floor(Math.random() * unused.length)];
@@ -1356,130 +1452,131 @@ export class InterjectionTracker {
 Create file: `tests/ideation/orchestrator.test.ts`
 
 ```typescript
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach } from "vitest";
 import {
   generateGreeting,
   generateGreetingWithButtons,
   generateReturningGreeting,
-} from '../../agents/ideation/greeting-generator.js';
+} from "../../agents/ideation/greeting-generator.js";
 
-describe('GreetingGenerator', () => {
-
-  describe('generateGreeting', () => {
-    test('PASS: Includes welcome message', () => {
+describe("GreetingGenerator", () => {
+  describe("generateGreeting", () => {
+    test("PASS: Includes welcome message", () => {
       const greeting = generateGreeting({});
 
-      expect(greeting).toContain('Welcome');
+      expect(greeting).toContain("Welcome");
     });
 
-    test('PASS: Includes process explanation', () => {
+    test("PASS: Includes process explanation", () => {
       const greeting = generateGreeting({});
 
       expect(greeting).toContain("We'll have a conversation");
-      expect(greeting).toContain('panel on the right');
+      expect(greeting).toContain("panel on the right");
     });
 
-    test('PASS: Includes opening question', () => {
+    test("PASS: Includes opening question", () => {
       const greeting = generateGreeting({});
 
       expect(greeting).toContain("What's been occupying your mind");
     });
 
-    test('PASS: Personalizes for technical skills', () => {
+    test("PASS: Personalizes for technical skills", () => {
       const greeting = generateGreeting({
-        skills: ['programming', 'software development', 'marketing'],
+        skills: ["programming", "software development", "marketing"],
       });
 
-      expect(greeting).toContain('technical background');
-      expect(greeting).toContain('programming');
+      expect(greeting).toContain("technical background");
+      expect(greeting).toContain("programming");
     });
 
-    test('PASS: Personalizes for industry experience', () => {
+    test("PASS: Personalizes for industry experience", () => {
       const greeting = generateGreeting({
         experience: {
-          industries: ['healthcare', 'fintech'],
+          industries: ["healthcare", "fintech"],
         },
       });
 
-      expect(greeting).toContain('experience in');
-      expect(greeting).toContain('healthcare');
+      expect(greeting).toContain("experience in");
+      expect(greeting).toContain("healthcare");
     });
 
-    test('PASS: Personalizes for interests', () => {
+    test("PASS: Personalizes for interests", () => {
       const greeting = generateGreeting({
-        interests: ['sustainability', 'AI'],
+        interests: ["sustainability", "AI"],
       });
 
-      expect(greeting).toContain('interest in');
-      expect(greeting).toContain('sustainability');
+      expect(greeting).toContain("interest in");
+      expect(greeting).toContain("sustainability");
     });
 
-    test('PASS: Personalizes for location', () => {
+    test("PASS: Personalizes for location", () => {
       const greeting = generateGreeting({
-        location: { city: 'Sydney' },
+        location: { city: "Sydney" },
       });
 
-      expect(greeting).toContain('based in Sydney');
+      expect(greeting).toContain("based in Sydney");
     });
 
-    test('PASS: Combines multiple personalizations', () => {
+    test("PASS: Combines multiple personalizations", () => {
       const greeting = generateGreeting({
-        skills: ['data engineering'],
-        experience: { industries: ['fintech'] },
-        location: { city: 'Melbourne' },
+        skills: ["data engineering"],
+        experience: { industries: ["fintech"] },
+        location: { city: "Melbourne" },
       });
 
-      expect(greeting).toContain('data engineering');
-      expect(greeting).toContain('fintech');
-      expect(greeting).toContain('Melbourne');
+      expect(greeting).toContain("data engineering");
+      expect(greeting).toContain("fintech");
+      expect(greeting).toContain("Melbourne");
     });
 
-    test('PASS: Works with empty profile', () => {
+    test("PASS: Works with empty profile", () => {
       const greeting = generateGreeting({});
 
-      expect(greeting).toContain('Welcome');
+      expect(greeting).toContain("Welcome");
       expect(greeting).toContain("I've loaded your profile");
     });
   });
 
-  describe('generateGreetingWithButtons', () => {
-    test('PASS: Returns greeting text', () => {
+  describe("generateGreetingWithButtons", () => {
+    test("PASS: Returns greeting text", () => {
       const result = generateGreetingWithButtons({});
 
-      expect(result.text).toContain('Welcome');
+      expect(result.text).toContain("Welcome");
     });
 
-    test('PASS: Returns three starting buttons', () => {
+    test("PASS: Returns three starting buttons", () => {
       const result = generateGreetingWithButtons({});
 
       expect(result.buttons.length).toBe(3);
     });
 
-    test('PASS: Includes frustration button', () => {
+    test("PASS: Includes frustration button", () => {
       const result = generateGreetingWithButtons({});
 
-      const frustrationBtn = result.buttons.find(b => b.id === 'btn_frustration');
+      const frustrationBtn = result.buttons.find(
+        (b) => b.id === "btn_frustration",
+      );
       expect(frustrationBtn).toBeDefined();
-      expect(frustrationBtn!.label).toContain('frustrates');
+      expect(frustrationBtn!.label).toContain("frustrates");
     });
 
-    test('PASS: Includes idea button', () => {
+    test("PASS: Includes idea button", () => {
       const result = generateGreetingWithButtons({});
 
-      const ideaBtn = result.buttons.find(b => b.id === 'btn_idea');
+      const ideaBtn = result.buttons.find((b) => b.id === "btn_idea");
       expect(ideaBtn).toBeDefined();
-      expect(ideaBtn!.label).toContain('idea');
+      expect(ideaBtn!.label).toContain("idea");
     });
 
-    test('PASS: Includes explore button', () => {
+    test("PASS: Includes explore button", () => {
       const result = generateGreetingWithButtons({});
 
-      const exploreBtn = result.buttons.find(b => b.id === 'btn_explore');
+      const exploreBtn = result.buttons.find((b) => b.id === "btn_explore");
       expect(exploreBtn).toBeDefined();
-      expect(exploreBtn!.label).toContain('explore');
+      expect(exploreBtn!.label).toContain("explore");
     });
 
-    test('PASS: All buttons have required fields', () => {
+    test("PASS: All buttons have required fields", () => {
       const result = generateGreetingWithButtons({});
 
       for (const button of result.buttons) {
@@ -1491,33 +1588,33 @@ describe('GreetingGenerator', () => {
     });
   });
 
-  describe('generateReturningGreeting', () => {
-    test('PASS: Includes welcome back', () => {
+  describe("generateReturningGreeting", () => {
+    test("PASS: Includes welcome back", () => {
       const greeting = generateReturningGreeting({});
 
-      expect(greeting).toContain('Welcome back');
+      expect(greeting).toContain("Welcome back");
     });
 
-    test('PASS: Uses name if provided', () => {
-      const greeting = generateReturningGreeting({ name: 'Alex' });
+    test("PASS: Uses name if provided", () => {
+      const greeting = generateReturningGreeting({ name: "Alex" });
 
-      expect(greeting).toContain('Alex');
+      expect(greeting).toContain("Alex");
     });
 
-    test('PASS: Includes session summary if provided', () => {
+    test("PASS: Includes session summary if provided", () => {
       const greeting = generateReturningGreeting(
         {},
-        'we explored ideas around coworking spaces'
+        "we explored ideas around coworking spaces",
       );
 
-      expect(greeting).toContain('coworking spaces');
-      expect(greeting).toContain('continue');
+      expect(greeting).toContain("coworking spaces");
+      expect(greeting).toContain("continue");
     });
 
-    test('PASS: Works without session summary', () => {
-      const greeting = generateReturningGreeting({ name: 'Jordan' });
+    test("PASS: Works without session summary", () => {
+      const greeting = generateReturningGreeting({ name: "Jordan" });
 
-      expect(greeting).toContain('Ready to explore');
+      expect(greeting).toContain("Ready to explore");
     });
   });
 });
@@ -1528,36 +1625,34 @@ describe('GreetingGenerator', () => {
 Create file: `tests/ideation/streaming.test.ts`
 
 ```typescript
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach } from "vitest";
 import {
   StreamingResponseHandler,
   encodeSSE,
   createSSEStream,
-} from '../../agents/ideation/streaming.js';
+} from "../../agents/ideation/streaming.js";
 
-describe('StreamingResponseHandler', () => {
-
-  describe('parseResponse', () => {
-
-    test('PASS: Parses valid JSON response', () => {
+describe("StreamingResponseHandler", () => {
+  describe("parseResponse", () => {
+    test("PASS: Parses valid JSON response", () => {
       const handler = new (StreamingResponseHandler as any)({});
       const response = handler.parseResponse(`
         {"text": "Hello", "buttons": null, "signals": {}}
       `);
 
-      expect(response.text).toBe('Hello');
+      expect(response.text).toBe("Hello");
       expect(response.buttons).toBeNull();
     });
 
-    test('PASS: Handles text-only response', () => {
+    test("PASS: Handles text-only response", () => {
       const handler = new (StreamingResponseHandler as any)({});
-      const response = handler.parseResponse('Just plain text without JSON');
+      const response = handler.parseResponse("Just plain text without JSON");
 
-      expect(response.text).toBe('Just plain text without JSON');
+      expect(response.text).toBe("Just plain text without JSON");
       expect(response.buttons).toBeNull();
     });
 
-    test('PASS: Extracts JSON from mixed content', () => {
+    test("PASS: Extracts JSON from mixed content", () => {
       const handler = new (StreamingResponseHandler as any)({});
       const response = handler.parseResponse(`
         Some preamble text
@@ -1565,37 +1660,35 @@ describe('StreamingResponseHandler', () => {
         Some postamble
       `);
 
-      expect(response.text).toBe('The actual response');
+      expect(response.text).toBe("The actual response");
       expect(response.buttons).toHaveLength(1);
     });
 
-    test('PASS: Handles malformed JSON gracefully', () => {
+    test("PASS: Handles malformed JSON gracefully", () => {
       const handler = new (StreamingResponseHandler as any)({});
       const response = handler.parseResponse('{"text": "incomplete');
 
-      expect(response.text).toContain('incomplete');
+      expect(response.text).toContain("incomplete");
     });
   });
 
-  describe('encodeSSE', () => {
+  describe("encodeSSE", () => {
+    test("PASS: Encodes string data", () => {
+      const encoded = encodeSSE("text_delta", "Hello");
 
-    test('PASS: Encodes string data', () => {
-      const encoded = encodeSSE('text_delta', 'Hello');
-
-      expect(encoded).toBe('event: text_delta\ndata: Hello\n\n');
+      expect(encoded).toBe("event: text_delta\ndata: Hello\n\n");
     });
 
-    test('PASS: Encodes object data as JSON', () => {
-      const encoded = encodeSSE('message_complete', { text: 'Hello' });
+    test("PASS: Encodes object data as JSON", () => {
+      const encoded = encodeSSE("message_complete", { text: "Hello" });
 
-      expect(encoded).toContain('event: message_complete');
+      expect(encoded).toContain("event: message_complete");
       expect(encoded).toContain('{"text":"Hello"}');
     });
   });
 
-  describe('createSSEStream', () => {
-
-    test('PASS: Sets correct headers', () => {
+  describe("createSSEStream", () => {
+    test("PASS: Sets correct headers", () => {
       const mockRes = {
         setHeader: vi.fn(),
         flushHeaders: vi.fn(),
@@ -1605,13 +1698,22 @@ describe('StreamingResponseHandler', () => {
 
       createSSEStream(mockRes);
 
-      expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
-      expect(mockRes.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
-      expect(mockRes.setHeader).toHaveBeenCalledWith('Connection', 'keep-alive');
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        "Content-Type",
+        "text/event-stream",
+      );
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        "Cache-Control",
+        "no-cache",
+      );
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        "Connection",
+        "keep-alive",
+      );
       expect(mockRes.flushHeaders).toHaveBeenCalled();
     });
 
-    test('PASS: Send writes to response', () => {
+    test("PASS: Send writes to response", () => {
       const mockRes = {
         setHeader: vi.fn(),
         flushHeaders: vi.fn(),
@@ -1620,12 +1722,12 @@ describe('StreamingResponseHandler', () => {
       };
 
       const stream = createSSEStream(mockRes);
-      stream.send('test', 'data');
+      stream.send("test", "data");
 
       expect(mockRes.write).toHaveBeenCalled();
     });
 
-    test('PASS: End sends done event', () => {
+    test("PASS: End sends done event", () => {
       const mockRes = {
         setHeader: vi.fn(),
         flushHeaders: vi.fn(),
@@ -1636,7 +1738,9 @@ describe('StreamingResponseHandler', () => {
       const stream = createSSEStream(mockRes);
       stream.end();
 
-      expect(mockRes.write).toHaveBeenCalledWith(expect.stringContaining('done'));
+      expect(mockRes.write).toHaveBeenCalledWith(
+        expect.stringContaining("done"),
+      );
       expect(mockRes.end).toHaveBeenCalled();
     });
   });
@@ -1648,129 +1752,139 @@ describe('StreamingResponseHandler', () => {
 Create file: `tests/ideation/web-search.test.ts`
 
 ```typescript
-import { describe, test, expect, vi } from 'vitest';
+import { describe, test, expect, vi } from "vitest";
 import {
   determineSearchStrategy,
   parseSearchResults,
   buildSearchPrompt,
-} from '../../agents/ideation/web-search.js';
+} from "../../agents/ideation/web-search.js";
 
-describe('WebSearchService', () => {
+describe("WebSearchService", () => {
+  describe("determineSearchStrategy", () => {
+    test("PASS: Always includes competitor check", () => {
+      const strategy = determineSearchStrategy("AI writing assistant", {});
 
-  describe('determineSearchStrategy', () => {
-
-    test('PASS: Always includes competitor check', () => {
-      const strategy = determineSearchStrategy('AI writing assistant', {});
-
-      expect(strategy.queries.some(q => q.includes('competitors'))).toBe(true);
-      expect(strategy.purposes.some(p => p.type === 'competitor_check')).toBe(true);
+      expect(strategy.queries.some((q) => q.includes("competitors"))).toBe(
+        true,
+      );
+      expect(strategy.purposes.some((p) => p.type === "competitor_check")).toBe(
+        true,
+      );
     });
 
-    test('PASS: Always includes market validation', () => {
-      const strategy = determineSearchStrategy('AI writing assistant', {});
+    test("PASS: Always includes market validation", () => {
+      const strategy = determineSearchStrategy("AI writing assistant", {});
 
-      expect(strategy.queries.some(q => q.includes('market size'))).toBe(true);
-      expect(strategy.purposes.some(p => p.type === 'market_validation')).toBe(true);
+      expect(strategy.queries.some((q) => q.includes("market size"))).toBe(
+        true,
+      );
+      expect(
+        strategy.purposes.some((p) => p.type === "market_validation"),
+      ).toBe(true);
     });
 
-    test('PASS: Adds failed attempts for B2C', () => {
-      const strategy = determineSearchStrategy('Consumer app', {
-        customerType: 'B2C',
+    test("PASS: Adds failed attempts for B2C", () => {
+      const strategy = determineSearchStrategy("Consumer app", {
+        customerType: "B2C",
       });
 
-      expect(strategy.queries.some(q => q.includes('failed'))).toBe(true);
-      expect(strategy.purposes.some(p => p.type === 'failed_attempts')).toBe(true);
+      expect(strategy.queries.some((q) => q.includes("failed"))).toBe(true);
+      expect(strategy.purposes.some((p) => p.type === "failed_attempts")).toBe(
+        true,
+      );
     });
 
-    test('PASS: Does not add failed attempts for B2B', () => {
-      const strategy = determineSearchStrategy('Enterprise tool', {
-        customerType: 'B2B',
+    test("PASS: Does not add failed attempts for B2B", () => {
+      const strategy = determineSearchStrategy("Enterprise tool", {
+        customerType: "B2B",
       });
 
-      expect(strategy.purposes.some(p => p.type === 'failed_attempts')).toBe(false);
+      expect(strategy.purposes.some((p) => p.type === "failed_attempts")).toBe(
+        false,
+      );
     });
 
-    test('PASS: Adds geography-specific search for local', () => {
-      const strategy = determineSearchStrategy('Local service', {
-        geography: 'local',
+    test("PASS: Adds geography-specific search for local", () => {
+      const strategy = determineSearchStrategy("Local service", {
+        geography: "local",
       });
 
-      expect(strategy.queries.some(q => q.includes('australia'))).toBe(true);
+      expect(strategy.queries.some((q) => q.includes("australia"))).toBe(true);
     });
   });
 
-  describe('parseSearchResults', () => {
-
-    test('PASS: Extracts markdown links', () => {
-      const output = 'Check out [Example Site](https://example.com) for more info.';
+  describe("parseSearchResults", () => {
+    test("PASS: Extracts markdown links", () => {
+      const output =
+        "Check out [Example Site](https://example.com) for more info.";
       const results = parseSearchResults(output);
 
       expect(results.length).toBe(1);
-      expect(results[0].title).toBe('Example Site');
-      expect(results[0].url).toBe('https://example.com');
+      expect(results[0].title).toBe("Example Site");
+      expect(results[0].url).toBe("https://example.com");
     });
 
-    test('PASS: Extracts bare URLs', () => {
-      const output = 'Visit https://example.com for details.';
+    test("PASS: Extracts bare URLs", () => {
+      const output = "Visit https://example.com for details.";
       const results = parseSearchResults(output);
 
       expect(results.length).toBe(1);
-      expect(results[0].url).toBe('https://example.com');
+      expect(results[0].url).toBe("https://example.com");
     });
 
-    test('PASS: Deduplicates URLs', () => {
-      const output = '[Site](https://example.com) and https://example.com again';
+    test("PASS: Deduplicates URLs", () => {
+      const output =
+        "[Site](https://example.com) and https://example.com again";
       const results = parseSearchResults(output);
 
       expect(results.length).toBe(1);
     });
 
-    test('PASS: Limits to 10 results', () => {
+    test("PASS: Limits to 10 results", () => {
       const output = Array(15)
         .fill(null)
         .map((_, i) => `[Site${i}](https://example${i}.com)`)
-        .join(' ');
+        .join(" ");
       const results = parseSearchResults(output);
 
       expect(results.length).toBeLessThanOrEqual(10);
     });
 
-    test('PASS: Extracts source hostname', () => {
-      const output = '[Article](https://www.techcrunch.com/article)';
+    test("PASS: Extracts source hostname", () => {
+      const output = "[Article](https://www.techcrunch.com/article)";
       const results = parseSearchResults(output);
 
-      expect(results[0].source).toBe('www.techcrunch.com');
+      expect(results[0].source).toBe("www.techcrunch.com");
     });
   });
 
-  describe('buildSearchPrompt', () => {
-
-    test('PASS: Includes query in prompt', () => {
-      const prompt = buildSearchPrompt('AI startups', {
-        type: 'competitor_check',
-        context: 'Test context',
+  describe("buildSearchPrompt", () => {
+    test("PASS: Includes query in prompt", () => {
+      const prompt = buildSearchPrompt("AI startups", {
+        type: "competitor_check",
+        context: "Test context",
       });
 
-      expect(prompt).toContain('AI startups');
+      expect(prompt).toContain("AI startups");
     });
 
-    test('PASS: Includes purpose-specific instructions', () => {
-      const prompt = buildSearchPrompt('test', {
-        type: 'competitor_check',
-        context: 'Test',
+    test("PASS: Includes purpose-specific instructions", () => {
+      const prompt = buildSearchPrompt("test", {
+        type: "competitor_check",
+        context: "Test",
       });
 
-      expect(prompt).toContain('competitors');
-      expect(prompt).toContain('alternatives');
+      expect(prompt).toContain("competitors");
+      expect(prompt).toContain("alternatives");
     });
 
-    test('PASS: Includes context', () => {
-      const prompt = buildSearchPrompt('test', {
-        type: 'general',
-        context: 'Specific context for this search',
+    test("PASS: Includes context", () => {
+      const prompt = buildSearchPrompt("test", {
+        type: "general",
+        context: "Specific context for this search",
       });
 
-      expect(prompt).toContain('Specific context for this search');
+      expect(prompt).toContain("Specific context for this search");
     });
   });
 });
@@ -1781,27 +1895,27 @@ describe('WebSearchService', () => {
 Create file: `tests/ideation/witty-interjections.test.ts`
 
 ```typescript
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   shouldInjectWit,
   findRelevantInterjection,
   maybeInjectWit,
   injectAtNaturalBreak,
   InterjectionTracker,
-} from '../../agents/ideation/witty-interjections.js';
+} from "../../agents/ideation/witty-interjections.js";
 
-describe('WittyInterjections', () => {
-
-  describe('shouldInjectWit', () => {
-
-    test('PASS: Returns boolean', () => {
+describe("WittyInterjections", () => {
+  describe("shouldInjectWit", () => {
+    test("PASS: Returns boolean", () => {
       const result = shouldInjectWit();
-      expect(typeof result).toBe('boolean');
+      expect(typeof result).toBe("boolean");
     });
 
-    test('PASS: Approximately 10% true rate over many calls', () => {
-      const results = Array(1000).fill(null).map(() => shouldInjectWit());
-      const trueCount = results.filter(r => r).length;
+    test("PASS: Approximately 10% true rate over many calls", () => {
+      const results = Array(1000)
+        .fill(null)
+        .map(() => shouldInjectWit());
+      const trueCount = results.filter((r) => r).length;
 
       // Allow 5-15% range for statistical variance
       expect(trueCount).toBeGreaterThan(50);
@@ -1809,60 +1923,59 @@ describe('WittyInterjections', () => {
     });
   });
 
-  describe('findRelevantInterjection', () => {
-
-    test('PASS: Finds interjection for matching trigger', () => {
+  describe("findRelevantInterjection", () => {
+    test("PASS: Finds interjection for matching trigger", () => {
       const interjection = findRelevantInterjection(
         "surely someone has built this before",
-        "Let's check"
+        "Let's check",
       );
 
       expect(interjection).not.toBeNull();
-      expect(interjection!.triggers).toContain('surely');
+      expect(interjection!.triggers).toContain("surely");
     });
 
-    test('PASS: Returns null when no triggers match', () => {
+    test("PASS: Returns null when no triggers match", () => {
       const interjection = findRelevantInterjection(
         "The weather is nice today",
-        "Indeed it is"
+        "Indeed it is",
       );
 
       expect(interjection).toBeNull();
     });
 
-    test('PASS: Matches triggers in agent reply too', () => {
+    test("PASS: Matches triggers in agent reply too", () => {
       const interjection = findRelevantInterjection(
         "I want to build something",
-        "You mentioned this is for a niche market"
+        "You mentioned this is for a niche market",
       );
 
       expect(interjection).not.toBeNull();
     });
 
-    test('PASS: Case-insensitive matching', () => {
-      const interjection = findRelevantInterjection(
-        "SURELY this exists",
-        ""
-      );
+    test("PASS: Case-insensitive matching", () => {
+      const interjection = findRelevantInterjection("SURELY this exists", "");
 
       expect(interjection).not.toBeNull();
     });
   });
 
-  describe('injectAtNaturalBreak', () => {
-
-    test('PASS: Injects after first paragraph', () => {
+  describe("injectAtNaturalBreak", () => {
+    test("PASS: Injects after first paragraph", () => {
       const text = "First paragraph.\n\nSecond paragraph.";
       const result = injectAtNaturalBreak(text, "Witty comment");
 
       expect(result).toContain("First paragraph.");
       expect(result).toContain("*Witty comment*");
       expect(result).toContain("Second paragraph.");
-      expect(result.indexOf("*Witty comment*")).toBeGreaterThan(result.indexOf("First"));
-      expect(result.indexOf("*Witty comment*")).toBeLessThan(result.indexOf("Second"));
+      expect(result.indexOf("*Witty comment*")).toBeGreaterThan(
+        result.indexOf("First"),
+      );
+      expect(result.indexOf("*Witty comment*")).toBeLessThan(
+        result.indexOf("Second"),
+      );
     });
 
-    test('PASS: Injects after first sentence if no paragraphs', () => {
+    test("PASS: Injects after first sentence if no paragraphs", () => {
       const text = "First sentence. Second sentence.";
       const result = injectAtNaturalBreak(text, "Witty comment");
 
@@ -1870,7 +1983,7 @@ describe('WittyInterjections', () => {
       expect(result).toContain("*Witty comment*");
     });
 
-    test('PASS: Appends if no natural breaks', () => {
+    test("PASS: Appends if no natural breaks", () => {
       const text = "Short text";
       const result = injectAtNaturalBreak(text, "Witty comment");
 
@@ -1879,13 +1992,12 @@ describe('WittyInterjections', () => {
     });
   });
 
-  describe('InterjectionTracker', () => {
-
-    test('PASS: Tracks used interjections', () => {
+  describe("InterjectionTracker", () => {
+    test("PASS: Tracks used interjections", () => {
       const tracker = new InterjectionTracker();
       const candidates = [
-        { text: 'First', category: 'self_awareness' as const, triggers: [] },
-        { text: 'Second', category: 'self_awareness' as const, triggers: [] },
+        { text: "First", category: "self_awareness" as const, triggers: [] },
+        { text: "Second", category: "self_awareness" as const, triggers: [] },
       ];
 
       const first = tracker.getUnused(candidates);
@@ -1896,10 +2008,10 @@ describe('WittyInterjections', () => {
       expect(second!.text).not.toBe(first!.text);
     });
 
-    test('PASS: Returns null when all used', () => {
+    test("PASS: Returns null when all used", () => {
       const tracker = new InterjectionTracker();
       const candidates = [
-        { text: 'Only', category: 'self_awareness' as const, triggers: [] },
+        { text: "Only", category: "self_awareness" as const, triggers: [] },
       ];
 
       tracker.getUnused(candidates);
@@ -1908,10 +2020,10 @@ describe('WittyInterjections', () => {
       expect(result).toBeNull();
     });
 
-    test('PASS: Reset clears tracking', () => {
+    test("PASS: Reset clears tracking", () => {
       const tracker = new InterjectionTracker();
       const candidates = [
-        { text: 'Only', category: 'self_awareness' as const, triggers: [] },
+        { text: "Only", category: "self_awareness" as const, triggers: [] },
       ];
 
       tracker.getUnused(candidates);
@@ -1945,12 +2057,12 @@ describe('WittyInterjections', () => {
 
 ## 6. Success Criteria
 
-| Test Category | Expected Pass |
-|---------------|---------------|
-| generateGreeting | 9 |
-| generateGreetingWithButtons | 6 |
-| generateReturningGreeting | 4 |
-| StreamingResponseHandler | 7 |
-| WebSearchService | 11 |
-| WittyInterjections | 10 |
-| **Total** | **47** |
+| Test Category               | Expected Pass |
+| --------------------------- | ------------- |
+| generateGreeting            | 9             |
+| generateGreetingWithButtons | 6             |
+| generateReturningGreeting   | 4             |
+| StreamingResponseHandler    | 7             |
+| WebSearchService            | 11            |
+| WittyInterjections          | 10            |
+| **Total**                   | **47**        |

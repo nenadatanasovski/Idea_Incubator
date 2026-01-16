@@ -1,8 +1,8 @@
 // agents/sia/confidence-tracker.ts - Manage confidence scores for knowledge entries
 
-import { v4 as uuid } from 'uuid';
-import { getDb } from '../../database/db.js';
-import { KnowledgeEntry } from '../../types/sia.js';
+import { v4 as uuid } from "uuid";
+import { getDb } from "../../database/db.js";
+import { KnowledgeEntry } from "../../types/sia.js";
 
 export const CONFIDENCE_CONFIG = {
   initial: 0.5,
@@ -20,7 +20,7 @@ export const CONFIDENCE_CONFIG = {
 export async function recordPrevention(
   entryId: string,
   executionId: string,
-  taskId: string
+  taskId: string,
 ): Promise<void> {
   const db = await getDb();
   db.run(
@@ -28,7 +28,7 @@ export async function recordPrevention(
     INSERT INTO gotcha_applications (id, knowledge_entry_id, execution_id, task_id, prevented_error)
     VALUES (?, ?, ?, ?, 1)
   `,
-    [uuid(), entryId, executionId, taskId]
+    [uuid(), entryId, executionId, taskId],
   );
 
   await updateConfidence(entryId);
@@ -53,8 +53,7 @@ export async function updateConfidence(entryId: string): Promise<number> {
 
   // Calculate new confidence
   let newConfidence =
-    CONFIDENCE_CONFIG.initial +
-    preventions * CONFIDENCE_CONFIG.preventionBoost;
+    CONFIDENCE_CONFIG.initial + preventions * CONFIDENCE_CONFIG.preventionBoost;
 
   // Cap at max confidence
   newConfidence = Math.min(newConfidence, CONFIDENCE_CONFIG.maxConfidence);
@@ -66,7 +65,7 @@ export async function updateConfidence(entryId: string): Promise<number> {
     SET confidence = ?, updated_at = datetime('now')
     WHERE id = ?
   `,
-    [newConfidence, entryId]
+    [newConfidence, entryId],
   );
 
   return newConfidence;
@@ -105,7 +104,7 @@ export async function applyDecay(): Promise<number> {
   for (const entry of entriesToDecay) {
     const newConfidence = Math.max(
       entry.confidence - CONFIDENCE_CONFIG.monthlyDecay,
-      CONFIDENCE_CONFIG.minConfidence
+      CONFIDENCE_CONFIG.minConfidence,
     );
 
     db.run(
@@ -114,7 +113,7 @@ export async function applyDecay(): Promise<number> {
       SET confidence = ?, updated_at = datetime('now')
       WHERE id = ?
     `,
-      [newConfidence, entry.id]
+      [newConfidence, entry.id],
     );
     updated++;
   }
@@ -171,7 +170,7 @@ export async function getDemotionCandidates(): Promise<KnowledgeEntry[]> {
  */
 export function calculateInitialConfidence(
   matchedPredefinedRule: boolean,
-  hasAppliedFix: boolean
+  hasAppliedFix: boolean,
 ): number {
   let confidence = CONFIDENCE_CONFIG.initial;
 
@@ -194,10 +193,10 @@ export function calculateInitialConfidence(
 function rowToEntry(row: Record<string, unknown>): KnowledgeEntry {
   return {
     id: row.id as string,
-    type: row.type as KnowledgeEntry['type'],
+    type: row.type as KnowledgeEntry["type"],
     content: row.content as string,
-    filePatterns: JSON.parse((row.file_patterns_json as string) || '[]'),
-    actionTypes: JSON.parse((row.action_types_json as string) || '[]'),
+    filePatterns: JSON.parse((row.file_patterns_json as string) || "[]"),
+    actionTypes: JSON.parse((row.action_types_json as string) || "[]"),
     confidence: row.confidence as number,
     occurrences: row.occurrences as number,
     source: {

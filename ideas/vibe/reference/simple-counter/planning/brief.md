@@ -12,11 +12,13 @@ updated: 2026-01-10
 ## Problem
 
 The Vibe platform needs to track API usage for monitoring and billing purposes. Currently there is no way to know:
+
 - How many API calls each user makes
 - Which endpoints are most frequently used
 - When usage spikes occur
 
 Without this data, we cannot:
+
 - Implement usage-based billing
 - Identify performance bottlenecks
 - Detect abuse patterns
@@ -24,6 +26,7 @@ Without this data, we cannot:
 ## Solution
 
 Implement a lightweight API call counter that:
+
 1. Records every API call with timestamp and endpoint
 2. Provides aggregated statistics via API
 3. Supports filtering by user, endpoint, and time range
@@ -45,6 +48,7 @@ Implement a lightweight API call counter that:
 ### Database Schema
 
 Single table:
+
 ```sql
 CREATE TABLE api_calls (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

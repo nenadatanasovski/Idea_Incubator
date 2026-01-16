@@ -29,6 +29,7 @@
 ### What We're Building
 
 A single-user idea incubation system that:
+
 - Captures ideas via markdown files from any device
 - Evaluates ideas through parallel Claude Opus 4.5 agents
 - Red-teams ideas with adversarial agent personas
@@ -48,18 +49,18 @@ A single-user idea incubation system that:
 
 ### Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Agent Orchestration | Claude Agent SDK (TypeScript) |
-| Model | Claude Opus 4.5 (`claude-opus-4-5-20251101`) |
-| Database | SQLite via better-sqlite3 |
-| Backend | Node.js + TypeScript |
-| Frontend | Vite + React + TypeScript + Tailwind |
-| Real-time | WebSocket (ws package) |
-| File Format | Markdown + YAML frontmatter |
-| Version Control | Git |
-| Testing | Vitest + Testing Library |
-| Validation | Zod |
+| Layer               | Technology                                   |
+| ------------------- | -------------------------------------------- |
+| Agent Orchestration | Claude Agent SDK (TypeScript)                |
+| Model               | Claude Opus 4.5 (`claude-opus-4-5-20251101`) |
+| Database            | SQLite via better-sqlite3                    |
+| Backend             | Node.js + TypeScript                         |
+| Frontend            | Vite + React + TypeScript + Tailwind         |
+| Real-time           | WebSocket (ws package)                       |
+| File Format         | Markdown + YAML frontmatter                  |
+| Version Control     | Git                                          |
+| Testing             | Vitest + Testing Library                     |
+| Validation          | Zod                                          |
 
 ---
 
@@ -78,6 +79,7 @@ User runs: evaluate [idea-slug] --depth=standard
 ```
 
 **Rationale**:
+
 - Prevents accidental cost from unfinished ideas
 - User controls when idea is "ready" for scrutiny
 - Aligns with hybrid philosophy (user confirms)
@@ -103,6 +105,7 @@ Select (1-4):
 ```
 
 **Rationale**:
+
 - Prevents decision paralysis (not 10+ options)
 - Always allows "new idea" escape hatch
 - Similarity % gives confidence signal
@@ -117,14 +120,15 @@ Select (1-4):
 
 **Answer**: **Standard depth**
 
-| Parameter | Value |
-|-----------|-------|
-| Red Team Challenges | 5 per criterion |
-| Debate Rounds | 3 per challenge |
-| Evaluator Agents | 1 (generalist) |
-| Red Team Personas | 3 core (6 in v2) |
+| Parameter           | Value            |
+| ------------------- | ---------------- |
+| Red Team Challenges | 5 per criterion  |
+| Debate Rounds       | 3 per challenge  |
+| Evaluator Agents    | 1 (generalist)   |
+| Red Team Personas   | 3 core (6 in v2) |
 
 **Rationale**:
+
 - Balances thoroughness with cost
 - 5 challenges × 3 rounds = 15 exchanges per criterion
 - Single evaluator simplifies v1
@@ -148,6 +152,7 @@ Select (1-4):
 ```
 
 **Rationale**:
+
 - Transparency builds trust in the system
 - User can abort early if debate goes off-track
 - Educational: user learns how agents reason
@@ -175,6 +180,7 @@ Press Enter to accept, or type score to override:
 ```
 
 **Rationale**:
+
 - User sees agent reasoning before deciding
 - Override is optional, not required
 - Maintains agent-as-advisor relationship
@@ -191,13 +197,14 @@ Press Enter to accept, or type score to override:
 
 ```typescript
 const evaluatorAgent = new Agent({
-  name: 'evaluator-generalist',
-  model: 'claude-opus-4-5-20251101',
-  systemPrompt: `You evaluate ideas across all 30 criteria in 6 categories...`
+  name: "evaluator-generalist",
+  model: "claude-opus-4-5-20251101",
+  systemPrompt: `You evaluate ideas across all 30 criteria in 6 categories...`,
 });
 ```
 
 **Rationale**:
+
 - Simpler to implement and debug
 - Lower cost (1 agent vs 6)
 - Can parallelize categories in v2
@@ -212,15 +219,16 @@ const evaluatorAgent = new Agent({
 
 **Answer**: **$10 per evaluation**
 
-| Component | Estimated Cost |
-|-----------|---------------|
-| Initial evaluation (30 criteria) | ~$2 |
-| Red team (5 challenges × 30 criteria) | ~$4 |
-| Debate rounds (3 per challenge) | ~$3 |
-| Synthesis | ~$1 |
-| **Total** | **~$10** |
+| Component                             | Estimated Cost |
+| ------------------------------------- | -------------- |
+| Initial evaluation (30 criteria)      | ~$2            |
+| Red team (5 challenges × 30 criteria) | ~$4            |
+| Debate rounds (3 per challenge)       | ~$3            |
+| Synthesis                             | ~$1            |
+| **Total**                             | **~$10**       |
 
 **Rationale**:
+
 - Generous enough for thorough evaluation
 - Hard stop prevents runaway costs
 - User can override with `--budget=20` flag
@@ -260,6 +268,7 @@ const evaluatorAgent = new Agent({
 **Answer**: **CLI first, frontend Phase 6**
 
 Phase Order:
+
 1. Test infrastructure + Core infrastructure
 2. Idea capture (CLI + basic skills)
 3. Single-agent evaluation (CLI)
@@ -269,6 +278,7 @@ Phase Order:
 7. Enhancements (6 evaluators, 6 personas, advanced views)
 
 **Rationale**:
+
 - Validates agent logic before building UI
 - CLI is faster to iterate
 - Frontend can be built by someone else in parallel later
@@ -288,7 +298,7 @@ Phase Order:
 console.log(`[${agent}] ${message}`);
 
 // Phase 6: WebSocket
-wss.clients.forEach(client => {
+wss.clients.forEach((client) => {
   client.send(JSON.stringify({ agent, message, timestamp }));
 });
 ```
@@ -305,24 +315,25 @@ wss.clients.forEach(client => {
 
 ```typescript
 // server/index.ts
-import express from 'express';
-import cors from 'cors';
-import { WebSocketServer } from 'ws';
+import express from "express";
+import cors from "cors";
+import { WebSocketServer } from "ws";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // REST endpoints
-app.get('/api/ideas', getIdeas);
-app.get('/api/ideas/:slug', getIdea);
-app.get('/api/evaluations/:ideaId', getEvaluations);
+app.get("/api/ideas", getIdeas);
+app.get("/api/ideas/:slug", getIdea);
+app.get("/api/evaluations/:ideaId", getEvaluations);
 
 // WebSocket for real-time debate streaming
 const wss = new WebSocketServer({ server });
 ```
 
 **Rationale**:
+
 - Enables WebSocket for real-time debate updates
 - Server handles complex SQL queries
 - Frontend stays lightweight
@@ -348,6 +359,7 @@ Workflow:
 ```
 
 **Rationale**:
+
 - Simplest approach for v1
 - No hosting, authentication, or PWA complexity
 - Works offline by default
@@ -370,6 +382,7 @@ npm run evaluate <slug> --budget=20  # Override budget if needed
 ```
 
 **Rationale**:
+
 - Consistent evaluation results
 - Simpler implementation (no mode switching)
 - Cost is acceptable (~$10 per evaluation)
@@ -392,17 +405,19 @@ npm run sync
 
 ```markdown
 <!-- ideas/_index.md (auto-generated) -->
+
 # Idea Index
 
 Last updated: 2025-12-21T15:30:00Z
 
-| Idea | Stage | Score | Last Evaluated |
-|------|-------|-------|----------------|
-| [Solar Charger](./solar-charger/README.md) | EVALUATE | 7.2 | 2025-12-20 |
-| [Plant Tracker](./plant-tracker/README.md) | SPARK | - | - |
+| Idea                                       | Stage    | Score | Last Evaluated |
+| ------------------------------------------ | -------- | ----- | -------------- |
+| [Solar Charger](./solar-charger/README.md) | EVALUATE | 7.2   | 2025-12-20     |
+| [Plant Tracker](./plant-tracker/README.md) | SPARK    | -     | -              |
 ```
 
 **Rationale**:
+
 - Reliable, consistent output
 - No manual effort required
 - No AI hallucination risk
@@ -429,6 +444,7 @@ Syncing ideas...
 ```
 
 **Detection Mechanism**:
+
 - Store `content_hash` (MD5 of README.md) with each evaluation
 - On sync, compare current hash to last evaluation's hash
 - If different, mark idea as `evaluation_stale: true`
@@ -463,6 +479,7 @@ Identity = hash(problem_statement + target_user)
 | NEW_IDEA | Problem or target user changed | Create new idea, link as `inspired_by` |
 
 **User Interaction**:
+
 ```bash
 $ npm run sync
 
@@ -518,6 +535,7 @@ Step 5: Review/Override (see Decision 18)
 ```
 
 **CLI Example**:
+
 ```bash
 $ npm run evaluate solar-charger --budget=15
 
@@ -580,6 +598,7 @@ Override saved: 6 → 8
 ```
 
 **Database Storage**:
+
 ```sql
 -- Each criterion stores both scores
 agent_score,      -- Original (always preserved)
@@ -657,15 +676,15 @@ Phase 7: Enhancements & Scale
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `package.json` | Dependencies including test framework |
-| `tsconfig.json` | TypeScript configuration |
-| `vitest.config.ts` | Test framework configuration |
-| `tests/mocks/anthropic.ts` | Mock Anthropic client |
-| `tests/fixtures/` | Test data |
-| `utils/schemas.ts` | Zod validation schemas |
-| `utils/errors.ts` | Custom error classes |
+| File                       | Purpose                               |
+| -------------------------- | ------------------------------------- |
+| `package.json`             | Dependencies including test framework |
+| `tsconfig.json`            | TypeScript configuration              |
+| `vitest.config.ts`         | Test framework configuration          |
+| `tests/mocks/anthropic.ts` | Mock Anthropic client                 |
+| `tests/fixtures/`          | Test data                             |
+| `utils/schemas.ts`         | Zod validation schemas                |
+| `utils/errors.ts`          | Custom error classes                  |
 
 ### package.json (Updated)
 
@@ -708,30 +727,30 @@ Phase 7: Enhancements & Scale
 ### vitest.config.ts
 
 ```typescript
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    environment: "node",
+    include: ["tests/**/*.test.ts"],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: ['tests/**', 'spikes/**']
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      exclude: ["tests/**", "spikes/**"],
     },
-    setupFiles: ['tests/setup.ts']
-  }
+    setupFiles: ["tests/setup.ts"],
+  },
 });
 ```
 
 ### tests/mocks/anthropic.ts
 
 ```typescript
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 export interface MockMessage {
-  content: Array<{ type: 'text'; text: string }>;
+  content: Array<{ type: "text"; text: string }>;
   usage: {
     input_tokens: number;
     output_tokens: number;
@@ -742,43 +761,49 @@ export function createMockAnthropicClient() {
   return {
     messages: {
       create: vi.fn().mockResolvedValue({
-        content: [{ type: 'text', text: '{}' }],
-        usage: { input_tokens: 100, output_tokens: 200 }
-      })
-    }
+        content: [{ type: "text", text: "{}" }],
+        usage: { input_tokens: 100, output_tokens: 200 },
+      }),
+    },
   };
 }
 
 export function mockEvaluationResponse(scores: Record<string, number>) {
   return {
-    content: [{
-      type: 'text',
-      text: JSON.stringify({
-        evaluations: Object.entries(scores).map(([criterion, score]) => ({
-          criterion,
-          category: 'test',
-          score,
-          confidence: 0.8,
-          reasoning: 'Test reasoning'
-        }))
-      })
-    }],
-    usage: { input_tokens: 500, output_tokens: 1000 }
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify({
+          evaluations: Object.entries(scores).map(([criterion, score]) => ({
+            criterion,
+            category: "test",
+            score,
+            confidence: 0.8,
+            reasoning: "Test reasoning",
+          })),
+        }),
+      },
+    ],
+    usage: { input_tokens: 500, output_tokens: 1000 },
   };
 }
 
-export function mockArbiterResponse(verdict: 'EVALUATOR' | 'RED_TEAM' | 'DRAW') {
+export function mockArbiterResponse(
+  verdict: "EVALUATOR" | "RED_TEAM" | "DRAW",
+) {
   return {
-    content: [{
-      type: 'text',
-      text: JSON.stringify({
-        verdict,
-        reasoning: 'Test verdict reasoning',
-        firstPrinciplesBonus: false,
-        scoreAdjustment: verdict === 'RED_TEAM' ? -1 : 0
-      })
-    }],
-    usage: { input_tokens: 200, output_tokens: 300 }
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify({
+          verdict,
+          reasoning: "Test verdict reasoning",
+          firstPrinciplesBonus: false,
+          scoreAdjustment: verdict === "RED_TEAM" ? -1 : 0,
+        }),
+      },
+    ],
+    usage: { input_tokens: 200, output_tokens: 300 },
   };
 }
 ```
@@ -786,21 +811,37 @@ export function mockArbiterResponse(verdict: 'EVALUATOR' | 'RED_TEAM' | 'DRAW') 
 ### utils/schemas.ts
 
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
 // Idea frontmatter schema
 export const IdeaFrontmatterSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1),
-  type: z.enum(['business', 'creative', 'technical', 'personal', 'research']),
+  type: z.enum(["business", "creative", "technical", "personal", "research"]),
   stage: z.enum([
-    'SPARK', 'CLARIFY', 'RESEARCH', 'IDEATE', 'EVALUATE', 'VALIDATE',
-    'DESIGN', 'PROTOTYPE', 'TEST', 'REFINE', 'BUILD', 'LAUNCH',
-    'GROW', 'MAINTAIN', 'PIVOT', 'PAUSE', 'SUNSET', 'ARCHIVE', 'ABANDONED'
+    "SPARK",
+    "CLARIFY",
+    "RESEARCH",
+    "IDEATE",
+    "EVALUATE",
+    "VALIDATE",
+    "DESIGN",
+    "PROTOTYPE",
+    "TEST",
+    "REFINE",
+    "BUILD",
+    "LAUNCH",
+    "GROW",
+    "MAINTAIN",
+    "PIVOT",
+    "PAUSE",
+    "SUNSET",
+    "ARCHIVE",
+    "ABANDONED",
   ]),
   created: z.string(),
   tags: z.array(z.string()).default([]),
-  related: z.array(z.string()).default([])
+  related: z.array(z.string()).default([]),
 });
 
 export type IdeaFrontmatter = z.infer<typeof IdeaFrontmatterSchema>;
@@ -808,36 +849,50 @@ export type IdeaFrontmatter = z.infer<typeof IdeaFrontmatterSchema>;
 // Single criterion evaluation
 export const CriterionEvaluationSchema = z.object({
   criterion: z.string(),
-  category: z.enum(['problem', 'solution', 'feasibility', 'fit', 'market', 'risk']),
+  category: z.enum([
+    "problem",
+    "solution",
+    "feasibility",
+    "fit",
+    "market",
+    "risk",
+  ]),
   score: z.number().min(1).max(10),
   confidence: z.number().min(0).max(1),
-  reasoning: z.string()
+  reasoning: z.string(),
 });
 
 export type CriterionEvaluation = z.infer<typeof CriterionEvaluationSchema>;
 
 // Full evaluation response from agent
 export const EvaluationResponseSchema = z.object({
-  evaluations: z.array(CriterionEvaluationSchema)
+  evaluations: z.array(CriterionEvaluationSchema),
 });
 
 export type EvaluationResponse = z.infer<typeof EvaluationResponseSchema>;
 
 // Arbiter verdict
 export const ArbiterVerdictSchema = z.object({
-  verdict: z.enum(['EVALUATOR', 'RED_TEAM', 'DRAW']),
+  verdict: z.enum(["EVALUATOR", "RED_TEAM", "DRAW"]),
   reasoning: z.string(),
   firstPrinciplesBonus: z.boolean(),
-  scoreAdjustment: z.number().min(-3).max(3)
+  scoreAdjustment: z.number().min(-3).max(3),
 });
 
 export type ArbiterVerdict = z.infer<typeof ArbiterVerdictSchema>;
 
 // Red team challenge
 export const ChallengeSchema = z.object({
-  persona: z.enum(['skeptic', 'realist', 'first-principles', 'competitor', 'contrarian', 'edge-case']),
+  persona: z.enum([
+    "skeptic",
+    "realist",
+    "first-principles",
+    "competitor",
+    "contrarian",
+    "edge-case",
+  ]),
   criterion: z.string(),
-  challenge: z.string()
+  challenge: z.string(),
 });
 
 export type Challenge = z.infer<typeof ChallengeSchema>;
@@ -849,8 +904,8 @@ export const SynthesisOutputSchema = z.object({
   keyWeaknesses: z.array(z.string()),
   criticalAssumptions: z.array(z.string()),
   unresolvedQuestions: z.array(z.string()),
-  recommendation: z.enum(['PURSUE', 'REFINE', 'PAUSE', 'ABANDON']),
-  recommendationReasoning: z.string()
+  recommendation: z.enum(["PURSUE", "REFINE", "PAUSE", "ABANDON"]),
+  recommendationReasoning: z.string(),
 });
 
 export type SynthesisOutput = z.infer<typeof SynthesisOutputSchema>;
@@ -859,7 +914,9 @@ export type SynthesisOutput = z.infer<typeof SynthesisOutputSchema>;
 export const ConvergenceStateSchema = z.object({
   round: z.number(),
   hasConverged: z.boolean(),
-  reason: z.enum(['SCORE_STABILITY', 'MAX_ROUNDS', 'TIMEOUT', 'BUDGET_EXCEEDED']).optional()
+  reason: z
+    .enum(["SCORE_STABILITY", "MAX_ROUNDS", "TIMEOUT", "BUDGET_EXCEEDED"])
+    .optional(),
 });
 
 export type ConvergenceState = z.infer<typeof ConvergenceStateSchema>;
@@ -868,11 +925,13 @@ export type ConvergenceState = z.infer<typeof ConvergenceStateSchema>;
 export function parseAgentResponse<T>(
   text: string,
   schema: z.ZodType<T>,
-  context: string
+  context: string,
 ): T {
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError(`Could not extract JSON from ${context} response`);
+    throw new EvaluationParseError(
+      `Could not extract JSON from ${context} response`,
+    );
   }
 
   try {
@@ -881,7 +940,7 @@ export function parseAgentResponse<T>(
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new EvaluationParseError(
-        `Invalid ${context} response: ${error.errors.map(e => e.message).join(', ')}`
+        `Invalid ${context} response: ${error.errors.map((e) => e.message).join(", ")}`,
       );
     }
     throw error;
@@ -895,49 +954,51 @@ export function parseAgentResponse<T>(
 export class IdeaIncubatorError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'IdeaIncubatorError';
+    this.name = "IdeaIncubatorError";
   }
 }
 
 export class IdeaNotFoundError extends IdeaIncubatorError {
   constructor(slug: string) {
     super(`Idea not found: ${slug}`);
-    this.name = 'IdeaNotFoundError';
+    this.name = "IdeaNotFoundError";
   }
 }
 
 export class EvaluationParseError extends IdeaIncubatorError {
   constructor(message: string) {
     super(`Failed to parse evaluation: ${message}`);
-    this.name = 'EvaluationParseError';
+    this.name = "EvaluationParseError";
   }
 }
 
 export class APIRateLimitError extends IdeaIncubatorError {
   constructor(retryAfter?: number) {
-    super(`Rate limited. Retry after ${retryAfter || 'unknown'} seconds`);
-    this.name = 'APIRateLimitError';
+    super(`Rate limited. Retry after ${retryAfter || "unknown"} seconds`);
+    this.name = "APIRateLimitError";
   }
 }
 
 export class BudgetExceededError extends IdeaIncubatorError {
   constructor(spent: number, budget: number) {
-    super(`Budget exceeded: $${spent.toFixed(2)} spent of $${budget.toFixed(2)} limit`);
-    this.name = 'BudgetExceededError';
+    super(
+      `Budget exceeded: $${spent.toFixed(2)} spent of $${budget.toFixed(2)} limit`,
+    );
+    this.name = "BudgetExceededError";
   }
 }
 
 export class ConvergenceTimeoutError extends IdeaIncubatorError {
   constructor(rounds: number, maxRounds: number) {
     super(`Convergence timeout: ${rounds} rounds reached max ${maxRounds}`);
-    this.name = 'ConvergenceTimeoutError';
+    this.name = "ConvergenceTimeoutError";
   }
 }
 
 export class ValidationError extends IdeaIncubatorError {
   constructor(field: string, message: string) {
     super(`Validation failed for ${field}: ${message}`);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
   }
 }
 ```
@@ -945,12 +1006,12 @@ export class ValidationError extends IdeaIncubatorError {
 ### utils/cost-tracker.ts
 
 ```typescript
-import { BudgetExceededError } from './errors.js';
+import { BudgetExceededError } from "./errors.js";
 
 // Claude Opus 4.5 pricing (as of 2025)
 const PRICING = {
-  inputPerMillion: 15.00,  // $15 per 1M input tokens
-  outputPerMillion: 75.00  // $75 per 1M output tokens
+  inputPerMillion: 15.0, // $15 per 1M input tokens
+  outputPerMillion: 75.0, // $75 per 1M output tokens
 };
 
 export interface CostReport {
@@ -967,7 +1028,7 @@ export class CostTracker {
   private budget: number;
   private apiCalls = 0;
 
-  constructor(budgetDollars: number = 10.00) {
+  constructor(budgetDollars: number = 10.0) {
     this.budget = budgetDollars;
   }
 
@@ -979,7 +1040,8 @@ export class CostTracker {
 
   getEstimatedCost(): number {
     const inputCost = (this.inputTokens / 1_000_000) * PRICING.inputPerMillion;
-    const outputCost = (this.outputTokens / 1_000_000) * PRICING.outputPerMillion;
+    const outputCost =
+      (this.outputTokens / 1_000_000) * PRICING.outputPerMillion;
     return inputCost + outputCost;
   }
 
@@ -1000,7 +1062,7 @@ export class CostTracker {
       outputTokens: this.outputTokens,
       estimatedCost: this.getEstimatedCost(),
       budgetRemaining: this.getBudgetRemaining(),
-      apiCalls: this.apiCalls
+      apiCalls: this.apiCalls,
     };
   }
 
@@ -1017,34 +1079,37 @@ export class CostTracker {
 **tests/integration/anthropic-client.test.ts**
 
 ```typescript
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockAnthropicClient, mockEvaluationResponse } from '../mocks/anthropic.js';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  createMockAnthropicClient,
+  mockEvaluationResponse,
+} from "../mocks/anthropic.js";
 
-describe('Anthropic Client Integration', () => {
+describe("Anthropic Client Integration", () => {
   let mockClient: ReturnType<typeof createMockAnthropicClient>;
 
   beforeEach(() => {
     mockClient = createMockAnthropicClient();
   });
 
-  it('should create a message with system prompt', async () => {
+  it("should create a message with system prompt", async () => {
     mockClient.messages.create.mockResolvedValueOnce(
-      mockEvaluationResponse({ 'Problem Clarity': 8 })
+      mockEvaluationResponse({ "Problem Clarity": 8 }),
     );
 
     const response = await mockClient.messages.create({
-      model: 'claude-opus-4-5-20251101',
+      model: "claude-opus-4-5-20251101",
       max_tokens: 1024,
-      system: 'You are an evaluator.',
-      messages: [{ role: 'user', content: 'Evaluate this idea' }]
+      system: "You are an evaluator.",
+      messages: [{ role: "user", content: "Evaluate this idea" }],
     });
 
-    expect(response.content[0].type).toBe('text');
+    expect(response.content[0].type).toBe("text");
     expect(response.usage.input_tokens).toBeGreaterThan(0);
   });
 
-  it('should parse JSON from response', () => {
-    const response = mockEvaluationResponse({ 'Problem Clarity': 8 });
+  it("should parse JSON from response", () => {
+    const response = mockEvaluationResponse({ "Problem Clarity": 8 });
     const text = response.content[0].text;
     const parsed = JSON.parse(text);
 
@@ -1057,26 +1122,26 @@ describe('Anthropic Client Integration', () => {
 **tests/integration/parallel-execution.test.ts**
 
 ```typescript
-import { describe, it, expect, vi } from 'vitest';
-import { createMockAnthropicClient } from '../mocks/anthropic.js';
+import { describe, it, expect, vi } from "vitest";
+import { createMockAnthropicClient } from "../mocks/anthropic.js";
 
-describe('Parallel Execution', () => {
-  it('should execute multiple requests in parallel', async () => {
+describe("Parallel Execution", () => {
+  it("should execute multiple requests in parallel", async () => {
     const mockClient = createMockAnthropicClient();
     const startTime = Date.now();
 
     // Simulate 3 parallel requests
-    const personas = ['Skeptic', 'Realist', 'First Principles'];
+    const personas = ["Skeptic", "Realist", "First Principles"];
 
     const challenges = await Promise.all(
-      personas.map(persona =>
+      personas.map((persona) =>
         mockClient.messages.create({
-          model: 'claude-opus-4-5-20251101',
+          model: "claude-opus-4-5-20251101",
           max_tokens: 512,
           system: `You are the ${persona}.`,
-          messages: [{ role: 'user', content: 'Challenge this claim' }]
-        })
-      )
+          messages: [{ role: "user", content: "Challenge this claim" }],
+        }),
+      ),
     );
 
     const duration = Date.now() - startTime;
@@ -1084,8 +1149,8 @@ describe('Parallel Execution', () => {
     expect(challenges).toHaveLength(3);
     // In real scenario, parallel should be faster than sequential
     // With mocks, just verify all completed
-    challenges.forEach(c => {
-      expect(c.content[0].type).toBe('text');
+    challenges.forEach((c) => {
+      expect(c.content[0].type).toBe("text");
     });
   });
 });
@@ -1094,14 +1159,14 @@ describe('Parallel Execution', () => {
 **tests/integration/database.test.ts**
 
 ```typescript
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import Database from "better-sqlite3";
 
-describe('SQLite Database', () => {
+describe("SQLite Database", () => {
   let db: Database.Database;
 
   beforeEach(() => {
-    db = new Database(':memory:');
+    db = new Database(":memory:");
     db.exec(`
       CREATE TABLE ideas (
         id TEXT PRIMARY KEY,
@@ -1116,26 +1181,35 @@ describe('SQLite Database', () => {
     db.close();
   });
 
-  it('should create table and insert data', () => {
-    db.prepare('INSERT INTO ideas VALUES (?, ?, ?, ?)').run(
-      'idea-1', 'solar-charger', 'Solar Charger', 7.5
+  it("should create table and insert data", () => {
+    db.prepare("INSERT INTO ideas VALUES (?, ?, ?, ?)").run(
+      "idea-1",
+      "solar-charger",
+      "Solar Charger",
+      7.5,
     );
 
-    const row = db.prepare('SELECT * FROM ideas WHERE id = ?').get('idea-1');
+    const row = db.prepare("SELECT * FROM ideas WHERE id = ?").get("idea-1");
 
     expect(row).toBeDefined();
-    expect(row.title).toBe('Solar Charger');
+    expect(row.title).toBe("Solar Charger");
     expect(row.score).toBe(7.5);
   });
 
-  it('should enforce unique slug constraint', () => {
-    db.prepare('INSERT INTO ideas VALUES (?, ?, ?, ?)').run(
-      'idea-1', 'solar-charger', 'Solar Charger', 7.5
+  it("should enforce unique slug constraint", () => {
+    db.prepare("INSERT INTO ideas VALUES (?, ?, ?, ?)").run(
+      "idea-1",
+      "solar-charger",
+      "Solar Charger",
+      7.5,
     );
 
     expect(() => {
-      db.prepare('INSERT INTO ideas VALUES (?, ?, ?, ?)').run(
-        'idea-2', 'solar-charger', 'Another Solar Charger', 8.0
+      db.prepare("INSERT INTO ideas VALUES (?, ?, ?, ?)").run(
+        "idea-2",
+        "solar-charger",
+        "Another Solar Charger",
+        8.0,
       );
     }).toThrow();
   });
@@ -1148,24 +1222,24 @@ describe('SQLite Database', () => {
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `CLAUDE.md` | Project-wide Claude Code instructions |
-| `config/default.ts` | Default configuration |
-| `config/index.ts` | Config loader |
-| `database/schema.sql` | Full SQLite schema (for reference) |
-| `database/db.ts` | Database connection and helpers |
-| `database/migrate.ts` | Migration runner |
-| `database/migrations/001_initial_schema.sql` | Initial schema migration |
-| `scripts/cli.ts` | Main CLI entry point |
-| `scripts/sync.ts` | Markdown ↔ SQLite sync with hash comparison |
-| `utils/logger.ts` | Logging with levels and transports |
-| `utils/parser.ts` | Markdown/YAML frontmatter parsing |
-| `taxonomy/evaluation-criteria.md` | **Single source of truth for criteria** |
-| `taxonomy/lifecycle-stages.md` | All 19 lifecycle stages |
-| `taxonomy/idea-types.md` | Domain categories |
-| `taxonomy/tags.md` | Controlled vocabulary |
-| `.claude/skills/idea-capture/SKILL.md` | Basic capture skill |
+| File                                         | Purpose                                     |
+| -------------------------------------------- | ------------------------------------------- |
+| `CLAUDE.md`                                  | Project-wide Claude Code instructions       |
+| `config/default.ts`                          | Default configuration                       |
+| `config/index.ts`                            | Config loader                               |
+| `database/schema.sql`                        | Full SQLite schema (for reference)          |
+| `database/db.ts`                             | Database connection and helpers             |
+| `database/migrate.ts`                        | Migration runner                            |
+| `database/migrations/001_initial_schema.sql` | Initial schema migration                    |
+| `scripts/cli.ts`                             | Main CLI entry point                        |
+| `scripts/sync.ts`                            | Markdown ↔ SQLite sync with hash comparison |
+| `utils/logger.ts`                            | Logging with levels and transports          |
+| `utils/parser.ts`                            | Markdown/YAML frontmatter parsing           |
+| `taxonomy/evaluation-criteria.md`            | **Single source of truth for criteria**     |
+| `taxonomy/lifecycle-stages.md`               | All 19 lifecycle stages                     |
+| `taxonomy/idea-types.md`                     | Domain categories                           |
+| `taxonomy/tags.md`                           | Controlled vocabulary                       |
+| `.claude/skills/idea-capture/SKILL.md`       | Basic capture skill                         |
 
 ### Database Migrations
 
@@ -1181,6 +1255,7 @@ database/
 ```
 
 **Migration Runner**:
+
 ```typescript
 // database/migrate.ts
 export async function runMigrations(): Promise<void> {
@@ -1196,11 +1271,13 @@ export async function runMigrations(): Promise<void> {
   `);
 
   // Get applied migrations
-  const applied = db.prepare('SELECT name FROM _migrations').all()
+  const applied = db
+    .prepare("SELECT name FROM _migrations")
+    .all()
     .map((r: any) => r.name);
 
   // Get migration files
-  const files = glob.sync('database/migrations/*.sql').sort();
+  const files = glob.sync("database/migrations/*.sql").sort();
 
   // Apply pending migrations
   for (const file of files) {
@@ -1208,17 +1285,18 @@ export async function runMigrations(): Promise<void> {
     if (applied.includes(name)) continue;
 
     console.log(`Applying migration: ${name}`);
-    const sql = fs.readFileSync(file, 'utf-8');
+    const sql = fs.readFileSync(file, "utf-8");
     db.exec(sql);
 
-    db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(name);
+    db.prepare("INSERT INTO _migrations (name) VALUES (?)").run(name);
   }
 
-  console.log('Migrations complete.');
+  console.log("Migrations complete.");
 }
 ```
 
 **CLI Command**:
+
 ```bash
 npm run migrate        # Apply pending migrations
 npm run migrate:status # Show migration status
@@ -1226,7 +1304,7 @@ npm run migrate:status # Show migration status
 
 ### CLAUDE.md (Root Project File)
 
-```markdown
+````markdown
 # Idea Incubator - Claude Code Instructions
 
 ## Project Overview
@@ -1261,7 +1339,9 @@ npm run cli capture    # Capture new idea
 npm run sync           # Sync markdown to database
 npm run evaluate <slug>  # Run AI evaluation
 ```
-```
+````
+
+````
 
 ### config/default.ts
 
@@ -1322,7 +1402,7 @@ export const config = {
 };
 
 export type Config = typeof config;
-```
+````
 
 ### taxonomy/evaluation-criteria.md (SINGLE SOURCE OF TRUTH)
 
@@ -1336,87 +1416,91 @@ export type Config = typeof config;
 
 ### Problem/Opportunity Quality (5 criteria)
 
-| ID | Criterion | Question | Score Guide |
-|----|-----------|----------|-------------|
-| P1 | Problem Clarity | Is the problem well-defined? | 10=Crystal clear, 1=Vague |
-| P2 | Problem Severity | How painful is the problem? | 10=Unbearable, 1=Trivial |
-| P3 | Target User Clarity | Who specifically is affected? | 10=Precise persona, 1=Everyone |
-| P4 | Problem Validation | Has it been validated with real users? | 10=Extensive validation, 1=Assumption |
-| P5 | Problem Uniqueness | Is this a novel problem? | 10=Unaddressed, 1=Saturated solutions |
+| ID  | Criterion           | Question                               | Score Guide                           |
+| --- | ------------------- | -------------------------------------- | ------------------------------------- |
+| P1  | Problem Clarity     | Is the problem well-defined?           | 10=Crystal clear, 1=Vague             |
+| P2  | Problem Severity    | How painful is the problem?            | 10=Unbearable, 1=Trivial              |
+| P3  | Target User Clarity | Who specifically is affected?          | 10=Precise persona, 1=Everyone        |
+| P4  | Problem Validation  | Has it been validated with real users? | 10=Extensive validation, 1=Assumption |
+| P5  | Problem Uniqueness  | Is this a novel problem?               | 10=Unaddressed, 1=Saturated solutions |
 
 ### Solution Quality (5 criteria)
 
-| ID | Criterion | Question | Score Guide |
-|----|-----------|----------|-------------|
-| S1 | Solution Clarity | Is the solution well-articulated? | 10=Detailed spec, 1=Vague concept |
-| S2 | Solution Feasibility | Can it actually be built? | 10=Proven tech, 1=Sci-fi |
-| S3 | Solution Uniqueness | How differentiated from alternatives? | 10=First of kind, 1=Me-too |
-| S4 | Solution Scalability | Can it grow without proportional cost? | 10=Infinite scale, 1=Linear cost |
-| S5 | Solution Defensibility | Can it be protected? | 10=Strong moat, 1=Easily copied |
+| ID  | Criterion              | Question                               | Score Guide                       |
+| --- | ---------------------- | -------------------------------------- | --------------------------------- |
+| S1  | Solution Clarity       | Is the solution well-articulated?      | 10=Detailed spec, 1=Vague concept |
+| S2  | Solution Feasibility   | Can it actually be built?              | 10=Proven tech, 1=Sci-fi          |
+| S3  | Solution Uniqueness    | How differentiated from alternatives?  | 10=First of kind, 1=Me-too        |
+| S4  | Solution Scalability   | Can it grow without proportional cost? | 10=Infinite scale, 1=Linear cost  |
+| S5  | Solution Defensibility | Can it be protected?                   | 10=Strong moat, 1=Easily copied   |
 
 ### Feasibility (5 criteria)
 
-| ID | Criterion | Question | Score Guide |
-|----|-----------|----------|-------------|
-| F1 | Technical Complexity | How hard to build? | 10=Trivial, 1=Impossible |
-| F2 | Resource Requirements | Cost in time/money/people | 10=Minimal, 1=Massive |
-| F3 | Skill Availability | Do I have needed skills? | 10=Expert, 1=No clue |
-| F4 | Time to Value | How long until first results? | 10=Days, 1=Years |
-| F5 | Dependency Risk | Reliance on external factors | 10=Independent, 1=Dependent |
+| ID  | Criterion             | Question                      | Score Guide                 |
+| --- | --------------------- | ----------------------------- | --------------------------- |
+| F1  | Technical Complexity  | How hard to build?            | 10=Trivial, 1=Impossible    |
+| F2  | Resource Requirements | Cost in time/money/people     | 10=Minimal, 1=Massive       |
+| F3  | Skill Availability    | Do I have needed skills?      | 10=Expert, 1=No clue        |
+| F4  | Time to Value         | How long until first results? | 10=Days, 1=Years            |
+| F5  | Dependency Risk       | Reliance on external factors  | 10=Independent, 1=Dependent |
 
 ### Strategic Fit (5 criteria)
 
-| ID | Criterion | Question | Score Guide |
-|----|-----------|----------|-------------|
-| FT1 | Personal Fit | Fits with goals? | 10=Perfect alignment, 1=Conflict |
-| FT2 | Passion Alignment | How excited am I? | 10=Obsessed, 1=Indifferent |
-| FT3 | Skill Match | Leverages my skills? | 10=Core strength, 1=Weakness |
-| FT4 | Network Leverage | Can I use my network? | 10=Strong connections, 1=Cold start |
-| FT5 | Life Stage Fit | Right moment? | 10=Perfect timing, 1=Wrong phase |
+| ID  | Criterion         | Question              | Score Guide                         |
+| --- | ----------------- | --------------------- | ----------------------------------- |
+| FT1 | Personal Fit      | Fits with goals?      | 10=Perfect alignment, 1=Conflict    |
+| FT2 | Passion Alignment | How excited am I?     | 10=Obsessed, 1=Indifferent          |
+| FT3 | Skill Match       | Leverages my skills?  | 10=Core strength, 1=Weakness        |
+| FT4 | Network Leverage  | Can I use my network? | 10=Strong connections, 1=Cold start |
+| FT5 | Life Stage Fit    | Right moment?         | 10=Perfect timing, 1=Wrong phase    |
 
 ### Market/External Factors (5 criteria)
 
-| ID | Criterion | Question | Score Guide |
-|----|-----------|----------|-------------|
-| M1 | Market Size | Total addressable market | 10=Huge TAM, 1=Tiny niche |
-| M2 | Market Growth | Is the market expanding? | 10=Explosive, 1=Declining |
-| M3 | Competition Intensity | How crowded? | 10=Blue ocean, 1=Red ocean |
-| M4 | Entry Barriers | Barriers to entry | 10=Easy entry, 1=Fortress |
-| M5 | Timing | Is the market ready? | 10=Perfect moment, 1=Too early/late |
+| ID  | Criterion             | Question                 | Score Guide                         |
+| --- | --------------------- | ------------------------ | ----------------------------------- |
+| M1  | Market Size           | Total addressable market | 10=Huge TAM, 1=Tiny niche           |
+| M2  | Market Growth         | Is the market expanding? | 10=Explosive, 1=Declining           |
+| M3  | Competition Intensity | How crowded?             | 10=Blue ocean, 1=Red ocean          |
+| M4  | Entry Barriers        | Barriers to entry        | 10=Easy entry, 1=Fortress           |
+| M5  | Timing                | Is the market ready?     | 10=Perfect moment, 1=Too early/late |
 
 ### Risk Assessment (5 criteria)
 
-| ID | Criterion | Question | Score Guide |
-|----|-----------|----------|-------------|
-| R1 | Execution Risk | Risk of failing to build | 10=Low risk, 1=High risk |
-| R2 | Market Risk | Risk of no market | 10=Proven demand, 1=Unproven |
-| R3 | Technical Risk | Risk of technical failure | 10=Proven tech, 1=Bleeding edge |
-| R4 | Financial Risk | Risk of running out of money | 10=Self-funded, 1=Burn rate |
-| R5 | Regulatory Risk | Legal/compliance concerns | 10=Clear path, 1=Legal minefield |
+| ID  | Criterion       | Question                     | Score Guide                      |
+| --- | --------------- | ---------------------------- | -------------------------------- |
+| R1  | Execution Risk  | Risk of failing to build     | 10=Low risk, 1=High risk         |
+| R2  | Market Risk     | Risk of no market            | 10=Proven demand, 1=Unproven     |
+| R3  | Technical Risk  | Risk of technical failure    | 10=Proven tech, 1=Bleeding edge  |
+| R4  | Financial Risk  | Risk of running out of money | 10=Self-funded, 1=Burn rate      |
+| R5  | Regulatory Risk | Legal/compliance concerns    | 10=Clear path, 1=Legal minefield |
 
 ## Composite Score Calculation
-
 ```
+
 Overall Score = (
-  Problem Score × 0.20 +
-  Solution Score × 0.20 +
-  Feasibility Score × 0.15 +
-  Fit Score × 0.15 +
-  Market Score × 0.15 +
-  Risk Score × 0.15
+Problem Score × 0.20 +
+Solution Score × 0.20 +
+Feasibility Score × 0.15 +
+Fit Score × 0.15 +
+Market Score × 0.15 +
+Risk Score × 0.15
 )
+
 ```
 
 ## Confidence Calculation
 
 ```
+
 Confidence = (
-  (challenges_defended / total_challenges) × 0.4 +
-  (first_principles_bonuses / total_exchanges) × 0.2 +
-  (1 - score_volatility) × 0.2 +
-  information_completeness × 0.2
+(challenges_defended / total_challenges) × 0.4 +
+(first_principles_bonuses / total_exchanges) × 0.2 +
+(1 - score_volatility) × 0.2 +
+information_completeness × 0.2
 )
+
 ```
+
 ```
 
 ### .claude/skills/idea-capture/SKILL.md
@@ -1444,27 +1528,29 @@ This skill activates when the user:
    - Generate a kebab-case slug from the title
 
 2. **Create folder structure**
-   ```
-   ideas/[slug]/
-   ├── README.md
-   ├── research/
-   ├── notes/
-   └── assets/
-   ```
+```
+
+ideas/[slug]/
+├── README.md
+├── research/
+├── notes/
+└── assets/
+
+```
 
 3. **Populate README.md**
-   - Use template from `templates/idea.md`
-   - Fill in frontmatter with extracted info
-   - Set lifecycle stage to `SPARK`
+- Use template from `templates/idea.md`
+- Fill in frontmatter with extracted info
+- Set lifecycle stage to `SPARK`
 
 4. **Ask 3 clarifying questions**
-   After creation, ask:
-   - "Who specifically would benefit from this?"
-   - "What's the core problem this solves?"
-   - "What's the simplest version that would be useful?"
+After creation, ask:
+- "Who specifically would benefit from this?"
+- "What's the core problem this solves?"
+- "What's the simplest version that would be useful?"
 
 5. **Remind about sync**
-   - Tell user: "Run `npm run sync` to update the database"
+- Tell user: "Run `npm run sync` to update the database"
 
 ## Template Location
 
@@ -1477,9 +1563,9 @@ User: "I have an idea for an app that helps people track their houseplants"
 Response:
 1. Create `ideas/houseplant-tracker/`
 2. Populate README with:
-   - title: "Houseplant Tracker"
-   - type: "technical" (it's an app)
-   - stage: "SPARK"
+- title: "Houseplant Tracker"
+- type: "technical" (it's an app)
+- stage: "SPARK"
 3. Ask clarifying questions
 ```
 
@@ -1654,10 +1740,10 @@ GROUP BY e.idea_id, e.evaluation_run_id, e.category;
 ### utils/logger.ts (Updated with Levels)
 
 ```typescript
-import chalk from 'chalk';
+import chalk from "chalk";
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-type Transport = 'console' | 'websocket';
+type LogLevel = "debug" | "info" | "warn" | "error";
+type Transport = "console" | "websocket";
 
 interface LoggerConfig {
   level: LogLevel;
@@ -1669,19 +1755,22 @@ const LOG_LEVELS: Record<LogLevel, number> = {
   debug: 0,
   info: 1,
   warn: 2,
-  error: 3
+  error: 3,
 };
 
 const config: LoggerConfig = {
-  level: 'info',
-  transport: 'console'
+  level: "info",
+  transport: "console",
 };
 
 export function setLogLevel(level: LogLevel): void {
   config.level = level;
 }
 
-export function setTransport(transport: Transport, options?: { websocketUrl?: string }): void {
+export function setTransport(
+  transport: Transport,
+  options?: { websocketUrl?: string },
+): void {
   config.transport = transport;
   if (options?.websocketUrl) {
     config.websocketUrl = options.websocketUrl;
@@ -1693,29 +1782,33 @@ function shouldLog(level: LogLevel): boolean {
 }
 
 export function logDebug(message: string, context?: object): void {
-  if (!shouldLog('debug')) return;
-  console.log(chalk.gray(`[DEBUG]`), message, context ? JSON.stringify(context) : '');
+  if (!shouldLog("debug")) return;
+  console.log(
+    chalk.gray(`[DEBUG]`),
+    message,
+    context ? JSON.stringify(context) : "",
+  );
 }
 
 export function logInfo(message: string): void {
-  if (!shouldLog('info')) return;
+  if (!shouldLog("info")) return;
   console.log(chalk.blue(`[INFO]`), message);
 }
 
 export function logSuccess(message: string): void {
-  if (!shouldLog('info')) return;
+  if (!shouldLog("info")) return;
   console.log(chalk.green(`[SUCCESS]`), message);
 }
 
 export function logWarning(message: string): void {
-  if (!shouldLog('warn')) return;
+  if (!shouldLog("warn")) return;
   console.warn(chalk.yellow(`[WARN]`), message);
 }
 
 export function logError(message: string, error?: Error): void {
-  if (!shouldLog('error')) return;
+  if (!shouldLog("error")) return;
   console.error(chalk.red(`[ERROR]`), message);
-  if (error && config.level === 'debug') {
+  if (error && config.level === "debug") {
     console.error(error.stack);
   }
 }
@@ -1723,24 +1816,24 @@ export function logError(message: string, error?: Error): void {
 export function logDebate(
   agent: string,
   message: string,
-  type: 'claim' | 'challenge' | 'defense' | 'verdict'
+  type: "claim" | "challenge" | "defense" | "verdict",
 ): void {
-  if (!shouldLog('info')) return;
+  if (!shouldLog("info")) return;
 
   const timestamp = new Date().toISOString();
   const colors = {
     claim: chalk.blue,
     challenge: chalk.red,
     defense: chalk.green,
-    verdict: chalk.yellow
+    verdict: chalk.yellow,
   };
 
-  if (config.transport === 'console') {
+  if (config.transport === "console") {
     console.log(colors[type](`[${agent}]`), message);
   }
 
   // WebSocket transport for Phase 6
-  if (config.transport === 'websocket' && config.websocketUrl) {
+  if (config.transport === "websocket" && config.websocketUrl) {
     // TODO: Implement WebSocket broadcast
   }
 }
@@ -1752,11 +1845,11 @@ export function logCost(report: {
   cost: number;
   remaining: number;
 }): void {
-  if (!shouldLog('info')) return;
+  if (!shouldLog("info")) return;
   console.log(
     chalk.magenta(`[COST]`),
     `${report.operation}: ${report.inputTokens}in/${report.outputTokens}out`,
-    `$${report.cost.toFixed(4)} (remaining: $${report.remaining.toFixed(2)})`
+    `$${report.cost.toFixed(4)} (remaining: $${report.remaining.toFixed(2)})`,
   );
 }
 ```
@@ -1767,22 +1860,22 @@ export function logCost(report: {
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `templates/idea.md` | Default idea template |
-| `templates/evaluation.md` | Evaluation results template |
-| `scripts/capture.ts` | Idea capture CLI command |
-| `scripts/sync.ts` | Markdown ↔ SQLite synchronization |
-| `agents/development.ts` | Development agent for clarifying questions |
-| `ideas/_index.md` | Auto-generated master index |
-| `.claude/skills/idea-develop/SKILL.md` | Development skill |
+| File                                   | Purpose                                    |
+| -------------------------------------- | ------------------------------------------ |
+| `templates/idea.md`                    | Default idea template                      |
+| `templates/evaluation.md`              | Evaluation results template                |
+| `scripts/capture.ts`                   | Idea capture CLI command                   |
+| `scripts/sync.ts`                      | Markdown ↔ SQLite synchronization          |
+| `agents/development.ts`                | Development agent for clarifying questions |
+| `ideas/_index.md`                      | Auto-generated master index                |
+| `.claude/skills/idea-develop/SKILL.md` | Development skill                          |
 
 ### agents/development.ts
 
 ```typescript
-import Anthropic from '@anthropic-ai/sdk';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { logDebate, logDebug } from '../utils/logger.js';
+import Anthropic from "@anthropic-ai/sdk";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { logDebate, logDebug } from "../utils/logger.js";
 
 const client = new Anthropic();
 
@@ -1800,9 +1893,9 @@ Ask 3-5 focused questions at a time. Don't overwhelm the user.
 After the user answers, record insights and identify next gaps.`;
 
 export interface DevelopmentQuestion {
-  category: 'user' | 'problem' | 'solution' | 'market' | 'execution';
+  category: "user" | "problem" | "solution" | "market" | "execution";
   question: string;
-  priority: 'critical' | 'important' | 'nice-to-have';
+  priority: "critical" | "important" | "nice-to-have";
 }
 
 export interface DevelopmentResult {
@@ -1813,15 +1906,16 @@ export interface DevelopmentResult {
 
 export async function analyzeIdeaGaps(
   ideaContent: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<DevelopmentResult> {
   const response = await client.messages.create({
-    model: 'claude-opus-4-5-20251101',
+    model: "claude-opus-4-5-20251101",
     max_tokens: 1024,
     system: DEVELOPMENT_SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `Analyze this idea and identify gaps that need clarification:
+    messages: [
+      {
+        role: "user",
+        content: `Analyze this idea and identify gaps that need clarification:
 
 ${ideaContent}
 
@@ -1832,20 +1926,21 @@ Respond in JSON:
   ],
   "gaps": ["List of missing information"],
   "suggestions": ["Suggestions for strengthening the idea"]
-}`
-    }]
+}`,
+      },
+    ],
   });
 
   costTracker.track(response.usage);
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type');
+  if (content.type !== "text") {
+    throw new Error("Unexpected response type");
   }
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error('Could not parse development JSON');
+    throw new Error("Could not parse development JSON");
   }
 
   return JSON.parse(jsonMatch[0]);
@@ -1854,19 +1949,20 @@ Respond in JSON:
 export async function generateFollowUpQuestions(
   ideaContent: string,
   previousQA: Array<{ question: string; answer: string }>,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<DevelopmentQuestion[]> {
   const qaHistory = previousQA
-    .map(qa => `Q: ${qa.question}\nA: ${qa.answer}`)
-    .join('\n\n');
+    .map((qa) => `Q: ${qa.question}\nA: ${qa.answer}`)
+    .join("\n\n");
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-5-20251101',
+    model: "claude-opus-4-5-20251101",
     max_tokens: 512,
     system: DEVELOPMENT_SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `Idea:
+    messages: [
+      {
+        role: "user",
+        content: `Idea:
 ${ideaContent}
 
 Previous Q&A:
@@ -1879,20 +1975,21 @@ Respond in JSON:
   "questions": [
     {"category": "...", "question": "...", "priority": "..."}
   ]
-}`
-    }]
+}`,
+      },
+    ],
   });
 
   costTracker.track(response.usage);
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type');
+  if (content.type !== "text") {
+    throw new Error("Unexpected response type");
   }
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error('Could not parse follow-up JSON');
+    throw new Error("Could not parse follow-up JSON");
   }
 
   return JSON.parse(jsonMatch[0]).questions;
@@ -1905,14 +2002,14 @@ Respond in JSON:
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `agents/config.ts` | Criteria definitions (imports from taxonomy) |
-| `agents/evaluator.ts` | Generalist evaluator agent |
-| `agents/orchestrator.ts` | Routes inputs, manages flow |
-| `agents/classifier.ts` | Auto-tags and detects relationships |
-| `scripts/evaluate.ts` | Evaluation CLI command |
-| `scripts/review.ts` | User review/override CLI |
+| File                     | Purpose                                      |
+| ------------------------ | -------------------------------------------- |
+| `agents/config.ts`       | Criteria definitions (imports from taxonomy) |
+| `agents/evaluator.ts`    | Generalist evaluator agent                   |
+| `agents/orchestrator.ts` | Routes inputs, manages flow                  |
+| `agents/classifier.ts`   | Auto-tags and detects relationships          |
+| `scripts/evaluate.ts`    | Evaluation CLI command                       |
+| `scripts/review.ts`      | User review/override CLI                     |
 
 ### agents/config.ts (Imports from Taxonomy)
 
@@ -1920,47 +2017,47 @@ Respond in JSON:
 // Criteria definitions - MUST match taxonomy/evaluation-criteria.md
 export const EVALUATION_CRITERIA = {
   problem: [
-    'Problem Clarity',
-    'Problem Severity',
-    'Target User Clarity',
-    'Problem Validation',
-    'Problem Uniqueness'
+    "Problem Clarity",
+    "Problem Severity",
+    "Target User Clarity",
+    "Problem Validation",
+    "Problem Uniqueness",
   ],
   solution: [
-    'Solution Clarity',
-    'Solution Feasibility',
-    'Solution Uniqueness',
-    'Solution Scalability',
-    'Solution Defensibility'
+    "Solution Clarity",
+    "Solution Feasibility",
+    "Solution Uniqueness",
+    "Solution Scalability",
+    "Solution Defensibility",
   ],
   feasibility: [
-    'Technical Complexity',
-    'Resource Requirements',
-    'Skill Availability',
-    'Time to Value',
-    'Dependency Risk'
+    "Technical Complexity",
+    "Resource Requirements",
+    "Skill Availability",
+    "Time to Value",
+    "Dependency Risk",
   ],
   fit: [
-    'Personal Fit',
-    'Passion Alignment',
-    'Skill Match',
-    'Network Leverage',
-    'Life Stage Fit'
+    "Personal Fit",
+    "Passion Alignment",
+    "Skill Match",
+    "Network Leverage",
+    "Life Stage Fit",
   ],
   market: [
-    'Market Size',
-    'Market Growth',
-    'Competition Intensity',
-    'Entry Barriers',
-    'Timing'
+    "Market Size",
+    "Market Growth",
+    "Competition Intensity",
+    "Entry Barriers",
+    "Timing",
   ],
   risk: [
-    'Execution Risk',
-    'Market Risk',
-    'Technical Risk',
-    'Financial Risk',
-    'Regulatory Risk'
-  ]
+    "Execution Risk",
+    "Market Risk",
+    "Technical Risk",
+    "Financial Risk",
+    "Regulatory Risk",
+  ],
 } as const;
 
 export const ALL_CRITERIA = Object.values(EVALUATION_CRITERIA).flat();
@@ -1971,26 +2068,42 @@ if (ALL_CRITERIA.length !== 30) {
 }
 
 export const LIFECYCLE_STAGES = [
-  'SPARK', 'CLARIFY', 'RESEARCH', 'IDEATE', 'EVALUATE', 'VALIDATE',
-  'DESIGN', 'PROTOTYPE', 'TEST', 'REFINE', 'BUILD', 'LAUNCH',
-  'GROW', 'MAINTAIN', 'PIVOT', 'PAUSE', 'SUNSET', 'ARCHIVE', 'ABANDONED'
+  "SPARK",
+  "CLARIFY",
+  "RESEARCH",
+  "IDEATE",
+  "EVALUATE",
+  "VALIDATE",
+  "DESIGN",
+  "PROTOTYPE",
+  "TEST",
+  "REFINE",
+  "BUILD",
+  "LAUNCH",
+  "GROW",
+  "MAINTAIN",
+  "PIVOT",
+  "PAUSE",
+  "SUNSET",
+  "ARCHIVE",
+  "ABANDONED",
 ] as const;
 
-export type LifecycleStage = typeof LIFECYCLE_STAGES[number];
+export type LifecycleStage = (typeof LIFECYCLE_STAGES)[number];
 export type Category = keyof typeof EVALUATION_CRITERIA;
 ```
 
 ### agents/orchestrator.ts
 
 ```typescript
-import Anthropic from '@anthropic-ai/sdk';
-import { getDb } from '../database/db.js';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { logInfo, logDebug } from '../utils/logger.js';
+import Anthropic from "@anthropic-ai/sdk";
+import { getDb } from "../database/db.js";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { logInfo, logDebug } from "../utils/logger.js";
 
 const client = new Anthropic();
 
-export type IdeaClassification = 'NEW' | 'EXISTING' | 'AMBIGUOUS';
+export type IdeaClassification = "NEW" | "EXISTING" | "AMBIGUOUS";
 
 export interface ClassificationResult {
   type: IdeaClassification;
@@ -2018,41 +2131,45 @@ Respond in JSON:
 
 export async function classifyInput(
   userInput: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<ClassificationResult> {
   // Get existing ideas
   const db = getDb();
-  const existingIdeas = db.prepare('SELECT slug, title, summary FROM ideas').all();
+  const existingIdeas = db
+    .prepare("SELECT slug, title, summary FROM ideas")
+    .all();
 
   const existingList = existingIdeas
-    .map((i: any) => `- ${i.slug}: "${i.title}" - ${i.summary || 'No summary'}`)
-    .join('\n');
+    .map((i: any) => `- ${i.slug}: "${i.title}" - ${i.summary || "No summary"}`)
+    .join("\n");
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-5-20251101',
+    model: "claude-opus-4-5-20251101",
     max_tokens: 512,
     system: ORCHESTRATOR_SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `User input: "${userInput}"
+    messages: [
+      {
+        role: "user",
+        content: `User input: "${userInput}"
 
 Existing ideas:
-${existingList || '(none)'}
+${existingList || "(none)"}
 
-Classify this input.`
-    }]
+Classify this input.`,
+      },
+    ],
   });
 
   costTracker.track(response.usage);
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type');
+  if (content.type !== "text") {
+    throw new Error("Unexpected response type");
   }
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error('Could not parse orchestrator JSON');
+    throw new Error("Could not parse orchestrator JSON");
   }
 
   return JSON.parse(jsonMatch[0]);
@@ -2060,20 +2177,20 @@ Classify this input.`
 
 export async function routeToWorkflow(
   classification: ClassificationResult,
-  userInput: string
+  userInput: string,
 ): Promise<{ action: string; ideaSlug?: string }> {
   switch (classification.type) {
-    case 'NEW':
-      logInfo('Creating new idea...');
-      return { action: 'CREATE_NEW' };
+    case "NEW":
+      logInfo("Creating new idea...");
+      return { action: "CREATE_NEW" };
 
-    case 'EXISTING':
+    case "EXISTING":
       logInfo(`Linking to existing idea: ${classification.matchedSlug}`);
-      return { action: 'LINK_EXISTING', ideaSlug: classification.matchedSlug };
+      return { action: "LINK_EXISTING", ideaSlug: classification.matchedSlug };
 
-    case 'AMBIGUOUS':
-      logInfo('Need user clarification...');
-      return { action: 'ASK_USER' };
+    case "AMBIGUOUS":
+      logInfo("Need user clarification...");
+      return { action: "ASK_USER" };
 
     default:
       throw new Error(`Unknown classification type: ${classification.type}`);
@@ -2084,19 +2201,25 @@ export async function routeToWorkflow(
 ### agents/classifier.ts
 
 ```typescript
-import Anthropic from '@anthropic-ai/sdk';
-import { getDb } from '../database/db.js';
-import { CostTracker } from '../utils/cost-tracker.js';
+import Anthropic from "@anthropic-ai/sdk";
+import { getDb } from "../database/db.js";
+import { CostTracker } from "../utils/cost-tracker.js";
 
 const client = new Anthropic();
 
 export interface ClassificationTags {
-  domain: 'business' | 'creative' | 'technical' | 'personal' | 'research';
+  domain: "business" | "creative" | "technical" | "personal" | "research";
   tags: string[];
   relationships: Array<{
     targetSlug: string;
-    type: 'parent' | 'child' | 'related' | 'combines' | 'conflicts' | 'inspired_by';
-    strength: 'strong' | 'medium' | 'weak';
+    type:
+      | "parent"
+      | "child"
+      | "related"
+      | "combines"
+      | "conflicts"
+      | "inspired_by";
+    strength: "strong" | "medium" | "weak";
     reasoning: string;
   }>;
 }
@@ -2120,45 +2243,47 @@ Respond in JSON:
 export async function classifyIdea(
   ideaContent: string,
   ideaSlug: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<ClassificationTags> {
   // Get existing ideas for relationship detection
   const db = getDb();
   const existingIdeas = db
-    .prepare('SELECT slug, title, summary FROM ideas WHERE slug != ?')
+    .prepare("SELECT slug, title, summary FROM ideas WHERE slug != ?")
     .all(ideaSlug);
 
   const existingList = existingIdeas
     .map((i: any) => `- ${i.slug}: "${i.title}"`)
-    .join('\n');
+    .join("\n");
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-5-20251101',
+    model: "claude-opus-4-5-20251101",
     max_tokens: 512,
     system: CLASSIFIER_SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `Classify this idea:
+    messages: [
+      {
+        role: "user",
+        content: `Classify this idea:
 
 ${ideaContent}
 
 Existing ideas for relationship detection:
-${existingList || '(none)'}
+${existingList || "(none)"}
 
-The current idea's slug is: ${ideaSlug}`
-    }]
+The current idea's slug is: ${ideaSlug}`,
+      },
+    ],
   });
 
   costTracker.track(response.usage);
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type');
+  if (content.type !== "text") {
+    throw new Error("Unexpected response type");
   }
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error('Could not parse classifier JSON');
+    throw new Error("Could not parse classifier JSON");
   }
 
   return JSON.parse(jsonMatch[0]);
@@ -2166,40 +2291,46 @@ The current idea's slug is: ${ideaSlug}`
 
 export function saveClassification(
   ideaId: string,
-  classification: ClassificationTags
+  classification: ClassificationTags,
 ): void {
   const db = getDb();
 
   // Update idea type
-  db.prepare('UPDATE ideas SET idea_type = ? WHERE id = ?')
-    .run(classification.domain, ideaId);
+  db.prepare("UPDATE ideas SET idea_type = ? WHERE id = ?").run(
+    classification.domain,
+    ideaId,
+  );
 
   // Add tags
   for (const tagName of classification.tags) {
     // Insert tag if not exists
-    db.prepare('INSERT OR IGNORE INTO tags (name) VALUES (?)')
-      .run(tagName);
+    db.prepare("INSERT OR IGNORE INTO tags (name) VALUES (?)").run(tagName);
 
     // Get tag id
-    const tag = db.prepare('SELECT id FROM tags WHERE name = ?').get(tagName) as any;
+    const tag = db
+      .prepare("SELECT id FROM tags WHERE name = ?")
+      .get(tagName) as any;
 
     // Link to idea
-    db.prepare('INSERT OR IGNORE INTO idea_tags (idea_id, tag_id) VALUES (?, ?)')
-      .run(ideaId, tag.id);
+    db.prepare(
+      "INSERT OR IGNORE INTO idea_tags (idea_id, tag_id) VALUES (?, ?)",
+    ).run(ideaId, tag.id);
   }
 
   // Add relationships
   for (const rel of classification.relationships) {
     const targetIdea = db
-      .prepare('SELECT id FROM ideas WHERE slug = ?')
+      .prepare("SELECT id FROM ideas WHERE slug = ?")
       .get(rel.targetSlug) as any;
 
     if (targetIdea) {
-      db.prepare(`
+      db.prepare(
+        `
         INSERT OR REPLACE INTO idea_relationships
         (source_idea_id, target_idea_id, relationship_type, strength, notes)
         VALUES (?, ?, ?, ?, ?)
-      `).run(ideaId, targetIdea.id, rel.type, rel.strength, rel.reasoning);
+      `,
+      ).run(ideaId, targetIdea.id, rel.type, rel.strength, rel.reasoning);
     }
   }
 }
@@ -2211,12 +2342,12 @@ export function saveClassification(
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
+| File                | Purpose                      |
+| ------------------- | ---------------------------- |
 | `agents/redteam.ts` | Red Team personas (3 for v1) |
-| `agents/arbiter.ts` | Debate arbiter |
-| `agents/debate.ts` | Debate orchestration |
-| `scripts/debate.ts` | Debate CLI command |
+| `agents/arbiter.ts` | Debate arbiter               |
+| `agents/debate.ts`  | Debate orchestration         |
+| `scripts/debate.ts` | Debate CLI command           |
 
 ### Key Updates from Gap Analysis
 
@@ -2233,17 +2364,17 @@ export function saveClassification(
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `agents/synthesis.ts` | Synthesis agent |
-| `agents/convergence.ts` | Convergence detection with full criteria |
-| `scripts/synthesize.ts` | Synthesis CLI command |
-| `templates/final-synthesis.md` | Output template |
+| File                           | Purpose                                  |
+| ------------------------------ | ---------------------------------------- |
+| `agents/synthesis.ts`          | Synthesis agent                          |
+| `agents/convergence.ts`        | Convergence detection with full criteria |
+| `scripts/synthesize.ts`        | Synthesis CLI command                    |
+| `templates/final-synthesis.md` | Output template                          |
 
 ### agents/convergence.ts (Complete Implementation)
 
 ```typescript
-import { config } from '../config/default.js';
+import { config } from "../config/default.js";
 
 export interface ConvergenceState {
   round: number;
@@ -2257,7 +2388,7 @@ export interface ConvergenceState {
   };
   insights: string[];
   hasConverged: boolean;
-  reason?: 'SCORE_STABILITY' | 'MAX_ROUNDS' | 'TIMEOUT' | 'BUDGET_EXCEEDED';
+  reason?: "SCORE_STABILITY" | "MAX_ROUNDS" | "TIMEOUT" | "BUDGET_EXCEEDED";
 }
 
 export interface ConvergenceResult {
@@ -2281,10 +2412,10 @@ export function initConvergenceState(): ConvergenceState {
       total: 0,
       defended: 0,
       critical: 0,
-      criticalResolved: 0
+      criticalResolved: 0,
     },
     insights: [],
-    hasConverged: false
+    hasConverged: false,
   };
 }
 
@@ -2300,7 +2431,9 @@ export function checkConvergence(state: ConvergenceState): ConvergenceResult {
       const delta = Math.max(...recent) - Math.min(...recent);
       if (delta > criteria.scoreStability.maxDelta) {
         scoreStable = false;
-        blockers.push(`Score for "${criterion}" still volatile (Δ=${delta.toFixed(2)})`);
+        blockers.push(
+          `Score for "${criterion}" still volatile (Δ=${delta.toFixed(2)})`,
+        );
       }
     } else {
       scoreStable = false;
@@ -2313,18 +2446,24 @@ export function checkConvergence(state: ConvergenceState): ConvergenceResult {
     const latest = history[history.length - 1];
     if (latest < criteria.confidenceThreshold.minimum) {
       confidenceMet = false;
-      blockers.push(`Confidence for "${criterion}" below threshold (${(latest * 100).toFixed(0)}%)`);
+      blockers.push(
+        `Confidence for "${criterion}" below threshold (${(latest * 100).toFixed(0)}%)`,
+      );
     }
   }
 
   // 3. Check challenge resolution
   const challengesResolved =
     state.challengeStats.criticalResolved >= state.challengeStats.critical &&
-    (state.challengeStats.defended / Math.max(1, state.challengeStats.total)) >= 0.8;
+    state.challengeStats.defended / Math.max(1, state.challengeStats.total) >=
+      0.8;
 
   if (!challengesResolved) {
-    const survivalRate = state.challengeStats.defended / Math.max(1, state.challengeStats.total);
-    blockers.push(`Challenge survival rate ${(survivalRate * 100).toFixed(0)}% (need 80%)`);
+    const survivalRate =
+      state.challengeStats.defended / Math.max(1, state.challengeStats.total);
+    blockers.push(
+      `Challenge survival rate ${(survivalRate * 100).toFixed(0)}% (need 80%)`,
+    );
   }
 
   // 4. Check information saturation
@@ -2342,9 +2481,10 @@ export function checkConvergence(state: ConvergenceState): ConvergenceResult {
 
   let reason: string | undefined;
   if (converged) {
-    if (maxRoundsReached) reason = 'MAX_ROUNDS';
-    else if (scoreStable && confidenceMet && challengesResolved) reason = 'CONVERGENCE';
-    else if (informationSaturated) reason = 'INFORMATION_SATURATED';
+    if (maxRoundsReached) reason = "MAX_ROUNDS";
+    else if (scoreStable && confidenceMet && challengesResolved)
+      reason = "CONVERGENCE";
+    else if (informationSaturated) reason = "INFORMATION_SATURATED";
   }
 
   return {
@@ -2355,8 +2495,8 @@ export function checkConvergence(state: ConvergenceState): ConvergenceResult {
       scoreStability: scoreStable,
       confidenceMet,
       challengesResolved,
-      informationSaturated
-    }
+      informationSaturated,
+    },
   };
 }
 
@@ -2367,7 +2507,7 @@ export function updateConvergenceState(
     confidence?: Map<string, number>;
     challengeResult?: { defended: boolean; critical: boolean };
     insight?: string;
-  }
+  },
 ): ConvergenceState {
   const newState = { ...state };
 
@@ -2414,18 +2554,26 @@ export function calculateConfidence(
   firstPrinciplesBonuses: number,
   totalExchanges: number,
   scoreVolatility: number, // 0-1, lower is better
-  informationCompleteness: number // 0-1
+  informationCompleteness: number, // 0-1
 ): number {
   if (totalChallenges === 0) return 0.5;
 
   const survivalComponent = (challengesDefended / totalChallenges) * 0.4;
-  const rigorComponent = (firstPrinciplesBonuses / Math.max(1, totalExchanges)) * 0.2;
+  const rigorComponent =
+    (firstPrinciplesBonuses / Math.max(1, totalExchanges)) * 0.2;
   const stabilityComponent = (1 - scoreVolatility) * 0.2;
   const completenessComponent = informationCompleteness * 0.2;
 
-  return Math.min(1, Math.max(0,
-    survivalComponent + rigorComponent + stabilityComponent + completenessComponent
-  ));
+  return Math.min(
+    1,
+    Math.max(
+      0,
+      survivalComponent +
+        rigorComponent +
+        stabilityComponent +
+        completenessComponent,
+    ),
+  );
 }
 ```
 
@@ -2434,6 +2582,7 @@ export function calculateConfidence(
 Synthesis documents are **immutable** after creation. To "reopen" an evaluation means creating a **new evaluation run** that references the previous one.
 
 **Evaluation History Model**:
+
 ```
 Idea: solar-charger
 │
@@ -2451,6 +2600,7 @@ Idea: solar-charger
 ```
 
 **Database Schema for History**:
+
 ```sql
 -- Link evaluations in a chain
 ALTER TABLE final_syntheses ADD COLUMN previous_run_id TEXT;
@@ -2460,6 +2610,7 @@ ALTER TABLE final_syntheses ADD COLUMN status TEXT
 ```
 
 **Reopening Flow**:
+
 ```bash
 $ npm run evaluate solar-charger
 
@@ -2480,6 +2631,7 @@ Previous evaluation will be marked as superseded.
 ```
 
 **Synthesis Header with History**:
+
 ```markdown
 ---
 evaluation_run_id: eval-2025-12-21-001
@@ -2498,21 +2650,22 @@ status: CURRENT
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `frontend/src/views/Dashboard.tsx` | Overview with key metrics |
-| `frontend/src/views/IdeaDetail.tsx` | Full single idea view |
-| `frontend/src/views/EvaluationMatrix.tsx` | Heatmap of ideas vs criteria |
-| `frontend/src/views/LifecyclePipeline.tsx` | Kanban by lifecycle stage |
-| `frontend/src/views/RelationshipGraph.tsx` | Network visualization |
-| `frontend/src/views/GapAnalysis.tsx` | Missing evaluations/questions |
-| `frontend/src/views/DebateViewer.tsx` | Real-time debate viewer |
-| `frontend/src/views/Comparison.tsx` | Side-by-side comparison (Phase 7) |
-| `server/websocket.ts` | WebSocket server |
+| File                                       | Purpose                           |
+| ------------------------------------------ | --------------------------------- |
+| `frontend/src/views/Dashboard.tsx`         | Overview with key metrics         |
+| `frontend/src/views/IdeaDetail.tsx`        | Full single idea view             |
+| `frontend/src/views/EvaluationMatrix.tsx`  | Heatmap of ideas vs criteria      |
+| `frontend/src/views/LifecyclePipeline.tsx` | Kanban by lifecycle stage         |
+| `frontend/src/views/RelationshipGraph.tsx` | Network visualization             |
+| `frontend/src/views/GapAnalysis.tsx`       | Missing evaluations/questions     |
+| `frontend/src/views/DebateViewer.tsx`      | Real-time debate viewer           |
+| `frontend/src/views/Comparison.tsx`        | Side-by-side comparison (Phase 7) |
+| `server/websocket.ts`                      | WebSocket server                  |
 
 ### Frontend View Specifications
 
 **Dashboard.tsx**
+
 - Total ideas count
 - Ideas by lifecycle stage (pie chart)
 - Top 5 ideas by score
@@ -2520,6 +2673,7 @@ status: CURRENT
 - Pending items (unevaluated ideas, unresolved challenges)
 
 **IdeaDetail.tsx**
+
 - Full idea content
 - All 30 criteria scores with visual bars
 - Debate history
@@ -2528,29 +2682,34 @@ status: CURRENT
 - Development Q&A log
 
 **EvaluationMatrix.tsx**
+
 - Rows: Ideas
 - Columns: 30 criteria grouped by category
 - Cells: Color-coded scores (red-yellow-green)
 - Filter by lifecycle, domain, score range
 
 **LifecyclePipeline.tsx**
+
 - Kanban columns for each lifecycle stage
 - Drag-drop to change stage
 - Quick score preview on cards
 
 **RelationshipGraph.tsx**
+
 - Force-directed graph
 - Nodes: Ideas (sized by score)
 - Edges: Relationships (colored by type)
 - Click to view idea details
 
 **GapAnalysis.tsx**
+
 - Ideas without evaluations
 - Criteria with low confidence
 - Unresolved critical challenges
 - Unanswered development questions
 
 **DebateViewer.tsx**
+
 - Real-time streaming transcript
 - Evaluator vs Red Team panels
 - Live score adjustments
@@ -2562,14 +2721,14 @@ status: CURRENT
 
 ### Deferred Items
 
-| Item | Description |
-|------|-------------|
+| Item                     | Description                                                       |
+| ------------------------ | ----------------------------------------------------------------- |
 | 6 Specialized Evaluators | Parallel Problem, Solution, Feasibility, Fit, Market, Risk agents |
-| 6 Red Team Personas | Add Competitor, Contrarian, Edge-Case Finder |
-| Comparison View | Side-by-side idea comparison |
-| Embeddings | Semantic similarity for relationship detection |
-| Mobile PWA | Progressive web app for phone capture |
-| Export/Import | Backup and restore functionality |
+| 6 Red Team Personas      | Add Competitor, Contrarian, Edge-Case Finder                      |
+| Comparison View          | Side-by-side idea comparison                                      |
+| Embeddings               | Semantic similarity for relationship detection                    |
+| Mobile PWA               | Progressive web app for phone capture                             |
+| Export/Import            | Backup and restore functionality                                  |
 
 ---
 
@@ -2580,11 +2739,13 @@ This section clarifies what runs in parallel vs sequential during evaluation.
 ### Phase 3: Initial Evaluation
 
 **v1 (Single Generalist)**: Sequential
+
 ```
 Evaluator Agent → Criterion 1 → Criterion 2 → ... → Criterion 30
 ```
 
 **v2 (Six Specialists)**: Parallel
+
 ```
 ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
 │ Problem (5) │ │ Solution(5) │ │Feasibility5 │  PARALLEL
@@ -2597,6 +2758,7 @@ Evaluator Agent → Criterion 1 → Criterion 2 → ... → Criterion 30
 ### Phase 4: Red Team & Debate
 
 **Challenge Generation**: PARALLEL (across personas)
+
 ```
 For each criterion:
 ┌───────────┐ ┌───────────┐ ┌─────────────────┐
@@ -2605,6 +2767,7 @@ For each criterion:
 ```
 
 **Debate Rounds**: SEQUENTIAL (within each challenge)
+
 ```
 Challenge 1: Round 1 → Round 2 → Round 3  ─┐
 Challenge 2: Round 1 → Round 2 → Round 3  ─┼─→ PARALLEL
@@ -2616,6 +2779,7 @@ Each round is sequential (Challenge → Defense → Verdict), but multiple chall
 ### Phase 5: Synthesis
 
 **Strictly Sequential**: Must wait for all debates to complete
+
 ```
 Wait for ALL debates → Convergence Check → Synthesis Agent → Lock & Save
 ```
@@ -2625,16 +2789,14 @@ Wait for ALL debates → Convergence Check → Synthesis Agent → Lock & Save
 ```typescript
 // Parallel challenge generation
 const challenges = await Promise.all(
-  PERSONAS.map(persona =>
-    generateChallenge(persona, criterion, claim)
-  )
+  PERSONAS.map((persona) => generateChallenge(persona, criterion, claim)),
 );
 
 // Parallel debate execution across challenges
 const debateResults = await Promise.all(
-  challenges.map(challenge =>
-    runDebateSequence(challenge) // Each debate is internally sequential
-  )
+  challenges.map(
+    (challenge) => runDebateSequence(challenge), // Each debate is internally sequential
+  ),
 );
 
 // Sequential synthesis (must wait for all debates)
@@ -2644,10 +2806,10 @@ const synthesis = await runSynthesis(allDebateResults);
 
 ### Performance Implications
 
-| Approach | Wall Time | API Calls | Cost |
-|----------|-----------|-----------|------|
-| Fully Sequential | ~15 min | Same | Same |
-| Parallel Challenges | ~5 min | Same | Same |
+| Approach            | Wall Time | API Calls | Cost |
+| ------------------- | --------- | --------- | ---- |
+| Fully Sequential    | ~15 min   | Same      | Same |
+| Parallel Challenges | ~5 min    | Same      | Same |
 
 Parallelism reduces **time**, not **cost** (same total tokens).
 
@@ -2804,41 +2966,42 @@ idea_incubator/
 
 ### File Count by Phase (Updated)
 
-| Phase | New Files | Cumulative |
-|-------|-----------|------------|
-| 0 - Test Infrastructure | 10 | 10 |
-| 1 - Infrastructure | 15 | 25 |
-| 2 - Capture | 6 | 31 |
-| 3 - Evaluation | 6 | 37 |
-| 4 - Debate | 4 | 41 |
-| 5 - Synthesis | 4 | 45 |
-| 6 - Frontend + Server | ~25 | 70 |
-| **Total** | **~70** | |
+| Phase                   | New Files | Cumulative |
+| ----------------------- | --------- | ---------- |
+| 0 - Test Infrastructure | 10        | 10         |
+| 1 - Infrastructure      | 15        | 25         |
+| 2 - Capture             | 6         | 31         |
+| 3 - Evaluation          | 6         | 37         |
+| 4 - Debate              | 4         | 41         |
+| 5 - Synthesis           | 4         | 45         |
+| 6 - Frontend + Server   | ~25       | 70         |
+| **Total**               | **~70**   |            |
 
-*Phase 6 includes Express server (5 files) + React frontend (~20 files)*
+_Phase 6 includes Express server (5 files) + React frontend (~20 files)_
 
 ---
 
 ## 14. Risk Register
 
-| Risk | Impact | Mitigation | Status |
-|------|--------|------------|--------|
-| **API costs exceed budget** | High | Cost tracker with enforcement, abort on threshold | Addressed |
-| **Agent responses unparseable** | Medium | Zod schemas, retry logic, fallback prompts | Addressed |
-| **Debates don't converge** | Medium | Hard round limits, timeout, forced synthesis | Addressed |
-| **SQLite concurrency issues** | Low | Single-user design, WAL mode, transactions | Addressed |
-| **Agent hallucinations** | Medium | First principles enforcement, Arbiter scrutiny | Addressed |
-| **Scope creep** | High | Strict phase gates, v2 deferred items | Addressed |
-| **No tests** | Critical | Vitest setup in Phase 0 | Addressed |
-| **Criteria mismatch** | High | Single source of truth in taxonomy/ | Addressed |
-| **Stale evaluations** | Medium | Hash-based detection, user notification | Addressed |
-| **Pivot confusion** | Low | Identity rules, user confirmation | Addressed |
+| Risk                            | Impact   | Mitigation                                        | Status    |
+| ------------------------------- | -------- | ------------------------------------------------- | --------- |
+| **API costs exceed budget**     | High     | Cost tracker with enforcement, abort on threshold | Addressed |
+| **Agent responses unparseable** | Medium   | Zod schemas, retry logic, fallback prompts        | Addressed |
+| **Debates don't converge**      | Medium   | Hard round limits, timeout, forced synthesis      | Addressed |
+| **SQLite concurrency issues**   | Low      | Single-user design, WAL mode, transactions        | Addressed |
+| **Agent hallucinations**        | Medium   | First principles enforcement, Arbiter scrutiny    | Addressed |
+| **Scope creep**                 | High     | Strict phase gates, v2 deferred items             | Addressed |
+| **No tests**                    | Critical | Vitest setup in Phase 0                           | Addressed |
+| **Criteria mismatch**           | High     | Single source of truth in taxonomy/               | Addressed |
+| **Stale evaluations**           | Medium   | Hash-based detection, user notification           | Addressed |
+| **Pivot confusion**             | Low      | Identity rules, user confirmation                 | Addressed |
 
 ---
 
 ## 15. Success Criteria
 
 ### Phase 0 Complete When:
+
 - [x] Vitest configured and running
 - [x] Mock Anthropic client working
 - [x] Zod schemas defined
@@ -2847,6 +3010,7 @@ idea_incubator/
 - [ ] All spike tests pass
 
 ### Phase 1 Complete When:
+
 - [ ] CLAUDE.md created
 - [ ] Config system working
 - [ ] Taxonomy files created
@@ -2856,6 +3020,7 @@ idea_incubator/
 - [ ] All unit tests pass
 
 ### Phase 2 Complete When:
+
 - [ ] `npm run cli capture` creates idea folder
 - [ ] Development agent asks follow-up questions
 - [ ] Index auto-generates
@@ -2864,6 +3029,7 @@ idea_incubator/
 - [ ] All integration tests pass
 
 ### Phase 3 Complete When:
+
 - [ ] Orchestrator routes inputs correctly
 - [ ] `npm run evaluate <slug>` returns scores
 - [ ] All 30 criteria evaluated
@@ -2872,6 +3038,7 @@ idea_incubator/
 - [ ] All tests pass
 
 ### Phase 4 Complete When:
+
 - [ ] 3 Red Team personas generate challenges
 - [ ] Evaluator defends claims
 - [ ] Arbiter judges exchanges
@@ -2880,6 +3047,7 @@ idea_incubator/
 - [ ] All tests pass
 
 ### Phase 5 Complete When:
+
 - [ ] Convergence detected correctly
 - [ ] Synthesis document generated
 - [ ] Confidence calculated correctly
@@ -2888,6 +3056,7 @@ idea_incubator/
 - [ ] All tests pass
 
 ### Phase 6 Complete When:
+
 - [ ] All 7 views implemented
 - [ ] WebSocket streaming works
 - [ ] Leaderboard displays ideas
@@ -2948,6 +3117,7 @@ IDEA_INCUBATOR_BUDGET=10       # Default budget in dollars
 ### B.1 New Dependencies
 
 Add to `package.json`:
+
 ```json
 {
   "dependencies": {
@@ -2960,22 +3130,23 @@ Add to `package.json`:
 
 ### B.2 Files to Create (Phase 0)
 
-| File | Purpose |
-|------|---------|
-| `lib/agent-framework/index.ts` | Public exports |
-| `lib/agent-framework/types.ts` | Core interfaces |
-| `lib/agent-framework/base-agent.ts` | BaseAgent with retry logic |
-| `lib/agent-framework/parallel-executor.ts` | Parallel task execution |
-| `lib/agent-framework/state-machine.ts` | Evaluation state management |
+| File                                       | Purpose                     |
+| ------------------------------------------ | --------------------------- |
+| `lib/agent-framework/index.ts`             | Public exports              |
+| `lib/agent-framework/types.ts`             | Core interfaces             |
+| `lib/agent-framework/base-agent.ts`        | BaseAgent with retry logic  |
+| `lib/agent-framework/parallel-executor.ts` | Parallel task execution     |
+| `lib/agent-framework/state-machine.ts`     | Evaluation state management |
 
 ### B.3 Error Classes Addition
 
 Add to `utils/errors.ts`:
+
 ```typescript
 export class AgentResponseParseError extends IdeaIncubatorError {
   constructor(message: string) {
     super(`Agent response parse failed: ${message}`);
-    this.name = 'AgentResponseParseError';
+    this.name = "AgentResponseParseError";
   }
 }
 
@@ -2984,15 +3155,17 @@ export class AgentAPIError extends IdeaIncubatorError {
 
   constructor(message: string, cause?: Error) {
     super(message);
-    this.name = 'AgentAPIError';
+    this.name = "AgentAPIError";
     this.cause = cause;
   }
 }
 
 export class StateTransitionError extends IdeaIncubatorError {
   constructor(from: string, to: string, validTransitions: string[]) {
-    super(`Invalid state transition: ${from} → ${to}. Valid: ${validTransitions.join(', ')}`);
-    this.name = 'StateTransitionError';
+    super(
+      `Invalid state transition: ${from} → ${to}. Valid: ${validTransitions.join(", ")}`,
+    );
+    this.name = "StateTransitionError";
   }
 }
 ```
@@ -3022,10 +3195,10 @@ CREATE INDEX idx_syntheses_content_hash ON final_syntheses(content_hash_at_evalu
 ### C.2 New Utility File: utils/content-hash.ts
 
 ```typescript
-import * as crypto from 'crypto';
-import * as fs from 'fs';
-import * as path from 'path';
-import { glob } from 'glob';
+import * as crypto from "crypto";
+import * as fs from "fs";
+import * as path from "path";
+import { glob } from "glob";
 
 export interface ContentHashResult {
   hash: string;
@@ -3039,34 +3212,34 @@ export interface ContentHashResult {
  * Excludes: evaluation.md, redteam.md, notes/, assets/
  */
 export async function calculateIdeaContentHash(
-  ideaPath: string
+  ideaPath: string,
 ): Promise<ContentHashResult> {
   const filesToHash = [
-    path.join(ideaPath, 'README.md'),
-    path.join(ideaPath, 'development.md'),
-    ...await glob(path.join(ideaPath, 'research', '*.md'))
+    path.join(ideaPath, "README.md"),
+    path.join(ideaPath, "development.md"),
+    ...(await glob(path.join(ideaPath, "research", "*.md"))),
   ];
 
-  const existingFiles = filesToHash.filter(f => fs.existsSync(f));
+  const existingFiles = filesToHash.filter((f) => fs.existsSync(f));
   existingFiles.sort(); // Deterministic ordering
 
-  const hasher = crypto.createHash('sha256');
+  const hasher = crypto.createHash("sha256");
 
   for (const file of existingFiles) {
-    const content = fs.readFileSync(file, 'utf-8');
+    const content = fs.readFileSync(file, "utf-8");
     hasher.update(`${path.basename(file)}:${content}`);
   }
 
   return {
-    hash: hasher.digest('hex'),
+    hash: hasher.digest("hex"),
     files: existingFiles,
-    calculatedAt: new Date()
+    calculatedAt: new Date(),
   };
 }
 
 export function isEvaluationStale(
   currentHash: string,
-  evaluationHash: string
+  evaluationHash: string,
 ): boolean {
   return currentHash !== evaluationHash;
 }
@@ -3122,61 +3295,64 @@ tests/
 ```typescript
 // tests/contracts/evaluator.contract.test.ts
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { EvaluatorAgent } from '../../lib/agent-framework/agents/evaluator-agent.js';
-import { CostTracker } from '../../utils/cost-tracker.js';
-import { ALL_CRITERIA } from '../../agents/config.js';
-import { EvaluationResponseSchema } from '../../utils/schemas.js';
-import { createMockAnthropicClient, mockEvaluationResponse } from '../mocks/anthropic.js';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { EvaluatorAgent } from "../../lib/agent-framework/agents/evaluator-agent.js";
+import { CostTracker } from "../../utils/cost-tracker.js";
+import { ALL_CRITERIA } from "../../agents/config.js";
+import { EvaluationResponseSchema } from "../../utils/schemas.js";
+import {
+  createMockAnthropicClient,
+  mockEvaluationResponse,
+} from "../mocks/anthropic.js";
 
-describe('Evaluator Agent Contract', () => {
+describe("Evaluator Agent Contract", () => {
   let agent: EvaluatorAgent;
   let costTracker: CostTracker;
   let mockClient: ReturnType<typeof createMockAnthropicClient>;
 
   beforeEach(() => {
     mockClient = createMockAnthropicClient();
-    costTracker = new CostTracker(10.00);
+    costTracker = new CostTracker(10.0);
     // Agent will be injected with mock client
   });
 
-  describe('Response Structure Requirements', () => {
-    it('MUST return exactly 30 criterion evaluations', async () => {
+  describe("Response Structure Requirements", () => {
+    it("MUST return exactly 30 criterion evaluations", async () => {
       // Setup mock to return valid response
       mockClient.messages.create.mockResolvedValueOnce(
-        mockEvaluationResponse(Object.fromEntries(
-          ALL_CRITERIA.map(c => [c, 5])
-        ))
+        mockEvaluationResponse(
+          Object.fromEntries(ALL_CRITERIA.map((c) => [c, 5])),
+        ),
       );
 
-      const result = await agent.evaluate('Test idea content');
+      const result = await agent.evaluate("Test idea content");
 
       expect(result.evaluations).toHaveLength(30);
     });
 
-    it('MUST include all criteria from taxonomy', async () => {
+    it("MUST include all criteria from taxonomy", async () => {
       mockClient.messages.create.mockResolvedValueOnce(
-        mockEvaluationResponse(Object.fromEntries(
-          ALL_CRITERIA.map(c => [c, 5])
-        ))
+        mockEvaluationResponse(
+          Object.fromEntries(ALL_CRITERIA.map((c) => [c, 5])),
+        ),
       );
 
-      const result = await agent.evaluate('Test idea content');
-      const returnedCriteria = result.evaluations.map(e => e.criterion);
+      const result = await agent.evaluate("Test idea content");
+      const returnedCriteria = result.evaluations.map((e) => e.criterion);
 
       for (const criterion of ALL_CRITERIA) {
         expect(returnedCriteria).toContain(criterion);
       }
     });
 
-    it('MUST return scores in range 1-10 for each criterion', async () => {
+    it("MUST return scores in range 1-10 for each criterion", async () => {
       mockClient.messages.create.mockResolvedValueOnce(
-        mockEvaluationResponse(Object.fromEntries(
-          ALL_CRITERIA.map(c => [c, 5])
-        ))
+        mockEvaluationResponse(
+          Object.fromEntries(ALL_CRITERIA.map((c) => [c, 5])),
+        ),
       );
 
-      const result = await agent.evaluate('Test idea content');
+      const result = await agent.evaluate("Test idea content");
 
       for (const evaluation of result.evaluations) {
         expect(evaluation.score).toBeGreaterThanOrEqual(1);
@@ -3185,14 +3361,14 @@ describe('Evaluator Agent Contract', () => {
       }
     });
 
-    it('MUST return confidence in range 0-1 for each criterion', async () => {
+    it("MUST return confidence in range 0-1 for each criterion", async () => {
       mockClient.messages.create.mockResolvedValueOnce(
-        mockEvaluationResponse(Object.fromEntries(
-          ALL_CRITERIA.map(c => [c, 5])
-        ))
+        mockEvaluationResponse(
+          Object.fromEntries(ALL_CRITERIA.map((c) => [c, 5])),
+        ),
       );
 
-      const result = await agent.evaluate('Test idea content');
+      const result = await agent.evaluate("Test idea content");
 
       for (const evaluation of result.evaluations) {
         expect(evaluation.confidence).toBeGreaterThanOrEqual(0);
@@ -3200,14 +3376,14 @@ describe('Evaluator Agent Contract', () => {
       }
     });
 
-    it('MUST provide non-empty reasoning for each score', async () => {
+    it("MUST provide non-empty reasoning for each score", async () => {
       mockClient.messages.create.mockResolvedValueOnce(
-        mockEvaluationResponse(Object.fromEntries(
-          ALL_CRITERIA.map(c => [c, 5])
-        ))
+        mockEvaluationResponse(
+          Object.fromEntries(ALL_CRITERIA.map((c) => [c, 5])),
+        ),
       );
 
-      const result = await agent.evaluate('Test idea content');
+      const result = await agent.evaluate("Test idea content");
 
       for (const evaluation of result.evaluations) {
         expect(evaluation.reasoning).toBeDefined();
@@ -3215,76 +3391,82 @@ describe('Evaluator Agent Contract', () => {
       }
     });
 
-    it('MUST pass Zod schema validation', async () => {
+    it("MUST pass Zod schema validation", async () => {
       mockClient.messages.create.mockResolvedValueOnce(
-        mockEvaluationResponse(Object.fromEntries(
-          ALL_CRITERIA.map(c => [c, 5])
-        ))
+        mockEvaluationResponse(
+          Object.fromEntries(ALL_CRITERIA.map((c) => [c, 5])),
+        ),
       );
 
-      const result = await agent.evaluate('Test idea content');
+      const result = await agent.evaluate("Test idea content");
 
       expect(() => EvaluationResponseSchema.parse(result)).not.toThrow();
     });
   });
 
-  describe('Error Handling Requirements', () => {
-    it('MUST throw AgentResponseParseError for malformed JSON', async () => {
+  describe("Error Handling Requirements", () => {
+    it("MUST throw AgentResponseParseError for malformed JSON", async () => {
       mockClient.messages.create.mockResolvedValueOnce({
-        content: [{ type: 'text', text: 'Not valid JSON at all' }],
-        usage: { input_tokens: 100, output_tokens: 100 }
+        content: [{ type: "text", text: "Not valid JSON at all" }],
+        usage: { input_tokens: 100, output_tokens: 100 },
       });
 
-      await expect(agent.evaluate('Test')).rejects.toThrow('AgentResponseParseError');
+      await expect(agent.evaluate("Test")).rejects.toThrow(
+        "AgentResponseParseError",
+      );
     });
 
-    it('MUST throw BudgetExceededError when budget is exhausted', async () => {
-      costTracker = new CostTracker(0.00); // Zero budget
+    it("MUST throw BudgetExceededError when budget is exhausted", async () => {
+      costTracker = new CostTracker(0.0); // Zero budget
 
-      await expect(agent.evaluate('Test')).rejects.toThrow('BudgetExceededError');
+      await expect(agent.evaluate("Test")).rejects.toThrow(
+        "BudgetExceededError",
+      );
     });
 
-    it('MUST retry on rate limit errors up to 3 times', async () => {
-      const rateLimitError = new Error('Rate limited');
-      rateLimitError.name = 'RateLimitError';
+    it("MUST retry on rate limit errors up to 3 times", async () => {
+      const rateLimitError = new Error("Rate limited");
+      rateLimitError.name = "RateLimitError";
 
       mockClient.messages.create
         .mockRejectedValueOnce(rateLimitError)
         .mockRejectedValueOnce(rateLimitError)
-        .mockResolvedValueOnce(mockEvaluationResponse({ 'Problem Clarity': 5 }));
+        .mockResolvedValueOnce(
+          mockEvaluationResponse({ "Problem Clarity": 5 }),
+        );
 
       // Should succeed after retries
-      await expect(agent.evaluate('Test')).resolves.toBeDefined();
+      await expect(agent.evaluate("Test")).resolves.toBeDefined();
       expect(mockClient.messages.create).toHaveBeenCalledTimes(3);
     });
   });
 
-  describe('Cost Tracking Requirements', () => {
-    it('MUST track token usage for each API call', async () => {
-      const trackSpy = vi.spyOn(costTracker, 'track');
+  describe("Cost Tracking Requirements", () => {
+    it("MUST track token usage for each API call", async () => {
+      const trackSpy = vi.spyOn(costTracker, "track");
 
       mockClient.messages.create.mockResolvedValueOnce(
-        mockEvaluationResponse({ 'Problem Clarity': 5 })
+        mockEvaluationResponse({ "Problem Clarity": 5 }),
       );
 
-      await agent.evaluate('Test');
+      await agent.evaluate("Test");
 
       expect(trackSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           input_tokens: expect.any(Number),
-          output_tokens: expect.any(Number)
-        })
+          output_tokens: expect.any(Number),
+        }),
       );
     });
 
-    it('MUST check budget after tracking', async () => {
-      const checkSpy = vi.spyOn(costTracker, 'checkBudget');
+    it("MUST check budget after tracking", async () => {
+      const checkSpy = vi.spyOn(costTracker, "checkBudget");
 
       mockClient.messages.create.mockResolvedValueOnce(
-        mockEvaluationResponse({ 'Problem Clarity': 5 })
+        mockEvaluationResponse({ "Problem Clarity": 5 }),
       );
 
-      await agent.evaluate('Test');
+      await agent.evaluate("Test");
 
       expect(checkSpy).toHaveBeenCalled();
     });
@@ -3297,50 +3479,53 @@ describe('Evaluator Agent Contract', () => {
 ```typescript
 // tests/contracts/state-machine.contract.test.ts
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { EvaluationStateMachine, EvaluationPhase } from '../../lib/agent-framework/state-machine.js';
+import { describe, it, expect, beforeEach } from "vitest";
+import {
+  EvaluationStateMachine,
+  EvaluationPhase,
+} from "../../lib/agent-framework/state-machine.js";
 
-describe('Evaluation State Machine Contract', () => {
+describe("Evaluation State Machine Contract", () => {
   let machine: EvaluationStateMachine;
 
   beforeEach(() => {
-    machine = new EvaluationStateMachine('run-001', 'idea-001', 10.00);
+    machine = new EvaluationStateMachine("run-001", "idea-001", 10.0);
   });
 
-  describe('Initial State', () => {
-    it('MUST start in PENDING phase', () => {
-      expect(machine.getState().phase).toBe('PENDING');
+  describe("Initial State", () => {
+    it("MUST start in PENDING phase", () => {
+      expect(machine.getState().phase).toBe("PENDING");
     });
 
-    it('MUST have zero completed criteria', () => {
+    it("MUST have zero completed criteria", () => {
       expect(machine.getState().completedCriteria).toHaveLength(0);
     });
 
-    it('MUST not be terminal', () => {
+    it("MUST not be terminal", () => {
       expect(machine.isTerminal()).toBe(false);
     });
   });
 
-  describe('Valid Transitions', () => {
+  describe("Valid Transitions", () => {
     const validTransitions: [EvaluationPhase, EvaluationPhase][] = [
-      ['PENDING', 'EVALUATING'],
-      ['PENDING', 'FAILED'],
-      ['EVALUATING', 'DEBATING'],
-      ['EVALUATING', 'FAILED'],
-      ['DEBATING', 'SYNTHESIZING'],
-      ['DEBATING', 'EVALUATING'], // Re-evaluation loop
-      ['DEBATING', 'FAILED'],
-      ['SYNTHESIZING', 'REVIEWING'],
-      ['SYNTHESIZING', 'FAILED'],
-      ['REVIEWING', 'LOCKED'],
-      ['REVIEWING', 'DEBATING'], // User dispute
-      ['REVIEWING', 'FAILED'],
-      ['FAILED', 'PENDING'] // Retry
+      ["PENDING", "EVALUATING"],
+      ["PENDING", "FAILED"],
+      ["EVALUATING", "DEBATING"],
+      ["EVALUATING", "FAILED"],
+      ["DEBATING", "SYNTHESIZING"],
+      ["DEBATING", "EVALUATING"], // Re-evaluation loop
+      ["DEBATING", "FAILED"],
+      ["SYNTHESIZING", "REVIEWING"],
+      ["SYNTHESIZING", "FAILED"],
+      ["REVIEWING", "LOCKED"],
+      ["REVIEWING", "DEBATING"], // User dispute
+      ["REVIEWING", "FAILED"],
+      ["FAILED", "PENDING"], // Retry
     ];
 
-    it.each(validTransitions)('MUST allow %s → %s', (from, to) => {
+    it.each(validTransitions)("MUST allow %s → %s", (from, to) => {
       // Set up initial state
-      if (from !== 'PENDING') {
+      if (from !== "PENDING") {
         // Navigate to 'from' state via valid path
         const path = getPathTo(from);
         for (const step of path) {
@@ -3353,21 +3538,26 @@ describe('Evaluation State Machine Contract', () => {
     });
   });
 
-  describe('Invalid Transitions', () => {
-    it('MUST reject PENDING → LOCKED', () => {
-      expect(() => machine.transition('LOCKED')).toThrow();
+  describe("Invalid Transitions", () => {
+    it("MUST reject PENDING → LOCKED", () => {
+      expect(() => machine.transition("LOCKED")).toThrow();
     });
 
-    it('MUST reject LOCKED → any state', () => {
+    it("MUST reject LOCKED → any state", () => {
       // Navigate to LOCKED
-      machine.transition('EVALUATING');
-      machine.transition('DEBATING');
-      machine.transition('SYNTHESIZING');
-      machine.transition('REVIEWING');
-      machine.transition('LOCKED');
+      machine.transition("EVALUATING");
+      machine.transition("DEBATING");
+      machine.transition("SYNTHESIZING");
+      machine.transition("REVIEWING");
+      machine.transition("LOCKED");
 
       const phases: EvaluationPhase[] = [
-        'PENDING', 'EVALUATING', 'DEBATING', 'SYNTHESIZING', 'REVIEWING', 'FAILED'
+        "PENDING",
+        "EVALUATING",
+        "DEBATING",
+        "SYNTHESIZING",
+        "REVIEWING",
+        "FAILED",
       ];
 
       for (const phase of phases) {
@@ -3375,47 +3565,47 @@ describe('Evaluation State Machine Contract', () => {
       }
     });
 
-    it('MUST reject EVALUATING → REVIEWING (skipping debate)', () => {
-      machine.transition('EVALUATING');
-      expect(() => machine.transition('REVIEWING')).toThrow();
+    it("MUST reject EVALUATING → REVIEWING (skipping debate)", () => {
+      machine.transition("EVALUATING");
+      expect(() => machine.transition("REVIEWING")).toThrow();
     });
   });
 
-  describe('Checkpoint/Restore', () => {
-    it('MUST create checkpoint with current state', () => {
-      machine.transition('EVALUATING');
+  describe("Checkpoint/Restore", () => {
+    it("MUST create checkpoint with current state", () => {
+      machine.transition("EVALUATING");
       machine.checkpoint();
 
       const state = machine.getState();
       expect(state.checkpoint).not.toBeNull();
-      expect(state.checkpoint?.phase).toBe('EVALUATING');
+      expect(state.checkpoint?.phase).toBe("EVALUATING");
     });
 
-    it('MUST restore state from checkpoint', () => {
-      machine.transition('EVALUATING');
+    it("MUST restore state from checkpoint", () => {
+      machine.transition("EVALUATING");
       machine.checkpoint();
 
-      machine.transition('DEBATING');
-      expect(machine.getState().phase).toBe('DEBATING');
+      machine.transition("DEBATING");
+      expect(machine.getState().phase).toBe("DEBATING");
 
       machine.restore(machine.getState().checkpoint!);
-      expect(machine.getState().phase).toBe('EVALUATING');
+      expect(machine.getState().phase).toBe("EVALUATING");
     });
   });
 
-  describe('Terminal States', () => {
-    it('MUST be terminal when LOCKED', () => {
-      machine.transition('EVALUATING');
-      machine.transition('DEBATING');
-      machine.transition('SYNTHESIZING');
-      machine.transition('REVIEWING');
-      machine.transition('LOCKED');
+  describe("Terminal States", () => {
+    it("MUST be terminal when LOCKED", () => {
+      machine.transition("EVALUATING");
+      machine.transition("DEBATING");
+      machine.transition("SYNTHESIZING");
+      machine.transition("REVIEWING");
+      machine.transition("LOCKED");
 
       expect(machine.isTerminal()).toBe(true);
     });
 
-    it('MUST be terminal when FAILED', () => {
-      machine.transition('FAILED');
+    it("MUST be terminal when FAILED", () => {
+      machine.transition("FAILED");
       expect(machine.isTerminal()).toBe(true);
     });
   });
@@ -3424,12 +3614,12 @@ describe('Evaluation State Machine Contract', () => {
 function getPathTo(phase: EvaluationPhase): EvaluationPhase[] {
   const paths: Record<EvaluationPhase, EvaluationPhase[]> = {
     PENDING: [],
-    EVALUATING: ['EVALUATING'],
-    DEBATING: ['EVALUATING', 'DEBATING'],
-    SYNTHESIZING: ['EVALUATING', 'DEBATING', 'SYNTHESIZING'],
-    REVIEWING: ['EVALUATING', 'DEBATING', 'SYNTHESIZING', 'REVIEWING'],
-    LOCKED: ['EVALUATING', 'DEBATING', 'SYNTHESIZING', 'REVIEWING', 'LOCKED'],
-    FAILED: ['FAILED']
+    EVALUATING: ["EVALUATING"],
+    DEBATING: ["EVALUATING", "DEBATING"],
+    SYNTHESIZING: ["EVALUATING", "DEBATING", "SYNTHESIZING"],
+    REVIEWING: ["EVALUATING", "DEBATING", "SYNTHESIZING", "REVIEWING"],
+    LOCKED: ["EVALUATING", "DEBATING", "SYNTHESIZING", "REVIEWING", "LOCKED"],
+    FAILED: ["FAILED"],
   };
   return paths[phase];
 }
@@ -3440,66 +3630,69 @@ function getPathTo(phase: EvaluationPhase): EvaluationPhase[] {
 ```typescript
 // tests/contracts/content-hash.contract.test.ts
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
-import { calculateIdeaContentHash, isEvaluationStale } from '../../utils/content-hash.js';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import * as fs from "fs";
+import * as path from "path";
+import {
+  calculateIdeaContentHash,
+  isEvaluationStale,
+} from "../../utils/content-hash.js";
 
-describe('Content Hash Contract', () => {
-  const testDir = path.join(__dirname, '../fixtures/ideas/hash-test');
+describe("Content Hash Contract", () => {
+  const testDir = path.join(__dirname, "../fixtures/ideas/hash-test");
 
   beforeEach(() => {
     fs.mkdirSync(testDir, { recursive: true });
-    fs.mkdirSync(path.join(testDir, 'research'), { recursive: true });
+    fs.mkdirSync(path.join(testDir, "research"), { recursive: true });
   });
 
   afterEach(() => {
     fs.rmSync(testDir, { recursive: true, force: true });
   });
 
-  describe('Hash Calculation', () => {
-    it('MUST include README.md in hash', async () => {
-      fs.writeFileSync(path.join(testDir, 'README.md'), 'Content A');
+  describe("Hash Calculation", () => {
+    it("MUST include README.md in hash", async () => {
+      fs.writeFileSync(path.join(testDir, "README.md"), "Content A");
       const hash1 = await calculateIdeaContentHash(testDir);
 
-      fs.writeFileSync(path.join(testDir, 'README.md'), 'Content B');
+      fs.writeFileSync(path.join(testDir, "README.md"), "Content B");
       const hash2 = await calculateIdeaContentHash(testDir);
 
       expect(hash1.hash).not.toBe(hash2.hash);
     });
 
-    it('MUST include development.md in hash', async () => {
-      fs.writeFileSync(path.join(testDir, 'README.md'), 'Content');
+    it("MUST include development.md in hash", async () => {
+      fs.writeFileSync(path.join(testDir, "README.md"), "Content");
       const hash1 = await calculateIdeaContentHash(testDir);
 
-      fs.writeFileSync(path.join(testDir, 'development.md'), 'Dev content');
+      fs.writeFileSync(path.join(testDir, "development.md"), "Dev content");
       const hash2 = await calculateIdeaContentHash(testDir);
 
       expect(hash1.hash).not.toBe(hash2.hash);
     });
 
-    it('MUST include research/*.md in hash', async () => {
-      fs.writeFileSync(path.join(testDir, 'README.md'), 'Content');
+    it("MUST include research/*.md in hash", async () => {
+      fs.writeFileSync(path.join(testDir, "README.md"), "Content");
       const hash1 = await calculateIdeaContentHash(testDir);
 
-      fs.writeFileSync(path.join(testDir, 'research', 'study.md'), 'Research');
+      fs.writeFileSync(path.join(testDir, "research", "study.md"), "Research");
       const hash2 = await calculateIdeaContentHash(testDir);
 
       expect(hash1.hash).not.toBe(hash2.hash);
     });
 
-    it('MUST NOT include evaluation.md in hash', async () => {
-      fs.writeFileSync(path.join(testDir, 'README.md'), 'Content');
+    it("MUST NOT include evaluation.md in hash", async () => {
+      fs.writeFileSync(path.join(testDir, "README.md"), "Content");
       const hash1 = await calculateIdeaContentHash(testDir);
 
-      fs.writeFileSync(path.join(testDir, 'evaluation.md'), 'Evaluation');
+      fs.writeFileSync(path.join(testDir, "evaluation.md"), "Evaluation");
       const hash2 = await calculateIdeaContentHash(testDir);
 
       expect(hash1.hash).toBe(hash2.hash);
     });
 
-    it('MUST be deterministic (same content = same hash)', async () => {
-      fs.writeFileSync(path.join(testDir, 'README.md'), 'Content');
+    it("MUST be deterministic (same content = same hash)", async () => {
+      fs.writeFileSync(path.join(testDir, "README.md"), "Content");
 
       const hash1 = await calculateIdeaContentHash(testDir);
       const hash2 = await calculateIdeaContentHash(testDir);
@@ -3507,24 +3700,24 @@ describe('Content Hash Contract', () => {
       expect(hash1.hash).toBe(hash2.hash);
     });
 
-    it('MUST return list of files included in hash', async () => {
-      fs.writeFileSync(path.join(testDir, 'README.md'), 'Content');
-      fs.writeFileSync(path.join(testDir, 'development.md'), 'Dev');
+    it("MUST return list of files included in hash", async () => {
+      fs.writeFileSync(path.join(testDir, "README.md"), "Content");
+      fs.writeFileSync(path.join(testDir, "development.md"), "Dev");
 
       const result = await calculateIdeaContentHash(testDir);
 
-      expect(result.files).toContain(path.join(testDir, 'README.md'));
-      expect(result.files).toContain(path.join(testDir, 'development.md'));
+      expect(result.files).toContain(path.join(testDir, "README.md"));
+      expect(result.files).toContain(path.join(testDir, "development.md"));
     });
   });
 
-  describe('Staleness Detection', () => {
-    it('MUST return false when hashes match', () => {
-      expect(isEvaluationStale('abc123', 'abc123')).toBe(false);
+  describe("Staleness Detection", () => {
+    it("MUST return false when hashes match", () => {
+      expect(isEvaluationStale("abc123", "abc123")).toBe(false);
     });
 
-    it('MUST return true when hashes differ', () => {
-      expect(isEvaluationStale('abc123', 'xyz789')).toBe(true);
+    it("MUST return true when hashes differ", () => {
+      expect(isEvaluationStale("abc123", "xyz789")).toBe(true);
     });
   });
 });
@@ -3668,6 +3861,7 @@ idea_incubator/
 ## Appendix F: Updated Success Criteria
 
 ### Phase 0 Complete When:
+
 - [ ] Vitest configured and running
 - [ ] Mock Anthropic client working
 - [ ] Zod schemas defined
@@ -3679,6 +3873,7 @@ idea_incubator/
 - [ ] All spike tests pass
 
 ### Phase 0 TDD Checklist:
+
 1. [ ] Write `evaluator.contract.test.ts` → Should FAIL
 2. [ ] Write `redteam.contract.test.ts` → Should FAIL
 3. [ ] Write `arbiter.contract.test.ts` → Should FAIL
@@ -3702,17 +3897,18 @@ idea_incubator/
 
 **Specification**:
 
-| Component | Requirement |
-|-----------|-------------|
-| Retry Count | Maximum 3 retries per API call |
-| Backoff Strategy | Exponential: 1s → 2s → 4s |
-| Retryable Errors | `rate_limit`, `timeout`, `server_error`, `overloaded` |
+| Component            | Requirement                                                    |
+| -------------------- | -------------------------------------------------------------- |
+| Retry Count          | Maximum 3 retries per API call                                 |
+| Backoff Strategy     | Exponential: 1s → 2s → 4s                                      |
+| Retryable Errors     | `rate_limit`, `timeout`, `server_error`, `overloaded`          |
 | Non-Retryable Errors | `invalid_api_key`, `content_filter`, `context_length_exceeded` |
-| Failure Behavior | Throw after max retries; checkpoint current state first |
+| Failure Behavior     | Throw after max retries; checkpoint current state first        |
 
 **File to Create**: `utils/retry.ts`
 
 **Interface**:
+
 ```
 RetryConfig:
   - maxRetries: number (default: 3)
@@ -3727,6 +3923,7 @@ withRetry<T>(fn: () => Promise<T>, config: RetryConfig): Promise<T>
 ```
 
 **Test Specification**:
+
 - MUST retry on rate_limit error up to 3 times
 - MUST NOT retry on invalid_api_key error
 - MUST wait exponentially between retries (verify with fake timers)
@@ -3741,15 +3938,16 @@ withRetry<T>(fn: () => Promise<T>, config: RetryConfig): Promise<T>
 
 **Specification**:
 
-| Checkpoint Type | Saved After | Data Captured |
-|-----------------|-------------|---------------|
-| Evaluation | Each criterion scored | Criterion scores so far, current criterion index |
-| Debate | Each round | Round number, all exchanges, current scores |
-| Synthesis | Each conflict resolved | Resolved conflicts, remaining conflicts |
+| Checkpoint Type | Saved After            | Data Captured                                    |
+| --------------- | ---------------------- | ------------------------------------------------ |
+| Evaluation      | Each criterion scored  | Criterion scores so far, current criterion index |
+| Debate          | Each round             | Round number, all exchanges, current scores      |
+| Synthesis       | Each conflict resolved | Resolved conflicts, remaining conflicts          |
 
 **Storage Location**: `database/checkpoints` table
 
 **Schema Addition** (migration 004):
+
 ```
 CREATE TABLE checkpoints (
   id TEXT PRIMARY KEY,
@@ -3766,6 +3964,7 @@ CREATE TABLE checkpoints (
 **File to Create**: `utils/checkpoint.ts`
 
 **Interface**:
+
 ```
 saveCheckpoint(ideaId, runId, type, state): Promise<void>
 loadCheckpoint(ideaId, runId, type): Promise<State | null>
@@ -3774,12 +3973,14 @@ isCheckpointStale(checkpoint): boolean  -- >24 hours old
 ```
 
 **Resume Behavior**:
+
 1. On evaluation start, check for existing checkpoint
 2. If checkpoint exists and <24h old, prompt user: "Resume from round X?"
 3. If user confirms, restore state and continue
 4. If checkpoint >24h old, warn and offer restart
 
 **Test Specification**:
+
 - MUST save checkpoint after each debate round
 - MUST restore state correctly when resuming
 - MUST detect stale checkpoints (>24h)
@@ -3793,15 +3994,16 @@ isCheckpointStale(checkpoint): boolean  -- >24 hours old
 
 **Specification**:
 
-| Limit Type | Value | Implementation |
-|------------|-------|----------------|
+| Limit Type          | Value               | Implementation              |
+| ------------------- | ------------------- | --------------------------- |
 | Concurrent Requests | Max 10 simultaneous | p-limit or custom semaphore |
-| Requests Per Minute | ~4000 (Opus) | Token bucket rate limiter |
-| Cooldown on 429 | 60s minimum | Exponential backoff |
+| Requests Per Minute | ~4000 (Opus)        | Token bucket rate limiter   |
+| Cooldown on 429     | 60s minimum         | Exponential backoff         |
 
 **File to Create**: `utils/rate-limiter.ts`
 
 **Interface**:
+
 ```
 RateLimiter:
   - constructor(options: { maxConcurrent: number, requestsPerMinute?: number })
@@ -3813,6 +4015,7 @@ RateLimiter:
 **Integration Point**: Wrap all Anthropic API calls in `BaseAgent.callAPI()`
 
 **Test Specification**:
+
 - MUST limit concurrent requests to maxConcurrent
 - MUST queue requests beyond limit
 - MUST release slot on completion (even on error)
@@ -3826,17 +4029,18 @@ RateLimiter:
 
 **Specification**:
 
-| Scenario | Behavior |
-|----------|----------|
-| Two evaluations on same idea | Second waits or rejects |
-| Sync during evaluation | Sync waits for evaluation to checkpoint |
-| Evaluation during sync | Evaluation waits for sync completion |
+| Scenario                     | Behavior                                |
+| ---------------------------- | --------------------------------------- |
+| Two evaluations on same idea | Second waits or rejects                 |
+| Sync during evaluation       | Sync waits for evaluation to checkpoint |
+| Evaluation during sync       | Evaluation waits for sync completion    |
 
 **Implementation**: File-based advisory locks
 
 **File to Create**: `utils/lock.ts`
 
 **Schema Addition** (migration 004):
+
 ```
 CREATE TABLE locks (
   resource_id TEXT PRIMARY KEY,  -- e.g., "idea:solar-charger:evaluate"
@@ -3847,6 +4051,7 @@ CREATE TABLE locks (
 ```
 
 **Interface**:
+
 ```
 acquireLock(resourceId: string, timeout?: number): Promise<Lock>
   - Throws LockTimeoutError if cannot acquire within timeout
@@ -3860,6 +4065,7 @@ withLock<T>(resourceId: string, fn: () => Promise<T>): Promise<T>
 ```
 
 **Test Specification**:
+
 - MUST prevent concurrent evaluation of same idea
 - MUST allow concurrent evaluation of different ideas
 - MUST auto-release lock after expiry (10 min)
@@ -3873,16 +4079,17 @@ withLock<T>(resourceId: string, fn: () => Promise<T>): Promise<T>
 
 **Specification**:
 
-| Component | Requirement |
-|-----------|-------------|
-| Logging Format | JSON structured logs |
-| Log Levels | debug, info, warn, error |
-| Request Tracing | Unique runId per evaluation |
-| Metrics | Latency, cost, success rate per operation |
+| Component       | Requirement                               |
+| --------------- | ----------------------------------------- |
+| Logging Format  | JSON structured logs                      |
+| Log Levels      | debug, info, warn, error                  |
+| Request Tracing | Unique runId per evaluation               |
+| Metrics         | Latency, cost, success rate per operation |
 
 **File Updates**: `utils/logger.ts`
 
 **Log Structure**:
+
 ```
 {
   "timestamp": "ISO-8601",
@@ -3901,6 +4108,7 @@ withLock<T>(resourceId: string, fn: () => Promise<T>): Promise<T>
 **File to Create**: `utils/metrics.ts`
 
 **Interface**:
+
 ```
 MetricsCollector:
   - recordLatency(operation: string, durationMs: number): void
@@ -3911,12 +4119,14 @@ MetricsCollector:
 ```
 
 **Integration Points**:
+
 1. BaseAgent.callAPI() - log each API call with cost/latency
 2. Debate orchestrator - log round start/end
 3. Synthesis - log conflict resolution
 4. CLI commands - log command start/end with total duration
 
 **Test Specification**:
+
 - MUST output valid JSON for each log entry
 - MUST include runId in all logs within a run
 - MUST record accurate latency measurements
@@ -3933,16 +4143,17 @@ MetricsCollector:
 **File to Create**: `templates/synthesis.md`
 
 **Template Content**:
+
 ```markdown
 ---
-evaluation_run_id: {{runId}}
-previous_evaluation: {{previousRunId}}
+evaluation_run_id: { { runId } }
+previous_evaluation: { { previousRunId } }
 status: CURRENT
-completed_at: {{timestamp}}
-overall_score: {{overallScore}}
-overall_confidence: {{confidence}}
-recommendation: {{recommendation}}
-lock_reason: {{lockReason}}
+completed_at: { { timestamp } }
+overall_score: { { overallScore } }
+overall_confidence: { { confidence } }
+recommendation: { { recommendation } }
+lock_reason: { { lockReason } }
 ---
 
 # Final Synthesis: {{ideaTitle}}
@@ -3960,37 +4171,41 @@ lock_reason: {{lockReason}}
 ## Key Strengths
 
 {{#each keyStrengths}}
+
 - {{this}}
-{{/each}}
+  {{/each}}
 
 ## Key Weaknesses
 
 {{#each keyWeaknesses}}
+
 - {{this}}
-{{/each}}
+  {{/each}}
 
 ## Critical Assumptions
 
 {{#each criticalAssumptions}}
+
 1. {{this}}
-{{/each}}
+   {{/each}}
 
 ## Unresolved Questions
 
 {{#each unresolvedQuestions}}
+
 - [ ] {{this}}
-{{/each}}
+      {{/each}}
 
 ## Score Summary
 
-| Category | Score | Confidence | Survival Rate |
-|----------|-------|------------|---------------|
-| Problem | {{scores.problem}} | {{confidence.problem}}% | {{survival.problem}}% |
-| Solution | {{scores.solution}} | {{confidence.solution}}% | {{survival.solution}}% |
+| Category    | Score                  | Confidence                  | Survival Rate             |
+| ----------- | ---------------------- | --------------------------- | ------------------------- |
+| Problem     | {{scores.problem}}     | {{confidence.problem}}%     | {{survival.problem}}%     |
+| Solution    | {{scores.solution}}    | {{confidence.solution}}%    | {{survival.solution}}%    |
 | Feasibility | {{scores.feasibility}} | {{confidence.feasibility}}% | {{survival.feasibility}}% |
-| Fit | {{scores.fit}} | {{confidence.fit}}% | {{survival.fit}}% |
-| Market | {{scores.market}} | {{confidence.market}}% | {{survival.market}}% |
-| Risk | {{scores.risk}} | {{confidence.risk}}% | {{survival.risk}}% |
+| Fit         | {{scores.fit}}         | {{confidence.fit}}%         | {{survival.fit}}%         |
+| Market      | {{scores.market}}      | {{confidence.market}}%      | {{survival.market}}%      |
+| Risk        | {{scores.risk}}        | {{confidence.risk}}%        | {{survival.risk}}%        |
 
 ## Debate Summary
 
@@ -4002,14 +4217,15 @@ lock_reason: {{lockReason}}
 ## Change History
 
 | Date | Score | Confidence | Reason |
-|------|-------|------------|--------|
+| ---- | ----- | ---------- | ------ |
+
 {{#each history}}
 | {{this.date}} | {{this.score}} | {{this.confidence}}% | {{this.reason}} |
 {{/each}}
 
 ---
 
-*This document is immutable. To update, run a new evaluation which will supersede this one.*
+_This document is immutable. To update, run a new evaluation which will supersede this one._
 ```
 
 **Generation**: synthesis.ts must write this file in addition to database record.
@@ -4024,18 +4240,18 @@ lock_reason: {{lockReason}}
 
 **Test Cases** (behavioral descriptions):
 
-| Test Case | Given | When | Then |
-|-----------|-------|------|------|
-| Happy path complete | New idea input | Run full pipeline | Creates README.md, evaluation.md, synthesis.md; database synced; synthesis locked |
-| Budget enforcement | Budget=$1, expensive responses | Run evaluation | Stops mid-evaluation; checkpoint saved; BudgetExceededError thrown |
-| API failure recovery | API fails twice then succeeds | Run with retry | Retries automatically; completes successfully |
-| Concurrent evaluation blocked | Evaluation running on idea-A | Start second evaluation on idea-A | Second throws LockError; first continues |
-| Resume from checkpoint | Checkpoint exists at round 2 | Resume debate | Starts from round 3; preserves round 1-2 scores |
-| Stale checkpoint warning | Checkpoint 25h old | Attempt resume | Warns user; offers restart or continue |
-| Malformed response handling | Claude returns invalid JSON | Parse response | Throws ParseError with helpful message; checkpoint saved |
-| Convergence detection | Scores stable for 2 rounds | Check convergence | Detects convergence; enters crystallization |
-| Max rounds termination | 5 rounds without convergence | Check convergence | Forces crystallization with MAX_ROUNDS reason |
-| Reopening locked synthesis | Locked synthesis exists | Run evaluate with --force | Creates new run; marks previous as SUPERSEDED |
+| Test Case                     | Given                          | When                              | Then                                                                              |
+| ----------------------------- | ------------------------------ | --------------------------------- | --------------------------------------------------------------------------------- |
+| Happy path complete           | New idea input                 | Run full pipeline                 | Creates README.md, evaluation.md, synthesis.md; database synced; synthesis locked |
+| Budget enforcement            | Budget=$1, expensive responses | Run evaluation                    | Stops mid-evaluation; checkpoint saved; BudgetExceededError thrown                |
+| API failure recovery          | API fails twice then succeeds  | Run with retry                    | Retries automatically; completes successfully                                     |
+| Concurrent evaluation blocked | Evaluation running on idea-A   | Start second evaluation on idea-A | Second throws LockError; first continues                                          |
+| Resume from checkpoint        | Checkpoint exists at round 2   | Resume debate                     | Starts from round 3; preserves round 1-2 scores                                   |
+| Stale checkpoint warning      | Checkpoint 25h old             | Attempt resume                    | Warns user; offers restart or continue                                            |
+| Malformed response handling   | Claude returns invalid JSON    | Parse response                    | Throws ParseError with helpful message; checkpoint saved                          |
+| Convergence detection         | Scores stable for 2 rounds     | Check convergence                 | Detects convergence; enters crystallization                                       |
+| Max rounds termination        | 5 rounds without convergence   | Check convergence                 | Forces crystallization with MAX_ROUNDS reason                                     |
+| Reopening locked synthesis    | Locked synthesis exists        | Run evaluate with --force         | Creates new run; marks previous as SUPERSEDED                                     |
 
 ---
 
@@ -4050,6 +4266,7 @@ lock_reason: {{lockReason}}
 ### H.2 Missing Fields to Add to Zod Schemas
 
 Add to `SynthesisOutputSchema`:
+
 ```
 defenseRecord: z.object({
   challenged: z.number(),
@@ -4067,6 +4284,7 @@ lockReason: z.enum(['CONVERGENCE', 'MAX_ROUNDS', 'USER_APPROVED', 'TIMEOUT', 'BU
 ```
 
 Add new schemas:
+
 ```
 RoundSummarySchema: z.object({
   round: z.number(),
@@ -4097,6 +4315,7 @@ ScorePointSchema: z.object({
 **Problem**: Architecture defines confidence differently than implementation calculates it.
 
 **Resolution**: Use implementation formula (in convergence.ts) as authoritative:
+
 ```
 confidence = (
   survivalComponent * 0.4 +    // challenges defended / total
@@ -4133,6 +4352,7 @@ Update Architecture 12A.4 to reference this formula.
 ### I.2 Update Architecture Section 14
 
 Mark Architecture Section 14 with:
+
 ```
 > **DEPRECATED**: This phase structure is superseded by IMPLEMENTATION-PLAN.md Section 3.
 > See Implementation Plan for authoritative phase definitions.
@@ -4153,6 +4373,7 @@ Mark Architecture Section 14 with:
 ### J.2 Red Team Persona Count
 
 **Clarified**:
+
 - v1 (Phases 0-6): 3 personas (Skeptic, Realist, First Principles Purist)
 - v2 (Phase 7): 6 personas (add Competitor, Contrarian, Edge-Case Finder)
 
@@ -4164,17 +4385,17 @@ Mark Architecture Section 14 with:
 
 These files must exist with behavioral test specifications BEFORE implementation:
 
-| File | Tests What | Create In Phase |
-|------|------------|-----------------|
-| `tests/e2e/full-lifecycle.test.ts` | Complete capture→synthesis flow | 0 |
-| `tests/e2e/budget-enforcement.test.ts` | Cost tracking and budget limits | 0 |
-| `tests/e2e/error-recovery.test.ts` | Retry logic and graceful degradation | 0 |
-| `tests/e2e/concurrency.test.ts` | Lock acquisition and release | 0 |
-| `tests/e2e/checkpoint-resume.test.ts` | Checkpoint save/restore | 0 |
-| `tests/contracts/orchestrator.contract.test.ts` | Orchestrator routing logic | 0 |
-| `tests/contracts/development.contract.test.ts` | Development agent questions | 0 |
-| `tests/contracts/classifier.contract.test.ts` | Auto-tagging behavior | 0 |
-| `tests/boundaries/reopening.test.ts` | Locked evaluation reopening | 0 |
+| File                                            | Tests What                           | Create In Phase |
+| ----------------------------------------------- | ------------------------------------ | --------------- |
+| `tests/e2e/full-lifecycle.test.ts`              | Complete capture→synthesis flow      | 0               |
+| `tests/e2e/budget-enforcement.test.ts`          | Cost tracking and budget limits      | 0               |
+| `tests/e2e/error-recovery.test.ts`              | Retry logic and graceful degradation | 0               |
+| `tests/e2e/concurrency.test.ts`                 | Lock acquisition and release         | 0               |
+| `tests/e2e/checkpoint-resume.test.ts`           | Checkpoint save/restore              | 0               |
+| `tests/contracts/orchestrator.contract.test.ts` | Orchestrator routing logic           | 0               |
+| `tests/contracts/development.contract.test.ts`  | Development agent questions          | 0               |
+| `tests/contracts/classifier.contract.test.ts`   | Auto-tagging behavior                | 0               |
+| `tests/boundaries/reopening.test.ts`            | Locked evaluation reopening          | 0               |
 
 ---
 

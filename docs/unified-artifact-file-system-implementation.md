@@ -14,22 +14,22 @@ Unify the artifact system (session-scoped, database-stored) with the file system
 
 ## Key Decisions
 
-| Decision | Choice |
-|----------|--------|
-| **Folder hierarchy** | `users/[user]/ideas/[slug]/` |
-| **Idea types** | business, feature, service, pivot, integration |
-| **Parent relationships** | Internal (existing idea) or External (outside platform) |
-| **Session naming** | System auto-names; triggers folder rename |
-| **Memory files** | Removed except for `.metadata/index.json` cache |
-| **Canonical doc creation** | Pre-create templates on capture (guided format) |
-| **Template format** | Section headers + bullet prompts (agents fill proactively) |
-| **Classification determination** | AI-inferred based on phase + content (not explicit user question) |
-| **Phase enforcement** | Background with visibility (progress %, handoff brief) |
-| **Document versioning** | None (only idea evolutions, forks, branches) |
-| **Relationship structure** | Hybrid: hierarchical for strong ownership + metadata for cross-links |
-| **Asset export** | Auto-export visuals to assets/ |
-| **File token limit** | 15k tokens max |
-| **Bloat detection** | Proactive (similar filenames) + on-demand (pivotal decisions) |
+| Decision                         | Choice                                                               |
+| -------------------------------- | -------------------------------------------------------------------- |
+| **Folder hierarchy**             | `users/[user]/ideas/[slug]/`                                         |
+| **Idea types**                   | business, feature, service, pivot, integration                       |
+| **Parent relationships**         | Internal (existing idea) or External (outside platform)              |
+| **Session naming**               | System auto-names; triggers folder rename                            |
+| **Memory files**                 | Removed except for `.metadata/index.json` cache                      |
+| **Canonical doc creation**       | Pre-create templates on capture (guided format)                      |
+| **Template format**              | Section headers + bullet prompts (agents fill proactively)           |
+| **Classification determination** | AI-inferred based on phase + content (not explicit user question)    |
+| **Phase enforcement**            | Background with visibility (progress %, handoff brief)               |
+| **Document versioning**          | None (only idea evolutions, forks, branches)                         |
+| **Relationship structure**       | Hybrid: hierarchical for strong ownership + metadata for cross-links |
+| **Asset export**                 | Auto-export visuals to assets/                                       |
+| **File token limit**             | 15k tokens max                                                       |
+| **Bloat detection**              | Proactive (similar filenames) + on-demand (pivotal decisions)        |
 
 ---
 
@@ -113,10 +113,10 @@ users/
 ---
 id: uuid
 title: "My Idea"
-idea_type: feature           # business | feature | service | pivot | integration
-parent_type: internal        # internal | external | none
-parent_slug: my-saas-app     # If internal: slug of parent idea
-parent_external: "Shopify"   # If external: name of external platform
+idea_type: feature # business | feature | service | pivot | integration
+parent_type: internal # internal | external | none
+parent_slug: my-saas-app # If internal: slug of parent idea
+parent_external: "Shopify" # If external: name of external platform
 lifecycle_stage: SPARK
 created: 2025-01-06
 updated: 2025-01-06
@@ -127,6 +127,7 @@ creator: user-slug
 **Session Flow for Type Determination:**
 
 Agent asks at session start:
+
 ```
 "Is this idea a standalone business, or part of something else?"
 
@@ -139,6 +140,7 @@ Agent asks at session start:
 ```
 
 Follow-up based on selection:
+
 - Option 2 → "Which of your existing ideas does this belong to?" [list user's ideas]
 - Option 3 → "What's the external platform?" [free text]
 - Option 4 → "Will this service be shared across your ideas or standalone?"
@@ -193,32 +195,32 @@ CREATE TABLE idea_relationships (
 
 ### 1.4 Files to Modify
 
-| File | Changes |
-|------|---------|
-| `scripts/capture.ts` | Create `users/[user]/ideas/[slug]/` structure with all templates |
-| `database/migrations/` | Add `idea_relationships` table |
-| `agents/ideation/orchestrator.ts` | Add idea type classification flow at session start |
+| File                              | Changes                                                          |
+| --------------------------------- | ---------------------------------------------------------------- |
+| `scripts/capture.ts`              | Create `users/[user]/ideas/[slug]/` structure with all templates |
+| `database/migrations/`            | Add `idea_relationships` table                                   |
+| `agents/ideation/orchestrator.ts` | Add idea type classification flow at session start               |
 
 ### 1.5 Files to Create
 
-| File | Purpose |
-|------|---------|
-| `templates/README.md` | Core idea template (guided) |
-| `templates/development.md` | Q&A template (guided) |
-| `templates/target-users.md` | User segments template |
-| `templates/problem-solution.md` | Problem/solution template |
-| `templates/business-model.md` | Revenue/pricing template |
-| `templates/team.md` | Team/resources template |
-| `templates/research/market.md` | Market analysis template |
-| `templates/research/competitive.md` | Competitive analysis template |
-| `templates/validation/assumptions.md` | Assumptions template |
-| `templates/planning/brief.md` | Handoff brief template |
-| `templates/planning/mvp-scope.md` | MVP scope template |
-| `templates/planning/architecture.md` | Architecture template |
-| `templates/marketing/gtm.md` | Go-to-market template |
-| `templates/marketing/pitch.md` | Pitch template |
-| `templates/networking/contacts.md` | Contacts template |
-| `templates/build/spec.md` | Build spec template |
+| File                                  | Purpose                       |
+| ------------------------------------- | ----------------------------- |
+| `templates/README.md`                 | Core idea template (guided)   |
+| `templates/development.md`            | Q&A template (guided)         |
+| `templates/target-users.md`           | User segments template        |
+| `templates/problem-solution.md`       | Problem/solution template     |
+| `templates/business-model.md`         | Revenue/pricing template      |
+| `templates/team.md`                   | Team/resources template       |
+| `templates/research/market.md`        | Market analysis template      |
+| `templates/research/competitive.md`   | Competitive analysis template |
+| `templates/validation/assumptions.md` | Assumptions template          |
+| `templates/planning/brief.md`         | Handoff brief template        |
+| `templates/planning/mvp-scope.md`     | MVP scope template            |
+| `templates/planning/architecture.md`  | Architecture template         |
+| `templates/marketing/gtm.md`          | Go-to-market template         |
+| `templates/marketing/pitch.md`        | Pitch template                |
+| `templates/networking/contacts.md`    | Contacts template             |
+| `templates/build/spec.md`             | Build spec template           |
 
 ---
 
@@ -242,9 +244,9 @@ interface UnifiedArtifact {
   sessionId?: string;
   type: ArtifactType;
   title: string;
-  filePath: string;          // Relative to users/[user]/ideas/[slug]/
+  filePath: string; // Relative to users/[user]/ideas/[slug]/
   tokenCount: number;
-  status: 'ready' | 'updating' | 'error';
+  status: "ready" | "updating" | "error";
   createdAt: string;
   updatedAt: string;
 }
@@ -252,15 +254,15 @@ interface UnifiedArtifact {
 
 ### 2.3 Key Functions
 
-| Function | Description |
-|----------|-------------|
-| `saveArtifact(userSlug, ideaSlug, artifact)` | Write to filesystem + update cache |
-| `loadArtifact(userSlug, ideaSlug, filePath)` | Read from filesystem |
-| `listArtifacts(userSlug, ideaSlug)` | Return from cache (or regenerate if missing) |
-| `deleteArtifact(userSlug, ideaSlug, filePath)` | Remove file + update cache |
-| `deleteSessionArtifacts(userSlug, ideaSlug, sessionId)` | Bulk delete by session |
-| `rebuildCache(userSlug, ideaSlug)` | Scan all files, regenerate index.json |
-| `renameIdeaFolder(userSlug, oldSlug, newSlug)` | Rename folder + update all references |
+| Function                                                | Description                                  |
+| ------------------------------------------------------- | -------------------------------------------- |
+| `saveArtifact(userSlug, ideaSlug, artifact)`            | Write to filesystem + update cache           |
+| `loadArtifact(userSlug, ideaSlug, filePath)`            | Read from filesystem                         |
+| `listArtifacts(userSlug, ideaSlug)`                     | Return from cache (or regenerate if missing) |
+| `deleteArtifact(userSlug, ideaSlug, filePath)`          | Remove file + update cache                   |
+| `deleteSessionArtifacts(userSlug, ideaSlug, sessionId)` | Bulk delete by session                       |
+| `rebuildCache(userSlug, ideaSlug)`                      | Scan all files, regenerate index.json        |
+| `renameIdeaFolder(userSlug, oldSlug, newSlug)`          | Rename folder + update all references        |
 
 ### 2.4 Database Changes
 
@@ -275,11 +277,11 @@ ALTER TABLE ideation_sessions ADD COLUMN idea_slug TEXT;
 
 ### 2.5 Files to Modify
 
-| File | Changes |
-|------|---------|
-| `agents/ideation/artifact-store.ts` | Replace with unified filesystem store |
-| `server/routes/ideation.ts` | Update artifact endpoints for user/idea scoping |
-| `database/migrations/` | Add columns to existing tables |
+| File                                | Changes                                         |
+| ----------------------------------- | ----------------------------------------------- |
+| `agents/ideation/artifact-store.ts` | Replace with unified filesystem store           |
+| `server/routes/ideation.ts`         | Update artifact endpoints for user/idea scoping |
+| `database/migrations/`              | Add columns to existing tables                  |
 
 ---
 
@@ -320,8 +322,8 @@ interface AgentContext {
   idea: {
     userSlug: string;
     ideaSlug: string;
-    type: 'business' | 'feature' | 'service' | 'pivot' | 'integration';
-    parent?: { type: 'internal' | 'external'; ref: string };
+    type: "business" | "feature" | "service" | "pivot" | "integration";
+    parent?: { type: "internal" | "external"; ref: string };
     currentPhase: LifecycleStage;
   };
 
@@ -360,15 +362,15 @@ interface AgentContext {
 
 **Token Budget Allocation:**
 
-| Context Layer | Tokens | Cumulative |
-|---------------|--------|------------|
-| Identity + Progress | 800 | 800 |
-| Relationships | 200 | 1,000 |
-| Core Doc Summaries | 1,000 | 2,000 |
-| Phase Docs (full) | 5,000 | 7,000 |
-| Conversation History | 10,000 | 17,000 |
-| On-demand Docs | 5,000 | 22,000 |
-| Buffer for Response | 10,000 | 32,000 |
+| Context Layer        | Tokens | Cumulative |
+| -------------------- | ------ | ---------- |
+| Identity + Progress  | 800    | 800        |
+| Relationships        | 200    | 1,000      |
+| Core Doc Summaries   | 1,000  | 2,000      |
+| Phase Docs (full)    | 5,000  | 7,000      |
+| Conversation History | 10,000 | 17,000     |
+| On-demand Docs       | 5,000  | 22,000     |
+| Buffer for Response  | 10,000 | 32,000     |
 
 ### 3.3 Priority Ranking File
 
@@ -390,20 +392,20 @@ interface AgentContext {
 
 ### 3.4 Files to Modify
 
-| File | Changes |
-|------|---------|
-| `agents/ideation/system-prompt.ts` | Add `{{IDEA_CONTEXT}}` section with layered loading |
-| `agents/ideation/orchestrator.ts` | Load idea context when session linked |
-| `frontend/src/components/ideation/SessionHeader.tsx` | Add idea selector dropdown |
-| `frontend/src/components/ideation/IdeationSession.tsx` | Track linked idea |
-| `server/routes/ideation.ts` | Add `PATCH /session/:id/link-idea` |
+| File                                                   | Changes                                             |
+| ------------------------------------------------------ | --------------------------------------------------- |
+| `agents/ideation/system-prompt.ts`                     | Add `{{IDEA_CONTEXT}}` section with layered loading |
+| `agents/ideation/orchestrator.ts`                      | Load idea context when session linked               |
+| `frontend/src/components/ideation/SessionHeader.tsx`   | Add idea selector dropdown                          |
+| `frontend/src/components/ideation/IdeationSession.tsx` | Track linked idea                                   |
+| `server/routes/ideation.ts`                            | Add `PATCH /session/:id/link-idea`                  |
 
 ### 3.5 Files to Create
 
-| File | Purpose |
-|------|---------|
-| `agents/ideation/idea-context-builder.ts` | Build layered context for agent |
-| `agents/ideation/priority-manager.ts` | Manage document priority rankings |
+| File                                      | Purpose                           |
+| ----------------------------------------- | --------------------------------- |
+| `agents/ideation/idea-context-builder.ts` | Build layered context for agent   |
+| `agents/ideation/priority-manager.ts`     | Manage document priority rankings |
 
 ---
 
@@ -411,31 +413,32 @@ interface AgentContext {
 
 ### 4.1 Phase-Document Mapping
 
-| Lifecycle Stage | Required Documents | Recommended Documents |
-|-----------------|-------------------|----------------------|
-| **SPARK** | README.md | - |
-| **CLARIFY** | README.md, development.md | target-users.md |
-| **RESEARCH** | research/market.md, research/competitive.md | research/user-personas.md |
-| **IDEATE** | target-users.md, problem-solution.md | planning/mvp-scope.md |
-| **EVALUATE** | analysis/evaluation.md | analysis/redteam.md |
-| **VALIDATE** | validation/assumptions.md, validation/results.md | - |
-| **DESIGN** | planning/architecture.md, planning/mvp-scope.md | planning/spec.md |
-| **PROTOTYPE** | build/prototype-notes.md | - |
-| **BUILD** | build/tasks.md, build/decisions.md | build/spec.md |
-| **LAUNCH** | marketing/gtm.md, marketing/launch-plan.md | marketing/channels.md |
-| **GROW** | networking/contacts.md, marketing/growth.md | marketing/partnerships.md |
+| Lifecycle Stage | Required Documents                               | Recommended Documents     |
+| --------------- | ------------------------------------------------ | ------------------------- |
+| **SPARK**       | README.md                                        | -                         |
+| **CLARIFY**     | README.md, development.md                        | target-users.md           |
+| **RESEARCH**    | research/market.md, research/competitive.md      | research/user-personas.md |
+| **IDEATE**      | target-users.md, problem-solution.md             | planning/mvp-scope.md     |
+| **EVALUATE**    | analysis/evaluation.md                           | analysis/redteam.md       |
+| **VALIDATE**    | validation/assumptions.md, validation/results.md | -                         |
+| **DESIGN**      | planning/architecture.md, planning/mvp-scope.md  | planning/spec.md          |
+| **PROTOTYPE**   | build/prototype-notes.md                         | -                         |
+| **BUILD**       | build/tasks.md, build/decisions.md               | build/spec.md             |
+| **LAUNCH**      | marketing/gtm.md, marketing/launch-plan.md       | marketing/channels.md     |
+| **GROW**        | networking/contacts.md, marketing/growth.md      | marketing/partnerships.md |
 
 ### 4.2 AI-Driven Classification
 
 Agent determines required vs optional based on:
 
 1. **Phase Rules** (explicit configuration):
+
    ```typescript
    const PHASE_REQUIREMENTS = {
      EVALUATE: {
-       required: ['analysis/evaluation.md'],
-       recommended: ['research/market.md', 'target-users.md']
-     }
+       required: ["analysis/evaluation.md"],
+       recommended: ["research/market.md", "target-users.md"],
+     },
    };
    ```
 
@@ -460,37 +463,42 @@ At each phase transition, AI auto-generates `planning/brief.md`:
 **Next Phase**: EVALUATE
 
 ## What's Complete
+
 - [x] Market analysis: $28B market, 32% CAGR
 - [x] Competitive analysis: 4 competitors mapped
 - [x] Target users: 3 personas defined
 
 ## What's Incomplete
+
 - [ ] User interviews (0 conducted)
 - [ ] Pricing validation (no data)
 
 ## Key Insights for Next Phase
+
 1. Main competitor weakness: No ideation guidance
 2. Target user priority: Corporate employees with side projects
 3. Risk flag: Solo founder executing in competitive market
 
 ## AI Recommendation
+
 - **Confidence for evaluation**: 72%
 - **Missing context may affect**: Market scoring (MK1-MK5), Validation (PR4)
 - **Suggested action**: Conduct 3-5 user interviews before full evaluation
 
 ## Decision
+
 - [ ] Continue to EVALUATE
 - [ ] Address gaps first
 ```
 
 ### 4.4 Files to Create
 
-| File | Purpose |
-|------|---------|
-| `agents/ideation/document-classifier.ts` | Classification engine |
-| `agents/ideation/classification-rules.ts` | Rule definitions |
-| `agents/ideation/handoff-generator.ts` | Generate handoff briefs |
-| `agents/ideation/phase-manager.ts` | Manage phase transitions |
+| File                                      | Purpose                  |
+| ----------------------------------------- | ------------------------ |
+| `agents/ideation/document-classifier.ts`  | Classification engine    |
+| `agents/ideation/classification-rules.ts` | Rule definitions         |
+| `agents/ideation/handoff-generator.ts`    | Generate handoff briefs  |
+| `agents/ideation/phase-manager.ts`        | Manage phase transitions |
 
 ---
 
@@ -498,17 +506,19 @@ At each phase transition, AI auto-generates `planning/brief.md`:
 
 ### 5.1 Collaboration Types
 
-| Type | Description | Trigger |
-|------|-------------|---------|
-| **Contributor** | Invited to help on specific idea | User invites via email |
-| **Tester** | Paid testing of unreleased features | User posts testing opportunity |
-| **Domain Expert** | Answers questions without seeing full idea | AI matches expertise |
-| **Cross-Pollinator** | Similar ideas, potential partnership | AI detects overlap |
+| Type                 | Description                                | Trigger                        |
+| -------------------- | ------------------------------------------ | ------------------------------ |
+| **Contributor**      | Invited to help on specific idea           | User invites via email         |
+| **Tester**           | Paid testing of unreleased features        | User posts testing opportunity |
+| **Domain Expert**    | Answers questions without seeing full idea | AI matches expertise           |
+| **Cross-Pollinator** | Similar ideas, potential partnership       | AI detects overlap             |
 
 ### 5.2 AI Detection Logic
 
 ```typescript
-async function detectCollaborationOpportunities(idea: Idea): Promise<Opportunity[]> {
+async function detectCollaborationOpportunities(
+  idea: Idea,
+): Promise<Opportunity[]> {
   // Extract idea characteristics
   const targetUsers = extractTargetUsers(idea);
   const problemDomain = extractProblemDomain(idea);
@@ -519,14 +529,14 @@ async function detectCollaborationOpportunities(idea: Idea): Promise<Opportunity
     targetUsers,
     problemDomain,
     techStack,
-    threshold: 0.6  // 60% overlap
+    threshold: 0.6, // 60% overlap
   });
 
-  return matches.map(m => ({
+  return matches.map((m) => ({
     type: m.overlapType,
     idea: m.ideaSlug,
     user: m.userSlug,
-    reason: m.matchReason
+    reason: m.matchReason,
   }));
 }
 ```
@@ -550,10 +560,10 @@ async function detectCollaborationOpportunities(idea: Idea): Promise<Opportunity
 
 ### 5.4 Files to Create
 
-| File | Purpose |
-|------|---------|
+| File                                        | Purpose                        |
+| ------------------------------------------- | ------------------------------ |
 | `agents/ideation/collaboration-detector.ts` | AI-driven opportunity matching |
-| `agents/ideation/sharing-manager.ts` | Manage privacy controls |
+| `agents/ideation/sharing-manager.ts`        | Manage privacy controls        |
 
 ---
 
@@ -569,7 +579,8 @@ function checkTokenLimit(content: string): TokenCheckResult {
   return {
     tokens,
     exceedsLimit: tokens > MAX_FILE_TOKENS,
-    suggestedSplits: tokens > MAX_FILE_TOKENS ? suggestSplits(content) : undefined
+    suggestedSplits:
+      tokens > MAX_FILE_TOKENS ? suggestSplits(content) : undefined,
   };
 }
 ```
@@ -577,16 +588,19 @@ function checkTokenLimit(content: string): TokenCheckResult {
 ### 6.2 Bloat Detection
 
 **Proactive triggers** (agent notices and mentions immediately):
+
 - Similar file names detected (e.g., `competitive-analysis.md`, `competitor-analysis.md`)
 - Files with overlapping content
 - Files exceeding 15k token limit
 
 **On-demand triggers** (agent checks when pivotal decisions are made):
+
 - After major direction change
 - After target user refinement
 - At phase transitions
 
 **Agent behavior**:
+
 ```
 "I notice you have 'competitive-analysis.md' and 'competitor-research.md'
 with overlapping content. Should I consolidate them into one comprehensive
@@ -595,9 +609,9 @@ analysis, or are they serving different purposes?"
 
 ### 6.3 Files to Create
 
-| File | Purpose |
-|------|---------|
-| `agents/ideation/token-enforcer.ts` | 15k limit enforcement |
+| File                                | Purpose                            |
+| ----------------------------------- | ---------------------------------- |
+| `agents/ideation/token-enforcer.ts` | 15k limit enforcement              |
 | `agents/ideation/bloat-detector.ts` | Detect duplicate/overlapping files |
 
 ---
@@ -607,6 +621,7 @@ analysis, or are they serving different purposes?"
 ### 7.1 Auto-Export Strategy
 
 When agent creates visual artifacts (mermaid, SVG, diagrams):
+
 1. Render to SVG/PNG
 2. Save to `users/[user]/ideas/[slug]/assets/diagrams/[title].svg`
 3. Insert markdown reference in relevant doc
@@ -619,7 +634,7 @@ async function saveAsset(
   ideaSlug: string,
   content: Buffer,
   filename: string,
-  category: 'diagrams' | 'images' | 'exports'
+  category: "diagrams" | "images" | "exports",
 ): Promise<string> {
   const assetPath = `users/${userSlug}/ideas/${ideaSlug}/assets/${category}/${filename}`;
   await fs.promises.writeFile(assetPath, content);
@@ -629,9 +644,9 @@ async function saveAsset(
 
 ### 7.3 Files to Create
 
-| File | Purpose |
-|------|---------|
-| `utils/asset-manager.ts` | Binary asset handling |
+| File                        | Purpose               |
+| --------------------------- | --------------------- |
+| `utils/asset-manager.ts`    | Binary asset handling |
 | `utils/mermaid-renderer.ts` | Render mermaid to SVG |
 
 ---
@@ -662,6 +677,7 @@ async function saveAsset(
 ```
 
 **Classification Badges**:
+
 - 🔴 Required (and missing)
 - 🟡 Required (exists)
 - 🔵 Recommended
@@ -670,6 +686,7 @@ async function saveAsset(
 ### 8.2 Session View Toggle
 
 When "Sessions" selected:
+
 ```
 > Session Jan 5, 2:30 PM (5 artifacts)
   - personas.md
@@ -680,11 +697,13 @@ When "Sessions" selected:
 ### 8.3 Idea Selector
 
 Add to session header:
+
 ```
 [Working on: ai-powered-fridge-recipe-scanner ▼]
 ```
 
 Dropdown shows:
+
 - Recent ideas
 - All ideas (grouped by type)
 - "+ New idea"
@@ -692,11 +711,11 @@ Dropdown shows:
 
 ### 8.4 Files to Modify
 
-| File | Changes |
-|------|---------|
-| `frontend/src/components/ideation/IdeaArtifactPanel.tsx` | Table+preview layout |
-| `frontend/src/components/ideation/SessionHeader.tsx` | Idea selector dropdown |
-| `frontend/src/reducers/ideationReducer.ts` | Add viewMode, sessionGroups |
+| File                                                     | Changes                     |
+| -------------------------------------------------------- | --------------------------- |
+| `frontend/src/components/ideation/IdeaArtifactPanel.tsx` | Table+preview layout        |
+| `frontend/src/components/ideation/SessionHeader.tsx`     | Idea selector dropdown      |
+| `frontend/src/reducers/ideationReducer.ts`               | Add viewMode, sessionGroups |
 
 ---
 
@@ -705,6 +724,7 @@ Dropdown shows:
 ### 9.1 Strategy
 
 On every file save:
+
 1. Copy current version to `.versions/[filename].[timestamp].md`
 2. Keep last 10 versions per file
 3. Prune older versions automatically
@@ -714,6 +734,7 @@ User never sees this - for recovery only.
 ### 9.2 Idea Evolution/Fork/Branch
 
 When user evolves/forks/branches:
+
 - Create NEW idea folder with full context
 - Add relationship in `.metadata/relationships.json`:
   - `evolved_from`, `forked_from`, or `branched_from`
@@ -721,26 +742,26 @@ When user evolves/forks/branches:
 
 ### 9.3 Files to Create
 
-| File | Purpose |
-|------|---------|
+| File                       | Purpose                                 |
+| -------------------------- | --------------------------------------- |
 | `utils/version-manager.ts` | Internal versioning (invisible to user) |
-| `utils/idea-lineage.ts` | Handle evolutions, forks, branches |
+| `utils/idea-lineage.ts`    | Handle evolutions, forks, branches      |
 
 ---
 
 ## Implementation Order
 
-| Phase | Priority | Effort | Dependencies |
-|-------|----------|--------|--------------|
-| 1. Folder Structure & Idea Types | High | High | None |
-| 2. Unified Artifact Store | High | High | Phase 1 |
-| 3. Session & Context Management | High | Medium | Phase 2 |
-| 4. Phase Transitions & Handoffs | High | Medium | Phase 3 |
-| 5. Multi-User Collaboration | Medium | Medium | Phase 2 |
-| 6. Token Management | Medium | Low | Phase 2 |
-| 7. Asset Management | Medium | Low | Phase 2 |
-| 8. UI Components | High | High | Phase 2, 3 |
-| 9. Internal Versioning | Low | Low | Phase 2 |
+| Phase                            | Priority | Effort | Dependencies |
+| -------------------------------- | -------- | ------ | ------------ |
+| 1. Folder Structure & Idea Types | High     | High   | None         |
+| 2. Unified Artifact Store        | High     | High   | Phase 1      |
+| 3. Session & Context Management  | High     | Medium | Phase 2      |
+| 4. Phase Transitions & Handoffs  | High     | Medium | Phase 3      |
+| 5. Multi-User Collaboration      | Medium   | Medium | Phase 2      |
+| 6. Token Management              | Medium   | Low    | Phase 2      |
+| 7. Asset Management              | Medium   | Low    | Phase 2      |
+| 8. UI Components                 | High     | High   | Phase 2, 3   |
+| 9. Internal Versioning           | Low      | Low    | Phase 2      |
 
 **Recommended sequence**: 1 → 2 → 3 → 4 → 8
 
@@ -750,36 +771,36 @@ When user evolves/forks/branches:
 
 ### Files to Modify
 
-| File | Changes |
-|------|---------|
-| `scripts/capture.ts` | Create `users/[user]/ideas/` structure |
-| `agents/ideation/artifact-store.ts` | Replace with unified filesystem store |
-| `agents/ideation/system-prompt.ts` | Add `{{IDEA_CONTEXT}}` with layered loading |
-| `agents/ideation/orchestrator.ts` | Add idea type flow, load idea context |
-| `frontend/src/components/ideation/IdeaArtifactPanel.tsx` | Table+preview layout |
-| `frontend/src/components/ideation/SessionHeader.tsx` | Idea selector dropdown |
-| `frontend/src/components/ideation/IdeationSession.tsx` | Track linked idea |
-| `frontend/src/reducers/ideationReducer.ts` | Add viewMode, sessionGroups |
-| `server/routes/ideation.ts` | New endpoints for user/idea scoping |
-| `database/migrations/` | Add tables and columns |
+| File                                                     | Changes                                     |
+| -------------------------------------------------------- | ------------------------------------------- |
+| `scripts/capture.ts`                                     | Create `users/[user]/ideas/` structure      |
+| `agents/ideation/artifact-store.ts`                      | Replace with unified filesystem store       |
+| `agents/ideation/system-prompt.ts`                       | Add `{{IDEA_CONTEXT}}` with layered loading |
+| `agents/ideation/orchestrator.ts`                        | Add idea type flow, load idea context       |
+| `frontend/src/components/ideation/IdeaArtifactPanel.tsx` | Table+preview layout                        |
+| `frontend/src/components/ideation/SessionHeader.tsx`     | Idea selector dropdown                      |
+| `frontend/src/components/ideation/IdeationSession.tsx`   | Track linked idea                           |
+| `frontend/src/reducers/ideationReducer.ts`               | Add viewMode, sessionGroups                 |
+| `server/routes/ideation.ts`                              | New endpoints for user/idea scoping         |
+| `database/migrations/`                                   | Add tables and columns                      |
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `agents/ideation/unified-artifact-store.ts` | Filesystem-based artifact storage |
-| `agents/ideation/idea-context-builder.ts` | Build layered context for agent |
-| `agents/ideation/priority-manager.ts` | Manage document priority rankings |
-| `agents/ideation/document-classifier.ts` | Dynamic required/recommended/optional |
-| `agents/ideation/classification-rules.ts` | Rule definitions |
-| `agents/ideation/handoff-generator.ts` | Generate handoff briefs |
-| `agents/ideation/phase-manager.ts` | Manage phase transitions |
-| `agents/ideation/collaboration-detector.ts` | AI-driven opportunity matching |
-| `agents/ideation/sharing-manager.ts` | Manage privacy controls |
-| `agents/ideation/token-enforcer.ts` | 15k limit enforcement |
-| `agents/ideation/bloat-detector.ts` | Detect duplicate/overlapping files |
-| `utils/asset-manager.ts` | Binary asset handling |
-| `utils/mermaid-renderer.ts` | Render mermaid to SVG |
-| `utils/version-manager.ts` | Internal versioning |
-| `utils/idea-lineage.ts` | Handle evolutions, forks, branches |
-| `templates/*` | All guided templates (see Phase 1.5) |
+| File                                        | Purpose                               |
+| ------------------------------------------- | ------------------------------------- |
+| `agents/ideation/unified-artifact-store.ts` | Filesystem-based artifact storage     |
+| `agents/ideation/idea-context-builder.ts`   | Build layered context for agent       |
+| `agents/ideation/priority-manager.ts`       | Manage document priority rankings     |
+| `agents/ideation/document-classifier.ts`    | Dynamic required/recommended/optional |
+| `agents/ideation/classification-rules.ts`   | Rule definitions                      |
+| `agents/ideation/handoff-generator.ts`      | Generate handoff briefs               |
+| `agents/ideation/phase-manager.ts`          | Manage phase transitions              |
+| `agents/ideation/collaboration-detector.ts` | AI-driven opportunity matching        |
+| `agents/ideation/sharing-manager.ts`        | Manage privacy controls               |
+| `agents/ideation/token-enforcer.ts`         | 15k limit enforcement                 |
+| `agents/ideation/bloat-detector.ts`         | Detect duplicate/overlapping files    |
+| `utils/asset-manager.ts`                    | Binary asset handling                 |
+| `utils/mermaid-renderer.ts`                 | Render mermaid to SVG                 |
+| `utils/version-manager.ts`                  | Internal versioning                   |
+| `utils/idea-lineage.ts`                     | Handle evolutions, forks, branches    |
+| `templates/*`                               | All guided templates (see Phase 1.5)  |

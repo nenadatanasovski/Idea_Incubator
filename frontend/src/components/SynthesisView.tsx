@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import type { Synthesis } from '../types'
-import { scoreInterpretation } from '../types'
+import { useState } from "react";
+import type { Synthesis } from "../types";
+import { scoreInterpretation } from "../types";
 import {
   CheckCircle,
   XCircle,
@@ -17,117 +17,126 @@ import {
   ArrowRight,
   GitBranch,
   Trash2,
-} from 'lucide-react'
-import clsx from 'clsx'
+} from "lucide-react";
+import clsx from "clsx";
 
-export type EvaluationDecision = 'pursue' | 'iterate' | 'branch' | 'pause' | 'abandon'
+export type EvaluationDecision =
+  | "pursue"
+  | "iterate"
+  | "branch"
+  | "pause"
+  | "abandon";
 
 interface WeakCriterion {
-  criterion: string
-  category: string
-  previousScore?: number
-  finalScore: number
-  reasoning: string
-  debateChallenges?: string[]
+  criterion: string;
+  category: string;
+  previousScore?: number;
+  finalScore: number;
+  reasoning: string;
+  debateChallenges?: string[];
 }
 
 interface SynthesisViewProps {
-  synthesis: Synthesis | null
-  weakCriteria?: WeakCriterion[]
-  previousScore?: number
-  recommendation?: EvaluationDecision
-  onDecision?: (decision: EvaluationDecision, reason?: string) => void
+  synthesis: Synthesis | null;
+  weakCriteria?: WeakCriterion[];
+  previousScore?: number;
+  recommendation?: EvaluationDecision;
+  onDecision?: (decision: EvaluationDecision, reason?: string) => void;
 }
 
 const recommendationInfo = {
   PURSUE: {
     icon: Play,
-    label: 'Pursue',
-    description: 'This idea shows strong potential and should be actively developed',
-    color: 'bg-green-500',
-    textColor: 'text-green-700',
-    bgColor: 'bg-green-50',
+    label: "Pursue",
+    description:
+      "This idea shows strong potential and should be actively developed",
+    color: "bg-green-500",
+    textColor: "text-green-700",
+    bgColor: "bg-green-50",
   },
   REFINE: {
     icon: RefreshCw,
-    label: 'Refine',
-    description: 'This idea has potential but needs further development',
-    color: 'bg-yellow-500',
-    textColor: 'text-yellow-700',
-    bgColor: 'bg-yellow-50',
+    label: "Refine",
+    description: "This idea has potential but needs further development",
+    color: "bg-yellow-500",
+    textColor: "text-yellow-700",
+    bgColor: "bg-yellow-50",
   },
   PAUSE: {
     icon: Pause,
-    label: 'Pause',
-    description: 'This idea should be put on hold for now',
-    color: 'bg-orange-500',
-    textColor: 'text-orange-700',
-    bgColor: 'bg-orange-50',
+    label: "Pause",
+    description: "This idea should be put on hold for now",
+    color: "bg-orange-500",
+    textColor: "text-orange-700",
+    bgColor: "bg-orange-50",
   },
   ABANDON: {
     icon: XOctagon,
-    label: 'Abandon',
-    description: 'This idea is not viable and should be discontinued',
-    color: 'bg-red-500',
-    textColor: 'text-red-700',
-    bgColor: 'bg-red-50',
+    label: "Abandon",
+    description: "This idea is not viable and should be discontinued",
+    color: "bg-red-500",
+    textColor: "text-red-700",
+    bgColor: "bg-red-50",
   },
-}
+};
 
-const decisionConfig: Record<EvaluationDecision, {
-  label: string
-  description: string
-  icon: React.ComponentType<{ className?: string }>
-  color: string
-  bgColor: string
-}> = {
+const decisionConfig: Record<
+  EvaluationDecision,
+  {
+    label: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+    bgColor: string;
+  }
+> = {
   pursue: {
-    label: 'Pursue',
-    description: 'Move forward with implementation',
+    label: "Pursue",
+    description: "Move forward with implementation",
     icon: ArrowRight,
-    color: 'text-green-600',
-    bgColor: 'bg-green-50 hover:bg-green-100 border-green-200'
+    color: "text-green-600",
+    bgColor: "bg-green-50 hover:bg-green-100 border-green-200",
   },
   iterate: {
-    label: 'Iterate',
-    description: 'Address weaknesses and re-evaluate',
+    label: "Iterate",
+    description: "Address weaknesses and re-evaluate",
     icon: RefreshCw,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50 hover:bg-blue-100 border-blue-200'
+    color: "text-blue-600",
+    bgColor: "bg-blue-50 hover:bg-blue-100 border-blue-200",
   },
   branch: {
-    label: 'Branch',
-    description: 'Try a different approach as a variant',
+    label: "Branch",
+    description: "Try a different approach as a variant",
     icon: GitBranch,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50 hover:bg-purple-100 border-purple-200'
+    color: "text-purple-600",
+    bgColor: "bg-purple-50 hover:bg-purple-100 border-purple-200",
   },
   pause: {
-    label: 'Pause',
-    description: 'Set aside for now and return later',
+    label: "Pause",
+    description: "Set aside for now and return later",
     icon: Pause,
-    color: 'text-amber-600',
-    bgColor: 'bg-amber-50 hover:bg-amber-100 border-amber-200'
+    color: "text-amber-600",
+    bgColor: "bg-amber-50 hover:bg-amber-100 border-amber-200",
   },
   abandon: {
-    label: 'Abandon',
-    description: 'This idea is not viable',
+    label: "Abandon",
+    description: "This idea is not viable",
     icon: Trash2,
-    color: 'text-red-600',
-    bgColor: 'bg-red-50 hover:bg-red-100 border-red-200'
-  }
-}
+    color: "text-red-600",
+    bgColor: "bg-red-50 hover:bg-red-100 border-red-200",
+  },
+};
 
 export default function SynthesisView({
   synthesis,
   weakCriteria,
   previousScore: _previousScore,
   recommendation,
-  onDecision
+  onDecision,
 }: SynthesisViewProps) {
-  const [showStrengthsWeaknesses, setShowStrengthsWeaknesses] = useState(false)
-  const [showAssumptions, setShowAssumptions] = useState(false)
-  const [showQuestions, setShowQuestions] = useState(false)
+  const [showStrengthsWeaknesses, setShowStrengthsWeaknesses] = useState(false);
+  const [showAssumptions, setShowAssumptions] = useState(false);
+  const [showQuestions, setShowQuestions] = useState(false);
 
   if (!synthesis) {
     return (
@@ -138,12 +147,12 @@ export default function SynthesisView({
           Complete an evaluation to generate a synthesis
         </p>
       </div>
-    )
+    );
   }
 
-  const recInfo = recommendationInfo[synthesis.recommendation]
-  const RecIcon = recInfo.icon
-  const isPreliminary = synthesis.is_preliminary
+  const recInfo = recommendationInfo[synthesis.recommendation];
+  const RecIcon = recInfo.icon;
+  const isPreliminary = synthesis.is_preliminary;
 
   return (
     <div className="space-y-6">
@@ -153,10 +162,13 @@ export default function SynthesisView({
           <div className="flex items-start gap-3">
             <Lightbulb className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
             <div>
-              <h4 className="font-medium text-blue-900">Preliminary Synthesis</h4>
+              <h4 className="font-medium text-blue-900">
+                Preliminary Synthesis
+              </h4>
               <p className="text-sm text-blue-700 mt-1">
-                This synthesis is auto-generated based on your idea's readiness and development answers.
-                Run a full evaluation for comprehensive AI-powered analysis with debate and red team challenges.
+                This synthesis is auto-generated based on your idea's readiness
+                and development answers. Run a full evaluation for comprehensive
+                AI-powered analysis with debate and red team challenges.
               </p>
             </div>
           </div>
@@ -164,14 +176,21 @@ export default function SynthesisView({
       )}
 
       {/* Main Recommendation */}
-      <div className={clsx('card border-2', `border-${recInfo.color.replace('bg-', '')}`)}>
+      <div
+        className={clsx(
+          "card border-2",
+          `border-${recInfo.color.replace("bg-", "")}`,
+        )}
+      >
         <div className="flex items-start gap-4">
-          <div className={clsx('p-3 rounded-lg', recInfo.bgColor)}>
-            <RecIcon className={clsx('h-8 w-8', recInfo.textColor)} />
+          <div className={clsx("p-3 rounded-lg", recInfo.bgColor)}>
+            <RecIcon className={clsx("h-8 w-8", recInfo.textColor)} />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-gray-900">{recInfo.label}</h2>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {recInfo.label}
+              </h2>
               {synthesis.locked && (
                 <span className="badge bg-gray-100 text-gray-600 flex items-center gap-1">
                   <Lock className="h-3 w-3" />
@@ -184,7 +203,7 @@ export default function SynthesisView({
           <div className="text-right">
             <div
               className={`text-4xl font-bold ${scoreInterpretation.getColor(
-                synthesis.overall_score ?? 0
+                synthesis.overall_score ?? 0,
               )}`}
             >
               {(synthesis.overall_score ?? 0).toFixed(2)}
@@ -203,7 +222,7 @@ export default function SynthesisView({
           {/* Replace stale overall score in the text with the actual current score */}
           {synthesis.executive_summary?.replace(
             /overall score of \d+\.\d+\/10/gi,
-            `overall score of ${(synthesis.overall_score ?? 0).toFixed(2)}/10`
+            `overall score of ${(synthesis.overall_score ?? 0).toFixed(2)}/10`,
           )}
         </p>
       </div>
@@ -219,9 +238,12 @@ export default function SynthesisView({
               <CheckCircle className="h-5 w-5 text-green-500" />
               <XCircle className="h-5 w-5 text-red-500" />
             </div>
-            <span className="font-semibold text-gray-900">Strengths & Weaknesses</span>
+            <span className="font-semibold text-gray-900">
+              Strengths & Weaknesses
+            </span>
             <span className="text-sm text-gray-500">
-              {synthesis.key_strengths.length} strengths • {synthesis.key_weaknesses.length} weaknesses
+              {synthesis.key_strengths.length} strengths •{" "}
+              {synthesis.key_weaknesses.length} weaknesses
             </span>
           </div>
           {showStrengthsWeaknesses ? (
@@ -277,7 +299,9 @@ export default function SynthesisView({
           >
             <div className="flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              <span className="font-semibold text-gray-900">Critical Assumptions</span>
+              <span className="font-semibold text-gray-900">
+                Critical Assumptions
+              </span>
               <span className="text-sm text-gray-500">
                 {synthesis.critical_assumptions.length} items
               </span>
@@ -313,7 +337,9 @@ export default function SynthesisView({
           >
             <div className="flex items-center gap-3">
               <HelpCircle className="h-5 w-5 text-blue-500" />
-              <span className="font-semibold text-gray-900">Unresolved Questions</span>
+              <span className="font-semibold text-gray-900">
+                Unresolved Questions
+              </span>
               <span className="text-sm text-gray-500">
                 {synthesis.unresolved_questions.length} items
               </span>
@@ -343,11 +369,15 @@ export default function SynthesisView({
       {/* Key Weaknesses - only shown when decision options are available */}
       {onDecision && weakCriteria && weakCriteria.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Key Weaknesses</h4>
+          <h4 className="text-sm font-medium text-gray-700 mb-3">
+            Key Weaknesses
+          </h4>
           <div className="space-y-2">
             {weakCriteria.slice(0, 5).map((criterion, idx) => {
-              const hasDebateForCriterion = criterion.debateChallenges && criterion.debateChallenges.length > 0
-              const hasPreviousScore = criterion.previousScore !== undefined
+              const hasDebateForCriterion =
+                criterion.debateChallenges &&
+                criterion.debateChallenges.length > 0;
+              const hasPreviousScore = criterion.previousScore !== undefined;
               return (
                 <div
                   key={idx}
@@ -361,11 +391,14 @@ export default function SynthesisView({
                       <span className="text-red-600 font-semibold">
                         {criterion.finalScore.toFixed(1)}
                       </span>
-                      {hasPreviousScore && Math.abs(criterion.finalScore - criterion.previousScore!) >= 0.5 && (
-                        <span className="text-xs text-gray-400">
-                          (prev: {criterion.previousScore!.toFixed(1)})
-                        </span>
-                      )}
+                      {hasPreviousScore &&
+                        Math.abs(
+                          criterion.finalScore - criterion.previousScore!,
+                        ) >= 0.5 && (
+                          <span className="text-xs text-gray-400">
+                            (prev: {criterion.previousScore!.toFixed(1)})
+                          </span>
+                        )}
                       <span className="text-gray-400">/10</span>
                     </div>
                   </div>
@@ -374,10 +407,12 @@ export default function SynthesisView({
                       {criterion.debateChallenges![0]}
                     </p>
                   ) : (
-                    <p className="text-sm text-red-700">{criterion.reasoning}</p>
+                    <p className="text-sm text-red-700">
+                      {criterion.reasoning}
+                    </p>
                   )}
                 </div>
-              )
+              );
             })}
           </div>
         </div>
@@ -386,38 +421,45 @@ export default function SynthesisView({
       {/* Decision Options */}
       {onDecision && (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">Choose your next step:</p>
+          <p className="text-sm font-medium text-gray-700">
+            Choose your next step:
+          </p>
 
           {Object.entries(decisionConfig).map(([key, config]) => {
-            const Icon = config.icon
-            const isRecommended = key === recommendation
+            const Icon = config.icon;
+            const isRecommended = key === recommendation;
 
             return (
               <button
                 key={key}
                 onClick={() => onDecision(key as EvaluationDecision)}
                 className={clsx(
-                  'w-full px-4 py-3 rounded-lg border-2 transition-all text-left',
+                  "w-full px-4 py-3 rounded-lg border-2 transition-all text-left",
                   config.bgColor,
-                  isRecommended && 'ring-2 ring-primary-500 ring-offset-2'
+                  isRecommended && "ring-2 ring-primary-500 ring-offset-2",
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={clsx('h-5 w-5 flex-shrink-0', config.color)} />
-                  <span className="font-medium text-gray-900">{config.label}</span>
+                  <Icon
+                    className={clsx("h-5 w-5 flex-shrink-0", config.color)}
+                  />
+                  <span className="font-medium text-gray-900">
+                    {config.label}
+                  </span>
                   {isRecommended && (
                     <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full">
                       Recommended
                     </span>
                   )}
-                  <span className="text-sm text-gray-600">— {config.description}</span>
+                  <span className="text-sm text-gray-600">
+                    — {config.description}
+                  </span>
                 </div>
               </button>
-            )
+            );
           })}
         </div>
       )}
-
     </div>
-  )
+  );
 }

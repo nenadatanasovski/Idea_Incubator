@@ -1,20 +1,20 @@
 // server/communication/question-delivery.ts
 // COM-006: Question Delivery with Inline Buttons
 
-import { TelegramSender } from './telegram-sender';
-import { AgentType, InlineButton } from './types';
+import { TelegramSender } from "./telegram-sender";
+import { AgentType, InlineButton } from "./types";
 
 export type QuestionType =
-  | 'BLOCKING'
-  | 'CLARIFYING'
-  | 'CONFIRMING'
-  | 'PREFERENCE'
-  | 'ALERT'
-  | 'ESCALATION'
-  | 'APPROVAL'
-  | 'DECISION';
+  | "BLOCKING"
+  | "CLARIFYING"
+  | "CONFIRMING"
+  | "PREFERENCE"
+  | "ALERT"
+  | "ESCALATION"
+  | "APPROVAL"
+  | "DECISION";
 
-type MessageFormat = 'concise' | 'standard' | 'detailed' | 'urgent';
+type MessageFormat = "concise" | "standard" | "detailed" | "urgent";
 
 export interface QuestionOption {
   label: string;
@@ -33,40 +33,40 @@ export interface Question {
   priority: number;
   blocking: boolean;
   // App/project context - critical for multi-project scenarios
-  projectName?: string;      // e.g., "Vibe Platform", "My App"
-  projectSlug?: string;      // e.g., "vibe-platform", "my-app"
-  taskId?: string;           // e.g., "EXE-001"
-  taskListName?: string;     // e.g., "SPEC-IMPLEMENTATION-GAPS.md"
+  projectName?: string; // e.g., "Vibe Platform", "My App"
+  projectSlug?: string; // e.g., "vibe-platform", "my-app"
+  taskId?: string; // e.g., "EXE-001"
+  taskListName?: string; // e.g., "SPEC-IMPLEMENTATION-GAPS.md"
 }
 
 export interface DeliveryResult {
   success: boolean;
   messageId?: number;
-  channel: 'telegram' | 'email';
+  channel: "telegram" | "email";
   deliveredAt: Date;
   error?: string;
 }
 
 const FORMAT_CONFIG: Record<QuestionType, MessageFormat> = {
-  ALERT: 'concise',
-  CLARIFYING: 'concise',
-  CONFIRMING: 'standard',
-  PREFERENCE: 'standard',
-  BLOCKING: 'standard',
-  DECISION: 'detailed',
-  ESCALATION: 'detailed',
-  APPROVAL: 'detailed',
+  ALERT: "concise",
+  CLARIFYING: "concise",
+  CONFIRMING: "standard",
+  PREFERENCE: "standard",
+  BLOCKING: "standard",
+  DECISION: "detailed",
+  ESCALATION: "detailed",
+  APPROVAL: "detailed",
 };
 
 const TYPE_EMOJI: Record<QuestionType, string> = {
-  ALERT: 'ℹ️',
-  CLARIFYING: '❓',
-  CONFIRMING: '✅',
-  PREFERENCE: '🎯',
-  BLOCKING: '🔴',
-  DECISION: '🤔',
-  ESCALATION: '⚠️',
-  APPROVAL: '🚨',
+  ALERT: "ℹ️",
+  CLARIFYING: "❓",
+  CONFIRMING: "✅",
+  PREFERENCE: "🎯",
+  BLOCKING: "🔴",
+  DECISION: "🤔",
+  ESCALATION: "⚠️",
+  APPROVAL: "🚨",
 };
 
 export class QuestionDelivery {
@@ -88,28 +88,32 @@ export class QuestionDelivery {
 
     let result: DeliveryResult;
 
-    if (question.type === 'ALERT') {
+    if (question.type === "ALERT") {
       // Alerts don't need buttons
       const sendResult = await this.sender.sendMessage({
         agentType,
         text: message,
-        parseMode: 'Markdown',
+        parseMode: "Markdown",
       });
 
       result = {
         success: sendResult.success,
         messageId: sendResult.messageId,
-        channel: 'telegram',
+        channel: "telegram",
         deliveredAt: new Date(),
         error: sendResult.error,
       };
     } else {
-      const sendResult = await this.sender.sendWithButtons(agentType, message, buttons);
+      const sendResult = await this.sender.sendWithButtons(
+        agentType,
+        message,
+        buttons,
+      );
 
       result = {
         success: sendResult.success,
         messageId: sendResult.messageId,
-        channel: 'telegram',
+        channel: "telegram",
         deliveredAt: new Date(),
         error: sendResult.error,
       };
@@ -134,13 +138,13 @@ export class QuestionDelivery {
     const typeLabel = this.getTypeLabel(question.type);
 
     switch (format) {
-      case 'concise':
+      case "concise":
         return this.formatConcise(question, emoji, typeLabel);
-      case 'standard':
+      case "standard":
         return this.formatStandard(question, emoji, typeLabel);
-      case 'detailed':
+      case "detailed":
         return this.formatDetailed(question, emoji, typeLabel);
-      case 'urgent':
+      case "urgent":
         return this.formatUrgent(question, emoji, typeLabel);
       default:
         return this.formatStandard(question, emoji, typeLabel);
@@ -153,7 +157,7 @@ export class QuestionDelivery {
    */
   private escapeMarkdown(text: string): string {
     // Only escape underscores and asterisks for basic Telegram Markdown
-    return text.replace(/[_*]/g, '\\$&');
+    return text.replace(/[_*]/g, "\\$&");
   }
 
   /**
@@ -172,16 +176,16 @@ export class QuestionDelivery {
       parts.push(`🎯 Task: \`${q.taskId}\``);
     }
     if (q.taskListName) {
-      const shortName = q.taskListName.split('/').pop() || q.taskListName;
+      const shortName = q.taskListName.split("/").pop() || q.taskListName;
       // Escape special chars in task list name
       const safeName = this.escapeMarkdown(shortName);
       parts.push(`📋 ${safeName}`);
     }
 
     if (parts.length > 0) {
-      return parts.join(' | ') + '\n\n';
+      return parts.join(" | ") + "\n\n";
     }
-    return '';
+    return "";
   }
 
   private formatConcise(q: Question, emoji: string, typeLabel: string): string {
@@ -189,12 +193,16 @@ export class QuestionDelivery {
     return `${header}${emoji} *${typeLabel}*\n\n${q.content}`;
   }
 
-  private formatStandard(q: Question, emoji: string, typeLabel: string): string {
+  private formatStandard(
+    q: Question,
+    emoji: string,
+    typeLabel: string,
+  ): string {
     const header = this.buildProjectHeader(q);
     let msg = `${header}${emoji} *${typeLabel}*\n\n${q.content}`;
 
     if (q.options.length > 0) {
-      msg += '\n\n*Options:*';
+      msg += "\n\n*Options:*";
       for (const opt of q.options) {
         msg += `\n• ${opt.label}`;
         if (opt.description) {
@@ -210,12 +218,16 @@ export class QuestionDelivery {
     return msg;
   }
 
-  private formatDetailed(q: Question, emoji: string, typeLabel: string): string {
+  private formatDetailed(
+    q: Question,
+    emoji: string,
+    typeLabel: string,
+  ): string {
     const header = this.buildProjectHeader(q);
     let msg = `${header}${emoji} *${typeLabel}*\n\n${q.content}`;
 
     if (q.options.length > 0) {
-      msg += '\n\n*Options:*';
+      msg += "\n\n*Options:*";
       for (const opt of q.options) {
         msg += `\n\n*${opt.label}*`;
         if (opt.description) {
@@ -225,7 +237,7 @@ export class QuestionDelivery {
     }
 
     if (q.context) {
-      msg += '\n\n*Context:*';
+      msg += "\n\n*Context:*";
       const ctx = q.context as Record<string, unknown>;
       if (ctx.rationale) {
         msg += `\n_${ctx.rationale}_`;
@@ -255,7 +267,7 @@ export class QuestionDelivery {
    * Generate inline keyboard buttons for the question.
    */
   private generateButtons(question: Question): InlineButton[][] {
-    if (question.type === 'ALERT') {
+    if (question.type === "ALERT") {
       return []; // No buttons for alerts
     }
 
@@ -280,10 +292,12 @@ export class QuestionDelivery {
     }
 
     // Add "Other" option for free-text responses
-    buttons.push([{
-      text: '💬 Other (type reply)',
-      callbackData: `answer:${question.id}:__other__`,
-    }]);
+    buttons.push([
+      {
+        text: "💬 Other (type reply)",
+        callbackData: `answer:${question.id}:__other__`,
+      },
+    ]);
 
     return buttons;
   }
@@ -293,14 +307,14 @@ export class QuestionDelivery {
    */
   private getTypeLabel(type: QuestionType): string {
     const labels: Record<QuestionType, string> = {
-      ALERT: 'Alert',
-      CLARIFYING: 'Clarifying Question',
-      CONFIRMING: 'Confirmation Needed',
-      PREFERENCE: 'Your Preference?',
-      BLOCKING: 'Blocking Question',
-      DECISION: 'Decision Required',
-      ESCALATION: 'Escalation',
-      APPROVAL: 'Approval Required',
+      ALERT: "Alert",
+      CLARIFYING: "Clarifying Question",
+      CONFIRMING: "Confirmation Needed",
+      PREFERENCE: "Your Preference?",
+      BLOCKING: "Blocking Question",
+      DECISION: "Decision Required",
+      ESCALATION: "Escalation",
+      APPROVAL: "Approval Required",
     };
     return labels[type];
   }
@@ -310,12 +324,12 @@ export class QuestionDelivery {
    */
   private extractAgentType(agentId: string): AgentType {
     const id = agentId.toLowerCase();
-    if (id.includes('monitor')) return 'monitoring';
-    if (id.includes('orchestrat')) return 'orchestrator';
-    if (id.includes('spec')) return 'spec';
-    if (id.includes('build')) return 'build';
-    if (id.includes('valid')) return 'validation';
-    if (id.includes('sia')) return 'sia';
-    return 'system';
+    if (id.includes("monitor")) return "monitoring";
+    if (id.includes("orchestrat")) return "orchestrator";
+    if (id.includes("spec")) return "spec";
+    if (id.includes("build")) return "build";
+    if (id.includes("valid")) return "validation";
+    if (id.includes("sia")) return "sia";
+    return "system";
   }
 }

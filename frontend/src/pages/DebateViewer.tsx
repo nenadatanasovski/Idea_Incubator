@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Wifi,
   WifiOff,
@@ -18,9 +18,9 @@ import {
   Terminal,
   ChevronUp,
   ArrowRight,
-} from 'lucide-react'
-import { useDebateStream, type DebateEvent } from '../hooks/useDebateStream'
-import { useIdeas } from '../hooks/useIdeas'
+} from "lucide-react";
+import { useDebateStream, type DebateEvent } from "../hooks/useDebateStream";
+import { useIdeas } from "../hooks/useIdeas";
 import {
   getSynthesis,
   getEvaluations,
@@ -28,72 +28,117 @@ import {
   recordGateDecision,
   updateIdeaStatus,
   updateIncubationPhase,
-} from '../api/client'
-import EvaluationAdvisoryModal, { type EvaluationDecision } from '../components/EvaluationAdvisoryModal'
+} from "../api/client";
+import EvaluationAdvisoryModal, {
+  type EvaluationDecision,
+} from "../components/EvaluationAdvisoryModal";
 
 // Phase indicator colors
 const phaseColors = {
-  idle: 'bg-gray-500',
-  evaluating: 'bg-blue-500',
-  challenging: 'bg-red-500',
-  judging: 'bg-purple-500',
-  synthesizing: 'bg-amber-500',
-  complete: 'bg-green-500',
-}
+  idle: "bg-gray-500",
+  evaluating: "bg-blue-500",
+  challenging: "bg-red-500",
+  judging: "bg-purple-500",
+  synthesizing: "bg-amber-500",
+  complete: "bg-green-500",
+};
 
 const phaseLabels = {
-  idle: 'Waiting',
-  evaluating: 'Evaluating',
-  challenging: 'Challenging',
-  judging: 'Judging',
-  synthesizing: 'Synthesizing',
-  complete: 'Complete',
-}
+  idle: "Waiting",
+  evaluating: "Evaluating",
+  challenging: "Challenging",
+  judging: "Judging",
+  synthesizing: "Synthesizing",
+  complete: "Complete",
+};
 
 // Category colors
-const categoryColors: Record<string, { bg: string; text: string; border: string; header: string }> = {
-  problem: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', header: 'bg-blue-100' },
-  solution: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', header: 'bg-green-100' },
-  feasibility: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', header: 'bg-amber-100' },
-  fit: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', header: 'bg-purple-100' },
-  market: { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200', header: 'bg-pink-100' },
-  risk: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', header: 'bg-red-100' },
-}
+const categoryColors: Record<
+  string,
+  { bg: string; text: string; border: string; header: string }
+> = {
+  problem: {
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    border: "border-blue-200",
+    header: "bg-blue-100",
+  },
+  solution: {
+    bg: "bg-green-50",
+    text: "text-green-700",
+    border: "border-green-200",
+    header: "bg-green-100",
+  },
+  feasibility: {
+    bg: "bg-amber-50",
+    text: "text-amber-700",
+    border: "border-amber-200",
+    header: "bg-amber-100",
+  },
+  fit: {
+    bg: "bg-purple-50",
+    text: "text-purple-700",
+    border: "border-purple-200",
+    header: "bg-purple-100",
+  },
+  market: {
+    bg: "bg-pink-50",
+    text: "text-pink-700",
+    border: "border-pink-200",
+    header: "bg-pink-100",
+  },
+  risk: {
+    bg: "bg-red-50",
+    text: "text-red-700",
+    border: "border-red-200",
+    header: "bg-red-100",
+  },
+};
 
 // A single debate for one criterion
 interface CriterionDebate {
-  criterion: string
-  category: string
-  startTime: string
+  criterion: string;
+  category: string;
+  startTime: string;
   // Initial assessment (before debate)
-  evaluatorAssessment?: { content: string; score?: number; timestamp: string }
+  evaluatorAssessment?: { content: string; score?: number; timestamp: string };
   // Debate rounds with challenges, defenses, and verdicts
-  rounds: DebateRound[]
-  originalScore?: number
-  finalScore?: number
-  isComplete: boolean
-  isSkipped: boolean  // Whether debate was skipped (budget/error)
-  skipReason?: string // Reason for skipping
+  rounds: DebateRound[];
+  originalScore?: number;
+  finalScore?: number;
+  isComplete: boolean;
+  isSkipped: boolean; // Whether debate was skipped (budget/error)
+  skipReason?: string; // Reason for skipping
 }
 
 // A round within a debate
 interface DebateRound {
-  roundNumber: number
-  challenges: { persona: string; content: string; timestamp: string }[]
-  defenses: { content: string; concedes?: boolean; adjustedScore?: number; timestamp: string }[]
-  arbiterVerdicts: { content: string; adjustment?: number; winner?: string; timestamp: string }[]
+  roundNumber: number;
+  challenges: { persona: string; content: string; timestamp: string }[];
+  defenses: {
+    content: string;
+    concedes?: boolean;
+    adjustedScore?: number;
+    timestamp: string;
+  }[];
+  arbiterVerdicts: {
+    content: string;
+    adjustment?: number;
+    winner?: string;
+    timestamp: string;
+  }[];
 }
 
 // Group events by criterion to create isolated debates
 function groupEventsByCriterion(events: DebateEvent[]): CriterionDebate[] {
-  const debates: Map<string, CriterionDebate> = new Map()
-  const roundCounters: Map<string, number> = new Map()
+  const debates: Map<string, CriterionDebate> = new Map();
+  const roundCounters: Map<string, number> = new Map();
 
   for (const event of events) {
-    const criterion = event.data.criterion
-    if (!criterion) continue
+    const criterion = event.data.criterion;
+    if (!criterion) continue;
 
-    const category = (event.data.category || 'problem').toLowerCase()
+    const category = (event.data.category || "problem").toLowerCase();
 
     // Initialize debate if first event for this criterion
     if (!debates.has(criterion)) {
@@ -104,169 +149,196 @@ function groupEventsByCriterion(events: DebateEvent[]): CriterionDebate[] {
         rounds: [],
         isComplete: false,
         isSkipped: false,
-      })
-      roundCounters.set(criterion, 0)
+      });
+      roundCounters.set(criterion, 0);
     }
 
-    const debate = debates.get(criterion)!
+    const debate = debates.get(criterion)!;
 
     switch (event.type) {
       // Criterion debate start (from debate.ts) - this is the authoritative source
-      case 'debate:criterion:start':
+      case "debate:criterion:start":
         // Always set/update the assessment - criterionStart is the authoritative event
         debate.evaluatorAssessment = {
-          content: event.data.content || debate.evaluatorAssessment?.content || '',
+          content:
+            event.data.content || debate.evaluatorAssessment?.content || "",
           score: event.data.score ?? debate.evaluatorAssessment?.score,
           timestamp: event.timestamp,
-        }
-        debate.originalScore = event.data.score ?? debate.originalScore
-        break
+        };
+        debate.originalScore = event.data.score ?? debate.originalScore;
+        break;
 
       // Initial assessment (from specialized-evaluators.ts, before debate)
-      case 'evaluator:initial':
+      case "evaluator:initial":
         // Merge with existing if present, otherwise create new
         // This handles the case where evaluator:initial arrives before or after criterionStart
         debate.evaluatorAssessment = {
-          content: event.data.content || debate.evaluatorAssessment?.content || '',
+          content:
+            event.data.content || debate.evaluatorAssessment?.content || "",
           score: event.data.score ?? debate.evaluatorAssessment?.score,
           timestamp: debate.evaluatorAssessment?.timestamp || event.timestamp,
+        };
+        if (
+          event.data.score !== undefined &&
+          debate.originalScore === undefined
+        ) {
+          debate.originalScore = event.data.score;
         }
-        if (event.data.score !== undefined && debate.originalScore === undefined) {
-          debate.originalScore = event.data.score
-        }
-        break
+        break;
 
       // DEPRECATED: Keep for backwards compatibility
-      case 'evaluator:speaking':
+      case "evaluator:speaking":
         if (!debate.evaluatorAssessment) {
           debate.evaluatorAssessment = {
-            content: event.data.content || '',
+            content: event.data.content || "",
             score: event.data.score,
             timestamp: event.timestamp,
-          }
+          };
         }
-        break
+        break;
 
       // Round started - create new round
-      case 'debate:round:started': {
-        const roundNum = event.data.roundNumber || (roundCounters.get(criterion) || 0) + 1
-        roundCounters.set(criterion, roundNum)
-        if (!debate.rounds.find(r => r.roundNumber === roundNum)) {
-          debate.rounds.push({ roundNumber: roundNum, challenges: [], defenses: [], arbiterVerdicts: [] })
+      case "debate:round:started": {
+        const roundNum =
+          event.data.roundNumber || (roundCounters.get(criterion) || 0) + 1;
+        roundCounters.set(criterion, roundNum);
+        if (!debate.rounds.find((r) => r.roundNumber === roundNum)) {
+          debate.rounds.push({
+            roundNumber: roundNum,
+            challenges: [],
+            defenses: [],
+            arbiterVerdicts: [],
+          });
         }
-        break
+        break;
       }
 
       // Red team challenge
-      case 'redteam:challenge': {
-        const roundNum = event.data.roundNumber || roundCounters.get(criterion) || 1
-        let round = debate.rounds.find(r => r.roundNumber === roundNum)
+      case "redteam:challenge": {
+        const roundNum =
+          event.data.roundNumber || roundCounters.get(criterion) || 1;
+        let round = debate.rounds.find((r) => r.roundNumber === roundNum);
         if (!round) {
-          round = { roundNumber: roundNum, challenges: [], defenses: [], arbiterVerdicts: [] }
-          debate.rounds.push(round)
-          roundCounters.set(criterion, roundNum)
+          round = {
+            roundNumber: roundNum,
+            challenges: [],
+            defenses: [],
+            arbiterVerdicts: [],
+          };
+          debate.rounds.push(round);
+          roundCounters.set(criterion, roundNum);
         }
         round.challenges.push({
-          persona: event.data.persona || 'Red Team',
-          content: event.data.content || '',
+          persona: event.data.persona || "Red Team",
+          content: event.data.content || "",
           timestamp: event.timestamp,
-        })
-        break
+        });
+        break;
       }
 
       // NEW: Evaluator defense (during debate)
-      case 'evaluator:defense': {
-        const roundNum = roundCounters.get(criterion) || 1
-        let round = debate.rounds.find(r => r.roundNumber === roundNum)
+      case "evaluator:defense": {
+        const roundNum = roundCounters.get(criterion) || 1;
+        let round = debate.rounds.find((r) => r.roundNumber === roundNum);
         if (!round) {
-          round = { roundNumber: roundNum, challenges: [], defenses: [], arbiterVerdicts: [] }
-          debate.rounds.push(round)
+          round = {
+            roundNumber: roundNum,
+            challenges: [],
+            defenses: [],
+            arbiterVerdicts: [],
+          };
+          debate.rounds.push(round);
         }
         round.defenses.push({
-          content: event.data.content || '',
-          concedes: event.data.message === 'Evaluator concedes this point',
+          content: event.data.content || "",
+          concedes: event.data.message === "Evaluator concedes this point",
           adjustedScore: event.data.score,
           timestamp: event.timestamp,
-        })
-        break
+        });
+        break;
       }
 
       // Arbiter verdict
-      case 'arbiter:verdict': {
-        const roundNum = roundCounters.get(criterion) || 1
-        let round = debate.rounds.find(r => r.roundNumber === roundNum)
+      case "arbiter:verdict": {
+        const roundNum = roundCounters.get(criterion) || 1;
+        let round = debate.rounds.find((r) => r.roundNumber === roundNum);
         if (!round) {
-          round = { roundNumber: roundNum, challenges: [], defenses: [], arbiterVerdicts: [] }
-          debate.rounds.push(round)
+          round = {
+            roundNumber: roundNum,
+            challenges: [],
+            defenses: [],
+            arbiterVerdicts: [],
+          };
+          debate.rounds.push(round);
         }
         round.arbiterVerdicts.push({
-          content: event.data.verdict || event.data.content || '',
+          content: event.data.verdict || event.data.content || "",
           adjustment: event.data.adjustment,
           winner: event.data.message,
           timestamp: event.timestamp,
-        })
-        break
+        });
+        break;
       }
 
       // DEPRECATED: Keep for backwards compatibility
-      case 'debate:round:complete':
-        debate.finalScore = event.data.score
-        debate.isComplete = true
-        break
+      case "debate:round:complete":
+        debate.finalScore = event.data.score;
+        debate.isComplete = true;
+        break;
 
       // Criterion debate complete
-      case 'debate:criterion:complete':
-        debate.finalScore = event.data.score
-        debate.isComplete = true
-        break
+      case "debate:criterion:complete":
+        debate.finalScore = event.data.score;
+        debate.isComplete = true;
+        break;
 
       // Criterion debate skipped (budget/error)
-      case 'debate:criterion:skipped':
-        debate.finalScore = event.data.score
-        debate.originalScore = event.data.score
-        debate.isComplete = true
-        debate.isSkipped = true
-        debate.skipReason = event.data.message || 'Skipped'
-        break
+      case "debate:criterion:skipped":
+        debate.finalScore = event.data.score;
+        debate.originalScore = event.data.score;
+        debate.isComplete = true;
+        debate.isSkipped = true;
+        debate.skipReason = event.data.message || "Skipped";
+        break;
     }
   }
 
   // Sort debates by start time
   return Array.from(debates.values()).sort(
-    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-  )
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+  );
 }
 
 // Format timestamp
 function formatTime(timestamp: string): string {
-  return new Date(timestamp).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
+  return new Date(timestamp).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 // Event type colors for the log
 const eventTypeColors: Record<string, string> = {
-  'debate:started': 'text-green-600',
-  'debate:criterion:start': 'text-blue-600',
-  'debate:round:started': 'text-gray-600',
-  'evaluator:initial': 'text-blue-500',
-  'evaluator:defense': 'text-blue-400',
-  'redteam:challenge': 'text-red-500',
-  'arbiter:verdict': 'text-purple-500',
-  'debate:round:complete': 'text-gray-500',
-  'debate:criterion:complete': 'text-green-500',
-  'debate:complete': 'text-green-700',
-  'synthesis:started': 'text-amber-500',
-  'synthesis:complete': 'text-amber-600',
-  'api:call': 'text-cyan-500',
-  'budget:status': 'text-green-400',
-  'error': 'text-red-700',
-  'connected': 'text-green-400',
-}
+  "debate:started": "text-green-600",
+  "debate:criterion:start": "text-blue-600",
+  "debate:round:started": "text-gray-600",
+  "evaluator:initial": "text-blue-500",
+  "evaluator:defense": "text-blue-400",
+  "redteam:challenge": "text-red-500",
+  "arbiter:verdict": "text-purple-500",
+  "debate:round:complete": "text-gray-500",
+  "debate:criterion:complete": "text-green-500",
+  "debate:complete": "text-green-700",
+  "synthesis:started": "text-amber-500",
+  "synthesis:complete": "text-amber-600",
+  "api:call": "text-cyan-500",
+  "budget:status": "text-green-400",
+  error: "text-red-700",
+  connected: "text-green-400",
+};
 
-type LogTab = 'events' | 'api';
+type LogTab = "events" | "api";
 
 // Event Log Panel component with tabs
 function EventLogPanel({
@@ -274,42 +346,47 @@ function EventLogPanel({
   isOpen,
   onToggle,
 }: {
-  events: DebateEvent[]
-  isOpen: boolean
-  onToggle: () => void
+  events: DebateEvent[];
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
-  const logEndRef = useRef<HTMLDivElement>(null)
-  const [activeTab, setActiveTab] = useState<LogTab>('events')
+  const logEndRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState<LogTab>("events");
 
   // Filter events based on active tab
   const filteredEvents = useMemo(() => {
-    if (activeTab === 'api') {
-      return events.filter(e => e.type === 'api:call')
+    if (activeTab === "api") {
+      return events.filter((e) => e.type === "api:call");
     }
     // For 'events' tab, show all non-api events
-    return events.filter(e => e.type !== 'api:call')
-  }, [events, activeTab])
+    return events.filter((e) => e.type !== "api:call");
+  }, [events, activeTab]);
 
   // Count API calls for badge
-  const apiCallCount = useMemo(() =>
-    events.filter(e => e.type === 'api:call').length
-  , [events])
+  const apiCallCount = useMemo(
+    () => events.filter((e) => e.type === "api:call").length,
+    [events],
+  );
 
   // Calculate total API cost
-  const totalApiCost = useMemo(() =>
-    events
-      .filter(e => e.type === 'api:call')
-      .reduce((sum, e) => sum + (e.data.cost as number || 0), 0)
-  , [events])
+  const totalApiCost = useMemo(
+    () =>
+      events
+        .filter((e) => e.type === "api:call")
+        .reduce((sum, e) => sum + ((e.data.cost as number) || 0), 0),
+    [events],
+  );
 
   useEffect(() => {
     if (isOpen) {
-      logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      logEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [filteredEvents.length, isOpen])
+  }, [filteredEvents.length, isOpen]);
 
   return (
-    <div className={`bg-gray-900 text-gray-100 transition-all duration-300 ${isOpen ? 'h-64' : 'h-10'}`}>
+    <div
+      className={`bg-gray-900 text-gray-100 transition-all duration-300 ${isOpen ? "h-64" : "h-10"}`}
+    >
       {/* Header - clickable to toggle */}
       <button
         onClick={onToggle}
@@ -318,11 +395,15 @@ function EventLogPanel({
         <div className="flex items-center gap-2">
           <Terminal className="h-4 w-4 text-gray-400" />
           <span className="text-sm font-medium">Event Log</span>
-          <span className="text-xs text-gray-500">({events.length} events)</span>
+          <span className="text-xs text-gray-500">
+            ({events.length} events)
+          </span>
         </div>
         <div className="flex items-center gap-2">
           {!isOpen && events.length > 0 && (
-            <span className={`text-xs ${eventTypeColors[events[events.length - 1]?.type] || 'text-gray-400'}`}>
+            <span
+              className={`text-xs ${eventTypeColors[events[events.length - 1]?.type] || "text-gray-400"}`}
+            >
               Latest: {events[events.length - 1]?.type}
             </span>
           )}
@@ -340,21 +421,27 @@ function EventLogPanel({
           {/* Tab bar */}
           <div className="flex border-b border-gray-700 px-2">
             <button
-              onClick={(e) => { e.stopPropagation(); setActiveTab('events'); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTab("events");
+              }}
               className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                activeTab === 'events'
-                  ? 'text-white border-b-2 border-blue-500'
-                  : 'text-gray-400 hover:text-gray-200'
+                activeTab === "events"
+                  ? "text-white border-b-2 border-blue-500"
+                  : "text-gray-400 hover:text-gray-200"
               }`}
             >
               Events ({filteredEvents.length})
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); setActiveTab('api'); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTab("api");
+              }}
               className={`px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                activeTab === 'api'
-                  ? 'text-white border-b-2 border-cyan-500'
-                  : 'text-gray-400 hover:text-gray-200'
+                activeTab === "api"
+                  ? "text-white border-b-2 border-cyan-500"
+                  : "text-gray-400 hover:text-gray-200"
               }`}
             >
               API Calls
@@ -375,42 +462,96 @@ function EventLogPanel({
           <div className="flex-1 overflow-y-auto font-mono text-xs p-2 space-y-1">
             {filteredEvents.length === 0 ? (
               <div className="text-gray-500 text-center py-4">
-                {activeTab === 'api' ? 'No API calls yet...' : 'No events yet...'}
+                {activeTab === "api"
+                  ? "No API calls yet..."
+                  : "No events yet..."}
               </div>
             ) : (
               <>
                 {filteredEvents.slice(-100).map((event, idx) => (
-                  <div key={`${event.timestamp}-${idx}`} className="flex gap-2 hover:bg-gray-800 px-1 rounded">
-                    <span className="text-gray-500 shrink-0">{formatTime(event.timestamp)}</span>
-                    {activeTab === 'api' ? (
+                  <div
+                    key={`${event.timestamp}-${idx}`}
+                    className="flex gap-2 hover:bg-gray-800 px-1 rounded"
+                  >
+                    <span className="text-gray-500 shrink-0">
+                      {formatTime(event.timestamp)}
+                    </span>
+                    {activeTab === "api" ? (
                       // API call format
                       <>
-                        <span className="text-cyan-400 shrink-0">[{event.data.message}]</span>
+                        <span className="text-cyan-400 shrink-0">
+                          [{event.data.message}]
+                        </span>
                         <span className="text-gray-300">
-                          <span className="text-blue-300">{(event.data.inputTokens as number || 0).toLocaleString()}</span>
+                          <span className="text-blue-300">
+                            {(
+                              (event.data.inputTokens as number) || 0
+                            ).toLocaleString()}
+                          </span>
                           <span className="text-gray-500"> in / </span>
-                          <span className="text-purple-300">{(event.data.outputTokens as number || 0).toLocaleString()}</span>
+                          <span className="text-purple-300">
+                            {(
+                              (event.data.outputTokens as number) || 0
+                            ).toLocaleString()}
+                          </span>
                           <span className="text-gray-500"> out</span>
-                          <span className="text-green-400 ml-2">${(event.data.cost as number || 0).toFixed(4)}</span>
+                          <span className="text-green-400 ml-2">
+                            ${((event.data.cost as number) || 0).toFixed(4)}
+                          </span>
                         </span>
                       </>
                     ) : (
                       // Standard event format
                       <>
-                        <span className={`shrink-0 ${eventTypeColors[event.type] || 'text-gray-400'}`}>
+                        <span
+                          className={`shrink-0 ${eventTypeColors[event.type] || "text-gray-400"}`}
+                        >
                           [{event.type}]
                         </span>
                         <span className="text-gray-300 truncate">
-                          {event.data.criterion && <span className="text-yellow-400">{event.data.criterion}</span>}
-                          {event.data.roundNumber && <span className="text-gray-500"> R{event.data.roundNumber}</span>}
-                          {event.data.persona && <span className="text-red-400"> ({event.data.persona})</span>}
-                          {event.data.score !== undefined && <span className="text-cyan-400"> score:{event.data.score}</span>}
-                          {event.data.adjustment !== undefined && event.data.adjustment !== 0 && (
-                            <span className={event.data.adjustment > 0 ? 'text-green-400' : 'text-red-400'}>
-                              {' '}{event.data.adjustment > 0 ? '+' : ''}{event.data.adjustment}
+                          {event.data.criterion && (
+                            <span className="text-yellow-400">
+                              {event.data.criterion}
                             </span>
                           )}
-                          {event.data.message && <span className="text-gray-400"> {event.data.message}</span>}
+                          {event.data.roundNumber && (
+                            <span className="text-gray-500">
+                              {" "}
+                              R{event.data.roundNumber}
+                            </span>
+                          )}
+                          {event.data.persona && (
+                            <span className="text-red-400">
+                              {" "}
+                              ({event.data.persona})
+                            </span>
+                          )}
+                          {event.data.score !== undefined && (
+                            <span className="text-cyan-400">
+                              {" "}
+                              score:{event.data.score}
+                            </span>
+                          )}
+                          {event.data.adjustment !== undefined &&
+                            event.data.adjustment !== 0 && (
+                              <span
+                                className={
+                                  event.data.adjustment > 0
+                                    ? "text-green-400"
+                                    : "text-red-400"
+                                }
+                              >
+                                {" "}
+                                {event.data.adjustment > 0 ? "+" : ""}
+                                {event.data.adjustment}
+                              </span>
+                            )}
+                          {event.data.message && (
+                            <span className="text-gray-400">
+                              {" "}
+                              {event.data.message}
+                            </span>
+                          )}
                         </span>
                       </>
                     )}
@@ -423,7 +564,7 @@ function EventLogPanel({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // Single debate card for one criterion
@@ -432,15 +573,17 @@ function DebateCard({
   isActive,
   defaultExpanded,
 }: {
-  debate: CriterionDebate
-  isActive: boolean
-  defaultExpanded: boolean
+  debate: CriterionDebate;
+  isActive: boolean;
+  defaultExpanded: boolean;
 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded)
-  const colors = categoryColors[debate.category] || categoryColors.problem
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const colors = categoryColors[debate.category] || categoryColors.problem;
 
   return (
-    <div className={`rounded-lg border-2 ${colors.border} overflow-hidden mb-4 ${isActive ? 'ring-2 ring-primary-500' : ''}`}>
+    <div
+      className={`rounded-lg border-2 ${colors.border} overflow-hidden mb-4 ${isActive ? "ring-2 ring-primary-500" : ""}`}
+    >
       {/* Header - always visible */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -454,8 +597,12 @@ function DebateCard({
           )}
           <MessageSquare className={`h-5 w-5 ${colors.text}`} />
           <div className="text-left">
-            <span className={`font-semibold ${colors.text}`}>{debate.criterion}</span>
-            <span className={`ml-2 text-xs ${colors.text} opacity-70 capitalize`}>
+            <span className={`font-semibold ${colors.text}`}>
+              {debate.criterion}
+            </span>
+            <span
+              className={`ml-2 text-xs ${colors.text} opacity-70 capitalize`}
+            >
               ({debate.category})
             </span>
           </div>
@@ -499,11 +646,17 @@ function DebateCard({
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-semibold text-blue-700">Evaluator</span>
-                    <span className="text-xs text-gray-400">{formatTime(debate.evaluatorAssessment.timestamp)}</span>
+                    <span className="text-sm font-semibold text-blue-700">
+                      Evaluator
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {formatTime(debate.evaluatorAssessment.timestamp)}
+                    </span>
                   </div>
                   <div className="bg-blue-50 border border-blue-200 rounded-lg rounded-tl-none px-4 py-3">
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{debate.evaluatorAssessment.content}</p>
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                      {debate.evaluatorAssessment.content}
+                    </p>
                     {debate.evaluatorAssessment.score != null && (
                       <div className="mt-2 flex justify-end">
                         <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
@@ -522,13 +675,16 @@ function DebateCard({
             <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-amber-600" />
-                <span className="text-sm font-medium text-amber-700">Debate Skipped</span>
+                <span className="text-sm font-medium text-amber-700">
+                  Debate Skipped
+                </span>
               </div>
               <p className="mt-1 text-sm text-amber-600">
-                {debate.skipReason || 'This criterion was not debated'}
+                {debate.skipReason || "This criterion was not debated"}
               </p>
               <p className="mt-2 text-xs text-gray-500">
-                The initial evaluation score ({debate.originalScore}/10) was kept without red team challenge.
+                The initial evaluation score ({debate.originalScore}/10) was
+                kept without red team challenge.
               </p>
             </div>
           )}
@@ -547,18 +703,27 @@ function DebateCard({
 
               {/* Red Team challenges */}
               {round.challenges.map((challenge, idx) => (
-                <div key={`${round.roundNumber}-challenge-${idx}`} className="mb-3 flex justify-end">
+                <div
+                  key={`${round.roundNumber}-challenge-${idx}`}
+                  className="mb-3 flex justify-end"
+                >
                   <div className="flex flex-row-reverse items-start gap-3 max-w-[85%]">
                     <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                       <Shield className="h-5 w-5 text-red-600" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 justify-end">
-                        <span className="text-xs text-gray-400">{formatTime(challenge.timestamp)}</span>
-                        <span className="text-sm font-semibold text-red-700">{challenge.persona}</span>
+                        <span className="text-xs text-gray-400">
+                          {formatTime(challenge.timestamp)}
+                        </span>
+                        <span className="text-sm font-semibold text-red-700">
+                          {challenge.persona}
+                        </span>
                       </div>
                       <div className="bg-red-50 border border-red-200 rounded-lg rounded-tr-none px-4 py-3">
-                        <p className="text-sm text-gray-800 whitespace-pre-wrap">{challenge.content}</p>
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                          {challenge.content}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -567,7 +732,10 @@ function DebateCard({
 
               {/* Evaluator defenses */}
               {round.defenses.map((defense, idx) => (
-                <div key={`${round.roundNumber}-defense-${idx}`} className="mb-3 flex justify-start">
+                <div
+                  key={`${round.roundNumber}-defense-${idx}`}
+                  className="mb-3 flex justify-start"
+                >
                   <div className="flex items-start gap-3 max-w-[85%]">
                     <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                       <User className="h-5 w-5 text-blue-600" />
@@ -575,14 +743,23 @@ function DebateCard({
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-semibold text-blue-700">
-                          Evaluator {defense.concedes ? '(concedes)' : '(defends)'}
+                          Evaluator{" "}
+                          {defense.concedes ? "(concedes)" : "(defends)"}
                         </span>
-                        <span className="text-xs text-gray-400">{formatTime(defense.timestamp)}</span>
+                        <span className="text-xs text-gray-400">
+                          {formatTime(defense.timestamp)}
+                        </span>
                       </div>
-                      <div className={`border rounded-lg rounded-tl-none px-4 py-3 ${
-                        defense.concedes ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'
-                      }`}>
-                        <p className="text-sm text-gray-800 whitespace-pre-wrap">{defense.content}</p>
+                      <div
+                        className={`border rounded-lg rounded-tl-none px-4 py-3 ${
+                          defense.concedes
+                            ? "bg-amber-50 border-amber-200"
+                            : "bg-blue-50 border-blue-200"
+                        }`}
+                      >
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                          {defense.content}
+                        </p>
                         {defense.adjustedScore != null && (
                           <div className="mt-2 flex justify-end">
                             <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-medium">
@@ -598,37 +775,59 @@ function DebateCard({
 
               {/* Arbiter verdicts */}
               {round.arbiterVerdicts.map((verdict, idx) => (
-                <div key={`${round.roundNumber}-verdict-${idx}`} className="mt-3 flex justify-center">
+                <div
+                  key={`${round.roundNumber}-verdict-${idx}`}
+                  className="mt-3 flex justify-center"
+                >
                   <div className="flex items-start gap-3 max-w-[90%]">
                     <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
                       <Gavel className="h-5 w-5 text-purple-600" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold text-purple-700">Arbiter</span>
+                        <span className="text-sm font-semibold text-purple-700">
+                          Arbiter
+                        </span>
                         {verdict.winner && (
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            verdict.winner === 'EVALUATOR' ? 'bg-blue-100 text-blue-700' :
-                            verdict.winner === 'RED_TEAM' ? 'bg-red-100 text-red-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {verdict.winner === 'EVALUATOR' ? 'Evaluator wins' :
-                             verdict.winner === 'RED_TEAM' ? 'Red Team wins' : 'Draw'}
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full ${
+                              verdict.winner === "EVALUATOR"
+                                ? "bg-blue-100 text-blue-700"
+                                : verdict.winner === "RED_TEAM"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {verdict.winner === "EVALUATOR"
+                              ? "Evaluator wins"
+                              : verdict.winner === "RED_TEAM"
+                                ? "Red Team wins"
+                                : "Draw"}
                           </span>
                         )}
-                        <span className="text-xs text-gray-400">{formatTime(verdict.timestamp)}</span>
+                        <span className="text-xs text-gray-400">
+                          {formatTime(verdict.timestamp)}
+                        </span>
                       </div>
                       <div className="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3">
-                        <p className="text-sm text-gray-800 whitespace-pre-wrap">{verdict.content}</p>
-                        {verdict.adjustment != null && verdict.adjustment !== 0 && (
-                          <div className="mt-2 flex justify-end">
-                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                              verdict.adjustment > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                            }`}>
-                              {verdict.adjustment > 0 ? '+' : ''}{verdict.adjustment} points
-                            </span>
-                          </div>
-                        )}
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                          {verdict.content}
+                        </p>
+                        {verdict.adjustment != null &&
+                          verdict.adjustment !== 0 && (
+                            <div className="mt-2 flex justify-end">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                                  verdict.adjustment > 0
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {verdict.adjustment > 0 ? "+" : ""}
+                                {verdict.adjustment} points
+                              </span>
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>
@@ -642,52 +841,63 @@ function DebateCard({
             <div className="mt-4 pt-3 border-t border-gray-200">
               <div className="flex items-center justify-center gap-3 py-2 bg-white rounded-lg">
                 <CheckCircle className="h-5 w-5 text-green-500" />
-                <span className="text-sm font-medium text-gray-700">Debate Complete</span>
-                <span className="text-lg font-bold text-gray-900">{debate.finalScore.toFixed(2)}/10</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Debate Complete
+                </span>
+                <span className="text-lg font-bold text-gray-900">
+                  {debate.finalScore.toFixed(2)}/10
+                </span>
               </div>
             </div>
           )}
 
           {/* Show loading if active but no rounds yet */}
-          {!debate.isComplete && debate.rounds.length === 0 && !debate.evaluatorAssessment && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-400 mr-2" />
-              <span className="text-sm text-gray-500">Waiting for debate to begin...</span>
-            </div>
-          )}
+          {!debate.isComplete &&
+            debate.rounds.length === 0 &&
+            !debate.evaluatorAssessment && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400 mr-2" />
+                <span className="text-sm text-gray-500">
+                  Waiting for debate to begin...
+                </span>
+              </div>
+            )}
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // Main DebateViewer component
 export default function DebateViewer() {
-  const { slug: urlSlug } = useParams<{ slug?: string }>()
-  const navigate = useNavigate()
-  const { ideas, loading: ideasLoading } = useIdeas({ sortBy: 'updated_at', sortOrder: 'desc' })
-  const [selectedSlug, setSelectedSlug] = useState(urlSlug || '')
-  const [showEventLog, setShowEventLog] = useState(false)
+  const { slug: urlSlug } = useParams<{ slug?: string }>();
+  const navigate = useNavigate();
+  const { ideas, loading: ideasLoading } = useIdeas({
+    sortBy: "updated_at",
+    sortOrder: "desc",
+  });
+  const [selectedSlug, setSelectedSlug] = useState(urlSlug || "");
+  const [showEventLog, setShowEventLog] = useState(false);
 
   // Evaluation Advisory Modal state
-  const [showAdvisoryModal, setShowAdvisoryModal] = useState(false)
+  const [showAdvisoryModal, setShowAdvisoryModal] = useState(false);
   const [advisoryData, setAdvisoryData] = useState<{
-    overallScore: number
-    confidence: number
-    previousScore?: number
+    overallScore: number;
+    confidence: number;
+    previousScore?: number;
     weakCriteria: Array<{
-      criterion: string
-      category: string
-      previousScore?: number  // From previous evaluation run
-      finalScore: number
-      reasoning: string
-      debateChallenges: string[]
-    }>
-    recommendation: EvaluationDecision
-    recommendationReasoning: string
-  } | null>(null)
-  const [isLoadingAdvisory, setIsLoadingAdvisory] = useState(false)
-  const [hasShownAdvisory, setHasShownAdvisory] = useState(false)
+      criterion: string;
+      category: string;
+      previousScore?: number; // From previous evaluation run
+      finalScore: number;
+      reasoning: string;
+      debateChallenges: string[];
+    }>;
+    recommendation: EvaluationDecision;
+    recommendationReasoning: string;
+  } | null>(null);
+  const [isLoadingAdvisory, setIsLoadingAdvisory] = useState(false);
+  const [hasShownAdvisory, setHasShownAdvisory] = useState(false);
 
   const {
     connected,
@@ -700,234 +910,275 @@ export default function DebateViewer() {
   } = useDebateStream({
     ideaSlug: selectedSlug,
     autoConnect: !!selectedSlug,
-  })
+  });
 
-  const debatesEndRef = useRef<HTMLDivElement>(null)
+  const debatesEndRef = useRef<HTMLDivElement>(null);
 
   // Group events into isolated debates by criterion
-  const debates = useMemo(() => groupEventsByCriterion(events), [events])
+  const debates = useMemo(() => groupEventsByCriterion(events), [events]);
 
   // Find ALL currently active debates (incomplete ones)
   const activeDebateIndices = useMemo(() => {
-    const indices: number[] = []
+    const indices: number[] = [];
     debates.forEach((d, i) => {
-      if (!d.isComplete) indices.push(i)
-    })
-    return indices
-  }, [debates])
+      if (!d.isComplete) indices.push(i);
+    });
+    return indices;
+  }, [debates]);
 
   // Determine overall phase based on all debates
   const overallPhase = useMemo(() => {
-    if (debates.length === 0) return 'idle'
-    const allComplete = debates.every(d => d.isComplete)
-    if (allComplete && debates.length > 0) return 'complete'
-    return 'evaluating' // Active evaluation in progress
-  }, [debates])
+    if (debates.length === 0) return "idle";
+    const allComplete = debates.every((d) => d.isComplete);
+    if (allComplete && debates.length > 0) return "complete";
+    return "evaluating"; // Active evaluation in progress
+  }, [debates]);
 
   // Update URL when slug changes
   useEffect(() => {
     if (selectedSlug && selectedSlug !== urlSlug) {
-      navigate(`/debate/live/${selectedSlug}`, { replace: true })
+      navigate(`/debate/live/${selectedSlug}`, { replace: true });
     }
-  }, [selectedSlug, urlSlug, navigate])
+  }, [selectedSlug, urlSlug, navigate]);
 
   // Auto-scroll to bottom when new debates arrive
   useEffect(() => {
-    debatesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [debates.length])
+    debatesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [debates.length]);
 
   // Handle idea selection
   const handleIdeaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newSlug = e.target.value
+    const newSlug = e.target.value;
     if (newSlug !== selectedSlug) {
-      disconnect()
-      clearEvents()
-      setSelectedSlug(newSlug)
-      setHasShownAdvisory(false)
-      setAdvisoryData(null)
+      disconnect();
+      clearEvents();
+      setSelectedSlug(newSlug);
+      setHasShownAdvisory(false);
+      setAdvisoryData(null);
     }
-  }
+  };
 
   // Generate recommendation based on score
-  const generateRecommendation = useCallback((
-    overallScore: number,
-    weakCriteria: Array<{ criterion: string; category: string; previousScore?: number; finalScore: number }>
-  ): { recommendation: EvaluationDecision; reasoning: string } => {
-    // Check if weaknesses are addressable (not market/external factors)
-    const hardToAddressCriteria = ['Market Size', 'Market Growth', 'Market Timing', 'Regulatory Risk']
-    const hasAddressableWeaknesses = weakCriteria.some(
-      c => !hardToAddressCriteria.some(hard => c.criterion.includes(hard))
-    )
+  const generateRecommendation = useCallback(
+    (
+      overallScore: number,
+      weakCriteria: Array<{
+        criterion: string;
+        category: string;
+        previousScore?: number;
+        finalScore: number;
+      }>,
+    ): { recommendation: EvaluationDecision; reasoning: string } => {
+      // Check if weaknesses are addressable (not market/external factors)
+      const hardToAddressCriteria = [
+        "Market Size",
+        "Market Growth",
+        "Market Timing",
+        "Regulatory Risk",
+      ];
+      const hasAddressableWeaknesses = weakCriteria.some(
+        (c) =>
+          !hardToAddressCriteria.some((hard) => c.criterion.includes(hard)),
+      );
 
-    if (overallScore >= 7.5) {
-      return {
-        recommendation: 'pursue',
-        reasoning: `Strong overall score of ${overallScore.toFixed(2)}/10. This idea shows good potential across key criteria. Ready to move forward with development.`
+      if (overallScore >= 7.5) {
+        return {
+          recommendation: "pursue",
+          reasoning: `Strong overall score of ${overallScore.toFixed(2)}/10. This idea shows good potential across key criteria. Ready to move forward with development.`,
+        };
+      } else if (overallScore >= 5.0 && hasAddressableWeaknesses) {
+        const weakNames = weakCriteria
+          .slice(0, 3)
+          .map((c) => c.criterion)
+          .join(", ");
+        return {
+          recommendation: "iterate",
+          reasoning: `Score of ${overallScore.toFixed(2)}/10 with ${weakCriteria.length} weak areas that can be improved. Iteration recommended to address: ${weakNames}.`,
+        };
+      } else if (overallScore >= 5.0 && !hasAddressableWeaknesses) {
+        return {
+          recommendation: "branch",
+          reasoning: `Score of ${overallScore.toFixed(2)}/10 but weak areas may require fundamental changes. Consider branching to explore a different approach.`,
+        };
+      } else if (overallScore >= 3.0) {
+        return {
+          recommendation: "pause",
+          reasoning: `Score of ${overallScore.toFixed(2)}/10 indicates significant gaps. Consider pausing to gather more information or revisit the core concept.`,
+        };
+      } else {
+        return {
+          recommendation: "abandon",
+          reasoning: `Score of ${overallScore.toFixed(2)}/10 suggests fundamental issues. The idea may not be viable in its current form.`,
+        };
       }
-    } else if (overallScore >= 5.0 && hasAddressableWeaknesses) {
-      const weakNames = weakCriteria.slice(0, 3).map(c => c.criterion).join(', ')
-      return {
-        recommendation: 'iterate',
-        reasoning: `Score of ${overallScore.toFixed(2)}/10 with ${weakCriteria.length} weak areas that can be improved. Iteration recommended to address: ${weakNames}.`
-      }
-    } else if (overallScore >= 5.0 && !hasAddressableWeaknesses) {
-      return {
-        recommendation: 'branch',
-        reasoning: `Score of ${overallScore.toFixed(2)}/10 but weak areas may require fundamental changes. Consider branching to explore a different approach.`
-      }
-    } else if (overallScore >= 3.0) {
-      return {
-        recommendation: 'pause',
-        reasoning: `Score of ${overallScore.toFixed(2)}/10 indicates significant gaps. Consider pausing to gather more information or revisit the core concept.`
-      }
-    } else {
-      return {
-        recommendation: 'abandon',
-        reasoning: `Score of ${overallScore.toFixed(2)}/10 suggests fundamental issues. The idea may not be viable in its current form.`
-      }
-    }
-  }, [])
+    },
+    [],
+  );
 
   // Fetch synthesis data when debate completes
   useEffect(() => {
-    if (overallPhase !== 'complete' || !selectedSlug || hasShownAdvisory) return
+    if (overallPhase !== "complete" || !selectedSlug || hasShownAdvisory)
+      return;
 
     const fetchAdvisoryData = async () => {
-      setIsLoadingAdvisory(true)
+      setIsLoadingAdvisory(true);
       try {
         // Fetch synthesis, evaluations, and debate rounds
         const [synthesis, evaluations, debateRounds] = await Promise.all([
           getSynthesis(selectedSlug),
           getEvaluations(selectedSlug),
-          getDebateRounds(selectedSlug)
-        ])
+          getDebateRounds(selectedSlug),
+        ]);
 
         if (!synthesis) {
-          console.log('No synthesis available yet')
-          return
+          console.log("No synthesis available yet");
+          return;
         }
 
         // Identify weak criteria (final_score < 6 after debate)
         // Include debate challenges that explain the weakness
         const weakCriteria = evaluations
-          .filter(e => e.final_score !== null && e.final_score < 6)
+          .filter((e) => e.final_score !== null && e.final_score < 6)
           .sort((a, b) => (a.final_score ?? 10) - (b.final_score ?? 10))
           .slice(0, 5)
-          .map(e => {
+          .map((e) => {
             // Get debate challenges for this criterion
-            const criterionDebates = debateRounds.filter(r => r.criterion === e.criterion)
+            const criterionDebates = debateRounds.filter(
+              (r) => r.criterion === e.criterion,
+            );
             const debateChallenges = criterionDebates
-              .filter(r => r.arbiter_verdict === 'RED_TEAM' || r.arbiter_verdict === 'DRAW')
-              .map(r => r.redteam_challenge)
-              .filter((c): c is string => c !== null)
+              .filter(
+                (r) =>
+                  r.arbiter_verdict === "RED_TEAM" ||
+                  r.arbiter_verdict === "DRAW",
+              )
+              .map((r) => r.redteam_challenge)
+              .filter((c): c is string => c !== null);
             return {
               criterion: e.criterion,
               category: e.category,
               // previousScore not available in live stream context - would need to fetch previous run
               previousScore: undefined,
               finalScore: e.final_score ?? 0,
-              reasoning: e.reasoning || 'Score below threshold',
-              debateChallenges
-            }
-          })
+              reasoning: e.reasoning || "Score below threshold",
+              debateChallenges,
+            };
+          });
 
         // Calculate confidence from evaluations
-        const avgConfidence = evaluations.length > 0
-          ? evaluations.reduce((sum, e) => sum + (e.confidence ?? 0.7), 0) / evaluations.length
-          : 0.7
+        const avgConfidence =
+          evaluations.length > 0
+            ? evaluations.reduce((sum, e) => sum + (e.confidence ?? 0.7), 0) /
+              evaluations.length
+            : 0.7;
 
         const { recommendation, reasoning } = generateRecommendation(
           synthesis.overall_score,
-          weakCriteria
-        )
+          weakCriteria,
+        );
 
         setAdvisoryData({
           overallScore: synthesis.overall_score,
           confidence: avgConfidence,
           weakCriteria,
           recommendation,
-          recommendationReasoning: reasoning
-        })
+          recommendationReasoning: reasoning,
+        });
 
         // Auto-show the modal
-        setShowAdvisoryModal(true)
-        setHasShownAdvisory(true)
+        setShowAdvisoryModal(true);
+        setHasShownAdvisory(true);
       } catch (err) {
-        console.error('Failed to fetch advisory data:', err)
+        console.error("Failed to fetch advisory data:", err);
       } finally {
-        setIsLoadingAdvisory(false)
+        setIsLoadingAdvisory(false);
       }
-    }
+    };
 
     // Small delay to ensure synthesis is saved
-    const timer = setTimeout(fetchAdvisoryData, 2000)
-    return () => clearTimeout(timer)
-  }, [overallPhase, selectedSlug, hasShownAdvisory, generateRecommendation])
+    const timer = setTimeout(fetchAdvisoryData, 2000);
+    return () => clearTimeout(timer);
+  }, [overallPhase, selectedSlug, hasShownAdvisory, generateRecommendation]);
 
   // Handle user's advisory decision
   const handleAdvisoryDecision = async (decision: EvaluationDecision) => {
-    if (!selectedSlug || !advisoryData) return
+    if (!selectedSlug || !advisoryData) return;
 
     try {
       // Record the gate decision
       await recordGateDecision(selectedSlug, {
-        gateType: 'evaluation',
+        gateType: "evaluation",
         advisoryShown: advisoryData.recommendation,
         userChoice: decision,
-        overallScore: advisoryData.overallScore
-      })
+        overallScore: advisoryData.overallScore,
+      });
 
       // Handle status/phase changes based on decision
       switch (decision) {
-        case 'pursue':
+        case "pursue":
           // Update phase to iterate (ready for next steps)
-          await updateIncubationPhase(selectedSlug, 'iterate')
-          setShowAdvisoryModal(false)
-          navigate(`/ideas/${selectedSlug}`)
-          break
+          await updateIncubationPhase(selectedSlug, "iterate");
+          setShowAdvisoryModal(false);
+          navigate(`/ideas/${selectedSlug}`);
+          break;
 
-        case 'iterate':
+        case "iterate":
           // Go back to clarify phase for focused improvement
-          await updateIncubationPhase(selectedSlug, 'clarify')
-          setShowAdvisoryModal(false)
-          navigate(`/ideas/${selectedSlug}`)
-          break
+          await updateIncubationPhase(selectedSlug, "clarify");
+          setShowAdvisoryModal(false);
+          navigate(`/ideas/${selectedSlug}`);
+          break;
 
-        case 'branch':
+        case "branch":
           // Navigate to idea detail where branch dialog can be opened
-          setShowAdvisoryModal(false)
-          navigate(`/ideas/${selectedSlug}?action=branch`)
-          break
+          setShowAdvisoryModal(false);
+          navigate(`/ideas/${selectedSlug}?action=branch`);
+          break;
 
-        case 'pause':
-          await updateIdeaStatus(selectedSlug, 'paused', 'Paused after evaluation - needs more work')
-          setShowAdvisoryModal(false)
-          navigate(`/ideas/${selectedSlug}`)
-          break
+        case "pause":
+          await updateIdeaStatus(
+            selectedSlug,
+            "paused",
+            "Paused after evaluation - needs more work",
+          );
+          setShowAdvisoryModal(false);
+          navigate(`/ideas/${selectedSlug}`);
+          break;
 
-        case 'abandon':
-          await updateIdeaStatus(selectedSlug, 'abandoned', 'Abandoned after evaluation - not viable')
-          setShowAdvisoryModal(false)
-          navigate('/ideas')
-          break
+        case "abandon":
+          await updateIdeaStatus(
+            selectedSlug,
+            "abandoned",
+            "Abandoned after evaluation - not viable",
+          );
+          setShowAdvisoryModal(false);
+          navigate("/ideas");
+          break;
       }
     } catch (err) {
-      console.error('Failed to process decision:', err)
+      console.error("Failed to process decision:", err);
     }
-  }
+  };
 
   // Stats
-  const completedCount = debates.filter(d => d.isComplete).length
-  const totalChallenges = debates.reduce((sum, d) => sum + d.rounds.reduce((s, r) => s + r.challenges.length, 0), 0)
+  const completedCount = debates.filter((d) => d.isComplete).length;
+  const totalChallenges = debates.reduce(
+    (sum, d) => sum + d.rounds.reduce((s, r) => s + r.challenges.length, 0),
+    0,
+  );
 
   // Get latest budget status for API call count and cost
   const latestBudgetEvent = useMemo(() => {
-    const budgetEvents = events.filter(e => e.type === 'budget:status')
-    return budgetEvents.length > 0 ? budgetEvents[budgetEvents.length - 1] : null
-  }, [events])
-  const apiCalls = latestBudgetEvent?.data.apiCalls as number | undefined
-  const budgetRemaining = latestBudgetEvent?.data.remaining as number | undefined
-  const budgetTotal = latestBudgetEvent?.data.total as number | undefined
+    const budgetEvents = events.filter((e) => e.type === "budget:status");
+    return budgetEvents.length > 0
+      ? budgetEvents[budgetEvents.length - 1]
+      : null;
+  }, [events]);
+  const apiCalls = latestBudgetEvent?.data.apiCalls as number | undefined;
+  const budgetRemaining = latestBudgetEvent?.data.remaining as
+    | number
+    | undefined;
+  const budgetTotal = latestBudgetEvent?.data.total as number | undefined;
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col bg-gray-100">
@@ -975,9 +1226,13 @@ export default function DebateViewer() {
 
           {/* Phase indicator - based on overall progress, not per-event */}
           <div className="flex items-center space-x-2">
-            <span className={`h-2 w-2 rounded-full ${phaseColors[overallPhase]} animate-pulse`} />
-            <span className="text-sm text-gray-600">{phaseLabels[overallPhase]}</span>
-            {activeDebateIndices.length > 0 && overallPhase !== 'complete' && (
+            <span
+              className={`h-2 w-2 rounded-full ${phaseColors[overallPhase]} animate-pulse`}
+            />
+            <span className="text-sm text-gray-600">
+              {phaseLabels[overallPhase]}
+            </span>
+            {activeDebateIndices.length > 0 && overallPhase !== "complete" && (
               <span className="text-xs text-gray-400">
                 ({activeDebateIndices.length} active)
               </span>
@@ -990,7 +1245,7 @@ export default function DebateViewer() {
               onClick={() => (connected ? disconnect() : connect())}
               disabled={!selectedSlug}
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-              title={connected ? 'Disconnect' : 'Reconnect'}
+              title={connected ? "Disconnect" : "Reconnect"}
             >
               <RefreshCw className="h-4 w-4" />
             </button>
@@ -1019,9 +1274,12 @@ export default function DebateViewer() {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <Bot className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">Select an idea to watch the AI debate</p>
+              <p className="text-gray-500 text-lg">
+                Select an idea to watch the AI debate
+              </p>
               <p className="text-gray-400 text-sm mt-2">
-                Each criterion is debated separately with Evaluator, Red Team, and Arbiter
+                Each criterion is debated separately with Evaluator, Red Team,
+                and Arbiter
               </p>
             </div>
           </div>
@@ -1033,18 +1291,44 @@ export default function DebateViewer() {
                 {debates.length === 0 ? (
                   <div className="text-center py-12">
                     <Loader2 className="h-8 w-8 text-primary-500 mx-auto mb-4 animate-spin" />
-                    <p className="text-gray-500 font-medium">Waiting for debate to start...</p>
+                    <p className="text-gray-500 font-medium">
+                      Waiting for debate to start...
+                    </p>
                     <p className="text-gray-400 text-sm mt-2">
-                      Run an evaluation on the selected idea to see the live debate
+                      Run an evaluation on the selected idea to see the live
+                      debate
                     </p>
                     <div className="mt-6 bg-white rounded-lg p-4 text-left max-w-md mx-auto shadow-sm border">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">How debates work:</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">
+                        How debates work:
+                      </h4>
                       <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
-                        <li>Each of the <strong>30 criteria</strong> gets its own debate</li>
-                        <li><span className="text-blue-600 font-medium">Evaluator</span> presents initial assessment</li>
-                        <li><span className="text-red-600 font-medium">Red Team</span> challenges the assessment</li>
-                        <li><span className="text-purple-600 font-medium">Arbiter</span> judges and adjusts score</li>
-                        <li>This repeats for <strong>3 rounds</strong> per criterion</li>
+                        <li>
+                          Each of the <strong>30 criteria</strong> gets its own
+                          debate
+                        </li>
+                        <li>
+                          <span className="text-blue-600 font-medium">
+                            Evaluator
+                          </span>{" "}
+                          presents initial assessment
+                        </li>
+                        <li>
+                          <span className="text-red-600 font-medium">
+                            Red Team
+                          </span>{" "}
+                          challenges the assessment
+                        </li>
+                        <li>
+                          <span className="text-purple-600 font-medium">
+                            Arbiter
+                          </span>{" "}
+                          judges and adjusts score
+                        </li>
+                        <li>
+                          This repeats for <strong>3 rounds</strong> per
+                          criterion
+                        </li>
                       </ol>
                     </div>
                   </div>
@@ -1066,21 +1350,27 @@ export default function DebateViewer() {
                         key={debate.criterion}
                         debate={debate}
                         isActive={activeDebateIndices.includes(idx)}
-                        defaultExpanded={activeDebateIndices.includes(idx) || idx === debates.length - 1}
+                        defaultExpanded={
+                          activeDebateIndices.includes(idx) ||
+                          idx === debates.length - 1
+                        }
                       />
                     ))}
 
                     {/* Typing indicator when evaluation is active */}
-                    {overallPhase === 'evaluating' && activeDebateIndices.length > 0 && (
-                      <div className="flex justify-center my-4">
-                        <div className="bg-white rounded-full px-4 py-2 flex items-center gap-2 shadow-sm border">
-                          <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-                          <span className="text-sm text-gray-500">
-                            Processing {activeDebateIndices.length} debate{activeDebateIndices.length > 1 ? 's' : ''} in parallel...
-                          </span>
+                    {overallPhase === "evaluating" &&
+                      activeDebateIndices.length > 0 && (
+                        <div className="flex justify-center my-4">
+                          <div className="bg-white rounded-full px-4 py-2 flex items-center gap-2 shadow-sm border">
+                            <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                            <span className="text-sm text-gray-500">
+                              Processing {activeDebateIndices.length} debate
+                              {activeDebateIndices.length > 1 ? "s" : ""} in
+                              parallel...
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     <div ref={debatesEndRef} />
                   </>
@@ -1090,36 +1380,61 @@ export default function DebateViewer() {
 
             {/* Sidebar - Overview */}
             <div className="w-64 bg-white border-l p-4 overflow-y-auto">
-              <h3 className="font-semibold text-gray-900 mb-4">Debate Overview</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">
+                Debate Overview
+              </h3>
 
               {/* Progress by category */}
               <div className="space-y-2 mb-6">
-                {['problem', 'solution', 'feasibility', 'fit', 'market', 'risk'].map((cat) => {
-                  const catDebates = debates.filter(d => d.category === cat)
-                  const complete = catDebates.filter(d => d.isComplete).length
-                  const total = catDebates.length
-                  const colors = categoryColors[cat]
+                {[
+                  "problem",
+                  "solution",
+                  "feasibility",
+                  "fit",
+                  "market",
+                  "risk",
+                ].map((cat) => {
+                  const catDebates = debates.filter((d) => d.category === cat);
+                  const complete = catDebates.filter(
+                    (d) => d.isComplete,
+                  ).length;
+                  const total = catDebates.length;
+                  const colors = categoryColors[cat];
 
                   return total > 0 ? (
-                    <div key={cat} className={`p-2 rounded-lg ${colors.bg} ${colors.border} border`}>
+                    <div
+                      key={cat}
+                      className={`p-2 rounded-lg ${colors.bg} ${colors.border} border`}
+                    >
                       <div className="flex items-center justify-between">
-                        <span className={`text-xs font-medium capitalize ${colors.text}`}>{cat}</span>
-                        <span className={`text-xs ${colors.text}`}>{complete}/{total}</span>
+                        <span
+                          className={`text-xs font-medium capitalize ${colors.text}`}
+                        >
+                          {cat}
+                        </span>
+                        <span className={`text-xs ${colors.text}`}>
+                          {complete}/{total}
+                        </span>
                       </div>
                       <div className="mt-1 h-1.5 bg-white rounded-full overflow-hidden">
                         <div
-                          className={`h-full ${colors.text.replace('text-', 'bg-').replace('-700', '-500')} rounded-full transition-all`}
-                          style={{ width: total > 0 ? `${(complete / total) * 100}%` : '0%' }}
+                          className={`h-full ${colors.text.replace("text-", "bg-").replace("-700", "-500")} rounded-full transition-all`}
+                          style={{
+                            width:
+                              total > 0 ? `${(complete / total) * 100}%` : "0%",
+                          }}
                         />
                       </div>
                     </div>
-                  ) : null
+                  ) : null;
                 })}
               </div>
 
               {/* Legend */}
               <div className="p-3 bg-gray-50 rounded-lg">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">Participants</h4>
+                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">
+                  Participants
+                </h4>
                 <div className="space-y-2 text-xs text-gray-600">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
@@ -1145,18 +1460,22 @@ export default function DebateViewer() {
                     </div>
                     <div>
                       <div className="font-medium text-gray-700">Arbiter</div>
-                      <div className="text-gray-500">Judges & adjusts score</div>
+                      <div className="text-gray-500">
+                        Judges & adjusts score
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Completion status */}
-              {overallPhase === 'complete' && (
+              {overallPhase === "complete" && (
                 <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-700">All Debates Complete</span>
+                    <span className="text-sm font-medium text-green-700">
+                      All Debates Complete
+                    </span>
                   </div>
                   <p className="text-xs text-green-600 mt-1">
                     {completedCount} criteria evaluated
@@ -1207,27 +1526,35 @@ export default function DebateViewer() {
       {/* Status bar */}
       <div className="bg-gray-800 text-white px-4 py-2 text-xs flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <span>Criteria: {completedCount}/{debates.length || 30}</span>
+          <span>
+            Criteria: {completedCount}/{debates.length || 30}
+          </span>
           <span>Events: {events.length}</span>
           {apiCalls !== undefined && (
-            <span className="text-cyan-400" title="Total API calls made (informational - does not control stopping)">
+            <span
+              className="text-cyan-400"
+              title="Total API calls made (informational - does not control stopping)"
+            >
               API Calls: {apiCalls}
             </span>
           )}
           {budgetRemaining !== undefined && budgetTotal !== undefined && (
-            <span className="text-green-400" title="Budget in dollars - evaluation stops when budget is exhausted">
+            <span
+              className="text-green-400"
+              title="Budget in dollars - evaluation stops when budget is exhausted"
+            >
               Budget: ${budgetRemaining.toFixed(2)} / ${budgetTotal.toFixed(2)}
             </span>
           )}
         </div>
         <div className="flex items-center space-x-2">
-          {overallPhase === 'complete' && (
+          {overallPhase === "complete" && (
             <>
               <CheckCircle className="h-3 w-3 text-green-400" />
               <span>Evaluation Complete</span>
             </>
           )}
-          {overallPhase === 'evaluating' && (
+          {overallPhase === "evaluating" && (
             <>
               <Loader2 className="h-3 w-3 animate-spin text-blue-400" />
               <span>Processing...</span>
@@ -1251,5 +1578,5 @@ export default function DebateViewer() {
         />
       )}
     </div>
-  )
+  );
 }

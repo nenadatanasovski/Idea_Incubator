@@ -1,6 +1,7 @@
 # SKILL: Pure Functions
 
 ## When to Load
+
 - Writing new functions
 - Refactoring existing functions
 - Reviewing function design
@@ -8,6 +9,7 @@
 ## Principle
 
 A pure function:
+
 1. Returns the same output for the same input (deterministic)
 2. Has no side effects (no mutation, no I/O, no exceptions thrown)
 
@@ -58,6 +60,7 @@ async function processOrder(orderId) {
 ## Exception
 
 Impurity is necessary at system boundaries:
+
 - Main entry points
 - Event handlers
 - API endpoints
@@ -68,6 +71,7 @@ The goal is **pure core, impure shell** - push effects to the edges.
 ## Anti-Pattern
 
 Don't fake purity by hiding effects:
+
 ```
 // BAD - looks pure but isn't
 function getUser(id) {
@@ -78,6 +82,7 @@ function getUser(id) {
 ## Validation Questions
 
 Before committing a function, ask:
+
 1. Can I test this without mocking anything?
 2. Will calling it twice with same args give same result?
 3. Does it change anything outside its scope?

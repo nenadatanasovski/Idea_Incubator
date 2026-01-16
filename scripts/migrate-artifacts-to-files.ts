@@ -18,18 +18,18 @@
  * Usage: npx tsx scripts/migrate-artifacts-to-files.ts
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { closeDb, query, run, saveDb } from '../database/db.js';
-import { runMigrations } from '../database/migrate.js';
-import { getConfig } from '../config/index.js';
+import * as fs from "fs";
+import * as path from "path";
+import { closeDb, query, run, saveDb } from "../database/db.js";
+import { runMigrations } from "../database/migrate.js";
+import { getConfig } from "../config/index.js";
 import {
   generateFrontmatter,
   ArtifactType,
   ArtifactMetadata,
-} from '../agents/ideation/unified-artifact-store.js';
-import { createUserFolder } from '../utils/folder-structure.js';
-import { logInfo, logSuccess, logError, logWarning } from '../utils/logger.js';
+} from "../agents/ideation/unified-artifact-store.js";
+import { createUserFolder } from "../utils/folder-structure.js";
+import { logInfo, logSuccess, logError, logWarning } from "../utils/logger.js";
 
 /**
  * Database artifact row structure
@@ -80,7 +80,7 @@ interface MigrationResult {
 function getUsersRoot(): string {
   const config = getConfig();
   const projectRoot = path.dirname(config.paths.ideas);
-  return path.join(projectRoot, 'users');
+  return path.join(projectRoot, "users");
 }
 
 /**
@@ -90,27 +90,27 @@ function generateFilePath(type: string, title: string): string {
   // Convert title to slug
   const slug = title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
     .substring(0, 50); // Limit length
 
   // Map types to subdirectories
   const typeToDir: Record<string, string> = {
-    research: 'research',
-    mermaid: 'assets/diagrams',
-    markdown: '',
-    code: 'build',
-    analysis: 'analysis',
-    comparison: 'analysis',
-    'idea-summary': '',
-    template: '',
+    research: "research",
+    mermaid: "assets/diagrams",
+    markdown: "",
+    code: "build",
+    analysis: "analysis",
+    comparison: "analysis",
+    "idea-summary": "",
+    template: "",
   };
 
-  const dir = typeToDir[type] || '';
-  const extension = type === 'mermaid' ? '.mmd' : '.md';
-  const fileName = `${slug || 'artifact'}${extension}`;
+  const dir = typeToDir[type] || "";
+  const extension = type === "mermaid" ? ".mmd" : ".md";
+  const fileName = `${slug || "artifact"}${extension}`;
 
   return dir ? `${dir}/${fileName}` : fileName;
 }
@@ -120,7 +120,7 @@ function generateFilePath(type: string, title: string): string {
  */
 function parseContent(content: string, type: string): string {
   // Research artifacts often have JSON content with synthesis
-  if (type === 'research') {
+  if (type === "research") {
     try {
       const parsed = JSON.parse(content);
       if (parsed.synthesis) {
@@ -141,7 +141,7 @@ function parseContent(content: string, type: string): string {
  */
 async function migrateArtifact(
   artifact: DbArtifact,
-  session: DbSession | null
+  session: DbSession | null,
 ): Promise<{ success: boolean; error?: string }> {
   // Determine user and idea slugs
   let userSlug = artifact.user_slug || session?.user_slug;
@@ -149,7 +149,7 @@ async function migrateArtifact(
 
   // If no user slug, create a default migration user
   if (!userSlug) {
-    userSlug = 'migration-drafts';
+    userSlug = "migration-drafts";
   }
 
   // If no idea slug, create a draft folder
@@ -158,7 +158,7 @@ async function migrateArtifact(
   }
 
   const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 
   // Ensure user and idea folders exist
   await createUserFolder(userSlug);
@@ -214,14 +214,14 @@ async function migrateArtifact(
   }
 
   // Write file
-  fs.writeFileSync(absolutePath, fileContent, 'utf-8');
+  fs.writeFileSync(absolutePath, fileContent, "utf-8");
 
   // Update database: set file_path and NULL content
   await run(
     `UPDATE ideation_artifacts
      SET file_path = ?, content = NULL, user_slug = ?, idea_slug = ?, updated_at = ?
      WHERE id = ?`,
-    [filePath, userSlug, ideaSlug, new Date().toISOString(), artifact.id]
+    [filePath, userSlug, ideaSlug, new Date().toISOString(), artifact.id],
   );
 
   return { success: true };
@@ -241,13 +241,15 @@ async function migrateArtifacts(): Promise<MigrationResult> {
 
   // Get all artifacts with content that haven't been migrated yet
   const artifacts = await query<DbArtifact>(
-    `SELECT * FROM ideation_artifacts WHERE content IS NOT NULL`
+    `SELECT * FROM ideation_artifacts WHERE content IS NOT NULL`,
   );
 
   result.total = artifacts.length;
 
   if (artifacts.length === 0) {
-    logInfo('No artifacts to migrate (all already file-backed or no artifacts exist)');
+    logInfo(
+      "No artifacts to migrate (all already file-backed or no artifacts exist)",
+    );
     return result;
   }
 
@@ -273,7 +275,7 @@ async function migrateArtifacts(): Promise<MigrationResult> {
     if (!session) {
       const sessions = await query<DbSession>(
         `SELECT id, user_slug, idea_slug FROM ideation_sessions WHERE id = ?`,
-        [artifact.session_id]
+        [artifact.session_id],
       );
       if (sessions.length > 0) {
         session = sessions[0];
@@ -293,9 +295,11 @@ async function migrateArtifacts(): Promise<MigrationResult> {
         result.errors++;
         result.errorDetails.push({
           id: artifact.id,
-          error: migrationResult.error || 'Unknown error'
+          error: migrationResult.error || "Unknown error",
         });
-        logError(`${progress} Failed: ${artifact.id} - ${migrationResult.error}`);
+        logError(
+          `${progress} Failed: ${artifact.id} - ${migrationResult.error}`,
+        );
       }
     } catch (error) {
       result.errors++;
@@ -313,8 +317,8 @@ async function migrateArtifacts(): Promise<MigrationResult> {
  */
 async function main(): Promise<void> {
   try {
-    logInfo('Starting artifact migration to filesystem...');
-    logInfo('');
+    logInfo("Starting artifact migration to filesystem...");
+    logInfo("");
 
     // Initialize database
     await runMigrations();
@@ -326,16 +330,16 @@ async function main(): Promise<void> {
     await saveDb();
 
     // Print summary
-    console.log('\n');
-    console.log('Migration Summary:');
-    console.log('==================');
+    console.log("\n");
+    console.log("Migration Summary:");
+    console.log("==================");
     console.log(`  Total artifacts:    ${result.total}`);
     console.log(`  Migrated:           ${result.migrated}`);
     console.log(`  Skipped:            ${result.skipped}`);
     console.log(`  Errors:             ${result.errors}`);
 
     if (result.errorDetails.length > 0) {
-      console.log('\nError Details:');
+      console.log("\nError Details:");
       for (const err of result.errorDetails) {
         console.log(`  - ${err.id}: ${err.error}`);
       }
@@ -343,19 +347,23 @@ async function main(): Promise<void> {
 
     // Verify: check that no artifacts have both content and file_path
     const badArtifacts = await query<{ id: string }>(
-      `SELECT id FROM ideation_artifacts WHERE content IS NOT NULL AND file_path IS NOT NULL`
+      `SELECT id FROM ideation_artifacts WHERE content IS NOT NULL AND file_path IS NOT NULL`,
     );
 
     if (badArtifacts.length > 0) {
-      logWarning(`\nWarning: ${badArtifacts.length} artifact(s) have both content and file_path`);
-      logWarning('This should not happen after a successful migration');
+      logWarning(
+        `\nWarning: ${badArtifacts.length} artifact(s) have both content and file_path`,
+      );
+      logWarning("This should not happen after a successful migration");
     } else {
-      logSuccess('\nVerification passed: No artifacts have both content and file_path');
+      logSuccess(
+        "\nVerification passed: No artifacts have both content and file_path",
+      );
     }
 
-    logSuccess('\nMigration complete.');
+    logSuccess("\nMigration complete.");
   } catch (error) {
-    logError('Migration failed', error as Error);
+    logError("Migration failed", error as Error);
     process.exit(1);
   } finally {
     await closeDb();
@@ -365,8 +373,8 @@ async function main(): Promise<void> {
 // Run if called directly
 const isMainModule =
   process.argv[1] &&
-  (process.argv[1].endsWith('migrate-artifacts-to-files.ts') ||
-    process.argv[1].endsWith('migrate-artifacts-to-files.js'));
+  (process.argv[1].endsWith("migrate-artifacts-to-files.ts") ||
+    process.argv[1].endsWith("migrate-artifacts-to-files.js"));
 
 if (isMainModule) {
   main();

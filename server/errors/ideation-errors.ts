@@ -13,10 +13,10 @@ export class IdeationError extends Error {
     message: string,
     code: string,
     statusCode: number = 500,
-    details?: unknown
+    details?: unknown,
   ) {
     super(message);
-    this.name = 'IdeationError';
+    this.name = "IdeationError";
     this.code = code;
     this.statusCode = statusCode;
     this.details = details;
@@ -34,28 +34,25 @@ export class IdeationError extends Error {
 // Session errors
 export class SessionNotFoundError extends IdeationError {
   constructor(sessionId: string) {
-    super(`Session not found: ${sessionId}`, 'SESSION_NOT_FOUND', 404);
+    super(`Session not found: ${sessionId}`, "SESSION_NOT_FOUND", 404);
   }
 }
 
 export class SessionNotActiveError extends IdeationError {
   constructor(sessionId: string, currentStatus: string) {
-    super(
-      `Session is not active: ${sessionId}`,
-      'SESSION_NOT_ACTIVE',
-      400,
-      { currentStatus }
-    );
+    super(`Session is not active: ${sessionId}`, "SESSION_NOT_ACTIVE", 400, {
+      currentStatus,
+    });
   }
 }
 
 export class SessionAlreadyExistsError extends IdeationError {
   constructor(_profileId: string, existingSessionId: string) {
     super(
-      'An active session already exists for this profile',
-      'SESSION_ALREADY_EXISTS',
+      "An active session already exists for this profile",
+      "SESSION_ALREADY_EXISTS",
       409,
-      { existingSessionId }
+      { existingSessionId },
     );
   }
 }
@@ -63,31 +60,27 @@ export class SessionAlreadyExistsError extends IdeationError {
 // Candidate errors
 export class CandidateNotFoundError extends IdeationError {
   constructor(candidateId: string) {
-    super(`Candidate not found: ${candidateId}`, 'CANDIDATE_NOT_FOUND', 404);
+    super(`Candidate not found: ${candidateId}`, "CANDIDATE_NOT_FOUND", 404);
   }
 }
 
 export class NoCandidateError extends IdeationError {
   constructor(sessionId: string) {
-    super(
-      `No active candidate for session: ${sessionId}`,
-      'NO_CANDIDATE',
-      400
-    );
+    super(`No active candidate for session: ${sessionId}`, "NO_CANDIDATE", 400);
   }
 }
 
 // Profile errors
 export class ProfileNotFoundError extends IdeationError {
   constructor(profileId: string) {
-    super(`Profile not found: ${profileId}`, 'PROFILE_NOT_FOUND', 404);
+    super(`Profile not found: ${profileId}`, "PROFILE_NOT_FOUND", 404);
   }
 }
 
 // Validation errors
 export class ValidationError extends IdeationError {
   constructor(issues: unknown[]) {
-    super('Validation error', 'VALIDATION_ERROR', 400, { issues });
+    super("Validation error", "VALIDATION_ERROR", 400, { issues });
   }
 }
 
@@ -95,10 +88,10 @@ export class ValidationError extends IdeationError {
 export class ContextLimitError extends IdeationError {
   constructor(currentTokens: number, limit: number) {
     super(
-      'Context limit exceeded, handoff required',
-      'CONTEXT_LIMIT_EXCEEDED',
+      "Context limit exceeded, handoff required",
+      "CONTEXT_LIMIT_EXCEEDED",
       400,
-      { currentTokens, limit, requiresHandoff: true }
+      { currentTokens, limit, requiresHandoff: true },
     );
   }
 }
@@ -108,21 +101,19 @@ export class AgentProcessingError extends IdeationError {
   constructor(message: string, originalError?: Error) {
     super(
       `Agent processing failed: ${message}`,
-      'AGENT_PROCESSING_ERROR',
+      "AGENT_PROCESSING_ERROR",
       500,
-      { originalError: originalError?.message }
+      { originalError: originalError?.message },
     );
   }
 }
 
 export class WebSearchError extends IdeationError {
   constructor(query: string, originalError?: Error) {
-    super(
-      `Web search failed for: ${query}`,
-      'WEB_SEARCH_ERROR',
-      500,
-      { query, originalError: originalError?.message }
-    );
+    super(`Web search failed for: ${query}`, "WEB_SEARCH_ERROR", 500, {
+      query,
+      originalError: originalError?.message,
+    });
   }
 }
 
@@ -131,9 +122,9 @@ export class MemoryFileError extends IdeationError {
   constructor(sessionId: string, fileType: string, operation: string) {
     super(
       `Memory file operation failed: ${operation}`,
-      'MEMORY_FILE_ERROR',
+      "MEMORY_FILE_ERROR",
       500,
-      { sessionId, fileType, operation }
+      { sessionId, fileType, operation },
     );
   }
 }
@@ -145,18 +136,18 @@ export function ideationErrorHandler(
   error: Error,
   _req: unknown,
   res: { status: (code: number) => { json: (body: unknown) => unknown } },
-  _next: unknown
+  _next: unknown,
 ): unknown {
   if (error instanceof IdeationError) {
     return res.status(error.statusCode).json(error.toJSON());
   }
 
   // Log unexpected errors
-  console.error('Unexpected error:', error);
+  console.error("Unexpected error:", error);
 
   return res.status(500).json({
-    error: 'Internal server error',
-    code: 'INTERNAL_ERROR',
+    error: "Internal server error",
+    code: "INTERNAL_ERROR",
   });
 }
 
@@ -164,7 +155,7 @@ export function ideationErrorHandler(
  * Wrap async route handlers to catch errors.
  */
 export function asyncHandler(
-  fn: (req: unknown, res: unknown, next: unknown) => Promise<unknown>
+  fn: (req: unknown, res: unknown, next: unknown) => Promise<unknown>,
 ): (req: unknown, res: unknown, next: (err?: Error) => void) => void {
   return (req: unknown, res: unknown, next: (err?: Error) => void) => {
     Promise.resolve(fn(req, res, next)).catch(next);

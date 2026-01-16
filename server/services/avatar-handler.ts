@@ -2,31 +2,34 @@
  * Avatar Handler
  * Handles avatar upload, resize, and storage
  */
-import path from 'path';
-import fs from 'fs';
-import { updateAvatarPath, getOrCreateProfile } from '../../database/db.js';
+import path from "path";
+import fs from "fs";
+import { updateAvatarPath, getOrCreateProfile } from "../../database/db.js";
 
 const AVATAR_SIZES = [32, 64, 128, 256];
-const AVATAR_BASE_PATH = 'assets/avatars';
+const AVATAR_BASE_PATH = "assets/avatars";
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
 export class AvatarHandler {
-  async processUpload(userId: string, buffer: Buffer): Promise<{ url: string; sizes: Record<number, string> }> {
+  async processUpload(
+    userId: string,
+    buffer: Buffer,
+  ): Promise<{ url: string; sizes: Record<number, string> }> {
     // Validate size
     if (buffer.length > MAX_SIZE_BYTES) {
-      throw new Error('Image too large. Maximum size is 5MB.');
+      throw new Error("Image too large. Maximum size is 5MB.");
     }
 
     // Ensure profile exists
     await getOrCreateProfile(userId);
 
     // Lazy load sharp
-    const sharp = (await import('sharp')).default;
+    const sharp = (await import("sharp")).default;
 
     // Validate image type
     const type = await this.getImageType(buffer);
-    if (!['jpeg', 'png', 'gif', 'webp'].includes(type)) {
-      throw new Error('Invalid image type. Supported: JPEG, PNG, GIF, WebP');
+    if (!["jpeg", "png", "gif", "webp"].includes(type)) {
+      throw new Error("Invalid image type. Supported: JPEG, PNG, GIF, WebP");
     }
 
     // Create directory
@@ -39,7 +42,7 @@ export class AvatarHandler {
       const filename = `${size}.jpg`;
       const filepath = path.join(userDir, filename);
       await sharp(buffer)
-        .resize(size, size, { fit: 'cover' })
+        .resize(size, size, { fit: "cover" })
         .jpeg({ quality: 85 })
         .toFile(filepath);
       sizes[size] = `/${userDir}/${filename}`;
@@ -61,9 +64,9 @@ export class AvatarHandler {
   }
 
   private async getImageType(buffer: Buffer): Promise<string> {
-    const sharp = (await import('sharp')).default;
+    const sharp = (await import("sharp")).default;
     const metadata = await sharp(buffer).metadata();
-    return metadata.format || 'unknown';
+    return metadata.format || "unknown";
   }
 }
 

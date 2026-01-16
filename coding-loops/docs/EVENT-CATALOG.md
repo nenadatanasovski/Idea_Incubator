@@ -207,9 +207,9 @@ Published when human decision is required.
   "decision_type": "conflict_resolution",
   "summary": "Loop 1 and Loop 2 both modified server/api.ts",
   "options": [
-    {"id": "A", "description": "Keep Loop 1's changes (auth middleware)"},
-    {"id": "B", "description": "Keep Loop 2's changes (credit endpoint)"},
-    {"id": "C", "description": "Manual merge required"}
+    { "id": "A", "description": "Keep Loop 1's changes (auth middleware)" },
+    { "id": "B", "description": "Keep Loop 2's changes (credit endpoint)" },
+    { "id": "C", "description": "Manual merge required" }
   ],
   "default_option": "A",
   "timeout_minutes": 60,

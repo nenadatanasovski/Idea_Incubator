@@ -13,6 +13,7 @@ REST API for agents to claim and work on tasks autonomously. Enables multi-agent
 Claim the next available task for an agent to work on.
 
 **Request Body:**
+
 ```json
 {
   "agentId": "build-agent-1",
@@ -23,6 +24,7 @@ Claim the next available task for an agent to work on.
 ```
 
 **Response (Success):**
+
 ```json
 {
   "success": true,
@@ -44,6 +46,7 @@ Claim the next available task for an agent to work on.
 ```
 
 **Response (No Tasks Available):**
+
 ```json
 {
   "error": "No available tasks",
@@ -58,6 +61,7 @@ Claim the next available task for an agent to work on.
 Release a claimed task back to the queue (if agent cannot complete it).
 
 **Request Body:**
+
 ```json
 {
   "taskExecutionId": "te-1234567890-abc123",
@@ -67,6 +71,7 @@ Release a claimed task back to the queue (if agent cannot complete it).
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -82,6 +87,7 @@ Release a claimed task back to the queue (if agent cannot complete it).
 Mark a task as complete or failed.
 
 **Request Body:**
+
 ```json
 {
   "taskExecutionId": "te-1234567890-abc123",
@@ -96,6 +102,7 @@ Mark a task as complete or failed.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -113,11 +120,13 @@ Mark a task as complete or failed.
 Get list of available tasks without claiming them.
 
 **Query Parameters:**
+
 - `buildId` (optional): Build ID to filter tasks
 - `minPriority` (optional): Minimum priority level (P1-P4, default: P4)
 - `limit` (optional): Maximum number of tasks to return (default: 10)
 
 **Response:**
+
 ```json
 {
   "available": [
@@ -141,6 +150,7 @@ Get list of available tasks without claiming them.
 Get tasks currently claimed by a specific agent.
 
 **Response:**
+
 ```json
 {
   "agentId": "build-agent-1",
@@ -150,7 +160,7 @@ Get tasks currently claimed by a specific agent.
 }
 ```
 
-*Note: This endpoint is a placeholder for future enhancement when agent assignment tracking is added to the database.*
+_Note: This endpoint is a placeholder for future enhancement when agent assignment tracking is added to the database._
 
 ---
 
@@ -221,12 +231,12 @@ Emitted when an agent completes a task.
 
 ```typescript
 // 1. Claim a task
-const claimResponse = await fetch('/api/task-assignment/claim', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const claimResponse = await fetch("/api/task-assignment/claim", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    agentId: 'build-agent-1',
-    minPriority: 'P2',
+    agentId: "build-agent-1",
+    minPriority: "P2",
   }),
 });
 
@@ -237,28 +247,28 @@ try {
   const result = await executeTask(task);
 
   // 3. Mark as complete
-  await fetch('/api/task-assignment/complete', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  await fetch("/api/task-assignment/complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       taskExecutionId: claim.taskExecutionId,
-      agentId: 'build-agent-1',
+      agentId: "build-agent-1",
       success: true,
       output: result.output,
       generatedCode: result.code,
-      validationCommand: 'npx tsc --noEmit',
+      validationCommand: "npx tsc --noEmit",
       validationOutput: result.validationOutput,
       validationSuccess: true,
     }),
   });
 } catch (error) {
   // 3b. Mark as failed or release
-  await fetch('/api/task-assignment/complete', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  await fetch("/api/task-assignment/complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       taskExecutionId: claim.taskExecutionId,
-      agentId: 'build-agent-1',
+      agentId: "build-agent-1",
       success: false,
       error: error.message,
     }),

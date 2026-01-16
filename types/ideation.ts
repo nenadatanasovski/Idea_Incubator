@@ -2,30 +2,44 @@
 // CORE TYPES
 // ============================================================================
 
-export type SessionStatus = 'active' | 'completed' | 'abandoned';
-export type SessionPhase = 'exploring' | 'narrowing' | 'validating' | 'refining';
-export type EntryMode = 'have_idea' | 'discover';
-export type CandidateStatus = 'forming' | 'active' | 'captured' | 'discarded' | 'saved';
+export type SessionStatus = "active" | "completed" | "abandoned";
+export type SessionPhase =
+  | "exploring"
+  | "narrowing"
+  | "validating"
+  | "refining";
+export type EntryMode = "have_idea" | "discover";
+export type CandidateStatus =
+  | "forming"
+  | "active"
+  | "captured"
+  | "discarded"
+  | "saved";
 export type RiskType =
-  | 'impossible'
-  | 'unrealistic'
-  | 'too_complex'
-  | 'too_vague'
-  | 'saturated_market'
-  | 'wrong_timing'
-  | 'resource_mismatch';
-export type RiskSeverity = 'critical' | 'high' | 'medium' | 'low';
-export type MessageRole = 'user' | 'assistant' | 'system';
-export type SignalType = 'self_discovery' | 'market_discovery' | 'narrowing' | 'confidence' | 'viability';
-export type ButtonStyle = 'primary' | 'secondary' | 'outline' | 'danger';
+  | "impossible"
+  | "unrealistic"
+  | "too_complex"
+  | "too_vague"
+  | "saturated_market"
+  | "wrong_timing"
+  | "resource_mismatch";
+export type RiskSeverity = "critical" | "high" | "medium" | "low";
+export type MessageRole = "user" | "assistant" | "system";
+export type SignalType =
+  | "self_discovery"
+  | "market_discovery"
+  | "narrowing"
+  | "confidence"
+  | "viability";
+export type ButtonStyle = "primary" | "secondary" | "outline" | "danger";
 export type MemoryFileType =
-  | 'self_discovery'
-  | 'market_discovery'
-  | 'narrowing_state'
-  | 'conversation_summary'
-  | 'idea_candidate'
-  | 'viability_assessment'
-  | 'handoff_notes';
+  | "self_discovery"
+  | "market_discovery"
+  | "narrowing_state"
+  | "conversation_summary"
+  | "idea_candidate"
+  | "viability_assessment"
+  | "handoff_notes";
 
 // ============================================================================
 // SESSION TYPES
@@ -98,8 +112,8 @@ export interface IdeaCandidate {
   sessionId: string;
   title: string;
   summary: string | null;
-  confidence: number;  // 0-100
-  viability: number;   // 0-100
+  confidence: number; // 0-100
+  viability: number; // 0-100
   userSuggested: boolean;
   status: CandidateStatus;
   capturedIdeaId: string | null;
@@ -167,7 +181,14 @@ export interface ButtonOption {
 
 export interface FormField {
   id: string;
-  type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'slider' | 'dropdown' | 'date';
+  type:
+    | "text"
+    | "textarea"
+    | "radio"
+    | "checkbox"
+    | "slider"
+    | "dropdown"
+    | "date";
   label: string;
   placeholder?: string;
   required?: boolean;
@@ -201,7 +222,7 @@ export interface MemoryFile {
   id: string;
   sessionId: string;
   fileType: MemoryFileType;
-  content: string;  // Markdown
+  content: string; // Markdown
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -224,18 +245,18 @@ export interface MemoryFileRow {
 
 export interface SelfDiscoveryState {
   impactVision: {
-    level: 'world' | 'country' | 'city' | 'community' | null;
+    level: "world" | "country" | "city" | "community" | null;
     description: string | null;
     confidence: number;
   };
   frustrations: Array<{
     description: string;
     source: string;
-    severity: 'high' | 'medium' | 'low';
+    severity: "high" | "medium" | "low";
   }>;
   expertise: Array<{
     area: string;
-    depth: 'expert' | 'competent' | 'novice';
+    depth: "expert" | "competent" | "novice";
     evidence: string;
   }>;
   interests: Array<{
@@ -251,8 +272,8 @@ export interface SelfDiscoveryState {
   constraints: {
     location: { fixed: boolean; target: string | null };
     timeHoursPerWeek: number | null;
-    capital: 'bootstrap' | 'seeking_funding' | 'have_funding' | null;
-    riskTolerance: 'low' | 'medium' | 'high' | null;
+    capital: "bootstrap" | "seeking_funding" | "have_funding" | null;
+    riskTolerance: "low" | "medium" | "high" | null;
   };
   [key: string]: unknown;
 }
@@ -268,7 +289,7 @@ export interface MarketDiscoveryState {
   gaps: Array<{
     description: string;
     evidence: string;
-    relevance: 'high' | 'medium' | 'low';
+    relevance: "high" | "medium" | "low";
   }>;
   timingSignals: Array<{
     signal: string;
@@ -338,8 +359,8 @@ export interface ExtractedSignal {
   type: SignalType;
   key: string;
   value: string;
-  confidence: number;  // 0.0-1.0
-  source: 'user_message' | 'agent_inference' | 'web_search';
+  confidence: number; // 0.0-1.0
+  source: "user_message" | "agent_inference" | "web_search";
   messageId?: string;
 }
 
@@ -362,12 +383,17 @@ export interface SignalRow {
 /**
  * Supported idea types for classification in the unified file system.
  */
-export type IdeaTypeSelection = 'business' | 'feature_internal' | 'feature_external' | 'service' | 'pivot';
+export type IdeaTypeSelection =
+  | "business"
+  | "feature_internal"
+  | "feature_external"
+  | "service"
+  | "pivot";
 
 /**
  * Parent type for feature and pivot ideas.
  */
-export type ParentType = 'internal' | 'external';
+export type ParentType = "internal" | "external";
 
 /**
  * State for tracking idea type selection during session.

@@ -3,9 +3,15 @@
 // Table component for displaying artifacts with folder support
 // =============================================================================
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import type { Artifact, ArtifactType } from '../../types/ideation';
-import type { ClassificationInfo } from '../../types/ideation-state';
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+} from "react";
+import type { Artifact, ArtifactType } from "../../types/ideation";
+import type { ClassificationInfo } from "../../types/ideation-state";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -27,7 +33,7 @@ interface FolderState {
 }
 
 interface GroupedArtifact {
-  type: 'folder' | 'file';
+  type: "folder" | "file";
   path: string;
   name: string;
   artifact?: Artifact;
@@ -40,67 +46,144 @@ interface GroupedArtifact {
 // -----------------------------------------------------------------------------
 
 const FolderIcon = () => (
-  <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+  <svg
+    className="w-4 h-4 text-yellow-500"
+    fill="currentColor"
+    viewBox="0 0 20 20"
+  >
     <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
   </svg>
 );
 
 const FolderOpenIcon = () => (
-  <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-    <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v1.5a1.5 1.5 0 01-3 0V6z" clipRule="evenodd" />
+  <svg
+    className="w-4 h-4 text-yellow-500"
+    fill="currentColor"
+    viewBox="0 0 20 20"
+  >
+    <path
+      fillRule="evenodd"
+      d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v1.5a1.5 1.5 0 01-3 0V6z"
+      clipRule="evenodd"
+    />
     <path d="M6 12a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H2h2a2 2 0 002-2v-2z" />
   </svg>
 );
 
 const ChevronRightIcon = ({ expanded }: { expanded: boolean }) => (
   <svg
-    className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
+    className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
   >
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 5l7 7-7 7"
+    />
   </svg>
 );
 
 const getFileIcon = (type: ArtifactType) => {
   switch (type) {
-    case 'code':
+    case "code":
       return (
-        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        <svg
+          className="w-4 h-4 text-blue-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+          />
         </svg>
       );
-    case 'research':
+    case "research":
       return (
-        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        <svg
+          className="w-4 h-4 text-green-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
         </svg>
       );
-    case 'mermaid':
+    case "mermaid":
       return (
-        <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343" />
+        <svg
+          className="w-4 h-4 text-purple-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343"
+          />
         </svg>
       );
-    case 'markdown':
-    case 'text':
+    case "markdown":
+    case "text":
       return (
-        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <svg
+          className="w-4 h-4 text-gray-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
         </svg>
       );
-    case 'idea-summary':
-    case 'analysis':
+    case "idea-summary":
+    case "analysis":
       return (
-        <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        <svg
+          className="w-4 h-4 text-amber-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+          />
         </svg>
       );
     default:
       return (
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        <svg
+          className="w-4 h-4 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+          />
         </svg>
       );
   }
@@ -123,16 +206,29 @@ function formatRelativeDate(dateString: string): string {
   const diffDays = Math.floor(diffHours / 24);
 
   if (diffSecs < 60) {
-    return 'just now';
+    return "just now";
   } else if (diffMins < 60) {
-    return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
   } else if (diffHours < 24) {
-    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
   } else if (diffDays < 7) {
-    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
   } else {
     // Format as "Jan 5" or "Jan 5, 2023" if different year
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     const month = months[date.getMonth()];
     const day = date.getDate();
     const year = date.getFullYear();
@@ -151,18 +247,30 @@ function formatRelativeDate(dateString: string): string {
  */
 function getTypeDisplayName(type: ArtifactType): string {
   switch (type) {
-    case 'code': return 'Code';
-    case 'html': return 'HTML';
-    case 'svg': return 'SVG';
-    case 'mermaid': return 'Diagram';
-    case 'react': return 'React';
-    case 'text': return 'Text';
-    case 'markdown': return 'Markdown';
-    case 'research': return 'Research';
-    case 'idea-summary': return 'Summary';
-    case 'analysis': return 'Analysis';
-    case 'comparison': return 'Comparison';
-    default: return type;
+    case "code":
+      return "Code";
+    case "html":
+      return "HTML";
+    case "svg":
+      return "SVG";
+    case "mermaid":
+      return "Diagram";
+    case "react":
+      return "React";
+    case "text":
+      return "Text";
+    case "markdown":
+      return "Markdown";
+    case "research":
+      return "Research";
+    case "idea-summary":
+      return "Summary";
+    case "analysis":
+      return "Analysis";
+    case "comparison":
+      return "Comparison";
+    default:
+      return type;
   }
 }
 
@@ -171,29 +279,29 @@ function getTypeDisplayName(type: ArtifactType): string {
  */
 function extractFolderPath(artifact: Artifact): string {
   // Check if title contains path separators
-  if (artifact.title.includes('/')) {
-    const parts = artifact.title.split('/');
+  if (artifact.title.includes("/")) {
+    const parts = artifact.title.split("/");
     parts.pop(); // Remove filename
-    return parts.length > 0 ? parts.join('/') : '/';
+    return parts.length > 0 ? parts.join("/") : "/";
   }
 
   // Check identifier for path structure
-  if (artifact.identifier && artifact.identifier.includes('/')) {
-    const parts = artifact.identifier.split('/');
+  if (artifact.identifier && artifact.identifier.includes("/")) {
+    const parts = artifact.identifier.split("/");
     parts.pop();
-    return parts.length > 0 ? parts.join('/') : '/';
+    return parts.length > 0 ? parts.join("/") : "/";
   }
 
   // No folder structure - root folder
-  return '/';
+  return "/";
 }
 
 /**
  * Extract filename from artifact
  */
 function extractFileName(artifact: Artifact): string {
-  if (artifact.title.includes('/')) {
-    const parts = artifact.title.split('/');
+  if (artifact.title.includes("/")) {
+    const parts = artifact.title.split("/");
     return parts[parts.length - 1];
   }
   return artifact.title;
@@ -209,7 +317,7 @@ function groupArtifactsByFolder(artifacts: Artifact[]): GroupedArtifact[] {
   // Group by folder path
   for (const artifact of artifacts) {
     const folderPath = extractFolderPath(artifact);
-    if (folderPath === '/') {
+    if (folderPath === "/") {
       rootFiles.push(artifact);
     } else {
       if (!folders.has(folderPath)) {
@@ -222,7 +330,9 @@ function groupArtifactsByFolder(artifacts: Artifact[]): GroupedArtifact[] {
   const result: GroupedArtifact[] = [];
 
   // Add folders first (sorted alphabetically)
-  const sortedFolders = Array.from(folders.keys()).sort((a, b) => a.localeCompare(b));
+  const sortedFolders = Array.from(folders.keys()).sort((a, b) =>
+    a.localeCompare(b),
+  );
   for (const folderPath of sortedFolders) {
     const folderArtifacts = folders.get(folderPath)!;
     // Sort files by date (newest first)
@@ -233,12 +343,12 @@ function groupArtifactsByFolder(artifacts: Artifact[]): GroupedArtifact[] {
     });
 
     result.push({
-      type: 'folder',
+      type: "folder",
       path: folderPath,
-      name: folderPath.split('/').pop() || folderPath,
+      name: folderPath.split("/").pop() || folderPath,
       depth: 0,
-      children: folderArtifacts.map(artifact => ({
-        type: 'file' as const,
+      children: folderArtifacts.map((artifact) => ({
+        type: "file" as const,
         path: artifact.id,
         name: extractFileName(artifact),
         artifact,
@@ -256,7 +366,7 @@ function groupArtifactsByFolder(artifacts: Artifact[]): GroupedArtifact[] {
 
   for (const artifact of rootFiles) {
     result.push({
-      type: 'file',
+      type: "file",
       path: artifact.id,
       name: extractFileName(artifact),
       artifact,
@@ -278,26 +388,26 @@ interface StatusBadgeProps {
 const StatusBadge: React.FC<StatusBadgeProps> = ({ classification }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
-  let bgColor = 'bg-gray-300';
-  let tooltip = 'Unknown classification';
+  let bgColor = "bg-gray-300";
+  let tooltip = "Unknown classification";
 
   if (classification) {
     const { classification: type, isComplete } = classification;
 
-    if (type === 'required') {
+    if (type === "required") {
       if (isComplete) {
-        bgColor = 'bg-yellow-400';
-        tooltip = 'Required - Complete';
+        bgColor = "bg-yellow-400";
+        tooltip = "Required - Complete";
       } else {
-        bgColor = 'bg-red-500';
-        tooltip = 'Required - Missing content';
+        bgColor = "bg-red-500";
+        tooltip = "Required - Missing content";
       }
-    } else if (type === 'recommended') {
-      bgColor = 'bg-blue-400';
-      tooltip = 'Recommended';
-    } else if (type === 'optional') {
-      bgColor = 'bg-gray-300';
-      tooltip = 'Optional';
+    } else if (type === "recommended") {
+      bgColor = "bg-blue-400";
+      tooltip = "Recommended";
+    } else if (type === "optional") {
+      bgColor = "bg-gray-300";
+      tooltip = "Optional";
     }
   }
 
@@ -369,23 +479,34 @@ const KeyboardShortcutsHelp: React.FC<{ show: boolean }> = ({ show }) => {
       <div className="space-y-1">
         <div className="flex justify-between gap-4">
           <span className="text-gray-400">Navigate:</span>
-          <span><kbd className="bg-gray-700 px-1 rounded">↑</kbd> <kbd className="bg-gray-700 px-1 rounded">↓</kbd></span>
+          <span>
+            <kbd className="bg-gray-700 px-1 rounded">↑</kbd>{" "}
+            <kbd className="bg-gray-700 px-1 rounded">↓</kbd>
+          </span>
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-gray-400">Select:</span>
-          <span><kbd className="bg-gray-700 px-1 rounded">Enter</kbd></span>
+          <span>
+            <kbd className="bg-gray-700 px-1 rounded">Enter</kbd>
+          </span>
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-gray-400">Delete:</span>
-          <span><kbd className="bg-gray-700 px-1 rounded">Del</kbd></span>
+          <span>
+            <kbd className="bg-gray-700 px-1 rounded">Del</kbd>
+          </span>
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-gray-400">Clear:</span>
-          <span><kbd className="bg-gray-700 px-1 rounded">Esc</kbd></span>
+          <span>
+            <kbd className="bg-gray-700 px-1 rounded">Esc</kbd>
+          </span>
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-gray-400">Actions:</span>
-          <span><kbd className="bg-gray-700 px-1 rounded">Tab</kbd></span>
+          <span>
+            <kbd className="bg-gray-700 px-1 rounded">Tab</kbd>
+          </span>
         </div>
       </div>
     </div>
@@ -421,15 +542,15 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
     if (!show) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onCancel();
-      } else if (e.key === 'Enter') {
+      } else if (e.key === "Enter") {
         onConfirm();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [show, onCancel, onConfirm]);
 
   if (!show) return null;
@@ -448,7 +569,8 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
           Delete Artifact
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Are you sure you want to delete "{artifactName}"? This action cannot be undone.
+          Are you sure you want to delete "{artifactName}"? This action cannot
+          be undone.
         </p>
         <div className="flex justify-end gap-2">
           <button
@@ -496,10 +618,14 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
 
   // Delete confirmation dialog state
-  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; artifactId: string; name: string }>({
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    show: boolean;
+    artifactId: string;
+    name: string;
+  }>({
     show: false,
-    artifactId: '',
-    name: '',
+    artifactId: "",
+    name: "",
   });
 
   // Table reference for focus management
@@ -507,31 +633,43 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   const rowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map());
 
   // Group artifacts by folder
-  const groupedArtifacts = useMemo(() => groupArtifactsByFolder(artifacts), [artifacts]);
+  const groupedArtifacts = useMemo(
+    () => groupArtifactsByFolder(artifacts),
+    [artifacts],
+  );
 
   // Handle folder toggle
-  const handleFolderToggle = useCallback((folderPath: string) => {
-    setFolderState(prev => ({
-      ...prev,
-      [folderPath]: !prev[folderPath],
-    }));
-    onToggleFolder(folderPath);
-  }, [onToggleFolder]);
+  const handleFolderToggle = useCallback(
+    (folderPath: string) => {
+      setFolderState((prev) => ({
+        ...prev,
+        [folderPath]: !prev[folderPath],
+      }));
+      onToggleFolder(folderPath);
+    },
+    [onToggleFolder],
+  );
 
   // Handle row click
-  const handleRowClick = useCallback((item: GroupedArtifact, index: number) => {
-    setFocusedIndex(index);
-    if (item.type === 'folder') {
-      handleFolderToggle(item.path);
-    } else if (item.artifact) {
-      onSelect(item.artifact);
-    }
-  }, [handleFolderToggle, onSelect]);
+  const handleRowClick = useCallback(
+    (item: GroupedArtifact, index: number) => {
+      setFocusedIndex(index);
+      if (item.type === "folder") {
+        handleFolderToggle(item.path);
+      } else if (item.artifact) {
+        onSelect(item.artifact);
+      }
+    },
+    [handleFolderToggle, onSelect],
+  );
 
   // Check if a folder is expanded (default to true for first load)
-  const isFolderExpanded = useCallback((folderPath: string): boolean => {
-    return folderState[folderPath] !== false; // Default to expanded
-  }, [folderState]);
+  const isFolderExpanded = useCallback(
+    (folderPath: string): boolean => {
+      return folderState[folderPath] !== false; // Default to expanded
+    },
+    [folderState],
+  );
 
   // Flatten grouped items for rendering (respecting expanded/collapsed state)
   const flattenedItems = useMemo(() => {
@@ -540,7 +678,11 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
     for (const item of groupedArtifacts) {
       result.push(item);
 
-      if (item.type === 'folder' && item.children && isFolderExpanded(item.path)) {
+      if (
+        item.type === "folder" &&
+        item.children &&
+        isFolderExpanded(item.path)
+      ) {
         result.push(...item.children);
       }
     }
@@ -549,90 +691,106 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   }, [groupedArtifacts, isFolderExpanded]);
 
   // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTableElement>) => {
-    if (flattenedItems.length === 0) return;
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTableElement>) => {
+      if (flattenedItems.length === 0) return;
 
-    switch (e.key) {
-      case 'ArrowDown': {
-        e.preventDefault();
-        const nextIndex = focusedIndex < flattenedItems.length - 1 ? focusedIndex + 1 : 0;
-        setFocusedIndex(nextIndex);
-        rowRefs.current.get(nextIndex)?.scrollIntoView({ block: 'nearest' });
-        break;
-      }
-      case 'ArrowUp': {
-        e.preventDefault();
-        const prevIndex = focusedIndex > 0 ? focusedIndex - 1 : flattenedItems.length - 1;
-        setFocusedIndex(prevIndex);
-        rowRefs.current.get(prevIndex)?.scrollIntoView({ block: 'nearest' });
-        break;
-      }
-      case 'Enter': {
-        e.preventDefault();
-        if (focusedIndex >= 0 && focusedIndex < flattenedItems.length) {
-          const item = flattenedItems[focusedIndex];
-          if (item.type === 'folder') {
-            handleFolderToggle(item.path);
-          } else if (item.artifact) {
-            onSelect(item.artifact);
+      switch (e.key) {
+        case "ArrowDown": {
+          e.preventDefault();
+          const nextIndex =
+            focusedIndex < flattenedItems.length - 1 ? focusedIndex + 1 : 0;
+          setFocusedIndex(nextIndex);
+          rowRefs.current.get(nextIndex)?.scrollIntoView({ block: "nearest" });
+          break;
+        }
+        case "ArrowUp": {
+          e.preventDefault();
+          const prevIndex =
+            focusedIndex > 0 ? focusedIndex - 1 : flattenedItems.length - 1;
+          setFocusedIndex(prevIndex);
+          rowRefs.current.get(prevIndex)?.scrollIntoView({ block: "nearest" });
+          break;
+        }
+        case "Enter": {
+          e.preventDefault();
+          if (focusedIndex >= 0 && focusedIndex < flattenedItems.length) {
+            const item = flattenedItems[focusedIndex];
+            if (item.type === "folder") {
+              handleFolderToggle(item.path);
+            } else if (item.artifact) {
+              onSelect(item.artifact);
+            }
           }
+          break;
         }
-        break;
-      }
-      case 'Delete':
-      case 'Backspace': {
-        if (focusedIndex >= 0 && focusedIndex < flattenedItems.length && onDelete) {
-          const item = flattenedItems[focusedIndex];
-          if (item.type === 'file' && item.artifact) {
-            e.preventDefault();
-            setDeleteConfirm({
-              show: true,
-              artifactId: item.artifact.id,
-              name: item.name,
-            });
+        case "Delete":
+        case "Backspace": {
+          if (
+            focusedIndex >= 0 &&
+            focusedIndex < flattenedItems.length &&
+            onDelete
+          ) {
+            const item = flattenedItems[focusedIndex];
+            if (item.type === "file" && item.artifact) {
+              e.preventDefault();
+              setDeleteConfirm({
+                show: true,
+                artifactId: item.artifact.id,
+                name: item.name,
+              });
+            }
           }
+          break;
         }
-        break;
-      }
-      case 'Escape': {
-        e.preventDefault();
-        setFocusedIndex(-1);
-        if (onClearSelection) {
-          onClearSelection();
+        case "Escape": {
+          e.preventDefault();
+          setFocusedIndex(-1);
+          if (onClearSelection) {
+            onClearSelection();
+          }
+          break;
         }
-        break;
+        case "Tab": {
+          // Allow default Tab behavior to move to action buttons
+          // Focus will naturally move to the next focusable element
+          break;
+        }
+        case "?": {
+          // Toggle keyboard shortcuts help
+          e.preventDefault();
+          setShowShortcutsHelp((prev) => !prev);
+          break;
+        }
       }
-      case 'Tab': {
-        // Allow default Tab behavior to move to action buttons
-        // Focus will naturally move to the next focusable element
-        break;
-      }
-      case '?': {
-        // Toggle keyboard shortcuts help
-        e.preventDefault();
-        setShowShortcutsHelp(prev => !prev);
-        break;
-      }
-    }
-  }, [flattenedItems, focusedIndex, handleFolderToggle, onSelect, onDelete, onClearSelection]);
+    },
+    [
+      flattenedItems,
+      focusedIndex,
+      handleFolderToggle,
+      onSelect,
+      onDelete,
+      onClearSelection,
+    ],
+  );
 
   // Handle delete confirmation
   const handleDeleteConfirm = useCallback(() => {
     if (onDelete && deleteConfirm.artifactId) {
       onDelete(deleteConfirm.artifactId);
     }
-    setDeleteConfirm({ show: false, artifactId: '', name: '' });
+    setDeleteConfirm({ show: false, artifactId: "", name: "" });
   }, [onDelete, deleteConfirm.artifactId]);
 
   const handleDeleteCancel = useCallback(() => {
-    setDeleteConfirm({ show: false, artifactId: '', name: '' });
+    setDeleteConfirm({ show: false, artifactId: "", name: "" });
   }, []);
 
   // Update focused index when selected path changes externally
   useEffect(() => {
     if (selectedPath) {
       const index = flattenedItems.findIndex(
-        item => item.type === 'file' && item.path === selectedPath
+        (item) => item.type === "file" && item.path === selectedPath,
       );
       if (index >= 0) {
         setFocusedIndex(index);
@@ -643,14 +801,25 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   // Loading state - show skeleton rows
   if (isLoading) {
     return (
-      <div data-testid="artifact-table-skeleton" className="w-full overflow-auto">
+      <div
+        data-testid="artifact-table-skeleton"
+        className="w-full overflow-auto"
+      >
         <table className="w-full text-sm">
           <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
             <tr>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">Name</th>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-28">Date</th>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-24">Type</th>
-              <th className="text-center px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-16">Status</th>
+              <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">
+                Name
+              </th>
+              <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-28">
+                Date
+              </th>
+              <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-24">
+                Type
+              </th>
+              <th className="text-center px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-16">
+                Status
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -681,13 +850,23 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
       <div className="absolute top-0 right-0 z-10">
         <button
           data-testid="keyboard-help-button"
-          onClick={() => setShowShortcutsHelp(prev => !prev)}
+          onClick={() => setShowShortcutsHelp((prev) => !prev)}
           onBlur={() => setShowShortcutsHelp(false)}
           className="p-1 m-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded"
           title="Keyboard shortcuts (?)"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
         </button>
         <KeyboardShortcutsHelp show={showShortcutsHelp} />
@@ -703,19 +882,31 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
       >
         <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
           <tr>
-            <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">Name</th>
-            <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-28">Date</th>
-            <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-24">Type</th>
-            <th className="text-center px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-16">Status</th>
+            <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">
+              Name
+            </th>
+            <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-28">
+              Date
+            </th>
+            <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-24">
+              Type
+            </th>
+            <th className="text-center px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-16">
+              Status
+            </th>
           </tr>
         </thead>
         <tbody>
           {flattenedItems.map((item, index) => {
-            const isFolder = item.type === 'folder';
+            const isFolder = item.type === "folder";
             const isSelected = !isFolder && item.path === selectedPath;
             const isFocused = index === focusedIndex;
             const expanded = isFolder ? isFolderExpanded(item.path) : undefined;
-            const classification = !isFolder && item.artifact ? classifications[item.artifact.id] || classifications[item.artifact.title] : undefined;
+            const classification =
+              !isFolder && item.artifact
+                ? classifications[item.artifact.id] ||
+                  classifications[item.artifact.title]
+                : undefined;
 
             return (
               <tr
@@ -724,7 +915,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                   if (el) rowRefs.current.set(index, el);
                   else rowRefs.current.delete(index);
                 }}
-                data-testid={isFolder ? 'folder-row' : 'artifact-row'}
+                data-testid={isFolder ? "folder-row" : "artifact-row"}
                 data-index={index}
                 data-id={item.artifact?.id}
                 aria-expanded={isFolder ? expanded : undefined}
@@ -733,8 +924,8 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                 tabIndex={isFocused ? 0 : -1}
                 className={`
                   cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700
-                  ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30 selected' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}
-                  ${isFocused ? 'ring-2 ring-blue-500 ring-inset focus-visible' : ''}
+                  ${isSelected ? "bg-blue-50 dark:bg-blue-900/30 selected" : "hover:bg-gray-50 dark:hover:bg-gray-800"}
+                  ${isFocused ? "ring-2 ring-blue-500 ring-inset focus-visible" : ""}
                 `}
                 onClick={() => handleRowClick(item, index)}
               >
@@ -759,7 +950,11 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
 
                     <span className="flex-shrink-0">
                       {isFolder ? (
-                        expanded ? <FolderOpenIcon /> : <FolderIcon />
+                        expanded ? (
+                          <FolderOpenIcon />
+                        ) : (
+                          <FolderIcon />
+                        )
                       ) : item.artifact ? (
                         getFileIcon(item.artifact.type)
                       ) : null}
@@ -767,7 +962,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
 
                     <span
                       data-testid="artifact-name"
-                      className={`truncate ${isFolder ? 'font-medium' : ''} ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}
+                      className={`truncate ${isFolder ? "font-medium" : ""} ${isSelected ? "text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-gray-100"}`}
                       title={item.name}
                     >
                       {item.name}
@@ -776,9 +971,11 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                 </td>
 
                 <td className="px-3 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                  {!isFolder && item.artifact && (
-                    formatRelativeDate(item.artifact.updatedAt || item.artifact.createdAt)
-                  )}
+                  {!isFolder &&
+                    item.artifact &&
+                    formatRelativeDate(
+                      item.artifact.updatedAt || item.artifact.createdAt,
+                    )}
                 </td>
 
                 <td className="px-3 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap">

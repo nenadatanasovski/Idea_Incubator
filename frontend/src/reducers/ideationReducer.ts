@@ -7,7 +7,7 @@ import type {
   IdeationStore,
   IdeationAction,
   TokenUsageInfo,
-} from '../types/ideation-state';
+} from "../types/ideation-state";
 
 const DEFAULT_TOKEN_USAGE: TokenUsageInfo = {
   total: 0,
@@ -19,8 +19,8 @@ const DEFAULT_TOKEN_USAGE: TokenUsageInfo = {
 export const initialState: IdeationStore = {
   session: {
     sessionId: null,
-    profileId: '',
-    status: 'idle',
+    profileId: "",
+    status: "idle",
     entryMode: null,
     error: null,
   },
@@ -28,7 +28,7 @@ export const initialState: IdeationStore = {
     messages: [],
     isLoading: false,
     isStreaming: false,
-    streamingContent: '',
+    streamingContent: "",
     error: null,
   },
   candidate: {
@@ -50,7 +50,7 @@ export const initialState: IdeationStore = {
     isLoading: false,
     isPanelOpen: false,
     linkedIdea: null,
-    viewMode: 'files',
+    viewMode: "files",
     selectedArtifactPath: null,
     artifactClassifications: {},
   },
@@ -62,66 +62,66 @@ export const initialState: IdeationStore = {
 
 export function ideationReducer(
   state: IdeationStore,
-  action: IdeationAction
+  action: IdeationAction,
 ): IdeationStore {
   switch (action.type) {
     // =========================================================================
     // Session Actions
     // =========================================================================
-    case 'SESSION_START':
+    case "SESSION_START":
       return {
         ...state,
         session: {
           ...state.session,
           profileId: action.payload.profileId,
           entryMode: action.payload.entryMode,
-          status: 'loading',
+          status: "loading",
           error: null,
         },
       };
 
-    case 'SESSION_CREATED':
+    case "SESSION_CREATED":
       return {
         ...state,
         session: {
           ...state.session,
           sessionId: action.payload.sessionId,
-          status: 'active',
+          status: "active",
         },
       };
 
-    case 'SESSION_ERROR':
+    case "SESSION_ERROR":
       return {
         ...state,
         session: {
           ...state.session,
-          status: 'error',
+          status: "error",
           error: action.payload.error,
         },
       };
 
-    case 'SESSION_COMPLETE':
+    case "SESSION_COMPLETE":
       return {
         ...state,
         session: {
           ...state.session,
-          status: 'completed',
+          status: "completed",
         },
       };
 
-    case 'SESSION_ABANDON':
+    case "SESSION_ABANDON":
       return {
         ...state,
         session: {
           ...state.session,
-          status: 'abandoned',
+          status: "abandoned",
         },
       };
 
     // =========================================================================
     // Message Actions
     // =========================================================================
-    case 'MESSAGE_SEND':
+    case "MESSAGE_SEND":
       return {
         ...state,
         conversation: {
@@ -131,26 +131,27 @@ export function ideationReducer(
         },
       };
 
-    case 'MESSAGE_STREAM_START':
+    case "MESSAGE_STREAM_START":
       return {
         ...state,
         conversation: {
           ...state.conversation,
           isStreaming: true,
-          streamingContent: '',
+          streamingContent: "",
         },
       };
 
-    case 'MESSAGE_STREAM_CHUNK':
+    case "MESSAGE_STREAM_CHUNK":
       return {
         ...state,
         conversation: {
           ...state.conversation,
-          streamingContent: state.conversation.streamingContent + action.payload.chunk,
+          streamingContent:
+            state.conversation.streamingContent + action.payload.chunk,
         },
       };
 
-    case 'MESSAGE_STREAM_END':
+    case "MESSAGE_STREAM_END":
       return {
         ...state,
         conversation: {
@@ -158,22 +159,25 @@ export function ideationReducer(
           messages: [...state.conversation.messages, action.payload.message],
           isLoading: false,
           isStreaming: false,
-          streamingContent: '',
+          streamingContent: "",
         },
       };
 
-    case 'MESSAGE_RECEIVED':
+    case "MESSAGE_RECEIVED":
       return {
         ...state,
         conversation: {
           ...state.conversation,
           messages: [...state.conversation.messages, action.payload.message],
           // Only clear loading when assistant responds, not when adding user message
-          isLoading: action.payload.message.role === 'user' ? state.conversation.isLoading : false,
+          isLoading:
+            action.payload.message.role === "user"
+              ? state.conversation.isLoading
+              : false,
         },
       };
 
-    case 'MESSAGE_ERROR':
+    case "MESSAGE_ERROR":
       return {
         ...state,
         conversation: {
@@ -184,11 +188,11 @@ export function ideationReducer(
         },
       };
 
-    case 'BUTTON_CLICK': {
+    case "BUTTON_CLICK": {
       // Mark the button as clicked in the last message
       const messagesWithClick = [...state.conversation.messages];
       const lastIdx = messagesWithClick.length - 1;
-      if (lastIdx >= 0 && messagesWithClick[lastIdx].role === 'assistant') {
+      if (lastIdx >= 0 && messagesWithClick[lastIdx].role === "assistant") {
         messagesWithClick[lastIdx] = {
           ...messagesWithClick[lastIdx],
           buttonClicked: action.payload.buttonId,
@@ -204,7 +208,7 @@ export function ideationReducer(
       };
     }
 
-    case 'FORM_SUBMIT':
+    case "FORM_SUBMIT":
       return {
         ...state,
         conversation: {
@@ -216,7 +220,7 @@ export function ideationReducer(
     // =========================================================================
     // Candidate Actions
     // =========================================================================
-    case 'CANDIDATE_UPDATE':
+    case "CANDIDATE_UPDATE":
       return {
         ...state,
         candidate: {
@@ -225,7 +229,7 @@ export function ideationReducer(
         },
       };
 
-    case 'CANDIDATE_CLEAR':
+    case "CANDIDATE_CLEAR":
       return {
         ...state,
         candidate: {
@@ -237,7 +241,7 @@ export function ideationReducer(
         },
       };
 
-    case 'CONFIDENCE_UPDATE':
+    case "CONFIDENCE_UPDATE":
       return {
         ...state,
         candidate: {
@@ -246,7 +250,7 @@ export function ideationReducer(
         },
       };
 
-    case 'VIABILITY_UPDATE':
+    case "VIABILITY_UPDATE":
       return {
         ...state,
         candidate: {
@@ -256,7 +260,7 @@ export function ideationReducer(
         },
       };
 
-    case 'INTERVENTION_SHOW':
+    case "INTERVENTION_SHOW":
       return {
         ...state,
         candidate: {
@@ -266,7 +270,7 @@ export function ideationReducer(
         },
       };
 
-    case 'INTERVENTION_DISMISS':
+    case "INTERVENTION_DISMISS":
       return {
         ...state,
         candidate: {
@@ -279,7 +283,7 @@ export function ideationReducer(
     // =========================================================================
     // Token Actions
     // =========================================================================
-    case 'TOKEN_UPDATE':
+    case "TOKEN_UPDATE":
       return {
         ...state,
         tokens: {
@@ -288,7 +292,7 @@ export function ideationReducer(
         },
       };
 
-    case 'HANDOFF_PENDING':
+    case "HANDOFF_PENDING":
       return {
         ...state,
         tokens: {
@@ -297,7 +301,7 @@ export function ideationReducer(
         },
       };
 
-    case 'HANDOFF_COMPLETE':
+    case "HANDOFF_COMPLETE":
       return {
         ...state,
         tokens: {
@@ -307,10 +311,10 @@ export function ideationReducer(
         },
       };
 
-    case 'MESSAGES_TRUNCATE': {
+    case "MESSAGES_TRUNCATE": {
       // Find the index of the message to truncate from
       const messageIndex = state.conversation.messages.findIndex(
-        m => m.id === action.payload.messageId
+        (m) => m.id === action.payload.messageId,
       );
       if (messageIndex === -1) {
         return state;
@@ -325,10 +329,10 @@ export function ideationReducer(
       };
     }
 
-    case 'MESSAGE_UPDATE_ID': {
+    case "MESSAGE_UPDATE_ID": {
       // Update a message's ID (used to sync frontend IDs with backend IDs)
-      const updatedMessages = state.conversation.messages.map(m =>
-        m.id === action.payload.oldId ? { ...m, id: action.payload.newId } : m
+      const updatedMessages = state.conversation.messages.map((m) =>
+        m.id === action.payload.oldId ? { ...m, id: action.payload.newId } : m,
       );
       return {
         ...state,
@@ -339,10 +343,12 @@ export function ideationReducer(
       };
     }
 
-    case 'MESSAGE_CONTENT_UPDATE': {
+    case "MESSAGE_CONTENT_UPDATE": {
       // Update a message's content (used for async artifact edit completion)
-      const messagesWithUpdate = state.conversation.messages.map(m =>
-        m.id === action.payload.messageId ? { ...m, content: action.payload.content } : m
+      const messagesWithUpdate = state.conversation.messages.map((m) =>
+        m.id === action.payload.messageId
+          ? { ...m, content: action.payload.content }
+          : m,
       );
       return {
         ...state,
@@ -356,7 +362,7 @@ export function ideationReducer(
     // =========================================================================
     // Artifact Actions
     // =========================================================================
-    case 'ARTIFACT_ADD':
+    case "ARTIFACT_ADD":
       return {
         ...state,
         artifacts: {
@@ -368,9 +374,9 @@ export function ideationReducer(
         },
       };
 
-    case 'ARTIFACT_UPDATE': {
-      const updatedArtifacts = state.artifacts.artifacts.map(a =>
-        a.id === action.payload.id ? { ...a, ...action.payload.updates } : a
+    case "ARTIFACT_UPDATE": {
+      const updatedArtifacts = state.artifacts.artifacts.map((a) =>
+        a.id === action.payload.id ? { ...a, ...action.payload.updates } : a,
       );
       // Also update currentArtifact if it's the one being updated
       const updatedCurrent =
@@ -387,17 +393,25 @@ export function ideationReducer(
       };
     }
 
-    case 'ARTIFACT_REMOVE': {
-      const remainingArtifacts = state.artifacts.artifacts.filter(a => a.id !== action.payload.id);
-      const isCurrentDeleted = state.artifacts.currentArtifact?.id === action.payload.id;
+    case "ARTIFACT_REMOVE": {
+      const remainingArtifacts = state.artifacts.artifacts.filter(
+        (a) => a.id !== action.payload.id,
+      );
+      const isCurrentDeleted =
+        state.artifacts.currentArtifact?.id === action.payload.id;
 
       let newCurrentArtifact = state.artifacts.currentArtifact;
       if (isCurrentDeleted) {
         // Find the index of the deleted artifact to select a nearby one
-        const deletedIndex = state.artifacts.artifacts.findIndex(a => a.id === action.payload.id);
+        const deletedIndex = state.artifacts.artifacts.findIndex(
+          (a) => a.id === action.payload.id,
+        );
         if (remainingArtifacts.length > 0) {
           // Select the artifact at the same index, or the last one if we deleted the last
-          const newIndex = Math.min(deletedIndex, remainingArtifacts.length - 1);
+          const newIndex = Math.min(
+            deletedIndex,
+            remainingArtifacts.length - 1,
+          );
           newCurrentArtifact = remainingArtifacts[newIndex];
         } else {
           newCurrentArtifact = null;
@@ -411,12 +425,13 @@ export function ideationReducer(
           artifacts: remainingArtifacts,
           currentArtifact: newCurrentArtifact,
           // Close panel if no artifacts remain
-          isPanelOpen: remainingArtifacts.length > 0 ? state.artifacts.isPanelOpen : false,
+          isPanelOpen:
+            remainingArtifacts.length > 0 ? state.artifacts.isPanelOpen : false,
         },
       };
     }
 
-    case 'ARTIFACT_SELECT':
+    case "ARTIFACT_SELECT":
       return {
         ...state,
         artifacts: {
@@ -426,28 +441,30 @@ export function ideationReducer(
         },
       };
 
-    case 'ARTIFACT_LOADING_START':
+    case "ARTIFACT_LOADING_START":
       return {
         ...state,
         artifacts: {
           ...state.artifacts,
           isLoading: true,
-          artifacts: state.artifacts.artifacts.map(a =>
-            a.id === action.payload.id ? { ...a, status: 'loading' as const } : a
+          artifacts: state.artifacts.artifacts.map((a) =>
+            a.id === action.payload.id
+              ? { ...a, status: "loading" as const }
+              : a,
           ),
         },
       };
 
-    case 'ARTIFACT_LOADING_END': {
-      const newStatus = action.payload.error ? 'error' : 'ready';
-      const finalArtifacts = state.artifacts.artifacts.map(a =>
+    case "ARTIFACT_LOADING_END": {
+      const newStatus = action.payload.error ? "error" : "ready";
+      const finalArtifacts = state.artifacts.artifacts.map((a) =>
         a.id === action.payload.id
           ? {
               ...a,
-              status: newStatus as 'error' | 'ready',
+              status: newStatus as "error" | "ready",
               error: action.payload.error,
             }
-          : a
+          : a,
       );
       return {
         ...state,
@@ -459,7 +476,7 @@ export function ideationReducer(
       };
     }
 
-    case 'ARTIFACT_PANEL_TOGGLE':
+    case "ARTIFACT_PANEL_TOGGLE":
       return {
         ...state,
         artifacts: {
@@ -468,7 +485,7 @@ export function ideationReducer(
         },
       };
 
-    case 'ARTIFACTS_CLEAR':
+    case "ARTIFACTS_CLEAR":
       return {
         ...state,
         artifacts: {
@@ -477,7 +494,7 @@ export function ideationReducer(
           isLoading: false,
           isPanelOpen: false,
           linkedIdea: null,
-          viewMode: 'files',
+          viewMode: "files",
           selectedArtifactPath: null,
           artifactClassifications: {},
         },
@@ -486,7 +503,7 @@ export function ideationReducer(
     // =========================================================================
     // Unified File System Actions
     // =========================================================================
-    case 'SET_LINKED_IDEA':
+    case "SET_LINKED_IDEA":
       return {
         ...state,
         artifacts: {
@@ -495,7 +512,7 @@ export function ideationReducer(
         },
       };
 
-    case 'SET_VIEW_MODE':
+    case "SET_VIEW_MODE":
       return {
         ...state,
         artifacts: {
@@ -504,7 +521,7 @@ export function ideationReducer(
         },
       };
 
-    case 'SET_SELECTED_ARTIFACT':
+    case "SET_SELECTED_ARTIFACT":
       return {
         ...state,
         artifacts: {
@@ -513,7 +530,7 @@ export function ideationReducer(
         },
       };
 
-    case 'SET_ARTIFACT_CLASSIFICATIONS':
+    case "SET_ARTIFACT_CLASSIFICATIONS":
       return {
         ...state,
         artifacts: {
@@ -525,19 +542,22 @@ export function ideationReducer(
     // =========================================================================
     // Sub-Agent Actions
     // =========================================================================
-    case 'SUBAGENT_SPAWN': {
+    case "SUBAGENT_SPAWN": {
       // Check if agent already exists (may have been created by early status update)
       const existingAgentIndex = state.subAgents.subAgents.findIndex(
-        agent => agent.id === action.payload.id
+        (agent) => agent.id === action.payload.id,
       );
 
       if (existingAgentIndex !== -1) {
         // Agent exists (created by early status update) - update name/type but keep status
-        console.log('[Reducer] SUBAGENT_SPAWN updating existing agent:', action.payload.id);
-        const updatedSubAgents = state.subAgents.subAgents.map(agent =>
+        console.log(
+          "[Reducer] SUBAGENT_SPAWN updating existing agent:",
+          action.payload.id,
+        );
+        const updatedSubAgents = state.subAgents.subAgents.map((agent) =>
           agent.id === action.payload.id
             ? { ...agent, name: action.payload.name, type: action.payload.type }
-            : agent
+            : agent,
         );
         return {
           ...state,
@@ -553,7 +573,7 @@ export function ideationReducer(
         id: action.payload.id,
         type: action.payload.type,
         name: action.payload.name,
-        status: 'spawning' as const,
+        status: "spawning" as const,
         startedAt: new Date().toISOString(),
       };
       return {
@@ -565,10 +585,10 @@ export function ideationReducer(
       };
     }
 
-    case 'SUBAGENT_STATUS': {
+    case "SUBAGENT_STATUS": {
       // Check if agent exists
       const existingAgentIndex = state.subAgents.subAgents.findIndex(
-        agent => agent.id === action.payload.id
+        (agent) => agent.id === action.payload.id,
       );
 
       let updatedSubAgents: typeof state.subAgents.subAgents;
@@ -576,38 +596,44 @@ export function ideationReducer(
       if (existingAgentIndex === -1) {
         // ROBUST FIX: Agent doesn't exist - create it with this status
         // This handles race conditions where status arrives before spawn
-        console.log('[Reducer] SUBAGENT_STATUS creating agent (race condition fix):', action.payload.id, action.payload.status);
+        console.log(
+          "[Reducer] SUBAGENT_STATUS creating agent (race condition fix):",
+          action.payload.id,
+          action.payload.status,
+        );
         const newAgent = {
           id: action.payload.id,
-          type: 'custom' as const,
+          type: "custom" as const,
           name: action.payload.id, // Placeholder - will show ID until spawn event arrives
           status: action.payload.status,
           startedAt: new Date().toISOString(),
           error: action.payload.error,
-          ...(action.payload.status === 'completed' || action.payload.status === 'failed'
+          ...(action.payload.status === "completed" ||
+          action.payload.status === "failed"
             ? { completedAt: new Date().toISOString() }
             : {}),
         };
         updatedSubAgents = [...state.subAgents.subAgents, newAgent];
       } else {
         // Agent exists - update it
-        updatedSubAgents = state.subAgents.subAgents.map(agent =>
+        updatedSubAgents = state.subAgents.subAgents.map((agent) =>
           agent.id === action.payload.id
             ? {
                 ...agent,
                 status: action.payload.status,
                 error: action.payload.error,
-                ...(action.payload.status === 'completed' || action.payload.status === 'failed'
+                ...(action.payload.status === "completed" ||
+                action.payload.status === "failed"
                   ? { completedAt: new Date().toISOString() }
                   : {}),
               }
-            : agent
+            : agent,
         );
       }
 
       // Calculate active count (spawning or running)
       const activeCount = updatedSubAgents.filter(
-        a => a.status === 'spawning' || a.status === 'running'
+        (a) => a.status === "spawning" || a.status === "running",
       ).length;
       return {
         ...state,
@@ -618,43 +644,46 @@ export function ideationReducer(
       };
     }
 
-    case 'SUBAGENT_RESULT': {
+    case "SUBAGENT_RESULT": {
       // Check if agent exists
       const existingResultAgent = state.subAgents.subAgents.find(
-        agent => agent.id === action.payload.id
+        (agent) => agent.id === action.payload.id,
       );
 
       let subAgentsWithResult: typeof state.subAgents.subAgents;
 
       if (!existingResultAgent) {
         // ROBUST FIX: Agent doesn't exist - create it as completed
-        console.log('[Reducer] SUBAGENT_RESULT creating agent (race condition fix):', action.payload.id);
+        console.log(
+          "[Reducer] SUBAGENT_RESULT creating agent (race condition fix):",
+          action.payload.id,
+        );
         const newAgent = {
           id: action.payload.id,
-          type: 'custom' as const,
+          type: "custom" as const,
           name: action.payload.id,
-          status: 'completed' as const,
+          status: "completed" as const,
           result: action.payload.result,
           startedAt: new Date().toISOString(),
           completedAt: new Date().toISOString(),
         };
         subAgentsWithResult = [...state.subAgents.subAgents, newAgent];
       } else {
-        subAgentsWithResult = state.subAgents.subAgents.map(agent =>
+        subAgentsWithResult = state.subAgents.subAgents.map((agent) =>
           agent.id === action.payload.id
             ? {
                 ...agent,
-                status: 'completed' as const,
+                status: "completed" as const,
                 result: action.payload.result,
                 completedAt: new Date().toISOString(),
               }
-            : agent
+            : agent,
         );
       }
 
       // Calculate active count (spawning or running)
       const activeAfterResult = subAgentsWithResult.filter(
-        a => a.status === 'spawning' || a.status === 'running'
+        (a) => a.status === "spawning" || a.status === "running",
       ).length;
       return {
         ...state,
@@ -665,7 +694,7 @@ export function ideationReducer(
       };
     }
 
-    case 'SUBAGENT_CLEAR':
+    case "SUBAGENT_CLEAR":
       return {
         ...state,
         subAgents: {

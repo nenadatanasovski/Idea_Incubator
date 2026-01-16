@@ -3,11 +3,22 @@
 // API hooks for Ideation Agent
 // =============================================================================
 
-import { useCallback, useMemo } from 'react';
-import type { EntryMode, TokenUsageInfo, IdeationMessage, Artifact, ResearchResult } from '../types/ideation';
-import type { ButtonOption, FormDefinition, IdeaCandidate, ViabilityRisk } from '../types';
+import { useCallback, useMemo } from "react";
+import type {
+  EntryMode,
+  TokenUsageInfo,
+  IdeationMessage,
+  Artifact,
+  ResearchResult,
+} from "../types/ideation";
+import type {
+  ButtonOption,
+  FormDefinition,
+  IdeaCandidate,
+  ViabilityRisk,
+} from "../types";
 
-const API_BASE = '/api/ideation';
+const API_BASE = "/api/ideation";
 
 interface StartSessionResponse {
   sessionId: string;
@@ -27,7 +38,7 @@ interface SubAgentTask {
   type: string;
   label: string;
   prompt?: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
 }
 
 interface MessageResponse {
@@ -40,7 +51,7 @@ interface MessageResponse {
   confidence?: number;
   viability?: number;
   risks?: ViabilityRisk[];
-  intervention?: { type: 'warning' | 'critical' };
+  intervention?: { type: "warning" | "critical" };
   tokenUsage?: TokenUsageInfo;
   webSearchQueries?: string[]; // Queries to execute async
   artifact?: Artifact; // Visual artifact from agent
@@ -54,7 +65,7 @@ interface WebSearchResponse {
   success: boolean;
   artifact: {
     id: string;
-    type: 'research';
+    type: "research";
     title: string;
     content: ResearchResult[];
     queries: string[];
@@ -99,390 +110,500 @@ interface SessionListResponse {
 }
 
 export function useIdeationAPI() {
-  const startSession = useCallback(async (
-    profileId: string,
-    entryMode: EntryMode
-  ): Promise<StartSessionResponse> => {
-    const response = await fetch(`${API_BASE}/start`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profileId, entryMode }),
-    });
+  const startSession = useCallback(
+    async (
+      profileId: string,
+      entryMode: EntryMode,
+    ): Promise<StartSessionResponse> => {
+      const response = await fetch(`${API_BASE}/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId, entryMode }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Failed to start session' } }));
-      throw new Error(error.error?.message || 'Failed to start session');
-    }
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: "Failed to start session" } }));
+        throw new Error(error.error?.message || "Failed to start session");
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
-  const sendMessage = useCallback(async (
-    sessionId: string,
-    message: string
-  ): Promise<MessageResponse> => {
-    const response = await fetch(`${API_BASE}/message`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, message }),
-    });
+  const sendMessage = useCallback(
+    async (sessionId: string, message: string): Promise<MessageResponse> => {
+      const response = await fetch(`${API_BASE}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, message }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Failed to send message' }));
-      // Handle both { error: "string" } and { error: { message: "string" } } formats
-      const errorMessage = typeof errorData.error === 'string'
-        ? errorData.error
-        : errorData.error?.message || 'Failed to send message';
-      throw new Error(errorMessage);
-    }
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Failed to send message" }));
+        // Handle both { error: "string" } and { error: { message: "string" } } formats
+        const errorMessage =
+          typeof errorData.error === "string"
+            ? errorData.error
+            : errorData.error?.message || "Failed to send message";
+        throw new Error(errorMessage);
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
-  const editMessage = useCallback(async (
-    sessionId: string,
-    messageId: string,
-    newContent: string
-  ): Promise<EditMessageResponse> => {
-    const response = await fetch(`${API_BASE}/message/edit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, messageId, newContent }),
-    });
+  const editMessage = useCallback(
+    async (
+      sessionId: string,
+      messageId: string,
+      newContent: string,
+    ): Promise<EditMessageResponse> => {
+      const response = await fetch(`${API_BASE}/message/edit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, messageId, newContent }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Failed to edit message' }));
-      const errorMessage = typeof errorData.error === 'string'
-        ? errorData.error
-        : errorData.error?.message || 'Failed to edit message';
-      throw new Error(errorMessage);
-    }
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Failed to edit message" }));
+        const errorMessage =
+          typeof errorData.error === "string"
+            ? errorData.error
+            : errorData.error?.message || "Failed to edit message";
+        throw new Error(errorMessage);
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
-  const clickButton = useCallback(async (
-    sessionId: string,
-    buttonId: string,
-    buttonValue: string,
-    buttonLabel?: string
-  ): Promise<MessageResponse> => {
-    const response = await fetch(`${API_BASE}/button`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, buttonId, buttonValue, buttonLabel }),
-    });
+  const clickButton = useCallback(
+    async (
+      sessionId: string,
+      buttonId: string,
+      buttonValue: string,
+      buttonLabel?: string,
+    ): Promise<MessageResponse> => {
+      const response = await fetch(`${API_BASE}/button`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, buttonId, buttonValue, buttonLabel }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Failed to process button click' } }));
-      throw new Error(error.error?.message || 'Failed to process button click');
-    }
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({
+          error: { message: "Failed to process button click" },
+        }));
+        throw new Error(
+          error.error?.message || "Failed to process button click",
+        );
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
-  const submitForm = useCallback(async (
-    sessionId: string,
-    formId: string,
-    answers: Record<string, unknown>
-  ): Promise<MessageResponse> => {
-    const response = await fetch(`${API_BASE}/form`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, formId, answers }),
-    });
+  const submitForm = useCallback(
+    async (
+      sessionId: string,
+      formId: string,
+      answers: Record<string, unknown>,
+    ): Promise<MessageResponse> => {
+      const response = await fetch(`${API_BASE}/form`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, formId, answers }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Failed to submit form' } }));
-      throw new Error(error.error?.message || 'Failed to submit form');
-    }
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: "Failed to submit form" } }));
+        throw new Error(error.error?.message || "Failed to submit form");
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
-  const captureIdea = useCallback(async (
-    sessionId: string
-  ): Promise<CaptureResponse> => {
-    const response = await fetch(`${API_BASE}/capture`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId }),
-    });
+  const captureIdea = useCallback(
+    async (sessionId: string): Promise<CaptureResponse> => {
+      const response = await fetch(`${API_BASE}/capture`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Failed to capture idea' } }));
-      throw new Error(error.error?.message || 'Failed to capture idea');
-    }
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: "Failed to capture idea" } }));
+        throw new Error(error.error?.message || "Failed to capture idea");
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
   const saveForLater = useCallback(async (sessionId: string): Promise<void> => {
     const response = await fetch(`${API_BASE}/save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId }),
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Failed to save session' } }));
-      throw new Error(error.error?.message || 'Failed to save session');
+      const error = await response
+        .json()
+        .catch(() => ({ error: { message: "Failed to save session" } }));
+      throw new Error(error.error?.message || "Failed to save session");
     }
   }, []);
 
-  const discardSession = useCallback(async (sessionId: string): Promise<void> => {
-    const response = await fetch(`${API_BASE}/discard`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId }),
-    });
+  const discardSession = useCallback(
+    async (sessionId: string): Promise<void> => {
+      const response = await fetch(`${API_BASE}/discard`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Failed to discard session' } }));
-      throw new Error(error.error?.message || 'Failed to discard session');
-    }
-  }, []);
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: "Failed to discard session" } }));
+        throw new Error(error.error?.message || "Failed to discard session");
+      }
+    },
+    [],
+  );
 
-  const abandonSession = useCallback(async (sessionId: string): Promise<void> => {
-    const response = await fetch(`${API_BASE}/session/${sessionId}/abandon`, {
-      method: 'POST',
-    });
+  const abandonSession = useCallback(
+    async (sessionId: string): Promise<void> => {
+      const response = await fetch(`${API_BASE}/session/${sessionId}/abandon`, {
+        method: "POST",
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Failed to abandon session' } }));
-      throw new Error(error.error?.message || 'Failed to abandon session');
-    }
-  }, []);
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: "Failed to abandon session" } }));
+        throw new Error(error.error?.message || "Failed to abandon session");
+      }
+    },
+    [],
+  );
 
-  const getSession = useCallback(async (sessionId: string): Promise<SessionResponse> => {
-    const response = await fetch(`${API_BASE}/session/${sessionId}`);
+  const getSession = useCallback(
+    async (sessionId: string): Promise<SessionResponse> => {
+      const response = await fetch(`${API_BASE}/session/${sessionId}`);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Failed to get session' } }));
-      throw new Error(error.error?.message || 'Failed to get session');
-    }
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: "Failed to get session" } }));
+        throw new Error(error.error?.message || "Failed to get session");
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
-  const loadSession = useCallback(async (sessionId: string): Promise<{
-    session: { id: string; profileId: string; status: string; entryMode: string | null };
-    messages: Array<{
-      id: string;
-      role: 'user' | 'assistant';
-      content: string;
-      buttonsShown?: unknown[];
-      formShown?: unknown;
-      createdAt: string;
-    }>;
-    candidate: {
-      id: string;
-      title: string;
-      summary: string | null;
-      confidence: number;
-      viability: number;
-    } | null;
-    artifacts?: Artifact[];
-    subAgents?: Array<{
-      id: string;
-      sessionId: string;
-      type: string;
-      name: string;
-      status: 'pending' | 'spawning' | 'running' | 'completed' | 'failed';
-      result?: string;
-      error?: string;
-      startedAt: string;
-      completedAt?: string;
-    }>;
-  }> => {
-    const response = await fetch(`${API_BASE}/session/${sessionId}`);
+  const loadSession = useCallback(
+    async (
+      sessionId: string,
+    ): Promise<{
+      session: {
+        id: string;
+        profileId: string;
+        status: string;
+        entryMode: string | null;
+      };
+      messages: Array<{
+        id: string;
+        role: "user" | "assistant";
+        content: string;
+        buttonsShown?: unknown[];
+        formShown?: unknown;
+        createdAt: string;
+      }>;
+      candidate: {
+        id: string;
+        title: string;
+        summary: string | null;
+        confidence: number;
+        viability: number;
+      } | null;
+      artifacts?: Artifact[];
+      subAgents?: Array<{
+        id: string;
+        sessionId: string;
+        type: string;
+        name: string;
+        status: "pending" | "spawning" | "running" | "completed" | "failed";
+        result?: string;
+        error?: string;
+        startedAt: string;
+        completedAt?: string;
+      }>;
+    }> => {
+      const response = await fetch(`${API_BASE}/session/${sessionId}`);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Failed to load session' } }));
-      throw new Error(error.error?.message || 'Failed to load session');
-    }
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: "Failed to load session" } }));
+        throw new Error(error.error?.message || "Failed to load session");
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
-  const listSessions = useCallback(async (
-    profileId: string,
-    status?: string
-  ): Promise<SessionListResponse> => {
-    const params = new URLSearchParams({ profileId });
-    if (status) params.append('status', status);
+  const listSessions = useCallback(
+    async (
+      profileId: string,
+      status?: string,
+    ): Promise<SessionListResponse> => {
+      const params = new URLSearchParams({ profileId });
+      if (status) params.append("status", status);
 
-    const response = await fetch(`${API_BASE}/sessions?${params}`);
+      const response = await fetch(`${API_BASE}/sessions?${params}`);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Failed to list sessions' } }));
-      throw new Error(error.error?.message || 'Failed to list sessions');
-    }
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: "Failed to list sessions" } }));
+        throw new Error(error.error?.message || "Failed to list sessions");
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
   /**
    * Delete an artifact from the database
    */
-  const deleteArtifact = useCallback(async (
-    sessionId: string,
-    artifactId: string
-  ): Promise<{ success: boolean }> => {
-    const response = await fetch(`${API_BASE}/artifact/${artifactId}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId }),
-    });
+  const deleteArtifact = useCallback(
+    async (
+      sessionId: string,
+      artifactId: string,
+    ): Promise<{ success: boolean }> => {
+      const response = await fetch(`${API_BASE}/artifact/${artifactId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Failed to delete artifact' }));
-      throw new Error(typeof error.error === 'string' ? error.error : 'Failed to delete artifact');
-    }
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to delete artifact" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to delete artifact",
+        );
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
   /**
    * Save an artifact to the database
    */
-  const saveArtifact = useCallback(async (
-    sessionId: string,
-    artifact: {
-      id: string;
-      type: string;
-      title: string;
-      content: string | object;
-      language?: string;
-      identifier?: string;
-    }
-  ): Promise<{ success: boolean; artifactId: string }> => {
-    const response = await fetch(`${API_BASE}/artifact`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, artifact }),
-    });
+  const saveArtifact = useCallback(
+    async (
+      sessionId: string,
+      artifact: {
+        id: string;
+        type: string;
+        title: string;
+        content: string | object;
+        language?: string;
+        identifier?: string;
+      },
+    ): Promise<{ success: boolean; artifactId: string }> => {
+      const response = await fetch(`${API_BASE}/artifact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, artifact }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Failed to save artifact' }));
-      throw new Error(typeof error.error === 'string' ? error.error : 'Failed to save artifact');
-    }
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to save artifact" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to save artifact",
+        );
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
   /**
    * Update candidate details (title, summary)
    */
-  const updateCandidate = useCallback(async (
-    sessionId: string,
-    updates: { title?: string; summary?: string }
-  ): Promise<{ success: boolean; candidate: IdeaCandidate }> => {
-    const response = await fetch(`${API_BASE}/candidate/update`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, ...updates }),
-    });
+  const updateCandidate = useCallback(
+    async (
+      sessionId: string,
+      updates: { title?: string; summary?: string },
+    ): Promise<{ success: boolean; candidate: IdeaCandidate }> => {
+      const response = await fetch(`${API_BASE}/candidate/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, ...updates }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Failed to update candidate' }));
-      throw new Error(typeof error.error === 'string' ? error.error : 'Failed to update candidate');
-    }
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to update candidate" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to update candidate",
+        );
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
   /**
    * Link a session to a specific user/idea
    */
-  const linkIdea = useCallback(async (
-    sessionId: string,
-    userSlug: string,
-    ideaSlug: string
-  ): Promise<{ success: boolean }> => {
-    const response = await fetch(`${API_BASE}/session/${sessionId}/link-idea`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userSlug, ideaSlug }),
-    });
+  const linkIdea = useCallback(
+    async (
+      sessionId: string,
+      userSlug: string,
+      ideaSlug: string,
+    ): Promise<{ success: boolean }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/link-idea`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userSlug, ideaSlug }),
+        },
+      );
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Failed to link idea' }));
-      throw new Error(typeof error.error === 'string' ? error.error : 'Failed to link idea');
-    }
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to link idea" }));
+        throw new Error(
+          typeof error.error === "string" ? error.error : "Failed to link idea",
+        );
+      }
 
-    return response.json();
-  }, []);
+      return response.json();
+    },
+    [],
+  );
 
   /**
    * Execute async web search and return results as an artifact
    */
-  const executeWebSearch = useCallback(async (
-    sessionId: string,
-    queries: string[],
-    context?: string
-  ): Promise<Artifact> => {
-    const response = await fetch(`${API_BASE}/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, queries, context }),
-    });
+  const executeWebSearch = useCallback(
+    async (
+      sessionId: string,
+      queries: string[],
+      context?: string,
+    ): Promise<Artifact> => {
+      const response = await fetch(`${API_BASE}/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, queries, context }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Web search failed' }));
-      throw new Error(typeof error.error === 'string' ? error.error : 'Web search failed');
-    }
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Web search failed" }));
+        throw new Error(
+          typeof error.error === "string" ? error.error : "Web search failed",
+        );
+      }
 
-    const data: WebSearchResponse = await response.json();
+      const data: WebSearchResponse = await response.json();
 
-    // Convert to Artifact format
-    return {
-      id: data.artifact.id,
-      type: 'research',
-      title: data.artifact.title,
-      content: data.artifact.content,
-      queries: data.artifact.queries,
-      status: 'ready',
-      createdAt: data.artifact.timestamp,
-      identifier: `research_${queries[0]?.slice(0, 20).replace(/\s+/g, '_').toLowerCase() || 'results'}`,
-    };
-  }, []);
+      // Convert to Artifact format
+      return {
+        id: data.artifact.id,
+        type: "research",
+        title: data.artifact.title,
+        content: data.artifact.content,
+        queries: data.artifact.queries,
+        status: "ready",
+        createdAt: data.artifact.timestamp,
+        identifier: `research_${queries[0]?.slice(0, 20).replace(/\s+/g, "_").toLowerCase() || "results"}`,
+      };
+    },
+    [],
+  );
 
-  return useMemo(() => ({
-    startSession,
-    sendMessage,
-    editMessage,
-    clickButton,
-    submitForm,
-    captureIdea,
-    saveForLater,
-    discardSession,
-    abandonSession,
-    getSession,
-    loadSession,
-    listSessions,
-    executeWebSearch,
-    saveArtifact,
-    deleteArtifact,
-    updateCandidate,
-    linkIdea,
-  }), [
-    startSession,
-    sendMessage,
-    editMessage,
-    clickButton,
-    submitForm,
-    captureIdea,
-    saveForLater,
-    discardSession,
-    abandonSession,
-    getSession,
-    loadSession,
-    listSessions,
-    executeWebSearch,
-    saveArtifact,
-    deleteArtifact,
-    updateCandidate,
-    linkIdea,
-  ]);
+  return useMemo(
+    () => ({
+      startSession,
+      sendMessage,
+      editMessage,
+      clickButton,
+      submitForm,
+      captureIdea,
+      saveForLater,
+      discardSession,
+      abandonSession,
+      getSession,
+      loadSession,
+      listSessions,
+      executeWebSearch,
+      saveArtifact,
+      deleteArtifact,
+      updateCandidate,
+      linkIdea,
+    }),
+    [
+      startSession,
+      sendMessage,
+      editMessage,
+      clickButton,
+      submitForm,
+      captureIdea,
+      saveForLater,
+      discardSession,
+      abandonSession,
+      getSession,
+      loadSession,
+      listSessions,
+      executeWebSearch,
+      saveArtifact,
+      deleteArtifact,
+      updateCandidate,
+      linkIdea,
+    ],
+  );
 }

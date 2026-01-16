@@ -3,7 +3,7 @@
 // SSE streaming hook for real-time AI responses
 // =============================================================================
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef } from "react";
 
 interface SSEStreamOptions {
   onChunk: (chunk: string) => void;
@@ -14,46 +14,49 @@ interface SSEStreamOptions {
 export function useSSEStream() {
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  const connect = useCallback((url: string, options: SSEStreamOptions): EventSource => {
-    // Close existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
+  const connect = useCallback(
+    (url: string, options: SSEStreamOptions): EventSource => {
+      // Close existing connection
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
 
-    const eventSource = new EventSource(url);
-    eventSourceRef.current = eventSource;
+      const eventSource = new EventSource(url);
+      eventSourceRef.current = eventSource;
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
 
-        if (data.type === 'chunk') {
-          options.onChunk(data.content);
-        } else if (data.type === 'complete') {
-          options.onComplete(data.data);
-          eventSource.close();
-        } else if (data.type === 'error') {
-          options.onError(new Error(data.message || 'Stream error'));
+          if (data.type === "chunk") {
+            options.onChunk(data.content);
+          } else if (data.type === "complete") {
+            options.onComplete(data.data);
+            eventSource.close();
+          } else if (data.type === "error") {
+            options.onError(new Error(data.message || "Stream error"));
+            eventSource.close();
+          }
+        } catch (error) {
+          // If not JSON, treat as plain text chunk
+          options.onChunk(event.data);
+        }
+      };
+
+      eventSource.onerror = () => {
+        // Check if we're just at the end of stream
+        if (eventSource.readyState === EventSource.CLOSED) {
+          options.onComplete();
+        } else {
+          options.onError(new Error("SSE connection failed"));
           eventSource.close();
         }
-      } catch (error) {
-        // If not JSON, treat as plain text chunk
-        options.onChunk(event.data);
-      }
-    };
+      };
 
-    eventSource.onerror = () => {
-      // Check if we're just at the end of stream
-      if (eventSource.readyState === EventSource.CLOSED) {
-        options.onComplete();
-      } else {
-        options.onError(new Error('SSE connection failed'));
-        eventSource.close();
-      }
-    };
-
-    return eventSource;
-  }, []);
+      return eventSource;
+    },
+    [],
+  );
 
   const disconnect = useCallback(() => {
     if (eventSourceRef.current) {
@@ -69,10 +72,10 @@ export function useSSEStream() {
  * Hook for managing streaming text state.
  */
 export function useStreamingText() {
-  const textRef = useRef('');
+  const textRef = useRef("");
 
   const startStream = useCallback(() => {
-    textRef.current = '';
+    textRef.current = "";
   }, []);
 
   const appendChunk = useCallback((chunk: string) => {
@@ -82,7 +85,7 @@ export function useStreamingText() {
 
   const endStream = useCallback(() => {
     const finalText = textRef.current;
-    textRef.current = '';
+    textRef.current = "";
     return finalText;
   }, []);
 

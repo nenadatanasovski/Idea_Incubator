@@ -5,17 +5,13 @@
  * Extracts key insights from completed documents and provides recommendations.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import matter from 'gray-matter';
-import { getConfig } from '../../config/index.js';
-import type { LifecycleStage } from '../../utils/schemas.js';
-import {
-  PHASE_REQUIREMENTS,
-} from './classification-rules.js';
-import {
-  type DocumentClassification,
-} from './document-classifier.js';
+import * as fs from "fs";
+import * as path from "path";
+import matter from "gray-matter";
+import { getConfig } from "../../config/index.js";
+import type { LifecycleStage } from "../../utils/schemas.js";
+import { PHASE_REQUIREMENTS } from "./classification-rules.js";
+import { type DocumentClassification } from "./document-classifier.js";
 
 // ============================================================================
 // TYPES
@@ -26,13 +22,13 @@ import {
  */
 export interface Insight {
   /** Category of the insight */
-  category: 'market' | 'competition' | 'users' | 'risk' | 'technical' | 'other';
+  category: "market" | "competition" | "users" | "risk" | "technical" | "other";
   /** Summary text of the insight */
   summary: string;
   /** Source file path where the insight was extracted from */
   source: string;
   /** Confidence level of the insight */
-  confidence: 'high' | 'medium' | 'low';
+  confidence: "high" | "medium" | "low";
 }
 
 /**
@@ -64,7 +60,7 @@ export interface ConfidenceScore {
 function getUsersRoot(): string {
   const config = getConfig();
   const projectRoot = path.dirname(config.paths.ideas);
-  return path.join(projectRoot, 'users');
+  return path.join(projectRoot, "users");
 }
 
 /**
@@ -72,7 +68,7 @@ function getUsersRoot(): string {
  */
 function getIdeaFolderPath(userSlug: string, ideaSlug: string): string {
   const usersRoot = getUsersRoot();
-  return path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  return path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 }
 
 /**
@@ -86,7 +82,7 @@ function isDocumentComplete(ideaFolder: string, docPath: string): boolean {
   }
 
   try {
-    const content = fs.readFileSync(fullPath, 'utf-8');
+    const content = fs.readFileSync(fullPath, "utf-8");
     const { content: bodyContent } = matter(content);
     const trimmedContent = bodyContent.trim();
     return trimmedContent.length > 0;
@@ -98,7 +94,10 @@ function isDocumentComplete(ideaFolder: string, docPath: string): boolean {
 /**
  * Read and parse a markdown document.
  */
-function readDocument(ideaFolder: string, docPath: string): { content: string; frontmatter: Record<string, unknown> } | null {
+function readDocument(
+  ideaFolder: string,
+  docPath: string,
+): { content: string; frontmatter: Record<string, unknown> } | null {
   const fullPath = path.join(ideaFolder, docPath);
 
   if (!fs.existsSync(fullPath)) {
@@ -106,7 +105,7 @@ function readDocument(ideaFolder: string, docPath: string): { content: string; f
   }
 
   try {
-    const raw = fs.readFileSync(fullPath, 'utf-8');
+    const raw = fs.readFileSync(fullPath, "utf-8");
     const { content, data } = matter(raw);
     return { content, frontmatter: data };
   } catch {
@@ -141,7 +140,7 @@ function countPattern(text: string, pattern: RegExp): number {
  */
 export async function extractKeyInsights(
   userSlug: string,
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<Insight[]> {
   const ideaFolder = getIdeaFolderPath(userSlug, ideaSlug);
   const insights: Insight[] = [];
@@ -152,7 +151,7 @@ export async function extractKeyInsights(
   }
 
   // Extract market insights from market.md
-  const marketDoc = readDocument(ideaFolder, 'research/market.md');
+  const marketDoc = readDocument(ideaFolder, "research/market.md");
   if (marketDoc && marketDoc.content.trim()) {
     // Look for market size mentions
     const marketSizePatterns = [
@@ -165,28 +164,32 @@ export async function extractKeyInsights(
       const match = marketDoc.content.match(pattern);
       if (match) {
         insights.push({
-          category: 'market',
+          category: "market",
           summary: `Market size mentioned: ${match[0]}`,
-          source: 'research/market.md',
-          confidence: 'medium',
+          source: "research/market.md",
+          confidence: "medium",
         });
         break;
       }
     }
 
     // Generic market insight if content exists but no size found
-    if (!insights.some((i) => i.category === 'market' && i.source === 'research/market.md')) {
+    if (
+      !insights.some(
+        (i) => i.category === "market" && i.source === "research/market.md",
+      )
+    ) {
       insights.push({
-        category: 'market',
-        summary: 'Market research documented',
-        source: 'research/market.md',
-        confidence: 'low',
+        category: "market",
+        summary: "Market research documented",
+        source: "research/market.md",
+        confidence: "low",
       });
     }
   }
 
   // Extract competition insights from competitive.md
-  const competitiveDoc = readDocument(ideaFolder, 'research/competitive.md');
+  const competitiveDoc = readDocument(ideaFolder, "research/competitive.md");
   if (competitiveDoc && competitiveDoc.content.trim()) {
     // Count competitor mentions (look for headers or bullet points mentioning competitors)
     const competitorPatterns = [
@@ -201,23 +204,23 @@ export async function extractKeyInsights(
 
     if (competitorCount > 0) {
       insights.push({
-        category: 'competition',
-        summary: `${competitorCount} potential competitor${competitorCount > 1 ? 's' : ''} identified`,
-        source: 'research/competitive.md',
-        confidence: competitorCount >= 3 ? 'high' : 'medium',
+        category: "competition",
+        summary: `${competitorCount} potential competitor${competitorCount > 1 ? "s" : ""} identified`,
+        source: "research/competitive.md",
+        confidence: competitorCount >= 3 ? "high" : "medium",
       });
     } else {
       insights.push({
-        category: 'competition',
-        summary: 'Competitive analysis documented',
-        source: 'research/competitive.md',
-        confidence: 'low',
+        category: "competition",
+        summary: "Competitive analysis documented",
+        source: "research/competitive.md",
+        confidence: "low",
       });
     }
   }
 
   // Extract user insights from target-users.md
-  const usersDoc = readDocument(ideaFolder, 'target-users.md');
+  const usersDoc = readDocument(ideaFolder, "target-users.md");
   if (usersDoc && usersDoc.content.trim()) {
     // Look for user segment patterns
     const segmentPatterns = [
@@ -232,26 +235,26 @@ export async function extractKeyInsights(
 
     if (segmentCount > 0) {
       insights.push({
-        category: 'users',
-        summary: `${segmentCount} user segment${segmentCount > 1 ? 's' : ''} defined`,
-        source: 'target-users.md',
-        confidence: segmentCount >= 2 ? 'high' : 'medium',
+        category: "users",
+        summary: `${segmentCount} user segment${segmentCount > 1 ? "s" : ""} defined`,
+        source: "target-users.md",
+        confidence: segmentCount >= 2 ? "high" : "medium",
       });
     } else {
       insights.push({
-        category: 'users',
-        summary: 'Target users documented',
-        source: 'target-users.md',
-        confidence: 'low',
+        category: "users",
+        summary: "Target users documented",
+        source: "target-users.md",
+        confidence: "low",
       });
     }
   }
 
   // Extract risk insights from various analysis files
   const riskDocs = [
-    'analysis/redteam.md',
-    'analysis/risk-mitigation.md',
-    'evaluation.md',
+    "analysis/redteam.md",
+    "analysis/risk-mitigation.md",
+    "evaluation.md",
   ];
 
   for (const docPath of riskDocs) {
@@ -270,29 +273,26 @@ export async function extractKeyInsights(
 
       if (riskCount > 0) {
         insights.push({
-          category: 'risk',
-          summary: `${riskCount} risk${riskCount > 1 ? 's' : ''} documented in ${docPath}`,
+          category: "risk",
+          summary: `${riskCount} risk${riskCount > 1 ? "s" : ""} documented in ${docPath}`,
           source: docPath,
-          confidence: 'medium',
+          confidence: "medium",
         });
       }
     }
   }
 
   // Extract technical insights
-  const technicalDocs = [
-    'planning/architecture.md',
-    'build/spec.md',
-  ];
+  const technicalDocs = ["planning/architecture.md", "build/spec.md"];
 
   for (const docPath of technicalDocs) {
     const techDoc = readDocument(ideaFolder, docPath);
     if (techDoc && techDoc.content.trim()) {
       insights.push({
-        category: 'technical',
+        category: "technical",
         summary: `Technical documentation in ${docPath}`,
         source: docPath,
-        confidence: 'medium',
+        confidence: "medium",
       });
     }
   }
@@ -308,13 +308,22 @@ export async function extractKeyInsights(
  * Criteria mapping for affected criteria calculation.
  */
 const DOCUMENT_TO_CRITERIA: Record<string, string[]> = {
-  'research/market.md': ['Market Size (MK1)', 'Market Growth (MK2)'],
-  'research/competitive.md': ['Competition (MK3)', 'Solution Uniqueness (SL3)'],
-  'target-users.md': ['Target User (PR3)', 'Problem Clarity (PR1)'],
-  'validation/assumptions.md': ['Problem Validation (PR4)', 'Solution Feasibility (SL2)'],
-  'analysis/redteam.md': ['Execution Risk (RS1)', 'Market Risk (RS2)'],
-  'planning/architecture.md': ['Technical Feasibility (FS1)', 'Technical Risk (RS3)'],
-  'planning/mvp-scope.md': ['Time to Value (FS4)', 'Resource Requirements (FS2)'],
+  "research/market.md": ["Market Size (MK1)", "Market Growth (MK2)"],
+  "research/competitive.md": ["Competition (MK3)", "Solution Uniqueness (SL3)"],
+  "target-users.md": ["Target User (PR3)", "Problem Clarity (PR1)"],
+  "validation/assumptions.md": [
+    "Problem Validation (PR4)",
+    "Solution Feasibility (SL2)",
+  ],
+  "analysis/redteam.md": ["Execution Risk (RS1)", "Market Risk (RS2)"],
+  "planning/architecture.md": [
+    "Technical Feasibility (FS1)",
+    "Technical Risk (RS3)",
+  ],
+  "planning/mvp-scope.md": [
+    "Time to Value (FS4)",
+    "Resource Requirements (FS2)",
+  ],
 };
 
 /**
@@ -331,7 +340,7 @@ const DOCUMENT_TO_CRITERIA: Record<string, string[]> = {
 export async function calculateConfidence(
   userSlug: string,
   ideaSlug: string,
-  targetPhase: LifecycleStage
+  targetPhase: LifecycleStage,
 ): Promise<ConfidenceScore> {
   const ideaFolder = getIdeaFolderPath(userSlug, ideaSlug);
 
@@ -386,28 +395,33 @@ export async function calculateConfidence(
 
   // Calculate completeness percentage
   if (totalDocs > 0) {
-    result.breakdown.documentCompleteness = Math.round((completedDocs / totalDocs) * 100);
-    result.breakdown.dataQuality = completedDocs > 0 ? Math.round(totalQualityScore / completedDocs) : 0;
+    result.breakdown.documentCompleteness = Math.round(
+      (completedDocs / totalDocs) * 100,
+    );
+    result.breakdown.dataQuality =
+      completedDocs > 0 ? Math.round(totalQualityScore / completedDocs) : 0;
   } else {
     result.breakdown.documentCompleteness = 100; // No docs required
   }
 
   // Validation status - check if validation documents exist
-  const validationDocs = ['validation/assumptions.md', 'validation/results.md'];
+  const validationDocs = ["validation/assumptions.md", "validation/results.md"];
   let validationComplete = 0;
   for (const doc of validationDocs) {
     if (isDocumentComplete(ideaFolder, doc)) {
       validationComplete++;
     }
   }
-  result.breakdown.validationStatus = Math.round((validationComplete / validationDocs.length) * 100);
+  result.breakdown.validationStatus = Math.round(
+    (validationComplete / validationDocs.length) * 100,
+  );
 
   // Calculate overall score (weighted average)
   // Document completeness: 50%, Data quality: 30%, Validation: 20%
   result.overall = Math.round(
     result.breakdown.documentCompleteness * 0.5 +
-    result.breakdown.dataQuality * 0.3 +
-    result.breakdown.validationStatus * 0.2
+      result.breakdown.dataQuality * 0.3 +
+      result.breakdown.validationStatus * 0.2,
   );
 
   // Ensure overall is within 0-100
@@ -443,14 +457,14 @@ export async function generateHandoffBrief(
   userSlug: string,
   ideaSlug: string,
   fromPhase: LifecycleStage,
-  toPhase: LifecycleStage
+  toPhase: LifecycleStage,
 ): Promise<string> {
   const ideaFolder = getIdeaFolderPath(userSlug, ideaSlug);
   const timestamp = new Date().toISOString();
-  const date = new Date().toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  const date = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 
   // Separate complete and incomplete documents
@@ -463,7 +477,11 @@ export async function generateHandoffBrief(
   if (requirements) {
     for (const doc of requirements.required) {
       if (isDocumentComplete(ideaFolder, doc)) {
-        completeRequired.push({ path: doc, classification: 'required', reason: 'Phase requirement' });
+        completeRequired.push({
+          path: doc,
+          classification: "required",
+          reason: "Phase requirement",
+        });
       } else {
         incompleteRequired.push(doc);
       }
@@ -471,7 +489,11 @@ export async function generateHandoffBrief(
 
     for (const doc of requirements.recommended) {
       if (isDocumentComplete(ideaFolder, doc)) {
-        completeRecommended.push({ path: doc, classification: 'recommended', reason: 'Phase recommendation' });
+        completeRecommended.push({
+          path: doc,
+          classification: "recommended",
+          reason: "Phase recommendation",
+        });
       } else {
         incompleteRecommended.push(doc);
       }
@@ -489,154 +511,171 @@ export async function generateHandoffBrief(
 
   // Header
   sections.push(`# Handoff Brief`);
-  sections.push('');
+  sections.push("");
   sections.push(`**Idea**: ${ideaSlug}`);
   sections.push(`**Transition**: ${fromPhase} \u2192 ${toPhase}`);
   sections.push(`**Date**: ${date}`);
-  sections.push('');
+  sections.push("");
 
   // What's Complete section
   sections.push(`## What's Complete`);
-  sections.push('');
+  sections.push("");
 
   if (completeRequired.length > 0 || completeRecommended.length > 0) {
     if (completeRequired.length > 0) {
-      sections.push('### Required Documents');
+      sections.push("### Required Documents");
       for (const doc of completeRequired) {
         sections.push(`- \u2713 ${doc.path}`);
       }
-      sections.push('');
+      sections.push("");
     }
 
     if (completeRecommended.length > 0) {
-      sections.push('### Recommended Documents');
+      sections.push("### Recommended Documents");
       for (const doc of completeRecommended) {
         sections.push(`- \u2713 ${doc.path}`);
       }
-      sections.push('');
+      sections.push("");
     }
 
     // Add key data points from insights
     if (insights.length > 0) {
-      sections.push('### Key Data Points');
-      for (const insight of insights.slice(0, 5)) { // Limit to 5 insights
-        sections.push(`- **${insight.category}**: ${insight.summary} (${insight.confidence} confidence)`);
+      sections.push("### Key Data Points");
+      for (const insight of insights.slice(0, 5)) {
+        // Limit to 5 insights
+        sections.push(
+          `- **${insight.category}**: ${insight.summary} (${insight.confidence} confidence)`,
+        );
       }
-      sections.push('');
+      sections.push("");
     }
   } else {
-    sections.push('No documents completed yet.');
-    sections.push('');
+    sections.push("No documents completed yet.");
+    sections.push("");
   }
 
   // What's Incomplete section
   sections.push(`## What's Incomplete`);
-  sections.push('');
+  sections.push("");
 
   if (incompleteRequired.length > 0 || incompleteRecommended.length > 0) {
     if (incompleteRequired.length > 0) {
-      sections.push('### Missing Required Documents');
+      sections.push("### Missing Required Documents");
       for (const doc of incompleteRequired) {
         sections.push(`- \u2717 ${doc}`);
       }
-      sections.push('');
+      sections.push("");
     }
 
     if (incompleteRecommended.length > 0) {
-      sections.push('### Missing Recommended Documents');
+      sections.push("### Missing Recommended Documents");
       for (const doc of incompleteRecommended) {
         sections.push(`- \u2717 ${doc}`);
       }
-      sections.push('');
+      sections.push("");
     }
   } else {
-    sections.push('All documents complete!');
-    sections.push('');
+    sections.push("All documents complete!");
+    sections.push("");
   }
 
   // Key Insights for Next Phase
   sections.push(`## Key Insights for Next Phase`);
-  sections.push('');
+  sections.push("");
 
   const nextPhaseRequirements = PHASE_REQUIREMENTS[toPhase];
   if (nextPhaseRequirements) {
     sections.push(`In the **${toPhase}** phase, you'll need to focus on:`);
-    sections.push('');
+    sections.push("");
 
     if (nextPhaseRequirements.required.length > 0) {
-      sections.push('**Required:**');
+      sections.push("**Required:**");
       for (const doc of nextPhaseRequirements.required) {
         const isComplete = isDocumentComplete(ideaFolder, doc);
-        sections.push(`- ${isComplete ? '\u2713' : '\u25CB'} ${doc}`);
+        sections.push(`- ${isComplete ? "\u2713" : "\u25CB"} ${doc}`);
       }
-      sections.push('');
+      sections.push("");
     }
 
     if (nextPhaseRequirements.recommended.length > 0) {
-      sections.push('**Recommended:**');
+      sections.push("**Recommended:**");
       for (const doc of nextPhaseRequirements.recommended) {
         const isComplete = isDocumentComplete(ideaFolder, doc);
-        sections.push(`- ${isComplete ? '\u2713' : '\u25CB'} ${doc}`);
+        sections.push(`- ${isComplete ? "\u2713" : "\u25CB"} ${doc}`);
       }
-      sections.push('');
+      sections.push("");
     }
   } else {
-    sections.push('Focus on the core requirements of this phase.');
-    sections.push('');
+    sections.push("Focus on the core requirements of this phase.");
+    sections.push("");
   }
 
   // AI Recommendation section
   sections.push(`## AI Recommendation`);
-  sections.push('');
+  sections.push("");
 
   // Determine confidence level
   let confidenceLevel: string;
   if (confidence.overall >= 80) {
-    confidenceLevel = 'High';
+    confidenceLevel = "High";
   } else if (confidence.overall >= 50) {
-    confidenceLevel = 'Medium';
+    confidenceLevel = "Medium";
   } else {
-    confidenceLevel = 'Low';
+    confidenceLevel = "Low";
   }
 
-  sections.push(`**Confidence Score**: ${confidence.overall}% (${confidenceLevel})`);
-  sections.push('');
-  sections.push('**Score Breakdown:**');
-  sections.push(`- Document Completeness: ${confidence.breakdown.documentCompleteness}%`);
+  sections.push(
+    `**Confidence Score**: ${confidence.overall}% (${confidenceLevel})`,
+  );
+  sections.push("");
+  sections.push("**Score Breakdown:**");
+  sections.push(
+    `- Document Completeness: ${confidence.breakdown.documentCompleteness}%`,
+  );
   sections.push(`- Data Quality: ${confidence.breakdown.dataQuality}%`);
-  sections.push(`- Validation Status: ${confidence.breakdown.validationStatus}%`);
-  sections.push('');
+  sections.push(
+    `- Validation Status: ${confidence.breakdown.validationStatus}%`,
+  );
+  sections.push("");
 
   if (confidence.affectedCriteria.length > 0) {
-    sections.push('**Criteria with Incomplete Data:**');
+    sections.push("**Criteria with Incomplete Data:**");
     for (const criteria of confidence.affectedCriteria) {
       sections.push(`- ${criteria}`);
     }
-    sections.push('');
+    sections.push("");
   }
 
   // Recommendation text
   if (confidence.overall >= 80) {
-    sections.push(`**Recommendation**: Proceed with the ${toPhase} phase. You have strong documentation and data to support this transition.`);
+    sections.push(
+      `**Recommendation**: Proceed with the ${toPhase} phase. You have strong documentation and data to support this transition.`,
+    );
   } else if (confidence.overall >= 50) {
-    sections.push(`**Recommendation**: You can proceed to ${toPhase}, but consider completing the missing recommended documents for better outcomes.`);
+    sections.push(
+      `**Recommendation**: You can proceed to ${toPhase}, but consider completing the missing recommended documents for better outcomes.`,
+    );
   } else {
-    sections.push(`**Recommendation**: Consider completing more documentation before transitioning. Key areas need attention for a successful ${toPhase} phase.`);
+    sections.push(
+      `**Recommendation**: Consider completing more documentation before transitioning. Key areas need attention for a successful ${toPhase} phase.`,
+    );
   }
-  sections.push('');
+  sections.push("");
 
   // Decision checkboxes
   sections.push(`## Decision`);
-  sections.push('');
-  sections.push('- [ ] Proceed to ' + toPhase + ' phase');
-  sections.push('- [ ] Complete missing documents first');
-  sections.push('- [ ] Revisit ' + fromPhase + ' phase activities');
-  sections.push('');
-  sections.push('---');
-  sections.push('');
-  sections.push(`*Generated automatically during phase transition at ${timestamp}*`);
+  sections.push("");
+  sections.push("- [ ] Proceed to " + toPhase + " phase");
+  sections.push("- [ ] Complete missing documents first");
+  sections.push("- [ ] Revisit " + fromPhase + " phase activities");
+  sections.push("");
+  sections.push("---");
+  sections.push("");
+  sections.push(
+    `*Generated automatically during phase transition at ${timestamp}*`,
+  );
 
-  return sections.join('\n');
+  return sections.join("\n");
 }
 
 // ============================================================================
@@ -657,12 +696,12 @@ export async function generateHandoffBrief(
 export async function saveHandoffBrief(
   userSlug: string,
   ideaSlug: string,
-  brief: string
+  brief: string,
 ): Promise<string> {
   const ideaFolder = getIdeaFolderPath(userSlug, ideaSlug);
-  const planningDir = path.join(ideaFolder, 'planning');
-  const briefPath = path.join(planningDir, 'brief.md');
-  const relativePath = 'planning/brief.md';
+  const planningDir = path.join(ideaFolder, "planning");
+  const briefPath = path.join(planningDir, "brief.md");
+  const relativePath = "planning/brief.md";
 
   // Create planning directory if it doesn't exist
   if (!fs.existsSync(planningDir)) {
@@ -670,9 +709,11 @@ export async function saveHandoffBrief(
   }
 
   // Extract phase info from brief content
-  const fromPhaseMatch = brief.match(/\*\*Transition\*\*:\s*(\w+)\s*\u2192\s*(\w+)/);
-  const fromPhase = fromPhaseMatch ? fromPhaseMatch[1] : 'UNKNOWN';
-  const toPhase = fromPhaseMatch ? fromPhaseMatch[2] : 'UNKNOWN';
+  const fromPhaseMatch = brief.match(
+    /\*\*Transition\*\*:\s*(\w+)\s*\u2192\s*(\w+)/,
+  );
+  const fromPhase = fromPhaseMatch ? fromPhaseMatch[1] : "UNKNOWN";
+  const toPhase = fromPhaseMatch ? fromPhaseMatch[2] : "UNKNOWN";
 
   // Generate unique ID
   const id = `brief-${Date.now()}`;
@@ -680,7 +721,7 @@ export async function saveHandoffBrief(
   // Create frontmatter
   const frontmatter = {
     id,
-    title: 'Handoff Brief',
+    title: "Handoff Brief",
     generated_at: new Date().toISOString(),
     from_phase: fromPhase,
     to_phase: toPhase,
@@ -690,7 +731,7 @@ export async function saveHandoffBrief(
   const fullContent = matter.stringify(brief, frontmatter);
 
   // Write to file (overwrites existing)
-  fs.writeFileSync(briefPath, fullContent, 'utf-8');
+  fs.writeFileSync(briefPath, fullContent, "utf-8");
 
   return relativePath;
 }

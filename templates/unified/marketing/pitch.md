@@ -10,20 +10,22 @@ updated: "{{updated}}"
 # Pitch Deck: {{title}}
 
 ## One-Liner
+
 <!-- Agent fills after positioning -->
 
 - [ ] Defined: No
 
-*The elevator pitch in one sentence.*
+_The elevator pitch in one sentence._
 
 >
 
 ## Problem
+
 <!-- Agent fills after problem definition -->
 
 - [ ] Defined: No
 
-*The problem we're solving and why it matters.*
+_The problem we're solving and why it matters._
 
 **The Problem**:
 
@@ -32,15 +34,17 @@ updated: "{{updated}}"
 **Why Now**:
 
 ## Solution
+
 <!-- Agent fills after solution definition -->
 
 - [ ] Defined: No
 
-*Our solution and how it works.*
+_Our solution and how it works._
 
 **The Solution**:
 
 **Key Features**:
+
 1.
 2.
 3.
@@ -48,49 +52,53 @@ updated: "{{updated}}"
 **Unique Approach**:
 
 ## Market
+
 <!-- Agent fills after market analysis -->
 
 - [ ] Defined: No
 
-*Market size and opportunity.*
+_Market size and opportunity._
 
 **TAM**: $
 **SAM**: $
 **SOM**: $
 
-**Market Trends**:
--
+## **Market Trends**:
+
 -
 
 ## Traction
+
 <!-- Agent fills after traction review -->
 
 - [ ] Defined: No
 
-*Current progress and momentum.*
+_Current progress and momentum._
 
 | Metric | Current | Goal | Timeline |
-|--------|---------|------|----------|
-| | | | |
-| | | | |
+| ------ | ------- | ---- | -------- |
+|        |         |      |          |
+|        |         |      |          |
 
-**Key Milestones Achieved**:
--
+## **Key Milestones Achieved**:
+
 -
 
 ## Ask
+
 <!-- Agent fills after ask definition -->
 
 - [ ] Defined: No
 
-*What we're asking for.*
+_What we're asking for._
 
 **Funding Ask**: $
 **Use of Funds**:
+
 - % -
 - % -
 - % -
 
-**Next Milestones**:
--
+## **Next Milestones**:
+
 -

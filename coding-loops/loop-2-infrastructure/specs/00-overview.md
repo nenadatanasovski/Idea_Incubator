@@ -29,12 +29,14 @@ This loop builds the infrastructure required for external users and monetization
 ### Current State Analysis
 
 **What Exists:**
+
 - `user_profiles` table (for Personal Fit evaluation context)
 - `user_slug` columns in `ideation_sessions` and `ideation_artifacts`
 - `users/` folder structure utilities
 - File-based user identification (slug only, no auth)
 
 **What's Missing:**
+
 - No password authentication
 - No session tokens
 - No OAuth/SSO
@@ -47,14 +49,15 @@ This loop builds the infrastructure required for external users and monetization
 
 #### Database (Gaps)
 
-| Table | Status | Schema |
-|-------|--------|--------|
-| `users` | MISSING | Core user table |
-| `user_sessions` | MISSING | Auth session tokens |
-| `password_reset_tokens` | MISSING | Password reset |
-| `oauth_connections` | MISSING | OAuth provider links |
+| Table                   | Status  | Schema               |
+| ----------------------- | ------- | -------------------- |
+| `users`                 | MISSING | Core user table      |
+| `user_sessions`         | MISSING | Auth session tokens  |
+| `password_reset_tokens` | MISSING | Password reset       |
+| `oauth_connections`     | MISSING | OAuth provider links |
 
 **Proposed `users` table:**
+
 ```sql
 CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -83,42 +86,43 @@ CREATE TABLE user_sessions (
 
 #### API Endpoints (Gaps)
 
-| Endpoint | Method | Purpose | Priority |
-|----------|--------|---------|----------|
-| `/api/auth/register` | POST | Create account | P0 |
-| `/api/auth/login` | POST | Email/password login | P0 |
-| `/api/auth/logout` | POST | End session | P0 |
-| `/api/auth/me` | GET | Get current user | P0 |
-| `/api/auth/refresh` | POST | Refresh token | P1 |
-| `/api/auth/forgot-password` | POST | Request reset | P1 |
-| `/api/auth/reset-password` | POST | Execute reset | P1 |
-| `/api/auth/verify-email` | POST | Verify email | P2 |
-| `/api/auth/oauth/google` | GET | Google OAuth start | P2 |
-| `/api/auth/oauth/google/callback` | GET | Google OAuth callback | P2 |
+| Endpoint                          | Method | Purpose               | Priority |
+| --------------------------------- | ------ | --------------------- | -------- |
+| `/api/auth/register`              | POST   | Create account        | P0       |
+| `/api/auth/login`                 | POST   | Email/password login  | P0       |
+| `/api/auth/logout`                | POST   | End session           | P0       |
+| `/api/auth/me`                    | GET    | Get current user      | P0       |
+| `/api/auth/refresh`               | POST   | Refresh token         | P1       |
+| `/api/auth/forgot-password`       | POST   | Request reset         | P1       |
+| `/api/auth/reset-password`        | POST   | Execute reset         | P1       |
+| `/api/auth/verify-email`          | POST   | Verify email          | P2       |
+| `/api/auth/oauth/google`          | GET    | Google OAuth start    | P2       |
+| `/api/auth/oauth/google/callback` | GET    | Google OAuth callback | P2       |
 
 #### Backend Logic (Gaps)
 
-| Component | Status | Purpose |
-|-----------|--------|---------|
-| `server/middleware/auth.ts` | MISSING | Auth middleware |
-| `server/routes/auth.ts` | MISSING | Auth endpoints |
-| `utils/password.ts` | MISSING | Password hashing (bcrypt/argon2) |
-| `utils/jwt.ts` | MISSING | JWT token handling |
-| `utils/email.ts` | MISSING | Email sending (Resend/SendGrid) |
+| Component                   | Status  | Purpose                          |
+| --------------------------- | ------- | -------------------------------- |
+| `server/middleware/auth.ts` | MISSING | Auth middleware                  |
+| `server/routes/auth.ts`     | MISSING | Auth endpoints                   |
+| `utils/password.ts`         | MISSING | Password hashing (bcrypt/argon2) |
+| `utils/jwt.ts`              | MISSING | JWT token handling               |
+| `utils/email.ts`            | MISSING | Email sending (Resend/SendGrid)  |
 
 #### Frontend (Gaps)
 
-| Component | Status | Purpose |
-|-----------|--------|---------|
-| `pages/Login.tsx` | MISSING | Login form |
-| `pages/Register.tsx` | MISSING | Registration form |
-| `pages/ForgotPassword.tsx` | MISSING | Password reset request |
-| `pages/ResetPassword.tsx` | MISSING | Password reset form |
-| `components/AuthProvider.tsx` | MISSING | Auth context |
-| `hooks/useAuth.ts` | MISSING | Auth hook |
-| `components/ProtectedRoute.tsx` | MISSING | Route protection |
+| Component                       | Status  | Purpose                |
+| ------------------------------- | ------- | ---------------------- |
+| `pages/Login.tsx`               | MISSING | Login form             |
+| `pages/Register.tsx`            | MISSING | Registration form      |
+| `pages/ForgotPassword.tsx`      | MISSING | Password reset request |
+| `pages/ResetPassword.tsx`       | MISSING | Password reset form    |
+| `components/AuthProvider.tsx`   | MISSING | Auth context           |
+| `hooks/useAuth.ts`              | MISSING | Auth hook              |
+| `components/ProtectedRoute.tsx` | MISSING | Route protection       |
 
 ### Key Deliverables
+
 1. User registration with email/password
 2. Login/logout flow
 3. Session management with tokens
@@ -135,11 +139,13 @@ CREATE TABLE user_sessions (
 ### Current State Analysis
 
 **What Exists:**
+
 - `cost_log` table (tracks API costs per evaluation)
 - Cost tracking utilities for Claude API calls
 - Budget parameter for evaluations
 
 **What's Missing:**
+
 - User credit balance
 - Credit purchase flow
 - Credit consumption tracking per action
@@ -150,14 +156,15 @@ CREATE TABLE user_sessions (
 
 #### Database (Gaps)
 
-| Table | Status | Schema |
-|-------|--------|--------|
-| `credit_balances` | MISSING | User credit balance |
-| `credit_transactions` | MISSING | Credit history |
-| `credit_packages` | MISSING | Purchasable packages |
-| `subscriptions` | MISSING | Subscription tiers |
+| Table                 | Status  | Schema               |
+| --------------------- | ------- | -------------------- |
+| `credit_balances`     | MISSING | User credit balance  |
+| `credit_transactions` | MISSING | Credit history       |
+| `credit_packages`     | MISSING | Purchasable packages |
+| `subscriptions`       | MISSING | Subscription tiers   |
 
 **Proposed `credit_balances` table:**
+
 ```sql
 CREATE TABLE credit_balances (
     user_id TEXT PRIMARY KEY REFERENCES users(id),
@@ -186,46 +193,47 @@ CREATE TABLE credit_transactions (
 
 #### API Endpoints (Gaps)
 
-| Endpoint | Method | Purpose | Priority |
-|----------|--------|---------|----------|
-| `/api/credits/balance` | GET | Get user balance | P0 |
-| `/api/credits/consume` | POST | Consume credits (internal) | P0 |
-| `/api/credits/history` | GET | Transaction history | P1 |
-| `/api/credits/packages` | GET | Available packages | P1 |
-| `/api/credits/purchase` | POST | Create Stripe session | P1 |
-| `/api/credits/webhook` | POST | Stripe webhook | P1 |
-| `/api/subscription/status` | GET | Subscription status | P2 |
-| `/api/subscription/upgrade` | POST | Change tier | P2 |
+| Endpoint                    | Method | Purpose                    | Priority |
+| --------------------------- | ------ | -------------------------- | -------- |
+| `/api/credits/balance`      | GET    | Get user balance           | P0       |
+| `/api/credits/consume`      | POST   | Consume credits (internal) | P0       |
+| `/api/credits/history`      | GET    | Transaction history        | P1       |
+| `/api/credits/packages`     | GET    | Available packages         | P1       |
+| `/api/credits/purchase`     | POST   | Create Stripe session      | P1       |
+| `/api/credits/webhook`      | POST   | Stripe webhook             | P1       |
+| `/api/subscription/status`  | GET    | Subscription status        | P2       |
+| `/api/subscription/upgrade` | POST   | Change tier                | P2       |
 
 #### Backend Logic (Gaps)
 
-| Component | Status | Purpose |
-|-----------|--------|---------|
-| `server/routes/credits.ts` | MISSING | Credit endpoints |
-| `utils/stripe.ts` | MISSING | Stripe integration |
-| `utils/credit-manager.ts` | MISSING | Credit operations |
+| Component                      | Status  | Purpose                 |
+| ------------------------------ | ------- | ----------------------- |
+| `server/routes/credits.ts`     | MISSING | Credit endpoints        |
+| `utils/stripe.ts`              | MISSING | Stripe integration      |
+| `utils/credit-manager.ts`      | MISSING | Credit operations       |
 | `server/middleware/credits.ts` | MISSING | Credit check middleware |
 
 #### Frontend (Gaps)
 
-| Component | Status | Purpose |
-|-----------|--------|---------|
-| `components/CreditBalance.tsx` | MISSING | Balance display |
-| `pages/Credits.tsx` | MISSING | Purchase page |
+| Component                         | Status  | Purpose             |
+| --------------------------------- | ------- | ------------------- |
+| `components/CreditBalance.tsx`    | MISSING | Balance display     |
+| `pages/Credits.tsx`               | MISSING | Purchase page       |
 | `components/CreditUsageAlert.tsx` | MISSING | Low balance warning |
-| `components/PricingTable.tsx` | MISSING | Package options |
+| `components/PricingTable.tsx`     | MISSING | Package options     |
 
 ### Credit Costs (Proposed)
 
-| Action | Credits | Notes |
-|--------|---------|-------|
-| Ideation message | 1 | Basic interaction |
-| Web search | 2 | External API cost |
-| Build iteration | 5-10 | Based on complexity |
-| App hosting (daily) | 1 | Ongoing cost |
-| SIA intervention | 3 | Meta-agent cost |
+| Action              | Credits | Notes               |
+| ------------------- | ------- | ------------------- |
+| Ideation message    | 1       | Basic interaction   |
+| Web search          | 2       | External API cost   |
+| Build iteration     | 5-10    | Based on complexity |
+| App hosting (daily) | 1       | Ongoing cost        |
+| SIA intervention    | 3       | Meta-agent cost     |
 
 ### Key Deliverables
+
 1. Credit balance tracking per user
 2. Credit consumption on each action
 3. Stripe checkout for credit purchase
@@ -242,9 +250,11 @@ CREATE TABLE credit_transactions (
 ### Current State Analysis
 
 **What Exists:**
+
 - Nothing - no hosting infrastructure
 
 **What's Missing:**
+
 - Multi-tenant app hosting
 - Per-user app deployment
 - Database provisioning
@@ -255,14 +265,15 @@ CREATE TABLE credit_transactions (
 
 #### Database (Gaps)
 
-| Table | Status | Schema |
-|-------|--------|--------|
-| `deployed_apps` | MISSING | App registry |
-| `app_deployments` | MISSING | Deployment history |
-| `app_configs` | MISSING | Environment configs |
-| `app_domains` | MISSING | Custom domains |
+| Table             | Status  | Schema              |
+| ----------------- | ------- | ------------------- |
+| `deployed_apps`   | MISSING | App registry        |
+| `app_deployments` | MISSING | Deployment history  |
+| `app_configs`     | MISSING | Environment configs |
+| `app_domains`     | MISSING | Custom domains      |
 
 **Proposed `deployed_apps` table:**
+
 ```sql
 CREATE TABLE deployed_apps (
     id TEXT PRIMARY KEY,
@@ -284,36 +295,37 @@ CREATE TABLE deployed_apps (
 
 #### API Endpoints (Gaps)
 
-| Endpoint | Method | Purpose | Priority |
-|----------|--------|---------|----------|
-| `/api/apps` | GET | List user's apps | P0 |
-| `/api/apps/:id` | GET | Get app details | P0 |
-| `/api/apps/:id/deploy` | POST | Trigger deployment | P0 |
-| `/api/apps/:id/stop` | POST | Stop app | P1 |
-| `/api/apps/:id/restart` | POST | Restart app | P1 |
-| `/api/apps/:id/logs` | GET | Get app logs | P1 |
-| `/api/apps/:id/domains` | POST | Add custom domain | P2 |
+| Endpoint                | Method | Purpose            | Priority |
+| ----------------------- | ------ | ------------------ | -------- |
+| `/api/apps`             | GET    | List user's apps   | P0       |
+| `/api/apps/:id`         | GET    | Get app details    | P0       |
+| `/api/apps/:id/deploy`  | POST   | Trigger deployment | P0       |
+| `/api/apps/:id/stop`    | POST   | Stop app           | P1       |
+| `/api/apps/:id/restart` | POST   | Restart app        | P1       |
+| `/api/apps/:id/logs`    | GET    | Get app logs       | P1       |
+| `/api/apps/:id/domains` | POST   | Add custom domain  | P2       |
 
 #### Backend Logic (Gaps)
 
-| Component | Status | Purpose |
-|-----------|--------|---------|
-| `server/routes/apps.ts` | MISSING | App management |
-| `utils/hosting/railway.ts` | MISSING | Railway API |
-| `utils/hosting/render.ts` | MISSING | Render API |
-| `utils/hosting/vercel.ts` | MISSING | Vercel API |
-| `utils/git-manager.ts` | MISSING | Git operations |
+| Component                  | Status  | Purpose        |
+| -------------------------- | ------- | -------------- |
+| `server/routes/apps.ts`    | MISSING | App management |
+| `utils/hosting/railway.ts` | MISSING | Railway API    |
+| `utils/hosting/render.ts`  | MISSING | Render API     |
+| `utils/hosting/vercel.ts`  | MISSING | Vercel API     |
+| `utils/git-manager.ts`     | MISSING | Git operations |
 
 #### Frontend (Gaps)
 
-| Component | Status | Purpose |
-|-----------|--------|---------|
-| `pages/Apps.tsx` | MISSING | App list |
-| `pages/AppDetail.tsx` | MISSING | Single app view |
+| Component                         | Status  | Purpose          |
+| --------------------------------- | ------- | ---------------- |
+| `pages/Apps.tsx`                  | MISSING | App list         |
+| `pages/AppDetail.tsx`             | MISSING | Single app view  |
 | `components/DeploymentStatus.tsx` | MISSING | Status indicator |
-| `components/AppLogs.tsx` | MISSING | Log viewer |
+| `components/AppLogs.tsx`          | MISSING | Log viewer       |
 
 ### Key Deliverables
+
 1. Hosting provider integration (Railway recommended)
 2. Git repo creation per user/idea
 3. Automatic deployment on build complete
@@ -325,11 +337,13 @@ CREATE TABLE deployed_apps (
 ## Test Structure
 
 ### Test ID Prefixes
+
 - `INFRA-AUTH-*`: Authentication tests
 - `INFRA-CRED-*`: Credit system tests
 - `INFRA-HOST-*`: Hosting tests
 
 ### Dependencies
+
 ```
 INFRA-AUTH-001 ──────────────────────────────▶ INFRA-AUTH-020
                                                      │
@@ -351,6 +365,7 @@ INFRA-AUTH-001 ─────────────────────�
 ## Success Criteria
 
 ### Phase 1 (Auth) Complete When:
+
 - [ ] User can register with email/password
 - [ ] User can log in and get session token
 - [ ] Protected routes require authentication
@@ -358,6 +373,7 @@ INFRA-AUTH-001 ─────────────────────�
 - [ ] User slug auto-created and linked
 
 ### Phase 2 (Credits) Complete When:
+
 - [ ] User balance tracked correctly
 - [ ] Credits consumed on ideation actions
 - [ ] Stripe checkout works
@@ -365,6 +381,7 @@ INFRA-AUTH-001 ─────────────────────�
 - [ ] Low balance warnings shown
 
 ### Phase 3 (Hosting) Complete When:
+
 - [ ] Apps can be deployed to provider
 - [ ] Apps can be started/stopped
 - [ ] Logs accessible
@@ -386,5 +403,5 @@ specs/
 
 ---
 
-*Created: 2026-01-07*
-*Last Updated: 2026-01-07*
+_Created: 2026-01-07_
+_Last Updated: 2026-01-07_

@@ -13,7 +13,7 @@
  * Part of: PTE-139
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   AlertTriangle,
   FileWarning,
@@ -24,7 +24,7 @@ import {
   Layers,
   File,
   GitBranch,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface CrossListConflict {
   listAId: string;
@@ -53,20 +53,38 @@ interface CrossListConflictsProps {
 }
 
 // Conflict type descriptions
-const CONFLICT_DESCRIPTIONS: Record<string, { label: string; severity: 'high' | 'medium' | 'low' }> = {
-  create_create: { label: 'Both tasks try to create the same file', severity: 'high' },
-  write_write: { label: 'Both tasks modify the same file', severity: 'high' },
-  create_delete: { label: 'One task creates, another deletes', severity: 'high' },
-  write_delete: { label: 'One task modifies, another deletes', severity: 'high' },
-  delete_delete: { label: 'Both tasks try to delete the same file', severity: 'medium' },
-  read_delete: { label: 'One task reads a file another deletes', severity: 'medium' },
+const CONFLICT_DESCRIPTIONS: Record<
+  string,
+  { label: string; severity: "high" | "medium" | "low" }
+> = {
+  create_create: {
+    label: "Both tasks try to create the same file",
+    severity: "high",
+  },
+  write_write: { label: "Both tasks modify the same file", severity: "high" },
+  create_delete: {
+    label: "One task creates, another deletes",
+    severity: "high",
+  },
+  write_delete: {
+    label: "One task modifies, another deletes",
+    severity: "high",
+  },
+  delete_delete: {
+    label: "Both tasks try to delete the same file",
+    severity: "medium",
+  },
+  read_delete: {
+    label: "One task reads a file another deletes",
+    severity: "medium",
+  },
 };
 
 // Severity colors
 const SEVERITY_COLORS = {
-  high: 'bg-red-100 text-red-700 border-red-200',
-  medium: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  low: 'bg-blue-100 text-blue-700 border-blue-200',
+  high: "bg-red-100 text-red-700 border-red-200",
+  medium: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  low: "bg-blue-100 text-blue-700 border-blue-200",
 };
 
 export default function CrossListConflicts({
@@ -81,22 +99,26 @@ export default function CrossListConflicts({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(!compact);
-  const [expandedConflicts, setExpandedConflicts] = useState<Set<string>>(new Set());
+  const [expandedConflicts, setExpandedConflicts] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Fetch conflicts
   const fetchConflicts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/task-agent/orchestrator/conflicts/${taskListId}`);
+      const response = await fetch(
+        `/api/task-agent/orchestrator/conflicts/${taskListId}`,
+      );
       if (!response.ok) {
-        throw new Error('Failed to fetch conflicts');
+        throw new Error("Failed to fetch conflicts");
       }
       const data = await response.json();
       setConflicts(data.conflicts || []);
       onConflictsLoaded?.(data.hasConflicts, data.conflicts?.length || 0);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
+      setError(err instanceof Error ? err.message : "Failed to load");
     } finally {
       setLoading(false);
     }
@@ -119,18 +141,24 @@ export default function CrossListConflicts({
   };
 
   // Group conflicts by list pair
-  const groupedConflicts = conflicts.reduce((acc, conflict) => {
-    const key = `${conflict.listAId}-${conflict.listBId}`;
-    if (!acc[key]) {
-      acc[key] = {
-        listAName: conflict.listAName,
-        listBName: conflict.listBName,
-        conflicts: [],
-      };
-    }
-    acc[key].conflicts.push(conflict);
-    return acc;
-  }, {} as Record<string, { listAName: string; listBName: string; conflicts: CrossListConflict[] }>);
+  const groupedConflicts = conflicts.reduce(
+    (acc, conflict) => {
+      const key = `${conflict.listAId}-${conflict.listBId}`;
+      if (!acc[key]) {
+        acc[key] = {
+          listAName: conflict.listAName,
+          listBName: conflict.listBName,
+          conflicts: [],
+        };
+      }
+      acc[key].conflicts.push(conflict);
+      return acc;
+    },
+    {} as Record<
+      string,
+      { listAName: string; listBName: string; conflicts: CrossListConflict[] }
+    >,
+  );
 
   // Loading state
   if (loading) {
@@ -179,7 +207,8 @@ export default function CrossListConflicts({
       >
         <FileWarning className="h-4 w-4" />
         <span className="text-sm font-medium">
-          {conflicts.length} Cross-List Conflict{conflicts.length !== 1 ? 's' : ''}
+          {conflicts.length} Cross-List Conflict
+          {conflicts.length !== 1 ? "s" : ""}
         </span>
         <ChevronDown className="h-4 w-4 ml-auto" />
       </button>
@@ -218,8 +247,9 @@ export default function CrossListConflicts({
       {/* Warning message */}
       <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
         <p className="text-sm text-amber-700">
-          These conflicts prevent concurrent execution of the affected task lists.
-          Resolve by adjusting task order, file impacts, or running lists sequentially.
+          These conflicts prevent concurrent execution of the affected task
+          lists. Resolve by adjusting task order, file impacts, or running lists
+          sequentially.
         </p>
       </div>
 
@@ -243,7 +273,8 @@ export default function CrossListConflicts({
                 </span>
               </div>
               <span className="text-xs text-gray-500">
-                {group.conflicts.length} conflict{group.conflicts.length !== 1 ? 's' : ''}
+                {group.conflicts.length} conflict
+                {group.conflicts.length !== 1 ? "s" : ""}
               </span>
             </div>
 
@@ -252,9 +283,11 @@ export default function CrossListConflicts({
               {group.conflicts.map((conflict, idx) => {
                 const id = `${key}-${idx}`;
                 const isExpanded = expandedConflicts.has(id);
-                const conflictInfo = CONFLICT_DESCRIPTIONS[conflict.conflictType] || {
+                const conflictInfo = CONFLICT_DESCRIPTIONS[
+                  conflict.conflictType
+                ] || {
                   label: conflict.conflictType,
-                  severity: 'medium' as const,
+                  severity: "medium" as const,
                 };
 
                 return (
@@ -290,21 +323,31 @@ export default function CrossListConflicts({
                         </p>
                         <div className="grid grid-cols-2 gap-4 text-xs">
                           <div className="p-2 bg-gray-50 rounded">
-                            <p className="text-gray-500">From {group.listAName}</p>
+                            <p className="text-gray-500">
+                              From {group.listAName}
+                            </p>
                             <p className="font-mono text-gray-700">
                               {conflict.taskADisplayId}
                             </p>
                             <p className="text-gray-500">
-                              Operation: <span className="text-gray-700">{conflict.operationA}</span>
+                              Operation:{" "}
+                              <span className="text-gray-700">
+                                {conflict.operationA}
+                              </span>
                             </p>
                           </div>
                           <div className="p-2 bg-gray-50 rounded">
-                            <p className="text-gray-500">From {group.listBName}</p>
+                            <p className="text-gray-500">
+                              From {group.listBName}
+                            </p>
                             <p className="font-mono text-gray-700">
                               {conflict.taskBDisplayId}
                             </p>
                             <p className="text-gray-500">
-                              Operation: <span className="text-gray-700">{conflict.operationB}</span>
+                              Operation:{" "}
+                              <span className="text-gray-700">
+                                {conflict.operationB}
+                              </span>
                             </p>
                           </div>
                         </div>

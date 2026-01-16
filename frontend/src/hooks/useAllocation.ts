@@ -1,16 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   getFinancialAllocation,
   saveFinancialAllocation,
   deleteFinancialAllocation,
   getPositioningDecision,
   savePositioningDecision,
-} from '../api/client';
+} from "../api/client";
 import type {
   IdeaFinancialAllocation,
   StrategicApproach,
   PositioningDecision,
-} from '../types';
+} from "../types";
 
 interface UseAllocationOptions {
   autoLoad?: boolean;
@@ -46,7 +46,7 @@ interface UseAllocationReturn extends AllocationState {
  */
 export function useAllocation(
   slug: string | undefined,
-  options: UseAllocationOptions = {}
+  options: UseAllocationOptions = {},
 ): UseAllocationReturn {
   const { autoLoad = true } = options;
 
@@ -62,20 +62,20 @@ export function useAllocation(
   const loadAllocation = useCallback(async () => {
     if (!slug) return;
 
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
       const data = await getFinancialAllocation(slug);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         allocation: data.exists ? (data as IdeaFinancialAllocation) : null,
         isLoading: false,
       }));
     } catch (err) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: err instanceof Error ? err.message : 'Failed to load allocation',
+        error: err instanceof Error ? err.message : "Failed to load allocation",
       }));
     }
   }, [slug]);
@@ -86,83 +86,97 @@ export function useAllocation(
 
     try {
       const data = await getPositioningDecision(slug);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         decision: data.exists ? (data as PositioningDecision) : null,
       }));
     } catch (err) {
-      console.error('Failed to load positioning decision:', err);
+      console.error("Failed to load positioning decision:", err);
     }
   }, [slug]);
 
   // Save allocation
-  const saveAllocation = useCallback(async (data: Partial<IdeaFinancialAllocation>) => {
-    if (!slug) return;
+  const saveAllocation = useCallback(
+    async (data: Partial<IdeaFinancialAllocation>) => {
+      if (!slug) return;
 
-    setState(prev => ({ ...prev, isSaving: true, error: null }));
+      setState((prev) => ({ ...prev, isSaving: true, error: null }));
 
-    try {
-      await saveFinancialAllocation(slug, data);
-      // Reload to get the full updated data
-      await loadAllocation();
-      setState(prev => ({ ...prev, isSaving: false }));
-    } catch (err) {
-      setState(prev => ({
-        ...prev,
-        isSaving: false,
-        error: err instanceof Error ? err.message : 'Failed to save allocation',
-      }));
-      throw err;
-    }
-  }, [slug, loadAllocation]);
+      try {
+        await saveFinancialAllocation(slug, data);
+        // Reload to get the full updated data
+        await loadAllocation();
+        setState((prev) => ({ ...prev, isSaving: false }));
+      } catch (err) {
+        setState((prev) => ({
+          ...prev,
+          isSaving: false,
+          error:
+            err instanceof Error ? err.message : "Failed to save allocation",
+        }));
+        throw err;
+      }
+    },
+    [slug, loadAllocation],
+  );
 
   // Update strategic approach
-  const updateApproach = useCallback(async (approach: StrategicApproach) => {
-    await saveAllocation({ ...state.allocation, strategicApproach: approach });
-  }, [saveAllocation, state.allocation]);
+  const updateApproach = useCallback(
+    async (approach: StrategicApproach) => {
+      await saveAllocation({
+        ...state.allocation,
+        strategicApproach: approach,
+      });
+    },
+    [saveAllocation, state.allocation],
+  );
 
   // Remove allocation
   const removeAllocation = useCallback(async () => {
     if (!slug) return;
 
-    setState(prev => ({ ...prev, isSaving: true, error: null }));
+    setState((prev) => ({ ...prev, isSaving: true, error: null }));
 
     try {
       await deleteFinancialAllocation(slug);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         allocation: null,
         isSaving: false,
       }));
     } catch (err) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isSaving: false,
-        error: err instanceof Error ? err.message : 'Failed to delete allocation',
+        error:
+          err instanceof Error ? err.message : "Failed to delete allocation",
       }));
       throw err;
     }
   }, [slug]);
 
   // Save decision
-  const saveDecision = useCallback(async (data: Partial<PositioningDecision>) => {
-    if (!slug) return;
+  const saveDecision = useCallback(
+    async (data: Partial<PositioningDecision>) => {
+      if (!slug) return;
 
-    setState(prev => ({ ...prev, isSaving: true, error: null }));
+      setState((prev) => ({ ...prev, isSaving: true, error: null }));
 
-    try {
-      await savePositioningDecision(slug, data);
-      await loadDecision();
-      setState(prev => ({ ...prev, isSaving: false }));
-    } catch (err) {
-      setState(prev => ({
-        ...prev,
-        isSaving: false,
-        error: err instanceof Error ? err.message : 'Failed to save decision',
-      }));
-      throw err;
-    }
-  }, [slug, loadDecision]);
+      try {
+        await savePositioningDecision(slug, data);
+        await loadDecision();
+        setState((prev) => ({ ...prev, isSaving: false }));
+      } catch (err) {
+        setState((prev) => ({
+          ...prev,
+          isSaving: false,
+          error: err instanceof Error ? err.message : "Failed to save decision",
+        }));
+        throw err;
+      }
+    },
+    [slug, loadDecision],
+  );
 
   // Refresh all data
   const refresh = useCallback(async () => {
@@ -171,7 +185,7 @@ export function useAllocation(
 
   // Clear error
   const clearError = useCallback(() => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   }, []);
 
   // Auto-load on mount if enabled

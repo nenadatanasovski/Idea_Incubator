@@ -14,13 +14,12 @@ summary: "A SaaS platform that helps individuals track, categorize, and optimize
 
 ## Overview
 
-*Brief description of the idea.*
+_Brief description of the idea._
 
 ## Problem Statement
 
-*What problem does this solve? Who experiences this problem?*
+_What problem does this solve? Who experiences this problem?_
 
 ## Proposed Solution
 
-*How does this idea solve the problem?*
-
+_How does this idea solve the problem?_

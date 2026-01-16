@@ -1,10 +1,10 @@
 // agents/ux/screenshot-manager.ts - Screenshot capture and storage
 
-import { existsSync, mkdirSync, readdirSync, unlinkSync, statSync } from 'fs';
-import { join } from 'path';
-import { MCPBridge } from './mcp-bridge.js';
+import { existsSync, mkdirSync, readdirSync, unlinkSync, statSync } from "fs";
+import { join } from "path";
+import { MCPBridge } from "./mcp-bridge.js";
 
-const DEFAULT_SCREENSHOT_DIR = 'screenshots/ux-runs';
+const DEFAULT_SCREENSHOT_DIR = "screenshots/ux-runs";
 
 export class ScreenshotManager {
   private baseDir: string;
@@ -34,11 +34,18 @@ export class ScreenshotManager {
   /**
    * Generate a unique screenshot filename
    */
-  generateFilename(_runId: string, stepIndex: number, description?: string): string {
-    const paddedIndex = String(stepIndex).padStart(3, '0');
+  generateFilename(
+    _runId: string,
+    stepIndex: number,
+    description?: string,
+  ): string {
+    const paddedIndex = String(stepIndex).padStart(3, "0");
     const safeName = description
-      ? `-${description.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)}`
-      : '';
+      ? `-${description
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .slice(0, 30)}`
+      : "";
     return `${paddedIndex}${safeName}.png`;
   }
 
@@ -49,7 +56,7 @@ export class ScreenshotManager {
     bridge: MCPBridge,
     runId: string,
     stepIndex: number,
-    description?: string
+    description?: string,
   ): Promise<string> {
     const runDir = this.ensureDir(runId);
     const filename = this.generateFilename(runId, stepIndex, description);
@@ -72,9 +79,9 @@ export class ScreenshotManager {
     }
 
     return readdirSync(runDir)
-      .filter(f => f.endsWith('.png'))
+      .filter((f) => f.endsWith(".png"))
       .sort()
-      .map(f => join(runDir, f));
+      .map((f) => join(runDir, f));
   }
 
   /**

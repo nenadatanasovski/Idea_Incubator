@@ -13,9 +13,13 @@
  * Part of: PTE-082 to PTE-085
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Zap, ChevronDown, Check, X, Loader2 } from 'lucide-react';
-import type { QuickAddTaskInput, EvaluationQueueTask, CATEGORY_CODES } from '../../types/task-agent';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Plus, Zap, ChevronDown, Check, X, Loader2 } from "lucide-react";
+import type {
+  QuickAddTaskInput,
+  EvaluationQueueTask,
+  CATEGORY_CODES,
+} from "../../types/task-agent";
 
 interface QuickAddTaskProps {
   /** Optional callback when task is successfully created */
@@ -30,56 +34,56 @@ interface QuickAddTaskProps {
   placeholder?: string;
 }
 
-type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error';
+type SubmitStatus = "idle" | "submitting" | "success" | "error";
 
 export default function QuickAddTask({
   onTaskCreated,
   projects = [],
   inline = false,
   autoFocus = false,
-  placeholder = 'Quick add a task... (Ctrl+Shift+T)',
+  placeholder = "Quick add a task... (Ctrl+Shift+T)",
 }: QuickAddTaskProps): JSX.Element {
   const [isOpen, setIsOpen] = useState(inline);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [projectId, setProjectId] = useState('');
-  const [category, setCategory] = useState('');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [projectId, setProjectId] = useState("");
+  const [category, setCategory] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [status, setStatus] = useState<SubmitStatus>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [status, setStatus] = useState<SubmitStatus>("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Category options
   const categories = [
-    { value: '', label: 'Auto-detect' },
-    { value: 'feature', label: 'Feature' },
-    { value: 'bug', label: 'Bug Fix' },
-    { value: 'enhancement', label: 'Enhancement' },
-    { value: 'refactor', label: 'Refactor' },
-    { value: 'documentation', label: 'Documentation' },
-    { value: 'test', label: 'Test' },
-    { value: 'infrastructure', label: 'Infrastructure' },
-    { value: 'research', label: 'Research' },
-    { value: 'other', label: 'Other' },
+    { value: "", label: "Auto-detect" },
+    { value: "feature", label: "Feature" },
+    { value: "bug", label: "Bug Fix" },
+    { value: "enhancement", label: "Enhancement" },
+    { value: "refactor", label: "Refactor" },
+    { value: "documentation", label: "Documentation" },
+    { value: "test", label: "Test" },
+    { value: "infrastructure", label: "Infrastructure" },
+    { value: "research", label: "Research" },
+    { value: "other", label: "Other" },
   ];
 
   // Keyboard shortcut handler (Ctrl+Shift+T)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+      if (e.ctrlKey && e.shiftKey && e.key === "T") {
         e.preventDefault();
         setIsOpen(true);
         setTimeout(() => inputRef.current?.focus(), 100);
       }
       // Escape to close
-      if (e.key === 'Escape' && isOpen && !inline) {
+      if (e.key === "Escape" && isOpen && !inline) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, inline]);
 
   // Auto-focus
@@ -90,64 +94,69 @@ export default function QuickAddTask({
   }, [autoFocus]);
 
   // Submit task
-  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const handleSubmit = useCallback(
+    async (e?: React.FormEvent) => {
+      e?.preventDefault();
 
-    if (!title.trim()) {
-      setErrorMessage('Task title is required');
-      setStatus('error');
-      setTimeout(() => setStatus('idle'), 3000);
-      return;
-    }
-
-    setStatus('submitting');
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    try {
-      const input: QuickAddTaskInput = {
-        title: title.trim(),
-        description: description.trim() || undefined,
-        projectId: projectId || undefined,
-        category: category || undefined,
-      };
-
-      const response = await fetch('/api/task-agent/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create task');
+      if (!title.trim()) {
+        setErrorMessage("Task title is required");
+        setStatus("error");
+        setTimeout(() => setStatus("idle"), 3000);
+        return;
       }
 
-      const task: EvaluationQueueTask = await response.json();
+      setStatus("submitting");
+      setErrorMessage("");
+      setSuccessMessage("");
 
-      setStatus('success');
-      setSuccessMessage(`Created ${task.displayId}`);
-      setTitle('');
-      setDescription('');
-      setShowAdvanced(false);
+      try {
+        const input: QuickAddTaskInput = {
+          title: title.trim(),
+          description: description.trim() || undefined,
+          projectId: projectId || undefined,
+          category: category || undefined,
+        };
 
-      onTaskCreated?.(task);
+        const response = await fetch("/api/task-agent/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
 
-      // Reset status after success
-      setTimeout(() => {
-        setStatus('idle');
-        setSuccessMessage('');
-      }, 3000);
-    } catch (err) {
-      setStatus('error');
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to create task');
-      setTimeout(() => setStatus('idle'), 5000);
-    }
-  }, [title, description, projectId, category, onTaskCreated]);
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Failed to create task");
+        }
+
+        const task: EvaluationQueueTask = await response.json();
+
+        setStatus("success");
+        setSuccessMessage(`Created ${task.displayId}`);
+        setTitle("");
+        setDescription("");
+        setShowAdvanced(false);
+
+        onTaskCreated?.(task);
+
+        // Reset status after success
+        setTimeout(() => {
+          setStatus("idle");
+          setSuccessMessage("");
+        }, 3000);
+      } catch (err) {
+        setStatus("error");
+        setErrorMessage(
+          err instanceof Error ? err.message : "Failed to create task",
+        );
+        setTimeout(() => setStatus("idle"), 5000);
+      }
+    },
+    [title, description, projectId, category, onTaskCreated],
+  );
 
   // Handle Enter key in input
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
@@ -162,7 +171,9 @@ export default function QuickAddTask({
         title="Quick Add Task (Ctrl+Shift+T)"
       >
         <Plus className="h-5 w-5" />
-        <span className="hidden group-hover:inline text-sm font-medium">Quick Add</span>
+        <span className="hidden group-hover:inline text-sm font-medium">
+          Quick Add
+        </span>
         <kbd className="hidden group-hover:inline px-1.5 py-0.5 text-xs bg-primary-500 rounded">
           Ctrl+Shift+T
         </kbd>
@@ -184,16 +195,16 @@ export default function QuickAddTask({
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
             className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-            disabled={status === 'submitting'}
+            disabled={status === "submitting"}
             autoFocus={!inline}
           />
         </div>
         <button
           type="submit"
-          disabled={status === 'submitting' || !title.trim()}
+          disabled={status === "submitting" || !title.trim()}
           className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
         >
-          {status === 'submitting' ? (
+          {status === "submitting" ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Plus className="h-4 w-4" />
@@ -217,8 +228,10 @@ export default function QuickAddTask({
         onClick={() => setShowAdvanced(!showAdvanced)}
         className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
       >
-        <ChevronDown className={`h-3 w-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-        {showAdvanced ? 'Hide options' : 'More options'}
+        <ChevronDown
+          className={`h-3 w-3 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
+        />
+        {showAdvanced ? "Hide options" : "More options"}
       </button>
 
       {/* Advanced options */}
@@ -282,14 +295,14 @@ export default function QuickAddTask({
       )}
 
       {/* Status messages */}
-      {status === 'success' && successMessage && (
+      {status === "success" && successMessage && (
         <div className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm">
           <Check className="h-4 w-4" />
           {successMessage}
         </div>
       )}
 
-      {status === 'error' && errorMessage && (
+      {status === "error" && errorMessage && (
         <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm">
           <X className="h-4 w-4" />
           {errorMessage}
@@ -298,7 +311,8 @@ export default function QuickAddTask({
 
       {/* Hint */}
       <p className="text-xs text-gray-400">
-        Tasks are added to the Evaluation Queue for automatic analysis and grouping.
+        Tasks are added to the Evaluation Queue for automatic analysis and
+        grouping.
       </p>
     </form>
   );

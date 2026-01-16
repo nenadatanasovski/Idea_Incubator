@@ -13,7 +13,7 @@
  * Part of: PTE-123, PTE-136
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   File,
   Plus,
@@ -28,8 +28,12 @@ import {
   ChevronDown,
   ChevronUp,
   Save,
-} from 'lucide-react';
-import type { FileImpact, FileOperation, FileImpactSource } from '../../types/task-agent';
+} from "lucide-react";
+import type {
+  FileImpact,
+  FileOperation,
+  FileImpactSource,
+} from "../../types/task-agent";
 
 interface FileImpactEditorProps {
   /** Task ID to manage file impacts for */
@@ -45,19 +49,41 @@ interface FileImpactEditorProps {
 }
 
 // Operation colors and icons
-const OPERATION_CONFIG: Record<FileOperation, { color: string; bg: string; label: string }> = {
-  CREATE: { color: 'text-green-700', bg: 'bg-green-100', label: 'Create' },
-  UPDATE: { color: 'text-blue-700', bg: 'bg-blue-100', label: 'Update' },
-  DELETE: { color: 'text-red-700', bg: 'bg-red-100', label: 'Delete' },
-  READ: { color: 'text-gray-700', bg: 'bg-gray-100', label: 'Read' },
+const OPERATION_CONFIG: Record<
+  FileOperation,
+  { color: string; bg: string; label: string }
+> = {
+  CREATE: { color: "text-green-700", bg: "bg-green-100", label: "Create" },
+  UPDATE: { color: "text-blue-700", bg: "bg-blue-100", label: "Update" },
+  DELETE: { color: "text-red-700", bg: "bg-red-100", label: "Delete" },
+  READ: { color: "text-gray-700", bg: "bg-gray-100", label: "Read" },
 };
 
 // Source icons and labels
-const SOURCE_CONFIG: Record<FileImpactSource, { icon: React.ReactNode; label: string; color: string }> = {
-  ai_estimate: { icon: <Brain className="h-3 w-3" />, label: 'AI Estimate', color: 'text-purple-600' },
-  pattern_match: { icon: <Clock className="h-3 w-3" />, label: 'Pattern', color: 'text-blue-600' },
-  user_declared: { icon: <User className="h-3 w-3" />, label: 'User', color: 'text-green-600' },
-  validated: { icon: <CheckCircle className="h-3 w-3" />, label: 'Validated', color: 'text-emerald-600' },
+const SOURCE_CONFIG: Record<
+  FileImpactSource,
+  { icon: React.ReactNode; label: string; color: string }
+> = {
+  ai_estimate: {
+    icon: <Brain className="h-3 w-3" />,
+    label: "AI Estimate",
+    color: "text-purple-600",
+  },
+  pattern_match: {
+    icon: <Clock className="h-3 w-3" />,
+    label: "Pattern",
+    color: "text-blue-600",
+  },
+  user_declared: {
+    icon: <User className="h-3 w-3" />,
+    label: "User",
+    color: "text-green-600",
+  },
+  validated: {
+    icon: <CheckCircle className="h-3 w-3" />,
+    label: "Validated",
+    color: "text-emerald-600",
+  },
 };
 
 export default function FileImpactEditor({
@@ -77,23 +103,25 @@ export default function FileImpactEditor({
   const [expanded, setExpanded] = useState(!compact);
 
   // New impact form state
-  const [newFilePath, setNewFilePath] = useState('');
-  const [newOperation, setNewOperation] = useState<FileOperation>('UPDATE');
+  const [newFilePath, setNewFilePath] = useState("");
+  const [newOperation, setNewOperation] = useState<FileOperation>("UPDATE");
   const [newConfidence, setNewConfidence] = useState(1.0);
 
   // Fetch file impacts
   const fetchImpacts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/task-agent/tasks/${taskId}/file-impacts`);
+      const response = await fetch(
+        `/api/task-agent/tasks/${taskId}/file-impacts`,
+      );
       if (!response.ok) {
-        throw new Error('Failed to fetch file impacts');
+        throw new Error("Failed to fetch file impacts");
       }
       const data: FileImpact[] = await response.json();
       setImpacts(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
+      setError(err instanceof Error ? err.message : "Failed to load");
     } finally {
       setLoading(false);
     }
@@ -110,18 +138,21 @@ export default function FileImpactEditor({
 
     try {
       setSaving(true);
-      const response = await fetch(`/api/task-agent/tasks/${taskId}/file-impacts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filePath: newFilePath.trim(),
-          operation: newOperation,
-          confidence: newConfidence,
-        }),
-      });
+      const response = await fetch(
+        `/api/task-agent/tasks/${taskId}/file-impacts`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filePath: newFilePath.trim(),
+            operation: newOperation,
+            confidence: newConfidence,
+          }),
+        },
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to add file impact');
+        throw new Error("Failed to add file impact");
       }
 
       // Consume response (we'll refresh from server)
@@ -132,12 +163,12 @@ export default function FileImpactEditor({
       onChange?.(impacts);
 
       // Reset form
-      setNewFilePath('');
-      setNewOperation('UPDATE');
+      setNewFilePath("");
+      setNewOperation("UPDATE");
       setNewConfidence(1.0);
       setShowAddForm(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add');
+      setError(err instanceof Error ? err.message : "Failed to add");
     } finally {
       setSaving(false);
     }
@@ -149,24 +180,27 @@ export default function FileImpactEditor({
 
     try {
       setSaving(true);
-      const response = await fetch(`/api/task-agent/tasks/${taskId}/file-impacts`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filePath: impact.filePath,
-          operation: impact.operation,
-        }),
-      });
+      const response = await fetch(
+        `/api/task-agent/tasks/${taskId}/file-impacts`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filePath: impact.filePath,
+            operation: impact.operation,
+          }),
+        },
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to remove file impact');
+        throw new Error("Failed to remove file impact");
       }
 
       // Refresh impacts
       await fetchImpacts();
       onChange?.(impacts);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove');
+      setError(err instanceof Error ? err.message : "Failed to remove");
     } finally {
       setSaving(false);
     }
@@ -178,10 +212,10 @@ export default function FileImpactEditor({
       <div
         className={`h-full rounded-full transition-all ${
           confidence >= 0.8
-            ? 'bg-green-500'
+            ? "bg-green-500"
             : confidence >= 0.5
-            ? 'bg-yellow-500'
-            : 'bg-red-500'
+              ? "bg-yellow-500"
+              : "bg-red-500"
         }`}
         style={{ width: `${confidence * 100}%` }}
       />
@@ -222,9 +256,7 @@ export default function FileImpactEditor({
     >
       <div className="flex items-center gap-2">
         <File className="h-4 w-4 text-gray-600" />
-        <span className="text-sm font-medium text-gray-700">
-          File Impacts
-        </span>
+        <span className="text-sm font-medium text-gray-700">File Impacts</span>
         <span className="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded-full">
           {impacts.length}
         </span>
@@ -263,7 +295,9 @@ export default function FileImpactEditor({
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {/* Operation Badge */}
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded ${opConfig.bg} ${opConfig.color}`}>
+                  <span
+                    className={`px-2 py-0.5 text-xs font-medium rounded ${opConfig.bg} ${opConfig.color}`}
+                  >
                     {opConfig.label}
                   </span>
 
@@ -275,7 +309,9 @@ export default function FileImpactEditor({
 
                 <div className="flex items-center gap-3">
                   {/* Source */}
-                  <div className={`flex items-center gap-1 text-xs ${sourceConfig.color}`}>
+                  <div
+                    className={`flex items-center gap-1 text-xs ${sourceConfig.color}`}
+                  >
                     {sourceConfig.icon}
                     <span>{sourceConfig.label}</span>
                   </div>
@@ -321,7 +357,9 @@ export default function FileImpactEditor({
                 />
                 <select
                   value={newOperation}
-                  onChange={(e) => setNewOperation(e.target.value as FileOperation)}
+                  onChange={(e) =>
+                    setNewOperation(e.target.value as FileOperation)
+                  }
                   className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-200 focus:border-primary-400"
                 >
                   <option value="CREATE">Create</option>
@@ -339,7 +377,9 @@ export default function FileImpactEditor({
                     min="0"
                     max="100"
                     value={newConfidence * 100}
-                    onChange={(e) => setNewConfidence(parseInt(e.target.value) / 100)}
+                    onChange={(e) =>
+                      setNewConfidence(parseInt(e.target.value) / 100)
+                    }
                     className="w-24"
                   />
                   <span className="text-xs text-gray-600 w-8">
@@ -384,7 +424,8 @@ export default function FileImpactEditor({
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-gray-500">
         <span>
-          {impacts.filter((i) => i.source === 'user_declared').length} user overrides
+          {impacts.filter((i) => i.source === "user_declared").length} user
+          overrides
         </span>
         <button
           onClick={fetchImpacts}

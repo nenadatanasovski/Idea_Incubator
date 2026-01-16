@@ -4,15 +4,15 @@
  * Parses tasks.md files and extracts atomic tasks in dependency order.
  */
 
-import * as fs from 'fs';
-import * as yaml from 'yaml';
+import * as fs from "fs";
+import * as yaml from "yaml";
 import {
   LoadedTask,
   TasksFileFrontmatter,
   ParseTasksResult,
   TaskDependency,
-  CircularDependencyError
-} from '../../types/task-loader.js';
+  CircularDependencyError,
+} from "../../types/task-loader.js";
 
 export interface TaskLoaderOptions {
   projectRoot?: string;
@@ -34,7 +34,7 @@ export class TaskLoader {
       if (!content) {
         return {
           success: false,
-          error: `Failed to read tasks file: ${tasksPath}`
+          error: `Failed to read tasks file: ${tasksPath}`,
         };
       }
 
@@ -42,7 +42,7 @@ export class TaskLoader {
       if (!frontmatter) {
         return {
           success: false,
-          error: 'Failed to parse frontmatter'
+          error: "Failed to parse frontmatter",
         };
       }
 
@@ -50,7 +50,7 @@ export class TaskLoader {
       if (tasks.length === 0) {
         return {
           success: false,
-          error: 'No tasks found in file'
+          error: "No tasks found in file",
         };
       }
 
@@ -59,7 +59,7 @@ export class TaskLoader {
       if (validationError) {
         return {
           success: false,
-          error: validationError
+          error: validationError,
         };
       }
 
@@ -67,13 +67,13 @@ export class TaskLoader {
         success: true,
         file: {
           frontmatter,
-          tasks
-        }
+          tasks,
+        },
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -90,10 +90,10 @@ export class TaskLoader {
     try {
       const parsed = yaml.parse(match[1]);
       return {
-        id: parsed.id || 'unknown',
-        complexity: parsed.complexity || 'unknown',
+        id: parsed.id || "unknown",
+        complexity: parsed.complexity || "unknown",
         totalTasks: parsed.total_tasks || 0,
-        phases: parsed.phases || {}
+        phases: parsed.phases || {},
       };
     } catch {
       return null;
@@ -111,7 +111,7 @@ export class TaskLoader {
     while ((match = regex.exec(content)) !== null) {
       try {
         const parsed = yaml.parse(match[1]);
-        if (parsed && parsed.id && parsed.id.startsWith('T-')) {
+        if (parsed && parsed.id && parsed.id.startsWith("T-")) {
           tasks.push(this.normalizeTask(parsed));
         }
       } catch {
@@ -127,28 +127,34 @@ export class TaskLoader {
    */
   private normalizeTask(parsed: Record<string, unknown>): LoadedTask {
     return {
-      id: String(parsed.id || ''),
-      phase: String(parsed.phase || 'unknown'),
+      id: String(parsed.id || ""),
+      phase: String(parsed.phase || "unknown"),
       action: this.normalizeAction(parsed.action),
-      file: String(parsed.file || ''),
-      status: String(parsed.status || 'pending'),
+      file: String(parsed.file || ""),
+      status: String(parsed.status || "pending"),
       requirements: this.normalizeStringArray(parsed.requirements),
       gotchas: this.normalizeStringArray(parsed.gotchas),
       validation: this.normalizeValidation(parsed.validation),
-      codeTemplate: parsed.code_template ? String(parsed.code_template) : undefined,
-      dependsOn: this.normalizeStringArray(parsed.depends_on)
+      codeTemplate: parsed.code_template
+        ? String(parsed.code_template)
+        : undefined,
+      dependsOn: this.normalizeStringArray(parsed.depends_on),
     };
   }
 
   /**
    * Normalize action to valid type
    */
-  private normalizeAction(action: unknown): 'CREATE' | 'UPDATE' | 'DELETE' {
+  private normalizeAction(action: unknown): "CREATE" | "UPDATE" | "DELETE" {
     const normalized = String(action).toUpperCase();
-    if (normalized === 'CREATE' || normalized === 'UPDATE' || normalized === 'DELETE') {
+    if (
+      normalized === "CREATE" ||
+      normalized === "UPDATE" ||
+      normalized === "DELETE"
+    ) {
       return normalized;
     }
-    return 'CREATE';
+    return "CREATE";
   }
 
   /**
@@ -158,20 +164,23 @@ export class TaskLoader {
     if (!Array.isArray(arr)) {
       return [];
     }
-    return arr.map(item => String(item));
+    return arr.map((item) => String(item));
   }
 
   /**
    * Normalize validation object
    */
-  private normalizeValidation(validation: unknown): { command: string; expected: string } {
-    if (typeof validation !== 'object' || validation === null) {
-      return { command: '', expected: '' };
+  private normalizeValidation(validation: unknown): {
+    command: string;
+    expected: string;
+  } {
+    if (typeof validation !== "object" || validation === null) {
+      return { command: "", expected: "" };
     }
     const v = validation as Record<string, unknown>;
     return {
-      command: String(v.command || ''),
-      expected: String(v.expected || '')
+      command: String(v.command || ""),
+      expected: String(v.expected || ""),
     };
   }
 
@@ -179,12 +188,12 @@ export class TaskLoader {
    * Validate tasks structure
    */
   private validateTasks(tasks: LoadedTask[]): string | null {
-    const taskIds = new Set(tasks.map(t => t.id));
+    const taskIds = new Set(tasks.map((t) => t.id));
 
     for (const task of tasks) {
       // Check for missing required fields
       if (!task.id) {
-        return 'Task missing required field: id';
+        return "Task missing required field: id";
       }
       if (!task.file) {
         return `Task ${task.id} missing required field: file`;
@@ -210,8 +219,10 @@ export class TaskLoader {
   /**
    * Detect circular dependencies
    */
-  private detectCircularDependencies(tasks: LoadedTask[]): CircularDependencyError | null {
-    const taskMap = new Map(tasks.map(t => [t.id, t]));
+  private detectCircularDependencies(
+    tasks: LoadedTask[],
+  ): CircularDependencyError | null {
+    const taskMap = new Map(tasks.map((t) => [t.id, t]));
     const visited = new Set<string>();
     const recursionStack = new Set<string>();
     const path: string[] = [];
@@ -245,7 +256,7 @@ export class TaskLoader {
         if (hasCycle(task.id)) {
           return {
             cycle: path,
-            message: `Circular dependency detected: ${path.join(' -> ')}`
+            message: `Circular dependency detected: ${path.join(" -> ")}`,
           };
         }
       }
@@ -258,7 +269,7 @@ export class TaskLoader {
    * Order tasks by dependencies (topological sort)
    */
   orderByDependency(tasks: LoadedTask[]): LoadedTask[] {
-    const taskMap = new Map(tasks.map(t => [t.id, t]));
+    const taskMap = new Map(tasks.map((t) => [t.id, t]));
     const visited = new Set<string>();
     const result: LoadedTask[] = [];
 
@@ -303,21 +314,21 @@ export class TaskLoader {
    * Get tasks by status
    */
   getTasksByStatus(tasks: LoadedTask[], status: string): LoadedTask[] {
-    return tasks.filter(t => t.status === status);
+    return tasks.filter((t) => t.status === status);
   }
 
   /**
    * Get pending tasks
    */
   getPendingTasks(tasks: LoadedTask[]): LoadedTask[] {
-    return this.getTasksByStatus(tasks, 'pending');
+    return this.getTasksByStatus(tasks, "pending");
   }
 
   /**
    * Get task dependencies with depth
    */
   getTaskDependencies(tasks: LoadedTask[]): TaskDependency[] {
-    const taskMap = new Map(tasks.map(t => [t.id, t]));
+    const taskMap = new Map(tasks.map((t) => [t.id, t]));
     const depths = new Map<string, number>();
 
     const getDepth = (taskId: string): number => {
@@ -331,16 +342,18 @@ export class TaskLoader {
         return 0;
       }
 
-      const maxDepDepth = Math.max(...task.dependsOn.map(dep => getDepth(dep)));
+      const maxDepDepth = Math.max(
+        ...task.dependsOn.map((dep) => getDepth(dep)),
+      );
       const depth = maxDepDepth + 1;
       depths.set(taskId, depth);
       return depth;
     };
 
-    return tasks.map(task => ({
+    return tasks.map((task) => ({
       taskId: task.id,
       dependsOn: task.dependsOn,
-      depth: getDepth(task.id)
+      depth: getDepth(task.id),
     }));
   }
 
@@ -349,8 +362,10 @@ export class TaskLoader {
    */
   private readFile(filePath: string): string | null {
     try {
-      const fullPath = filePath.startsWith('/') ? filePath : `${this.projectRoot}/${filePath}`;
-      return fs.readFileSync(fullPath, 'utf-8');
+      const fullPath = filePath.startsWith("/")
+        ? filePath
+        : `${this.projectRoot}/${filePath}`;
+      return fs.readFileSync(fullPath, "utf-8");
     } catch {
       return null;
     }

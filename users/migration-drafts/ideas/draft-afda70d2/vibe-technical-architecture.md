@@ -8,6 +8,7 @@ sessionId: afda70d2-5ae0-497e-9ab2-8e7596c9da07
 createdAt: 2026-01-04 08:30:59
 updatedAt: 2026-01-04 08:30:59
 ---
+
 # Vibe Technical Architecture — High-Level Overview
 
 ## System Overview
@@ -61,60 +62,60 @@ Vibe is a multi-layer platform that orchestrates AI agents to guide users from i
 
 ### 1. User Layer
 
-| Component | Purpose | Technology |
-|-----------|---------|------------|
-| **Web App** | Primary interface for ideation, build monitoring, app management | React, Next.js |
-| **PWA** | Mobile access, offline capability | Service Workers |
-| **Notifications** | Proactive agent communications | Push API, WebSockets |
-| **Email/Phone** | High-value touchpoints (opportunities, decisions) | Twilio, SendGrid |
+| Component         | Purpose                                                          | Technology           |
+| ----------------- | ---------------------------------------------------------------- | -------------------- |
+| **Web App**       | Primary interface for ideation, build monitoring, app management | React, Next.js       |
+| **PWA**           | Mobile access, offline capability                                | Service Workers      |
+| **Notifications** | Proactive agent communications                                   | Push API, WebSockets |
+| **Email/Phone**   | High-value touchpoints (opportunities, decisions)                | Twilio, SendGrid     |
 
 ### 2. Conversation Engine
 
-| Component | Purpose | Notes |
-|-----------|---------|-------|
-| **Session Manager** | Maintains conversation state across page refreshes | Redis-backed sessions |
-| **Context Handler** | Manages context window, prepares handoffs | Tracks token usage |
-| **UI State** | Determines which UI mode (full chat vs. dashboard + chat) | Phase-aware rendering |
-| **Real-time Sync** | Keeps multiple tabs/devices synchronized | WebSocket connections |
+| Component           | Purpose                                                   | Notes                 |
+| ------------------- | --------------------------------------------------------- | --------------------- |
+| **Session Manager** | Maintains conversation state across page refreshes        | Redis-backed sessions |
+| **Context Handler** | Manages context window, prepares handoffs                 | Tracks token usage    |
+| **UI State**        | Determines which UI mode (full chat vs. dashboard + chat) | Phase-aware rendering |
+| **Real-time Sync**  | Keeps multiple tabs/devices synchronized                  | WebSocket connections |
 
 ### 3. Agent Orchestration Layer
 
-| Component | Purpose | Notes |
-|-----------|---------|-------|
-| **Orchestrator** | Routes requests, spawns agents, manages pipelines | Central brain |
-| **Agent Registry** | Catalog of all agent types with configs | JSON/DB backed |
-| **Pipeline Engine** | Creates and monitors task pipelines with stage gates | DAG-based workflows |
-| **SIA System** | Self-Improvement Agents for build loop optimization | See SIA Architecture doc |
+| Component           | Purpose                                              | Notes                    |
+| ------------------- | ---------------------------------------------------- | ------------------------ |
+| **Orchestrator**    | Routes requests, spawns agents, manages pipelines    | Central brain            |
+| **Agent Registry**  | Catalog of all agent types with configs              | JSON/DB backed           |
+| **Pipeline Engine** | Creates and monitors task pipelines with stage gates | DAG-based workflows      |
+| **SIA System**      | Self-Improvement Agents for build loop optimization  | See SIA Architecture doc |
 
 ### 4. Build Pipeline Layer
 
-| Component | Purpose | Notes |
-|-----------|---------|-------|
-| **Code Generator** | Produces application code from specifications | Claude API |
-| **Ralph Loop** | Iterative build cycle with human-in-the-loop | Core build mechanism |
-| **Testing** | Automated test generation and execution | Jest, Playwright |
-| **QA** | Validates against specifications | Deterministic checks |
-| **Deployment** | Pushes to hosting, manages releases | CI/CD pipeline |
+| Component          | Purpose                                       | Notes                |
+| ------------------ | --------------------------------------------- | -------------------- |
+| **Code Generator** | Produces application code from specifications | Claude API           |
+| **Ralph Loop**     | Iterative build cycle with human-in-the-loop  | Core build mechanism |
+| **Testing**        | Automated test generation and execution       | Jest, Playwright     |
+| **QA**             | Validates against specifications              | Deterministic checks |
+| **Deployment**     | Pushes to hosting, manages releases           | CI/CD pipeline       |
 
 ### 5. Hosting & Runtime Layer
 
-| Component | Purpose | Notes |
-|-----------|---------|-------|
-| **App Hosting** | Runs user-built applications | Containerized (Docker) |
-| **Database** | Per-app data storage | PostgreSQL, managed |
-| **CDN** | Static asset delivery | CloudFront/Cloudflare |
-| **Auto-scaling** | Handles traffic spikes | Kubernetes/ECS |
-| **Monitoring** | Health checks, alerting | Datadog/Prometheus |
+| Component        | Purpose                      | Notes                  |
+| ---------------- | ---------------------------- | ---------------------- |
+| **App Hosting**  | Runs user-built applications | Containerized (Docker) |
+| **Database**     | Per-app data storage         | PostgreSQL, managed    |
+| **CDN**          | Static asset delivery        | CloudFront/Cloudflare  |
+| **Auto-scaling** | Handles traffic spikes       | Kubernetes/ECS         |
+| **Monitoring**   | Health checks, alerting      | Datadog/Prometheus     |
 
 ### 6. Data Layer
 
-| Data Type | Purpose | Storage |
-|-----------|---------|--------|
-| **User Data** | Profiles, preferences, credentials | PostgreSQL (encrypted) |
-| **Ideas** | Idea content, validation status, specs | PostgreSQL + S3 |
-| **Agent Memory** | Transcripts, track records, SIA history | S3 + search index |
-| **Transcripts** | Complete conversation logs | S3 (append-only) |
-| **Analytics** | Aggregated insights, patterns | ClickHouse/BigQuery |
+| Data Type        | Purpose                                 | Storage                |
+| ---------------- | --------------------------------------- | ---------------------- |
+| **User Data**    | Profiles, preferences, credentials      | PostgreSQL (encrypted) |
+| **Ideas**        | Idea content, validation status, specs  | PostgreSQL + S3        |
+| **Agent Memory** | Transcripts, track records, SIA history | S3 + search index      |
+| **Transcripts**  | Complete conversation logs              | S3 (append-only)       |
+| **Analytics**    | Aggregated insights, patterns           | ClickHouse/BigQuery    |
 
 ---
 
@@ -213,6 +214,7 @@ Specifications Complete
 ## Database Schema (Core Tables)
 
 ### Users
+
 ```sql
 CREATE TABLE users (
   id UUID PRIMARY KEY,
@@ -225,6 +227,7 @@ CREATE TABLE users (
 ```
 
 ### Ideas
+
 ```sql
 CREATE TABLE ideas (
   id UUID PRIMARY KEY,
@@ -239,6 +242,7 @@ CREATE TABLE ideas (
 ```
 
 ### Agent Sessions
+
 ```sql
 CREATE TABLE agent_sessions (
   id UUID PRIMARY KEY,
@@ -253,6 +257,7 @@ CREATE TABLE agent_sessions (
 ```
 
 ### Agent Registry
+
 ```sql
 CREATE TABLE agent_registry (
   id UUID PRIMARY KEY,
@@ -266,6 +271,7 @@ CREATE TABLE agent_registry (
 ```
 
 ### Apps (User-Built)
+
 ```sql
 CREATE TABLE apps (
   id UUID PRIMARY KEY,
@@ -286,26 +292,26 @@ CREATE TABLE apps (
 
 ### REST Endpoints
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/auth/*` | POST | Authentication (login, register, refresh) |
-| `/api/ideas` | GET, POST | List/create ideas |
-| `/api/ideas/:id` | GET, PUT, DELETE | Manage specific idea |
-| `/api/ideas/:id/collaborate` | POST | Invite collaborator |
-| `/api/chat` | POST | Send message to current agent |
-| `/api/apps` | GET | List user's apps |
-| `/api/apps/:id/deploy` | POST | Trigger deployment |
-| `/api/credits` | GET, POST | Check/purchase credits |
+| Endpoint                     | Method           | Purpose                                   |
+| ---------------------------- | ---------------- | ----------------------------------------- |
+| `/api/auth/*`                | POST             | Authentication (login, register, refresh) |
+| `/api/ideas`                 | GET, POST        | List/create ideas                         |
+| `/api/ideas/:id`             | GET, PUT, DELETE | Manage specific idea                      |
+| `/api/ideas/:id/collaborate` | POST             | Invite collaborator                       |
+| `/api/chat`                  | POST             | Send message to current agent             |
+| `/api/apps`                  | GET              | List user's apps                          |
+| `/api/apps/:id/deploy`       | POST             | Trigger deployment                        |
+| `/api/credits`               | GET, POST        | Check/purchase credits                    |
 
 ### WebSocket Events
 
-| Event | Direction | Purpose |
-|-------|-----------|--------|
-| `message` | Bidirectional | Chat messages |
-| `agent_update` | Server→Client | Agent status changes |
-| `build_progress` | Server→Client | Build pipeline updates |
-| `notification` | Server→Client | Proactive agent outreach |
-| `collaborator_joined` | Server→Client | Real-time collaboration |
+| Event                 | Direction     | Purpose                  |
+| --------------------- | ------------- | ------------------------ |
+| `message`             | Bidirectional | Chat messages            |
+| `agent_update`        | Server→Client | Agent status changes     |
+| `build_progress`      | Server→Client | Build pipeline updates   |
+| `notification`        | Server→Client | Proactive agent outreach |
+| `collaborator_joined` | Server→Client | Real-time collaboration  |
 
 ---
 
@@ -360,30 +366,30 @@ CREATE TABLE apps (
 
 ### Authentication
 
-| Layer | Method |
-|-------|--------|
-| **User Auth** | JWT tokens, refresh rotation |
-| **API Auth** | API keys for external integrations |
-| **Agent Auth** | Service accounts with scoped permissions |
-| **Inter-service** | mTLS between internal services |
+| Layer             | Method                                   |
+| ----------------- | ---------------------------------------- |
+| **User Auth**     | JWT tokens, refresh rotation             |
+| **API Auth**      | API keys for external integrations       |
+| **Agent Auth**    | Service accounts with scoped permissions |
+| **Inter-service** | mTLS between internal services           |
 
 ### Data Protection
 
-| Data Type | Protection |
-|-----------|------------|
-| **User credentials** | bcrypt hashing, encrypted at rest |
-| **Idea content** | Encrypted at rest (AES-256) |
-| **Transcripts** | Encrypted at rest, append-only |
-| **API keys** | Hashed, never stored in plain text |
+| Data Type            | Protection                         |
+| -------------------- | ---------------------------------- |
+| **User credentials** | bcrypt hashing, encrypted at rest  |
+| **Idea content**     | Encrypted at rest (AES-256)        |
+| **Transcripts**      | Encrypted at rest, append-only     |
+| **API keys**         | Hashed, never stored in plain text |
 
 ### User App Isolation
 
-| Concern | Solution |
-|---------|----------|
-| **Code isolation** | Each app runs in isolated container |
-| **Data isolation** | Separate database per app |
+| Concern               | Solution                              |
+| --------------------- | ------------------------------------- |
+| **Code isolation**    | Each app runs in isolated container   |
+| **Data isolation**    | Separate database per app             |
 | **Network isolation** | VPC segmentation, no cross-app access |
-| **Resource limits** | CPU/memory quotas per tier |
+| **Resource limits**   | CPU/memory quotas per tier            |
 
 ---
 
@@ -391,47 +397,47 @@ CREATE TABLE apps (
 
 ### AI Providers
 
-| Provider | Use Case | Fallback |
-|----------|----------|----------|
-| **Claude (Anthropic)** | Primary agent intelligence | OpenAI GPT-4 |
-| **OpenAI** | Code generation, embeddings | Claude |
-| **Together AI** | Cost-effective inference | Primary providers |
+| Provider               | Use Case                    | Fallback          |
+| ---------------------- | --------------------------- | ----------------- |
+| **Claude (Anthropic)** | Primary agent intelligence  | OpenAI GPT-4      |
+| **OpenAI**             | Code generation, embeddings | Claude            |
+| **Together AI**        | Cost-effective inference    | Primary providers |
 
 ### External Services
 
-| Service | Purpose |
-|---------|---------|
-| **Stripe** | User subscriptions, credit purchases |
-| **Twilio** | Phone calls from agents |
-| **SendGrid** | Transactional email |
-| **Sentry** | Error tracking |
-| **Datadog** | Monitoring & observability |
+| Service      | Purpose                              |
+| ------------ | ------------------------------------ |
+| **Stripe**   | User subscriptions, credit purchases |
+| **Twilio**   | Phone calls from agents              |
+| **SendGrid** | Transactional email                  |
+| **Sentry**   | Error tracking                       |
+| **Datadog**  | Monitoring & observability           |
 
 ### Deployment Targets
 
-| Target | Method |
-|--------|--------|
-| **Vibe Hosting** | Default, managed containers |
-| **PWA** | Built-in, no external deployment |
-| **App Store** | Automated submission (future) |
-| **Play Store** | Automated submission (future) |
+| Target           | Method                           |
+| ---------------- | -------------------------------- |
+| **Vibe Hosting** | Default, managed containers      |
+| **PWA**          | Built-in, no external deployment |
+| **App Store**    | Automated submission (future)    |
+| **Play Store**   | Automated submission (future)    |
 
 ---
 
 ## Technology Stack (Recommended)
 
-| Layer | Technology | Rationale |
-|-------|------------|----------|
-| **Frontend** | Next.js 14+ (React) | SSR, API routes, excellent DX |
-| **Mobile** | PWA | No app store dependency initially |
-| **API** | Node.js (Express/Fastify) | JavaScript ecosystem, async I/O |
-| **Database** | PostgreSQL | Reliable, JSONB support |
-| **Cache** | Redis | Sessions, rate limiting, queues |
-| **Queue** | BullMQ (Redis-backed) | Agent task queue |
-| **Storage** | S3-compatible | Transcripts, assets |
-| **Hosting** | AWS / Railway / Vercel | Start simple, scale as needed |
-| **Containers** | Docker + Kubernetes | User app isolation |
-| **CI/CD** | GitHub Actions | Integrated with codebase |
+| Layer          | Technology                | Rationale                         |
+| -------------- | ------------------------- | --------------------------------- |
+| **Frontend**   | Next.js 14+ (React)       | SSR, API routes, excellent DX     |
+| **Mobile**     | PWA                       | No app store dependency initially |
+| **API**        | Node.js (Express/Fastify) | JavaScript ecosystem, async I/O   |
+| **Database**   | PostgreSQL                | Reliable, JSONB support           |
+| **Cache**      | Redis                     | Sessions, rate limiting, queues   |
+| **Queue**      | BullMQ (Redis-backed)     | Agent task queue                  |
+| **Storage**    | S3-compatible             | Transcripts, assets               |
+| **Hosting**    | AWS / Railway / Vercel    | Start simple, scale as needed     |
+| **Containers** | Docker + Kubernetes       | User app isolation                |
+| **CI/CD**      | GitHub Actions            | Integrated with codebase          |
 
 ---
 
@@ -439,32 +445,32 @@ CREATE TABLE apps (
 
 ### Horizontal Scaling
 
-| Component | Scaling Strategy |
-|-----------|------------------|
-| **Web servers** | Add instances behind load balancer |
-| **Agent workers** | Auto-scale based on queue depth |
-| **Databases** | Read replicas for queries |
-| **User apps** | Container orchestration (K8s) |
+| Component         | Scaling Strategy                   |
+| ----------------- | ---------------------------------- |
+| **Web servers**   | Add instances behind load balancer |
+| **Agent workers** | Auto-scale based on queue depth    |
+| **Databases**     | Read replicas for queries          |
+| **User apps**     | Container orchestration (K8s)      |
 
 ### Vertical Scaling
 
-| Component | When to Scale Up |
-|-----------|------------------|
-| **Database** | When write throughput limited |
+| Component         | When to Scale Up                   |
+| ----------------- | ---------------------------------- |
+| **Database**      | When write throughput limited      |
 | **Agent workers** | When context windows need more RAM |
-| **Cache** | When session data exceeds memory |
+| **Cache**         | When session data exceeds memory   |
 
 ### Cost Optimization
 
-| Strategy | Implementation |
-|----------|----------------|
-| **Spot instances** | Agent workers (tolerates interruption) |
-| **Reserved capacity** | Database, core web servers |
-| **Tiered storage** | Cold storage for old transcripts |
-| **CDN caching** | Static assets, common responses |
+| Strategy              | Implementation                         |
+| --------------------- | -------------------------------------- |
+| **Spot instances**    | Agent workers (tolerates interruption) |
+| **Reserved capacity** | Database, core web servers             |
+| **Tiered storage**    | Cold storage for old transcripts       |
+| **CDN caching**       | Static assets, common responses        |
 
 ---
 
-*This architecture is designed to start simple (single server capable) and scale horizontally as demand grows. Each layer can be evolved independently.*
+_This architecture is designed to start simple (single server capable) and scale horizontally as demand grows. Each layer can be evolved independently._
 
-*Last updated: January 4, 2025*
+_Last updated: January 4, 2025_

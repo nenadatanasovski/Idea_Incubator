@@ -1,28 +1,31 @@
 // server/communication/notification-dispatcher.ts
 // COM-010: Notification Dispatcher - Routes notifications through channels
 
-import { EventEmitter } from 'events';
-import { TelegramSender } from './telegram-sender';
-import { EmailSender } from './email-sender';
-import { AgentType } from './types';
+import { EventEmitter } from "events";
+import { TelegramSender } from "./telegram-sender";
+import { EmailSender } from "./email-sender";
+import { AgentType } from "./types";
 
 interface Database {
-  run(sql: string, params?: unknown[]): Promise<{ lastID: number; changes: number }>;
+  run(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ lastID: number; changes: number }>;
   get<T>(sql: string, params?: unknown[]): Promise<T | undefined>;
   all<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
-export type NotificationChannel = 'telegram' | 'email' | 'both';
-export type NotificationSeverity = 'info' | 'warning' | 'error' | 'critical';
+export type NotificationChannel = "telegram" | "email" | "both";
+export type NotificationSeverity = "info" | "warning" | "error" | "critical";
 export type NotificationCategory =
-  | 'agent_status'
-  | 'question_pending'
-  | 'question_timeout'
-  | 'approval_needed'
-  | 'system_health'
-  | 'error'
-  | 'progress'
-  | 'completion';
+  | "agent_status"
+  | "question_pending"
+  | "question_timeout"
+  | "approval_needed"
+  | "system_health"
+  | "error"
+  | "progress"
+  | "completion";
 
 export interface Notification {
   id: string;
@@ -54,7 +57,7 @@ export interface DispatcherConfig {
 }
 
 const DEFAULT_CONFIG: DispatcherConfig = {
-  defaultChannel: 'telegram',
+  defaultChannel: "telegram",
   dedupWindowMs: 5 * 60 * 1000, // 5 minutes
   escalationDelayMs: 30 * 60 * 1000, // 30 minutes
 };
@@ -68,14 +71,14 @@ const _SEVERITY_PRIORITY: Record<NotificationSeverity, number> = {
 };
 
 const CATEGORY_CHANNEL: Record<NotificationCategory, NotificationChannel> = {
-  agent_status: 'telegram',
-  question_pending: 'telegram',
-  question_timeout: 'both',
-  approval_needed: 'both',
-  system_health: 'telegram',
-  error: 'telegram',
-  progress: 'telegram',
-  completion: 'telegram',
+  agent_status: "telegram",
+  question_pending: "telegram",
+  question_timeout: "both",
+  approval_needed: "both",
+  system_health: "telegram",
+  error: "telegram",
+  progress: "telegram",
+  completion: "telegram",
 };
 
 export class NotificationDispatcher extends EventEmitter {
@@ -84,13 +87,14 @@ export class NotificationDispatcher extends EventEmitter {
   private emailSender: EmailSender | null;
   private config: DispatcherConfig;
   private recentNotifications: Map<string, Date> = new Map();
-  private pendingEscalations: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private pendingEscalations: Map<string, ReturnType<typeof setTimeout>> =
+    new Map();
 
   constructor(
     db: Database,
     telegramSender: TelegramSender,
     emailSender: EmailSender | null,
-    config: Partial<DispatcherConfig> = {}
+    config: Partial<DispatcherConfig> = {},
   ) {
     super();
     this.db = db;
@@ -105,24 +109,31 @@ export class NotificationDispatcher extends EventEmitter {
   async dispatch(notification: Notification): Promise<NotificationResult> {
     // Check dedup
     if (notification.dedupKey && this.isDuplicate(notification.dedupKey)) {
-      console.log(`[NotificationDispatcher] Skipping duplicate: ${notification.dedupKey}`);
+      console.log(
+        `[NotificationDispatcher] Skipping duplicate: ${notification.dedupKey}`,
+      );
       return { success: true, channels: {} };
     }
 
     // Check expiry
     if (notification.expiresAt && new Date() > notification.expiresAt) {
-      console.log(`[NotificationDispatcher] Skipping expired notification: ${notification.id}`);
+      console.log(
+        `[NotificationDispatcher] Skipping expired notification: ${notification.id}`,
+      );
       return { success: true, channels: {} };
     }
 
     // Determine channel
-    const channel = notification.channel ||
+    const channel =
+      notification.channel ||
       CATEGORY_CHANNEL[notification.category] ||
       this.config.defaultChannel;
 
     // Check quiet hours for non-critical notifications
-    if (this.isQuietHours() && notification.severity !== 'critical') {
-      console.log(`[NotificationDispatcher] Quiet hours - queueing: ${notification.id}`);
+    if (this.isQuietHours() && notification.severity !== "critical") {
+      console.log(
+        `[NotificationDispatcher] Quiet hours - queueing: ${notification.id}`,
+      );
       await this.queueForLater(notification);
       return { success: true, channels: {} };
     }
@@ -130,7 +141,7 @@ export class NotificationDispatcher extends EventEmitter {
     const result: NotificationResult = { success: true, channels: {} };
 
     // Send via Telegram
-    if (channel === 'telegram' || channel === 'both') {
+    if (channel === "telegram" || channel === "both") {
       result.channels.telegram = await this.sendTelegram(notification);
       if (!result.channels.telegram.success) {
         result.success = false;
@@ -138,7 +149,7 @@ export class NotificationDispatcher extends EventEmitter {
     }
 
     // Send via Email
-    if ((channel === 'email' || channel === 'both') && this.emailSender) {
+    if ((channel === "email" || channel === "both") && this.emailSender) {
       result.channels.email = await this.sendEmail(notification);
       if (!result.channels.email.success) {
         result.success = false;
@@ -146,8 +157,14 @@ export class NotificationDispatcher extends EventEmitter {
     }
 
     // Fallback: if Telegram failed, try email
-    if (channel === 'telegram' && !result.channels.telegram?.success && this.emailSender) {
-      console.log(`[NotificationDispatcher] Telegram failed, falling back to email`);
+    if (
+      channel === "telegram" &&
+      !result.channels.telegram?.success &&
+      this.emailSender
+    ) {
+      console.log(
+        `[NotificationDispatcher] Telegram failed, falling back to email`,
+      );
       result.channels.email = await this.sendEmail(notification);
       if (result.channels.email.success) {
         result.success = true;
@@ -163,11 +180,11 @@ export class NotificationDispatcher extends EventEmitter {
     await this.storeNotification(notification, result);
 
     // Set up escalation for critical notifications without response
-    if (notification.severity === 'critical' && result.success) {
+    if (notification.severity === "critical" && result.success) {
       this.scheduleEscalation(notification);
     }
 
-    this.emit('notification:sent', { notification, result });
+    this.emit("notification:sent", { notification, result });
 
     return result;
   }
@@ -175,7 +192,9 @@ export class NotificationDispatcher extends EventEmitter {
   /**
    * Send multiple notifications at once.
    */
-  async dispatchBatch(notifications: Notification[]): Promise<NotificationResult[]> {
+  async dispatchBatch(
+    notifications: Notification[],
+  ): Promise<NotificationResult[]> {
     const results: NotificationResult[] = [];
 
     for (const notification of notifications) {
@@ -194,7 +213,9 @@ export class NotificationDispatcher extends EventEmitter {
     if (timeout) {
       clearTimeout(timeout);
       this.pendingEscalations.delete(notificationId);
-      console.log(`[NotificationDispatcher] Cancelled escalation: ${notificationId}`);
+      console.log(
+        `[NotificationDispatcher] Cancelled escalation: ${notificationId}`,
+      );
     }
   }
 
@@ -221,14 +242,14 @@ export class NotificationDispatcher extends EventEmitter {
    * Send notification via Telegram.
    */
   private async sendTelegram(
-    notification: Notification
+    notification: Notification,
   ): Promise<{ success: boolean; messageId?: number; error?: string }> {
     try {
       const result = await this.telegramSender.sendNotification(
         notification.agentType,
         notification.title,
         notification.message,
-        notification.severity
+        notification.severity,
       );
 
       return {
@@ -238,7 +259,9 @@ export class NotificationDispatcher extends EventEmitter {
       };
     } catch (error) {
       const errorMessage = (error as Error).message;
-      console.error(`[NotificationDispatcher] Telegram send failed: ${errorMessage}`);
+      console.error(
+        `[NotificationDispatcher] Telegram send failed: ${errorMessage}`,
+      );
       return { success: false, error: errorMessage };
     }
   }
@@ -247,17 +270,17 @@ export class NotificationDispatcher extends EventEmitter {
    * Send notification via Email.
    */
   private async sendEmail(
-    notification: Notification
+    notification: Notification,
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     if (!this.emailSender) {
-      return { success: false, error: 'Email sender not configured' };
+      return { success: false, error: "Email sender not configured" };
     }
 
     try {
       const result = await this.emailSender.sendNotification(
         notification.title,
         notification.message,
-        notification.severity
+        notification.severity,
       );
 
       return {
@@ -267,7 +290,9 @@ export class NotificationDispatcher extends EventEmitter {
       };
     } catch (error) {
       const errorMessage = (error as Error).message;
-      console.error(`[NotificationDispatcher] Email send failed: ${errorMessage}`);
+      console.error(
+        `[NotificationDispatcher] Email send failed: ${errorMessage}`,
+      );
       return { success: false, error: errorMessage };
     }
   }
@@ -286,7 +311,10 @@ export class NotificationDispatcher extends EventEmitter {
    * Check if currently in quiet hours.
    */
   private isQuietHours(): boolean {
-    if (this.config.quietHoursStart === undefined || this.config.quietHoursEnd === undefined) {
+    if (
+      this.config.quietHoursStart === undefined ||
+      this.config.quietHoursEnd === undefined
+    ) {
       return false;
     }
 
@@ -295,10 +323,14 @@ export class NotificationDispatcher extends EventEmitter {
 
     if (this.config.quietHoursStart <= this.config.quietHoursEnd) {
       // Same day range (e.g., 9-17)
-      return hour >= this.config.quietHoursStart && hour < this.config.quietHoursEnd;
+      return (
+        hour >= this.config.quietHoursStart && hour < this.config.quietHoursEnd
+      );
     } else {
       // Overnight range (e.g., 22-6)
-      return hour >= this.config.quietHoursStart || hour < this.config.quietHoursEnd;
+      return (
+        hour >= this.config.quietHoursStart || hour < this.config.quietHoursEnd
+      );
     }
   }
 
@@ -329,13 +361,13 @@ export class NotificationDispatcher extends EventEmitter {
         notification.message,
         JSON.stringify(notification.data || {}),
         notification.channel || this.config.defaultChannel,
-        'queued',
+        "queued",
         deliverAt.toISOString(),
         now.toISOString(),
-      ]
+      ],
     );
 
-    this.emit('notification:queued', { notification, deliverAt });
+    this.emit("notification:queued", { notification, deliverAt });
   }
 
   /**
@@ -352,13 +384,16 @@ export class NotificationDispatcher extends EventEmitter {
         ...notification,
         id: `${notification.id}-escalated`,
         title: `[ESCALATED] ${notification.title}`,
-        severity: 'critical',
-        channel: 'both',
+        severity: "critical",
+        channel: "both",
         dedupKey: undefined, // Don't dedup escalations
       };
 
       await this.dispatch(escalatedNotification);
-      this.emit('notification:escalated', { original: notification, escalated: escalatedNotification });
+      this.emit("notification:escalated", {
+        original: notification,
+        escalated: escalatedNotification,
+      });
     }, this.config.escalationDelayMs);
 
     this.pendingEscalations.set(notification.id, timeout);
@@ -367,7 +402,10 @@ export class NotificationDispatcher extends EventEmitter {
   /**
    * Store notification in database.
    */
-  private async storeNotification(notification: Notification, result: NotificationResult): Promise<void> {
+  private async storeNotification(
+    notification: Notification,
+    result: NotificationResult,
+  ): Promise<void> {
     const now = new Date().toISOString();
 
     await this.db.run(
@@ -387,12 +425,12 @@ export class NotificationDispatcher extends EventEmitter {
         notification.message,
         JSON.stringify(notification.data || {}),
         notification.channel || this.config.defaultChannel,
-        result.success ? 'sent' : 'failed',
+        result.success ? "sent" : "failed",
         result.channels.telegram?.messageId ?? null,
         result.channels.email?.messageId ?? null,
         result.success ? now : null,
         now,
-      ]
+      ],
     );
   }
 
@@ -409,19 +447,18 @@ export class NotificationDispatcher extends EventEmitter {
       message: string;
       data: string;
       channel: string;
-    }>(
-      'SELECT * FROM notifications WHERE status = ? ORDER BY created_at ASC',
-      ['queued']
-    );
+    }>("SELECT * FROM notifications WHERE status = ? ORDER BY created_at ASC", [
+      "queued",
+    ]);
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       id: row.id,
       agentType: row.agent_type as AgentType,
       category: row.category as NotificationCategory,
       severity: row.severity as NotificationSeverity,
       title: row.title,
       message: row.message,
-      data: JSON.parse(row.data || '{}'),
+      data: JSON.parse(row.data || "{}"),
       channel: row.channel as NotificationChannel,
     }));
   }
@@ -442,8 +479,8 @@ export class NotificationDispatcher extends EventEmitter {
       data: string;
       channel: string;
     }>(
-      'SELECT * FROM notifications WHERE status = ? AND scheduled_for <= ? ORDER BY scheduled_for ASC',
-      ['queued', now]
+      "SELECT * FROM notifications WHERE status = ? AND scheduled_for <= ? ORDER BY scheduled_for ASC",
+      ["queued", now],
     );
 
     let processed = 0;
@@ -456,7 +493,7 @@ export class NotificationDispatcher extends EventEmitter {
         severity: row.severity as NotificationSeverity,
         title: row.title,
         message: row.message,
-        data: JSON.parse(row.data || '{}'),
+        data: JSON.parse(row.data || "{}"),
         channel: row.channel as NotificationChannel,
       };
 

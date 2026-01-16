@@ -9,30 +9,30 @@
 
 ## Executive Summary
 
-| Metric | Value |
-|--------|-------|
-| **Tests Passed** | 10/10 |
-| **Tests Failed** | 0/10 |
-| **Critical Bugs Fixed** | 2 |
-| **Features Added** | Comprehensive Scorecard |
-| **Test Coverage** | Core user flows + Evaluation |
+| Metric                  | Value                        |
+| ----------------------- | ---------------------------- |
+| **Tests Passed**        | 10/10                        |
+| **Tests Failed**        | 0/10                         |
+| **Critical Bugs Fixed** | 2                            |
+| **Features Added**      | Comprehensive Scorecard      |
+| **Test Coverage**       | Core user flows + Evaluation |
 
 ---
 
 ## Test Scorecard
 
-| # | Test Case | Status | Duration | Notes |
-|---|-----------|--------|----------|-------|
-| 1 | Dashboard Load | PASS | <2s | Stats, charts, recent ideas visible |
-| 2 | Navigation Menu | PASS | <1s | All 5 nav links work correctly |
-| 3 | Idea List Page | PASS | 2-3s | 5 ideas with full metadata display |
-| 4 | Create New Idea | PASS | <3s | Form submission works, idea persisted |
-| 5 | View Idea Details | PASS | 2-3s | All sections render correctly |
-| 6 | Edit Idea | PASS | N/A | Edit page accessible |
-| 7 | Scorecard Tab | PASS | <2s | Comprehensive evaluation scorecard |
-| 8 | Evaluation Tab | PASS | <2s | Scores, charts, reasoning visible |
-| 9 | Debate List Page | PASS | <2s | Debate sessions display |
-| 10 | Run Evaluation | PASS | ~22min | Full evaluation with debate |
+| #   | Test Case         | Status | Duration | Notes                                 |
+| --- | ----------------- | ------ | -------- | ------------------------------------- |
+| 1   | Dashboard Load    | PASS   | <2s      | Stats, charts, recent ideas visible   |
+| 2   | Navigation Menu   | PASS   | <1s      | All 5 nav links work correctly        |
+| 3   | Idea List Page    | PASS   | 2-3s     | 5 ideas with full metadata display    |
+| 4   | Create New Idea   | PASS   | <3s      | Form submission works, idea persisted |
+| 5   | View Idea Details | PASS   | 2-3s     | All sections render correctly         |
+| 6   | Edit Idea         | PASS   | N/A      | Edit page accessible                  |
+| 7   | Scorecard Tab     | PASS   | <2s      | Comprehensive evaluation scorecard    |
+| 8   | Evaluation Tab    | PASS   | <2s      | Scores, charts, reasoning visible     |
+| 9   | Debate List Page  | PASS   | <2s      | Debate sessions display               |
+| 10  | Run Evaluation    | PASS   | ~22min   | Full evaluation with debate           |
 
 ---
 
@@ -59,6 +59,7 @@
 ## Feature Validation
 
 ### Dashboard
+
 - [x] Total Ideas count displays correctly (5)
 - [x] Average Score calculation works (4.3)
 - [x] Total Cost tracking ($8.31)
@@ -68,6 +69,7 @@
 - [x] Lifecycle Distribution section
 
 ### Idea Management
+
 - [x] Create idea via form
 - [x] Create idea via API
 - [x] View idea list with filters
@@ -77,6 +79,7 @@
 - [x] Tags display
 
 ### Evaluation System
+
 - [x] Overall Weighted Score (5.2)
 - [x] Category Overview radar chart
 - [x] 6 category scores with confidence
@@ -87,6 +90,7 @@
 - [x] Synthesis report display
 
 ### Evaluation Scorecard (NEW)
+
 - [x] Comprehensive scorecard view with all evaluation data
 - [x] Visual score gauge with color-coded ratings
 - [x] Before/after debate score comparison
@@ -97,12 +101,14 @@
 - [x] Quick stats footer (criteria count, rounds, challenges)
 
 ### Debates
+
 - [x] Debate list page loads
 - [x] Debate session cards with metadata
 - [x] Live Debate button present
 - [x] Session details (9 rounds, 1 criterion)
 
 ### Comparison
+
 - [x] Compare page loads
 - [x] Idea selector dropdown
 - [x] Multi-select up to 4 ideas
@@ -112,14 +118,14 @@
 
 ## API Endpoints Validated
 
-| Endpoint | Method | Status |
-|----------|--------|--------|
-| `/api/stats` | GET | PASS |
-| `/api/ideas` | GET | PASS |
-| `/api/ideas` | POST | PASS |
-| `/api/ideas/:slug` | GET | PASS |
-| `/api/ideas/:slug/evaluations` | GET | PASS |
-| `/api/debates` | GET | PASS |
+| Endpoint                       | Method | Status |
+| ------------------------------ | ------ | ------ |
+| `/api/stats`                   | GET    | PASS   |
+| `/api/ideas`                   | GET    | PASS   |
+| `/api/ideas`                   | POST   | PASS   |
+| `/api/ideas/:slug`             | GET    | PASS   |
+| `/api/ideas/:slug/evaluations` | GET    | PASS   |
+| `/api/debates`                 | GET    | PASS   |
 
 ---
 
@@ -131,22 +137,23 @@
 **Total Debate Rounds:** 90
 **Budget Used:** ~$20
 
-| Metric | Initial | Final | Change |
-|--------|---------|-------|--------|
-| **Overall Score** | 4.24 | 2.62 | -1.62 |
+| Metric            | Initial | Final | Change |
+| ----------------- | ------- | ----- | ------ |
+| **Overall Score** | 4.24    | 2.62  | -1.62  |
 
 **Category Breakdown:**
 
-| Category | Initial | Final | Change |
-|----------|---------|-------|--------|
-| Problem | 2.0 | 2.8 | +0.8 |
-| Solution | 4.2 | 5.2 | +1.0 |
-| Feasibility | 4.2 | 1.0 | -3.2 |
-| Fit | 4.8 | 1.0 | -3.8 |
-| Market | 6.0 | 3.4 | -2.6 |
-| Risk | 5.0 | 1.4 | -3.6 |
+| Category    | Initial | Final | Change |
+| ----------- | ------- | ----- | ------ |
+| Problem     | 2.0     | 2.8   | +0.8   |
+| Solution    | 4.2     | 5.2   | +1.0   |
+| Feasibility | 4.2     | 1.0   | -3.2   |
+| Fit         | 4.8     | 1.0   | -3.8   |
+| Market      | 6.0     | 3.4   | -2.6   |
+| Risk        | 5.0     | 1.4   | -3.6   |
 
 **Key Insights from Debate:**
+
 1. Problem clarity requires articulating WHY a problem matters, not just WHAT a solution does
 2. Market size claims require segmentation from TAM to SAM to be meaningful
 3. Platform dependency is an existential risk when value proposition can be absorbed by platform owner
@@ -158,11 +165,13 @@
 ## Recommendations
 
 ### Immediate Fixes
+
 1. **Database migration** - Add `UNKNOWN` to severity CHECK constraint for edge cases
 2. **Loading states** - Improve skeleton loaders for slow API responses
 3. **Error handling** - Better error messages when evaluation fails
 
 ### Future Improvements
+
 1. Add retry logic for failed API calls
 2. Implement optimistic updates for better UX
 3. Add evaluation progress indicators
@@ -200,6 +209,7 @@ The Idea Incubator application is fully functional with all core features workin
 ### New Feature: Comprehensive Evaluation Scorecard
 
 A new **Scorecard** tab has been added to the idea detail page providing:
+
 - Visual score gauge with color-coded rating
 - Before/after debate score comparison
 - Expandable category breakdown with all 30 criteria

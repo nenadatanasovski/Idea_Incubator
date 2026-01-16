@@ -5,18 +5,31 @@
  * Each task targets one file with one action.
  */
 
-import { AnalyzedRequirements } from './prompts/tasks.js';
-import { Gotcha } from './context-loader.js';
-import { ParsedBrief } from './brief-parser.js';
+import { AnalyzedRequirements } from "./prompts/tasks.js";
+import { Gotcha } from "./context-loader.js";
+import { ParsedBrief } from "./brief-parser.js";
 
-export type Phase = 'database' | 'types' | 'queries' | 'services' | 'api' | 'tests';
-export type TaskAction = 'CREATE' | 'UPDATE' | 'DELETE';
-export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+export type Phase =
+  | "database"
+  | "types"
+  | "queries"
+  | "services"
+  | "api"
+  | "tests";
+export type TaskAction = "CREATE" | "UPDATE" | "DELETE";
+export type TaskStatus = "pending" | "in_progress" | "completed" | "failed";
 
 /**
  * Phase ordering: database → types → queries → services → api → tests
  */
-const PHASE_ORDER: Phase[] = ['database', 'types', 'queries', 'services', 'api', 'tests'];
+const PHASE_ORDER: Phase[] = [
+  "database",
+  "types",
+  "queries",
+  "services",
+  "api",
+  "tests",
+];
 
 export interface AtomicTask {
   id: string;
@@ -62,7 +75,7 @@ export class TaskGenerator {
    */
   generate(
     brief: ParsedBrief,
-    requirements: AnalyzedRequirements
+    requirements: AnalyzedRequirements,
   ): GeneratedTasks {
     const tasks: AtomicTask[] = [];
     const warnings: string[] = [];
@@ -82,7 +95,7 @@ export class TaskGenerator {
     tasks.push(...this.generateQueryTasks(brief, requirements, tasks));
 
     // Generate service tasks if needed
-    if (brief.complexity !== 'simple') {
+    if (brief.complexity !== "simple") {
       tasks.push(...this.generateServiceTasks(brief, requirements, tasks));
     }
 
@@ -98,10 +111,14 @@ export class TaskGenerator {
     // Validate task count
     const expected = this.getExpectedTaskCount(brief.complexity);
     if (orderedTasks.length < expected.min) {
-      warnings.push(`Task count ${orderedTasks.length} below minimum ${expected.min} for ${brief.complexity}`);
+      warnings.push(
+        `Task count ${orderedTasks.length} below minimum ${expected.min} for ${brief.complexity}`,
+      );
     }
     if (orderedTasks.length > expected.max) {
-      warnings.push(`Task count ${orderedTasks.length} above maximum ${expected.max} for ${brief.complexity}`);
+      warnings.push(
+        `Task count ${orderedTasks.length} above maximum ${expected.max} for ${brief.complexity}`,
+      );
     }
 
     // Count by phase
@@ -111,7 +128,7 @@ export class TaskGenerator {
       queries: 0,
       services: 0,
       api: 0,
-      tests: 0
+      tests: 0,
     };
     for (const task of orderedTasks) {
       byPhase[task.phase]++;
@@ -121,7 +138,7 @@ export class TaskGenerator {
       tasks: orderedTasks,
       totalCount: orderedTasks.length,
       byPhase,
-      warnings
+      warnings,
     };
   }
 
@@ -130,21 +147,25 @@ export class TaskGenerator {
    */
   private nextTaskId(): string {
     this.taskCounter++;
-    return `T-${String(this.taskCounter).padStart(3, '0')}`;
+    return `T-${String(this.taskCounter).padStart(3, "0")}`;
   }
 
   /**
    * Check if database tasks are needed
    */
-  private needsDatabaseTasks(brief: ParsedBrief, requirements: AnalyzedRequirements): boolean {
+  private needsDatabaseTasks(
+    brief: ParsedBrief,
+    requirements: AnalyzedRequirements,
+  ): boolean {
     return !!(
       brief.databaseSchema ||
-      brief.solution.toLowerCase().includes('database') ||
-      brief.solution.toLowerCase().includes('table') ||
-      requirements.functionalRequirements.some(r =>
-        r.description.toLowerCase().includes('store') ||
-        r.description.toLowerCase().includes('save') ||
-        r.description.toLowerCase().includes('record')
+      brief.solution.toLowerCase().includes("database") ||
+      brief.solution.toLowerCase().includes("table") ||
+      requirements.functionalRequirements.some(
+        (r) =>
+          r.description.toLowerCase().includes("store") ||
+          r.description.toLowerCase().includes("save") ||
+          r.description.toLowerCase().includes("record"),
       )
     );
   }
@@ -154,29 +175,30 @@ export class TaskGenerator {
    */
   private generateDatabaseTasks(
     brief: ParsedBrief,
-    requirements: AnalyzedRequirements
+    requirements: AnalyzedRequirements,
   ): AtomicTask[] {
     const tasks: AtomicTask[] = [];
-    const migrationFile = `database/migrations/${this.migrationCounter}_${brief.id.replace(/-/g, '_')}.sql`;
+    const migrationFile = `database/migrations/${this.migrationCounter}_${brief.id.replace(/-/g, "_")}.sql`;
 
     tasks.push({
       id: this.nextTaskId(),
-      phase: 'database',
-      action: 'CREATE',
+      phase: "database",
+      action: "CREATE",
       file: migrationFile,
-      status: 'pending',
+      status: "pending",
       requirements: [
-        'Create database migration file',
-        ...this.extractDatabaseRequirements(requirements)
+        "Create database migration file",
+        ...this.extractDatabaseRequirements(requirements),
       ],
-      gotchas: this.getRelevantGotchas('*.sql', 'CREATE'),
+      gotchas: this.getRelevantGotchas("*.sql", "CREATE"),
       validation: this.generateValidation({
-        phase: 'database',
+        phase: "database",
         file: migrationFile,
-        action: 'CREATE'
+        action: "CREATE",
       }),
-      codeTemplate: brief.databaseSchema || this.generateMigrationTemplate(brief),
-      dependsOn: []
+      codeTemplate:
+        brief.databaseSchema || this.generateMigrationTemplate(brief),
+      dependsOn: [],
     });
 
     return tasks;
@@ -188,30 +210,30 @@ export class TaskGenerator {
   private generateTypeTasks(
     brief: ParsedBrief,
     _requirements: AnalyzedRequirements,
-    existingTasks: AtomicTask[]
+    existingTasks: AtomicTask[],
   ): AtomicTask[] {
     const tasks: AtomicTask[] = [];
-    const typeFile = `types/${brief.id.replace(/-/g, '-')}.ts`;
+    const typeFile = `types/${brief.id.replace(/-/g, "-")}.ts`;
 
-    const dbTaskId = existingTasks.find(t => t.phase === 'database')?.id;
+    const dbTaskId = existingTasks.find((t) => t.phase === "database")?.id;
 
     tasks.push({
       id: this.nextTaskId(),
-      phase: 'types',
-      action: 'CREATE',
+      phase: "types",
+      action: "CREATE",
       file: typeFile,
-      status: 'pending',
+      status: "pending",
       requirements: [
-        'Define TypeScript interfaces',
-        'Export types for use by other modules'
+        "Define TypeScript interfaces",
+        "Export types for use by other modules",
       ],
-      gotchas: this.getRelevantGotchas('types/*.ts', 'CREATE'),
+      gotchas: this.getRelevantGotchas("types/*.ts", "CREATE"),
       validation: this.generateValidation({
-        phase: 'types',
+        phase: "types",
         file: typeFile,
-        action: 'CREATE'
+        action: "CREATE",
       }),
-      dependsOn: dbTaskId ? [dbTaskId] : []
+      dependsOn: dbTaskId ? [dbTaskId] : [],
     });
 
     return tasks;
@@ -223,32 +245,32 @@ export class TaskGenerator {
   private generateQueryTasks(
     _brief: ParsedBrief,
     _requirements: AnalyzedRequirements,
-    existingTasks: AtomicTask[]
+    existingTasks: AtomicTask[],
   ): AtomicTask[] {
     const tasks: AtomicTask[] = [];
 
-    const typeTaskId = existingTasks.find(t => t.phase === 'types')?.id;
-    const dbTaskId = existingTasks.find(t => t.phase === 'database')?.id;
+    const typeTaskId = existingTasks.find((t) => t.phase === "types")?.id;
+    const dbTaskId = existingTasks.find((t) => t.phase === "database")?.id;
     const dependsOn = [typeTaskId, dbTaskId].filter(Boolean) as string[];
 
     tasks.push({
       id: this.nextTaskId(),
-      phase: 'queries',
-      action: 'UPDATE',
-      file: 'database/db.ts',
-      status: 'pending',
+      phase: "queries",
+      action: "UPDATE",
+      file: "database/db.ts",
+      status: "pending",
       requirements: [
-        'Add CRUD query functions',
-        'Use parameterized queries',
-        'Follow existing patterns in file'
+        "Add CRUD query functions",
+        "Use parameterized queries",
+        "Follow existing patterns in file",
       ],
-      gotchas: this.getRelevantGotchas('database/*.ts', 'UPDATE'),
+      gotchas: this.getRelevantGotchas("database/*.ts", "UPDATE"),
       validation: this.generateValidation({
-        phase: 'queries',
-        file: 'database/db.ts',
-        action: 'UPDATE'
+        phase: "queries",
+        file: "database/db.ts",
+        action: "UPDATE",
       }),
-      dependsOn
+      dependsOn,
     });
 
     return tasks;
@@ -260,32 +282,32 @@ export class TaskGenerator {
   private generateServiceTasks(
     brief: ParsedBrief,
     requirements: AnalyzedRequirements,
-    existingTasks: AtomicTask[]
+    existingTasks: AtomicTask[],
   ): AtomicTask[] {
     const tasks: AtomicTask[] = [];
-    const serviceFile = `server/services/${brief.id.replace(/-/g, '-')}-service.ts`;
+    const serviceFile = `server/services/${brief.id.replace(/-/g, "-")}-service.ts`;
 
-    const queryTaskId = existingTasks.find(t => t.phase === 'queries')?.id;
+    const queryTaskId = existingTasks.find((t) => t.phase === "queries")?.id;
     const dependsOn = queryTaskId ? [queryTaskId] : [];
 
     tasks.push({
       id: this.nextTaskId(),
-      phase: 'services',
-      action: 'CREATE',
+      phase: "services",
+      action: "CREATE",
       file: serviceFile,
-      status: 'pending',
+      status: "pending",
       requirements: [
-        'Implement business logic',
-        'Wrap database queries with validation',
-        'Follow existing service patterns'
+        "Implement business logic",
+        "Wrap database queries with validation",
+        "Follow existing service patterns",
       ],
-      gotchas: this.getRelevantGotchas('services/*.ts', 'CREATE'),
+      gotchas: this.getRelevantGotchas("services/*.ts", "CREATE"),
       validation: this.generateValidation({
-        phase: 'services',
+        phase: "services",
         file: serviceFile,
-        action: 'CREATE'
+        action: "CREATE",
       }),
-      dependsOn
+      dependsOn,
     });
 
     return tasks;
@@ -297,57 +319,58 @@ export class TaskGenerator {
   private generateApiTasks(
     brief: ParsedBrief,
     requirements: AnalyzedRequirements,
-    existingTasks: AtomicTask[]
+    existingTasks: AtomicTask[],
   ): AtomicTask[] {
     const tasks: AtomicTask[] = [];
-    const routeFile = `server/routes/${brief.id.replace(/-/g, '-')}.ts`;
+    const routeFile = `server/routes/${brief.id.replace(/-/g, "-")}.ts`;
 
     // Depend on services or queries
-    const serviceTaskId = existingTasks.find(t => t.phase === 'services')?.id;
-    const queryTaskId = existingTasks.find(t => t.phase === 'queries')?.id;
-    const dependsOn = serviceTaskId ? [serviceTaskId] : (queryTaskId ? [queryTaskId] : []);
+    const serviceTaskId = existingTasks.find((t) => t.phase === "services")?.id;
+    const queryTaskId = existingTasks.find((t) => t.phase === "queries")?.id;
+    const dependsOn = serviceTaskId
+      ? [serviceTaskId]
+      : queryTaskId
+        ? [queryTaskId]
+        : [];
 
     // Create route file
     tasks.push({
       id: this.nextTaskId(),
-      phase: 'api',
-      action: 'CREATE',
+      phase: "api",
+      action: "CREATE",
       file: routeFile,
-      status: 'pending',
+      status: "pending",
       requirements: [
-        'Create Express router',
-        'Implement CRUD endpoints',
-        'Add input validation',
-        'Return appropriate status codes'
+        "Create Express router",
+        "Implement CRUD endpoints",
+        "Add input validation",
+        "Return appropriate status codes",
       ],
-      gotchas: this.getRelevantGotchas('routes/*.ts', 'CREATE'),
+      gotchas: this.getRelevantGotchas("routes/*.ts", "CREATE"),
       validation: this.generateValidation({
-        phase: 'api',
+        phase: "api",
         file: routeFile,
-        action: 'CREATE'
+        action: "CREATE",
       }),
-      dependsOn
+      dependsOn,
     });
 
     // Mount routes in api.ts
     const routeTaskId = tasks[tasks.length - 1].id;
     tasks.push({
       id: this.nextTaskId(),
-      phase: 'api',
-      action: 'UPDATE',
-      file: 'server/api.ts',
-      status: 'pending',
-      requirements: [
-        'Import new router',
-        'Mount at appropriate path'
-      ],
-      gotchas: this.getRelevantGotchas('api.ts', 'UPDATE'),
+      phase: "api",
+      action: "UPDATE",
+      file: "server/api.ts",
+      status: "pending",
+      requirements: ["Import new router", "Mount at appropriate path"],
+      gotchas: this.getRelevantGotchas("api.ts", "UPDATE"),
       validation: this.generateValidation({
-        phase: 'api',
-        file: 'server/api.ts',
-        action: 'UPDATE'
+        phase: "api",
+        file: "server/api.ts",
+        action: "UPDATE",
       }),
-      dependsOn: [routeTaskId]
+      dependsOn: [routeTaskId],
     });
 
     return tasks;
@@ -359,33 +382,35 @@ export class TaskGenerator {
   private generateTestTasks(
     brief: ParsedBrief,
     _requirements: AnalyzedRequirements,
-    existingTasks: AtomicTask[]
+    existingTasks: AtomicTask[],
   ): AtomicTask[] {
     const tasks: AtomicTask[] = [];
-    const testFile = `tests/${brief.id.replace(/-/g, '-')}.test.ts`;
+    const testFile = `tests/${brief.id.replace(/-/g, "-")}.test.ts`;
 
     // Depend on the main implementation
-    const apiTaskIds = existingTasks.filter(t => t.phase === 'api').map(t => t.id);
+    const apiTaskIds = existingTasks
+      .filter((t) => t.phase === "api")
+      .map((t) => t.id);
     const dependsOn = apiTaskIds.length > 0 ? [apiTaskIds[0]] : [];
 
     tasks.push({
       id: this.nextTaskId(),
-      phase: 'tests',
-      action: 'CREATE',
+      phase: "tests",
+      action: "CREATE",
       file: testFile,
-      status: 'pending',
+      status: "pending",
       requirements: [
-        'Test CRUD operations',
-        'Test error cases',
-        'Follow vitest patterns'
+        "Test CRUD operations",
+        "Test error cases",
+        "Follow vitest patterns",
       ],
-      gotchas: this.getRelevantGotchas('tests/*.ts', 'CREATE'),
+      gotchas: this.getRelevantGotchas("tests/*.ts", "CREATE"),
       validation: this.generateValidation({
-        phase: 'tests',
+        phase: "tests",
         file: testFile,
-        action: 'CREATE'
+        action: "CREATE",
       }),
-      dependsOn
+      dependsOn,
     });
 
     return tasks;
@@ -394,8 +419,11 @@ export class TaskGenerator {
   /**
    * Order tasks by dependency (topological sort)
    */
-  private orderByDependency(tasks: AtomicTask[], warnings: string[]): AtomicTask[] {
-    const taskMap = new Map(tasks.map(t => [t.id, t]));
+  private orderByDependency(
+    tasks: AtomicTask[],
+    warnings: string[],
+  ): AtomicTask[] {
+    const taskMap = new Map(tasks.map((t) => [t.id, t]));
     const visited = new Set<string>();
     const visiting = new Set<string>();
     const result: AtomicTask[] = [];
@@ -420,8 +448,8 @@ export class TaskGenerator {
     };
 
     // Sort by phase order first, then visit
-    const sortedByPhase = [...tasks].sort((a, b) =>
-      PHASE_ORDER.indexOf(a.phase) - PHASE_ORDER.indexOf(b.phase)
+    const sortedByPhase = [...tasks].sort(
+      (a, b) => PHASE_ORDER.indexOf(a.phase) - PHASE_ORDER.indexOf(b.phase),
     );
 
     for (const task of sortedByPhase) {
@@ -442,31 +470,31 @@ export class TaskGenerator {
     const { phase, file, action } = params;
 
     switch (phase) {
-      case 'database':
+      case "database":
         return {
           command: `sqlite3 :memory: < ${file} && echo 'OK'`,
-          expected: 'OK'
+          expected: "OK",
         };
 
-      case 'types':
-      case 'queries':
-      case 'services':
-      case 'api':
+      case "types":
+      case "queries":
+      case "services":
+      case "api":
         return {
-          command: 'npx tsc --noEmit',
-          expected: 'exit code 0'
+          command: "npx tsc --noEmit",
+          expected: "exit code 0",
         };
 
-      case 'tests':
+      case "tests":
         return {
-          command: `npm test -- --grep "${file.replace('tests/', '').replace('.test.ts', '')}"`,
-          expected: 'all tests pass'
+          command: `npm test -- --grep "${file.replace("tests/", "").replace(".test.ts", "")}"`,
+          expected: "all tests pass",
         };
 
       default:
         return {
-          command: 'npx tsc --noEmit',
-          expected: 'exit code 0'
+          command: "npx tsc --noEmit",
+          expected: "exit code 0",
         };
     }
   }
@@ -476,12 +504,12 @@ export class TaskGenerator {
    */
   private getRelevantGotchas(filePattern: string, action: string): string[] {
     return this.gotchas
-      .filter(g => {
+      .filter((g) => {
         const patternMatch = this.matchPattern(filePattern, g.filePattern);
-        const actionMatch = g.actionType === action || g.actionType === '*';
+        const actionMatch = g.actionType === action || g.actionType === "*";
         return patternMatch || actionMatch;
       })
-      .map(g => g.content)
+      .map((g) => g.content)
       .slice(0, 3); // Limit to 3 most relevant
   }
 
@@ -489,33 +517,34 @@ export class TaskGenerator {
    * Simple pattern matching
    */
   private matchPattern(target: string, pattern: string): boolean {
-    const regexPattern = pattern
-      .replace(/\./g, '\\.')
-      .replace(/\*/g, '.*');
+    const regexPattern = pattern.replace(/\./g, "\\.").replace(/\*/g, ".*");
     return new RegExp(regexPattern).test(target);
   }
 
   /**
    * Extract database requirements from analyzed requirements
    */
-  private extractDatabaseRequirements(requirements: AnalyzedRequirements): string[] {
+  private extractDatabaseRequirements(
+    requirements: AnalyzedRequirements,
+  ): string[] {
     return requirements.functionalRequirements
-      .filter(r =>
-        r.description.toLowerCase().includes('store') ||
-        r.description.toLowerCase().includes('record') ||
-        r.description.toLowerCase().includes('save') ||
-        r.description.toLowerCase().includes('track')
+      .filter(
+        (r) =>
+          r.description.toLowerCase().includes("store") ||
+          r.description.toLowerCase().includes("record") ||
+          r.description.toLowerCase().includes("save") ||
+          r.description.toLowerCase().includes("track"),
       )
-      .map(r => r.description);
+      .map((r) => r.description);
   }
 
   /**
    * Generate migration template
    */
   private generateMigrationTemplate(brief: ParsedBrief): string {
-    const tableName = brief.id.replace(/-/g, '_');
+    const tableName = brief.id.replace(/-/g, "_");
     return `-- Migration ${this.migrationCounter}: ${brief.title}
--- Created: ${new Date().toISOString().split('T')[0]}
+-- Created: ${new Date().toISOString().split("T")[0]}
 -- Purpose: ${brief.solution.substring(0, 100)}
 
 CREATE TABLE IF NOT EXISTS ${tableName} (
@@ -531,13 +560,16 @@ CREATE INDEX IF NOT EXISTS idx_${tableName}_created ON ${tableName}(created_at);
   /**
    * Get expected task count for complexity
    */
-  private getExpectedTaskCount(complexity: 'simple' | 'medium' | 'complex'): { min: number; max: number } {
+  private getExpectedTaskCount(complexity: "simple" | "medium" | "complex"): {
+    min: number;
+    max: number;
+  } {
     switch (complexity) {
-      case 'simple':
+      case "simple":
         return { min: 5, max: 8 };
-      case 'medium':
+      case "medium":
         return { min: 10, max: 15 };
-      case 'complex':
+      case "complex":
         return { min: 20, max: 30 };
     }
   }

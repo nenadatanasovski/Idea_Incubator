@@ -15,6 +15,7 @@ This document traces each issue to its root cause using first principles analysi
 ## Issue 1: Questions & Answers Not Picked Up
 
 ### Symptom
+
 When evaluating an idea, structured answers from `/idea-develop` sessions are not considered by the evaluators.
 
 ### Data Flow Analysis
@@ -48,16 +49,17 @@ Evaluators have no structured context
 
 **Two parallel Q&A systems exist that don't talk to each other:**
 
-| System | Storage | Used By | Status |
-|--------|---------|---------|--------|
-| Skill-based (`/idea-develop`) | `development.md` files | Claude Code skills | Active, used |
-| Database-based (`questions/*.yaml`) | `idea_answers` table | Evaluation pipeline | Infrastructure exists, not populated |
+| System                              | Storage                | Used By             | Status                               |
+| ----------------------------------- | ---------------------- | ------------------- | ------------------------------------ |
+| Skill-based (`/idea-develop`)       | `development.md` files | Claude Code skills  | Active, used                         |
+| Database-based (`questions/*.yaml`) | `idea_answers` table   | Evaluation pipeline | Infrastructure exists, not populated |
 
 The skill was designed to write human-readable markdown, while the evaluation pipeline was designed to read structured database records. **No bridge connects them.**
 
 ### Evidence
 
 **SKILL.md (lines 37-41):**
+
 ```markdown
 4. **Record answers**
    - Save Q&A to `ideas/[slug]/development.md`
@@ -65,6 +67,7 @@ The skill was designed to write human-readable markdown, while the evaluation pi
 ```
 
 **evaluate.ts (lines 307-311):**
+
 ```typescript
 async function getStructuredContext(ideaId: string): Promise<...> {
   const answers = await getAnswersForIdea(ideaId);
@@ -74,11 +77,12 @@ async function getStructuredContext(ideaId: string): Promise<...> {
 ```
 
 **readiness.ts (lines 62-78):**
+
 ```typescript
 export async function getAnswersForIdea(ideaId: string): Promise<Answer[]> {
   const rows = await query<DBAnswer>(
-    'SELECT * FROM idea_answers WHERE idea_id = ?',
-    [ideaId]
+    "SELECT * FROM idea_answers WHERE idea_id = ?",
+    [ideaId],
   );
   // Returns empty - table was never populated
 }
@@ -89,35 +93,43 @@ export async function getAnswersForIdea(ideaId: string): Promise<Answer[]> {
 **Decision**: Add `development.md` parsing to the existing `npm run sync` command.
 
 **Rationale**:
+
 - Follows existing patterns (`npm run sync` already syncs README.md → ideas table)
 - Skills remain stateless and simple (no database dependencies)
 - Explicit user control over when sync occurs
 - Can auto-trigger at evaluation start for convenience
 
 **Implementation**:
+
 ```typescript
 // sync.ts - Add development.md parsing
-async function syncDevelopmentAnswers(ideaId: string, folderPath: string): Promise<void> {
-  const devPath = path.join(folderPath, 'development.md');
+async function syncDevelopmentAnswers(
+  ideaId: string,
+  folderPath: string,
+): Promise<void> {
+  const devPath = path.join(folderPath, "development.md");
   if (!fs.existsSync(devPath)) return;
 
-  const content = fs.readFileSync(devPath, 'utf-8');
+  const content = fs.readFileSync(devPath, "utf-8");
   const answers = parseQAFromMarkdown(content);
 
   for (const { question, answer } of answers) {
     const questionId = classifyQuestionToId(question); // Map to YAML question ID
     if (questionId) {
-      await saveAnswer(ideaId, questionId, answer, 'user', 0.9);
+      await saveAnswer(ideaId, questionId, answer, "user", 0.9);
     }
   }
 }
 
 // Flexible parser with LLM fallback for edge cases
-function parseQAFromMarkdown(content: string): Array<{question: string, answer: string}> {
-  const results: Array<{question: string, answer: string}> = [];
+function parseQAFromMarkdown(
+  content: string,
+): Array<{ question: string; answer: string }> {
+  const results: Array<{ question: string; answer: string }> = [];
 
   // Try structured format first: **Q:** / **A:** patterns
-  const qaPattern = /\*\*Q:\s*(.+?)\*\*\s*\n\s*(?:A:|Answer:)?\s*(.+?)(?=\n\*\*Q:|\n##|$)/gs;
+  const qaPattern =
+    /\*\*Q:\s*(.+?)\*\*\s*\n\s*(?:A:|Answer:)?\s*(.+?)(?=\n\*\*Q:|\n##|$)/gs;
   let match;
   while ((match = qaPattern.exec(content)) !== null) {
     results.push({ question: match[1].trim(), answer: match[2].trim() });
@@ -129,6 +141,7 @@ function parseQAFromMarkdown(content: string): Array<{question: string, answer: 
 ```
 
 **Staleness Integration**:
+
 - Include `development.md` in content hash calculation
 - Development changes invalidate previous evaluation (triggers re-eval prompt)
 
@@ -137,6 +150,7 @@ function parseQAFromMarkdown(content: string): Array<{question: string, answer: 
 ## Issue 2: Profile Not Considered in Evaluation
 
 ### Symptom
+
 User profiles linked to ideas are only used for the Fit category (FT1-FT5), not for Feasibility, Market, or Risk assessments.
 
 ### Data Flow Analysis
@@ -176,33 +190,39 @@ The code has a hard-coded check that only adds profile context for the 'fit' cat
 
 Profile data is directly relevant to multiple criteria:
 
-| Category | Criterion | Why Profile Matters |
-|----------|-----------|---------------------|
-| Feasibility | F3 (Skill Availability) | User's `technicalSkills` and `professionalExperience` determine what's buildable |
-| Feasibility | F2 (Resource Requirements) | User's `weeklyHoursAvailable` affects time assessment |
-| Market | M4 (Entry Barriers) | User's `industryConnections` and `professionalNetwork` can overcome barriers |
-| Risk | R1 (Execution Risk) | User's `professionalExperience` directly impacts execution risk |
-| Risk | R4 (Financial Risk) | User's `financialRunwayMonths` and `riskTolerance` are critical |
+| Category    | Criterion                  | Why Profile Matters                                                              |
+| ----------- | -------------------------- | -------------------------------------------------------------------------------- |
+| Feasibility | F3 (Skill Availability)    | User's `technicalSkills` and `professionalExperience` determine what's buildable |
+| Feasibility | F2 (Resource Requirements) | User's `weeklyHoursAvailable` affects time assessment                            |
+| Market      | M4 (Entry Barriers)        | User's `industryConnections` and `professionalNetwork` can overcome barriers     |
+| Risk        | R1 (Execution Risk)        | User's `professionalExperience` directly impacts execution risk                  |
+| Risk        | R4 (Financial Risk)        | User's `financialRunwayMonths` and `riskTolerance` are critical                  |
 
 ### Evidence
 
 **specialized-evaluators.ts (lines 306-309):**
+
 ```typescript
 // Add profile context for fit category
-const profileSection = category === 'fit'
-  ? formatProfileContextForFitEvaluator(profileContext ?? null)
-  : '';
+const profileSection =
+  category === "fit"
+    ? formatProfileContextForFitEvaluator(profileContext ?? null)
+    : "";
 ```
 
 **Compare with evaluator.ts (lines 221-235)** which has proper logic:
+
 ```typescript
-function formatProfileContextForPrompt(profileContext: ProfileContext | null, category: Category): string {
+function formatProfileContextForPrompt(
+  profileContext: ProfileContext | null,
+  category: Category,
+): string {
   // For non-fit categories, include brief profile summary
-  if (category !== 'fit') {
+  if (category !== "fit") {
     return `## Creator Profile Summary
 The creator has provided their profile for context. Key points:
 - Goals: ${profileContext.goalsContext}
-- Skills: ${profileContext.skillsContext.split('\n')[0]}
+- Skills: ${profileContext.skillsContext.split("\n")[0]}
 
 Use this context when relevant to your assessment.`;
   }
@@ -217,56 +237,65 @@ This function exists in `evaluator.ts` but is never used by the specialized eval
 **Decision**: Create `formatProfileForCategory()` that returns focused, category-relevant excerpts.
 
 **Rationale**:
+
 - Token efficient (full profile is 500+ tokens; multiplied by 6 evaluators = waste)
 - Better signal-to-noise ratio (Feasibility doesn't need "passion for houseplants")
 - Sharper evaluator reasoning with focused context
 
 **Implementation**:
+
 ```typescript
 // specialized-evaluators.ts - Replace empty string with category-relevant context
-function formatProfileForCategory(profile: ProfileContext | null, category: Category): string {
+function formatProfileForCategory(
+  profile: ProfileContext | null,
+  category: Category,
+): string {
   if (!profile) {
     return `## Creator Context\nNo profile available. Assess with lower confidence where creator capabilities matter.`;
   }
 
   switch (category) {
-    case 'feasibility':
+    case "feasibility":
       return `## Creator Capabilities (for Feasibility Assessment)
 **Technical Skills:** ${profile.skillsContext}
-**Time Available:** ${profile.lifeStageContext.match(/Hours Available:.*/)?.[0] || 'Not specified'}
-**Known Gaps:** ${profile.skillsContext.match(/Gaps:.*/)?.[0] || 'Not specified'}
+**Time Available:** ${profile.lifeStageContext.match(/Hours Available:.*/)?.[0] || "Not specified"}
+**Known Gaps:** ${profile.skillsContext.match(/Gaps:.*/)?.[0] || "Not specified"}
 
 Use this to assess whether the creator can realistically build this.`;
 
-    case 'market':
+    case "market":
       return `## Creator Network (for Market Assessment)
 **Industry Connections:** ${profile.networkContext}
-**Community Access:** ${profile.networkContext.match(/Community:.*/)?.[0] || 'Not specified'}
+**Community Access:** ${profile.networkContext.match(/Community:.*/)?.[0] || "Not specified"}
 
 Use this to assess go-to-market feasibility and barrier-crossing ability.`;
 
-    case 'risk':
+    case "risk":
       return `## Creator Risk Profile (for Risk Assessment)
-**Financial Runway:** ${profile.lifeStageContext.match(/Runway:.*/)?.[0] || 'Not specified'}
-**Risk Tolerance:** ${profile.lifeStageContext.match(/Tolerance:.*/)?.[0] || 'Not specified'}
-**Employment Status:** ${profile.lifeStageContext.match(/Status:.*/)?.[0] || 'Not specified'}
-**Experience:** ${profile.skillsContext.match(/Experience:.*/)?.[0] || 'Not specified'}
+**Financial Runway:** ${profile.lifeStageContext.match(/Runway:.*/)?.[0] || "Not specified"}
+**Risk Tolerance:** ${profile.lifeStageContext.match(/Tolerance:.*/)?.[0] || "Not specified"}
+**Employment Status:** ${profile.lifeStageContext.match(/Status:.*/)?.[0] || "Not specified"}
+**Experience:** ${profile.skillsContext.match(/Experience:.*/)?.[0] || "Not specified"}
 
 Use this to assess execution, financial, and career risk exposure.`;
 
-    case 'fit':
+    case "fit":
       return formatProfileContextForFitEvaluator(profile); // Full context
 
     default:
-      return ''; // Problem and Solution don't need profile
+      return ""; // Problem and Solution don't need profile
   }
 }
 ```
 
 **Update specialized-evaluators.ts**:
+
 ```typescript
 // Replace line 306-309 with:
-const profileSection = formatProfileForCategory(profileContext ?? null, category);
+const profileSection = formatProfileForCategory(
+  profileContext ?? null,
+  category,
+);
 ```
 
 ---
@@ -274,6 +303,7 @@ const profileSection = formatProfileForCategory(profileContext ?? null, category
 ## Issue 3: No Web Search for Viability Assessment
 
 ### Symptom
+
 Market size claims, competitor analysis, technology feasibility, and timing assessments are purely speculative because evaluators have no access to current external information.
 
 ### Data Flow Analysis
@@ -304,18 +334,19 @@ The system was designed as a closed-loop evaluator that processes only user-prov
 
 ### Why This Matters
 
-| Criterion | What Evaluator Says | What It Should Know |
-|-----------|---------------------|---------------------|
-| M1 (Market Size) | "User claims TAM of $50B" | "According to recent reports, this market is actually $30B" |
+| Criterion        | What Evaluator Says           | What It Should Know                                                    |
+| ---------------- | ----------------------------- | ---------------------------------------------------------------------- |
+| M1 (Market Size) | "User claims TAM of $50B"     | "According to recent reports, this market is actually $30B"            |
 | M3 (Competition) | "User mentions 3 competitors" | "There are actually 15 active competitors, including well-funded ones" |
-| M5 (Timing) | "User says timing is right" | "Recent regulatory changes support/contradict this claim" |
-| S2 (Feasibility) | "Uses standard tech stack" | "This technology has been proven viable by X, Y, Z" |
+| M5 (Timing)      | "User says timing is right"   | "Recent regulatory changes support/contradict this claim"              |
+| S2 (Feasibility) | "Uses standard tech stack"    | "This technology has been proven viable by X, Y, Z"                    |
 
 ### Solution: Web Research Phase for Market + Solution Categories
 
 **Decision**: Add web search for Market (M1-M5) and Solution technical feasibility (S2), using Claude's built-in WebSearch tool.
 
 **Rationale**:
+
 - Market and Solution categories benefit most from external verification
 - 7-15 searches per evaluation (balanced cost vs. thoroughness)
 - Claude WebSearch is already available (no new dependencies)
@@ -328,24 +359,29 @@ The system was designed as a closed-loop evaluator that processes only user-prov
 | Solution | S2 (Technical Feasibility) | Verify technology maturity, find similar implementations |
 
 **Implementation**:
+
 ```typescript
 // agents/research.ts - New pre-evaluation research phase
 interface ResearchResult {
   marketSize: { claim: string; verification: string; sources: string[] };
   competitors: { known: string[]; discovered: string[]; sources: string[] };
   trends: { direction: string; evidence: string; sources: string[] };
-  techFeasibility: { assessment: string; examples: string[]; sources: string[] };
+  techFeasibility: {
+    assessment: string;
+    examples: string[];
+    sources: string[];
+  };
 }
 
 async function conductPreEvaluationResearch(
   ideaContent: string,
-  userClaims: ExtractedClaims
+  userClaims: ExtractedClaims,
 ): Promise<ResearchResult> {
   const searches = [
     // Market verification
     `${userClaims.domain} market size ${new Date().getFullYear()}`,
     `${userClaims.domain} industry growth trends`,
-    `${userClaims.competitors.join(' ')} competitors alternatives`,
+    `${userClaims.competitors.join(" ")} competitors alternatives`,
 
     // Discovery (find what user missed)
     `${userClaims.domain} startups companies ${new Date().getFullYear()}`,
@@ -356,15 +392,14 @@ async function conductPreEvaluationResearch(
     `${userClaims.technology} production deployment case study`,
   ];
 
-  const results = await Promise.all(
-    searches.map(query => webSearch(query))
-  );
+  const results = await Promise.all(searches.map((query) => webSearch(query)));
 
   return synthesizeResearchResults(results, userClaims);
 }
 ```
 
 **Integration with Evaluation**:
+
 ```typescript
 // evaluate.ts - Add research phase before evaluation
 async function runEvaluation(slug: string, options: EvalOptions) {
@@ -376,14 +411,20 @@ async function runEvaluation(slug: string, options: EvalOptions) {
 
   // Pass research to evaluators
   const result = await runAllSpecializedEvaluators(
-    slug, ideaId, ideaContent, costTracker, broadcaster,
-    profileContext, structuredContext,
-    research  // NEW: research context
+    slug,
+    ideaId,
+    ideaContent,
+    costTracker,
+    broadcaster,
+    profileContext,
+    structuredContext,
+    research, // NEW: research context
   );
 }
 ```
 
 **Budget Adjustment**:
+
 - Default budget increased from $10 to $15 to accommodate research phase
 - Estimated research cost: ~$3-5 (7-15 searches + synthesis)
 
@@ -394,6 +435,7 @@ async function runEvaluation(slug: string, options: EvalOptions) {
 ### Principle 1: Data Should Flow, Not Pool
 
 **Current State**: Data pools in three disconnected locations:
+
 1. Markdown files (development.md)
 2. Database tables (idea_answers)
 3. Profile context (user_profiles)
@@ -403,6 +445,7 @@ async function runEvaluation(slug: string, options: EvalOptions) {
 ### Principle 2: Context Should Be Complete
 
 **Current State**: Evaluators receive partial context:
+
 - Fit evaluator: Full profile
 - Other evaluators: No profile
 - All evaluators: No structured answers (unless database populated)
@@ -421,21 +464,21 @@ async function runEvaluation(slug: string, options: EvalOptions) {
 
 ### Current Quality Score
 
-| Dimension | Score | Reason |
-|-----------|-------|--------|
-| Data Completeness | 2/10 | Q&A never reaches evaluators |
-| Context Utilization | 4/10 | Profile only used for Fit |
-| Claim Verification | 1/10 | No external research capability |
-| **Overall** | **2.3/10** | System produces unreliable evaluations |
+| Dimension           | Score      | Reason                                 |
+| ------------------- | ---------- | -------------------------------------- |
+| Data Completeness   | 2/10       | Q&A never reaches evaluators           |
+| Context Utilization | 4/10       | Profile only used for Fit              |
+| Claim Verification  | 1/10       | No external research capability        |
+| **Overall**         | **2.3/10** | System produces unreliable evaluations |
 
 ### Expected Quality After Fixes
 
-| Dimension | Score | Improvement |
-|-----------|-------|-------------|
-| Data Completeness | 8/10 | Q&A flows to evaluators via sync |
-| Context Utilization | 9/10 | Profile informs all relevant criteria |
-| Claim Verification | 7/10 | Web search verifies market + tech claims |
-| **Overall** | **8/10** | Evaluations become trustworthy |
+| Dimension           | Score    | Improvement                              |
+| ------------------- | -------- | ---------------------------------------- |
+| Data Completeness   | 8/10     | Q&A flows to evaluators via sync         |
+| Context Utilization | 9/10     | Profile informs all relevant criteria    |
+| Claim Verification  | 7/10     | Web search verifies market + tech claims |
+| **Overall**         | **8/10** | Evaluations become trustworthy           |
 
 ---
 
@@ -517,29 +560,29 @@ async function runEvaluation(slug: string, options: EvalOptions) {
 
 ## Summary of Changes
 
-| Issue | Solution | Files Affected |
-|-------|----------|----------------|
-| Q&A Not Picked Up | Add `development.md` parsing to `npm run sync` | `scripts/sync.ts`, `questions/parser.ts` (new) |
-| Profile Siloed | Create `formatProfileForCategory()` function | `agents/specialized-evaluators.ts` |
-| No Web Search | Add pre-evaluation research phase | `agents/research.ts` (new), `scripts/evaluate.ts` |
-| Budget | Increase default from $10 to $15 | `config/default.ts` |
-| Staleness | Include `development.md` in content hash | `scripts/sync.ts` |
+| Issue             | Solution                                       | Files Affected                                    |
+| ----------------- | ---------------------------------------------- | ------------------------------------------------- |
+| Q&A Not Picked Up | Add `development.md` parsing to `npm run sync` | `scripts/sync.ts`, `questions/parser.ts` (new)    |
+| Profile Siloed    | Create `formatProfileForCategory()` function   | `agents/specialized-evaluators.ts`                |
+| No Web Search     | Add pre-evaluation research phase              | `agents/research.ts` (new), `scripts/evaluate.ts` |
+| Budget            | Increase default from $10 to $15               | `config/default.ts`                               |
+| Staleness         | Include `development.md` in content hash       | `scripts/sync.ts`                                 |
 
 ---
 
 ## Design Decisions Summary
 
-| # | Decision | Choice | Rationale |
-|---|----------|--------|-----------|
-| 1 | Q&A sync approach | Sync command (extend `npm run sync`) | Follows existing patterns; skills stay simple |
-| 2 | Profile granularity | Category-relevant excerpts | Token efficient; focused context |
-| 3 | Web search scope | Market + Solution (S2) | Highest ROI; 7-15 searches |
-| 4 | Search purpose | Both verify + enrich | Users have blind spots |
-| 5 | Question bank authority | YAML is authoritative | Database requires stable IDs |
-| 6 | No-profile behavior | Neutral scores + low confidence | Non-blocking; confidence signals |
-| 7 | Markdown parsing | Flexible + LLM fallback | Users are inconsistent |
-| 8 | Development staleness | Include in hash | Development should improve eval |
-| 9 | Search tool | Claude WebSearch | Already available; no new deps |
-| 10 | Default budget | $15 | Accommodates research phase |
+| #   | Decision                | Choice                               | Rationale                                     |
+| --- | ----------------------- | ------------------------------------ | --------------------------------------------- |
+| 1   | Q&A sync approach       | Sync command (extend `npm run sync`) | Follows existing patterns; skills stay simple |
+| 2   | Profile granularity     | Category-relevant excerpts           | Token efficient; focused context              |
+| 3   | Web search scope        | Market + Solution (S2)               | Highest ROI; 7-15 searches                    |
+| 4   | Search purpose          | Both verify + enrich                 | Users have blind spots                        |
+| 5   | Question bank authority | YAML is authoritative                | Database requires stable IDs                  |
+| 6   | No-profile behavior     | Neutral scores + low confidence      | Non-blocking; confidence signals              |
+| 7   | Markdown parsing        | Flexible + LLM fallback              | Users are inconsistent                        |
+| 8   | Development staleness   | Include in hash                      | Development should improve eval               |
+| 9   | Search tool             | Claude WebSearch                     | Already available; no new deps                |
+| 10  | Default budget          | $15                                  | Accommodates research phase                   |
 
 See `IMPLEMENTATION-PLAN.md` for detailed implementation steps.

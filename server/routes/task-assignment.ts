@@ -5,16 +5,16 @@
  * Enables multi-agent coordination by providing a work queue system.
  */
 
-import { Router, Request, Response } from 'express';
-import { query, run, getOne } from '../../database/db.js';
+import { Router, Request, Response } from "express";
+import { query, run, getOne } from "../../database/db.js";
 import {
   parseTaskList,
   updateTaskStatus,
   getNextPendingTask,
   TaskList,
   ParsedTask,
-} from '../services/task-loader.js';
-import { emitTaskExecutorEvent } from '../websocket.js';
+} from "../services/task-loader.js";
+import { emitTaskExecutorEvent } from "../websocket.js";
 
 const router = Router();
 
@@ -29,7 +29,7 @@ interface TaskClaim {
 interface ClaimRequest {
   agentId: string;
   capabilities?: string[];
-  minPriority?: 'P1' | 'P2' | 'P3' | 'P4';
+  minPriority?: "P1" | "P2" | "P3" | "P4";
   buildId?: string;
 }
 
@@ -62,12 +62,17 @@ interface CompleteRequest {
  *   buildId?: string;
  * }
  */
-router.post('/claim', async (req: Request, res: Response): Promise<void> => {
+router.post("/claim", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { agentId, capabilities, minPriority = 'P4', buildId }: ClaimRequest = req.body;
+    const {
+      agentId,
+      capabilities,
+      minPriority = "P4",
+      buildId,
+    }: ClaimRequest = req.body;
 
     if (!agentId) {
-      res.status(400).json({ error: 'agentId is required' });
+      res.status(400).json({ error: "agentId is required" });
       return;
     }
 
@@ -75,21 +80,25 @@ router.post('/claim', async (req: Request, res: Response): Promise<void> => {
     let targetBuildId = buildId;
     if (!targetBuildId) {
       try {
-        const activeBuild = await getOne<{ id: string; spec_path: string; status: string }>(
+        const activeBuild = await getOne<{
+          id: string;
+          spec_path: string;
+          status: string;
+        }>(
           `SELECT id, spec_path, status FROM build_executions
            WHERE status IN ('pending', 'running', 'paused')
-           ORDER BY created_at DESC LIMIT 1`
+           ORDER BY created_at DESC LIMIT 1`,
         );
 
         if (!activeBuild) {
-          res.status(404).json({ error: 'No active builds available' });
+          res.status(404).json({ error: "No active builds available" });
           return;
         }
 
         targetBuildId = activeBuild.id;
       } catch (error) {
-        console.error('[TaskAssignment] Error finding active build:', error);
-        res.status(500).json({ error: 'Failed to find active build' });
+        console.error("[TaskAssignment] Error finding active build:", error);
+        res.status(500).json({ error: "Failed to find active build" });
         return;
       }
     }
@@ -99,27 +108,27 @@ router.post('/claim', async (req: Request, res: Response): Promise<void> => {
     try {
       build = await getOne<{ id: string; spec_path: string; status: string }>(
         `SELECT id, spec_path, status FROM build_executions WHERE id = ?`,
-        [targetBuildId]
+        [targetBuildId],
       );
 
       if (!build) {
-        res.status(404).json({ error: 'Build not found' });
+        res.status(404).json({ error: "Build not found" });
         return;
       }
     } catch (error) {
-      console.error('[TaskAssignment] Error getting build:', error);
-      res.status(500).json({ error: 'Failed to get build info' });
+      console.error("[TaskAssignment] Error getting build:", error);
+      res.status(500).json({ error: "Failed to get build info" });
       return;
     }
 
     // Load tasks from markdown file
-    const tasksPath = build.spec_path.replace('spec.md', 'tasks.md');
+    const tasksPath = build.spec_path.replace("spec.md", "tasks.md");
     let taskList: TaskList;
     try {
       taskList = parseTaskList(tasksPath);
     } catch (error) {
-      console.error('[TaskAssignment] Error parsing task list:', error);
-      res.status(500).json({ error: 'Failed to parse task list' });
+      console.error("[TaskAssignment] Error parsing task list:", error);
+      res.status(500).json({ error: "Failed to parse task list" });
       return;
     }
 
@@ -129,25 +138,26 @@ router.post('/claim', async (req: Request, res: Response): Promise<void> => {
       const claimed = await query<{ task_id: string }>(
         `SELECT task_id FROM task_executions
          WHERE build_id = ? AND status IN ('running', 'completed')`,
-        [targetBuildId]
+        [targetBuildId],
       );
-      claimedTaskIds = new Set(claimed.map(t => t.task_id));
+      claimedTaskIds = new Set(claimed.map((t) => t.task_id));
     } catch (error) {
-      console.error('[TaskAssignment] Error getting claimed tasks:', error);
+      console.error("[TaskAssignment] Error getting claimed tasks:", error);
       claimedTaskIds = new Set();
     }
 
     // Filter available tasks based on status and capabilities
-    const availableTasks = taskList.tasks.filter(task => {
+    const availableTasks = taskList.tasks.filter((task) => {
       // Must be pending
-      if (task.status !== 'pending') return false;
+      if (task.status !== "pending") return false;
 
       // Must not be already claimed
       if (claimedTaskIds.has(task.id)) return false;
 
       // Check priority threshold
       const priorityOrder = { P1: 1, P2: 2, P3: 3, P4: 4 };
-      if (priorityOrder[task.priority] > priorityOrder[minPriority]) return false;
+      if (priorityOrder[task.priority] > priorityOrder[minPriority])
+        return false;
 
       // TODO: Check capabilities match (future enhancement)
       // For now, we'll use task ID prefix to match agent types
@@ -157,8 +167,8 @@ router.post('/claim', async (req: Request, res: Response): Promise<void> => {
 
     if (availableTasks.length === 0) {
       res.status(404).json({
-        error: 'No available tasks',
-        message: 'All tasks are either claimed, in progress, or completed'
+        error: "No available tasks",
+        message: "All tasks are either claimed, in progress, or completed",
       });
       return;
     }
@@ -182,24 +192,23 @@ router.post('/claim', async (req: Request, res: Response): Promise<void> => {
           taskExecutionId,
           targetBuildId,
           nextTask.id,
-          nextTask.section || 'unknown',
-          'UPDATE', // Default action, will be updated based on task details
+          nextTask.section || "unknown",
+          "UPDATE", // Default action, will be updated based on task details
           nextTask.description, // Using description as placeholder for file_path
-          'running',
-        ]
+          "running",
+        ],
       );
 
       // Record the agent assignment in a separate tracking table (future enhancement)
       // For now, we'll track it in memory via the status
-
     } catch (error) {
-      console.error('[TaskAssignment] Error creating task execution:', error);
-      res.status(500).json({ error: 'Failed to claim task' });
+      console.error("[TaskAssignment] Error creating task execution:", error);
+      res.status(500).json({ error: "Failed to claim task" });
       return;
     }
 
     // Broadcast task claim event
-    emitTaskExecutorEvent('task:claimed', {
+    emitTaskExecutorEvent("task:claimed", {
       taskId: nextTask.id,
       taskExecutionId,
       agentId,
@@ -228,8 +237,8 @@ router.post('/claim', async (req: Request, res: Response): Promise<void> => {
       },
     });
   } catch (error) {
-    console.error('[TaskAssignment] Error claiming task:', error);
-    res.status(500).json({ error: 'Failed to claim task' });
+    console.error("[TaskAssignment] Error claiming task:", error);
+    res.status(500).json({ error: "Failed to claim task" });
   }
 });
 
@@ -243,12 +252,14 @@ router.post('/claim', async (req: Request, res: Response): Promise<void> => {
  *   reason?: string;
  * }
  */
-router.post('/release', async (req: Request, res: Response): Promise<void> => {
+router.post("/release", async (req: Request, res: Response): Promise<void> => {
   try {
     const { taskExecutionId, agentId, reason }: ReleaseRequest = req.body;
 
     if (!taskExecutionId || !agentId) {
-      res.status(400).json({ error: 'taskExecutionId and agentId are required' });
+      res
+        .status(400)
+        .json({ error: "taskExecutionId and agentId are required" });
       return;
     }
 
@@ -262,21 +273,21 @@ router.post('/release', async (req: Request, res: Response): Promise<void> => {
         status: string;
       }>(
         `SELECT id, task_id, build_id, status FROM task_executions WHERE id = ?`,
-        [taskExecutionId]
+        [taskExecutionId],
       );
 
       if (!taskExecution) {
-        res.status(404).json({ error: 'Task execution not found' });
+        res.status(404).json({ error: "Task execution not found" });
         return;
       }
 
-      if (taskExecution.status === 'completed') {
-        res.status(400).json({ error: 'Cannot release a completed task' });
+      if (taskExecution.status === "completed") {
+        res.status(400).json({ error: "Cannot release a completed task" });
         return;
       }
     } catch (error) {
-      console.error('[TaskAssignment] Error getting task execution:', error);
-      res.status(500).json({ error: 'Failed to get task execution' });
+      console.error("[TaskAssignment] Error getting task execution:", error);
+      res.status(500).json({ error: "Failed to get task execution" });
       return;
     }
 
@@ -286,16 +297,16 @@ router.post('/release', async (req: Request, res: Response): Promise<void> => {
         `UPDATE task_executions
          SET status = 'pending', started_at = NULL, error_message = ?
          WHERE id = ?`,
-        [reason || 'Released by agent', taskExecutionId]
+        [reason || "Released by agent", taskExecutionId],
       );
     } catch (error) {
-      console.error('[TaskAssignment] Error releasing task:', error);
-      res.status(500).json({ error: 'Failed to release task' });
+      console.error("[TaskAssignment] Error releasing task:", error);
+      res.status(500).json({ error: "Failed to release task" });
       return;
     }
 
     // Broadcast release event
-    emitTaskExecutorEvent('task:released', {
+    emitTaskExecutorEvent("task:released", {
       taskId: taskExecution.task_id,
       taskExecutionId,
       agentId,
@@ -304,12 +315,12 @@ router.post('/release', async (req: Request, res: Response): Promise<void> => {
 
     res.json({
       success: true,
-      message: 'Task released back to queue',
+      message: "Task released back to queue",
       taskId: taskExecution.task_id,
     });
   } catch (error) {
-    console.error('[TaskAssignment] Error releasing task:', error);
-    res.status(500).json({ error: 'Failed to release task' });
+    console.error("[TaskAssignment] Error releasing task:", error);
+    res.status(500).json({ error: "Failed to release task" });
   }
 });
 
@@ -329,7 +340,7 @@ router.post('/release', async (req: Request, res: Response): Promise<void> => {
  *   generatedCode?: string;
  * }
  */
-router.post('/complete', async (req: Request, res: Response): Promise<void> => {
+router.post("/complete", async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       taskExecutionId,
@@ -344,7 +355,9 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
     }: CompleteRequest = req.body;
 
     if (!taskExecutionId || !agentId || success === undefined) {
-      res.status(400).json({ error: 'taskExecutionId, agentId, and success are required' });
+      res
+        .status(400)
+        .json({ error: "taskExecutionId, agentId, and success are required" });
       return;
     }
 
@@ -358,16 +371,16 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
         started_at: string;
       }>(
         `SELECT id, task_id, build_id, started_at FROM task_executions WHERE id = ?`,
-        [taskExecutionId]
+        [taskExecutionId],
       );
 
       if (!taskExecution) {
-        res.status(404).json({ error: 'Task execution not found' });
+        res.status(404).json({ error: "Task execution not found" });
         return;
       }
     } catch (error) {
-      console.error('[TaskAssignment] Error getting task execution:', error);
-      res.status(500).json({ error: 'Failed to get task execution' });
+      console.error("[TaskAssignment] Error getting task execution:", error);
+      res.status(500).json({ error: "Failed to get task execution" });
       return;
     }
 
@@ -377,7 +390,7 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
     const durationMs = endTime - startTime;
 
     // Update task execution with completion data
-    const finalStatus = success ? 'completed' : 'failed';
+    const finalStatus = success ? "completed" : "failed";
 
     try {
       await run(
@@ -400,7 +413,7 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
           validationOutput || null,
           validationSuccess !== undefined ? (validationSuccess ? 1 : 0) : null,
           taskExecutionId,
-        ]
+        ],
       );
 
       // Update build execution counters
@@ -410,16 +423,16 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
              tasks_failed = tasks_failed + ?,
              updated_at = datetime('now')
          WHERE id = ?`,
-        [success ? 1 : 0, success ? 0 : 1, taskExecution.build_id]
+        [success ? 1 : 0, success ? 0 : 1, taskExecution.build_id],
       );
     } catch (error) {
-      console.error('[TaskAssignment] Error completing task:', error);
-      res.status(500).json({ error: 'Failed to complete task' });
+      console.error("[TaskAssignment] Error completing task:", error);
+      res.status(500).json({ error: "Failed to complete task" });
       return;
     }
 
     // Broadcast completion event
-    emitTaskExecutorEvent('task:completed', {
+    emitTaskExecutorEvent("task:completed", {
       taskId: taskExecution.task_id,
       taskExecutionId,
       agentId,
@@ -430,14 +443,14 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
 
     res.json({
       success: true,
-      message: `Task ${success ? 'completed successfully' : 'failed'}`,
+      message: `Task ${success ? "completed successfully" : "failed"}`,
       taskId: taskExecution.task_id,
       durationMs,
       status: finalStatus,
     });
   } catch (error) {
-    console.error('[TaskAssignment] Error completing task:', error);
-    res.status(500).json({ error: 'Failed to complete task' });
+    console.error("[TaskAssignment] Error completing task:", error);
+    res.status(500).json({ error: "Failed to complete task" });
   }
 });
 
@@ -450,9 +463,9 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
  *   minPriority?: 'P1' | 'P2' | 'P3' | 'P4'
  *   limit?: number
  */
-router.get('/available', async (req: Request, res: Response): Promise<void> => {
+router.get("/available", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { buildId, minPriority = 'P4', limit = '10' } = req.query;
+    const { buildId, minPriority = "P4", limit = "10" } = req.query;
     const limitNum = parseInt(limit as string, 10);
 
     // Get the active build or use provided buildId
@@ -462,7 +475,7 @@ router.get('/available', async (req: Request, res: Response): Promise<void> => {
         const activeBuild = await getOne<{ id: string }>(
           `SELECT id FROM build_executions
            WHERE status IN ('pending', 'running', 'paused')
-           ORDER BY created_at DESC LIMIT 1`
+           ORDER BY created_at DESC LIMIT 1`,
         );
         targetBuildId = activeBuild?.id;
       } catch (error) {
@@ -480,25 +493,25 @@ router.get('/available', async (req: Request, res: Response): Promise<void> => {
     try {
       build = await getOne<{ spec_path: string }>(
         `SELECT spec_path FROM build_executions WHERE id = ?`,
-        [targetBuildId]
+        [targetBuildId],
       );
 
       if (!build) {
-        res.status(404).json({ error: 'Build not found' });
+        res.status(404).json({ error: "Build not found" });
         return;
       }
     } catch (error) {
-      res.status(500).json({ error: 'Failed to get build' });
+      res.status(500).json({ error: "Failed to get build" });
       return;
     }
 
     // Load tasks
-    const tasksPath = build.spec_path.replace('spec.md', 'tasks.md');
+    const tasksPath = build.spec_path.replace("spec.md", "tasks.md");
     let taskList: TaskList;
     try {
       taskList = parseTaskList(tasksPath);
     } catch (error) {
-      res.status(500).json({ error: 'Failed to parse task list' });
+      res.status(500).json({ error: "Failed to parse task list" });
       return;
     }
 
@@ -508,9 +521,9 @@ router.get('/available', async (req: Request, res: Response): Promise<void> => {
       const claimed = await query<{ task_id: string }>(
         `SELECT task_id FROM task_executions
          WHERE build_id = ? AND status IN ('running', 'completed')`,
-        [targetBuildId]
+        [targetBuildId],
       );
-      claimedTaskIds = new Set(claimed.map(t => t.task_id));
+      claimedTaskIds = new Set(claimed.map((t) => t.task_id));
     } catch (error) {
       claimedTaskIds = new Set();
     }
@@ -518,15 +531,19 @@ router.get('/available', async (req: Request, res: Response): Promise<void> => {
     // Filter and sort available tasks
     const priorityOrder = { P1: 1, P2: 2, P3: 3, P4: 4 };
     const availableTasks = taskList.tasks
-      .filter(task => {
-        if (task.status !== 'pending') return false;
+      .filter((task) => {
+        if (task.status !== "pending") return false;
         if (claimedTaskIds.has(task.id)) return false;
-        if (priorityOrder[task.priority] > priorityOrder[minPriority as 'P1' | 'P2' | 'P3' | 'P4']) return false;
+        if (
+          priorityOrder[task.priority] >
+          priorityOrder[minPriority as "P1" | "P2" | "P3" | "P4"]
+        )
+          return false;
         return true;
       })
       .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
       .slice(0, limitNum)
-      .map(task => ({
+      .map((task) => ({
         id: task.id,
         description: task.description,
         priority: task.priority,
@@ -540,8 +557,8 @@ router.get('/available', async (req: Request, res: Response): Promise<void> => {
       buildId: targetBuildId,
     });
   } catch (error) {
-    console.error('[TaskAssignment] Error getting available tasks:', error);
-    res.status(500).json({ error: 'Failed to get available tasks' });
+    console.error("[TaskAssignment] Error getting available tasks:", error);
+    res.status(500).json({ error: "Failed to get available tasks" });
   }
 });
 
@@ -549,24 +566,27 @@ router.get('/available', async (req: Request, res: Response): Promise<void> => {
  * GET /api/task-assignment/claimed/:agentId
  * Get tasks currently claimed by a specific agent
  */
-router.get('/claimed/:agentId', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { agentId } = req.params;
+router.get(
+  "/claimed/:agentId",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { agentId } = req.params;
 
-    // For now, we don't have an agent assignment table,
-    // so this would need to be enhanced when we add agent tracking
-    // Currently returning empty as a placeholder
+      // For now, we don't have an agent assignment table,
+      // so this would need to be enhanced when we add agent tracking
+      // Currently returning empty as a placeholder
 
-    res.json({
-      agentId,
-      claimed: [],
-      total: 0,
-      message: 'Agent tracking not yet implemented',
-    });
-  } catch (error) {
-    console.error('[TaskAssignment] Error getting claimed tasks:', error);
-    res.status(500).json({ error: 'Failed to get claimed tasks' });
-  }
-});
+      res.json({
+        agentId,
+        claimed: [],
+        total: 0,
+        message: "Agent tracking not yet implemented",
+      });
+    } catch (error) {
+      console.error("[TaskAssignment] Error getting claimed tasks:", error);
+      res.status(500).json({ error: "Failed to get claimed tasks" });
+    }
+  },
+);
 
 export default router;

@@ -2,14 +2,14 @@
  * Orchestrator Agent
  * Routes inputs and manages flow between agents
  */
-import { client } from '../utils/anthropic-client.js';
-import { query } from '../database/db.js';
-import { CostTracker } from '../utils/cost-tracker.js';
-import { EvaluationParseError } from '../utils/errors.js';
-import { logInfo, logDebug } from '../utils/logger.js';
-import { getConfig } from '../config/index.js';
+import { client } from "../utils/anthropic-client.js";
+import { query } from "../database/db.js";
+import { CostTracker } from "../utils/cost-tracker.js";
+import { EvaluationParseError } from "../utils/errors.js";
+import { logInfo, logDebug } from "../utils/logger.js";
+import { getConfig } from "../config/index.js";
 
-export type IdeaClassification = 'NEW' | 'EXISTING' | 'AMBIGUOUS';
+export type IdeaClassification = "NEW" | "EXISTING" | "AMBIGUOUS";
 
 export interface ClassificationResult {
   type: IdeaClassification;
@@ -19,7 +19,7 @@ export interface ClassificationResult {
 }
 
 export interface WorkflowAction {
-  action: 'CREATE_NEW' | 'LINK_EXISTING' | 'ASK_USER' | 'UPDATE_EXISTING';
+  action: "CREATE_NEW" | "LINK_EXISTING" | "ASK_USER" | "UPDATE_EXISTING";
   ideaSlug?: string;
   message?: string;
 }
@@ -52,7 +52,7 @@ Respond in JSON:
  */
 export async function classifyInput(
   userInput: string,
-  costTracker: CostTracker
+  costTracker: CostTracker,
 ): Promise<ClassificationResult> {
   const config = getConfig();
 
@@ -61,44 +61,50 @@ export async function classifyInput(
     slug: string;
     title: string;
     summary: string | null;
-  }>('SELECT slug, title, summary FROM ideas ORDER BY updated_at DESC LIMIT 50');
+  }>(
+    "SELECT slug, title, summary FROM ideas ORDER BY updated_at DESC LIMIT 50",
+  );
 
   const existingList = existingIdeas
-    .map(i => `- ${i.slug}: "${i.title}" - ${i.summary || 'No summary'}`)
-    .join('\n');
+    .map((i) => `- ${i.slug}: "${i.title}" - ${i.summary || "No summary"}`)
+    .join("\n");
 
   const response = await client.messages.create({
     model: config.model,
     max_tokens: 512,
     system: ORCHESTRATOR_SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `User input: "${userInput}"
+    messages: [
+      {
+        role: "user",
+        content: `User input: "${userInput}"
 
 Existing ideas:
-${existingList || '(none)'}
+${existingList || "(none)"}
 
-Classify this input.`
-    }]
+Classify this input.`,
+      },
+    ],
   });
 
-  costTracker.track(response.usage, 'orchestrator-classify');
-  logDebug('Input classified by orchestrator');
+  costTracker.track(response.usage, "orchestrator-classify");
+  logDebug("Input classified by orchestrator");
 
   const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new EvaluationParseError('Unexpected response type from orchestrator');
+  if (content.type !== "text") {
+    throw new EvaluationParseError(
+      "Unexpected response type from orchestrator",
+    );
   }
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new EvaluationParseError('Could not parse orchestrator JSON');
+    throw new EvaluationParseError("Could not parse orchestrator JSON");
   }
 
   try {
     return JSON.parse(jsonMatch[0]);
   } catch {
-    throw new EvaluationParseError('Invalid JSON from orchestrator');
+    throw new EvaluationParseError("Invalid JSON from orchestrator");
   }
 }
 
@@ -107,26 +113,26 @@ Classify this input.`
  */
 export function routeToWorkflow(
   classification: ClassificationResult,
-  _userInput: string
+  _userInput: string,
 ): WorkflowAction {
   switch (classification.type) {
-    case 'NEW':
-      logInfo('Creating new idea...');
-      return { action: 'CREATE_NEW' };
+    case "NEW":
+      logInfo("Creating new idea...");
+      return { action: "CREATE_NEW" };
 
-    case 'EXISTING':
+    case "EXISTING":
       logInfo(`Linking to existing idea: ${classification.matchedSlug}`);
       return {
-        action: 'UPDATE_EXISTING',
+        action: "UPDATE_EXISTING",
         ideaSlug: classification.matchedSlug,
-        message: `This appears to be related to "${classification.matchedSlug}". ${classification.reasoning}`
+        message: `This appears to be related to "${classification.matchedSlug}". ${classification.reasoning}`,
       };
 
-    case 'AMBIGUOUS':
-      logInfo('Need user clarification...');
+    case "AMBIGUOUS":
+      logInfo("Need user clarification...");
       return {
-        action: 'ASK_USER',
-        message: formatAmbiguousChoices(classification)
+        action: "ASK_USER",
+        message: formatAmbiguousChoices(classification),
       };
 
     default:
@@ -138,9 +144,7 @@ export function routeToWorkflow(
  * Format ambiguous choices for user display
  */
 function formatAmbiguousChoices(classification: ClassificationResult): string {
-  const lines: string[] = [
-    'Related ideas found:\n'
-  ];
+  const lines: string[] = ["Related ideas found:\n"];
 
   if (classification.candidates) {
     classification.candidates.forEach((c, i) => {
@@ -149,10 +153,12 @@ function formatAmbiguousChoices(classification: ClassificationResult): string {
     });
   }
 
-  lines.push(`${(classification.candidates?.length || 0) + 1}. [New idea] Create as standalone idea`);
-  lines.push('\nSelect an option:');
+  lines.push(
+    `${(classification.candidates?.length || 0) + 1}. [New idea] Create as standalone idea`,
+  );
+  lines.push("\nSelect an option:");
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -161,14 +167,14 @@ function formatAmbiguousChoices(classification: ClassificationResult): string {
 export interface EvaluationFlowState {
   ideaSlug: string;
   ideaId: string;
-  currentPhase: 'preflight' | 'initial' | 'debate' | 'synthesis' | 'complete';
+  currentPhase: "preflight" | "initial" | "debate" | "synthesis" | "complete";
   hasExistingEvaluation: boolean;
   isStale: boolean;
   lastEvaluatedAt?: string;
 }
 
 export async function determineEvaluationFlow(
-  ideaSlug: string
+  ideaSlug: string,
 ): Promise<EvaluationFlowState> {
   // Get idea details
   const idea = await query<{
@@ -176,7 +182,10 @@ export async function determineEvaluationFlow(
     slug: string;
     lifecycle_stage: string;
     content_hash: string | null;
-  }>('SELECT id, slug, lifecycle_stage, content_hash FROM ideas WHERE slug = ?', [ideaSlug]);
+  }>(
+    "SELECT id, slug, lifecycle_stage, content_hash FROM ideas WHERE slug = ?",
+    [ideaSlug],
+  );
 
   if (idea.length === 0) {
     throw new Error(`Idea not found: ${ideaSlug}`);
@@ -191,19 +200,24 @@ export async function determineEvaluationFlow(
   }>(
     `SELECT created_at, content_hash FROM evaluation_sessions
      WHERE idea_id = ? ORDER BY created_at DESC LIMIT 1`,
-    [ideaData.id]
+    [ideaData.id],
   );
 
   const hasExisting = existingEval.length > 0;
-  const isStale = hasExisting && existingEval[0].content_hash !== ideaData.content_hash;
+  const isStale =
+    hasExisting && existingEval[0].content_hash !== ideaData.content_hash;
 
   return {
     ideaSlug,
     ideaId: ideaData.id,
-    currentPhase: hasExisting ? (isStale ? 'preflight' : 'complete') : 'preflight',
+    currentPhase: hasExisting
+      ? isStale
+        ? "preflight"
+        : "complete"
+      : "preflight",
     hasExistingEvaluation: hasExisting,
     isStale,
-    lastEvaluatedAt: existingEval[0]?.created_at
+    lastEvaluatedAt: existingEval[0]?.created_at,
   };
 }
 
@@ -216,7 +230,7 @@ export interface CostEstimate {
   debate: number;
   synthesis: number;
   total: number;
-  confidence: 'low' | 'medium' | 'high';
+  confidence: "low" | "medium" | "high";
 }
 
 export function estimateEvaluationCost(): CostEstimate {
@@ -237,16 +251,23 @@ export function estimateEvaluationCost(): CostEstimate {
   const costPerToken = (15 * 0.4 + 75 * 0.6) / 1_000_000;
 
   const initialTokens = categories * TOKENS_PER_CATEGORY;
-  const redTeamTokens = criteria * challengesPerCriterion * TOKENS_PER_CHALLENGE;
-  const debateTokens = criteria * challengesPerCriterion * roundsPerChallenge * TOKENS_PER_DEBATE_ROUND;
+  const redTeamTokens =
+    criteria * challengesPerCriterion * TOKENS_PER_CHALLENGE;
+  const debateTokens =
+    criteria *
+    challengesPerCriterion *
+    roundsPerChallenge *
+    TOKENS_PER_DEBATE_ROUND;
 
   return {
     initialEvaluation: initialTokens * costPerToken,
     redTeam: redTeamTokens * costPerToken,
     debate: debateTokens * costPerToken,
     synthesis: TOKENS_SYNTHESIS * costPerToken,
-    total: (initialTokens + redTeamTokens + debateTokens + TOKENS_SYNTHESIS) * costPerToken,
-    confidence: 'medium'
+    total:
+      (initialTokens + redTeamTokens + debateTokens + TOKENS_SYNTHESIS) *
+      costPerToken,
+    confidence: "medium",
   };
 }
 

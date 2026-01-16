@@ -11,19 +11,22 @@
  * Part of: PTE-096 to PTE-103
  */
 
-import { EventEmitter } from 'events';
-import evaluationQueueManager from '../evaluation-queue-manager.js';
-import taskCreationService from '../task-creation-service.js';
-import taskAnalysisPipeline from '../task-analysis-pipeline.js';
-import autoGroupingEngine from '../auto-grouping-engine.js';
-import buildAgentOrchestrator from '../build-agent-orchestrator.js';
-import parallelismCalculator from '../parallelism-calculator.js';
+import { EventEmitter } from "events";
+import evaluationQueueManager from "../evaluation-queue-manager.js";
+import taskCreationService from "../task-creation-service.js";
+import taskAnalysisPipeline from "../task-analysis-pipeline.js";
+import autoGroupingEngine from "../auto-grouping-engine.js";
+import buildAgentOrchestrator from "../build-agent-orchestrator.js";
+import parallelismCalculator from "../parallelism-calculator.js";
 import naturalLanguageParser, {
   ParsedTaskIntent,
   ConfirmationMessage,
-} from '../natural-language-parser.js';
-import type { ReceivedMessage, ReceivedCallback } from '../../../communication/telegram-receiver.js';
-import type { TaskCategory } from '../../../../types/task-agent.js';
+} from "../natural-language-parser.js";
+import type {
+  ReceivedMessage,
+  ReceivedCallback,
+} from "../../../communication/telegram-receiver.js";
+import type { TaskCategory } from "../../../../types/task-agent.js";
 
 // Pending task confirmations (chatId -> confirmation state)
 interface PendingConfirmation {
@@ -60,24 +63,24 @@ export class TaskAgentTelegramHandler extends EventEmitter {
     }
 
     // Handle commands
-    if (text.startsWith('/newtask')) {
+    if (text.startsWith("/newtask")) {
       return this.handleNewTask(chatId, text.slice(8).trim());
     }
 
-    if (text.startsWith('/queue')) {
+    if (text.startsWith("/queue")) {
       return this.handleQueueStatus();
     }
 
-    if (text.startsWith('/suggest')) {
+    if (text.startsWith("/suggest")) {
       return this.handleSuggestions();
     }
 
-    if (text.startsWith('/parallel')) {
+    if (text.startsWith("/parallel")) {
       const args = text.slice(9).trim();
       return this.handleParallelStatus(args);
     }
 
-    if (text.startsWith('/agents')) {
+    if (text.startsWith("/agents")) {
       return this.handleAgentsStatus();
     }
 
@@ -94,42 +97,42 @@ export class TaskAgentTelegramHandler extends EventEmitter {
    */
   async handleCallback(callback: ReceivedCallback): Promise<string | null> {
     const { data, chatId } = callback;
-    const parts = data.split(':');
+    const parts = data.split(":");
 
-    if (parts[0] === 'task') {
-      if (parts[1] === 'confirm' && parts[2]) {
+    if (parts[0] === "task") {
+      if (parts[1] === "confirm" && parts[2]) {
         const pending = pendingConfirmations.get(chatId);
         if (pending) {
           return this.createTaskFromIntent(chatId, pending.intent);
         }
       }
 
-      if (parts[1] === 'cancel') {
+      if (parts[1] === "cancel") {
         pendingConfirmations.delete(chatId);
-        return '❌ Task creation cancelled.';
+        return "❌ Task creation cancelled.";
       }
 
-      if (parts[1] === 'edit') {
+      if (parts[1] === "edit") {
         return '✏️ Please type your corrections (e.g., "title: New Title" or "category: bug")';
       }
     }
 
-    if (parts[0] === 'grouping') {
-      if (parts[1] === 'accept' && parts[2]) {
+    if (parts[0] === "grouping") {
+      if (parts[1] === "accept" && parts[2]) {
         try {
           await autoGroupingEngine.acceptSuggestion(parts[2]);
-          return '✅ Task list created! Tasks have been grouped together.';
+          return "✅ Task list created! Tasks have been grouped together.";
         } catch (err) {
-          return `❌ Failed to accept suggestion: ${err instanceof Error ? err.message : 'Unknown error'}`;
+          return `❌ Failed to accept suggestion: ${err instanceof Error ? err.message : "Unknown error"}`;
         }
       }
 
-      if (parts[1] === 'reject' && parts[2]) {
+      if (parts[1] === "reject" && parts[2]) {
         try {
           await autoGroupingEngine.rejectSuggestion(parts[2]);
-          return '⏭️ Suggestion rejected. Tasks remain in Evaluation Queue.';
+          return "⏭️ Suggestion rejected. Tasks remain in Evaluation Queue.";
         } catch (err) {
-          return `❌ Failed to reject suggestion: ${err instanceof Error ? err.message : 'Unknown error'}`;
+          return `❌ Failed to reject suggestion: ${err instanceof Error ? err.message : "Unknown error"}`;
         }
       }
     }
@@ -140,7 +143,10 @@ export class TaskAgentTelegramHandler extends EventEmitter {
   /**
    * Handle /newtask command
    */
-  private async handleNewTask(chatId: string, description: string): Promise<string> {
+  private async handleNewTask(
+    chatId: string,
+    description: string,
+  ): Promise<string> {
     if (!description) {
       return `📝 **Create New Task**
 
@@ -157,7 +163,10 @@ Or just type your task description and I'll help you create it.`;
   /**
    * Handle natural language task creation
    */
-  private async handleNaturalLanguageTask(chatId: string, text: string): Promise<string> {
+  private async handleNaturalLanguageTask(
+    chatId: string,
+    text: string,
+  ): Promise<string> {
     try {
       const intent = await naturalLanguageParser.parseTaskIntent(text);
 
@@ -172,15 +181,21 @@ Or just type your task description and I'll help you create it.`;
         timestamp: new Date(),
       });
 
-      const confirmation = naturalLanguageParser.generateConfirmation(intent, text);
+      const confirmation = naturalLanguageParser.generateConfirmation(
+        intent,
+        text,
+      );
 
       // Add callback buttons
       return `${confirmation.text}
 
 [Create Task](callback:task:confirm:${chatId}) | [Edit](callback:task:edit) | [Cancel](callback:task:cancel)`;
     } catch (err) {
-      console.error('[TaskAgentTelegram] Natural language parsing failed:', err);
-      return `❌ Failed to parse task: ${err instanceof Error ? err.message : 'Unknown error'}`;
+      console.error(
+        "[TaskAgentTelegram] Natural language parsing failed:",
+        err,
+      );
+      return `❌ Failed to parse task: ${err instanceof Error ? err.message : "Unknown error"}`;
     }
   }
 
@@ -190,7 +205,7 @@ Or just type your task description and I'll help you create it.`;
   private async handleConfirmationResponse(
     chatId: string,
     text: string,
-    pending: PendingConfirmation
+    pending: PendingConfirmation,
   ): Promise<string> {
     if (naturalLanguageParser.isConfirmation(text)) {
       return this.createTaskFromIntent(chatId, pending.intent);
@@ -198,13 +213,16 @@ Or just type your task description and I'll help you create it.`;
 
     if (naturalLanguageParser.isRejection(text)) {
       pendingConfirmations.delete(chatId);
-      return '❌ Task creation cancelled.';
+      return "❌ Task creation cancelled.";
     }
 
     // Check for edits
     const edits = naturalLanguageParser.parseEditIntent(text);
     if (edits) {
-      const updatedIntent = naturalLanguageParser.applyEdits(pending.intent, edits);
+      const updatedIntent = naturalLanguageParser.applyEdits(
+        pending.intent,
+        edits,
+      );
       pendingConfirmations.set(chatId, {
         ...pending,
         intent: updatedIntent,
@@ -212,7 +230,7 @@ Or just type your task description and I'll help you create it.`;
 
       const confirmation = naturalLanguageParser.generateConfirmation(
         updatedIntent,
-        pending.originalInput
+        pending.originalInput,
       );
       return `✏️ **Updated:**\n\n${confirmation.text}`;
     }
@@ -224,7 +242,10 @@ Or just type your task description and I'll help you create it.`;
   /**
    * Create task from parsed intent
    */
-  private async createTaskFromIntent(chatId: string, intent: ParsedTaskIntent): Promise<string> {
+  private async createTaskFromIntent(
+    chatId: string,
+    intent: ParsedTaskIntent,
+  ): Promise<string> {
     try {
       pendingConfirmations.delete(chatId);
 
@@ -251,8 +272,8 @@ Or just type your task description and I'll help you create it.`;
 
       return response;
     } catch (err) {
-      console.error('[TaskAgentTelegram] Task creation failed:', err);
-      return `❌ Failed to create task: ${err instanceof Error ? err.message : 'Unknown error'}`;
+      console.error("[TaskAgentTelegram] Task creation failed:", err);
+      return `❌ Failed to create task: ${err instanceof Error ? err.message : "Unknown error"}`;
     }
   }
 
@@ -275,8 +296,8 @@ Or just type your task description and I'll help you create it.`;
       if (tasks.length > 0) {
         response += `\n\n📝 **Recent Tasks:**`;
         for (const task of tasks.slice(0, 5)) {
-          const staleIcon = task.isStale ? '⚠️' : '';
-          response += `\n• ${staleIcon} \`${task.displayId}\`: ${task.title.substring(0, 40)}${task.title.length > 40 ? '...' : ''}`;
+          const staleIcon = task.isStale ? "⚠️" : "";
+          response += `\n• ${staleIcon} \`${task.displayId}\`: ${task.title.substring(0, 40)}${task.title.length > 40 ? "..." : ""}`;
         }
         if (tasks.length > 5) {
           response += `\n\n_...and ${tasks.length - 5} more_`;
@@ -291,8 +312,8 @@ Or just type your task description and I'll help you create it.`;
 
       return response;
     } catch (err) {
-      console.error('[TaskAgentTelegram] Queue status failed:', err);
-      return `❌ Failed to get queue status: ${err instanceof Error ? err.message : 'Unknown error'}`;
+      console.error("[TaskAgentTelegram] Queue status failed:", err);
+      return `❌ Failed to get queue status: ${err instanceof Error ? err.message : "Unknown error"}`;
     }
   }
 
@@ -319,7 +340,7 @@ No grouping suggestions at this time.
         response += `📁 **${suggestion.suggestedName}**
 • Tasks: ${suggestion.suggestedTasks.length}
 • Score: ${Math.round(score * 100)}%
-• Reason: ${suggestion.groupingReason.substring(0, 80)}${suggestion.groupingReason.length > 80 ? '...' : ''}
+• Reason: ${suggestion.groupingReason.substring(0, 80)}${suggestion.groupingReason.length > 80 ? "..." : ""}
 
 [Accept](callback:grouping:accept:${suggestion.id}) | [Reject](callback:grouping:reject:${suggestion.id})\n\n`;
       }
@@ -330,8 +351,8 @@ No grouping suggestions at this time.
 
       return response;
     } catch (err) {
-      console.error('[TaskAgentTelegram] Suggestions failed:', err);
-      return `❌ Failed to get suggestions: ${err instanceof Error ? err.message : 'Unknown error'}`;
+      console.error("[TaskAgentTelegram] Suggestions failed:", err);
+      return `❌ Failed to get suggestions: ${err instanceof Error ? err.message : "Unknown error"}`;
     }
   }
 
@@ -352,7 +373,8 @@ No grouping suggestions at this time.
       }
 
       // Show specific task list parallelism
-      const parallelismInfo = await parallelismCalculator.getTaskListParallelism(taskListId);
+      const parallelismInfo =
+        await parallelismCalculator.getTaskListParallelism(taskListId);
 
       if (!parallelismInfo) {
         return `❓ Task list not found or no parallelism data available.`;
@@ -369,20 +391,20 @@ No grouping suggestions at this time.
 
       for (const wave of parallelismInfo.waves.slice(0, 5)) {
         const statusIcon =
-          wave.status === 'completed'
-            ? '✅'
-            : wave.status === 'in_progress'
-            ? '🔄'
-            : wave.status === 'failed'
-            ? '❌'
-            : '⏳';
+          wave.status === "completed"
+            ? "✅"
+            : wave.status === "in_progress"
+              ? "🔄"
+              : wave.status === "failed"
+                ? "❌"
+                : "⏳";
         response += `\n• ${statusIcon} Wave ${wave.waveNumber}: ${wave.taskCount} tasks`;
       }
 
       return response;
     } catch (err) {
-      console.error('[TaskAgentTelegram] Parallel status failed:', err);
-      return `❌ Failed to get parallelism status: ${err instanceof Error ? err.message : 'Unknown error'}`;
+      console.error("[TaskAgentTelegram] Parallel status failed:", err);
+      return `❌ Failed to get parallelism status: ${err instanceof Error ? err.message : "Unknown error"}`;
     }
   }
 
@@ -405,24 +427,26 @@ Start execution on a task list to spawn Build Agents.`;
 
       for (const agent of agents.slice(0, 10)) {
         const statusIcon =
-          agent.status === 'running'
-            ? '🟢'
-            : agent.status === 'spawning'
-            ? '🟡'
-            : agent.status === 'completing'
-            ? '✅'
-            : agent.status === 'terminated'
-            ? '❌'
-            : '⚪';
+          agent.status === "running"
+            ? "🟢"
+            : agent.status === "spawning"
+              ? "🟡"
+              : agent.status === "completing"
+                ? "✅"
+                : agent.status === "terminated"
+                  ? "❌"
+                  : "⚪";
 
         const heartbeatAge = agent.lastHeartbeatAt
-          ? Math.floor((Date.now() - new Date(agent.lastHeartbeatAt).getTime()) / 1000)
+          ? Math.floor(
+              (Date.now() - new Date(agent.lastHeartbeatAt).getTime()) / 1000,
+            )
           : null;
-        const healthWarning = heartbeatAge && heartbeatAge > 60 ? ' ⚠️' : '';
+        const healthWarning = heartbeatAge && heartbeatAge > 60 ? " ⚠️" : "";
 
         response += `${statusIcon} **Agent ${agent.id.slice(0, 8)}**${healthWarning}
    Status: ${agent.status}
-   ${heartbeatAge !== null ? `Heartbeat: ${heartbeatAge}s ago` : 'No heartbeat'}\n\n`;
+   ${heartbeatAge !== null ? `Heartbeat: ${heartbeatAge}s ago` : "No heartbeat"}\n\n`;
       }
 
       if (agents.length > 10) {
@@ -431,8 +455,8 @@ Start execution on a task list to spawn Build Agents.`;
 
       return response;
     } catch (err) {
-      console.error('[TaskAgentTelegram] Agents status failed:', err);
-      return `❌ Failed to get agent status: ${err instanceof Error ? err.message : 'Unknown error'}`;
+      console.error("[TaskAgentTelegram] Agents status failed:", err);
+      return `❌ Failed to get agent status: ${err instanceof Error ? err.message : "Unknown error"}`;
     }
   }
 
@@ -441,7 +465,7 @@ Start execution on a task list to spawn Build Agents.`;
    */
   private looksLikeTask(text: string): boolean {
     // Skip commands
-    if (text.startsWith('/')) return false;
+    if (text.startsWith("/")) return false;
 
     // Skip very short messages
     if (text.length < 10) return false;

@@ -10,7 +10,7 @@
 
 ## Overview
 
-Minimal bootstrap to get Task Agent self-hosting. Once complete, all remaining TAK-* tasks will be managed via the database.
+Minimal bootstrap to get Task Agent self-hosting. Once complete, all remaining TAK-\* tasks will be managed via the database.
 
 ### Task Naming Convention
 
@@ -23,6 +23,7 @@ For bootstrap: `NA-BOOT-INF-{NUMBER}` (infrastructure tasks for bootstrap)
 ## Phase 1: Database Schema
 
 ### NA-BOOT-INF-001
+
 ```yaml
 id: NA-BOOT-INF-001
 phase: database
@@ -147,6 +148,7 @@ acceptance_criteria:
 ---
 
 ### NA-BOOT-INF-002
+
 ```yaml
 id: NA-BOOT-INF-002
 phase: database
@@ -233,6 +235,7 @@ acceptance_criteria:
 ---
 
 ### NA-BOOT-INF-003
+
 ```yaml
 id: NA-BOOT-INF-003
 phase: database
@@ -331,6 +334,7 @@ acceptance_criteria:
 ---
 
 ### NA-BOOT-INF-004
+
 ```yaml
 id: NA-BOOT-INF-004
 phase: database
@@ -412,6 +416,7 @@ acceptance_criteria:
 ---
 
 ### NA-BOOT-INF-005
+
 ```yaml
 id: NA-BOOT-INF-005
 phase: database
@@ -494,6 +499,7 @@ acceptance_criteria:
 ---
 
 ### NA-BOOT-INF-006
+
 ```yaml
 id: NA-BOOT-INF-006
 phase: database
@@ -527,9 +533,9 @@ validation:
 codebase_tests:
   - "npm run migrate"
   - "sqlite3 database/ideas.db '.tables'"
-  - "sqlite3 database/ideas.db \"INSERT INTO tasks (id, title, description, category, created_by) VALUES ('TEST-001', 'Test Task', 'Test description for verification', 'infrastructure', 'test')\""
-  - "sqlite3 database/ideas.db \"SELECT * FROM tasks WHERE id = 'TEST-001'\""
-  - "sqlite3 database/ideas.db \"DELETE FROM tasks WHERE id = 'TEST-001'\""
+  - 'sqlite3 database/ideas.db "INSERT INTO tasks (id, title, description, category, created_by) VALUES (''TEST-001'', ''Test Task'', ''Test description for verification'', ''infrastructure'', ''test'')"'
+  - 'sqlite3 database/ideas.db "SELECT * FROM tasks WHERE id = ''TEST-001''"'
+  - 'sqlite3 database/ideas.db "DELETE FROM tasks WHERE id = ''TEST-001''"'
 
 api_tests: []
 ui_tests: []
@@ -553,6 +559,7 @@ acceptance_criteria:
 ## Phase 2: TypeScript Types
 
 ### NA-BOOT-INF-007
+
 ```yaml
 id: NA-BOOT-INF-007
 phase: types
@@ -754,6 +761,7 @@ acceptance_criteria:
 ---
 
 ### NA-BOOT-INF-008
+
 ```yaml
 id: NA-BOOT-INF-008
 phase: types
@@ -869,6 +877,7 @@ acceptance_criteria:
 ## Phase 3: API Routes
 
 ### NA-BOOT-INF-009
+
 ```yaml
 id: NA-BOOT-INF-009
 phase: api
@@ -906,7 +915,7 @@ codebase_tests:
   - "npx tsc --noEmit"
 
 api_tests:
-  - "curl -X POST http://localhost:3001/api/v2/tasks -H 'Content-Type: application/json' -d '{\"title\":\"Test\",\"description\":\"Test description here\",\"category\":\"infrastructure\"}'"
+  - 'curl -X POST http://localhost:3001/api/v2/tasks -H ''Content-Type: application/json'' -d ''{"title":"Test","description":"Test description here","category":"infrastructure"}'''
   - "curl http://localhost:3001/api/v2/tasks"
 
 ui_tests: []
@@ -925,6 +934,7 @@ acceptance_criteria:
 ---
 
 ### NA-BOOT-INF-010
+
 ```yaml
 id: NA-BOOT-INF-010
 phase: api
@@ -961,7 +971,7 @@ codebase_tests:
   - "npx tsc --noEmit"
 
 api_tests:
-  - "curl -X POST http://localhost:3001/api/v2/task-lists -H 'Content-Type: application/json' -d '{\"name\":\"Test List\"}'"
+  - 'curl -X POST http://localhost:3001/api/v2/task-lists -H ''Content-Type: application/json'' -d ''{"name":"Test List"}'''
 
 ui_tests: []
 
@@ -978,6 +988,7 @@ acceptance_criteria:
 ---
 
 ### NA-BOOT-INF-011
+
 ```yaml
 id: NA-BOOT-INF-011
 phase: api
@@ -1038,6 +1049,7 @@ acceptance_criteria:
 ---
 
 ### NA-BOOT-INF-012
+
 ```yaml
 id: NA-BOOT-INF-012
 phase: api
@@ -1088,7 +1100,8 @@ acceptance_criteria:
 ## Phase 4: Import Script
 
 ### NA-BOOT-INF-013
-```yaml
+
+````yaml
 id: NA-BOOT-INF-013
 phase: api
 action: CREATE
@@ -1134,11 +1147,12 @@ acceptance_criteria:
   - "Creates tasks in database"
   - "Creates task list with all items"
   - "Dependencies created as relationships"
-```
+````
 
 ---
 
 ### NA-BOOT-INF-014
+
 ```yaml
 id: NA-BOOT-INF-014
 phase: api
@@ -1162,7 +1176,7 @@ requirements:
   - "Mark NA-BOOT-* tasks as completed"
 
 validation:
-  command: "sqlite3 database/ideas.db \"SELECT COUNT(*) FROM tasks WHERE id LIKE 'TAK-%'\""
+  command: 'sqlite3 database/ideas.db "SELECT COUNT(*) FROM tasks WHERE id LIKE ''TAK-%''"'
   expected: ">= 40 tasks"
 
 codebase_tests:
@@ -1192,13 +1206,13 @@ acceptance_criteria:
 
 ## Summary
 
-| Phase | Tasks | IDs |
-|-------|-------|-----|
-| Database | 6 | NA-BOOT-INF-001 to NA-BOOT-INF-006 |
-| Types | 2 | NA-BOOT-INF-007 to NA-BOOT-INF-008 |
-| API | 4 | NA-BOOT-INF-009 to NA-BOOT-INF-012 |
-| Import | 2 | NA-BOOT-INF-013 to NA-BOOT-INF-014 |
-| **Total** | **14** | |
+| Phase     | Tasks  | IDs                                |
+| --------- | ------ | ---------------------------------- |
+| Database  | 6      | NA-BOOT-INF-001 to NA-BOOT-INF-006 |
+| Types     | 2      | NA-BOOT-INF-007 to NA-BOOT-INF-008 |
+| API       | 4      | NA-BOOT-INF-009 to NA-BOOT-INF-012 |
+| Import    | 2      | NA-BOOT-INF-013 to NA-BOOT-INF-014 |
+| **Total** | **14** |                                    |
 
 ---
 
@@ -1249,7 +1263,8 @@ NA-BOOT-INF-005 (validation_rules) ────────────┤
 ## Post-Bootstrap
 
 After NA-BOOT-INF-014 completes:
-- All TAK-* tasks are in the database
+
+- All TAK-\* tasks are in the database
 - Task Agent can manage its own completion
 - New tasks created via API, not MD files
 - Single source of truth achieved

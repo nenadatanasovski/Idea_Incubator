@@ -8,8 +8,8 @@
  * e.g., getNestedValue({ user: { name: 'John' }}, 'user.name') => 'John'
  */
 function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-  return path.split('.').reduce((curr: unknown, key: string) => {
-    if (curr && typeof curr === 'object' && key in curr) {
+  return path.split(".").reduce((curr: unknown, key: string) => {
+    if (curr && typeof curr === "object" && key in curr) {
       return (curr as Record<string, unknown>)[key];
     }
     return undefined;
@@ -25,7 +25,10 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
  * @param data - The data object to pull values from
  * @returns The rendered string with placeholders replaced
  */
-export function renderTemplate(template: string, data: Record<string, unknown>): string {
+export function renderTemplate(
+  template: string,
+  data: Record<string, unknown>,
+): string {
   return template.replace(/\{\{(\w+(?:\.\w+)*)\}\}/g, (match, path) => {
     const value = getNestedValue(data, path);
     if (value !== undefined && value !== null) {
@@ -42,20 +45,23 @@ export function renderTemplate(template: string, data: Record<string, unknown>):
  */
 export function escapeHtml(text: string): string {
   const htmlEntities: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
   };
-  return text.replace(/[&<>"']/g, char => htmlEntities[char]);
+  return text.replace(/[&<>"']/g, (char) => htmlEntities[char]);
 }
 
 /**
  * Render template with HTML-escaped values
  * Safe for use in HTML email content
  */
-export function renderHtmlTemplate(template: string, data: Record<string, unknown>): string {
+export function renderHtmlTemplate(
+  template: string,
+  data: Record<string, unknown>,
+): string {
   return template.replace(/\{\{(\w+(?:\.\w+)*)\}\}/g, (match, path) => {
     const value = getNestedValue(data, path);
     if (value !== undefined && value !== null) {
@@ -69,7 +75,10 @@ export function renderHtmlTemplate(template: string, data: Record<string, unknow
  * Check if a template has all required variables defined
  * @returns Array of missing variable names
  */
-export function getMissingVariables(template: string, data: Record<string, unknown>): string[] {
+export function getMissingVariables(
+  template: string,
+  data: Record<string, unknown>,
+): string[] {
   const variables: string[] = [];
   const regex = /\{\{(\w+(?:\.\w+)*)\}\}/g;
   let match;

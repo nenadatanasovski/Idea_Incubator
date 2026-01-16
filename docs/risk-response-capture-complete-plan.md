@@ -11,6 +11,7 @@ Risk Generation → Display → User Response → Storage → Downstream Usage �
 ```
 
 **Current plan gaps:**
+
 - No feedback loop (user disagreements don't improve future risk generation)
 - No visibility of responses in later phases
 - No connection to Evaluate phase risks (R1-R5)
@@ -18,11 +19,13 @@ Risk Generation → Display → User Response → Storage → Downstream Usage �
 ### Question 2: What makes a risk "valid" in the first place?
 
 The AI generates risks based on:
+
 - Market analysis
 - Competitive landscape
 - Strategic approach chosen
 
 **But the AI doesn't know:**
+
 - User's insider knowledge
 - Specific market conditions user has observed
 - Relationships/partnerships user has
@@ -35,6 +38,7 @@ The AI generates risks based on:
 Current plan says: "Record their reasoning"
 
 But first principles says we should:
+
 1. Capture structured disagreement reason (not just freetext)
 2. Flag for potential AI learning/improvement
 3. Adjust confidence in related evaluations
@@ -46,6 +50,7 @@ But first principles says we should:
 **Evaluate Phase:** R1-R5 criteria risks (scored separately)
 
 These are disconnected. User's risk responses in Position should influence:
+
 - R2 (Market Risk) confidence
 - R3 (Technical Risk) if user has technical expertise
 - Overall evaluation context
@@ -69,32 +74,37 @@ These are disconnected. User's risk responses in Position should influence:
 
 ```typescript
 // Risk response options
-export type RiskResponseType = 'mitigate' | 'accept' | 'monitor' | 'disagree' | 'skip';
+export type RiskResponseType =
+  | "mitigate"
+  | "accept"
+  | "monitor"
+  | "disagree"
+  | "skip";
 
 // Structured disagreement reasons
 export type DisagreeReason =
-  | 'not_applicable'      // This doesn't apply to my situation
-  | 'already_addressed'   // Already handling this
-  | 'low_likelihood'      // AI overestimated the likelihood
-  | 'insider_knowledge'   // I have info the AI doesn't
-  | 'other';              // Custom reason
+  | "not_applicable" // This doesn't apply to my situation
+  | "already_addressed" // Already handling this
+  | "low_likelihood" // AI overestimated the likelihood
+  | "insider_knowledge" // I have info the AI doesn't
+  | "other"; // Custom reason
 
 export interface RiskResponse {
   riskId: string;
-  riskDescription: string;        // Store for context
-  riskSeverity: 'high' | 'medium' | 'low';
+  riskDescription: string; // Store for context
+  riskSeverity: "high" | "medium" | "low";
   response: RiskResponseType;
   disagreeReason?: DisagreeReason;
-  reasoning?: string;             // Freetext explanation
-  mitigationPlan?: string;        // For mitigate/monitor
-  respondedAt: string;            // ISO timestamp
+  reasoning?: string; // Freetext explanation
+  mitigationPlan?: string; // For mitigate/monitor
+  respondedAt: string; // ISO timestamp
 }
 
 // Update PositioningDecision
 export interface PositioningDecision {
   // ... existing fields
-  acknowledgedRiskIds: string[];  // DEPRECATED but keep for compat
-  riskResponses: RiskResponse[];  // New structured responses
+  acknowledgedRiskIds: string[]; // DEPRECATED but keep for compat
+  riskResponses: RiskResponse[]; // New structured responses
   riskResponseStats: {
     total: number;
     responded: number;
@@ -147,6 +157,7 @@ ON risk_response_log(response_type, disagree_reason);
 **Key UI Changes:**
 
 1. **Section Header:**
+
 ```
 Risk Assessment (Optional)
 Review the identified risks and share your perspective.
@@ -155,6 +166,7 @@ Your responses will help refine the Update phase suggestions.
 ```
 
 2. **Risk Card Layout:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ [HIGH] Competitor X may copy your unique pricing model      │
@@ -173,6 +185,7 @@ Your responses will help refine the Update phase suggestions.
 ```
 
 3. **Disagree Flow:**
+
 ```
 When "Disagree" selected:
 ┌─────────────────────────────────────────────────────────────┐
@@ -191,10 +204,11 @@ When "Disagree" selected:
 ```
 
 4. **Remove blocking validation:**
+
 ```typescript
 // OLD (remove)
 if (!allCriticalRisksAcknowledged) {
-  setError('Please acknowledge all critical risks');
+  setError("Please acknowledge all critical risks");
   return;
 }
 
@@ -212,40 +226,64 @@ if (riskResponses.length === 0 && risks.length > 0) {
 
 ```typescript
 // Update savePositioningDecision endpoint
-app.post('/api/ideas/:slug/positioning-decision', async (req, res) => {
+app.post("/api/ideas/:slug/positioning-decision", async (req, res) => {
   const { slug } = req.params;
   const decision = req.body;
 
   // Calculate stats
   const stats = {
     total: decision.riskResponses?.length || 0,
-    responded: decision.riskResponses?.filter(r => r.response !== 'skip').length || 0,
-    mitigate: decision.riskResponses?.filter(r => r.response === 'mitigate').length || 0,
-    accept: decision.riskResponses?.filter(r => r.response === 'accept').length || 0,
-    monitor: decision.riskResponses?.filter(r => r.response === 'monitor').length || 0,
-    disagree: decision.riskResponses?.filter(r => r.response === 'disagree').length || 0,
-    skipped: decision.riskResponses?.filter(r => r.response === 'skip').length || 0,
+    responded:
+      decision.riskResponses?.filter((r) => r.response !== "skip").length || 0,
+    mitigate:
+      decision.riskResponses?.filter((r) => r.response === "mitigate").length ||
+      0,
+    accept:
+      decision.riskResponses?.filter((r) => r.response === "accept").length ||
+      0,
+    monitor:
+      decision.riskResponses?.filter((r) => r.response === "monitor").length ||
+      0,
+    disagree:
+      decision.riskResponses?.filter((r) => r.response === "disagree").length ||
+      0,
+    skipped:
+      decision.riskResponses?.filter((r) => r.response === "skip").length || 0,
   };
 
   // Log to risk_response_log for analytics
   if (decision.riskResponses?.length > 0) {
     for (const response of decision.riskResponses) {
-      await db.run(`
+      await db.run(
+        `
         INSERT INTO risk_response_log (id, idea_id, risk_id, risk_description,
           risk_severity, response_type, disagree_reason, reasoning, strategic_approach)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [uuid(), ideaId, response.riskId, response.riskDescription,
-          response.riskSeverity, response.response, response.disagreeReason,
-          response.reasoning, decision.selectedApproach]);
+      `,
+        [
+          uuid(),
+          ideaId,
+          response.riskId,
+          response.riskDescription,
+          response.riskSeverity,
+          response.response,
+          response.disagreeReason,
+          response.reasoning,
+          decision.selectedApproach,
+        ],
+      );
     }
   }
 
   // Save decision with responses
-  await db.run(`
+  await db.run(
+    `
     INSERT OR REPLACE INTO positioning_decisions
     (id, idea_id, ..., risk_responses, risk_response_stats)
     VALUES (?, ?, ..., ?, ?)
-  `, [...values, JSON.stringify(decision.riskResponses), JSON.stringify(stats)]);
+  `,
+    [...values, JSON.stringify(decision.riskResponses), JSON.stringify(stats)],
+  );
 });
 ```
 
@@ -255,31 +293,34 @@ app.post('/api/ideas/:slug/positioning-decision', async (req, res) => {
 
 ```typescript
 // Include risk responses in context for update generation
-const riskContext = riskResponses?.map(r => {
-  switch (r.response) {
-    case 'mitigate':
-      return `USER WILL MITIGATE: "${r.riskDescription}"
-        Plan: ${r.mitigationPlan || 'Not specified'}
+const riskContext = riskResponses
+  ?.map((r) => {
+    switch (r.response) {
+      case "mitigate":
+        return `USER WILL MITIGATE: "${r.riskDescription}"
+        Plan: ${r.mitigationPlan || "Not specified"}
         → Suggest content that supports this mitigation strategy`;
 
-    case 'disagree':
-      return `USER DISAGREES WITH RISK: "${r.riskDescription}"
+      case "disagree":
+        return `USER DISAGREES WITH RISK: "${r.riskDescription}"
         Reason: ${r.disagreeReason}
-        Explanation: ${r.reasoning || 'None provided'}
+        Explanation: ${r.reasoning || "None provided"}
         → Do NOT emphasize this risk in updates. User has context we don't.`;
 
-    case 'monitor':
-      return `USER WILL MONITOR: "${r.riskDescription}"
+      case "monitor":
+        return `USER WILL MONITOR: "${r.riskDescription}"
         → Include monitoring checkpoints in suggested timeline`;
 
-    case 'accept':
-      return `USER ACCEPTS RISK: "${r.riskDescription}"
+      case "accept":
+        return `USER ACCEPTS RISK: "${r.riskDescription}"
         → Acknowledge but don't over-emphasize`;
 
-    default:
-      return null;
-  }
-}).filter(Boolean).join('\n\n');
+      default:
+        return null;
+    }
+  })
+  .filter(Boolean)
+  .join("\n\n");
 
 // Add to update generator prompt
 const prompt = `
@@ -301,8 +342,9 @@ knowledge when they disagree with AI-identified risks.
 
 ```typescript
 // When evaluating R2 (Market Risk), consider Position phase risk responses
-const positioningContext = positioningDecision?.riskResponses?.length > 0
-  ? `
+const positioningContext =
+  positioningDecision?.riskResponses?.length > 0
+    ? `
     Note: User has already assessed ${positioningDecision.riskResponses.length}
     competitive risks in the Position phase:
     - ${positioningDecision.riskResponseStats.disagree} risks disputed by user
@@ -311,7 +353,7 @@ const positioningContext = positioningDecision?.riskResponses?.length > 0
     User disagreements suggest they may have insider knowledge. Consider adjusting
     confidence levels accordingly.
   `
-  : '';
+    : "";
 ```
 
 ### Phase 7: Display in Later Phases
@@ -347,16 +389,16 @@ const positioningContext = positioningDecision?.riskResponses?.length > 0
 
 ## Files to Modify (Complete List)
 
-| File | Changes | Priority |
-|------|---------|----------|
-| `frontend/src/types/index.ts` | Add RiskResponse, DisagreeReason types | P0 |
-| `frontend/src/components/DecisionCapture.tsx` | Complete UI redesign | P0 |
-| `database/migrations/012_risk_responses.sql` | Schema changes + log table | P0 |
-| `server/api.ts` | Handle new response format, logging | P0 |
-| `frontend/src/api/client.ts` | Update type signatures | P1 |
-| `agents/update-generator.ts` | Use risk responses in prompts | P1 |
-| `agents/evaluator.ts` | Consider risk responses in R2 | P2 |
-| `frontend/src/pages/IdeaDetail.tsx` | Show risk response summary | P2 |
+| File                                          | Changes                                | Priority |
+| --------------------------------------------- | -------------------------------------- | -------- |
+| `frontend/src/types/index.ts`                 | Add RiskResponse, DisagreeReason types | P0       |
+| `frontend/src/components/DecisionCapture.tsx` | Complete UI redesign                   | P0       |
+| `database/migrations/012_risk_responses.sql`  | Schema changes + log table             | P0       |
+| `server/api.ts`                               | Handle new response format, logging    | P0       |
+| `frontend/src/api/client.ts`                  | Update type signatures                 | P1       |
+| `agents/update-generator.ts`                  | Use risk responses in prompts          | P1       |
+| `agents/evaluator.ts`                         | Consider risk responses in R2          | P2       |
+| `frontend/src/pages/IdeaDetail.tsx`           | Show risk response summary             | P2       |
 
 ---
 

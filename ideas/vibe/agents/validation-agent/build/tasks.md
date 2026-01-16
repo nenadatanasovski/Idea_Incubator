@@ -14,13 +14,13 @@ phases:
 
 ## Task Summary
 
-| Phase | Count |
-|-------|-------|
-| database | 1 |
-| types | 2 |
-| services | 6 |
-| api | 2 |
-| tests | 1 |
+| Phase    | Count |
+| -------- | ----- |
+| database | 1     |
+| types    | 2     |
+| services | 6     |
+| api      | 2     |
+| tests    | 1     |
 
 ---
 

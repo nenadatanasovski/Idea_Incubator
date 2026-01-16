@@ -3,7 +3,12 @@
 // Memoized selectors for ideation state
 // =============================================================================
 
-import type { IdeationStore, ArtifactState, Artifact, ClassificationInfo } from '../types/ideation-state';
+import type {
+  IdeationStore,
+  ArtifactState,
+  Artifact,
+  ClassificationInfo,
+} from "../types/ideation-state";
 
 // -----------------------------------------------------------------------------
 // Simple Memoization Helper
@@ -12,7 +17,7 @@ import type { IdeationStore, ArtifactState, Artifact, ClassificationInfo } from 
 
 function createSelector<TInput, TOutput>(
   inputSelector: (state: IdeationStore) => TInput,
-  resultFn: (input: TInput) => TOutput
+  resultFn: (input: TInput) => TOutput,
 ): (state: IdeationStore) => TOutput {
   let lastInput: TInput | undefined;
   let lastResult: TOutput | undefined;
@@ -30,17 +35,20 @@ function createSelector<TInput, TOutput>(
 
 // Multi-input selector for combining multiple state slices
 function createSelectorMulti<TInputs extends unknown[], TOutput>(
-  inputSelectors: { [K in keyof TInputs]: (state: IdeationStore) => TInputs[K] },
-  resultFn: (...inputs: TInputs) => TOutput
+  inputSelectors: {
+    [K in keyof TInputs]: (state: IdeationStore) => TInputs[K];
+  },
+  resultFn: (...inputs: TInputs) => TOutput,
 ): (state: IdeationStore) => TOutput {
   let lastInputs: TInputs | undefined;
   let lastResult: TOutput | undefined;
 
   return (state: IdeationStore): TOutput => {
-    const inputs = inputSelectors.map(selector => selector(state)) as TInputs;
+    const inputs = inputSelectors.map((selector) => selector(state)) as TInputs;
 
     // Check if any input changed
-    const inputsChanged = !lastInputs || inputs.some((input, i) => input !== lastInputs![i]);
+    const inputsChanged =
+      !lastInputs || inputs.some((input, i) => input !== lastInputs![i]);
 
     if (!inputsChanged && lastResult !== undefined) {
       return lastResult;
@@ -57,10 +65,15 @@ function createSelectorMulti<TInputs extends unknown[], TOutput>(
 // Exported for use by other selectors and components
 // -----------------------------------------------------------------------------
 
-export const selectArtifactState = (state: IdeationStore): ArtifactState => state.artifacts;
-export const selectArtifacts = (state: IdeationStore): Artifact[] => state.artifacts.artifacts;
-export const selectSelectedPath = (state: IdeationStore): string | null => state.artifacts.selectedArtifactPath;
-export const selectClassifications = (state: IdeationStore): Record<string, ClassificationInfo> =>
+export const selectArtifactState = (state: IdeationStore): ArtifactState =>
+  state.artifacts;
+export const selectArtifacts = (state: IdeationStore): Artifact[] =>
+  state.artifacts.artifacts;
+export const selectSelectedPath = (state: IdeationStore): string | null =>
+  state.artifacts.selectedArtifactPath;
+export const selectClassifications = (
+  state: IdeationStore,
+): Record<string, ClassificationInfo> =>
   state.artifacts.artifactClassifications;
 
 // -----------------------------------------------------------------------------
@@ -70,14 +83,16 @@ export const selectClassifications = (state: IdeationStore): Record<string, Clas
 /**
  * Returns the currently linked idea or null
  */
-export const selectLinkedIdea = (state: IdeationStore): { userSlug: string; ideaSlug: string } | null => {
+export const selectLinkedIdea = (
+  state: IdeationStore,
+): { userSlug: string; ideaSlug: string } | null => {
   return state.artifacts.linkedIdea;
 };
 
 /**
  * Returns the current view mode ('files' or 'sessions')
  */
-export const selectViewMode = (state: IdeationStore): 'files' | 'sessions' => {
+export const selectViewMode = (state: IdeationStore): "files" | "sessions" => {
   return state.artifacts.viewMode;
 };
 
@@ -95,7 +110,7 @@ export const selectArtifactsBySession = createSelector(
       // Use artifact.id as a fallback key extraction method
       // In the unified file system, sessionId may be part of the file metadata
       // For now, we'll check if there's a sessionId-like pattern in the id or use a default
-      const sessionKey = extractSessionId(artifact) || '_template';
+      const sessionKey = extractSessionId(artifact) || "_template";
 
       if (!grouped[sessionKey]) {
         grouped[sessionKey] = [];
@@ -113,7 +128,7 @@ export const selectArtifactsBySession = createSelector(
     }
 
     return grouped;
-  }
+  },
 );
 
 /**
@@ -141,8 +156,8 @@ export const selectArtifactsByFolder = createSelector(
     const sortedGrouped: Record<string, Artifact[]> = {};
     const keys = Object.keys(grouped).sort((a, b) => {
       // Root folder comes first
-      if (a === '/') return -1;
-      if (b === '/') return 1;
+      if (a === "/") return -1;
+      if (b === "/") return 1;
       return a.localeCompare(b);
     });
 
@@ -155,7 +170,7 @@ export const selectArtifactsByFolder = createSelector(
     }
 
     return sortedGrouped;
-  }
+  },
 );
 
 /**
@@ -164,24 +179,30 @@ export const selectArtifactsByFolder = createSelector(
  */
 export const selectSelectedArtifact = createSelectorMulti(
   [selectArtifacts, selectSelectedPath],
-  (artifacts: Artifact[], selectedPath: string | null): Artifact | undefined => {
+  (
+    artifacts: Artifact[],
+    selectedPath: string | null,
+  ): Artifact | undefined => {
     if (!selectedPath) {
       return undefined;
     }
 
     // Match by id, title, or identifier
-    return artifacts.find(artifact =>
-      artifact.id === selectedPath ||
-      artifact.title === selectedPath ||
-      artifact.identifier === selectedPath
+    return artifacts.find(
+      (artifact) =>
+        artifact.id === selectedPath ||
+        artifact.title === selectedPath ||
+        artifact.identifier === selectedPath,
     );
-  }
+  },
 );
 
 /**
  * Returns artifact classifications record
  */
-export const selectArtifactClassifications = (state: IdeationStore): Record<string, ClassificationInfo> => {
+export const selectArtifactClassifications = (
+  state: IdeationStore,
+): Record<string, ClassificationInfo> => {
   return state.artifacts.artifactClassifications;
 };
 
@@ -202,7 +223,9 @@ function extractSessionId(artifact: Artifact): string | null {
 
   // Check identifier for session pattern
   if (artifact.identifier) {
-    const identMatch = artifact.identifier.match(/^session[_-]?([a-zA-Z0-9-]+)/i);
+    const identMatch = artifact.identifier.match(
+      /^session[_-]?([a-zA-Z0-9-]+)/i,
+    );
     if (identMatch) {
       return identMatch[1];
     }
@@ -218,21 +241,21 @@ function extractSessionId(artifact: Artifact): string | null {
  */
 function extractFolderPath(artifact: Artifact): string {
   // Check if title contains path separators
-  if (artifact.title.includes('/')) {
-    const parts = artifact.title.split('/');
+  if (artifact.title.includes("/")) {
+    const parts = artifact.title.split("/");
     parts.pop(); // Remove filename
-    return parts.length > 0 ? parts.join('/') : '/';
+    return parts.length > 0 ? parts.join("/") : "/";
   }
 
   // Check identifier for path structure
-  if (artifact.identifier && artifact.identifier.includes('/')) {
-    const parts = artifact.identifier.split('/');
+  if (artifact.identifier && artifact.identifier.includes("/")) {
+    const parts = artifact.identifier.split("/");
     parts.pop();
-    return parts.length > 0 ? parts.join('/') : '/';
+    return parts.length > 0 ? parts.join("/") : "/";
   }
 
   // No folder structure - root folder
-  return '/';
+  return "/";
 }
 
 // -----------------------------------------------------------------------------

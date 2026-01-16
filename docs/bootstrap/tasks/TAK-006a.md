@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **Phase** | 1 - Database Schema |
-| **Depends On** | TAK-001 |
-| **Blocks** | TAK-006b, TAK-015c (TaskListManager) |
-| **Priority** | P1 |
-| **Owner** | Build Agent |
+| Field          | Value                                |
+| -------------- | ------------------------------------ |
+| **Phase**      | 1 - Database Schema                  |
+| **Depends On** | TAK-001                              |
+| **Blocks**     | TAK-006b, TAK-015c (TaskListManager) |
+| **Priority**   | P1                                   |
+| **Owner**      | Build Agent                          |
 
 ---
 
@@ -24,12 +24,12 @@ Create the task_lists table for grouping tasks into executable lists. Each task 
 
 ### Task List Purpose
 
-| Feature | Description |
-|---------|-------------|
-| **Grouping** | Organize related tasks together |
-| **Telegram Link** | One chat per task list (one-to-one mapping) |
-| **Execution Modes** | Sequential, parallel, or priority-based |
-| **Progress Tracking** | Track completion percentage |
+| Feature               | Description                                 |
+| --------------------- | ------------------------------------------- |
+| **Grouping**          | Organize related tasks together             |
+| **Telegram Link**     | One chat per task list (one-to-one mapping) |
+| **Execution Modes**   | Sequential, parallel, or priority-based     |
+| **Progress Tracking** | Track completion percentage                 |
 
 ---
 
@@ -54,13 +54,13 @@ Create the task_lists table for grouping tasks into executable lists. Each task 
 
 **PASS** when ALL of the following are true:
 
-| # | Criterion | How to Verify |
-|---|-----------|---------------|
-| 1 | Migration file exists | `test -f database/migrations/056_task_lists.sql` returns 0 |
-| 2 | Has table | `grep -q "CREATE TABLE IF NOT EXISTS task_lists" database/migrations/056_task_lists.sql` returns 0 |
-| 3 | Has telegram_chat_id UNIQUE | `grep -q "telegram_chat_id TEXT UNIQUE" database/migrations/056_task_lists.sql` returns 0 |
-| 4 | Has execution modes | `grep -q "sequential.*parallel.*priority" database/migrations/056_task_lists.sql` returns 0 |
-| 5 | Migration runs | `sqlite3 :memory: < database/migrations/056_task_lists.sql && echo 'OK'` returns "OK" |
+| #   | Criterion                   | How to Verify                                                                                      |
+| --- | --------------------------- | -------------------------------------------------------------------------------------------------- |
+| 1   | Migration file exists       | `test -f database/migrations/056_task_lists.sql` returns 0                                         |
+| 2   | Has table                   | `grep -q "CREATE TABLE IF NOT EXISTS task_lists" database/migrations/056_task_lists.sql` returns 0 |
+| 3   | Has telegram_chat_id UNIQUE | `grep -q "telegram_chat_id TEXT UNIQUE" database/migrations/056_task_lists.sql` returns 0          |
+| 4   | Has execution modes         | `grep -q "sequential.*parallel.*priority" database/migrations/056_task_lists.sql` returns 0        |
+| 5   | Migration runs              | `sqlite3 :memory: < database/migrations/056_task_lists.sql && echo 'OK'` returns "OK"              |
 
 **FAIL** if any criterion is not met.
 

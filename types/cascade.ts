@@ -9,24 +9,28 @@
  * Types of changes that trigger cascade
  */
 export type CascadeTrigger =
-  | 'file_impact_changed'
-  | 'api_impact_changed'
-  | 'function_impact_changed'
-  | 'database_impact_changed'
-  | 'type_impact_changed'
-  | 'status_changed'
-  | 'dependency_changed'
-  | 'priority_changed';
+  | "file_impact_changed"
+  | "api_impact_changed"
+  | "function_impact_changed"
+  | "database_impact_changed"
+  | "type_impact_changed"
+  | "status_changed"
+  | "dependency_changed"
+  | "priority_changed";
 
 /**
  * Impact type for cascade effects
  */
-export type CascadeImpactType = 'direct' | 'transitive';
+export type CascadeImpactType = "direct" | "transitive";
 
 /**
  * Suggested action for cascade effect
  */
-export type CascadeSuggestedAction = 'review' | 'auto_update' | 'block' | 'notify';
+export type CascadeSuggestedAction =
+  | "review"
+  | "auto_update"
+  | "block"
+  | "notify";
 
 /**
  * Cascade effect on a related task
@@ -39,7 +43,7 @@ export interface CascadeEffect {
   reason: string;
 
   impactType: CascadeImpactType;
-  depth: number;  // 1 = direct, 2+ = transitive
+  depth: number; // 1 = direct, 2+ = transitive
 
   suggestedAction: CascadeSuggestedAction;
   autoApprovable: boolean;
@@ -59,7 +63,7 @@ export interface CascadeAnalysis {
   requiresReview: number;
   autoApprovable: number;
 
-  taskListAutoApprove: boolean;  // From task_lists_v2.auto_approve_reviews
+  taskListAutoApprove: boolean; // From task_lists_v2.auto_approve_reviews
 }
 
 /**
@@ -74,7 +78,7 @@ export interface CascadeExecutionResult {
     success: boolean;
   }[];
 
-  flaggedForReview: string[];  // Task IDs
+  flaggedForReview: string[]; // Task IDs
   failed: {
     taskId: string;
     error: string;
@@ -112,7 +116,7 @@ export interface CascadeConfig {
 /**
  * Default cascade configuration
  */
-export const DEFAULT_CASCADE_CONFIG: Omit<CascadeConfig, 'taskListId'> = {
+export const DEFAULT_CASCADE_CONFIG: Omit<CascadeConfig, "taskListId"> = {
   autoApproveReviews: false,
   maxDepth: 3,
   notifyOnCascade: true,
@@ -122,12 +126,12 @@ export const DEFAULT_CASCADE_CONFIG: Omit<CascadeConfig, 'taskListId'> = {
  * Cascade trigger to human-readable description
  */
 export const CASCADE_TRIGGER_DESCRIPTIONS: Record<CascadeTrigger, string> = {
-  file_impact_changed: 'File impact changed',
-  api_impact_changed: 'API impact changed',
-  function_impact_changed: 'Function impact changed',
-  database_impact_changed: 'Database impact changed',
-  type_impact_changed: 'Type impact changed',
-  status_changed: 'Task status changed',
-  dependency_changed: 'Task dependency changed',
-  priority_changed: 'Task priority changed',
+  file_impact_changed: "File impact changed",
+  api_impact_changed: "API impact changed",
+  function_impact_changed: "Function impact changed",
+  database_impact_changed: "Database impact changed",
+  type_impact_changed: "Type impact changed",
+  status_changed: "Task status changed",
+  dependency_changed: "Task dependency changed",
+  priority_changed: "Task priority changed",
 };

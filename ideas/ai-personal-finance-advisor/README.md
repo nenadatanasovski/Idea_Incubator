@@ -21,6 +21,7 @@ A mobile-first SaaS application that uses AI to provide personalized financial a
 Most people struggle with personal finance management. They lack the knowledge, time, or discipline to effectively budget, save, and invest. Traditional financial advisors are expensive (typically requiring $250K+ in assets) and unavailable to the average consumer. Existing apps like Mint or YNAB require significant manual effort and don't provide personalized, actionable advice.
 
 Key pain points:
+
 - 78% of Americans live paycheck to paycheck
 - Average person spends 5+ hours/month on financial admin tasks
 - Financial literacy is low - most don't understand compound interest, tax optimization, etc.

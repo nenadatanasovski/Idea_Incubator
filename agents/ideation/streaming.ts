@@ -1,10 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { EventEmitter } from 'events';
+import Anthropic from "@anthropic-ai/sdk";
+import { EventEmitter } from "events";
 import {
   SelfDiscoveryState,
   MarketDiscoveryState,
   NarrowingState,
-} from '../../types/ideation.js';
+} from "../../types/ideation.js";
 
 /**
  * STREAMING RESPONSE HANDLER
@@ -14,7 +14,7 @@ import {
  */
 
 export interface StreamEvent {
-  type: 'text_delta' | 'message_complete' | 'error' | 'tool_use';
+  type: "text_delta" | "message_complete" | "error" | "tool_use";
   data: string | AgentResponse | Error | ToolUseBlock;
 }
 
@@ -37,7 +37,7 @@ export interface ButtonOption {
   id: string;
   label: string;
   value: string;
-  style: 'primary' | 'secondary' | 'danger';
+  style: "primary" | "secondary" | "danger";
 }
 
 export interface FormDefinition {
@@ -48,7 +48,7 @@ export interface FormDefinition {
 export interface FormField {
   id: string;
   label: string;
-  type: 'text' | 'radio' | 'checkbox' | 'slider' | 'select';
+  type: "text" | "radio" | "checkbox" | "slider" | "select";
   options?: string[];
   min?: number;
   max?: number;
@@ -62,7 +62,7 @@ export interface ExtractedSignals {
 }
 
 export class StreamingResponseHandler extends EventEmitter {
-  private accumulatedText: string = '';
+  private accumulatedText: string = "";
   private client: Anthropic;
   private isStreaming: boolean = false;
 
@@ -75,16 +75,16 @@ export class StreamingResponseHandler extends EventEmitter {
    * Stream a message and emit events as tokens arrive.
    */
   async streamMessage(
-    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    messages: Array<{ role: "user" | "assistant"; content: string }>,
     systemPrompt: string,
-    tools?: Anthropic.Tool[]
+    tools?: Anthropic.Tool[],
   ): Promise<AgentResponse> {
     this.isStreaming = true;
-    this.accumulatedText = '';
+    this.accumulatedText = "";
 
     try {
       const stream = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: "claude-sonnet-4-20250514",
         max_tokens: 4096,
         system: systemPrompt,
         messages,
@@ -95,19 +95,19 @@ export class StreamingResponseHandler extends EventEmitter {
       for await (const event of stream) {
         if (!this.isStreaming) break;
 
-        if (event.type === 'content_block_delta') {
-          if (event.delta.type === 'text_delta') {
+        if (event.type === "content_block_delta") {
+          if (event.delta.type === "text_delta") {
             const textDelta = event.delta.text;
             this.accumulatedText += textDelta;
-            this.emit('stream', {
-              type: 'text_delta',
+            this.emit("stream", {
+              type: "text_delta",
               data: textDelta,
             } as StreamEvent);
           }
-        } else if (event.type === 'content_block_start') {
-          if (event.content_block.type === 'tool_use') {
-            this.emit('stream', {
-              type: 'tool_use',
+        } else if (event.type === "content_block_start") {
+          if (event.content_block.type === "tool_use") {
+            this.emit("stream", {
+              type: "tool_use",
               data: {
                 id: event.content_block.id,
                 name: event.content_block.name,
@@ -115,11 +115,11 @@ export class StreamingResponseHandler extends EventEmitter {
               },
             } as StreamEvent);
           }
-        } else if (event.type === 'message_stop') {
+        } else if (event.type === "message_stop") {
           // Message complete, parse the full response
           const response = this.parseResponse(this.accumulatedText);
-          this.emit('stream', {
-            type: 'message_complete',
+          this.emit("stream", {
+            type: "message_complete",
             data: response,
           } as StreamEvent);
           return response;
@@ -129,8 +129,8 @@ export class StreamingResponseHandler extends EventEmitter {
       // Fallback if stream ends without message_stop
       return this.parseResponse(this.accumulatedText);
     } catch (error) {
-      this.emit('stream', {
-        type: 'error',
+      this.emit("stream", {
+        type: "error",
         data: error as Error,
       } as StreamEvent);
       throw error;
@@ -144,9 +144,9 @@ export class StreamingResponseHandler extends EventEmitter {
    */
   cancel(): void {
     this.isStreaming = false;
-    this.emit('stream', {
-      type: 'error',
-      data: new Error('Stream cancelled by user'),
+    this.emit("stream", {
+      type: "error",
+      data: new Error("Stream cancelled by user"),
     } as StreamEvent);
   }
 
@@ -171,7 +171,7 @@ export class StreamingResponseHandler extends EventEmitter {
     try {
       const parsed = JSON.parse(jsonMatch[0]);
       return {
-        text: parsed.text || '',
+        text: parsed.text || "",
         buttons: parsed.buttons || null,
         form: parsed.form || null,
         webSearchNeeded: parsed.webSearchNeeded || null,
@@ -196,7 +196,7 @@ export class StreamingResponseHandler extends EventEmitter {
  * SSE encoder for server-side streaming.
  */
 export function encodeSSE(event: string, data: unknown): string {
-  const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
+  const dataStr = typeof data === "string" ? data : JSON.stringify(data);
   return `event: ${event}\ndata: ${dataStr}\n\n`;
 }
 
@@ -212,9 +212,9 @@ export function createSSEStream(res: {
   send: (event: string, data: unknown) => void;
   end: () => void;
 } {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
   return {
@@ -222,7 +222,7 @@ export function createSSEStream(res: {
       res.write(encodeSSE(event, data));
     },
     end: () => {
-      res.write(encodeSSE('done', {}));
+      res.write(encodeSSE("done", {}));
       res.end();
     },
   };

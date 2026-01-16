@@ -9,6 +9,7 @@ The system has **three orphaned subsystems** that don't properly communicate:
 3. **Synthesis System** - Creates final output
 
 **Core Problem**: Users answer 60 questions with 100% coverage, but:
+
 - Synthesis shows "0% evaluation readiness"
 - Only ~25% of answers are passed to evaluators
 - Generic "unresolved questions" displayed instead of actual gaps
@@ -29,9 +30,9 @@ if (debateResult) {
   await saveFinalSynthesis(
     ideaData.id,
     sessionId,
-    debateResult,        // ✓ Passed
-    finalScore,          // ✓ Passed
-    interpretation.recommendation
+    debateResult, // ✓ Passed
+    finalScore, // ✓ Passed
+    interpretation.recommendation,
     // ❌ MISSING: structuredContext (all the Q&A data!)
   );
 }
@@ -74,10 +75,15 @@ BM_CAC, BM_LTV, BM_GTM, BM_REVENUE
 ```typescript
 unresolvedQuestions: unresolvedQuestions.length > 0
   ? unresolvedQuestions
-  : ['What problem does this solve?', 'Who is the target user?', 'How will this be built?']
+  : [
+      "What problem does this solve?",
+      "Who is the target user?",
+      "How will this be built?",
+    ];
 ```
 
 And in `scripts/evaluate.ts` line 612:
+
 ```typescript
 JSON.stringify([]), // unresolved questions - ALWAYS EMPTY!
 ```
@@ -106,6 +112,7 @@ JSON.stringify([]), // unresolved questions - ALWAYS EMPTY!
 **Location**: Missing `questions/fit.yaml`
 
 **Problem**: Fit readiness is binary based on profile link only:
+
 ```typescript
 // questions/readiness.ts line 305
 fit: await hasLinkedProfile(ideaId) ? 1.0 : 0,
@@ -150,7 +157,7 @@ for (const answer of answers) {
 
 ```yaml
 - id: BM_MODEL
-  criterion: S1          # ❌ Should be BM1
+  criterion: S1 # ❌ Should be BM1
   category: business_model
 ```
 
@@ -295,9 +302,10 @@ export interface StructuredAnswerData {
   solution?: {
     description?: string;
     differentiation?: string;
-    mvp?: string;  // Remove - move to feasibility
+    mvp?: string; // Remove - move to feasibility
   };
-  feasibility?: {  // NEW
+  feasibility?: {
+    // NEW
     mvp?: string;
     resources?: string;
     skill_gaps?: string;
@@ -308,18 +316,19 @@ export interface StructuredAnswerData {
     tam?: string;
     competitors?: string;
     timing?: string;
-    trends?: string;      // NEW
-    barriers?: string;    // NEW
+    trends?: string; // NEW
+    barriers?: string; // NEW
   };
   risk?: {
     biggest_risk?: string;
     mitigation?: string;
-    market_risk?: string;     // NEW
-    technical_risk?: string;  // NEW
-    financial_risk?: string;  // NEW
+    market_risk?: string; // NEW
+    technical_risk?: string; // NEW
+    financial_risk?: string; // NEW
     regulatory_risk?: string; // NEW
   };
-  business_model?: {  // NEW
+  business_model?: {
+    // NEW
     model?: string;
     pricing?: string;
     cac?: string;
@@ -365,7 +374,7 @@ if (debateResult) {
     debateResult,
     finalScore,
     interpretation.recommendation,
-    structuredContext  // ADD THIS PARAMETER
+    structuredContext, // ADD THIS PARAMETER
   );
 }
 ```
@@ -381,7 +390,7 @@ async function saveFinalSynthesis(
   debateResult: FullDebateResult,
   finalScore: number,
   recommendation: string,
-  structuredContext?: StructuredEvaluationContext | null  // ADD PARAMETER
+  structuredContext?: StructuredEvaluationContext | null, // ADD PARAMETER
 ): Promise<void> {
   // Calculate actual readiness from structured context
   const readinessPercent = structuredContext?.coverage.overall ?? 0;
@@ -393,29 +402,29 @@ async function saveFinalSynthesis(
 }
 
 function getActualUnresolvedQuestions(
-  structuredContext?: StructuredEvaluationContext | null
+  structuredContext?: StructuredEvaluationContext | null,
 ): string[] {
   if (!structuredContext) {
-    return ['Complete the development questions to get specific feedback'];
+    return ["Complete the development questions to get specific feedback"];
   }
 
   const gaps: string[] = [];
   const coverage = structuredContext.coverage.byCategory;
 
   if ((coverage.problem ?? 0) < 0.5) {
-    gaps.push('Problem definition needs more detail');
+    gaps.push("Problem definition needs more detail");
   }
   if ((coverage.solution ?? 0) < 0.5) {
-    gaps.push('Solution approach needs clarification');
+    gaps.push("Solution approach needs clarification");
   }
   if ((coverage.market ?? 0) < 0.5) {
-    gaps.push('Market analysis is incomplete');
+    gaps.push("Market analysis is incomplete");
   }
   if ((coverage.feasibility ?? 0) < 0.5) {
-    gaps.push('Feasibility assessment needs more information');
+    gaps.push("Feasibility assessment needs more information");
   }
   if ((coverage.risk ?? 0) < 0.5) {
-    gaps.push('Risk identification is incomplete');
+    gaps.push("Risk identification is incomplete");
   }
 
   return gaps.length > 0 ? gaps : [];
@@ -429,7 +438,7 @@ function getActualUnresolvedQuestions(
 ```typescript
 // Replace hardcoded confidence
 const confidenceFromData = structuredContext
-  ? Math.min(0.9, 0.5 + (structuredContext.coverage.overall * 0.4))
+  ? Math.min(0.9, 0.5 + structuredContext.coverage.overall * 0.4)
   : 0.5;
 ```
 
@@ -486,18 +495,17 @@ questions:
 
 ```typescript
 // Replace line 305
-fit: await calculateFitCoverage(ideaId),  // Instead of binary profile check
+fit: (await calculateFitCoverage(ideaId), // Instead of binary profile check
+  async function calculateFitCoverage(ideaId: string): Promise<number> {
+    const profileLinked = await hasLinkedProfile(ideaId);
+    const fitAnswers = await getAnswersForCategory(ideaId, "fit");
 
-async function calculateFitCoverage(ideaId: string): Promise<number> {
-  const profileLinked = await hasLinkedProfile(ideaId);
-  const fitAnswers = await getAnswersForCategory(ideaId, 'fit');
+    // Profile worth 50%, questions worth 50%
+    const profileScore = profileLinked ? 0.5 : 0;
+    const questionScore = (fitAnswers.length / 5) * 0.5;
 
-  // Profile worth 50%, questions worth 50%
-  const profileScore = profileLinked ? 0.5 : 0;
-  const questionScore = (fitAnswers.length / 5) * 0.5;
-
-  return profileScore + questionScore;
-}
+    return profileScore + questionScore;
+  });
 ```
 
 ---
@@ -509,14 +517,16 @@ async function calculateFitCoverage(ideaId: string): Promise<number> {
 **File**: `scripts/evaluate.ts`
 
 ```typescript
-async function getStructuredContext(ideaId: string): Promise<StructuredEvaluationContext | null> {
+async function getStructuredContext(
+  ideaId: string,
+): Promise<StructuredEvaluationContext | null> {
   const answers = await getAnswersForIdea(ideaId);
   if (!answers || answers.length === 0) return null;
 
   // Batch load ALL questions at once
-  const questionIds = answers.map(a => a.questionId);
-  const questions = await getQuestionsByIds(questionIds);  // NEW FUNCTION
-  const questionMap = new Map(questions.map(q => [q.id, q]));
+  const questionIds = answers.map((a) => a.questionId);
+  const questions = await getQuestionsByIds(questionIds); // NEW FUNCTION
+  const questionMap = new Map(questions.map((q) => [q.id, q]));
 
   // Now iterate without additional queries
   for (const answer of answers) {
@@ -535,10 +545,10 @@ async function getStructuredContext(ideaId: string): Promise<StructuredEvaluatio
 export async function getQuestionsByIds(ids: string[]): Promise<Question[]> {
   if (ids.length === 0) return [];
 
-  const placeholders = ids.map(() => '?').join(',');
+  const placeholders = ids.map(() => "?").join(",");
   const rows = await query<DBQuestion>(
     `SELECT * FROM question_bank WHERE id IN (${placeholders})`,
-    ids
+    ids,
   );
 
   return rows.map(rowToQuestion);
@@ -555,34 +565,38 @@ export async function getQuestionsByIds(ids: string[]): Promise<Question[]> {
 
 ```tsx
 // Add ReadinessMeter to overview tab (around line 380)
-{activeTab === 'overview' && (
-  <div className="space-y-6">
-    {/* Add mini readiness indicator */}
-    <div className="bg-white rounded-lg shadow p-4">
-      <h3 className="text-sm font-medium text-gray-500 mb-2">Evaluation Readiness</h3>
-      <div className="flex items-center gap-4">
-        <div className="flex-1 bg-gray-200 rounded-full h-2">
-          <div
-            className="bg-primary-500 h-2 rounded-full"
-            style={{ width: `${readiness?.readinessPercent ?? 0}%` }}
-          />
+{
+  activeTab === "overview" && (
+    <div className="space-y-6">
+      {/* Add mini readiness indicator */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-sm font-medium text-gray-500 mb-2">
+          Evaluation Readiness
+        </h3>
+        <div className="flex items-center gap-4">
+          <div className="flex-1 bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-primary-500 h-2 rounded-full"
+              style={{ width: `${readiness?.readinessPercent ?? 0}%` }}
+            />
+          </div>
+          <span className="text-sm font-medium">
+            {Math.round(readiness?.readinessPercent ?? 0)}%
+          </span>
+          {!readiness?.readyForEvaluation && (
+            <button
+              onClick={() => setActiveTab("develop")}
+              className="text-sm text-primary-600 hover:underline"
+            >
+              Develop idea
+            </button>
+          )}
         </div>
-        <span className="text-sm font-medium">
-          {Math.round(readiness?.readinessPercent ?? 0)}%
-        </span>
-        {!readiness?.readyForEvaluation && (
-          <button
-            onClick={() => setActiveTab('develop')}
-            className="text-sm text-primary-600 hover:underline"
-          >
-            Develop idea
-          </button>
-        )}
       </div>
+      {/* ... rest of overview */}
     </div>
-    {/* ... rest of overview */}
-  </div>
-)}
+  );
+}
 ```
 
 #### 5.2 Add Pre-Evaluation Summary
@@ -603,14 +617,16 @@ const handleEvaluateClick = async () => {
 };
 
 // Modal showing what evaluators will see
-{showEvalPreview && (
-  <EvaluationPreviewModal
-    structuredData={structuredData}
-    profile={linkedProfile}
-    onConfirm={triggerEvaluation}
-    onCancel={() => setShowEvalPreview(false)}
-  />
-)}
+{
+  showEvalPreview && (
+    <EvaluationPreviewModal
+      structuredData={structuredData}
+      profile={linkedProfile}
+      onConfirm={triggerEvaluation}
+      onCancel={() => setShowEvalPreview(false)}
+    />
+  );
+}
 ```
 
 #### 5.3 Fix Answer Submission Error Handling
@@ -653,7 +669,7 @@ useEffect(() => {
     const data = await res.json();
 
     setQuestions(data.questions);
-    setAnswers(new Map(data.answers.map(a => [a.questionId, a])));
+    setAnswers(new Map(data.answers.map((a) => [a.questionId, a])));
     setReadiness(data.readiness);
     setTotalQuestions(data.totalQuestions);
     setTotalAnswered(data.answeredCount);
@@ -671,11 +687,11 @@ useEffect(() => {
 ```yaml
 # Change criterion values to match category
 - id: BM_MODEL
-  criterion: BM1    # Was S1
+  criterion: BM1 # Was S1
   category: business_model
 
 - id: BM_CAC
-  criterion: BM2    # Was M1
+  criterion: BM2 # Was M1
   category: business_model
 ```
 
@@ -683,19 +699,19 @@ useEffect(() => {
 
 ## Implementation Order
 
-| Priority | Task | Effort | Impact |
-|----------|------|--------|--------|
-| P0 | Complete question ID mapping | 2 hours | Critical - fixes 75% data loss |
-| P0 | Pass structuredContext to synthesis | 1 hour | Critical - fixes synthesis disconnect |
-| P1 | Update StructuredAnswerData interface | 1 hour | High - enables new data |
-| P1 | Update formatStructuredDataForPrompt | 2 hours | High - evaluators get all data |
-| P1 | Fix unresolved questions extraction | 1 hour | High - accurate synthesis |
-| P2 | Create fit.yaml questions | 1 hour | Medium - improves fit evaluation |
-| P2 | Fix N+1 query problem | 2 hours | Medium - performance |
-| P2 | Add readiness to overview tab | 1 hour | Medium - UX improvement |
-| P3 | Add pre-evaluation preview | 3 hours | Medium - UX improvement |
-| P3 | Fix answer submission errors | 1 hour | Low - error handling |
-| P3 | Reduce wizard API calls | 2 hours | Low - performance |
+| Priority | Task                                  | Effort  | Impact                                |
+| -------- | ------------------------------------- | ------- | ------------------------------------- |
+| P0       | Complete question ID mapping          | 2 hours | Critical - fixes 75% data loss        |
+| P0       | Pass structuredContext to synthesis   | 1 hour  | Critical - fixes synthesis disconnect |
+| P1       | Update StructuredAnswerData interface | 1 hour  | High - enables new data               |
+| P1       | Update formatStructuredDataForPrompt  | 2 hours | High - evaluators get all data        |
+| P1       | Fix unresolved questions extraction   | 1 hour  | High - accurate synthesis             |
+| P2       | Create fit.yaml questions             | 1 hour  | Medium - improves fit evaluation      |
+| P2       | Fix N+1 query problem                 | 2 hours | Medium - performance                  |
+| P2       | Add readiness to overview tab         | 1 hour  | Medium - UX improvement               |
+| P3       | Add pre-evaluation preview            | 3 hours | Medium - UX improvement               |
+| P3       | Fix answer submission errors          | 1 hour  | Low - error handling                  |
+| P3       | Reduce wizard API calls               | 2 hours | Low - performance                     |
 
 ---
 

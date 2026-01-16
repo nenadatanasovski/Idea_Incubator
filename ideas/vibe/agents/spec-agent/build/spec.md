@@ -11,7 +11,7 @@ generated: 2026-01-12
 
 ## Overview
 
-**Problem:** After ideation and development sessions, ideas have rich context spread across multiple documents (README.md, development.md, target-users.md, research/*.md, planning/brief.md) but no structured implementation plan. Developers must:
+**Problem:** After ideation and development sessions, ideas have rich context spread across multiple documents (README.md, development.md, target-users.md, research/\*.md, planning/brief.md) but no structured implementation plan. Developers must:
 
 1. Read all context documents manually
 2. Synthesize requirements from scattered information
@@ -40,19 +40,19 @@ Spec Agent transforms messy ideation output into clean, actionable implementatio
 
 ## Functional Requirements
 
-- **[FR-001]** Load context from unified file system (README.md, development.md, target-users.md, research/*.md, planning/brief.md) _(must)_
+- **[FR-001]** Load context from unified file system (README.md, development.md, target-users.md, research/\*.md, planning/brief.md) _(must)_
 - **[FR-002]** Parse brief.md to extract structured fields (title, ID, complexity, problem, solution, MVP scope, success criteria, architecture) _(must)_
 - **[FR-003]** Integrate with Claude API for requirement analysis using structured prompts _(must)_
 - **[FR-004]** Generate spec.md following standard template with YAML frontmatter and markdown sections _(must)_
-- **[FR-005]** Generate tasks.md with atomic PIV-style tasks including id, phase, action, file, status, requirements, gotchas, validation, code_template, and depends_on _(must)_
+- **[FR-005]** Generate tasks.md with atomic PIV-style tasks including id, phase, action, file, status, requirements, gotchas, validation, code*template, and depends_on *(must)\_
 - **[FR-006]** Query Knowledge Base for relevant gotchas based on file patterns and action types _(must)_
 - **[FR-007]** Inject hardcoded gotchas from known list (G-001 through G-015) _(must)_
 - **[FR-008]** Generate clarifying questions when requirements are ambiguous or incomplete _(must)_
 - **[FR-009]** Support multiple complexity levels (simple, medium, complex) _(must)_
 - **[FR-010]** Validate task dependencies form a valid DAG (no cycles) _(must)_
 - **[FR-011]** Validate all YAML frontmatter is parseable _(must)_
-- **[FR-012]** Record specification runs in specifications table with metadata (tokens_used, task_count, status) _(must)_
-- **[FR-013]** Store generated questions in questions table with agent_type='spec' _(should)_
+- **[FR-012]** Record specification runs in specifications table with metadata (tokens*used, task_count, status) *(must)\_
+- **[FR-013]** Store generated questions in questions table with agent*type='spec' *(should)\_
 - **[FR-014]** Phase ordering enforcement: database → types → api → ui → tests _(must)_
 - **[FR-015]** Include context references listing all source documents in generated spec _(must)_
 - **[FR-016]** Include validation commands for each task to verify implementation _(must)_
@@ -136,36 +136,36 @@ Spec Agent transforms messy ideation output into clean, actionable implementatio
 
 ## New Files
 
-| Path | Purpose |
-|------|---------|
-| `agents/specification-agent/core.py` | Main agent class implementing PRIME loop |
-| `agents/specification-agent/context_loader.py` | Reads and validates ideation artifacts |
-| `agents/specification-agent/brief_parser.py` | Parses brief.md into structured data |
-| `agents/specification-agent/claude_analyzer.py` | Claude SDK wrapper for requirement analysis |
-| `agents/specification-agent/spec_generator.py` | Generates spec.md from analysis |
-| `agents/specification-agent/task_generator.py` | Generates tasks.md with PIV structure |
-| `agents/specification-agent/templates/spec.md.jinja2` | Template for build/spec.md |
-| `agents/specification-agent/templates/tasks.md.jinja2` | Template for build/tasks.md |
-| `agents/specification-agent/run.py` | CLI entry point for running agent |
-| `server/routes/specifications.ts` | Express router for spec management |
-| `server/routes/spec-questions.ts` | Express router for clarifying questions |
-| `shared/types/specification.ts` | TypeScript interfaces for specs |
-| `templates/planning/brief.md` | Template for handoff briefs |
-| `tests/unit/agents/specification_agent_test.py` | Unit tests for agent |
-| `tests/e2e/spec_to_build_loop.py` | E2E test (Spec Agent → Build Agent) |
+| Path                                                   | Purpose                                     |
+| ------------------------------------------------------ | ------------------------------------------- |
+| `agents/specification-agent/core.py`                   | Main agent class implementing PRIME loop    |
+| `agents/specification-agent/context_loader.py`         | Reads and validates ideation artifacts      |
+| `agents/specification-agent/brief_parser.py`           | Parses brief.md into structured data        |
+| `agents/specification-agent/claude_analyzer.py`        | Claude SDK wrapper for requirement analysis |
+| `agents/specification-agent/spec_generator.py`         | Generates spec.md from analysis             |
+| `agents/specification-agent/task_generator.py`         | Generates tasks.md with PIV structure       |
+| `agents/specification-agent/templates/spec.md.jinja2`  | Template for build/spec.md                  |
+| `agents/specification-agent/templates/tasks.md.jinja2` | Template for build/tasks.md                 |
+| `agents/specification-agent/run.py`                    | CLI entry point for running agent           |
+| `server/routes/specifications.ts`                      | Express router for spec management          |
+| `server/routes/spec-questions.ts`                      | Express router for clarifying questions     |
+| `shared/types/specification.ts`                        | TypeScript interfaces for specs             |
+| `templates/planning/brief.md`                          | Template for handoff briefs                 |
+| `tests/unit/agents/specification_agent_test.py`        | Unit tests for agent                        |
+| `tests/e2e/spec_to_build_loop.py`                      | E2E test (Spec Agent → Build Agent)         |
 
 ---
 
 ## Modified Files
 
-| Path | Changes |
-|------|---------|
-| `database/schema.sql` | Add `spec_tasks` table for task tracking |
-| `database/sync.js` | Add sync logic for build/*.md files |
-| `package.json` | Add `npm run spec <idea-slug>` command |
-| `CLAUDE.md` | Add Specification Agent section with conventions |
-| `coding-loops/shared/knowledge_base.py` | Add `query_gotchas_by_pattern()` method |
-| `coding-loops/shared/resource_registry.py` | Add `build/*.md` ownership for Spec Agent |
+| Path                                       | Changes                                          |
+| ------------------------------------------ | ------------------------------------------------ |
+| `database/schema.sql`                      | Add `spec_tasks` table for task tracking         |
+| `database/sync.js`                         | Add sync logic for build/\*.md files             |
+| `package.json`                             | Add `npm run spec <idea-slug>` command           |
+| `CLAUDE.md`                                | Add Specification Agent section with conventions |
+| `coding-loops/shared/knowledge_base.py`    | Add `query_gotchas_by_pattern()` method          |
+| `coding-loops/shared/resource_registry.py` | Add `build/*.md` ownership for Spec Agent        |
 
 ---
 
@@ -242,9 +242,9 @@ export interface Specification {
   specPath: string;
   tasksPath: string;
   taskCount: number;
-  status: 'draft' | 'approved' | 'in_progress' | 'completed';
+  status: "draft" | "approved" | "in_progress" | "completed";
   tokensUsed: number;
-  createdAt: string;  // ISO timestamp
+  createdAt: string; // ISO timestamp
   approvedAt?: string;
   completedAt?: string;
 }
@@ -252,17 +252,17 @@ export interface Specification {
 export interface SpecTask {
   id: string;
   specId: string;
-  taskId: string;  // T-001, T-002, etc.
-  phase: 'database' | 'types' | 'api' | 'ui' | 'tests';
-  action: 'CREATE' | 'UPDATE' | 'ADD' | 'DELETE' | 'VERIFY';
+  taskId: string; // T-001, T-002, etc.
+  phase: "database" | "types" | "api" | "ui" | "tests";
+  action: "CREATE" | "UPDATE" | "ADD" | "DELETE" | "VERIFY";
   filePath: string;
-  status: 'pending' | 'in_progress' | 'complete' | 'failed' | 'blocked';
-  requirements: string[];  // Stored as JSON in DB
-  gotchas: string[];       // Stored as JSON in DB
+  status: "pending" | "in_progress" | "complete" | "failed" | "blocked";
+  requirements: string[]; // Stored as JSON in DB
+  gotchas: string[]; // Stored as JSON in DB
   validationCommand?: string;
   validationExpected?: string;
-  dependsOn: string[];     // Task IDs
-  assignedTo?: string;     // Agent ID
+  dependsOn: string[]; // Task IDs
+  assignedTo?: string; // Agent ID
   startedAt?: string;
   completedAt?: string;
   createdAt: string;
@@ -272,10 +272,10 @@ export interface SpecQuestion {
   id: string;
   ideaSlug: string;
   userSlug: string;
-  agentType: 'spec';
+  agentType: "spec";
   question: string;
   answer?: string;
-  status: 'pending' | 'answered';
+  status: "pending" | "answered";
   createdAt: string;
   answeredAt?: string;
 }
@@ -283,8 +283,8 @@ export interface SpecQuestion {
 export interface CreateSpecRequest {
   ideaSlug: string;
   userSlug: string;
-  budgetDollars?: number;  // Default: $5
-  autoApprove?: boolean;   // Default: false
+  budgetDollars?: number; // Default: $5
+  autoApprove?: boolean; // Default: false
 }
 
 export interface CreateSpecResponse {
@@ -294,12 +294,12 @@ export interface CreateSpecResponse {
   taskCount: number;
   tokensUsed: number;
   questionsGenerated: number;
-  status: 'draft' | 'approved';
+  status: "draft" | "approved";
 }
 
 export interface ApproveSpecRequest {
   specId: string;
-  answers?: Record<string, string>;  // questionId -> answer
+  answers?: Record<string, string>; // questionId -> answer
 }
 
 export interface GetSpecTasksResponse {
@@ -315,14 +315,14 @@ export interface GetSpecTasksResponse {
 
 ### Specifications Router (`/api/specifications`)
 
-| Method | Endpoint | Purpose | Request Body | Response |
-|--------|----------|---------|--------------|----------|
-| POST | `/api/specifications` | Create new spec from brief | `CreateSpecRequest` | `CreateSpecResponse` |
-| GET | `/api/specifications/:specId` | Get spec details | - | `Specification` |
-| POST | `/api/specifications/:specId/approve` | Approve spec (start build) | `ApproveSpecRequest` | `Specification` |
-| GET | `/api/specifications/:specId/tasks` | Get all tasks for spec | - | `GetSpecTasksResponse` |
-| GET | `/api/specifications/:specId/questions` | Get clarifying questions | - | `SpecQuestion[]` |
-| POST | `/api/specifications/:specId/regenerate` | Regenerate spec with answers | `ApproveSpecRequest` | `CreateSpecResponse` |
+| Method | Endpoint                                 | Purpose                      | Request Body         | Response               |
+| ------ | ---------------------------------------- | ---------------------------- | -------------------- | ---------------------- |
+| POST   | `/api/specifications`                    | Create new spec from brief   | `CreateSpecRequest`  | `CreateSpecResponse`   |
+| GET    | `/api/specifications/:specId`            | Get spec details             | -                    | `Specification`        |
+| POST   | `/api/specifications/:specId/approve`    | Approve spec (start build)   | `ApproveSpecRequest` | `Specification`        |
+| GET    | `/api/specifications/:specId/tasks`      | Get all tasks for spec       | -                    | `GetSpecTasksResponse` |
+| GET    | `/api/specifications/:specId/questions`  | Get clarifying questions     | -                    | `SpecQuestion[]`       |
+| POST   | `/api/specifications/:specId/regenerate` | Regenerate spec with answers | `ApproveSpecRequest` | `CreateSpecResponse`   |
 
 ### Example API Usage
 
@@ -370,38 +370,45 @@ curl http://localhost:3000/api/specifications/550e8400.../tasks
 ## Key Architectural Decisions
 
 ### 1. **Brief-First Approach**
+
 - Spec Agent expects `planning/brief.md` to exist
 - Brief must contain: Problem, Solution, Requirements, Existing Schema Hint
 - If brief is missing, agent fails with actionable error
 
 ### 2. **Question-Driven Clarification**
+
 - Agent generates questions when requirements are ambiguous
 - Questions stored in existing `questions` table with `agent_type = 'spec'`
 - User must answer questions before spec approval
 - Regeneration incorporates answers into spec
 
 ### 3. **Knowledge Base Integration**
+
 - Agent queries gotchas by file pattern (`*.sql`, `server/routes/*`, etc.)
 - Gotchas injected into task templates automatically
 - Confidence scoring ensures only high-quality gotchas are used
 
 ### 4. **PIV-Style Task Format**
+
 - Tasks follow existing PIV conventions (id, phase, action, file, status)
 - Dependencies explicit (`depends_on` array)
 - Validation commands included (e.g., `npx tsc --noEmit`)
 - Code templates provide implementation guidance
 
 ### 5. **Two-Phase Approval**
+
 - **Draft**: Spec generated, questions surfaced, awaiting user review
 - **Approved**: User approves spec, Build Agent can start execution
 - `status` field tracks state transition
 
 ### 6. **Database-First Schema**
+
 - Tasks table mirrors PIV structure for queryability
 - JSON fields for arrays (requirements, gotchas, dependsOn)
 - Foreign key constraints maintain referential integrity
 
 ### 7. **File Ownership**
+
 - Spec Agent owns `build/spec.md` and `build/tasks.md`
 - Registered in ResourceRegistry to prevent conflicts
 - Build Agent reads (not writes) these files
@@ -410,21 +417,22 @@ curl http://localhost:3000/api/specifications/550e8400.../tasks
 
 ## Error Handling Strategy
 
-| Error Condition | HTTP Status | Response | Recovery |
-|-----------------|-------------|----------|----------|
-| Brief missing | 400 | `{ error: "brief.md not found at ..." }` | User creates brief |
-| Invalid brief format | 400 | `{ error: "Brief missing required section: Problem" }` | User fixes brief |
-| Spec already exists | 409 | `{ error: "Spec already exists, use regenerate" }` | Use regenerate endpoint |
-| Claude API error | 500 | `{ error: "Claude API failed", details: "..." }` | Retry with backoff |
-| Budget exceeded | 400 | `{ error: "Estimated cost $X exceeds budget $Y" }` | Increase budget |
-| Unanswered questions | 400 | `{ error: "3 questions pending, cannot approve" }` | Answer questions |
-| Database error | 500 | `{ error: "Database write failed", details: "..." }` | Check schema, retry |
+| Error Condition      | HTTP Status | Response                                               | Recovery                |
+| -------------------- | ----------- | ------------------------------------------------------ | ----------------------- |
+| Brief missing        | 400         | `{ error: "brief.md not found at ..." }`               | User creates brief      |
+| Invalid brief format | 400         | `{ error: "Brief missing required section: Problem" }` | User fixes brief        |
+| Spec already exists  | 409         | `{ error: "Spec already exists, use regenerate" }`     | Use regenerate endpoint |
+| Claude API error     | 500         | `{ error: "Claude API failed", details: "..." }`       | Retry with backoff      |
+| Budget exceeded      | 400         | `{ error: "Estimated cost $X exceeds budget $Y" }`     | Increase budget         |
+| Unanswered questions | 400         | `{ error: "3 questions pending, cannot approve" }`     | Answer questions        |
+| Database error       | 500         | `{ error: "Database write failed", details: "..." }`   | Check schema, retry     |
 
 ---
 
 ## Validation Strategy
 
 ### Spec Validation
+
 - ✅ All context files loaded successfully
 - ✅ Brief parsed without errors
 - ✅ Requirements extracted and structured
@@ -433,6 +441,7 @@ curl http://localhost:3000/api/specifications/550e8400.../tasks
 - ✅ Validation commands specified for each task
 
 ### Task Validation
+
 - ✅ Each task has unique ID (T-001, T-002, ...)
 - ✅ Dependencies form a DAG (no cycles)
 - ✅ Phase order respected (database → types → api → ui → tests)
@@ -440,6 +449,7 @@ curl http://localhost:3000/api/specifications/550e8400.../tasks
 - ✅ Action matches file operation (CREATE for new files, UPDATE for existing)
 
 ### Database Validation
+
 ```bash
 # Verify spec recorded
 sqlite3 database/ideas.db "SELECT * FROM specifications WHERE idea_slug = 'spec-agent'"
@@ -452,6 +462,7 @@ sqlite3 database/ideas.db "SELECT question FROM questions WHERE agent_type = 'sp
 ```
 
 ### End-to-End Validation
+
 ```bash
 # Full E2E test
 python3 tests/e2e/spec_to_build_loop.py
@@ -472,24 +483,28 @@ python3 tests/e2e/spec_to_build_loop.py
 ### From Knowledge Base (Injected Automatically)
 
 **Database Tasks:**
+
 - ❌ Don't use `DATETIME` type in SQLite (use `TEXT`)
 - ❌ Don't forget `PRAGMA foreign_keys = ON` before queries
 - ❌ Don't use `datetime()` without `'now'` argument
 - ✅ Always include `IF NOT EXISTS` in CREATE statements
 
 **TypeScript Tasks:**
+
 - ❌ Don't store dates as `Date` type (use `string`)
 - ❌ Don't forget to export interfaces
 - ❌ Don't use implicit `any` types
 - ✅ Always define IDs as `string` (UUIDs)
 
 **API Route Tasks:**
+
 - ❌ Don't forget `try/catch` in async handlers
 - ❌ Don't skip input validation
 - ❌ Don't return 200 for errors
 - ✅ Always use appropriate status codes (404, 400, 500)
 
 **General:**
+
 - ❌ Don't modify files owned by other agents
 - ❌ Don't skip validation commands
 - ❌ Don't create circular dependencies
@@ -498,23 +513,27 @@ python3 tests/e2e/spec_to_build_loop.py
 ### Specification-Specific
 
 **Context Loading:**
+
 - ❌ Don't assume all context files exist (check first)
 - ❌ Don't fail silently if brief is malformed
 - ✅ Provide actionable errors with file paths
 
 **Task Generation:**
+
 - ❌ Don't create tasks without clear validation criteria
 - ❌ Don't assume Build Agent knows project conventions
 - ✅ Include code templates for non-obvious tasks
 - ✅ Make dependencies explicit (no implicit ordering)
 
 **Question Generation:**
+
 - ❌ Don't ask questions that can be inferred from context
 - ❌ Don't generate vague questions ("What about X?")
 - ✅ Ask specific, actionable questions with context
 - ✅ Limit to 3-5 questions max (avoid question fatigue)
 
 **Approval Flow:**
+
 - ❌ Don't auto-approve specs without user consent
 - ❌ Don't allow approval with unanswered questions
 - ✅ Regenerate spec when answers change requirements
@@ -524,15 +543,15 @@ python3 tests/e2e/spec_to_build_loop.py
 
 ## Token Budget Estimation
 
-| Phase | Estimated Tokens | Cost (Sonnet 4.0) |
-|-------|------------------|-------------------|
-| Context Loading | 2,000 | $0.01 |
-| Brief Parsing | 1,000 | $0.005 |
-| Claude Analysis | 15,000 | $0.15 |
-| Spec Generation | 5,000 | $0.05 |
-| Task Generation | 8,000 | $0.08 |
-| Question Generation | 2,000 | $0.02 |
-| **Total** | **33,000** | **~$0.32** |
+| Phase               | Estimated Tokens | Cost (Sonnet 4.0) |
+| ------------------- | ---------------- | ----------------- |
+| Context Loading     | 2,000            | $0.01             |
+| Brief Parsing       | 1,000            | $0.005            |
+| Claude Analysis     | 15,000           | $0.15             |
+| Spec Generation     | 5,000            | $0.05             |
+| Task Generation     | 8,000            | $0.08             |
+| Question Generation | 2,000            | $0.02             |
+| **Total**           | **33,000**       | **~$0.32**        |
 
 **Default Budget:** $5 (allows ~15 iterations)
 
@@ -593,13 +612,13 @@ Output is consumed by Build Agent for execution. The agent follows existing proj
 
 ## API Design
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /api/unknown | GET | List all |
-| /api/unknown/:id | GET | Get by ID |
-| /api/unknown | POST | Create new |
-| /api/unknown/:id | PUT | Update |
-| /api/unknown/:id | DELETE | Delete |
+| Endpoint         | Method | Description |
+| ---------------- | ------ | ----------- |
+| /api/unknown     | GET    | List all    |
+| /api/unknown/:id | GET    | Get by ID   |
+| /api/unknown     | POST   | Create new  |
+| /api/unknown/:id | PUT    | Update      |
+| /api/unknown/:id | DELETE | Delete      |
 
 ## Data Models
 

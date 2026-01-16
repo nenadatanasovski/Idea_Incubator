@@ -5,88 +5,97 @@
  * Part of: Task System V2 Implementation Plan (IMPL-7.1)
  */
 
-import { useState, useEffect } from 'react'
-import { FileText, ChevronRight, Check, Clock, Edit, AlertCircle } from 'lucide-react'
+import { useState, useEffect } from "react";
+import {
+  FileText,
+  ChevronRight,
+  Check,
+  Clock,
+  Edit,
+  AlertCircle,
+} from "lucide-react";
 
 interface PRD {
-  id: string
-  title: string
-  description?: string
-  status: 'draft' | 'review' | 'approved' | 'archived'
-  parentId?: string
-  createdAt: string
-  updatedAt: string
-  approvedAt?: string
-  approvedBy?: string
+  id: string;
+  title: string;
+  description?: string;
+  status: "draft" | "review" | "approved" | "archived";
+  parentId?: string;
+  createdAt: string;
+  updatedAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
 }
 
 interface PRDListProps {
-  onSelect?: (prd: PRD) => void
-  selectedId?: string
-  filter?: 'all' | 'draft' | 'review' | 'approved' | 'archived'
+  onSelect?: (prd: PRD) => void;
+  selectedId?: string;
+  filter?: "all" | "draft" | "review" | "approved" | "archived";
 }
 
 const statusConfig = {
   draft: {
     icon: Edit,
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-100',
-    label: 'Draft'
+    color: "text-gray-600",
+    bgColor: "bg-gray-100",
+    label: "Draft",
   },
   review: {
     icon: Clock,
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-100',
-    label: 'In Review'
+    color: "text-yellow-600",
+    bgColor: "bg-yellow-100",
+    label: "In Review",
   },
   approved: {
     icon: Check,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
-    label: 'Approved'
+    color: "text-green-600",
+    bgColor: "bg-green-100",
+    label: "Approved",
   },
   archived: {
     icon: AlertCircle,
-    color: 'text-gray-500',
-    bgColor: 'bg-gray-50',
-    label: 'Archived'
-  }
-}
+    color: "text-gray-500",
+    bgColor: "bg-gray-50",
+    label: "Archived",
+  },
+};
 
-export default function PRDList({ onSelect, selectedId, filter = 'all' }: PRDListProps) {
-  const [prds, setPrds] = useState<PRD[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export default function PRDList({
+  onSelect,
+  selectedId,
+  filter = "all",
+}: PRDListProps) {
+  const [prds, setPrds] = useState<PRD[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPRDs()
-  }, [filter])
+    fetchPRDs();
+  }, [filter]);
 
   const fetchPRDs = async () => {
     try {
-      setLoading(true)
-      const url = filter === 'all'
-        ? '/api/prds'
-        : `/api/prds?status=${filter}`
-      const response = await fetch(url)
-      if (!response.ok) throw new Error('Failed to fetch PRDs')
-      const data = await response.json()
-      setPrds(data)
+      setLoading(true);
+      const url = filter === "all" ? "/api/prds" : `/api/prds?status=${filter}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch PRDs");
+      const data = await response.json();
+      setPrds(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="animate-pulse space-y-3">
-        {[1, 2, 3].map(i => (
+        {[1, 2, 3].map((i) => (
           <div key={i} className="h-16 bg-gray-100 rounded-lg" />
         ))}
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -95,7 +104,7 @@ export default function PRDList({ onSelect, selectedId, filter = 'all' }: PRDLis
         <AlertCircle className="h-5 w-5 inline mr-2" />
         {error}
       </div>
-    )
+    );
   }
 
   if (prds.length === 0) {
@@ -105,15 +114,15 @@ export default function PRDList({ onSelect, selectedId, filter = 'all' }: PRDLis
         <p>No PRDs found</p>
         <p className="text-sm">Create a new PRD to get started</p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-2">
-      {prds.map(prd => {
-        const config = statusConfig[prd.status]
-        const StatusIcon = config.icon
-        const isSelected = selectedId === prd.id
+      {prds.map((prd) => {
+        const config = statusConfig[prd.status];
+        const StatusIcon = config.icon;
+        const isSelected = selectedId === prd.id;
 
         return (
           <div
@@ -121,9 +130,10 @@ export default function PRDList({ onSelect, selectedId, filter = 'all' }: PRDLis
             onClick={() => onSelect?.(prd)}
             className={`
               p-4 rounded-lg border cursor-pointer transition-all
-              ${isSelected
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              ${
+                isSelected
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
               }
             `}
           >
@@ -155,11 +165,11 @@ export default function PRDList({ onSelect, selectedId, filter = 'all' }: PRDLis
               <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0" />
             </div>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
-export { statusConfig as prdStatusConfig }
-export type { PRD }
+export { statusConfig as prdStatusConfig };
+export type { PRD };

@@ -8,6 +8,7 @@
 ## Instructions for Coding Agent
 
 Execute tasks in order. Each task has:
+
 - **ID**: Task identifier
 - **Action**: What to do
 - **File**: Target file path
@@ -20,22 +21,22 @@ Skip to [Task Details](#task-details) for specifications.
 
 ## Task List
 
-| ID | Action | File | Depends |
-|----|--------|------|---------|
-| BOOT-001 | CREATE | `database/migrations/050_tasks_schema.sql` | - |
-| BOOT-002 | CREATE | `database/migrations/051_task_relationships.sql` | BOOT-001 |
-| BOOT-003 | CREATE | `database/migrations/052_task_lists.sql` | BOOT-001 |
-| BOOT-004 | CREATE | `database/migrations/053_task_list_items.sql` | BOOT-001, BOOT-003 |
-| BOOT-005 | CREATE | `database/migrations/054_validation_rules.sql` | - |
-| BOOT-006 | VERIFY | Run `npm run migrate` | BOOT-001 to BOOT-005 |
-| BOOT-007 | CREATE | `types/task-agent.ts` | BOOT-006 |
-| BOOT-008 | CREATE | `types/task-validation.ts` | BOOT-006 |
-| BOOT-009 | CREATE | `server/routes/tasks-v2.ts` | BOOT-007 |
-| BOOT-010 | CREATE | `server/routes/task-lists-v2.ts` | BOOT-007 |
-| BOOT-011 | UPDATE | `server/api.ts` - mount routes | BOOT-009, BOOT-010 |
-| BOOT-012 | UPDATE | `server/websocket.ts` - add task events | BOOT-011 |
-| BOOT-013 | CREATE | `scripts/import-tasks.ts` | BOOT-011 |
-| BOOT-014 | EXECUTE | Run importer script | BOOT-013 |
+| ID       | Action  | File                                             | Depends              |
+| -------- | ------- | ------------------------------------------------ | -------------------- |
+| BOOT-001 | CREATE  | `database/migrations/050_tasks_schema.sql`       | -                    |
+| BOOT-002 | CREATE  | `database/migrations/051_task_relationships.sql` | BOOT-001             |
+| BOOT-003 | CREATE  | `database/migrations/052_task_lists.sql`         | BOOT-001             |
+| BOOT-004 | CREATE  | `database/migrations/053_task_list_items.sql`    | BOOT-001, BOOT-003   |
+| BOOT-005 | CREATE  | `database/migrations/054_validation_rules.sql`   | -                    |
+| BOOT-006 | VERIFY  | Run `npm run migrate`                            | BOOT-001 to BOOT-005 |
+| BOOT-007 | CREATE  | `types/task-agent.ts`                            | BOOT-006             |
+| BOOT-008 | CREATE  | `types/task-validation.ts`                       | BOOT-006             |
+| BOOT-009 | CREATE  | `server/routes/tasks-v2.ts`                      | BOOT-007             |
+| BOOT-010 | CREATE  | `server/routes/task-lists-v2.ts`                 | BOOT-007             |
+| BOOT-011 | UPDATE  | `server/api.ts` - mount routes                   | BOOT-009, BOOT-010   |
+| BOOT-012 | UPDATE  | `server/websocket.ts` - add task events          | BOOT-011             |
+| BOOT-013 | CREATE  | `scripts/import-tasks.ts`                        | BOOT-011             |
+| BOOT-014 | EXECUTE | Run importer script                              | BOOT-013             |
 
 ---
 
@@ -217,6 +218,7 @@ npm run migrate
 ```
 
 **Validate:**
+
 ```bash
 sqlite3 database/ideas.db ".tables" | grep -E "tasks|task_lists|task_list_items|task_relationships|validation_rules"
 ```
@@ -230,6 +232,7 @@ sqlite3 database/ideas.db ".tables" | grep -E "tasks|task_lists|task_list_items|
 See full content in TASK-AGENT-BOOTSTRAP-PLAN.md section "BOOT-007".
 
 Key interfaces:
+
 - `Task` - main task entity
 - `TaskList` - grouped tasks
 - `TaskRelationship` - dependency links
@@ -248,10 +251,15 @@ export interface ValidationRule {
   id: string;
   name: string;
   description?: string;
-  ruleType: 'required_field' | 'test_required' | 'pattern_match' | 'custom' | 'ambiguity_check';
+  ruleType:
+    | "required_field"
+    | "test_required"
+    | "pattern_match"
+    | "custom"
+    | "ambiguity_check";
   categoryFilter?: string;
   config: Record<string, any>;
-  severity: 'error' | 'warning' | 'info';
+  severity: "error" | "warning" | "info";
   blocking: boolean;
   enabled: boolean;
 }
@@ -260,7 +268,7 @@ export interface ValidationIssue {
   ruleId: string;
   field: string;
   message: string;
-  severity: 'error' | 'warning' | 'info';
+  severity: "error" | "warning" | "info";
   blocking: boolean;
   suggestedFix?: string;
 }
@@ -280,6 +288,7 @@ export interface ValidationResult {
 **File:** `server/routes/tasks-v2.ts`
 
 Endpoints:
+
 - `GET /api/v2/tasks` - List tasks (with filters)
 - `POST /api/v2/tasks` - Create task
 - `GET /api/v2/tasks/:id` - Get task
@@ -296,6 +305,7 @@ See full implementation in TASK-AGENT-BOOTSTRAP-PLAN.md.
 **File:** `server/routes/task-lists-v2.ts`
 
 Endpoints:
+
 - `GET /api/v2/task-lists` - List task lists
 - `POST /api/v2/task-lists` - Create list
 - `GET /api/v2/task-lists/:id` - Get list with items
@@ -311,13 +321,14 @@ Endpoints:
 **File:** `server/api.ts`
 
 Add:
+
 ```typescript
-import tasksV2Router from './routes/tasks-v2';
-import taskListsV2Router from './routes/task-lists-v2';
+import tasksV2Router from "./routes/tasks-v2";
+import taskListsV2Router from "./routes/task-lists-v2";
 
 // After other route mounts:
-app.use('/api/v2/tasks', tasksV2Router);
-app.use('/api/v2/task-lists', taskListsV2Router);
+app.use("/api/v2/tasks", tasksV2Router);
+app.use("/api/v2/task-lists", taskListsV2Router);
 ```
 
 ---
@@ -327,15 +338,16 @@ app.use('/api/v2/task-lists', taskListsV2Router);
 **File:** `server/websocket.ts`
 
 Add to broadcast events:
+
 ```typescript
 // Task events
-'task:created'
-'task:updated'
-'task:deleted'
-'task:status_changed'
-'tasklist:created'
-'tasklist:updated'
-'tasklist:item_added'
+"task:created";
+"task:updated";
+"task:deleted";
+"task:status_changed";
+"tasklist:created";
+"tasklist:updated";
+"tasklist:item_added";
 ```
 
 ---
@@ -347,6 +359,7 @@ Add to broadcast events:
 See full implementation in TASK-AGENT-BOOTSTRAP-PLAN.md.
 
 Function:
+
 1. Parse YAML blocks from TAK-TASK-AGENT.md
 2. Map to database schema
 3. Insert tasks and relationships
@@ -361,6 +374,7 @@ npx ts-node scripts/import-tasks.ts
 ```
 
 **Validate:**
+
 ```bash
 sqlite3 database/ideas.db "SELECT COUNT(*) FROM tasks WHERE id LIKE 'TAK-%'"
 # Expected: ~47 tasks
@@ -383,6 +397,6 @@ sqlite3 database/ideas.db "SELECT COUNT(*) FROM tasks WHERE id LIKE 'TAK-%'"
 - [ ] BOOT-011: Routes mounted in api.ts
 - [ ] BOOT-012: WebSocket events fire
 - [ ] BOOT-013: Import script created
-- [ ] BOOT-014: TAK-* tasks imported to DB
+- [ ] BOOT-014: TAK-\* tasks imported to DB
 
 **Bootstrap Complete!** Task Agent is now self-hosting.

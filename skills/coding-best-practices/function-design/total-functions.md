@@ -1,6 +1,7 @@
 # SKILL: Total Functions
 
 ## When to Load
+
 - Writing functions that might not handle all inputs
 - Reviewing error-prone code
 - Refactoring partial functions
@@ -17,13 +18,13 @@ A **total function** handles every possible input. A **partial function** crashe
 
 ## Partial Functions to Avoid
 
-| Partial | Problem | Total Alternative |
-|---------|---------|-------------------|
-| `list[0]` | Crashes on empty | `list.at(0)` returning undefined/Option |
-| `parseInt(s)` | Returns NaN | Return Result/Option |
-| `obj.property` | Undefined if missing | Optional chaining `obj?.property` |
-| `array.find(p)!` | Force unwrap crashes | Handle the undefined case |
-| `map.get(key)` (some langs) | Returns null | `map.get(key)` returning Option |
+| Partial                     | Problem              | Total Alternative                       |
+| --------------------------- | -------------------- | --------------------------------------- |
+| `list[0]`                   | Crashes on empty     | `list.at(0)` returning undefined/Option |
+| `parseInt(s)`               | Returns NaN          | Return Result/Option                    |
+| `obj.property`              | Undefined if missing | Optional chaining `obj?.property`       |
+| `array.find(p)!`            | Force unwrap crashes | Handle the undefined case               |
+| `map.get(key)` (some langs) | Returns null         | `map.get(key)` returning Option         |
 
 ## Application
 
@@ -39,36 +40,37 @@ RETURN explicit failure values instead of crashing
 ```typescript
 // PARTIAL - crashes on empty array
 function first<T>(arr: T[]): T {
-  return arr[0]  // undefined if empty, lies about return type
+  return arr[0]; // undefined if empty, lies about return type
 }
 
 // TOTAL - handles all cases
 function first<T>(arr: T[]): T | undefined {
-  return arr[0]  // type honestly reflects possibility
+  return arr[0]; // type honestly reflects possibility
 }
 
 // BETTER - with explicit Option type
 function first<T>(arr: T[]): Option<T> {
-  return arr.length > 0 ? Some(arr[0]) : None
+  return arr.length > 0 ? Some(arr[0]) : None;
 }
 ```
 
 ```typescript
 // PARTIAL - throws on invalid input
 function divide(a: number, b: number): number {
-  return a / b  // Infinity or NaN for edge cases
+  return a / b; // Infinity or NaN for edge cases
 }
 
 // TOTAL - handles division by zero
-function divide(a: number, b: number): Result<number, 'division_by_zero'> {
-  if (b === 0) return Err('division_by_zero')
-  return Ok(a / b)
+function divide(a: number, b: number): Result<number, "division_by_zero"> {
+  if (b === 0) return Err("division_by_zero");
+  return Ok(a / b);
 }
 ```
 
 ## Spotting Partial Functions
 
 Warning signs:
+
 - No handling for empty collections
 - Unchecked type casts
 - Force unwrapping optionals (`!`, `!!`, `.get()`)
@@ -78,10 +80,11 @@ Warning signs:
 ## Exception
 
 Performance-critical inner loops where you've **proven** the invariant holds:
+
 ```typescript
 // OK if you've verified arr is non-empty before the loop
 for (let i = 0; i < arr.length; i++) {
-  process(arr[i])  // Safe because loop condition guarantees bounds
+  process(arr[i]); // Safe because loop condition guarantees bounds
 }
 ```
 

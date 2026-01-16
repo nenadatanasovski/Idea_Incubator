@@ -10,14 +10,17 @@ updated: "{{updated}}"
 # User Personas: {{title}}
 
 ## Persona 1
+
 <!-- Agent fills after user research -->
 
 - [ ] Defined: No
 
 ### Name
-*Give this persona a memorable name*
+
+_Give this persona a memorable name_
 
 ### Demographics
+
 - **Age**:
 - **Occupation**:
 - **Location**:
@@ -25,37 +28,41 @@ updated: "{{updated}}"
 - **Education**:
 
 ### Goals
-*What is this persona trying to achieve?*
+
+_What is this persona trying to achieve?_
 
 -
 -
 -
 
 ### Frustrations
-*What problems or pain points do they experience?*
+
+_What problems or pain points do they experience?_
 
 -
 -
 -
 
 ### Behaviors
-*How do they currently solve this problem? What are their habits?*
+
+_How do they currently solve this problem? What are their habits?_
 
 -
 -
--
-
----
+- ***
 
 ## Persona 2
+
 <!-- Agent fills after user research -->
 
 - [ ] Defined: No
 
 ### Name
-*Give this persona a memorable name*
+
+_Give this persona a memorable name_
 
 ### Demographics
+
 - **Age**:
 - **Occupation**:
 - **Location**:
@@ -63,37 +70,41 @@ updated: "{{updated}}"
 - **Education**:
 
 ### Goals
-*What is this persona trying to achieve?*
+
+_What is this persona trying to achieve?_
 
 -
 -
 -
 
 ### Frustrations
-*What problems or pain points do they experience?*
+
+_What problems or pain points do they experience?_
 
 -
 -
 -
 
 ### Behaviors
-*How do they currently solve this problem? What are their habits?*
+
+_How do they currently solve this problem? What are their habits?_
 
 -
 -
--
-
----
+- ***
 
 ## Persona 3
+
 <!-- Agent fills after user research -->
 
 - [ ] Defined: No
 
 ### Name
-*Give this persona a memorable name*
+
+_Give this persona a memorable name_
 
 ### Demographics
+
 - **Age**:
 - **Occupation**:
 - **Location**:
@@ -101,21 +112,24 @@ updated: "{{updated}}"
 - **Education**:
 
 ### Goals
-*What is this persona trying to achieve?*
+
+_What is this persona trying to achieve?_
 
 -
 -
 -
 
 ### Frustrations
-*What problems or pain points do they experience?*
+
+_What problems or pain points do they experience?_
 
 -
 -
 -
 
 ### Behaviors
-*How do they currently solve this problem? What are their habits?*
+
+_How do they currently solve this problem? What are their habits?_
 
 -
 -

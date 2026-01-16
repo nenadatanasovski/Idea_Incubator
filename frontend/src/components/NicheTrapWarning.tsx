@@ -5,7 +5,11 @@
  * that's too small or too competitive.
  */
 
-import type { EnhancedStrategy, IdeaFinancialAllocation, ValidatedOpportunity } from '../types';
+import type {
+  EnhancedStrategy,
+  IdeaFinancialAllocation,
+  ValidatedOpportunity,
+} from "../types";
 
 interface Props {
   strategy?: EnhancedStrategy;
@@ -15,7 +19,7 @@ interface Props {
 }
 
 interface WarningLevel {
-  level: 'none' | 'low' | 'medium' | 'high';
+  level: "none" | "low" | "medium" | "high";
   message: string;
   details: string[];
 }
@@ -23,104 +27,108 @@ interface WarningLevel {
 function analyzeNicheTrap(
   strategy?: EnhancedStrategy,
   allocation?: IdeaFinancialAllocation | null,
-  opportunities?: ValidatedOpportunity[]
+  opportunities?: ValidatedOpportunity[],
 ): WarningLevel {
   const warnings: string[] = [];
 
   // Only applies to specialize approach
-  if (allocation?.strategicApproach !== 'specialize') {
-    return { level: 'none', message: '', details: [] };
+  if (allocation?.strategicApproach !== "specialize") {
+    return { level: "none", message: "", details: [] };
   }
 
   // Check target income vs market size
   const targetIncome = allocation?.targetIncomeFromIdea || 0;
   if (targetIncome > 200000) {
-    warnings.push('High income target in a specialized niche may be difficult');
+    warnings.push("High income target in a specialized niche may be difficult");
   }
 
   // Check opportunities for small market indicators
   if (opportunities && opportunities.length > 0) {
-    const smallMarkets = opportunities.filter(o =>
-      o.marketSize?.toLowerCase().includes('small') ||
-      o.marketSize?.toLowerCase().includes('niche') ||
-      o.marketSize?.toLowerCase().includes('limited')
+    const smallMarkets = opportunities.filter(
+      (o) =>
+        o.marketSize?.toLowerCase().includes("small") ||
+        o.marketSize?.toLowerCase().includes("niche") ||
+        o.marketSize?.toLowerCase().includes("limited"),
     );
 
     if (smallMarkets.length > 0) {
-      warnings.push('Market size indicators suggest limited addressable market');
+      warnings.push(
+        "Market size indicators suggest limited addressable market",
+      );
     }
 
     // Check for validation warnings
     const hasValidationWarnings = opportunities.some(
-      o => o.validationWarnings && o.validationWarnings.length > 0
+      (o) => o.validationWarnings && o.validationWarnings.length > 0,
     );
     if (hasValidationWarnings) {
-      warnings.push('Some opportunities have validation concerns');
+      warnings.push("Some opportunities have validation concerns");
     }
   }
 
   // Check strategy differentiators
   if (strategy?.differentiators) {
     const tooNarrow = strategy.differentiators.some(
-      d => d.toLowerCase().includes('only') ||
-           d.toLowerCase().includes('exclusively') ||
-           d.toLowerCase().includes('sole')
+      (d) =>
+        d.toLowerCase().includes("only") ||
+        d.toLowerCase().includes("exclusively") ||
+        d.toLowerCase().includes("sole"),
     );
     if (tooNarrow) {
-      warnings.push('Differentiation may be too narrow to sustain');
+      warnings.push("Differentiation may be too narrow to sustain");
     }
   }
 
   // Determine warning level
   if (warnings.length === 0) {
-    return { level: 'none', message: '', details: [] };
+    return { level: "none", message: "", details: [] };
   }
 
   if (warnings.length >= 3) {
     return {
-      level: 'high',
-      message: 'High risk of niche trap',
+      level: "high",
+      message: "High risk of niche trap",
       details: warnings,
     };
   }
 
   if (warnings.length >= 2) {
     return {
-      level: 'medium',
-      message: 'Moderate niche trap risk',
+      level: "medium",
+      message: "Moderate niche trap risk",
       details: warnings,
     };
   }
 
   return {
-    level: 'low',
-    message: 'Minor niche concerns',
+    level: "low",
+    message: "Minor niche concerns",
     details: warnings,
   };
 }
 
-const getWarningStyles = (level: 'low' | 'medium' | 'high') => {
+const getWarningStyles = (level: "low" | "medium" | "high") => {
   switch (level) {
-    case 'high':
+    case "high":
       return {
-        bg: 'bg-red-50',
-        border: 'border-red-200',
-        text: 'text-red-800',
-        icon: 'text-red-500',
+        bg: "bg-red-50",
+        border: "border-red-200",
+        text: "text-red-800",
+        icon: "text-red-500",
       };
-    case 'medium':
+    case "medium":
       return {
-        bg: 'bg-yellow-50',
-        border: 'border-yellow-200',
-        text: 'text-yellow-800',
-        icon: 'text-yellow-500',
+        bg: "bg-yellow-50",
+        border: "border-yellow-200",
+        text: "text-yellow-800",
+        icon: "text-yellow-500",
       };
-    case 'low':
+    case "low":
       return {
-        bg: 'bg-blue-50',
-        border: 'border-blue-200',
-        text: 'text-blue-800',
-        icon: 'text-blue-500',
+        bg: "bg-blue-50",
+        border: "border-blue-200",
+        text: "text-blue-800",
+        icon: "text-blue-500",
       };
   }
 };
@@ -129,18 +137,20 @@ export default function NicheTrapWarning({
   strategy,
   allocation,
   opportunities,
-  className = '',
+  className = "",
 }: Props) {
   const warning = analyzeNicheTrap(strategy, allocation, opportunities);
 
-  if (warning.level === 'none') {
+  if (warning.level === "none") {
     return null;
   }
 
   const styles = getWarningStyles(warning.level);
 
   return (
-    <div className={`${styles.bg} border ${styles.border} rounded-lg p-4 ${className}`}>
+    <div
+      className={`${styles.bg} border ${styles.border} rounded-lg p-4 ${className}`}
+    >
       <div className="flex items-start gap-3">
         <svg
           className={`w-5 h-5 flex-shrink-0 ${styles.icon}`}
@@ -165,8 +175,8 @@ export default function NicheTrapWarning({
             ))}
           </ul>
           <p className="mt-3 text-xs text-gray-600">
-            <strong>Consider:</strong> Validate demand before committing.
-            Ensure the niche is large enough to sustain your income goals.
+            <strong>Consider:</strong> Validate demand before committing. Ensure
+            the niche is large enough to sustain your income goals.
           </p>
         </div>
       </div>

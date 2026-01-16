@@ -1,6 +1,7 @@
 # E2E Test Handoff
 
 ## Current State
+
 - **Last Updated:** 2025-12-31 Session 11 (End)
 - **Progress:** Passed: 29 | Blocked: 5 | Pending: 30 | Total: 64
 
@@ -11,11 +12,13 @@
 **Problem:** The ideation agent was saying "I don't have web search capabilities" when the web search service was fully implemented but never wired up.
 
 **Root Cause:**
+
 1. `orchestrator.ts` parsed `webSearchNeeded` from LLM response but never executed searches
 2. `web-search-service.ts` used `exec()` which doesn't properly handle multiline prompts
 3. Default shell `/bin/sh` doesn't support `$'...'` bash syntax
 
 **Fix Applied:**
+
 1. Added web search execution to `orchestrator.ts`:
    - Import `performWebSearch` and `SearchPurpose` from web-search-service
    - Execute web searches when LLM returns `webSearchNeeded` queries
@@ -36,8 +39,8 @@
 
 ### Tests Passed This Session
 
-| Test ID | Description | Notes |
-|---------|-------------|-------|
+| Test ID     | Description         | Notes                                                                    |
+| ----------- | ------------------- | ------------------------------------------------------------------------ |
 | TEST-CM-006 | Capture Idea Button | Button enabled at 85% confidence, creates idea, redirects to detail page |
 
 ## Next Session Should
@@ -48,10 +51,10 @@
 
 ## Known Issues
 
-| Test | Bug | Description |
-|------|-----|-------------|
+| Test        | Bug     | Description                                                          |
+| ----------- | ------- | -------------------------------------------------------------------- |
 | TEST-SL-008 | BUG-001 | Missing timeout message - UI silently redirects when session expired |
-| TEST-FH-* | BUG-002 | Forms not deterministically triggered - AI decides when to use them |
+| TEST-FH-\*  | BUG-002 | Forms not deterministically triggered - AI decides when to use them  |
 
 ## Key Files Modified This Session
 
@@ -76,6 +79,7 @@ SELECT id, title, summary, confidence, viability FROM ideation_candidates WHERE 
 ## Web Search Verification
 
 To verify web search is working:
+
 ```bash
 # Check backend logs for:
 # [Orchestrator] Executing N web searches...

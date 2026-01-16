@@ -14,22 +14,22 @@ summary: "A portable solar-powered phone charger for outdoor enthusiasts"
 
 ## Overview
 
-*Brief description of the idea.*
+_Brief description of the idea._
 
 ## Problem Statement
 
-*What problem does this solve? Who experiences this problem?*
+_What problem does this solve? Who experiences this problem?_
 
 ## Target Users
 
-*Who specifically would benefit from this?*
+_Who specifically would benefit from this?_
 
 - User type 1
 - User type 2
 
 ## Proposed Solution
 
-*How does this idea solve the problem?*
+_How does this idea solve the problem?_
 
 ## Key Features
 
@@ -45,4 +45,4 @@ summary: "A portable solar-powered phone charger for outdoor enthusiasts"
 
 ## Initial Notes
 
-*Any other thoughts, inspirations, or context.*
+_Any other thoughts, inspirations, or context._

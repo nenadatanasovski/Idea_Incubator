@@ -1,7 +1,7 @@
 ---
-idea_id: {{idea_id}}
-created_at: {{created_at}}
-last_updated: {{last_updated}}
+idea_id: { { idea_id } }
+created_at: { { created_at } }
+last_updated: { { last_updated } }
 ---
 
 # Red Team Analysis: {{title}}
@@ -17,40 +17,40 @@ last_updated: {{last_updated}}
 ### Critical Issues
 
 | Challenge | Persona | Response | Status |
-|-----------|---------|----------|--------|
-| | | | |
+| --------- | ------- | -------- | ------ |
+|           |         |          |        |
 
 ### Major Issues
 
 | Challenge | Persona | Response | Status |
-|-----------|---------|----------|--------|
-| | | | |
+| --------- | ------- | -------- | ------ |
+|           |         |          |        |
 
 ### Minor Issues
 
 | Challenge | Persona | Response | Status |
-|-----------|---------|----------|--------|
-| | | | |
+| --------- | ------- | -------- | ------ |
+|           |         |          |        |
 
 ### Addressed Issues
 
 | Challenge | Persona | Resolution | Date |
-|-----------|---------|------------|------|
-| | | | |
+| --------- | ------- | ---------- | ---- |
+|           |         |            |      |
 
 ## Challenges by Persona
 
 ### Skeptic (Questions Assumptions)
 
-*Challenges from the Skeptic persona.*
+_Challenges from the Skeptic persona._
 
 ### Realist (Practical Obstacles)
 
-*Challenges from the Realist persona.*
+_Challenges from the Realist persona._
 
 ### First Principles Purist (Logical Foundations)
 
-*Challenges from the First Principles persona.*
+_Challenges from the First Principles persona._
 
 ## Key Vulnerabilities
 
@@ -66,4 +66,4 @@ last_updated: {{last_updated}}
 
 ### Session 1 - {{date}}
 
-*Notes from red team session.*
+_Notes from red team session._

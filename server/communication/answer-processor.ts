@@ -1,12 +1,15 @@
 // server/communication/answer-processor.ts
 // COM-007: Answer Processor - Matches answers to pending questions
 
-import { EventEmitter } from 'events';
-import { AgentType } from './types';
-import { QuestionType } from './question-delivery';
+import { EventEmitter } from "events";
+import { AgentType } from "./types";
+import { QuestionType } from "./question-delivery";
 
 interface Database {
-  run(sql: string, params?: unknown[]): Promise<{ lastID: number; changes: number }>;
+  run(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ lastID: number; changes: number }>;
   get<T>(sql: string, params?: unknown[]): Promise<T | undefined>;
   all<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
@@ -32,7 +35,7 @@ export interface ProcessedAnswer {
   agentId: string;
   agentType: AgentType;
   answer: string;
-  answerType: 'button' | 'text' | 'timeout' | 'default';
+  answerType: "button" | "text" | "timeout" | "default";
   fromUserId: number;
   fromUsername?: string;
   processedAt: Date;
@@ -74,7 +77,9 @@ export class AnswerProcessor extends EventEmitter {
       this.checkTimeouts();
     }, this.config.cleanupIntervalMs);
 
-    console.log(`[AnswerProcessor] Started with ${this.pendingQuestions.size} pending questions`);
+    console.log(
+      `[AnswerProcessor] Started with ${this.pendingQuestions.size} pending questions`,
+    );
   }
 
   /**
@@ -85,7 +90,7 @@ export class AnswerProcessor extends EventEmitter {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = undefined;
     }
-    console.log('[AnswerProcessor] Stopped');
+    console.log("[AnswerProcessor] Stopped");
   }
 
   /**
@@ -102,7 +107,9 @@ export class AnswerProcessor extends EventEmitter {
     // Store in database
     await this.storeQuestion(question);
 
-    console.log(`[AnswerProcessor] Registered question ${question.id} for ${question.agentId}`);
+    console.log(
+      `[AnswerProcessor] Registered question ${question.id} for ${question.agentId}`,
+    );
   }
 
   /**
@@ -112,25 +119,33 @@ export class AnswerProcessor extends EventEmitter {
     questionId: string,
     action: string,
     fromUserId: number,
-    fromUsername?: string
+    fromUsername?: string,
   ): Promise<ProcessedAnswer | null> {
     const question = this.pendingQuestions.get(questionId);
 
     if (!question) {
-      console.warn(`[AnswerProcessor] No pending question found: ${questionId}`);
+      console.warn(
+        `[AnswerProcessor] No pending question found: ${questionId}`,
+      );
       return null;
     }
 
     // Handle "Other" button - wait for free text
-    if (action === '__other__') {
+    if (action === "__other__") {
       if (question.chatId) {
         this.awaitingFreeText.set(question.chatId, questionId);
       }
-      this.emit('awaiting:freetext', { questionId, question });
+      this.emit("awaiting:freetext", { questionId, question });
       return null;
     }
 
-    return this.completeAnswer(question, action, 'button', fromUserId, fromUsername);
+    return this.completeAnswer(
+      question,
+      action,
+      "button",
+      fromUserId,
+      fromUsername,
+    );
   }
 
   /**
@@ -140,15 +155,22 @@ export class AnswerProcessor extends EventEmitter {
     chatId: string,
     text: string,
     fromUserId: number,
-    fromUsername?: string
+    fromUsername?: string,
   ): Promise<ProcessedAnswer | null> {
     // Check if we're awaiting free text for this chat
     const questionId = this.awaitingFreeText.get(chatId);
 
     if (!questionId) {
       // Not awaiting free text - might be unsolicited
-      console.log(`[AnswerProcessor] Unsolicited text from chat ${chatId}: "${text.substring(0, 50)}..."`);
-      this.emit('message:unsolicited', { chatId, text, fromUserId, fromUsername });
+      console.log(
+        `[AnswerProcessor] Unsolicited text from chat ${chatId}: "${text.substring(0, 50)}..."`,
+      );
+      this.emit("message:unsolicited", {
+        chatId,
+        text,
+        fromUserId,
+        fromUsername,
+      });
       return null;
     }
 
@@ -162,7 +184,13 @@ export class AnswerProcessor extends EventEmitter {
     // Clear awaiting state
     this.awaitingFreeText.delete(chatId);
 
-    return this.completeAnswer(question, text, 'text', fromUserId, fromUsername);
+    return this.completeAnswer(
+      question,
+      text,
+      "text",
+      fromUserId,
+      fromUsername,
+    );
   }
 
   /**
@@ -217,12 +245,14 @@ export class AnswerProcessor extends EventEmitter {
 
     // Update database
     await this.db.run(
-      'UPDATE questions SET status = ?, answered_at = ? WHERE id = ?',
-      ['cancelled', new Date().toISOString(), questionId]
+      "UPDATE questions SET status = ?, answered_at = ? WHERE id = ?",
+      ["cancelled", new Date().toISOString(), questionId],
     );
 
-    this.emit('question:cancelled', { questionId, reason, question });
-    console.log(`[AnswerProcessor] Cancelled question ${questionId}: ${reason}`);
+    this.emit("question:cancelled", { questionId, reason, question });
+    console.log(
+      `[AnswerProcessor] Cancelled question ${questionId}: ${reason}`,
+    );
   }
 
   /**
@@ -231,9 +261,9 @@ export class AnswerProcessor extends EventEmitter {
   private async completeAnswer(
     question: PendingQuestion,
     answer: string,
-    answerType: 'button' | 'text' | 'timeout' | 'default',
+    answerType: "button" | "text" | "timeout" | "default",
     fromUserId: number,
-    fromUsername?: string
+    fromUsername?: string,
   ): Promise<ProcessedAnswer> {
     const processedAnswer: ProcessedAnswer = {
       questionId: question.id,
@@ -254,17 +284,19 @@ export class AnswerProcessor extends EventEmitter {
     await this.storeAnswer(processedAnswer);
 
     // Emit events
-    this.emit('answer:received', processedAnswer);
+    this.emit("answer:received", processedAnswer);
 
     if (question.blocking) {
-      this.emit('agent:unblocked', {
+      this.emit("agent:unblocked", {
         agentId: question.agentId,
         agentType: question.agentType,
         answer: processedAnswer,
       });
     }
 
-    console.log(`[AnswerProcessor] Processed ${answerType} answer for ${question.id}: "${answer.substring(0, 50)}..."`);
+    console.log(
+      `[AnswerProcessor] Processed ${answerType} answer for ${question.id}: "${answer.substring(0, 50)}..."`,
+    );
 
     return processedAnswer;
   }
@@ -285,28 +317,37 @@ export class AnswerProcessor extends EventEmitter {
     for (const question of timedOut) {
       if (question.defaultOption) {
         // Apply default answer
-        console.log(`[AnswerProcessor] Applying default for timed-out question ${question.id}`);
-        await this.completeAnswer(question, question.defaultOption, 'default', 0);
+        console.log(
+          `[AnswerProcessor] Applying default for timed-out question ${question.id}`,
+        );
+        await this.completeAnswer(
+          question,
+          question.defaultOption,
+          "default",
+          0,
+        );
       } else {
         // No default - emit timeout event
         this.pendingQuestions.delete(question.id);
 
         await this.db.run(
-          'UPDATE questions SET status = ?, answered_at = ? WHERE id = ?',
-          ['timeout', now.toISOString(), question.id]
+          "UPDATE questions SET status = ?, answered_at = ? WHERE id = ?",
+          ["timeout", now.toISOString(), question.id],
         );
 
-        this.emit('question:timeout', { question });
+        this.emit("question:timeout", { question });
 
         if (question.blocking) {
-          this.emit('agent:timeout', {
+          this.emit("agent:timeout", {
             agentId: question.agentId,
             agentType: question.agentType,
             question,
           });
         }
 
-        console.log(`[AnswerProcessor] Question ${question.id} timed out without default`);
+        console.log(
+          `[AnswerProcessor] Question ${question.id} timed out without default`,
+        );
       }
     }
   }
@@ -329,10 +370,7 @@ export class AnswerProcessor extends EventEmitter {
       default_option: string | null;
       expires_at: string | null;
       created_at: string;
-    }>(
-      'SELECT * FROM questions WHERE status = ?',
-      ['pending']
-    );
+    }>("SELECT * FROM questions WHERE status = ?", ["pending"]);
 
     for (const row of rows) {
       const question: PendingQuestion = {
@@ -341,7 +379,7 @@ export class AnswerProcessor extends EventEmitter {
         agentType: row.agent_type as AgentType,
         type: row.type as QuestionType,
         content: row.content,
-        options: JSON.parse(row.options || '[]'),
+        options: JSON.parse(row.options || "[]"),
         blocking: row.blocking === 1,
         priority: row.priority,
         messageId: row.message_id ?? undefined,
@@ -381,9 +419,9 @@ export class AnswerProcessor extends EventEmitter {
         question.chatId ?? null,
         question.defaultOption ?? null,
         question.expiresAt?.toISOString() ?? null,
-        'pending',
+        "pending",
         now,
-      ]
+      ],
     );
   }
 
@@ -395,8 +433,8 @@ export class AnswerProcessor extends EventEmitter {
 
     // Update question status
     await this.db.run(
-      'UPDATE questions SET status = ?, answered_at = ? WHERE id = ?',
-      ['answered', now, answer.questionId]
+      "UPDATE questions SET status = ?, answered_at = ? WHERE id = ?",
+      ["answered", now, answer.questionId],
     );
 
     // Store answer record
@@ -410,7 +448,7 @@ export class AnswerProcessor extends EventEmitter {
         answer.fromUserId,
         answer.fromUsername ?? null,
         now,
-      ]
+      ],
     );
   }
 }

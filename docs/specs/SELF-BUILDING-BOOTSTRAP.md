@@ -59,6 +59,7 @@ The system doesn't need to exist fully to build itself. It builds incrementally:
 5. **Phase N**: Each new agent is built using all existing agents
 
 This is analogous to:
+
 - **Compilers**: The first C compiler was written in assembly; later C compilers were written in C
 - **Operating Systems**: Bootstrap loaders are tiny programs that load the real OS
 - **Life**: Simple replicators evolved into complex organisms
@@ -69,13 +70,13 @@ This is analogous to:
 
 ### Core Principles
 
-| Principle | Description | Rationale |
-|-----------|-------------|-----------|
-| **Minimal Viable First** | Build the smallest useful version first | Reduces risk, enables early validation |
-| **Self-Improvement** | Each iteration uses existing tools to build better tools | Compounds capability gains |
-| **Dogfooding** | The system must build itself | Proves the architecture works |
-| **Incremental Trust** | Expand autonomy as confidence grows | Safety through gradual capability increase |
-| **Rollback Safety** | Every change can be reversed | Enables aggressive iteration |
+| Principle                | Description                                              | Rationale                                  |
+| ------------------------ | -------------------------------------------------------- | ------------------------------------------ |
+| **Minimal Viable First** | Build the smallest useful version first                  | Reduces risk, enables early validation     |
+| **Self-Improvement**     | Each iteration uses existing tools to build better tools | Compounds capability gains                 |
+| **Dogfooding**           | The system must build itself                             | Proves the architecture works              |
+| **Incremental Trust**    | Expand autonomy as confidence grows                      | Safety through gradual capability increase |
+| **Rollback Safety**      | Every change can be reversed                             | Enables aggressive iteration               |
 
 ### The Trust Gradient
 
@@ -229,22 +230,21 @@ Who Does What:
     - Reviews completed code for quality
     - Approves knowledge base updates
 
-Dogfooding Test:
-  "Can Spec + Build agents together produce a working
-   Validation Agent without human intervention during
-   the build phase?"
+Dogfooding Test: "Can Spec + Build agents together produce a working
+  Validation Agent without human intervention during
+  the build phase?"
 
 Output:
   - validation-agent/
-      core.ts
-      test-generator.ts
-      security-scanner.ts
-      coverage-analyzer.ts
+    core.ts
+    test-generator.ts
+    security-scanner.ts
+    coverage-analyzer.ts
   - sia-agent/
-      core.ts
-      pattern-extractor.ts
-      gotcha-collector.ts
-      claude-md-manager.ts
+    core.ts
+    pattern-extractor.ts
+    gotcha-collector.ts
+    claude-md-manager.ts
 ```
 
 ### Phase 3: Autonomous (Human Monitors Only)
@@ -273,10 +273,9 @@ Who Does What:
     - Approves major architectural changes
     - Reviews weekly improvement summaries
 
-Dogfooding Test:
-  "Can the system identify its own weaknesses,
-   propose improvements, implement them, validate them,
-   and learn from the process—all autonomously?"
+Dogfooding Test: "Can the system identify its own weaknesses,
+  propose improvements, implement them, validate them,
+  and learn from the process—all autonomously?"
 
 Output:
   - All remaining agents implemented
@@ -291,7 +290,6 @@ Output:
 
 ```yaml
 The Perpetual Loop:
-
   ┌──────────────────────────────────────────────────────────────┐
   │                                                               │
   │   ┌─────────┐     ┌─────────┐     ┌─────────┐               │
@@ -318,15 +316,15 @@ The Perpetual Loop:
 
 ### Build Order Rationale
 
-| Order | Component | Rationale |
-|-------|-----------|-----------|
-| 1 | **Spec Agent** | Everything else needs specs. Can't build without knowing what to build. |
-| 2 | **Build Agent** | Automates construction. High leverage for everything after. |
-| 3 | **Validation Agent** | Ensures quality. Must exist before autonomous operation. |
-| 4 | **SIA Agent** | Captures learning. Enables continuous improvement. |
-| 5 | **UX Agent** | User experience. Important but not blocking. |
-| 6 | **Monitor Agent** | System health. Needed for autonomous operation. |
-| 7 | **PM Agent** | Coordination. Can be done manually until late. |
+| Order | Component            | Rationale                                                               |
+| ----- | -------------------- | ----------------------------------------------------------------------- |
+| 1     | **Spec Agent**       | Everything else needs specs. Can't build without knowing what to build. |
+| 2     | **Build Agent**      | Automates construction. High leverage for everything after.             |
+| 3     | **Validation Agent** | Ensures quality. Must exist before autonomous operation.                |
+| 4     | **SIA Agent**        | Captures learning. Enables continuous improvement.                      |
+| 5     | **UX Agent**         | User experience. Important but not blocking.                            |
+| 6     | **Monitor Agent**    | System health. Needed for autonomous operation.                         |
+| 7     | **PM Agent**         | Coordination. Can be done manually until late.                          |
 
 ### Dependency Graph
 
@@ -362,24 +360,28 @@ The Perpetual Loop:
 ### Why This Order?
 
 **Spec Agent First**:
+
 - Every other agent needs a specification
 - Without it, Build Agent has nothing to build
 - Can verify correctness of all other specs
 - Relatively simple scope (template + context → spec)
 
 **Build Agent Second**:
+
 - Highest leverage multiplier
 - Once working, builds everything else faster
 - Clear success criteria (tasks complete or not)
 - Self-validates through task execution
 
 **Validation Agent Third**:
+
 - Must exist before autonomous builds
 - Gates quality before production
 - Catches regressions as system evolves
 - Required for Phase 3 autonomy
 
 **SIA Agent Fourth**:
+
 - Captures learning from all builds
 - Enables improvement over time
 - Can backfill knowledge from earlier phases
@@ -491,41 +493,41 @@ Rule 5 - Human Approval Gates:
 interface CircuitBreaker {
   name: string;
   condition: () => boolean;
-  action: 'pause' | 'rollback' | 'alert_human';
+  action: "pause" | "rollback" | "alert_human";
   cooldown: Duration;
 }
 
 const CIRCUIT_BREAKERS: CircuitBreaker[] = [
   {
-    name: 'build_failure_rate',
-    condition: () => getFailureRate('build', '1h') > 0.3,
-    action: 'pause',
-    cooldown: '15m'
+    name: "build_failure_rate",
+    condition: () => getFailureRate("build", "1h") > 0.3,
+    action: "pause",
+    cooldown: "15m",
   },
   {
-    name: 'test_regression',
+    name: "test_regression",
     condition: () => getTestPassRate() < getPreviousTestPassRate() * 0.95,
-    action: 'rollback',
-    cooldown: '1h'
+    action: "rollback",
+    cooldown: "1h",
   },
   {
-    name: 'core_modification',
+    name: "core_modification",
     condition: () => isModifyingCoreAgent(),
-    action: 'alert_human',
-    cooldown: 'until_approved'
+    action: "alert_human",
+    cooldown: "until_approved",
   },
   {
-    name: 'runaway_builds',
-    condition: () => getBuildCount('1h') > 50,
-    action: 'pause',
-    cooldown: '30m'
+    name: "runaway_builds",
+    condition: () => getBuildCount("1h") > 50,
+    action: "pause",
+    cooldown: "30m",
   },
   {
-    name: 'cost_threshold',
-    condition: () => getAPISpend('24h') > DAILY_BUDGET,
-    action: 'pause',
-    cooldown: 'until_tomorrow'
-  }
+    name: "cost_threshold",
+    condition: () => getAPISpend("24h") > DAILY_BUDGET,
+    action: "pause",
+    cooldown: "until_tomorrow",
+  },
 ];
 ```
 
@@ -584,15 +586,16 @@ npm run agents:audit -- --last=100
 
 **Options**:
 
-| Option | Description | Pros | Cons |
-|--------|-------------|------|------|
-| A | After all documentation complete | Clear target | Delays learning |
-| B | After minimal Spec Agent works | Early dogfooding | More manual work |
-| C | Immediately, learn as we go | Maximum learning | High risk |
+| Option | Description                      | Pros             | Cons             |
+| ------ | -------------------------------- | ---------------- | ---------------- |
+| A      | After all documentation complete | Clear target     | Delays learning  |
+| B      | After minimal Spec Agent works   | Early dogfooding | More manual work |
+| C      | Immediately, learn as we go      | Maximum learning | High risk        |
 
 **Recommendation**: **Option B** - Start self-building after minimal Spec Agent works.
 
 **Rationale**:
+
 - Documentation is already comprehensive (you have E2E scenarios, agent specs, templates)
 - Early dogfooding reveals gaps faster than planning
 - Minimal Spec Agent is low-risk to build manually
@@ -604,22 +607,24 @@ npm run agents:audit -- --last=100
 
 **Options**:
 
-| Phase | Conservative | Moderate | Aggressive |
-|-------|-------------|----------|------------|
-| 1 | 100% review | 100% review | 100% review |
-| 2 | 100% review | 80% review | 50% review |
-| 3 | 80% review | 50% review | 20% review |
-| 4 | 50% review | 20% review | 5% review |
+| Phase | Conservative | Moderate    | Aggressive  |
+| ----- | ------------ | ----------- | ----------- |
+| 1     | 100% review  | 100% review | 100% review |
+| 2     | 100% review  | 80% review  | 50% review  |
+| 3     | 80% review   | 50% review  | 20% review  |
+| 4     | 50% review   | 20% review  | 5% review   |
 
 **Recommendation**: **Moderate** path with phase gates.
 
 **Rationale**:
+
 - Conservative is too slow—defeats purpose of automation
 - Aggressive is too risky—insufficient learning time
 - Moderate balances speed with safety
 - Phase gates ensure quality before reducing oversight
 
 **Phase Gate Criteria**:
+
 ```yaml
 Advance to Phase 2 if:
   - Spec Agent produces 5 valid specs in a row
@@ -643,13 +648,13 @@ Advance to Phase 4 if:
 
 **Scenarios & Mitigations**:
 
-| Failure Mode | Impact | Mitigation |
-|-------------|--------|------------|
-| Agent generates bad code | Broken feature | Validation Agent catches before deploy |
-| Agent modifies itself badly | Agent broken | Version branches, parallel testing |
-| Runaway builds | Resource exhaustion | Rate limiting, budget caps |
-| Cascading failures | System down | Circuit breakers, automatic pause |
-| Knowledge corruption | Wrong patterns learned | Human review of KB updates |
+| Failure Mode                | Impact                 | Mitigation                             |
+| --------------------------- | ---------------------- | -------------------------------------- |
+| Agent generates bad code    | Broken feature         | Validation Agent catches before deploy |
+| Agent modifies itself badly | Agent broken           | Version branches, parallel testing     |
+| Runaway builds              | Resource exhaustion    | Rate limiting, budget caps             |
+| Cascading failures          | System down            | Circuit breakers, automatic pause      |
+| Knowledge corruption        | Wrong patterns learned | Human review of KB updates             |
 
 **Recommendation**: Accept Phase 1-2 failures as learning opportunities. Invest heavily in Phase 3 safeguards before reducing oversight.
 
@@ -661,27 +666,28 @@ Advance to Phase 4 if:
 
 **Options**:
 
-| Option | Description | Pros | Cons |
-|--------|-------------|------|------|
-| A | Stub/mock missing agents | Unblocks progress | Fake confidence |
-| B | Manual fallback for missing capability | Real feedback | Slower |
-| C | Build in dependency order only | Clean but limiting | May miss learnings |
+| Option | Description                            | Pros               | Cons               |
+| ------ | -------------------------------------- | ------------------ | ------------------ |
+| A      | Stub/mock missing agents               | Unblocks progress  | Fake confidence    |
+| B      | Manual fallback for missing capability | Real feedback      | Slower             |
+| C      | Build in dependency order only         | Clean but limiting | May miss learnings |
 
 **Recommendation**: **Option B** - Manual fallback with explicit tracking.
 
 **Implementation**:
+
 ```typescript
 async function validate(task: AtomicTask): Promise<ValidationResult> {
   if (agents.validation.isAvailable()) {
     return agents.validation.validate(task);
   } else {
     // Track this for Phase 2 priority
-    logMissingCapability('validation', task);
+    logMissingCapability("validation", task);
 
     // Manual fallback
     return manualValidation(task, {
-      commands: ['npx tsc --noEmit', 'npm test'],
-      humanReview: true
+      commands: ["npx tsc --noEmit", "npm test"],
+      humanReview: true,
     });
   }
 }
@@ -722,6 +728,7 @@ Autonomy Metrics:
 **The Question**: Can the system improve its improvement process?
 
 **The Meta Levels**:
+
 ```
 Level 0: Build features
 Level 1: Improve how we build features (better agents)
@@ -732,6 +739,7 @@ Level 3: Improve how we improve how we improve (????)
 **Recommendation**: Stop at Level 1 for now. Level 2+ requires careful thought about goal alignment.
 
 **Rationale**:
+
 - Level 1 (improving agents) is concrete and measurable
 - Level 2 (improving the improvement process) risks goal drift
 - Level 3+ is theoretical and premature
@@ -743,6 +751,7 @@ Level 3: Improve how we improve how we improve (????)
 **The Question**: What's the absolute minimum to start self-building?
 
 **Minimal Requirements**:
+
 ```yaml
 Must Have:
   - CLAUDE.md with coding conventions ✅
@@ -821,8 +830,7 @@ Input:
   - docs/specs/AGENT-SPECIFICATIONS-PIPELINE.md
   - docs/specs/E2E-SCENARIOS.md
 
-Tasks:
-  1. Create spec-agent/ directory structure
+Tasks: 1. Create spec-agent/ directory structure
   2. Implement context loading from idea folder
   3. Implement basic template rendering
   4. Add YAML frontmatter generation
@@ -913,19 +921,19 @@ Phase 3 Complete:
 
 ## Summary
 
-| Topic | Recommendation | Rationale |
-|-------|---------------|-----------|
-| **When to start** | After minimal Spec Agent | You have enough documentation |
-| **Oversight reduction** | Moderate pace with gates | Balance speed and safety |
-| **Failure handling** | Accept early failures, invest in Phase 3 safeguards | Learning is the point |
-| **Circular deps** | Manual fallback with tracking | Real feedback > fake confidence |
-| **Success metric** | Human touch ratio < 10% | Concrete, measurable goal |
-| **Meta-improvement** | Stop at Level 1 for now | Level 2+ needs careful thought |
-| **Minimal bootstrap** | Start now, you're ready | All "Must Have" items exist |
+| Topic                   | Recommendation                                      | Rationale                       |
+| ----------------------- | --------------------------------------------------- | ------------------------------- |
+| **When to start**       | After minimal Spec Agent                            | You have enough documentation   |
+| **Oversight reduction** | Moderate pace with gates                            | Balance speed and safety        |
+| **Failure handling**    | Accept early failures, invest in Phase 3 safeguards | Learning is the point           |
+| **Circular deps**       | Manual fallback with tracking                       | Real feedback > fake confidence |
+| **Success metric**      | Human touch ratio < 10%                             | Concrete, measurable goal       |
+| **Meta-improvement**    | Stop at Level 1 for now                             | Level 2+ needs careful thought  |
+| **Minimal bootstrap**   | Start now, you're ready                             | All "Must Have" items exist     |
 
 ---
 
-*The system proves it works by building itself. This document is the roadmap for that journey.*
+_The system proves it works by building itself. This document is the roadmap for that journey._
 
 ---
 
@@ -952,17 +960,17 @@ npm run bootstrap:status
 
 ### Key Files
 
-| File | Purpose |
-|------|---------|
-| `coding-loops/agents/spec-agent/` | Spec Agent implementation |
-| `coding-loops/agents/build-agent/` | Build Agent implementation |
-| `ideas/vibe/agents/*/spec.md` | Meta-specs for each agent |
-| `templates/unified/build/spec.md` | Spec template |
-| `templates/unified/build/tasks.md` | Tasks template |
-| `docs/specs/AGENT-SPECIFICATIONS-PIPELINE.md` | Pipeline agent decision logic |
-| `docs/specs/AGENT-SPECIFICATIONS-INFRASTRUCTURE.md` | Support agent decision logic |
-| `docs/specs/E2E-SCENARIOS.md` | Expected behaviors |
+| File                                                | Purpose                       |
+| --------------------------------------------------- | ----------------------------- |
+| `coding-loops/agents/spec-agent/`                   | Spec Agent implementation     |
+| `coding-loops/agents/build-agent/`                  | Build Agent implementation    |
+| `ideas/vibe/agents/*/spec.md`                       | Meta-specs for each agent     |
+| `templates/unified/build/spec.md`                   | Spec template                 |
+| `templates/unified/build/tasks.md`                  | Tasks template                |
+| `docs/specs/AGENT-SPECIFICATIONS-PIPELINE.md`       | Pipeline agent decision logic |
+| `docs/specs/AGENT-SPECIFICATIONS-INFRASTRUCTURE.md` | Support agent decision logic  |
+| `docs/specs/E2E-SCENARIOS.md`                       | Expected behaviors            |
 
 ---
 
-*Generated as part of Vibe self-building bootstrap documentation*
+_Generated as part of Vibe self-building bootstrap documentation_

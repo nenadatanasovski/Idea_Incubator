@@ -1,17 +1,26 @@
 // server/communication/agent-handshake.ts
 // COM-014: Agent Handshake - Registration and communication setup
 
-import { EventEmitter } from 'events';
-import { v4 as uuid } from 'uuid';
-import { AgentType } from './types';
+import { EventEmitter } from "events";
+import { v4 as uuid } from "uuid";
+import { AgentType } from "./types";
 
 interface Database {
-  run(sql: string, params?: unknown[]): Promise<{ lastID: number; changes: number }>;
+  run(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ lastID: number; changes: number }>;
   get<T>(sql: string, params?: unknown[]): Promise<T | undefined>;
   all<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
-export type HandshakeState = 'pending' | 'hello_sent' | 'ack_received' | 'ready' | 'failed' | 'disconnected';
+export type HandshakeState =
+  | "pending"
+  | "hello_sent"
+  | "ack_received"
+  | "ready"
+  | "failed"
+  | "disconnected";
 
 export interface AgentRegistration {
   agentId: string;
@@ -58,7 +67,8 @@ export class AgentHandshake extends EventEmitter {
   private sessions: Map<string, HandshakeSession> = new Map();
   private pendingHellos: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private pendingAcks: Map<string, ReturnType<typeof setTimeout>> = new Map();
-  private heartbeatIntervals: Map<string, ReturnType<typeof setInterval>> = new Map();
+  private heartbeatIntervals: Map<string, ReturnType<typeof setInterval>> =
+    new Map();
   private missedHeartbeats: Map<string, number> = new Map();
 
   constructor(db: Database, config: Partial<HandshakeConfig> = {}) {
@@ -76,7 +86,7 @@ export class AgentHandshake extends EventEmitter {
 
     // Resume heartbeats for ready sessions
     for (const session of this.sessions.values()) {
-      if (session.state === 'ready') {
+      if (session.state === "ready") {
         this.startHeartbeat(session.agentId);
       }
     }
@@ -104,7 +114,7 @@ export class AgentHandshake extends EventEmitter {
     }
     this.heartbeatIntervals.clear();
 
-    console.log('[AgentHandshake] Stopped');
+    console.log("[AgentHandshake] Stopped");
   }
 
   /**
@@ -119,7 +129,7 @@ export class AgentHandshake extends EventEmitter {
       id: sessionId,
       agentId: registration.agentId,
       agentType: registration.agentType,
-      state: 'pending',
+      state: "pending",
       registeredAt: now,
       capabilities: registration.capabilities,
       metadata: registration.metadata,
@@ -128,7 +138,7 @@ export class AgentHandshake extends EventEmitter {
     this.sessions.set(registration.agentId, session);
     await this.storeSession(session);
 
-    this.emit('agent:registered', { agentId: registration.agentId, session });
+    this.emit("agent:registered", { agentId: registration.agentId, session });
     console.log(`[AgentHandshake] Registered agent ${registration.agentId}`);
 
     // Automatically send hello
@@ -149,12 +159,14 @@ export class AgentHandshake extends EventEmitter {
       return false;
     }
 
-    if (session.state !== 'pending') {
-      console.warn(`[AgentHandshake] Cannot send hello in state ${session.state}`);
+    if (session.state !== "pending") {
+      console.warn(
+        `[AgentHandshake] Cannot send hello in state ${session.state}`,
+      );
       return false;
     }
 
-    session.state = 'hello_sent';
+    session.state = "hello_sent";
     session.helloSentAt = new Date();
     await this.updateSession(session);
 
@@ -164,10 +176,10 @@ export class AgentHandshake extends EventEmitter {
     }, this.config.ackTimeoutMs);
     this.pendingAcks.set(agentId, timeout);
 
-    this.emit('hello:sent', {
+    this.emit("hello:sent", {
       agentId,
       message: {
-        type: 'hello',
+        type: "hello",
         sessionId: session.id,
         timestamp: session.helloSentAt.toISOString(),
         config: {
@@ -184,7 +196,10 @@ export class AgentHandshake extends EventEmitter {
    * Receive ACK from agent.
    * Step 3: Agent responds with ACK
    */
-  async receiveAck(agentId: string, ackData?: Record<string, unknown>): Promise<boolean> {
+  async receiveAck(
+    agentId: string,
+    ackData?: Record<string, unknown>,
+  ): Promise<boolean> {
     const session = this.sessions.get(agentId);
 
     if (!session) {
@@ -192,7 +207,7 @@ export class AgentHandshake extends EventEmitter {
       return false;
     }
 
-    if (session.state !== 'hello_sent') {
+    if (session.state !== "hello_sent") {
       console.warn(`[AgentHandshake] Unexpected ACK in state ${session.state}`);
       return false;
     }
@@ -204,7 +219,7 @@ export class AgentHandshake extends EventEmitter {
       this.pendingAcks.delete(agentId);
     }
 
-    session.state = 'ack_received';
+    session.state = "ack_received";
     session.ackReceivedAt = new Date();
 
     if (ackData) {
@@ -213,7 +228,7 @@ export class AgentHandshake extends EventEmitter {
 
     await this.updateSession(session);
 
-    this.emit('ack:received', { agentId, session, ackData });
+    this.emit("ack:received", { agentId, session, ackData });
     console.log(`[AgentHandshake] ACK received from ${agentId}`);
 
     // Automatically transition to ready
@@ -233,12 +248,14 @@ export class AgentHandshake extends EventEmitter {
       return false;
     }
 
-    if (session.state !== 'ack_received') {
-      console.warn(`[AgentHandshake] Cannot mark ready in state ${session.state}`);
+    if (session.state !== "ack_received") {
+      console.warn(
+        `[AgentHandshake] Cannot mark ready in state ${session.state}`,
+      );
       return false;
     }
 
-    session.state = 'ready';
+    session.state = "ready";
     session.readyAt = new Date();
     session.lastHeartbeat = new Date();
 
@@ -247,7 +264,7 @@ export class AgentHandshake extends EventEmitter {
     // Start heartbeat monitoring
     this.startHeartbeat(agentId);
 
-    this.emit('agent:ready', { agentId, session });
+    this.emit("agent:ready", { agentId, session });
     console.log(`[AgentHandshake] Agent ${agentId} is ready`);
 
     return true;
@@ -259,7 +276,7 @@ export class AgentHandshake extends EventEmitter {
   async heartbeat(agentId: string): Promise<boolean> {
     const session = this.sessions.get(agentId);
 
-    if (!session || session.state !== 'ready') {
+    if (!session || session.state !== "ready") {
       return false;
     }
 
@@ -267,11 +284,11 @@ export class AgentHandshake extends EventEmitter {
     this.missedHeartbeats.set(agentId, 0);
 
     await this.db.run(
-      'UPDATE active_agents SET last_heartbeat = ? WHERE agent_id = ?',
-      [session.lastHeartbeat.toISOString(), agentId]
+      "UPDATE active_agents SET last_heartbeat = ? WHERE agent_id = ?",
+      [session.lastHeartbeat.toISOString(), agentId],
     );
 
-    this.emit('heartbeat:received', { agentId });
+    this.emit("heartbeat:received", { agentId });
     return true;
   }
 
@@ -298,17 +315,19 @@ export class AgentHandshake extends EventEmitter {
       this.heartbeatIntervals.delete(agentId);
     }
 
-    session.state = 'disconnected';
+    session.state = "disconnected";
     await this.updateSession(session);
 
     // Remove from active agents
     await this.db.run(
-      'UPDATE active_agents SET state = ?, updated_at = ? WHERE agent_id = ?',
-      ['disconnected', new Date().toISOString(), agentId]
+      "UPDATE active_agents SET state = ?, updated_at = ? WHERE agent_id = ?",
+      ["disconnected", new Date().toISOString(), agentId],
     );
 
-    this.emit('agent:disconnected', { agentId, reason });
-    console.log(`[AgentHandshake] Disconnected ${agentId}: ${reason || 'no reason'}`);
+    this.emit("agent:disconnected", { agentId, reason });
+    console.log(
+      `[AgentHandshake] Disconnected ${agentId}: ${reason || "no reason"}`,
+    );
   }
 
   /**
@@ -323,23 +342,25 @@ export class AgentHandshake extends EventEmitter {
    */
   isReady(agentId: string): boolean {
     const session = this.sessions.get(agentId);
-    return session?.state === 'ready';
+    return session?.state === "ready";
   }
 
   /**
    * Get all ready agents.
    */
   getReadyAgents(): HandshakeSession[] {
-    return Array.from(this.sessions.values())
-      .filter(s => s.state === 'ready');
+    return Array.from(this.sessions.values()).filter(
+      (s) => s.state === "ready",
+    );
   }
 
   /**
    * Get agents by type.
    */
   getAgentsByType(agentType: AgentType): HandshakeSession[] {
-    return Array.from(this.sessions.values())
-      .filter(s => s.agentType === agentType);
+    return Array.from(this.sessions.values()).filter(
+      (s) => s.agentType === agentType,
+    );
   }
 
   /**
@@ -348,21 +369,21 @@ export class AgentHandshake extends EventEmitter {
   private async handleAckTimeout(agentId: string): Promise<void> {
     const session = this.sessions.get(agentId);
 
-    if (!session || session.state !== 'hello_sent') {
+    if (!session || session.state !== "hello_sent") {
       return;
     }
 
     console.warn(`[AgentHandshake] ACK timeout for ${agentId}`);
 
-    session.state = 'failed';
+    session.state = "failed";
     session.failedAt = new Date();
-    session.failureReason = 'ACK timeout';
+    session.failureReason = "ACK timeout";
 
     await this.updateSession(session);
 
     this.pendingAcks.delete(agentId);
 
-    this.emit('handshake:failed', { agentId, reason: 'ACK timeout' });
+    this.emit("handshake:failed", { agentId, reason: "ACK timeout" });
   }
 
   /**
@@ -390,7 +411,7 @@ export class AgentHandshake extends EventEmitter {
   private async checkHeartbeat(agentId: string): Promise<void> {
     const session = this.sessions.get(agentId);
 
-    if (!session || session.state !== 'ready') {
+    if (!session || session.state !== "ready") {
       return;
     }
 
@@ -398,10 +419,12 @@ export class AgentHandshake extends EventEmitter {
     this.missedHeartbeats.set(agentId, missed);
 
     if (missed >= this.config.maxMissedHeartbeats) {
-      console.warn(`[AgentHandshake] Too many missed heartbeats for ${agentId}`);
-      await this.disconnect(agentId, 'Heartbeat timeout');
+      console.warn(
+        `[AgentHandshake] Too many missed heartbeats for ${agentId}`,
+      );
+      await this.disconnect(agentId, "Heartbeat timeout");
     } else {
-      this.emit('heartbeat:expected', { agentId, missed });
+      this.emit("heartbeat:expected", { agentId, missed });
     }
   }
 
@@ -417,24 +440,26 @@ export class AgentHandshake extends EventEmitter {
       capabilities: string | null;
       registered_at: string;
       last_heartbeat: string | null;
-    }>(
-      'SELECT * FROM active_agents WHERE state IN (?, ?)',
-      ['pending', 'ready']
-    );
+    }>("SELECT * FROM active_agents WHERE state IN (?, ?)", [
+      "pending",
+      "ready",
+    ]);
 
     for (const row of rows) {
       const session: HandshakeSession = {
         id: row.session_id,
         agentId: row.agent_id,
         agentType: row.agent_type as AgentType,
-        state: row.state === 'ready' ? 'ready' : 'pending',
+        state: row.state === "ready" ? "ready" : "pending",
         registeredAt: new Date(row.registered_at),
         capabilities: row.capabilities ? JSON.parse(row.capabilities) : [],
         metadata: undefined,
-        lastHeartbeat: row.last_heartbeat ? new Date(row.last_heartbeat) : undefined,
+        lastHeartbeat: row.last_heartbeat
+          ? new Date(row.last_heartbeat)
+          : undefined,
       };
 
-      if (session.state === 'ready') {
+      if (session.state === "ready") {
         session.readyAt = session.registeredAt;
       }
 
@@ -469,7 +494,7 @@ export class AgentHandshake extends EventEmitter {
         now,
         now,
         now,
-      ]
+      ],
     );
   }
 
@@ -480,13 +505,13 @@ export class AgentHandshake extends EventEmitter {
     const now = new Date().toISOString();
 
     await this.db.run(
-      'UPDATE active_agents SET state = ?, last_heartbeat = ?, updated_at = ? WHERE agent_id = ?',
+      "UPDATE active_agents SET state = ?, last_heartbeat = ?, updated_at = ? WHERE agent_id = ?",
       [
         session.state,
         session.lastHeartbeat?.toISOString() ?? now,
         now,
         session.agentId,
-      ]
+      ],
     );
   }
 }

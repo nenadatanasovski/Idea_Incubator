@@ -8,17 +8,17 @@
 /**
  * Impact types representing what a task affects
  */
-export type ImpactType = 'file' | 'api' | 'function' | 'database' | 'type';
+export type ImpactType = "file" | "api" | "function" | "database" | "type";
 
 /**
  * CRUD operations for impacts
  */
-export type ImpactOperation = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE';
+export type ImpactOperation = "CREATE" | "READ" | "UPDATE" | "DELETE";
 
 /**
  * Source of impact prediction
  */
-export type ImpactSource = 'ai' | 'pattern' | 'user' | 'validated';
+export type ImpactSource = "ai" | "pattern" | "user" | "validated";
 
 /**
  * Task Impact entity
@@ -34,7 +34,7 @@ export interface TaskImpact {
   targetName?: string;
   targetSignature?: string;
 
-  confidence: number;  // 0.0 - 1.0
+  confidence: number; // 0.0 - 1.0
   source: ImpactSource;
 
   createdAt: string;
@@ -71,7 +71,7 @@ export interface UpdateTaskImpactInput {
 /**
  * Conflict severity levels
  */
-export type ConflictSeverity = 'blocking' | 'warning';
+export type ConflictSeverity = "blocking" | "warning";
 
 /**
  * Conflict detection result
@@ -79,7 +79,11 @@ export type ConflictSeverity = 'blocking' | 'warning';
 export interface ImpactConflict {
   taskAId: string;
   taskBId: string;
-  conflictType: 'write-write' | 'write-delete' | 'delete-delete' | 'delete-read';
+  conflictType:
+    | "write-write"
+    | "write-delete"
+    | "delete-delete"
+    | "delete-read";
   targetPath: string;
   severity: ConflictSeverity;
 }

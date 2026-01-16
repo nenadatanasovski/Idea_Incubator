@@ -21,12 +21,12 @@ import {
   MarketDiscoveryState,
   NarrowingState,
   ExtractedSignal,
-} from '../../types/ideation.js';
+} from "../../types/ideation.js";
 import {
   createDefaultSelfDiscoveryState,
   createDefaultMarketDiscoveryState,
   createDefaultNarrowingState,
-} from '../../utils/ideation-defaults.js';
+} from "../../utils/ideation-defaults.js";
 
 /**
  * SIGNAL EXTRACTION SYSTEM
@@ -63,7 +63,7 @@ export interface SessionState {
 export function extractSignals(
   userMessage: string,
   agentResponse: ParsedAgentResponse,
-  existingState: SessionState
+  existingState: SessionState,
 ): ExtractedSignals {
   // Primary: LLM-provided signals (if agent returned them)
   const llmSignals = agentResponse.signals || {};
@@ -82,7 +82,10 @@ export function extractSignals(
 /**
  * Extract signals from text using pattern matching.
  */
-export function extractSignalsFromText(userMessage: string, agentReply: string): ExtractedSignals {
+export function extractSignalsFromText(
+  userMessage: string,
+  agentReply: string,
+): ExtractedSignals {
   const signals: ExtractedSignals = {
     selfDiscovery: {},
     marketDiscovery: {},
@@ -155,27 +158,27 @@ export function extractSignalsFromText(userMessage: string, agentReply: string):
 // ============================================================================
 
 const FRUSTRATION_PATTERNS = [
-  { pattern: /i('m| am) (so )?frustrat(ed|ing)/i, severity: 'high' as const },
-  { pattern: /drives me (crazy|nuts|insane)/i, severity: 'high' as const },
-  { pattern: /i hate (when|how|that)/i, severity: 'high' as const },
-  { pattern: /annoy(s|ed|ing)/i, severity: 'medium' as const },
-  { pattern: /wish (i|there was|someone would)/i, severity: 'medium' as const },
-  { pattern: /pain(ful)? (to|when)/i, severity: 'medium' as const },
-  { pattern: /takes (forever|too long|way too)/i, severity: 'medium' as const },
-  { pattern: /hard(er)? than it should/i, severity: 'medium' as const },
-  { pattern: /doesn't work (well|properly|right)/i, severity: 'low' as const },
-  { pattern: /could be better/i, severity: 'low' as const },
+  { pattern: /i('m| am) (so )?frustrat(ed|ing)/i, severity: "high" as const },
+  { pattern: /drives me (crazy|nuts|insane)/i, severity: "high" as const },
+  { pattern: /i hate (when|how|that)/i, severity: "high" as const },
+  { pattern: /annoy(s|ed|ing)/i, severity: "medium" as const },
+  { pattern: /wish (i|there was|someone would)/i, severity: "medium" as const },
+  { pattern: /pain(ful)? (to|when)/i, severity: "medium" as const },
+  { pattern: /takes (forever|too long|way too)/i, severity: "medium" as const },
+  { pattern: /hard(er)? than it should/i, severity: "medium" as const },
+  { pattern: /doesn't work (well|properly|right)/i, severity: "low" as const },
+  { pattern: /could be better/i, severity: "low" as const },
 ];
 
 export function extractFrustrations(text: string): Array<{
   description: string;
   source: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: "high" | "medium" | "low";
 }> {
   const frustrations: Array<{
     description: string;
     source: string;
-    severity: 'high' | 'medium' | 'low';
+    severity: "high" | "medium" | "low";
   }> = [];
 
   for (const { pattern, severity } of FRUSTRATION_PATTERNS) {
@@ -184,7 +187,7 @@ export function extractFrustrations(text: string): Array<{
       const context = extractSurroundingContext(text, match.index, 100);
       frustrations.push({
         description: context,
-        source: 'user_message',
+        source: "user_message",
         severity,
       });
       break; // Only capture strongest frustration per message
@@ -199,13 +202,21 @@ export function extractFrustrations(text: string): Array<{
 // ============================================================================
 
 const CUSTOMER_TYPE_PATTERNS = [
-  { pattern: /\b(B2B|business(es)?|enterprise|companies|corporate)\b/i, value: 'B2B' },
-  { pattern: /\b(B2C|consumer|individual|people|everyone|person)\b/i, value: 'B2C' },
-  { pattern: /\b(marketplace|platform|two[- ]sided)\b/i, value: 'Marketplace' },
-  { pattern: /\b(small business|SMB|SME|startup)\b/i, value: 'B2B_SMB' },
+  {
+    pattern: /\b(B2B|business(es)?|enterprise|companies|corporate)\b/i,
+    value: "B2B",
+  },
+  {
+    pattern: /\b(B2C|consumer|individual|people|everyone|person)\b/i,
+    value: "B2C",
+  },
+  { pattern: /\b(marketplace|platform|two[- ]sided)\b/i, value: "Marketplace" },
+  { pattern: /\b(small business|SMB|SME|startup)\b/i, value: "B2B_SMB" },
 ];
 
-export function extractCustomerType(text: string): { value: string; confidence: number } | null {
+export function extractCustomerType(
+  text: string,
+): { value: string; confidence: number } | null {
   for (const { pattern, value } of CUSTOMER_TYPE_PATTERNS) {
     if (pattern.test(text)) {
       return {
@@ -222,13 +233,24 @@ export function extractCustomerType(text: string): { value: string; confidence: 
 // ============================================================================
 
 const PRODUCT_TYPE_PATTERNS = [
-  { pattern: /\b(app|software|saas|platform|website|tool|api)\b/i, value: 'Digital' },
-  { pattern: /\b(physical|hardware|device|gadget|product|manufacturing)\b/i, value: 'Physical' },
-  { pattern: /\b(service|consulting|agency|freelance|coaching)\b/i, value: 'Service' },
-  { pattern: /\b(marketplace|platform connecting)\b/i, value: 'Marketplace' },
+  {
+    pattern: /\b(app|software|saas|platform|website|tool|api)\b/i,
+    value: "Digital",
+  },
+  {
+    pattern: /\b(physical|hardware|device|gadget|product|manufacturing)\b/i,
+    value: "Physical",
+  },
+  {
+    pattern: /\b(service|consulting|agency|freelance|coaching)\b/i,
+    value: "Service",
+  },
+  { pattern: /\b(marketplace|platform connecting)\b/i, value: "Marketplace" },
 ];
 
-export function extractProductType(text: string): { value: string; confidence: number } | null {
+export function extractProductType(
+  text: string,
+): { value: string; confidence: number } | null {
   for (const { pattern, value } of PRODUCT_TYPE_PATTERNS) {
     if (pattern.test(text)) {
       return {
@@ -245,15 +267,23 @@ export function extractProductType(text: string): { value: string; confidence: n
 // ============================================================================
 
 const GEOGRAPHY_PATTERNS = [
-  { pattern: /\b(local|my city|nearby|neighborhood)\b/i, value: 'Local' },
-  { pattern: /\b(australia|australian|sydney|melbourne|brisbane)\b/i, value: 'Australia' },
-  { pattern: /\b(global|worldwide|international|anywhere)\b/i, value: 'Global' },
-  { pattern: /\b(us|usa|america|states)\b/i, value: 'USA' },
-  { pattern: /\b(uk|united kingdom|britain|london)\b/i, value: 'UK' },
-  { pattern: /\b(europe|european|eu)\b/i, value: 'Europe' },
+  { pattern: /\b(local|my city|nearby|neighborhood)\b/i, value: "Local" },
+  {
+    pattern: /\b(australia|australian|sydney|melbourne|brisbane)\b/i,
+    value: "Australia",
+  },
+  {
+    pattern: /\b(global|worldwide|international|anywhere)\b/i,
+    value: "Global",
+  },
+  { pattern: /\b(us|usa|america|states)\b/i, value: "USA" },
+  { pattern: /\b(uk|united kingdom|britain|london)\b/i, value: "UK" },
+  { pattern: /\b(europe|european|eu)\b/i, value: "Europe" },
 ];
 
-export function extractGeography(text: string): { value: string; confidence: number } | null {
+export function extractGeography(
+  text: string,
+): { value: string; confidence: number } | null {
   for (const { pattern, value } of GEOGRAPHY_PATTERNS) {
     if (pattern.test(text)) {
       return {
@@ -279,12 +309,12 @@ const EXPERTISE_PATTERNS = [
 
 export function extractExpertise(text: string): Array<{
   area: string;
-  depth: 'expert' | 'competent' | 'novice';
+  depth: "expert" | "competent" | "novice";
   evidence: string;
 }> {
   const expertise: Array<{
     area: string;
-    depth: 'expert' | 'competent' | 'novice';
+    depth: "expert" | "competent" | "novice";
     evidence: string;
   }> = [];
 
@@ -294,7 +324,7 @@ export function extractExpertise(text: string): Array<{
       const context = extractSurroundingContext(text, match.index, 150);
       expertise.push({
         area: extractTopicFromContext(context),
-        depth: 'competent', // Conservative estimate
+        depth: "competent", // Conservative estimate
         evidence: context,
       });
     }
@@ -346,8 +376,10 @@ export function extractInterests(text: string): Array<{
 // CONSTRAINT EXTRACTION
 // ============================================================================
 
-export function extractConstraints(text: string): Partial<SelfDiscoveryState['constraints']> {
-  const constraints: Partial<SelfDiscoveryState['constraints']> = {};
+export function extractConstraints(
+  text: string,
+): Partial<SelfDiscoveryState["constraints"]> {
+  const constraints: Partial<SelfDiscoveryState["constraints"]> = {};
   const msgLower = text.toLowerCase();
 
   // Time constraints
@@ -357,17 +389,19 @@ export function extractConstraints(text: string): Partial<SelfDiscoveryState['co
   }
 
   // Capital constraints
-  if (/bootstrap|self[- ]fund|no (outside )?funding|own money/i.test(msgLower)) {
-    constraints.capital = 'bootstrap';
+  if (
+    /bootstrap|self[- ]fund|no (outside )?funding|own money/i.test(msgLower)
+  ) {
+    constraints.capital = "bootstrap";
   } else if (/raise|funding|investors|vc|venture/i.test(msgLower)) {
-    constraints.capital = 'seeking_funding';
+    constraints.capital = "seeking_funding";
   }
 
   // Risk tolerance
   if (/low risk|safe|secure|stable/i.test(msgLower)) {
-    constraints.riskTolerance = 'low';
+    constraints.riskTolerance = "low";
   } else if (/high risk|gamble|bet big|all in/i.test(msgLower)) {
-    constraints.riskTolerance = 'high';
+    constraints.riskTolerance = "high";
   }
 
   return constraints;
@@ -377,7 +411,12 @@ export function extractConstraints(text: string): Partial<SelfDiscoveryState['co
 // IMPACT VISION EXTRACTION
 // ============================================================================
 
-export type ImpactLevel = 'world' | 'country' | 'city' | 'community' | 'individual';
+export type ImpactLevel =
+  | "world"
+  | "country"
+  | "city"
+  | "community"
+  | "individual";
 
 export interface ImpactVision {
   level: ImpactLevel;
@@ -437,7 +476,13 @@ export function extractImpactVision(text: string): ImpactVision | null {
   const textLower = text.toLowerCase();
 
   // Check each level from broadest to narrowest
-  const levels: ImpactLevel[] = ['world', 'country', 'city', 'community', 'individual'];
+  const levels: ImpactLevel[] = [
+    "world",
+    "country",
+    "city",
+    "community",
+    "individual",
+  ];
 
   for (const level of levels) {
     for (const pattern of IMPACT_PATTERNS[level]) {
@@ -459,11 +504,11 @@ export function extractImpactVision(text: string): ImpactVision | null {
 
 function getImpactDescription(level: ImpactLevel): string {
   const descriptions: Record<ImpactLevel, string> = {
-    world: 'Global impact affecting billions',
-    country: 'National impact affecting millions',
-    city: 'Regional/city impact affecting thousands',
-    community: 'Community impact affecting hundreds',
-    individual: 'Individual/personal impact',
+    world: "Global impact affecting billions",
+    country: "National impact affecting millions",
+    city: "Regional/city impact affecting thousands",
+    community: "Community impact affecting hundreds",
+    individual: "Individual/personal impact",
   };
   return descriptions[level];
 }
@@ -489,7 +534,11 @@ function calculateImpactConfidence(text: string, level: ImpactLevel): number {
 // INTEREST STRENGTH SCORING
 // ============================================================================
 
-export type EngagementLevel = 'passionate' | 'interested' | 'curious' | 'casual';
+export type EngagementLevel =
+  | "passionate"
+  | "interested"
+  | "curious"
+  | "casual";
 
 export interface InterestWithStrength {
   topic: string;
@@ -534,36 +583,39 @@ const CASUAL_INDICATORS = [
  * Score interest/passion strength.
  * Returns detailed engagement assessment.
  */
-export function scoreInterestStrength(text: string, topic: string): InterestWithStrength {
+export function scoreInterestStrength(
+  text: string,
+  topic: string,
+): InterestWithStrength {
   const evidence = text;
 
   // Check from highest to lowest engagement
-  if (PASSIONATE_INDICATORS.some(p => p.test(text))) {
+  if (PASSIONATE_INDICATORS.some((p) => p.test(text))) {
     return {
       topic,
       genuine: true,
       evidence,
-      engagementLevel: 'passionate',
+      engagementLevel: "passionate",
       strengthScore: 90,
     };
   }
 
-  if (INTERESTED_INDICATORS.some(p => p.test(text))) {
+  if (INTERESTED_INDICATORS.some((p) => p.test(text))) {
     return {
       topic,
       genuine: true,
       evidence,
-      engagementLevel: 'interested',
+      engagementLevel: "interested",
       strengthScore: 70,
     };
   }
 
-  if (CURIOUS_INDICATORS.some(p => p.test(text))) {
+  if (CURIOUS_INDICATORS.some((p) => p.test(text))) {
     return {
       topic,
       genuine: false, // Not yet proven genuine
       evidence,
-      engagementLevel: 'curious',
+      engagementLevel: "curious",
       strengthScore: 50,
     };
   }
@@ -573,7 +625,7 @@ export function scoreInterestStrength(text: string, topic: string): InterestWith
     topic,
     genuine: false,
     evidence,
-    engagementLevel: 'casual',
+    engagementLevel: "casual",
     strengthScore: 30,
   };
 }
@@ -581,7 +633,9 @@ export function scoreInterestStrength(text: string, topic: string): InterestWith
 /**
  * Enhanced interest extraction with strength scoring.
  */
-export function extractInterestsWithStrength(text: string): InterestWithStrength[] {
+export function extractInterestsWithStrength(
+  text: string,
+): InterestWithStrength[] {
   const interests: InterestWithStrength[] = [];
   const allPatterns = [
     ...PASSIONATE_INDICATORS,
@@ -597,7 +651,7 @@ export function extractInterestsWithStrength(text: string): InterestWithStrength
       const topic = extractTopicFromContext(context);
 
       // Avoid duplicates
-      if (!interests.some(i => i.topic === topic)) {
+      if (!interests.some((i) => i.topic === topic)) {
         interests.push(scoreInterestStrength(context, topic));
       }
     }
@@ -614,14 +668,18 @@ export function extractInterestsWithStrength(text: string): InterestWithStrength
 /**
  * Extract surrounding context from a match.
  */
-export function extractSurroundingContext(text: string, matchIndex: number, radius: number): string {
+export function extractSurroundingContext(
+  text: string,
+  matchIndex: number,
+  radius: number,
+): string {
   const start = Math.max(0, matchIndex - radius);
   const end = Math.min(text.length, matchIndex + radius);
   let context = text.slice(start, end).trim();
 
   // Add ellipsis if truncated
-  if (start > 0) context = '...' + context;
-  if (end < text.length) context = context + '...';
+  if (start > 0) context = "..." + context;
+  if (end < text.length) context = context + "...";
 
   return context;
 }
@@ -632,8 +690,8 @@ export function extractSurroundingContext(text: string, matchIndex: number, radi
 export function extractTopicFromContext(context: string): string {
   // Remove common filler words and extract key phrase
   const cleaned = context
-    .replace(/^.*?(about|with|in|on|for)\s+/i, '')
-    .replace(/[.!?,;].*$/, '')
+    .replace(/^.*?(about|with|in|on|for)\s+/i, "")
+    .replace(/[.!?,;].*$/, "")
     .trim();
 
   return cleaned.slice(0, 50); // Limit length
@@ -650,7 +708,7 @@ export function extractTopicFromContext(context: string): string {
 export function mergeSignals(
   llmSignals: Partial<ExtractedSignals>,
   textSignals: ExtractedSignals,
-  existingState: SessionState
+  existingState: SessionState,
 ): ExtractedSignals {
   return {
     selfDiscovery: {
@@ -685,47 +743,53 @@ export function mergeSignals(
       productType: selectHigherConfidence(
         existingState.narrowing?.productType,
         textSignals.narrowing?.productType,
-        llmSignals.narrowing?.productType
+        llmSignals.narrowing?.productType,
       ),
       customerType: selectHigherConfidence(
         existingState.narrowing?.customerType,
         textSignals.narrowing?.customerType,
-        llmSignals.narrowing?.customerType
+        llmSignals.narrowing?.customerType,
       ),
       geography: selectHigherConfidence(
         existingState.narrowing?.geography,
         textSignals.narrowing?.geography,
-        llmSignals.narrowing?.geography
+        llmSignals.narrowing?.geography,
       ),
     },
   };
 }
 
 // Deduplication helpers
-function dedupeByDescription<T extends { description: string }>(items: T[]): T[] {
-  return items.filter((v, i, a) => a.findIndex(t => t.description === v.description) === i);
+function dedupeByDescription<T extends { description: string }>(
+  items: T[],
+): T[] {
+  return items.filter(
+    (v, i, a) => a.findIndex((t) => t.description === v.description) === i,
+  );
 }
 
 function dedupeByArea<T extends { area: string }>(items: T[]): T[] {
-  return items.filter((v, i, a) => a.findIndex(t => t.area === v.area) === i);
+  return items.filter((v, i, a) => a.findIndex((t) => t.area === v.area) === i);
 }
 
 function dedupeByTopic<T extends { topic: string }>(items: T[]): T[] {
-  return items.filter((v, i, a) => a.findIndex(t => t.topic === v.topic) === i);
+  return items.filter(
+    (v, i, a) => a.findIndex((t) => t.topic === v.topic) === i,
+  );
 }
 
 /**
  * Select the option with highest confidence.
  */
-function selectHigherConfidence<T extends { value: string | null; confidence: number }>(
-  ...options: (T | undefined)[]
-): T {
-  const validOptions = options.filter(o => o && o.value !== null) as T[];
+function selectHigherConfidence<
+  T extends { value: string | null; confidence: number },
+>(...options: (T | undefined)[]): T {
+  const validOptions = options.filter((o) => o && o.value !== null) as T[];
   if (validOptions.length === 0) {
     return { value: null, confidence: 0 } as T;
   }
   return validOptions.reduce((best, current) =>
-    current.confidence > best.confidence ? current : best
+    current.confidence > best.confidence ? current : best,
   );
 }
 
@@ -751,7 +815,7 @@ export interface MarketGap {
 
 export interface MarketTrend {
   name: string;
-  direction: 'growing' | 'stable' | 'declining';
+  direction: "growing" | "stable" | "declining";
   evidence: string;
   relevance: string;
 }
@@ -776,7 +840,7 @@ export interface ExtractedMarketData {
  */
 export function extractMarketDataFromResponse(
   searchResponse: string,
-  searchQuery: string
+  searchQuery: string,
 ): ExtractedMarketData {
   const data: ExtractedMarketData = {
     competitors: [],
@@ -841,11 +905,13 @@ function extractCompetitors(text: string): CompetitorData[] {
 
 function extractCompetitorDescription(context: string, name: string): string {
   // Try to find a sentence that describes what the competitor does
-  const sentences = context.split(/[.!?]/).filter(s => s.toLowerCase().includes(name.toLowerCase()));
+  const sentences = context
+    .split(/[.!?]/)
+    .filter((s) => s.toLowerCase().includes(name.toLowerCase()));
   if (sentences.length > 0) {
     return sentences[0].trim().slice(0, 200);
   }
-  return '';
+  return "";
 }
 
 function extractStrengths(context: string): string[] {
@@ -938,7 +1004,7 @@ function extractMarketTrends(text: string): MarketTrend[] {
         name: evidence.slice(0, 50),
         direction,
         evidence: evidence.slice(0, 150),
-        relevance: 'Identified from market research',
+        relevance: "Identified from market research",
       });
     }
   }
@@ -946,24 +1012,29 @@ function extractMarketTrends(text: string): MarketTrend[] {
   return trends.slice(0, 5);
 }
 
-function determineTrendDirection(matchText: string): 'growing' | 'stable' | 'declining' {
+function determineTrendDirection(
+  matchText: string,
+): "growing" | "stable" | "declining" {
   const lower = matchText.toLowerCase();
-  if (/growing|rising|increasing|expanding|projected/.test(lower)) return 'growing';
-  if (/declining|shrinking|decreasing|falling/.test(lower)) return 'declining';
-  return 'stable';
+  if (/growing|rising|increasing|expanding|projected/.test(lower))
+    return "growing";
+  if (/declining|shrinking|decreasing|falling/.test(lower)) return "declining";
+  return "stable";
 }
 
 const MARKET_SIZE_PATTERN =
   /(?:market size|market value|tam|total addressable market)\s*[:\-]?\s*\$?([\d,.]+)\s*(billion|million|trillion|B|M|T)?/gi;
 
 function extractMarketSize(
-  text: string
-): { value: string; currency: string; year: number; source: string } | undefined {
+  text: string,
+):
+  | { value: string; currency: string; year: number; source: string }
+  | undefined {
   const match = MARKET_SIZE_PATTERN.exec(text);
   if (!match) return undefined;
 
   const value = match[1];
-  const unit = match[2] || '';
+  const unit = match[2] || "";
 
   // Try to find year near the market size mention
   const contextStart = Math.max(0, match.index - 50);
@@ -973,9 +1044,9 @@ function extractMarketSize(
 
   return {
     value: `${value} ${unit}`.trim(),
-    currency: 'USD',
+    currency: "USD",
     year: yearMatch ? parseInt(yearMatch[0]) : new Date().getFullYear(),
-    source: 'Web search extraction',
+    source: "Web search extraction",
   };
 }
 
@@ -984,21 +1055,21 @@ function extractMarketSize(
  */
 export function updateMarketDiscoveryWithWebData(
   currentState: Partial<MarketDiscoveryState>,
-  webData: ExtractedMarketData
+  webData: ExtractedMarketData,
 ): Partial<MarketDiscoveryState> {
   return {
     ...currentState,
     competitors: [
       ...(currentState.competitors || []),
-      ...webData.competitors.map(c => ({
+      ...webData.competitors.map((c) => ({
         name: c.name,
         description: c.description,
-        differentiator: c.strengths?.join(', ') || 'Unknown',
+        differentiator: c.strengths?.join(", ") || "Unknown",
       })),
     ],
     gaps: [
       ...(currentState.gaps || []),
-      ...webData.gaps.map(g => ({
+      ...webData.gaps.map((g) => ({
         description: g.description,
         evidence: g.evidence,
         opportunity: g.opportunity,
@@ -1006,7 +1077,7 @@ export function updateMarketDiscoveryWithWebData(
     ],
     trends: [
       ...(currentState.trends || []),
-      ...webData.trends.map(t => ({
+      ...webData.trends.map((t) => ({
         name: t.name,
         direction: t.direction,
         relevance: t.relevance,
@@ -1036,7 +1107,7 @@ import {
   NarrowingState,
   IdeaCandidate,
   IdeationMessage,
-} from '../../types/ideation.js';
+} from "../../types/ideation.js";
 
 /**
  * VAGUENESS DETECTION
@@ -1046,14 +1117,19 @@ import {
  */
 
 export interface VaguenessIssue {
-  type: 'abstract_problem' | 'undefined_user' | 'handwavy_solution' | 'no_scope' | 'buzzword_heavy';
+  type:
+    | "abstract_problem"
+    | "undefined_user"
+    | "handwavy_solution"
+    | "no_scope"
+    | "buzzword_heavy";
   description: string;
   evidence: string;
 }
 
 export interface VaguenessAssessment {
   isVague: boolean;
-  score: number;  // 0-100, higher = more vague
+  score: number; // 0-100, higher = more vague
   issues: VaguenessIssue[];
   clarifyingQuestions: string[];
 }
@@ -1062,8 +1138,8 @@ export interface VaguenessAssessment {
 const ABSTRACT_PROBLEM_PATTERNS = [
   /make (things|it|the world) better/i,
   /improve (the |)(experience|situation|things)/i,
-  /help people/i,  // Too broad without specifics
-  /solve (a|the) problem/i,  // Meta - doesn't say which problem
+  /help people/i, // Too broad without specifics
+  /solve (a|the) problem/i, // Meta - doesn't say which problem
 ];
 
 const UNDEFINED_USER_PATTERNS = [
@@ -1073,17 +1149,28 @@ const UNDEFINED_USER_PATTERNS = [
 ];
 
 const HANDWAVY_SOLUTION_PATTERNS = [
-  /use (AI|ML|blockchain|technology) to/i,  // Tech as magic wand
+  /use (AI|ML|blockchain|technology) to/i, // Tech as magic wand
   /some (kind|sort|type) of/i,
   /something (like|similar to)/i,
   /basically (just |)a/i,
-  /leverage.*to/i,  // Corporate speak
+  /leverage.*to/i, // Corporate speak
 ];
 
 const BUZZWORDS = [
-  'synergy', 'leverage', 'disrupt', 'revolutionize', 'paradigm',
-  'ecosystem', 'holistic', 'scalable', 'robust', 'seamless',
-  'cutting-edge', 'next-gen', 'innovative', 'game-changing',
+  "synergy",
+  "leverage",
+  "disrupt",
+  "revolutionize",
+  "paradigm",
+  "ecosystem",
+  "holistic",
+  "scalable",
+  "robust",
+  "seamless",
+  "cutting-edge",
+  "next-gen",
+  "innovative",
+  "game-changing",
 ];
 
 /**
@@ -1093,17 +1180,17 @@ export function assessVagueness(
   candidate: IdeaCandidate | null,
   selfDiscovery: SelfDiscoveryState,
   narrowingState: NarrowingState,
-  conversationHistory: IdeationMessage[]
+  conversationHistory: IdeationMessage[],
 ): VaguenessAssessment {
   const issues: VaguenessIssue[] = [];
   const clarifyingQuestions: string[] = [];
 
   // Get recent user messages for analysis
   const recentUserMessages = conversationHistory
-    .filter(m => m.role === 'user')
+    .filter((m) => m.role === "user")
     .slice(-10)
-    .map(m => m.content)
-    .join(' ');
+    .map((m) => m.content)
+    .join(" ");
 
   // ---------------------------------------------------------------------------
   // ABSTRACT PROBLEM DETECTION
@@ -1112,12 +1199,12 @@ export function assessVagueness(
     const match = recentUserMessages.match(pattern);
     if (match && selfDiscovery.frustrations.length === 0) {
       issues.push({
-        type: 'abstract_problem',
-        description: 'Problem statement is too abstract to validate',
+        type: "abstract_problem",
+        description: "Problem statement is too abstract to validate",
         evidence: match[0],
       });
       clarifyingQuestions.push(
-        'Can you describe a specific moment when you experienced this problem? What exactly happened?'
+        "Can you describe a specific moment when you experienced this problem? What exactly happened?",
       );
       break;
     }
@@ -1130,12 +1217,12 @@ export function assessVagueness(
     const match = recentUserMessages.match(pattern);
     if (match) {
       issues.push({
-        type: 'undefined_user',
+        type: "undefined_user",
         description: 'Target user is undefined - "everyone" means no one',
         evidence: match[0],
       });
       clarifyingQuestions.push(
-        'Who would be desperate to use this? Not "nice to have" - who NEEDS it?'
+        'Who would be desperate to use this? Not "nice to have" - who NEEDS it?',
       );
       break;
     }
@@ -1149,12 +1236,12 @@ export function assessVagueness(
       const match = recentUserMessages.match(pattern);
       if (match) {
         issues.push({
-          type: 'handwavy_solution',
-          description: 'Solution is described in vague terms',
+          type: "handwavy_solution",
+          description: "Solution is described in vague terms",
           evidence: match[0],
         });
         clarifyingQuestions.push(
-          'Walk me through exactly what happens when someone uses this. They open it and then what?'
+          "Walk me through exactly what happens when someone uses this. They open it and then what?",
         );
         break;
       }
@@ -1171,33 +1258,33 @@ export function assessVagueness(
 
   if (!hasScope && conversationHistory.length > 10) {
     issues.push({
-      type: 'no_scope',
-      description: 'No clear scope defined after extended conversation',
-      evidence: 'Product type, customer type, and geography all undefined',
+      type: "no_scope",
+      description: "No clear scope defined after extended conversation",
+      evidence: "Product type, customer type, and geography all undefined",
     });
     clarifyingQuestions.push(
-      "Let's narrow this down: Would this be software, a physical product, or a service?"
+      "Let's narrow this down: Would this be software, a physical product, or a service?",
     );
   }
 
   // ---------------------------------------------------------------------------
   // BUZZWORD HEAVY DETECTION
   // ---------------------------------------------------------------------------
-  const buzzwordCount = BUZZWORDS.filter(bw =>
-    recentUserMessages.toLowerCase().includes(bw)
+  const buzzwordCount = BUZZWORDS.filter((bw) =>
+    recentUserMessages.toLowerCase().includes(bw),
   ).length;
 
   if (buzzwordCount >= 3) {
-    const foundBuzzwords = BUZZWORDS.filter(bw =>
-      recentUserMessages.toLowerCase().includes(bw)
+    const foundBuzzwords = BUZZWORDS.filter((bw) =>
+      recentUserMessages.toLowerCase().includes(bw),
     );
     issues.push({
-      type: 'buzzword_heavy',
-      description: 'Description relies on buzzwords instead of specifics',
-      evidence: `Found ${buzzwordCount} buzzwords: ${foundBuzzwords.join(', ')}`,
+      type: "buzzword_heavy",
+      description: "Description relies on buzzwords instead of specifics",
+      evidence: `Found ${buzzwordCount} buzzwords: ${foundBuzzwords.join(", ")}`,
     });
     clarifyingQuestions.push(
-      "Let's get concrete: What does V1 actually DO? Not the vision - the minimum first version."
+      "Let's get concrete: What does V1 actually DO? Not the vision - the minimum first version.",
     );
   }
 
@@ -1207,11 +1294,11 @@ export function assessVagueness(
   let score = 0;
 
   // Each issue type adds to score
-  score += issues.filter(i => i.type === 'abstract_problem').length * 25;
-  score += issues.filter(i => i.type === 'undefined_user').length * 25;
-  score += issues.filter(i => i.type === 'handwavy_solution').length * 20;
-  score += issues.filter(i => i.type === 'no_scope').length * 15;
-  score += issues.filter(i => i.type === 'buzzword_heavy').length * 15;
+  score += issues.filter((i) => i.type === "abstract_problem").length * 25;
+  score += issues.filter((i) => i.type === "undefined_user").length * 25;
+  score += issues.filter((i) => i.type === "handwavy_solution").length * 20;
+  score += issues.filter((i) => i.type === "no_scope").length * 15;
+  score += issues.filter((i) => i.type === "buzzword_heavy").length * 15;
 
   // Reduce score if we have concrete signals
   if (selfDiscovery.frustrations.length > 0) score -= 15;
@@ -1232,7 +1319,9 @@ export function assessVagueness(
 /**
  * Get clarifying question for most pressing vagueness issue.
  */
-export function getTopClarifyingQuestion(assessment: VaguenessAssessment): string | null {
+export function getTopClarifyingQuestion(
+  assessment: VaguenessAssessment,
+): string | null {
   if (assessment.clarifyingQuestions.length === 0) return null;
   return assessment.clarifyingQuestions[0];
 }
@@ -1245,7 +1334,7 @@ export function getTopClarifyingQuestion(assessment: VaguenessAssessment): strin
 Create file: `tests/ideation/signal-extractor.test.ts`
 
 ```typescript
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from "vitest";
 import {
   extractSignals,
   extractSignalsFromText,
@@ -1259,22 +1348,21 @@ import {
   extractSurroundingContext,
   extractTopicFromContext,
   mergeSignals,
-} from '../../agents/ideation/signal-extractor.js';
+} from "../../agents/ideation/signal-extractor.js";
 
-describe('SignalExtractor', () => {
-
+describe("SignalExtractor", () => {
   // ===========================================================================
   // FRUSTRATION EXTRACTION
   // ===========================================================================
 
-  describe('extractFrustrations', () => {
+  describe("extractFrustrations", () => {
     test('PASS: Detects high-severity frustration with "frustrated"', () => {
       const text = "I'm so frustrated with how slow this app is";
       const frustrations = extractFrustrations(text);
 
       expect(frustrations.length).toBe(1);
-      expect(frustrations[0].severity).toBe('high');
-      expect(frustrations[0].source).toBe('user_message');
+      expect(frustrations[0].severity).toBe("high");
+      expect(frustrations[0].source).toBe("user_message");
     });
 
     test('PASS: Detects high-severity frustration with "drives me crazy"', () => {
@@ -1282,7 +1370,7 @@ describe('SignalExtractor', () => {
       const frustrations = extractFrustrations(text);
 
       expect(frustrations.length).toBe(1);
-      expect(frustrations[0].severity).toBe('high');
+      expect(frustrations[0].severity).toBe("high");
     });
 
     test('PASS: Detects high-severity frustration with "I hate"', () => {
@@ -1290,7 +1378,7 @@ describe('SignalExtractor', () => {
       const frustrations = extractFrustrations(text);
 
       expect(frustrations.length).toBe(1);
-      expect(frustrations[0].severity).toBe('high');
+      expect(frustrations[0].severity).toBe("high");
     });
 
     test('PASS: Detects medium-severity frustration with "annoying"', () => {
@@ -1298,7 +1386,7 @@ describe('SignalExtractor', () => {
       const frustrations = extractFrustrations(text);
 
       expect(frustrations.length).toBe(1);
-      expect(frustrations[0].severity).toBe('medium');
+      expect(frustrations[0].severity).toBe("medium");
     });
 
     test('PASS: Detects medium-severity frustration with "wish"', () => {
@@ -1306,7 +1394,7 @@ describe('SignalExtractor', () => {
       const frustrations = extractFrustrations(text);
 
       expect(frustrations.length).toBe(1);
-      expect(frustrations[0].severity).toBe('medium');
+      expect(frustrations[0].severity).toBe("medium");
     });
 
     test('PASS: Detects low-severity frustration with "could be better"', () => {
@@ -1314,21 +1402,22 @@ describe('SignalExtractor', () => {
       const frustrations = extractFrustrations(text);
 
       expect(frustrations.length).toBe(1);
-      expect(frustrations[0].severity).toBe('low');
+      expect(frustrations[0].severity).toBe("low");
     });
 
-    test('PASS: Returns empty array when no frustration detected', () => {
+    test("PASS: Returns empty array when no frustration detected", () => {
       const text = "I had a great day today, everything worked perfectly";
       const frustrations = extractFrustrations(text);
 
       expect(frustrations).toEqual([]);
     });
 
-    test('PASS: Captures surrounding context', () => {
-      const text = "I'm frustrated with the booking process for coworking spaces";
+    test("PASS: Captures surrounding context", () => {
+      const text =
+        "I'm frustrated with the booking process for coworking spaces";
       const frustrations = extractFrustrations(text);
 
-      expect(frustrations[0].description).toContain('booking process');
+      expect(frustrations[0].description).toContain("booking process");
     });
   });
 
@@ -1336,40 +1425,44 @@ describe('SignalExtractor', () => {
   // CUSTOMER TYPE EXTRACTION
   // ===========================================================================
 
-  describe('extractCustomerType', () => {
-    test('PASS: Detects B2B', () => {
+  describe("extractCustomerType", () => {
+    test("PASS: Detects B2B", () => {
       const result = extractCustomerType("I want to sell to businesses");
       expect(result).not.toBeNull();
-      expect(result!.value).toBe('B2B');
+      expect(result!.value).toBe("B2B");
       expect(result!.confidence).toBe(0.6);
     });
 
     test('PASS: Detects B2B with "enterprise"', () => {
-      const result = extractCustomerType("Enterprise customers would love this");
-      expect(result!.value).toBe('B2B');
+      const result = extractCustomerType(
+        "Enterprise customers would love this",
+      );
+      expect(result!.value).toBe("B2B");
     });
 
-    test('PASS: Detects B2C', () => {
-      const result = extractCustomerType("Regular consumers would use this app");
-      expect(result!.value).toBe('B2C');
+    test("PASS: Detects B2C", () => {
+      const result = extractCustomerType(
+        "Regular consumers would use this app",
+      );
+      expect(result!.value).toBe("B2C");
     });
 
     test('PASS: Detects B2C with "individual"', () => {
       const result = extractCustomerType("For individual users who need help");
-      expect(result!.value).toBe('B2C');
+      expect(result!.value).toBe("B2C");
     });
 
-    test('PASS: Detects Marketplace', () => {
+    test("PASS: Detects Marketplace", () => {
       const result = extractCustomerType("It would be a two-sided marketplace");
-      expect(result!.value).toBe('Marketplace');
+      expect(result!.value).toBe("Marketplace");
     });
 
-    test('PASS: Detects B2B_SMB', () => {
+    test("PASS: Detects B2B_SMB", () => {
       const result = extractCustomerType("Small business owners are my target");
-      expect(result!.value).toBe('B2B_SMB');
+      expect(result!.value).toBe("B2B_SMB");
     });
 
-    test('PASS: Returns null for no match', () => {
+    test("PASS: Returns null for no match", () => {
       const result = extractCustomerType("I like pizza");
       expect(result).toBeNull();
     });
@@ -1379,35 +1472,37 @@ describe('SignalExtractor', () => {
   // PRODUCT TYPE EXTRACTION
   // ===========================================================================
 
-  describe('extractProductType', () => {
+  describe("extractProductType", () => {
     test('PASS: Detects Digital with "app"', () => {
       const result = extractProductType("I want to build an app");
-      expect(result!.value).toBe('Digital');
+      expect(result!.value).toBe("Digital");
     });
 
     test('PASS: Detects Digital with "software"', () => {
       const result = extractProductType("This would be software for teams");
-      expect(result!.value).toBe('Digital');
+      expect(result!.value).toBe("Digital");
     });
 
     test('PASS: Detects Digital with "SaaS"', () => {
       const result = extractProductType("A SaaS product for HR");
-      expect(result!.value).toBe('Digital');
+      expect(result!.value).toBe("Digital");
     });
 
-    test('PASS: Detects Physical', () => {
+    test("PASS: Detects Physical", () => {
       const result = extractProductType("A physical device for monitoring");
-      expect(result!.value).toBe('Physical');
+      expect(result!.value).toBe("Physical");
     });
 
-    test('PASS: Detects Service', () => {
+    test("PASS: Detects Service", () => {
       const result = extractProductType("A consulting service for startups");
-      expect(result!.value).toBe('Service');
+      expect(result!.value).toBe("Service");
     });
 
-    test('PASS: Detects Marketplace', () => {
-      const result = extractProductType("A platform connecting buyers and sellers");
-      expect(result!.value).toBe('Marketplace');
+    test("PASS: Detects Marketplace", () => {
+      const result = extractProductType(
+        "A platform connecting buyers and sellers",
+      );
+      expect(result!.value).toBe("Marketplace");
     });
   });
 
@@ -1415,28 +1510,28 @@ describe('SignalExtractor', () => {
   // GEOGRAPHY EXTRACTION
   // ===========================================================================
 
-  describe('extractGeography', () => {
-    test('PASS: Detects Local', () => {
+  describe("extractGeography", () => {
+    test("PASS: Detects Local", () => {
       const result = extractGeography("Just for my city");
-      expect(result!.value).toBe('Local');
+      expect(result!.value).toBe("Local");
     });
 
-    test('PASS: Detects Australia', () => {
+    test("PASS: Detects Australia", () => {
       const result = extractGeography("I'm based in Sydney");
-      expect(result!.value).toBe('Australia');
+      expect(result!.value).toBe("Australia");
     });
 
-    test('PASS: Detects Global', () => {
+    test("PASS: Detects Global", () => {
       const result = extractGeography("This could work worldwide");
-      expect(result!.value).toBe('Global');
+      expect(result!.value).toBe("Global");
     });
 
-    test('PASS: Detects USA', () => {
+    test("PASS: Detects USA", () => {
       const result = extractGeography("The US market is huge");
-      expect(result!.value).toBe('USA');
+      expect(result!.value).toBe("USA");
     });
 
-    test('PASS: Has higher confidence than customer type', () => {
+    test("PASS: Has higher confidence than customer type", () => {
       const result = extractGeography("Focused on Australia");
       expect(result!.confidence).toBe(0.7);
     });
@@ -1446,20 +1541,26 @@ describe('SignalExtractor', () => {
   // EXPERTISE EXTRACTION
   // ===========================================================================
 
-  describe('extractExpertise', () => {
+  describe("extractExpertise", () => {
     test('PASS: Detects "working in" pattern', () => {
-      const expertise = extractExpertise("I've been working in healthcare for 10 years");
+      const expertise = extractExpertise(
+        "I've been working in healthcare for 10 years",
+      );
       expect(expertise.length).toBe(1);
-      expect(expertise[0].depth).toBe('competent');
+      expect(expertise[0].depth).toBe("competent");
     });
 
     test('PASS: Detects "years" pattern', () => {
-      const expertise = extractExpertise("I've spent 5 years building software");
+      const expertise = extractExpertise(
+        "I've spent 5 years building software",
+      );
       expect(expertise.length).toBe(1);
     });
 
     test('PASS: Detects "in my experience" pattern', () => {
-      const expertise = extractExpertise("In my experience, this is how things work");
+      const expertise = extractExpertise(
+        "In my experience, this is how things work",
+      );
       expect(expertise.length).toBe(1);
     });
 
@@ -1468,9 +1569,9 @@ describe('SignalExtractor', () => {
       expect(expertise.length).toBe(1);
     });
 
-    test('PASS: Captures multiple expertise areas', () => {
+    test("PASS: Captures multiple expertise areas", () => {
       const expertise = extractExpertise(
-        "I've been working in finance. In my experience, this is important."
+        "I've been working in finance. In my experience, this is important.",
       );
       expect(expertise.length).toBe(2);
     });
@@ -1480,7 +1581,7 @@ describe('SignalExtractor', () => {
   // INTEREST EXTRACTION
   // ===========================================================================
 
-  describe('extractInterests', () => {
+  describe("extractInterests", () => {
     test('PASS: Detects "I love"', () => {
       const interests = extractInterests("I love building products");
       expect(interests.length).toBe(1);
@@ -1502,8 +1603,8 @@ describe('SignalExtractor', () => {
   // CONSTRAINT EXTRACTION
   // ===========================================================================
 
-  describe('extractConstraints', () => {
-    test('PASS: Extracts time constraint', () => {
+  describe("extractConstraints", () => {
+    test("PASS: Extracts time constraint", () => {
       const constraints = extractConstraints("I have about 10 hours per week");
       expect(constraints.timeHoursPerWeek).toBe(10);
     });
@@ -1513,29 +1614,29 @@ describe('SignalExtractor', () => {
       expect(constraints.timeHoursPerWeek).toBe(20);
     });
 
-    test('PASS: Detects bootstrap capital', () => {
+    test("PASS: Detects bootstrap capital", () => {
       const constraints = extractConstraints("I want to bootstrap this");
-      expect(constraints.capital).toBe('bootstrap');
+      expect(constraints.capital).toBe("bootstrap");
     });
 
-    test('PASS: Detects self-funding', () => {
+    test("PASS: Detects self-funding", () => {
       const constraints = extractConstraints("Using my own money only");
-      expect(constraints.capital).toBe('bootstrap');
+      expect(constraints.capital).toBe("bootstrap");
     });
 
-    test('PASS: Detects seeking funding', () => {
+    test("PASS: Detects seeking funding", () => {
       const constraints = extractConstraints("I plan to raise funding");
-      expect(constraints.capital).toBe('seeking_funding');
+      expect(constraints.capital).toBe("seeking_funding");
     });
 
-    test('PASS: Detects low risk tolerance', () => {
+    test("PASS: Detects low risk tolerance", () => {
       const constraints = extractConstraints("I prefer low risk options");
-      expect(constraints.riskTolerance).toBe('low');
+      expect(constraints.riskTolerance).toBe("low");
     });
 
-    test('PASS: Detects high risk tolerance', () => {
+    test("PASS: Detects high risk tolerance", () => {
       const constraints = extractConstraints("I'm willing to bet big on this");
-      expect(constraints.riskTolerance).toBe('high');
+      expect(constraints.riskTolerance).toBe("high");
     });
   });
 
@@ -1543,29 +1644,29 @@ describe('SignalExtractor', () => {
   // HELPER FUNCTIONS
   // ===========================================================================
 
-  describe('extractSurroundingContext', () => {
-    test('PASS: Extracts context with radius', () => {
+  describe("extractSurroundingContext", () => {
+    test("PASS: Extracts context with radius", () => {
       const text = "The quick brown fox jumps over the lazy dog";
       const context = extractSurroundingContext(text, 10, 5);
 
       expect(context.length).toBeLessThanOrEqual(15);
     });
 
-    test('PASS: Adds ellipsis when truncated', () => {
+    test("PASS: Adds ellipsis when truncated", () => {
       const text = "Start middle end";
       const context = extractSurroundingContext(text, 6, 3);
 
-      expect(context).toContain('...');
+      expect(context).toContain("...");
     });
 
-    test('PASS: Handles start of string', () => {
+    test("PASS: Handles start of string", () => {
       const text = "Start of the text";
       const context = extractSurroundingContext(text, 0, 5);
 
       expect(context).not.toMatch(/^\.{3}/);
     });
 
-    test('PASS: Handles end of string', () => {
+    test("PASS: Handles end of string", () => {
       const text = "End of text";
       const context = extractSurroundingContext(text, text.length - 1, 5);
 
@@ -1573,13 +1674,15 @@ describe('SignalExtractor', () => {
     });
   });
 
-  describe('extractTopicFromContext', () => {
-    test('PASS: Removes filler words', () => {
-      const topic = extractTopicFromContext("I'm passionate about building products");
+  describe("extractTopicFromContext", () => {
+    test("PASS: Removes filler words", () => {
+      const topic = extractTopicFromContext(
+        "I'm passionate about building products",
+      );
       expect(topic).not.toMatch(/^about/);
     });
 
-    test('PASS: Limits length to 50 chars', () => {
+    test("PASS: Limits length to 50 chars", () => {
       const longContext = "a".repeat(100);
       const topic = extractTopicFromContext(longContext);
 
@@ -1591,35 +1694,47 @@ describe('SignalExtractor', () => {
   // SIGNAL MERGING
   // ===========================================================================
 
-  describe('mergeSignals', () => {
-    test('PASS: LLM signals take precedence', () => {
+  describe("mergeSignals", () => {
+    test("PASS: LLM signals take precedence", () => {
       const llmSignals = {
         narrowing: {
-          customerType: { value: 'B2B', confidence: 0.9 },
+          customerType: { value: "B2B", confidence: 0.9 },
         },
       };
       const textSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
         narrowing: {
-          customerType: { value: 'B2C', confidence: 0.6 },
+          customerType: { value: "B2C", confidence: 0.6 },
         },
       };
 
       const merged = mergeSignals(llmSignals, textSignals, {});
 
-      expect(merged.narrowing.customerType?.value).toBe('B2B');
+      expect(merged.narrowing.customerType?.value).toBe("B2B");
     });
 
-    test('PASS: Dedupes frustrations by description', () => {
+    test("PASS: Dedupes frustrations by description", () => {
       const existing = {
         selfDiscovery: {
-          frustrations: [{ description: 'Slow app', source: 'user', severity: 'high' as const }],
+          frustrations: [
+            {
+              description: "Slow app",
+              source: "user",
+              severity: "high" as const,
+            },
+          ],
         },
       };
       const textSignals = {
         selfDiscovery: {
-          frustrations: [{ description: 'Slow app', source: 'user', severity: 'high' as const }],
+          frustrations: [
+            {
+              description: "Slow app",
+              source: "user",
+              severity: "high" as const,
+            },
+          ],
         },
         marketDiscovery: {},
         narrowing: {},
@@ -1630,39 +1745,43 @@ describe('SignalExtractor', () => {
       expect(merged.selfDiscovery.frustrations?.length).toBe(1);
     });
 
-    test('PASS: Preserves existing state when no new signals', () => {
+    test("PASS: Preserves existing state when no new signals", () => {
       const existing = {
         narrowing: {
-          customerType: { value: 'B2B', confidence: 0.8 },
+          customerType: { value: "B2B", confidence: 0.8 },
         },
       };
 
-      const merged = mergeSignals({}, {
-        selfDiscovery: {},
-        marketDiscovery: {},
-        narrowing: {},
-      }, existing);
+      const merged = mergeSignals(
+        {},
+        {
+          selfDiscovery: {},
+          marketDiscovery: {},
+          narrowing: {},
+        },
+        existing,
+      );
 
-      expect(merged.narrowing.customerType?.value).toBe('B2B');
+      expect(merged.narrowing.customerType?.value).toBe("B2B");
     });
 
-    test('PASS: Selects higher confidence option', () => {
+    test("PASS: Selects higher confidence option", () => {
       const existing = {
         narrowing: {
-          productType: { value: 'Digital', confidence: 0.5 },
+          productType: { value: "Digital", confidence: 0.5 },
         },
       };
       const textSignals = {
         selfDiscovery: {},
         marketDiscovery: {},
         narrowing: {
-          productType: { value: 'Service', confidence: 0.8 },
+          productType: { value: "Service", confidence: 0.8 },
         },
       };
 
       const merged = mergeSignals({}, textSignals, existing);
 
-      expect(merged.narrowing.productType?.value).toBe('Service');
+      expect(merged.narrowing.productType?.value).toBe("Service");
     });
   });
 
@@ -1670,14 +1789,15 @@ describe('SignalExtractor', () => {
   // FULL EXTRACTION
   // ===========================================================================
 
-  describe('extractSignals', () => {
-    test('PASS: Combines user message and agent response', () => {
-      const userMessage = "I'm frustrated with how hard it is to find coworking spaces in Sydney";
+  describe("extractSignals", () => {
+    test("PASS: Combines user message and agent response", () => {
+      const userMessage =
+        "I'm frustrated with how hard it is to find coworking spaces in Sydney";
       const agentResponse = {
         reply: "That sounds frustrating. Tell me more about your experience.",
         signals: {
           narrowing: {
-            geography: { value: 'Sydney', confidence: 0.9 },
+            geography: { value: "Sydney", confidence: 0.9 },
           },
         },
       };
@@ -1685,10 +1805,10 @@ describe('SignalExtractor', () => {
       const signals = extractSignals(userMessage, agentResponse, {});
 
       expect(signals.selfDiscovery.frustrations?.length).toBeGreaterThan(0);
-      expect(signals.narrowing.geography?.value).toBe('Sydney');
+      expect(signals.narrowing.geography?.value).toBe("Sydney");
     });
 
-    test('PASS: Falls back to text extraction when no LLM signals', () => {
+    test("PASS: Falls back to text extraction when no LLM signals", () => {
       const userMessage = "I want to build an app for businesses";
       const agentResponse = {
         reply: "Interesting! What kind of businesses?",
@@ -1696,8 +1816,8 @@ describe('SignalExtractor', () => {
 
       const signals = extractSignals(userMessage, agentResponse, {});
 
-      expect(signals.narrowing.productType?.value).toBe('Digital');
-      expect(signals.narrowing.customerType?.value).toBe('B2B');
+      expect(signals.narrowing.productType?.value).toBe("Digital");
+      expect(signals.narrowing.customerType?.value).toBe("B2B");
     });
   });
 });
@@ -1708,23 +1828,23 @@ describe('SignalExtractor', () => {
 Create file: `tests/ideation/vagueness-detector.test.ts`
 
 ```typescript
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from "vitest";
 import {
   assessVagueness,
   getTopClarifyingQuestion,
-} from '../../agents/ideation/vagueness-detector.js';
+} from "../../agents/ideation/vagueness-detector.js";
 import {
   createDefaultSelfDiscoveryState,
   createDefaultNarrowingState,
-} from '../../utils/ideation-defaults.js';
-import { IdeationMessage } from '../../types/ideation.js';
+} from "../../utils/ideation-defaults.js";
+import { IdeationMessage } from "../../types/ideation.js";
 
 // Helper to create messages
 function createMessages(contents: string[]): IdeationMessage[] {
   return contents.map((content, i) => ({
     id: `msg_${i}`,
-    sessionId: 'test_session',
-    role: 'user' as const,
+    sessionId: "test_session",
+    role: "user" as const,
     content,
     buttonsShown: null,
     buttonClicked: null,
@@ -1735,11 +1855,9 @@ function createMessages(contents: string[]): IdeationMessage[] {
   }));
 }
 
-describe('VaguenessDetector', () => {
-
-  describe('assessVagueness', () => {
-
-    test('PASS: Detects abstract problem statement', () => {
+describe("VaguenessDetector", () => {
+  describe("assessVagueness", () => {
+    test("PASS: Detects abstract problem statement", () => {
       const messages = createMessages([
         "I want to make things better",
         "Help people in general",
@@ -1749,10 +1867,12 @@ describe('VaguenessDetector', () => {
         null,
         createDefaultSelfDiscoveryState(),
         createDefaultNarrowingState(),
-        messages
+        messages,
       );
 
-      expect(assessment.issues.some(i => i.type === 'abstract_problem')).toBe(true);
+      expect(assessment.issues.some((i) => i.type === "abstract_problem")).toBe(
+        true,
+      );
     });
 
     test('PASS: Detects undefined user "everyone"', () => {
@@ -1765,13 +1885,15 @@ describe('VaguenessDetector', () => {
         null,
         createDefaultSelfDiscoveryState(),
         createDefaultNarrowingState(),
-        messages
+        messages,
       );
 
-      expect(assessment.issues.some(i => i.type === 'undefined_user')).toBe(true);
+      expect(assessment.issues.some((i) => i.type === "undefined_user")).toBe(
+        true,
+      );
     });
 
-    test('PASS: Detects handwavy solution with tech buzzwords', () => {
+    test("PASS: Detects handwavy solution with tech buzzwords", () => {
       const messages = createMessages([
         "I want to use AI to solve problems",
         "Something like a platform",
@@ -1781,26 +1903,28 @@ describe('VaguenessDetector', () => {
         null,
         createDefaultSelfDiscoveryState(),
         createDefaultNarrowingState(),
-        messages
+        messages,
       );
 
-      expect(assessment.issues.some(i => i.type === 'handwavy_solution')).toBe(true);
+      expect(
+        assessment.issues.some((i) => i.type === "handwavy_solution"),
+      ).toBe(true);
     });
 
-    test('PASS: Detects no scope after extended conversation', () => {
+    test("PASS: Detects no scope after extended conversation", () => {
       const messages = createMessages(Array(15).fill("Some random discussion"));
 
       const assessment = assessVagueness(
         null,
         createDefaultSelfDiscoveryState(),
         createDefaultNarrowingState(),
-        messages
+        messages,
       );
 
-      expect(assessment.issues.some(i => i.type === 'no_scope')).toBe(true);
+      expect(assessment.issues.some((i) => i.type === "no_scope")).toBe(true);
     });
 
-    test('PASS: Detects buzzword-heavy description', () => {
+    test("PASS: Detects buzzword-heavy description", () => {
       const messages = createMessages([
         "A synergistic platform that leverages innovative paradigms",
         "Creating a holistic ecosystem with seamless integration",
@@ -1811,13 +1935,15 @@ describe('VaguenessDetector', () => {
         null,
         createDefaultSelfDiscoveryState(),
         createDefaultNarrowingState(),
-        messages
+        messages,
       );
 
-      expect(assessment.issues.some(i => i.type === 'buzzword_heavy')).toBe(true);
+      expect(assessment.issues.some((i) => i.type === "buzzword_heavy")).toBe(
+        true,
+      );
     });
 
-    test('PASS: Returns isVague=true for score >= 50', () => {
+    test("PASS: Returns isVague=true for score >= 50", () => {
       const messages = createMessages([
         "I want to help everyone",
         "Make things better using AI",
@@ -1827,38 +1953,42 @@ describe('VaguenessDetector', () => {
         null,
         createDefaultSelfDiscoveryState(),
         createDefaultNarrowingState(),
-        messages
+        messages,
       );
 
       expect(assessment.isVague).toBe(true);
       expect(assessment.score).toBeGreaterThanOrEqual(50);
     });
 
-    test('PASS: Reduces vagueness score with concrete signals', () => {
+    test("PASS: Reduces vagueness score with concrete signals", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
       selfDiscovery.frustrations = [
-        { description: 'Specific problem', source: 'user', severity: 'high' }
+        { description: "Specific problem", source: "user", severity: "high" },
       ];
       selfDiscovery.expertise = [
-        { area: 'healthcare', depth: 'expert', evidence: 'worked there' }
+        { area: "healthcare", depth: "expert", evidence: "worked there" },
       ];
 
       const narrowing = createDefaultNarrowingState();
-      narrowing.customerType = { value: 'B2B', confidence: 0.8 };
+      narrowing.customerType = { value: "B2B", confidence: 0.8 };
 
       const messages = createMessages(["Some vague statement"]);
 
       const assessment = assessVagueness(
-        { id: 'c1', title: 'Test', summary: 'A detailed summary of the idea with specific details.' } as any,
+        {
+          id: "c1",
+          title: "Test",
+          summary: "A detailed summary of the idea with specific details.",
+        } as any,
         selfDiscovery,
         narrowing,
-        messages
+        messages,
       );
 
       expect(assessment.score).toBeLessThan(50);
     });
 
-    test('PASS: Provides clarifying questions for issues', () => {
+    test("PASS: Provides clarifying questions for issues", () => {
       const messages = createMessages([
         "I want to help everyone with something",
       ]);
@@ -1867,13 +1997,13 @@ describe('VaguenessDetector', () => {
         null,
         createDefaultSelfDiscoveryState(),
         createDefaultNarrowingState(),
-        messages
+        messages,
       );
 
       expect(assessment.clarifyingQuestions.length).toBeGreaterThan(0);
     });
 
-    test('PASS: Limits clarifying questions to 2', () => {
+    test("PASS: Limits clarifying questions to 2", () => {
       const messages = createMessages([
         "Use AI to leverage synergy for everyone",
         "A paradigm-shifting platform",
@@ -1883,13 +2013,13 @@ describe('VaguenessDetector', () => {
         null,
         createDefaultSelfDiscoveryState(),
         createDefaultNarrowingState(),
-        messages
+        messages,
       );
 
       expect(assessment.clarifyingQuestions.length).toBeLessThanOrEqual(2);
     });
 
-    test('PASS: Score is clamped between 0 and 100', () => {
+    test("PASS: Score is clamped between 0 and 100", () => {
       // Very vague
       const vagueMessages = createMessages([
         "Help everyone with everything using AI",
@@ -1900,7 +2030,7 @@ describe('VaguenessDetector', () => {
         null,
         createDefaultSelfDiscoveryState(),
         createDefaultNarrowingState(),
-        vagueMessages
+        vagueMessages,
       );
 
       expect(vagueAssessment.score).toBeLessThanOrEqual(100);
@@ -1909,21 +2039,25 @@ describe('VaguenessDetector', () => {
       // Very concrete
       const concreteSelfDiscovery = createDefaultSelfDiscoveryState();
       concreteSelfDiscovery.frustrations = [
-        { description: 'Specific', source: 'user', severity: 'high' },
-        { description: 'Another', source: 'user', severity: 'high' },
+        { description: "Specific", source: "user", severity: "high" },
+        { description: "Another", source: "user", severity: "high" },
       ];
       concreteSelfDiscovery.expertise = [
-        { area: 'Domain', depth: 'expert', evidence: 'proof' },
+        { area: "Domain", depth: "expert", evidence: "proof" },
       ];
 
       const concreteNarrowing = createDefaultNarrowingState();
-      concreteNarrowing.customerType = { value: 'B2B', confidence: 0.9 };
+      concreteNarrowing.customerType = { value: "B2B", confidence: 0.9 };
 
       const concreteAssessment = assessVagueness(
-        { id: 'c1', title: 'Test', summary: 'A very detailed and specific summary of the idea' } as any,
+        {
+          id: "c1",
+          title: "Test",
+          summary: "A very detailed and specific summary of the idea",
+        } as any,
         concreteSelfDiscovery,
         concreteNarrowing,
-        []
+        [],
       );
 
       expect(concreteAssessment.score).toBeLessThanOrEqual(100);
@@ -1931,21 +2065,21 @@ describe('VaguenessDetector', () => {
     });
   });
 
-  describe('getTopClarifyingQuestion', () => {
-    test('PASS: Returns first question', () => {
+  describe("getTopClarifyingQuestion", () => {
+    test("PASS: Returns first question", () => {
       const assessment = {
         isVague: true,
         score: 60,
         issues: [],
-        clarifyingQuestions: ['Question 1', 'Question 2'],
+        clarifyingQuestions: ["Question 1", "Question 2"],
       };
 
       const question = getTopClarifyingQuestion(assessment);
 
-      expect(question).toBe('Question 1');
+      expect(question).toBe("Question 1");
     });
 
-    test('PASS: Returns null when no questions', () => {
+    test("PASS: Returns null when no questions", () => {
       const assessment = {
         isVague: false,
         score: 20,
@@ -1964,69 +2098,75 @@ describe('VaguenessDetector', () => {
 ### Impact Vision Tests
 
 ```typescript
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from "vitest";
 import {
   extractImpactVision,
   ImpactLevel,
-} from '../../agents/ideation/signal-extractor.js';
+} from "../../agents/ideation/signal-extractor.js";
 
-describe('ImpactVisionExtraction', () => {
-
-  describe('extractImpactVision', () => {
-
-    test('PASS: Detects world-level impact', () => {
-      const vision = extractImpactVision("I want to change the world with this idea");
+describe("ImpactVisionExtraction", () => {
+  describe("extractImpactVision", () => {
+    test("PASS: Detects world-level impact", () => {
+      const vision = extractImpactVision(
+        "I want to change the world with this idea",
+      );
 
       expect(vision).not.toBeNull();
-      expect(vision!.level).toBe('world');
+      expect(vision!.level).toBe("world");
       expect(vision!.confidence).toBeGreaterThanOrEqual(60);
     });
 
-    test('PASS: Detects global impact with billions', () => {
-      const vision = extractImpactVision("This could help billions of people globally");
+    test("PASS: Detects global impact with billions", () => {
+      const vision = extractImpactVision(
+        "This could help billions of people globally",
+      );
 
       expect(vision).not.toBeNull();
-      expect(vision!.level).toBe('world');
+      expect(vision!.level).toBe("world");
     });
 
-    test('PASS: Detects country-level impact', () => {
-      const vision = extractImpactVision("I want to help Australians across the country");
+    test("PASS: Detects country-level impact", () => {
+      const vision = extractImpactVision(
+        "I want to help Australians across the country",
+      );
 
       expect(vision).not.toBeNull();
-      expect(vision!.level).toBe('country');
+      expect(vision!.level).toBe("country");
     });
 
-    test('PASS: Detects city-level impact', () => {
+    test("PASS: Detects city-level impact", () => {
       const vision = extractImpactVision("This is for people in Sydney");
 
       expect(vision).not.toBeNull();
-      expect(vision!.level).toBe('city');
+      expect(vision!.level).toBe("city");
     });
 
-    test('PASS: Detects community-level impact', () => {
+    test("PASS: Detects community-level impact", () => {
       const vision = extractImpactVision("I want to help my local community");
 
       expect(vision).not.toBeNull();
-      expect(vision!.level).toBe('community');
+      expect(vision!.level).toBe("community");
     });
 
-    test('PASS: Detects individual-level impact', () => {
-      const vision = extractImpactVision("This is a personal project to help myself");
+    test("PASS: Detects individual-level impact", () => {
+      const vision = extractImpactVision(
+        "This is a personal project to help myself",
+      );
 
       expect(vision).not.toBeNull();
-      expect(vision!.level).toBe('individual');
+      expect(vision!.level).toBe("individual");
     });
 
-    test('PASS: Returns null when no impact indicators', () => {
+    test("PASS: Returns null when no impact indicators", () => {
       const vision = extractImpactVision("I have an idea for a mobile app");
 
       expect(vision).toBeNull();
     });
 
-    test('PASS: Higher confidence with multiple matches', () => {
+    test("PASS: Higher confidence with multiple matches", () => {
       const singleMatch = extractImpactVision("I want to change the world");
       const multiMatch = extractImpactVision(
-        "I want to change the world and have global impact reaching billions of people"
+        "I want to change the world and have global impact reaching billions of people",
       );
 
       expect(multiMatch!.confidence).toBeGreaterThan(singleMatch!.confidence);
@@ -2038,107 +2178,106 @@ describe('ImpactVisionExtraction', () => {
 ### Interest Strength Tests
 
 ```typescript
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from "vitest";
 import {
   scoreInterestStrength,
   extractInterestsWithStrength,
   EngagementLevel,
-} from '../../agents/ideation/signal-extractor.js';
+} from "../../agents/ideation/signal-extractor.js";
 
-describe('InterestStrengthScoring', () => {
-
-  describe('scoreInterestStrength', () => {
-
-    test('PASS: Detects passionate engagement', () => {
+describe("InterestStrengthScoring", () => {
+  describe("scoreInterestStrength", () => {
+    test("PASS: Detects passionate engagement", () => {
       const result = scoreInterestStrength(
         "I live and breathe this space. It's my life's work.",
-        "technology"
+        "technology",
       );
 
-      expect(result.engagementLevel).toBe('passionate');
+      expect(result.engagementLevel).toBe("passionate");
       expect(result.strengthScore).toBeGreaterThanOrEqual(80);
       expect(result.genuine).toBe(true);
     });
 
-    test('PASS: Detects obsessed level passion', () => {
+    test("PASS: Detects obsessed level passion", () => {
       const result = scoreInterestStrength(
         "I'm obsessed with solving this problem",
-        "problem solving"
+        "problem solving",
       );
 
-      expect(result.engagementLevel).toBe('passionate');
+      expect(result.engagementLevel).toBe("passionate");
       expect(result.genuine).toBe(true);
     });
 
-    test('PASS: Detects interested engagement', () => {
+    test("PASS: Detects interested engagement", () => {
       const result = scoreInterestStrength(
         "I love working on developer tools",
-        "developer tools"
+        "developer tools",
       );
 
-      expect(result.engagementLevel).toBe('interested');
+      expect(result.engagementLevel).toBe("interested");
       expect(result.strengthScore).toBeGreaterThanOrEqual(60);
       expect(result.genuine).toBe(true);
     });
 
-    test('PASS: Detects curious engagement', () => {
+    test("PASS: Detects curious engagement", () => {
       const result = scoreInterestStrength(
         "I'm curious about machine learning",
-        "machine learning"
+        "machine learning",
       );
 
-      expect(result.engagementLevel).toBe('curious');
+      expect(result.engagementLevel).toBe("curious");
       expect(result.strengthScore).toBeGreaterThanOrEqual(40);
       expect(result.genuine).toBe(false); // Not yet proven genuine
     });
 
-    test('PASS: Detects casual engagement', () => {
+    test("PASS: Detects casual engagement", () => {
       const result = scoreInterestStrength(
         "I kind of like the idea",
-        "general"
+        "general",
       );
 
-      expect(result.engagementLevel).toBe('casual');
+      expect(result.engagementLevel).toBe("casual");
       expect(result.strengthScore).toBeLessThan(40);
       expect(result.genuine).toBe(false);
     });
 
-    test('PASS: Default to casual for neutral text', () => {
+    test("PASS: Default to casual for neutral text", () => {
       const result = scoreInterestStrength(
         "There is a market for this",
-        "market"
+        "market",
       );
 
-      expect(result.engagementLevel).toBe('casual');
+      expect(result.engagementLevel).toBe("casual");
     });
   });
 
-  describe('extractInterestsWithStrength', () => {
-
-    test('PASS: Extracts multiple interests with different strengths', () => {
+  describe("extractInterestsWithStrength", () => {
+    test("PASS: Extracts multiple interests with different strengths", () => {
       const interests = extractInterestsWithStrength(
-        "I'm passionate about sustainability, and I'm also curious about blockchain technology"
+        "I'm passionate about sustainability, and I'm also curious about blockchain technology",
       );
 
       expect(interests.length).toBeGreaterThanOrEqual(2);
       // Should be sorted by strength
-      expect(interests[0].strengthScore).toBeGreaterThanOrEqual(interests[1].strengthScore);
+      expect(interests[0].strengthScore).toBeGreaterThanOrEqual(
+        interests[1].strengthScore,
+      );
     });
 
-    test('PASS: Returns empty array when no interests', () => {
+    test("PASS: Returns empty array when no interests", () => {
       const interests = extractInterestsWithStrength(
-        "The weather is nice today"
+        "The weather is nice today",
       );
 
       expect(interests.length).toBe(0);
     });
 
-    test('PASS: Avoids duplicate topics', () => {
+    test("PASS: Avoids duplicate topics", () => {
       const interests = extractInterestsWithStrength(
-        "I love AI and I really enjoy AI tools"
+        "I love AI and I really enjoy AI tools",
       );
 
-      const uniqueTopics = new Set(interests.map(i => i.topic));
+      const uniqueTopics = new Set(interests.map((i) => i.topic));
       expect(interests.length).toBe(uniqueTopics.size);
     });
   });
@@ -2148,42 +2287,48 @@ describe('InterestStrengthScoring', () => {
 ### Market Data Extraction Tests
 
 ```typescript
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from "vitest";
 import {
   extractMarketDataFromResponse,
   updateMarketDiscoveryWithWebData,
   ExtractedMarketData,
-} from '../../agents/ideation/signal-extractor.js';
+} from "../../agents/ideation/signal-extractor.js";
 
-describe('MarketDataExtraction', () => {
-
-  describe('extractMarketDataFromResponse', () => {
-
-    test('PASS: Extracts competitors from search results', () => {
+describe("MarketDataExtraction", () => {
+  describe("extractMarketDataFromResponse", () => {
+    test("PASS: Extracts competitors from search results", () => {
       const searchText = `
         In the project management space, competitor Asana offers robust task management.
         Similar to Trello, which provides kanban boards. The market leader is Monday.com.
       `;
 
-      const data = extractMarketDataFromResponse(searchText, "project management tools");
+      const data = extractMarketDataFromResponse(
+        searchText,
+        "project management tools",
+      );
 
       expect(data.competitors.length).toBeGreaterThan(0);
-      expect(data.competitors.some(c => c.name.toLowerCase().includes('asana'))).toBe(true);
+      expect(
+        data.competitors.some((c) => c.name.toLowerCase().includes("asana")),
+      ).toBe(true);
     });
 
-    test('PASS: Extracts market gaps', () => {
+    test("PASS: Extracts market gaps", () => {
       const searchText = `
         There is a gap in the market for affordable enterprise solutions.
         Users have pain points about complex onboarding processes.
         An underserved segment is small businesses with limited budgets.
       `;
 
-      const data = extractMarketDataFromResponse(searchText, "enterprise software gaps");
+      const data = extractMarketDataFromResponse(
+        searchText,
+        "enterprise software gaps",
+      );
 
       expect(data.gaps.length).toBeGreaterThan(0);
     });
 
-    test('PASS: Extracts market trends', () => {
+    test("PASS: Extracts market trends", () => {
       const searchText = `
         The trend is towards remote work solutions. Market is growing at 15% annually.
         AI-powered tools are rising in popularity.
@@ -2192,22 +2337,25 @@ describe('MarketDataExtraction', () => {
       const data = extractMarketDataFromResponse(searchText, "market trends");
 
       expect(data.trends.length).toBeGreaterThan(0);
-      expect(data.trends.some(t => t.direction === 'growing')).toBe(true);
+      expect(data.trends.some((t) => t.direction === "growing")).toBe(true);
     });
 
-    test('PASS: Extracts market size', () => {
+    test("PASS: Extracts market size", () => {
       const searchText = `
         The market size for cloud computing is $500 billion as of 2024.
         TAM: $50 billion projected by 2025.
       `;
 
-      const data = extractMarketDataFromResponse(searchText, "cloud computing market");
+      const data = extractMarketDataFromResponse(
+        searchText,
+        "cloud computing market",
+      );
 
       expect(data.marketSize).not.toBeUndefined();
-      expect(data.marketSize?.value).toContain('500');
+      expect(data.marketSize?.value).toContain("500");
     });
 
-    test('PASS: Handles empty search results gracefully', () => {
+    test("PASS: Handles empty search results gracefully", () => {
       const data = extractMarketDataFromResponse("", "test query");
 
       expect(data.competitors).toEqual([]);
@@ -2217,12 +2365,15 @@ describe('MarketDataExtraction', () => {
       expect(data.searchQuery).toBe("test query");
     });
 
-    test('PASS: Limits competitor extraction to 10', () => {
+    test("PASS: Limits competitor extraction to 10", () => {
       // Create text with many potential matches
       const searchText = Array(20)
         .fill(null)
-        .map((_, i) => `Company${i} is a competitor. Alternative ProductX${i} offers services.`)
-        .join(' ');
+        .map(
+          (_, i) =>
+            `Company${i} is a competitor. Alternative ProductX${i} offers services.`,
+        )
+        .join(" ");
 
       const data = extractMarketDataFromResponse(searchText, "competitors");
 
@@ -2230,18 +2381,37 @@ describe('MarketDataExtraction', () => {
     });
   });
 
-  describe('updateMarketDiscoveryWithWebData', () => {
-
-    test('PASS: Merges web data with existing state', () => {
+  describe("updateMarketDiscoveryWithWebData", () => {
+    test("PASS: Merges web data with existing state", () => {
       const existingState = {
-        competitors: [{ name: 'Existing', description: 'Already known', differentiator: 'First' }],
+        competitors: [
+          {
+            name: "Existing",
+            description: "Already known",
+            differentiator: "First",
+          },
+        ],
       };
 
       const webData: ExtractedMarketData = {
-        competitors: [{ name: 'NewComp', description: 'From search' }],
-        gaps: [{ description: 'A gap', evidence: 'Some text', opportunity: 'Fix it', confidence: 70 }],
-        trends: [{ name: 'AI trend', direction: 'growing' as const, evidence: 'Data', relevance: 'High' }],
-        searchQuery: 'test',
+        competitors: [{ name: "NewComp", description: "From search" }],
+        gaps: [
+          {
+            description: "A gap",
+            evidence: "Some text",
+            opportunity: "Fix it",
+            confidence: 70,
+          },
+        ],
+        trends: [
+          {
+            name: "AI trend",
+            direction: "growing" as const,
+            evidence: "Data",
+            relevance: "High",
+          },
+        ],
+        searchQuery: "test",
         extractedAt: new Date().toISOString(),
       };
 
@@ -2253,19 +2423,21 @@ describe('MarketDataExtraction', () => {
       expect(updated.searchesPerformed?.length).toBe(1);
     });
 
-    test('PASS: Records search in history', () => {
+    test("PASS: Records search in history", () => {
       const webData: ExtractedMarketData = {
-        competitors: [{ name: 'Comp', description: 'Desc' }],
+        competitors: [{ name: "Comp", description: "Desc" }],
         gaps: [],
         trends: [],
-        searchQuery: 'my search query',
-        extractedAt: '2024-01-15T10:00:00Z',
+        searchQuery: "my search query",
+        extractedAt: "2024-01-15T10:00:00Z",
       };
 
       const updated = updateMarketDiscoveryWithWebData({}, webData);
 
-      expect(updated.searchesPerformed?.[0].query).toBe('my search query');
-      expect(updated.searchesPerformed?.[0].findings).toContain('1 competitors');
+      expect(updated.searchesPerformed?.[0].query).toBe("my search query");
+      expect(updated.searchesPerformed?.[0].findings).toContain(
+        "1 competitors",
+      );
     });
   });
 });
@@ -2286,20 +2458,20 @@ describe('MarketDataExtraction', () => {
 
 ## 5. Success Criteria
 
-| Test Category | Expected Pass |
-|---------------|---------------|
-| Frustration extraction | 7 |
-| Customer type extraction | 7 |
-| Product type extraction | 6 |
-| Geography extraction | 5 |
-| Expertise extraction | 5 |
-| Interest extraction | 3 |
-| Constraint extraction | 7 |
-| Helper functions | 4 |
-| Signal merging | 4 |
-| Full extraction | 2 |
-| Vagueness detection | 10 |
-| Impact vision extraction | 8 |
-| Interest strength scoring | 10 |
-| Market data extraction | 8 |
-| **Total** | **86** |
+| Test Category             | Expected Pass |
+| ------------------------- | ------------- |
+| Frustration extraction    | 7             |
+| Customer type extraction  | 7             |
+| Product type extraction   | 6             |
+| Geography extraction      | 5             |
+| Expertise extraction      | 5             |
+| Interest extraction       | 3             |
+| Constraint extraction     | 7             |
+| Helper functions          | 4             |
+| Signal merging            | 4             |
+| Full extraction           | 2             |
+| Vagueness detection       | 10            |
+| Impact vision extraction  | 8             |
+| Interest strength scoring | 10            |
+| Market data extraction    | 8             |
+| **Total**                 | **86**        |

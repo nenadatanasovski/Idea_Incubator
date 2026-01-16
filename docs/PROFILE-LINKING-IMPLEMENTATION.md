@@ -6,15 +6,15 @@
 
 ### The Core Problem
 
-The evaluation system scores ideas against 30 criteria. Five of these (FT1-FT5) are **Personal Fit** criteria that measure how well an idea aligns with the *specific person* pursuing it:
+The evaluation system scores ideas against 30 criteria. Five of these (FT1-FT5) are **Personal Fit** criteria that measure how well an idea aligns with the _specific person_ pursuing it:
 
-| ID | Criterion | What It Measures |
-|----|-----------|------------------|
-| FT1 | Personal Fit | Alignment with personal goals |
-| FT2 | Passion | Genuine excitement and motivation |
-| FT3 | Skills Match | Leverage of existing capabilities |
-| FT4 | Network | Ability to use connections |
-| FT5 | Life Stage | Timing relative to life circumstances |
+| ID  | Criterion    | What It Measures                      |
+| --- | ------------ | ------------------------------------- |
+| FT1 | Personal Fit | Alignment with personal goals         |
+| FT2 | Passion      | Genuine excitement and motivation     |
+| FT3 | Skills Match | Leverage of existing capabilities     |
+| FT4 | Network      | Ability to use connections            |
+| FT5 | Life Stage   | Timing relative to life circumstances |
 
 **Without profile context, these scores are meaningless** - the evaluator has no information about who is being evaluated, so scores default to 5/10 with low confidence.
 
@@ -51,59 +51,68 @@ The evaluation system scores ideas against 30 criteria. Five of these (FT1-FT5) 
 
 ### Current State Inventory
 
-| Layer | Component | Status |
-|-------|-----------|--------|
-| **Database** | `user_profiles` table | Exists |
-| **Database** | `idea_profiles` linking table | Exists |
-| **Backend** | `POST /api/profiles/:id/link/:ideaSlug` | Exists |
-| **Backend** | `DELETE /api/profiles/:id/link/:ideaSlug` | Exists |
-| **Backend** | `GET /api/profiles/:id/ideas` | Exists |
-| **Backend** | `GET /api/ideas/:slug/profile` | **MISSING** |
-| **CLI** | `npm run profile link` | Exists |
-| **Frontend** | Profile page (create/edit) | Exists |
-| **Frontend** | Profile page shows linked ideas | Exists |
-| **Frontend** | API client profile functions | **MISSING** |
-| **Frontend** | IdeaDetail profile display | **MISSING** |
-| **Frontend** | IdeaDetail profile selector | **MISSING** |
-| **Frontend** | Pre-evaluation warning | **MISSING** |
-| **Frontend** | FT score confidence indicators | **MISSING** |
+| Layer        | Component                                 | Status      |
+| ------------ | ----------------------------------------- | ----------- |
+| **Database** | `user_profiles` table                     | Exists      |
+| **Database** | `idea_profiles` linking table             | Exists      |
+| **Backend**  | `POST /api/profiles/:id/link/:ideaSlug`   | Exists      |
+| **Backend**  | `DELETE /api/profiles/:id/link/:ideaSlug` | Exists      |
+| **Backend**  | `GET /api/profiles/:id/ideas`             | Exists      |
+| **Backend**  | `GET /api/ideas/:slug/profile`            | **MISSING** |
+| **CLI**      | `npm run profile link`                    | Exists      |
+| **Frontend** | Profile page (create/edit)                | Exists      |
+| **Frontend** | Profile page shows linked ideas           | Exists      |
+| **Frontend** | API client profile functions              | **MISSING** |
+| **Frontend** | IdeaDetail profile display                | **MISSING** |
+| **Frontend** | IdeaDetail profile selector               | **MISSING** |
+| **Frontend** | Pre-evaluation warning                    | **MISSING** |
+| **Frontend** | FT score confidence indicators            | **MISSING** |
 
 ### Identified Gaps
 
 #### Gap 1: Missing Backend Endpoint
+
 **Location:** `server/api.ts`
 
 Currently you can get ideas linked to a profile, but NOT the profile linked to an idea:
+
 ```
 GET /api/profiles/:id/ideas     ✅ Exists
 GET /api/ideas/:slug/profile    ❌ Missing
 ```
 
 #### Gap 2: No Frontend API Client Functions
+
 **Location:** `frontend/src/api/client.ts`
 
 Zero profile-related functions exist in the frontend API client.
 
 #### Gap 3: No Profile Context in IdeaDetail
+
 **Location:** `frontend/src/pages/IdeaDetail.tsx`
 
 The page shows idea details and has "Run Evaluation" button but:
+
 - No display of linked profile
 - No warning if no profile linked
 - No way to link/change profile
 
 #### Gap 4: No Pre-Evaluation UX
+
 **Location:** `frontend/src/pages/IdeaDetail.tsx`
 
 User can trigger evaluation without knowing:
+
 - Whether a profile is linked
 - What profile will be used
 - Impact on FT1-FT5 scoring confidence
 
 #### Gap 5: No Profile Context in Results
+
 **Location:** `frontend/src/components/EvaluationScorecard.tsx`
 
 Evaluation results don't indicate:
+
 - Whether profile was used
 - Which profile was used
 - Confidence difference for FT scores
@@ -115,37 +124,50 @@ Evaluation results don't indicate:
 ### Phase 1: Backend Foundation
 
 #### Task 1.1: Add Idea Profile Endpoint
+
 **File:** `server/api.ts`
 **Priority:** Critical (blocker for frontend)
 
 Add new endpoint:
+
 ```typescript
 // GET /api/ideas/:slug/profile - Get profile linked to an idea
-app.get('/api/ideas/:slug/profile', asyncHandler(async (req, res) => {
-  const { slug } = req.params;
+app.get(
+  "/api/ideas/:slug/profile",
+  asyncHandler(async (req, res) => {
+    const { slug } = req.params;
 
-  // Get idea
-  const idea = await getOne<{ id: string }>('SELECT id FROM ideas WHERE slug = ?', [slug]);
-  if (!idea) {
-    return res.status(404).json({ success: false, error: 'Idea not found' });
-  }
+    // Get idea
+    const idea = await getOne<{ id: string }>(
+      "SELECT id FROM ideas WHERE slug = ?",
+      [slug],
+    );
+    if (!idea) {
+      return res.status(404).json({ success: false, error: "Idea not found" });
+    }
 
-  // Get linked profile
-  const profile = await getOne<UserProfile>(`
+    // Get linked profile
+    const profile = await getOne<UserProfile>(
+      `
     SELECT p.* FROM user_profiles p
     JOIN idea_profiles ip ON p.id = ip.profile_id
     WHERE ip.idea_id = ?
-  `, [idea.id]);
+  `,
+      [idea.id],
+    );
 
-  respond(res, profile || null);
-}));
+    respond(res, profile || null);
+  }),
+);
 ```
 
 #### Task 1.2: Add Profile Used Flag to Evaluation Runs
+
 **File:** `database/migrations/` (new migration)
 **Priority:** Medium
 
 Add column to track if profile was used during evaluation:
+
 ```sql
 ALTER TABLE evaluation_runs ADD COLUMN profile_id TEXT REFERENCES user_profiles(id);
 ALTER TABLE evaluation_runs ADD COLUMN profile_name TEXT;
@@ -156,10 +178,12 @@ This allows showing "Evaluated with profile: John Doe" in results.
 ### Phase 2: Frontend API Layer
 
 #### Task 2.1: Add Profile Types
+
 **File:** `frontend/src/types/index.ts`
 **Priority:** Critical
 
 Add TypeScript interfaces:
+
 ```typescript
 export interface UserProfileSummary {
   id: string;
@@ -176,37 +200,53 @@ export interface IdeaProfileLink {
 ```
 
 #### Task 2.2: Add Profile API Functions
+
 **File:** `frontend/src/api/client.ts`
 **Priority:** Critical
 
 Add functions:
+
 ```typescript
 // Get all profiles (for selector dropdown)
 export async function getProfiles(): Promise<UserProfileSummary[]> {
-  return fetchApi<UserProfileSummary[]>('/profiles');
+  return fetchApi<UserProfileSummary[]>("/profiles");
 }
 
 // Get profile linked to an idea
-export async function getIdeaProfile(slug: string): Promise<UserProfileSummary | null> {
+export async function getIdeaProfile(
+  slug: string,
+): Promise<UserProfileSummary | null> {
   return fetchApi<UserProfileSummary | null>(`/ideas/${slug}/profile`);
 }
 
 // Link profile to idea
-export async function linkProfileToIdea(profileId: string, ideaSlug: string): Promise<void> {
-  await fetch(`${API_BASE}/profiles/${profileId}/link/${ideaSlug}`, { method: 'POST' });
+export async function linkProfileToIdea(
+  profileId: string,
+  ideaSlug: string,
+): Promise<void> {
+  await fetch(`${API_BASE}/profiles/${profileId}/link/${ideaSlug}`, {
+    method: "POST",
+  });
 }
 
 // Unlink profile from idea
-export async function unlinkProfileFromIdea(profileId: string, ideaSlug: string): Promise<void> {
-  await fetch(`${API_BASE}/profiles/${profileId}/link/${ideaSlug}`, { method: 'DELETE' });
+export async function unlinkProfileFromIdea(
+  profileId: string,
+  ideaSlug: string,
+): Promise<void> {
+  await fetch(`${API_BASE}/profiles/${profileId}/link/${ideaSlug}`, {
+    method: "DELETE",
+  });
 }
 ```
 
 #### Task 2.3: Add Profile Hook
+
 **File:** `frontend/src/hooks/useProfiles.ts` (new file)
 **Priority:** Critical
 
 Create hook for profile data:
+
 ```typescript
 export function useIdeaProfile(slug: string | undefined) {
   const [profile, setProfile] = useState<UserProfileSummary | null>(null);
@@ -225,10 +265,12 @@ export function useProfiles() {
 ### Phase 3: IdeaDetail Page Enhancement
 
 #### Task 3.1: Profile Status Display
+
 **File:** `frontend/src/pages/IdeaDetail.tsx`
 **Priority:** Critical
 
 Add profile status section above action bar:
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ 👤 Profile: John Doe                    [Change]│
@@ -238,6 +280,7 @@ Add profile status section above action bar:
 ```
 
 Or if no profile:
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ ⚠️ No profile linked                    [Link] │
@@ -246,20 +289,24 @@ Or if no profile:
 ```
 
 #### Task 3.2: Profile Selector Modal/Dropdown
+
 **File:** `frontend/src/components/ProfileSelector.tsx` (new file)
 **Priority:** Critical
 
 Create reusable profile selector:
+
 - Dropdown showing all available profiles
 - Preview of profile goals/skills on hover
 - Quick link to create new profile
 - Confirmation when changing linked profile
 
 #### Task 3.3: Pre-Evaluation Check
+
 **File:** `frontend/src/pages/IdeaDetail.tsx`
 **Priority:** High
 
 Modify `handleEvaluate` to:
+
 1. Check if profile is linked
 2. If not, show modal: "No profile linked. FT1-FT5 scores will default to 5/10 with low confidence."
 3. Options: "Link Profile" | "Evaluate Anyway" | "Cancel"
@@ -267,10 +314,12 @@ Modify `handleEvaluate` to:
 ### Phase 4: Evaluation Results Enhancement
 
 #### Task 4.1: Profile Badge in Scorecard
+
 **File:** `frontend/src/components/EvaluationScorecard.tsx`
 **Priority:** Medium
 
 Add indicator showing which profile was used:
+
 ```
 ┌────────────────────────────────────────┐
 │ Evaluation Results                     │
@@ -280,14 +329,17 @@ Add indicator showing which profile was used:
 ```
 
 #### Task 4.2: FT Category Confidence Indicator
+
 **File:** `frontend/src/components/EvaluationScorecard.tsx`
 **Priority:** Medium
 
 For the "Fit" category, show confidence source:
+
 - If profile was used: "🟢 Personalized to your profile"
 - If no profile: "🟡 Generic scores (no profile linked)"
 
 #### Task 4.3: Synthesis Profile Context
+
 **File:** `frontend/src/components/SynthesisView.tsx`
 **Priority:** Low
 
@@ -296,10 +348,12 @@ Show profile context in synthesis view if available.
 ### Phase 5: Profile Page Enhancement (Nice-to-Have)
 
 #### Task 5.1: Add Ideas to Profile Page
+
 **File:** `frontend/src/pages/Profile.tsx`
 **Priority:** Low
 
 Currently shows linked ideas but no way to add new links. Add:
+
 - "Link to Idea" button
 - Idea selector modal
 - Quick unlink action
@@ -359,11 +413,13 @@ IdeaDetail.tsx
 ### New Endpoint: GET /api/ideas/:slug/profile
 
 **Request:**
+
 ```
 GET /api/ideas/my-great-idea/profile
 ```
 
 **Response (profile linked):**
+
 ```json
 {
   "success": true,
@@ -380,6 +436,7 @@ GET /api/ideas/my-great-idea/profile
 ```
 
 **Response (no profile):**
+
 ```json
 {
   "success": true,
@@ -392,6 +449,7 @@ GET /api/ideas/my-great-idea/profile
 ## UI Mockups
 
 ### Profile Status Card (Linked)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 👤 Evaluating as: John Doe                         [Change] │
@@ -404,6 +462,7 @@ GET /api/ideas/my-great-idea/profile
 ```
 
 ### Profile Status Card (Not Linked)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ ⚠️ No profile linked                                [Link]  │
@@ -416,6 +475,7 @@ GET /api/ideas/my-great-idea/profile
 ```
 
 ### Pre-Evaluation Warning Modal
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    ⚠️ No Profile Linked                      │
@@ -444,11 +504,13 @@ GET /api/ideas/my-great-idea/profile
 ## Testing Checklist
 
 ### Backend Tests
+
 - [ ] GET /api/ideas/:slug/profile returns profile when linked
 - [ ] GET /api/ideas/:slug/profile returns null when not linked
 - [ ] GET /api/ideas/:slug/profile returns 404 for non-existent idea
 
 ### Frontend Tests
+
 - [ ] Profile status displays correctly when linked
 - [ ] Profile status shows warning when not linked
 - [ ] Profile selector shows all available profiles
@@ -461,6 +523,7 @@ GET /api/ideas/my-great-idea/profile
 - [ ] Scorecard shows warning when no profile was used
 
 ### Integration Tests
+
 - [ ] Full flow: Create profile → Link to idea → Evaluate → See personalized FT scores
 - [ ] Full flow: Evaluate without profile → See default FT scores with warning
 
@@ -469,13 +532,16 @@ GET /api/ideas/my-great-idea/profile
 ## Risk Considerations
 
 ### Breaking Changes
+
 - None expected; all changes are additive
 
 ### Performance
+
 - Additional API call per idea page load (profile fetch)
 - Consider caching profile data in React Query
 
 ### Migration
+
 - Existing evaluations run without profile will show "No profile used"
 - No data migration required
 
@@ -493,13 +559,13 @@ GET /api/ideas/my-great-idea/profile
 
 ## Appendix: Related Files
 
-| File | Purpose |
-|------|---------|
-| `server/api.ts` | Backend API endpoints |
-| `scripts/profile.ts` | CLI profile management |
-| `scripts/evaluate.ts` | Evaluation orchestration |
-| `frontend/src/api/client.ts` | Frontend API client |
-| `frontend/src/pages/IdeaDetail.tsx` | Idea detail page |
-| `frontend/src/pages/Profile.tsx` | Profile management page |
-| `frontend/src/components/EvaluationScorecard.tsx` | Evaluation results |
-| `taxonomy/evaluation-criteria.md` | FT1-FT5 definitions |
+| File                                              | Purpose                  |
+| ------------------------------------------------- | ------------------------ |
+| `server/api.ts`                                   | Backend API endpoints    |
+| `scripts/profile.ts`                              | CLI profile management   |
+| `scripts/evaluate.ts`                             | Evaluation orchestration |
+| `frontend/src/api/client.ts`                      | Frontend API client      |
+| `frontend/src/pages/IdeaDetail.tsx`               | Idea detail page         |
+| `frontend/src/pages/Profile.tsx`                  | Profile management page  |
+| `frontend/src/components/EvaluationScorecard.tsx` | Evaluation results       |
+| `taxonomy/evaluation-criteria.md`                 | FT1-FT5 definitions      |

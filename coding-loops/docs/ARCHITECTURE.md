@@ -66,38 +66,43 @@
 ## Component Responsibilities
 
 ### Human Layer
+
 - **CLI:** Direct human interaction via terminal
 - **Telegram:** Push notifications when away from desk
 
 ### Orchestration Layer
-| Component | Responsibility |
-|-----------|----------------|
-| Human Agent | Collect decisions, generate summaries, route notifications |
-| PM Agent | Resolve conflicts, manage priorities, redistribute work |
-| Monitor Agent | Health checks, anomaly detection, alerting |
-| Semantic Analyzer | Detect semantic conflicts, enforce architecture rules |
-| Knowledge Base | Cross-agent context, learned facts, decisions |
+
+| Component         | Responsibility                                             |
+| ----------------- | ---------------------------------------------------------- |
+| Human Agent       | Collect decisions, generate summaries, route notifications |
+| PM Agent          | Resolve conflicts, manage priorities, redistribute work    |
+| Monitor Agent     | Health checks, anomaly detection, alerting                 |
+| Semantic Analyzer | Detect semantic conflicts, enforce architecture rules      |
+| Knowledge Base    | Cross-agent context, learned facts, decisions              |
 
 ### Execution Layer
-| Component | Responsibility |
-|-----------|----------------|
-| Loop 1 | Critical Path: UFS, Specification, Build agents |
-| Loop 2 | Infrastructure: Auth, Credits, Hosting |
-| Loop 3 | Polish: Monitoring, E2E, PWA |
-| Verification Gate | Independent validation of agent claims |
+
+| Component         | Responsibility                                  |
+| ----------------- | ----------------------------------------------- |
+| Loop 1            | Critical Path: UFS, Specification, Build agents |
+| Loop 2            | Infrastructure: Auth, Credits, Hosting          |
+| Loop 3            | Polish: Monitoring, E2E, PWA                    |
+| Verification Gate | Independent validation of agent claims          |
 
 ### Safety Layer
-| Component | Responsibility |
-|-----------|----------------|
-| Checkpoint Manager | Git-based snapshots, rollback capability |
-| Budget Manager | Usage tracking and reporting |
-| Error Classifier | Categorize errors for appropriate handling |
-| Degradation Manager | Graceful handling of component failures |
-| Orphan Cleaner | Cleanup orphaned resources |
+
+| Component           | Responsibility                             |
+| ------------------- | ------------------------------------------ |
+| Checkpoint Manager  | Git-based snapshots, rollback capability   |
+| Budget Manager      | Usage tracking and reporting               |
+| Error Classifier    | Categorize errors for appropriate handling |
+| Degradation Manager | Graceful handling of component failures    |
+| Orphan Cleaner      | Cleanup orphaned resources                 |
 
 ### Git Layer
-| Component | Responsibility |
-|-----------|----------------|
+
+| Component   | Responsibility                              |
+| ----------- | ------------------------------------------- |
 | Git Manager | Branch-per-loop, rebase, conflict detection |
 
 ---
@@ -105,6 +110,7 @@
 ## Data Flow
 
 ### Test Execution Flow
+
 ```
 1. Loop picks next pending test from database
 2. Loop publishes 'test_started' event
@@ -120,6 +126,7 @@
 ```
 
 ### Conflict Resolution Flow
+
 ```
 1. Loop A locks file X
 2. Loop B tries to lock file X, fails
@@ -134,6 +141,7 @@
 ```
 
 ### Human Decision Flow
+
 ```
 1. Agent encounters ambiguous situation
 2. Agent publishes 'decision_needed' event
@@ -150,32 +158,38 @@
 ## Key Design Decisions
 
 ### Single Machine
+
 - SQLite for all persistence (simple, reliable)
 - File locking via database (not OS-level)
 - Shared filesystem for all components
 
 ### Branch-per-Loop
+
 - Each loop works on its own Git branch
 - Main branch is protected
 - PM Agent triggers merges after milestones
 - Human reviews PRs before merge
 
 ### Strict Ownership
+
 - Files are owned by their first creator
 - Non-owners must request changes
 - PM Agent or human approves change requests
 
 ### Database-Only State
+
 - No JSON files for state (eliminated test-state.json)
 - Single source of truth in SQLite
 - CLI can dump human-readable state
 
 ### Verification Gate
+
 - Never trust agent claims blindly
 - Independent TypeScript, build, test, lint checks
 - Test not marked passed until verification passes
 
 ### Telegram + CLI
+
 - CLI for when at desk
 - Telegram notifications when away
 - Same decision interface, different notification channels
@@ -184,18 +198,18 @@
 
 ## File Locations
 
-| Category | Location |
-|----------|----------|
-| Shared infrastructure | `coding-loops/shared/` |
-| Agents | `coding-loops/agents/` |
-| Database | `coding-loops/database/` |
-| CLI | `coding-loops/cli.py`, `coding-loops/cli_commands/` |
-| Tests | `coding-loops/tests/` |
-| Loop 1 | `coding-loops/loop-1-critical-path/` |
-| Loop 2 | `coding-loops/loop-2-infrastructure/` |
-| Loop 3 | `coding-loops/loop-3-polish/` |
-| Documentation | `coding-loops/docs/` |
-| SQLite database | `coding-loops/coordination.db` |
+| Category              | Location                                            |
+| --------------------- | --------------------------------------------------- |
+| Shared infrastructure | `coding-loops/shared/`                              |
+| Agents                | `coding-loops/agents/`                              |
+| Database              | `coding-loops/database/`                            |
+| CLI                   | `coding-loops/cli.py`, `coding-loops/cli_commands/` |
+| Tests                 | `coding-loops/tests/`                               |
+| Loop 1                | `coding-loops/loop-1-critical-path/`                |
+| Loop 2                | `coding-loops/loop-2-infrastructure/`               |
+| Loop 3                | `coding-loops/loop-3-polish/`                       |
+| Documentation         | `coding-loops/docs/`                                |
+| SQLite database       | `coding-loops/coordination.db`                      |
 
 ---
 

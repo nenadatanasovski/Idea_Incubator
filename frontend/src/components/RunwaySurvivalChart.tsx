@@ -5,7 +5,7 @@
  * showing whether the allocated runway is sufficient.
  */
 
-import type { IdeaFinancialAllocation, EnhancedStrategy } from '../types';
+import type { IdeaFinancialAllocation, EnhancedStrategy } from "../types";
 
 interface Props {
   allocation: IdeaFinancialAllocation;
@@ -16,7 +16,7 @@ interface Props {
 // Estimate time to revenue based on approach and strategy
 function estimateTimeToRevenue(
   allocation: IdeaFinancialAllocation,
-  strategy?: EnhancedStrategy
+  strategy?: EnhancedStrategy,
 ): { min: number; max: number; avg: number } {
   const approach = allocation.strategicApproach;
 
@@ -30,14 +30,17 @@ function estimateTimeToRevenue(
     time: { min: 1, max: 6 },
   };
 
-  const estimate = approachEstimates[approach || 'create'] || { min: 6, max: 18 };
+  const estimate = approachEstimates[approach || "create"] || {
+    min: 6,
+    max: 18,
+  };
 
   // Adjust based on timing alignment if strategy is provided
   if (strategy?.timingAlignment) {
-    if (strategy.timingAlignment === 'favorable') {
+    if (strategy.timingAlignment === "favorable") {
       estimate.min = Math.max(1, estimate.min - 2);
       estimate.max = Math.max(3, estimate.max - 3);
-    } else if (strategy.timingAlignment === 'challenging') {
+    } else if (strategy.timingAlignment === "challenging") {
       estimate.min += 3;
       estimate.max += 6;
     }
@@ -50,30 +53,35 @@ function estimateTimeToRevenue(
   };
 }
 
-export default function RunwaySurvivalChart({ allocation, strategy, className = '' }: Props) {
+export default function RunwaySurvivalChart({
+  allocation,
+  strategy,
+  className = "",
+}: Props) {
   const runway = allocation.allocatedRunwayMonths || 0;
   const timeToRevenue = estimateTimeToRevenue(allocation, strategy);
 
   // Calculate survival probability
-  const survivalScore = runway >= timeToRevenue.max
-    ? 100
-    : runway >= timeToRevenue.avg
-    ? 75
-    : runway >= timeToRevenue.min
-    ? 50
-    : Math.max(0, (runway / timeToRevenue.min) * 50);
+  const survivalScore =
+    runway >= timeToRevenue.max
+      ? 100
+      : runway >= timeToRevenue.avg
+        ? 75
+        : runway >= timeToRevenue.min
+          ? 50
+          : Math.max(0, (runway / timeToRevenue.min) * 50);
 
   const getSurvivalColor = () => {
-    if (survivalScore >= 75) return 'bg-green-500';
-    if (survivalScore >= 50) return 'bg-yellow-500';
-    return 'bg-red-500';
+    if (survivalScore >= 75) return "bg-green-500";
+    if (survivalScore >= 50) return "bg-yellow-500";
+    return "bg-red-500";
   };
 
   const getSurvivalText = () => {
-    if (survivalScore >= 75) return 'Strong runway coverage';
-    if (survivalScore >= 50) return 'Adequate runway coverage';
-    if (survivalScore >= 25) return 'Runway at risk';
-    return 'Insufficient runway';
+    if (survivalScore >= 75) return "Strong runway coverage";
+    if (survivalScore >= 50) return "Adequate runway coverage";
+    if (survivalScore >= 25) return "Runway at risk";
+    return "Insufficient runway";
   };
 
   // Calculate positions for the visualization
@@ -83,10 +91,20 @@ export default function RunwaySurvivalChart({ allocation, strategy, className = 
   const revenueMaxPercent = (timeToRevenue.max / maxMonths) * 100;
 
   return (
-    <div className={`bg-white border border-gray-200 rounded-lg p-4 ${className}`}>
+    <div
+      className={`bg-white border border-gray-200 rounded-lg p-4 ${className}`}
+    >
       <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-        <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+        <svg
+          className="w-4 h-4 text-blue-600"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+            clipRule="evenodd"
+          />
         </svg>
         Runway vs. Time to Revenue
       </h4>
@@ -95,7 +113,9 @@ export default function RunwaySurvivalChart({ allocation, strategy, className = 
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1">
           <span className="text-sm text-gray-600">Survival Probability</span>
-          <span className="text-sm font-medium">{Math.round(survivalScore)}%</span>
+          <span className="text-sm font-medium">
+            {Math.round(survivalScore)}%
+          </span>
         </div>
         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
           <div
@@ -129,7 +149,7 @@ export default function RunwaySurvivalChart({ allocation, strategy, className = 
         {/* Runway marker */}
         <div
           className="absolute top-0 flex flex-col items-center"
-          style={{ left: `${runwayPercent}%`, transform: 'translateX(-50%)' }}
+          style={{ left: `${runwayPercent}%`, transform: "translateX(-50%)" }}
         >
           <span className="text-xs font-medium text-gray-700 bg-white px-1 rounded">
             {runway}mo
@@ -140,7 +160,10 @@ export default function RunwaySurvivalChart({ allocation, strategy, className = 
         {/* Revenue min marker */}
         <div
           className="absolute bottom-0 flex flex-col items-center"
-          style={{ left: `${revenueMinPercent}%`, transform: 'translateX(-50%)' }}
+          style={{
+            left: `${revenueMinPercent}%`,
+            transform: "translateX(-50%)",
+          }}
         >
           <div className="w-0.5 h-4 bg-blue-400 mb-1" />
           <span className="text-xs text-blue-600 bg-white px-1 rounded">
@@ -151,7 +174,10 @@ export default function RunwaySurvivalChart({ allocation, strategy, className = 
         {/* Revenue max marker */}
         <div
           className="absolute bottom-0 flex flex-col items-center"
-          style={{ left: `${revenueMaxPercent}%`, transform: 'translateX(-50%)' }}
+          style={{
+            left: `${revenueMaxPercent}%`,
+            transform: "translateX(-50%)",
+          }}
         >
           <div className="w-0.5 h-4 bg-blue-400 mb-1" />
           <span className="text-xs text-blue-600 bg-white px-1 rounded">
@@ -176,8 +202,9 @@ export default function RunwaySurvivalChart({ allocation, strategy, className = 
       {survivalScore < 50 && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-700">
-            <strong>Warning:</strong> Your runway of {runway} months may not be sufficient.
-            Consider extending your runway or choosing a faster approach.
+            <strong>Warning:</strong> Your runway of {runway} months may not be
+            sufficient. Consider extending your runway or choosing a faster
+            approach.
           </p>
         </div>
       )}

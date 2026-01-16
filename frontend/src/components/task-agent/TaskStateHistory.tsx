@@ -5,7 +5,7 @@
  * Part of: Task System V2 Implementation Plan (IMPL-7.9)
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react";
 import {
   History,
   Circle,
@@ -16,92 +16,132 @@ import {
   Clock,
   ArrowRight,
   User,
-  Bot
-} from 'lucide-react'
+  Bot,
+} from "lucide-react";
 
-type TaskStatus = 'draft' | 'pending' | 'in_progress' | 'completed' | 'failed' | 'blocked'
+type TaskStatus =
+  | "draft"
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "blocked";
 
 interface TaskStateHistoryEntry {
-  id: string
-  taskId: string
-  fromStatus?: TaskStatus
-  toStatus: TaskStatus
-  reason?: string
-  triggeredBy: string
-  agentId?: string
-  metadata?: Record<string, unknown>
-  createdAt: string
+  id: string;
+  taskId: string;
+  fromStatus?: TaskStatus;
+  toStatus: TaskStatus;
+  reason?: string;
+  triggeredBy: string;
+  agentId?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
 }
 
 interface TimeInStatus {
-  [status: string]: number
+  [status: string]: number;
 }
 
 interface TaskStateHistoryProps {
-  taskId: string
+  taskId: string;
 }
 
-const statusConfig: Record<TaskStatus, { icon: typeof Circle; color: string; bgColor: string; label: string }> = {
-  draft: { icon: Circle, color: 'text-gray-600', bgColor: 'bg-gray-100', label: 'Draft' },
-  pending: { icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100', label: 'Pending' },
-  in_progress: { icon: Play, color: 'text-amber-600', bgColor: 'bg-amber-100', label: 'In Progress' },
-  completed: { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100', label: 'Completed' },
-  failed: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100', label: 'Failed' },
-  blocked: { icon: PauseCircle, color: 'text-purple-600', bgColor: 'bg-purple-100', label: 'Blocked' }
-}
+const statusConfig: Record<
+  TaskStatus,
+  { icon: typeof Circle; color: string; bgColor: string; label: string }
+> = {
+  draft: {
+    icon: Circle,
+    color: "text-gray-600",
+    bgColor: "bg-gray-100",
+    label: "Draft",
+  },
+  pending: {
+    icon: Clock,
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
+    label: "Pending",
+  },
+  in_progress: {
+    icon: Play,
+    color: "text-amber-600",
+    bgColor: "bg-amber-100",
+    label: "In Progress",
+  },
+  completed: {
+    icon: CheckCircle,
+    color: "text-green-600",
+    bgColor: "bg-green-100",
+    label: "Completed",
+  },
+  failed: {
+    icon: XCircle,
+    color: "text-red-600",
+    bgColor: "bg-red-100",
+    label: "Failed",
+  },
+  blocked: {
+    icon: PauseCircle,
+    color: "text-purple-600",
+    bgColor: "bg-purple-100",
+    label: "Blocked",
+  },
+};
 
 function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
-  if (ms < 3600000) return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`
-  return `${Math.floor(ms / 3600000)}h ${Math.floor((ms % 3600000) / 60000)}m`
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 3600000)
+    return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
+  return `${Math.floor(ms / 3600000)}h ${Math.floor((ms % 3600000) / 60000)}m`;
 }
 
 export default function TaskStateHistory({ taskId }: TaskStateHistoryProps) {
-  const [history, setHistory] = useState<TaskStateHistoryEntry[]>([])
-  const [timeInStatus, setTimeInStatus] = useState<TimeInStatus>({})
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [history, setHistory] = useState<TaskStateHistoryEntry[]>([]);
+  const [timeInStatus, setTimeInStatus] = useState<TimeInStatus>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchHistory()
-  }, [taskId])
+    fetchHistory();
+  }, [taskId]);
 
   const fetchHistory = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const [historyRes, analyticsRes] = await Promise.all([
         fetch(`/api/task-agent/tasks/${taskId}/history`),
-        fetch(`/api/task-agent/tasks/${taskId}/history/analytics`)
-      ])
+        fetch(`/api/task-agent/tasks/${taskId}/history/analytics`),
+      ]);
 
       if (historyRes.ok) {
-        setHistory(await historyRes.json())
+        setHistory(await historyRes.json());
       }
       if (analyticsRes.ok) {
-        const analytics = await analyticsRes.json()
-        setTimeInStatus(analytics.timeInStatus || {})
+        const analytics = await analyticsRes.json();
+        setTimeInStatus(analytics.timeInStatus || {});
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="animate-pulse space-y-3">
-        {[1, 2, 3].map(i => (
+        {[1, 2, 3].map((i) => (
           <div key={i} className="h-12 bg-gray-100 rounded-lg" />
         ))}
       </div>
-    )
+    );
   }
 
   // Calculate time spent stats
-  const totalTime = Object.values(timeInStatus).reduce((a, b) => a + b, 0)
-  const maxTime = Math.max(...Object.values(timeInStatus), 1)
+  const totalTime = Object.values(timeInStatus).reduce((a, b) => a + b, 0);
+  const maxTime = Math.max(...Object.values(timeInStatus), 1);
 
   return (
     <div className="space-y-6">
@@ -109,23 +149,34 @@ export default function TaskStateHistory({ taskId }: TaskStateHistoryProps) {
       <div className="flex items-center gap-2">
         <History className="h-5 w-5 text-gray-400" />
         <h3 className="font-medium">State History</h3>
-        <span className="text-sm text-gray-500">({history.length} transitions)</span>
+        <span className="text-sm text-gray-500">
+          ({history.length} transitions)
+        </span>
       </div>
 
       {/* Time in Status Breakdown */}
       {totalTime > 0 && (
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-gray-700">Time in Each Status</h4>
+          <h4 className="text-sm font-medium text-gray-700">
+            Time in Each Status
+          </h4>
           <div className="space-y-2">
-            {(Object.entries(statusConfig) as [TaskStatus, typeof statusConfig[TaskStatus]][]).map(([status, config]) => {
-              const time = timeInStatus[status] || 0
-              const percentage = (time / maxTime) * 100
+            {(
+              Object.entries(statusConfig) as [
+                TaskStatus,
+                (typeof statusConfig)[TaskStatus],
+              ][]
+            ).map(([status, config]) => {
+              const time = timeInStatus[status] || 0;
+              const percentage = (time / maxTime) * 100;
 
               return (
                 <div key={status} className="flex items-center gap-3">
                   <div className="w-24 flex items-center gap-1.5">
                     <config.icon className={`h-4 w-4 ${config.color}`} />
-                    <span className="text-sm text-gray-600">{config.label}</span>
+                    <span className="text-sm text-gray-600">
+                      {config.label}
+                    </span>
                   </div>
                   <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
@@ -137,7 +188,7 @@ export default function TaskStateHistory({ taskId }: TaskStateHistoryProps) {
                     {formatDuration(time)}
                   </span>
                 </div>
-              )
+              );
             })}
           </div>
         </div>
@@ -150,42 +201,51 @@ export default function TaskStateHistory({ taskId }: TaskStateHistoryProps) {
 
         <div className="space-y-4">
           {history.map((entry, index) => {
-            const toConfig = statusConfig[entry.toStatus]
-            const ToIcon = toConfig.icon
-            const isLatest = index === 0
-            const isSystemTriggered = entry.triggeredBy === 'system' || entry.agentId
+            const toConfig = statusConfig[entry.toStatus];
+            const ToIcon = toConfig.icon;
+            const isLatest = index === 0;
+            const isSystemTriggered =
+              entry.triggeredBy === "system" || entry.agentId;
 
             return (
               <div key={entry.id} className="relative pl-10">
                 {/* Timeline dot */}
-                <div className={`
+                <div
+                  className={`
                   absolute left-2 w-5 h-5 rounded-full border-2 flex items-center justify-center
                   ${toConfig.bgColor} border-white shadow-sm
-                `}>
+                `}
+                >
                   <ToIcon className={`h-3 w-3 ${toConfig.color}`} />
                 </div>
 
-                <div className={`
+                <div
+                  className={`
                   p-3 rounded-lg border transition-all
-                  ${isLatest ? 'border-blue-200 bg-blue-50' : 'border-gray-200'}
-                `}>
+                  ${isLatest ? "border-blue-200 bg-blue-50" : "border-gray-200"}
+                `}
+                >
                   <div className="flex items-center gap-2">
                     {entry.fromStatus && (
                       <>
-                        <span className={`
+                        <span
+                          className={`
                           px-2 py-0.5 rounded text-xs
                           ${statusConfig[entry.fromStatus].bgColor}
                           ${statusConfig[entry.fromStatus].color}
-                        `}>
+                        `}
+                        >
                           {statusConfig[entry.fromStatus].label}
                         </span>
                         <ArrowRight className="h-3 w-3 text-gray-400" />
                       </>
                     )}
-                    <span className={`
+                    <span
+                      className={`
                       px-2 py-0.5 rounded text-xs font-medium
                       ${toConfig.bgColor} ${toConfig.color}
-                    `}>
+                    `}
+                    >
                       {toConfig.label}
                     </span>
                     {isLatest && (
@@ -207,12 +267,14 @@ export default function TaskStateHistory({ taskId }: TaskStateHistoryProps) {
                       ) : (
                         <User className="h-3 w-3" />
                       )}
-                      {entry.agentId ? `Agent ${entry.agentId.slice(0, 6)}` : entry.triggeredBy}
+                      {entry.agentId
+                        ? `Agent ${entry.agentId.slice(0, 6)}`
+                        : entry.triggeredBy}
                     </span>
                   </div>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
 
@@ -230,5 +292,5 @@ export default function TaskStateHistory({ taskId }: TaskStateHistoryProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

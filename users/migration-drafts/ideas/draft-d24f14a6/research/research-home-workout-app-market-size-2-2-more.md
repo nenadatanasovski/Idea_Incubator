@@ -13,6 +13,7 @@ queries:
   - fitness app user retention statistics
 identifier: research_home_workout_app_mar
 ---
+
 ## Key Findings
 
 1. **Market valued at $4-10 billion in 2024** - Estimates vary by source, but the global fitness app market is valued between $4.9B and $10.56B in 2024, with the U.S. market alone at ~$4.75B
@@ -51,7 +52,6 @@ identifier: research_home_workout_app_mar
 - **Hybrid models** - Combining digital with in-person coaching or community elements
 - **Wearables integration** - Deep integration with smartwatches and health devices is becoming expected
 - **Mental wellness convergence** - Apps combining physical fitness with mental health/mindfulness are gaining traction
-
 
 ---
 
@@ -95,7 +95,6 @@ identifier: research_home_workout_app_mar
 3. **Non-VR immersive experiences**: AR fitness or audio-based adventures that don't require expensive hardware
 4. **Habit stacking**: Integration with broader lifestyle apps (like Habitica does) rather than fitness-only
 5. **AI personalization**: Using AI to dynamically adjust difficulty, create personalized storylines, or provide adaptive coaching—an area most apps haven't fully explored
-
 
 ---
 

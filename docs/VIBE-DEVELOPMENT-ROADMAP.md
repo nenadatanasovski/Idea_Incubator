@@ -17,35 +17,35 @@ This document provides a comprehensive task list for the Vibe platform developme
 
 ### Completed
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Ideation Agent - Phase 1 (Foundation) | Complete | Database, types, mappers, defaults |
-| Ideation Agent - Phase 2 (Core Backend) | Complete | Session management, memory, signal extraction |
-| Ideation Agent - Phase 3 (API Layer) | Complete | All endpoints implemented |
-| Ideation Agent - Phase 4 (Frontend) | Complete | All components and state management |
-| Documentation | Complete | Vision, architecture, SIA design, target customer |
-| Basic Idea Incubator CLI | Complete | Capture, evaluate, profile commands |
+| Component                               | Status   | Notes                                             |
+| --------------------------------------- | -------- | ------------------------------------------------- |
+| Ideation Agent - Phase 1 (Foundation)   | Complete | Database, types, mappers, defaults                |
+| Ideation Agent - Phase 2 (Core Backend) | Complete | Session management, memory, signal extraction     |
+| Ideation Agent - Phase 3 (API Layer)    | Complete | All endpoints implemented                         |
+| Ideation Agent - Phase 4 (Frontend)     | Complete | All components and state management               |
+| Documentation                           | Complete | Vision, architecture, SIA design, target customer |
+| Basic Idea Incubator CLI                | Complete | Capture, evaluate, profile commands               |
 
 ### In Progress
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Ideation Agent - Phase 5 (Integration) | Partial | E2E tests pending |
-| Unified File System | In Progress | Specs written, Ralph loop running |
-| Unified Artifact Store | In Progress | Migrating from DB to filesystem |
+| Component                              | Status      | Notes                             |
+| -------------------------------------- | ----------- | --------------------------------- |
+| Ideation Agent - Phase 5 (Integration) | Partial     | E2E tests pending                 |
+| Unified File System                    | In Progress | Specs written, Ralph loop running |
+| Unified Artifact Store                 | In Progress | Migrating from DB to filesystem   |
 
 ### Not Started
 
-| Component | Priority | Complexity |
-|-----------|----------|------------|
-| Specification Agent | Critical | High |
-| Build Agent | Critical | Very High |
-| Self-Improvement Agent (SIA) | High | Very High |
-| Orchestrator Agent | High | High |
-| Network/Collaboration | Medium | High |
-| Hosting & Deployment | High | High |
-| Testing Agent System | Medium | High |
-| Credit System | Medium | Medium |
+| Component                    | Priority | Complexity |
+| ---------------------------- | -------- | ---------- |
+| Specification Agent          | Critical | High       |
+| Build Agent                  | Critical | Very High  |
+| Self-Improvement Agent (SIA) | High     | Very High  |
+| Orchestrator Agent           | High     | High       |
+| Network/Collaboration        | Medium   | High       |
+| Hosting & Deployment         | High     | High       |
+| Testing Agent System         | Medium   | High       |
+| Credit System                | Medium   | Medium     |
 
 ---
 
@@ -74,15 +74,16 @@ This document provides a comprehensive task list for the Vibe platform developme
 **Estimated Effort:** 2-3 weeks
 **Ralph Loop:** `python3 tests/e2e/unified-fs-ralph-loop.py`
 
-| Spec | Tests | Description | Status |
-|------|-------|-------------|--------|
+| Spec                           | Tests            | Description                         | Status      |
+| ------------------------------ | ---------------- | ----------------------------------- | ----------- |
 | 01-folder-structure-idea-types | FS-001 to FS-015 | User folders, templates, idea types | In Progress |
-| 02-unified-artifact-store | AS-001 to AS-015 | Filesystem-based artifact storage | Pending |
-| 03-session-context-management | SC-001 to SC-015 | Session linking, context loading | Pending |
-| 04-phase-transitions-handoffs | PH-001 to PH-015 | Classification, phase management | Pending |
-| 05-ui-components | UI-001 to UI-015 | Table, preview, idea selector | Pending |
+| 02-unified-artifact-store      | AS-001 to AS-015 | Filesystem-based artifact storage   | Pending     |
+| 03-session-context-management  | SC-001 to SC-015 | Session linking, context loading    | Pending     |
+| 04-phase-transitions-handoffs  | PH-001 to PH-015 | Classification, phase management    | Pending     |
+| 05-ui-components               | UI-001 to UI-015 | Table, preview, idea selector       | Pending     |
 
 **Key Files to Create:**
+
 - [ ] `utils/folder-structure.ts` - User/idea folder utilities
 - [ ] `agents/ideation/unified-artifact-store.ts` - Filesystem-based artifact storage
 - [ ] `agents/ideation/idea-context-builder.ts` - Layered context builder
@@ -229,18 +230,18 @@ The SIA improves coding agent performance when tasks are repeatedly failed.
 
 Implement all 10 techniques from SIA architecture:
 
-| # | Technique | Status |
-|---|-----------|--------|
-| 1 | Decomposition | [ ] |
-| 2 | Tool Change | [ ] |
-| 3 | Prompt Restructuring | [ ] |
-| 4 | Context Pruning | [ ] |
-| 5 | Example Injection | [ ] |
-| 6 | Constraint Relaxation | [ ] |
-| 7 | Dependency Reordering | [ ] |
-| 8 | Abstraction Level Shift | [ ] |
-| 9 | Error Pattern Recognition | [ ] |
-| 10 | Fresh Start | [ ] |
+| #   | Technique                 | Status |
+| --- | ------------------------- | ------ |
+| 1   | Decomposition             | [ ]    |
+| 2   | Tool Change               | [ ]    |
+| 3   | Prompt Restructuring      | [ ]    |
+| 4   | Context Pruning           | [ ]    |
+| 5   | Example Injection         | [ ]    |
+| 6   | Constraint Relaxation     | [ ]    |
+| 7   | Dependency Reordering     | [ ]    |
+| 8   | Abstraction Level Shift   | [ ]    |
+| 9   | Error Pattern Recognition | [ ]    |
+| 10  | Fresh Start               | [ ]    |
 
 ### 4.3 SIA Memory
 
@@ -497,13 +498,13 @@ Enable revenue through credit-based usage.
 
 Define credit costs for:
 
-| Action | Credits | Notes |
-|--------|---------|-------|
-| Ideation message | 1 | Basic cost |
-| Web search | 2 | Higher cost |
-| Build iteration | 5-10 | Based on complexity |
-| App hosting (daily) | 1 | Ongoing cost |
-| SIA intervention | 3 | Meta-agent cost |
+| Action              | Credits | Notes               |
+| ------------------- | ------- | ------------------- |
+| Ideation message    | 1       | Basic cost          |
+| Web search          | 2       | Higher cost         |
+| Build iteration     | 5-10    | Based on complexity |
+| App hosting (daily) | 1       | Ongoing cost        |
+| SIA intervention    | 3       | Meta-agent cost     |
 
 ### 9.3 Free Tier
 
@@ -621,47 +622,47 @@ Based on `docs/feature-wish-list/features-overview.md`:
 
 ### User Engagement
 
-| Metric | Target |
-|--------|--------|
-| DAU/MAU | >30% |
-| Ideation completion rate | >50% |
-| Time in ideation | 15-30 min average |
-| Return after 7 days | >30% |
+| Metric                   | Target            |
+| ------------------------ | ----------------- |
+| DAU/MAU                  | >30%              |
+| Ideation completion rate | >50%              |
+| Time in ideation         | 15-30 min average |
+| Return after 7 days      | >30%              |
 
 ### Platform Health
 
-| Metric | Target |
-|--------|--------|
-| API latency P95 | <500ms |
-| Error rate | <1% |
-| Agent success rate | >90% |
-| SIA intervention success | >70% |
+| Metric                   | Target |
+| ------------------------ | ------ |
+| API latency P95          | <500ms |
+| Error rate               | <1%    |
+| Agent success rate       | >90%   |
+| SIA intervention success | >70%   |
 
 ### Business
 
-| Metric | Target |
-|--------|--------|
-| Signups | Growth trend |
-| Free to paid conversion | >5% |
-| Monthly revenue | Growth trend |
-| Churn rate | <5% monthly |
+| Metric                  | Target       |
+| ----------------------- | ------------ |
+| Signups                 | Growth trend |
+| Free to paid conversion | >5%          |
+| Monthly revenue         | Growth trend |
+| Churn rate              | <5% monthly  |
 
 ---
 
 ## Timeline Overview
 
-| Phase | Description | Estimated Duration | Priority |
-|-------|-------------|-------------------|----------|
-| 1.1 | E2E Testing & Integration | 1-2 weeks | Critical |
-| 1.2 | Unified File System | 2-3 weeks | High |
-| 2 | Specification Agent | 3-4 weeks | Critical |
-| 3 | Build Agent & Ralph Loop | 6-8 weeks | Critical |
-| 4 | Self-Improvement Agent | 4-6 weeks | High |
-| 5 | Orchestrator Agent | 3-4 weeks | High |
-| 6 | Hosting & Deployment | 4-6 weeks | High |
-| 7 | Collaboration & Network | 4-6 weeks | Medium |
-| 8 | Testing Agent System | 4-6 weeks | Medium |
-| 9 | Credit System | 2-3 weeks | Medium |
+| Phase | Description               | Estimated Duration | Priority |
+| ----- | ------------------------- | ------------------ | -------- |
+| 1.1   | E2E Testing & Integration | 1-2 weeks          | Critical |
+| 1.2   | Unified File System       | 2-3 weeks          | High     |
+| 2     | Specification Agent       | 3-4 weeks          | Critical |
+| 3     | Build Agent & Ralph Loop  | 6-8 weeks          | Critical |
+| 4     | Self-Improvement Agent    | 4-6 weeks          | High     |
+| 5     | Orchestrator Agent        | 3-4 weeks          | High     |
+| 6     | Hosting & Deployment      | 4-6 weeks          | High     |
+| 7     | Collaboration & Network   | 4-6 weeks          | Medium   |
+| 8     | Testing Agent System      | 4-6 weeks          | Medium   |
+| 9     | Credit System             | 2-3 weeks          | Medium   |
 
 **Note:** Times are rough estimates for focused development. With 15-20 hours/week, multiply by ~3-4x for calendar time.
 
@@ -690,6 +691,6 @@ The MVP is complete when:
 
 ---
 
-*This document is a living roadmap. Update weekly during sprint planning.*
+_This document is a living roadmap. Update weekly during sprint planning._
 
-*Last Updated: January 7, 2026*
+_Last Updated: January 7, 2026_

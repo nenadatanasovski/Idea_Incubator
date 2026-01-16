@@ -14,7 +14,7 @@
  * Part of: PTE-086 to PTE-090
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   Inbox,
   AlertTriangle,
@@ -28,13 +28,13 @@ import {
   ExternalLink,
   Loader2,
   RefreshCw,
-} from 'lucide-react';
+} from "lucide-react";
 import type {
   EvaluationQueueTask,
   GroupingSuggestion,
   EvaluationQueueStats,
   taskStatusConfig,
-} from '../../types/task-agent';
+} from "../../types/task-agent";
 
 interface EvaluationQueueLaneProps {
   /** Callback when task is moved to a list */
@@ -65,16 +65,18 @@ export default function EvaluationQueueLane({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
-  const [selectedTask, setSelectedTask] = useState<EvaluationQueueTask | null>(null);
+  const [selectedTask, setSelectedTask] = useState<EvaluationQueueTask | null>(
+    null,
+  );
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
 
   // Fetch queue data
   const fetchQueueData = useCallback(async () => {
     try {
       const [tasksRes, statsRes, suggestionsRes] = await Promise.all([
-        fetch('/api/task-agent/evaluation-queue'),
-        fetch('/api/task-agent/evaluation-queue/stats'),
-        fetch('/api/task-agent/grouping-suggestions?status=pending'),
+        fetch("/api/task-agent/evaluation-queue"),
+        fetch("/api/task-agent/evaluation-queue/stats"),
+        fetch("/api/task-agent/grouping-suggestions?status=pending"),
       ]);
 
       if (tasksRes.ok) {
@@ -94,7 +96,7 @@ export default function EvaluationQueueLane({
 
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch queue');
+      setError(err instanceof Error ? err.message : "Failed to fetch queue");
     } finally {
       setLoading(false);
     }
@@ -114,12 +116,15 @@ export default function EvaluationQueueLane({
   const handleAcceptSuggestion = async (suggestion: GroupingSuggestion) => {
     setActionInProgress(suggestion.id);
     try {
-      const response = await fetch(`/api/task-agent/grouping-suggestions/${suggestion.id}/accept`, {
-        method: 'POST',
-      });
+      const response = await fetch(
+        `/api/task-agent/grouping-suggestions/${suggestion.id}/accept`,
+        {
+          method: "POST",
+        },
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to accept suggestion');
+        throw new Error("Failed to accept suggestion");
       }
 
       // Remove from local state
@@ -130,7 +135,9 @@ export default function EvaluationQueueLane({
 
       onAcceptSuggestion?.(suggestion);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to accept suggestion');
+      setError(
+        err instanceof Error ? err.message : "Failed to accept suggestion",
+      );
     } finally {
       setActionInProgress(null);
     }
@@ -140,12 +147,15 @@ export default function EvaluationQueueLane({
   const handleRejectSuggestion = async (suggestionId: string) => {
     setActionInProgress(suggestionId);
     try {
-      const response = await fetch(`/api/task-agent/grouping-suggestions/${suggestionId}/reject`, {
-        method: 'POST',
-      });
+      const response = await fetch(
+        `/api/task-agent/grouping-suggestions/${suggestionId}/reject`,
+        {
+          method: "POST",
+        },
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to reject suggestion');
+        throw new Error("Failed to reject suggestion");
       }
 
       // Remove from local state
@@ -153,7 +163,9 @@ export default function EvaluationQueueLane({
 
       onRejectSuggestion?.(suggestionId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reject suggestion');
+      setError(
+        err instanceof Error ? err.message : "Failed to reject suggestion",
+      );
     } finally {
       setActionInProgress(null);
     }
@@ -164,13 +176,13 @@ export default function EvaluationQueueLane({
     setActionInProgress(taskId);
     try {
       const response = await fetch(`/api/task-agent/tasks/${taskId}/move`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskListId }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to move task');
+        throw new Error("Failed to move task");
       }
 
       // Remove from local state
@@ -178,7 +190,7 @@ export default function EvaluationQueueLane({
 
       onMoveToList?.(taskId, taskListId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to move task');
+      setError(err instanceof Error ? err.message : "Failed to move task");
     } finally {
       setActionInProgress(null);
     }
@@ -198,7 +210,8 @@ export default function EvaluationQueueLane({
           <div className="text-left">
             <h3 className="font-semibold text-gray-900">Evaluation Queue</h3>
             <p className="text-xs text-gray-500">
-              {tasks.length} task{tasks.length !== 1 ? 's' : ''} awaiting analysis
+              {tasks.length} task{tasks.length !== 1 ? "s" : ""} awaiting
+              analysis
             </p>
           </div>
         </div>
@@ -212,7 +225,8 @@ export default function EvaluationQueueLane({
           {suggestions.length > 0 && (
             <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
               <FolderPlus className="h-3 w-3" />
-              {suggestions.length} suggestion{suggestions.length !== 1 ? 's' : ''}
+              {suggestions.length} suggestion
+              {suggestions.length !== 1 ? "s" : ""}
             </span>
           )}
           <span className="px-2.5 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
@@ -241,7 +255,9 @@ export default function EvaluationQueueLane({
                 onClick={() => fetchQueueData()}
                 className="ml-auto flex items-center gap-1 text-indigo-600 hover:text-indigo-700"
               >
-                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-3 w-3 ${loading ? "animate-spin" : ""}`}
+                />
                 Refresh
               </button>
             </div>
@@ -290,7 +306,9 @@ export default function EvaluationQueueLane({
                   taskLists={taskLists}
                   onMoveToList={(listId) => handleMoveToList(task.id, listId)}
                   isSelected={selectedTask?.id === task.id}
-                  onClick={() => setSelectedTask(selectedTask?.id === task.id ? null : task)}
+                  onClick={() =>
+                    setSelectedTask(selectedTask?.id === task.id ? null : task)
+                  }
                   isLoading={actionInProgress === task.id}
                 />
               ))}
@@ -300,7 +318,9 @@ export default function EvaluationQueueLane({
               <div className="text-center py-8 text-gray-500">
                 <Inbox className="h-10 w-10 mx-auto mb-2 text-gray-300" />
                 <p className="text-sm">No tasks in queue</p>
-                <p className="text-xs text-gray-400">Use Quick Add to create new tasks</p>
+                <p className="text-xs text-gray-400">
+                  Use Quick Add to create new tasks
+                </p>
               </div>
             )
           )}
@@ -333,8 +353,10 @@ function QueueTaskCard({
   return (
     <div
       className={`bg-white rounded-lg border transition-all ${
-        isSelected ? 'border-indigo-300 shadow-md ring-2 ring-indigo-100' : 'border-gray-200 hover:shadow'
-      } ${task.isStale ? 'border-l-4 border-l-amber-400' : ''}`}
+        isSelected
+          ? "border-indigo-300 shadow-md ring-2 ring-indigo-100"
+          : "border-gray-200 hover:shadow"
+      } ${task.isStale ? "border-l-4 border-l-amber-400" : ""}`}
     >
       <button
         onClick={onClick}
@@ -361,7 +383,9 @@ function QueueTaskCard({
             </div>
             <p className="font-medium text-gray-900 truncate">{task.title}</p>
             {task.description && (
-              <p className="text-sm text-gray-500 truncate mt-0.5">{task.description}</p>
+              <p className="text-sm text-gray-500 truncate mt-0.5">
+                {task.description}
+              </p>
             )}
           </div>
           {task.relatedTaskCount > 0 && (
@@ -458,7 +482,9 @@ function GroupingSuggestionCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <FolderPlus className="h-4 w-4 text-green-600" />
-            <span className="font-medium text-gray-900">{suggestion.suggestedListName}</span>
+            <span className="font-medium text-gray-900">
+              {suggestion.suggestedListName}
+            </span>
             <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">
               {suggestion.taskCount} tasks
             </span>
@@ -473,15 +499,24 @@ function GroupingSuggestionCard({
             onClick={() => setExpanded(!expanded)}
             className="mt-2 text-xs text-green-600 hover:text-green-700 flex items-center gap-1"
           >
-            {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            {expanded ? 'Hide' : 'Show'} tasks
+            {expanded ? (
+              <ChevronUp className="h-3 w-3" />
+            ) : (
+              <ChevronDown className="h-3 w-3" />
+            )}
+            {expanded ? "Hide" : "Show"} tasks
           </button>
 
           {expanded && (
             <div className="mt-2 space-y-1">
               {suggestion.tasks.map((task) => (
-                <div key={task.id} className="flex items-center gap-2 text-xs text-gray-600">
-                  <span className="font-mono bg-white px-1 rounded">{task.displayId}</span>
+                <div
+                  key={task.id}
+                  className="flex items-center gap-2 text-xs text-gray-600"
+                >
+                  <span className="font-mono bg-white px-1 rounded">
+                    {task.displayId}
+                  </span>
                 </div>
               ))}
             </div>
@@ -496,7 +531,11 @@ function GroupingSuggestionCard({
             className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
             title="Accept suggestion"
           >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4" />
+            )}
           </button>
           <button
             onClick={onReject}

@@ -7,26 +7,26 @@
 
 ## Quick Reference Table
 
-| Command | Description | Status | Usage |
-|---------|-------------|--------|-------|
-| `/start` | Initialize bot chat linking | Implemented | `/start` |
-| `/help` | Show available commands | Implemented | `/help` |
-| `/status` | Show system status | Implemented | `/status` |
-| `/link` | Link chat to user ID | Routed Only | `/link <user_id>` |
-| `/summary` | Show activity summary | Routed Only | `/summary` |
-| `/newtask` | Create task in Evaluation Queue | Implemented | `/newtask <description>` |
-| `/edit` | Edit task details | Implemented | `/edit <task_id>` |
+| Command     | Description                      | Status      | Usage                             |
+| ----------- | -------------------------------- | ----------- | --------------------------------- |
+| `/start`    | Initialize bot chat linking      | Implemented | `/start`                          |
+| `/help`     | Show available commands          | Implemented | `/help`                           |
+| `/status`   | Show system status               | Implemented | `/status`                         |
+| `/link`     | Link chat to user ID             | Routed Only | `/link <user_id>`                 |
+| `/summary`  | Show activity summary            | Routed Only | `/summary`                        |
+| `/newtask`  | Create task in Evaluation Queue  | Implemented | `/newtask <description>`          |
+| `/edit`     | Edit task details                | Implemented | `/edit <task_id>`                 |
 | `/override` | Override file impact predictions | Implemented | `/override <task_id> [op] [file]` |
-| `/queue` | Show Evaluation Queue status | Implemented | `/queue` |
-| `/suggest` | Get grouping suggestions | Implemented | `/suggest` |
-| `/accept` | Accept grouping suggestion | Implemented | `/accept <suggestion_id>` |
-| `/reject` | Reject grouping suggestion | Implemented | `/reject <suggestion_id>` |
-| `/parallel` | Show parallelism analysis | Implemented | `/parallel [task_list_id]` |
-| `/execute` | Start task list execution | Implemented | `/execute <task_list_id>` |
-| `/pause` | Pause task list execution | Implemented | `/pause <task_list_id>` |
-| `/resume` | Resume paused execution | Implemented | `/resume <task_list_id>` |
-| `/stop` | Terminate a Build Agent | Implemented | `/stop <agent_id>` |
-| `/agents` | List active Build Agents | Implemented | `/agents` |
+| `/queue`    | Show Evaluation Queue status     | Implemented | `/queue`                          |
+| `/suggest`  | Get grouping suggestions         | Implemented | `/suggest`                        |
+| `/accept`   | Accept grouping suggestion       | Implemented | `/accept <suggestion_id>`         |
+| `/reject`   | Reject grouping suggestion       | Implemented | `/reject <suggestion_id>`         |
+| `/parallel` | Show parallelism analysis        | Implemented | `/parallel [task_list_id]`        |
+| `/execute`  | Start task list execution        | Implemented | `/execute <task_list_id>`         |
+| `/pause`    | Pause task list execution        | Implemented | `/pause <task_list_id>`           |
+| `/resume`   | Resume paused execution          | Implemented | `/resume <task_list_id>`          |
+| `/stop`     | Terminate a Build Agent          | Implemented | `/stop <agent_id>`                |
+| `/agents`   | List active Build Agents         | Implemented | `/agents`                         |
 
 **Summary:** 16/18 commands implemented (89%)
 
@@ -40,12 +40,12 @@ This document provides a comprehensive reference for all Telegram bot commands i
 
 ## Implementation Status Legend
 
-| Status | Icon | Description |
-|--------|------|-------------|
-| **Implemented** | `[x]` | Fully functional, tested |
-| **Partial** | `[~]` | Works but may have edge cases |
+| Status          | Icon  | Description                          |
+| --------------- | ----- | ------------------------------------ |
+| **Implemented** | `[x]` | Fully functional, tested             |
+| **Partial**     | `[~]` | Works but may have edge cases        |
 | **Routed Only** | `[r]` | Command routed but handler not wired |
-| **Planned** | `[ ]` | Documented but not implemented |
+| **Planned**     | `[ ]` | Documented but not implemented       |
 
 ---
 
@@ -64,21 +64,24 @@ This document provides a comprehensive reference for all Telegram bot commands i
 ## System Commands
 
 ### `/start`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | All bots |
-| **Handler** | `CommunicationHub.setupEventHandlers()` |
-| **File** | `server/communication/communication-hub.ts:514` |
+
+| Attribute   | Value                                           |
+| ----------- | ----------------------------------------------- |
+| **Status**  | `[x]` Implemented                               |
+| **Bot(s)**  | All bots                                        |
+| **Handler** | `CommunicationHub.setupEventHandlers()`         |
+| **File**    | `server/communication/communication-hub.ts:514` |
 
 **Description:** Initializes chat linking with a bot. Links the user's Telegram chat to the bot for future communications.
 
 **Usage:**
+
 ```
 /start
 ```
 
 **Response:**
+
 ```
 Welcome! Your chat has been linked to @vibeai_orchestrator_bot.
 You'll receive notifications here.
@@ -87,16 +90,18 @@ You'll receive notifications here.
 ---
 
 ### `/help`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | All bots |
-| **Handler** | `CommunicationHub.setupEventHandlers()` |
-| **File** | `server/communication/communication-hub.ts:588` |
+
+| Attribute   | Value                                           |
+| ----------- | ----------------------------------------------- |
+| **Status**  | `[x]` Implemented                               |
+| **Bot(s)**  | All bots                                        |
+| **Handler** | `CommunicationHub.setupEventHandlers()`         |
+| **File**    | `server/communication/communication-hub.ts:588` |
 
 **Description:** Shows available commands and usage instructions.
 
 **Usage:**
+
 ```
 /help
 ```
@@ -104,16 +109,18 @@ You'll receive notifications here.
 ---
 
 ### `/status`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | All bots |
-| **Handler** | `CommunicationHub.setupEventHandlers()` |
-| **File** | `server/communication/communication-hub.ts:573` |
+
+| Attribute   | Value                                           |
+| ----------- | ----------------------------------------------- |
+| **Status**  | `[x]` Implemented                               |
+| **Bot(s)**  | All bots                                        |
+| **Handler** | `CommunicationHub.setupEventHandlers()`         |
+| **File**    | `server/communication/communication-hub.ts:573` |
 
 **Description:** Shows current system status including ready agents and pending questions.
 
 **Usage:**
+
 ```
 /status
 ```
@@ -121,16 +128,18 @@ You'll receive notifications here.
 ---
 
 ### `/link`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[r]` Routed Only |
-| **Bot(s)** | All bots |
-| **Handler** | Not wired |
-| **File** | `server/communication/telegram-receiver.ts:213` |
+
+| Attribute   | Value                                           |
+| ----------- | ----------------------------------------------- |
+| **Status**  | `[r]` Routed Only                               |
+| **Bot(s)**  | All bots                                        |
+| **Handler** | Not wired                                       |
+| **File**    | `server/communication/telegram-receiver.ts:213` |
 
 **Description:** Links a chat to a specific user ID. Command is routed but handler not implemented.
 
 **Usage:**
+
 ```
 /link <user_id>
 ```
@@ -138,12 +147,13 @@ You'll receive notifications here.
 ---
 
 ### `/summary`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[r]` Routed Only |
-| **Bot(s)** | All bots |
-| **Handler** | Not wired |
-| **File** | `server/communication/telegram-receiver.ts:198` |
+
+| Attribute   | Value                                           |
+| ----------- | ----------------------------------------------- |
+| **Status**  | `[r]` Routed Only                               |
+| **Bot(s)**  | All bots                                        |
+| **Handler** | Not wired                                       |
+| **File**    | `server/communication/telegram-receiver.ts:198` |
 
 **Description:** Shows a summary of recent activity. Command is routed but handler not implemented.
 
@@ -152,21 +162,24 @@ You'll receive notifications here.
 ## Task Creation & Management
 
 ### `/newtask`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleNewTask()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:61` |
+
+| Attribute   | Value                                                    |
+| ----------- | -------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                        |
+| **Bot(s)**  | Orchestrator                                             |
+| **Handler** | `TaskAgentTelegramHandler.handleNewTask()`               |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:61` |
 
 **Description:** Creates a new task in the Evaluation Queue. The task will be analyzed for file impacts and grouping suggestions.
 
 **Usage:**
+
 ```
 /newtask <task description>
 ```
 
 **Examples:**
+
 ```
 /newtask Add user authentication to API
 /newtask Fix bug in login page validation
@@ -174,6 +187,7 @@ You'll receive notifications here.
 ```
 
 **Response:**
+
 ```
 Task Created!
 
@@ -195,27 +209,31 @@ Recommendations:
 ---
 
 ### `/edit`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleEdit()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:104` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handleEdit()`                   |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:104` |
 
 **Description:** Shows task details and allows editing fields like title, description, category, priority, and effort.
 
 **Usage:**
+
 ```
 /edit <task_id>
 ```
 
 **Examples:**
+
 ```
 /edit TU-PROJ-FEA-042
 /edit abc123-def456
 ```
 
 **Response:**
+
 ```
 Edit Task: TU-PROJ-FEA-042
 
@@ -240,16 +258,18 @@ Reply with the field you want to change:
 ---
 
 ### `/override`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleOverride()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:172` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handleOverride()`               |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:172` |
 
 **Description:** View or manually override file impact predictions for a task. Useful when you know exactly what files a task will affect.
 
 **Usage:**
+
 ```
 /override <task_id>                              # View current impacts
 /override <task_id> <operation> <file_path>      # Add impact
@@ -259,6 +279,7 @@ Reply with the field you want to change:
 **Operations:** `CREATE`, `UPDATE`, `DELETE`, `READ`, `REMOVE`
 
 **Examples:**
+
 ```
 /override TU-PROJ-FEA-042
 /override TU-PROJ-FEA-042 CREATE server/routes/new.ts
@@ -268,6 +289,7 @@ Reply with the field you want to change:
 ```
 
 **Response (view):**
+
 ```
 File Impacts for TU-PROJ-FEA-042
 
@@ -288,21 +310,24 @@ To remove an impact:
 ## Evaluation Queue
 
 ### `/queue`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleQueue()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:293` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handleQueue()`                  |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:293` |
 
 **Description:** Shows the Evaluation Queue status, including total tasks, stale count, and recent additions.
 
 **Usage:**
+
 ```
 /queue
 ```
 
 **Response (with tasks):**
+
 ```
 Evaluation Queue
 
@@ -320,6 +345,7 @@ Recent Tasks:
 ```
 
 **Response (empty):**
+
 ```
 Evaluation Queue is empty
 
@@ -331,21 +357,24 @@ Use /newtask <description> to add a task.
 ## Grouping & Suggestions
 
 ### `/suggest`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleSuggest()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:339` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handleSuggest()`                |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:339` |
 
 **Description:** Generates and displays grouping suggestions for tasks in the Evaluation Queue. Suggests task lists based on shared files, similar categories, or related functionality.
 
 **Usage:**
+
 ```
 /suggest
 ```
 
 **Response:**
+
 ```
 Grouping Suggestions
 
@@ -363,27 +392,31 @@ Grouping Suggestions
 ---
 
 ### `/accept`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleAccept()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:504` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handleAccept()`                 |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:504` |
 
 **Description:** Accepts a grouping suggestion, creating a new task list with the suggested tasks.
 
 **Usage:**
+
 ```
 /accept <suggestion_id>
 ```
 
 **Examples:**
+
 ```
 /accept abc123
 /accept abc12345  # Partial IDs work
 ```
 
 **Response:**
+
 ```
 Suggestion Accepted!
 
@@ -396,21 +429,24 @@ The tasks have been grouped into a new task list.
 ---
 
 ### `/reject`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleReject()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:540` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handleReject()`                 |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:540` |
 
 **Description:** Rejects a grouping suggestion, preventing it from being shown again.
 
 **Usage:**
+
 ```
 /reject <suggestion_id>
 ```
 
 **Response:**
+
 ```
 Suggestion rejected.
 ```
@@ -420,22 +456,25 @@ Suggestion rejected.
 ## Parallelism & Analysis
 
 ### `/parallel`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleParallel()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:405` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handleParallel()`               |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:405` |
 
 **Description:** Shows parallelism analysis for a task list or overall orchestrator status. Displays how tasks can be executed in parallel waves.
 
 **Usage:**
+
 ```
 /parallel              # Show orchestrator status
 /parallel <task_list_id>  # Show specific task list parallelism
 ```
 
 **Response (orchestrator status):**
+
 ```
 Orchestrator Status
 
@@ -454,6 +493,7 @@ Agent Pool:
 ```
 
 **Response (task list parallelism):**
+
 ```
 Parallelism Analysis
 
@@ -474,27 +514,31 @@ Wave 3: 1 tasks (pending)
 ## Execution Control
 
 ### `/execute`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleExecute()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:634` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handleExecute()`                |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:634` |
 
 **Description:** Initiates execution of a task list. Shows a confirmation prompt with inline buttons before starting.
 
 **Usage:**
+
 ```
 /execute <task_list_id>
 ```
 
 **Examples:**
+
 ```
 /execute human-e2e-001
 /execute abc123-def456-ghi789
 ```
 
 **Response (confirmation):**
+
 ```
 Ready to Execute: Human E2E Test
 
@@ -506,6 +550,7 @@ Max Parallel: 2
 ```
 
 **Response (started via callback):**
+
 ```
 Execution Started!
 
@@ -519,26 +564,30 @@ You'll receive notifications as tasks complete.
 ---
 
 ### `/pause`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handlePause()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:764` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handlePause()`                  |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:764` |
 
 **Description:** Pauses execution of a task list. Running agents will complete their current tasks, but no new agents will be spawned.
 
 **Usage:**
+
 ```
 /pause <task_list_id>
 ```
 
 **Examples:**
+
 ```
 /pause human-e2e-001
 ```
 
 **Response:**
+
 ```
 Execution Paused
 
@@ -552,26 +601,30 @@ Use /resume human-e2e-001 to continue execution.
 ---
 
 ### `/resume`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleResume()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:817` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handleResume()`                 |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:817` |
 
 **Description:** Resumes execution of a paused task list. New agents will be spawned for pending tasks.
 
 **Usage:**
+
 ```
 /resume <task_list_id>
 ```
 
 **Examples:**
+
 ```
 /resume human-e2e-001
 ```
 
 **Response:**
+
 ```
 Execution Resumed
 
@@ -583,27 +636,31 @@ New agents will be spawned for pending tasks.
 ---
 
 ### `/stop`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleStop()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:868` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handleStop()`                   |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:868` |
 
 **Description:** Terminates a specific Build Agent. The agent's current task will be marked for retry.
 
 **Usage:**
+
 ```
 /stop <agent_id>
 ```
 
 **Examples:**
+
 ```
 /stop abc12345
 /stop 0c2942a1-1527-4244-b5fc-97924d3f61d2  # Full UUID
 ```
 
 **Response (success):**
+
 ```
 Agent Terminated
 
@@ -615,6 +672,7 @@ The agent's current task will be marked for retry.
 ```
 
 **Response (not found):**
+
 ```
 Agent abc12345 not found or not active.
 
@@ -626,21 +684,24 @@ Use /agents to see active agents.
 ## Agent Management
 
 ### `/agents`
-| Attribute | Value |
-|-----------|-------|
-| **Status** | `[x]` Implemented |
-| **Bot(s)** | Orchestrator |
-| **Handler** | `TaskAgentTelegramHandler.handleAgents()` |
-| **File** | `server/communication/task-agent-telegram-handler.ts:465` |
+
+| Attribute   | Value                                                     |
+| ----------- | --------------------------------------------------------- |
+| **Status**  | `[x]` Implemented                                         |
+| **Bot(s)**  | Orchestrator                                              |
+| **Handler** | `TaskAgentTelegramHandler.handleAgents()`                 |
+| **File**    | `server/communication/task-agent-telegram-handler.ts:465` |
 
 **Description:** Lists all active Build Agents with their status, current task, and completion statistics.
 
 **Usage:**
+
 ```
 /agents
 ```
 
 **Response (with agents):**
+
 ```
 Active Build Agents: 3
 
@@ -656,6 +717,7 @@ Active Build Agents: 3
 ```
 
 **Response (no agents):**
+
 ```
 No Active Build Agents
 
@@ -669,14 +731,16 @@ Start execution with /parallel <task_list_id> or through the UI.
 In addition to text commands, the system supports inline button callbacks for interactive workflows.
 
 ### Execute Callbacks
-| Callback Pattern | Handler | Description |
-|------------------|---------|-------------|
-| `execute:<task_list_id>:start` | `handleExecuteCallback()` | Start execution |
+
+| Callback Pattern                | Handler                   | Description      |
+| ------------------------------- | ------------------------- | ---------------- |
+| `execute:<task_list_id>:start`  | `handleExecuteCallback()` | Start execution  |
 | `execute:<task_list_id>:cancel` | `handleExecuteCallback()` | Cancel execution |
 
 ### Grouping Callbacks
-| Callback Pattern | Handler | Description |
-|------------------|---------|-------------|
+
+| Callback Pattern                  | Handler                    | Description     |
+| --------------------------------- | -------------------------- | --------------- |
 | `grouping:<suggestion_id>:accept` | `handleGroupingCallback()` | Accept grouping |
 | `grouping:<suggestion_id>:reject` | `handleGroupingCallback()` | Reject grouping |
 
@@ -684,28 +748,28 @@ In addition to text commands, the system supports inline button callbacks for in
 
 ## Bot Assignments
 
-| Bot | Username | Primary Commands |
-|-----|----------|------------------|
+| Bot              | Username                   | Primary Commands                                   |
+| ---------------- | -------------------------- | -------------------------------------------------- |
 | **Orchestrator** | `@vibeai_orchestrator_bot` | Task Agent commands (`/newtask`, `/execute`, etc.) |
-| **Monitor** | `@vibeai_monitor_bot` | System health notifications |
-| **Spec** | `@vibeai_spec_bot` | Specification generation status |
-| **Build** | `@vibeai_build_bot` | Build Agent progress notifications |
-| **Validation** | `@vibeai_validation_bot` | Test/validation results |
-| **SIA** | `@vibeai_sia_bot` | Self-Improvement Agent updates |
-| **System** | `@vibeai_system_bot` | Fallback for all bot types |
+| **Monitor**      | `@vibeai_monitor_bot`      | System health notifications                        |
+| **Spec**         | `@vibeai_spec_bot`         | Specification generation status                    |
+| **Build**        | `@vibeai_build_bot`        | Build Agent progress notifications                 |
+| **Validation**   | `@vibeai_validation_bot`   | Test/validation results                            |
+| **SIA**          | `@vibeai_sia_bot`          | Self-Improvement Agent updates                     |
+| **System**       | `@vibeai_system_bot`       | Fallback for all bot types                         |
 
 ---
 
 ## File Reference
 
-| File | Purpose |
-|------|---------|
-| `server/communication/telegram-receiver.ts` | Command routing (lines 192-282) |
-| `server/communication/communication-hub.ts` | Event handler wiring (lines 512-700) |
-| `server/communication/task-agent-telegram-handler.ts` | Task Agent command handlers |
-| `server/communication/telegram-sender.ts` | Message sending utilities |
-| `server/communication/bot-registry.ts` | Bot configuration and management |
-| `server/communication/chat-linker.ts` | Chat-user linking |
+| File                                                  | Purpose                              |
+| ----------------------------------------------------- | ------------------------------------ |
+| `server/communication/telegram-receiver.ts`           | Command routing (lines 192-282)      |
+| `server/communication/communication-hub.ts`           | Event handler wiring (lines 512-700) |
+| `server/communication/task-agent-telegram-handler.ts` | Task Agent command handlers          |
+| `server/communication/telegram-sender.ts`             | Message sending utilities            |
+| `server/communication/bot-registry.ts`                | Bot configuration and management     |
+| `server/communication/chat-linker.ts`                 | Chat-user linking                    |
 
 ---
 
@@ -735,6 +799,7 @@ All commands include proper error handling:
 3. **Internal Errors:** Logs error and sends user-friendly message
 
 Example error response:
+
 ```
 Failed to create task: Database error
 
@@ -745,16 +810,16 @@ Please try again or contact support.
 
 ## Implementation Summary
 
-| Category | Commands | Implemented | Partial | Routed Only |
-|----------|----------|-------------|---------|-------------|
-| System | 5 | 3 | 0 | 2 |
-| Task Creation | 3 | 3 | 0 | 0 |
-| Evaluation Queue | 1 | 1 | 0 | 0 |
-| Grouping | 3 | 3 | 0 | 0 |
-| Parallelism | 1 | 1 | 0 | 0 |
-| Execution Control | 4 | 4 | 0 | 0 |
-| Agent Management | 1 | 1 | 0 | 0 |
-| **Total** | **18** | **16** | **0** | **2** |
+| Category          | Commands | Implemented | Partial | Routed Only |
+| ----------------- | -------- | ----------- | ------- | ----------- |
+| System            | 5        | 3           | 0       | 2           |
+| Task Creation     | 3        | 3           | 0       | 0           |
+| Evaluation Queue  | 1        | 1           | 0       | 0           |
+| Grouping          | 3        | 3           | 0       | 0           |
+| Parallelism       | 1        | 1           | 0       | 0           |
+| Execution Control | 4        | 4           | 0       | 0           |
+| Agent Management  | 1        | 1           | 0       | 0           |
+| **Total**         | **18**   | **16**      | **0**   | **2**       |
 
 **Overall Status:** 89% implemented (16/18 commands)
 
@@ -768,34 +833,34 @@ Please try again or contact support.
 
 ### Verified Commands with Visual Evidence
 
-| Command | Test Input | Response | Status |
-|---------|------------|----------|--------|
-| `/queue` | `/queue` | "📭 Evaluation Queue is empty" + recommendations | ✅ PASS |
-| `/newtask` | `/newtask Test task for Telegram validation` | "✅ Task Created! ID: TU-GEN-TSK-439" | ✅ PASS |
-| `/suggest` | `/suggest` | "🔍 Analyzing..." → "🤔 No grouping suggestions" | ✅ PASS |
-| `/edit` | `/edit TU-GEN-TSK-439` | "📝 Edit Task: TU-GEN-TSK-439" with details | ✅ PASS |
-| `/parallel` | `/parallel` | "⚡ Orchestrator Status" with config | ✅ PASS |
-| `/agents` | `/agents` | "📭 No Active Build Agents" | ✅ PASS |
-| `/pause` | `/pause human-e2e-001` | "⚠️ Execution Paused" | ✅ PASS |
-| `/resume` | `/resume human-e2e-001` | "▶️ Execution Resumed" | ✅ PASS |
-| `/stop` | `/stop abc12345` | "❌ Agent not found or not active" (expected) | ✅ PASS |
-| `/stop` | `/stop` (no args) | "❌ Usage: /stop <agent_id>" | ✅ PASS |
+| Command     | Test Input                                   | Response                                         | Status  |
+| ----------- | -------------------------------------------- | ------------------------------------------------ | ------- |
+| `/queue`    | `/queue`                                     | "📭 Evaluation Queue is empty" + recommendations | ✅ PASS |
+| `/newtask`  | `/newtask Test task for Telegram validation` | "✅ Task Created! ID: TU-GEN-TSK-439"            | ✅ PASS |
+| `/suggest`  | `/suggest`                                   | "🔍 Analyzing..." → "🤔 No grouping suggestions" | ✅ PASS |
+| `/edit`     | `/edit TU-GEN-TSK-439`                       | "📝 Edit Task: TU-GEN-TSK-439" with details      | ✅ PASS |
+| `/parallel` | `/parallel`                                  | "⚡ Orchestrator Status" with config             | ✅ PASS |
+| `/agents`   | `/agents`                                    | "📭 No Active Build Agents"                      | ✅ PASS |
+| `/pause`    | `/pause human-e2e-001`                       | "⚠️ Execution Paused"                            | ✅ PASS |
+| `/resume`   | `/resume human-e2e-001`                      | "▶️ Execution Resumed"                           | ✅ PASS |
+| `/stop`     | `/stop abc12345`                             | "❌ Agent not found or not active" (expected)    | ✅ PASS |
+| `/stop`     | `/stop` (no args)                            | "❌ Usage: /stop <agent_id>"                     | ✅ PASS |
 
 ### Commands Requiring Context (Implemented but context-dependent)
 
-| Command | Reason | Implementation Verified |
-|---------|--------|------------------------|
-| `/override` | Requires task ID and file operations | Code review ✅ |
-| `/accept` | Requires pending grouping suggestion | Code review ✅ |
-| `/reject` | Requires pending grouping suggestion | Code review ✅ |
-| `/execute` | Requires valid task list ID | Code review ✅ |
+| Command     | Reason                               | Implementation Verified |
+| ----------- | ------------------------------------ | ----------------------- |
+| `/override` | Requires task ID and file operations | Code review ✅          |
+| `/accept`   | Requires pending grouping suggestion | Code review ✅          |
+| `/reject`   | Requires pending grouping suggestion | Code review ✅          |
+| `/execute`  | Requires valid task list ID          | Code review ✅          |
 
 ### System Commands (CommunicationHub handlers)
 
-| Command | Status | Notes |
-|---------|--------|-------|
-| `/start` | Implemented | Handled by ChatLinker |
-| `/help` | Implemented | Returns help template |
+| Command   | Status      | Notes                 |
+| --------- | ----------- | --------------------- |
+| `/start`  | Implemented | Handled by ChatLinker |
+| `/help`   | Implemented | Returns help template |
 | `/status` | Implemented | Returns system status |
 
 ### Fixes Applied During Testing
@@ -816,11 +881,11 @@ Please try again or contact support.
 
 ## Changelog
 
-| Date | Changes |
-|------|---------|
-| 2026-01-14 | Comprehensive Telegram testing verification |
-| 2026-01-14 | Fixed command routing in telegram-receiver.ts |
-| 2026-01-14 | Added sendToChatId to telegram-sender.ts |
+| Date       | Changes                                                |
+| ---------- | ------------------------------------------------------ |
+| 2026-01-14 | Comprehensive Telegram testing verification            |
+| 2026-01-14 | Fixed command routing in telegram-receiver.ts          |
+| 2026-01-14 | Added sendToChatId to telegram-sender.ts               |
 | 2026-01-14 | Wired TaskAgentTelegramHandler in communication-hub.ts |
-| 2026-01-14 | Added `/pause`, `/resume`, `/stop` commands |
-| 2026-01-14 | Initial glossary creation |
+| 2026-01-14 | Added `/pause`, `/resume`, `/stop` commands            |
+| 2026-01-14 | Initial glossary creation                              |

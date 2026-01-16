@@ -5,7 +5,7 @@
  * Part of: Task System V2 Implementation Plan (IMPL-7.11)
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react";
 import {
   Scissors,
   Plus,
@@ -15,104 +15,116 @@ import {
   Check,
   AlertCircle,
   RefreshCw,
-  Wand2
-} from 'lucide-react'
+  Wand2,
+} from "lucide-react";
 
 interface ProposedSubtask {
-  title: string
-  description?: string
-  category: string
-  estimatedEffort: string
-  fileImpacts: string[]
-  acceptanceCriteria: string[]
+  title: string;
+  description?: string;
+  category: string;
+  estimatedEffort: string;
+  fileImpacts: string[];
+  acceptanceCriteria: string[];
 }
 
 interface DecompositionResult {
-  originalTaskId: string
-  subtasks: ProposedSubtask[]
-  reasoning: string
-  estimatedTotalEffort: string
+  originalTaskId: string;
+  subtasks: ProposedSubtask[];
+  reasoning: string;
+  estimatedTotalEffort: string;
 }
 
 interface TaskDecomposerProps {
-  taskId: string
-  taskTitle: string
-  onDecompose?: (subtaskIds: string[]) => void
-  onCancel?: () => void
+  taskId: string;
+  taskTitle: string;
+  onDecompose?: (subtaskIds: string[]) => void;
+  onCancel?: () => void;
 }
 
-export default function TaskDecomposer({ taskId, taskTitle, onDecompose, onCancel }: TaskDecomposerProps) {
-  const [decomposition, setDecomposition] = useState<DecompositionResult | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [executing, setExecuting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [editedSubtasks, setEditedSubtasks] = useState<ProposedSubtask[]>([])
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(0)
+export default function TaskDecomposer({
+  taskId,
+  taskTitle,
+  onDecompose,
+  onCancel,
+}: TaskDecomposerProps) {
+  const [decomposition, setDecomposition] =
+    useState<DecompositionResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [executing, setExecuting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editedSubtasks, setEditedSubtasks] = useState<ProposedSubtask[]>([]);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
 
   const generateDecomposition = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      const response = await fetch(`/api/task-agent/tasks/${taskId}/decompose`, {
-        method: 'POST'
-      })
+      setLoading(true);
+      setError(null);
+      const response = await fetch(
+        `/api/task-agent/tasks/${taskId}/decompose`,
+        {
+          method: "POST",
+        },
+      );
 
-      if (!response.ok) throw new Error('Failed to generate decomposition')
+      if (!response.ok) throw new Error("Failed to generate decomposition");
 
-      const result = await response.json()
-      setDecomposition(result)
-      setEditedSubtasks(result.subtasks)
+      const result = await response.json();
+      setDecomposition(result);
+      setEditedSubtasks(result.subtasks);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const executeDecomposition = async () => {
     try {
-      setExecuting(true)
-      const response = await fetch(`/api/task-agent/tasks/${taskId}/decompose/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subtasks: editedSubtasks })
-      })
+      setExecuting(true);
+      const response = await fetch(
+        `/api/task-agent/tasks/${taskId}/decompose/execute`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subtasks: editedSubtasks }),
+        },
+      );
 
-      if (!response.ok) throw new Error('Failed to create subtasks')
+      if (!response.ok) throw new Error("Failed to create subtasks");
 
-      const result = await response.json()
-      onDecompose?.(result.subtaskIds)
+      const result = await response.json();
+      onDecompose?.(result.subtaskIds);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setExecuting(false)
+      setExecuting(false);
     }
-  }
+  };
 
   const updateSubtask = (index: number, updates: Partial<ProposedSubtask>) => {
-    const newSubtasks = [...editedSubtasks]
-    newSubtasks[index] = { ...newSubtasks[index], ...updates }
-    setEditedSubtasks(newSubtasks)
-  }
+    const newSubtasks = [...editedSubtasks];
+    newSubtasks[index] = { ...newSubtasks[index], ...updates };
+    setEditedSubtasks(newSubtasks);
+  };
 
   const removeSubtask = (index: number) => {
-    setEditedSubtasks(editedSubtasks.filter((_, i) => i !== index))
-  }
+    setEditedSubtasks(editedSubtasks.filter((_, i) => i !== index));
+  };
 
   const addSubtask = () => {
     setEditedSubtasks([
       ...editedSubtasks,
       {
-        title: 'New Subtask',
-        description: '',
-        category: 'feature',
-        estimatedEffort: 'small',
+        title: "New Subtask",
+        description: "",
+        category: "feature",
+        estimatedEffort: "small",
         fileImpacts: [],
-        acceptanceCriteria: []
-      }
-    ])
-    setExpandedIndex(editedSubtasks.length)
-  }
+        acceptanceCriteria: [],
+      },
+    ]);
+    setExpandedIndex(editedSubtasks.length);
+  };
 
   return (
     <div className="space-y-4">
@@ -154,7 +166,7 @@ export default function TaskDecomposer({ taskId, taskTitle, onDecompose, onCance
             ) : (
               <Wand2 className="h-4 w-4" />
             )}
-            {loading ? 'Analyzing...' : 'Generate Subtasks'}
+            {loading ? "Analyzing..." : "Generate Subtasks"}
           </button>
         </div>
       )}
@@ -173,14 +185,19 @@ export default function TaskDecomposer({ taskId, taskTitle, onDecompose, onCance
           {/* Subtasks List */}
           <div className="space-y-2">
             {editedSubtasks.map((subtask, index) => {
-              const isExpanded = expandedIndex === index
+              const isExpanded = expandedIndex === index;
 
               return (
-                <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+                <div
+                  key={index}
+                  className="border border-gray-200 rounded-lg overflow-hidden"
+                >
                   {/* Subtask Header */}
                   <div className="flex items-center gap-2 p-3 bg-gray-50">
                     <button
-                      onClick={() => setExpandedIndex(isExpanded ? null : index)}
+                      onClick={() =>
+                        setExpandedIndex(isExpanded ? null : index)
+                      }
                       className="flex-1 flex items-center gap-2"
                     >
                       {isExpanded ? (
@@ -188,7 +205,9 @@ export default function TaskDecomposer({ taskId, taskTitle, onDecompose, onCance
                       ) : (
                         <ChevronRight className="h-4 w-4 text-gray-400" />
                       )}
-                      <span className="font-medium text-gray-900">{subtask.title}</span>
+                      <span className="font-medium text-gray-900">
+                        {subtask.title}
+                      </span>
                       <span className="text-xs text-gray-500 px-2 py-0.5 bg-gray-200 rounded">
                         {subtask.estimatedEffort}
                       </span>
@@ -211,7 +230,9 @@ export default function TaskDecomposer({ taskId, taskTitle, onDecompose, onCance
                         <input
                           type="text"
                           value={subtask.title}
-                          onChange={e => updateSubtask(index, { title: e.target.value })}
+                          onChange={(e) =>
+                            updateSubtask(index, { title: e.target.value })
+                          }
                           className="w-full px-3 py-2 border rounded-lg"
                         />
                       </div>
@@ -221,8 +242,12 @@ export default function TaskDecomposer({ taskId, taskTitle, onDecompose, onCance
                           Description
                         </label>
                         <textarea
-                          value={subtask.description || ''}
-                          onChange={e => updateSubtask(index, { description: e.target.value })}
+                          value={subtask.description || ""}
+                          onChange={(e) =>
+                            updateSubtask(index, {
+                              description: e.target.value,
+                            })
+                          }
                           rows={2}
                           className="w-full px-3 py-2 border rounded-lg"
                         />
@@ -235,7 +260,9 @@ export default function TaskDecomposer({ taskId, taskTitle, onDecompose, onCance
                           </label>
                           <select
                             value={subtask.category}
-                            onChange={e => updateSubtask(index, { category: e.target.value })}
+                            onChange={(e) =>
+                              updateSubtask(index, { category: e.target.value })
+                            }
                             className="w-full px-3 py-2 border rounded-lg"
                           >
                             <option value="feature">Feature</option>
@@ -252,7 +279,11 @@ export default function TaskDecomposer({ taskId, taskTitle, onDecompose, onCance
                           </label>
                           <select
                             value={subtask.estimatedEffort}
-                            onChange={e => updateSubtask(index, { estimatedEffort: e.target.value })}
+                            onChange={(e) =>
+                              updateSubtask(index, {
+                                estimatedEffort: e.target.value,
+                              })
+                            }
                             className="w-full px-3 py-2 border rounded-lg"
                           >
                             <option value="tiny">Tiny (~5 min)</option>
@@ -279,14 +310,16 @@ export default function TaskDecomposer({ taskId, taskTitle, onDecompose, onCance
                             </span>
                           ))}
                           {subtask.fileImpacts.length === 0 && (
-                            <span className="text-xs text-gray-400">No file impacts specified</span>
+                            <span className="text-xs text-gray-400">
+                              No file impacts specified
+                            </span>
                           )}
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
-              )
+              );
             })}
           </div>
 
@@ -306,7 +339,9 @@ export default function TaskDecomposer({ taskId, taskTitle, onDecompose, onCance
               disabled={loading}
               className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
               Regenerate
             </button>
             <button
@@ -332,5 +367,5 @@ export default function TaskDecomposer({ taskId, taskTitle, onDecompose, onCance
         </div>
       )}
     </div>
-  )
+  );
 }

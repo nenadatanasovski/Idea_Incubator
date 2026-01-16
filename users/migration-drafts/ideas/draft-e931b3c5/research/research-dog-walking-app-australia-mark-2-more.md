@@ -13,6 +13,7 @@ queries:
   - pet services marketplace Australia trends
 identifier: research_dog_walking_app_aust
 ---
+
 ## Key Findings
 
 1. **Global market valued at ~$500-600M in 2024** - The dog walking app market globally ranges from USD 508-600 million in 2024, with projections to reach $1-1.2 billion by 2033 (CAGR of 8-9%)
@@ -48,7 +49,6 @@ identifier: research_dog_walking_app_aust
 - **Tech integration differentiator** - Government support for vet-tech integration could enable premium positioning with health/wellness features
 - **Regional first-mover advantage** - With APAC being fastest-growing and Australia relatively underpenetrated, there's potential to establish dominance before US players expand
 - **Pet boom post-pandemic** - Increased pet ownership in Australia creates sustained demand for pet services
-
 
 ---
 
@@ -95,7 +95,6 @@ identifier: research_dog_walking_app_aust
 - [13 Best Pet Sitting Apps Like Rover - The Freelance Hustle](https://thefreelancehustle.com/best-pet-sitting-apps-like-rover/)
 - [Pawshake - Dog & Pet Sitter App - App Store](https://apps.apple.com/au/app/pawshake-dog-pet-sitter/id796403233)
 - [7 Dog Walking Best Pet Care App Development 2025 - Miracuves](https://miracuves.com/blog/best-pet-care-app-development-2025/)
-
 
 ---
 

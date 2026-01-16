@@ -5,15 +5,15 @@
  * the current lifecycle stage and phase requirements.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import type { LifecycleStage } from '../../utils/schemas.js';
+import * as fs from "fs";
+import * as path from "path";
+import type { LifecycleStage } from "../../utils/schemas.js";
 import {
   Classification,
   PHASE_REQUIREMENTS,
   CONTENT_INFERENCE_RULES,
-} from './classification-rules.js';
-import { getConfig } from '../../config/index.js';
+} from "./classification-rules.js";
+import { getConfig } from "../../config/index.js";
 
 // ============================================================================
 // TYPES
@@ -48,30 +48,30 @@ export interface DocumentClassification {
 export async function classifyDocument(
   _ideaSlug: string,
   filePath: string,
-  phase: LifecycleStage
+  phase: LifecycleStage,
 ): Promise<Classification> {
   // Get phase requirements
   const requirements = PHASE_REQUIREMENTS[phase];
   if (!requirements) {
     // Unknown phase, default to optional
-    return 'optional';
+    return "optional";
   }
 
   // Normalize the file path for comparison (remove leading ./ or /)
-  const normalizedPath = filePath.replace(/^\.?\//, '');
+  const normalizedPath = filePath.replace(/^\.?\//, "");
 
   // Check if document is in required list
   if (requirements.required.includes(normalizedPath)) {
-    return 'required';
+    return "required";
   }
 
   // Check if document is in recommended list
   if (requirements.recommended.includes(normalizedPath)) {
-    return 'recommended';
+    return "recommended";
   }
 
   // Default to optional
-  return 'optional';
+  return "optional";
 }
 
 // ============================================================================
@@ -91,7 +91,10 @@ const CLASSIFICATION_PRIORITY: Record<Classification, number> = {
 /**
  * Get the higher priority classification between two.
  */
-function getHigherClassification(a: Classification, b: Classification): Classification {
+function getHigherClassification(
+  a: Classification,
+  b: Classification,
+): Classification {
   return CLASSIFICATION_PRIORITY[a] >= CLASSIFICATION_PRIORITY[b] ? a : b;
 }
 
@@ -102,11 +105,17 @@ function getHigherClassification(a: Classification, b: Classification): Classifi
 /**
  * Check if a text contains any of the keywords (case-insensitive).
  */
-function containsKeywords(text: string, keywords: string[], matchAll?: boolean): boolean {
+function containsKeywords(
+  text: string,
+  keywords: string[],
+  matchAll?: boolean,
+): boolean {
   const lowerText = text.toLowerCase();
 
   if (matchAll) {
-    return keywords.every((keyword) => lowerText.includes(keyword.toLowerCase()));
+    return keywords.every((keyword) =>
+      lowerText.includes(keyword.toLowerCase()),
+    );
   }
 
   return keywords.some((keyword) => lowerText.includes(keyword.toLowerCase()));
@@ -129,13 +138,13 @@ export async function classifyWithContentInference(
   ideaSlug: string,
   filePath: string,
   phase: LifecycleStage,
-  conversationContext: string
+  conversationContext: string,
 ): Promise<Classification> {
   // Get baseline classification from phase rules
   let classification = await classifyDocument(ideaSlug, filePath, phase);
 
   // Normalize the file path for comparison
-  const normalizedPath = filePath.replace(/^\.?\//, '');
+  const normalizedPath = filePath.replace(/^\.?\//, "");
 
   // Check content inference rules
   for (const rule of CONTENT_INFERENCE_RULES) {
@@ -145,16 +154,29 @@ export async function classifyWithContentInference(
     }
 
     // Check if the conversation contains the trigger keywords
-    if (containsKeywords(conversationContext, rule.trigger.keywords, rule.trigger.matchAll)) {
+    if (
+      containsKeywords(
+        conversationContext,
+        rule.trigger.keywords,
+        rule.trigger.matchAll,
+      )
+    ) {
       // If the rule specifies a classification, try to upgrade
       if (rule.effect.classification) {
-        classification = getHigherClassification(classification, rule.effect.classification);
+        classification = getHigherClassification(
+          classification,
+          rule.effect.classification,
+        );
       }
 
       // If the rule only specifies a requirement note (not a classification),
       // and the current classification is 'optional', upgrade to 'recommended'
-      if (rule.effect.requirement && !rule.effect.classification && classification === 'optional') {
-        classification = 'recommended';
+      if (
+        rule.effect.requirement &&
+        !rule.effect.classification &&
+        classification === "optional"
+      ) {
+        classification = "recommended";
       }
     }
   }
@@ -173,7 +195,7 @@ function getUsersRoot(): string {
   const config = getConfig();
   // Users directory is at the same level as ideas directory
   const projectRoot = path.dirname(config.paths.ideas);
-  return path.join(projectRoot, 'users');
+  return path.join(projectRoot, "users");
 }
 
 /**
@@ -181,7 +203,7 @@ function getUsersRoot(): string {
  */
 function getIdeaFolderPath(userSlug: string, ideaSlug: string): string {
   const usersRoot = getUsersRoot();
-  return path.resolve(usersRoot, userSlug, 'ideas', ideaSlug);
+  return path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
 }
 
 /**
@@ -190,7 +212,7 @@ function getIdeaFolderPath(userSlug: string, ideaSlug: string): string {
 function findMarkdownFilesRecursively(
   dir: string,
   baseDir: string,
-  excludeDirs: string[] = ['.metadata', '.versions']
+  excludeDirs: string[] = [".metadata", ".versions"],
 ): string[] {
   const results: string[] = [];
 
@@ -210,11 +232,13 @@ function findMarkdownFilesRecursively(
         continue;
       }
       // Recurse into subdirectory
-      results.push(...findMarkdownFilesRecursively(fullPath, baseDir, excludeDirs));
+      results.push(
+        ...findMarkdownFilesRecursively(fullPath, baseDir, excludeDirs),
+      );
     } else if (entry.isFile()) {
       // Include markdown files
       const ext = path.extname(entry.name).toLowerCase();
-      if (ext === '.md') {
+      if (ext === ".md") {
         results.push(relativePath);
       }
     }
@@ -230,12 +254,12 @@ function generateClassificationReason(
   filePath: string,
   classification: Classification,
   phase: LifecycleStage,
-  wasUpgradedByContent: boolean
+  wasUpgradedByContent: boolean,
 ): string {
-  const normalizedPath = filePath.replace(/^\.?\//, '');
+  const normalizedPath = filePath.replace(/^\.?\//, "");
   const requirements = PHASE_REQUIREMENTS[phase];
 
-  if (classification === 'required') {
+  if (classification === "required") {
     if (requirements?.required.includes(normalizedPath)) {
       return `Phase requirement: ${normalizedPath} is required in ${phase} phase`;
     }
@@ -245,7 +269,7 @@ function generateClassificationReason(
     return `Required document for ${phase} phase`;
   }
 
-  if (classification === 'recommended') {
+  if (classification === "recommended") {
     if (requirements?.recommended.includes(normalizedPath)) {
       return `Phase recommendation: ${normalizedPath} is recommended in ${phase} phase`;
     }
@@ -280,7 +304,7 @@ export async function classifyAllDocuments(
   userSlug: string,
   ideaSlug: string,
   phase: LifecycleStage,
-  conversationContext?: string
+  conversationContext?: string,
 ): Promise<DocumentClassification[]> {
   const ideaFolder = getIdeaFolderPath(userSlug, ideaSlug);
 
@@ -296,7 +320,11 @@ export async function classifyAllDocuments(
 
   for (const filePath of filePaths) {
     // Get base classification from phase rules
-    const baseClassification = await classifyDocument(ideaSlug, filePath, phase);
+    const baseClassification = await classifyDocument(
+      ideaSlug,
+      filePath,
+      phase,
+    );
 
     let finalClassification: Classification;
     let wasUpgradedByContent = false;
@@ -307,11 +335,12 @@ export async function classifyAllDocuments(
         ideaSlug,
         filePath,
         phase,
-        conversationContext
+        conversationContext,
       );
       // Check if content inference upgraded the classification
       wasUpgradedByContent =
-        CLASSIFICATION_PRIORITY[finalClassification] > CLASSIFICATION_PRIORITY[baseClassification];
+        CLASSIFICATION_PRIORITY[finalClassification] >
+        CLASSIFICATION_PRIORITY[baseClassification];
     } else {
       finalClassification = baseClassification;
     }
@@ -321,7 +350,7 @@ export async function classifyAllDocuments(
       filePath,
       finalClassification,
       phase,
-      wasUpgradedByContent
+      wasUpgradedByContent,
     );
 
     classifications.push({
@@ -365,16 +394,19 @@ export interface ClassificationCache {
 /**
  * Read the current lifecycle phase from an idea's README.md frontmatter.
  */
-async function readCurrentPhase(userSlug: string, ideaSlug: string): Promise<LifecycleStage> {
+async function readCurrentPhase(
+  userSlug: string,
+  ideaSlug: string,
+): Promise<LifecycleStage> {
   const ideaFolder = getIdeaFolderPath(userSlug, ideaSlug);
-  const readmePath = path.join(ideaFolder, 'README.md');
+  const readmePath = path.join(ideaFolder, "README.md");
 
   if (!fs.existsSync(readmePath)) {
-    return 'SPARK'; // Default phase if no README
+    return "SPARK"; // Default phase if no README
   }
 
   try {
-    const content = fs.readFileSync(readmePath, 'utf-8');
+    const content = fs.readFileSync(readmePath, "utf-8");
     // Simple YAML frontmatter parsing
     const match = content.match(/^---\n([\s\S]*?)\n---/);
     if (match) {
@@ -388,7 +420,7 @@ async function readCurrentPhase(userSlug: string, ideaSlug: string): Promise<Lif
     // Fall through to default
   }
 
-  return 'SPARK';
+  return "SPARK";
 }
 
 /**
@@ -405,11 +437,11 @@ async function readCurrentPhase(userSlug: string, ideaSlug: string): Promise<Lif
 export async function saveClassifications(
   userSlug: string,
   ideaSlug: string,
-  classifications: DocumentClassification[]
+  classifications: DocumentClassification[],
 ): Promise<void> {
   const ideaFolder = getIdeaFolderPath(userSlug, ideaSlug);
-  const metadataDir = path.join(ideaFolder, '.metadata');
-  const cacheFilePath = path.join(metadataDir, 'classifications.json');
+  const metadataDir = path.join(ideaFolder, ".metadata");
+  const cacheFilePath = path.join(metadataDir, "classifications.json");
 
   // Create .metadata directory if it doesn't exist
   if (!fs.existsSync(metadataDir)) {
@@ -431,7 +463,7 @@ export async function saveClassifications(
   };
 
   // Write to file (overwrites existing)
-  fs.writeFileSync(cacheFilePath, JSON.stringify(cache, null, 2), 'utf-8');
+  fs.writeFileSync(cacheFilePath, JSON.stringify(cache, null, 2), "utf-8");
 }
 
 // ============================================================================
@@ -461,9 +493,11 @@ export interface ClassificationChange {
  * @param changes - Array of classification changes to announce
  * @returns A natural language announcement string
  */
-export function generateClassificationAnnouncement(changes: ClassificationChange[]): string {
+export function generateClassificationAnnouncement(
+  changes: ClassificationChange[],
+): string {
   if (changes.length === 0) {
-    return '';
+    return "";
   }
 
   const announcements: string[] = [];
@@ -475,9 +509,9 @@ export function generateClassificationAnnouncement(changes: ClassificationChange
     // Generate the announcement based on the classification change
     let announcement: string;
 
-    if (change.newClassification === 'required') {
+    if (change.newClassification === "required") {
       announcement = `I've marked '${docName}' as **required** - you'll need this for a solid evaluation. ${change.reason}. Would you like me to help create it?`;
-    } else if (change.newClassification === 'recommended') {
+    } else if (change.newClassification === "recommended") {
       announcement = `Based on our discussion, I'd now **recommend** creating '${docName}'. ${change.reason}. Should I help you get started?`;
     } else {
       // Downgrade or staying optional
@@ -494,8 +528,8 @@ export function generateClassificationAnnouncement(changes: ClassificationChange
 
   // Multiple changes - create a summary
   const intro = `Based on our conversation, I've updated some document recommendations:\n\n`;
-  const items = announcements.map((a, i) => `${i + 1}. ${a}`).join('\n');
-  const outro = '\n\nWould you like help with any of these documents?';
+  const items = announcements.map((a, i) => `${i + 1}. ${a}`).join("\n");
+  const outro = "\n\nWould you like help with any of these documents?";
 
   return intro + items + outro;
 }
@@ -508,16 +542,16 @@ export function generateClassificationAnnouncement(changes: ClassificationChange
 function formatDocumentName(documentPath: string): string {
   // Special cases for common documents
   const nameMap: Record<string, string> = {
-    'README.md': 'Idea Overview',
-    'development.md': 'Development Notes',
-    'evaluation.md': 'Evaluation',
-    'redteam.md': 'Red Team Analysis',
-    'target-users.md': 'Target Users',
-    'research/market.md': 'Market Analysis',
-    'research/competitive.md': 'Competitive Analysis',
-    'research/technical.md': 'Technical Research',
-    'planning/brief.md': 'Handoff Brief',
-    'planning/investor-pitch.md': 'Investor Pitch',
+    "README.md": "Idea Overview",
+    "development.md": "Development Notes",
+    "evaluation.md": "Evaluation",
+    "redteam.md": "Red Team Analysis",
+    "target-users.md": "Target Users",
+    "research/market.md": "Market Analysis",
+    "research/competitive.md": "Competitive Analysis",
+    "research/technical.md": "Technical Research",
+    "planning/brief.md": "Handoff Brief",
+    "planning/investor-pitch.md": "Investor Pitch",
   };
 
   if (nameMap[documentPath]) {
@@ -525,10 +559,10 @@ function formatDocumentName(documentPath: string): string {
   }
 
   // Extract filename without extension
-  const baseName = path.basename(documentPath, '.md');
+  const baseName = path.basename(documentPath, ".md");
 
   // Convert kebab-case or snake_case to Title Case
   return baseName
-    .replace(/[-_]/g, ' ')
+    .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }

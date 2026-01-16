@@ -1,11 +1,25 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Activity, Bot, AlertTriangle, Clock, MessageSquare, LayoutGrid, RefreshCw, FileText, PlayCircle } from 'lucide-react';
-import AgentStatusCard from '../components/agents/AgentStatusCard.js';
-import QuestionQueue from '../components/agents/QuestionQueue.js';
-import AgentActivityFeed from '../components/agents/AgentActivityFeed.js';
-import type { AgentInfo, AgentQuestion, ActivityEvent } from '../types/agent.js';
-import { priorityBadgeColors } from '../types/agent.js';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  Activity,
+  Bot,
+  AlertTriangle,
+  Clock,
+  MessageSquare,
+  LayoutGrid,
+  RefreshCw,
+  FileText,
+  PlayCircle,
+} from "lucide-react";
+import AgentStatusCard from "../components/agents/AgentStatusCard.js";
+import QuestionQueue from "../components/agents/QuestionQueue.js";
+import AgentActivityFeed from "../components/agents/AgentActivityFeed.js";
+import type {
+  AgentInfo,
+  AgentQuestion,
+  ActivityEvent,
+} from "../types/agent.js";
+import { priorityBadgeColors } from "../types/agent.js";
 
 interface ExecutorStatus {
   running: boolean;
@@ -22,9 +36,12 @@ export default function AgentDashboard(): JSX.Element {
   const [questions, setQuestions] = useState<AgentQuestion[]>([]);
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedQuestion, setSelectedQuestion] = useState<AgentQuestion | null>(null);
+  const [selectedQuestion, setSelectedQuestion] =
+    useState<AgentQuestion | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [executorStatus, setExecutorStatus] = useState<ExecutorStatus | null>(null);
+  const [executorStatus, setExecutorStatus] = useState<ExecutorStatus | null>(
+    null,
+  );
 
   useEffect(() => {
     fetchData();
@@ -48,13 +65,15 @@ export default function AgentDashboard(): JSX.Element {
     const connect = () => {
       if (!mounted) return;
 
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsHost = window.location.hostname;
-      const wsPort = '3001';
-      ws = new WebSocket(`${wsProtocol}//${wsHost}:${wsPort}/ws?executor=tasks`);
+      const wsPort = "3001";
+      ws = new WebSocket(
+        `${wsProtocol}//${wsHost}:${wsPort}/ws?executor=tasks`,
+      );
 
       ws.onopen = () => {
-        console.log('[AgentDashboard] WebSocket connected');
+        console.log("[AgentDashboard] WebSocket connected");
         reconnectAttempts = 0; // Reset on successful connection
       };
 
@@ -62,16 +81,19 @@ export default function AgentDashboard(): JSX.Element {
         try {
           const data = JSON.parse(event.data);
           // Refresh on task events to keep metrics in sync
-          if (data.type?.startsWith('task:') || data.type?.startsWith('executor:')) {
+          if (
+            data.type?.startsWith("task:") ||
+            data.type?.startsWith("executor:")
+          ) {
             fetchData();
           }
         } catch (err) {
-          console.error('WebSocket parse error:', err);
+          console.error("WebSocket parse error:", err);
         }
       };
 
       ws.onerror = (error) => {
-        console.error('[AgentDashboard] WebSocket error:', error);
+        console.error("[AgentDashboard] WebSocket error:", error);
       };
 
       ws.onclose = () => {
@@ -79,14 +101,19 @@ export default function AgentDashboard(): JSX.Element {
 
         // Reconnect with exponential backoff
         if (reconnectAttempts < maxReconnectAttempts) {
-          const delay = Math.min(baseDelay * Math.pow(2, reconnectAttempts), 30000);
-          console.log(`[AgentDashboard] WebSocket closed, reconnecting in ${delay}ms...`);
+          const delay = Math.min(
+            baseDelay * Math.pow(2, reconnectAttempts),
+            30000,
+          );
+          console.log(
+            `[AgentDashboard] WebSocket closed, reconnecting in ${delay}ms...`,
+          );
           reconnectTimeout = setTimeout(() => {
             reconnectAttempts++;
             connect();
           }, delay);
         } else {
-          console.error('[AgentDashboard] Max reconnection attempts reached');
+          console.error("[AgentDashboard] Max reconnection attempts reached");
         }
       };
     };
@@ -104,12 +131,13 @@ export default function AgentDashboard(): JSX.Element {
 
   async function fetchData(): Promise<void> {
     try {
-      const [agentsRes, questionsRes, executorRes, activitiesRes] = await Promise.all([
-        fetch('/api/agents'),
-        fetch('/api/questions/pending'),
-        fetch('/api/executor/status'),
-        fetch('/api/agents/activities/recent?limit=20'),
-      ]);
+      const [agentsRes, questionsRes, executorRes, activitiesRes] =
+        await Promise.all([
+          fetch("/api/agents"),
+          fetch("/api/questions/pending"),
+          fetch("/api/executor/status"),
+          fetch("/api/agents/activities/recent?limit=20"),
+        ]);
 
       if (agentsRes.ok) {
         const agentsData = await agentsRes.json();
@@ -136,7 +164,7 @@ export default function AgentDashboard(): JSX.Element {
         setActivities([]);
       }
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+      console.error("Failed to fetch dashboard data:", error);
     } finally {
       setLoading(false);
     }
@@ -144,14 +172,14 @@ export default function AgentDashboard(): JSX.Element {
 
   function handleAnswerQuestion(questionId: string, answer: string): void {
     // TODO: Call API to submit answer
-    console.log('Answering question:', questionId, 'with:', answer);
+    console.log("Answering question:", questionId, "with:", answer);
     setQuestions((qs) => qs.filter((q) => q.id !== questionId));
     setSelectedQuestion(null);
   }
 
-  const runningAgents = agents.filter((a) => a.status === 'running').length;
-  const waitingAgents = agents.filter((a) => a.status === 'waiting').length;
-  const errorAgents = agents.filter((a) => a.status === 'error').length;
+  const runningAgents = agents.filter((a) => a.status === "running").length;
+  const waitingAgents = agents.filter((a) => a.status === "waiting").length;
+  const errorAgents = agents.filter((a) => a.status === "error").length;
   const blockingQuestions = questions.filter((q) => q.blocking).length;
 
   if (loading) {
@@ -167,7 +195,9 @@ export default function AgentDashboard(): JSX.Element {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Agent Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500">Monitor and control the build pipeline agents</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Monitor and control the build pipeline agents
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-gray-600">
@@ -179,15 +209,24 @@ export default function AgentDashboard(): JSX.Element {
             />
             Auto-refresh
           </label>
-          <button onClick={fetchData} className="btn btn-secondary flex items-center gap-2">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <button
+            onClick={fetchData}
+            className="btn btn-secondary flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </button>
-          <Link to="/tasks" className="btn btn-secondary flex items-center gap-2">
+          <Link
+            to="/tasks"
+            className="btn btn-secondary flex items-center gap-2"
+          >
             <FileText className="h-4 w-4" />
             Task Lists
           </Link>
-          <Link to="/tasks/kanban" className="btn btn-primary flex items-center gap-2">
+          <Link
+            to="/tasks/kanban"
+            className="btn btn-primary flex items-center gap-2"
+          >
             <LayoutGrid className="h-4 w-4" />
             Kanban
           </Link>
@@ -195,13 +234,31 @@ export default function AgentDashboard(): JSX.Element {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Activity} iconBg="bg-green-100" iconColor="text-green-600" label="Running" value={runningAgents} />
-        <StatCard icon={Clock} iconBg="bg-amber-100" iconColor="text-amber-600" label="Waiting" value={waitingAgents} />
-        <StatCard icon={AlertTriangle} iconBg="bg-red-100" iconColor="text-red-600" label="Errors" value={errorAgents} />
+        <StatCard
+          icon={Activity}
+          iconBg="bg-green-100"
+          iconColor="text-green-600"
+          label="Running"
+          value={runningAgents}
+        />
+        <StatCard
+          icon={Clock}
+          iconBg="bg-amber-100"
+          iconColor="text-amber-600"
+          label="Waiting"
+          value={waitingAgents}
+        />
+        <StatCard
+          icon={AlertTriangle}
+          iconBg="bg-red-100"
+          iconColor="text-red-600"
+          label="Errors"
+          value={errorAgents}
+        />
         <StatCard
           icon={MessageSquare}
-          iconBg={blockingQuestions > 0 ? 'bg-red-100' : 'bg-blue-100'}
-          iconColor={blockingQuestions > 0 ? 'text-red-600' : 'text-blue-600'}
+          iconBg={blockingQuestions > 0 ? "bg-red-100" : "bg-blue-100"}
+          iconColor={blockingQuestions > 0 ? "text-red-600" : "text-blue-600"}
           label="Blocking"
           value={blockingQuestions}
         />
@@ -234,24 +291,35 @@ export default function AgentDashboard(): JSX.Element {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <p className="text-2xl font-bold text-gray-900">{executorStatus.totalTasks}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {executorStatus.totalTasks}
+              </p>
               <p className="text-xs text-gray-500">Total Tasks</p>
             </div>
             <div className="text-center p-3 bg-green-50 rounded-lg">
-              <p className="text-2xl font-bold text-green-600">{executorStatus.completedTasks}</p>
+              <p className="text-2xl font-bold text-green-600">
+                {executorStatus.completedTasks}
+              </p>
               <p className="text-xs text-gray-500">Completed</p>
             </div>
             <div className="text-center p-3 bg-red-50 rounded-lg">
-              <p className="text-2xl font-bold text-red-600">{executorStatus.failedTasks}</p>
+              <p className="text-2xl font-bold text-red-600">
+                {executorStatus.failedTasks}
+              </p>
               <p className="text-xs text-gray-500">Failed</p>
             </div>
             <div className="text-center p-3 bg-amber-50 rounded-lg">
-              <p className="text-2xl font-bold text-amber-600">{executorStatus.skippedTasks}</p>
+              <p className="text-2xl font-bold text-amber-600">
+                {executorStatus.skippedTasks}
+              </p>
               <p className="text-xs text-gray-500">Skipped</p>
             </div>
             <div className="text-center p-3 bg-blue-50 rounded-lg">
               <p className="text-2xl font-bold text-blue-600">
-                {executorStatus.totalTasks - executorStatus.completedTasks - executorStatus.failedTasks - executorStatus.skippedTasks}
+                {executorStatus.totalTasks -
+                  executorStatus.completedTasks -
+                  executorStatus.failedTasks -
+                  executorStatus.skippedTasks}
               </p>
               <p className="text-xs text-gray-500">Pending</p>
             </div>
@@ -325,7 +393,13 @@ interface StatCardProps {
   value: number;
 }
 
-function StatCard({ icon: Icon, iconBg, iconColor, label, value }: StatCardProps): JSX.Element {
+function StatCard({
+  icon: Icon,
+  iconBg,
+  iconColor,
+  label,
+  value,
+}: StatCardProps): JSX.Element {
   return (
     <div className="card flex items-center gap-3">
       <div className={`p-2 rounded-lg ${iconBg}`}>
@@ -345,8 +419,12 @@ interface QuestionDetailModalProps {
   onAnswer: (questionId: string, answer: string) => void;
 }
 
-function QuestionDetailModal({ question, onClose, onAnswer }: QuestionDetailModalProps): JSX.Element {
-  const [customAnswer, setCustomAnswer] = useState('');
+function QuestionDetailModal({
+  question,
+  onClose,
+  onAnswer,
+}: QuestionDetailModalProps): JSX.Element {
+  const [customAnswer, setCustomAnswer] = useState("");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -355,24 +433,35 @@ function QuestionDetailModal({ question, onClose, onAnswer }: QuestionDetailModa
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className={`px-2 py-0.5 text-xs font-medium rounded ${priorityBadgeColors[question.priority]}`}>
+                <span
+                  className={`px-2 py-0.5 text-xs font-medium rounded ${priorityBadgeColors[question.priority]}`}
+                >
                   {question.priority.toUpperCase()}
                 </span>
                 {question.blocking && (
-                  <span className="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800">BLOCKING</span>
+                  <span className="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800">
+                    BLOCKING
+                  </span>
                 )}
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">{question.agentName}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {question.agentName}
+              </h3>
               <p className="text-sm text-gray-500">{question.type}</p>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
               x
             </button>
           </div>
 
           <div className="mb-6">
             <p className="text-gray-700">{question.content}</p>
-            <p className="text-xs text-gray-400 mt-2">Asked {new Date(question.createdAt).toLocaleString()}</p>
+            <p className="text-xs text-gray-400 mt-2">
+              Asked {new Date(question.createdAt).toLocaleString()}
+            </p>
           </div>
 
           {question.options && (
@@ -390,7 +479,9 @@ function QuestionDetailModal({ question, onClose, onAnswer }: QuestionDetailModa
           )}
 
           <div className="border-t pt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Or provide a custom answer:</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Or provide a custom answer:
+            </label>
             <textarea
               value={customAnswer}
               onChange={(e) => setCustomAnswer(e.target.value)}
@@ -399,7 +490,9 @@ function QuestionDetailModal({ question, onClose, onAnswer }: QuestionDetailModa
               placeholder="Type your answer..."
             />
             <button
-              onClick={() => customAnswer && onAnswer(question.id, customAnswer)}
+              onClick={() =>
+                customAnswer && onAnswer(question.id, customAnswer)
+              }
               disabled={!customAnswer}
               className="mt-2 w-full btn btn-primary disabled:opacity-50"
             >

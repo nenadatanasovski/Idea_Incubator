@@ -12,6 +12,7 @@
 ## Overview
 
 Implementation of the always-on Task Agent for the Vibe platform with:
+
 - Telegram bot interface (one chat per task list)
 - Validation gate (blocks execution on missing fields/tests)
 - Deduplication/merge capabilities
@@ -23,11 +24,13 @@ Implementation of the always-on Task Agent for the Vibe platform with:
 - Three-level test framework (Codebase + API + UI via MCP Puppeteer)
 
 ### Task Naming Convention
+
 `{USER_ID}-{SCOPE_ID}-{TYPE}-{NUMBER}[-{SUBTASK}-{VERSION}]`
 
 Example: `TU-VIBE-FEA-001` for user TU, project VIBE, feature #001
 
 ### Architecture References
+
 - `docs/architecture/task-agent-arch.md` - Full architecture
 - `docs/architecture/task-data-model.md` - Database schema
 - `docs/architecture/task-agent-test-plan.md` - Test plan
@@ -36,30 +39,31 @@ Example: `TU-VIBE-FEA-001` for user TU, project VIBE, feature #001
 
 ## Task Categories
 
-| Category | Prefix | Description |
-|----------|--------|-------------|
-| `feature` | FEA | New functionality |
-| `improvement` | IMP | Enhancement to existing |
-| `bug` | BUG | Defect fix |
-| `investigation` | INV | Research/spike |
-| `technical_debt` | TDB | Code quality improvements |
-| `infrastructure` | INF | DevOps/CI/CD |
-| `documentation` | DOC | Docs only |
-| `refactoring` | REF | Structure without behavior change |
-| `security` | SEC | Security-related |
-| `performance` | PER | Optimization |
-| `testing` | TST | Test coverage |
-| `migration` | MIG | Data/schema/API migration |
-| `integration` | INT | Third-party services |
-| `ux_design` | UXD | UI/UX improvements |
-| `maintenance` | MNT | Dependencies, cleanup |
-| `decommissioned` | DEC | Deprecated/removed |
+| Category         | Prefix | Description                       |
+| ---------------- | ------ | --------------------------------- |
+| `feature`        | FEA    | New functionality                 |
+| `improvement`    | IMP    | Enhancement to existing           |
+| `bug`            | BUG    | Defect fix                        |
+| `investigation`  | INV    | Research/spike                    |
+| `technical_debt` | TDB    | Code quality improvements         |
+| `infrastructure` | INF    | DevOps/CI/CD                      |
+| `documentation`  | DOC    | Docs only                         |
+| `refactoring`    | REF    | Structure without behavior change |
+| `security`       | SEC    | Security-related                  |
+| `performance`    | PER    | Optimization                      |
+| `testing`        | TST    | Test coverage                     |
+| `migration`      | MIG    | Data/schema/API migration         |
+| `integration`    | INT    | Third-party services              |
+| `ux_design`      | UXD    | UI/UX improvements                |
+| `maintenance`    | MNT    | Dependencies, cleanup             |
+| `decommissioned` | DEC    | Deprecated/removed                |
 
 ---
 
 ## Phase 1: Database Schema
 
 ### TAK-001
+
 ```yaml
 id: TAK-001
 phase: database
@@ -142,6 +146,7 @@ acceptance_criteria:
 ```
 
 ### TAK-002
+
 ```yaml
 id: TAK-002
 phase: database
@@ -190,6 +195,7 @@ depends_on: ["TAK-001"]
 ```
 
 ### TAK-003
+
 ```yaml
 id: TAK-003
 phase: database
@@ -228,6 +234,7 @@ depends_on: ["TAK-001"]
 ```
 
 ### TAK-004
+
 ```yaml
 id: TAK-004
 phase: database
@@ -270,6 +277,7 @@ depends_on: ["TAK-001"]
 ```
 
 ### TAK-005
+
 ```yaml
 id: TAK-005
 phase: database
@@ -313,6 +321,7 @@ depends_on: ["TAK-001"]
 ```
 
 ### TAK-006
+
 ```yaml
 id: TAK-006
 phase: database
@@ -364,6 +373,7 @@ depends_on: []
 ```
 
 ### TAK-006a
+
 ```yaml
 id: TAK-006a
 phase: database
@@ -424,6 +434,7 @@ depends_on: ["TAK-001"]
 ```
 
 ### TAK-006b
+
 ```yaml
 id: TAK-006b
 phase: database
@@ -470,6 +481,7 @@ depends_on: ["TAK-001", "TAK-006a"]
 ```
 
 ### TAK-006c
+
 ```yaml
 id: TAK-006c
 phase: database
@@ -529,6 +541,7 @@ depends_on: []
 ## Phase 2: TypeScript Types
 
 ### TAK-007
+
 ```yaml
 id: TAK-007
 phase: types
@@ -711,6 +724,7 @@ code_template: |
 ## Phase 3: Core Services
 
 ### TAK-008
+
 ```yaml
 id: TAK-008
 phase: api
@@ -748,6 +762,7 @@ acceptance_criteria:
 ```
 
 ### TAK-009
+
 ```yaml
 id: TAK-009
 phase: api
@@ -782,6 +797,7 @@ acceptance_criteria:
 ```
 
 ### TAK-010
+
 ```yaml
 id: TAK-010
 phase: api
@@ -812,6 +828,7 @@ acceptance_criteria:
 ```
 
 ### TAK-011
+
 ```yaml
 id: TAK-011
 phase: api
@@ -845,6 +862,7 @@ acceptance_criteria:
 ```
 
 ### TAK-012
+
 ```yaml
 id: TAK-012
 phase: api
@@ -875,6 +893,7 @@ acceptance_criteria:
 ```
 
 ### TAK-013
+
 ```yaml
 id: TAK-013
 phase: api
@@ -909,6 +928,7 @@ acceptance_criteria:
 ```
 
 ### TAK-014
+
 ```yaml
 id: TAK-014
 phase: api
@@ -943,6 +963,7 @@ acceptance_criteria:
 ```
 
 ### TAK-015
+
 ```yaml
 id: TAK-015
 phase: api
@@ -978,6 +999,7 @@ acceptance_criteria:
 ```
 
 ### TAK-015a
+
 ```yaml
 id: TAK-015a
 phase: api
@@ -1013,6 +1035,7 @@ acceptance_criteria:
 ```
 
 ### TAK-015b
+
 ```yaml
 id: TAK-015b
 phase: api
@@ -1047,6 +1070,7 @@ acceptance_criteria:
 ```
 
 ### TAK-015c
+
 ```yaml
 id: TAK-015c
 phase: api
@@ -1081,6 +1105,7 @@ acceptance_criteria:
 ```
 
 ### TAK-016
+
 ```yaml
 id: TAK-016
 phase: api
@@ -1109,7 +1134,20 @@ validation:
   command: "npx tsc --noEmit server/services/task-agent/task-agent.ts"
   expected: "exit code 0"
 
-depends_on: ["TAK-008", "TAK-009", "TAK-010", "TAK-011", "TAK-012", "TAK-013", "TAK-014", "TAK-015", "TAK-015a", "TAK-015b", "TAK-015c"]
+depends_on:
+  [
+    "TAK-008",
+    "TAK-009",
+    "TAK-010",
+    "TAK-011",
+    "TAK-012",
+    "TAK-013",
+    "TAK-014",
+    "TAK-015",
+    "TAK-015a",
+    "TAK-015b",
+    "TAK-015c",
+  ]
 
 acceptance_criteria:
   - "Starts and registers with CommunicationHub"
@@ -1124,6 +1162,7 @@ acceptance_criteria:
 ## Phase 4: API Routes
 
 ### TAK-017
+
 ```yaml
 id: TAK-017
 phase: api
@@ -1154,6 +1193,7 @@ acceptance_criteria:
 ```
 
 ### TAK-018
+
 ```yaml
 id: TAK-018
 phase: api
@@ -1180,6 +1220,7 @@ depends_on: ["TAK-017"]
 ## Phase 5: Telegram Bot Integration
 
 ### TAK-019
+
 ```yaml
 id: TAK-019
 phase: api
@@ -1198,6 +1239,7 @@ depends_on: ["TAK-016"]
 ```
 
 ### TAK-020
+
 ```yaml
 id: TAK-020
 phase: api
@@ -1235,6 +1277,7 @@ acceptance_criteria:
 ## Phase 6: WebSocket Events
 
 ### TAK-021
+
 ```yaml
 id: TAK-021
 phase: api
@@ -1273,6 +1316,7 @@ events_to_add:
 ## Phase 7: Frontend Components
 
 ### TAK-022
+
 ```yaml
 id: TAK-022
 phase: ui
@@ -1293,6 +1337,7 @@ depends_on: ["TAK-017", "TAK-021"]
 ```
 
 ### TAK-023
+
 ```yaml
 id: TAK-023
 phase: ui
@@ -1313,6 +1358,7 @@ depends_on: ["TAK-022"]
 ```
 
 ### TAK-024
+
 ```yaml
 id: TAK-024
 phase: ui
@@ -1333,6 +1379,7 @@ depends_on: ["TAK-022"]
 ```
 
 ### TAK-025
+
 ```yaml
 id: TAK-025
 phase: ui
@@ -1352,6 +1399,7 @@ depends_on: ["TAK-022"]
 ```
 
 ### TAK-026
+
 ```yaml
 id: TAK-026
 phase: ui
@@ -1371,6 +1419,7 @@ depends_on: ["TAK-022"]
 ```
 
 ### TAK-027
+
 ```yaml
 id: TAK-027
 phase: ui
@@ -1394,6 +1443,7 @@ depends_on: ["TAK-022"]
 ## Phase 8: Tests
 
 ### TAK-028
+
 ```yaml
 id: TAK-028
 phase: tests
@@ -1413,6 +1463,7 @@ depends_on: ["TAK-008"]
 ```
 
 ### TAK-029
+
 ```yaml
 id: TAK-029
 phase: tests
@@ -1432,6 +1483,7 @@ depends_on: ["TAK-009"]
 ```
 
 ### TAK-030
+
 ```yaml
 id: TAK-030
 phase: tests
@@ -1451,6 +1503,7 @@ depends_on: ["TAK-012"]
 ```
 
 ### TAK-031
+
 ```yaml
 id: TAK-031
 phase: tests
@@ -1470,6 +1523,7 @@ depends_on: ["TAK-013"]
 ```
 
 ### TAK-032
+
 ```yaml
 id: TAK-032
 phase: tests
@@ -1494,6 +1548,7 @@ depends_on: ["TAK-017"]
 ## Phase 9: API Test Cases (For Task Agent Self-Testing)
 
 ### TAK-033
+
 ```yaml
 id: TAK-033
 phase: tests
@@ -1550,6 +1605,7 @@ depends_on: ["TAK-017"]
 ```
 
 ### TAK-034
+
 ```yaml
 id: TAK-034
 phase: tests
@@ -1594,6 +1650,7 @@ depends_on: ["TAK-017"]
 ## Phase 10: UI Test Cases (MCP Puppeteer)
 
 ### TAK-035
+
 ```yaml
 id: TAK-035
 phase: tests
@@ -1654,6 +1711,7 @@ depends_on: ["TAK-022"]
 ```
 
 ### TAK-036
+
 ```yaml
 id: TAK-036
 phase: tests
@@ -1746,6 +1804,7 @@ depends_on: ["TAK-022", "TAK-024"]
 ```
 
 ### TAK-037
+
 ```yaml
 id: TAK-037
 phase: tests
@@ -1832,6 +1891,7 @@ depends_on: ["TAK-022", "TAK-025"]
 ## Phase 11: E2E Integration Tests
 
 ### TAK-038
+
 ```yaml
 id: TAK-038
 phase: tests
@@ -1851,6 +1911,7 @@ depends_on: ["TAK-016", "TAK-017"]
 ```
 
 ### TAK-039
+
 ```yaml
 id: TAK-039
 phase: tests
@@ -1874,6 +1935,7 @@ depends_on: ["TAK-020"]
 ## Phase 12: Documentation
 
 ### TAK-040
+
 ```yaml
 id: TAK-040
 phase: documentation
@@ -1893,6 +1955,7 @@ depends_on: ["TAK-016"]
 ```
 
 ### TAK-041
+
 ```yaml
 id: TAK-041
 phase: documentation
@@ -1917,6 +1980,7 @@ depends_on: ["TAK-016"]
 ## Additional Capabilities (Gap Analysis)
 
 ### TAK-042
+
 ```yaml
 id: TAK-042
 phase: api
@@ -1938,6 +2002,7 @@ depends_on: ["TAK-016"]
 ```
 
 ### TAK-043
+
 ```yaml
 id: TAK-043
 phase: api
@@ -1959,6 +2024,7 @@ depends_on: ["TAK-016"]
 ```
 
 ### TAK-044
+
 ```yaml
 id: TAK-044
 phase: api
@@ -1980,6 +2046,7 @@ depends_on: ["TAK-016"]
 ```
 
 ### TAK-045
+
 ```yaml
 id: TAK-045
 phase: api
@@ -2001,6 +2068,7 @@ depends_on: ["TAK-016"]
 ```
 
 ### TAK-046
+
 ```yaml
 id: TAK-046
 phase: api
@@ -2022,6 +2090,7 @@ depends_on: ["TAK-013"]
 ```
 
 ### TAK-047
+
 ```yaml
 id: TAK-047
 phase: api
@@ -2049,12 +2118,14 @@ depends_on: ["TAK-011"]
 **Location:** `server/services/task-agent/`
 
 **Events (Subscribes):**
+
 - `ideation.completed` - Trigger spec generation
 - `task.completed` - Auto-unblock dependents
 - `task.failed` - Handle failure flows
 - `build.completed` - Update task status
 
 **Events (Publishes):**
+
 - `tasklist.generated` - New task list created
 - `tasklist.ready` - Approved for execution
 - `task.started` - Task execution began
@@ -2065,6 +2136,7 @@ depends_on: ["TAK-011"]
 - `task:duplicate_detected`, `task:completion_detected`
 
 **APIs:**
+
 - `POST /api/task-agent/tasks` - Create task
 - `GET /api/task-agent/tasks` - List tasks
 - `GET /api/task-agent/tasks/:id` - Get task details
@@ -2077,6 +2149,7 @@ depends_on: ["TAK-011"]
 - `POST /api/task-agent/task-lists/:id/approve` - Approve for execution
 
 **Telegram Commands:**
+
 ```
 /start      - Link chat to task list
 /status     - Show current execution status
@@ -2139,16 +2212,19 @@ Phase 12 (Documentation) ◄─────────────────�
 ## Exit Criteria by Phase
 
 ### Phase 1: Database
+
 - [ ] All 9 tables created in SQLite (migrations 050-058)
 - [ ] Foreign key relationships work correctly
 - [ ] Indexes created for performance
 
 ### Phase 2: Types
+
 - [ ] TypeScript types compile without errors
 - [ ] All interfaces match database schema
 - [ ] Types exported for use by other modules
 
 ### Phase 3: Core Services
+
 - [ ] ValidationGate blocks tasks without required fields/tests
 - [ ] DeduplicationEngine finds similar tasks (>0.8 threshold)
 - [ ] DependencyManager prevents circular dependencies
@@ -2158,26 +2234,31 @@ Phase 12 (Documentation) ◄─────────────────�
 - [ ] TaskAgent starts and registers with CommunicationHub
 
 ### Phase 4: API Routes
+
 - [ ] All CRUD operations work
 - [ ] Validation endpoint returns blocking/non-blocking issues
 - [ ] Test execution endpoint runs tests correctly
 
 ### Phase 5: Telegram
+
 - [ ] All commands documented work
 - [ ] Proactive notifications sent (5 min minimum interval)
 - [ ] Questions block execution until answered
 - [ ] Inline buttons work (Execute Now / Later / Details)
 
 ### Phase 6: WebSocket
-- [ ] All task:* events broadcast to subscribers
+
+- [ ] All task:\* events broadcast to subscribers
 - [ ] Real-time updates work in dashboard
 
 ### Phase 7: Frontend
+
 - [ ] Dashboard shows task stats
 - [ ] Task creation form validates input
 - [ ] Dependency graph renders correctly
 
 ### Phase 8-11: Tests
+
 - [ ] Unit tests pass for all core services
 - [ ] API tests cover all endpoints
 - [ ] UI tests pass for dashboard and forms
@@ -2187,25 +2268,26 @@ Phase 12 (Documentation) ◄─────────────────�
 
 ## Summary
 
-| Phase | Task Count | Priority |
-|-------|------------|----------|
-| Database | 9 | P1 |
-| Types | 1 | P1 |
-| Core Services | 12 | P1 |
-| API Routes | 2 | P1 |
-| Telegram | 2 | P1 |
-| WebSocket | 1 | P1 |
-| Frontend | 6 | P2 |
-| Unit Tests | 5 | P1 |
-| API Tests | 2 | P1 |
-| UI Tests | 3 | P1 |
-| E2E Tests | 2 | P1 |
-| Documentation | 2 | P2 |
-| Additional Capabilities | 6 | P3 |
+| Phase                   | Task Count | Priority |
+| ----------------------- | ---------- | -------- |
+| Database                | 9          | P1       |
+| Types                   | 1          | P1       |
+| Core Services           | 12         | P1       |
+| API Routes              | 2          | P1       |
+| Telegram                | 2          | P1       |
+| WebSocket               | 1          | P1       |
+| Frontend                | 6          | P2       |
+| Unit Tests              | 5          | P1       |
+| API Tests               | 2          | P1       |
+| UI Tests                | 3          | P1       |
+| E2E Tests               | 2          | P1       |
+| Documentation           | 2          | P2       |
+| Additional Capabilities | 6          | P3       |
 
 **Total: 53 tasks**
 
 ### New Tasks Added (per Q&A Decisions)
+
 - TAK-006a: Task lists table
 - TAK-006b: Task list items junction table
 - TAK-006c: Questions table

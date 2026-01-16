@@ -64,13 +64,13 @@
 
 ### Core Principles
 
-| Principle | Description | Example |
-|-----------|-------------|---------|
-| **Curiosity Over Assumption** | Ask rather than assume | "What budget are you comfortable with?" not assuming $10K |
-| **Forward Thinking** | Help users anticipate | "Have you considered what happens when this scales?" |
-| **Ownership Building** | User decides, system advises | "I see 3 options. Which feels right to you?" |
-| **Excitement Maintenance** | Celebrate progress, validate effort | "This is a solid foundation. Ready for the next step?" |
-| **Transparent Reasoning** | Explain why we're asking | "I'm asking because this affects the tech stack choice..." |
+| Principle                     | Description                         | Example                                                    |
+| ----------------------------- | ----------------------------------- | ---------------------------------------------------------- |
+| **Curiosity Over Assumption** | Ask rather than assume              | "What budget are you comfortable with?" not assuming $10K  |
+| **Forward Thinking**          | Help users anticipate               | "Have you considered what happens when this scales?"       |
+| **Ownership Building**        | User decides, system advises        | "I see 3 options. Which feels right to you?"               |
+| **Excitement Maintenance**    | Celebrate progress, validate effort | "This is a solid foundation. Ready for the next step?"     |
+| **Transparent Reasoning**     | Explain why we're asking            | "I'm asking because this affects the tech stack choice..." |
 
 ### When NOT to Ask
 
@@ -133,22 +133,22 @@ Do Ask When:
 ```typescript
 enum QuestionType {
   // Blocking - agent cannot proceed without answer
-  BLOCKING = 'blocking',
+  BLOCKING = "blocking",
 
   // Clarifying - improves quality but has safe default
-  CLARIFYING = 'clarifying',
+  CLARIFYING = "clarifying",
 
   // Confirming - validates agent's assumption
-  CONFIRMING = 'confirming',
+  CONFIRMING = "confirming",
 
   // Educational - helps user think ahead
-  EDUCATIONAL = 'educational',
+  EDUCATIONAL = "educational",
 
   // Celebratory - marks progress, builds excitement
-  CELEBRATORY = 'celebratory',
+  CELEBRATORY = "celebratory",
 
   // Preference - learns user style for future
-  PREFERENCE = 'preference'
+  PREFERENCE = "preference",
 }
 
 interface Question {
@@ -159,7 +159,7 @@ interface Question {
 
   // The question itself
   text: string;
-  context: string;  // Why we're asking
+  context: string; // Why we're asking
 
   // Response options
   options?: QuestionOption[];
@@ -179,7 +179,7 @@ interface Question {
   answer?: string;
 
   // Learning
-  tags: string[];  // For pattern matching
+  tags: string[]; // For pattern matching
   learnFromAnswer: boolean;
 }
 
@@ -188,7 +188,7 @@ interface QuestionOption {
   label: string;
   description?: string;
   recommended?: boolean;
-  implications?: string;  // "Choosing this means..."
+  implications?: string; // "Choosing this means..."
 }
 ```
 
@@ -239,14 +239,14 @@ class QuestionQueue {
   }
 
   getNextQuestion(): Question | null {
-    return this.questions.find(q => !q.answeredAt) || null;
+    return this.questions.find((q) => !q.answeredAt) || null;
   }
 
   getPendingCount(): { blocking: number; total: number } {
-    const pending = this.questions.filter(q => !q.answeredAt);
+    const pending = this.questions.filter((q) => !q.answeredAt);
     return {
-      blocking: pending.filter(q => q.blocking).length,
-      total: pending.length
+      blocking: pending.filter((q) => q.blocking).length,
+      total: pending.length,
     };
   }
 }
@@ -361,7 +361,6 @@ Trigger Points:
   - When scope creep detected
 
 Question Templates:
-
   # Requirements Clarification
   - type: BLOCKING
     trigger: "Requirement has ambiguous terms"
@@ -466,7 +465,6 @@ Trigger Points:
   - On significant milestones
 
 Question Templates:
-
   # Implementation Choice
   - type: CLARIFYING
     trigger: "Multiple valid implementations"
@@ -572,7 +570,6 @@ Trigger Points:
   - Before sign-off
 
 Question Templates:
-
   # Validation Level
   - type: CLARIFYING
     trigger: "Validation level not specified"
@@ -680,7 +677,6 @@ Trigger Points:
   - After UX review complete
 
 Question Templates:
-
   # Persona Selection
   - type: CLARIFYING
     trigger: "No persona specified for testing"
@@ -767,7 +763,7 @@ Question Templates:
 
 ### SIA Agent Questions
 
-```yaml
+````yaml
 Phase: LEARN (Continuous)
 
 Trigger Points:
@@ -777,7 +773,6 @@ Trigger Points:
   - When confidence is low
 
 Question Templates:
-
   # Pattern Confirmation
   - type: CONFIRMING
     trigger: "Pattern detected with high confidence"
@@ -850,7 +845,7 @@ Question Templates:
       - "Show me the new patterns"
       - "Review gotchas"
       - "Looks good, continue"
-```
+````
 
 ---
 
@@ -924,13 +919,13 @@ class QuestionBatcher {
       id: generateId(),
       questions: questions,
       header: `${questions[0].agent} has ${questions.length} questions`,
-      canAnswerAll: this.hasDefaultsForAll(questions)
+      canAnswerAll: this.hasDefaultsForAll(questions),
     };
   }
 
   // "Answer all with defaults" option
   private hasDefaultsForAll(questions: Question[]): boolean {
-    return questions.every(q => q.defaultOption !== undefined);
+    return questions.every((q) => q.defaultOption !== undefined);
   }
 }
 ```
@@ -1157,8 +1152,8 @@ class QuestionBatcher {
 ```typescript
 interface AgentStatusIndicator {
   agent: AgentType;
-  status: 'idle' | 'working' | 'waiting' | 'blocked' | 'error';
-  progress?: number;  // 0-100
+  status: "idle" | "working" | "waiting" | "blocked" | "error";
+  progress?: number; // 0-100
   currentTask?: string;
   waitingFor?: string;
   hasQuestions: boolean;
@@ -1206,14 +1201,14 @@ interface ProgressBar {
   label: string;
 
   // Visual
-  color: 'blue' | 'green' | 'yellow' | 'red';
+  color: "blue" | "green" | "yellow" | "red";
   showPercentage: boolean;
   animated: boolean;
 
   // Sub-progress
   subTasks?: {
     label: string;
-    status: 'pending' | 'active' | 'done' | 'error';
+    status: "pending" | "active" | "done" | "error";
   }[];
 }
 ```
@@ -1225,7 +1220,7 @@ interface TimelineEvent {
   id: string;
   timestamp: Date;
   agent: AgentType;
-  type: 'start' | 'complete' | 'question' | 'error' | 'learn' | 'milestone';
+  type: "start" | "complete" | "question" | "error" | "learn" | "milestone";
 
   // Content
   title: string;
@@ -1414,33 +1409,35 @@ CREATE INDEX idx_events_recent ON orchestration_events(created_at DESC);
 
 ```typescript
 // Question endpoints
-router.get('/api/questions', getQuestions);
-router.get('/api/questions/pending', getPendingQuestions);
-router.get('/api/questions/:id', getQuestion);
-router.post('/api/questions/:id/answer', answerQuestion);
-router.post('/api/questions/:id/skip', skipQuestion);
-router.post('/api/questions/:id/remind', remindLater);
+router.get("/api/questions", getQuestions);
+router.get("/api/questions/pending", getPendingQuestions);
+router.get("/api/questions/:id", getQuestion);
+router.post("/api/questions/:id/answer", answerQuestion);
+router.post("/api/questions/:id/skip", skipQuestion);
+router.post("/api/questions/:id/remind", remindLater);
 
 // Orchestration endpoints
-router.get('/api/orchestration/status', getOrchestratorStatus);
-router.get('/api/orchestration/agents', getAgentStatuses);
-router.get('/api/orchestration/timeline', getTimeline);
-router.post('/api/orchestration/pause', pauseOrchestrator);
-router.post('/api/orchestration/resume', resumeOrchestrator);
-router.post('/api/orchestration/agents/:agent/pause', pauseAgent);
+router.get("/api/orchestration/status", getOrchestratorStatus);
+router.get("/api/orchestration/agents", getAgentStatuses);
+router.get("/api/orchestration/timeline", getTimeline);
+router.post("/api/orchestration/pause", pauseOrchestrator);
+router.post("/api/orchestration/resume", resumeOrchestrator);
+router.post("/api/orchestration/agents/:agent/pause", pauseAgent);
 
 // WebSocket for real-time updates
-wss.on('connection', (ws) => {
+wss.on("connection", (ws) => {
   // Subscribe to events
-  ws.on('subscribe', (channels) => {
+  ws.on("subscribe", (channels) => {
     // channels: ['questions', 'agents', 'timeline', 'milestones']
   });
 
   // Push updates
-  eventBus.on('question.created', (q) => ws.send({ type: 'question', data: q }));
-  eventBus.on('agent.status', (s) => ws.send({ type: 'agent', data: s }));
-  eventBus.on('event.created', (e) => ws.send({ type: 'event', data: e }));
-  eventBus.on('milestone', (m) => ws.send({ type: 'milestone', data: m }));
+  eventBus.on("question.created", (q) =>
+    ws.send({ type: "question", data: q }),
+  );
+  eventBus.on("agent.status", (s) => ws.send({ type: "agent", data: s }));
+  eventBus.on("event.created", (e) => ws.send({ type: "event", data: e }));
+  eventBus.on("milestone", (m) => ws.send({ type: "milestone", data: m }));
 });
 ```
 
@@ -1535,19 +1532,19 @@ Always structure questions as:
 
 ## Summary
 
-| Component | Purpose | Status |
-|-----------|---------|--------|
-| **Questioning Framework** | Cross-cutting concern for all agents | New |
-| **Question Types by Agent** | Specific templates per agent | New (add to AGENT-SPECIFICATIONS-PIPELINE.md) |
-| **Question Queue** | Priority management, batching | New |
-| **Orchestration Panel** | Real-time agent visibility | New |
-| **Question Panel** | User input interface | New |
-| **Activity Timeline** | Historical view | New |
-| **Celebration System** | Engagement and motivation | New |
-| **WebSocket Updates** | Real-time UI sync | New |
+| Component                   | Purpose                              | Status                                        |
+| --------------------------- | ------------------------------------ | --------------------------------------------- |
+| **Questioning Framework**   | Cross-cutting concern for all agents | New                                           |
+| **Question Types by Agent** | Specific templates per agent         | New (add to AGENT-SPECIFICATIONS-PIPELINE.md) |
+| **Question Queue**          | Priority management, batching        | New                                           |
+| **Orchestration Panel**     | Real-time agent visibility           | New                                           |
+| **Question Panel**          | User input interface                 | New                                           |
+| **Activity Timeline**       | Historical view                      | New                                           |
+| **Celebration System**      | Engagement and motivation            | New                                           |
+| **WebSocket Updates**       | Real-time UI sync                    | New                                           |
 
 This system ensures users stay engaged, informed, and in control throughout the entire lifecycle—from idea spark to running application.
 
 ---
 
-*The best automation includes the human, not excludes them.*
+_The best automation includes the human, not excludes them._

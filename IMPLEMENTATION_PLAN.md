@@ -22,13 +22,13 @@ At its most fundamental level, an idea incubator must:
 
 ### Current System Assessment Against First Principles
 
-| Principle | Current State | Gap Severity |
-|-----------|--------------|--------------|
-| **Capture** | Working - markdown + SQLite | Low |
-| **Evaluate** | Partial - evaluates but doesn't persist | **CRITICAL** |
-| **Challenge** | Partial - debates but results lost | **CRITICAL** |
-| **Learn** | Broken - no historical analysis possible | **HIGH** |
-| **Guide** | Weak - recommendations exist but no workflow | **MEDIUM** |
+| Principle     | Current State                                | Gap Severity |
+| ------------- | -------------------------------------------- | ------------ |
+| **Capture**   | Working - markdown + SQLite                  | Low          |
+| **Evaluate**  | Partial - evaluates but doesn't persist      | **CRITICAL** |
+| **Challenge** | Partial - debates but results lost           | **CRITICAL** |
+| **Learn**     | Broken - no historical analysis possible     | **HIGH**     |
+| **Guide**     | Weak - recommendations exist but no workflow | **MEDIUM**   |
 
 ---
 
@@ -38,67 +38,67 @@ At its most fundamental level, an idea incubator must:
 
 These issues break the core value proposition of the system.
 
-| Issue ID | Description | Impact | Evidence |
-|----------|-------------|--------|----------|
-| **A1** | Debate rounds not saved to `debate_rounds` table | All debate history lost after session | Table exists but INSERT never called |
-| **A2** | Final synthesis not saved to `final_syntheses` table | Recommendations lost | Same pattern |
-| **A3** | Red team challenges not saved to `redteam_log` | Cannot analyze challenge patterns | Table empty |
-| **A4** | `evaluation.md` file never written | Evaluations not version-controlled | Template exists, generation missing |
-| **A5** | WebSocket events not persisted | Live viewer only works during active session | Events broadcast but not stored |
+| Issue ID | Description                                          | Impact                                       | Evidence                             |
+| -------- | ---------------------------------------------------- | -------------------------------------------- | ------------------------------------ |
+| **A1**   | Debate rounds not saved to `debate_rounds` table     | All debate history lost after session        | Table exists but INSERT never called |
+| **A2**   | Final synthesis not saved to `final_syntheses` table | Recommendations lost                         | Same pattern                         |
+| **A3**   | Red team challenges not saved to `redteam_log`       | Cannot analyze challenge patterns            | Table empty                          |
+| **A4**   | `evaluation.md` file never written                   | Evaluations not version-controlled           | Template exists, generation missing  |
+| **A5**   | WebSocket events not persisted                       | Live viewer only works during active session | Events broadcast but not stored      |
 
 ### Category B: Framework Gaps (HIGH)
 
 Missing predetermined frameworks that would improve evaluation quality.
 
-| Issue ID | Description | Why It Matters |
-|----------|-------------|----------------|
-| **B1** | No market validation frameworks | Evaluators have no standard templates for TAM/SAM/SOM analysis |
-| **B2** | No competitive analysis templates | "Competition Intensity" scored without structured competitor mapping |
-| **B3** | No financial modeling framework | "Financial Risk" assessed without revenue/cost projections |
-| **B4** | No user research frameworks | "Problem Validation" scored without interview/survey templates |
-| **B5** | No technical architecture patterns | "Technical Feasibility" has no reference architectures |
-| **B6** | No go-to-market playbooks | "Market Timing" lacks distribution strategy frameworks |
+| Issue ID | Description                        | Why It Matters                                                       |
+| -------- | ---------------------------------- | -------------------------------------------------------------------- |
+| **B1**   | No market validation frameworks    | Evaluators have no standard templates for TAM/SAM/SOM analysis       |
+| **B2**   | No competitive analysis templates  | "Competition Intensity" scored without structured competitor mapping |
+| **B3**   | No financial modeling framework    | "Financial Risk" assessed without revenue/cost projections           |
+| **B4**   | No user research frameworks        | "Problem Validation" scored without interview/survey templates       |
+| **B5**   | No technical architecture patterns | "Technical Feasibility" has no reference architectures               |
+| **B6**   | No go-to-market playbooks          | "Market Timing" lacks distribution strategy frameworks               |
 
 ### Category C: Evaluation Quality Issues (HIGH)
 
 Problems with how evaluations are conducted.
 
-| Issue ID | Description | Evidence from Debate |
-|----------|-------------|---------------------|
-| **C1** | Evaluators concede too easily | 3 full concessions in 9 rounds - no pushback |
-| **C2** | Skeptic challenges repetitive | Same "show verification" challenge used 3 times |
-| **C3** | No convergence detection | Debate runs full rounds even when consensus reached |
-| **C4** | Score volatility not tracked | Config has `maxScoreDelta: 0.5` but not implemented |
-| **C5** | First-principles bonus rarely awarded | System designed for it but arbiter rarely applies |
-| **C6** | No debate termination logic | All 9 rounds run regardless of argument quality |
+| Issue ID | Description                           | Evidence from Debate                                |
+| -------- | ------------------------------------- | --------------------------------------------------- |
+| **C1**   | Evaluators concede too easily         | 3 full concessions in 9 rounds - no pushback        |
+| **C2**   | Skeptic challenges repetitive         | Same "show verification" challenge used 3 times     |
+| **C3**   | No convergence detection              | Debate runs full rounds even when consensus reached |
+| **C4**   | Score volatility not tracked          | Config has `maxScoreDelta: 0.5` but not implemented |
+| **C5**   | First-principles bonus rarely awarded | System designed for it but arbiter rarely applies   |
+| **C6**   | No debate termination logic           | All 9 rounds run regardless of argument quality     |
 
 ### Category D: UI/UX Clarity Issues (MEDIUM)
 
 Problems with how results are communicated.
 
-| Issue ID | Description | Impact on User |
-|----------|-------------|----------------|
-| **D1** | No score change visualization | Users can't see how debate affected scores |
-| **D2** | No verdict summary dashboard | Must read all transcripts to understand outcomes |
-| **D3** | No confidence explanation | "0.7 confidence" meaningless without context |
-| **D4** | No criteria grouping in debate view | 30 criteria shown flat, overwhelming |
-| **D5** | No evaluation comparison over time | Can't track idea improvement |
-| **D6** | No relationship graph | Idea connections not visualized |
-| **D7** | No cost breakdown visualization | Budget spent without itemized view |
-| **D8** | Missing "so what" guidance | Scores shown but no clear next actions |
+| Issue ID | Description                         | Impact on User                                   |
+| -------- | ----------------------------------- | ------------------------------------------------ |
+| **D1**   | No score change visualization       | Users can't see how debate affected scores       |
+| **D2**   | No verdict summary dashboard        | Must read all transcripts to understand outcomes |
+| **D3**   | No confidence explanation           | "0.7 confidence" meaningless without context     |
+| **D4**   | No criteria grouping in debate view | 30 criteria shown flat, overwhelming             |
+| **D5**   | No evaluation comparison over time  | Can't track idea improvement                     |
+| **D6**   | No relationship graph               | Idea connections not visualized                  |
+| **D7**   | No cost breakdown visualization     | Budget spent without itemized view               |
+| **D8**   | Missing "so what" guidance          | Scores shown but no clear next actions           |
 
 ### Category E: Missing System Capabilities (MEDIUM)
 
 Features that would significantly improve the system.
 
-| Issue ID | Description | Business Value |
-|----------|-------------|----------------|
-| **E1** | No evaluation resumability | Failed evaluations waste entire budget |
-| **E2** | No API rate limiting | Accidental expensive evaluations possible |
-| **E3** | No authentication | Cannot deploy for team use |
-| **E4** | No notification system | Users must poll for completion |
-| **E5** | No idea templates | Each idea starts from scratch |
-| **E6** | No bulk operations | Cannot manage multiple ideas efficiently |
+| Issue ID | Description                | Business Value                            |
+| -------- | -------------------------- | ----------------------------------------- |
+| **E1**   | No evaluation resumability | Failed evaluations waste entire budget    |
+| **E2**   | No API rate limiting       | Accidental expensive evaluations possible |
+| **E3**   | No authentication          | Cannot deploy for team use                |
+| **E4**   | No notification system     | Users must poll for completion            |
+| **E5**   | No idea templates          | Each idea starts from scratch             |
+| **E6**   | No bulk operations         | Cannot manage multiple ideas efficiently  |
 
 ---
 
@@ -227,15 +227,16 @@ Features that would significantly improve the system.
 
 **Solution**: New summary dashboard showing:
 
-| Element | Description | Priority |
-|---------|-------------|----------|
-| Score Delta Chart | Before/after visualization per criterion | P1 |
-| Verdict Summary | Win/Loss/Draw breakdown by persona | P1 |
-| Key Concessions | Highlighted moments where evaluator agreed | P1 |
-| Confidence Impact | How debate affected certainty | P2 |
-| Strongest Arguments | Top 3 from each side | P2 |
+| Element             | Description                                | Priority |
+| ------------------- | ------------------------------------------ | -------- |
+| Score Delta Chart   | Before/after visualization per criterion   | P1       |
+| Verdict Summary     | Win/Loss/Draw breakdown by persona         | P1       |
+| Key Concessions     | Highlighted moments where evaluator agreed | P1       |
+| Confidence Impact   | How debate affected certainty              | P2       |
+| Strongest Arguments | Top 3 from each side                       | P2       |
 
 **Wireframe Concept**:
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  DEBATE SUMMARY                                             │
@@ -260,12 +261,12 @@ Features that would significantly improve the system.
 
 **Solution**: Timeline showing all evaluation runs with score progression.
 
-| Element | Description | Priority |
-|---------|-------------|----------|
-| Run Timeline | Chronological evaluation history | P1 |
-| Score Trend Line | Visual progression of overall score | P1 |
-| Change Annotations | What changed between runs | P2 |
-| Improvement Suggestions | Based on low-scoring criteria | P2 |
+| Element                 | Description                         | Priority |
+| ----------------------- | ----------------------------------- | -------- |
+| Run Timeline            | Chronological evaluation history    | P1       |
+| Score Trend Line        | Visual progression of overall score | P1       |
+| Change Annotations      | What changed between runs           | P2       |
+| Improvement Suggestions | Based on low-scoring criteria       | P2       |
 
 ### 4.3 Criteria Grouping in Debate View (ENHANCEMENT)
 
@@ -292,13 +293,13 @@ Features that would significantly improve the system.
 
 **Solution**: Contextual confidence interpretation.
 
-| Confidence Range | Label | Meaning |
-|-----------------|-------|---------|
-| 0.9 - 1.0 | Very High | Strong evidence, defended all challenges |
-| 0.7 - 0.9 | High | Good evidence, minor gaps identified |
-| 0.5 - 0.7 | Moderate | Some evidence, significant gaps |
-| 0.3 - 0.5 | Low | Limited evidence, major assumptions |
-| 0.0 - 0.3 | Very Low | Speculation, needs validation |
+| Confidence Range | Label     | Meaning                                  |
+| ---------------- | --------- | ---------------------------------------- |
+| 0.9 - 1.0        | Very High | Strong evidence, defended all challenges |
+| 0.7 - 0.9        | High      | Good evidence, minor gaps identified     |
+| 0.5 - 0.7        | Moderate  | Some evidence, significant gaps          |
+| 0.3 - 0.5        | Low       | Limited evidence, major assumptions      |
+| 0.0 - 0.3        | Very Low  | Speculation, needs validation            |
 
 ### 4.5 Action-Oriented Next Steps (NEW COMPONENT)
 
@@ -306,13 +307,13 @@ Features that would significantly improve the system.
 
 **Solution**: Dynamic next-step recommendations based on evaluation results.
 
-| Score Pattern | Recommended Actions |
-|--------------|---------------------|
-| Low Problem scores (< 5) | "Conduct 10 customer interviews", "Document specific pain points" |
-| Low Solution scores (< 5) | "Define MVP scope", "Identify technical feasibility blockers" |
-| Low Market scores (< 5) | "Research TAM/SAM/SOM", "Map competitive landscape" |
-| Low Fit scores (< 5) | "Assess time/skill availability", "Find co-founder/collaborators" |
-| High Risk scores (> 7) | "Create risk mitigation plan", "Identify early warning signals" |
+| Score Pattern             | Recommended Actions                                               |
+| ------------------------- | ----------------------------------------------------------------- |
+| Low Problem scores (< 5)  | "Conduct 10 customer interviews", "Document specific pain points" |
+| Low Solution scores (< 5) | "Define MVP scope", "Identify technical feasibility blockers"     |
+| Low Market scores (< 5)   | "Research TAM/SAM/SOM", "Map competitive landscape"               |
+| Low Fit scores (< 5)      | "Assess time/skill availability", "Find co-founder/collaborators" |
+| High Risk scores (> 7)    | "Create risk mitigation plan", "Identify early warning signals"   |
 
 ### 4.6 Cost Breakdown Visualization (NEW COMPONENT)
 
@@ -337,13 +338,13 @@ Features that would significantly improve the system.
 
 **Solution**: Force-directed graph showing idea connections.
 
-| Relationship Type | Visual Representation |
-|-------------------|----------------------|
-| Parent/Child | Directed arrow, hierarchical |
-| Related | Dashed bidirectional line |
-| Conflicts | Red line with X marker |
-| Combines | Green line with + marker |
-| Inspired By | Light gray dotted arrow |
+| Relationship Type | Visual Representation        |
+| ----------------- | ---------------------------- |
+| Parent/Child      | Directed arrow, hierarchical |
+| Related           | Dashed bidirectional line    |
+| Conflicts         | Red line with X marker       |
+| Combines          | Green line with + marker     |
+| Inspired By       | Light gray dotted arrow      |
 
 ---
 
@@ -353,68 +354,68 @@ Features that would significantly improve the system.
 
 **Goal**: Ensure all evaluation data is persisted.
 
-| Task | File(s) to Modify | Complexity | Priority |
-|------|-------------------|------------|----------|
-| 1.1 Persist debate rounds | `agents/debate.ts`, `database/queries.ts` | Medium | P0 |
-| 1.2 Persist final synthesis | `agents/synthesis.ts`, `database/queries.ts` | Medium | P0 |
-| 1.3 Persist red team log | `agents/redteam.ts`, `database/queries.ts` | Medium | P0 |
-| 1.4 Generate evaluation.md | `scripts/evaluate.ts` | Low | P1 |
-| 1.5 Store WebSocket events | `utils/broadcast.ts` | Medium | P1 |
-| 1.6 Add database transaction wrapper | `database/connection.ts` | Low | P1 |
+| Task                                 | File(s) to Modify                            | Complexity | Priority |
+| ------------------------------------ | -------------------------------------------- | ---------- | -------- |
+| 1.1 Persist debate rounds            | `agents/debate.ts`, `database/queries.ts`    | Medium     | P0       |
+| 1.2 Persist final synthesis          | `agents/synthesis.ts`, `database/queries.ts` | Medium     | P0       |
+| 1.3 Persist red team log             | `agents/redteam.ts`, `database/queries.ts`   | Medium     | P0       |
+| 1.4 Generate evaluation.md           | `scripts/evaluate.ts`                        | Low        | P1       |
+| 1.5 Store WebSocket events           | `utils/broadcast.ts`                         | Medium     | P1       |
+| 1.6 Add database transaction wrapper | `database/connection.ts`                     | Low        | P1       |
 
 ### Phase 2: Framework Integration (Week 2)
 
 **Goal**: Add structured frameworks for better evaluation context.
 
-| Task | Deliverable | Complexity | Priority |
-|------|-------------|------------|----------|
-| 2.1 Create market validation framework | `/taxonomy/frameworks/market-validation.md` | Low | P1 |
-| 2.2 Create financial modeling framework | `/taxonomy/frameworks/financial-modeling.md` | Low | P1 |
-| 2.3 Create technical feasibility framework | `/taxonomy/frameworks/technical-feasibility.md` | Low | P1 |
-| 2.4 Create user research framework | `/taxonomy/frameworks/user-research.md` | Low | P2 |
-| 2.5 Create go-to-market framework | `/taxonomy/frameworks/go-to-market.md` | Low | P2 |
-| 2.6 Inject frameworks into agent prompts | `agents/*.ts` | Medium | P1 |
+| Task                                       | Deliverable                                     | Complexity | Priority |
+| ------------------------------------------ | ----------------------------------------------- | ---------- | -------- |
+| 2.1 Create market validation framework     | `/taxonomy/frameworks/market-validation.md`     | Low        | P1       |
+| 2.2 Create financial modeling framework    | `/taxonomy/frameworks/financial-modeling.md`    | Low        | P1       |
+| 2.3 Create technical feasibility framework | `/taxonomy/frameworks/technical-feasibility.md` | Low        | P1       |
+| 2.4 Create user research framework         | `/taxonomy/frameworks/user-research.md`         | Low        | P2       |
+| 2.5 Create go-to-market framework          | `/taxonomy/frameworks/go-to-market.md`          | Low        | P2       |
+| 2.6 Inject frameworks into agent prompts   | `agents/*.ts`                                   | Medium     | P1       |
 
 ### Phase 3: UI Clarity Improvements (Week 3)
 
 **Goal**: Make evaluation results immediately understandable.
 
-| Task | Component | Complexity | Priority |
-|------|-----------|------------|----------|
-| 3.1 Debate summary dashboard | `DebateSummary.tsx` | High | P1 |
-| 3.2 Score delta visualization | `ScoreDelta.tsx` | Medium | P1 |
-| 3.3 Criteria grouping | `CriteriaGroup.tsx` | Medium | P1 |
-| 3.4 Confidence explainer | `ConfidenceExplainer.tsx` | Low | P2 |
-| 3.5 Next steps component | `NextSteps.tsx` | Medium | P1 |
-| 3.6 Cost breakdown chart | `CostBreakdown.tsx` | Medium | P2 |
-| 3.7 Evaluation timeline | `EvaluationTimeline.tsx` | High | P2 |
+| Task                          | Component                 | Complexity | Priority |
+| ----------------------------- | ------------------------- | ---------- | -------- |
+| 3.1 Debate summary dashboard  | `DebateSummary.tsx`       | High       | P1       |
+| 3.2 Score delta visualization | `ScoreDelta.tsx`          | Medium     | P1       |
+| 3.3 Criteria grouping         | `CriteriaGroup.tsx`       | Medium     | P1       |
+| 3.4 Confidence explainer      | `ConfidenceExplainer.tsx` | Low        | P2       |
+| 3.5 Next steps component      | `NextSteps.tsx`           | Medium     | P1       |
+| 3.6 Cost breakdown chart      | `CostBreakdown.tsx`       | Medium     | P2       |
+| 3.7 Evaluation timeline       | `EvaluationTimeline.tsx`  | High       | P2       |
 
 ### Phase 4: Evaluation Quality Improvements (Week 4)
 
 **Goal**: Make debates more rigorous and less repetitive.
 
-| Task | Description | Complexity | Priority |
-|------|-------------|------------|----------|
-| 4.1 Implement convergence detection | Stop debates when consensus reached | High | P1 |
-| 4.2 Add challenge variety enforcement | Prevent repeated challenge types | Medium | P2 |
-| 4.3 Calibrate concession threshold | Evaluators should defend more | Medium | P2 |
-| 4.4 Implement score volatility tracking | Track and report instability | Medium | P2 |
-| 4.5 Add first-principles detection | More consistent bonus awarding | Medium | P3 |
-| 4.6 Add debate round summarization | Per-round summaries | Low | P3 |
+| Task                                    | Description                         | Complexity | Priority |
+| --------------------------------------- | ----------------------------------- | ---------- | -------- |
+| 4.1 Implement convergence detection     | Stop debates when consensus reached | High       | P1       |
+| 4.2 Add challenge variety enforcement   | Prevent repeated challenge types    | Medium     | P2       |
+| 4.3 Calibrate concession threshold      | Evaluators should defend more       | Medium     | P2       |
+| 4.4 Implement score volatility tracking | Track and report instability        | Medium     | P2       |
+| 4.5 Add first-principles detection      | More consistent bonus awarding      | Medium     | P3       |
+| 4.6 Add debate round summarization      | Per-round summaries                 | Low        | P3       |
 
 ### Phase 5: Advanced Features (Week 5+)
 
 **Goal**: Add capabilities for team use and advanced analysis.
 
-| Task | Description | Complexity | Priority |
-|------|-------------|------------|----------|
-| 5.1 Evaluation resumability | Checkpoint and resume failed runs | High | P2 |
-| 5.2 Relationship graph visualization | D3 force-directed graph | High | P2 |
-| 5.3 Idea comparison view | Side-by-side radar charts | Medium | P2 |
-| 5.4 API rate limiting | Prevent accidental expensive calls | Low | P3 |
-| 5.5 Notification system | Email/webhook on completion | Medium | P3 |
-| 5.6 Idea templates | Pre-filled templates by type | Low | P3 |
-| 5.7 Authentication layer | JWT-based auth | High | P3 |
+| Task                                 | Description                        | Complexity | Priority |
+| ------------------------------------ | ---------------------------------- | ---------- | -------- |
+| 5.1 Evaluation resumability          | Checkpoint and resume failed runs  | High       | P2       |
+| 5.2 Relationship graph visualization | D3 force-directed graph            | High       | P2       |
+| 5.3 Idea comparison view             | Side-by-side radar charts          | Medium     | P2       |
+| 5.4 API rate limiting                | Prevent accidental expensive calls | Low        | P3       |
+| 5.5 Notification system              | Email/webhook on completion        | Medium     | P3       |
+| 5.6 Idea templates                   | Pre-filled templates by type       | Low        | P3       |
+| 5.7 Authentication layer             | JWT-based auth                     | High       | P3       |
 
 ---
 
@@ -493,6 +494,7 @@ When evaluating criteria, reference the appropriate framework:
 ## Evidence Standards
 
 For each criterion, classify evidence quality:
+
 - **Strong**: Direct quotes, data, validated research
 - **Moderate**: Reasonable inferences from stated information
 - **Weak**: Assumptions required, gaps in information
@@ -532,6 +534,7 @@ Add to arbiter prompt:
 ## First Principles Detection
 
 Award +0.5 bonus when argument:
+
 1. Identifies and challenges a hidden assumption
 2. Derives conclusion from fundamental truths
 3. Rejects analogy in favor of first-principles analysis
@@ -544,15 +547,15 @@ signal CONVERGENCE in your verdict to allow early debate termination.
 
 ## Score Adjustment Guidelines
 
-| Verdict Quality | Adjustment |
-|----------------|------------|
-| Devastating argument, no defense | -3 |
-| Strong argument, weak defense | -2 |
-| Good argument, partial defense | -1 |
-| Balanced exchange | 0 |
-| Good defense, weak challenge | +1 |
-| Strong defense, weak challenge | +2 |
-| Definitive rebuttal | +3 |
+| Verdict Quality                  | Adjustment |
+| -------------------------------- | ---------- |
+| Devastating argument, no defense | -3         |
+| Strong argument, weak defense    | -2         |
+| Good argument, partial defense   | -1         |
+| Balanced exchange                | 0          |
+| Good defense, weak challenge     | +1         |
+| Strong defense, weak challenge   | +2         |
+| Definitive rebuttal              | +3         |
 ```
 
 ---
@@ -561,14 +564,14 @@ signal CONVERGENCE in your verdict to allow early debate termination.
 
 ### How to Measure Implementation Success
 
-| Metric | Current Baseline | Target | Measurement Method |
-|--------|-----------------|--------|-------------------|
-| Debate data persistence | 0% | 100% | Check `debate_rounds` table population |
-| Framework usage in evaluations | 0% | 80%+ | Grep for framework references in reasoning |
-| Challenge diversity | 33% unique | 90%+ unique | Count distinct challenge types per debate |
-| User understanding of results | N/A | >4/5 rating | User survey on clarity |
-| Time to first insight | ~5 min reading | <1 min | Time to summary dashboard |
-| Evaluation resumption rate | 0% (not possible) | 100% | Track resumed vs restarted |
+| Metric                         | Current Baseline  | Target      | Measurement Method                         |
+| ------------------------------ | ----------------- | ----------- | ------------------------------------------ |
+| Debate data persistence        | 0%                | 100%        | Check `debate_rounds` table population     |
+| Framework usage in evaluations | 0%                | 80%+        | Grep for framework references in reasoning |
+| Challenge diversity            | 33% unique        | 90%+ unique | Count distinct challenge types per debate  |
+| User understanding of results  | N/A               | >4/5 rating | User survey on clarity                     |
+| Time to first insight          | ~5 min reading    | <1 min      | Time to summary dashboard                  |
+| Evaluation resumption rate     | 0% (not possible) | 100%        | Track resumed vs restarted                 |
 
 ---
 
@@ -576,12 +579,12 @@ signal CONVERGENCE in your verdict to allow early debate termination.
 
 ### Implementation Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Database migrations break existing data | Medium | High | Backup before migration, test on copy |
-| Framework injection increases token costs | High | Medium | Optimize prompts, use caching |
-| UI changes break existing workflows | Low | Medium | Feature flags for gradual rollout |
-| Convergence detection ends debates too early | Medium | Medium | Conservative threshold, manual override |
+| Risk                                         | Likelihood | Impact | Mitigation                              |
+| -------------------------------------------- | ---------- | ------ | --------------------------------------- |
+| Database migrations break existing data      | Medium     | High   | Backup before migration, test on copy   |
+| Framework injection increases token costs    | High       | Medium | Optimize prompts, use caching           |
+| UI changes break existing workflows          | Low        | Medium | Feature flags for gradual rollout       |
+| Convergence detection ends debates too early | Medium     | Medium | Conservative threshold, manual override |
 
 ---
 
@@ -596,17 +599,17 @@ signal CONVERGENCE in your verdict to allow early debate termination.
 
 #### Verdict Breakdown
 
-| Round | Challenge Type | Persona | Verdict | Adjustment |
-|-------|---------------|---------|---------|------------|
-| 1.1 | Context-dependent | Realist | RED_TEAM | -1 |
-| 1.2 | Evidence demand | Skeptic | EVALUATOR | 0 |
-| 1.3 | Circular reasoning | Skeptic | EVALUATOR | +1 |
-| 2.1 | Market context | Realist | RED_TEAM | -1 |
-| 2.2 | Evidence demand | Skeptic | EVALUATOR | +1 |
-| 2.3 | Circular reasoning | Skeptic | EVALUATOR | 0 |
-| 3.1 | Score calibration | Realist | RED_TEAM | -1 |
-| 3.2 | Evidence demand | Skeptic | EVALUATOR | +1 |
-| 3.3 | Methodology | Skeptic | DRAW | 0 |
+| Round | Challenge Type     | Persona | Verdict   | Adjustment |
+| ----- | ------------------ | ------- | --------- | ---------- |
+| 1.1   | Context-dependent  | Realist | RED_TEAM  | -1         |
+| 1.2   | Evidence demand    | Skeptic | EVALUATOR | 0          |
+| 1.3   | Circular reasoning | Skeptic | EVALUATOR | +1         |
+| 2.1   | Market context     | Realist | RED_TEAM  | -1         |
+| 2.2   | Evidence demand    | Skeptic | EVALUATOR | +1         |
+| 2.3   | Circular reasoning | Skeptic | EVALUATOR | 0          |
+| 3.1   | Score calibration  | Realist | RED_TEAM  | -1         |
+| 3.2   | Evidence demand    | Skeptic | EVALUATOR | +1         |
+| 3.3   | Methodology        | Skeptic | DRAW      | 0          |
 
 **Net Score Change**: -1 (from 4 to 3)
 
@@ -625,6 +628,7 @@ signal CONVERGENCE in your verdict to allow early debate termination.
 The Idea Incubator has a sophisticated design but suffers from **critical implementation gaps** that prevent it from delivering its core value. The multi-agent debate system is innovative but currently produces ephemeral output that cannot be analyzed, compared, or learned from.
 
 **Priority Actions**:
+
 1. **Fix data persistence immediately** - This is blocking all value creation
 2. **Add structured frameworks** - Improve evaluation consistency and depth
 3. **Enhance UI clarity** - Transform raw data into actionable insights

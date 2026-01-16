@@ -1,6 +1,7 @@
 # SKILL: Composition Over Complexity
 
 ## When to Load
+
 - Building complex functionality
 - Refactoring large functions
 - Designing APIs
@@ -28,6 +29,7 @@ NAME each piece by what it does, not how
 ## Composition Patterns
 
 ### Pipeline/Pipe
+
 ```typescript
 // Instead of nested calls
 const result = format(validate(parse(clean(input))))
@@ -48,20 +50,21 @@ const result = input
 ```
 
 ### Function Composition
+
 ```typescript
 // Combine functions into new functions
-const processInput = compose(format, validate, parse, clean)
-const result = processInput(input)
+const processInput = compose(format, validate, parse, clean);
+const result = processInput(input);
 ```
 
 ### Builder Pattern
+
 ```typescript
-const query = QueryBuilder
-  .select('name', 'email')
-  .from('users')
-  .where('active', true)
-  .orderBy('name')
-  .build()
+const query = QueryBuilder.select("name", "email")
+  .from("users")
+  .where("active", true)
+  .orderBy("name")
+  .build();
 ```
 
 ## Practical Example
@@ -70,20 +73,20 @@ const query = QueryBuilder
 // BAD - monolithic function doing many things
 function processOrder(order) {
   // Validate
-  if (!order.items || order.items.length === 0) throw new Error('Empty order')
-  if (!order.customer) throw new Error('No customer')
+  if (!order.items || order.items.length === 0) throw new Error("Empty order");
+  if (!order.customer) throw new Error("No customer");
 
   // Calculate totals
-  let subtotal = 0
+  let subtotal = 0;
   for (const item of order.items) {
-    subtotal += item.price * item.quantity
+    subtotal += item.price * item.quantity;
   }
-  const tax = subtotal * 0.1
-  const total = subtotal + tax
+  const tax = subtotal * 0.1;
+  const total = subtotal + tax;
 
   // Apply discounts
-  let discount = 0
-  if (order.customer.tier === 'gold') discount = total * 0.1
+  let discount = 0;
+  if (order.customer.tier === "gold") discount = total * 0.1;
 
   // Format output
   return {
@@ -92,20 +95,30 @@ function processOrder(order) {
     subtotal: subtotal.toFixed(2),
     tax: tax.toFixed(2),
     discount: discount.toFixed(2),
-    total: (total - discount).toFixed(2)
-  }
+    total: (total - discount).toFixed(2),
+  };
 }
 
 // GOOD - composed from focused functions
-const validateOrder = (order) => { /* returns Result */ }
-const calculateSubtotal = (items) => { /* pure calculation */ }
-const calculateTax = (subtotal, rate) => { /* pure calculation */ }
-const applyDiscount = (total, customerTier) => { /* pure calculation */ }
-const formatOrderSummary = (order, totals) => { /* pure transformation */ }
+const validateOrder = (order) => {
+  /* returns Result */
+};
+const calculateSubtotal = (items) => {
+  /* pure calculation */
+};
+const calculateTax = (subtotal, rate) => {
+  /* pure calculation */
+};
+const applyDiscount = (total, customerTier) => {
+  /* pure calculation */
+};
+const formatOrderSummary = (order, totals) => {
+  /* pure transformation */
+};
 
 function processOrder(order) {
   return validateOrder(order)
-    .map(o => ({
+    .map((o) => ({
       order: o,
       subtotal: calculateSubtotal(o.items),
     }))
@@ -120,7 +133,7 @@ function processOrder(order) {
       tax,
       discount: applyDiscount(subtotal + tax, order.customer.tier),
     }))
-    .map(formatOrderSummary)
+    .map(formatOrderSummary);
 }
 ```
 
@@ -135,13 +148,14 @@ function processOrder(order) {
 ## Anti-Pattern: Premature Abstraction
 
 Don't create abstractions for one-time operations:
+
 ```typescript
 // BAD - abstraction for single use
-const addOne = x => x + 1
-const result = addOne(5)
+const addOne = (x) => x + 1;
+const result = addOne(5);
 
 // GOOD - just write it
-const result = 5 + 1
+const result = 5 + 1;
 ```
 
 Three similar lines of code are better than a premature abstraction.

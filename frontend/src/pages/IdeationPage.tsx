@@ -3,12 +3,16 @@
 // Entry point for the Ideation Agent experience
 // =============================================================================
 
-import { useState, useCallback } from 'react';
-import { IdeationEntryModal } from '../components/ideation/IdeationEntryModal';
-import { IdeationSession } from '../components/ideation/IdeationSession';
-import type { IdeationPageProps, EntryMode } from '../types/ideation';
+import { useState, useCallback } from "react";
+import { IdeationEntryModal } from "../components/ideation/IdeationEntryModal";
+import { IdeationSession } from "../components/ideation/IdeationSession";
+import type { IdeationPageProps, EntryMode } from "../types/ideation";
 
-export function IdeationPage({ profileId, onComplete, onExit }: IdeationPageProps) {
+export function IdeationPage({
+  profileId,
+  onComplete,
+  onExit,
+}: IdeationPageProps) {
   const [entryMode, setEntryMode] = useState<EntryMode>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [showEntryModal, setShowEntryModal] = useState(true);
@@ -27,9 +31,12 @@ export function IdeationPage({ profileId, onComplete, onExit }: IdeationPageProp
     setIsResuming(true);
   }, []);
 
-  const handleComplete = useCallback((ideaId: string) => {
-    onComplete(ideaId);
-  }, [onComplete]);
+  const handleComplete = useCallback(
+    (ideaId: string) => {
+      onComplete(ideaId);
+    },
+    [onComplete],
+  );
 
   const handleExit = useCallback(() => {
     setSessionId(null);
@@ -53,7 +60,7 @@ export function IdeationPage({ profileId, onComplete, onExit }: IdeationPageProp
   return (
     <div className="ideation-page h-screen bg-gray-50">
       <IdeationSession
-        sessionId={sessionId || ''}
+        sessionId={sessionId || ""}
         profileId={profileId}
         entryMode={entryMode}
         isResuming={isResuming}

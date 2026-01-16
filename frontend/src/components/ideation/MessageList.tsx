@@ -3,10 +3,10 @@
 // Message list component
 // =============================================================================
 
-import 'react';
-import { AgentMessage } from './AgentMessage';
-import { UserMessage } from './UserMessage';
-import type { MessageListProps } from '../../types/ideation';
+import "react";
+import { AgentMessage } from "./AgentMessage";
+import { UserMessage } from "./UserMessage";
+import type { MessageListProps } from "../../types/ideation";
 
 export function MessageList({
   messages,
@@ -22,7 +22,7 @@ export function MessageList({
       {messages.map((message, index) => {
         const isLatest = index === messages.length - 1;
 
-        if (message.role === 'assistant') {
+        if (message.role === "assistant") {
           return (
             <AgentMessage
               key={message.id}

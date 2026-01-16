@@ -1,14 +1,14 @@
 // agents/ux/db.ts - UX Agent database operations
 
-import { v4 as uuid } from 'uuid';
-import { getDb } from '../../database/db.js';
+import { v4 as uuid } from "uuid";
+import { getDb } from "../../database/db.js";
 import {
   UXRun,
   UXStepResult,
   UXAccessibilityIssue,
   StepResult,
   AccessibilityIssue,
-} from '../../types/ux.js';
+} from "../../types/ux.js";
 
 /**
  * Database row type for ux_runs table
@@ -93,7 +93,9 @@ function mapRowToStepResult(row: UXStepResultRow): UXStepResult {
 /**
  * Map database row to UXAccessibilityIssue model
  */
-function mapRowToAccessibilityIssue(row: UXAccessibilityIssueRow): UXAccessibilityIssue {
+function mapRowToAccessibilityIssue(
+  row: UXAccessibilityIssueRow,
+): UXAccessibilityIssue {
   return {
     id: row.id,
     runId: row.run_id,
@@ -132,7 +134,10 @@ export async function saveUXRun(run: UXRun): Promise<void> {
 /**
  * Save step results for a run
  */
-export async function saveStepResults(runId: string, steps: StepResult[]): Promise<void> {
+export async function saveStepResults(
+  runId: string,
+  steps: StepResult[],
+): Promise<void> {
   const db = await getDb();
 
   for (const step of steps) {
@@ -147,7 +152,7 @@ export async function saveStepResults(runId: string, steps: StepResult[]): Promi
       step.action,
       step.target || null,
       step.status,
-      step.status === 'passed' ? 1 : 0,
+      step.status === "passed" ? 1 : 0,
       step.error || null,
       step.screenshotPath || null,
       step.durationMs,
@@ -162,7 +167,7 @@ export async function saveStepResults(runId: string, steps: StepResult[]): Promi
  */
 export async function saveAccessibilityIssues(
   runId: string,
-  issues: AccessibilityIssue[]
+  issues: AccessibilityIssue[],
 ): Promise<void> {
   const db = await getDb();
 
@@ -190,7 +195,7 @@ export async function saveAccessibilityIssues(
  */
 export async function getUXRun(id: string): Promise<UXRun | null> {
   const db = await getDb();
-  const stmt = db.prepare('SELECT * FROM ux_runs WHERE id = ?');
+  const stmt = db.prepare("SELECT * FROM ux_runs WHERE id = ?");
   stmt.bind([id]);
 
   if (stmt.step()) {
@@ -208,7 +213,9 @@ export async function getUXRun(id: string): Promise<UXRun | null> {
  */
 export async function getStepResults(runId: string): Promise<UXStepResult[]> {
   const db = await getDb();
-  const stmt = db.prepare('SELECT * FROM ux_step_results WHERE run_id = ? ORDER BY step_index');
+  const stmt = db.prepare(
+    "SELECT * FROM ux_step_results WHERE run_id = ? ORDER BY step_index",
+  );
   stmt.bind([runId]);
 
   const results: UXStepResult[] = [];
@@ -223,9 +230,13 @@ export async function getStepResults(runId: string): Promise<UXStepResult[]> {
 /**
  * Get accessibility issues for a run
  */
-export async function getAccessibilityIssues(runId: string): Promise<UXAccessibilityIssue[]> {
+export async function getAccessibilityIssues(
+  runId: string,
+): Promise<UXAccessibilityIssue[]> {
   const db = await getDb();
-  const stmt = db.prepare('SELECT * FROM ux_accessibility_issues WHERE run_id = ?');
+  const stmt = db.prepare(
+    "SELECT * FROM ux_accessibility_issues WHERE run_id = ?",
+  );
   stmt.bind([runId]);
 
   const results: UXAccessibilityIssue[] = [];
@@ -242,7 +253,9 @@ export async function getAccessibilityIssues(runId: string): Promise<UXAccessibi
  */
 export async function getRecentRuns(limit: number = 20): Promise<UXRun[]> {
   const db = await getDb();
-  const stmt = db.prepare('SELECT * FROM ux_runs ORDER BY started_at DESC LIMIT ?');
+  const stmt = db.prepare(
+    "SELECT * FROM ux_runs ORDER BY started_at DESC LIMIT ?",
+  );
   stmt.bind([limit]);
 
   const results: UXRun[] = [];
@@ -257,10 +270,13 @@ export async function getRecentRuns(limit: number = 20): Promise<UXRun[]> {
 /**
  * Get runs by journey ID
  */
-export async function getRunsByJourney(journeyId: string, limit: number = 10): Promise<UXRun[]> {
+export async function getRunsByJourney(
+  journeyId: string,
+  limit: number = 10,
+): Promise<UXRun[]> {
   const db = await getDb();
   const stmt = db.prepare(
-    'SELECT * FROM ux_runs WHERE journey_id = ? ORDER BY started_at DESC LIMIT ?'
+    "SELECT * FROM ux_runs WHERE journey_id = ? ORDER BY started_at DESC LIMIT ?",
   );
   stmt.bind([journeyId, limit]);
 

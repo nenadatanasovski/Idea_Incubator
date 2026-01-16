@@ -61,12 +61,12 @@ coding-loops/
 
 The coding loop system implements Level 1 of a 4-level architecture:
 
-| Level | Description | Status |
-|-------|-------------|--------|
-| **L1** | Configurable, queryable (config files, schema validation, health checks) | Done |
-| **L2** | Orchestrator-ready (loop registry, control API, webhooks) | Planned |
-| **L3** | Self-healing (auto-unblock, checkpoint/resume, SIA integration) | Planned |
-| **L4** | Fully autonomous (monitor agent, refinement agent, PM agent) | Planned |
+| Level  | Description                                                              | Status  |
+| ------ | ------------------------------------------------------------------------ | ------- |
+| **L1** | Configurable, queryable (config files, schema validation, health checks) | Done    |
+| **L2** | Orchestrator-ready (loop registry, control API, webhooks)                | Planned |
+| **L3** | Self-healing (auto-unblock, checkpoint/resume, SIA integration)          | Planned |
+| **L4** | Fully autonomous (monitor agent, refinement agent, PM agent)             | Planned |
 
 See `20260107-coding-loop-architecture-critique.md` for detailed gap analysis.
 
@@ -77,6 +77,7 @@ A comprehensive plan for building the full multi-agent coordination system is av
 **`20260107-multi-agent-coordination-system-FINAL.md`**
 
 This plan includes:
+
 - 16 components (Message Bus, Monitor Agent, PM Agent, Human Interface, Verification Gate, Git Manager, etc.)
 - 116 test cases with explicit pass definitions
 - 6-week phased implementation plan
@@ -133,10 +134,12 @@ python run_loop.py --config /path/to/config.json
 ## The Three Loops
 
 ### Loop 1: Critical Path (UFS -> Spec -> Build)
+
 **Priority:** 1 (CRITICAL)
 **Review:** Daily
 
 Implements the core user journey:
+
 1. Complete Unified File System (remaining SC, PH, UI tests)
 2. Specification Agent (extract requirements from ideation)
 3. Build Agent (generate code via Ralph loop)
@@ -146,10 +149,12 @@ python3 coding-loops/loop-1-critical-path/run_loop.py
 ```
 
 ### Loop 2: Infrastructure (Auth -> Credits -> Hosting)
+
 **Priority:** 2 (HIGH)
 **Review:** Every 2-3 days
 
 Builds foundational infrastructure:
+
 1. Authentication (user registration, login, sessions)
 2. Credit System (balance tracking, Stripe, consumption)
 3. Hosting (app deployment to Railway/Render/Vercel)
@@ -159,10 +164,12 @@ python3 coding-loops/loop-2-infrastructure/run_loop.py
 ```
 
 ### Loop 3: Polish (Monitoring -> E2E -> PWA)
+
 **Priority:** 3 (MEDIUM)
 **Review:** Weekly
 
 Implements quality infrastructure:
+
 1. Error Monitoring (Sentry integration)
 2. E2E Testing (journey tests, CI/CD)
 3. PWA/Mobile (manifest, service worker, responsive)
@@ -176,6 +183,7 @@ python3 coding-loops/loop-3-polish/run_loop.py
 ## How It Works
 
 Each loop uses the Ralph loop pattern:
+
 1. Load and validate config from `config.json`
 2. Load and validate test state from `test-state.json`
 3. Write health check file (`health.json`)
@@ -188,6 +196,7 @@ Each loop uses the Ralph loop pattern:
 10. Repeat until all tests complete or blocked
 
 ### Test States
+
 - `pending` - Not yet attempted
 - `passed` - Successfully implemented
 - `failed` - Failed but may retry
@@ -213,6 +222,7 @@ Status values: `starting`, `running`, `stopped`, `error`
 ### Schema Validation
 
 Both `config.json` and `test-state.json` are validated against JSON schemas:
+
 - `shared/config_schema.json`
 - `shared/test_state_schema.json`
 
@@ -237,6 +247,7 @@ python3 coding-loops/loop-3-polish/run_loop.py
 ```
 
 ### Resource Considerations
+
 - Each loop uses one Claude API connection
 - ~15-20 hours/week founder time for review
 - Loop 1 requires daily review (critical path)
@@ -244,6 +255,7 @@ python3 coding-loops/loop-3-polish/run_loop.py
 - Loop 3 can be reviewed weekly
 
 ### Dependencies Between Loops
+
 - **Loop 1 -> Loop 2:** Credits should wait for spec mode (shared session infrastructure)
 - **Loop 2 -> Loop 3:** Some E2E tests need auth (but can start monitoring immediately)
 - **Loop 1 and Loop 3:** No direct dependencies (can run fully parallel)
@@ -253,6 +265,7 @@ python3 coding-loops/loop-3-polish/run_loop.py
 ## Monitoring Progress
 
 ### Check Health Status
+
 ```bash
 cat coding-loops/loop-1-critical-path/specs/health.json | jq
 cat coding-loops/loop-2-infrastructure/specs/health.json | jq
@@ -260,6 +273,7 @@ cat coding-loops/loop-3-polish/specs/health.json | jq
 ```
 
 ### Check Test State
+
 ```bash
 cat coding-loops/loop-1-critical-path/specs/test-state.json | jq '.summary'
 cat coding-loops/loop-2-infrastructure/specs/test-state.json | jq '.summary'
@@ -267,12 +281,15 @@ cat coding-loops/loop-3-polish/specs/test-state.json | jq '.summary'
 ```
 
 ### View Recent Transcripts
+
 ```bash
 tail -100 coding-loops/loop-1-critical-path/specs/logs/transcripts/global-transcript.log
 ```
 
 ### Reset a Blocked Test
+
 Edit `test-state.json` and change:
+
 ```json
 {
   "id": "TEST-ID",
@@ -287,6 +304,7 @@ Edit `test-state.json` and change:
 
 1. Edit the relevant `test-state.json`
 2. Add a new test object:
+
 ```json
 {
   "id": "NEW-TEST-001",
@@ -299,6 +317,7 @@ Edit `test-state.json` and change:
   "notes": "Description of what to implement"
 }
 ```
+
 3. Update the `summary.total` count
 4. Add corresponding spec content if needed
 
@@ -307,21 +326,25 @@ Edit `test-state.json` and change:
 ## Troubleshooting
 
 ### Loop Stuck on Same Test
+
 - Check `test-state.json` for attempt count
 - Review transcripts for repeated errors
 - Consider resetting the test or adjusting the spec
 
 ### All Tests Blocked
+
 - Check dependency chain - a blocked test blocks dependents
 - Review the first blocked test for root cause
 - May need manual intervention to unblock
 
 ### Agent Not Making Progress
+
 - Check if spec content is clear
 - Review previous attempt transcripts
 - Consider adding more context to the spec
 
 ### Loop Not Responding
+
 - Check `health.json` for last heartbeat time
 - If stale (>2 minutes), the loop may be hung
 - Check terminal for errors or Claude API issues
@@ -334,6 +357,7 @@ Edit `test-state.json` and change:
 
 1. Create a new directory: `coding-loops/loop-N-name/`
 2. Create `config.json` from template:
+
 ```json
 {
   "name": "Loop N: Name",
@@ -343,7 +367,9 @@ Edit `test-state.json` and change:
   "priority": 5
 }
 ```
+
 3. Create `run_loop.py` extending `RalphLoopRunner`:
+
 ```python
 from ralph_loop_base import RalphLoopRunner, load_config
 
@@ -356,10 +382,11 @@ class MyLoop(RalphLoopRunner):
         # Return system prompt for the agent
         pass
 ```
+
 4. Create `specs/test-state.json` with tests
 5. Create `specs/00-overview.md` with specs
 
 ---
 
-*Created: 2026-01-07*
-*Last Updated: 2026-01-07*
+_Created: 2026-01-07_
+_Last Updated: 2026-01-07_

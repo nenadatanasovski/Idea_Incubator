@@ -10,78 +10,83 @@ updated: "{{updated}}"
 # Red Team Analysis: {{title}}
 
 ## Executive Summary
+
 <!-- Agent fills after red team session -->
 
 - [ ] Defined: No
 
-*Overview of critical challenges and vulnerabilities identified.*
+_Overview of critical challenges and vulnerabilities identified._
 
 ## The Skeptic's View
+
 <!-- Agent fills after skeptic analysis -->
 
 - [ ] Defined: No
 
-*Challenges from the perspective of a market skeptic.*
+_Challenges from the perspective of a market skeptic._
 
 **Core Challenges**:
+
 1.
 2.
 3.
 
-**Evidence Against**:
--
--
+## **Evidence Against**:
 
-**Counter-Arguments**:
+- **Counter-Arguments**:
+
 -
 -
 
 ## The Realist's View
+
 <!-- Agent fills after realist analysis -->
 
 - [ ] Defined: No
 
-*Challenges from the perspective of a pragmatic operator.*
+_Challenges from the perspective of a pragmatic operator._
 
 **Execution Challenges**:
+
 1.
 2.
 3.
 
-**Resource Constraints**:
--
--
+## **Resource Constraints**:
 
-**Reality Check**:
+- **Reality Check**:
+
 -
 -
 
 ## First Principles View
+
 <!-- Agent fills after first principles analysis -->
 
 - [ ] Defined: No
 
-*Challenges from fundamental assumptions.*
+_Challenges from fundamental assumptions._
 
 **Assumptions Questioned**:
+
 1.
 2.
 3.
 
-**What Must Be True**:
--
--
+## **What Must Be True**:
 
-**Alternative Framings**:
+- **Alternative Framings**:
+
 -
 -
 
 ## Synthesis
+
 <!-- Agent fills after synthesis -->
 
 - [ ] Defined: No
 
-*Key takeaways and action items.*
+_Key takeaways and action items._
 
 **Critical Risks**:
 | Risk | Severity | Likelihood | Mitigation |
@@ -90,6 +95,7 @@ updated: "{{updated}}"
 | | | | |
 
 **Recommended Actions**:
+
 1.
 2.
 3.

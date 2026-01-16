@@ -3,6 +3,7 @@
 ## Overview
 
 This specification covers the dual metering system algorithms:
+
 - **Confidence Calculator**: Measures how well-defined an idea is (0-100)
 - **Viability Calculator**: Measures how realistic/achievable an idea is (0-100)
 
@@ -22,7 +23,7 @@ import {
   MarketDiscoveryState,
   NarrowingState,
   IdeaCandidate,
-} from '../../types/ideation.js';
+} from "../../types/ideation.js";
 
 /**
  * CONFIDENCE CALCULATION
@@ -38,17 +39,17 @@ export interface ConfidenceInput {
   marketDiscovery: MarketDiscoveryState;
   narrowingState: NarrowingState;
   candidate: Partial<IdeaCandidate> | null;
-  userConfirmations: number;  // Times user expressed resonance
+  userConfirmations: number; // Times user expressed resonance
 }
 
 export interface ConfidenceBreakdown {
   total: number;
   components: {
-    problemDefinition: number;   // 0-25 points
-    targetUser: number;          // 0-20 points
-    solutionDirection: number;   // 0-20 points
-    differentiation: number;     // 0-20 points
-    userFit: number;             // 0-15 points
+    problemDefinition: number; // 0-25 points
+    targetUser: number; // 0-20 points
+    solutionDirection: number; // 0-20 points
+    differentiation: number; // 0-20 points
+    userFit: number; // 0-15 points
   };
   missingAreas: string[];
 }
@@ -62,7 +63,9 @@ export const CONFIDENCE_WEIGHTS = {
   userFit: 15,
 } as const;
 
-export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown {
+export function calculateConfidence(
+  input: ConfidenceInput,
+): ConfidenceBreakdown {
   const breakdown: ConfidenceBreakdown = {
     total: 0,
     components: {
@@ -82,26 +85,30 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
 
   // Has frustration with specifics? (+10)
   if (input.selfDiscovery.frustrations.length > 0) {
-    const highSeverity = input.selfDiscovery.frustrations.filter(f => f.severity === 'high');
+    const highSeverity = input.selfDiscovery.frustrations.filter(
+      (f) => f.severity === "high",
+    );
     if (highSeverity.length > 0) {
       problemScore += 10;
     } else {
       problemScore += 5;
     }
   } else {
-    breakdown.missingAreas.push('specific problem or frustration');
+    breakdown.missingAreas.push("specific problem or frustration");
   }
 
   // Market validates problem? (+10)
   if (input.marketDiscovery.gaps.length > 0) {
-    const highRelevance = input.marketDiscovery.gaps.filter(g => g.relevance === 'high');
+    const highRelevance = input.marketDiscovery.gaps.filter(
+      (g) => g.relevance === "high",
+    );
     if (highRelevance.length > 0) {
       problemScore += 10;
     } else {
       problemScore += 5;
     }
   } else {
-    breakdown.missingAreas.push('market-validated problem');
+    breakdown.missingAreas.push("market-validated problem");
   }
 
   // Clear problem statement in candidate? (+5)
@@ -109,7 +116,10 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
     problemScore += 5;
   }
 
-  breakdown.components.problemDefinition = Math.min(CONFIDENCE_WEIGHTS.problemDefinition, problemScore);
+  breakdown.components.problemDefinition = Math.min(
+    CONFIDENCE_WEIGHTS.problemDefinition,
+    problemScore,
+  );
 
   // ============================================================================
   // TARGET USER (0-20 points)
@@ -124,7 +134,7 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
       targetScore += 5;
     }
   } else {
-    breakdown.missingAreas.push('clear target customer type');
+    breakdown.missingAreas.push("clear target customer type");
   }
 
   // Location context established? (+5)
@@ -137,7 +147,10 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
     targetScore += 5;
   }
 
-  breakdown.components.targetUser = Math.min(CONFIDENCE_WEIGHTS.targetUser, targetScore);
+  breakdown.components.targetUser = Math.min(
+    CONFIDENCE_WEIGHTS.targetUser,
+    targetScore,
+  );
 
   // ============================================================================
   // SOLUTION DIRECTION (0-20 points)
@@ -148,7 +161,7 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   if (input.narrowingState.productType.value) {
     solutionScore += 7;
   } else {
-    breakdown.missingAreas.push('product type (digital/physical/service)');
+    breakdown.missingAreas.push("product type (digital/physical/service)");
   }
 
   // Has technical depth assessed? (+7)
@@ -160,10 +173,13 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   if (input.candidate?.title && input.candidate.title.length > 5) {
     solutionScore += 6;
   } else {
-    breakdown.missingAreas.push('concrete solution direction');
+    breakdown.missingAreas.push("concrete solution direction");
   }
 
-  breakdown.components.solutionDirection = Math.min(CONFIDENCE_WEIGHTS.solutionDirection, solutionScore);
+  breakdown.components.solutionDirection = Math.min(
+    CONFIDENCE_WEIGHTS.solutionDirection,
+    solutionScore,
+  );
 
   // ============================================================================
   // DIFFERENTIATION (0-20 points)
@@ -174,25 +190,32 @@ export function calculateConfidence(input: ConfidenceInput): ConfidenceBreakdown
   if (input.marketDiscovery.competitors.length > 0) {
     diffScore += 8;
   } else {
-    breakdown.missingAreas.push('competitor awareness');
+    breakdown.missingAreas.push("competitor awareness");
   }
 
   // Gaps or weaknesses in competitors found? (+7)
-  const hasCompetitorWeaknesses = input.marketDiscovery.competitors.some(c => c.weaknesses.length > 0);
+  const hasCompetitorWeaknesses = input.marketDiscovery.competitors.some(
+    (c) => c.weaknesses.length > 0,
+  );
   if (hasCompetitorWeaknesses) {
     diffScore += 7;
   }
 
   // User expertise aligns with gap? (+5)
-  const expertiseAreas = input.selfDiscovery.expertise.map(e => e.area.toLowerCase());
-  const hasExpertiseMatch = input.marketDiscovery.gaps.some(g =>
-    expertiseAreas.some(e => g.description.toLowerCase().includes(e))
+  const expertiseAreas = input.selfDiscovery.expertise.map((e) =>
+    e.area.toLowerCase(),
+  );
+  const hasExpertiseMatch = input.marketDiscovery.gaps.some((g) =>
+    expertiseAreas.some((e) => g.description.toLowerCase().includes(e)),
   );
   if (hasExpertiseMatch) {
     diffScore += 5;
   }
 
-  breakdown.components.differentiation = Math.min(CONFIDENCE_WEIGHTS.differentiation, diffScore);
+  breakdown.components.differentiation = Math.min(
+    CONFIDENCE_WEIGHTS.differentiation,
+    diffScore,
+  );
 
   // ============================================================================
   // USER FIT (0-15 points)
@@ -259,8 +282,8 @@ import {
   RiskType,
   RiskSeverity,
   WebSearchResult,
-} from '../../types/ideation.js';
-import { v4 as uuidv4 } from 'uuid';
+} from "../../types/ideation.js";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * VIABILITY CALCULATION
@@ -285,11 +308,11 @@ export interface ViabilityInput {
 export interface ViabilityBreakdown {
   total: number;
   components: {
-    marketExists: number;           // 0-25 points
-    technicalFeasibility: number;   // 0-20 points
-    competitiveSpace: number;       // 0-20 points
-    resourceReality: number;        // 0-20 points
-    clarityScore: number;           // 0-15 points
+    marketExists: number; // 0-25 points
+    technicalFeasibility: number; // 0-20 points
+    competitiveSpace: number; // 0-20 points
+    resourceReality: number; // 0-20 points
+    clarityScore: number; // 0-15 points
   };
   risks: ViabilityRisk[];
   requiresIntervention: boolean;
@@ -314,30 +337,30 @@ export const VIABILITY_THRESHOLDS = {
 
 // Keywords that indicate impossible/unfeasible technology
 const IMPOSSIBLE_KEYWORDS = [
-  'does not exist',
-  'impossible',
-  'no solution',
-  'years away',
-  'not technically feasible',
-  'cannot be done',
-  'no way to',
-  'decades of research',
+  "does not exist",
+  "impossible",
+  "no solution",
+  "years away",
+  "not technically feasible",
+  "cannot be done",
+  "no way to",
+  "decades of research",
 ];
 
 // Keywords that indicate high capital requirements
 const HIGH_CAPITAL_KEYWORDS = [
-  'million',
-  'funding required',
-  'venture capital',
-  'significant investment',
-  'series a',
-  'series b',
-  'raised $',
+  "million",
+  "funding required",
+  "venture capital",
+  "significant investment",
+  "series a",
+  "series b",
+  "raised $",
 ];
 
 export function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   const breakdown: ViabilityBreakdown = {
-    total: 100,  // Start at 100, subtract for issues
+    total: 100, // Start at 100, subtract for issues
     components: {
       marketExists: VIABILITY_WEIGHTS.marketExists,
       technicalFeasibility: VIABILITY_WEIGHTS.technicalFeasibility,
@@ -349,39 +372,49 @@ export function calculateViability(input: ViabilityInput): ViabilityBreakdown {
     requiresIntervention: false,
   };
 
-  const candidateId = input.candidate?.id || '';
+  const candidateId = input.candidate?.id || "";
 
   // ============================================================================
   // MARKET EXISTS (0-25 points, start at 25)
   // ============================================================================
 
   // No market data found? (-15)
-  if (input.marketDiscovery.competitors.length === 0 &&
-      input.marketDiscovery.gaps.length === 0) {
+  if (
+    input.marketDiscovery.competitors.length === 0 &&
+    input.marketDiscovery.gaps.length === 0
+  ) {
     breakdown.components.marketExists -= 15;
-    breakdown.risks.push(createRisk({
-      candidateId,
-      riskType: 'too_vague',
-      description: 'No market data found - market may not exist or idea is too vague',
-      evidenceText: 'Web search returned no relevant competitors or market gaps',
-      severity: 'high',
-    }));
+    breakdown.risks.push(
+      createRisk({
+        candidateId,
+        riskType: "too_vague",
+        description:
+          "No market data found - market may not exist or idea is too vague",
+        evidenceText:
+          "Web search returned no relevant competitors or market gaps",
+        severity: "high",
+      }),
+    );
   }
 
   // Failed attempts with no clear differentiation? (-10)
   const hasFailedAttempts = input.marketDiscovery.failedAttempts.length > 0;
-  const hasClearDifferentiation = input.marketDiscovery.gaps.some(g => g.relevance === 'high');
+  const hasClearDifferentiation = input.marketDiscovery.gaps.some(
+    (g) => g.relevance === "high",
+  );
   if (hasFailedAttempts && !hasClearDifferentiation) {
     breakdown.components.marketExists -= 10;
     const failedAttempt = input.marketDiscovery.failedAttempts[0];
-    breakdown.risks.push(createRisk({
-      candidateId,
-      riskType: 'wrong_timing',
-      description: `Similar attempts have failed: ${failedAttempt.what}`,
-      evidenceUrl: failedAttempt.source,
-      evidenceText: failedAttempt.why,
-      severity: 'medium',
-    }));
+    breakdown.risks.push(
+      createRisk({
+        candidateId,
+        riskType: "wrong_timing",
+        description: `Similar attempts have failed: ${failedAttempt.what}`,
+        evidenceUrl: failedAttempt.source,
+        evidenceText: failedAttempt.why,
+        severity: "medium",
+      }),
+    );
   }
 
   // ============================================================================
@@ -391,16 +424,18 @@ export function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // Check for impossible technology requirements
   for (const result of input.webSearchResults) {
     const snippetLower = result.snippet.toLowerCase();
-    if (IMPOSSIBLE_KEYWORDS.some(kw => snippetLower.includes(kw))) {
+    if (IMPOSSIBLE_KEYWORDS.some((kw) => snippetLower.includes(kw))) {
       breakdown.components.technicalFeasibility -= 15;
-      breakdown.risks.push(createRisk({
-        candidateId,
-        riskType: 'impossible',
-        description: 'Technology may not exist or be feasible',
-        evidenceUrl: result.url,
-        evidenceText: result.snippet,
-        severity: 'critical',
-      }));
+      breakdown.risks.push(
+        createRisk({
+          candidateId,
+          riskType: "impossible",
+          description: "Technology may not exist or be feasible",
+          evidenceUrl: result.url,
+          evidenceText: result.snippet,
+          severity: "critical",
+        }),
+      );
       break;
     }
   }
@@ -408,13 +443,15 @@ export function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // Skills gap detected? (-10)
   if (input.selfDiscovery.skills.gaps.length > 2) {
     breakdown.components.technicalFeasibility -= 10;
-    breakdown.risks.push(createRisk({
-      candidateId,
-      riskType: 'resource_mismatch',
-      description: `Multiple skill gaps identified: ${input.selfDiscovery.skills.gaps.join(', ')}`,
-      evidenceText: 'Based on skill assessment during conversation',
-      severity: 'medium',
-    }));
+    breakdown.risks.push(
+      createRisk({
+        candidateId,
+        riskType: "resource_mismatch",
+        description: `Multiple skill gaps identified: ${input.selfDiscovery.skills.gaps.join(", ")}`,
+        evidenceText: "Based on skill assessment during conversation",
+        severity: "medium",
+      }),
+    );
   }
 
   // ============================================================================
@@ -426,25 +463,35 @@ export function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // More than 10 well-funded competitors? (-15)
   if (competitorCount > 10) {
     breakdown.components.competitiveSpace -= 15;
-    breakdown.risks.push(createRisk({
-      candidateId,
-      riskType: 'saturated_market',
-      description: `Highly competitive market with ${competitorCount}+ competitors`,
-      evidenceText: `Competitors include: ${input.marketDiscovery.competitors.slice(0, 5).map(c => c.name).join(', ')}`,
-      severity: 'high',
-    }));
+    breakdown.risks.push(
+      createRisk({
+        candidateId,
+        riskType: "saturated_market",
+        description: `Highly competitive market with ${competitorCount}+ competitors`,
+        evidenceText: `Competitors include: ${input.marketDiscovery.competitors
+          .slice(0, 5)
+          .map((c) => c.name)
+          .join(", ")}`,
+        severity: "high",
+      }),
+    );
   }
   // 5-10 competitors without clear gap? (-10)
-  else if (competitorCount > 5 &&
-           input.marketDiscovery.gaps.filter(g => g.relevance === 'high').length === 0) {
+  else if (
+    competitorCount > 5 &&
+    input.marketDiscovery.gaps.filter((g) => g.relevance === "high").length ===
+      0
+  ) {
     breakdown.components.competitiveSpace -= 10;
-    breakdown.risks.push(createRisk({
-      candidateId,
-      riskType: 'saturated_market',
-      description: `Competitive market with ${competitorCount} competitors and no clear differentiation`,
-      evidenceText: 'No high-relevance market gaps identified',
-      severity: 'medium',
-    }));
+    breakdown.risks.push(
+      createRisk({
+        candidateId,
+        riskType: "saturated_market",
+        description: `Competitive market with ${competitorCount} competitors and no clear differentiation`,
+        evidenceText: "No high-relevance market gaps identified",
+        severity: "medium",
+      }),
+    );
   }
 
   // ============================================================================
@@ -454,17 +501,20 @@ export function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // Check for resource requirements in search results
   for (const result of input.webSearchResults) {
     const snippetLower = result.snippet.toLowerCase();
-    if (HIGH_CAPITAL_KEYWORDS.some(kw => snippetLower.includes(kw))) {
-      if (input.selfDiscovery.constraints.capital === 'bootstrap') {
+    if (HIGH_CAPITAL_KEYWORDS.some((kw) => snippetLower.includes(kw))) {
+      if (input.selfDiscovery.constraints.capital === "bootstrap") {
         breakdown.components.resourceReality -= 15;
-        breakdown.risks.push(createRisk({
-          candidateId,
-          riskType: 'unrealistic',
-          description: 'Market typically requires significant capital investment',
-          evidenceUrl: result.url,
-          evidenceText: result.snippet,
-          severity: 'high',
-        }));
+        breakdown.risks.push(
+          createRisk({
+            candidateId,
+            riskType: "unrealistic",
+            description:
+              "Market typically requires significant capital investment",
+            evidenceUrl: result.url,
+            evidenceText: result.snippet,
+            severity: "high",
+          }),
+        );
         break;
       }
     }
@@ -473,15 +523,22 @@ export function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // Time constraints vs complexity mismatch? (-10)
   const timeHours = input.selfDiscovery.constraints.timeHoursPerWeek;
   const technicalDepth = input.narrowingState.technicalDepth.value;
-  if (timeHours !== null && timeHours < 10 && technicalDepth === 'full_custom') {
+  if (
+    timeHours !== null &&
+    timeHours < 10 &&
+    technicalDepth === "full_custom"
+  ) {
     breakdown.components.resourceReality -= 10;
-    breakdown.risks.push(createRisk({
-      candidateId,
-      riskType: 'resource_mismatch',
-      description: 'Limited time availability vs complex technical requirements',
-      evidenceText: `${timeHours} hours/week for custom development`,
-      severity: 'medium',
-    }));
+    breakdown.risks.push(
+      createRisk({
+        candidateId,
+        riskType: "resource_mismatch",
+        description:
+          "Limited time availability vs complex technical requirements",
+        evidenceText: `${timeHours} hours/week for custom development`,
+        severity: "medium",
+      }),
+    );
   }
 
   // ============================================================================
@@ -491,13 +548,15 @@ export function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // Can't define target user? (-10)
   if (!input.narrowingState.customerType.value) {
     breakdown.components.clarityScore -= 10;
-    breakdown.risks.push(createRisk({
-      candidateId,
-      riskType: 'too_vague',
-      description: 'Target customer not clearly defined',
-      evidenceText: 'Cannot validate market without clear target user',
-      severity: 'medium',
-    }));
+    breakdown.risks.push(
+      createRisk({
+        candidateId,
+        riskType: "too_vague",
+        description: "Target customer not clearly defined",
+        evidenceText: "Cannot validate market without clear target user",
+        severity: "medium",
+      }),
+    );
   }
 
   // Can't define solution direction? (-5)
@@ -509,11 +568,26 @@ export function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // CLAMP COMPONENTS & CALCULATE TOTAL
   // ============================================================================
 
-  breakdown.components.marketExists = Math.max(0, breakdown.components.marketExists);
-  breakdown.components.technicalFeasibility = Math.max(0, breakdown.components.technicalFeasibility);
-  breakdown.components.competitiveSpace = Math.max(0, breakdown.components.competitiveSpace);
-  breakdown.components.resourceReality = Math.max(0, breakdown.components.resourceReality);
-  breakdown.components.clarityScore = Math.max(0, breakdown.components.clarityScore);
+  breakdown.components.marketExists = Math.max(
+    0,
+    breakdown.components.marketExists,
+  );
+  breakdown.components.technicalFeasibility = Math.max(
+    0,
+    breakdown.components.technicalFeasibility,
+  );
+  breakdown.components.competitiveSpace = Math.max(
+    0,
+    breakdown.components.competitiveSpace,
+  );
+  breakdown.components.resourceReality = Math.max(
+    0,
+    breakdown.components.resourceReality,
+  );
+  breakdown.components.clarityScore = Math.max(
+    0,
+    breakdown.components.clarityScore,
+  );
 
   breakdown.total =
     breakdown.components.marketExists +
@@ -525,7 +599,7 @@ export function calculateViability(input: ViabilityInput): ViabilityBreakdown {
   // Intervention required if any critical risk OR total < 50
   breakdown.requiresIntervention =
     breakdown.total < VIABILITY_THRESHOLDS.caution ||
-    breakdown.risks.some(r => r.severity === 'critical');
+    breakdown.risks.some((r) => r.severity === "critical");
 
   return breakdown;
 }
@@ -554,16 +628,24 @@ function createRisk(params: {
 }
 
 // Helper to get viability status label
-export function getViabilityStatus(viability: number): 'healthy' | 'caution' | 'warning' | 'critical' {
-  if (viability >= VIABILITY_THRESHOLDS.healthy) return 'healthy';
-  if (viability >= VIABILITY_THRESHOLDS.caution) return 'caution';
-  if (viability >= VIABILITY_THRESHOLDS.warning) return 'warning';
-  return 'critical';
+export function getViabilityStatus(
+  viability: number,
+): "healthy" | "caution" | "warning" | "critical" {
+  if (viability >= VIABILITY_THRESHOLDS.healthy) return "healthy";
+  if (viability >= VIABILITY_THRESHOLDS.caution) return "caution";
+  if (viability >= VIABILITY_THRESHOLDS.warning) return "warning";
+  return "critical";
 }
 
 // Helper to check if intervention is needed
-export function needsIntervention(viability: number, risks: ViabilityRisk[]): boolean {
-  return viability < VIABILITY_THRESHOLDS.caution || risks.some(r => r.severity === 'critical');
+export function needsIntervention(
+  viability: number,
+  risks: ViabilityRisk[],
+): boolean {
+  return (
+    viability < VIABILITY_THRESHOLDS.caution ||
+    risks.some((r) => r.severity === "critical")
+  );
 }
 ```
 
@@ -574,7 +656,7 @@ export function needsIntervention(viability: number, risks: ViabilityRisk[]): bo
 Create file: `agents/ideation/token-counter.ts`
 
 ```typescript
-import { IdeationMessage } from '../../types/ideation.js';
+import { IdeationMessage } from "../../types/ideation.js";
 
 /**
  * TOKEN COUNTING & HANDOFF
@@ -614,11 +696,11 @@ export function estimateTokens(text: string): number {
  */
 export function calculateTokenUsage(
   conversationHistory: IdeationMessage[],
-  currentMessage: string
+  currentMessage: string,
 ): TokenUsage {
   const conversationTokens = conversationHistory.reduce(
     (sum, msg) => sum + estimateTokens(msg.content),
-    0
+    0,
   );
   const currentMessageTokens = estimateTokens(currentMessage);
 
@@ -666,25 +748,27 @@ export function isApproachingHandoff(usage: TokenUsage): boolean {
 Create file: `tests/ideation/confidence-calculator.test.ts`
 
 ```typescript
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from "vitest";
 import {
   calculateConfidence,
   shouldDisplayCandidate,
   isIdeaReady,
   ConfidenceInput,
   CONFIDENCE_WEIGHTS,
-} from '../../agents/ideation/confidence-calculator.js';
+} from "../../agents/ideation/confidence-calculator.js";
 import {
   createDefaultSelfDiscoveryState,
   createDefaultMarketDiscoveryState,
   createDefaultNarrowingState,
-} from '../../utils/ideation-defaults.js';
+} from "../../utils/ideation-defaults.js";
 
 // ============================================================================
 // TEST HELPERS
 // ============================================================================
 
-function createBaseInput(overrides: Partial<ConfidenceInput> = {}): ConfidenceInput {
+function createBaseInput(
+  overrides: Partial<ConfidenceInput> = {},
+): ConfidenceInput {
   return {
     selfDiscovery: createDefaultSelfDiscoveryState(),
     marketDiscovery: createDefaultMarketDiscoveryState(),
@@ -702,35 +786,46 @@ function createEmptyInput(): ConfidenceInput {
 function createFullInput(): ConfidenceInput {
   const selfDiscovery = createDefaultSelfDiscoveryState();
   selfDiscovery.frustrations = [
-    { description: 'Specific problem', source: 'user', severity: 'high' }
+    { description: "Specific problem", source: "user", severity: "high" },
   ];
   selfDiscovery.expertise = [
-    { area: 'healthcare', depth: 'expert', evidence: 'worked 10 years' }
+    { area: "healthcare", depth: "expert", evidence: "worked 10 years" },
   ];
-  selfDiscovery.skills.strengths = ['programming', 'design'];
+  selfDiscovery.skills.strengths = ["programming", "design"];
   selfDiscovery.constraints.timeHoursPerWeek = 20;
-  selfDiscovery.constraints.location.target = 'Sydney';
+  selfDiscovery.constraints.location.target = "Sydney";
 
   const marketDiscovery = createDefaultMarketDiscoveryState();
   marketDiscovery.gaps = [
-    { description: 'healthcare gap', evidence: 'research', relevance: 'high' }
+    { description: "healthcare gap", evidence: "research", relevance: "high" },
   ];
   marketDiscovery.competitors = [
-    { name: 'Competitor A', description: 'desc', strengths: ['s1'], weaknesses: ['w1'], source: 'url' }
+    {
+      name: "Competitor A",
+      description: "desc",
+      strengths: ["s1"],
+      weaknesses: ["w1"],
+      source: "url",
+    },
   ];
-  marketDiscovery.locationContext.city = 'Sydney';
+  marketDiscovery.locationContext.city = "Sydney";
 
   const narrowingState = createDefaultNarrowingState();
-  narrowingState.customerType = { value: 'B2B', confidence: 0.9 };
-  narrowingState.productType = { value: 'Digital', confidence: 0.8 };
-  narrowingState.geography = { value: 'Australia', confidence: 0.9 };
-  narrowingState.technicalDepth = { value: 'low_code', confidence: 0.7 };
+  narrowingState.customerType = { value: "B2B", confidence: 0.9 };
+  narrowingState.productType = { value: "Digital", confidence: 0.8 };
+  narrowingState.geography = { value: "Australia", confidence: 0.9 };
+  narrowingState.technicalDepth = { value: "low_code", confidence: 0.7 };
 
   return {
     selfDiscovery,
     marketDiscovery,
     narrowingState,
-    candidate: { id: 'cand1', title: 'Healthcare Platform Solution', summary: 'A comprehensive platform that solves the data interoperability problem in emergency departments.' },
+    candidate: {
+      id: "cand1",
+      title: "Healthcare Platform Solution",
+      summary:
+        "A comprehensive platform that solves the data interoperability problem in emergency departments.",
+    },
     userConfirmations: 2,
   };
 }
@@ -739,16 +834,17 @@ function createFullInput(): ConfidenceInput {
 // TESTS
 // ============================================================================
 
-describe('ConfidenceCalculator', () => {
-  describe('calculateConfidence', () => {
-
+describe("ConfidenceCalculator", () => {
+  describe("calculateConfidence", () => {
     // =========================================================================
     // PROBLEM DEFINITION COMPONENT (0-25 points)
     // =========================================================================
 
-    test('PASS: High-severity frustration adds 10 points', () => {
+    test("PASS: High-severity frustration adds 10 points", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
-      selfDiscovery.frustrations = [{ description: 'X', source: 'user', severity: 'high' }];
+      selfDiscovery.frustrations = [
+        { description: "X", source: "user", severity: "high" },
+      ];
 
       const input = createBaseInput({ selfDiscovery });
       const result = calculateConfidence(input);
@@ -756,9 +852,11 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.problemDefinition).toBeGreaterThanOrEqual(10);
     });
 
-    test('PASS: Medium-severity frustration adds only 5 points', () => {
+    test("PASS: Medium-severity frustration adds only 5 points", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
-      selfDiscovery.frustrations = [{ description: 'X', source: 'user', severity: 'medium' }];
+      selfDiscovery.frustrations = [
+        { description: "X", source: "user", severity: "medium" },
+      ];
 
       const input = createBaseInput({ selfDiscovery });
       const result = calculateConfidence(input);
@@ -767,9 +865,11 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.problemDefinition).toBeGreaterThanOrEqual(5);
     });
 
-    test('PASS: Low-severity frustration adds only 5 points', () => {
+    test("PASS: Low-severity frustration adds only 5 points", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
-      selfDiscovery.frustrations = [{ description: 'X', source: 'user', severity: 'low' }];
+      selfDiscovery.frustrations = [
+        { description: "X", source: "user", severity: "low" },
+      ];
 
       const input = createBaseInput({ selfDiscovery });
       const result = calculateConfidence(input);
@@ -778,16 +878,18 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.problemDefinition).toBeLessThan(10);
     });
 
-    test('PASS: No frustrations = 0 for that sub-component, flags missing area', () => {
+    test("PASS: No frustrations = 0 for that sub-component, flags missing area", () => {
       const input = createEmptyInput();
       const result = calculateConfidence(input);
 
-      expect(result.missingAreas).toContain('specific problem or frustration');
+      expect(result.missingAreas).toContain("specific problem or frustration");
     });
 
-    test('PASS: High-relevance market gap adds 10 points', () => {
+    test("PASS: High-relevance market gap adds 10 points", () => {
       const marketDiscovery = createDefaultMarketDiscoveryState();
-      marketDiscovery.gaps = [{ description: 'Gap', evidence: 'url', relevance: 'high' }];
+      marketDiscovery.gaps = [
+        { description: "Gap", evidence: "url", relevance: "high" },
+      ];
 
       const input = createBaseInput({ marketDiscovery });
       const result = calculateConfidence(input);
@@ -795,8 +897,12 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.problemDefinition).toBeGreaterThanOrEqual(10);
     });
 
-    test('PASS: Candidate summary > 50 chars adds 5 points', () => {
-      const candidate = { id: 'c1', summary: 'This is a summary that is longer than fifty characters to trigger the bonus.' };
+    test("PASS: Candidate summary > 50 chars adds 5 points", () => {
+      const candidate = {
+        id: "c1",
+        summary:
+          "This is a summary that is longer than fifty characters to trigger the bonus.",
+      };
 
       const input = createBaseInput({ candidate });
       const result = calculateConfidence(input);
@@ -809,9 +915,9 @@ describe('ConfidenceCalculator', () => {
     // TARGET USER COMPONENT (0-20 points)
     // =========================================================================
 
-    test('PASS: Narrowed customer type with high confidence adds 10 points', () => {
+    test("PASS: Narrowed customer type with high confidence adds 10 points", () => {
       const narrowingState = createDefaultNarrowingState();
-      narrowingState.customerType = { value: 'B2B', confidence: 0.8 };
+      narrowingState.customerType = { value: "B2B", confidence: 0.8 };
 
       const input = createBaseInput({ narrowingState });
       const result = calculateConfidence(input);
@@ -819,9 +925,9 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.targetUser).toBeGreaterThanOrEqual(10);
     });
 
-    test('PASS: Narrowed customer type with low confidence adds 5 points', () => {
+    test("PASS: Narrowed customer type with low confidence adds 5 points", () => {
       const narrowingState = createDefaultNarrowingState();
-      narrowingState.customerType = { value: 'B2B', confidence: 0.5 };
+      narrowingState.customerType = { value: "B2B", confidence: 0.5 };
 
       const input = createBaseInput({ narrowingState });
       const result = calculateConfidence(input);
@@ -830,16 +936,16 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.targetUser).toBeLessThan(10);
     });
 
-    test('PASS: No customer type = missing area flagged', () => {
+    test("PASS: No customer type = missing area flagged", () => {
       const input = createEmptyInput();
       const result = calculateConfidence(input);
 
-      expect(result.missingAreas).toContain('clear target customer type');
+      expect(result.missingAreas).toContain("clear target customer type");
     });
 
-    test('PASS: Location context adds 5 points', () => {
+    test("PASS: Location context adds 5 points", () => {
       const marketDiscovery = createDefaultMarketDiscoveryState();
-      marketDiscovery.locationContext.city = 'Sydney';
+      marketDiscovery.locationContext.city = "Sydney";
 
       const input = createBaseInput({ marketDiscovery });
       const result = calculateConfidence(input);
@@ -847,9 +953,9 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.targetUser).toBeGreaterThanOrEqual(5);
     });
 
-    test('PASS: Geography narrowed adds 5 points', () => {
+    test("PASS: Geography narrowed adds 5 points", () => {
       const narrowingState = createDefaultNarrowingState();
-      narrowingState.geography = { value: 'Australia', confidence: 0.9 };
+      narrowingState.geography = { value: "Australia", confidence: 0.9 };
 
       const input = createBaseInput({ narrowingState });
       const result = calculateConfidence(input);
@@ -861,9 +967,9 @@ describe('ConfidenceCalculator', () => {
     // SOLUTION DIRECTION COMPONENT (0-20 points)
     // =========================================================================
 
-    test('PASS: Product type adds 7 points', () => {
+    test("PASS: Product type adds 7 points", () => {
       const narrowingState = createDefaultNarrowingState();
-      narrowingState.productType = { value: 'Digital', confidence: 0.8 };
+      narrowingState.productType = { value: "Digital", confidence: 0.8 };
 
       const input = createBaseInput({ narrowingState });
       const result = calculateConfidence(input);
@@ -871,16 +977,18 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.solutionDirection).toBeGreaterThanOrEqual(7);
     });
 
-    test('PASS: No product type = missing area flagged', () => {
+    test("PASS: No product type = missing area flagged", () => {
       const input = createEmptyInput();
       const result = calculateConfidence(input);
 
-      expect(result.missingAreas).toContain('product type (digital/physical/service)');
+      expect(result.missingAreas).toContain(
+        "product type (digital/physical/service)",
+      );
     });
 
-    test('PASS: Technical depth adds 7 points', () => {
+    test("PASS: Technical depth adds 7 points", () => {
       const narrowingState = createDefaultNarrowingState();
-      narrowingState.technicalDepth = { value: 'no_code', confidence: 0.7 };
+      narrowingState.technicalDepth = { value: "no_code", confidence: 0.7 };
 
       const input = createBaseInput({ narrowingState });
       const result = calculateConfidence(input);
@@ -888,8 +996,8 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.solutionDirection).toBeGreaterThanOrEqual(7);
     });
 
-    test('PASS: Candidate title > 5 chars adds 6 points', () => {
-      const candidate = { id: 'c1', title: 'My Awesome Idea' };
+    test("PASS: Candidate title > 5 chars adds 6 points", () => {
+      const candidate = { id: "c1", title: "My Awesome Idea" };
 
       const input = createBaseInput({ candidate });
       const result = calculateConfidence(input);
@@ -901,10 +1009,16 @@ describe('ConfidenceCalculator', () => {
     // DIFFERENTIATION COMPONENT (0-20 points)
     // =========================================================================
 
-    test('PASS: Competitors identified adds 8 points', () => {
+    test("PASS: Competitors identified adds 8 points", () => {
       const marketDiscovery = createDefaultMarketDiscoveryState();
       marketDiscovery.competitors = [
-        { name: 'CompA', description: 'd', strengths: [], weaknesses: [], source: 'url' }
+        {
+          name: "CompA",
+          description: "d",
+          strengths: [],
+          weaknesses: [],
+          source: "url",
+        },
       ];
 
       const input = createBaseInput({ marketDiscovery });
@@ -913,17 +1027,23 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.differentiation).toBeGreaterThanOrEqual(8);
     });
 
-    test('PASS: No competitors = missing area flagged', () => {
+    test("PASS: No competitors = missing area flagged", () => {
       const input = createEmptyInput();
       const result = calculateConfidence(input);
 
-      expect(result.missingAreas).toContain('competitor awareness');
+      expect(result.missingAreas).toContain("competitor awareness");
     });
 
-    test('PASS: Competitor weaknesses adds 7 points', () => {
+    test("PASS: Competitor weaknesses adds 7 points", () => {
       const marketDiscovery = createDefaultMarketDiscoveryState();
       marketDiscovery.competitors = [
-        { name: 'CompA', description: 'd', strengths: [], weaknesses: ['slow', 'expensive'], source: 'url' }
+        {
+          name: "CompA",
+          description: "d",
+          strengths: [],
+          weaknesses: ["slow", "expensive"],
+          source: "url",
+        },
       ];
 
       const input = createBaseInput({ marketDiscovery });
@@ -932,12 +1052,20 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.differentiation).toBeGreaterThanOrEqual(15); // 8 + 7
     });
 
-    test('PASS: Expertise matching gap adds 5 points', () => {
+    test("PASS: Expertise matching gap adds 5 points", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
-      selfDiscovery.expertise = [{ area: 'healthcare', depth: 'expert', evidence: 'test' }];
+      selfDiscovery.expertise = [
+        { area: "healthcare", depth: "expert", evidence: "test" },
+      ];
 
       const marketDiscovery = createDefaultMarketDiscoveryState();
-      marketDiscovery.gaps = [{ description: 'Gap in healthcare data', evidence: 'url', relevance: 'medium' }];
+      marketDiscovery.gaps = [
+        {
+          description: "Gap in healthcare data",
+          evidence: "url",
+          relevance: "medium",
+        },
+      ];
 
       const input = createBaseInput({ selfDiscovery, marketDiscovery });
       const result = calculateConfidence(input);
@@ -949,9 +1077,9 @@ describe('ConfidenceCalculator', () => {
     // USER FIT COMPONENT (0-15 points)
     // =========================================================================
 
-    test('PASS: Skills strengths adds 5 points', () => {
+    test("PASS: Skills strengths adds 5 points", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
-      selfDiscovery.skills.strengths = ['programming'];
+      selfDiscovery.skills.strengths = ["programming"];
 
       const input = createBaseInput({ selfDiscovery });
       const result = calculateConfidence(input);
@@ -959,7 +1087,7 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.userFit).toBeGreaterThanOrEqual(5);
     });
 
-    test('PASS: Constraints set adds 5 points', () => {
+    test("PASS: Constraints set adds 5 points", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
       selfDiscovery.constraints.timeHoursPerWeek = 20;
 
@@ -969,7 +1097,7 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.userFit).toBeGreaterThanOrEqual(5);
     });
 
-    test('PASS: User confirmations add up to 5 points (2 per confirmation)', () => {
+    test("PASS: User confirmations add up to 5 points (2 per confirmation)", () => {
       const input = createBaseInput({ userConfirmations: 3 });
       const result = calculateConfidence(input);
 
@@ -977,7 +1105,7 @@ describe('ConfidenceCalculator', () => {
       expect(result.components.userFit).toBeGreaterThanOrEqual(5);
     });
 
-    test('PASS: Single confirmation adds 2 points', () => {
+    test("PASS: Single confirmation adds 2 points", () => {
       const input = createBaseInput({ userConfirmations: 1 });
       const result = calculateConfidence(input);
 
@@ -988,21 +1116,21 @@ describe('ConfidenceCalculator', () => {
     // TOTAL SCORE
     // =========================================================================
 
-    test('PASS: Empty input returns 0 total', () => {
+    test("PASS: Empty input returns 0 total", () => {
       const input = createEmptyInput();
       const result = calculateConfidence(input);
 
       expect(result.total).toBe(0);
     });
 
-    test('PASS: Full input returns near-100 total', () => {
+    test("PASS: Full input returns near-100 total", () => {
       const input = createFullInput();
       const result = calculateConfidence(input);
 
       expect(result.total).toBeGreaterThanOrEqual(90);
     });
 
-    test('PASS: Total never exceeds 100', () => {
+    test("PASS: Total never exceeds 100", () => {
       const input = createFullInput();
       // Add extra data that might overflow
       input.userConfirmations = 100;
@@ -1012,52 +1140,64 @@ describe('ConfidenceCalculator', () => {
       expect(result.total).toBeLessThanOrEqual(100);
     });
 
-    test('PASS: Components are correctly capped at their maximums', () => {
+    test("PASS: Components are correctly capped at their maximums", () => {
       const input = createFullInput();
       const result = calculateConfidence(input);
 
-      expect(result.components.problemDefinition).toBeLessThanOrEqual(CONFIDENCE_WEIGHTS.problemDefinition);
-      expect(result.components.targetUser).toBeLessThanOrEqual(CONFIDENCE_WEIGHTS.targetUser);
-      expect(result.components.solutionDirection).toBeLessThanOrEqual(CONFIDENCE_WEIGHTS.solutionDirection);
-      expect(result.components.differentiation).toBeLessThanOrEqual(CONFIDENCE_WEIGHTS.differentiation);
-      expect(result.components.userFit).toBeLessThanOrEqual(CONFIDENCE_WEIGHTS.userFit);
+      expect(result.components.problemDefinition).toBeLessThanOrEqual(
+        CONFIDENCE_WEIGHTS.problemDefinition,
+      );
+      expect(result.components.targetUser).toBeLessThanOrEqual(
+        CONFIDENCE_WEIGHTS.targetUser,
+      );
+      expect(result.components.solutionDirection).toBeLessThanOrEqual(
+        CONFIDENCE_WEIGHTS.solutionDirection,
+      );
+      expect(result.components.differentiation).toBeLessThanOrEqual(
+        CONFIDENCE_WEIGHTS.differentiation,
+      );
+      expect(result.components.userFit).toBeLessThanOrEqual(
+        CONFIDENCE_WEIGHTS.userFit,
+      );
     });
 
-    test('PASS: Missing areas correctly identified for partial input', () => {
+    test("PASS: Missing areas correctly identified for partial input", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
-      selfDiscovery.frustrations = [{ description: 'test', source: 'user', severity: 'high' }];
+      selfDiscovery.frustrations = [
+        { description: "test", source: "user", severity: "high" },
+      ];
 
       const input = createBaseInput({ selfDiscovery });
       const result = calculateConfidence(input);
 
       expect(result.missingAreas.length).toBeGreaterThan(0);
-      expect(result.missingAreas).toContain('clear target customer type');
-      expect(result.missingAreas).toContain('competitor awareness');
+      expect(result.missingAreas).toContain("clear target customer type");
+      expect(result.missingAreas).toContain("competitor awareness");
     });
   });
 
-  describe('shouldDisplayCandidate', () => {
-    test('PASS: Returns true for confidence >= 30', () => {
+  describe("shouldDisplayCandidate", () => {
+    test("PASS: Returns true for confidence >= 30", () => {
       expect(shouldDisplayCandidate(30)).toBe(true);
       expect(shouldDisplayCandidate(50)).toBe(true);
       expect(shouldDisplayCandidate(100)).toBe(true);
     });
 
-    test('PASS: Returns false for confidence < 30', () => {
+    test("PASS: Returns false for confidence < 30", () => {
       expect(shouldDisplayCandidate(0)).toBe(false);
       expect(shouldDisplayCandidate(15)).toBe(false);
       expect(shouldDisplayCandidate(29)).toBe(false);
     });
   });
 
-  describe('isIdeaReady', () => {
-    test('PASS: Returns true for confidence >= 75', () => {
+  describe("isIdeaReady", () => {
+    test("PASS: Returns true for confidence >= 75", () => {
       expect(isIdeaReady(75)).toBe(true);
       expect(isIdeaReady(90)).toBe(true);
       expect(isIdeaReady(100)).toBe(true);
     });
 
-    test('PASS: Returns false for confidence < 75', () => {
+    test("PASS: Returns false for confidence < 75", () => {
       expect(isIdeaReady(0)).toBe(false);
       expect(isIdeaReady(50)).toBe(false);
       expect(isIdeaReady(74)).toBe(false);
@@ -1071,7 +1211,7 @@ describe('ConfidenceCalculator', () => {
 Create file: `tests/ideation/viability-calculator.test.ts`
 
 ```typescript
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from "vitest";
 import {
   calculateViability,
   getViabilityStatus,
@@ -1079,25 +1219,27 @@ import {
   ViabilityInput,
   VIABILITY_WEIGHTS,
   VIABILITY_THRESHOLDS,
-} from '../../agents/ideation/viability-calculator.js';
+} from "../../agents/ideation/viability-calculator.js";
 import {
   createDefaultSelfDiscoveryState,
   createDefaultMarketDiscoveryState,
   createDefaultNarrowingState,
-} from '../../utils/ideation-defaults.js';
-import { WebSearchResult } from '../../types/ideation.js';
+} from "../../utils/ideation-defaults.js";
+import { WebSearchResult } from "../../types/ideation.js";
 
 // ============================================================================
 // TEST HELPERS
 // ============================================================================
 
-function createBaseViabilityInput(overrides: Partial<ViabilityInput> = {}): ViabilityInput {
+function createBaseViabilityInput(
+  overrides: Partial<ViabilityInput> = {},
+): ViabilityInput {
   return {
     selfDiscovery: createDefaultSelfDiscoveryState(),
     marketDiscovery: createDefaultMarketDiscoveryState(),
     narrowingState: createDefaultNarrowingState(),
     webSearchResults: [],
-    candidate: { id: 'test_candidate' },
+    candidate: { id: "test_candidate" },
     ...overrides,
   };
 }
@@ -1105,30 +1247,37 @@ function createBaseViabilityInput(overrides: Partial<ViabilityInput> = {}): Viab
 function createHealthyViabilityInput(): ViabilityInput {
   const marketDiscovery = createDefaultMarketDiscoveryState();
   marketDiscovery.competitors = [
-    { name: 'Comp1', description: 'd', strengths: [], weaknesses: ['slow'], source: 'url' }
+    {
+      name: "Comp1",
+      description: "d",
+      strengths: [],
+      weaknesses: ["slow"],
+      source: "url",
+    },
   ];
   marketDiscovery.gaps = [
-    { description: 'Clear gap', evidence: 'research', relevance: 'high' }
+    { description: "Clear gap", evidence: "research", relevance: "high" },
   ];
 
   const narrowingState = createDefaultNarrowingState();
-  narrowingState.customerType = { value: 'B2B', confidence: 0.9 };
-  narrowingState.productType = { value: 'Digital', confidence: 0.8 };
+  narrowingState.customerType = { value: "B2B", confidence: 0.9 };
+  narrowingState.productType = { value: "Digital", confidence: 0.8 };
 
   return createBaseViabilityInput({ marketDiscovery, narrowingState });
 }
 
 function createLowViabilityInput(): ViabilityInput {
   const selfDiscovery = createDefaultSelfDiscoveryState();
-  selfDiscovery.skills.gaps = ['skill1', 'skill2', 'skill3'];
-  selfDiscovery.constraints.capital = 'bootstrap';
+  selfDiscovery.skills.gaps = ["skill1", "skill2", "skill3"];
+  selfDiscovery.constraints.capital = "bootstrap";
 
   const webSearchResults: WebSearchResult[] = [
     {
-      title: 'Industry Analysis',
-      url: 'http://example.com',
-      snippet: 'This technology is impossible with current methods and years away from reality.',
-      source: 'TechSite',
+      title: "Industry Analysis",
+      url: "http://example.com",
+      snippet:
+        "This technology is impossible with current methods and years away from reality.",
+      source: "TechSite",
     },
   ];
 
@@ -1139,55 +1288,74 @@ function createLowViabilityInput(): ViabilityInput {
 // TESTS
 // ============================================================================
 
-describe('ViabilityCalculator', () => {
-  describe('calculateViability', () => {
-
+describe("ViabilityCalculator", () => {
+  describe("calculateViability", () => {
     // =========================================================================
     // MARKET EXISTS COMPONENT
     // =========================================================================
 
-    test('PASS: No market data reduces score by 15', () => {
+    test("PASS: No market data reduces score by 15", () => {
       const input = createBaseViabilityInput({
         marketDiscovery: createDefaultMarketDiscoveryState(), // empty
       });
       const result = calculateViability(input);
 
-      expect(result.components.marketExists).toBe(VIABILITY_WEIGHTS.marketExists - 15);
+      expect(result.components.marketExists).toBe(
+        VIABILITY_WEIGHTS.marketExists - 15,
+      );
     });
 
-    test('PASS: No market data creates too_vague risk', () => {
+    test("PASS: No market data creates too_vague risk", () => {
       const input = createBaseViabilityInput();
       const result = calculateViability(input);
 
-      expect(result.risks.some(r => r.riskType === 'too_vague')).toBe(true);
+      expect(result.risks.some((r) => r.riskType === "too_vague")).toBe(true);
     });
 
-    test('PASS: Failed attempts without differentiation creates wrong_timing risk', () => {
+    test("PASS: Failed attempts without differentiation creates wrong_timing risk", () => {
       const marketDiscovery = createDefaultMarketDiscoveryState();
       marketDiscovery.failedAttempts = [
-        { what: 'Similar startup', why: 'No market fit', lesson: 'Timing was wrong', source: 'postmortem.com' }
+        {
+          what: "Similar startup",
+          why: "No market fit",
+          lesson: "Timing was wrong",
+          source: "postmortem.com",
+        },
       ];
       marketDiscovery.gaps = []; // No differentiation
 
       const input = createBaseViabilityInput({ marketDiscovery });
       const result = calculateViability(input);
 
-      expect(result.risks.some(r => r.riskType === 'wrong_timing')).toBe(true);
+      expect(result.risks.some((r) => r.riskType === "wrong_timing")).toBe(
+        true,
+      );
     });
 
-    test('PASS: Failed attempts WITH differentiation does not create risk', () => {
+    test("PASS: Failed attempts WITH differentiation does not create risk", () => {
       const marketDiscovery = createDefaultMarketDiscoveryState();
       marketDiscovery.failedAttempts = [
-        { what: 'Similar startup', why: 'No market fit', lesson: 'Timing was wrong', source: 'url' }
+        {
+          what: "Similar startup",
+          why: "No market fit",
+          lesson: "Timing was wrong",
+          source: "url",
+        },
       ];
       marketDiscovery.gaps = [
-        { description: 'Clear differentiation', evidence: 'research', relevance: 'high' }
+        {
+          description: "Clear differentiation",
+          evidence: "research",
+          relevance: "high",
+        },
       ];
 
       const input = createBaseViabilityInput({ marketDiscovery });
       const result = calculateViability(input);
 
-      expect(result.risks.filter(r => r.riskType === 'wrong_timing').length).toBe(0);
+      expect(
+        result.risks.filter((r) => r.riskType === "wrong_timing").length,
+      ).toBe(0);
     });
 
     // =========================================================================
@@ -1197,73 +1365,79 @@ describe('ViabilityCalculator', () => {
     test('PASS: "impossible" in search results triggers critical risk', () => {
       const webSearchResults: WebSearchResult[] = [
         {
-          title: 'Analysis',
-          url: 'http://example.com',
-          snippet: 'This technology is impossible with current methods',
-          source: 'Expert',
+          title: "Analysis",
+          url: "http://example.com",
+          snippet: "This technology is impossible with current methods",
+          source: "Expert",
         },
       ];
 
       const input = createBaseViabilityInput({ webSearchResults });
       const result = calculateViability(input);
 
-      expect(result.risks.some(r => r.riskType === 'impossible')).toBe(true);
-      expect(result.risks.some(r => r.severity === 'critical')).toBe(true);
+      expect(result.risks.some((r) => r.riskType === "impossible")).toBe(true);
+      expect(result.risks.some((r) => r.severity === "critical")).toBe(true);
     });
 
     test('PASS: "does not exist" triggers impossible risk', () => {
       const webSearchResults: WebSearchResult[] = [
         {
-          title: 'Tech Review',
-          url: 'http://example.com',
-          snippet: 'The required technology does not exist yet',
-          source: 'TechReview',
+          title: "Tech Review",
+          url: "http://example.com",
+          snippet: "The required technology does not exist yet",
+          source: "TechReview",
         },
       ];
 
       const input = createBaseViabilityInput({ webSearchResults });
       const result = calculateViability(input);
 
-      expect(result.risks.some(r => r.riskType === 'impossible')).toBe(true);
+      expect(result.risks.some((r) => r.riskType === "impossible")).toBe(true);
     });
 
     test('PASS: "years away" triggers impossible risk', () => {
       const webSearchResults: WebSearchResult[] = [
         {
-          title: 'Future Tech',
-          url: 'http://example.com',
-          snippet: 'This capability is still years away from being practical',
-          source: 'FutureTech',
+          title: "Future Tech",
+          url: "http://example.com",
+          snippet: "This capability is still years away from being practical",
+          source: "FutureTech",
         },
       ];
 
       const input = createBaseViabilityInput({ webSearchResults });
       const result = calculateViability(input);
 
-      expect(result.risks.some(r => r.riskType === 'impossible')).toBe(true);
+      expect(result.risks.some((r) => r.riskType === "impossible")).toBe(true);
     });
 
-    test('PASS: Multiple skill gaps (>2) reduce feasibility and create risk', () => {
+    test("PASS: Multiple skill gaps (>2) reduce feasibility and create risk", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
-      selfDiscovery.skills.gaps = ['gap1', 'gap2', 'gap3'];
+      selfDiscovery.skills.gaps = ["gap1", "gap2", "gap3"];
 
       const input = createBaseViabilityInput({ selfDiscovery });
       const result = calculateViability(input);
 
-      expect(result.components.technicalFeasibility).toBeLessThan(VIABILITY_WEIGHTS.technicalFeasibility);
-      expect(result.risks.some(r => r.riskType === 'resource_mismatch')).toBe(true);
+      expect(result.components.technicalFeasibility).toBeLessThan(
+        VIABILITY_WEIGHTS.technicalFeasibility,
+      );
+      expect(result.risks.some((r) => r.riskType === "resource_mismatch")).toBe(
+        true,
+      );
     });
 
-    test('PASS: Two or fewer skill gaps does not reduce feasibility', () => {
+    test("PASS: Two or fewer skill gaps does not reduce feasibility", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
-      selfDiscovery.skills.gaps = ['gap1', 'gap2'];
+      selfDiscovery.skills.gaps = ["gap1", "gap2"];
 
       const input = createBaseViabilityInput({ selfDiscovery });
       const result = calculateViability(input);
 
       // Should not have resource_mismatch from skills
       const skillRisks = result.risks.filter(
-        r => r.riskType === 'resource_mismatch' && r.description.includes('skill gaps')
+        (r) =>
+          r.riskType === "resource_mismatch" &&
+          r.description.includes("skill gaps"),
       );
       expect(skillRisks.length).toBe(0);
     });
@@ -1272,161 +1446,198 @@ describe('ViabilityCalculator', () => {
     // COMPETITIVE SPACE COMPONENT
     // =========================================================================
 
-    test('PASS: 10+ competitors triggers saturated_market risk with high severity', () => {
+    test("PASS: 10+ competitors triggers saturated_market risk with high severity", () => {
       const marketDiscovery = createDefaultMarketDiscoveryState();
       marketDiscovery.competitors = Array.from({ length: 12 }, (_, i) => ({
         name: `Competitor ${i}`,
-        description: 'Desc',
+        description: "Desc",
         strengths: [],
         weaknesses: [],
-        source: 'url',
+        source: "url",
       }));
 
       const input = createBaseViabilityInput({ marketDiscovery });
       const result = calculateViability(input);
 
-      expect(result.risks.some(r => r.riskType === 'saturated_market' && r.severity === 'high')).toBe(true);
+      expect(
+        result.risks.some(
+          (r) => r.riskType === "saturated_market" && r.severity === "high",
+        ),
+      ).toBe(true);
     });
 
-    test('PASS: 5-10 competitors without gaps triggers medium severity risk', () => {
+    test("PASS: 5-10 competitors without gaps triggers medium severity risk", () => {
       const marketDiscovery = createDefaultMarketDiscoveryState();
       marketDiscovery.competitors = Array.from({ length: 7 }, (_, i) => ({
         name: `Competitor ${i}`,
-        description: 'Desc',
+        description: "Desc",
         strengths: [],
         weaknesses: [],
-        source: 'url',
+        source: "url",
       }));
       marketDiscovery.gaps = []; // No gaps
 
       const input = createBaseViabilityInput({ marketDiscovery });
       const result = calculateViability(input);
 
-      expect(result.risks.some(r => r.riskType === 'saturated_market' && r.severity === 'medium')).toBe(true);
+      expect(
+        result.risks.some(
+          (r) => r.riskType === "saturated_market" && r.severity === "medium",
+        ),
+      ).toBe(true);
     });
 
-    test('PASS: 5-10 competitors WITH high-relevance gaps does not trigger risk', () => {
+    test("PASS: 5-10 competitors WITH high-relevance gaps does not trigger risk", () => {
       const marketDiscovery = createDefaultMarketDiscoveryState();
       marketDiscovery.competitors = Array.from({ length: 7 }, (_, i) => ({
         name: `Competitor ${i}`,
-        description: 'Desc',
+        description: "Desc",
         strengths: [],
         weaknesses: [],
-        source: 'url',
+        source: "url",
       }));
       marketDiscovery.gaps = [
-        { description: 'Clear differentiation', evidence: 'research', relevance: 'high' }
+        {
+          description: "Clear differentiation",
+          evidence: "research",
+          relevance: "high",
+        },
       ];
 
       const input = createBaseViabilityInput({ marketDiscovery });
       const result = calculateViability(input);
 
       // Should not have saturated_market risk
-      expect(result.risks.filter(r => r.riskType === 'saturated_market').length).toBe(0);
+      expect(
+        result.risks.filter((r) => r.riskType === "saturated_market").length,
+      ).toBe(0);
     });
 
     // =========================================================================
     // RESOURCE REALITY COMPONENT
     // =========================================================================
 
-    test('PASS: Bootstrap user with high capital requirements = unrealistic risk', () => {
+    test("PASS: Bootstrap user with high capital requirements = unrealistic risk", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
-      selfDiscovery.constraints.capital = 'bootstrap';
+      selfDiscovery.constraints.capital = "bootstrap";
 
       const webSearchResults: WebSearchResult[] = [
         {
-          title: 'Startup Guide',
-          url: 'http://example.com',
-          snippet: 'Typically requires $5 million in funding to compete',
-          source: 'VentureBeat',
+          title: "Startup Guide",
+          url: "http://example.com",
+          snippet: "Typically requires $5 million in funding to compete",
+          source: "VentureBeat",
         },
       ];
 
-      const input = createBaseViabilityInput({ selfDiscovery, webSearchResults });
+      const input = createBaseViabilityInput({
+        selfDiscovery,
+        webSearchResults,
+      });
       const result = calculateViability(input);
 
-      expect(result.risks.some(r => r.riskType === 'unrealistic')).toBe(true);
+      expect(result.risks.some((r) => r.riskType === "unrealistic")).toBe(true);
     });
 
-    test('PASS: Seeking funding with high capital requirements does NOT trigger risk', () => {
+    test("PASS: Seeking funding with high capital requirements does NOT trigger risk", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
-      selfDiscovery.constraints.capital = 'seeking_funding';
+      selfDiscovery.constraints.capital = "seeking_funding";
 
       const webSearchResults: WebSearchResult[] = [
         {
-          title: 'Startup Guide',
-          url: 'http://example.com',
-          snippet: 'Typically requires million dollar funding rounds',
-          source: 'VentureBeat',
+          title: "Startup Guide",
+          url: "http://example.com",
+          snippet: "Typically requires million dollar funding rounds",
+          source: "VentureBeat",
         },
       ];
 
-      const input = createBaseViabilityInput({ selfDiscovery, webSearchResults });
+      const input = createBaseViabilityInput({
+        selfDiscovery,
+        webSearchResults,
+      });
       const result = calculateViability(input);
 
-      expect(result.risks.filter(r => r.riskType === 'unrealistic').length).toBe(0);
+      expect(
+        result.risks.filter((r) => r.riskType === "unrealistic").length,
+      ).toBe(0);
     });
 
-    test('PASS: Low time + high complexity = resource_mismatch', () => {
+    test("PASS: Low time + high complexity = resource_mismatch", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
       selfDiscovery.constraints.timeHoursPerWeek = 5;
 
       const narrowingState = createDefaultNarrowingState();
-      narrowingState.technicalDepth = { value: 'full_custom', confidence: 0.9 };
+      narrowingState.technicalDepth = { value: "full_custom", confidence: 0.9 };
 
       const input = createBaseViabilityInput({ selfDiscovery, narrowingState });
       const result = calculateViability(input);
 
-      expect(result.risks.some(r =>
-        r.riskType === 'resource_mismatch' && r.description.includes('time')
-      )).toBe(true);
+      expect(
+        result.risks.some(
+          (r) =>
+            r.riskType === "resource_mismatch" &&
+            r.description.includes("time"),
+        ),
+      ).toBe(true);
     });
 
-    test('PASS: Adequate time + high complexity does NOT trigger time risk', () => {
+    test("PASS: Adequate time + high complexity does NOT trigger time risk", () => {
       const selfDiscovery = createDefaultSelfDiscoveryState();
       selfDiscovery.constraints.timeHoursPerWeek = 30;
 
       const narrowingState = createDefaultNarrowingState();
-      narrowingState.technicalDepth = { value: 'full_custom', confidence: 0.9 };
+      narrowingState.technicalDepth = { value: "full_custom", confidence: 0.9 };
 
       const input = createBaseViabilityInput({ selfDiscovery, narrowingState });
       const result = calculateViability(input);
 
-      expect(result.risks.filter(r =>
-        r.riskType === 'resource_mismatch' && r.description.includes('time')
-      ).length).toBe(0);
+      expect(
+        result.risks.filter(
+          (r) =>
+            r.riskType === "resource_mismatch" &&
+            r.description.includes("time"),
+        ).length,
+      ).toBe(0);
     });
 
     // =========================================================================
     // CLARITY SCORE COMPONENT
     // =========================================================================
 
-    test('PASS: No customer type reduces clarity and creates too_vague risk', () => {
+    test("PASS: No customer type reduces clarity and creates too_vague risk", () => {
       const input = createBaseViabilityInput();
       const result = calculateViability(input);
 
-      expect(result.components.clarityScore).toBeLessThan(VIABILITY_WEIGHTS.clarityScore);
-      expect(result.risks.some(r =>
-        r.riskType === 'too_vague' && r.description.includes('customer')
-      )).toBe(true);
+      expect(result.components.clarityScore).toBeLessThan(
+        VIABILITY_WEIGHTS.clarityScore,
+      );
+      expect(
+        result.risks.some(
+          (r) =>
+            r.riskType === "too_vague" && r.description.includes("customer"),
+        ),
+      ).toBe(true);
     });
 
-    test('PASS: No product type reduces clarity by 5', () => {
+    test("PASS: No product type reduces clarity by 5", () => {
       const narrowingState = createDefaultNarrowingState();
-      narrowingState.customerType = { value: 'B2B', confidence: 0.8 }; // Set customer
+      narrowingState.customerType = { value: "B2B", confidence: 0.8 }; // Set customer
       // productType still null
 
       const input = createBaseViabilityInput({ narrowingState });
       const result = calculateViability(input);
 
-      expect(result.components.clarityScore).toBe(VIABILITY_WEIGHTS.clarityScore - 5);
+      expect(result.components.clarityScore).toBe(
+        VIABILITY_WEIGHTS.clarityScore - 5,
+      );
     });
 
     // =========================================================================
     // INTERVENTION TRIGGERS
     // =========================================================================
 
-    test('PASS: Viability < 50 requires intervention', () => {
+    test("PASS: Viability < 50 requires intervention", () => {
       const input = createLowViabilityInput();
       const result = calculateViability(input);
 
@@ -1434,32 +1645,46 @@ describe('ViabilityCalculator', () => {
       expect(result.requiresIntervention).toBe(true);
     });
 
-    test('PASS: Critical risk requires intervention regardless of score', () => {
+    test("PASS: Critical risk requires intervention regardless of score", () => {
       const webSearchResults: WebSearchResult[] = [
         {
-          title: 'Analysis',
-          url: 'http://example.com',
-          snippet: 'This is technically impossible today',
-          source: 'Expert',
+          title: "Analysis",
+          url: "http://example.com",
+          snippet: "This is technically impossible today",
+          source: "Expert",
         },
       ];
 
       // Add some positive signals to boost score
       const marketDiscovery = createDefaultMarketDiscoveryState();
-      marketDiscovery.competitors = [{ name: 'A', description: 'd', strengths: [], weaknesses: [], source: 'url' }];
-      marketDiscovery.gaps = [{ description: 'gap', evidence: 'e', relevance: 'high' }];
+      marketDiscovery.competitors = [
+        {
+          name: "A",
+          description: "d",
+          strengths: [],
+          weaknesses: [],
+          source: "url",
+        },
+      ];
+      marketDiscovery.gaps = [
+        { description: "gap", evidence: "e", relevance: "high" },
+      ];
 
       const narrowingState = createDefaultNarrowingState();
-      narrowingState.customerType = { value: 'B2B', confidence: 0.9 };
-      narrowingState.productType = { value: 'Digital', confidence: 0.8 };
+      narrowingState.customerType = { value: "B2B", confidence: 0.9 };
+      narrowingState.productType = { value: "Digital", confidence: 0.8 };
 
-      const input = createBaseViabilityInput({ webSearchResults, marketDiscovery, narrowingState });
+      const input = createBaseViabilityInput({
+        webSearchResults,
+        marketDiscovery,
+        narrowingState,
+      });
       const result = calculateViability(input);
 
       expect(result.requiresIntervention).toBe(true);
     });
 
-    test('PASS: Healthy viability (>=75) does not require intervention', () => {
+    test("PASS: Healthy viability (>=75) does not require intervention", () => {
       const input = createHealthyViabilityInput();
       const result = calculateViability(input);
 
@@ -1471,14 +1696,14 @@ describe('ViabilityCalculator', () => {
     // TOTAL SCORE
     // =========================================================================
 
-    test('PASS: Healthy input starts at 100 and stays high', () => {
+    test("PASS: Healthy input starts at 100 and stays high", () => {
       const input = createHealthyViabilityInput();
       const result = calculateViability(input);
 
       expect(result.total).toBeGreaterThanOrEqual(VIABILITY_THRESHOLDS.healthy);
     });
 
-    test('PASS: Components never go below 0', () => {
+    test("PASS: Components never go below 0", () => {
       const input = createLowViabilityInput();
       const result = calculateViability(input);
 
@@ -1489,7 +1714,7 @@ describe('ViabilityCalculator', () => {
       expect(result.components.clarityScore).toBeGreaterThanOrEqual(0);
     });
 
-    test('PASS: Total is sum of all components', () => {
+    test("PASS: Total is sum of all components", () => {
       const input = createBaseViabilityInput();
       const result = calculateViability(input);
 
@@ -1503,62 +1728,62 @@ describe('ViabilityCalculator', () => {
       expect(result.total).toBe(sum);
     });
 
-    test('PASS: Risks include evidence URLs when available', () => {
+    test("PASS: Risks include evidence URLs when available", () => {
       const webSearchResults: WebSearchResult[] = [
         {
-          title: 'Analysis',
-          url: 'http://example.com/evidence',
-          snippet: 'This is impossible',
-          source: 'Expert',
+          title: "Analysis",
+          url: "http://example.com/evidence",
+          snippet: "This is impossible",
+          source: "Expert",
         },
       ];
 
       const input = createBaseViabilityInput({ webSearchResults });
       const result = calculateViability(input);
 
-      const riskWithUrl = result.risks.find(r => r.evidenceUrl !== null);
+      const riskWithUrl = result.risks.find((r) => r.evidenceUrl !== null);
       expect(riskWithUrl).toBeDefined();
-      expect(riskWithUrl?.evidenceUrl).toBe('http://example.com/evidence');
+      expect(riskWithUrl?.evidenceUrl).toBe("http://example.com/evidence");
     });
   });
 
-  describe('getViabilityStatus', () => {
-    test('PASS: Returns healthy for >= 75', () => {
-      expect(getViabilityStatus(75)).toBe('healthy');
-      expect(getViabilityStatus(100)).toBe('healthy');
+  describe("getViabilityStatus", () => {
+    test("PASS: Returns healthy for >= 75", () => {
+      expect(getViabilityStatus(75)).toBe("healthy");
+      expect(getViabilityStatus(100)).toBe("healthy");
     });
 
-    test('PASS: Returns caution for 50-74', () => {
-      expect(getViabilityStatus(50)).toBe('caution');
-      expect(getViabilityStatus(74)).toBe('caution');
+    test("PASS: Returns caution for 50-74", () => {
+      expect(getViabilityStatus(50)).toBe("caution");
+      expect(getViabilityStatus(74)).toBe("caution");
     });
 
-    test('PASS: Returns warning for 25-49', () => {
-      expect(getViabilityStatus(25)).toBe('warning');
-      expect(getViabilityStatus(49)).toBe('warning');
+    test("PASS: Returns warning for 25-49", () => {
+      expect(getViabilityStatus(25)).toBe("warning");
+      expect(getViabilityStatus(49)).toBe("warning");
     });
 
-    test('PASS: Returns critical for 0-24', () => {
-      expect(getViabilityStatus(0)).toBe('critical');
-      expect(getViabilityStatus(24)).toBe('critical');
+    test("PASS: Returns critical for 0-24", () => {
+      expect(getViabilityStatus(0)).toBe("critical");
+      expect(getViabilityStatus(24)).toBe("critical");
     });
   });
 
-  describe('needsIntervention', () => {
-    test('PASS: Returns true for viability < 50', () => {
+  describe("needsIntervention", () => {
+    test("PASS: Returns true for viability < 50", () => {
       expect(needsIntervention(49, [])).toBe(true);
       expect(needsIntervention(25, [])).toBe(true);
     });
 
-    test('PASS: Returns true for critical risk', () => {
+    test("PASS: Returns true for critical risk", () => {
       const criticalRisk = {
-        id: 'r1',
-        candidateId: 'c1',
-        riskType: 'impossible' as const,
-        description: 'test',
+        id: "r1",
+        candidateId: "c1",
+        riskType: "impossible" as const,
+        description: "test",
         evidenceUrl: null,
         evidenceText: null,
-        severity: 'critical' as const,
+        severity: "critical" as const,
         userAcknowledged: false,
         userResponse: null,
         createdAt: new Date(),
@@ -1567,15 +1792,15 @@ describe('ViabilityCalculator', () => {
       expect(needsIntervention(80, [criticalRisk])).toBe(true);
     });
 
-    test('PASS: Returns false for healthy viability with no critical risks', () => {
+    test("PASS: Returns false for healthy viability with no critical risks", () => {
       const mediumRisk = {
-        id: 'r1',
-        candidateId: 'c1',
-        riskType: 'too_vague' as const,
-        description: 'test',
+        id: "r1",
+        candidateId: "c1",
+        riskType: "too_vague" as const,
+        description: "test",
         evidenceUrl: null,
         evidenceText: null,
-        severity: 'medium' as const,
+        severity: "medium" as const,
         userAcknowledged: false,
         userResponse: null,
         createdAt: new Date(),
@@ -1592,7 +1817,7 @@ describe('ViabilityCalculator', () => {
 Create file: `tests/ideation/token-counter.test.ts`
 
 ```typescript
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from "vitest";
 import {
   estimateTokens,
   calculateTokenUsage,
@@ -1603,17 +1828,20 @@ import {
   SYSTEM_PROMPT_ESTIMATE,
   PROFILE_ESTIMATE,
   MEMORY_FILES_ESTIMATE,
-} from '../../agents/ideation/token-counter.js';
-import { IdeationMessage } from '../../types/ideation.js';
+} from "../../agents/ideation/token-counter.js";
+import { IdeationMessage } from "../../types/ideation.js";
 
 // ============================================================================
 // TEST HELPERS
 // ============================================================================
 
-function createMessage(content: string, role: 'user' | 'assistant' = 'user'): IdeationMessage {
+function createMessage(
+  content: string,
+  role: "user" | "assistant" = "user",
+): IdeationMessage {
   return {
     id: `msg_${Date.now()}`,
-    sessionId: 'session_1',
+    sessionId: "session_1",
     role,
     content,
     buttonsShown: null,
@@ -1625,13 +1853,15 @@ function createMessage(content: string, role: 'user' | 'assistant' = 'user'): Id
   };
 }
 
-function createLongConversationHistory(targetTokens: number): IdeationMessage[] {
+function createLongConversationHistory(
+  targetTokens: number,
+): IdeationMessage[] {
   const messages: IdeationMessage[] = [];
   let currentTokens = 0;
 
   while (currentTokens < targetTokens) {
     // Create messages of ~1000 chars (~250 tokens each)
-    const content = 'a'.repeat(1000);
+    const content = "a".repeat(1000);
     messages.push(createMessage(content));
     currentTokens += estimateTokens(content);
   }
@@ -1643,85 +1873,89 @@ function createLongConversationHistory(targetTokens: number): IdeationMessage[] 
 // TESTS
 // ============================================================================
 
-describe('TokenCounter', () => {
-  describe('estimateTokens', () => {
-    test('PASS: Returns 0 for empty string', () => {
-      expect(estimateTokens('')).toBe(0);
+describe("TokenCounter", () => {
+  describe("estimateTokens", () => {
+    test("PASS: Returns 0 for empty string", () => {
+      expect(estimateTokens("")).toBe(0);
     });
 
-    test('PASS: Estimates ~4 chars per token', () => {
-      const text = 'a'.repeat(400); // Should be ~100 tokens
+    test("PASS: Estimates ~4 chars per token", () => {
+      const text = "a".repeat(400); // Should be ~100 tokens
       const tokens = estimateTokens(text);
 
       expect(tokens).toBeGreaterThanOrEqual(90);
       expect(tokens).toBeLessThanOrEqual(110);
     });
 
-    test('PASS: Handles short strings', () => {
-      expect(estimateTokens('Hi')).toBe(1);
-      expect(estimateTokens('Hello')).toBe(2);
+    test("PASS: Handles short strings", () => {
+      expect(estimateTokens("Hi")).toBe(1);
+      expect(estimateTokens("Hello")).toBe(2);
     });
 
-    test('PASS: Rounds up partial tokens', () => {
-      const text = 'abc'; // 3 chars, should round up to 1 token
+    test("PASS: Rounds up partial tokens", () => {
+      const text = "abc"; // 3 chars, should round up to 1 token
       expect(estimateTokens(text)).toBe(1);
     });
   });
 
-  describe('calculateTokenUsage', () => {
-    test('PASS: Empty conversation returns baseline tokens', () => {
-      const result = calculateTokenUsage([], '');
+  describe("calculateTokenUsage", () => {
+    test("PASS: Empty conversation returns baseline tokens", () => {
+      const result = calculateTokenUsage([], "");
 
       expect(result.total).toBe(
-        SYSTEM_PROMPT_ESTIMATE + PROFILE_ESTIMATE + MEMORY_FILES_ESTIMATE
+        SYSTEM_PROMPT_ESTIMATE + PROFILE_ESTIMATE + MEMORY_FILES_ESTIMATE,
       );
     });
 
-    test('PASS: Includes conversation history tokens', () => {
+    test("PASS: Includes conversation history tokens", () => {
       const messages = [
-        createMessage('Hello there'),
-        createMessage('How are you'),
+        createMessage("Hello there"),
+        createMessage("How are you"),
       ];
-      const result = calculateTokenUsage(messages, '');
+      const result = calculateTokenUsage(messages, "");
 
       expect(result.conversation).toBeGreaterThan(0);
       expect(result.total).toBeGreaterThan(
-        SYSTEM_PROMPT_ESTIMATE + PROFILE_ESTIMATE + MEMORY_FILES_ESTIMATE
+        SYSTEM_PROMPT_ESTIMATE + PROFILE_ESTIMATE + MEMORY_FILES_ESTIMATE,
       );
     });
 
-    test('PASS: Includes current message tokens', () => {
-      const result = calculateTokenUsage([], 'This is a test message');
+    test("PASS: Includes current message tokens", () => {
+      const result = calculateTokenUsage([], "This is a test message");
 
       expect(result.currentMessage).toBeGreaterThan(0);
     });
 
-    test('PASS: percentUsed is calculated correctly', () => {
-      const result = calculateTokenUsage([], '');
+    test("PASS: percentUsed is calculated correctly", () => {
+      const result = calculateTokenUsage([], "");
 
       const expectedPercent = (result.total / CONTEXT_LIMIT) * 100;
       expect(result.percentUsed).toBeCloseTo(expectedPercent, 1);
     });
 
-    test('PASS: shouldHandoff is false below threshold', () => {
-      const shortHistory = [createMessage('Hello')];
-      const result = calculateTokenUsage(shortHistory, 'test');
+    test("PASS: shouldHandoff is false below threshold", () => {
+      const shortHistory = [createMessage("Hello")];
+      const result = calculateTokenUsage(shortHistory, "test");
 
       expect(result.shouldHandoff).toBe(false);
     });
 
-    test('PASS: shouldHandoff is true at threshold', () => {
+    test("PASS: shouldHandoff is true at threshold", () => {
       // Create enough tokens to exceed threshold
-      const tokensNeeded = HANDOFF_THRESHOLD - SYSTEM_PROMPT_ESTIMATE - PROFILE_ESTIMATE - MEMORY_FILES_ESTIMATE;
+      const tokensNeeded =
+        HANDOFF_THRESHOLD -
+        SYSTEM_PROMPT_ESTIMATE -
+        PROFILE_ESTIMATE -
+        MEMORY_FILES_ESTIMATE;
       const longHistory = createLongConversationHistory(tokensNeeded);
 
-      const result = calculateTokenUsage(longHistory, 'new message');
+      const result = calculateTokenUsage(longHistory, "new message");
 
       expect(result.shouldHandoff).toBe(true);
     });
 
-    test('PASS: All component values are positive', () => {
-      const result = calculateTokenUsage([createMessage('test')], 'test');
+    test("PASS: All component values are positive", () => {
+      const result = calculateTokenUsage([createMessage("test")], "test");
 
       expect(result.systemPrompt).toBeGreaterThan(0);
       expect(result.profile).toBeGreaterThan(0);
@@ -1731,15 +1965,15 @@ describe('TokenCounter', () => {
     });
   });
 
-  describe('getRemainingTokens', () => {
-    test('PASS: Returns full capacity for empty usage', () => {
-      const usage = calculateTokenUsage([], '');
+  describe("getRemainingTokens", () => {
+    test("PASS: Returns full capacity for empty usage", () => {
+      const usage = calculateTokenUsage([], "");
       const remaining = getRemainingTokens(usage);
 
       expect(remaining).toBe(CONTEXT_LIMIT - usage.total);
     });
 
-    test('PASS: Never returns negative', () => {
+    test("PASS: Never returns negative", () => {
       const usage = {
         systemPrompt: SYSTEM_PROMPT_ESTIMATE,
         profile: PROFILE_ESTIMATE,
@@ -1756,28 +1990,37 @@ describe('TokenCounter', () => {
     });
   });
 
-  describe('isApproachingHandoff', () => {
-    test('PASS: Returns false when well below threshold', () => {
-      const usage = calculateTokenUsage([], '');
+  describe("isApproachingHandoff", () => {
+    test("PASS: Returns false when well below threshold", () => {
+      const usage = calculateTokenUsage([], "");
       expect(isApproachingHandoff(usage)).toBe(false);
     });
 
-    test('PASS: Returns true when within 5% of threshold', () => {
+    test("PASS: Returns true when within 5% of threshold", () => {
       // Target ~95% of handoff threshold
-      const targetTokens = HANDOFF_THRESHOLD * 0.96 - SYSTEM_PROMPT_ESTIMATE - PROFILE_ESTIMATE - MEMORY_FILES_ESTIMATE;
+      const targetTokens =
+        HANDOFF_THRESHOLD * 0.96 -
+        SYSTEM_PROMPT_ESTIMATE -
+        PROFILE_ESTIMATE -
+        MEMORY_FILES_ESTIMATE;
       const longHistory = createLongConversationHistory(targetTokens);
 
-      const usage = calculateTokenUsage(longHistory, '');
+      const usage = calculateTokenUsage(longHistory, "");
 
       expect(usage.shouldHandoff).toBe(false); // Not yet at threshold
       expect(isApproachingHandoff(usage)).toBe(true);
     });
 
-    test('PASS: Returns false when already past threshold', () => {
-      const targetTokens = HANDOFF_THRESHOLD + 1000 - SYSTEM_PROMPT_ESTIMATE - PROFILE_ESTIMATE - MEMORY_FILES_ESTIMATE;
+    test("PASS: Returns false when already past threshold", () => {
+      const targetTokens =
+        HANDOFF_THRESHOLD +
+        1000 -
+        SYSTEM_PROMPT_ESTIMATE -
+        PROFILE_ESTIMATE -
+        MEMORY_FILES_ESTIMATE;
       const longHistory = createLongConversationHistory(targetTokens);
 
-      const usage = calculateTokenUsage(longHistory, '');
+      const usage = calculateTokenUsage(longHistory, "");
 
       expect(usage.shouldHandoff).toBe(true);
       expect(isApproachingHandoff(usage)).toBe(false);

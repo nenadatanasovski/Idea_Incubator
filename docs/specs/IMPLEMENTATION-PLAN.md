@@ -66,15 +66,15 @@ This plan implements three new agents using concepts from the PIV Loop analysis 
 
 **File:** `coding-loops/shared/verification_gate.py`
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| VER-001 | Create VerificationResult dataclass | Tests pass |
-| VER-002 | Implement `verify_test_passed()` | Detects false claims |
-| VER-003 | Implement TypeScript check runner | `npx tsc --noEmit` |
-| VER-004 | Implement test runner | `npm test` |
-| VER-005 | Implement build check | `npm run build` |
-| VER-006 | Implement lint check | `npm run lint` |
-| VER-007 | Implement regression check | Compare with baseline |
+| Task    | Description                         | Exit Criteria         |
+| ------- | ----------------------------------- | --------------------- |
+| VER-001 | Create VerificationResult dataclass | Tests pass            |
+| VER-002 | Implement `verify_test_passed()`    | Detects false claims  |
+| VER-003 | Implement TypeScript check runner   | `npx tsc --noEmit`    |
+| VER-004 | Implement test runner               | `npm test`            |
+| VER-005 | Implement build check               | `npm run build`       |
+| VER-006 | Implement lint check                | `npm run lint`        |
+| VER-007 | Implement regression check          | Compare with baseline |
 
 **Tests:** `coding-loops/tests/test_verification.py`
 
@@ -82,14 +82,14 @@ This plan implements three new agents using concepts from the PIV Loop analysis 
 
 **File:** `coding-loops/shared/git_manager.py`
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| GIT-001 | Implement branch creation | Branch exists |
-| GIT-002 | Implement checkout | On correct branch |
-| GIT-003 | Implement rebase from main | Clean rebase |
+| Task    | Description                  | Exit Criteria        |
+| ------- | ---------------------------- | -------------------- |
+| GIT-001 | Implement branch creation    | Branch exists        |
+| GIT-002 | Implement checkout           | On correct branch    |
+| GIT-003 | Implement rebase from main   | Clean rebase         |
 | GIT-004 | Implement conflict detection | Conflicts identified |
-| GIT-005 | Implement commit changes | Commit created |
-| GIT-006 | Implement PR creation (gh) | PR URL returned |
+| GIT-005 | Implement commit changes     | Commit created       |
+| GIT-006 | Implement PR creation (gh)   | PR URL returned      |
 
 **Tests:** `coding-loops/tests/test_git_manager.py`
 
@@ -97,14 +97,14 @@ This plan implements three new agents using concepts from the PIV Loop analysis 
 
 **File:** `coding-loops/shared/checkpoint_manager.py`
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| CHK-001 | Implement create checkpoint | Git ref stored |
-| CHK-002 | Implement rollback | State restored |
-| CHK-003 | Implement conditional rollback | Only if exists |
-| CHK-004 | Implement delete checkpoint | Cleaned up |
-| CHK-005 | Implement list checkpoints | All visible |
-| CHK-006 | Auto-rollback on failure | Integrated with Build Agent |
+| Task    | Description                    | Exit Criteria               |
+| ------- | ------------------------------ | --------------------------- |
+| CHK-001 | Implement create checkpoint    | Git ref stored              |
+| CHK-002 | Implement rollback             | State restored              |
+| CHK-003 | Implement conditional rollback | Only if exists              |
+| CHK-004 | Implement delete checkpoint    | Cleaned up                  |
+| CHK-005 | Implement list checkpoints     | All visible                 |
+| CHK-006 | Auto-rollback on failure       | Integrated with Build Agent |
 
 **Tests:** `coding-loops/tests/test_checkpoint.py`
 
@@ -112,14 +112,14 @@ This plan implements three new agents using concepts from the PIV Loop analysis 
 
 **File:** `coding-loops/shared/resource_registry.py`
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| RES-001 | Implement register owner | Ownership recorded |
-| RES-002 | Implement get owner | Returns correct owner |
-| RES-003 | Implement request change | CR created |
-| RES-004 | Implement approve change | CR resolved |
-| RES-005 | Implement list resources | All visible |
-| RES-006 | Integrate with Build Agent | Ownership enforced |
+| Task    | Description                | Exit Criteria         |
+| ------- | -------------------------- | --------------------- |
+| RES-001 | Implement register owner   | Ownership recorded    |
+| RES-002 | Implement get owner        | Returns correct owner |
+| RES-003 | Implement request change   | CR created            |
+| RES-004 | Implement approve change   | CR resolved           |
+| RES-005 | Implement list resources   | All visible           |
+| RES-006 | Integrate with Build Agent | Ownership enforced    |
 
 **Tests:** `coding-loops/tests/test_resource_registry.py`
 
@@ -127,16 +127,16 @@ This plan implements three new agents using concepts from the PIV Loop analysis 
 
 **File:** `coding-loops/shared/knowledge_base.py`
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| KB-001 | Implement record_fact | Stored in DB |
-| KB-002 | Implement record_decision | ADR format |
-| KB-003 | Implement record_pattern | Usage tracking |
-| KB-004 | Implement record_gotcha | With file pattern |
-| KB-005 | Implement query by topic | Returns relevant |
-| KB-006 | Implement get_gotchas_for_file | Pattern matching |
-| KB-007 | Implement supersede | Replaces old entry |
-| KB-008 | Implement conflict detection | Warns on contradictions |
+| Task   | Description                    | Exit Criteria           |
+| ------ | ------------------------------ | ----------------------- |
+| KB-001 | Implement record_fact          | Stored in DB            |
+| KB-002 | Implement record_decision      | ADR format              |
+| KB-003 | Implement record_pattern       | Usage tracking          |
+| KB-004 | Implement record_gotcha        | With file pattern       |
+| KB-005 | Implement query by topic       | Returns relevant        |
+| KB-006 | Implement get_gotchas_for_file | Pattern matching        |
+| KB-007 | Implement supersede            | Replaces old entry      |
+| KB-008 | Implement conflict detection   | Warns on contradictions |
 
 **Tests:** `coding-loops/tests/test_knowledge.py`
 
@@ -144,12 +144,12 @@ This plan implements three new agents using concepts from the PIV Loop analysis 
 
 **File:** `coding-loops/database/migrations/025_spec_build_sia_tables.sql`
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| MIG-001 | Apply migration 025 | Tables created |
+| Task    | Description         | Exit Criteria        |
+| ------- | ------------------- | -------------------- |
+| MIG-001 | Apply migration 025 | Tables created       |
 | MIG-002 | Add query functions | CRUD operations work |
-| MIG-003 | Add model classes | Type-safe access |
-| MIG-004 | Update tests | All pass |
+| MIG-003 | Add model classes   | Type-safe access     |
+| MIG-004 | Update tests        | All pass             |
 
 ---
 
@@ -164,7 +164,7 @@ This plan implements three new agents using concepts from the PIV Loop analysis 
 >
 > The content below is retained for historical reference only.
 
-**Location:** `agents/specification/` *(deprecated - now `server/services/task-agent/`)*
+**Location:** `agents/specification/` _(deprecated - now `server/services/task-agent/`)_
 **Prerequisites:** Phase 1.5 (Knowledge Base)
 **Sessions:** 4-5
 
@@ -185,49 +185,49 @@ agents/specification/
 
 **File:** `agents/specification/spec-extractor.ts`
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| SPEC-001 | Read ideation artifacts | All docs loaded |
-| SPEC-002 | Extract requirements from development.md | FRs identified |
-| SPEC-003 | Extract user context from target-users.md | Personas available |
-| SPEC-004 | Extract architecture hints from brief.md | High-level design |
-| SPEC-005 | Identify dependencies | External deps listed |
-| SPEC-006 | Generate spec.md | Valid template output |
+| Task     | Description                               | Exit Criteria         |
+| -------- | ----------------------------------------- | --------------------- |
+| SPEC-001 | Read ideation artifacts                   | All docs loaded       |
+| SPEC-002 | Extract requirements from development.md  | FRs identified        |
+| SPEC-003 | Extract user context from target-users.md | Personas available    |
+| SPEC-004 | Extract architecture hints from brief.md  | High-level design     |
+| SPEC-005 | Identify dependencies                     | External deps listed  |
+| SPEC-006 | Generate spec.md                          | Valid template output |
 
 ### 2.3 Task Generator (Session 10-11)
 
 **File:** `agents/specification/task-generator.ts`
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| TASK-001 | Parse requirements into tasks | Tasks created |
-| TASK-002 | Assign phases (db, types, api, ui, tests) | Phases correct |
-| TASK-003 | Determine dependencies | DAG created |
-| TASK-004 | Add validation commands | Commands runnable |
-| TASK-005 | Generate code templates | Templates useful |
-| TASK-006 | Render tasks.md | Valid YAML in md |
+| Task     | Description                               | Exit Criteria     |
+| -------- | ----------------------------------------- | ----------------- |
+| TASK-001 | Parse requirements into tasks             | Tasks created     |
+| TASK-002 | Assign phases (db, types, api, ui, tests) | Phases correct    |
+| TASK-003 | Determine dependencies                    | DAG created       |
+| TASK-004 | Add validation commands                   | Commands runnable |
+| TASK-005 | Generate code templates                   | Templates useful  |
+| TASK-006 | Render tasks.md                           | Valid YAML in md  |
 
 ### 2.4 Gotcha Injector (Session 11)
 
 **File:** `agents/specification/gotcha-injector.ts`
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| GOTCHA-001 | Query Knowledge Base by file pattern | Gotchas returned |
-| GOTCHA-002 | Query by action type | CREATE/UPDATE gotchas |
-| GOTCHA-003 | Inject into task definitions | Visible in tasks.md |
-| GOTCHA-004 | Track gotcha usage | Analytics available |
+| Task       | Description                          | Exit Criteria         |
+| ---------- | ------------------------------------ | --------------------- |
+| GOTCHA-001 | Query Knowledge Base by file pattern | Gotchas returned      |
+| GOTCHA-002 | Query by action type                 | CREATE/UPDATE gotchas |
+| GOTCHA-003 | Inject into task definitions         | Visible in tasks.md   |
+| GOTCHA-004 | Track gotcha usage                   | Analytics available   |
 
 ### 2.5 API Integration (Session 12)
 
 **File:** `server/routes/specification.ts`
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| API-001 | POST /api/specs/generate | Generates spec + tasks |
-| API-002 | GET /api/specs/:id | Returns spec status |
-| API-003 | POST /api/specs/:id/approve | Triggers build |
-| API-004 | Publish tasklist.generated event | Event visible |
+| Task    | Description                      | Exit Criteria          |
+| ------- | -------------------------------- | ---------------------- |
+| API-001 | POST /api/specs/generate         | Generates spec + tasks |
+| API-002 | GET /api/specs/:id               | Returns spec status    |
+| API-003 | POST /api/specs/:id/approve      | Triggers build         |
+| API-004 | Publish tasklist.generated event | Event visible          |
 
 ---
 
@@ -270,57 +270,57 @@ class BuildAgent:
 
 ### 3.2 Prime Implementation (Session 13)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| PRIME-001 | Load spec.md | Parsed successfully |
-| PRIME-002 | Load tasks.md | Tasks extracted |
-| PRIME-003 | Load CLAUDE.md sections | Conventions loaded |
-| PRIME-004 | Load relevant gotchas | Injected into context |
-| PRIME-005 | Load idea artifacts | Context complete |
-| PRIME-006 | Create execution record | DB entry created |
+| Task      | Description             | Exit Criteria         |
+| --------- | ----------------------- | --------------------- |
+| PRIME-001 | Load spec.md            | Parsed successfully   |
+| PRIME-002 | Load tasks.md           | Tasks extracted       |
+| PRIME-003 | Load CLAUDE.md sections | Conventions loaded    |
+| PRIME-004 | Load relevant gotchas   | Injected into context |
+| PRIME-005 | Load idea artifacts     | Context complete      |
+| PRIME-006 | Create execution record | DB entry created      |
 
 ### 3.3 Execute Implementation (Session 14)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| EXEC-001 | Check task dependencies | Blocks if unmet |
-| EXEC-002 | Check file ownership | ResourceRegistry query |
-| EXEC-003 | Acquire file lock | MessageBus lock |
-| EXEC-004 | Create checkpoint | Git ref saved |
-| EXEC-005 | Execute task (invoke Claude) | Code written |
-| EXEC-006 | Run validation command | Check passes |
-| EXEC-007 | Record discoveries | Knowledge Base entry |
-| EXEC-008 | Update task status | DB updated |
-| EXEC-009 | Rollback on failure | Checkpoint restored |
+| Task     | Description                  | Exit Criteria          |
+| -------- | ---------------------------- | ---------------------- |
+| EXEC-001 | Check task dependencies      | Blocks if unmet        |
+| EXEC-002 | Check file ownership         | ResourceRegistry query |
+| EXEC-003 | Acquire file lock            | MessageBus lock        |
+| EXEC-004 | Create checkpoint            | Git ref saved          |
+| EXEC-005 | Execute task (invoke Claude) | Code written           |
+| EXEC-006 | Run validation command       | Check passes           |
+| EXEC-007 | Record discoveries           | Knowledge Base entry   |
+| EXEC-008 | Update task status           | DB updated             |
+| EXEC-009 | Rollback on failure          | Checkpoint restored    |
 
 ### 3.4 Validate Implementation (Session 15)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| VAL-001 | Run TypeScript check | No errors |
-| VAL-002 | Run tests | All pass |
-| VAL-003 | Run lint | No errors |
-| VAL-004 | Check regressions | None introduced |
+| Task    | Description                | Exit Criteria     |
+| ------- | -------------------------- | ----------------- |
+| VAL-001 | Run TypeScript check       | No errors         |
+| VAL-002 | Run tests                  | All pass          |
+| VAL-003 | Run lint                   | No errors         |
+| VAL-004 | Check regressions          | None introduced   |
 | VAL-005 | Generate validation report | Summary available |
 
 ### 3.5 Report Implementation (Session 15)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| RPT-001 | Summarize task results | Counts accurate |
-| RPT-002 | List discoveries | Gotchas/patterns |
-| RPT-003 | List git commits | SHAs listed |
-| RPT-004 | Calculate metrics | Duration, success rate |
-| RPT-005 | Publish build.completed event | Event visible |
+| Task    | Description                   | Exit Criteria          |
+| ------- | ----------------------------- | ---------------------- |
+| RPT-001 | Summarize task results        | Counts accurate        |
+| RPT-002 | List discoveries              | Gotchas/patterns       |
+| RPT-003 | List git commits              | SHAs listed            |
+| RPT-004 | Calculate metrics             | Duration, success rate |
+| RPT-005 | Publish build.completed event | Event visible          |
 
 ### 3.6 Integration (Session 16)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| INT-001 | Subscribe to spec.approved | Triggers build |
-| INT-002 | Update tasks.md on progress | File updated |
-| INT-003 | Publish task events | Events visible |
-| INT-004 | Handle interrupts | Graceful stop |
+| Task    | Description                 | Exit Criteria  |
+| ------- | --------------------------- | -------------- |
+| INT-001 | Subscribe to spec.approved  | Triggers build |
+| INT-002 | Update tasks.md on progress | File updated   |
+| INT-003 | Publish task events         | Events visible |
+| INT-004 | Handle interrupts           | Graceful stop  |
 
 ---
 
@@ -361,53 +361,53 @@ class SelfImprovementAgent:
 
 ### 4.2 Capture Implementation (Session 17)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| CAP-001 | Load session outcome | Success/failure known |
-| CAP-002 | Load spec (planned) | Original plan |
-| CAP-003 | Load git diff (actual) | Changes made |
-| CAP-004 | Load test results | Pass/fail counts |
-| CAP-005 | Load execution log | Task-by-task |
+| Task    | Description            | Exit Criteria         |
+| ------- | ---------------------- | --------------------- |
+| CAP-001 | Load session outcome   | Success/failure known |
+| CAP-002 | Load spec (planned)    | Original plan         |
+| CAP-003 | Load git diff (actual) | Changes made          |
+| CAP-004 | Load test results      | Pass/fail counts      |
+| CAP-005 | Load execution log     | Task-by-task          |
 
 ### 4.3 Analyze Implementation (Session 18)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| ANA-001 | Compare planned vs actual files | Diff identified |
-| ANA-002 | Identify divergences | List of changes |
-| ANA-003 | Classify divergences | Good vs bad |
-| ANA-004 | Identify root causes | Why explanations |
-| ANA-005 | Score outcome | Numeric rating |
+| Task    | Description                     | Exit Criteria    |
+| ------- | ------------------------------- | ---------------- |
+| ANA-001 | Compare planned vs actual files | Diff identified  |
+| ANA-002 | Identify divergences            | List of changes  |
+| ANA-003 | Classify divergences            | Good vs bad      |
+| ANA-004 | Identify root causes            | Why explanations |
+| ANA-005 | Score outcome                   | Numeric rating   |
 
 ### 4.4 Extract Implementation (Session 18-19)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
+| Task    | Description                   | Exit Criteria       |
+| ------- | ----------------------------- | ------------------- |
 | EXT-001 | Extract patterns from success | Reusable approaches |
-| EXT-002 | Extract gotchas from failure | Mistakes to avoid |
-| EXT-003 | Extract decisions | ADRs |
-| EXT-004 | Assign confidence scores | High/medium/low |
-| EXT-005 | Detect similar past entries | Deduplication |
+| EXT-002 | Extract gotchas from failure  | Mistakes to avoid   |
+| EXT-003 | Extract decisions             | ADRs                |
+| EXT-004 | Assign confidence scores      | High/medium/low     |
+| EXT-005 | Detect similar past entries   | Deduplication       |
 
 ### 4.5 Propagate Implementation (Session 19)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| PROP-001 | Record in Knowledge Base | Entries created |
+| Task     | Description                | Exit Criteria      |
+| -------- | -------------------------- | ------------------ |
+| PROP-001 | Record in Knowledge Base   | Entries created    |
 | PROP-002 | Identify CLAUDE.md updates | Universal patterns |
-| PROP-003 | Apply CLAUDE.md updates | File updated |
-| PROP-004 | Identify template updates | Structural changes |
-| PROP-005 | Apply template updates | Files updated |
-| PROP-006 | Notify relevant agents | Events published |
+| PROP-003 | Apply CLAUDE.md updates    | File updated       |
+| PROP-004 | Identify template updates  | Structural changes |
+| PROP-005 | Apply template updates     | Files updated      |
+| PROP-006 | Notify relevant agents     | Events published   |
 
 ### 4.6 Track Implementation (Session 20)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| TRK-001 | Log review in DB | Record created |
+| Task    | Description                   | Exit Criteria   |
+| ------- | ----------------------------- | --------------- |
+| TRK-001 | Log review in DB              | Record created  |
 | TRK-002 | Calculate improvement metrics | Values computed |
-| TRK-003 | Store metrics | DB entries |
-| TRK-004 | Generate trends | Historical view |
+| TRK-003 | Store metrics                 | DB entries      |
+| TRK-004 | Generate trends               | Historical view |
 
 ---
 
@@ -418,32 +418,32 @@ class SelfImprovementAgent:
 
 ### 5.1 Event Flow Wiring (Session 21)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
+| Task    | Description                       | Exit Criteria                 |
+| ------- | --------------------------------- | ----------------------------- |
 | EVT-001 | Vibe publishes tasklist.generated | Event visible in coding-loops |
-| EVT-002 | User approves → spec.approved | Build Agent triggers |
-| EVT-003 | Build Agent publishes task events | Monitor sees them |
-| EVT-004 | build.completed → SIA triggers | Review runs |
-| EVT-005 | SIA publishes improvements | All agents see them |
+| EVT-002 | User approves → spec.approved     | Build Agent triggers          |
+| EVT-003 | Build Agent publishes task events | Monitor sees them             |
+| EVT-004 | build.completed → SIA triggers    | Review runs                   |
+| EVT-005 | SIA publishes improvements        | All agents see them           |
 
 ### 5.2 E2E Testing (Session 22-23)
 
-| Test | Description | Exit Criteria |
-|------|-------------|---------------|
-| E2E-001 | Full pipeline test | Idea → Spec → Build → Review |
-| E2E-002 | Failure recovery | Build fails, rollback works |
+| Test    | Description           | Exit Criteria                        |
+| ------- | --------------------- | ------------------------------------ |
+| E2E-001 | Full pipeline test    | Idea → Spec → Build → Review         |
+| E2E-002 | Failure recovery      | Build fails, rollback works          |
 | E2E-003 | Knowledge propagation | Gotcha discovered, used in next spec |
-| E2E-004 | Multi-idea | Two ideas built concurrently |
-| E2E-005 | Interruption recovery | Build interrupted, resumes |
+| E2E-004 | Multi-idea            | Two ideas built concurrently         |
+| E2E-005 | Interruption recovery | Build interrupted, resumes           |
 
 ### 5.3 Documentation (Session 24)
 
-| Task | Description | Exit Criteria |
-|------|-------------|---------------|
-| DOC-001 | Update ARCHITECTURE.md | Current state |
-| DOC-002 | Update OPERATOR-RUNBOOK.md | New commands |
-| DOC-003 | Update API-REFERENCE.md | New endpoints |
-| DOC-004 | Update CLAUDE.md | New conventions |
+| Task    | Description                | Exit Criteria    |
+| ------- | -------------------------- | ---------------- |
+| DOC-001 | Update ARCHITECTURE.md     | Current state    |
+| DOC-002 | Update OPERATOR-RUNBOOK.md | New commands     |
+| DOC-003 | Update API-REFERENCE.md    | New endpoints    |
+| DOC-004 | Update CLAUDE.md           | New conventions  |
 | DOC-005 | Create agent-specific docs | Per-agent guides |
 
 ---
@@ -507,24 +507,24 @@ class SelfImprovementAgent:
 
 ## Success Metrics
 
-| Metric | Target | How to Measure |
-|--------|--------|----------------|
-| Build first-pass success | 80% | `tasks_completed / tasks_total` on first try |
-| Repeated gotchas | 0 | Same gotcha discovered twice |
-| Time to resume context | < 30s | Prime phase duration |
-| Cross-agent learning | Automatic | Gotcha in spec from different idea |
-| Spec quality | No clarification needed | Build Agent completes without questions |
+| Metric                   | Target                  | How to Measure                               |
+| ------------------------ | ----------------------- | -------------------------------------------- |
+| Build first-pass success | 80%                     | `tasks_completed / tasks_total` on first try |
+| Repeated gotchas         | 0                       | Same gotcha discovered twice                 |
+| Time to resume context   | < 30s                   | Prime phase duration                         |
+| Cross-agent learning     | Automatic               | Gotcha in spec from different idea           |
+| Spec quality             | No clarification needed | Build Agent completes without questions      |
 
 ---
 
 ## Risk Mitigation
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Infrastructure delays | Medium | High | Strict phase gates, don't start Phase 2 until Phase 1 complete |
-| Spec→Build format mismatch | Medium | Medium | Use strict YAML validation, shared schema |
-| SIA over-propagation | Low | Medium | Confidence thresholds, human review for CLAUDE.md |
-| Knowledge Base noise | Medium | Low | Deduplication, expiry for low-confidence entries |
+| Risk                       | Likelihood | Impact | Mitigation                                                     |
+| -------------------------- | ---------- | ------ | -------------------------------------------------------------- |
+| Infrastructure delays      | Medium     | High   | Strict phase gates, don't start Phase 2 until Phase 1 complete |
+| Spec→Build format mismatch | Medium     | Medium | Use strict YAML validation, shared schema                      |
+| SIA over-propagation       | Low        | Medium | Confidence thresholds, human review for CLAUDE.md              |
+| Knowledge Base noise       | Medium     | Low    | Deduplication, expiry for low-confidence entries               |
 
 ---
 
@@ -537,5 +537,5 @@ class SelfImprovementAgent:
 
 ---
 
-*See AGENT-ARCHITECTURE.md for detailed system design*
-*See PIV-LOOP-ADOPTION-ANALYSIS.md for background analysis*
+_See AGENT-ARCHITECTURE.md for detailed system design_
+_See PIV-LOOP-ADOPTION-ANALYSIS.md for background analysis_

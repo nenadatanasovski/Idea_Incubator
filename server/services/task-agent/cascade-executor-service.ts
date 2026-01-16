@@ -5,12 +5,12 @@
  * Part of: Task System V2 Implementation Plan (IMPL-3.9)
  */
 
-import { run, saveDb, getOne } from '../../../database/db.js';
+import { run, saveDb, getOne } from "../../../database/db.js";
 import {
   CascadeAnalysis,
   CascadeExecutionResult,
   CascadeEffect,
-} from '../../../types/cascade.js';
+} from "../../../types/cascade.js";
 
 /**
  * Cascade Executor Service class
@@ -21,7 +21,7 @@ export class CascadeExecutorService {
    */
   async execute(
     analysis: CascadeAnalysis,
-    approveAll: boolean = false
+    approveAll: boolean = false,
   ): Promise<CascadeExecutionResult> {
     const result: CascadeExecutionResult = {
       sourceTaskId: analysis.sourceTaskId,
@@ -31,13 +31,15 @@ export class CascadeExecutorService {
     };
 
     // Process all effects
-    const allEffects = [...analysis.directEffects, ...analysis.transitiveEffects];
+    const allEffects = [
+      ...analysis.directEffects,
+      ...analysis.transitiveEffects,
+    ];
 
     for (const effect of allEffects) {
       try {
-        const shouldApply = approveAll ||
-          analysis.taskListAutoApprove ||
-          effect.autoApprovable;
+        const shouldApply =
+          approveAll || analysis.taskListAutoApprove || effect.autoApprovable;
 
         if (shouldApply) {
           await this.applyEffect(effect);
@@ -53,7 +55,7 @@ export class CascadeExecutorService {
       } catch (error) {
         result.failed.push({
           taskId: effect.affectedTaskId,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -66,7 +68,7 @@ export class CascadeExecutorService {
    */
   async executeSelected(
     analysis: CascadeAnalysis,
-    selectedTaskIds: string[]
+    selectedTaskIds: string[],
   ): Promise<CascadeExecutionResult> {
     const result: CascadeExecutionResult = {
       sourceTaskId: analysis.sourceTaskId,
@@ -76,7 +78,10 @@ export class CascadeExecutorService {
     };
 
     const selectedSet = new Set(selectedTaskIds);
-    const allEffects = [...analysis.directEffects, ...analysis.transitiveEffects];
+    const allEffects = [
+      ...analysis.directEffects,
+      ...analysis.transitiveEffects,
+    ];
 
     for (const effect of allEffects) {
       if (selectedSet.has(effect.affectedTaskId)) {
@@ -90,12 +95,15 @@ export class CascadeExecutorService {
         } catch (error) {
           result.failed.push({
             taskId: effect.affectedTaskId,
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: error instanceof Error ? error.message : "Unknown error",
           });
         }
       } else {
         // Not selected - flag for review
-        await this.flagForReview(effect.affectedTaskId, 'Not selected for auto-apply');
+        await this.flagForReview(
+          effect.affectedTaskId,
+          "Not selected for auto-apply",
+        );
         result.flaggedForReview.push(effect.affectedTaskId);
       }
     }
@@ -110,14 +118,14 @@ export class CascadeExecutorService {
     // Add a note to the task's metadata or create a notification
     // For now, we'll update the task's status to 'blocked' if it's pending
     const task = await getOne<{ status: string }>(
-      'SELECT status FROM tasks WHERE id = ?',
-      [taskId]
+      "SELECT status FROM tasks WHERE id = ?",
+      [taskId],
     );
 
-    if (task && task.status === 'pending') {
+    if (task && task.status === "pending") {
       await run(
         `UPDATE tasks SET status = 'blocked', updated_at = ? WHERE id = ?`,
-        [new Date().toISOString(), taskId]
+        [new Date().toISOString(), taskId],
       );
       await saveDb();
     }
@@ -133,7 +141,7 @@ export class CascadeExecutorService {
           JSON.stringify({ reason }),
           taskId,
           new Date().toISOString(),
-        ]
+        ],
       );
       await saveDb();
     } catch {
@@ -146,14 +154,14 @@ export class CascadeExecutorService {
    */
   async clearReviewFlag(taskId: string): Promise<void> {
     const task = await getOne<{ status: string }>(
-      'SELECT status FROM tasks WHERE id = ?',
-      [taskId]
+      "SELECT status FROM tasks WHERE id = ?",
+      [taskId],
     );
 
-    if (task && task.status === 'blocked') {
+    if (task && task.status === "blocked") {
       await run(
         `UPDATE tasks SET status = 'pending', updated_at = ? WHERE id = ?`,
-        [new Date().toISOString(), taskId]
+        [new Date().toISOString(), taskId],
       );
       await saveDb();
     }
@@ -162,7 +170,7 @@ export class CascadeExecutorService {
     try {
       await run(
         `UPDATE notifications SET status = 'resolved' WHERE target_id = ? AND type = 'cascade_review'`,
-        [taskId]
+        [taskId],
       );
       await saveDb();
     } catch {
@@ -174,7 +182,10 @@ export class CascadeExecutorService {
    * Notify affected tasks about cascade
    */
   async notifyAffectedTasks(analysis: CascadeAnalysis): Promise<void> {
-    const allEffects = [...analysis.directEffects, ...analysis.transitiveEffects];
+    const allEffects = [
+      ...analysis.directEffects,
+      ...analysis.transitiveEffects,
+    ];
 
     for (const effect of allEffects) {
       try {
@@ -191,7 +202,7 @@ export class CascadeExecutorService {
             }),
             effect.affectedTaskId,
             new Date().toISOString(),
-          ]
+          ],
         );
       } catch {
         // Ignore notification errors
@@ -207,40 +218,35 @@ export class CascadeExecutorService {
     const now = new Date().toISOString();
 
     switch (effect.suggestedAction) {
-      case 'auto_update':
+      case "auto_update":
         // Just mark as updated
-        await run(
-          'UPDATE tasks SET updated_at = ? WHERE id = ?',
-          [now, effect.affectedTaskId]
-        );
+        await run("UPDATE tasks SET updated_at = ? WHERE id = ?", [
+          now,
+          effect.affectedTaskId,
+        ]);
         break;
 
-      case 'notify':
+      case "notify":
         // Create a notification
         try {
           await run(
             `INSERT INTO notifications (id, type, title, message, priority, status, target_type, target_id, created_at)
              VALUES (?, 'cascade_update', 'Task updated by cascade', ?, 'low', 'pending', 'task', ?, ?)`,
-            [
-              crypto.randomUUID(),
-              effect.reason,
-              effect.affectedTaskId,
-              now,
-            ]
+            [crypto.randomUUID(), effect.reason, effect.affectedTaskId, now],
           );
         } catch {
           // Ignore
         }
         break;
 
-      case 'block':
+      case "block":
         await run(
           `UPDATE tasks SET status = 'blocked', updated_at = ? WHERE id = ?`,
-          [now, effect.affectedTaskId]
+          [now, effect.affectedTaskId],
         );
         break;
 
-      case 'review':
+      case "review":
         // Flag for review
         await this.flagForReview(effect.affectedTaskId, effect.reason);
         break;

@@ -62,6 +62,7 @@ for i in {1..30}; do curl -s http://localhost:3001/api/profiles > /dev/null && b
 ## STEP 3: PICK WORK
 
 **Priority order:**
+
 1. **BLOCKED tests first** - These have known bugs to fix
 2. Then pending tests
 
@@ -91,16 +92,19 @@ cat /Users/nenadatanasovski/idea_incurator/tests/e2e/test-state.json | jq '[.tes
 ## STEP 5: VERIFY FIX
 
 **Puppeteer auto-launches a browser. Just call navigate:**
+
 ```
 mcp__puppeteer__puppeteer_navigate → url: http://localhost:3000/ideate
 ```
 
 **DO NOT:**
+
 - Call `puppeteer_connect_active_tab` (causes errors, wastes 5+ tool calls)
 - Try to start Chrome manually (`open -a "Google Chrome"`)
 - Search for debugging ports
 
 **Click elements:**
+
 ```javascript
 // By selector
 mcp__puppeteer__puppeteer_click → selector: [data-testid="start-ideation-btn"]
@@ -117,6 +121,7 @@ Take screenshots at key steps. Test through UI, not just curl.
 ## STEP 6: UPDATE STATE (IMMEDIATELY)
 
 **On PASS:**
+
 ```bash
 jq '(.tests[] | select(.id == "TEST-XXX")) |= . + {
   status: "passed", attempts: (.attempts + 1), lastResult: "pass",
@@ -128,6 +133,7 @@ echo "[$(date '+%Y-%m-%d %H:%M')] TEST-XXX PASSED: [description]" >> /Users/nena
 ```
 
 **On BLOCKED (after 3 attempts):**
+
 ```bash
 jq '(.tests[] | select(.id == "TEST-XXX")) |= . + {
   status: "blocked", notes: "BUG: [description]"
@@ -158,6 +164,7 @@ Continue with next pending test. Stop when context fills or all tests done.
 **URL:** http://localhost:3000/ideate
 
 **Selectors:**
+
 ```
 [data-testid="start-ideation-btn"]    → Start button
 [data-testid="entry-mode-have_idea"]  → "I have an idea"
@@ -167,6 +174,7 @@ Continue with next pending test. Stop when context fills or all tests done.
 ```
 
 **Schema:**
+
 ```sql
 SELECT id, status, started_at, message_count FROM ideation_sessions;
 SELECT id, role, content, created_at FROM ideation_messages;
