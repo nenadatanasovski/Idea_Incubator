@@ -32,8 +32,17 @@ import {
   User,
   Calendar,
   Folder,
+  RotateCcw,
+  PlayCircle,
 } from "lucide-react";
-import type { TaskDetailInfo, TaskRelation } from "../../types/pipeline";
+import ReadinessIndicator from "./ReadinessIndicator";
+import TaskCompletionModal from "./TaskCompletionModal";
+import type {
+  TaskDetailInfo,
+  TaskRelation,
+  TestScope,
+} from "../../types/pipeline";
+import { TEST_SCOPE_CONFIG, TEST_SCOPE_ORDER } from "../../types/pipeline";
 
 interface TaskDetailModalProps {
   taskId: string;
@@ -71,6 +80,9 @@ export default function TaskDetailModal({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
 
   const fetchTaskDetail = useCallback(async () => {
     try {
@@ -108,6 +120,28 @@ export default function TaskDetailModal({
     }
   };
 
+  const handleRetryTask = async () => {
+    if (!task) return;
+    setRetrying(true);
+    setRetryError(null);
+    try {
+      const response = await fetch(`/api/task-agent/tasks/${task.id}/retry`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to retry task");
+      }
+      // Refetch task details
+      await fetchTaskDetail();
+    } catch (err) {
+      setRetryError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
@@ -126,6 +160,11 @@ export default function TaskDetailModal({
                     {task.displayId || task.id.slice(0, 8)}
                   </span>
                   <StatusBadge status={task.status} />
+                  <ReadinessIndicator
+                    taskId={task.id}
+                    size="sm"
+                    onClick={() => setShowCompletionModal(true)}
+                  />
                 </div>
                 <h2 className="text-lg font-semibold text-gray-900 mt-1 truncate">
                   {task.title}
@@ -133,13 +172,51 @@ export default function TaskDetailModal({
               </div>
             ) : null}
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded transition-colors ml-2"
-          >
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
+          <div className="flex items-center gap-2">
+            {task && task.status !== "completed" && (
+              <button
+                onClick={() => setShowCompletionModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                data-testid="check-readiness-btn"
+              >
+                <PlayCircle className="w-4 h-4" />
+                Check Readiness
+              </button>
+            )}
+            {task && task.status === "failed" && (
+              <button
+                onClick={handleRetryTask}
+                disabled={retrying}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  retrying
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-amber-600 text-white hover:bg-amber-700"
+                }`}
+              >
+                <RotateCcw
+                  className={`w-4 h-4 ${retrying ? "animate-spin" : ""}`}
+                />
+                {retrying ? "Retrying..." : "Retry Task"}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
         </div>
+
+        {/* Retry Error Display */}
+        {retryError && (
+          <div className="px-4 py-2 bg-red-50 border-b border-red-200">
+            <p className="text-sm text-red-600 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              {retryError}
+            </p>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex border-b border-gray-200 px-4">
@@ -197,6 +274,7 @@ export default function TaskDetailModal({
               )}
               {activeTab === "tests" && (
                 <TestsTab
+                  taskId={task.id}
                   testResults={task.testResults}
                   appendices={task.appendices}
                 />
@@ -214,6 +292,26 @@ export default function TaskDetailModal({
           ) : null}
         </div>
       </div>
+
+      {/* Task Completion Modal */}
+      {task && (
+        <TaskCompletionModal
+          taskId={task.id}
+          taskDisplayId={task.displayId || task.id.slice(0, 8)}
+          taskTitle={task.title}
+          isOpen={showCompletionModal}
+          onClose={() => setShowCompletionModal(false)}
+          onSave={() => {
+            setShowCompletionModal(false);
+            fetchTaskDetail();
+          }}
+          onExecute={() => {
+            setShowCompletionModal(false);
+            // Trigger execution - this would typically call an API
+            console.log("Execute task:", task.id);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -774,19 +872,72 @@ function FilesTab({
   );
 }
 
+// Type for acceptance criteria verification status from API
+interface AcceptanceCriterionStatus {
+  id: string;
+  text: string;
+  met: boolean;
+  scope?: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+}
+
+interface AcceptanceCriteriaResponse {
+  taskId: string;
+  passed: boolean;
+  criteria: AcceptanceCriterionStatus[];
+  checkedAt: string;
+}
+
 function TestsTab({
+  taskId,
   testResults,
   appendices,
 }: {
+  taskId: string;
   testResults: TaskDetailInfo["testResults"];
   appendices: TaskDetailInfo["appendices"];
 }) {
   const [expandedTests, setExpandedTests] = useState<Set<string>>(new Set());
+  const [expandedScopes, setExpandedScopes] = useState<Set<string>>(
+    new Set(TEST_SCOPE_ORDER),
+  );
+  const [acStatus, setAcStatus] = useState<AcceptanceCriteriaResponse | null>(
+    null,
+  );
+  const [acLoading, setAcLoading] = useState(false);
+  const [updatingCriteria, setUpdatingCriteria] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Extract acceptance criteria from appendices
   const acceptanceCriteria = appendices.filter(
     (a) => a.appendixType === "acceptance_criteria",
   );
+
+  // Fetch acceptance criteria status
+  useEffect(() => {
+    const fetchAcStatus = async () => {
+      if (acceptanceCriteria.length === 0) return;
+
+      setAcLoading(true);
+      try {
+        const response = await fetch(
+          `/api/pipeline/tasks/${taskId}/acceptance-criteria`,
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setAcStatus(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch acceptance criteria status:", err);
+      } finally {
+        setAcLoading(false);
+      }
+    };
+
+    fetchAcStatus();
+  }, [taskId, acceptanceCriteria.length]);
 
   const toggleTest = (id: string) => {
     setExpandedTests((prev) => {
@@ -795,6 +946,80 @@ function TestsTab({
       else next.add(id);
       return next;
     });
+  };
+
+  const toggleScope = (scope: string) => {
+    setExpandedScopes((prev) => {
+      const next = new Set(prev);
+      if (next.has(scope)) next.delete(scope);
+      else next.add(scope);
+      return next;
+    });
+  };
+
+  // Handle checkbox toggle for acceptance criteria
+  const handleAcToggle = async (
+    appendixId: string,
+    criterionIndex: number,
+    currentMet: boolean,
+  ) => {
+    const key = `${appendixId}:${criterionIndex}`;
+    setUpdatingCriteria((prev) => new Set(prev).add(key));
+
+    try {
+      const response = await fetch(
+        `/api/pipeline/tasks/${taskId}/acceptance-criteria/${appendixId}/${criterionIndex}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ met: !currentMet }),
+        },
+      );
+
+      if (response.ok) {
+        // Update local state
+        setAcStatus((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            criteria: prev.criteria.map((c) =>
+              c.id === key || c.id.startsWith(`${appendixId}:${criterionIndex}`)
+                ? {
+                    ...c,
+                    met: !currentMet,
+                    verifiedAt: new Date().toISOString(),
+                    verifiedBy: "user",
+                  }
+                : c,
+            ),
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Failed to update acceptance criterion:", err);
+    } finally {
+      setUpdatingCriteria((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
+
+  // Get criterion status from acStatus
+  const getCriterionStatus = (appendixId: string, index: number) => {
+    if (!acStatus)
+      return { met: false, verifiedAt: undefined, verifiedBy: undefined };
+    const criterion = acStatus.criteria.find(
+      (c) => c.id === `${appendixId}:${index}` || c.id.includes(appendixId),
+    );
+    // Fall back to finding by text position if ID doesn't match
+    if (!criterion && acStatus.criteria[index]) {
+      return acStatus.criteria[index];
+    }
+    return (
+      criterion || { met: false, verifiedAt: undefined, verifiedBy: undefined }
+    );
   };
 
   // Show empty state only if no tests AND no acceptance criteria
@@ -826,9 +1051,58 @@ function TestsTab({
     3: "E2E",
   };
 
+  // Group tests by scope
+  const testsByScope = new Map<string | undefined, typeof testResults>();
+  for (const test of testResults) {
+    const scope = test.testScope;
+    const existing = testsByScope.get(scope) || [];
+    existing.push(test);
+    testsByScope.set(scope, existing);
+  }
+
+  // Group acceptance criteria by scope (from metadata)
+  const acByScope = new Map<string | undefined, typeof acceptanceCriteria>();
+  for (const ac of acceptanceCriteria) {
+    const scope = ac.metadata?.scope;
+    const existing = acByScope.get(scope) || [];
+    existing.push(ac);
+    acByScope.set(scope, existing);
+  }
+
+  // Get all unique scopes (including undefined for unscoped)
+  const allScopes = new Set<string | undefined>();
+  testsByScope.forEach((_, scope) => allScopes.add(scope));
+  acByScope.forEach((_, scope) => allScopes.add(scope));
+
+  // Sort scopes: defined scopes first in order, then undefined
+  const sortedScopes = Array.from(allScopes).sort((a, b) => {
+    if (a === undefined) return 1;
+    if (b === undefined) return -1;
+    const aIndex = TEST_SCOPE_ORDER.indexOf(a as TestScope);
+    const bIndex = TEST_SCOPE_ORDER.indexOf(b as TestScope);
+    return aIndex - bIndex;
+  });
+
+  // Calculate scope summary
+  const scopeSummary = (scope: string | undefined) => {
+    const tests = testsByScope.get(scope) || [];
+    const passed = tests.filter((t) => t.passed).length;
+    const failed = tests.length - passed;
+    return { passed, failed, total: tests.length };
+  };
+
+  // Calculate AC summary
+  const acSummary = () => {
+    if (!acStatus) return { met: 0, total: acStatus?.criteria?.length || 0 };
+    const met = acStatus.criteria.filter((c) => c.met).length;
+    return { met, total: acStatus.criteria.length };
+  };
+
+  const acSum = acSummary();
+
   return (
     <div className="space-y-4">
-      {/* Summary */}
+      {/* Overall Summary */}
       <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
         <div className="flex items-center gap-2">
           <Check className="w-4 h-4 text-green-600" />
@@ -842,124 +1116,269 @@ function TestsTab({
             {testResults.filter((t) => !t.passed).length} failed
           </span>
         </div>
-      </div>
-
-      {/* Test List */}
-      <div className="space-y-2">
-        {testResults.map((test) => (
-          <div key={test.id} className="border border-gray-200 rounded-lg">
-            <div
-              onClick={() => toggleTest(test.id)}
-              className="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50"
+        {acSum.total > 0 && (
+          <div className="flex items-center gap-2 border-l border-gray-300 pl-4">
+            <span
+              className={
+                acSum.met === acSum.total ? "text-green-700" : "text-amber-700"
+              }
             >
-              {expandedTests.has(test.id) ? (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              )}
-              {test.passed ? (
-                <Check className="w-4 h-4 text-green-600" />
-              ) : (
-                <XCircle className="w-4 h-4 text-red-600" />
-              )}
-              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
-                {levelLabels[test.testLevel] || `Level ${test.testLevel}`}
-              </span>
-              <span className="text-gray-700 truncate flex-1">
-                {test.testName || test.command}
-              </span>
-              <span className="text-xs text-gray-500">
-                {formatDuration(test.durationMs)}
-              </span>
-            </div>
-            {expandedTests.has(test.id) && (
-              <div className="px-3 pb-3 border-t border-gray-100 pt-2 space-y-2 text-sm">
-                <div>
-                  <span className="text-gray-500">Command:</span>
-                  <code className="block mt-1 p-2 bg-gray-100 rounded text-xs font-mono overflow-x-auto">
-                    {test.command}
-                  </code>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span>
-                    <span className="text-gray-500">Exit code:</span>{" "}
-                    <span
-                      className={
-                        test.exitCode === 0 ? "text-green-600" : "text-red-600"
-                      }
-                    >
-                      {test.exitCode}
-                    </span>
-                  </span>
-                  <span>
-                    <span className="text-gray-500">Duration:</span>{" "}
-                    {formatDuration(test.durationMs)}
-                  </span>
-                </div>
-                {test.stdout && (
-                  <div>
-                    <span className="text-gray-500">Output:</span>
-                    <pre className="mt-1 p-2 bg-gray-100 rounded text-xs font-mono max-h-32 overflow-auto whitespace-pre-wrap">
-                      {test.stdout}
-                    </pre>
-                  </div>
-                )}
-                {test.stderr && (
-                  <div>
-                    <span className="text-red-500">Errors:</span>
-                    <pre className="mt-1 p-2 bg-red-50 rounded text-xs font-mono max-h-32 overflow-auto whitespace-pre-wrap text-red-700">
-                      {test.stderr}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            )}
+              AC: {acSum.met}/{acSum.total} verified
+            </span>
           </div>
-        ))}
+        )}
+        {sortedScopes.filter((s) => s !== undefined).length > 0 && (
+          <div className="flex items-center gap-1 ml-auto text-xs text-gray-500">
+            {sortedScopes.filter((s) => s !== undefined).length} scopes
+          </div>
+        )}
       </div>
 
-      {/* Acceptance Criteria */}
-      {acceptanceCriteria.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-3">
-            Acceptance Criteria
-          </h3>
-          <div className="space-y-2">
-            {acceptanceCriteria.map((ac) => (
+      {/* Scoped Sections */}
+      <div className="space-y-3">
+        {sortedScopes.map((scope) => {
+          const scopeKey = scope ?? "general";
+          const scopeConfig = scope
+            ? TEST_SCOPE_CONFIG[scope as TestScope]
+            : {
+                label: "General",
+                description: "Unscoped tests and criteria",
+                color: "text-gray-600",
+                bgColor: "bg-gray-100",
+              };
+          const tests = testsByScope.get(scope) || [];
+          const acs = acByScope.get(scope) || [];
+          const summary = scopeSummary(scope);
+          const isExpanded = expandedScopes.has(scopeKey);
+
+          if (tests.length === 0 && acs.length === 0) return null;
+
+          return (
+            <div
+              key={scopeKey}
+              className="border border-gray-200 rounded-lg overflow-hidden"
+            >
+              {/* Scope Header */}
               <div
-                key={ac.id}
-                className="p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                onClick={() => toggleScope(scopeKey)}
+                className="flex items-center gap-3 p-3 bg-gray-50 cursor-pointer hover:bg-gray-100"
               >
-                {ac.content ? (
-                  <ul className="space-y-1 text-sm">
-                    {ac.content
-                      .split("\n")
-                      .filter(Boolean)
-                      .map((line, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-blue-400 mt-0.5">•</span>
-                          <span className="text-gray-700">
-                            {line.replace(/^[-*•]\s*/, "")}
-                          </span>
-                        </li>
-                      ))}
-                  </ul>
-                ) : ac.referenceId ? (
-                  <p className="text-sm text-gray-600">
-                    See:{" "}
-                    <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
-                      {ac.referenceTable ? `${ac.referenceTable}:` : ""}
-                      {ac.referenceId}
-                    </code>
-                  </p>
+                {isExpanded ? (
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
                 ) : (
-                  <p className="text-sm text-gray-500 italic">No content</p>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                )}
+                <span
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${scopeConfig.bgColor} ${scopeConfig.color}`}
+                >
+                  {scopeConfig.label}
+                </span>
+                <span className="text-sm text-gray-600 flex-1">
+                  {scopeConfig.description}
+                </span>
+                {summary.total > 0 && (
+                  <div className="flex items-center gap-2 text-xs">
+                    {summary.passed > 0 && (
+                      <span className="text-green-600">
+                        {summary.passed} passed
+                      </span>
+                    )}
+                    {summary.failed > 0 && (
+                      <span className="text-red-600">
+                        {summary.failed} failed
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+
+              {/* Scope Content */}
+              {isExpanded && (
+                <div className="p-3 space-y-3">
+                  {/* Tests in this scope */}
+                  {tests.length > 0 && (
+                    <div className="space-y-2">
+                      {tests.map((test) => (
+                        <div
+                          key={test.id}
+                          className="border border-gray-200 rounded-lg"
+                        >
+                          <div
+                            onClick={() => toggleTest(test.id)}
+                            className="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50"
+                          >
+                            {expandedTests.has(test.id) ? (
+                              <ChevronDown className="w-4 h-4 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                            )}
+                            {test.passed ? (
+                              <Check className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-red-600" />
+                            )}
+                            <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
+                              {levelLabels[test.testLevel] ||
+                                `Level ${test.testLevel}`}
+                            </span>
+                            <span className="text-gray-700 truncate flex-1">
+                              {test.testName || test.command}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {formatDuration(test.durationMs)}
+                            </span>
+                          </div>
+                          {expandedTests.has(test.id) && (
+                            <div className="px-3 pb-3 border-t border-gray-100 pt-2 space-y-2 text-sm">
+                              <div>
+                                <span className="text-gray-500">Command:</span>
+                                <code className="block mt-1 p-2 bg-gray-100 rounded text-xs font-mono overflow-x-auto">
+                                  {test.command}
+                                </code>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span>
+                                  <span className="text-gray-500">
+                                    Exit code:
+                                  </span>{" "}
+                                  <span
+                                    className={
+                                      test.exitCode === 0
+                                        ? "text-green-600"
+                                        : "text-red-600"
+                                    }
+                                  >
+                                    {test.exitCode}
+                                  </span>
+                                </span>
+                                <span>
+                                  <span className="text-gray-500">
+                                    Duration:
+                                  </span>{" "}
+                                  {formatDuration(test.durationMs)}
+                                </span>
+                              </div>
+                              {test.stdout && (
+                                <div>
+                                  <span className="text-gray-500">Output:</span>
+                                  <pre className="mt-1 p-2 bg-gray-100 rounded text-xs font-mono max-h-32 overflow-auto whitespace-pre-wrap">
+                                    {test.stdout}
+                                  </pre>
+                                </div>
+                              )}
+                              {test.stderr && (
+                                <div>
+                                  <span className="text-red-500">Errors:</span>
+                                  <pre className="mt-1 p-2 bg-red-50 rounded text-xs font-mono max-h-32 overflow-auto whitespace-pre-wrap text-red-700">
+                                    {test.stderr}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Acceptance Criteria in this scope */}
+                  {acs.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-medium text-gray-500 mb-2">
+                        Acceptance Criteria{" "}
+                        {acLoading && (
+                          <RefreshCw className="w-3 h-3 inline animate-spin ml-1" />
+                        )}
+                      </h4>
+                      <div className="space-y-2">
+                        {acs.map((ac) => (
+                          <div
+                            key={ac.id}
+                            className="p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                          >
+                            {ac.content ? (
+                              <ul className="space-y-2 text-sm">
+                                {ac.content
+                                  .split("\n")
+                                  .filter(Boolean)
+                                  .map((line, i) => {
+                                    const status = getCriterionStatus(ac.id, i);
+                                    const key = `${ac.id}:${i}`;
+                                    const isUpdating =
+                                      updatingCriteria.has(key);
+
+                                    return (
+                                      <li
+                                        key={i}
+                                        className="flex items-start gap-2"
+                                      >
+                                        <label className="flex items-start gap-2 cursor-pointer flex-1">
+                                          <input
+                                            type="checkbox"
+                                            checked={status.met}
+                                            disabled={isUpdating}
+                                            onChange={() =>
+                                              handleAcToggle(
+                                                ac.id,
+                                                i,
+                                                status.met,
+                                              )
+                                            }
+                                            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                                          />
+                                          <span
+                                            className={`flex-1 ${
+                                              status.met
+                                                ? "text-gray-500 line-through"
+                                                : "text-gray-700"
+                                            }`}
+                                          >
+                                            {line.replace(/^[-*•]\s*/, "")}
+                                          </span>
+                                        </label>
+                                        {status.verifiedAt && (
+                                          <span className="text-xs text-gray-400 whitespace-nowrap">
+                                            {status.verifiedBy === "user"
+                                              ? "✓"
+                                              : "⚡"}{" "}
+                                            {new Date(
+                                              status.verifiedAt,
+                                            ).toLocaleDateString()}
+                                          </span>
+                                        )}
+                                        {isUpdating && (
+                                          <RefreshCw className="w-3 h-3 animate-spin text-blue-500" />
+                                        )}
+                                      </li>
+                                    );
+                                  })}
+                              </ul>
+                            ) : ac.referenceId ? (
+                              <p className="text-sm text-gray-600">
+                                See:{" "}
+                                <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
+                                  {ac.referenceTable
+                                    ? `${ac.referenceTable}:`
+                                    : ""}
+                                  {ac.referenceId}
+                                </code>
+                              </p>
+                            ) : (
+                              <p className="text-sm text-gray-500 italic">
+                                No content
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

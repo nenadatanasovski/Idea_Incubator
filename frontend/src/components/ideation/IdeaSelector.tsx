@@ -434,7 +434,7 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
       >
         {currentIdea ? (
           <>
@@ -452,10 +452,10 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
         <div
           data-testid="idea-selector-dropdown"
           aria-expanded={isOpen}
-          className="absolute z-50 mt-1 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden"
+          className="absolute z-50 mt-1 w-80 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
         >
           {/* Search Input */}
-          <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-2 border-b border-gray-200">
             <div className="relative">
               <span className="absolute left-2 top-1/2 transform -translate-y-1/2">
                 <SearchIcon />
@@ -467,7 +467,7 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
                 placeholder="Search ideas..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -490,7 +490,7 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
               {/* Recent Ideas */}
               {groupedIdeas.recent.length > 0 && (
                 <div data-testid="group-recent" className="py-1">
-                  <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Recent
                   </div>
                   {groupedIdeas.recent.map((idea) => (
@@ -509,15 +509,15 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
               {Object.keys(groupedIdeas.byType).length > 0 && (
                 <div
                   data-testid="group-by-type"
-                  className="py-1 border-t border-gray-200 dark:border-gray-700"
+                  className="py-1 border-t border-gray-200"
                 >
-                  <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     By Type
                   </div>
                   {Object.entries(groupedIdeas.byType).map(
                     ([typeName, typeIdeas]) => (
                       <div key={typeName}>
-                        <div className="px-3 py-0.5 text-xs text-gray-400 dark:text-gray-500">
+                        <div className="px-3 py-0.5 text-xs text-gray-400">
                           {typeName}
                         </div>
                         {typeIdeas.map((idea) => (
@@ -539,9 +539,9 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
               {groupedIdeas.drafts.length > 0 && (
                 <div
                   data-testid="group-drafts"
-                  className="py-1 border-t border-gray-200 dark:border-gray-700"
+                  className="py-1 border-t border-gray-200"
                 >
-                  <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Drafts
                   </div>
                   {groupedIdeas.drafts.map((idea) => (
@@ -567,11 +567,11 @@ export const IdeaSelector: React.FC<IdeaSelectorProps> = ({
           )}
 
           {/* New Idea Option */}
-          <div className="border-t border-gray-200 dark:border-gray-700">
+          <div className="border-t border-gray-200">
             <button
               data-testid="new-idea-option"
               onClick={handleNewIdea}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
             >
               <PlusIcon />
               <span>New idea</span>
@@ -618,15 +618,15 @@ const IdeaOption: React.FC<IdeaOptionProps> = ({
         w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors
         ${
           isSelected
-            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-            : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            ? "bg-blue-50 text-blue-700"
+            : "text-gray-700 hover:bg-gray-50"
         }
       `}
     >
       {isDraft ? <DraftIcon /> : <IdeaIcon type={idea.ideaType} />}
       <div className="flex-1 min-w-0">
         <div className="truncate font-medium">{idea.title}</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+        <div className="text-xs text-gray-500 flex items-center gap-2">
           <span>{idea.stage}</span>
           <span>-</span>
           <span>{formatRelativeDate(idea.updated)}</span>

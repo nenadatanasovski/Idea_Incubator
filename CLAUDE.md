@@ -6,11 +6,21 @@ This is an idea incubation system that uses AI agents to evaluate and red-team i
 
 ## Skills Available
 
+### Ideation Skills
+
 - `/idea-capture` - Create a new idea folder with template
 - `/idea-develop` - Flesh out an idea with questions
 - `/idea-evaluate` - Score against 30 criteria
 - `/idea-redteam` - Challenge assumptions
 - `/idea-organize` - Help with file organization
+
+### Schema Management Skills
+
+- `/schema-add-entity` - Add a new entity to the data model
+- `/schema-modify-entity` - Modify an existing entity (add/remove/change fields)
+- `/schema-add-enum` - Add a new enum type
+- `/schema-add-relationship` - Add relationships between entities
+- `/schema-validate` - Validate schema consistency and integrity
 
 ## Behavior Guidelines
 
@@ -35,6 +45,61 @@ This is an idea incubation system that uses AI agents to evaluate and red-team i
 | Database            | `database/ideas.db`             |
 | Templates           | `templates/*.md`                |
 | Taxonomy            | `taxonomy/*.md`                 |
+| Schema definitions  | `schema/entities/*.ts`          |
+| Schema registry     | `schema/registry.ts`            |
+
+## Data Model Discovery
+
+The canonical data model is defined in `schema/entities/*.ts` using Drizzle ORM.
+
+### For Agents (Programmatic Access)
+
+```bash
+# List all entities and endpoints
+curl http://localhost:3001/api/schema
+
+# Get specific entity schema (JSON Schema format)
+curl http://localhost:3001/api/schema/entities/{entityName}
+
+# Get all enums
+curl http://localhost:3001/api/schema/enums
+
+# Get relationship graph
+curl http://localhost:3001/api/schema/relationships
+
+# Get full schema dump
+curl http://localhost:3001/api/schema/full
+```
+
+### For Code (Type-Safe Import)
+
+```typescript
+// Import types
+import { Task, NewTask } from "@/schema";
+
+// Import validation schemas
+import { insertTaskSchema, selectTaskSchema } from "@/schema";
+
+// Validate input
+const result = insertTaskSchema.safeParse(userInput);
+```
+
+### Data Model Change Rules
+
+1. **NEVER** define types outside `schema/` directory
+2. All database tables **MUST** have a corresponding schema entity
+3. When modifying data model, update `schema/entities/*.ts` **ONLY**
+4. Use skills: `/schema-add-entity`, `/schema-modify-entity`, `/schema-add-relationship`
+5. Always run `/schema-validate` before deploying schema changes
+
+### Schema Commands
+
+```bash
+npm run schema:generate     # Generate migration from schema changes
+npm run schema:migrate      # Apply migrations to database
+npm run schema:validate     # Validate schema consistency
+npm run schema:studio       # Open Drizzle Studio (visual editor)
+```
 
 ## Common Commands
 
@@ -603,13 +668,61 @@ Tasks cannot run in parallel if they have conflicting file operations:
 
 ### Database Tables
 
-| Table                      | Purpose                                |
-| -------------------------- | -------------------------------------- |
-| `tasks`                    | Task records with display_id and queue |
-| `task_lists_v2`            | Task list containers                   |
-| `task_relationships`       | Dependencies between tasks             |
-| `task_file_impacts`        | Predicted file operations              |
-| `parallelism_analysis`     | Task pair analysis cache               |
-| `parallel_execution_waves` | Execution wave tracking                |
-| `build_agent_instances`    | Active Build Agents                    |
-| `grouping_suggestions`     | Auto-grouping suggestions              |
+| Table                         | Purpose                                       |
+| ----------------------------- | --------------------------------------------- |
+| `tasks`                       | Task records with display_id and queue        |
+| `task_lists_v2`               | Task list containers                          |
+| `task_relationships`          | Dependencies between tasks                    |
+| `task_file_impacts`           | Predicted file operations                     |
+| `parallelism_analysis`        | Task pair analysis cache                      |
+| `parallel_execution_waves`    | Execution wave tracking                       |
+| `build_agent_instances`       | Active Build Agents                           |
+| `grouping_suggestions`        | Auto-grouping suggestions                     |
+| `task_test_results`           | Test execution results (syntax, unit, e2e)    |
+| `task_appendices`             | Attachable context (acceptance criteria, etc) |
+| `acceptance_criteria_results` | Persisted AC verification status              |
+
+---
+
+## Task Testing System
+
+### Test Levels
+
+Tests are organized by execution phase (when they run):
+
+| Level | Name   | Description            | Default Command                 |
+| ----- | ------ | ---------------------- | ------------------------------- |
+| 1     | Syntax | Type checking, linting | `npx tsc --noEmit`              |
+| 2     | Unit   | Unit tests             | `npm test -- --passWithNoTests` |
+| 3     | E2E    | Integration/E2E tests  | `npm run test:e2e`              |
+
+### Test Scopes
+
+Tests are categorized by system component (what they test):
+
+| Scope         | Description                            |
+| ------------- | -------------------------------------- |
+| `codebase`    | File existence, compilation, structure |
+| `database`    | Schema validation, migrations          |
+| `api`         | Endpoint tests, contract validation    |
+| `ui`          | Component tests, rendering             |
+| `integration` | Cross-system tests, E2E flows          |
+
+### Acceptance Criteria
+
+Acceptance criteria are stored in `task_appendices` with `appendix_type = 'acceptance_criteria'`.
+
+- Criteria can be scoped via `metadata.scope` (JSON column)
+- Verification status is persisted in `acceptance_criteria_results`
+- Users can manually verify criteria via checkboxes in the UI
+- Verification includes: `met` (boolean), `verified_by` (user/agent/system), `verified_at` (timestamp)
+
+### Test API Routes
+
+| Route                                                              | Method | Description                     |
+| ------------------------------------------------------------------ | ------ | ------------------------------- |
+| `/api/pipeline/tasks/:taskId/acceptance-criteria`                  | GET    | Get AC with verification status |
+| `/api/pipeline/tasks/:taskId/acceptance-criteria/:appendixId/:idx` | PUT    | Update single criterion         |
+| `/api/pipeline/tasks/:taskId/acceptance-criteria`                  | PUT    | Bulk update criteria            |
+| `/api/pipeline/tasks/:taskId/acceptance-criteria?mode=reset`       | DELETE | Reset all AC to unverified      |
+| `/api/pipeline/tasks/:taskId/acceptance-criteria?mode=delete`      | DELETE | Delete all AC results           |

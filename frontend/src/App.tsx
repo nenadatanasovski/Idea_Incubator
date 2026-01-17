@@ -21,6 +21,7 @@ import ObservabilityPage from "./pages/ObservabilityPage";
 import ExecutionReviewPage from "./pages/ExecutionReviewPage";
 import PipelineDashboard from "./pages/PipelineDashboard";
 import ObjectsPage from "./pages/ObjectsPage";
+import SchemaPage from "./pages/SchemaPage";
 import NotFound from "./pages/NotFound";
 
 // Observability sub-tab components
@@ -68,6 +69,8 @@ function App() {
         <Route path="/ideate/:sessionId" element={<IdeationPageWrapper />} />
         {/* Database Objects browser */}
         <Route path="/objects" element={<ObjectsPage />} />
+        {/* Schema Documentation */}
+        <Route path="/schema" element={<SchemaPage />} />
         {/* Observability with sub-tabs */}
         <Route path="/observability" element={<ObservabilityPage />}>
           <Route index element={<OverviewDashboard />} />

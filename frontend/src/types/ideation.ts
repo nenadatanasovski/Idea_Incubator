@@ -141,6 +141,12 @@ export interface AgentMessageProps {
   isLatest: boolean;
   onArtifactClick?: (artifactId: string) => void;
   onConvertToArtifact?: (content: string, title?: string) => void;
+  // Spec-related props (SPEC-005)
+  spec?: import("./spec").Spec | null;
+  specSections?: import("./spec").SpecSection[];
+  specReadiness?: import("./spec").ReadinessScore | null;
+  onViewSpec?: () => void;
+  onEditSpec?: () => void;
 }
 
 export interface UserMessageProps {
@@ -264,7 +270,8 @@ export type ArtifactType =
   | "research"
   | "idea-summary"
   | "analysis"
-  | "comparison";
+  | "comparison"
+  | "spec";
 
 export type ArtifactStatus =
   | "pending"

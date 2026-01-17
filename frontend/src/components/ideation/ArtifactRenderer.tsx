@@ -87,10 +87,10 @@ const MermaidArtifact: React.FC<{ content: string; id: string }> = ({
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
+      <div className="p-4 bg-red-50 text-red-600">
         <p className="font-medium">Diagram Error</p>
         <p className="text-sm mt-1">{error}</p>
-        <pre className="mt-2 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-auto">
+        <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto">
           {content}
         </pre>
       </div>
@@ -100,7 +100,7 @@ const MermaidArtifact: React.FC<{ content: string; id: string }> = ({
   return (
     <div
       ref={containerRef}
-      className="flex items-center justify-center p-4 bg-white dark:bg-gray-50 min-h-full"
+      className="flex items-center justify-center p-4 bg-white min-h-full"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );
@@ -147,7 +147,7 @@ const HtmlArtifact: React.FC<{ content: string }> = ({ content }) => {
 const SvgArtifact: React.FC<{ content: string }> = ({ content }) => {
   return (
     <div
-      className="flex items-center justify-center p-4 bg-white dark:bg-gray-50 min-h-full"
+      className="flex items-center justify-center p-4 bg-white min-h-full"
       dangerouslySetInnerHTML={{ __html: content }}
     />
   );
@@ -156,7 +156,7 @@ const SvgArtifact: React.FC<{ content: string }> = ({ content }) => {
 // Markdown artifact renderer
 const MarkdownArtifact: React.FC<{ content: string }> = ({ content }) => {
   return (
-    <div className="p-4 prose dark:prose-invert prose-sm max-w-none">
+    <div className="p-4 prose prose-sm max-w-none prose-gray prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-a:text-blue-600">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -173,7 +173,10 @@ const MarkdownArtifact: React.FC<{ content: string }> = ({ content }) => {
                 {String(children).replace(/\n$/, "")}
               </SyntaxHighlighter>
             ) : (
-              <code className={className} {...props}>
+              <code
+                className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono"
+                {...props}
+              >
                 {children}
               </code>
             );
@@ -220,7 +223,7 @@ const ResearchArtifact: React.FC<{
         {queries.map((query, idx) => (
           <span
             key={idx}
-            className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full"
+            className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full"
           >
             {query}
           </span>
@@ -229,7 +232,7 @@ const ResearchArtifact: React.FC<{
 
       {/* Synthesized content (new format) */}
       {synthesis && (
-        <div className="prose dark:prose-invert prose-sm max-w-none">
+        <div className="prose prose-sm max-w-none prose-gray prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
@@ -246,7 +249,10 @@ const ResearchArtifact: React.FC<{
                     {String(children).replace(/\n$/, "")}
                   </SyntaxHighlighter>
                 ) : (
-                  <code className={className} {...props}>
+                  <code
+                    className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono"
+                    {...props}
+                  >
                     {children}
                   </code>
                 );
@@ -258,7 +264,7 @@ const ResearchArtifact: React.FC<{
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                    className="text-blue-600 hover:text-blue-700 hover:underline"
                     {...props}
                   >
                     {children}
@@ -274,10 +280,10 @@ const ResearchArtifact: React.FC<{
 
       {/* Sources section */}
       {sources && sources.length > 0 && (
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+        <div className="border-t border-gray-200 pt-4">
           <button
             onClick={() => setShowSources(!showSources)}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
           >
             <svg
               className={`w-4 h-4 transition-transform ${showSources ? "rotate-90" : ""}`}
@@ -299,7 +305,7 @@ const ResearchArtifact: React.FC<{
             <div className="mt-4 space-y-4">
               {Object.entries(groupedSources).map(([query, queryResults]) => (
                 <div key={query} className="space-y-2">
-                  <h5 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                     {query}
                   </h5>
                   <div className="space-y-2">
@@ -309,16 +315,16 @@ const ResearchArtifact: React.FC<{
                         href={result.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors bg-gray-50 dark:bg-gray-800/50"
+                        className="block p-3 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors bg-gray-50"
                       >
-                        <h6 className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                        <h6 className="text-sm font-medium text-blue-600 hover:underline">
                           {result.title}
                         </h6>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           {result.source}
                         </p>
                         {result.snippet && (
-                          <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 line-clamp-2">
+                          <p className="text-xs text-gray-600 mt-2 line-clamp-2">
                             {result.snippet}
                           </p>
                         )}
@@ -334,7 +340,7 @@ const ResearchArtifact: React.FC<{
 
       {/* Fallback for old format without synthesis */}
       {!synthesis && sources && sources.length === 0 && (
-        <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+        <div className="text-center text-gray-500 py-8">
           No research results available
         </div>
       )}
@@ -364,61 +370,41 @@ const IdeaSummaryArtifact: React.FC<{ content: string | object }> = ({
   return (
     <div className="p-4 space-y-4">
       {summary.title && (
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          {summary.title}
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900">{summary.title}</h3>
       )}
 
       {summary.problem && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Problem
-          </h4>
-          <p className="mt-1 text-gray-700 dark:text-gray-300">
-            {summary.problem}
-          </p>
+          <h4 className="text-sm font-medium text-gray-500">Problem</h4>
+          <p className="mt-1 text-gray-700">{summary.problem}</p>
         </div>
       )}
 
       {summary.solution && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Solution
-          </h4>
-          <p className="mt-1 text-gray-700 dark:text-gray-300">
-            {summary.solution}
-          </p>
+          <h4 className="text-sm font-medium text-gray-500">Solution</h4>
+          <p className="mt-1 text-gray-700">{summary.solution}</p>
         </div>
       )}
 
       {summary.targetMarket && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Target Market
-          </h4>
-          <p className="mt-1 text-gray-700 dark:text-gray-300">
-            {summary.targetMarket}
-          </p>
+          <h4 className="text-sm font-medium text-gray-500">Target Market</h4>
+          <p className="mt-1 text-gray-700">{summary.targetMarket}</p>
         </div>
       )}
 
       {summary.uniqueValue && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Unique Value
-          </h4>
-          <p className="mt-1 text-gray-700 dark:text-gray-300">
-            {summary.uniqueValue}
-          </p>
+          <h4 className="text-sm font-medium text-gray-500">Unique Value</h4>
+          <p className="mt-1 text-gray-700">{summary.uniqueValue}</p>
         </div>
       )}
 
       {summary.keyRisks && summary.keyRisks.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Key Risks
-          </h4>
-          <ul className="mt-1 list-disc list-inside text-gray-700 dark:text-gray-300">
+          <h4 className="text-sm font-medium text-gray-500">Key Risks</h4>
+          <ul className="mt-1 list-disc list-inside text-gray-700">
             {summary.keyRisks.map((risk, idx) => (
               <li key={idx}>{risk}</li>
             ))}
@@ -428,10 +414,8 @@ const IdeaSummaryArtifact: React.FC<{ content: string | object }> = ({
 
       {summary.nextSteps && summary.nextSteps.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Next Steps
-          </h4>
-          <ul className="mt-1 list-disc list-inside text-gray-700 dark:text-gray-300">
+          <h4 className="text-sm font-medium text-gray-500">Next Steps</h4>
+          <ul className="mt-1 list-disc list-inside text-gray-700">
             {summary.nextSteps.map((step, idx) => (
               <li key={idx}>{step}</li>
             ))}
@@ -447,9 +431,9 @@ const ErrorArtifact: React.FC<{ error: string }> = ({ error }) => {
   return (
     <div className="flex items-center justify-center h-full p-4">
       <div className="text-center">
-        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
           <svg
-            className="w-6 h-6 text-red-600 dark:text-red-400"
+            className="w-6 h-6 text-red-600"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -462,7 +446,7 @@ const ErrorArtifact: React.FC<{ error: string }> = ({ error }) => {
             />
           </svg>
         </div>
-        <p className="text-gray-600 dark:text-gray-400">{error}</p>
+        <p className="text-gray-600">{error}</p>
       </div>
     </div>
   );
@@ -492,9 +476,7 @@ const LoadingArtifact: React.FC = () => {
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
           />
         </svg>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          Generating artifact...
-        </span>
+        <span className="text-sm text-gray-500">Generating artifact...</span>
       </div>
     </div>
   );
@@ -575,6 +557,36 @@ export const ArtifactRenderer: React.FC<ArtifactRendererProps> = ({
     case "analysis":
     case "comparison":
       return <IdeaSummaryArtifact content={artifact.content} />;
+
+    case "spec":
+      // Spec artifacts show a summary view - full editing is in SpecPanel
+      return (
+        <div className="p-4 space-y-4">
+          <div className="flex items-center gap-2 text-blue-600">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <span className="font-medium">Specification</span>
+          </div>
+          <MarkdownArtifact
+            content={
+              typeof artifact.content === "string"
+                ? artifact.content
+                : JSON.stringify(artifact.content, null, 2)
+            }
+          />
+        </div>
+      );
 
     case "react":
       // For React components, show the code with syntax highlighting

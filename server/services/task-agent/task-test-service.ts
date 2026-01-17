@@ -7,18 +7,25 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { spawn } from "child_process";
-import { query, run, getOne, saveDb } from "../../../database/db.js";
+import { query, run, saveDb } from "../../../database/db.js";
 import {
   TaskTestResult,
   TaskTestConfig,
   ValidationResult,
   RunValidationInput,
   TestLevel,
+  TestScope,
   DEFAULT_TEST_CONFIGS,
   TaskTestResultRow,
   mapTaskTestResultRow,
   AcceptanceCriteriaResult,
+  AcceptanceCriterion,
+  AcceptanceCriterionResult,
+  AcceptanceCriterionResultRow,
+  mapAcceptanceCriterionResultRow,
+  VerifiedByType,
 } from "../../../types/task-test.js";
+import type { AppendixMetadata } from "../../../types/task-appendix.js";
 
 /**
  * Task Test Service class
@@ -104,7 +111,7 @@ export class TaskTestService {
   async runLevel(
     taskId: string,
     level: TestLevel,
-    context?: { executionId?: string; agentId?: string },
+    context?: { executionId?: string; agentId?: string; scope?: TestScope },
   ): Promise<TaskTestResult> {
     const configs = await this.getTestConfig(taskId);
     const config =
@@ -132,6 +139,7 @@ export class TaskTestService {
     const testResult = await this.saveResult({
       taskId,
       testLevel: level,
+      testScope: context?.scope,
       testName: config.description,
       command: config.command,
       exitCode,
@@ -211,29 +219,61 @@ export class TaskTestService {
   }
 
   /**
-   * Check acceptance criteria for a task
+   * Check acceptance criteria for a task (loads persisted results)
    */
   async checkAcceptanceCriteria(
     taskId: string,
   ): Promise<AcceptanceCriteriaResult> {
-    // Get acceptance criteria appendix if exists
-    const appendix = await getOne<{ content: string }>(
-      `SELECT content FROM task_appendices
+    // Get all acceptance criteria appendices with their IDs
+    const appendices = await query<{
+      id: string;
+      content: string;
+      metadata: string | null;
+    }>(
+      `SELECT id, content, metadata FROM task_appendices
        WHERE task_id = ? AND appendix_type = 'acceptance_criteria' AND content_type = 'inline'`,
       [taskId],
     );
 
-    const criteria: { id: string; text: string; met: boolean }[] = [];
+    // Get all persisted AC results for this task
+    const persistedResults = await this.getAcceptanceCriteriaResults(taskId);
+    const resultsByKey = new Map<string, AcceptanceCriterionResult>();
+    for (const result of persistedResults) {
+      const key = `${result.appendixId}:${result.criterionIndex}`;
+      resultsByKey.set(key, result);
+    }
 
-    if (appendix && appendix.content) {
-      // Parse acceptance criteria (assuming one per line)
-      const lines = appendix.content.split("\n").filter((l) => l.trim());
-      for (const line of lines) {
-        criteria.push({
-          id: uuidv4(),
-          text: line.trim(),
-          met: false, // Manual verification needed
-        });
+    const criteria: AcceptanceCriterion[] = [];
+
+    for (const appendix of appendices) {
+      // Parse metadata for scope
+      let metadata: AppendixMetadata | undefined;
+      if (appendix.metadata) {
+        try {
+          metadata = JSON.parse(appendix.metadata) as AppendixMetadata;
+        } catch {
+          // Invalid JSON, ignore metadata
+        }
+      }
+      const scope = metadata?.scope;
+
+      if (appendix.content) {
+        // Parse acceptance criteria (assuming one per line)
+        const lines = appendix.content.split("\n").filter((l) => l.trim());
+        for (let index = 0; index < lines.length; index++) {
+          const line = lines[index];
+          const key = `${appendix.id}:${index}`;
+          const persisted = resultsByKey.get(key);
+
+          criteria.push({
+            id: persisted?.id || `${appendix.id}:${index}`,
+            text: line.trim(),
+            met: persisted?.met ?? false,
+            scope,
+            verifiedAt: persisted?.verifiedAt,
+            verifiedBy: persisted?.verifiedBy,
+          });
+        }
       }
     }
 
@@ -256,6 +296,198 @@ export class TaskTestService {
       criteria,
       checkedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Get all persisted acceptance criteria results for a task
+   */
+  async getAcceptanceCriteriaResults(
+    taskId: string,
+  ): Promise<AcceptanceCriterionResult[]> {
+    const rows = await query<AcceptanceCriterionResultRow>(
+      `SELECT * FROM acceptance_criteria_results WHERE task_id = ? ORDER BY appendix_id, criterion_index`,
+      [taskId],
+    );
+    return rows.map(mapAcceptanceCriterionResultRow);
+  }
+
+  /**
+   * Get a single acceptance criterion result
+   */
+  async getAcceptanceCriterionResult(
+    appendixId: string,
+    criterionIndex: number,
+  ): Promise<AcceptanceCriterionResult | null> {
+    const rows = await query<AcceptanceCriterionResultRow>(
+      `SELECT * FROM acceptance_criteria_results WHERE appendix_id = ? AND criterion_index = ?`,
+      [appendixId, criterionIndex],
+    );
+    return rows.length > 0 ? mapAcceptanceCriterionResultRow(rows[0]) : null;
+  }
+
+  /**
+   * Update (or create) acceptance criterion verification status
+   */
+  async updateAcceptanceCriterionStatus(
+    taskId: string,
+    appendixId: string,
+    criterionIndex: number,
+    met: boolean,
+    verifiedBy: VerifiedByType = "user",
+    notes?: string,
+  ): Promise<AcceptanceCriterionResult> {
+    // Get criterion text from the appendix
+    const appendix = await query<{ content: string; metadata: string | null }>(
+      `SELECT content, metadata FROM task_appendices WHERE id = ?`,
+      [appendixId],
+    );
+
+    if (appendix.length === 0) {
+      throw new Error(`Appendix ${appendixId} not found`);
+    }
+
+    const lines = appendix[0].content.split("\n").filter((l) => l.trim());
+    if (criterionIndex < 0 || criterionIndex >= lines.length) {
+      throw new Error(`Invalid criterion index ${criterionIndex}`);
+    }
+
+    const criterionText = lines[criterionIndex].trim();
+
+    // Parse scope from metadata
+    let scope: TestScope | undefined;
+    if (appendix[0].metadata) {
+      try {
+        const metadata = JSON.parse(appendix[0].metadata) as AppendixMetadata;
+        scope = metadata.scope;
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
+
+    const now = new Date().toISOString();
+
+    // Check if result already exists
+    const existing = await this.getAcceptanceCriterionResult(
+      appendixId,
+      criterionIndex,
+    );
+
+    if (existing) {
+      // Update existing result
+      await run(
+        `UPDATE acceptance_criteria_results
+         SET met = ?, verified_at = ?, verified_by = ?, notes = ?, criterion_text = ?, scope = ?
+         WHERE id = ?`,
+        [
+          met ? 1 : 0,
+          now,
+          verifiedBy,
+          notes || null,
+          criterionText,
+          scope || null,
+          existing.id,
+        ],
+      );
+      await saveDb();
+
+      return {
+        ...existing,
+        met,
+        verifiedAt: now,
+        verifiedBy,
+        notes,
+        criterionText,
+        scope,
+        updatedAt: now,
+      };
+    } else {
+      // Create new result
+      const id = uuidv4();
+
+      await run(
+        `INSERT INTO acceptance_criteria_results (id, task_id, appendix_id, criterion_index, criterion_text, met, scope, verified_at, verified_by, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          taskId,
+          appendixId,
+          criterionIndex,
+          criterionText,
+          met ? 1 : 0,
+          scope || null,
+          now,
+          verifiedBy,
+          notes || null,
+        ],
+      );
+      await saveDb();
+
+      return {
+        id,
+        taskId,
+        appendixId,
+        criterionIndex,
+        criterionText,
+        met,
+        scope,
+        verifiedAt: now,
+        verifiedBy,
+        notes,
+        createdAt: now,
+        updatedAt: now,
+      };
+    }
+  }
+
+  /**
+   * Bulk update acceptance criteria statuses
+   */
+  async bulkUpdateAcceptanceCriteria(
+    taskId: string,
+    updates: {
+      appendixId: string;
+      criterionIndex: number;
+      met: boolean;
+      notes?: string;
+    }[],
+    verifiedBy: VerifiedByType = "user",
+  ): Promise<AcceptanceCriterionResult[]> {
+    const results: AcceptanceCriterionResult[] = [];
+
+    for (const update of updates) {
+      const result = await this.updateAcceptanceCriterionStatus(
+        taskId,
+        update.appendixId,
+        update.criterionIndex,
+        update.met,
+        verifiedBy,
+        update.notes,
+      );
+      results.push(result);
+    }
+
+    return results;
+  }
+
+  /**
+   * Reset all acceptance criteria for a task (mark all as not met)
+   */
+  async resetAcceptanceCriteria(taskId: string): Promise<void> {
+    await run(
+      `UPDATE acceptance_criteria_results SET met = 0, verified_at = NULL, verified_by = NULL WHERE task_id = ?`,
+      [taskId],
+    );
+    await saveDb();
+  }
+
+  /**
+   * Delete all acceptance criteria results for a task
+   */
+  async deleteAcceptanceCriteriaResults(taskId: string): Promise<void> {
+    await run(`DELETE FROM acceptance_criteria_results WHERE task_id = ?`, [
+      taskId,
+    ]);
+    await saveDb();
   }
 
   /**
@@ -319,12 +551,13 @@ export class TaskTestService {
     const now = new Date().toISOString();
 
     await run(
-      `INSERT INTO task_test_results (id, task_id, test_level, test_name, command, exit_code, stdout, stderr, duration_ms, passed, execution_id, agent_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO task_test_results (id, task_id, test_level, test_scope, test_name, command, exit_code, stdout, stderr, duration_ms, passed, execution_id, agent_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         result.taskId,
         result.testLevel,
+        result.testScope || null,
         result.testName || null,
         result.command,
         result.exitCode,

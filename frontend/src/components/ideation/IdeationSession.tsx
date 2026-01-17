@@ -9,8 +9,11 @@ import { ConversationPanel } from "./ConversationPanel";
 import { IdeaArtifactPanel } from "./IdeaArtifactPanel";
 import { IdeaTypeModal, type IdeaTypeValue } from "./IdeaTypeModal";
 import { useIdeationAPI } from "../../hooks/useIdeationAPI";
+import { useSpec } from "../../hooks/useSpec";
+import { useReadiness } from "../../hooks/useReadiness";
 import { ideationReducer, initialState } from "../../reducers/ideationReducer";
 import type { IdeationSessionProps, Artifact } from "../../types/ideation";
+import type { SpecWorkflowState } from "../../types/spec";
 
 // Generate unique message IDs
 function generateMessageId(): string {
@@ -34,6 +37,39 @@ export function IdeationSession({
     type: "success" | "error";
   } | null>(null);
   const [showIdeaTypeModal, setShowIdeaTypeModal] = useState(false);
+  const [isSpecEditing, setIsSpecEditing] = useState(false);
+  const [isSpecGenerating, setIsSpecGenerating] = useState(false);
+
+  // Spec and readiness hooks (SPEC-006-E integration)
+  const {
+    spec,
+    sections: specSections,
+    isLoading: isSpecLoading,
+    fetchSpec,
+    submitForReview,
+    approve: approveSpec,
+    requestChanges,
+    archive: archiveSpec,
+  } = useSpec({
+    sessionId: state.session.sessionId || "",
+    // Only enable when spec generation is triggered or a spec already exists
+    // Don't auto-fetch on resume to avoid 404 noise in console
+    enabled: isSpecGenerating || spec !== null,
+    onWorkflowChange: (fromState, toState) => {
+      setToast({
+        message: `Spec moved from ${fromState} to ${toState}`,
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 3000);
+    },
+  });
+
+  const { readiness: _readiness, isReady: isReadyForSpec } = useReadiness({
+    sessionId: state.session.sessionId || "",
+    autoFetch: true,
+    // Only enable once we have a valid session ID
+    enabled: Boolean(state.session.sessionId),
+  });
 
   // Initialize or resume session (with guard against React 18 Strict Mode double-invoke)
   useEffect(() => {
@@ -1512,6 +1548,132 @@ export function IdeationSession({
     dispatch({ type: "INTERVENTION_DISMISS" });
   }, []);
 
+  // Handle generating a spec from the session
+  const handleGenerateSpec = useCallback(async () => {
+    if (!state.session.sessionId) return;
+
+    setIsSpecGenerating(true);
+    try {
+      const response = await fetch("/api/specs/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: state.session.sessionId,
+          userId: profileId,
+          ideaTitle: state.candidate.candidate?.title,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to generate spec");
+      }
+
+      // Refresh spec data
+      await fetchSpec();
+      setToast({ message: "Spec generated successfully!", type: "success" });
+    } catch (error) {
+      console.error("[GenerateSpec] Error:", error);
+      setToast({
+        message:
+          error instanceof Error ? error.message : "Failed to generate spec",
+        type: "error",
+      });
+    } finally {
+      setIsSpecGenerating(false);
+    }
+    setTimeout(() => setToast(null), 3000);
+  }, [
+    state.session.sessionId,
+    state.candidate.candidate?.title,
+    profileId,
+    fetchSpec,
+  ]);
+
+  // Handle spec edit mode
+  const handleSpecEdit = useCallback(() => {
+    setIsSpecEditing(true);
+  }, []);
+
+  // Handle spec save
+  const handleSpecSave = useCallback(
+    async (_updates: Record<string, unknown>) => {
+      // Updates are handled by the SpecPanel's section editors
+      // Just exit edit mode
+      setIsSpecEditing(false);
+      setToast({ message: "Spec saved", type: "success" });
+      setTimeout(() => setToast(null), 3000);
+    },
+    [],
+  );
+
+  // Handle spec cancel edit
+  const handleSpecCancel = useCallback(() => {
+    setIsSpecEditing(false);
+  }, []);
+
+  // Handle spec workflow transitions
+  const handleSpecTransition = useCallback(
+    async (newState: SpecWorkflowState) => {
+      try {
+        switch (newState) {
+          case "review":
+            await submitForReview();
+            break;
+          case "approved":
+            await approveSpec();
+            break;
+          case "draft":
+            await requestChanges();
+            break;
+          case "archived":
+            await archiveSpec();
+            break;
+        }
+      } catch (error) {
+        setToast({
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to transition spec",
+          type: "error",
+        });
+        setTimeout(() => setToast(null), 3000);
+      }
+    },
+    [submitForReview, approveSpec, requestChanges, archiveSpec],
+  );
+
+  // Handle creating tasks from approved spec
+  const handleSpecCreateTasks = useCallback(async () => {
+    if (!spec) return;
+
+    try {
+      const response = await fetch(`/api/specs/${spec.id}/create-tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to create tasks");
+      }
+
+      const data = await response.json();
+      setToast({
+        message: `Created ${data.taskCount || 0} tasks from spec`,
+        type: "success",
+      });
+    } catch (error) {
+      setToast({
+        message:
+          error instanceof Error ? error.message : "Failed to create tasks",
+        type: "error",
+      });
+    }
+    setTimeout(() => setToast(null), 3000);
+  }, [spec]);
+
   // Handle updating candidate title
   const handleUpdateTitle = useCallback(
     async (newTitle: string) => {
@@ -1743,6 +1905,17 @@ export function IdeationSession({
           onRenameArtifact={handleRenameArtifact}
           isArtifactLoading={state.artifacts.isLoading}
           isMinimized={!state.artifacts.isPanelOpen}
+          // Spec props (SPEC-006-E integration)
+          spec={spec}
+          specSections={specSections}
+          isSpecEditing={isSpecEditing}
+          onSpecEdit={handleSpecEdit}
+          onSpecSave={handleSpecSave}
+          onSpecCancel={handleSpecCancel}
+          onSpecTransition={handleSpecTransition}
+          onSpecCreateTasks={handleSpecCreateTasks}
+          onGenerateSpec={isReadyForSpec ? handleGenerateSpec : undefined}
+          isSpecLoading={isSpecLoading || isSpecGenerating}
         />
       </div>
 

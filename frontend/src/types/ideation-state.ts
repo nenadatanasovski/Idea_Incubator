@@ -13,6 +13,12 @@ import type {
   SubAgentType,
   SubAgentStatus,
 } from "./ideation";
+import type {
+  Spec,
+  SpecSection,
+  SpecWorkflowState,
+  ReadinessScore,
+} from "./spec";
 
 // Re-export for convenience
 export type {
@@ -90,6 +96,20 @@ export interface SubAgentsState {
 }
 
 // -----------------------------------------------------------------------------
+// Spec State
+// -----------------------------------------------------------------------------
+
+export interface SpecState {
+  spec: Spec | null;
+  sections: SpecSection[];
+  readiness: ReadinessScore | null;
+  isGenerating: boolean;
+  isEditing: boolean;
+  isSaving: boolean;
+  error: string | null;
+}
+
+// -----------------------------------------------------------------------------
 // Combined Store State
 // -----------------------------------------------------------------------------
 
@@ -100,6 +120,7 @@ export interface IdeationStore {
   tokens: TokenState;
   artifacts: ArtifactState;
   subAgents: SubAgentsState;
+  spec: SpecState;
 }
 
 // -----------------------------------------------------------------------------
@@ -185,4 +206,28 @@ export type IdeationAction =
       payload: { id: string; status: SubAgentStatus; error?: string };
     }
   | { type: "SUBAGENT_RESULT"; payload: { id: string; result: unknown } }
-  | { type: "SUBAGENT_CLEAR" };
+  | { type: "SUBAGENT_CLEAR" }
+  // Spec actions
+  | { type: "SPEC_READINESS_UPDATE"; payload: { readiness: ReadinessScore } }
+  | { type: "SPEC_GENERATE_START" }
+  | {
+      type: "SPEC_GENERATE_COMPLETE";
+      payload: { spec: Spec; sections: SpecSection[] };
+    }
+  | { type: "SPEC_GENERATE_ERROR"; payload: { error: string } }
+  | { type: "SPEC_LOAD"; payload: { spec: Spec; sections: SpecSection[] } }
+  | { type: "SPEC_UPDATE"; payload: { updates: Partial<Spec> } }
+  | {
+      type: "SPEC_SECTION_UPDATE";
+      payload: { sectionId: string; content: string };
+    }
+  | { type: "SPEC_EDIT_START" }
+  | { type: "SPEC_EDIT_CANCEL" }
+  | { type: "SPEC_SAVE_START" }
+  | { type: "SPEC_SAVE_COMPLETE"; payload: { spec: Spec } }
+  | { type: "SPEC_SAVE_ERROR"; payload: { error: string } }
+  | {
+      type: "SPEC_WORKFLOW_TRANSITION";
+      payload: { newState: SpecWorkflowState };
+    }
+  | { type: "SPEC_CLEAR" };

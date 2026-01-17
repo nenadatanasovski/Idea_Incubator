@@ -1,6 +1,6 @@
 // =============================================================================
 // FILE: frontend/src/components/ideation/AgentMessage.tsx
-// Agent message component with buttons/form support
+// Agent message component with buttons/form support and spec artifact rendering
 // =============================================================================
 
 import "react";
@@ -9,6 +9,7 @@ import { MessageText } from "./MessageText";
 import { ButtonGroup } from "./ButtonGroup";
 import { FormRenderer } from "./FormRenderer";
 import { SourceCitations } from "./SourceCitations";
+import { SpecPreview } from "./SpecPreview";
 import type { AgentMessageProps } from "../../types/ideation";
 
 // Format timestamp for display
@@ -33,6 +34,11 @@ function formatTimestamp(isoString: string): string {
   return `${dateStr}, ${timeStr}`;
 }
 
+// Detect if message contains a spec artifact reference
+function hasSpecArtifact(content: string): boolean {
+  return content.includes("@spec:") || content.includes("[[SPEC_GENERATED]]");
+}
+
 export function AgentMessage({
   message,
   onButtonClick,
@@ -40,6 +46,11 @@ export function AgentMessage({
   isLatest,
   onArtifactClick,
   onConvertToArtifact,
+  spec,
+  specSections = [],
+  specReadiness,
+  onViewSpec,
+  onEditSpec,
 }: AgentMessageProps) {
   const handleConvertToArtifact = () => {
     if (onConvertToArtifact) {
@@ -52,6 +63,10 @@ export function AgentMessage({
       onConvertToArtifact(message.content, title);
     }
   };
+
+  // Check if this message should show a spec preview
+  const showSpecPreview =
+    spec && (isLatest || hasSpecArtifact(message.content));
 
   return (
     <div className="agent-message space-y-3">
@@ -105,6 +120,19 @@ export function AgentMessage({
 
         {message.webSearchResults && message.webSearchResults.length > 0 && (
           <SourceCitations sources={message.webSearchResults} />
+        )}
+
+        {/* Spec Preview - shown when spec is available and relevant */}
+        {showSpecPreview && (
+          <SpecPreview
+            spec={spec}
+            sections={specSections}
+            readiness={specReadiness ?? undefined}
+            onViewSpec={onViewSpec}
+            onEditSpec={onEditSpec}
+            isCollapsible={true}
+            defaultExpanded={isLatest}
+          />
         )}
 
         {/* Timestamp at the bottom */}

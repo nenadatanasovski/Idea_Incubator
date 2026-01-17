@@ -4,14 +4,11 @@
 // =============================================================================
 
 import React, { useState, useCallback, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import type { Artifact, ArtifactType } from "../../types/ideation";
+import { ArtifactRenderer } from "./ArtifactRenderer";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -268,46 +265,6 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 };
 
 // -----------------------------------------------------------------------------
-// Markdown Renderer Component
-// -----------------------------------------------------------------------------
-
-interface MarkdownContentProps {
-  content: string;
-}
-
-const MarkdownContent: React.FC<MarkdownContentProps> = ({ content }) => {
-  return (
-    <div className="prose dark:prose-invert prose-sm max-w-none p-4">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          code({ node, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || "");
-            const inline = !match;
-            return !inline && match ? (
-              <SyntaxHighlighter
-                style={oneDark}
-                language={match[1]}
-                PreTag="div"
-                customStyle={{ fontSize: "12px" }}
-              >
-                {String(children).replace(/\n$/, "")}
-              </SyntaxHighlighter>
-            ) : (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            );
-          },
-        }}
-      >
-        {content}
-      </ReactMarkdown>
-    </div>
-  );
-};
-
-// -----------------------------------------------------------------------------
 // BlockNote WYSIWYG Markdown Editor
 // -----------------------------------------------------------------------------
 
@@ -456,16 +413,16 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
     return (
       <div
         data-testid="artifact-preview"
-        className="flex flex-col h-full bg-white dark:bg-gray-900"
+        className="flex flex-col h-full bg-white"
       >
         <div
           data-testid="artifact-error"
           className="flex-1 flex items-center justify-center"
         >
           <div className="flex flex-col items-center max-w-md text-center p-6">
-            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
               <svg
-                className="w-6 h-6 text-red-600 dark:text-red-400"
+                className="w-6 h-6 text-red-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -478,12 +435,12 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
                 />
               </svg>
             </div>
-            <h3 className="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="mt-4 text-sm font-semibold text-gray-900">
               Failed to load artifact
             </h3>
             <p
               data-testid="error-message"
-              className="mt-1 text-xs text-gray-500 dark:text-gray-400"
+              className="mt-1 text-xs text-gray-500"
             >
               {errorMessage}
             </p>
@@ -491,7 +448,7 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
               <button
                 data-testid="btn-retry"
                 onClick={onRetry}
-                className="mt-3 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+                className="mt-3 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 <svg
                   className="w-4 h-4"
@@ -520,14 +477,12 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
     return (
       <div
         data-testid="artifact-preview"
-        className="flex flex-col h-full bg-white dark:bg-gray-900"
+        className="flex flex-col h-full bg-white"
       >
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <LoadingSpinner />
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Loading artifact...
-            </span>
+            <span className="text-sm text-gray-500">Loading artifact...</span>
           </div>
         </div>
       </div>
@@ -539,17 +494,15 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
     return (
       <div
         data-testid="artifact-preview"
-        className="flex flex-col h-full bg-white dark:bg-gray-900"
+        className="flex flex-col h-full bg-white"
       >
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center py-8">
             <div className="flex justify-center mb-4">
               <FileIcon />
             </div>
-            <p className="text-gray-500 dark:text-gray-400 font-medium">
-              No artifact selected
-            </p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+            <p className="text-gray-500 font-medium">No artifact selected</p>
+            <p className="text-sm text-gray-400 mt-1">
               Select an artifact from the table to preview
             </p>
           </div>
@@ -558,31 +511,49 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
     );
   }
 
-  // Get content as string
-  const contentString =
-    typeof artifact.content === "string"
-      ? artifact.content
-      : JSON.stringify(artifact.content, null, 2);
+  // Get content as string - handle empty arrays/objects gracefully
+  const getContentString = () => {
+    if (typeof artifact.content === "string") {
+      return artifact.content;
+    }
+    // Handle empty arrays and objects
+    if (Array.isArray(artifact.content) && artifact.content.length === 0) {
+      return "";
+    }
+    if (
+      typeof artifact.content === "object" &&
+      artifact.content !== null &&
+      Object.keys(artifact.content).length === 0
+    ) {
+      return "";
+    }
+    return JSON.stringify(artifact.content, null, 2);
+  };
+
+  const contentString = getContentString();
+
+  // Check if content is empty
+  const isContentEmpty = !contentString || contentString.trim() === "";
 
   return (
     <div
       data-testid="artifact-preview"
-      className="flex flex-col h-full bg-white dark:bg-gray-900"
+      className="flex flex-col h-full bg-white"
     >
       {/* Header with metadata */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
         <div className="flex-1 min-w-0">
           <h3
-            className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
+            className="text-sm font-medium text-gray-900 truncate"
             title={artifact.title}
           >
             {artifact.title}
           </h3>
-          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
             <span className="capitalize">
               {getTypeDisplayName(artifact.type)}
             </span>
-            <span className="text-gray-300 dark:text-gray-600">•</span>
+            <span className="text-gray-300">•</span>
             <span>
               Updated {formatDate(artifact.updatedAt || artifact.createdAt)}
             </span>
@@ -593,7 +564,7 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
         <div className="flex items-center gap-1 ml-4">
           {/* Save progress indicator - shown when isSaving is true */}
           {isSaving && (
-            <div className="flex items-center gap-1.5 px-2 py-1.5 text-blue-600 dark:text-blue-400">
+            <div className="flex items-center gap-1.5 px-2 py-1.5 text-blue-600">
               <SmallSpinner className="text-blue-500" />
               <span className="text-xs font-medium">Saving...</span>
             </div>
@@ -606,7 +577,7 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
             className={`p-2 rounded-lg transition-colors ${
               isSaving || isDeleting || isEditing
                 ? "opacity-50 cursor-not-allowed text-gray-400"
-                : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                : "hover:bg-gray-200 text-gray-500 hover:text-blue-600"
             }`}
             title="Edit artifact"
           >
@@ -622,7 +593,7 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
                 ? "opacity-50 cursor-not-allowed"
                 : isSaving
                   ? "opacity-50 cursor-not-allowed text-gray-400"
-                  : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                  : "hover:bg-gray-200 text-gray-500 hover:text-red-600"
             }`}
             title="Delete artifact"
           >
@@ -638,8 +609,8 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
             onClick={handleCopyRef}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors ${
               copiedRef
-                ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                ? "bg-green-100 text-green-600"
+                : "hover:bg-gray-200 text-gray-500"
             }`}
             title="Copy @ref to clipboard"
           >
@@ -680,10 +651,10 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
                 onContentChange={setEditContent}
               />
             </div>
-            <div className="flex justify-end gap-2 p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <div className="flex justify-end gap-2 p-3 border-t border-gray-200 bg-gray-50">
               <button
                 onClick={handleEditCancel}
-                className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -696,8 +667,38 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
               </button>
             </div>
           </>
+        ) : isContentEmpty ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center py-8">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-500">
+                {artifact.status === "loading"
+                  ? "Loading content..."
+                  : "No content available"}
+              </p>
+              {artifact.status === "loading" && (
+                <div className="mt-2">
+                  <SmallSpinner className="mx-auto text-blue-500" />
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
-          <MarkdownContent content={contentString} />
+          <ArtifactRenderer artifact={artifact} />
         )}
       </div>
 

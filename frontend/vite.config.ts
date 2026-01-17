@@ -17,6 +17,14 @@ export default defineConfig({
         ws: true,
         changeOrigin: true,
         rewriteWsOrigin: true,
+        configure: (proxy) => {
+          proxy.on("error", (err) => {
+            // Suppress EPIPE errors - these are normal when connections close
+            if ((err as NodeJS.ErrnoException).code !== "EPIPE") {
+              console.error("[vite ws proxy]", err.message);
+            }
+          });
+        },
       },
     },
   },

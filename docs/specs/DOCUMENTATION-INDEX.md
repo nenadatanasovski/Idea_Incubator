@@ -105,6 +105,9 @@ docs/specs/
 | Database migrations for new entities    | TASK-SYSTEM-V2-IMPLEMENTATION-PLAN.md Phase 1            |
 | Create PRD services                     | TASK-SYSTEM-V2-IMPLEMENTATION-PLAN.md Phase 3            |
 | Build cascade system                    | TASK-SYSTEM-V2-IMPLEMENTATION-PLAN.md IMPL-3.7, IMPL-3.8 |
+| Add test scope to tests                 | task-data-model.md §10 (Testing Tables)                  |
+| Persist acceptance criteria             | task-data-model.md §10 (acceptance_criteria_results)     |
+| Configure test levels (1/2/3)           | types/task-test.ts, CLAUDE.md (Task Testing System)      |
 | Understand unified transcripts          | observability/SPEC.md §2                                 |
 | Add skill tracing                       | observability/SPEC.md §4                                 |
 | Implement assertion-based validation    | observability/SPEC.md §6                                 |
@@ -385,6 +388,13 @@ grouping_suggestions    # Auto-generated task list suggestions
 grouping_criteria_weights # User-configurable grouping weights per project
 ```
 
+### Tables (Testing - Migrations 101-106)
+
+```
+task_test_results           # Test execution results (levels 1/2/3, scopes)
+acceptance_criteria_results # Persisted AC verification status (checkable in UI)
+```
+
 ### Tables (Observability - Migration 077)
 
 ```
@@ -529,6 +539,10 @@ grouping.accepted ──────► Tasks moved to new task list
 | **Concurrent Execution Session** | Period when multiple task lists execute simultaneously                          | observability/data-model/PARALLEL-EXECUTION-EXTENSIONS.md |
 | **Wave Progress View**           | Dashboard view showing wave timeline and progress                               | observability/data-model/PARALLEL-EXECUTION-EXTENSIONS.md |
 | **Active Agents View**           | Real-time view of running Build Agents with task context                        | observability/data-model/PARALLEL-EXECUTION-EXTENSIONS.md |
+| **Test Level**                   | When tests run: 1 (syntax/compile), 2 (unit), 3 (E2E/integration)               | types/task-test.ts, CLAUDE.md                             |
+| **Test Scope**                   | What is tested: codebase, api, ui, database, integration                        | types/task-test.ts, CLAUDE.md                             |
+| **Acceptance Criteria**          | Verifiable conditions stored in task_appendices (type='acceptance_criteria')    | task-data-model.md §10                                    |
+| **AC Verification**              | Persisted status (met/unmet) with verifiedBy (user/agent/system)                | acceptance_criteria_results table                         |
 
 ---
 
@@ -610,6 +624,7 @@ grouping.accepted ──────► Tasks moved to new task list
 | 2026-01-16 | Added observability subfolders: api/, data-model/, ui/, python/                   |
 | 2026-01-16 | Created data-model/PARALLEL-EXECUTION-EXTENSIONS.md (wave stats, concurrent exec) |
 | 2026-01-16 | Extracted UI section from SPEC.md to ui/README.md (comprehensive UI spec)         |
+| 2026-01-17 | Added Testing tables section, test scope/level terminology, AC verification       |
 
 ---
 

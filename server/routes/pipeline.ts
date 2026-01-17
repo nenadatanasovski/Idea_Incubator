@@ -128,6 +128,8 @@ export interface PipelineEvent {
 // Filter option types for dropdowns
 export interface ProjectOption {
   projectId: string;
+  projectName: string;
+  projectCode: string;
   taskCount: number;
 }
 
@@ -575,12 +577,23 @@ async function buildPipelineFromTaskData(
   const completedTasks = taskRows.filter(
     (t) => t.status === "completed" || t.status === "complete",
   ).length;
+  const runningTasks = taskRows.filter(
+    (t) => t.status === "in_progress" || t.status === "running",
+  ).length;
   const percentComplete =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
+  // Determine overall status: complete > running > idle
+  let overallStatus: "idle" | "running" | "paused" | "complete" = "idle";
+  if (totalTasks > 0 && completedTasks === totalTasks) {
+    overallStatus = "complete";
+  } else if (runningTasks > 0) {
+    overallStatus = "running";
+  }
+
   return {
     sessionId: "preview",
-    status: completedTasks === totalTasks ? "complete" : "running",
+    status: overallStatus,
     lanes,
     waves,
     activeWaveNumber,
@@ -1097,12 +1110,20 @@ router.get("/events", async (req: Request, res: Response) => {
  */
 router.get("/projects", async (_req: Request, res: Response) => {
   try {
-    const projects = await query<{ project_id: string; task_count: number }>(
+    const projects = await query<{
+      project_id: string;
+      project_name: string;
+      project_code: string;
+      task_count: number;
+    }>(
       `SELECT
          COALESCE(t.project_id, tl.project_id, 'unassigned') as project_id,
+         COALESCE(p.name, 'Unassigned') as project_name,
+         COALESCE(p.code, 'N/A') as project_code,
          COUNT(t.id) as task_count
        FROM tasks t
        LEFT JOIN task_lists_v2 tl ON t.task_list_id = tl.id
+       LEFT JOIN projects p ON p.id = COALESCE(t.project_id, tl.project_id)
        WHERE t.phase IS NOT NULL
        GROUP BY COALESCE(t.project_id, tl.project_id, 'unassigned')
        ORDER BY task_count DESC`,
@@ -1110,6 +1131,8 @@ router.get("/projects", async (_req: Request, res: Response) => {
 
     const result: ProjectOption[] = projects.map((p) => ({
       projectId: p.project_id,
+      projectName: p.project_name,
+      projectCode: p.project_code,
       taskCount: p.task_count,
     }));
 
@@ -1424,6 +1447,7 @@ export interface TaskDetailInfo {
   testResults: {
     id: string;
     testLevel: number;
+    testScope?: string;
     testName?: string;
     command: string;
     exitCode: number;
@@ -1467,6 +1491,7 @@ export interface TaskDetailInfo {
     content?: string;
     referenceId?: string;
     referenceTable?: string;
+    metadata?: Record<string, unknown>;
     position: number;
     createdAt: string;
   }[];
@@ -1565,6 +1590,7 @@ interface TestResultRow {
   id: string;
   task_id: string;
   test_level: number;
+  test_scope: string | null;
   test_name: string | null;
   command: string;
   exit_code: number;
@@ -1608,6 +1634,7 @@ interface AppendixRow {
   content: string | null;
   reference_id: string | null;
   reference_table: string | null;
+  metadata: string | null;
   position: number;
   created_at: string;
 }
@@ -1867,6 +1894,7 @@ router.get("/tasks/:taskId", async (req: Request, res: Response) => {
     const testResults = testResultRows.map((tr) => ({
       id: tr.id,
       testLevel: tr.test_level,
+      testScope: tr.test_scope ?? undefined,
       testName: tr.test_name ?? undefined,
       command: tr.command,
       exitCode: tr.exit_code,
@@ -1925,6 +1953,7 @@ router.get("/tasks/:taskId", async (req: Request, res: Response) => {
       content: a.content ?? undefined,
       referenceId: a.reference_id ?? undefined,
       referenceTable: a.reference_table ?? undefined,
+      metadata: a.metadata ? parseJsonSafe(a.metadata, {}) : undefined,
       position: a.position,
       createdAt: a.created_at,
     }));
@@ -1988,5 +2017,379 @@ router.get("/tasks/:taskId", async (req: Request, res: Response) => {
     });
   }
 });
+
+// ====================
+// Acceptance Criteria Endpoints
+// ====================
+
+import { taskTestService } from "../services/task-agent/task-test-service.js";
+import type { VerifiedByType } from "../../types/task-test.js";
+
+/**
+ * GET /api/pipeline/tasks/:taskId/acceptance-criteria
+ * Get acceptance criteria with persisted verification status
+ */
+router.get(
+  "/tasks/:taskId/acceptance-criteria",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskId } = req.params;
+      const result = await taskTestService.checkAcceptanceCriteria(taskId);
+      return res.json(result);
+    } catch (err) {
+      console.error("[Pipeline] Error fetching acceptance criteria:", err);
+      return res.status(500).json({
+        error: "Failed to fetch acceptance criteria",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * PUT /api/pipeline/tasks/:taskId/acceptance-criteria/:appendixId/:criterionIndex
+ * Update a single acceptance criterion status
+ */
+router.put(
+  "/tasks/:taskId/acceptance-criteria/:appendixId/:criterionIndex",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskId, appendixId, criterionIndex } = req.params;
+      const { met, notes, verifiedBy } = req.body as {
+        met: boolean;
+        notes?: string;
+        verifiedBy?: VerifiedByType;
+      };
+
+      if (typeof met !== "boolean") {
+        return res
+          .status(400)
+          .json({ error: "'met' field is required and must be a boolean" });
+      }
+
+      const result = await taskTestService.updateAcceptanceCriterionStatus(
+        taskId,
+        appendixId,
+        parseInt(criterionIndex, 10),
+        met,
+        verifiedBy || "user",
+        notes,
+      );
+
+      return res.json(result);
+    } catch (err) {
+      console.error("[Pipeline] Error updating acceptance criterion:", err);
+      return res.status(500).json({
+        error: "Failed to update acceptance criterion",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * PUT /api/pipeline/tasks/:taskId/acceptance-criteria
+ * Bulk update acceptance criteria
+ */
+router.put(
+  "/tasks/:taskId/acceptance-criteria",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskId } = req.params;
+      const { updates, verifiedBy } = req.body as {
+        updates: {
+          appendixId: string;
+          criterionIndex: number;
+          met: boolean;
+          notes?: string;
+        }[];
+        verifiedBy?: VerifiedByType;
+      };
+
+      if (!Array.isArray(updates) || updates.length === 0) {
+        return res
+          .status(400)
+          .json({ error: "'updates' array is required and must not be empty" });
+      }
+
+      const results = await taskTestService.bulkUpdateAcceptanceCriteria(
+        taskId,
+        updates,
+        verifiedBy || "user",
+      );
+
+      return res.json({ updated: results.length, results });
+    } catch (err) {
+      console.error("[Pipeline] Error bulk updating acceptance criteria:", err);
+      return res.status(500).json({
+        error: "Failed to bulk update acceptance criteria",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * DELETE /api/pipeline/tasks/:taskId/acceptance-criteria
+ * Reset/delete all acceptance criteria results for a task
+ */
+router.delete(
+  "/tasks/:taskId/acceptance-criteria",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskId } = req.params;
+      const { mode } = req.query as { mode?: "reset" | "delete" };
+
+      if (mode === "delete") {
+        await taskTestService.deleteAcceptanceCriteriaResults(taskId);
+        return res.json({ message: "Acceptance criteria results deleted" });
+      } else {
+        // Default to reset (mark all as not met)
+        await taskTestService.resetAcceptanceCriteria(taskId);
+        return res.json({ message: "Acceptance criteria results reset" });
+      }
+    } catch (err) {
+      console.error("[Pipeline] Error resetting acceptance criteria:", err);
+      return res.status(500).json({
+        error: "Failed to reset acceptance criteria",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+// ====================
+// Task Readiness Endpoints
+// ====================
+
+import {
+  taskReadinessService,
+  ReadinessScore,
+  BulkReadinessResult,
+} from "../services/task-agent/task-readiness-service.js";
+
+/**
+ * GET /api/pipeline/tasks/:taskId/readiness
+ * Get readiness score for a single task
+ */
+router.get("/tasks/:taskId/readiness", async (req: Request, res: Response) => {
+  try {
+    const { taskId } = req.params;
+    const readiness = await taskReadinessService.calculateReadiness(taskId);
+    return res.json(readiness);
+  } catch (err) {
+    console.error("[Pipeline] Error calculating task readiness:", err);
+    return res.status(500).json({
+      error: "Failed to calculate task readiness",
+      message: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * GET /api/pipeline/task-lists/:taskListId/readiness
+ * Get bulk readiness scores for all tasks in a task list
+ */
+router.get(
+  "/task-lists/:taskListId/readiness",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskListId } = req.params;
+      const result =
+        await taskReadinessService.calculateBulkReadiness(taskListId);
+
+      // Convert Map to serializable object
+      const tasksObj: Record<string, ReadinessScore> = {};
+      for (const [taskId, score] of result.tasks) {
+        tasksObj[taskId] = score;
+      }
+
+      return res.json({
+        taskListId: result.taskListId,
+        tasks: tasksObj,
+        summary: result.summary,
+        calculatedAt: result.calculatedAt,
+      });
+    } catch (err) {
+      console.error("[Pipeline] Error calculating bulk readiness:", err);
+      return res.status(500).json({
+        error: "Failed to calculate bulk readiness",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * POST /api/pipeline/tasks/:taskId/readiness/invalidate
+ * Invalidate readiness cache for a task
+ */
+router.post(
+  "/tasks/:taskId/readiness/invalidate",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskId } = req.params;
+      await taskReadinessService.invalidateCache(taskId);
+      return res.json({ message: "Cache invalidated", taskId });
+    } catch (err) {
+      console.error("[Pipeline] Error invalidating readiness cache:", err);
+      return res.status(500).json({
+        error: "Failed to invalidate readiness cache",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * POST /api/pipeline/task-lists/:taskListId/readiness/invalidate
+ * Invalidate readiness cache for all tasks in a task list
+ */
+router.post(
+  "/task-lists/:taskListId/readiness/invalidate",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskListId } = req.params;
+      await taskReadinessService.invalidateTaskListCache(taskListId);
+      return res.json({
+        message: "Cache invalidated for task list",
+        taskListId,
+      });
+    } catch (err) {
+      console.error(
+        "[Pipeline] Error invalidating task list readiness cache:",
+        err,
+      );
+      return res.status(500).json({
+        error: "Failed to invalidate task list readiness cache",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+// ====================
+// Auto-Populate Endpoints
+// ====================
+
+import {
+  taskAutoPopulateService,
+  AutoPopulateField,
+  Suggestion,
+} from "../services/task-agent/task-auto-populate-service.js";
+
+// Store suggestions temporarily for apply endpoint (in production, use Redis or DB)
+const suggestionCache = new Map<
+  string,
+  { suggestions: Suggestion[]; expiresAt: number }
+>();
+
+/**
+ * POST /api/pipeline/tasks/:taskId/auto-populate
+ * Generate suggestions for a specific field
+ */
+router.post(
+  "/tasks/:taskId/auto-populate",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskId } = req.params;
+      const { field } = req.body as { field: AutoPopulateField };
+
+      if (!field) {
+        return res.status(400).json({ error: "field is required in body" });
+      }
+
+      const validFields: AutoPopulateField[] = [
+        "acceptance_criteria",
+        "file_impacts",
+        "test_commands",
+        "dependencies",
+      ];
+
+      if (!validFields.includes(field)) {
+        return res.status(400).json({
+          error: `Invalid field. Must be one of: ${validFields.join(", ")}`,
+        });
+      }
+
+      const result = await taskAutoPopulateService.suggest(taskId, field);
+
+      // Cache suggestions for apply endpoint (5 minute TTL)
+      const cacheKey = `${taskId}:${field}`;
+      suggestionCache.set(cacheKey, {
+        suggestions: result.suggestions,
+        expiresAt: Date.now() + 5 * 60 * 1000,
+      });
+
+      return res.json(result);
+    } catch (err) {
+      console.error(
+        "[Pipeline] Error generating auto-populate suggestions:",
+        err,
+      );
+      return res.status(500).json({
+        error: "Failed to generate suggestions",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * POST /api/pipeline/tasks/:taskId/auto-populate/apply
+ * Apply selected suggestions to the task
+ */
+router.post(
+  "/tasks/:taskId/auto-populate/apply",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskId } = req.params;
+      const { field, suggestionIds } = req.body as {
+        field: AutoPopulateField;
+        suggestionIds: string[];
+      };
+
+      if (!field || !suggestionIds) {
+        return res.status(400).json({
+          error: "field and suggestionIds are required in body",
+        });
+      }
+
+      // Get cached suggestions
+      const cacheKey = `${taskId}:${field}`;
+      const cached = suggestionCache.get(cacheKey);
+
+      if (!cached || cached.expiresAt < Date.now()) {
+        return res.status(400).json({
+          error: "Suggestions expired. Please regenerate suggestions first.",
+        });
+      }
+
+      const result = await taskAutoPopulateService.apply(
+        taskId,
+        field,
+        suggestionIds,
+        cached.suggestions,
+      );
+
+      // Clear cache after applying
+      suggestionCache.delete(cacheKey);
+
+      // Invalidate readiness cache
+      await taskReadinessService.invalidateCache(taskId);
+
+      return res.json(result);
+    } catch (err) {
+      console.error(
+        "[Pipeline] Error applying auto-populate suggestions:",
+        err,
+      );
+      return res.status(500).json({
+        error: "Failed to apply suggestions",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
 
 export default router;

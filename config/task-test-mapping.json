@@ -1,0 +1,132 @@
+{
+  "$schema": "./task-test-mapping.schema.json",
+  "description": "Maps task display IDs to their test files and acceptance criteria",
+  "mappings": {
+    "TU-OBS-INF-001": {
+      "title": "Create core observability schema (Migration 087)",
+      "testFiles": ["tests/e2e/test-obs-phase1-schema.ts"],
+      "testCommand": "npx tsx tests/e2e/test-obs-phase1-schema.ts",
+      "testLevel": 3,
+      "testScope": "database",
+      "acceptanceCriteria": [
+        "All 6 core tables created (transcript_entries, tool_uses, skill_traces, assertion_results, assertion_chains, message_bus_log)",
+        "All required indexes created (35+ indexes)",
+        "tr_event_to_log trigger exists and fires on events insert",
+        "Foreign keys enforced between tables",
+        "Source column is NOT NULL on transcript_entries",
+        "All context columns exist (execution_id, task_id, chat_id, script_name, etc.)"
+      ]
+    },
+    "TU-OBS-INF-002": {
+      "title": "Create parallel execution observability extensions (Migration 088)",
+      "testFiles": ["tests/e2e/test-obs-phase1-schema.ts"],
+      "testCommand": "npx tsx tests/e2e/test-obs-phase1-schema.ts",
+      "testLevel": 3,
+      "testScope": "database",
+      "acceptanceCriteria": [
+        "wave_statistics table created with correct columns",
+        "v_wave_progress view exists",
+        "v_active_agents view exists",
+        "Parallel execution indexes created"
+      ]
+    },
+    "TU-OBS-TST-001": {
+      "title": "Create Phase 1 schema validation tests",
+      "testFiles": ["tests/e2e/test-obs-phase1-schema.ts"],
+      "testCommand": "npx tsx tests/e2e/test-obs-phase1-schema.ts",
+      "testLevel": 3,
+      "testScope": "database",
+      "acceptanceCriteria": [
+        "All 10 schema tests pass",
+        "Source column verified as NOT NULL",
+        "All context columns verified",
+        "All new indexes verified",
+        "Test outputs clear pass/fail messages",
+        "Test cleans up any test data after completion"
+      ]
+    },
+    "TU-OBS-TST-002": {
+      "title": "Create Phase 2 producer validation tests",
+      "testFiles": ["tests/e2e/test-obs-phase2-producers.py"],
+      "testCommand": "python3 tests/e2e/test-obs-phase2-producers.py",
+      "testLevel": 3,
+      "testScope": "integration",
+      "acceptanceCriteria": [
+        "TranscriptWriter produces valid entries",
+        "ToolUseLogger produces valid tool_uses records",
+        "SkillTracer produces valid skill_traces records",
+        "AssertionRecorder produces valid assertion_results records",
+        "All producers respect source field requirement"
+      ]
+    },
+    "TU-OBS-FEA-003": {
+      "title": "Create TranscriptWriter Python class",
+      "testFiles": [
+        "tests/e2e/test-obs-phase2-producers.py",
+        "tests/unit/observability/test_observability_skills.py"
+      ],
+      "testCommand": "python3 -m pytest tests/unit/observability/test_observability_skills.py -v -k 'transcript'",
+      "testLevel": 2,
+      "testScope": "codebase",
+      "acceptanceCriteria": [
+        "TranscriptWriter class exists in coding-loops/shared/",
+        "write() method accepts source, category, message, and context",
+        "Entries are written to transcript_entries table",
+        "Source field is always populated"
+      ]
+    },
+    "TU-OBS-FEA-004": {
+      "title": "Create ToolUseLogger Python class",
+      "testFiles": ["tests/e2e/test-obs-phase2-producers.py"],
+      "testCommand": "python3 tests/e2e/test-obs-phase2-producers.py",
+      "testLevel": 2,
+      "testScope": "codebase",
+      "acceptanceCriteria": [
+        "ToolUseLogger class exists in coding-loops/shared/",
+        "log_start() and log_end() methods exist",
+        "Tool uses are written to tool_uses table",
+        "Duration is calculated correctly"
+      ]
+    },
+    "TU-OBS-FEA-005": {
+      "title": "Create SkillTracer Python class",
+      "testFiles": ["tests/e2e/test-obs-phase2-producers.py"],
+      "testCommand": "python3 tests/e2e/test-obs-phase2-producers.py",
+      "testLevel": 2,
+      "testScope": "codebase",
+      "acceptanceCriteria": [
+        "SkillTracer class exists in coding-loops/shared/",
+        "trace() method accepts skill_name, file, line",
+        "Traces are written to skill_traces table"
+      ]
+    },
+    "TU-OBS-FEA-006": {
+      "title": "Create AssertionRecorder Python class",
+      "testFiles": ["tests/e2e/test-obs-phase2-producers.py"],
+      "testCommand": "python3 tests/e2e/test-obs-phase2-producers.py",
+      "testLevel": 2,
+      "testScope": "codebase",
+      "acceptanceCriteria": [
+        "AssertionRecorder class exists in coding-loops/shared/",
+        "record() method accepts description, passed, evidence",
+        "Assertions are written to assertion_results table"
+      ]
+    },
+    "TU-OBS-FEA-007": {
+      "title": "Create ObservabilitySkills query class",
+      "testFiles": ["tests/unit/observability/test_observability_skills.py"],
+      "testCommand": "cd coding-loops && python3 -m pytest ../tests/unit/observability/test_observability_skills.py -v",
+      "testLevel": 2,
+      "testScope": "codebase",
+      "acceptanceCriteria": [
+        "ObservabilitySkills class exists in coding-loops/shared/",
+        "Validation tools (V001-V007) implemented",
+        "Troubleshooting tools (T001-T005) implemented",
+        "Parallel execution tools (P001-P005) implemented",
+        "Anomaly detection tools (D001-D006) implemented",
+        "Aggregation tools (A001-A005) implemented",
+        "Investigation tools (I001-I004) implemented"
+      ]
+    }
+  }
+}

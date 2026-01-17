@@ -502,16 +502,14 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div
         data-testid="confirm-dialog"
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
+        className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-          {title}
-        </h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">{message}</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+        <p className="text-gray-600 mb-6">{message}</p>
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
           >
             Cancel
           </button>
@@ -618,10 +616,10 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
               group.isTemplate ? "template-files-group" : "session-group"
             }
             aria-expanded={isExpanded}
-            className="border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+            className="border-b border-gray-200 last:border-b-0"
           >
             {/* Session Header */}
-            <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <div className="flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors">
               <button
                 data-testid="session-toggle"
                 onClick={() => handleToggleSession(group.sessionId)}
@@ -633,7 +631,7 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
                 </span>
                 <span
                   data-testid="session-header"
-                  className="font-medium text-sm text-gray-700 dark:text-gray-300 truncate"
+                  className="font-medium text-sm text-gray-700 truncate"
                 >
                   {group.displayName}
                 </span>
@@ -647,7 +645,7 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
                     e.stopPropagation();
                     handleDeleteSessionClick(group.sessionId, artifactIds);
                   }}
-                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                   title="Delete session"
                 >
                   <TrashIcon />
@@ -658,18 +656,18 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
             {/* Artifacts Table (when expanded) */}
             {isExpanded && (
               <table className="w-full text-sm">
-                <thead className="bg-gray-100 dark:bg-gray-900/50">
+                <thead className="bg-gray-100">
                   <tr>
-                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs">
+                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 text-xs">
                       Name
                     </th>
-                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs w-20">
+                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 text-xs w-20">
                       Date
                     </th>
-                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs w-20">
+                    <th className="text-left px-3 py-1.5 font-medium text-gray-500 text-xs w-20">
                       Type
                     </th>
-                    <th className="text-center px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 text-xs w-14">
+                    <th className="text-center px-3 py-1.5 font-medium text-gray-500 text-xs w-14">
                       Status
                     </th>
                   </tr>
@@ -693,8 +691,8 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
                         aria-selected={isSelected}
                         onClick={() => onSelect(artifact)}
                         className={`
-                          cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0
-                          ${isSelected ? "bg-blue-50 dark:bg-blue-900/30 selected" : "hover:bg-gray-50 dark:hover:bg-gray-800"}
+                          cursor-pointer transition-colors border-b border-gray-100 last:border-b-0
+                          ${isSelected ? "bg-blue-50 selected" : "hover:bg-gray-50"}
                         `}
                       >
                         <td className="px-3 py-1.5">
@@ -704,19 +702,19 @@ export const SessionsView: React.FC<SessionsViewProps> = ({
                             </span>
                             <span
                               data-testid="artifact-name"
-                              className={`truncate ${isSelected ? "text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-gray-100"}`}
+                              className={`truncate ${isSelected ? "text-blue-700" : "text-gray-900"}`}
                               title={artifact.title}
                             >
                               {extractFileName(artifact)}
                             </span>
                           </div>
                         </td>
-                        <td className="px-3 py-1.5 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
+                        <td className="px-3 py-1.5 text-gray-500 text-xs whitespace-nowrap">
                           {formatRelativeDate(
                             artifact.updatedAt || artifact.createdAt,
                           )}
                         </td>
-                        <td className="px-3 py-1.5 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
+                        <td className="px-3 py-1.5 text-gray-500 text-xs whitespace-nowrap">
                           {getTypeDisplayName(artifact.type)}
                         </td>
                         <td className="px-3 py-1.5 text-center">

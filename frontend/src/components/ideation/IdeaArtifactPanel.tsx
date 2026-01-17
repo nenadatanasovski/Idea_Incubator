@@ -29,6 +29,8 @@ import type {
   ViabilityRisk,
 } from "../../types/ideation";
 import type { ClassificationInfo } from "../../types/ideation-state";
+import type { Spec, SpecSection, SpecWorkflowState } from "../../types/spec";
+import { SpecPanel } from "./SpecPanel";
 
 // =============================================================================
 // Types
@@ -67,9 +69,20 @@ export interface IdeaArtifactPanelProps {
   isMinimized?: boolean;
   onExpandPanel?: () => void;
   onClosePanel?: () => void;
+  // Spec props (SPEC-006-E)
+  spec?: Spec | null;
+  specSections?: SpecSection[];
+  isSpecEditing?: boolean;
+  onSpecEdit?: () => void;
+  onSpecSave?: (updates: Partial<Spec>) => Promise<void>;
+  onSpecCancel?: () => void;
+  onSpecTransition?: (newState: SpecWorkflowState) => Promise<void>;
+  onSpecCreateTasks?: () => Promise<void>;
+  onGenerateSpec?: () => void;
+  isSpecLoading?: boolean;
 }
 
-type TabType = "idea" | "artifacts";
+type TabType = "idea" | "artifacts" | "spec";
 
 // =============================================================================
 // Icons
@@ -169,14 +182,14 @@ const ViewModeToggle: React.FC<ViewModeToggleProps> = ({
   onChange,
 }) => {
   return (
-    <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+    <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
       <button
         data-testid="view-mode-files"
         onClick={() => onChange("files")}
         className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
           viewMode === "files"
-            ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm active"
-            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            ? "bg-white text-blue-600 shadow-sm active"
+            : "text-gray-500 hover:text-gray-700"
         }`}
       >
         <FilesIcon />
@@ -187,8 +200,8 @@ const ViewModeToggle: React.FC<ViewModeToggleProps> = ({
         onClick={() => onChange("sessions")}
         className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
           viewMode === "sessions"
-            ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm active"
-            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            ? "bg-white text-blue-600 shadow-sm active"
+            : "text-gray-500 hover:text-gray-700"
         }`}
       >
         <SessionsIcon />
@@ -355,6 +368,17 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
   isMinimized = false,
   onExpandPanel,
   onClosePanel,
+  // Spec props (SPEC-006-E)
+  spec = null,
+  specSections = [],
+  isSpecEditing = false,
+  onSpecEdit,
+  onSpecSave,
+  onSpecCancel,
+  onSpecTransition,
+  onSpecCreateTasks,
+  onGenerateSpec,
+  isSpecLoading = false,
 }) => {
   // Internal state for tabs (for backwards compatibility)
   const [activeTab, setActiveTab] = useState<TabType>("idea");
@@ -474,16 +498,16 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
     return (
       <div
         data-testid="artifact-panel-minimized"
-        className="flex flex-col items-center w-10 h-full bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700"
+        className="flex flex-col items-center w-10 h-full bg-gray-50 border-l border-gray-200"
       >
         <button
           onClick={handleExpandPanel}
-          className="flex flex-col items-center gap-2 py-4 px-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors w-full"
+          className="flex flex-col items-center gap-2 py-4 px-2 hover:bg-gray-100 transition-colors w-full"
           title="Expand panel"
         >
-          <ChevronLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          <ChevronLeft className="w-5 h-5 text-gray-500" />
           <span
-            className="text-xs text-gray-500 dark:text-gray-400 transform rotate-180"
+            className="text-xs text-gray-500 transform rotate-180"
             style={{ writingMode: "vertical-rl" }}
           >
             {candidate ? candidate.title.slice(0, 15) : "Panel"}
@@ -501,20 +525,20 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
       <div
         data-testid="artifact-panel"
         className={`
-          flex flex-col bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 relative
+          flex flex-col bg-white border-l border-gray-200 relative
           ${isFullscreen ? "fixed inset-0 z-50" : "w-1/2 h-full"}
         `}
       >
         {/* Header with main tabs */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white flex-shrink-0">
           <div className="flex gap-1">
             <button
               onClick={() => setActiveTab("idea")}
               className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
               ${
                 activeTab === "idea"
-                  ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-100"
               }`}
             >
               <Lightbulb className="w-4 h-4" />
@@ -525,15 +549,40 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
               className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
               ${
                 activeTab === "artifacts"
-                  ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-100"
               }`}
             >
               <FileText className="w-4 h-4" />
               Artifacts
               {artifacts.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">
+                <span className="ml-1 px-1.5 py-0.5 text-xs bg-gray-200 text-gray-600 rounded-full">
                   {artifacts.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("spec")}
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
+              ${
+                activeTab === "spec"
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Spec
+              {spec && (
+                <span
+                  className={`ml-1 px-1.5 py-0.5 text-xs rounded-full ${
+                    spec.workflowState === "approved"
+                      ? "bg-green-200 text-green-700"
+                      : spec.workflowState === "review"
+                        ? "bg-blue-200 text-blue-700"
+                        : "bg-yellow-200 text-yellow-700"
+                  }`}
+                >
+                  {spec.workflowState}
                 </span>
               )}
             </button>
@@ -541,7 +590,7 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
           <div className="flex items-center gap-1">
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+              className="p-1.5 rounded hover:bg-gray-100 text-gray-500 transition-colors"
               title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             >
               {isFullscreen ? <CollapseIcon /> : <ExpandIcon />}
@@ -549,7 +598,7 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
             {handleClosePanel && (
               <button
                 onClick={handleClosePanel}
-                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+                className="p-1.5 rounded hover:bg-gray-100 text-gray-500 transition-colors"
                 title="Minimize panel"
               >
                 <CloseIcon />
@@ -559,7 +608,7 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
         </div>
 
         {/* Content based on active tab */}
-        {activeTab === "idea" ? (
+        {activeTab === "idea" && (
           <IdeaContent
             candidate={candidate}
             confidence={confidence}
@@ -569,11 +618,13 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
             onContinue={onContinue}
             onDiscard={onDiscard}
           />
-        ) : (
+        )}
+
+        {activeTab === "artifacts" && (
           /* Artifacts tab with 20/80 layout (TEST-UI-006) */
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* View mode toggle header for artifacts */}
-            <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200 flex-shrink-0">
               <ViewModeToggle
                 viewMode={viewMode}
                 onChange={handleViewModeChange}
@@ -585,7 +636,7 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
               {/* Table container - 20% height on desktop, 33% on mobile */}
               <div
                 data-testid="artifact-table-container"
-                className="h-1/3 sm:h-[20%] min-h-[100px] max-h-[200px] overflow-auto border-b border-gray-200 dark:border-gray-700 flex-shrink-0"
+                className="h-1/3 sm:h-[20%] min-h-[100px] max-h-[200px] overflow-auto border-b border-gray-200 flex-shrink-0"
                 style={{ overflowY: "auto" }}
               >
                 {loading ? (
@@ -599,7 +650,7 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
                     isLoading={true}
                   />
                 ) : artifacts.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400 text-sm">
+                  <div className="flex items-center justify-center h-full text-gray-500 text-sm">
                     No artifacts yet
                   </div>
                 ) : viewMode === "files" ? (
@@ -639,6 +690,46 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === "spec" && (
+          /* Spec tab (SPEC-006-E) */
+          <div className="flex-1 overflow-hidden">
+            {spec ? (
+              <SpecPanel
+                spec={spec}
+                sections={specSections}
+                isEditing={isSpecEditing}
+                onEdit={onSpecEdit || (() => {})}
+                onSave={onSpecSave || (async () => {})}
+                onCancel={onSpecCancel || (() => {})}
+                onTransition={onSpecTransition || (async () => {})}
+                onCreateTasks={onSpecCreateTasks || (async () => {})}
+                isLoading={isSpecLoading}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-4 h-full">
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 font-medium">No spec yet</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Continue the conversation to generate a specification
+                  </p>
+                  {onGenerateSpec && (
+                    <button
+                      onClick={onGenerateSpec}
+                      disabled={isSpecLoading}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    >
+                      {isSpecLoading ? "Generating..." : "Generate Spec"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

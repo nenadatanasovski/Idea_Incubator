@@ -487,15 +487,15 @@ class ObservabilitySkills:
             GROUP BY w.id ORDER BY w.wave_number
         """, (execution_id,))
 
-        # P002: Stuck Agents
+        # P002: Stuck Agents (use julianday with localtime for timezone-safe comparison)
         stuck_agents = self._execute("""
             SELECT bai.id, bai.process_id, bai.task_id,
                    bai.spawned_at, bai.last_heartbeat_at,
-                   ROUND((julianday('now') - julianday(bai.last_heartbeat_at)) * 86400) as seconds_since_heartbeat
+                   ROUND((julianday('now', 'localtime') - julianday(replace(bai.last_heartbeat_at, 'T', ' '))) * 86400) as seconds_since_heartbeat
             FROM build_agent_instances bai
             WHERE bai.execution_run_id = ?
               AND bai.status = 'executing'
-              AND bai.last_heartbeat_at < datetime('now', '-2 minutes')
+              AND (julianday('now', 'localtime') - julianday(replace(bai.last_heartbeat_at, 'T', ' '))) * 86400 > 120
         """, (execution_id,))
 
         # P003: File Conflicts

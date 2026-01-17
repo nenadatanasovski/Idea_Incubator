@@ -71,12 +71,20 @@ async function cleanupByRetention(
   const createdAtColumn =
     tableName === "agent_heartbeats" ? "created_at" : "created_at";
 
-  const result = await run(
-    `DELETE FROM ${tableName} WHERE ${createdAtColumn} < ?`,
+  // Count before delete
+  const beforeResult = await getOne<{ count: number }>(
+    `SELECT COUNT(*) as count FROM ${tableName} WHERE ${createdAtColumn} < ?`,
     [cutoffStr],
   );
+  const countToDelete = beforeResult?.count || 0;
 
-  return result;
+  if (countToDelete > 0) {
+    await run(`DELETE FROM ${tableName} WHERE ${createdAtColumn} < ?`, [
+      cutoffStr,
+    ]);
+  }
+
+  return countToDelete;
 }
 
 /**
@@ -88,10 +96,9 @@ async function cleanupByMaxRows(
 ): Promise<number> {
   // This only applies to tables with task_id column
   if (tableName === "task_execution_log") {
-    // Delete oldest entries beyond the limit for each task
-    const result = await run(
-      `DELETE FROM task_execution_log
-       WHERE id IN (
+    // Count rows to delete
+    const countResult = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM (
          SELECT id FROM (
            SELECT id, task_id,
                   ROW_NUMBER() OVER (PARTITION BY task_id ORDER BY created_at DESC) as rn
@@ -101,13 +108,29 @@ async function cleanupByMaxRows(
        )`,
       [maxRowsPerTask],
     );
-    return result;
+    const countToDelete = countResult?.count || 0;
+
+    if (countToDelete > 0) {
+      await run(
+        `DELETE FROM task_execution_log
+         WHERE id IN (
+           SELECT id FROM (
+             SELECT id, task_id,
+                    ROW_NUMBER() OVER (PARTITION BY task_id ORDER BY created_at DESC) as rn
+             FROM task_execution_log
+           ) ranked
+           WHERE rn > ?
+         )`,
+        [maxRowsPerTask],
+      );
+    }
+    return countToDelete;
   }
 
   if (tableName === "agent_heartbeats") {
-    const result = await run(
-      `DELETE FROM agent_heartbeats
-       WHERE id IN (
+    // Count rows to delete
+    const countResult = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM (
          SELECT id FROM (
            SELECT id, agent_id,
                   ROW_NUMBER() OVER (PARTITION BY agent_id ORDER BY created_at DESC) as rn
@@ -117,7 +140,23 @@ async function cleanupByMaxRows(
        )`,
       [maxRowsPerTask],
     );
-    return result;
+    const countToDelete = countResult?.count || 0;
+
+    if (countToDelete > 0) {
+      await run(
+        `DELETE FROM agent_heartbeats
+         WHERE id IN (
+           SELECT id FROM (
+             SELECT id, agent_id,
+                    ROW_NUMBER() OVER (PARTITION BY agent_id ORDER BY created_at DESC) as rn
+             FROM agent_heartbeats
+           ) ranked
+           WHERE rn > ?
+         )`,
+        [maxRowsPerTask],
+      );
+    }
+    return countToDelete;
   }
 
   return 0;

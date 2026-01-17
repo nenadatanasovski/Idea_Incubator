@@ -31,7 +31,13 @@ export type IdeationEventType =
   | "classifications:updated" // Classifications have been updated
   | "subagent:spawn" // When a sub-agent starts
   | "subagent:status" // When a sub-agent status changes (running/completed/failed)
-  | "subagent:result"; // When a sub-agent produces results
+  | "subagent:result" // When a sub-agent produces results
+  // Spec-related events (SPEC-009)
+  | "readiness:update" // Readiness score changed
+  | "spec:generating" // Spec generation started
+  | "spec:generated" // Spec generation complete
+  | "spec:updated" // Spec content changed
+  | "spec:workflow:changed"; // Workflow state changed
 
 // Event types for agent/monitoring system (WSK-001)
 export type AgentEventType =
@@ -527,6 +533,33 @@ export function emitSessionEvent(
     sessionId,
     data,
   });
+}
+
+/**
+ * Broadcast an event to a specific session (SPEC-009)
+ * Used by spec workflow state machine
+ */
+export function broadcastToSession(
+  sessionId: string,
+  event: { type: string; payload: Record<string, unknown> },
+): void {
+  const room = sessionRooms.get(sessionId);
+  if (!room || room.size === 0) {
+    return;
+  }
+
+  const message = JSON.stringify({
+    type: event.type,
+    timestamp: new Date().toISOString(),
+    sessionId,
+    data: event.payload,
+  });
+
+  for (const client of room) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
 }
 
 /**

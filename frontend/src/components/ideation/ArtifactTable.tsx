@@ -441,24 +441,24 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ classification }) => {
 // -----------------------------------------------------------------------------
 
 const SkeletonRow: React.FC<{ index: number }> = ({ index }) => (
-  <tr className="border-b border-gray-100 dark:border-gray-700 animate-pulse">
+  <tr className="border-b border-gray-100 animate-pulse">
     <td className="px-3 py-2">
       <div className="flex items-center gap-2">
-        <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded" />
+        <div className="w-4 h-4 bg-gray-200 rounded" />
         <div
-          className="h-4 bg-gray-200 dark:bg-gray-700 rounded"
+          className="h-4 bg-gray-200 rounded"
           style={{ width: `${120 + (index % 3) * 40}px` }}
         />
       </div>
     </td>
     <td className="px-3 py-2">
-      <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded" />
+      <div className="h-4 w-20 bg-gray-200 rounded" />
     </td>
     <td className="px-3 py-2">
-      <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+      <div className="h-4 w-16 bg-gray-200 rounded" />
     </td>
     <td className="px-3 py-2 text-center">
-      <div className="w-3 h-3 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto" />
+      <div className="w-3 h-3 bg-gray-200 rounded-full mx-auto" />
     </td>
   </tr>
 );
@@ -562,13 +562,11 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
       onClick={onCancel}
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-xl max-w-sm mx-4"
+        className="bg-white rounded-lg p-4 shadow-xl max-w-sm mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="font-medium text-gray-900 dark:text-gray-100 mb-2">
-          Delete Artifact
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <div className="font-medium text-gray-900 mb-2">Delete Artifact</div>
+        <p className="text-sm text-gray-600 mb-4">
           Are you sure you want to delete "{artifactName}"? This action cannot
           be undone.
         </p>
@@ -576,7 +574,7 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
           <button
             data-testid="btn-cancel-delete"
             onClick={onCancel}
-            className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded"
           >
             Cancel
           </button>
@@ -806,18 +804,18 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
         className="w-full overflow-auto"
       >
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+          <thead className="bg-gray-50 sticky top-0">
             <tr>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">
+              <th className="text-left px-3 py-2 font-medium text-gray-500">
                 Name
               </th>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-28">
+              <th className="text-left px-3 py-2 font-medium text-gray-500 w-28">
                 Date
               </th>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-24">
+              <th className="text-left px-3 py-2 font-medium text-gray-500 w-24">
                 Type
               </th>
-              <th className="text-center px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-16">
+              <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">
                 Status
               </th>
             </tr>
@@ -846,13 +844,13 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
 
   return (
     <div data-testid="artifact-table" className="w-full overflow-auto relative">
-      {/* Keyboard Shortcuts Help Button */}
-      <div className="absolute top-0 right-0 z-10">
+      {/* Keyboard Shortcuts Help Button - positioned below header to avoid overlap */}
+      <div className="absolute top-8 right-0 z-10">
         <button
           data-testid="keyboard-help-button"
           onClick={() => setShowShortcutsHelp((prev) => !prev)}
           onBlur={() => setShowShortcutsHelp(false)}
-          className="p-1 m-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded"
+          className="p-1 text-gray-400 hover:text-gray-600 rounded"
           title="Keyboard shortcuts (?)"
         >
           <svg
@@ -880,18 +878,18 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
         role="grid"
         aria-label="Artifact table with keyboard navigation"
       >
-        <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+        <thead className="bg-gray-50 sticky top-0">
           <tr>
-            <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">
+            <th className="text-left px-3 py-2 font-medium text-gray-500">
               Name
             </th>
-            <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-28">
+            <th className="text-left px-3 py-2 font-medium text-gray-500 w-28">
               Date
             </th>
-            <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-24">
+            <th className="text-left px-3 py-2 font-medium text-gray-500 w-24">
               Type
             </th>
-            <th className="text-center px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-16">
+            <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">
               Status
             </th>
           </tr>
@@ -923,8 +921,8 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                 role="row"
                 tabIndex={isFocused ? 0 : -1}
                 className={`
-                  cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700
-                  ${isSelected ? "bg-blue-50 dark:bg-blue-900/30 selected" : "hover:bg-gray-50 dark:hover:bg-gray-800"}
+                  cursor-pointer transition-colors border-b border-gray-100
+                  ${isSelected ? "bg-blue-50 selected" : "hover:bg-gray-50"}
                   ${isFocused ? "ring-2 ring-blue-500 ring-inset focus-visible" : ""}
                 `}
                 onClick={() => handleRowClick(item, index)}
@@ -937,7 +935,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                     {isFolder && (
                       <button
                         data-testid="folder-toggle"
-                        className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                        className="p-0.5 hover:bg-gray-200 rounded"
                         tabIndex={-1}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -962,7 +960,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
 
                     <span
                       data-testid="artifact-name"
-                      className={`truncate ${isFolder ? "font-medium" : ""} ${isSelected ? "text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-gray-100"}`}
+                      className={`truncate ${isFolder ? "font-medium" : ""} ${isSelected ? "text-blue-700" : "text-gray-900"}`}
                       title={item.name}
                     >
                       {item.name}
@@ -970,7 +968,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                   </div>
                 </td>
 
-                <td className="px-3 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
                   {!isFolder &&
                     item.artifact &&
                     formatRelativeDate(
@@ -978,7 +976,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                     )}
                 </td>
 
-                <td className="px-3 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
                   {!isFolder && item.artifact && (
                     <span className="capitalize">
                       {getTypeDisplayName(item.artifact.type)}

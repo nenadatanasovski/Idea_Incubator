@@ -361,27 +361,62 @@ CREATE INDEX idx_history_time ON task_state_history(changed_at);
 CREATE TABLE task_test_results (
   id TEXT PRIMARY KEY,
   task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-  task_list_id TEXT REFERENCES task_lists(id),  -- Which list execution
 
   -- Test identification
-  test_level TEXT NOT NULL,            -- codebase, api, ui
-  test_index INTEGER NOT NULL,         -- Index in the test array
-  test_description TEXT,
+  test_level INTEGER NOT NULL CHECK(test_level IN (1, 2, 3)),
+    -- 1 = Syntax/compile, 2 = Unit tests, 3 = E2E/Integration
+  test_scope TEXT CHECK(test_scope IS NULL OR test_scope IN (
+    'codebase', 'api', 'ui', 'database', 'integration'
+  )),
+  test_name TEXT,
 
-  -- Result
-  status TEXT NOT NULL,                -- passed, failed, skipped, error
-  output TEXT,
-  error TEXT,
-  duration_ms INTEGER,
+  -- Execution
+  command TEXT NOT NULL,
+  exit_code INTEGER NOT NULL,
+  stdout TEXT,
+  stderr TEXT,
+  duration_ms INTEGER NOT NULL,
+  passed INTEGER NOT NULL,
 
-  -- Execution metadata
-  executed_by TEXT NOT NULL,           -- build-agent or specific agent
-  executed_at TEXT NOT NULL DEFAULT (datetime('now'))
+  -- Context
+  execution_id TEXT,
+  agent_id TEXT,
+
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX idx_results_task ON task_test_results(task_id);
-CREATE INDEX idx_results_list ON task_test_results(task_list_id);
-CREATE INDEX idx_results_status ON task_test_results(status);
+CREATE INDEX idx_results_scope ON task_test_results(test_scope);
+CREATE INDEX idx_results_scope_level ON task_test_results(task_id, test_scope, test_level);
+```
+
+### 10a. Acceptance Criteria Results
+
+Persists acceptance criteria verification status (checkable in UI).
+
+```sql
+CREATE TABLE acceptance_criteria_results (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  appendix_id TEXT NOT NULL REFERENCES task_appendices(id) ON DELETE CASCADE,
+  criterion_index INTEGER NOT NULL,  -- Position within the appendix content (0-based)
+  criterion_text TEXT NOT NULL,
+  met INTEGER NOT NULL DEFAULT 0,
+  scope TEXT CHECK(scope IS NULL OR scope IN (
+    'codebase', 'api', 'ui', 'database', 'integration'
+  )),
+  verified_at TEXT,
+  verified_by TEXT,  -- 'user' | 'agent' | 'system'
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+  UNIQUE(appendix_id, criterion_index)
+);
+
+CREATE INDEX idx_ac_results_task ON acceptance_criteria_results(task_id);
+CREATE INDEX idx_ac_results_appendix ON acceptance_criteria_results(appendix_id);
+CREATE INDEX idx_ac_results_scope ON acceptance_criteria_results(scope);
 ```
 
 ### 11. Task Blocks

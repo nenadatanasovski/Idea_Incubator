@@ -241,6 +241,97 @@ CREATE TABLE display_id_sequences (
 );
 ```
 
+### Testing Tables
+
+#### task_test_results
+
+Stores test execution results for three-level testing (syntax, unit, e2e).
+
+```sql
+CREATE TABLE task_test_results (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  test_level INTEGER NOT NULL CHECK(test_level IN (1, 2, 3)),
+    -- 1 = Syntax/compile, 2 = Unit tests, 3 = E2E/Integration
+  test_scope TEXT CHECK(test_scope IS NULL OR test_scope IN (
+    'codebase', 'api', 'ui', 'database', 'integration'
+  )),
+  test_name TEXT,
+  command TEXT NOT NULL,
+  exit_code INTEGER NOT NULL,
+  stdout TEXT,
+  stderr TEXT,
+  duration_ms INTEGER NOT NULL,
+  passed INTEGER NOT NULL,
+  execution_id TEXT,
+  agent_id TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_task_test_results_task ON task_test_results(task_id);
+CREATE INDEX idx_task_test_results_scope ON task_test_results(test_scope);
+CREATE INDEX idx_task_test_results_scope_level ON task_test_results(task_id, test_scope, test_level);
+```
+
+#### task_appendices
+
+Stores attachable context for tasks (12 appendix types including acceptance criteria).
+
+```sql
+CREATE TABLE task_appendices (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  appendix_type TEXT NOT NULL CHECK(appendix_type IN (
+    'prd_reference', 'code_context', 'gotcha_list', 'rollback_plan',
+    'test_context', 'dependency_notes', 'architecture_decision',
+    'user_story', 'acceptance_criteria', 'research_notes',
+    'api_contract', 'test_commands'
+  )),
+  content_type TEXT NOT NULL DEFAULT 'inline' CHECK(content_type IN ('inline', 'reference')),
+  content TEXT,
+  reference_id TEXT,
+  reference_table TEXT,
+  metadata TEXT,  -- JSON with scope, priority, etc.
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_task_appendices_task ON task_appendices(task_id);
+CREATE INDEX idx_task_appendices_type ON task_appendices(appendix_type);
+CREATE INDEX idx_task_appendices_scope ON task_appendices(json_extract(metadata, '$.scope'));
+```
+
+#### acceptance_criteria_results
+
+Persists acceptance criteria verification status.
+
+```sql
+CREATE TABLE acceptance_criteria_results (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  appendix_id TEXT NOT NULL REFERENCES task_appendices(id) ON DELETE CASCADE,
+  criterion_index INTEGER NOT NULL,  -- Position within the appendix content (0-based)
+  criterion_text TEXT NOT NULL,
+  met INTEGER NOT NULL DEFAULT 0,
+  scope TEXT CHECK(scope IS NULL OR scope IN (
+    'codebase', 'api', 'ui', 'database', 'integration'
+  )),
+  verified_at TEXT,
+  verified_by TEXT,  -- 'user' | 'agent' | 'system'
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+  UNIQUE(appendix_id, criterion_index)
+);
+
+CREATE INDEX idx_ac_results_task ON acceptance_criteria_results(task_id);
+CREATE INDEX idx_ac_results_appendix ON acceptance_criteria_results(appendix_id);
+CREATE INDEX idx_ac_results_scope ON acceptance_criteria_results(scope);
+CREATE INDEX idx_ac_results_unmet ON acceptance_criteria_results(task_id, met) WHERE met = 0;
+```
+
 ---
 
 ## TypeScript Interfaces
@@ -462,6 +553,83 @@ export interface GroupingSuggestion {
   expiresAt?: string;
   resolvedAt?: string;
   resolvedBy?: string;
+}
+```
+
+### Testing Types
+
+```typescript
+// Test levels (execution phase)
+export type TestLevel = 1 | 2 | 3;
+// 1 = Syntax/compile check
+// 2 = Unit tests
+// 3 = Integration/E2E tests
+
+// Test scopes (system component being tested)
+export type TestScope = "codebase" | "api" | "ui" | "database" | "integration";
+
+// Test result from execution
+export interface TaskTestResult {
+  id: string;
+  taskId: string;
+  testLevel: TestLevel;
+  testScope?: TestScope;
+  testName?: string;
+  command: string;
+  exitCode: number;
+  stdout?: string;
+  stderr?: string;
+  durationMs: number;
+  passed: boolean;
+  executionId?: string;
+  agentId?: string;
+  createdAt: string;
+}
+
+// Acceptance criterion
+export interface AcceptanceCriterion {
+  id: string;
+  text: string;
+  met: boolean;
+  scope?: TestScope;
+  verifiedAt?: string;
+  verifiedBy?: "user" | "agent" | "system";
+}
+
+// Persisted acceptance criterion result
+export interface AcceptanceCriterionResult {
+  id: string;
+  taskId: string;
+  appendixId: string;
+  criterionIndex: number;
+  criterionText: string;
+  met: boolean;
+  scope?: TestScope;
+  verifiedAt?: string;
+  verifiedBy?: "user" | "agent" | "system";
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Validation result summary
+export interface ValidationResult {
+  taskId: string;
+  overallPassed: boolean;
+  totalDuration: number;
+  levels: {
+    level: TestLevel;
+    passed: boolean;
+    results: TaskTestResult[];
+  }[];
+}
+
+// Acceptance criteria check result
+export interface AcceptanceCriteriaResult {
+  taskId: string;
+  passed: boolean;
+  criteria: AcceptanceCriterion[];
+  checkedAt: string;
 }
 ```
 

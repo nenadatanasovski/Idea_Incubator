@@ -228,3 +228,89 @@ export interface AcceptanceCriteriaResult {
   criteria: AcceptanceCriterion[];
   checkedAt: string;
 }
+
+/**
+ * Actor types for AC verification
+ */
+export type VerifiedByType = "user" | "agent" | "system";
+
+/**
+ * Persisted acceptance criterion result
+ */
+export interface AcceptanceCriterionResult {
+  id: string;
+  taskId: string;
+  appendixId: string;
+  criterionIndex: number;
+  criterionText: string;
+  met: boolean;
+  scope?: TestScope;
+  verifiedAt?: string;
+  verifiedBy?: VerifiedByType;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Input for updating acceptance criterion status
+ */
+export interface UpdateAcceptanceCriterionInput {
+  met: boolean;
+  verifiedBy?: VerifiedByType;
+  notes?: string;
+}
+
+/**
+ * Input for bulk updating multiple criteria
+ */
+export interface BulkUpdateAcceptanceCriteriaInput {
+  taskId: string;
+  updates: {
+    appendixId: string;
+    criterionIndex: number;
+    met: boolean;
+    notes?: string;
+  }[];
+  verifiedBy?: VerifiedByType;
+}
+
+/**
+ * Database row representation for acceptance criteria results
+ */
+export interface AcceptanceCriterionResultRow {
+  id: string;
+  task_id: string;
+  appendix_id: string;
+  criterion_index: number;
+  criterion_text: string;
+  met: number;
+  scope: string | null;
+  verified_at: string | null;
+  verified_by: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Map database row to AcceptanceCriterionResult object
+ */
+export function mapAcceptanceCriterionResultRow(
+  row: AcceptanceCriterionResultRow,
+): AcceptanceCriterionResult {
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    appendixId: row.appendix_id,
+    criterionIndex: row.criterion_index,
+    criterionText: row.criterion_text,
+    met: row.met === 1,
+    scope: (row.scope as TestScope) || undefined,
+    verifiedAt: row.verified_at || undefined,
+    verifiedBy: (row.verified_by as VerifiedByType) || undefined,
+    notes: row.notes || undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}

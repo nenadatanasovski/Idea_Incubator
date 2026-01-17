@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Key,
   Link2,
@@ -95,9 +95,12 @@ const TABLE_PADDING = 12;
 const HORIZONTAL_GAP = 100;
 const VERTICAL_GAP = 40;
 
-// Calculate table height based on columns
+// Calculate table height based on columns (capped at 8 displayed)
 const getTableHeight = (columnCount: number) =>
-  TABLE_HEADER_HEIGHT + columnCount * COLUMN_HEIGHT + TABLE_PADDING * 2;
+  TABLE_HEADER_HEIGHT +
+  Math.min(columnCount, 8) * COLUMN_HEIGHT +
+  TABLE_PADDING * 2 +
+  (columnCount > 8 ? 20 : 0); // Add space for "more columns" indicator
 
 interface TablePosition {
   x: number;
@@ -117,6 +120,7 @@ export default function TableERD({ tableName, onShowFullERD }: TableERDProps) {
   const [hoveredRelationship, setHoveredRelationship] =
     useState<TableRelationship | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Get color scheme based on dark mode
   const colors = isDarkMode ? colorSchemes.dark : colorSchemes.light;
@@ -177,6 +181,13 @@ export default function TableERD({ tableName, onShowFullERD }: TableERDProps) {
   useEffect(() => {
     fetchRelationships();
   }, [fetchRelationships]);
+
+  // Scroll to top-left when data loads to ensure tables are visible
+  useEffect(() => {
+    if (data && containerRef.current) {
+      containerRef.current.scrollTo(0, 0);
+    }
+  }, [data]);
 
   // Calculate table positions
   const tablePositions = useMemo(() => {
@@ -270,17 +281,27 @@ export default function TableERD({ tableName, onShowFullERD }: TableERDProps) {
     return positions;
   }, [data, tableName]);
 
-  // Calculate SVG dimensions
+  // Calculate SVG dimensions with proper bounding box
   const svgDimensions = useMemo(() => {
+    let minX = Infinity;
+    let minY = Infinity;
     let maxX = 0;
     let maxY = 0;
     tablePositions.forEach((pos) => {
+      minX = Math.min(minX, pos.x);
+      minY = Math.min(minY, pos.y);
       maxX = Math.max(maxX, pos.x + pos.width);
       maxY = Math.max(maxY, pos.y + pos.height);
     });
+    // Ensure minimum values are reasonable
+    if (minX === Infinity) minX = 0;
+    if (minY === Infinity) minY = 0;
     return {
       width: maxX + 40,
       height: maxY + 40,
+      // Offset to shift content if tables start above expected position
+      offsetX: Math.max(0, 20 - minX),
+      offsetY: Math.max(0, 20 - minY),
     };
   }, [tablePositions]);
 
@@ -640,13 +661,14 @@ export default function TableERD({ tableName, onShowFullERD }: TableERDProps) {
 
       {/* ERD Canvas */}
       <div
+        ref={containerRef}
         className="flex-1 overflow-auto min-h-0"
         style={{ backgroundColor: colors.canvasBg }}
       >
         {hasRelationships ? (
           <svg
-            width={Math.max(svgDimensions.width, 500)}
-            height={Math.max(svgDimensions.height, 300)}
+            width={Math.max(svgDimensions.width + svgDimensions.offsetX, 500)}
+            height={Math.max(svgDimensions.height + svgDimensions.offsetY, 300)}
             className="min-w-full"
           >
             {/* Defs for arrow markers */}
@@ -679,14 +701,19 @@ export default function TableERD({ tableName, onShowFullERD }: TableERDProps) {
               </marker>
             </defs>
 
-            {/* Render relationships first (behind tables) */}
-            {renderRelationships()}
+            {/* Apply offset transform to ensure all content is visible */}
+            <g
+              transform={`translate(${svgDimensions.offsetX}, ${svgDimensions.offsetY})`}
+            >
+              {/* Render relationships first (behind tables) */}
+              {renderRelationships()}
 
-            {/* Render related tables */}
-            {data.relatedTables.map((table) => renderTable(table, false))}
+              {/* Render related tables */}
+              {data.relatedTables.map((table) => renderTable(table, false))}
 
-            {/* Render center table last (on top) */}
-            {renderTable(data.table, true)}
+              {/* Render center table last (on top) */}
+              {renderTable(data.table, true)}
+            </g>
           </svg>
         ) : (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">

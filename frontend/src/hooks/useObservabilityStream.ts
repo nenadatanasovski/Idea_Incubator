@@ -46,11 +46,9 @@ export function useObservabilityStream(
   const buildWsUrl = useCallback(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
-    let url = `${protocol}//${host}/ws?monitor=observability`;
-    if (executionId) {
-      url += `&execution=${executionId}`;
-    }
-    return url;
+    // Server expects observability=all or observability={executionId}
+    const obsParam = executionId || "all";
+    return `${protocol}//${host}/ws?observability=${obsParam}`;
   }, [executionId]);
 
   // Calculate reconnect delay with exponential backoff

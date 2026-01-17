@@ -44,6 +44,61 @@ export type LaneCategory =
   | "tests"
   | "infrastructure";
 
+/**
+ * Test scopes - what part of the system is being tested
+ */
+export type TestScope = "codebase" | "api" | "ui" | "database" | "integration";
+
+/**
+ * Test scope configuration for UI display
+ */
+export const TEST_SCOPE_CONFIG: Record<
+  TestScope,
+  { label: string; description: string; color: string; bgColor: string }
+> = {
+  codebase: {
+    label: "Codebase",
+    description: "File existence, compilation, structure",
+    color: "text-slate-600",
+    bgColor: "bg-slate-100",
+  },
+  database: {
+    label: "Database",
+    description: "Schema validation, migrations",
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-100",
+  },
+  api: {
+    label: "API",
+    description: "Endpoint tests, contracts",
+    color: "text-green-600",
+    bgColor: "bg-green-100",
+  },
+  ui: {
+    label: "UI",
+    description: "Component tests, rendering",
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
+  },
+  integration: {
+    label: "Integration",
+    description: "Cross-system, E2E flows",
+    color: "text-purple-600",
+    bgColor: "bg-purple-100",
+  },
+};
+
+/**
+ * Ordered list of scopes for consistent display
+ */
+export const TEST_SCOPE_ORDER: TestScope[] = [
+  "codebase",
+  "database",
+  "api",
+  "ui",
+  "integration",
+];
+
 export interface Wave {
   id: string;
   sessionId: string;
@@ -321,6 +376,7 @@ export interface TaskDetailInfo {
   testResults: {
     id: string;
     testLevel: number;
+    testScope?: TestScope;
     testName?: string;
     command: string;
     exitCode: number;
@@ -364,6 +420,7 @@ export interface TaskDetailInfo {
     content?: string;
     referenceId?: string;
     referenceTable?: string;
+    metadata?: { scope?: TestScope; priority?: string };
     position: number;
     createdAt: string;
   }[];
@@ -385,6 +442,8 @@ export interface TaskDetailInfo {
 
 export interface ProjectOption {
   projectId: string;
+  projectName: string;
+  projectCode: string;
   taskCount: number;
 }
 

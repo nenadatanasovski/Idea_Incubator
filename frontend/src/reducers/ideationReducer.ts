@@ -59,6 +59,15 @@ export const initialState: IdeationStore = {
     activeCount: 0,
     triggerMessageId: null,
   },
+  spec: {
+    spec: null,
+    sections: [],
+    readiness: null,
+    isGenerating: false,
+    isEditing: false,
+    isSaving: false,
+    error: null,
+  },
 };
 
 export function ideationReducer(
@@ -707,6 +716,162 @@ export function ideationReducer(
           subAgents: [],
           activeCount: 0,
           triggerMessageId: null,
+        },
+      };
+
+    // =========================================================================
+    // Spec Actions
+    // =========================================================================
+    case "SPEC_READINESS_UPDATE":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          readiness: action.payload.readiness,
+        },
+      };
+
+    case "SPEC_GENERATE_START":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          isGenerating: true,
+          error: null,
+        },
+      };
+
+    case "SPEC_GENERATE_COMPLETE":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          spec: action.payload.spec,
+          sections: action.payload.sections,
+          isGenerating: false,
+          error: null,
+        },
+      };
+
+    case "SPEC_GENERATE_ERROR":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          isGenerating: false,
+          error: action.payload.error,
+        },
+      };
+
+    case "SPEC_LOAD":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          spec: action.payload.spec,
+          sections: action.payload.sections,
+          error: null,
+        },
+      };
+
+    case "SPEC_UPDATE":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          spec: state.spec.spec
+            ? { ...state.spec.spec, ...action.payload.updates }
+            : null,
+        },
+      };
+
+    case "SPEC_SECTION_UPDATE": {
+      const updatedSections = state.spec.sections.map((section) =>
+        section.id === action.payload.sectionId
+          ? { ...section, content: action.payload.content }
+          : section,
+      );
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          sections: updatedSections,
+        },
+      };
+    }
+
+    case "SPEC_EDIT_START":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          isEditing: true,
+        },
+      };
+
+    case "SPEC_EDIT_CANCEL":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          isEditing: false,
+        },
+      };
+
+    case "SPEC_SAVE_START":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          isSaving: true,
+          error: null,
+        },
+      };
+
+    case "SPEC_SAVE_COMPLETE":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          spec: action.payload.spec,
+          isEditing: false,
+          isSaving: false,
+          error: null,
+        },
+      };
+
+    case "SPEC_SAVE_ERROR":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          isSaving: false,
+          error: action.payload.error,
+        },
+      };
+
+    case "SPEC_WORKFLOW_TRANSITION":
+      return {
+        ...state,
+        spec: {
+          ...state.spec,
+          spec: state.spec.spec
+            ? { ...state.spec.spec, workflowState: action.payload.newState }
+            : null,
+        },
+      };
+
+    case "SPEC_CLEAR":
+      return {
+        ...state,
+        spec: {
+          spec: null,
+          sections: [],
+          readiness: null,
+          isGenerating: false,
+          isEditing: false,
+          isSaving: false,
+          error: null,
         },
       };
 

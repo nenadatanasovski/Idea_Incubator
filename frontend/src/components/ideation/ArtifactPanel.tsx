@@ -376,10 +376,10 @@ const ArtifactTab: React.FC<ArtifactTabProps> = ({
         cursor-pointer flex-shrink-0 select-none group
         ${
           isSelected
-            ? "bg-white dark:bg-gray-600 border-blue-500 text-gray-900 dark:text-gray-100 font-medium shadow-sm z-10"
-            : "bg-transparent border-transparent text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+            ? "bg-white border-blue-500 text-gray-900 font-medium shadow-sm z-10"
+            : "bg-transparent border-transparent text-blue-600 hover:bg-gray-100"
         }
-        ${isUpdating ? "animate-pulse bg-blue-50 dark:bg-blue-900/30" : ""}
+        ${isUpdating ? "animate-pulse bg-blue-50" : ""}
       `}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
@@ -401,16 +401,14 @@ const ArtifactTab: React.FC<ArtifactTabProps> = ({
           onChange={(e) => setEditedTitle(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
-          className="w-24 px-1 py-0.5 text-sm bg-white dark:bg-gray-700 border border-blue-400 rounded outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-24 px-1 py-0.5 text-sm bg-white border border-blue-400 rounded outline-none focus:ring-1 focus:ring-blue-500"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
         <>
           <span className="truncate max-w-[100px]" title={artifact.title}>
             {isUpdating ? (
-              <span className="text-blue-600 dark:text-blue-400 font-medium">
-                Updating...
-              </span>
+              <span className="text-blue-600 font-medium">Updating...</span>
             ) : (
               artifact.title
             )}
@@ -420,7 +418,7 @@ const ArtifactTab: React.FC<ArtifactTabProps> = ({
             <button
               type="button"
               onClick={handleEditClick}
-              className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-500 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              className="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
               title="Rename artifact"
             >
               <TabEditIcon />
@@ -583,15 +581,15 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
   // Minimized view - thin vertical strip
   if (isMinimized) {
     return (
-      <div className="flex flex-col items-center w-10 h-full bg-gray-100 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col items-center w-10 h-full bg-gray-100 border-l border-gray-200">
         <button
           onClick={onExpandArtifact}
-          className="flex flex-col items-center gap-2 py-4 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors w-full"
+          className="flex flex-col items-center gap-2 py-4 px-2 hover:bg-gray-200 transition-colors w-full"
           title="Expand artifacts panel"
         >
           <ChevronLeftIcon />
           <span
-            className="text-xs text-gray-500 dark:text-gray-400 writing-mode-vertical transform rotate-180"
+            className="text-xs text-gray-500 writing-mode-vertical transform rotate-180"
             style={{ writingMode: "vertical-rl" }}
           >
             Artifacts ({artifacts.length})
@@ -603,7 +601,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
             <button
               key={artifact.id}
               onClick={onExpandArtifact}
-              className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+              className="p-1.5 rounded hover:bg-gray-200 text-gray-500"
               title={artifact.title}
             >
               {artifact.status === "loading" ? (
@@ -614,7 +612,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
             </button>
           ))}
           {artifacts.length > 5 && (
-            <span className="text-xs text-gray-400 dark:text-gray-500">
+            <span className="text-xs text-gray-400">
               +{artifacts.length - 5}
             </span>
           )}
@@ -626,20 +624,20 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
   return (
     <div
       className={`
-        flex flex-col bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 relative
+        flex flex-col bg-white border-l border-gray-200 relative
         ${isFullscreen ? "fixed inset-0 z-50" : "w-[450px] h-full"}
       `}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+        <h3 className="text-sm font-medium text-gray-900">
           Artifacts ({artifacts.length})
         </h3>
         <div className="flex items-center gap-2">
           {currentArtifact && (
             <button
               onClick={handleCopy}
-              className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
+              className="p-1.5 rounded hover:bg-gray-100 text-gray-500"
               title={copied ? "Copied!" : "Copy content"}
             >
               {copied ? (
@@ -663,14 +661,14 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
           )}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
+            className="p-1.5 rounded hover:bg-gray-100 text-gray-500"
             title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
           >
             {isFullscreen ? <CollapseIcon /> : <ExpandIcon />}
           </button>
           <button
             onClick={onCloseArtifact}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
+            className="p-1.5 rounded hover:bg-gray-100 text-gray-500"
             title="Close panel"
           >
             <CloseIcon />
@@ -679,7 +677,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
       </div>
 
       {/* Tabs */}
-      <div className="flex overflow-x-auto px-2 pt-2 pb-0 gap-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-10">
+      <div className="flex overflow-x-auto px-2 pt-2 pb-0 gap-1 bg-gray-50 border-b border-gray-200 relative z-10">
         {artifacts.map((artifact, index) => {
           console.log(
             `[ArtifactPanel] Rendering tab ${index}:`,
@@ -716,9 +714,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
           <div className="flex items-center justify-center h-full">
             <div className="flex flex-col items-center gap-3">
               <LoadingSpinner />
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Loading artifact...
-              </span>
+              <span className="text-sm text-gray-500">Loading artifact...</span>
             </div>
           </div>
         ) : currentArtifact ? (
@@ -736,7 +732,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
             />
           )
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
+          <div className="flex items-center justify-center h-full text-gray-400">
             Select an artifact to view
           </div>
         )}
@@ -744,14 +740,14 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
 
       {/* Footer with artifact info */}
       {currentArtifact && (
-        <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <div className="px-4 py-2 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between text-xs text-gray-500">
             <span className="flex items-center gap-2">
               {getArtifactIcon(currentArtifact.type)}
               <span className="capitalize">{currentArtifact.type}</span>
               {currentArtifact.language && (
                 <>
-                  <span className="text-gray-300 dark:text-gray-600">•</span>
+                  <span className="text-gray-300">•</span>
                   <span>{currentArtifact.language}</span>
                 </>
               )}
@@ -762,7 +758,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
                   <button
                     onClick={handleCancelEdit}
                     disabled={isSaving}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded text-sm font-medium text-gray-600 bg-gray-200 hover:bg-gray-300 transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -786,7 +782,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
                   {onEditArtifact && (
                     <button
                       onClick={handleStartEdit}
-                      className="flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      className="flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors"
                       title="Edit artifact"
                     >
                       <EditIcon />
@@ -795,7 +791,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
                   {onDeleteArtifact && (
                     <button
                       onClick={() => setShowDeleteConfirm(true)}
-                      className="flex items-center gap-1 px-2 py-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      className="flex items-center gap-1 px-2 py-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-600 transition-colors"
                       title="Delete artifact"
                     >
                       <TrashIcon />
@@ -803,7 +799,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
                   )}
                   <button
                     onClick={handleCopyId}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors group"
+                    className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-gray-200 transition-colors group"
                     title="Copy artifact reference to use in messages"
                   >
                     {copiedId ? (
@@ -842,18 +838,18 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mx-4 max-w-sm shadow-xl">
-            <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+          <div className="bg-white rounded-lg p-6 mx-4 max-w-sm shadow-xl">
+            <h4 className="text-lg font-medium text-gray-900 mb-2">
               Delete Artifact?
             </h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-sm text-gray-600 mb-4">
               Are you sure you want to delete "{currentArtifact?.title}"? This
               action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>

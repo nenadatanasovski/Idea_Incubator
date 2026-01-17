@@ -366,6 +366,109 @@ router.get(
 );
 
 /**
+ * Force recalculate parallelism analysis for a task list
+ * POST /api/task-agent/task-lists/:id/parallelism/recalculate
+ *
+ * Invalidates cache and performs fresh analysis
+ */
+router.post(
+  "/task-lists/:id/parallelism/recalculate",
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      // Force re-analysis by passing true
+      const analyses = await parallelismCalculator.analyzeParallelism(id, true);
+      const waves = await parallelismCalculator.calculateWaves(id);
+      const maxParallel = await parallelismCalculator.getMaxParallelism(id);
+
+      // Count conflicts
+      const conflictCount = analyses.filter((a) => !a.canParallel).length;
+
+      return res.json({
+        taskListId: id,
+        totalWaves: waves.length,
+        maxParallel,
+        conflictCount,
+        analyses: analyses.length,
+        waves,
+        recalculatedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("[task-agent] Error recalculating parallelism:", err);
+      return res.status(500).json({
+        error: "Failed to recalculate parallelism",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * Get parallelism preview (wave breakdown without starting execution)
+ * GET /api/task-agent/task-lists/:id/parallelism/preview
+ *
+ * Returns detailed wave breakdown and optimization suggestions
+ */
+router.get(
+  "/task-lists/:id/parallelism/preview",
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      // Get parallelism analysis
+      const analysis = await parallelismCalculator.getTaskListParallelism(id);
+      const maxParallel = await parallelismCalculator.getMaxParallelism(id);
+
+      // Calculate optimization suggestions
+      const suggestions: string[] = [];
+      if (analysis.totalWaves > 1 && analysis.parallelOpportunities > 0) {
+        suggestions.push(
+          `Consider increasing max parallel agents to ${maxParallel} to reduce execution time`,
+        );
+      }
+      if (analysis.totalWaves === analysis.totalTasks) {
+        suggestions.push(
+          "All tasks are sequential - check for unnecessary dependencies or file conflicts",
+        );
+      }
+
+      // Estimate time savings (rough calculation)
+      const sequentialTime = analysis.totalTasks; // 1 unit per task
+      const parallelTime = analysis.totalWaves; // Waves run in parallel
+      const timeSavingsPercent =
+        analysis.totalTasks > 0
+          ? Math.round((1 - parallelTime / sequentialTime) * 100)
+          : 0;
+
+      return res.json({
+        taskListId: id,
+        totalTasks: analysis.totalTasks,
+        totalWaves: analysis.totalWaves,
+        maxParallel,
+        parallelOpportunities: analysis.parallelOpportunities,
+        timeSavingsPercent,
+        waves: analysis.waves.map((wave) => ({
+          waveNumber: wave.waveNumber,
+          taskCount: wave.taskCount,
+          tasks: wave.tasks,
+          status: wave.status,
+        })),
+        suggestions,
+        canExecute: analysis.totalTasks > 0,
+        previewedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("[task-agent] Error getting parallelism preview:", err);
+      return res.status(500).json({
+        error: "Failed to get parallelism preview",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
  * Calculate execution waves for a task list
  * POST /api/task-agent/task-lists/:id/waves
  */
@@ -386,14 +489,98 @@ router.post("/task-lists/:id/waves", async (req: Request, res: Response) => {
 /**
  * Start parallel execution for a task list
  * POST /api/task-agent/task-lists/:id/execute
+ *
+ * Body: {
+ *   maxConcurrent?: number,
+ *   allowIncomplete?: boolean  // Override readiness gate
+ * }
+ *
+ * Hard Gate: Tasks below 70% readiness will block execution unless allowIncomplete=true
  */
 router.post("/task-lists/:id/execute", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { maxConcurrent } = req.body;
+    const { maxConcurrent, allowIncomplete = false } = req.body;
+
+    // Import readiness service
+    const { taskReadinessService } =
+      await import("../services/task-agent/task-readiness-service.js");
+
+    // Check readiness for all tasks in the list
+    const readinessResult =
+      await taskReadinessService.calculateBulkReadiness(id);
+
+    // Find incomplete tasks
+    const incompleteTasks: Array<{
+      id: string;
+      readiness: number;
+      missingItems: string[];
+    }> = [];
+
+    for (const [taskId, score] of readinessResult.tasks) {
+      if (!score.isReady) {
+        incompleteTasks.push({
+          id: taskId,
+          readiness: score.overall,
+          missingItems: score.missingItems,
+        });
+      }
+    }
+
+    // Hard gate enforcement
+    if (incompleteTasks.length > 0 && !allowIncomplete) {
+      // Log the blocked attempt
+      console.warn(
+        `[task-agent] Execution blocked: ${incompleteTasks.length} tasks below 70% readiness`,
+      );
+
+      return res.status(400).json({
+        error: "EXECUTION_BLOCKED",
+        reason: "INCOMPLETE_TASKS",
+        message: `${incompleteTasks.length} task(s) are below 70% readiness threshold`,
+        taskCount: incompleteTasks.length,
+        threshold: 70,
+        incompleteTasks: incompleteTasks.slice(0, 10), // Return first 10
+        summary: readinessResult.summary,
+        suggestion:
+          "Complete missing fields or set allowIncomplete=true to override",
+      });
+    }
+
+    // Log override attempt if applicable
+    if (incompleteTasks.length > 0 && allowIncomplete) {
+      console.warn(
+        `[task-agent] Execution override: Proceeding with ${incompleteTasks.length} incomplete tasks`,
+      );
+
+      // Log override for audit
+      try {
+        const { run } = await import("../../../database/db.js");
+        const { v4: uuidv4 } = await import("uuid");
+
+        await run(
+          `INSERT INTO execution_override_log (id, task_list_id, incomplete_count, override_type, created_at)
+           VALUES (?, ?, ?, 'allow_incomplete', datetime('now'))`,
+          [uuidv4(), id, incompleteTasks.length],
+        );
+      } catch {
+        // Table might not exist, log warning but continue
+        console.warn("[task-agent] Could not log execution override");
+      }
+    }
 
     await buildAgentOrchestrator.startExecution(id, maxConcurrent);
-    return res.json({ success: true, taskListId: id, status: "executing" });
+    return res.json({
+      success: true,
+      taskListId: id,
+      status: "executing",
+      readiness: {
+        total: readinessResult.summary.total,
+        ready: readinessResult.summary.ready,
+        notReady: readinessResult.summary.notReady,
+        overridden: allowIncomplete && incompleteTasks.length > 0,
+      },
+    });
   } catch (err) {
     console.error("[task-agent] Error starting execution:", err);
     return res.status(500).json({
