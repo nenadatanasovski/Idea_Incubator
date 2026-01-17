@@ -11,6 +11,8 @@ import { v4 as uuidv4 } from "uuid";
 import { spawn, ChildProcess } from "child_process";
 import { EventEmitter } from "events";
 import { query, run, getOne, saveDb } from "../../../database/db.js";
+import { emitPipelineEvent, emitPipelineStatus } from "../../websocket.js";
+
 
 /**
  * Orchestrator event emitter for execution events
@@ -148,6 +150,14 @@ export async function spawnBuildAgent(
       },
     );
 
+    // Emit WebSocket event
+    emitPipelineEvent("task:started", {
+      taskId,
+      buildId: taskListId,
+      agentId: id,
+    });
+
+
     // Track the process
     activeProcesses.set(id, agentProcess);
 
@@ -239,6 +249,14 @@ async function handleAgentExit(
 
   await updateTaskStatus(taskId, taskStatus);
   await saveDb();
+
+  // Emit WebSocket event
+  emitPipelineEvent(success ? "task:completed" : "task:failed", {
+    taskId,
+    buildId: (await getOne<BuildAgentRow>("SELECT task_list_id FROM build_agent_instances WHERE id = ?", [agentId]))?.task_list_id,
+    agentId,
+  });
+
 
   // Trigger next wave if successful
   if (success) {
@@ -513,18 +531,42 @@ export async function handleAgentCompletion(
   );
 
   if (remaining?.count === 0) {
-    // All tasks complete
+    // Check if any tasks failed
+    const failedTasks = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM tasks
+       WHERE task_list_id = ?
+         AND status = 'failed'`,
+      [taskListId],
+    );
+
+    // Set status based on whether there are failed tasks
+    const finalStatus = (failedTasks?.count || 0) > 0 ? 'completed_with_failures' : 'completed';
+    
     await run(
       `UPDATE task_lists_v2
-       SET status = 'completed',
+       SET status = ?,
            completed_at = datetime('now'),
            updated_at = datetime('now')
        WHERE id = ?`,
-      [taskListId],
+      [finalStatus, taskListId],
     );
     await saveDb();
-    console.log(`[BuildAgentOrchestrator] Task list ${taskListId} completed`);
+    console.log(`[BuildAgentOrchestrator] Task list ${taskListId} ${finalStatus}`);
+
+    // Emit WebSocket event
+    emitPipelineEvent(finalStatus === "completed" ? "pipeline:completed" : "pipeline:failed", {
+      buildId: taskListId,
+      status: finalStatus,
+    });
+
+    // Also emit status update
+    emitPipelineStatus({
+      id: taskListId,
+      status: finalStatus,
+      completedAt: new Date().toISOString(),
+    });
   }
+
 }
 
 /**

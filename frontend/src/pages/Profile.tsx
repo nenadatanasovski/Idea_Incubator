@@ -430,6 +430,7 @@ export default function Profile() {
   const [formData, setFormData] = useState<ProfileFormData>(initialFormData);
 
   useEffect(() => {
+    console.log("Profile page fetching profiles");
     fetchProfiles();
   }, []);
   useEffect(() => {

@@ -1301,7 +1301,9 @@ export type PipelineEventType =
   | "agent:assigned" // Agent assigned to task
   | "agent:idle" // Agent became idle
   | "conflict:detected" // Conflict detected
-  | "dependency:resolved"; // Dependency resolved
+  | "dependency:resolved" // Dependency resolved
+  | "pipeline:completed" // Pipeline completed
+  | "pipeline:failed"; // Pipeline failed
 
 export interface PipelineStreamEvent {
   type: "pipeline:event" | "pipeline:status";

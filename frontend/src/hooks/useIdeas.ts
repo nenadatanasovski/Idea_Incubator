@@ -8,6 +8,7 @@ export function useIdeas(filters?: IdeaFilters) {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    console.log("useIdeas fetching with filters:", filters);
     setLoading(true);
     getIdeas(filters)
       .then(setIdeas)

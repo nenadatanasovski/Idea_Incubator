@@ -42,6 +42,7 @@ export default function IdeationPageWrapper() {
 
   // Load profiles and validate URL session on mount
   useEffect(() => {
+    console.log("IdeationPageWrapper mounted/updated", { urlSessionId });
     async function init() {
       try {
         // Load profiles first

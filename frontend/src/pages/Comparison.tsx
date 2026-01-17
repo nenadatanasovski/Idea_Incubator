@@ -426,7 +426,7 @@ export default function Comparison() {
               Category Comparison
             </h3>
             <div className="h-96">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
                 <RadarChart
                   data={radarData}
                   margin={{ top: 20, right: 30, bottom: 20, left: 30 }}

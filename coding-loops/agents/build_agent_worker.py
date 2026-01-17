@@ -593,7 +593,10 @@ class CodeGenerator:
             return self._extract_code(content, task)
 
         except Exception as e:
-            print(f"[CodeGenerator] Claude API error: {e}", file=sys.stderr)
+            try:
+                print(f"[CodeGenerator] Claude API error: {e}", file=sys.stderr)
+            except BrokenPipeError:
+                pass
             raise
 
     def _build_prompt(self, task: TaskDetails, conventions: str, idea_context: str, gotchas: str = "") -> str:
@@ -862,8 +865,11 @@ class BuildAgentWorker:
             return 1
 
         except Exception as e:
-            print(f"[BuildAgentWorker] Fatal error: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+            try:
+                print(f"[BuildAgentWorker] Fatal error: {e}", file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
+            except BrokenPipeError:
+                pass
             self._log_continuous(f"Fatal error: {e}", "ERROR")
             self._record_failure(str(e))
             return 1
@@ -1309,7 +1315,8 @@ Please fix this issue and try again. Focus on the specific error mentioned above
             code = self.code_generator.generate(self.task, conventions, idea_context, gotchas_text)
             return TaskResult(success=True, generated_code=code)
         except Exception as e:
-            return TaskResult(success=False, error_message=f"Code generation failed: {e}")
+            tb = traceback.format_exc()
+            return TaskResult(success=False, error_message=f"Code generation failed: {e}\n{tb}")
 
     def _write_file(self, code: str):
         """Write generated code to file"""
