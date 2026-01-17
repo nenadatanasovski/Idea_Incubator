@@ -431,16 +431,72 @@ Issues detected: `timeout`, `error`, `drift`, `anomaly`, `threshold`
 
 ## New API Routes
 
-| Route                       | Purpose                                |
-| --------------------------- | -------------------------------------- |
-| `/api/agents`               | Agent status and metrics               |
-| `/api/agents/:id/heartbeat` | Record agent heartbeat                 |
-| `/api/executor/*`           | Task execution control                 |
-| `/api/task-lists`           | Browse/manage task lists               |
-| `/api/questions/*`          | Question queue management              |
-| `/api/notifications/*`      | Notification system                    |
-| `/api/knowledge/*`          | Knowledge base queries                 |
-| `/api/task-agent/*`         | Task Agent (parallel execution) routes |
+| Route                       | Purpose                                  |
+| --------------------------- | ---------------------------------------- |
+| `/api/agents`               | Agent status and metrics                 |
+| `/api/agents/:id/heartbeat` | Record agent heartbeat                   |
+| `/api/executor/*`           | Task execution control                   |
+| `/api/task-lists`           | Browse/manage task lists                 |
+| `/api/questions/*`          | Question queue management                |
+| `/api/notifications/*`      | Notification system                      |
+| `/api/knowledge/*`          | Knowledge base queries                   |
+| `/api/task-agent/*`         | Task Agent (parallel execution) routes   |
+| `/api/projects/*`           | Project management (idea-to-task bridge) |
+
+---
+
+## Projects
+
+Projects bridge the gap between **Ideas** (ideation phase) and **Tasks** (execution phase). They provide the organizational container for continuous development, linking an idea's journey from conception through implementation.
+
+### Project Entity
+
+| Field        | Type | Description                            |
+| ------------ | ---- | -------------------------------------- |
+| id           | TEXT | UUID primary key                       |
+| slug         | TEXT | URL-safe identifier (unique)           |
+| code         | TEXT | 2-4 char code for display IDs (unique) |
+| name         | TEXT | Human-readable name                    |
+| description  | TEXT | Optional description                   |
+| idea_id      | TEXT | Link to originating idea (1:1, unique) |
+| owner_id     | TEXT | Owner user ID                          |
+| status       | TEXT | active, paused, completed, archived    |
+| started_at   | TEXT | When first task started                |
+| completed_at | TEXT | When all tasks completed               |
+
+### Idea to Project Transition
+
+When an idea is ready for execution:
+
+1. **Create project**: `POST /api/projects/from-idea { ideaId: "..." }`
+2. Project inherits name from idea title
+3. Project code auto-generated (e.g., "VIBE" from "Vibe Check App")
+4. Tasks created with project reference use the code in display IDs
+
+### Project API Routes
+
+| Route                           | Method | Description                      |
+| ------------------------------- | ------ | -------------------------------- |
+| `/api/projects`                 | GET    | List all projects (with filters) |
+| `/api/projects`                 | POST   | Create new project               |
+| `/api/projects/:ref`            | GET    | Get by ID, code, or slug         |
+| `/api/projects/:id`             | PUT    | Update project                   |
+| `/api/projects/:id`             | DELETE | Delete project                   |
+| `/api/projects/:id/link-idea`   | POST   | Link idea to project             |
+| `/api/projects/:id/unlink-idea` | POST   | Unlink idea from project         |
+| `/api/projects/from-idea`       | POST   | Create project from idea         |
+| `/api/projects/by-idea/:slug`   | GET    | Get project by idea slug         |
+| `/api/projects/:id/start`       | POST   | Mark project as started          |
+| `/api/projects/:id/complete`    | POST   | Mark project as completed        |
+
+### Project Views
+
+| View                        | Purpose                          |
+| --------------------------- | -------------------------------- |
+| `project_stats_view`        | Project with task/PRD statistics |
+| `idea_project_view`         | Ideas mapped to their projects   |
+| `active_projects_view`      | Active projects with quick stats |
+| `project_task_list_summary` | Task lists grouped by project    |
 
 ---
 
@@ -472,6 +528,12 @@ Examples:
   TU-INCU-BUG-007  - Bug fix for INCU project
   TU-TASK-REF-003  - Refactor task
 ```
+
+**PROJECT_CODE** is derived from the `projects` table:
+
+- If project exists: Uses `projects.code` (2-4 uppercase chars)
+- Legacy fallback: Extracts from `project_id` string
+- Default: "GEN" (General project)
 
 ### Category Codes
 

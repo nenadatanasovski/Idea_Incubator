@@ -1,9 +1,11 @@
 /**
  * Task Appendix Types
  *
- * Types for attachable context for Build Agents (11 appendix types).
+ * Types for attachable context for Build Agents (12 appendix types).
  * Part of: Task System V2 Implementation Plan (IMPL-2.2)
  */
+
+import type { TestScope } from "./task-test.js";
 
 /**
  * All supported appendix types
@@ -19,7 +21,8 @@ export type AppendixType =
   | "user_story"
   | "acceptance_criteria"
   | "research_notes"
-  | "api_contract";
+  | "api_contract"
+  | "test_commands"; // GAP-005: Added for multi-level testing
 
 /**
  * Storage type for appendix content
@@ -128,4 +131,5 @@ export const APPENDIX_TYPE_DESCRIPTIONS: Record<AppendixType, string> = {
   acceptance_criteria: "Explicit acceptance criteria for completion",
   research_notes: "Research findings and notes",
   api_contract: "API contract definitions (OpenAPI, GraphQL, etc.)",
+  test_commands: "Multi-level test commands (unit, integration, e2e)",
 };

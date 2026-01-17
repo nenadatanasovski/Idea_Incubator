@@ -5,6 +5,8 @@
  * Part of: PTE-019 to PTE-024
  */
 
+import type { Project } from "./project.js";
+
 // ============================================
 // Task Identity Types
 // ============================================
@@ -84,6 +86,8 @@ export interface Task extends TaskIdentity {
   queue: TaskQueue;
   taskListId?: string;
   projectId?: string;
+  /** Populated project relation (when loaded with relations) */
+  project?: Project;
   priority: TaskPriority;
   effort: TaskEffort;
   phase: number;
@@ -395,14 +399,23 @@ export interface GroupingCriteriaWeights {
 
 /**
  * Relationship types between tasks
+ * See: task-data-model-diagram.md for full specification
  */
 export type RelationshipType =
-  | "depends_on"
-  | "blocks"
-  | "related_to"
-  | "duplicate_of"
-  | "parent_of"
-  | "child_of";
+  // Original 6 types
+  | "depends_on" // Source depends on target (target must complete first)
+  | "blocks" // Source blocks target
+  | "related_to" // Thematic connection
+  | "duplicate_of" // Source is duplicate of target
+  | "parent_of" // Hierarchical parent
+  | "child_of" // Hierarchical child
+  // Additional 6 types (from spec)
+  | "supersedes" // Source supersedes/replaces target
+  | "implements" // Source implements target (task-to-task level)
+  | "conflicts_with" // Source conflicts with target (cannot run together)
+  | "enables" // Source enables target to proceed
+  | "inspired_by" // Source was inspired by target
+  | "tests"; // Source tests/validates target
 
 /**
  * Task relationship
@@ -454,6 +467,8 @@ export interface TaskListV2 {
   name: string;
   description?: string;
   projectId?: string;
+  /** Populated project relation (when loaded with relations) */
+  project?: Project;
   status: TaskListStatus;
   maxParallelAgents: number;
   autoExecute: boolean;
@@ -752,3 +767,6 @@ export type {
   TaskStateHistoryEntry,
   TaskVersion,
 };
+
+// Re-export Project type
+export type { Project } from "./project.js";

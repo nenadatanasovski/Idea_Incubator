@@ -149,6 +149,9 @@ const agentMonitorClients = new Set<WebSocket>();
 // Track connected clients by user ID (for notifications)
 const userConnections = new Map<string, Set<WebSocket>>();
 
+// Track connected clients for pipeline dashboard
+const pipelineClients = new Set<WebSocket>();
+
 // Event handlers for user-specific events (notifications)
 const userEventHandlers = new Map<
   string,
@@ -171,24 +174,76 @@ export function initWebSocket(server: Server): WebSocketServer {
     const monitor = url.searchParams.get("monitor"); // WSK-002: agent monitoring
     const userId = url.searchParams.get("user"); // User ID for notifications
     const executor = url.searchParams.get("executor"); // Task executor monitoring
+    const observability = url.searchParams.get("observability"); // Observability monitoring
+    const pipeline = url.searchParams.get("pipeline"); // Pipeline dashboard
 
-    // Must have either idea, session, monitor, user, or executor parameter
+    // Must have either idea, session, monitor, user, executor, observability, or pipeline parameter
     if (
       !ideaSlug &&
       !sessionId &&
       monitor !== "agents" &&
       !userId &&
-      executor !== "tasks"
+      executor !== "tasks" &&
+      !observability &&
+      pipeline !== "stream"
     ) {
       ws.close(
         4000,
-        "Missing idea, session, monitor, user, or executor parameter",
+        "Missing idea, session, monitor, user, executor, observability, or pipeline parameter",
       );
       return;
     }
 
     // Join the appropriate room
-    if (executor === "tasks") {
+    if (pipeline === "stream") {
+      // Pipeline dashboard
+      pipelineClients.add(ws);
+      console.log(
+        `Client joined pipeline stream (${pipelineClients.size} connected)`,
+      );
+
+      ws.send(
+        JSON.stringify({
+          type: "pipeline:connected",
+          timestamp: new Date().toISOString(),
+          data: {
+            message: "Connected to pipeline stream",
+            clientCount: pipelineClients.size,
+          },
+        }),
+      );
+    } else if (observability) {
+      // Observability monitoring
+      if (observability === "all") {
+        observabilityGlobalClients.add(ws);
+        console.log(
+          `Client joined observability global (${observabilityGlobalClients.size} connected)`,
+        );
+      } else {
+        // Specific execution ID
+        if (!observabilityClients.has(observability)) {
+          observabilityClients.set(observability, new Set());
+        }
+        observabilityClients.get(observability)!.add(ws);
+        console.log(
+          `Client joined observability for execution ${observability}`,
+        );
+      }
+
+      ws.send(
+        JSON.stringify({
+          type: "observability:connected",
+          timestamp: new Date().toISOString(),
+          executionId: observability,
+          data: {
+            message:
+              observability === "all"
+                ? "Connected to all observability events"
+                : `Connected to execution ${observability}`,
+          },
+        }),
+      );
+    } else if (executor === "tasks") {
       // Task executor monitoring
       taskExecutorClients.add(ws);
       console.log(
@@ -299,7 +354,30 @@ export function initWebSocket(server: Server): WebSocketServer {
 
     // Clean up on disconnect
     ws.on("close", () => {
-      if (executor === "tasks") {
+      if (pipeline === "stream") {
+        pipelineClients.delete(ws);
+        console.log(
+          `Client left pipeline stream (${pipelineClients.size} connected)`,
+        );
+      } else if (observability) {
+        if (observability === "all") {
+          observabilityGlobalClients.delete(ws);
+          console.log(
+            `Client left observability global (${observabilityGlobalClients.size} connected)`,
+          );
+        } else {
+          const room = observabilityClients.get(observability);
+          if (room) {
+            room.delete(ws);
+            if (room.size === 0) {
+              observabilityClients.delete(observability);
+            }
+          }
+          console.log(
+            `Client left observability for execution ${observability}`,
+          );
+        }
+      } else if (executor === "tasks") {
         taskExecutorClients.delete(ws);
         console.log(
           `Client left task executor (${taskExecutorClients.size} connected)`,
@@ -880,6 +958,41 @@ export function isUserConnected(userId: string): boolean {
 // Task Executor Functions
 // ============================================
 
+// Observability event types
+export type ObservabilityEventType =
+  | "observability:connected" // Client connected to observability stream
+  | "transcript:entry" // New transcript entry (tool use, user message, etc.)
+  | "tool:started" // Tool execution started
+  | "tool:completed" // Tool execution completed
+  | "assertion:recorded" // Assertion result recorded
+  | "skill:invoked" // Skill invoked
+  | "execution:started" // Execution run started
+  | "execution:completed" // Execution run completed
+  | "execution:failed"; // Execution run failed
+
+export interface ObservabilityEvent {
+  type: ObservabilityEventType;
+  timestamp: string;
+  executionId: string;
+  data: {
+    entryId?: string;
+    toolName?: string;
+    skillName?: string;
+    result?: string;
+    duration?: number;
+    assertionId?: string;
+    assertionResult?: "pass" | "fail" | "skip" | "warn";
+    description?: string;
+    metadata?: Record<string, unknown>;
+    error?: string;
+    [key: string]: unknown;
+  };
+}
+
+// Track connected clients for observability monitoring
+const observabilityClients = new Map<string, Set<WebSocket>>(); // executionId -> clients
+const observabilityGlobalClients = new Set<WebSocket>(); // clients watching all executions
+
 // Task executor event types
 export type TaskExecutorEventType =
   | "executor:started" // Executor started autonomous execution
@@ -982,6 +1095,254 @@ export function emitTaskExecutorEvent(
  */
 export function getTaskExecutorClientCount(): number {
   return taskExecutorClients.size;
+}
+
+// ============================================
+// Observability Functions
+// ============================================
+
+/**
+ * Broadcast an observability event to all clients watching
+ */
+export function broadcastObservabilityEvent(event: ObservabilityEvent): void {
+  const message = JSON.stringify(event);
+
+  // Send to execution-specific clients
+  const execRoom = observabilityClients.get(event.executionId);
+  if (execRoom && execRoom.size > 0) {
+    for (const client of execRoom) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    }
+  }
+
+  // Send to global clients (watching all executions)
+  if (observabilityGlobalClients.size > 0) {
+    for (const client of observabilityGlobalClients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    }
+  }
+}
+
+/**
+ * Helper to emit an observability event
+ */
+export function emitObservabilityEvent(
+  type: ObservabilityEventType,
+  executionId: string,
+  data: ObservabilityEvent["data"] = {},
+): void {
+  broadcastObservabilityEvent({
+    type,
+    timestamp: new Date().toISOString(),
+    executionId,
+    data,
+  });
+}
+
+/**
+ * Emit transcript entry event
+ */
+export function emitTranscriptEntry(
+  executionId: string,
+  entryId: string,
+  metadata?: Record<string, unknown>,
+): void {
+  emitObservabilityEvent("transcript:entry", executionId, {
+    entryId,
+    metadata,
+  });
+}
+
+/**
+ * Emit tool started event
+ */
+export function emitToolStarted(
+  executionId: string,
+  entryId: string,
+  toolName: string,
+): void {
+  emitObservabilityEvent("tool:started", executionId, {
+    entryId,
+    toolName,
+  });
+}
+
+/**
+ * Emit tool completed event
+ */
+export function emitToolCompleted(
+  executionId: string,
+  entryId: string,
+  toolName: string,
+  result: string,
+  duration: number,
+): void {
+  emitObservabilityEvent("tool:completed", executionId, {
+    entryId,
+    toolName,
+    result,
+    duration,
+  });
+}
+
+/**
+ * Emit assertion recorded event
+ */
+export function emitAssertionRecorded(
+  executionId: string,
+  assertionId: string,
+  assertionResult: "pass" | "fail" | "skip" | "warn",
+  description: string,
+): void {
+  emitObservabilityEvent("assertion:recorded", executionId, {
+    assertionId,
+    assertionResult,
+    description,
+  });
+}
+
+/**
+ * Emit skill invoked event
+ */
+export function emitSkillInvoked(
+  executionId: string,
+  entryId: string,
+  skillName: string,
+): void {
+  emitObservabilityEvent("skill:invoked", executionId, {
+    entryId,
+    skillName,
+  });
+}
+
+/**
+ * Emit execution started event
+ */
+export function emitExecutionStarted(executionId: string): void {
+  emitObservabilityEvent("execution:started", executionId, {});
+}
+
+/**
+ * Emit execution completed event
+ */
+export function emitExecutionCompleted(executionId: string): void {
+  emitObservabilityEvent("execution:completed", executionId, {});
+}
+
+/**
+ * Emit execution failed event
+ */
+export function emitExecutionFailed(executionId: string, error: string): void {
+  emitObservabilityEvent("execution:failed", executionId, { error });
+}
+
+/**
+ * Get count of clients watching an execution
+ */
+export function getObservabilityClientCount(executionId?: string): number {
+  if (executionId) {
+    return observabilityClients.get(executionId)?.size || 0;
+  }
+  return observabilityGlobalClients.size;
+}
+
+// ============================================
+// Pipeline Dashboard Functions
+// ============================================
+
+export type PipelineEventType =
+  | "pipeline:connected" // Client connected to pipeline stream
+  | "pipeline:event" // Generic pipeline event
+  | "pipeline:status" // Pipeline status update
+  | "wave:started" // Wave started
+  | "wave:completed" // Wave completed
+  | "task:started" // Task started
+  | "task:completed" // Task completed
+  | "task:failed" // Task failed
+  | "task:blocked" // Task blocked
+  | "task:unblocked" // Task unblocked
+  | "agent:assigned" // Agent assigned to task
+  | "agent:idle" // Agent became idle
+  | "conflict:detected" // Conflict detected
+  | "dependency:resolved"; // Dependency resolved
+
+export interface PipelineStreamEvent {
+  type: "pipeline:event" | "pipeline:status";
+  timestamp: string;
+  payload: {
+    id?: string;
+    eventType?: PipelineEventType;
+    waveNumber?: number;
+    taskId?: string;
+    taskDisplayId?: string;
+    agentId?: string;
+    agentName?: string;
+    duration?: number;
+    reason?: string;
+    error?: string;
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Broadcast an event to all pipeline dashboard clients
+ */
+export function broadcastPipelineEvent(event: PipelineStreamEvent): void {
+  if (pipelineClients.size === 0) {
+    return;
+  }
+
+  const message = JSON.stringify(event);
+  console.log(
+    `[WS] Broadcasting pipeline event to ${pipelineClients.size} clients`,
+  );
+
+  for (const client of pipelineClients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
+}
+
+/**
+ * Helper to emit a pipeline event
+ */
+export function emitPipelineEvent(
+  eventType: PipelineEventType,
+  payload: PipelineStreamEvent["payload"] = {},
+): void {
+  const id = `pe-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  broadcastPipelineEvent({
+    type: "pipeline:event",
+    timestamp: new Date().toISOString(),
+    payload: {
+      id,
+      eventType,
+      ...payload,
+    },
+  });
+}
+
+/**
+ * Emit pipeline status update
+ */
+export function emitPipelineStatus(status: Record<string, unknown>): void {
+  broadcastPipelineEvent({
+    type: "pipeline:status",
+    timestamp: new Date().toISOString(),
+    payload: status as PipelineStreamEvent["payload"],
+  });
+}
+
+/**
+ * Get count of connected pipeline clients
+ */
+export function getPipelineClientCount(): number {
+  return pipelineClients.size;
 }
 
 export { wss };

@@ -69,9 +69,10 @@ const getWsUrl = () => {
   if (import.meta.env.VITE_WS_URL) {
     return import.meta.env.VITE_WS_URL;
   }
-  // In development, Vite runs on 5173, backend on 3001 - connect directly to backend
+  // In development, use Vite proxy (same port as frontend)
   if (import.meta.env.DEV) {
-    return "ws://localhost:3001";
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${window.location.host}`;
   }
   // In production, WebSocket is on the same host
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";

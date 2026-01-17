@@ -165,20 +165,10 @@ export class AgentOrchestrator {
       );
     }
 
-    // Check for idea type classification flow
-    // This is triggered at session start (when there are few messages and idea type not selected)
-    const ideaTypeResponse = await this.handleIdeaTypeClassification(
-      session,
-      userMessage,
-      messages,
-      lastAssistantMessage,
-    );
-    if (ideaTypeResponse) {
-      console.log(
-        "[Orchestrator] Idea type classification flow - returning early",
-      );
-      return ideaTypeResponse;
-    }
+    // NOTE: Idea type classification flow removed - idea type starts as "draft"
+    // and evolves naturally as the conversation progresses. This allows Claude
+    // to proactively explore the idea from the first message rather than
+    // interrupting with a "what type of idea is this?" question.
 
     // Check token usage
     const tokenUsage = calculateTokenUsage(messages, userMessage);

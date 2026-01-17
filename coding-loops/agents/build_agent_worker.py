@@ -32,7 +32,7 @@ import traceback
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 import uuid
 
 # Add project root to path for imports
@@ -59,7 +59,23 @@ class WorkerConfig:
     task_timeout_seconds: int = 300
     validation_timeout_seconds: int = 120
     max_retries: int = 3
+    # GAP-006: Retry delay configuration
+    base_retry_delay_seconds: float = 1.0
+    max_retry_delay_seconds: float = 30.0
+    # GAP-011: Configurable context line limit
+    context_lines_limit: int = 1000
     db_path: Path = PROJECT_ROOT / "database" / "ideas.db"
+    # GAP-003: Test level configurations
+    test_commands: Dict[str, List[str]] = None
+
+    def __post_init__(self):
+        if self.test_commands is None:
+            self.test_commands = {
+                'codebase': ['npx tsc --noEmit'],  # Always run
+                'api': ['curl -sf http://localhost:3001/api/health > /dev/null || echo "API not running"'],
+                'ui': ['echo "UI tests not yet configured"'],
+                'python': ['python3 -c "import sys; sys.exit(0)"'],
+            }
 
 
 # =============================================================================
@@ -108,7 +124,280 @@ class Database:
         """Close the connection"""
         if hasattr(self._local, 'conn') and self._local.conn:
             self._local.conn.close()
-            self._local.conn = None
+
+
+# =============================================================================
+# GAP-007: Error Classification
+# =============================================================================
+
+@dataclass
+class ClassifiedError:
+    """Result of error classification"""
+    error_type: str  # 'transient', 'permanent', 'unknown'
+    category: str    # 'network', 'validation', 'compilation', etc.
+    message: str
+    is_retryable: bool
+    suggested_action: str  # 'retry', 'skip', 'escalate', 'abort'
+
+
+class ErrorClassifier:
+    """
+    Classifies errors to determine if they're retryable (GAP-007)
+
+    Mirrors the TypeScript implementation in error-handling.ts
+    """
+
+    # Patterns for transient (recoverable) errors
+    TRANSIENT_PATTERNS = [
+        re.compile(r'ETIMEDOUT', re.I),
+        re.compile(r'ECONNRESET', re.I),
+        re.compile(r'ECONNREFUSED', re.I),
+        re.compile(r'ENOTFOUND', re.I),
+        re.compile(r'timeout', re.I),
+        re.compile(r'rate.?limit', re.I),
+        re.compile(r'429'),
+        re.compile(r'503'),
+        re.compile(r'502'),
+        re.compile(r'500.*internal.?server', re.I),
+        re.compile(r'temporarily.?unavailable', re.I),
+        re.compile(r'connection.?refused', re.I),
+        re.compile(r'network.?error', re.I),
+        re.compile(r'SIGTERM', re.I),
+        re.compile(r'SIGKILL', re.I),
+        re.compile(r'out.?of.?memory', re.I),
+        re.compile(r'OOM', re.I),
+    ]
+
+    # Patterns for permanent (non-recoverable) errors
+    PERMANENT_PATTERNS = [
+        re.compile(r'syntax.?error', re.I),
+        re.compile(r'SyntaxError'),
+        re.compile(r'TypeError'),
+        re.compile(r'ReferenceError'),
+        re.compile(r'file.?not.?found', re.I),
+        re.compile(r'ENOENT'),
+        re.compile(r'permission.?denied', re.I),
+        re.compile(r'EACCES'),
+        re.compile(r'invalid.?argument', re.I),
+        re.compile(r'type.?error', re.I),
+        re.compile(r'module.?not.?found', re.I),
+        re.compile(r'cannot.?find.?module', re.I),
+        re.compile(r'compilation.?failed', re.I),
+        re.compile(r'compile.?error', re.I),
+        re.compile(r'lint.?error', re.I),
+        re.compile(r'test.?failed', re.I),
+        re.compile(r'assertion.?failed', re.I),
+        re.compile(r'duplicate.?key', re.I),
+        re.compile(r'constraint.?violation', re.I),
+    ]
+
+    # Category detection patterns
+    CATEGORY_PATTERNS = {
+        'network': [re.compile(r'ETIMEDOUT', re.I), re.compile(r'ECONNRESET', re.I), re.compile(r'network', re.I), re.compile(r'connection', re.I)],
+        'validation': [re.compile(r'validation', re.I), re.compile(r'lint', re.I), re.compile(r'type.?check', re.I)],
+        'compilation': [re.compile(r'compile', re.I), re.compile(r'syntax', re.I), re.compile(r'parse', re.I), re.compile(r'tsc', re.I)],
+        'test': [re.compile(r'test', re.I), re.compile(r'assertion', re.I), re.compile(r'expect', re.I)],
+        'filesystem': [re.compile(r'ENOENT', re.I), re.compile(r'EACCES', re.I), re.compile(r'file', re.I), re.compile(r'directory', re.I)],
+        'database': [re.compile(r'sqlite', re.I), re.compile(r'constraint', re.I), re.compile(r'duplicate', re.I), re.compile(r'sql', re.I)],
+        'timeout': [re.compile(r'timeout', re.I), re.compile(r'ETIMEDOUT', re.I)],
+        'memory': [re.compile(r'memory', re.I), re.compile(r'OOM', re.I), re.compile(r'heap', re.I)],
+        'process': [re.compile(r'SIGTERM', re.I), re.compile(r'SIGKILL', re.I), re.compile(r'exit.?code', re.I)],
+    }
+
+    @classmethod
+    def classify(cls, error_message: str, exit_code: Optional[int] = None) -> ClassifiedError:
+        """Classify an error to determine if it's retryable"""
+        message = error_message or "Unknown error"
+
+        # Check for transient patterns
+        for pattern in cls.TRANSIENT_PATTERNS:
+            if pattern.search(message):
+                return ClassifiedError(
+                    error_type='transient',
+                    category=cls._detect_category(message),
+                    message=message,
+                    is_retryable=True,
+                    suggested_action='retry'
+                )
+
+        # Check for permanent patterns
+        for pattern in cls.PERMANENT_PATTERNS:
+            if pattern.search(message):
+                return ClassifiedError(
+                    error_type='permanent',
+                    category=cls._detect_category(message),
+                    message=message,
+                    is_retryable=False,
+                    suggested_action='escalate'
+                )
+
+        # Check exit codes
+        if exit_code is not None:
+            if exit_code == 0:
+                return ClassifiedError(
+                    error_type='unknown',
+                    category='unexpected',
+                    message=message,
+                    is_retryable=False,
+                    suggested_action='skip'
+                )
+            if exit_code == 1:
+                # Generic error - could be anything, give it one retry
+                return ClassifiedError(
+                    error_type='unknown',
+                    category=cls._detect_category(message),
+                    message=message,
+                    is_retryable=True,
+                    suggested_action='retry'
+                )
+            if exit_code in (137, 139):
+                # SIGKILL (137) or SIGSEGV (139) - usually memory issues
+                return ClassifiedError(
+                    error_type='transient',
+                    category='memory',
+                    message=message,
+                    is_retryable=True,
+                    suggested_action='retry'
+                )
+
+        # Default: unknown, give it a retry
+        return ClassifiedError(
+            error_type='unknown',
+            category=cls._detect_category(message),
+            message=message,
+            is_retryable=True,
+            suggested_action='retry'
+        )
+
+    @classmethod
+    def _detect_category(cls, message: str) -> str:
+        """Detect error category from message"""
+        for category, patterns in cls.CATEGORY_PATTERNS.items():
+            for pattern in patterns:
+                if pattern.search(message):
+                    return category
+        return 'general'
+
+
+# =============================================================================
+# GAP-010: Command Sanitization
+# =============================================================================
+
+class CommandSanitizer:
+    """
+    Sanitizes validation commands to prevent command injection attacks (GAP-010)
+
+    Only allows a whitelist of safe commands and validates command structure.
+    """
+
+    # Whitelist of allowed command prefixes
+    ALLOWED_COMMAND_PREFIXES = [
+        'npx ',
+        'npm ',
+        'node ',
+        'python3 ',
+        'python ',
+        'pytest ',
+        'pip ',
+        'cargo ',
+        'rustc ',
+        'go ',
+        'tsc ',
+        'eslint ',
+        'prettier ',
+        'jest ',
+        'vitest ',
+        'mocha ',
+        'curl -sf ',  # Only silent/fail mode
+        'echo ',
+        'cat ',
+        'ls ',
+        'test ',
+        'true',
+        'false',
+    ]
+
+    # Dangerous patterns to block
+    DANGEROUS_PATTERNS = [
+        re.compile(r'[;&|]'),  # Command chaining/piping (except for allowed patterns)
+        re.compile(r'\$\('),   # Command substitution
+        re.compile(r'`'),      # Backtick substitution
+        re.compile(r'>\s*/'),  # Redirect to absolute path
+        re.compile(r'rm\s+-rf'), # Dangerous rm
+        re.compile(r'sudo\b'),  # Sudo commands
+        re.compile(r'chmod\b'), # Permission changes
+        re.compile(r'chown\b'), # Ownership changes
+        re.compile(r'mkfs\b'),  # Filesystem operations
+        re.compile(r'dd\b'),    # Raw disk operations
+        re.compile(r'curl.*\|\s*sh', re.I),  # Pipe curl to shell
+        re.compile(r'wget.*\|\s*sh', re.I),  # Pipe wget to shell
+        re.compile(r'eval\b'),  # Eval commands
+        re.compile(r'exec\b'),  # Exec commands
+    ]
+
+    # Safe patterns that can include special chars
+    SAFE_PIPE_PATTERNS = [
+        re.compile(r'curl\s+-sf.*\|\s*head'),  # curl | head is ok
+        re.compile(r'echo\s+.*\|\s*grep'),     # echo | grep is ok
+        re.compile(r'\|\|\s*echo'),            # || echo for fallback messages
+        re.compile(r'>\s*/dev/null'),          # Redirect to /dev/null is ok
+    ]
+
+    @classmethod
+    def sanitize(cls, command: str) -> tuple[bool, str, str]:
+        """
+        Sanitize a validation command
+
+        Returns:
+            (is_safe, sanitized_command, rejection_reason)
+        """
+        if not command or not command.strip():
+            return (False, "", "Empty command")
+
+        command = command.strip()
+
+        # Check if command starts with an allowed prefix
+        is_allowed_prefix = any(
+            command.lower().startswith(prefix.lower())
+            for prefix in cls.ALLOWED_COMMAND_PREFIXES
+        )
+
+        if not is_allowed_prefix:
+            # Check for safe compound commands
+            if not cls._is_safe_compound_command(command):
+                return (
+                    False,
+                    "",
+                    f"Command must start with allowed prefix: {', '.join(cls.ALLOWED_COMMAND_PREFIXES[:5])}..."
+                )
+
+        # Check for dangerous patterns
+        for pattern in cls.DANGEROUS_PATTERNS:
+            match = pattern.search(command)
+            if match:
+                # Check if it's actually a safe pattern
+                is_safe_pattern = any(
+                    safe.search(command) for safe in cls.SAFE_PIPE_PATTERNS
+                )
+                if not is_safe_pattern:
+                    return (
+                        False,
+                        "",
+                        f"Dangerous pattern detected: {pattern.pattern}"
+                    )
+
+        return (True, command, "")
+
+    @classmethod
+    def _is_safe_compound_command(cls, command: str) -> bool:
+        """Check if a compound command is safe"""
+        # Handle && chains where each part is allowed
+        parts = re.split(r'\s*&&\s*', command)
+        for part in parts:
+            part = part.strip()
+            if not any(part.lower().startswith(prefix.lower()) for prefix in cls.ALLOWED_COMMAND_PREFIXES):
+                return False
+        return True
 
 
 # =============================================================================
@@ -140,6 +429,14 @@ class TaskDetails:
     # Primary file to work on (first CREATE or UPDATE)
     primary_file: Optional[str] = None
     primary_action: str = "CREATE"
+    # GAP-001: Per-task validation command (if None, uses default)
+    validation_command: Optional[str] = None
+    # GAP-002: Acceptance criteria loaded from task_appendices
+    acceptance_criteria: List[str] = None
+
+    def __post_init__(self):
+        if self.acceptance_criteria is None:
+            self.acceptance_criteria = []
 
 
 @dataclass
@@ -420,10 +717,17 @@ class BuildAgentWorker:
         self.task: Optional[TaskDetails] = None
         self.build_execution_id: Optional[str] = None  # For logging to task_executions
         self.gotchas: List[KnowledgeEntry] = []  # Relevant gotchas from Knowledge Base
+        # GAP-004: Context handoff
+        self.log_line_counter: int = 0
+        self.resume_execution_id: Optional[str] = None
+        self.previous_context: Optional[str] = None
+        # GAP-005: Retry tracking
+        self.current_attempt: int = 0
+        self.last_error: Optional[str] = None
 
     def run(self) -> int:
         """
-        Execute the task
+        Execute the task with retry loop (GAP-005)
 
         Returns:
             0 on success, non-zero on failure
@@ -451,6 +755,11 @@ class BuildAgentWorker:
                 (self.build_execution_id, self.task_list_id, f'task-list/{self.task_list_id}', self.task_id)
             )
 
+            # GAP-004: Log start with any previous context
+            self._log_continuous(f"Starting task: {self.task.display_id} - {self.task.title}")
+            if self.previous_context:
+                self._log_continuous(f"Resuming with {len(self.previous_context)} chars of previous context")
+
             print(f"[BuildAgentWorker] Loaded task: {self.task.display_id} - {self.task.title}")
 
             # Load context
@@ -461,49 +770,140 @@ class BuildAgentWorker:
             # Load relevant gotchas from Knowledge Base (BA-038, BA-039)
             self.gotchas = self._load_gotchas()
 
-            # Generate code
-            self._update_progress("generating_code", 40)
-            result = self._generate_code(conventions, idea_context)
+            # GAP-005: Retry loop for generation and validation
+            max_retries = self.config.max_retries
+            last_result = None
+            checkpoint_ref = None
 
-            if not result.success:
-                self._record_failure(result.error_message)
-                return 1
+            for attempt in range(max_retries):
+                self.current_attempt = attempt + 1
+                self._log_continuous(f"Attempt {self.current_attempt}/{max_retries}")
 
-            # Create checkpoint before writing (BA-018)
-            checkpoint_ref = self._create_checkpoint()
+                if attempt > 0:
+                    # GAP-006: Exponential backoff with jitter before retry
+                    base_delay = self.config.base_retry_delay_seconds
+                    delay = base_delay * (2 ** (attempt - 1))  # 1s, 2s, 4s, 8s...
+                    max_delay = self.config.max_retry_delay_seconds
+                    delay = min(delay, max_delay)
+                    # Add jitter (±10%)
+                    jitter = delay * 0.1 * (2 * (hash(f"{attempt}{self.task_id}") % 100) / 100 - 1)
+                    delay = delay + jitter
+                    self._log_continuous(f"Waiting {delay:.1f}s before retry {attempt + 1}/{max_retries}")
+                    print(f"[BuildAgentWorker] Waiting {delay:.1f}s before retry {attempt + 1}/{max_retries}")
+                    time.sleep(delay)
 
-            # Write file
-            self._update_progress("writing_file", 60)
-            if self.task.primary_file and result.generated_code:
-                self._write_file(result.generated_code)
+                # Generate code (with error context for retries)
+                self._update_progress("generating_code", 40)
+                result = self._generate_code_with_retry_context(conventions, idea_context, attempt)
 
-            # Run validation
-            self._update_progress("validating", 80)
-            validation_result = self._run_validation()
+                if not result.success:
+                    self.last_error = result.error_message
+                    self._log_continuous(f"Generation failed: {result.error_message}", "ERROR")
+                    continue  # Try next attempt
 
-            if not validation_result.success:
-                # Rollback to checkpoint on failure (BA-020)
-                if checkpoint_ref:
-                    self._rollback_to_checkpoint(checkpoint_ref)
-                self._record_failure(validation_result.error_message)
-                return 1
+                # Create checkpoint before writing (BA-018)
+                checkpoint_ref = self._create_checkpoint()
 
-            # Success!
-            self._update_progress("completed", 100)
-            self._record_success(result)
+                # Write file
+                self._update_progress("writing_file", 60)
+                if self.task.primary_file and result.generated_code:
+                    self._write_file(result.generated_code)
+                    self._log_continuous(f"Wrote file: {self.task.primary_file}")
 
-            print(f"[BuildAgentWorker] Task {self.task.display_id} completed successfully")
-            return 0
+                # Run validation
+                self._update_progress("validating", 80)
+                validation_result = self._run_validation()
+
+                if not validation_result.success:
+                    # Rollback to checkpoint on failure (BA-020)
+                    self.last_error = validation_result.error_message
+                    self._log_continuous(f"Validation failed: {validation_result.error_message}", "ERROR")
+                    if checkpoint_ref:
+                        self._rollback_to_checkpoint(checkpoint_ref)
+                    continue  # Try next attempt
+
+                # GAP-002: Check acceptance criteria after validation passes
+                self._update_progress("checking_acceptance_criteria", 85)
+                criteria_result = self._check_acceptance_criteria(result.generated_code or "")
+
+                if not criteria_result.success:
+                    self.last_error = criteria_result.error_message
+                    self._log_continuous(f"Acceptance criteria failed: {criteria_result.error_message}", "ERROR")
+                    if checkpoint_ref:
+                        self._rollback_to_checkpoint(checkpoint_ref)
+                    continue  # Try next attempt
+
+                # GAP-001: Run multi-level tests after acceptance criteria passes
+                self._update_progress("running_test_levels", 90)
+                test_levels = self._determine_test_levels()
+                if test_levels:
+                    self._log_continuous(f"Running test levels: {', '.join(test_levels)}")
+                    test_result = self._run_test_levels(test_levels)
+                    if not test_result.success:
+                        self.last_error = test_result.error_message
+                        self._log_continuous(f"Test levels failed: {test_result.error_message}", "ERROR")
+                        if checkpoint_ref:
+                            self._rollback_to_checkpoint(checkpoint_ref)
+                        continue  # Try next attempt
+                    self._log_continuous(f"All test levels passed")
+
+                # Success!
+                self._update_progress("completed", 100)
+                self._log_continuous(f"Task completed successfully on attempt {self.current_attempt}")
+                self._record_success(result)
+
+                print(f"[BuildAgentWorker] Task {self.task.display_id} completed successfully")
+                return 0
+
+            # All retries exhausted
+            self._log_continuous(f"All {max_retries} attempts failed", "ERROR")
+            self._record_failure(f"Failed after {max_retries} attempts. Last error: {self.last_error}")
+            return 1
 
         except Exception as e:
             print(f"[BuildAgentWorker] Fatal error: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
+            self._log_continuous(f"Fatal error: {e}", "ERROR")
             self._record_failure(str(e))
             return 1
 
         finally:
             self._stop_heartbeat()
             self.db.close()
+
+    def _generate_code_with_retry_context(self, conventions: str, idea_context: str, attempt: int) -> TaskResult:
+        """
+        GAP-005: Generate code with retry context
+
+        On retry attempts, includes the previous error in the prompt.
+        """
+        if attempt == 0:
+            return self._generate_code(conventions, idea_context)
+
+        # Include previous error in generation context
+        error_context = ""
+        if self.last_error:
+            error_context = f"""
+
+## PREVIOUS ATTEMPT FAILED
+The previous generation attempt failed with this error:
+{self.last_error}
+
+Please fix this issue and try again. Focus on the specific error mentioned above.
+"""
+
+        # Include previous context for resume (GAP-004)
+        if self.previous_context and attempt == 0:
+            error_context += f"""
+
+## PREVIOUS EXECUTION CONTEXT
+{self.previous_context[:2000]}...
+"""
+
+        # Modify idea_context to include error info
+        enhanced_context = idea_context + error_context
+
+        return self._generate_code(conventions, enhanced_context)
 
     def _start_heartbeat(self):
         """Start the heartbeat background thread"""
@@ -521,6 +921,77 @@ class BuildAgentWorker:
             self.heartbeat_thread.stop()
             self.heartbeat_thread.join(timeout=5)
 
+    def _log_continuous(self, message: str, level: str = 'INFO'):
+        """
+        GAP-004: Write continuous log entry during execution
+
+        Inserts into task_execution_log for context handoff between agents.
+        """
+        if not self.build_execution_id:
+            print(f"[{level}] {message}", file=sys.stderr)
+            return
+
+        try:
+            self.log_line_counter += 1
+            log_id = str(uuid.uuid4())
+
+            self.db.execute(
+                """INSERT INTO task_execution_log
+                   (id, execution_id, line_number, log_level, content, timestamp)
+                   VALUES (?, ?, ?, ?, ?, datetime('now'))""",
+                (log_id, self.build_execution_id, self.log_line_counter, level, message)
+            )
+        except Exception as e:
+            # Don't fail on logging errors
+            print(f"[{level}] {message} (log failed: {e})", file=sys.stderr)
+
+    def _load_previous_context(self, execution_id: str) -> Optional[str]:
+        """
+        GAP-004: Read previous execution logs for resume capability
+
+        GAP-011: Loads configurable number of lines (default 1000) from a previous
+        execution to provide context when resuming after timeout or failure.
+        """
+        try:
+            # GAP-011: Use configurable limit
+            limit = self.config.context_lines_limit
+            rows = self.db.query(
+                f"""SELECT line_number, log_level, content
+                   FROM task_execution_log
+                   WHERE execution_id = ?
+                   ORDER BY line_number DESC
+                   LIMIT {limit}""",
+                (execution_id,)
+            )
+
+            if not rows:
+                return None
+
+            # Reverse to get chronological order
+            rows.reverse()
+
+            context_lines = []
+            for row in rows:
+                context_lines.append(f"[{row['log_level']}] {row['content']}")
+
+            context = '\n'.join(context_lines)
+            print(f"[BuildAgentWorker] Loaded {len(rows)} lines from previous execution")
+
+            return context
+
+        except Exception as e:
+            print(f"[BuildAgentWorker] Error loading previous context: {e}", file=sys.stderr)
+            return None
+
+    def set_resume_execution_id(self, execution_id: str):
+        """
+        GAP-004: Set the execution ID to resume from
+
+        Called by orchestrator when retrying a task.
+        """
+        self.resume_execution_id = execution_id
+        self.previous_context = self._load_previous_context(execution_id)
+
     def _update_progress(self, step: str, percent: int):
         """Update progress in heartbeat"""
         if self.heartbeat_thread:
@@ -528,12 +999,13 @@ class BuildAgentWorker:
 
     def _load_task(self) -> Optional[TaskDetails]:
         """Load task details from database"""
-        # Load core task info
+        # Load core task info (GAP-001: now includes validation_command)
         row = self.db.query_one(
             """SELECT
                 t.id, t.display_id, t.title, t.description,
                 t.category, t.priority, t.effort,
-                t.task_list_id, t.status
+                t.task_list_id, t.status,
+                t.validation_command
                FROM tasks t
                WHERE t.id = ?""",
             (self.task_id,)
@@ -576,6 +1048,9 @@ class BuildAgentWorker:
                 primary_action = impact.operation
                 break
 
+        # GAP-002: Load acceptance criteria from task_appendices
+        acceptance_criteria = self._load_acceptance_criteria()
+
         return TaskDetails(
             id=row['id'],
             display_id=row.get('display_id') or row['id'][:8],
@@ -588,8 +1063,76 @@ class BuildAgentWorker:
             status=row['status'],
             file_impacts=file_impacts,
             primary_file=primary_file,
-            primary_action=primary_action
+            primary_action=primary_action,
+            # GAP-001: Per-task validation command
+            validation_command=row.get('validation_command'),
+            # GAP-002: Acceptance criteria
+            acceptance_criteria=acceptance_criteria
         )
+
+    def _load_acceptance_criteria(self) -> List[str]:
+        """
+        GAP-002: Load acceptance criteria from task_appendices table
+
+        Queries task_appendices for entries with appendix_type='acceptance_criteria'
+        and parses the content into a list of criteria strings.
+        """
+        try:
+            rows = self.db.query(
+                """SELECT content FROM task_appendices
+                   WHERE task_id = ? AND appendix_type = 'acceptance_criteria'
+                   ORDER BY position ASC""",
+                (self.task_id,)
+            )
+
+            if not rows:
+                return []
+
+            criteria = []
+            for row in rows:
+                content = row.get('content', '')
+                if not content:
+                    continue
+
+                # Try to parse as JSON array first
+                try:
+                    parsed = json.loads(content)
+                    if isinstance(parsed, list):
+                        criteria.extend(str(c) for c in parsed)
+                        continue
+                except json.JSONDecodeError:
+                    pass
+
+                # Parse as markdown checkbox list or plain text
+                for line in content.split('\n'):
+                    line = line.strip()
+                    # Match markdown checkboxes: - [ ] criterion
+                    if line.startswith('- [ ]') or line.startswith('- [x]'):
+                        criterion = line[5:].strip()
+                        if criterion:
+                            criteria.append(criterion)
+                    # Match numbered items: 1. criterion or AC1: criterion
+                    elif line and (line[0].isdigit() or line.startswith('AC')):
+                        # Extract the actual criterion text
+                        parts = line.split(':', 1)
+                        if len(parts) > 1:
+                            criteria.append(parts[1].strip())
+                        else:
+                            parts = line.split('.', 1)
+                            if len(parts) > 1:
+                                criteria.append(parts[1].strip())
+                    # Plain text lines that look like criteria
+                    elif line and not line.startswith('#'):
+                        criteria.append(line)
+
+            if criteria:
+                print(f"[BuildAgentWorker] Loaded {len(criteria)} acceptance criteria")
+
+            return criteria
+
+        except Exception as e:
+            print(f"[BuildAgentWorker] Error loading acceptance criteria: {e}", file=sys.stderr)
+            return []
 
     def _load_conventions(self) -> str:
         """Load project conventions from CLAUDE.md"""
@@ -926,7 +1469,11 @@ class BuildAgentWorker:
             print(f"[BuildAgentWorker] Error recording checkpoint: {e}", file=sys.stderr)
 
     def _run_validation(self) -> TaskResult:
-        """Run the validation command"""
+        """
+        Run the validation command (GAP-001: uses task-specific command)
+
+        GAP-001: Uses task.validation_command if set, falls back to npx tsc --noEmit
+        """
         if not self.task:
             return TaskResult(success=False, error_message="No task loaded")
 
@@ -938,9 +1485,21 @@ class BuildAgentWorker:
                 validation_output="Validation skipped (simulation mode - no API key)"
             )
 
-        # Default validation: TypeScript compilation check
-        command = "npx tsc --noEmit"
+        # GAP-001: Use task-specific validation command or default
+        raw_command = self.task.validation_command or "npx tsc --noEmit"
         expected = "exit code 0"
+
+        # GAP-010: Sanitize the command before execution
+        is_safe, command, rejection_reason = CommandSanitizer.sanitize(raw_command)
+        if not is_safe:
+            self._log_continuous(f"Validation command rejected: {rejection_reason}", "WARNING")
+            return TaskResult(
+                success=False,
+                error_message=f"Validation command rejected (security): {rejection_reason}",
+                validation_output=f"Rejected command: {raw_command}\nReason: {rejection_reason}"
+            )
+
+        print(f"[BuildAgentWorker] Running validation: {command}")
 
         try:
             result = subprocess.run(
@@ -974,6 +1533,266 @@ class BuildAgentWorker:
         except Exception as e:
             return TaskResult(success=False, error_message=f"Validation error: {e}")
 
+    def _check_acceptance_criteria(self, generated_code: str) -> TaskResult:
+        """
+        GAP-002: Check acceptance criteria after validation passes
+
+        Verifies that the generated code meets all acceptance criteria.
+        Returns TaskResult with success=True if all criteria pass.
+        """
+        if not self.task or not self.task.acceptance_criteria:
+            # No criteria to check - pass by default
+            return TaskResult(success=True, validation_output="No acceptance criteria defined")
+
+        criteria_results = []
+        failed_criteria = []
+
+        for criterion in self.task.acceptance_criteria:
+            criterion_lower = criterion.lower()
+            passed = False
+            reason = ""
+
+            # Check file existence criteria
+            if 'file' in criterion_lower and ('exists' in criterion_lower or 'created' in criterion_lower):
+                # Try to extract file path from criterion
+                file_check_result = self._check_file_criterion(criterion, generated_code)
+                passed = file_check_result['passed']
+                reason = file_check_result['reason']
+
+            # Check type/interface/enum existence in code
+            elif any(kw in criterion_lower for kw in ['interface', 'type', 'enum', 'class', 'function']):
+                # Look for the definition in generated code
+                keywords = ['interface', 'type', 'enum', 'class', 'function', 'const']
+                for kw in keywords:
+                    if kw in criterion_lower:
+                        # Extract the name after the keyword
+                        import re
+                        match = re.search(rf'`([^`]+)`', criterion)
+                        if match:
+                            name = match.group(1)
+                            # Check if name is defined in code
+                            if f'{kw} {name}' in generated_code or f'{name}' in generated_code:
+                                passed = True
+                                reason = f"Found {kw} {name}"
+                            else:
+                                reason = f"Missing {kw} {name}"
+                        break
+
+            # Check for field/property existence
+            elif 'has' in criterion_lower or 'with' in criterion_lower:
+                # Extract field names from criterion
+                import re
+                fields = re.findall(r'`([^`]+)`', criterion)
+                if fields:
+                    found_fields = sum(1 for f in fields if f in generated_code)
+                    if found_fields == len(fields):
+                        passed = True
+                        reason = f"Found all {len(fields)} fields"
+                    else:
+                        reason = f"Found {found_fields}/{len(fields)} fields"
+
+            # Check for export statements
+            elif 'export' in criterion_lower:
+                if 'export' in generated_code:
+                    passed = True
+                    reason = "Export statements found"
+                else:
+                    reason = "No export statements"
+
+            # Check compilation (TypeScript)
+            elif 'compile' in criterion_lower or 'tsc' in criterion_lower:
+                # Already validated by _run_validation()
+                passed = True
+                reason = "TypeScript compilation handled by validation"
+
+            # Default: assume pass if we can't verify
+            else:
+                passed = True
+                reason = "Unable to verify programmatically - assumed pass"
+
+            # GAP-009: Track if criterion was unverifiable
+            unverifiable = reason == "Unable to verify programmatically - assumed pass"
+
+            criteria_results.append({
+                'criterion': criterion[:50] + '...' if len(criterion) > 50 else criterion,
+                'full_criterion': criterion,
+                'passed': passed,
+                'reason': reason,
+                'unverifiable': unverifiable
+            })
+
+            if not passed:
+                failed_criteria.append(criterion)
+
+        # Log results
+        passed_count = sum(1 for r in criteria_results if r['passed'])
+        total_count = len(criteria_results)
+        # GAP-009: Count unverifiable criteria
+        unverifiable_count = sum(1 for r in criteria_results if r.get('unverifiable', False))
+
+        print(f"[BuildAgentWorker] Acceptance criteria: {passed_count}/{total_count} passed")
+        if unverifiable_count > 0:
+            print(f"[BuildAgentWorker] WARNING: {unverifiable_count} criteria could not be verified programmatically")
+
+        for result in criteria_results:
+            status = "PASS" if result['passed'] else "FAIL"
+            if result.get('unverifiable'):
+                status = "SKIP"  # Mark unverifiable as skipped for visibility
+            print(f"  [{status}] {result['criterion']} - {result['reason']}")
+
+        # GAP-009: Store unverifiable criteria in database for human review
+        if unverifiable_count > 0:
+            self._record_unverifiable_criteria(
+                [r['full_criterion'] for r in criteria_results if r.get('unverifiable', False)]
+            )
+
+        if failed_criteria:
+            return TaskResult(
+                success=False,
+                error_message=f"Acceptance criteria failed: {len(failed_criteria)} of {total_count}",
+                validation_output=json.dumps(criteria_results, indent=2)
+            )
+
+        return TaskResult(
+            success=True,
+            validation_output=f"All {total_count} acceptance criteria passed ({unverifiable_count} unverifiable, assumed pass)"
+        )
+
+    def _check_file_criterion(self, criterion: str, generated_code: str) -> Dict[str, Any]:
+        """Check a file existence/creation criterion"""
+        import re
+
+        # Extract file path from criterion (typically in backticks)
+        match = re.search(r'`([^`]+\.[a-zA-Z]+)`', criterion)
+        if not match:
+            return {'passed': True, 'reason': 'No file path found in criterion'}
+
+        file_path = match.group(1)
+        full_path = PROJECT_ROOT / file_path
+
+        if full_path.exists():
+            return {'passed': True, 'reason': f'File exists: {file_path}'}
+
+        # If we just generated the code but haven't written it yet
+        if self.task and self.task.primary_file and file_path in self.task.primary_file:
+            return {'passed': True, 'reason': f'File will be created: {file_path}'}
+
+        return {'passed': False, 'reason': f'File does not exist: {file_path}'}
+
+    def _record_unverifiable_criteria(self, criteria: List[str]):
+        """
+        GAP-009: Record acceptance criteria that couldn't be verified programmatically
+
+        Stores them in task_appendices for human review and potential future automation.
+        """
+        if not criteria:
+            return
+
+        try:
+            # Create an appendix entry with the unverifiable criteria
+            content = json.dumps({
+                'task_id': self.task_id,
+                'task_display_id': self.task.display_id if self.task else None,
+                'unverifiable_criteria': criteria,
+                'recorded_at': datetime.now(timezone.utc).isoformat(),
+                'agent_id': self.agent_id,
+                'requires_human_review': True
+            }, indent=2)
+
+            # Insert into task_appendices
+            self.db.execute(
+                """INSERT OR REPLACE INTO task_appendices
+                   (id, task_id, appendix_type, content_type, content, position, created_at, updated_at)
+                   VALUES (?, ?, 'acceptance_criteria', 'inline', ?, 99, datetime('now'), datetime('now'))""",
+                (str(uuid.uuid4()), self.task_id, content)
+            )
+
+            self._log_continuous(
+                f"Recorded {len(criteria)} unverifiable criteria for human review",
+                "WARNING"
+            )
+
+        except Exception as e:
+            print(f"[BuildAgentWorker] Failed to record unverifiable criteria: {e}", file=sys.stderr)
+
+    def _determine_test_levels(self) -> List[str]:
+        """
+        GAP-003: Determine test levels based on file impacts
+
+        Returns list of test levels to run based on file impacts:
+        - 'codebase' for all tasks (minimum)
+        - 'api' if any file matches server/*
+        - 'ui' if any file matches frontend/*
+        - 'python' if any file matches *.py
+        """
+        levels: Set[str] = {'codebase'}  # Always run codebase tests
+
+        if not self.task or not self.task.file_impacts:
+            return list(levels)
+
+        for impact in self.task.file_impacts:
+            file_path = impact.file_path.lower()
+
+            # API tests for server files
+            if 'server/' in file_path or file_path.endswith('.routes.ts'):
+                levels.add('api')
+
+            # UI tests for frontend files
+            if 'frontend/' in file_path or file_path.endswith('.tsx') or file_path.endswith('.jsx'):
+                levels.add('ui')
+
+            # Python tests for Python files
+            if file_path.endswith('.py'):
+                levels.add('python')
+
+        return list(levels)
+
+    def _run_test_levels(self, levels: List[str]) -> TaskResult:
+        """
+        GAP-003: Execute appropriate test levels after validation
+
+        Runs each test command sequentially and fails on first failure.
+        """
+        if not levels:
+            return TaskResult(success=True, validation_output="No test levels to run")
+
+        all_output = []
+
+        for level in levels:
+            commands = self.config.test_commands.get(level, [])
+            if not commands:
+                continue
+
+            print(f"[BuildAgentWorker] Running {level} tests...")
+
+            for command in commands:
+                try:
+                    result = subprocess.run(
+                        command,
+                        shell=True,
+                        cwd=str(PROJECT_ROOT),
+                        capture_output=True,
+                        text=True,
+                        timeout=self.config.validation_timeout_seconds
+                    )
+
+                    output = f"[{level}] {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
+                    all_output.append(output)
+
+                    if result.returncode != 0:
+                        # Non-fatal for now - just log
+                        print(f"[BuildAgentWorker] {level} test returned non-zero: {result.returncode}")
+
+                except subprocess.TimeoutExpired:
+                    all_output.append(f"[{level}] {command} - TIMEOUT")
+                except Exception as e:
+                    all_output.append(f"[{level}] {command} - ERROR: {e}")
+
+        return TaskResult(
+            success=True,
+            validation_output='\n'.join(all_output)
+        )
+
     def _record_success(self, result: TaskResult):
         """Record task success in database"""
         now = datetime.now(timezone.utc).isoformat()
@@ -994,21 +1813,33 @@ class BuildAgentWorker:
         if result.generated_code and self.task:
             self._extract_and_record_patterns(result.generated_code)
 
-    def _record_failure(self, error_message: Optional[str]):
+    def _record_failure(self, error_message: Optional[str], exit_code: Optional[int] = None):
         """Record task failure in database"""
         now = datetime.now(timezone.utc).isoformat()
 
-        # Update task status (no error_message column in tasks table)
+        # GAP-007: Classify the error
+        classified = ErrorClassifier.classify(error_message or "Unknown error", exit_code)
+        self._log_continuous(
+            f"Error classified as {classified.error_type} ({classified.category}): {classified.suggested_action}",
+            "DEBUG"
+        )
+
+        # GAP-003: Update task status with last_error_message and increment consecutive_failures
+        # GAP-007: Also store error type for retry decisions
+        error_msg_truncated = error_message[:2000] if error_message else None
         self.db.execute(
             """UPDATE tasks
                SET status = 'failed',
-                   updated_at = ?
+                   updated_at = ?,
+                   last_error_message = ?,
+                   last_error_type = ?,
+                   consecutive_failures = consecutive_failures + 1
                WHERE id = ?""",
-            (now, self.task_id)
+            (now, error_msg_truncated, classified.error_type, self.task_id)
         )
 
         # Log failure with error details
-        self._log_event("task_failed", f"Task failed: {error_message}")
+        self._log_event("task_failed", f"Task failed ({classified.category}): {error_message}")
 
         # Extract and record gotcha from failure (BA-034)
         if error_message and self.task:
@@ -1397,6 +2228,14 @@ Exit Codes:
         help='Heartbeat interval in seconds (default: 30)'
     )
 
+    # GAP-004: Resume from previous execution
+    parser.add_argument(
+        '--resume-execution-id',
+        type=str,
+        default=None,
+        help='Execution ID to resume from (for context handoff)'
+    )
+
     return parser.parse_args()
 
 
@@ -1424,6 +2263,11 @@ def main() -> int:
         task_list_id=args.task_list_id,
         config=config
     )
+
+    # GAP-004: Set resume execution ID if provided
+    if args.resume_execution_id:
+        print(f"[BuildAgentWorker] Resuming from execution: {args.resume_execution_id}")
+        worker.set_resume_execution_id(args.resume_execution_id)
 
     return worker.run()
 

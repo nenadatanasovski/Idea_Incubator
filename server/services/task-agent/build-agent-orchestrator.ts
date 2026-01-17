@@ -28,6 +28,19 @@ import {
   getTaskListParallelism,
 } from "./parallelism-calculator.js";
 import { updateTaskStatus } from "./task-creation-service.js";
+// GAP-002: Import error-handling functions for SIA integration
+import {
+  classifyError,
+  recordFailure,
+  makeFailureDecision,
+  incrementConsecutiveFailures,
+  checkSIAEscalation,
+  escalateToSIA,
+  gatherFailureContext,
+  type ClassifiedError,
+  type FailureDecision,
+} from "./error-handling.js";
+import os from "os";
 
 /**
  * Database row for Build Agent instance
@@ -146,7 +159,7 @@ export async function spawnBuildAgent(
            hostname = ?,
            last_heartbeat_at = datetime('now')
        WHERE id = ?`,
-      [agentProcess.pid?.toString() || null, require("os").hostname(), id],
+      [agentProcess.pid?.toString() || null, os.hostname(), id],
     );
 
     // Handle process events
@@ -243,7 +256,14 @@ async function handleAgentExit(
       [agentId],
     );
     if (agent?.task_list_id) {
-      await handleAgentFailure(agentId, taskId, agent.task_list_id);
+      // GAP-002: Pass error message to handleAgentFailure
+      const errorMessage = agent.error_message || `Exit code ${code || signal}`;
+      await handleAgentFailure(
+        agentId,
+        taskId,
+        agent.task_list_id,
+        errorMessage,
+      );
     }
   }
 }
@@ -258,6 +278,12 @@ async function handleAgentError(
 ): Promise<void> {
   activeProcesses.delete(agentId);
 
+  // Get agent info first to get task_list_id
+  const agent = await getOne<BuildAgentRow>(
+    "SELECT * FROM build_agent_instances WHERE id = ?",
+    [agentId],
+  );
+
   await run(
     `UPDATE build_agent_instances
      SET status = 'terminated',
@@ -271,6 +297,16 @@ async function handleAgentError(
 
   await updateTaskStatus(taskId, "failed");
   await saveDb();
+
+  // GAP-002: Call handleAgentFailure with error message for proper tracking
+  if (agent?.task_list_id) {
+    await handleAgentFailure(
+      agentId,
+      taskId,
+      agent.task_list_id,
+      error.message,
+    );
+  }
 }
 
 /**
@@ -497,15 +533,55 @@ export async function handleAgentCompletion(
  * @param agentId Failed agent ID
  * @param failedTaskId Failed task ID
  * @param taskListId Task list ID
+ * @param errorMessage Optional error message from the agent
  */
 export async function handleAgentFailure(
   agentId: string,
   failedTaskId: string,
   taskListId: string,
+  errorMessage?: string,
 ): Promise<void> {
   console.log(
     `[BuildAgentOrchestrator] Agent ${agentId} failed on task ${failedTaskId}`,
   );
+
+  // GAP-002: Record the failure using error-handling service
+  if (errorMessage) {
+    try {
+      // Record failure with classification
+      await recordFailure(failedTaskId, errorMessage, agentId);
+      console.log(
+        `[BuildAgentOrchestrator] Recorded failure for task ${failedTaskId}`,
+      );
+    } catch (err) {
+      console.error(`[BuildAgentOrchestrator] Error recording failure:`, err);
+    }
+  } else {
+    // Still increment consecutive failures even without error message
+    await incrementConsecutiveFailures(
+      failedTaskId,
+      "unknown",
+      "No error message provided",
+    );
+  }
+
+  // GAP-002: Check if task needs SIA review
+  const escalationCheck = await checkSIAEscalation(failedTaskId);
+  if (escalationCheck.shouldEscalate) {
+    try {
+      const context = await gatherFailureContext(failedTaskId, agentId);
+      const escalationId = await escalateToSIA(
+        failedTaskId,
+        escalationCheck.reason || "Multiple consecutive failures",
+        context,
+      );
+      console.log(
+        `[BuildAgentOrchestrator] Task ${failedTaskId} escalated to SIA: ${escalationId}`,
+      );
+    } catch (err) {
+      console.error(`[BuildAgentOrchestrator] Error escalating to SIA:`, err);
+    }
+  }
 
   // Get tasks that depend on the failed task (direct and transitive)
   const dependentTasks = await query<{ id: string; display_id: string }>(
@@ -806,6 +882,255 @@ export async function getOrchestratorStatus(): Promise<{
   };
 }
 
+/**
+ * GAP-006: Check if a task needs SIA review (no progress detection)
+ *
+ * Returns true if the task has failed 3+ times with the same error pattern.
+ */
+export async function checkNeedsNoProgressReview(taskId: string): Promise<{
+  needsReview: boolean;
+  failureCount: number;
+  errorPattern?: string;
+}> {
+  const task = await getOne<{
+    consecutive_failures: number;
+    last_error_message: string | null;
+    escalated_to_sia: number;
+  }>(
+    `SELECT consecutive_failures, last_error_message, escalated_to_sia
+     FROM tasks WHERE id = ?`,
+    [taskId],
+  );
+
+  if (!task) {
+    return { needsReview: false, failureCount: 0 };
+  }
+
+  // Already escalated
+  if (task.escalated_to_sia === 1) {
+    return { needsReview: false, failureCount: task.consecutive_failures };
+  }
+
+  // Needs review if 3+ consecutive failures
+  const needsReview = task.consecutive_failures >= 3;
+
+  return {
+    needsReview,
+    failureCount: task.consecutive_failures,
+    errorPattern: task.last_error_message || undefined,
+  };
+}
+
+/**
+ * GAP-006: Mark task as escalated to SIA
+ */
+export async function markTaskEscalatedToSIA(taskId: string): Promise<void> {
+  await run(
+    `UPDATE tasks
+     SET escalated_to_sia = 1,
+         escalated_at = datetime('now'),
+         updated_at = datetime('now')
+     WHERE id = ?`,
+    [taskId],
+  );
+  await saveDb();
+}
+
+/**
+ * GAP-004 & GAP-006: Retry a failed task with resume context
+ *
+ * @param taskId Task to retry
+ * @param taskListId Task list ID
+ * @returns The new agent instance
+ */
+export async function retryTaskWithContext(
+  taskId: string,
+  taskListId: string,
+): Promise<BuildAgentInstance> {
+  // Get the last execution ID for this task
+  const lastExecution = await getOne<{ id: string }>(
+    `SELECT te.id FROM task_executions te
+     WHERE te.task_id = ?
+     ORDER BY te.created_at DESC
+     LIMIT 1`,
+    [taskId],
+  );
+
+  // Increment retry count
+  await run(
+    `UPDATE tasks
+     SET retry_count = retry_count + 1,
+         status = 'pending',
+         updated_at = datetime('now')
+     WHERE id = ?`,
+    [taskId],
+  );
+
+  const id = uuidv4();
+
+  // Create agent record
+  await run(
+    `INSERT INTO build_agent_instances (
+      id, task_id, task_list_id, status, spawned_at
+    ) VALUES (?, ?, ?, 'spawning', datetime('now'))`,
+    [id, taskId, taskListId],
+  );
+
+  // Update task status
+  await updateTaskStatus(taskId, "in_progress");
+
+  // Spawn the Python Build Agent process with resume context
+  try {
+    const args = [
+      "coding-loops/agents/build_agent_worker.py",
+      "--agent-id",
+      id,
+      "--task-id",
+      taskId,
+      "--task-list-id",
+      taskListId,
+    ];
+
+    // GAP-004: Pass resume execution ID if available
+    if (lastExecution?.id) {
+      args.push("--resume-execution-id", lastExecution.id);
+      console.log(
+        `[BuildAgentOrchestrator] Retrying with context from execution ${lastExecution.id}`,
+      );
+    }
+
+    const agentProcess = spawn("python3", args, {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        AGENT_ID: id,
+        TASK_ID: taskId,
+        TASK_LIST_ID: taskListId,
+      },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    // Track the process
+    activeProcesses.set(id, agentProcess);
+
+    // Update with process info
+    await run(
+      `UPDATE build_agent_instances
+       SET status = 'running',
+           process_id = ?,
+           hostname = ?,
+           last_heartbeat_at = datetime('now')
+       WHERE id = ?`,
+      [agentProcess.pid?.toString() || null, os.hostname(), id],
+    );
+
+    // Handle process events
+    agentProcess.on("exit", async (code, signal) => {
+      await handleAgentExit(id, taskId, code, signal);
+    });
+
+    agentProcess.on("error", async (error) => {
+      await handleAgentError(id, taskId, error);
+    });
+
+    // Log stdout/stderr
+    agentProcess.stdout?.on("data", (data) => {
+      console.log(`[BuildAgent ${id}] stdout: ${data}`);
+    });
+
+    agentProcess.stderr?.on("data", (data) => {
+      console.error(`[BuildAgent ${id}] stderr: ${data}`);
+    });
+  } catch (error) {
+    // Failed to spawn
+    await run(
+      `UPDATE build_agent_instances
+       SET status = 'terminated',
+           terminated_at = datetime('now'),
+           termination_reason = 'spawn_failed',
+           error_message = ?
+       WHERE id = ?`,
+      [(error as Error).message, id],
+    );
+
+    await updateTaskStatus(taskId, "failed");
+    throw error;
+  }
+
+  await saveDb();
+
+  // Return the agent instance
+  const row = await getOne<BuildAgentRow>(
+    "SELECT * FROM build_agent_instances WHERE id = ?",
+    [id],
+  );
+
+  return mapAgentRow(row!);
+}
+
+/**
+ * GAP-006: Get diagnosis context for SIA
+ *
+ * Collects execution history and error patterns for diagnosis.
+ */
+export async function getDiagnosisContext(taskId: string): Promise<{
+  taskInfo: any;
+  executionHistory: any[];
+  errorPatterns: string[];
+  relatedGotchas: any[];
+}> {
+  // Get task info
+  const taskInfo = await getOne(`SELECT * FROM tasks WHERE id = ?`, [taskId]);
+
+  // Get execution history
+  const executionHistory = await query(
+    `SELECT te.*, tel.content as log_content
+     FROM task_executions te
+     LEFT JOIN task_execution_log tel ON tel.execution_id = te.id
+     WHERE te.task_id = ?
+     ORDER BY te.created_at DESC
+     LIMIT 5`,
+    [taskId],
+  );
+
+  // Extract error patterns
+  const errors = await query<{ error_message: string }>(
+    `SELECT DISTINCT error_message FROM task_executions
+     WHERE task_id = ? AND error_message IS NOT NULL
+     ORDER BY created_at DESC
+     LIMIT 10`,
+    [taskId],
+  );
+  const errorPatterns = errors.map((e) => e.error_message);
+
+  // Get related gotchas from knowledge base
+  const task = await getOne<{ primary_file: string }>(
+    `SELECT tfi.file_path as primary_file
+     FROM task_file_impacts tfi
+     WHERE tfi.task_id = ?
+     ORDER BY tfi.confidence DESC
+     LIMIT 1`,
+    [taskId],
+  );
+
+  let relatedGotchas: any[] = [];
+  if (task?.primary_file) {
+    relatedGotchas = await query(
+      `SELECT * FROM knowledge_entries
+       WHERE type = 'gotcha'
+       ORDER BY confidence DESC, occurrences DESC
+       LIMIT 5`,
+    );
+  }
+
+  return {
+    taskInfo,
+    executionHistory,
+    errorPatterns,
+    relatedGotchas,
+  };
+}
+
 export default {
   spawnBuildAgent,
   assignTaskToAgent,
@@ -821,4 +1146,9 @@ export default {
   resumeExecution,
   getBlockedTasks,
   getOrchestratorStatus,
+  // GAP-006: SIA Integration
+  checkNeedsNoProgressReview,
+  markTaskEscalatedToSIA,
+  retryTaskWithContext,
+  getDiagnosisContext,
 };

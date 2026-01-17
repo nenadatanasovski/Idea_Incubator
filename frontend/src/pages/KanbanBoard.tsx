@@ -387,7 +387,7 @@ export default function KanbanBoard(): JSX.Element {
 
       const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsHost = window.location.hostname;
-      const wsPort = "3001";
+      const wsPort = window.location.port || "3000"; // Use same port as frontend (Vite proxies /ws to backend)
       ws = new WebSocket(
         `${wsProtocol}//${wsHost}:${wsPort}/ws?executor=tasks`,
       );

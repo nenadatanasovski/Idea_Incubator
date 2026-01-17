@@ -57,6 +57,7 @@ export const initialState: IdeationStore = {
   subAgents: {
     subAgents: [],
     activeCount: 0,
+    triggerMessageId: null,
   },
 };
 
@@ -581,6 +582,9 @@ export function ideationReducer(
         subAgents: {
           subAgents: [...state.subAgents.subAgents, newSubAgent],
           activeCount: state.subAgents.activeCount + 1,
+          // Set triggerMessageId if provided and this is the first agent
+          triggerMessageId:
+            action.payload.triggerMessageId ?? state.subAgents.triggerMessageId,
         },
       };
     }
@@ -638,6 +642,7 @@ export function ideationReducer(
       return {
         ...state,
         subAgents: {
+          ...state.subAgents,
           subAgents: updatedSubAgents,
           activeCount,
         },
@@ -688,6 +693,7 @@ export function ideationReducer(
       return {
         ...state,
         subAgents: {
+          ...state.subAgents,
           subAgents: subAgentsWithResult,
           activeCount: activeAfterResult,
         },
@@ -700,6 +706,7 @@ export function ideationReducer(
         subAgents: {
           subAgents: [],
           activeCount: 0,
+          triggerMessageId: null,
         },
       };
 

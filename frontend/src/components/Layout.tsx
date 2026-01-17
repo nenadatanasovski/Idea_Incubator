@@ -6,10 +6,12 @@ import {
   GitCompare,
   MessageSquare,
   User,
-  ScrollText,
+  Activity,
   Sparkles,
   Bot,
   Bell,
+  Workflow,
+  Database,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -23,7 +25,9 @@ const navigation = [
   { name: "Ideas", href: "/ideas", icon: List },
   { name: "Compare", href: "/compare", icon: GitCompare },
   { name: "Debates", href: "/debate", icon: MessageSquare },
-  { name: "Event Log", href: "/events", icon: ScrollText },
+  { name: "Objects", href: "/objects", icon: Database },
+  { name: "Observability", href: "/observability", icon: Activity },
+  { name: "Pipeline", href: "/pipeline", icon: Workflow },
   { name: "Agents", href: "/agents", icon: Bot },
   { name: "Profile", href: "/profile", icon: User },
 ];

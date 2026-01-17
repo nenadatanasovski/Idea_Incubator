@@ -283,7 +283,9 @@ END;
 
 
 -- -----------------------------------------------------------------------------
--- Update first_failure_id FK on assertion_chains after assertion_results created
+-- NOTE: SQLite does not support ALTER TABLE ADD CONSTRAINT
+-- The foreign key reference for first_failure_id is documented but not enforced
+-- In a production system, use application-level validation
 -- -----------------------------------------------------------------------------
-ALTER TABLE assertion_chains ADD CONSTRAINT fk_first_failure
-    FOREIGN KEY (first_failure_id) REFERENCES assertion_results(id);
+-- ALTER TABLE assertion_chains ADD CONSTRAINT fk_first_failure
+--     FOREIGN KEY (first_failure_id) REFERENCES assertion_results(id);

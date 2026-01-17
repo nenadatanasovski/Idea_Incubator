@@ -1,0 +1,1 @@
+{"id": "4abb569f-044c-4a6a-a98e-d8097d103992", "timestamp": "2026-01-17T00:47:24.491902Z", "sequence": 1, "source": "agent", "execution_id": "test-exec-125890d9", "instance_id": "test-inst-4f49d450", "entry_type": "phase_start", "category": "lifecycle", "summary": "Phase started: test-phase", "details": "{\"test\": true}"}

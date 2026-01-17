@@ -466,10 +466,23 @@ export async function escalateToSIA(
     consecutiveFailures: context.consecutiveFailures,
     lastErrors: context.recentErrors.map((e) => e.errorMessage),
     noProgressReason: reason,
+    escalationId,
   });
+
+  // GAP-012: TODO - Spawn SIA agent to analyze the failure and suggest fixes
+  // The SIA (Self-Improvement Agent) should:
+  // 1. Analyze the failure context and error patterns
+  // 2. Query the knowledge base for similar issues
+  // 3. Generate suggestions for fixes or gotchas
+  // 4. Potentially update the task with corrective guidance
+  // For now, the event is emitted and can be handled by a listener
+  // Future implementation: spawnSIAAgent(escalationId, context)
 
   console.log(
     `[ErrorHandling] Task ${context.taskDisplayId} escalated to SIA: ${reason}`,
+  );
+  console.log(
+    `[ErrorHandling] GAP-012: SIA spawning not yet implemented - escalation ID: ${escalationId}`,
   );
 
   return escalationId;

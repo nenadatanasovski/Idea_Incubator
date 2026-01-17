@@ -11,6 +11,11 @@
 import { v4 as uuidv4 } from "uuid";
 import { query, run, getOne, saveDb } from "../../../database/db.js";
 import { TaskCategory, CATEGORY_CODES } from "../../../types/task-agent.js";
+import {
+  getProjectById,
+  getProjectByCode,
+  getProjectBySlug,
+} from "../project-service.js";
 
 /**
  * Display ID sequence record from database
@@ -37,7 +42,7 @@ const ID_PREFIX = "TU";
 const MAX_RETRY_ATTEMPTS = 5;
 
 /**
- * Extract project code from project name or ID
+ * Extract project code from project name or ID (legacy behavior)
  * Returns a 2-4 character uppercase code
  */
 export function extractProjectCode(
@@ -69,6 +74,38 @@ export function extractProjectCode(
   }
 
   return DEFAULT_PROJECT_CODE;
+}
+
+/**
+ * Extract project code from database or fall back to legacy extraction
+ * Checks the projects table first for formal project codes
+ */
+export async function extractProjectCodeFromDb(
+  projectId?: string,
+  projectName?: string,
+): Promise<string> {
+  if (projectId) {
+    // Try to find formal project by ID
+    let project = await getProjectById(projectId);
+    if (project) {
+      return project.code;
+    }
+
+    // Try by code
+    project = await getProjectByCode(projectId);
+    if (project) {
+      return project.code;
+    }
+
+    // Try by slug
+    project = await getProjectBySlug(projectId);
+    if (project) {
+      return project.code;
+    }
+  }
+
+  // Fall back to legacy behavior
+  return extractProjectCode(projectId, projectName);
 }
 
 /**
@@ -160,7 +197,7 @@ export async function displayIdExists(displayId: string): Promise<boolean> {
  * Generate a unique display ID for a task
  *
  * @param category Task category
- * @param projectId Project ID
+ * @param projectId Project ID, code, or slug
  * @param projectName Project name (optional, for better code extraction)
  * @returns Unique display ID like "TU-PROJ-FEA-042"
  */
@@ -169,7 +206,8 @@ export async function generateDisplayId(
   projectId?: string,
   projectName?: string,
 ): Promise<string> {
-  const projectCode = extractProjectCode(projectId, projectName);
+  // Use async version that checks projects table first
+  const projectCode = await extractProjectCodeFromDb(projectId, projectName);
   const categoryCode = getCategoryCode(category);
 
   let attempts = 0;
@@ -314,6 +352,7 @@ export default {
   parseDisplayId,
   isValidDisplayId,
   extractProjectCode,
+  extractProjectCodeFromDb,
   getCategoryCode,
   getCategoryFromCode,
   getCurrentSequence,

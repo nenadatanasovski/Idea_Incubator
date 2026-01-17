@@ -86,6 +86,7 @@ export interface ArtifactState {
 export interface SubAgentsState {
   subAgents: SubAgent[];
   activeCount: number;
+  triggerMessageId: string | null; // The message that triggered the sub-agents
 }
 
 // -----------------------------------------------------------------------------
@@ -172,7 +173,12 @@ export type IdeationAction =
   // Sub-agent actions
   | {
       type: "SUBAGENT_SPAWN";
-      payload: { id: string; type: SubAgentType; name: string };
+      payload: {
+        id: string;
+        type: SubAgentType;
+        name: string;
+        triggerMessageId?: string;
+      };
     }
   | {
       type: "SUBAGENT_STATUS";

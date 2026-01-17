@@ -1,7 +1,7 @@
 # Task Data Model
 
 **Part of:** Parallel Task Execution System
-**Updated:** 2026-01-13
+**Updated:** 2026-01-17
 
 ---
 
@@ -14,6 +14,32 @@ This document defines the data model for the Task Agent's parallel task executio
 ## Database Schema
 
 ### Core Tables
+
+#### projects
+
+Projects bridge Ideas (ideation) and Tasks (execution). Each project has a unique 2-4 character code used in display IDs.
+
+```sql
+CREATE TABLE projects (
+  id TEXT PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  code TEXT NOT NULL UNIQUE,  -- 2-4 char for display IDs (e.g., "IDEA", "VIBE")
+  name TEXT NOT NULL,
+  description TEXT,
+  idea_id TEXT UNIQUE REFERENCES ideas(id) ON DELETE SET NULL,  -- 1:1 with idea
+  owner_id TEXT,
+  status TEXT NOT NULL DEFAULT 'active'
+    CHECK(status IN ('active', 'paused', 'completed', 'archived')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  started_at TEXT,
+  completed_at TEXT
+);
+
+CREATE INDEX idx_projects_code ON projects(code);
+CREATE INDEX idx_projects_idea_id ON projects(idea_id);
+CREATE INDEX idx_projects_status ON projects(status);
+```
 
 #### tasks
 
@@ -70,15 +96,29 @@ CREATE TABLE task_lists_v2 (
 
 #### task_relationships
 
-Tracks dependencies and relationships between tasks.
+Tracks dependencies and relationships between tasks. Supports 12 relationship types.
 
 ```sql
 CREATE TABLE task_relationships (
   id TEXT PRIMARY KEY,
   source_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   target_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-  relationship_type TEXT NOT NULL DEFAULT 'depends_on'
-    CHECK(relationship_type IN ('depends_on', 'blocks', 'relates_to', 'duplicates')),
+  relationship_type TEXT NOT NULL CHECK(relationship_type IN (
+    -- Core relationship types
+    'depends_on',     -- Source depends on target (target must complete first)
+    'blocks',         -- Source blocks target (target cannot start until source completes)
+    'related_to',     -- Thematic/informational connection
+    'duplicate_of',   -- Source is duplicate of target
+    'parent_of',      -- Hierarchical parent (source contains target)
+    'child_of',       -- Hierarchical child (source is contained by target)
+    -- Extended relationship types
+    'supersedes',     -- Source supersedes/replaces target
+    'implements',     -- Source implements target (task-to-task level)
+    'conflicts_with', -- Source conflicts with target (cannot run in parallel)
+    'enables',        -- Source enables target to proceed (soft dependency)
+    'inspired_by',    -- Source was inspired by target
+    'tests'           -- Source tests/validates target
+  )),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(source_task_id, target_task_id, relationship_type)
 );
@@ -205,6 +245,42 @@ CREATE TABLE display_id_sequences (
 
 ## TypeScript Interfaces
 
+### Project Types
+
+```typescript
+// Project status
+export type ProjectStatus = "active" | "paused" | "completed" | "archived";
+
+// Project - bridges Ideas and Tasks
+export interface Project {
+  id: string;
+  slug: string;
+  code: string; // 2-4 char for display IDs
+  name: string;
+  description?: string;
+  ideaId?: string;
+  ownerId?: string;
+  status: ProjectStatus;
+  createdAt: string;
+  updatedAt: string;
+  startedAt?: string;
+  completedAt?: string;
+}
+
+// Project with statistics
+export interface ProjectWithStats extends Project {
+  ideaSlug?: string;
+  ideaTitle?: string;
+  totalTasks: number;
+  completedTasks: number;
+  failedTasks: number;
+  inProgressTasks: number;
+  totalTaskLists: number;
+  totalPrds: number;
+  completionPercentage: number;
+}
+```
+
 ### Core Types
 
 ```typescript
@@ -252,6 +328,52 @@ export interface Task extends TaskIdentity {
   completedAt?: string;
 }
 ```
+
+### Relationship Types
+
+```typescript
+// All 12 supported relationship types
+export type TaskRelationshipType =
+  // Core relationship types
+  | "depends_on" // Source depends on target (target must complete first)
+  | "blocks" // Source blocks target (target cannot start until source completes)
+  | "related_to" // Thematic/informational connection
+  | "duplicate_of" // Source is duplicate of target
+  | "parent_of" // Hierarchical parent (source contains target)
+  | "child_of" // Hierarchical child (source is contained by target)
+  // Extended relationship types
+  | "supersedes" // Source supersedes/replaces target
+  | "implements" // Source implements target (task-to-task level)
+  | "conflicts_with" // Source conflicts with target (cannot run in parallel)
+  | "enables" // Source enables target to proceed (soft dependency)
+  | "inspired_by" // Source was inspired by target
+  | "tests"; // Source tests/validates target
+
+export interface TaskRelationship {
+  id: string;
+  sourceTaskId: string;
+  targetTaskId: string;
+  relationshipType: TaskRelationshipType;
+  createdAt: string;
+}
+```
+
+#### Relationship Type Reference
+
+| Type             | Color  | Direction | Description                                    |
+| ---------------- | ------ | --------- | ---------------------------------------------- |
+| `depends_on`     | blue   | outgoing  | Source depends on target (blocking dependency) |
+| `blocks`         | amber  | outgoing  | Source blocks target from starting             |
+| `related_to`     | gray   | symmetric | Informational link between related tasks       |
+| `duplicate_of`   | red    | outgoing  | Source is a duplicate of target                |
+| `parent_of`      | purple | outgoing  | Hierarchical parent (epic → story → task)      |
+| `child_of`       | teal   | outgoing  | Hierarchical child                             |
+| `supersedes`     | indigo | outgoing  | Source replaces/supersedes target              |
+| `implements`     | green  | outgoing  | Source implements target (task-to-task level)  |
+| `conflicts_with` | rose   | symmetric | Tasks cannot run in parallel                   |
+| `enables`        | cyan   | outgoing  | Soft dependency - source enables target        |
+| `inspired_by`    | pink   | outgoing  | Source was inspired by target                  |
+| `tests`          | violet | outgoing  | Source tests/validates target                  |
 
 ### File Impact Types
 

@@ -14,6 +14,61 @@
 export type TestLevel = 1 | 2 | 3;
 
 /**
+ * Test scopes - what part of the system is being tested
+ */
+export type TestScope = "codebase" | "api" | "ui" | "database" | "integration";
+
+/**
+ * Test scope configuration for UI display
+ */
+export const TEST_SCOPE_CONFIG: Record<
+  TestScope,
+  { label: string; description: string; color: string; bgColor: string }
+> = {
+  codebase: {
+    label: "Codebase",
+    description: "File existence, compilation, code structure",
+    color: "text-slate-600",
+    bgColor: "bg-slate-100",
+  },
+  database: {
+    label: "Database",
+    description: "Schema validation, migrations",
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-100",
+  },
+  api: {
+    label: "API",
+    description: "Endpoint tests, contract validation",
+    color: "text-green-600",
+    bgColor: "bg-green-100",
+  },
+  ui: {
+    label: "UI",
+    description: "Component tests, rendering",
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
+  },
+  integration: {
+    label: "Integration",
+    description: "Cross-system tests, E2E flows",
+    color: "text-purple-600",
+    bgColor: "bg-purple-100",
+  },
+};
+
+/**
+ * Ordered list of scopes for consistent display
+ */
+export const TEST_SCOPE_ORDER: TestScope[] = [
+  "codebase",
+  "database",
+  "api",
+  "ui",
+  "integration",
+];
+
+/**
  * Test level descriptions
  */
 export const TEST_LEVEL_DESCRIPTIONS: Record<TestLevel, string> = {
@@ -30,6 +85,7 @@ export interface TaskTestResult {
   taskId: string;
 
   testLevel: TestLevel;
+  testScope?: TestScope;
   testName?: string;
 
   command: string;
@@ -116,6 +172,7 @@ export interface TaskTestResultRow {
   id: string;
   task_id: string;
   test_level: number;
+  test_scope: string | null;
   test_name: string | null;
   command: string;
   exit_code: number;
@@ -136,6 +193,7 @@ export function mapTaskTestResultRow(row: TaskTestResultRow): TaskTestResult {
     id: row.id,
     taskId: row.task_id,
     testLevel: row.test_level as TestLevel,
+    testScope: (row.test_scope as TestScope) || undefined,
     testName: row.test_name || undefined,
     command: row.command,
     exitCode: row.exit_code,
@@ -156,6 +214,7 @@ export interface AcceptanceCriterion {
   id: string;
   text: string;
   met: boolean;
+  scope?: TestScope;
   verifiedAt?: string;
   verifiedBy?: string;
 }

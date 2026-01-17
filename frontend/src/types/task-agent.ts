@@ -154,13 +154,22 @@ export interface QuickAddTaskInput {
 }
 
 // Task relationship type
+// See: task-data-model-diagram.md for full specification (11 types)
 export type RelationshipType =
-  | "depends_on"
-  | "blocks"
-  | "related_to"
-  | "parent_of"
-  | "child_of"
-  | "duplicate_of";
+  // Original 6 types
+  | "depends_on" // Source depends on target (target must complete first)
+  | "blocks" // Source blocks target
+  | "related_to" // Thematic connection
+  | "parent_of" // Hierarchical parent
+  | "child_of" // Hierarchical child
+  | "duplicate_of" // Source is duplicate of target
+  // Additional 6 types (from spec)
+  | "supersedes" // Source supersedes/replaces target
+  | "implements" // Source implements target (task-to-task level)
+  | "conflicts_with" // Source conflicts with target (cannot run together)
+  | "enables" // Source enables target to proceed
+  | "inspired_by" // Source was inspired by target
+  | "tests"; // Source tests/validates target
 
 // Task relationship
 export interface TaskRelationship {

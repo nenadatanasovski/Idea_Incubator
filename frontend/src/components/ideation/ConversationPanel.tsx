@@ -7,7 +7,6 @@ import { useRef, useEffect } from "react";
 import { MessageList } from "./MessageList";
 import { InputArea } from "./InputArea";
 import { TypingIndicator } from "./TypingIndicator";
-import { SubAgentIndicator } from "./SubAgentIndicator";
 import type { ConversationPanelProps } from "../../types/ideation";
 
 export function ConversationPanel({
@@ -16,6 +15,7 @@ export function ConversationPanel({
   streamingContent,
   error,
   subAgents = [],
+  triggerMessageId,
   onSendMessage,
   onStopGeneration,
   onButtonClick,
@@ -43,16 +43,13 @@ export function ConversationPanel({
           onArtifactClick={onArtifactClick}
           onConvertToArtifact={onConvertToArtifact}
           isLoading={isLoading}
+          subAgents={subAgents}
+          triggerMessageId={triggerMessageId}
         />
         <TypingIndicator
           isVisible={isLoading}
           streamingContent={streamingContent}
         />
-        {subAgents.length > 0 && (
-          <div className="mx-4 mb-4">
-            <SubAgentIndicator agents={subAgents} />
-          </div>
-        )}
         {error && (
           <div className="mx-4 p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
             <div className="flex items-start gap-2">

@@ -99,6 +99,7 @@ export interface ConversationPanelProps {
   streamingContent?: string;
   error?: string | null;
   subAgents?: SubAgent[];
+  triggerMessageId?: string | null;
   onSendMessage: (message: string) => void;
   onStopGeneration?: () => void;
   onButtonClick: (
@@ -125,6 +126,8 @@ export interface MessageListProps {
   onArtifactClick?: (artifactId: string) => void;
   onConvertToArtifact?: (content: string, title?: string) => void;
   isLoading: boolean;
+  subAgents?: SubAgent[];
+  triggerMessageId?: string | null;
 }
 
 export interface AgentMessageProps {

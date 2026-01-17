@@ -187,6 +187,81 @@ router.post("/tasks/:id/move", async (req: Request, res: Response) => {
 });
 
 /**
+ * GAP-004: Diagnose a failed task for SIA
+ * GET /api/task-agent/tasks/:id/diagnose
+ *
+ * Returns comprehensive diagnostic context including:
+ * - Task info and state
+ * - Execution history
+ * - Error patterns
+ * - Related gotchas from knowledge base
+ */
+router.get("/tasks/:id/diagnose", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const context = await buildAgentOrchestrator.getDiagnosisContext(id);
+
+    if (!context.taskInfo) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    return res.json(context);
+  } catch (err) {
+    console.error("[task-agent] Error diagnosing task:", err);
+    return res.status(500).json({
+      error: "Failed to diagnose task",
+      message: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * GAP-004: Retry a failed task with context from previous execution
+ * POST /api/task-agent/tasks/:id/retry
+ *
+ * Spawns a new build agent with resume context from previous attempts.
+ */
+router.post("/tasks/:id/retry", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Get task info to find task list
+    const { getOne } = await import("../../database/db.js");
+    const task = await getOne<{ task_list_id: string | null }>(
+      "SELECT task_list_id FROM tasks WHERE id = ?",
+      [id],
+    );
+
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    if (!task.task_list_id) {
+      return res.status(400).json({
+        error: "Task must be in a task list to be retried",
+      });
+    }
+
+    const agent = await buildAgentOrchestrator.retryTaskWithContext(
+      id,
+      task.task_list_id,
+    );
+
+    return res.json({
+      success: true,
+      taskId: id,
+      agentId: agent.id,
+    });
+  } catch (err) {
+    console.error("[task-agent] Error retrying task:", err);
+    return res.status(500).json({
+      error: "Failed to retry task",
+      message: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
  * Get grouping suggestions
  * GET /api/task-agent/grouping-suggestions
  */

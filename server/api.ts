@@ -86,6 +86,10 @@ import prdsRouter from "./routes/prds.js";
 import prdLinksRouter from "./routes/prd-links.js";
 import prdCoverageRouter from "./routes/prd-coverage.js";
 import prdDecomposeRouter from "./routes/prd-decompose.js";
+import observabilityRouter from "./routes/observability.js";
+import pipelineRouter from "./routes/pipeline.js";
+import objectsRouter from "./routes/objects.js";
+import projectsRouter from "./routes/projects.js";
 import { initNotificationSystem } from "./notifications/index.js";
 import { getCommunicationHub } from "./communication/communication-hub.js";
 
@@ -171,6 +175,18 @@ app.use("/api/prds", prdsRouter);
 app.use("/api/prd-links", prdLinksRouter);
 app.use("/api/prd-coverage", prdCoverageRouter);
 app.use("/api/prds", prdDecomposeRouter); // Task System V2 - PRD decompose routes
+
+// Mount observability routes
+app.use("/api/observability", observabilityRouter);
+
+// Mount pipeline dashboard routes
+app.use("/api/pipeline", pipelineRouter);
+
+// Mount database objects introspection routes
+app.use("/api/objects", objectsRouter);
+
+// Project management routes
+app.use("/api/projects", projectsRouter);
 
 // Initialize notification system
 initNotificationSystem();
@@ -3814,7 +3830,9 @@ export async function startServer(): Promise<void> {
     console.error("[TaskAgent] Failed to start communication hub:", error);
   }
 
-  server.listen(PORT, () => {
+  // Listen on 0.0.0.0 to accept both IPv4 and IPv6 connections
+  // This fixes WebSocket connection issues where browsers resolve localhost differently
+  server.listen(Number(PORT), "0.0.0.0", () => {
     console.log(`API server running on http://localhost:${PORT}`);
     console.log(`WebSocket server available at ws://localhost:${PORT}/ws`);
   });

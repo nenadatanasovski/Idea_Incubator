@@ -258,7 +258,7 @@ export function IdeationSession({
     // Create WebSocket connection
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsHost = window.location.hostname;
-    const wsPort = "3001"; // Backend port
+    const wsPort = window.location.port || "3000"; // Use same port as frontend (Vite proxies /ws to backend)
     const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}/ws?session=${sessionId}`;
 
     console.log("[WebSocket] Connecting to:", wsUrl);
@@ -732,17 +732,20 @@ export function IdeationSession({
           console.log(
             "[Quick-Ack] Spawning",
             response.subAgentTasks.length,
-            "sub-agents",
+            "sub-agents for message",
+            response.messageId,
           );
           // Clear old completed sub-agents before spawning new batch
           dispatch({ type: "SUBAGENT_CLEAR" });
+          const triggerMessageId = response.messageId;
           for (const task of response.subAgentTasks) {
             dispatch({
               type: "SUBAGENT_SPAWN",
               payload: {
                 id: task.id,
-                type: task.type,
+                type: task.type as import("../../types/ideation").SubAgentType,
                 name: task.label,
+                triggerMessageId,
               },
             });
           }
@@ -1202,17 +1205,20 @@ export function IdeationSession({
           console.log(
             "[Quick-Ack/Button] Spawning",
             response.subAgentTasks.length,
-            "sub-agents",
+            "sub-agents for message",
+            response.messageId,
           );
           // Clear old completed sub-agents before spawning new batch
           dispatch({ type: "SUBAGENT_CLEAR" });
+          const triggerMessageId = response.messageId;
           for (const task of response.subAgentTasks) {
             dispatch({
               type: "SUBAGENT_SPAWN",
               payload: {
                 id: task.id,
-                type: task.type,
+                type: task.type as import("../../types/ideation").SubAgentType,
                 name: task.label,
+                triggerMessageId,
               },
             });
           }
@@ -1413,17 +1419,20 @@ export function IdeationSession({
           console.log(
             "[Quick-Ack/Edit] Spawning",
             response.subAgentTasks.length,
-            "sub-agents",
+            "sub-agents for message",
+            response.messageId,
           );
           // Clear old completed sub-agents before spawning new batch
           dispatch({ type: "SUBAGENT_CLEAR" });
+          const triggerMessageId = response.messageId;
           for (const task of response.subAgentTasks) {
             dispatch({
               type: "SUBAGENT_SPAWN",
               payload: {
                 id: task.id,
-                type: task.type,
+                type: task.type as import("../../types/ideation").SubAgentType,
                 name: task.label,
+                triggerMessageId,
               },
             });
           }
@@ -1703,6 +1712,7 @@ export function IdeationSession({
             streamingContent={state.conversation.streamingContent}
             error={state.conversation.error}
             subAgents={state.subAgents.subAgents}
+            triggerMessageId={state.subAgents.triggerMessageId}
             onSendMessage={handleSendMessage}
             onStopGeneration={handleStopGeneration}
             onButtonClick={handleButtonClick}
