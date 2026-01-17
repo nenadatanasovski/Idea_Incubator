@@ -108,7 +108,9 @@ export default function useObservabilityConnection(
       setStatus("reconnecting");
 
       // Server expects observability=all or observability={executionId}
-      const ws = new WebSocket(`${WS_BASE_URL}/ws?observability=all`);
+      const wsUrl = `${WS_BASE_URL}/ws?observability=all`;
+      console.log("[Observability WS] Attempting connection to:", wsUrl);
+      const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         console.log("[Observability WS] Connected");

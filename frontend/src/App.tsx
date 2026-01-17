@@ -22,7 +22,14 @@ import ExecutionReviewPage from "./pages/ExecutionReviewPage";
 import PipelineDashboard from "./pages/PipelineDashboard";
 import ObjectsPage from "./pages/ObjectsPage";
 import SchemaPage from "./pages/SchemaPage";
+import ProjectListPage from "./pages/ProjectListPage";
+import ProjectsPage from "./pages/ProjectsPage";
 import NotFound from "./pages/NotFound";
+
+// Projects sub-tab components
+import ProjectOverview from "./components/projects/ProjectOverview";
+import ProjectSpec from "./components/projects/ProjectSpec";
+import ProjectBuild from "./components/projects/ProjectBuild";
 
 // Observability sub-tab components
 import OverviewDashboard from "./components/observability/OverviewDashboard";
@@ -46,6 +53,13 @@ function App() {
         <Route path="/ideas/new" element={<NewIdea />} />
         <Route path="/ideas/:slug" element={<IdeaDetailComponent />} />
         <Route path="/ideas/:slug/edit" element={<EditIdea />} />
+        {/* Projects with sub-tabs */}
+        <Route path="/projects" element={<ProjectListPage />} />
+        <Route path="/projects/:slug" element={<ProjectsPage />}>
+          <Route index element={<ProjectOverview />} />
+          <Route path="spec" element={<ProjectSpec />} />
+          <Route path="build" element={<ProjectBuild />} />
+        </Route>
         <Route path="/compare" element={<Comparison />} />
         <Route path="/debate" element={<DebateList />} />
         <Route path="/debate/live" element={<DebateViewer />} />

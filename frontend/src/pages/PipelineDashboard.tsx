@@ -149,16 +149,27 @@ export default function PipelineDashboard() {
 
   // Execution control handlers
   const handleStartExecution = async () => {
-    if (selectedTaskListId === "all") return;
     setExecutionError(null);
     try {
-      const response = await fetch(
-        `/api/task-agent/task-lists/${selectedTaskListId}/execute`,
-        { method: "POST", headers: { "Content-Type": "application/json" } },
-      );
+      let response: Response;
+      if (selectedTaskListId === "all") {
+        // Execute all visible tasks via global executor
+        response = await fetch("/api/executor/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        // Execute specific task list
+        response = await fetch(
+          `/api/task-agent/task-lists/${selectedTaskListId}/execute`,
+          { method: "POST", headers: { "Content-Type": "application/json" } },
+        );
+      }
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || "Failed to start execution");
+        throw new Error(
+          data.message || data.error || "Failed to start execution",
+        );
       }
       refetch();
     } catch (error) {
@@ -170,11 +181,16 @@ export default function PipelineDashboard() {
   };
 
   const handleStopExecution = async () => {
-    if (selectedTaskListId === "all") return;
     try {
-      await fetch(`/api/task-agent/task-lists/${selectedTaskListId}/stop`, {
-        method: "POST",
-      });
+      if (selectedTaskListId === "all") {
+        // Stop global executor
+        await fetch("/api/executor/stop", { method: "POST" });
+      } else {
+        // Stop specific task list
+        await fetch(`/api/task-agent/task-lists/${selectedTaskListId}/stop`, {
+          method: "POST",
+        });
+      }
       refetch();
     } catch (error) {
       console.error("Failed to stop execution:", error);
@@ -266,67 +282,63 @@ export default function PipelineDashboard() {
             )}
           </div>
 
-          {/* Execution Controls */}
-          {selectedTaskListId !== "all" && (
-            <div className="flex items-center gap-2 border-r border-gray-300 pr-4 mr-2">
-              <button
-                onClick={() =>
-                  setShowParallelismPreview(!showParallelismPreview)
-                }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                  showParallelismPreview
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-                data-testid="toggle-parallelism-preview-btn"
-              >
-                Preview
-              </button>
+          {/* Execution Controls - Always visible for cross-task-list execution */}
+          <div className="flex items-center gap-2 border-r border-gray-300 pr-4 mr-2">
+            <button
+              onClick={() => setShowParallelismPreview(!showParallelismPreview)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                showParallelismPreview
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+              data-testid="toggle-parallelism-preview-btn"
+            >
+              Preview
+            </button>
 
-              <button
-                onClick={handleStartExecution}
-                disabled={
-                  pipelineStatus.status === "running" ||
-                  pipelineStatus.status === "paused"
-                }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                  pipelineStatus.status === "running" ||
-                  pipelineStatus.status === "paused"
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-green-600 text-white hover:bg-green-700"
-                }`}
-              >
-                <Play className="w-4 h-4" />
-                Start
-              </button>
+            <button
+              onClick={handleStartExecution}
+              disabled={
+                pipelineStatus.status === "running" ||
+                pipelineStatus.status === "paused"
+              }
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                pipelineStatus.status === "running" ||
+                pipelineStatus.status === "paused"
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-green-600 text-white hover:bg-green-700"
+              }`}
+            >
+              <Play className="w-4 h-4" />
+              Start
+            </button>
 
-              <button
-                onClick={handleStopExecution}
-                disabled={
-                  pipelineStatus.status !== "running" &&
-                  pipelineStatus.status !== "paused"
-                }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                  pipelineStatus.status !== "running" &&
-                  pipelineStatus.status !== "paused"
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-red-600 text-white hover:bg-red-700"
-                }`}
-              >
-                <Square className="w-4 h-4" />
-                Stop
-              </button>
+            <button
+              onClick={handleStopExecution}
+              disabled={
+                pipelineStatus.status !== "running" &&
+                pipelineStatus.status !== "paused"
+              }
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                pipelineStatus.status !== "running" &&
+                pipelineStatus.status !== "paused"
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-red-600 text-white hover:bg-red-700"
+              }`}
+            >
+              <Square className="w-4 h-4" />
+              Stop
+            </button>
 
-              {executionError && (
-                <span
-                  className="text-xs text-red-600 max-w-48 truncate"
-                  title={executionError}
-                >
-                  {executionError}
-                </span>
-              )}
-            </div>
-          )}
+            {executionError && (
+              <span
+                className="text-xs text-red-600 max-w-48 truncate"
+                title={executionError}
+              >
+                {executionError}
+              </span>
+            )}
+          </div>
 
           {/* Filter dropdowns */}
           <div className="flex items-center gap-3">
@@ -475,27 +487,25 @@ export default function PipelineDashboard() {
         />
       </div>
 
-      {/* Parallelism Controls & Preview */}
-      {selectedTaskListId !== "all" && (
-        <div className="p-4 border-b border-gray-200 space-y-4">
-          <ParallelismControls
-            taskListId={selectedTaskListId}
-            onRecalculateComplete={(stats) => {
-              console.log("Parallelism recalculated:", stats);
-              refetch();
-            }}
-          />
+      {/* Parallelism Controls & Preview - Always visible for cross-task-list execution */}
+      <div className="p-4 border-b border-gray-200 space-y-4">
+        <ParallelismControls
+          taskListId={selectedTaskListId}
+          onRecalculateComplete={(stats) => {
+            console.log("Parallelism recalculated:", stats);
+            refetch();
+          }}
+        />
 
-          {showParallelismPreview && (
-            <ParallelismPreview
-              taskListId={selectedTaskListId}
-              onStartExecution={handleStartExecution}
-              onPauseExecution={handleStopExecution}
-              isExecuting={pipelineStatus.status === "running"}
-            />
-          )}
-        </div>
-      )}
+        {showParallelismPreview && (
+          <ParallelismPreview
+            taskListId={selectedTaskListId}
+            onStartExecution={handleStartExecution}
+            onPauseExecution={handleStopExecution}
+            isExecuting={pipelineStatus.status === "running"}
+          />
+        )}
+      </div>
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden flex">

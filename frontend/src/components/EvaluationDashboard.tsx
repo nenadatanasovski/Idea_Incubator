@@ -153,7 +153,12 @@ export default function EvaluationDashboard({
             Category Overview
           </h3>
           <div className="flex-1 min-h-0" style={{ minHeight: "350px" }}>
-            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              minWidth={200}
+              minHeight={200}
+            >
               <RadarChart
                 data={radarData}
                 margin={{ top: 10, right: 40, bottom: 10, left: 40 }}
@@ -246,7 +251,12 @@ export default function EvaluationDashboard({
           All Criteria Scores
         </h3>
         <div className="h-96">
-          <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            minWidth={200}
+            minHeight={200}
+          >
             <BarChart
               data={barData}
               layout="vertical"

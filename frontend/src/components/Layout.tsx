@@ -13,6 +13,7 @@ import {
   Workflow,
   Database,
   FileCode,
+  FolderKanban,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -24,6 +25,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Ideate", href: "/ideate", icon: Sparkles, highlight: true },
   { name: "Ideas", href: "/ideas", icon: List },
+  { name: "Projects", href: "/projects", icon: FolderKanban },
   { name: "Compare", href: "/compare", icon: GitCompare },
   { name: "Debates", href: "/debate", icon: MessageSquare },
   { name: "Objects", href: "/objects", icon: Database },

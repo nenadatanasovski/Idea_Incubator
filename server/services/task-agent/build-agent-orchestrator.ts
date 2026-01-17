@@ -13,7 +13,6 @@ import { EventEmitter } from "events";
 import { query, run, getOne, saveDb } from "../../../database/db.js";
 import { emitPipelineEvent, emitPipelineStatus } from "../../websocket.js";
 
-
 /**
  * Orchestrator event emitter for execution events
  */
@@ -157,7 +156,6 @@ export async function spawnBuildAgent(
       agentId: id,
     });
 
-
     // Track the process
     activeProcesses.set(id, agentProcess);
 
@@ -253,10 +251,14 @@ async function handleAgentExit(
   // Emit WebSocket event
   emitPipelineEvent(success ? "task:completed" : "task:failed", {
     taskId,
-    buildId: (await getOne<BuildAgentRow>("SELECT task_list_id FROM build_agent_instances WHERE id = ?", [agentId]))?.task_list_id,
+    buildId: (
+      await getOne<BuildAgentRow>(
+        "SELECT task_list_id FROM build_agent_instances WHERE id = ?",
+        [agentId],
+      )
+    )?.task_list_id,
     agentId,
   });
-
 
   // Trigger next wave if successful
   if (success) {
@@ -540,8 +542,9 @@ export async function handleAgentCompletion(
     );
 
     // Set status based on whether there are failed tasks
-    const finalStatus = (failedTasks?.count || 0) > 0 ? 'completed_with_failures' : 'completed';
-    
+    const finalStatus =
+      (failedTasks?.count || 0) > 0 ? "completed_with_failures" : "completed";
+
     await run(
       `UPDATE task_lists_v2
        SET status = ?,
@@ -551,13 +554,18 @@ export async function handleAgentCompletion(
       [finalStatus, taskListId],
     );
     await saveDb();
-    console.log(`[BuildAgentOrchestrator] Task list ${taskListId} ${finalStatus}`);
+    console.log(
+      `[BuildAgentOrchestrator] Task list ${taskListId} ${finalStatus}`,
+    );
 
     // Emit WebSocket event
-    emitPipelineEvent(finalStatus === "completed" ? "pipeline:completed" : "pipeline:failed", {
-      buildId: taskListId,
-      status: finalStatus,
-    });
+    emitPipelineEvent(
+      finalStatus === "completed" ? "pipeline:completed" : "pipeline:failed",
+      {
+        buildId: taskListId,
+        status: finalStatus,
+      },
+    );
 
     // Also emit status update
     emitPipelineStatus({
@@ -566,7 +574,6 @@ export async function handleAgentCompletion(
       completedAt: new Date().toISOString(),
     });
   }
-
 }
 
 /**
