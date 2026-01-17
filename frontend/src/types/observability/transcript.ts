@@ -26,6 +26,7 @@ export type TranscriptEntryType =
   | "discovery" // Knowledge discovery
   | "error" // Error occurred
   | "checkpoint" // Checkpoint created/restored
+  | "rollback" // Rollback occurred
   | "lock_acquire" // File lock acquired
   | "lock_release"; // File lock released
 

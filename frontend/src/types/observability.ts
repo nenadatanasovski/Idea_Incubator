@@ -205,14 +205,43 @@ export interface ToolCall {
 }
 
 export interface AssertionEvidence {
+  // Command evidence
   command?: string;
   exitCode?: number;
   stdout?: string;
   stderr?: string;
+
+  // File evidence
   filePath?: string;
+  fileExists?: boolean;
+  fileSizeBefore?: number;
+  fileSizeAfter?: number;
+  diffPath?: string;
+  fileDiff?: string;
+
+  // Expectation evidence
   expected?: string;
   actual?: string;
   diff?: string;
+
+  // API evidence
+  endpoint?: string;
+  statusCode?: number;
+  responseTime?: number;
+  responseBodySample?: string;
+
+  // Timing evidence
+  durationMs?: number;
+
+  // Relationship evidence
+  relatedEntities?: Array<{
+    type: string;
+    id: string;
+    summary?: string;
+  }>;
+
+  // Custom evidence
+  custom?: Record<string, unknown>;
 }
 
 // === Execution Types ===

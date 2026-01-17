@@ -11,20 +11,24 @@ import type { AssertionRef } from "./transcript";
 // =============================================================================
 
 /**
- * Categories of assertions (9 categories).
+ * Categories of assertions (14 total).
  */
-export type AssertionCategory =
-  | "file_created" // File exists after CREATE
-  | "file_modified" // File changed after UPDATE
-  | "file_deleted" // File removed after DELETE
-  | "typescript_compiles" // tsc --noEmit passes (also tsc_compiles)
-  | "lint_passes" // Linting passes
-  | "tests_pass" // Unit tests pass (also test_passes)
-  | "api_responds" // API endpoint responds correctly
-  | "schema_valid" // Database schema valid
-  | "dependency_met" // Dependency requirements satisfied
-  | "build_succeeds" // Build succeeds
-  | "custom"; // Custom assertion
+export enum AssertionCategory {
+  file_created = "file_created",
+  file_modified = "file_modified",
+  file_deleted = "file_deleted",
+  tsc_compiles = "tsc_compiles",
+  typescript_compiles = "typescript_compiles",
+  test_passes = "test_passes",
+  tests_pass = "tests_pass",
+  lint_passes = "lint_passes",
+  build_succeeds = "build_succeeds",
+  api_responds = "api_responds",
+  schema_valid = "schema_valid",
+  dependency_met = "dependency_met",
+  runtime_check = "runtime_check",
+  custom = "custom",
+}
 
 /**
  * Assertion result status.
@@ -62,6 +66,19 @@ export interface AssertionEvidence {
   statusCode?: number; // HTTP status
   responseTime?: number; // Response time in ms
   responseBodySample?: string; // Sample of response
+
+  // === TIMING EVIDENCE ===
+  durationMs?: number; // Duration in milliseconds
+
+  // === FILE DIFF EVIDENCE ===
+  fileDiff?: string; // File diff content (inline)
+
+  // === RELATIONSHIP EVIDENCE ===
+  relatedEntities?: Array<{
+    type: string;
+    id: string;
+    summary?: string;
+  }>; // Related entities for cross-referencing
 
   // === CUSTOM EVIDENCE ===
   custom?: Record<string, unknown>; // Category-specific evidence
@@ -152,25 +169,6 @@ export interface AssertionChainWithResults extends AssertionChain {
     description: string;
     evidence: AssertionEvidence;
   };
-}
-
-// =============================================================================
-// QUERY/FILTER TYPES
-// =============================================================================
-
-/**
- * Query parameters for assertions endpoint.
- */
-export interface AssertionQuery {
-  executionId?: string;
-  taskId?: string;
-  categories?: AssertionCategory[];
-  result?: AssertionResultType[];
-  chainId?: string;
-  since?: string;
-  until?: string;
-  limit?: number;
-  offset?: number;
 }
 
 // =============================================================================

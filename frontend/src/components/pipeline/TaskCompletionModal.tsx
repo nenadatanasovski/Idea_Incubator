@@ -86,6 +86,14 @@ export default function TaskCompletionModal({
   const [showDecomposer, setShowDecomposer] = useState(false);
   const [decompositionReason, setDecompositionReason] = useState<string[]>([]);
 
+  // Debug: log when showDecomposer changes
+  useEffect(() => {
+    console.log(
+      "[TaskCompletionModal] showDecomposer changed to:",
+      showDecomposer,
+    );
+  }, [showDecomposer]);
+
   const fetchReadiness = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -312,10 +320,17 @@ export default function TaskCompletionModal({
                         </p>
                         <button
                           onClick={() => {
+                            console.log(
+                              "[TaskCompletionModal] Decompose button clicked, taskId:",
+                              taskId,
+                            );
                             setDecompositionReason([
                               readiness.rules.singleConcern.reason ||
                                 "Task needs decomposition",
                             ]);
+                            console.log(
+                              "[TaskCompletionModal] Setting showDecomposer to true",
+                            );
                             setShowDecomposer(true);
                           }}
                           className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-md hover:bg-amber-200 transition-colors text-sm font-medium"

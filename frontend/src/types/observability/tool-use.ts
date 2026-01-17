@@ -122,30 +122,6 @@ export interface ToolUseInput {
 }
 
 // =============================================================================
-// QUERY/FILTER TYPES
-// =============================================================================
-
-/**
- * Query parameters for tool uses endpoint.
- */
-export interface ToolUseQuery {
-  executionId?: string;
-  taskId?: string;
-  tools?: ToolName[];
-  categories?: ToolCategory[];
-  status?: ToolResultStatus[];
-  isError?: boolean;
-  isBlocked?: boolean;
-  fromTime?: string; // ISO8601
-  toTime?: string; // ISO8601
-  withinSkill?: string;
-  includeInputs?: boolean;
-  includeOutputs?: boolean;
-  limit?: number;
-  offset?: number;
-}
-
-// =============================================================================
 // AGGREGATION TYPES
 // =============================================================================
 

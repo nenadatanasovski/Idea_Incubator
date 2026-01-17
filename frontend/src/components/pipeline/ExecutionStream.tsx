@@ -103,7 +103,9 @@ export default function ExecutionStream({
   };
 
   const formatTimestamp = (timestamp: string): string => {
+    if (!timestamp) return "--:--:--";
     const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return "--:--:--";
     return date.toLocaleTimeString("en-US", {
       hour12: false,
       hour: "2-digit",
@@ -205,14 +207,14 @@ export default function ExecutionStream({
           </div>
         ) : (
           <div className="space-y-1">
-            {filteredEvents.map((event) => {
+            {filteredEvents.map((event, index) => {
               const Icon = EVENT_ICONS[event.eventType] || Activity;
               const colorClass =
                 EVENT_COLORS[event.eventType] || "text-gray-500";
 
               return (
                 <div
-                  key={event.id}
+                  key={`${event.id}-${index}`}
                   data-testid={`stream-event-${event.id}`}
                   className={`
                     flex items-start gap-2 p-1.5 rounded

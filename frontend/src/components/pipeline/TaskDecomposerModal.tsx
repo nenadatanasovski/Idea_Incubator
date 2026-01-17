@@ -73,13 +73,19 @@ export default function TaskDecomposerModal({
 
   // Generate decomposition on mount
   useEffect(() => {
+    console.log("[TaskDecomposerModal] Mounted with taskId:", taskId);
     generateDecomposition();
   }, [taskId]);
 
   const generateDecomposition = async () => {
+    console.log(
+      "[TaskDecomposerModal] generateDecomposition called for taskId:",
+      taskId,
+    );
     try {
       setLoading(true);
       setError(null);
+      console.log("[TaskDecomposerModal] Fetching decomposition...");
       const response = await fetch(
         `/api/task-agent/tasks/${taskId}/decompose`,
         {
@@ -87,17 +93,21 @@ export default function TaskDecomposerModal({
         },
       );
 
+      console.log("[TaskDecomposerModal] Response status:", response.status);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error("[TaskDecomposerModal] Error response:", errorData);
         throw new Error(
           errorData.message || "Failed to generate decomposition",
         );
       }
 
       const result = await response.json();
+      console.log("[TaskDecomposerModal] Decomposition result:", result);
       setDecomposition(result);
       setEditedSubtasks(result.subtasks || []);
     } catch (err) {
+      console.error("[TaskDecomposerModal] Error:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
