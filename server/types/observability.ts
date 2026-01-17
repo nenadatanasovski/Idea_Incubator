@@ -73,6 +73,14 @@ export type AssertionCategory =
 
 export type Severity = "info" | "warning" | "error" | "critical";
 
+// === Message Bus Category (subset of EntryCategory, aligned with frontend) ===
+
+export type MessageBusCategory =
+  | "lifecycle"
+  | "coordination"
+  | "failure"
+  | "decision";
+
 // === Core Entities ===
 
 export interface TranscriptEntry {
@@ -180,7 +188,7 @@ export interface MessageBusLogEntry {
   correlationId: string | null;
   humanSummary: string;
   severity: Severity;
-  category: EntryCategory;
+  category: MessageBusCategory;
   transcriptEntryId: string | null;
   taskId: string | null;
   executionId: string | null;
@@ -309,7 +317,7 @@ export interface MessageBusFilters {
   executionId?: string;
   taskId?: string;
   severity?: Severity[];
-  category?: EntryCategory[];
+  category?: MessageBusCategory[];
   source?: string;
   eventType?: string;
   correlationId?: string;

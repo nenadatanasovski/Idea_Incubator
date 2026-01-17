@@ -87,11 +87,11 @@ export const schemaRegistry: SchemaRegistry = {
       foreignKeys: [],
       selectSchema: async () => {
         const { selectIdeaSchema } = await import("./entities/idea.js");
-        return selectIdeaSchema as ZodTypeAny;
+        return selectIdeaSchema as unknown as ZodTypeAny;
       },
       insertSchema: async () => {
         const { insertIdeaSchema } = await import("./entities/idea.js");
-        return insertIdeaSchema as ZodTypeAny;
+        return insertIdeaSchema as unknown as ZodTypeAny;
       },
     },
     project: {
@@ -105,11 +105,11 @@ export const schemaRegistry: SchemaRegistry = {
       ],
       selectSchema: async () => {
         const { selectProjectSchema } = await import("./entities/project.js");
-        return selectProjectSchema as ZodTypeAny;
+        return selectProjectSchema as unknown as ZodTypeAny;
       },
       insertSchema: async () => {
         const { insertProjectSchema } = await import("./entities/project.js");
-        return insertProjectSchema as ZodTypeAny;
+        return insertProjectSchema as unknown as ZodTypeAny;
       },
     },
 
@@ -129,12 +129,12 @@ export const schemaRegistry: SchemaRegistry = {
       selectSchema: async () => {
         const { selectTaskListSchema } =
           await import("./entities/task-list.js");
-        return selectTaskListSchema as ZodTypeAny;
+        return selectTaskListSchema as unknown as ZodTypeAny;
       },
       insertSchema: async () => {
         const { insertTaskListSchema } =
           await import("./entities/task-list.js");
-        return insertTaskListSchema as ZodTypeAny;
+        return insertTaskListSchema as unknown as ZodTypeAny;
       },
     },
     prd: {
@@ -155,11 +155,11 @@ export const schemaRegistry: SchemaRegistry = {
       ],
       selectSchema: async () => {
         const { selectPrdSchema } = await import("./entities/prd.js");
-        return selectPrdSchema as ZodTypeAny;
+        return selectPrdSchema as unknown as ZodTypeAny;
       },
       insertSchema: async () => {
         const { insertPrdSchema } = await import("./entities/prd.js");
-        return insertPrdSchema as ZodTypeAny;
+        return insertPrdSchema as unknown as ZodTypeAny;
       },
     },
 
@@ -182,11 +182,11 @@ export const schemaRegistry: SchemaRegistry = {
       ],
       selectSchema: async () => {
         const { selectTaskSchema } = await import("./entities/task.js");
-        return selectTaskSchema as ZodTypeAny;
+        return selectTaskSchema as unknown as ZodTypeAny;
       },
       insertSchema: async () => {
         const { insertTaskSchema } = await import("./entities/task.js");
-        return insertTaskSchema as ZodTypeAny;
+        return insertTaskSchema as unknown as ZodTypeAny;
       },
     },
     taskRelationship: {
@@ -208,12 +208,12 @@ export const schemaRegistry: SchemaRegistry = {
       selectSchema: async () => {
         const { selectTaskRelationshipSchema } =
           await import("./entities/task-relationship.js");
-        return selectTaskRelationshipSchema as ZodTypeAny;
+        return selectTaskRelationshipSchema as unknown as ZodTypeAny;
       },
       insertSchema: async () => {
         const { insertTaskRelationshipSchema } =
           await import("./entities/task-relationship.js");
-        return insertTaskRelationshipSchema as ZodTypeAny;
+        return insertTaskRelationshipSchema as unknown as ZodTypeAny;
       },
     },
   },

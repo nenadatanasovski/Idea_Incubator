@@ -2,9 +2,10 @@
  * OBS-303: Assertion Service
  *
  * Query assertions and compute summaries.
+ * Uses the project's sql.js database wrapper.
  */
 
-import Database from "better-sqlite3";
+import { query, getOne } from "../../../database/db.js";
 import type {
   AssertionQuery,
   AssertionSummaryResponse,
@@ -19,66 +20,59 @@ import type {
 } from "../../../frontend/src/types/observability/assertion.js";
 
 export class AssertionService {
-  private db: Database.Database;
-
-  constructor(dbPath: string = "database/ideas.db") {
-    this.db = new Database(dbPath);
-    this.db.pragma("foreign_keys = ON");
-  }
-
   /**
    * Get assertions for an execution with filtering.
    */
-  getAssertions(
+  async getAssertions(
     executionId: string,
-    query: AssertionQuery = {},
-  ): PaginatedResponse<AssertionResult> {
-    const limit = query.limit || 100;
-    const offset = query.offset || 0;
+    assertionQuery: AssertionQuery = {},
+  ): Promise<PaginatedResponse<AssertionResult>> {
+    const limit = assertionQuery.limit || 100;
+    const offset = assertionQuery.offset || 0;
     const conditions: string[] = ["execution_id = ?"];
     const params: (string | number)[] = [executionId];
 
     // Filter by categories
-    if (query.categories?.length) {
-      const placeholders = query.categories.map(() => "?").join(",");
+    if (assertionQuery.categories?.length) {
+      const placeholders = assertionQuery.categories.map(() => "?").join(",");
       conditions.push(`category IN (${placeholders})`);
-      params.push(...query.categories);
+      params.push(...assertionQuery.categories);
     }
 
     // Filter by result
-    if (query.result?.length) {
-      const placeholders = query.result.map(() => "?").join(",");
+    if (assertionQuery.result?.length) {
+      const placeholders = assertionQuery.result.map(() => "?").join(",");
       conditions.push(`result IN (${placeholders})`);
-      params.push(...query.result);
+      params.push(...assertionQuery.result);
     }
 
     // Filter by task
-    if (query.taskId) {
+    if (assertionQuery.taskId) {
       conditions.push("task_id = ?");
-      params.push(query.taskId);
+      params.push(assertionQuery.taskId);
     }
 
     // Filter by chain
-    if (query.chainId) {
+    if (assertionQuery.chainId) {
       conditions.push("chain_id = ?");
-      params.push(query.chainId);
+      params.push(assertionQuery.chainId);
     }
 
     // Time filters
-    if (query.since) {
+    if (assertionQuery.since) {
       conditions.push("timestamp >= ?");
-      params.push(query.since);
+      params.push(assertionQuery.since);
     }
 
-    if (query.until) {
+    if (assertionQuery.until) {
       conditions.push("timestamp <= ?");
-      params.push(query.until);
+      params.push(assertionQuery.until);
     }
 
     const whereClause = conditions.join(" AND ");
 
-    const sql = `
-      SELECT
+    const rows = await query<AssertionRow>(
+      `SELECT
         id,
         task_id,
         execution_id,
@@ -95,23 +89,17 @@ export class AssertionService {
       FROM assertion_results
       WHERE ${whereClause}
       ORDER BY timestamp ASC
-      LIMIT ? OFFSET ?
-    `;
-
-    const rows = this.db
-      .prepare(sql)
-      .all(...params, limit, offset) as AssertionRow[];
+      LIMIT ? OFFSET ?`,
+      [...params, limit, offset],
+    );
 
     // Get total count
-    const countParams = params.slice();
-    const countSql = `
-      SELECT COUNT(*) as count
+    const countResult = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count
       FROM assertion_results
-      WHERE ${whereClause}
-    `;
-    const countResult = this.db.prepare(countSql).get(...countParams) as {
-      count: number;
-    };
+      WHERE ${whereClause}`,
+      params,
+    );
     const total = countResult?.count || 0;
 
     const data = rows.map((row) => this.mapRow(row));
@@ -128,9 +116,9 @@ export class AssertionService {
   /**
    * Get a single assertion by ID.
    */
-  getAssertion(assertionId: string): AssertionResult | null {
-    const sql = `
-      SELECT
+  async getAssertion(assertionId: string): Promise<AssertionResult | null> {
+    const row = await getOne<AssertionRow>(
+      `SELECT
         id,
         task_id,
         execution_id,
@@ -145,34 +133,30 @@ export class AssertionService {
         transcript_entry_id,
         created_at
       FROM assertion_results
-      WHERE id = ?
-    `;
+      WHERE id = ?`,
+      [assertionId],
+    );
 
-    const row = this.db.prepare(sql).get(assertionId) as
-      | AssertionRow
-      | undefined;
     if (!row) return null;
-
     return this.mapRow(row);
   }
 
   /**
    * Get assertion summary for an execution.
    */
-  getAssertionSummary(executionId: string): AssertionSummaryResponse {
+  async getAssertionSummary(
+    executionId: string,
+  ): Promise<AssertionSummaryResponse> {
     // Get result counts
-    const resultCounts = this.db
-      .prepare(
-        `
-        SELECT
-          result,
-          COUNT(*) as count
-        FROM assertion_results
-        WHERE execution_id = ?
-        GROUP BY result
-      `,
-      )
-      .all(executionId) as { result: string; count: number }[];
+    const resultCounts = await query<{ result: string; count: number }>(
+      `SELECT
+        result,
+        COUNT(*) as count
+      FROM assertion_results
+      WHERE execution_id = ?
+      GROUP BY result`,
+      [executionId],
+    );
 
     const summary: AssertionSummary["summary"] = {
       totalAssertions: 0,
@@ -197,21 +181,18 @@ export class AssertionService {
         : 1;
 
     // Get by category
-    const byCategoryRows = this.db
-      .prepare(
-        `
-        SELECT
-          category,
-          COUNT(*) as total,
-          SUM(CASE WHEN result = 'pass' THEN 1 ELSE 0 END) as passed,
-          SUM(CASE WHEN result = 'fail' THEN 1 ELSE 0 END) as failed,
-          SUM(CASE WHEN result = 'skip' THEN 1 ELSE 0 END) as skipped
-        FROM assertion_results
-        WHERE execution_id = ?
-        GROUP BY category
-      `,
-      )
-      .all(executionId) as ByCategoryRow[];
+    const byCategoryRows = await query<ByCategoryRow>(
+      `SELECT
+        category,
+        COUNT(*) as total,
+        SUM(CASE WHEN result = 'pass' THEN 1 ELSE 0 END) as passed,
+        SUM(CASE WHEN result = 'fail' THEN 1 ELSE 0 END) as failed,
+        SUM(CASE WHEN result = 'skip' THEN 1 ELSE 0 END) as skipped
+      FROM assertion_results
+      WHERE execution_id = ?
+      GROUP BY category`,
+      [executionId],
+    );
 
     const byCategory: AssertionSummary["byCategory"] = {};
     for (const row of byCategoryRows) {
@@ -224,18 +205,15 @@ export class AssertionService {
     }
 
     // Get chain stats
-    const chainStats = this.db
-      .prepare(
-        `
-        SELECT
-          overall_result,
-          COUNT(*) as count
-        FROM assertion_chains
-        WHERE execution_id = ?
-        GROUP BY overall_result
-      `,
-      )
-      .all(executionId) as { overall_result: string; count: number }[];
+    const chainStats = await query<{ overall_result: string; count: number }>(
+      `SELECT
+        overall_result,
+        COUNT(*) as count
+      FROM assertion_chains
+      WHERE execution_id = ?
+      GROUP BY overall_result`,
+      [executionId],
+    );
 
     const chains: AssertionSummary["chains"] = {
       total: 0,
@@ -252,24 +230,21 @@ export class AssertionService {
     }
 
     // Get failures (limit 20)
-    const failures = this.db
-      .prepare(
-        `
-        SELECT
-          id,
-          task_id,
-          category,
-          description,
-          evidence,
-          transcript_entry_id,
-          timestamp
-        FROM assertion_results
-        WHERE execution_id = ? AND result = 'fail'
-        ORDER BY timestamp DESC
-        LIMIT 20
-      `,
-      )
-      .all(executionId) as FailureRow[];
+    const failures = await query<FailureRow>(
+      `SELECT
+        id,
+        task_id,
+        category,
+        description,
+        evidence,
+        transcript_entry_id,
+        timestamp
+      FROM assertion_results
+      WHERE execution_id = ? AND result = 'fail'
+      ORDER BY timestamp DESC
+      LIMIT 20`,
+      [executionId],
+    );
 
     return {
       executionId,
@@ -291,60 +266,56 @@ export class AssertionService {
   /**
    * Get all assertion chains for an execution.
    */
-  getChains(executionId: string): AssertionChainWithResults[] {
-    const chains = this.db
-      .prepare(
-        `
-        SELECT
+  async getChains(executionId: string): Promise<AssertionChainWithResults[]> {
+    const chains = await query<ChainRow>(
+      `SELECT
+        id,
+        task_id,
+        execution_id,
+        description,
+        overall_result,
+        pass_count,
+        fail_count,
+        skip_count,
+        first_failure_id,
+        started_at,
+        completed_at,
+        created_at
+      FROM assertion_chains
+      WHERE execution_id = ?
+      ORDER BY started_at ASC`,
+      [executionId],
+    );
+
+    const results: AssertionChainWithResults[] = [];
+
+    for (const chain of chains) {
+      // Get assertions for this chain
+      const assertions = await query<AssertionRow>(
+        `SELECT
           id,
           task_id,
           execution_id,
+          category,
           description,
-          overall_result,
-          pass_count,
-          fail_count,
-          skip_count,
-          first_failure_id,
-          started_at,
-          completed_at,
+          result,
+          evidence,
+          chain_id,
+          chain_position,
+          timestamp,
+          duration_ms,
+          transcript_entry_id,
           created_at
-        FROM assertion_chains
-        WHERE execution_id = ?
-        ORDER BY started_at ASC
-      `,
-      )
-      .all(executionId) as ChainRow[];
-
-    return chains.map((chain) => {
-      // Get assertions for this chain
-      const assertions = this.db
-        .prepare(
-          `
-          SELECT
-            id,
-            task_id,
-            execution_id,
-            category,
-            description,
-            result,
-            evidence,
-            chain_id,
-            chain_position,
-            timestamp,
-            duration_ms,
-            transcript_entry_id,
-            created_at
-          FROM assertion_results
-          WHERE chain_id = ?
-          ORDER BY chain_position ASC
-        `,
-        )
-        .all(chain.id) as AssertionRow[];
+        FROM assertion_results
+        WHERE chain_id = ?
+        ORDER BY chain_position ASC`,
+        [chain.id],
+      );
 
       // Get first failure details if exists
       let firstFailure: AssertionChainWithResults["firstFailure"];
       if (chain.first_failure_id) {
-        const failure = this.getAssertion(chain.first_failure_id);
+        const failure = await this.getAssertion(chain.first_failure_id);
         if (failure) {
           firstFailure = {
             assertionId: failure.id,
@@ -354,7 +325,7 @@ export class AssertionService {
         }
       }
 
-      return {
+      results.push({
         id: chain.id,
         taskId: chain.task_id,
         executionId: chain.execution_id,
@@ -369,8 +340,10 @@ export class AssertionService {
         createdAt: chain.created_at,
         assertions: assertions.map((a) => this.mapRow(a)),
         firstFailure,
-      };
-    });
+      });
+    }
+
+    return results;
   }
 
   /**
@@ -404,10 +377,6 @@ export class AssertionService {
     } catch {
       return null;
     }
-  }
-
-  close(): void {
-    this.db.close();
   }
 }
 
@@ -460,3 +429,6 @@ interface FailureRow {
   transcript_entry_id: string | null;
   timestamp: string;
 }
+
+// Export singleton instance
+export const assertionService = new AssertionService();

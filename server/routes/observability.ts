@@ -1,10 +1,24 @@
 /**
  * Observability API Routes
  * Exposes transcript, tool use, assertion, and skill trace data for UI
+ *
+ * Phase 5: Refactored to use service classes (OBS-308)
  */
 
 import { Router, Request, Response } from "express";
 import { query } from "../../database/db.js";
+
+// Import service singletons (OBS-300 to OBS-306)
+import {
+  executionService,
+  transcriptService,
+  toolUseService,
+  assertionService,
+  skillService,
+  messageBusService,
+  crossReferenceService,
+} from "../services/observability/index.js";
+
 import type {
   TranscriptEntry,
   ToolUse,
@@ -20,6 +34,8 @@ import type {
   ToolCategory,
   ToolResultStatus,
   AssertionCategory,
+  MessageBusCategory,
+  Severity,
 } from "../types/observability.js";
 
 const router = Router();
@@ -28,28 +44,17 @@ const router = Router();
 
 /**
  * GET /api/observability/stats
- * Get quick stats for the overview dashboard
+ * Get quick stats for the overview dashboard (uses ExecutionService)
  */
 router.get("/stats", async (_req: Request, res: Response) => {
   try {
-    // Safely query each table - handle missing tables gracefully
-    let execStats = { active_count: 0, total_recent: 0, failed_recent: 0 };
+    // Use ExecutionService for execution stats (with fallback for missing tables)
+    let execStats = { activeCount: 0, totalRecent: 0, failedRecent: 0 };
     let blockedCount = 0;
     let pendingCount = 0;
 
     try {
-      const results = await query<{
-        active_count: number;
-        total_recent: number;
-        failed_recent: number;
-      }>(
-        `SELECT
-          (SELECT COUNT(*) FROM task_list_execution_runs WHERE status = 'running') as active_count,
-          (SELECT COUNT(*) FROM task_list_execution_runs WHERE started_at > datetime('now', '-24 hours')) as total_recent,
-          (SELECT COUNT(*) FROM task_list_execution_runs WHERE status = 'failed' AND started_at > datetime('now', '-24 hours')) as failed_recent`,
-        [],
-      );
-      execStats = results[0] || execStats;
+      execStats = await executionService.getExecutionStats();
     } catch {
       // Table may not exist
     }
@@ -75,14 +80,14 @@ router.get("/stats", async (_req: Request, res: Response) => {
     }
 
     const errorRate =
-      execStats.total_recent > 0
-        ? ((execStats.failed_recent / execStats.total_recent) * 100).toFixed(1)
+      execStats.totalRecent > 0
+        ? ((execStats.failedRecent / execStats.totalRecent) * 100).toFixed(1)
         : "0.0";
 
     res.json({
       success: true,
       data: {
-        activeExecutions: execStats.active_count,
+        activeExecutions: execStats.activeCount,
         errorRate: `${errorRate}%`,
         blockedAgents: blockedCount,
         pendingQuestions: pendingCount,
@@ -341,22 +346,13 @@ router.get("/health", async (_req: Request, res: Response) => {
 
 // === Helper Functions ===
 
-function parseJsonSafe<T>(json: string | null): T | null {
-  if (!json) return null;
-  try {
-    return JSON.parse(json) as T;
-  } catch {
-    return null;
-  }
-}
-
 function buildPagination(req: Request): { limit: number; offset: number } {
   const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
   const offset = parseInt(req.query.offset as string) || 0;
   return { limit, offset };
 }
 
-// === Executions ===
+// === Executions (using ExecutionService) ===
 
 /**
  * GET /api/observability/executions
@@ -368,65 +364,37 @@ router.get("/executions", async (req: Request, res: Response) => {
     const status = req.query.status as string | undefined;
     const taskListId = req.query.taskListId as string | undefined;
 
-    let whereClause = "1=1";
-    const params: (string | number | boolean)[] = [];
+    // Use ExecutionService
+    const result = await executionService.listExecutions({
+      status: status ? [status as ExecutionRun["status"]] : undefined,
+      taskListId,
+      limit,
+      offset,
+    });
 
-    if (status) {
-      whereClause += " AND status = ?";
-      params.push(status);
-    }
-    if (taskListId) {
-      whereClause += " AND task_list_id = ?";
-      params.push(taskListId);
-    }
-
-    const [rows, countResult] = await Promise.all([
-      query<{
-        id: string;
-        task_list_id: string;
-        run_number: number;
-        status: string;
-        started_at: string;
-        completed_at: string | null;
-        session_id: string | null;
-      }>(
-        `SELECT id, task_list_id, run_number, status, started_at, completed_at, session_id
-         FROM task_list_execution_runs
-         WHERE ${whereClause}
-         ORDER BY started_at DESC
-         LIMIT ? OFFSET ?`,
-        [...params, limit, offset],
-      ),
-      query<{ count: number }>(
-        `SELECT COUNT(*) as count FROM task_list_execution_runs WHERE ${whereClause}`,
-        params,
-      ),
-    ]);
-
-    const total = countResult[0]?.count || 0;
-
-    const executions: ExecutionRun[] = rows.map((row) => ({
-      id: row.id,
-      taskListId: row.task_list_id,
-      runNumber: row.run_number,
-      status: row.status as ExecutionRun["status"],
-      startedAt: row.started_at,
-      completedAt: row.completed_at,
-      sessionId: row.session_id,
-      waveCount: 0,
-      taskCount: 0,
-      completedCount: 0,
-      failedCount: 0,
+    // Map service response to route response format
+    const executions: ExecutionRun[] = result.data.map((exec) => ({
+      id: exec.id,
+      taskListId: exec.taskListId,
+      runNumber: exec.runNumber,
+      status: exec.status as ExecutionRun["status"],
+      startedAt: exec.startTime,
+      completedAt: exec.endTime || null,
+      sessionId: null, // Not exposed by service
+      waveCount: exec.waveCount || 0,
+      taskCount: exec.taskCount || 0,
+      completedCount: exec.completedCount || 0,
+      failedCount: exec.failedCount || 0,
     }));
 
     res.json({
       success: true,
       data: {
         data: executions,
-        total,
-        limit,
-        offset,
-        hasMore: offset + executions.length < total,
+        total: result.total,
+        limit: result.limit,
+        offset: result.offset,
+        hasMore: result.hasMore,
       },
     });
   } catch (error) {
@@ -438,6 +406,28 @@ router.get("/executions", async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/observability/executions/recent
+ * Get recent executions for dashboard (using ExecutionService)
+ * NOTE: This route MUST be defined before /executions/:id to avoid
+ * Express matching "recent" as an :id parameter
+ */
+router.get("/executions/recent", async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+
+    // Use ExecutionService
+    const executions = await executionService.getRecentExecutions(limit);
+
+    res.json({ success: true, data: executions });
+  } catch (error) {
+    console.error("Failed to fetch recent executions:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to fetch recent executions" });
+  }
+});
+
+/**
  * GET /api/observability/executions/:id
  * Get a single execution with stats
  */
@@ -445,65 +435,27 @@ router.get("/executions/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const rows = await query<{
-      id: string;
-      task_list_id: string;
-      run_number: number;
-      status: string;
-      started_at: string;
-      completed_at: string | null;
-      session_id: string | null;
-    }>(
-      `SELECT id, task_list_id, run_number, status, started_at, completed_at, session_id
-       FROM task_list_execution_runs
-       WHERE id = ?`,
-      [id],
-    );
+    // Use ExecutionService
+    const exec = await executionService.getExecution(id);
 
-    if (rows.length === 0) {
+    if (!exec) {
       return res
         .status(404)
         .json({ success: false, error: "Execution not found" });
     }
 
-    const row = rows[0];
-
-    // Get wave/task counts
-    const stats = await query<{
-      wave_count: number;
-      task_count: number;
-      completed_count: number;
-      failed_count: number;
-    }>(
-      `SELECT
-        (SELECT COUNT(*) FROM parallel_execution_waves WHERE execution_run_id = ?) as wave_count,
-        (SELECT COUNT(DISTINCT wta.task_id) FROM wave_task_assignments wta
-         JOIN parallel_execution_waves pew ON pew.id = wta.wave_id
-         WHERE pew.execution_run_id = ?) as task_count,
-        (SELECT COUNT(*) FROM transcript_entries WHERE execution_id = ? AND entry_type = 'task_end') as completed_count,
-        (SELECT COUNT(*) FROM transcript_entries WHERE execution_id = ? AND entry_type = 'error') as failed_count`,
-      [id, id, id, id],
-    );
-
-    const s = stats[0] || {
-      wave_count: 0,
-      task_count: 0,
-      completed_count: 0,
-      failed_count: 0,
-    };
-
     const execution: ExecutionRun = {
-      id: row.id,
-      taskListId: row.task_list_id,
-      runNumber: row.run_number,
-      status: row.status as ExecutionRun["status"],
-      startedAt: row.started_at,
-      completedAt: row.completed_at,
-      sessionId: row.session_id,
-      waveCount: s.wave_count,
-      taskCount: s.task_count,
-      completedCount: s.completed_count,
-      failedCount: s.failed_count,
+      id: exec.id,
+      taskListId: exec.taskListId,
+      runNumber: exec.runNumber,
+      status: exec.status as ExecutionRun["status"],
+      startedAt: exec.startTime,
+      completedAt: exec.endTime || null,
+      sessionId: null, // Not exposed by service
+      waveCount: exec.waveCount || 0,
+      taskCount: exec.taskCount || 0,
+      completedCount: exec.completedCount || 0,
+      failedCount: exec.failedCount || 0,
     };
 
     return res.json({ success: true, data: execution });
@@ -517,7 +469,7 @@ router.get("/executions/:id", async (req: Request, res: Response) => {
 
 /**
  * GET /api/observability/executions/:id/transcript
- * Get transcript entries for an execution
+ * Get transcript entries for an execution (using TranscriptService)
  */
 router.get(
   "/executions/:id/transcript",
@@ -529,85 +481,19 @@ router.get(
       const category = req.query.category as string | undefined;
       const taskId = req.query.taskId as string | undefined;
 
-      let whereClause = "execution_id = ?";
-      const params: (string | number | boolean)[] = [id];
+      // Use TranscriptService - returns frontend-compatible TranscriptEntry[]
+      const result = await transcriptService.getTranscript(id, {
+        entryTypes: entryType ? [entryType] : undefined,
+        categories: category ? [category] : undefined,
+        taskId,
+        limit,
+        offset,
+      });
 
-      if (entryType) {
-        whereClause += " AND entry_type = ?";
-        params.push(entryType);
-      }
-      if (category) {
-        whereClause += " AND category = ?";
-        params.push(category);
-      }
-      if (taskId) {
-        whereClause += " AND task_id = ?";
-        params.push(taskId);
-      }
-
-      const [rows, countResult] = await Promise.all([
-        query<{
-          id: string;
-          timestamp: string;
-          sequence: number;
-          execution_id: string;
-          task_id: string | null;
-          instance_id: string;
-          wave_number: number | null;
-          entry_type: string;
-          category: string;
-          summary: string;
-          details: string | null;
-          skill_ref: string | null;
-          tool_calls: string | null;
-          assertions: string | null;
-          duration_ms: number | null;
-          token_estimate: number | null;
-          created_at: string;
-        }>(
-          `SELECT * FROM transcript_entries
-         WHERE ${whereClause}
-         ORDER BY sequence ASC
-         LIMIT ? OFFSET ?`,
-          [...params, limit, offset],
-        ),
-        query<{ count: number }>(
-          `SELECT COUNT(*) as count FROM transcript_entries WHERE ${whereClause}`,
-          params,
-        ),
-      ]);
-
-      const total = countResult[0]?.count || 0;
-
-      const entries: TranscriptEntry[] = rows.map((row) => ({
-        id: row.id,
-        timestamp: row.timestamp,
-        sequence: row.sequence,
-        executionId: row.execution_id,
-        taskId: row.task_id,
-        instanceId: row.instance_id,
-        waveNumber: row.wave_number,
-        entryType: row.entry_type as TranscriptEntry["entryType"],
-        category: row.category as TranscriptEntry["category"],
-        summary: row.summary,
-        details: parseJsonSafe(row.details),
-        skillRef: parseJsonSafe(row.skill_ref),
-        toolCalls: parseJsonSafe(row.tool_calls),
-        assertions: parseJsonSafe(row.assertions),
-        durationMs: row.duration_ms,
-        tokenEstimate: row.token_estimate,
-        createdAt: row.created_at,
-      }));
-
+      // Pass through service response directly (already properly typed)
       res.json({
         success: true,
-        data: {
-          data: entries,
-          total,
-          limit,
-          offset,
-          hasMore: offset + entries.length < total,
-        },
+        data: result,
       });
     } catch (error) {
       console.error("Failed to fetch transcript:", error);
@@ -620,7 +506,7 @@ router.get(
 
 /**
  * GET /api/observability/executions/:id/tool-uses
- * Get tool uses for an execution
+ * Get tool uses for an execution (using ToolUseService)
  */
 router.get("/executions/:id/tool-uses", async (req: Request, res: Response) => {
   try {
@@ -631,95 +517,51 @@ router.get("/executions/:id/tool-uses", async (req: Request, res: Response) => {
     const status = req.query.status as string | undefined;
     const isError = req.query.isError as string | undefined;
 
-    let whereClause = "execution_id = ?";
-    const params: (string | number | boolean)[] = [id];
+    // Use ToolUseService
+    const result = await toolUseService.getToolUses(id, {
+      tools: tool ? [tool] : undefined,
+      categories: category ? [category] : undefined,
+      status: status ? [status] : undefined,
+      isError: isError === "true" ? true : undefined,
+      limit,
+      offset,
+      includeInputs: true,
+      includeOutputs: false,
+    });
 
-    if (tool) {
-      whereClause += " AND tool = ?";
-      params.push(tool);
-    }
-    if (category) {
-      whereClause += " AND tool_category = ?";
-      params.push(category);
-    }
-    if (status) {
-      whereClause += " AND result_status = ?";
-      params.push(status);
-    }
-    if (isError === "true") {
-      whereClause += " AND is_error = 1";
-    }
-
-    const [rows, countResult] = await Promise.all([
-      query<{
-        id: string;
-        execution_id: string;
-        task_id: string | null;
-        transcript_entry_id: string;
-        tool: string;
-        tool_category: string;
-        input: string;
-        input_summary: string;
-        result_status: string;
-        output: string | null;
-        output_summary: string;
-        is_error: number;
-        is_blocked: number;
-        error_message: string | null;
-        block_reason: string | null;
-        start_time: string;
-        end_time: string;
-        duration_ms: number;
-        within_skill: string | null;
-        parent_tool_use_id: string | null;
-        created_at: string;
-      }>(
-        `SELECT * FROM tool_uses
-         WHERE ${whereClause}
-         ORDER BY start_time ASC
-         LIMIT ? OFFSET ?`,
-        [...params, limit, offset],
-      ),
-      query<{ count: number }>(
-        `SELECT COUNT(*) as count FROM tool_uses WHERE ${whereClause}`,
-        params,
-      ),
-    ]);
-
-    const total = countResult[0]?.count || 0;
-
-    const toolUses: ToolUse[] = rows.map((row) => ({
-      id: row.id,
-      executionId: row.execution_id,
-      taskId: row.task_id,
-      transcriptEntryId: row.transcript_entry_id,
-      tool: row.tool as ToolName,
-      toolCategory: row.tool_category as ToolCategory,
-      input: parseJsonSafe(row.input) || {},
-      inputSummary: row.input_summary,
-      resultStatus: row.result_status as ToolResultStatus,
-      output: parseJsonSafe(row.output),
-      outputSummary: row.output_summary,
-      isError: row.is_error === 1,
-      isBlocked: row.is_blocked === 1,
-      errorMessage: row.error_message,
-      blockReason: row.block_reason,
-      startTime: row.start_time,
-      endTime: row.end_time,
-      durationMs: row.duration_ms,
-      withinSkill: row.within_skill,
-      parentToolUseId: row.parent_tool_use_id,
-      createdAt: row.created_at,
+    // Map service response to route response format
+    const toolUses: ToolUse[] = result.data.map((tu) => ({
+      id: tu.id,
+      executionId: tu.executionId,
+      taskId: tu.taskId,
+      transcriptEntryId: tu.transcriptEntryId,
+      tool: tu.tool as ToolName,
+      toolCategory: tu.toolCategory as ToolCategory,
+      input: tu.input || {},
+      inputSummary: tu.inputSummary,
+      resultStatus: tu.resultStatus as ToolResultStatus,
+      output: tu.output,
+      outputSummary: tu.outputSummary,
+      isError: tu.isError,
+      isBlocked: tu.isBlocked,
+      errorMessage: tu.errorMessage,
+      blockReason: tu.blockReason,
+      startTime: tu.startTime,
+      endTime: tu.endTime,
+      durationMs: tu.durationMs,
+      withinSkill: tu.withinSkill,
+      parentToolUseId: tu.parentToolUseId,
+      createdAt: tu.createdAt,
     }));
 
     res.json({
       success: true,
       data: {
         data: toolUses,
-        total,
-        limit,
-        offset,
-        hasMore: offset + toolUses.length < total,
+        total: result.total,
+        limit: result.limit,
+        offset: result.offset,
+        hasMore: result.hasMore,
       },
     });
   } catch (error) {
@@ -732,7 +574,7 @@ router.get("/executions/:id/tool-uses", async (req: Request, res: Response) => {
 
 /**
  * GET /api/observability/executions/:id/assertions
- * Get assertions for an execution
+ * Get assertions for an execution (using AssertionService)
  */
 router.get(
   "/executions/:id/assertions",
@@ -743,72 +585,41 @@ router.get(
       const result = req.query.result as string | undefined;
       const category = req.query.category as string | undefined;
 
-      let whereClause = "execution_id = ?";
-      const params: (string | number | boolean)[] = [id];
+      // Use AssertionService
+      const assertionResult = await assertionService.getAssertions(id, {
+        result: result ? [result] : undefined,
+        categories: category ? [category] : undefined,
+        limit,
+        offset,
+      });
 
-      if (result) {
-        whereClause += " AND result = ?";
-        params.push(result);
-      }
-      if (category) {
-        whereClause += " AND category = ?";
-        params.push(category);
-      }
-
-      const [rows, countResult] = await Promise.all([
-        query<{
-          id: string;
-          task_id: string;
-          execution_id: string;
-          category: string;
-          description: string;
-          result: string;
-          evidence: string;
-          chain_id: string | null;
-          chain_position: number | null;
-          timestamp: string;
-          duration_ms: number | null;
-          transcript_entry_id: string | null;
-          created_at: string;
-        }>(
-          `SELECT * FROM assertion_results
-         WHERE ${whereClause}
-         ORDER BY timestamp ASC
-         LIMIT ? OFFSET ?`,
-          [...params, limit, offset],
-        ),
-        query<{ count: number }>(
-          `SELECT COUNT(*) as count FROM assertion_results WHERE ${whereClause}`,
-          params,
-        ),
-      ]);
-
-      const total = countResult[0]?.count || 0;
-
-      const assertions: AssertionResultEntry[] = rows.map((row) => ({
-        id: row.id,
-        taskId: row.task_id,
-        executionId: row.execution_id,
-        category: row.category as AssertionCategory,
-        description: row.description,
-        result: row.result as AssertionResultEntry["result"],
-        evidence: parseJsonSafe(row.evidence) || {},
-        chainId: row.chain_id,
-        chainPosition: row.chain_position,
-        timestamp: row.timestamp,
-        durationMs: row.duration_ms,
-        transcriptEntryId: row.transcript_entry_id,
-        createdAt: row.created_at,
-      }));
+      // Map service response to route response format
+      const assertions: AssertionResultEntry[] = assertionResult.data.map(
+        (a) => ({
+          id: a.id,
+          taskId: a.taskId,
+          executionId: a.executionId,
+          category: a.category as AssertionCategory,
+          description: a.description,
+          result: a.result as AssertionResultEntry["result"],
+          evidence: a.evidence || {},
+          chainId: a.chainId,
+          chainPosition: a.chainPosition,
+          timestamp: a.timestamp,
+          durationMs: a.durationMs,
+          transcriptEntryId: a.transcriptEntryId,
+          createdAt: a.createdAt,
+        }),
+      );
 
       res.json({
         success: true,
         data: {
           data: assertions,
-          total,
-          limit,
-          offset,
-          hasMore: offset + assertions.length < total,
+          total: assertionResult.total,
+          limit: assertionResult.limit,
+          offset: assertionResult.offset,
+          hasMore: assertionResult.hasMore,
         },
       });
     } catch (error) {
@@ -822,77 +633,49 @@ router.get(
 
 /**
  * GET /api/observability/executions/:id/skills
- * Get skill traces for an execution
+ * Get skill traces for an execution (using SkillService)
  */
 router.get("/executions/:id/skills", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { limit, offset } = buildPagination(req);
 
-    const [rows, countResult] = await Promise.all([
-      query<{
-        id: string;
-        execution_id: string;
-        task_id: string;
-        skill_name: string;
-        skill_file: string;
-        line_number: number | null;
-        section_title: string | null;
-        input_summary: string | null;
-        output_summary: string | null;
-        start_time: string;
-        end_time: string | null;
-        duration_ms: number | null;
-        token_estimate: number | null;
-        status: string;
-        error_message: string | null;
-        tool_calls: string | null;
-        sub_skills: string | null;
-        created_at: string;
-      }>(
-        `SELECT * FROM skill_traces
-         WHERE execution_id = ?
-         ORDER BY start_time ASC
-         LIMIT ? OFFSET ?`,
-        [id, limit, offset],
-      ),
-      query<{ count: number }>(
-        `SELECT COUNT(*) as count FROM skill_traces WHERE execution_id = ?`,
-        [id],
-      ),
-    ]);
+    // Use SkillService
+    const result = await skillService.getSkillTraces(id, {
+      limit,
+      offset,
+    });
 
-    const total = countResult[0]?.count || 0;
-
-    const skills: SkillTrace[] = rows.map((row) => ({
-      id: row.id,
-      executionId: row.execution_id,
-      taskId: row.task_id,
-      skillName: row.skill_name,
-      skillFile: row.skill_file,
-      lineNumber: row.line_number,
-      sectionTitle: row.section_title,
-      inputSummary: row.input_summary,
-      outputSummary: row.output_summary,
-      startTime: row.start_time,
-      endTime: row.end_time,
-      durationMs: row.duration_ms,
-      tokenEstimate: row.token_estimate,
-      status: row.status as SkillTrace["status"],
-      errorMessage: row.error_message,
-      toolCalls: parseJsonSafe(row.tool_calls),
-      subSkills: parseJsonSafe(row.sub_skills),
-      createdAt: row.created_at,
+    // Map service response to route response format
+    const skills: SkillTrace[] = result.data.map((s) => ({
+      id: s.id,
+      executionId: s.executionId,
+      taskId: s.taskId,
+      skillName: s.skillName,
+      skillFile: s.skillFile,
+      lineNumber: s.lineNumber,
+      sectionTitle: s.sectionTitle,
+      inputSummary: s.inputSummary,
+      outputSummary: s.outputSummary,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      durationMs: s.durationMs,
+      tokenEstimate: s.tokenEstimate,
+      status: s.status as SkillTrace["status"],
+      errorMessage: s.errorMessage,
+      toolCalls: s.toolCalls,
+      subSkills: s.subSkills,
+      createdAt: s.createdAt,
     }));
 
     res.json({
       success: true,
       data: {
         data: skills,
-        total,
-        limit,
-        offset,
-        hasMore: offset + skills.length < total,
+        total: result.total,
+        limit: result.limit,
+        offset: result.offset,
+        hasMore: result.hasMore,
       },
     });
   } catch (error) {
@@ -905,7 +688,7 @@ router.get("/executions/:id/skills", async (req: Request, res: Response) => {
 
 /**
  * GET /api/observability/executions/:id/tool-summary
- * Get aggregated tool use statistics
+ * Get aggregated tool use statistics (using ToolUseService)
  */
 router.get(
   "/executions/:id/tool-summary",
@@ -913,57 +696,32 @@ router.get(
     try {
       const { id } = req.params;
 
-      const [byTool, byCategory, byStatus, totals] = await Promise.all([
-        query<{ tool: string; count: number }>(
-          `SELECT tool, COUNT(*) as count FROM tool_uses WHERE execution_id = ? GROUP BY tool`,
-          [id],
-        ),
-        query<{ tool_category: string; count: number }>(
-          `SELECT tool_category, COUNT(*) as count FROM tool_uses WHERE execution_id = ? GROUP BY tool_category`,
-          [id],
-        ),
-        query<{ result_status: string; count: number }>(
-          `SELECT result_status, COUNT(*) as count FROM tool_uses WHERE execution_id = ? GROUP BY result_status`,
-          [id],
-        ),
-        query<{
-          total: number;
-          avg_duration: number;
-          error_count: number;
-          block_count: number;
-        }>(
-          `SELECT
-          COUNT(*) as total,
-          AVG(duration_ms) as avg_duration,
-          SUM(is_error) as error_count,
-          SUM(is_blocked) as block_count
-         FROM tool_uses
-         WHERE execution_id = ?`,
-          [id],
-        ),
-      ]);
+      // Use ToolUseService
+      const summaryData = await toolUseService.getToolSummary(id);
 
-      const t = totals[0] || {
-        total: 0,
-        avg_duration: 0,
-        error_count: 0,
-        block_count: 0,
-      };
+      // Transform service response - byTool/byCategory contain objects with stats,
+      // but ToolSummary expects simple count numbers
+      const byToolCounts: Record<string, number> = {};
+      for (const [tool, stats] of Object.entries(summaryData.byTool)) {
+        byToolCounts[tool] = stats.count;
+      }
+
+      const byCategoryCounts: Record<string, number> = {};
+      for (const [cat, stats] of Object.entries(summaryData.byCategory)) {
+        byCategoryCounts[cat] = stats.count;
+      }
 
       const summary: ToolSummary = {
-        total: t.total,
-        byTool: Object.fromEntries(
-          byTool.map((r) => [r.tool, r.count]),
-        ) as Record<ToolName, number>,
-        byCategory: Object.fromEntries(
-          byCategory.map((r) => [r.tool_category, r.count]),
-        ) as Record<ToolCategory, number>,
-        byStatus: Object.fromEntries(
-          byStatus.map((r) => [r.result_status, r.count]),
-        ) as Record<ToolResultStatus, number>,
-        avgDurationMs: Math.round(t.avg_duration || 0),
-        errorRate: t.total > 0 ? (t.error_count || 0) / t.total : 0,
-        blockRate: t.total > 0 ? (t.block_count || 0) / t.total : 0,
+        total: summaryData.total,
+        byTool: byToolCounts as Record<ToolName, number>,
+        byCategory: byCategoryCounts as Record<ToolCategory, number>,
+        byStatus: summaryData.byStatus as unknown as Record<
+          ToolResultStatus,
+          number
+        >,
+        avgDurationMs: summaryData.avgDurationMs,
+        errorRate: summaryData.errorRate,
+        blockRate: summaryData.blockRate,
       };
 
       res.json({ success: true, data: summary });
@@ -978,7 +736,7 @@ router.get(
 
 /**
  * GET /api/observability/executions/:id/assertion-summary
- * Get aggregated assertion statistics
+ * Get aggregated assertion statistics (using AssertionService)
  */
 router.get(
   "/executions/:id/assertion-summary",
@@ -986,57 +744,23 @@ router.get(
     try {
       const { id } = req.params;
 
-      const [byResult, byCategory, chainStats] = await Promise.all([
-        query<{ result: string; count: number }>(
-          `SELECT result, COUNT(*) as count FROM assertion_results WHERE execution_id = ? GROUP BY result`,
-          [id],
-        ),
-        query<{ category: string; total: number; passed: number }>(
-          `SELECT
-          category,
-          COUNT(*) as total,
-          SUM(CASE WHEN result = 'pass' THEN 1 ELSE 0 END) as passed
-         FROM assertion_results
-         WHERE execution_id = ?
-         GROUP BY category`,
-          [id],
-        ),
-        query<{ overall_result: string; count: number }>(
-          `SELECT overall_result, COUNT(*) as count FROM assertion_chains WHERE execution_id = ? GROUP BY overall_result`,
-          [id],
-        ),
-      ]);
-
-      const resultCounts = Object.fromEntries(
-        byResult.map((r) => [r.result, r.count]),
-      );
-      const total = Object.values(resultCounts).reduce((a, b) => a + b, 0);
-      const passed = resultCounts["pass"] || 0;
-
-      const chainCounts = Object.fromEntries(
-        chainStats.map((r) => [r.overall_result, r.count]),
-      );
-      const chainTotal = Object.values(chainCounts).reduce((a, b) => a + b, 0);
+      // Use AssertionService
+      const summaryData = await assertionService.getAssertionSummary(id);
 
       const summary: AssertionSummary = {
-        total,
-        passed,
-        failed: resultCounts["fail"] || 0,
-        skipped: resultCounts["skip"] || 0,
-        warned: resultCounts["warn"] || 0,
-        passRate: total > 0 ? passed / total : 0,
+        total: summaryData.summary.totalAssertions,
+        passed: summaryData.summary.passed,
+        failed: summaryData.summary.failed,
+        skipped: summaryData.summary.skipped,
+        warned: summaryData.summary.warnings,
+        passRate: summaryData.summary.passRate,
         byCategory: Object.fromEntries(
-          byCategory.map((r) => [
-            r.category,
-            { total: r.total, passed: r.passed },
+          Object.entries(summaryData.byCategory).map(([cat, stats]) => [
+            cat,
+            { total: stats.total, passed: stats.passed },
           ]),
         ) as Record<AssertionCategory, { total: number; passed: number }>,
-        chains: {
-          total: chainTotal,
-          passed: chainCounts["pass"] || 0,
-          failed: chainCounts["fail"] || 0,
-          partial: chainCounts["partial"] || 0,
-        },
+        chains: summaryData.chains,
       };
 
       res.json({ success: true, data: summary });
@@ -1050,8 +774,81 @@ router.get(
 );
 
 /**
+ * GET /api/observability/executions/:id/skills-summary
+ * Get aggregated skill usage statistics (using SkillService)
+ */
+router.get(
+  "/executions/:id/skills-summary",
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      // Use SkillService
+      const summaryData = await skillService.getSkillsSummary(id);
+
+      res.json({ success: true, data: summaryData });
+    } catch (error) {
+      console.error("Failed to fetch skills summary:", error);
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch skills summary" });
+    }
+  },
+);
+
+/**
+ * GET /api/observability/logs/message-bus/summary
+ * Get message bus summary statistics (using MessageBusService)
+ */
+router.get("/logs/message-bus/summary", async (req: Request, res: Response) => {
+  try {
+    const executionId = req.query.executionId as string | undefined;
+
+    // Use MessageBusService
+    const summary = await messageBusService.getSummary(executionId);
+
+    res.json({ success: true, data: summary });
+  } catch (error) {
+    console.error("Failed to fetch message bus summary:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to fetch message bus summary" });
+  }
+});
+
+/**
+ * GET /api/observability/logs/message-bus/correlated/:correlationId
+ * Get correlated events by correlation ID (using MessageBusService)
+ */
+router.get(
+  "/logs/message-bus/correlated/:correlationId",
+  async (req: Request, res: Response) => {
+    try {
+      const { correlationId } = req.params;
+
+      // Use MessageBusService
+      const correlatedEvents =
+        await messageBusService.getCorrelatedEvents(correlationId);
+
+      if (!correlatedEvents) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Correlation ID not found" });
+      }
+
+      return res.json({ success: true, data: correlatedEvents });
+    } catch (error) {
+      console.error("Failed to fetch correlated events:", error);
+      return res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch correlated events" });
+    }
+  },
+);
+
+/**
  * GET /api/observability/logs/message-bus
- * Get message bus log entries
+ * Get message bus log entries (using MessageBusService)
  */
 router.get("/logs/message-bus", async (req: Request, res: Response) => {
   try {
@@ -1061,82 +858,42 @@ router.get("/logs/message-bus", async (req: Request, res: Response) => {
     const category = req.query.category as string | undefined;
     const source = req.query.source as string | undefined;
 
-    let whereClause = "1=1";
-    const params: (string | number | boolean)[] = [];
+    // Use MessageBusService - cast string query params to proper enum types
+    const result = await messageBusService.getLogs({
+      executionId,
+      severity: severity ? [severity as Severity] : undefined,
+      category: category ? [category as MessageBusCategory] : undefined,
+      source,
+      limit,
+      offset,
+    });
 
-    if (executionId) {
-      whereClause += " AND execution_id = ?";
-      params.push(executionId);
-    }
-    if (severity) {
-      whereClause += " AND severity = ?";
-      params.push(severity);
-    }
-    if (category) {
-      whereClause += " AND category = ?";
-      params.push(category);
-    }
-    if (source) {
-      whereClause += " AND source = ?";
-      params.push(source);
-    }
-
-    const [rows, countResult] = await Promise.all([
-      query<{
-        id: string;
-        event_id: string;
-        timestamp: string;
-        source: string;
-        event_type: string;
-        correlation_id: string | null;
-        human_summary: string;
-        severity: string;
-        category: string;
-        transcript_entry_id: string | null;
-        task_id: string | null;
-        execution_id: string | null;
-        payload: string | null;
-        created_at: string;
-      }>(
-        `SELECT * FROM message_bus_log
-         WHERE ${whereClause}
-         ORDER BY timestamp DESC
-         LIMIT ? OFFSET ?`,
-        [...params, limit, offset],
-      ),
-      query<{ count: number }>(
-        `SELECT COUNT(*) as count FROM message_bus_log WHERE ${whereClause}`,
-        params,
-      ),
-    ]);
-
-    const total = countResult[0]?.count || 0;
-
-    const logs: MessageBusLogEntry[] = rows.map((row) => ({
-      id: row.id,
-      eventId: row.event_id,
-      timestamp: row.timestamp,
-      source: row.source,
-      eventType: row.event_type,
-      correlationId: row.correlation_id,
-      humanSummary: row.human_summary,
-      severity: row.severity as MessageBusLogEntry["severity"],
-      category: row.category as MessageBusLogEntry["category"],
-      transcriptEntryId: row.transcript_entry_id,
-      taskId: row.task_id,
-      executionId: row.execution_id,
-      payload: parseJsonSafe(row.payload),
-      createdAt: row.created_at,
+    // Map service response to route response format
+    const logs: MessageBusLogEntry[] = result.data.map((log) => ({
+      id: log.id,
+      eventId: log.eventId,
+      timestamp: log.timestamp,
+      source: log.source,
+      eventType: log.eventType,
+      correlationId: log.correlationId,
+      humanSummary: log.humanSummary,
+      severity: log.severity as MessageBusLogEntry["severity"],
+      category: log.category as MessageBusLogEntry["category"],
+      transcriptEntryId: log.transcriptEntryId,
+      taskId: log.taskId,
+      executionId: log.executionId,
+      payload: log.payload,
+      createdAt: log.createdAt,
     }));
 
     res.json({
       success: true,
       data: {
         data: logs,
-        total,
-        limit,
-        offset,
-        hasMore: offset + logs.length < total,
+        total: result.total,
+        limit: result.limit,
+        offset: result.offset,
+        hasMore: result.hasMore,
       },
     });
   } catch (error) {
@@ -1147,108 +904,93 @@ router.get("/logs/message-bus", async (req: Request, res: Response) => {
 
 /**
  * GET /api/observability/cross-refs/:entityType/:entityId
- * Get cross-references for an entity
+ * Get cross-references for an entity (using CrossReferenceService)
  */
 router.get(
   "/cross-refs/:entityType/:entityId",
   async (req: Request, res: Response) => {
     try {
       const { entityType, entityId } = req.params;
+
+      // Map route entity types to service entity types
+      const entityTypeMap: Record<string, string> = {
+        tool_use: "toolUse",
+        assertion: "assertion",
+        skill_trace: "skillTrace",
+        transcript: "transcriptEntry",
+      };
+
+      const serviceEntityType = entityTypeMap[entityType];
+      if (!serviceEntityType) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Unknown entity type" });
+      }
+
+      // Use CrossReferenceService
+      const crossRefs = await crossReferenceService.getCrossReferences(
+        serviceEntityType as
+          | "toolUse"
+          | "assertion"
+          | "skillTrace"
+          | "transcriptEntry",
+        entityId,
+      );
+
+      if (!crossRefs) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Entity not found" });
+      }
+
+      // Convert service response to route response format
       const related: CrossReference["relatedTo"] = [];
 
-      switch (entityType as EntityType) {
-        case "tool_use": {
-          // Get related transcript entry, task, skill
-          const toolUse = await query<{
-            transcript_entry_id: string;
-            task_id: string | null;
-            within_skill: string | null;
-            execution_id: string;
-          }>(
-            `SELECT transcript_entry_id, task_id, within_skill, execution_id FROM tool_uses WHERE id = ?`,
-            [entityId],
-          );
-          if (toolUse.length > 0) {
-            const t = toolUse[0];
-            related.push({ type: "execution", id: t.execution_id });
-            related.push({ type: "transcript", id: t.transcript_entry_id });
-            if (t.task_id) related.push({ type: "task", id: t.task_id });
-            if (t.within_skill)
-              related.push({ type: "skill_trace", id: t.within_skill });
-          }
-          break;
-        }
-        case "assertion": {
-          const assertion = await query<{
-            task_id: string;
-            execution_id: string;
-            chain_id: string | null;
-            transcript_entry_id: string | null;
-          }>(
-            `SELECT task_id, execution_id, chain_id, transcript_entry_id FROM assertion_results WHERE id = ?`,
-            [entityId],
-          );
-          if (assertion.length > 0) {
-            const a = assertion[0];
-            related.push({ type: "execution", id: a.execution_id });
-            related.push({ type: "task", id: a.task_id });
-            if (a.chain_id)
-              related.push({ type: "assertion_chain", id: a.chain_id });
-            if (a.transcript_entry_id)
-              related.push({ type: "transcript", id: a.transcript_entry_id });
-          }
-          break;
-        }
-        case "skill_trace": {
-          const skill = await query<{
-            execution_id: string;
-            task_id: string;
-            tool_calls: string | null;
-          }>(
-            `SELECT execution_id, task_id, tool_calls FROM skill_traces WHERE id = ?`,
-            [entityId],
-          );
-          if (skill.length > 0) {
-            const s = skill[0];
-            related.push({ type: "execution", id: s.execution_id });
-            related.push({ type: "task", id: s.task_id });
-            const toolCalls = parseJsonSafe<string[]>(s.tool_calls);
-            if (toolCalls) {
-              toolCalls.forEach((id) => related.push({ type: "tool_use", id }));
-            }
-          }
-          break;
-        }
-        case "transcript": {
-          const entry = await query<{
-            execution_id: string;
-            task_id: string | null;
-            skill_ref: string | null;
-            tool_calls: string | null;
-          }>(
-            `SELECT execution_id, task_id, skill_ref, tool_calls FROM transcript_entries WHERE id = ?`,
-            [entityId],
-          );
-          if (entry.length > 0) {
-            const e = entry[0];
-            related.push({ type: "execution", id: e.execution_id });
-            if (e.task_id) related.push({ type: "task", id: e.task_id });
-            // Tool uses
-            const toolCalls = parseJsonSafe<Array<{ toolUseId: string }>>(
-              e.tool_calls,
-            );
-            if (toolCalls) {
-              toolCalls.forEach((tc) =>
-                related.push({ type: "tool_use", id: tc.toolUseId }),
-              );
-            }
-          }
-          break;
-        }
-        default:
-          return res
-            .status(400)
-            .json({ success: false, error: "Unknown entity type" });
+      if (crossRefs.type === "toolUse") {
+        const refs = crossRefs.refs;
+        related.push({ type: "transcript", id: refs.transcriptEntry });
+        if (refs.task) related.push({ type: "task", id: refs.task });
+        if (refs.skill) related.push({ type: "skill_trace", id: refs.skill });
+        if (refs.parentToolUse)
+          related.push({ type: "tool_use", id: refs.parentToolUse });
+        refs.childToolUses.forEach((id) =>
+          related.push({ type: "tool_use", id }),
+        );
+        refs.relatedAssertions.forEach((id) =>
+          related.push({ type: "assertion", id }),
+        );
+      } else if (crossRefs.type === "assertion") {
+        const refs = crossRefs.refs;
+        related.push({ type: "task", id: refs.task });
+        if (refs.chain)
+          related.push({ type: "assertion_chain", id: refs.chain });
+        refs.transcriptEntries.forEach((id) =>
+          related.push({ type: "transcript", id }),
+        );
+        refs.toolUses.forEach((id) => related.push({ type: "tool_use", id }));
+      } else if (crossRefs.type === "skillTrace") {
+        const refs = crossRefs.refs;
+        related.push({ type: "task", id: refs.task });
+        refs.transcriptEntries.forEach((id) =>
+          related.push({ type: "transcript", id }),
+        );
+        refs.toolUses.forEach((id) => related.push({ type: "tool_use", id }));
+        refs.assertions.forEach((id) =>
+          related.push({ type: "assertion", id }),
+        );
+        if (refs.parentSkill)
+          related.push({ type: "skill_trace", id: refs.parentSkill });
+        refs.childSkills.forEach((id) =>
+          related.push({ type: "skill_trace", id }),
+        );
+      } else if (crossRefs.type === "transcriptEntry") {
+        const refs = crossRefs.refs;
+        related.push({ type: "execution", id: refs.execution });
+        if (refs.task) related.push({ type: "task", id: refs.task });
+        if (refs.toolUse) related.push({ type: "tool_use", id: refs.toolUse });
+        if (refs.skill) related.push({ type: "skill_trace", id: refs.skill });
+        if (refs.assertion)
+          related.push({ type: "assertion", id: refs.assertion });
       }
 
       const crossRef: CrossReference = {
@@ -1263,6 +1005,62 @@ router.get(
       return res
         .status(500)
         .json({ success: false, error: "Failed to fetch cross references" });
+    }
+  },
+);
+
+/**
+ * GET /api/observability/cross-refs/:entityType/:entityId/related
+ * Get fully loaded related entities for an entity (using CrossReferenceService)
+ */
+router.get(
+  "/cross-refs/:entityType/:entityId/related",
+  async (req: Request, res: Response) => {
+    try {
+      const { entityType, entityId } = req.params;
+      const executionId = req.query.executionId as string | undefined;
+      const includeTranscript = req.query.transcript === "true";
+      const includeToolUses = req.query.toolUses === "true";
+      const includeAssertions = req.query.assertions === "true";
+      const includeSkills = req.query.skills === "true";
+
+      // Map route entity types to service entity types
+      const entityTypeMap: Record<string, string> = {
+        tool_use: "toolUse",
+        assertion: "assertion",
+        skill_trace: "skillTrace",
+        transcript: "transcriptEntry",
+      };
+
+      const serviceEntityType = entityTypeMap[entityType];
+      if (!serviceEntityType) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Unknown entity type" });
+      }
+
+      // Use CrossReferenceService - executionId is optional for the service
+      // but required by the type, so we'll provide an empty string as fallback
+      const relatedEntities = await crossReferenceService.getRelatedEntities({
+        entityType: serviceEntityType as
+          | "toolUse"
+          | "assertion"
+          | "skillTrace"
+          | "transcriptEntry",
+        entityId,
+        executionId: executionId || "", // Required by type but not used by service
+        includeTranscript,
+        includeToolUses,
+        includeAssertions,
+        includeSkills,
+      });
+
+      return res.json({ success: true, data: relatedEntities });
+    } catch (error) {
+      console.error("Failed to fetch related entities:", error);
+      return res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch related entities" });
     }
   },
 );

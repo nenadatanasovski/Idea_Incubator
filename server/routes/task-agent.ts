@@ -200,10 +200,50 @@ router.post("/tasks/:id/move", async (req: Request, res: Response) => {
  * - PRD/spec context loading
  * - Intelligent AC splitting
  * - Test command distribution per subtask type
+ *
+ * Guards against infinite decomposition:
+ * - Cannot decompose tasks that are already decomposed (status = "skipped")
+ * - Cannot decompose subtasks (tasks with child_of relationship)
  */
 router.post("/tasks/:id/decompose", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const { getOne } = await import("../../database/db.js");
+
+    // Check if task exists and is not already decomposed
+    const task = await getOne<{ id: string; status: string; title: string }>(
+      "SELECT id, status, title FROM tasks WHERE id = ?",
+      [id],
+    );
+
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    // Guard 1: Prevent re-decomposition of already decomposed tasks
+    if (task.status === "skipped") {
+      return res.status(400).json({
+        error: "Task already decomposed",
+        message:
+          "This task has already been decomposed and marked as skipped. Edit or delete its subtasks instead.",
+      });
+    }
+
+    // Guard 2: Prevent decomposition of subtasks (tasks that are children of decomposed parents)
+    const isSubtask = await getOne<{ id: string }>(
+      `SELECT id FROM task_relationships
+       WHERE source_task_id = ? AND relationship_type = 'child_of'
+       LIMIT 1`,
+      [id],
+    );
+
+    if (isSubtask) {
+      return res.status(400).json({
+        error: "Cannot decompose subtask",
+        message:
+          "This task is a subtask from a previous decomposition. Complete it or modify it directly instead of decomposing further.",
+      });
+    }
 
     const result = await taskDecomposer.decompose(id);
 
@@ -363,6 +403,12 @@ router.post(
         createdTasks.map((t) => t.id),
         createdTasks.length,
       );
+
+      // Invalidate readiness cache for the parent task
+      // This ensures UI shows updated status immediately
+      const { taskReadinessService } =
+        await import("../services/task-agent/task-readiness-service.js");
+      await taskReadinessService.invalidateCache(taskId);
 
       return res.json({
         success: true,

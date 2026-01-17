@@ -2,9 +2,10 @@
  * OBS-304: Skill Service
  *
  * Query skill traces and compute usage summaries.
+ * Uses the project's sql.js database wrapper.
  */
 
-import Database from "better-sqlite3";
+import { query, getOne } from "../../../database/db.js";
 import type {
   SkillTraceQuery,
   SkillsUsageSummaryResponse,
@@ -17,65 +18,58 @@ import type {
 } from "../../../frontend/src/types/observability/skill.js";
 
 export class SkillService {
-  private db: Database.Database;
-
-  constructor(dbPath: string = "database/ideas.db") {
-    this.db = new Database(dbPath);
-    this.db.pragma("foreign_keys = ON");
-  }
-
   /**
    * Get skill traces for an execution with filtering.
    */
-  getSkillTraces(
+  async getSkillTraces(
     executionId: string,
-    query: SkillTraceQuery = {},
-  ): PaginatedResponse<SkillTrace> {
-    const limit = query.limit || 100;
-    const offset = query.offset || 0;
+    skillQuery: SkillTraceQuery = {},
+  ): Promise<PaginatedResponse<SkillTrace>> {
+    const limit = skillQuery.limit || 100;
+    const offset = skillQuery.offset || 0;
     const conditions: string[] = ["execution_id = ?"];
     const params: (string | number)[] = [executionId];
 
     // Filter by task
-    if (query.taskId) {
+    if (skillQuery.taskId) {
       conditions.push("task_id = ?");
-      params.push(query.taskId);
+      params.push(skillQuery.taskId);
     }
 
     // Filter by skill name
-    if (query.skillName) {
+    if (skillQuery.skillName) {
       conditions.push("skill_name = ?");
-      params.push(query.skillName);
+      params.push(skillQuery.skillName);
     }
 
     // Filter by skill file
-    if (query.skillFile) {
+    if (skillQuery.skillFile) {
       conditions.push("skill_file = ?");
-      params.push(query.skillFile);
+      params.push(skillQuery.skillFile);
     }
 
     // Filter by status
-    if (query.status?.length) {
-      const placeholders = query.status.map(() => "?").join(",");
+    if (skillQuery.status?.length) {
+      const placeholders = skillQuery.status.map(() => "?").join(",");
       conditions.push(`status IN (${placeholders})`);
-      params.push(...query.status);
+      params.push(...skillQuery.status);
     }
 
     // Time filters
-    if (query.fromTime) {
+    if (skillQuery.fromTime) {
       conditions.push("start_time >= ?");
-      params.push(query.fromTime);
+      params.push(skillQuery.fromTime);
     }
 
-    if (query.toTime) {
+    if (skillQuery.toTime) {
       conditions.push("end_time <= ?");
-      params.push(query.toTime);
+      params.push(skillQuery.toTime);
     }
 
     const whereClause = conditions.join(" AND ");
 
-    const sql = `
-      SELECT
+    const rows = await query<SkillTraceRow>(
+      `SELECT
         id,
         execution_id,
         task_id,
@@ -97,23 +91,17 @@ export class SkillService {
       FROM skill_traces
       WHERE ${whereClause}
       ORDER BY start_time ASC
-      LIMIT ? OFFSET ?
-    `;
-
-    const rows = this.db
-      .prepare(sql)
-      .all(...params, limit, offset) as SkillTraceRow[];
+      LIMIT ? OFFSET ?`,
+      [...params, limit, offset],
+    );
 
     // Get total count
-    const countParams = params.slice();
-    const countSql = `
-      SELECT COUNT(*) as count
+    const countResult = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count
       FROM skill_traces
-      WHERE ${whereClause}
-    `;
-    const countResult = this.db.prepare(countSql).get(...countParams) as {
-      count: number;
-    };
+      WHERE ${whereClause}`,
+      params,
+    );
     const total = countResult?.count || 0;
 
     const data = rows.map((row) => this.mapRow(row));
@@ -130,9 +118,9 @@ export class SkillService {
   /**
    * Get a single skill trace by ID.
    */
-  getSkillTrace(traceId: string): SkillTrace | null {
-    const sql = `
-      SELECT
+  async getSkillTrace(traceId: string): Promise<SkillTrace | null> {
+    const row = await getOne<SkillTraceRow>(
+      `SELECT
         id,
         execution_id,
         task_id,
@@ -152,67 +140,57 @@ export class SkillService {
         sub_skills,
         created_at
       FROM skill_traces
-      WHERE id = ?
-    `;
+      WHERE id = ?`,
+      [traceId],
+    );
 
-    const row = this.db.prepare(sql).get(traceId) as SkillTraceRow | undefined;
     if (!row) return null;
-
     return this.mapRow(row);
   }
 
   /**
    * Get skills usage summary for an execution.
    */
-  getSkillsSummary(executionId: string): SkillsUsageSummaryResponse {
+  async getSkillsSummary(
+    executionId: string,
+  ): Promise<SkillsUsageSummaryResponse> {
     // Get overall counts
-    const totals = this.db
-      .prepare(
-        `
-        SELECT
-          COUNT(*) as total,
-          COUNT(DISTINCT skill_name) as uniqueSkills
-        FROM skill_traces
-        WHERE execution_id = ?
-      `,
-      )
-      .get(executionId) as { total: number; uniqueSkills: number } | undefined;
+    const totals = await getOne<{ total: number; uniqueSkills: number }>(
+      `SELECT
+        COUNT(*) as total,
+        COUNT(DISTINCT skill_name) as uniqueSkills
+      FROM skill_traces
+      WHERE execution_id = ?`,
+      [executionId],
+    );
 
     // Get skills with stats
-    const skillRows = this.db
-      .prepare(
-        `
-        SELECT
-          skill_name,
-          skill_file,
-          COUNT(*) as invocationCount,
-          SUM(duration_ms) as totalDurationMs,
-          SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successCount
-        FROM skill_traces
-        WHERE execution_id = ?
-        GROUP BY skill_name, skill_file
-        ORDER BY invocationCount DESC
-      `,
-      )
-      .all(executionId) as SkillStatsRow[];
+    const skillRows = await query<SkillStatsRow>(
+      `SELECT
+        skill_name,
+        skill_file,
+        COUNT(*) as invocationCount,
+        SUM(duration_ms) as totalDurationMs,
+        SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successCount
+      FROM skill_traces
+      WHERE execution_id = ?
+      GROUP BY skill_name, skill_file
+      ORDER BY invocationCount DESC`,
+      [executionId],
+    );
 
-    const skills: SkillsUsageSummary["skills"] = skillRows.map((row) => {
+    const skills: SkillsUsageSummary["skills"] = [];
+    for (const row of skillRows) {
       // Get sections used for this skill
-      const sections = this.db
-        .prepare(
-          `
-          SELECT section_title, COUNT(*) as count
-          FROM skill_traces
-          WHERE execution_id = ? AND skill_name = ? AND section_title IS NOT NULL
-          GROUP BY section_title
-        `,
-        )
-        .all(executionId, row.skill_name) as {
-        section_title: string;
-        count: number;
-      }[];
+      const sections = await query<{ section_title: string; count: number }>(
+        `SELECT section_title, COUNT(*) as count
+        FROM skill_traces
+        WHERE execution_id = ? AND skill_name = ? AND section_title IS NOT NULL
+        GROUP BY section_title`,
+        [executionId, row.skill_name],
+      );
 
-      return {
+      skills.push({
         skillName: row.skill_name,
         skillFile: row.skill_file,
         invocationCount: row.invocationCount,
@@ -223,25 +201,22 @@ export class SkillService {
           section: s.section_title,
           count: s.count,
         })),
-      };
-    });
+      });
+    }
 
     // Get skill file references
-    const fileRefRows = this.db
-      .prepare(
-        `
-        SELECT
-          skill_file,
-          GROUP_CONCAT(DISTINCT line_number) as lines,
-          GROUP_CONCAT(DISTINCT section_title) as sections,
-          COUNT(*) as invocationCount,
-          SUM(duration_ms) as totalDurationMs
-        FROM skill_traces
-        WHERE execution_id = ?
-        GROUP BY skill_file
-      `,
-      )
-      .all(executionId) as FileRefRow[];
+    const fileRefRows = await query<FileRefRow>(
+      `SELECT
+        skill_file,
+        GROUP_CONCAT(DISTINCT line_number) as lines,
+        GROUP_CONCAT(DISTINCT section_title) as sections,
+        COUNT(*) as invocationCount,
+        SUM(duration_ms) as totalDurationMs
+      FROM skill_traces
+      WHERE execution_id = ?
+      GROUP BY skill_file`,
+      [executionId],
+    );
 
     const skillFileReferences: SkillFileReference[] = fileRefRows.map(
       (row) => ({
@@ -261,16 +236,13 @@ export class SkillService {
     );
 
     // Get by status
-    const byStatusRows = this.db
-      .prepare(
-        `
-        SELECT status, COUNT(*) as count
-        FROM skill_traces
-        WHERE execution_id = ?
-        GROUP BY status
-      `,
-      )
-      .all(executionId) as { status: string; count: number }[];
+    const byStatusRows = await query<{ status: string; count: number }>(
+      `SELECT status, COUNT(*) as count
+      FROM skill_traces
+      WHERE execution_id = ?
+      GROUP BY status`,
+      [executionId],
+    );
 
     const byStatus: SkillsUsageSummary["byStatus"] = {
       success: 0,
@@ -285,19 +257,14 @@ export class SkillService {
     }
 
     // Get timeline
-    const timeline = this.db
-      .prepare(
-        `
-        SELECT
-          MIN(start_time) as firstSkill,
-          MAX(COALESCE(end_time, start_time)) as lastSkill
-        FROM skill_traces
-        WHERE execution_id = ?
-      `,
-      )
-      .get(executionId) as
-      | { firstSkill: string; lastSkill: string }
-      | undefined;
+    const timeline = await getOne<{ firstSkill: string; lastSkill: string }>(
+      `SELECT
+        MIN(start_time) as firstSkill,
+        MAX(COALESCE(end_time, start_time)) as lastSkill
+      FROM skill_traces
+      WHERE execution_id = ?`,
+      [executionId],
+    );
 
     return {
       executionId,
@@ -350,10 +317,6 @@ export class SkillService {
       return null;
     }
   }
-
-  close(): void {
-    this.db.close();
-  }
 }
 
 // Internal row types
@@ -393,3 +356,6 @@ interface FileRefRow {
   invocationCount: number;
   totalDurationMs: number;
 }
+
+// Export singleton instance
+export const skillService = new SkillService();

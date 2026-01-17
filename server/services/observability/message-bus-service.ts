@@ -2,9 +2,10 @@
  * OBS-306: Message Bus Service
  *
  * Query message bus logs and correlated events.
+ * Uses the project's sql.js database wrapper.
  */
 
-import Database from "better-sqlite3";
+import { query, getOne } from "../../../database/db.js";
 import type {
   MessageBusQuery,
   MessageBusSummaryResponse,
@@ -18,81 +19,76 @@ import type {
 } from "../../../frontend/src/types/observability/message-bus.js";
 
 export class MessageBusService {
-  private db: Database.Database;
-
-  constructor(dbPath: string = "database/ideas.db") {
-    this.db = new Database(dbPath);
-    this.db.pragma("foreign_keys = ON");
-  }
-
   /**
    * Get message bus logs with filtering.
    */
-  getLogs(query: MessageBusQuery = {}): PaginatedResponse<MessageBusLogEntry> {
-    const limit = query.limit || 100;
-    const offset = query.offset || 0;
+  async getLogs(
+    busQuery: MessageBusQuery = {},
+  ): Promise<PaginatedResponse<MessageBusLogEntry>> {
+    const limit = busQuery.limit || 100;
+    const offset = busQuery.offset || 0;
     const conditions: string[] = ["1=1"];
     const params: (string | number)[] = [];
 
     // Filter by execution
-    if (query.executionId) {
+    if (busQuery.executionId) {
       conditions.push("execution_id = ?");
-      params.push(query.executionId);
+      params.push(busQuery.executionId);
     }
 
     // Filter by task
-    if (query.taskId) {
+    if (busQuery.taskId) {
       conditions.push("task_id = ?");
-      params.push(query.taskId);
+      params.push(busQuery.taskId);
     }
 
     // Filter by severity
-    if (query.severity?.length) {
-      const placeholders = query.severity.map(() => "?").join(",");
+    if (busQuery.severity?.length) {
+      const placeholders = busQuery.severity.map(() => "?").join(",");
       conditions.push(`severity IN (${placeholders})`);
-      params.push(...query.severity);
+      params.push(...busQuery.severity);
     }
 
     // Filter by category
-    if (query.category?.length) {
-      const placeholders = query.category.map(() => "?").join(",");
+    if (busQuery.category?.length) {
+      const placeholders = busQuery.category.map(() => "?").join(",");
       conditions.push(`category IN (${placeholders})`);
-      params.push(...query.category);
+      params.push(...busQuery.category);
     }
 
     // Filter by source
-    if (query.source) {
+    if (busQuery.source) {
       conditions.push("source = ?");
-      params.push(query.source);
+      params.push(busQuery.source);
     }
 
     // Filter by event type
-    if (query.eventType) {
+    if (busQuery.eventType) {
       conditions.push("event_type = ?");
-      params.push(query.eventType);
+      params.push(busQuery.eventType);
     }
 
     // Filter by correlation ID
-    if (query.correlationId) {
+    if (busQuery.correlationId) {
       conditions.push("correlation_id = ?");
-      params.push(query.correlationId);
+      params.push(busQuery.correlationId);
     }
 
     // Time filters
-    if (query.fromTimestamp) {
+    if (busQuery.fromTimestamp) {
       conditions.push("timestamp >= ?");
-      params.push(query.fromTimestamp);
+      params.push(busQuery.fromTimestamp);
     }
 
-    if (query.toTimestamp) {
+    if (busQuery.toTimestamp) {
       conditions.push("timestamp <= ?");
-      params.push(query.toTimestamp);
+      params.push(busQuery.toTimestamp);
     }
 
     const whereClause = conditions.join(" AND ");
 
-    const sql = `
-      SELECT
+    const rows = await query<MessageBusRow>(
+      `SELECT
         id,
         event_id,
         timestamp,
@@ -110,23 +106,17 @@ export class MessageBusService {
       FROM message_bus_log
       WHERE ${whereClause}
       ORDER BY timestamp DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    const rows = this.db
-      .prepare(sql)
-      .all(...params, limit, offset) as MessageBusRow[];
+      LIMIT ? OFFSET ?`,
+      [...params, limit, offset],
+    );
 
     // Get total count
-    const countParams = params.slice();
-    const countSql = `
-      SELECT COUNT(*) as count
+    const countResult = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count
       FROM message_bus_log
-      WHERE ${whereClause}
-    `;
-    const countResult = this.db.prepare(countSql).get(...countParams) as {
-      count: number;
-    };
+      WHERE ${whereClause}`,
+      params,
+    );
     const total = countResult?.count || 0;
 
     const data = rows.map((row) => this.mapRow(row));
@@ -143,9 +133,11 @@ export class MessageBusService {
   /**
    * Get correlated events by correlation ID.
    */
-  getCorrelatedEvents(correlationId: string): CorrelatedEvents | null {
-    const sql = `
-      SELECT
+  async getCorrelatedEvents(
+    correlationId: string,
+  ): Promise<CorrelatedEvents | null> {
+    const rows = await query<MessageBusRow>(
+      `SELECT
         id,
         event_id,
         timestamp,
@@ -162,15 +154,14 @@ export class MessageBusService {
         created_at
       FROM message_bus_log
       WHERE correlation_id = ?
-      ORDER BY timestamp ASC
-    `;
-
-    const rows = this.db.prepare(sql).all(correlationId) as MessageBusRow[];
+      ORDER BY timestamp ASC`,
+      [correlationId],
+    );
 
     if (rows.length === 0) return null;
 
     const events = rows.map((row) => this.mapRow(row));
-    const sources = [...new Set(events.map((e) => e.source))];
+    const sources = Array.from(new Set(events.map((e) => e.source)));
 
     const firstTimestamp = events[0].timestamp;
     const lastTimestamp = events[events.length - 1].timestamp;
@@ -196,26 +187,24 @@ export class MessageBusService {
   /**
    * Get message bus summary for an execution.
    */
-  getSummary(executionId?: string): MessageBusSummaryResponse {
+  async getSummary(executionId?: string): Promise<MessageBusSummaryResponse> {
     const baseCondition = executionId ? "WHERE execution_id = ?" : "WHERE 1=1";
     const params = executionId ? [executionId] : [];
 
     // Get total
-    const total = this.db
-      .prepare(`SELECT COUNT(*) as count FROM message_bus_log ${baseCondition}`)
-      .get(...params) as { count: number } | undefined;
+    const total = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM message_bus_log ${baseCondition}`,
+      params,
+    );
 
     // Get by severity
-    const bySeverityRows = this.db
-      .prepare(
-        `
-        SELECT severity, COUNT(*) as count
-        FROM message_bus_log
-        ${baseCondition}
-        GROUP BY severity
-      `,
-      )
-      .all(...params) as { severity: string; count: number }[];
+    const bySeverityRows = await query<{ severity: string; count: number }>(
+      `SELECT severity, COUNT(*) as count
+      FROM message_bus_log
+      ${baseCondition}
+      GROUP BY severity`,
+      params,
+    );
 
     const bySeverity: Record<MessageBusSeverity, number> = {
       info: 0,
@@ -231,16 +220,13 @@ export class MessageBusService {
     }
 
     // Get by category
-    const byCategoryRows = this.db
-      .prepare(
-        `
-        SELECT category, COUNT(*) as count
-        FROM message_bus_log
-        ${baseCondition}
-        GROUP BY category
-      `,
-      )
-      .all(...params) as { category: string; count: number }[];
+    const byCategoryRows = await query<{ category: string; count: number }>(
+      `SELECT category, COUNT(*) as count
+      FROM message_bus_log
+      ${baseCondition}
+      GROUP BY category`,
+      params,
+    );
 
     const byCategory: Record<MessageBusCategory, number> = {
       lifecycle: 0,
@@ -256,16 +242,13 @@ export class MessageBusService {
     }
 
     // Get by source
-    const bySourceRows = this.db
-      .prepare(
-        `
-        SELECT source, COUNT(*) as count
-        FROM message_bus_log
-        ${baseCondition}
-        GROUP BY source
-      `,
-      )
-      .all(...params) as { source: string; count: number }[];
+    const bySourceRows = await query<{ source: string; count: number }>(
+      `SELECT source, COUNT(*) as count
+      FROM message_bus_log
+      ${baseCondition}
+      GROUP BY source`,
+      params,
+    );
 
     const bySource: Record<string, number> = {};
     for (const row of bySourceRows) {
@@ -273,36 +256,30 @@ export class MessageBusService {
     }
 
     // Get recent critical
-    const recentCritical = this.db
-      .prepare(
-        `
-        SELECT
-          id, event_id, timestamp, source, event_type, correlation_id,
-          human_summary, severity, category, transcript_entry_id,
-          task_id, execution_id, payload, created_at
-        FROM message_bus_log
-        ${baseCondition} ${executionId ? "AND" : "WHERE"} severity = 'critical'
-        ORDER BY timestamp DESC
-        LIMIT 10
-      `,
-      )
-      .all(...params) as MessageBusRow[];
+    const recentCritical = await query<MessageBusRow>(
+      `SELECT
+        id, event_id, timestamp, source, event_type, correlation_id,
+        human_summary, severity, category, transcript_entry_id,
+        task_id, execution_id, payload, created_at
+      FROM message_bus_log
+      ${baseCondition} ${executionId ? "AND" : "WHERE"} severity = 'critical'
+      ORDER BY timestamp DESC
+      LIMIT 10`,
+      params,
+    );
 
     // Get recent errors
-    const recentErrors = this.db
-      .prepare(
-        `
-        SELECT
-          id, event_id, timestamp, source, event_type, correlation_id,
-          human_summary, severity, category, transcript_entry_id,
-          task_id, execution_id, payload, created_at
-        FROM message_bus_log
-        ${baseCondition} ${executionId ? "AND" : "WHERE"} severity = 'error'
-        ORDER BY timestamp DESC
-        LIMIT 10
-      `,
-      )
-      .all(...params) as MessageBusRow[];
+    const recentErrors = await query<MessageBusRow>(
+      `SELECT
+        id, event_id, timestamp, source, event_type, correlation_id,
+        human_summary, severity, category, transcript_entry_id,
+        task_id, execution_id, payload, created_at
+      FROM message_bus_log
+      ${baseCondition} ${executionId ? "AND" : "WHERE"} severity = 'error'
+      ORDER BY timestamp DESC
+      LIMIT 10`,
+      params,
+    );
 
     return {
       executionId,
@@ -348,10 +325,6 @@ export class MessageBusService {
       return null;
     }
   }
-
-  close(): void {
-    this.db.close();
-  }
 }
 
 // Internal row type
@@ -371,3 +344,6 @@ interface MessageBusRow {
   payload: string | null;
   created_at: string;
 }
+
+// Export singleton instance
+export const messageBusService = new MessageBusService();

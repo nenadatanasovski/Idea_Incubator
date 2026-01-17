@@ -2,9 +2,10 @@
  * OBS-302: Tool Use Service
  *
  * Query tool uses and compute summaries.
+ * Uses the project's sql.js database wrapper.
  */
 
-import Database from "better-sqlite3";
+import { query, getOne } from "../../../database/db.js";
 import type {
   ToolUseQuery,
   ToolUsageSummaryResponse,
@@ -16,73 +17,66 @@ import type {
 } from "../../../frontend/src/types/observability/tool-use.js";
 
 export class ToolUseService {
-  private db: Database.Database;
-
-  constructor(dbPath: string = "database/ideas.db") {
-    this.db = new Database(dbPath);
-    this.db.pragma("foreign_keys = ON");
-  }
-
   /**
    * Get tool uses for an execution with filtering.
    */
-  getToolUses(
+  async getToolUses(
     executionId: string,
-    query: ToolUseQuery = {},
-  ): PaginatedResponse<ToolUse> {
-    const limit = query.limit || 100;
-    const offset = query.offset || 0;
+    toolQuery: ToolUseQuery = {},
+  ): Promise<PaginatedResponse<ToolUse>> {
+    const limit = toolQuery.limit || 100;
+    const offset = toolQuery.offset || 0;
     const conditions: string[] = ["execution_id = ?"];
     const params: (string | number | boolean)[] = [executionId];
 
     // Filter by tools
-    if (query.tools?.length) {
-      const placeholders = query.tools.map(() => "?").join(",");
+    if (toolQuery.tools?.length) {
+      const placeholders = toolQuery.tools.map(() => "?").join(",");
       conditions.push(`tool IN (${placeholders})`);
-      params.push(...query.tools);
+      params.push(...toolQuery.tools);
     }
 
     // Filter by categories
-    if (query.categories?.length) {
-      const placeholders = query.categories.map(() => "?").join(",");
+    if (toolQuery.categories?.length) {
+      const placeholders = toolQuery.categories.map(() => "?").join(",");
       conditions.push(`tool_category IN (${placeholders})`);
-      params.push(...query.categories);
+      params.push(...toolQuery.categories);
     }
 
     // Filter by status
-    if (query.status?.length) {
-      const placeholders = query.status.map(() => "?").join(",");
+    if (toolQuery.status?.length) {
+      const placeholders = toolQuery.status.map(() => "?").join(",");
       conditions.push(`result_status IN (${placeholders})`);
-      params.push(...query.status);
+      params.push(...toolQuery.status);
     }
 
     // Filter by task
-    if (query.taskId) {
+    if (toolQuery.taskId) {
       conditions.push("task_id = ?");
-      params.push(query.taskId);
+      params.push(toolQuery.taskId);
     }
 
     // Filter by error
-    if (query.isError !== undefined) {
+    if (toolQuery.isError !== undefined) {
       conditions.push("is_error = ?");
-      params.push(query.isError ? 1 : 0);
+      params.push(toolQuery.isError ? 1 : 0);
     }
 
     // Filter by blocked
-    if (query.isBlocked !== undefined) {
+    if (toolQuery.isBlocked !== undefined) {
       conditions.push("is_blocked = ?");
-      params.push(query.isBlocked ? 1 : 0);
+      params.push(toolQuery.isBlocked ? 1 : 0);
     }
 
     // Time filters
-    if (query.fromTime) {
+    if (toolQuery.fromTime) {
       conditions.push("start_time >= ?");
-      params.push(query.fromTime);
+      params.push(toolQuery.fromTime);
     }
 
-    if (query.toTime) {
+    if (toolQuery.toTime) {
       conditions.push("end_time <= ?");
-      params.push(query.toTime);
+      params.push(toolQuery.toTime);
     }
 
     const whereClause = conditions.join(" AND ");
@@ -110,39 +104,33 @@ export class ToolUseService {
       "created_at",
     ];
 
-    if (query.includeInputs) {
+    if (toolQuery.includeInputs) {
       selectColumns.push("input");
     }
 
-    if (query.includeOutputs) {
+    if (toolQuery.includeOutputs) {
       selectColumns.push("output");
     }
 
-    const sql = `
-      SELECT ${selectColumns.join(", ")}
+    const rows = await query<ToolUseRow>(
+      `SELECT ${selectColumns.join(", ")}
       FROM tool_uses
       WHERE ${whereClause}
       ORDER BY start_time ASC
-      LIMIT ? OFFSET ?
-    `;
-
-    const rows = this.db
-      .prepare(sql)
-      .all(...params, limit, offset) as ToolUseRow[];
+      LIMIT ? OFFSET ?`,
+      [...params, limit, offset],
+    );
 
     // Get total count
-    const countParams = params.slice();
-    const countSql = `
-      SELECT COUNT(*) as count
+    const countResult = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count
       FROM tool_uses
-      WHERE ${whereClause}
-    `;
-    const countResult = this.db.prepare(countSql).get(...countParams) as {
-      count: number;
-    };
+      WHERE ${whereClause}`,
+      params,
+    );
     const total = countResult?.count || 0;
 
-    const data = rows.map((row) => this.mapRow(row, query));
+    const data = rows.map((row) => this.mapRow(row, toolQuery));
 
     return {
       data,
@@ -156,10 +144,10 @@ export class ToolUseService {
   /**
    * Get a single tool use by ID.
    */
-  getToolUse(
+  async getToolUse(
     toolUseId: string,
     includePayloads: boolean = false,
-  ): ToolUse | null {
+  ): Promise<ToolUse | null> {
     const columns = [
       "id",
       "execution_id",
@@ -186,15 +174,14 @@ export class ToolUseService {
       columns.push("input", "output");
     }
 
-    const sql = `
-      SELECT ${columns.join(", ")}
+    const row = await getOne<ToolUseRow>(
+      `SELECT ${columns.join(", ")}
       FROM tool_uses
-      WHERE id = ?
-    `;
+      WHERE id = ?`,
+      [toolUseId],
+    );
 
-    const row = this.db.prepare(sql).get(toolUseId) as ToolUseRow | undefined;
     if (!row) return null;
-
     return this.mapRow(row, {
       includeInputs: includePayloads,
       includeOutputs: includePayloads,
@@ -204,24 +191,21 @@ export class ToolUseService {
   /**
    * Get tool usage summary for an execution.
    */
-  getToolSummary(executionId: string): ToolUsageSummaryResponse {
+  async getToolSummary(executionId: string): Promise<ToolUsageSummaryResponse> {
     // Aggregate by tool
-    const byToolRows = this.db
-      .prepare(
-        `
-        SELECT
-          tool,
-          COUNT(*) as count,
-          SUM(CASE WHEN result_status = 'done' THEN 1 ELSE 0 END) as success,
-          SUM(CASE WHEN is_error = 1 THEN 1 ELSE 0 END) as error,
-          SUM(CASE WHEN is_blocked = 1 THEN 1 ELSE 0 END) as blocked,
-          AVG(duration_ms) as avgDurationMs
-        FROM tool_uses
-        WHERE execution_id = ?
-        GROUP BY tool
-      `,
-      )
-      .all(executionId) as ByToolRow[];
+    const byToolRows = await query<ByToolRow>(
+      `SELECT
+        tool,
+        COUNT(*) as count,
+        SUM(CASE WHEN result_status = 'done' THEN 1 ELSE 0 END) as success,
+        SUM(CASE WHEN is_error = 1 THEN 1 ELSE 0 END) as error,
+        SUM(CASE WHEN is_blocked = 1 THEN 1 ELSE 0 END) as blocked,
+        AVG(duration_ms) as avgDurationMs
+      FROM tool_uses
+      WHERE execution_id = ?
+      GROUP BY tool`,
+      [executionId],
+    );
 
     const byTool: ToolUsageSummaryResponse["byTool"] = {};
     for (const row of byToolRows) {
@@ -235,21 +219,18 @@ export class ToolUseService {
     }
 
     // Aggregate by category
-    const byCategoryRows = this.db
-      .prepare(
-        `
-        SELECT
-          tool_category as category,
-          COUNT(*) as count,
-          SUM(CASE WHEN result_status = 'done' THEN 1 ELSE 0 END) as success,
-          SUM(CASE WHEN is_error = 1 THEN 1 ELSE 0 END) as error,
-          SUM(CASE WHEN is_blocked = 1 THEN 1 ELSE 0 END) as blocked
-        FROM tool_uses
-        WHERE execution_id = ?
-        GROUP BY tool_category
-      `,
-      )
-      .all(executionId) as ByCategoryRow[];
+    const byCategoryRows = await query<ByCategoryRow>(
+      `SELECT
+        tool_category as category,
+        COUNT(*) as count,
+        SUM(CASE WHEN result_status = 'done' THEN 1 ELSE 0 END) as success,
+        SUM(CASE WHEN is_error = 1 THEN 1 ELSE 0 END) as error,
+        SUM(CASE WHEN is_blocked = 1 THEN 1 ELSE 0 END) as blocked
+      FROM tool_uses
+      WHERE execution_id = ?
+      GROUP BY tool_category`,
+      [executionId],
+    );
 
     const byCategory: ToolUsageSummaryResponse["byCategory"] = {};
     for (const row of byCategoryRows) {
@@ -262,18 +243,15 @@ export class ToolUseService {
     }
 
     // Aggregate by status
-    const byStatusRows = this.db
-      .prepare(
-        `
-        SELECT
-          result_status as status,
-          COUNT(*) as count
-        FROM tool_uses
-        WHERE execution_id = ?
-        GROUP BY result_status
-      `,
-      )
-      .all(executionId) as ByStatusRow[];
+    const byStatusRows = await query<ByStatusRow>(
+      `SELECT
+        result_status as status,
+        COUNT(*) as count
+      FROM tool_uses
+      WHERE execution_id = ?
+      GROUP BY result_status`,
+      [executionId],
+    );
 
     const byStatus: ToolUsageSummaryResponse["byStatus"] = {
       done: 0,
@@ -287,21 +265,18 @@ export class ToolUseService {
     }
 
     // Get totals
-    const totals = this.db
-      .prepare(
-        `
-        SELECT
-          COUNT(*) as total,
-          AVG(duration_ms) as avgDurationMs,
-          SUM(is_error) as errorCount,
-          SUM(is_blocked) as blockedCount,
-          MIN(start_time) as firstToolUse,
-          MAX(end_time) as lastToolUse
-        FROM tool_uses
-        WHERE execution_id = ?
-      `,
-      )
-      .get(executionId) as TotalsRow | undefined;
+    const totals = await getOne<TotalsRow>(
+      `SELECT
+        COUNT(*) as total,
+        AVG(duration_ms) as avgDurationMs,
+        SUM(is_error) as errorCount,
+        SUM(is_blocked) as blockedCount,
+        MIN(start_time) as firstToolUse,
+        MAX(end_time) as lastToolUse
+      FROM tool_uses
+      WHERE execution_id = ?`,
+      [executionId],
+    );
 
     const total = totals?.total || 0;
     const avgDurationMs = Math.round(totals?.avgDurationMs || 0);
@@ -309,30 +284,24 @@ export class ToolUseService {
     const blockRate = total > 0 ? (totals?.blockedCount || 0) / total : 0;
 
     // Get recent errors (limit 20)
-    const errors = this.db
-      .prepare(
-        `
-        SELECT id, tool, input_summary, error_message, start_time
-        FROM tool_uses
-        WHERE execution_id = ? AND is_error = 1
-        ORDER BY start_time DESC
-        LIMIT 20
-      `,
-      )
-      .all(executionId) as ErrorRow[];
+    const errors = await query<ErrorRow>(
+      `SELECT id, tool, input_summary, error_message, start_time
+      FROM tool_uses
+      WHERE execution_id = ? AND is_error = 1
+      ORDER BY start_time DESC
+      LIMIT 20`,
+      [executionId],
+    );
 
     // Get recent blocked (limit 20)
-    const blocked = this.db
-      .prepare(
-        `
-        SELECT id, tool, input_summary, block_reason, start_time
-        FROM tool_uses
-        WHERE execution_id = ? AND is_blocked = 1
-        ORDER BY start_time DESC
-        LIMIT 20
-      `,
-      )
-      .all(executionId) as BlockedRow[];
+    const blocked = await query<BlockedRow>(
+      `SELECT id, tool, input_summary, block_reason, start_time
+      FROM tool_uses
+      WHERE execution_id = ? AND is_blocked = 1
+      ORDER BY start_time DESC
+      LIMIT 20`,
+      [executionId],
+    );
 
     // Calculate timeline duration
     let totalDurationMs = 0;
@@ -376,7 +345,7 @@ export class ToolUseService {
   /**
    * Map database row to ToolUse.
    */
-  private mapRow(row: ToolUseRow, query: ToolUseQuery): ToolUse {
+  private mapRow(row: ToolUseRow, toolQuery: ToolUseQuery): ToolUse {
     return {
       id: row.id,
       executionId: row.execution_id,
@@ -384,10 +353,10 @@ export class ToolUseService {
       transcriptEntryId: row.transcript_entry_id,
       tool: row.tool,
       toolCategory: row.tool_category as ToolCategory,
-      input: query.includeInputs ? this.parseJson(row.input) || {} : {},
+      input: toolQuery.includeInputs ? this.parseJson(row.input) || {} : {},
       inputSummary: row.input_summary,
       resultStatus: row.result_status as ToolUse["resultStatus"],
-      output: query.includeOutputs ? this.parseJson(row.output) : null,
+      output: toolQuery.includeOutputs ? this.parseJson(row.output) : null,
       outputSummary: row.output_summary,
       isError: row.is_error === 1,
       isBlocked: row.is_blocked === 1,
@@ -412,10 +381,6 @@ export class ToolUseService {
     } catch {
       return null;
     }
-  }
-
-  close(): void {
-    this.db.close();
   }
 }
 
@@ -490,3 +455,6 @@ interface BlockedRow {
   block_reason: string | null;
   start_time: string;
 }
+
+// Export singleton instance
+export const toolUseService = new ToolUseService();
