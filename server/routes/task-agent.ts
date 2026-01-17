@@ -27,6 +27,12 @@ import autoGroupingEngine from "../services/task-agent/auto-grouping-engine.js";
 import parallelismCalculator from "../services/task-agent/parallelism-calculator.js";
 import buildAgentOrchestrator from "../services/task-agent/build-agent-orchestrator.js";
 import circularDependencyPrevention from "../services/task-agent/circular-dependency-prevention.js";
+import taskDecomposer from "../services/task-agent/task-decomposer.js";
+import {
+  emitDecompositionStarted,
+  emitDecompositionCompleted,
+  emitDecompositionFailed,
+} from "../websocket.js";
 
 // Import sub-routers (Task System V2)
 import taskImpactsRouter from "./task-agent/task-impacts.js";
@@ -185,6 +191,203 @@ router.post("/tasks/:id/move", async (req: Request, res: Response) => {
     });
   }
 });
+
+/**
+ * Decompose a task into atomic subtasks
+ * POST /api/task-agent/tasks/:id/decompose
+ *
+ * Analyzes the task and generates decomposition suggestions with:
+ * - PRD/spec context loading
+ * - Intelligent AC splitting
+ * - Test command distribution per subtask type
+ */
+router.post("/tasks/:id/decompose", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const result = await taskDecomposer.decompose(id);
+
+    // Transform to frontend-expected format
+    return res.json({
+      originalTaskId: result.originalTaskId,
+      subtasks: result.suggestedTasks.map((s) => ({
+        title: s.title,
+        description: s.description,
+        category: s.category,
+        estimatedEffort: s.estimatedEffort,
+        fileImpacts: s.impacts.map((i) => i.targetPath),
+        acceptanceCriteria: s.acceptanceCriteria,
+        testCommands: s.testCommands,
+        dependsOnIndex: s.dependsOnIndex,
+      })),
+      reasoning: result.decompositionReason,
+      estimatedTotalEffort: result.totalEstimatedEffort,
+      contextUsed: result.contextUsed,
+    });
+  } catch (err) {
+    console.error("[task-agent] Error decomposing task:", err);
+    return res.status(500).json({
+      error: "Failed to decompose task",
+      message: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * Preview task decomposition (dry-run)
+ * GET /api/task-agent/tasks/:id/decompose/preview
+ *
+ * Returns what decomposition would create without executing
+ */
+router.get(
+  "/tasks/:id/decompose/preview",
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const result = await taskDecomposer.preview(id);
+
+      return res.json({
+        originalTaskId: result.originalTaskId,
+        subtasks: result.suggestedTasks.map((s) => ({
+          title: s.title,
+          description: s.description,
+          category: s.category,
+          estimatedEffort: s.estimatedEffort,
+          fileImpacts: s.impacts.map((i) => i.targetPath),
+          acceptanceCriteria: s.acceptanceCriteria,
+          testCommands: s.testCommands,
+          dependsOnIndex: s.dependsOnIndex,
+          sourceContext: s.sourceContext,
+        })),
+        reasoning: result.decompositionReason,
+        estimatedTotalEffort: result.totalEstimatedEffort,
+        contextUsed: result.contextUsed,
+        isPreview: true,
+      });
+    } catch (err) {
+      console.error("[task-agent] Error previewing decomposition:", err);
+      return res.status(500).json({
+        error: "Failed to preview decomposition",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * Execute task decomposition with user-edited subtasks
+ * POST /api/task-agent/tasks/:id/decompose/execute
+ *
+ * Body: { subtasks: Array<ProposedSubtask> }
+ *
+ * Creates actual subtasks and marks original as skipped
+ */
+router.post(
+  "/tasks/:id/decompose/execute",
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { subtasks } = req.body;
+
+      if (!subtasks || !Array.isArray(subtasks)) {
+        return res.status(400).json({ error: "subtasks array is required" });
+      }
+
+      const taskId = id;
+
+      // Import type for proper type annotation
+      type TaskCategory =
+        | "feature"
+        | "bug"
+        | "task"
+        | "story"
+        | "epic"
+        | "spike"
+        | "improvement"
+        | "documentation"
+        | "test"
+        | "devops"
+        | "design"
+        | "research"
+        | "infrastructure"
+        | "security"
+        | "performance"
+        | "other";
+
+      // Convert frontend format to EnhancedSplitSuggestion format
+      const splits = subtasks.map(
+        (s: {
+          title: string;
+          description?: string;
+          category: string;
+          estimatedEffort: string;
+          fileImpacts: string[];
+          acceptanceCriteria: string[];
+          testCommands?: string[];
+          dependsOnIndex?: number;
+        }) => ({
+          title: s.title,
+          description: s.description || "",
+          category: s.category as TaskCategory,
+          estimatedEffort: s.estimatedEffort as string,
+          dependencies:
+            s.dependsOnIndex !== undefined ? [s.dependsOnIndex.toString()] : [],
+          dependsOnIndex: s.dependsOnIndex,
+          impacts: (s.fileImpacts || []).map((fp: string) => ({
+            taskId: "",
+            impactType: "file" as const,
+            operation: "UPDATE" as const,
+            targetPath: fp,
+          })),
+          acceptanceCriteria: s.acceptanceCriteria || [],
+          testCommands: s.testCommands || [],
+          sourceContext: {
+            reasoning: "User-edited decomposition",
+          },
+        }),
+      );
+
+      // Emit WebSocket event for decomposition start
+      emitDecompositionStarted(taskId, taskId, "User-initiated decomposition");
+
+      const createdTasks = await taskDecomposer.executeDecomposition(
+        taskId,
+        splits,
+      );
+
+      // Emit WebSocket event for decomposition completion
+      emitDecompositionCompleted(
+        taskId,
+        taskId,
+        createdTasks.map((t) => t.id),
+        createdTasks.length,
+      );
+
+      return res.json({
+        success: true,
+        subtaskIds: createdTasks.map((t) => t.id),
+        parentStatus: "skipped",
+        createdCount: createdTasks.length,
+      });
+    } catch (err) {
+      const taskId = req.params.id;
+      console.error("[task-agent] Error executing decomposition:", err);
+
+      // Emit WebSocket event for decomposition failure
+      emitDecompositionFailed(
+        taskId,
+        taskId,
+        err instanceof Error ? err.message : "Unknown error",
+      );
+
+      return res.status(500).json({
+        error: "Failed to execute decomposition",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
 
 /**
  * GAP-004: Diagnose a failed task for SIA
@@ -369,28 +572,119 @@ router.get(
  * Force recalculate parallelism analysis for a task list
  * POST /api/task-agent/task-lists/:id/parallelism/recalculate
  *
- * Invalidates cache and performs fresh analysis
+ * Query params:
+ * - fix=true: Auto-resolve file conflicts by adding dependencies
+ *
+ * Returns conflict details with task info for UI display
  */
 router.post(
   "/task-lists/:id/parallelism/recalculate",
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      const shouldFix = req.query.fix === "true";
 
-      // Force re-analysis by passing true
-      const analyses = await parallelismCalculator.analyzeParallelism(id, true);
-      const waves = await parallelismCalculator.calculateWaves(id);
-      const maxParallel = await parallelismCalculator.getMaxParallelism(id);
+      let analyses;
+      let resolutions: Array<{
+        taskAId: string;
+        taskBId: string;
+        resolution: string;
+        dependencyDirection?: string;
+      }> = [];
+      let waves;
 
-      // Count conflicts
-      const conflictCount = analyses.filter((a) => !a.canParallel).length;
+      if (shouldFix) {
+        // Use analyzeAndResolve to fix conflicts
+        const result = await parallelismCalculator.analyzeAndResolve(id, true);
+        analyses = result.analyses;
+        resolutions = result.resolutions;
+        waves = result.waves;
+      } else {
+        // Just analyze without fixing
+        analyses = await parallelismCalculator.analyzeParallelism(id, true);
+        waves = await parallelismCalculator.calculateWaves(id);
+      }
+
+      const maxParallel = Math.max(...waves.map((w) => w.taskCount), 0);
+
+      // Get file conflicts (not dependencies)
+      const fileConflicts = analyses.filter(
+        (a) => !a.canParallel && a.conflictType === "file_conflict",
+      );
+      const dependencyCount = analyses.filter(
+        (a) => !a.canParallel && a.conflictType === "dependency",
+      ).length;
+
+      // Get task info for conflicts
+      const taskIds = new Set<string>();
+      fileConflicts.forEach((a) => {
+        taskIds.add(a.taskAId);
+        taskIds.add(a.taskBId);
+      });
+
+      const taskInfoMap = new Map<
+        string,
+        { displayId: string; title: string }
+      >();
+      if (taskIds.size > 0) {
+        const { query: dbQuery } = await import("../../database/db.js");
+        const taskIdArray = Array.from(taskIds);
+        const placeholders = taskIdArray.map(() => "?").join(",");
+        const taskRows = await dbQuery<{
+          id: string;
+          display_id: string;
+          title: string;
+        }>(
+          `SELECT id, display_id, title FROM tasks WHERE id IN (${placeholders})`,
+          taskIdArray,
+        );
+        taskRows.forEach((t) => {
+          taskInfoMap.set(t.id, { displayId: t.display_id, title: t.title });
+        });
+      }
+
+      // Build enriched conflicts array
+      const conflicts = fileConflicts.map((a) => {
+        const taskA = taskInfoMap.get(a.taskAId);
+        const taskB = taskInfoMap.get(a.taskBId);
+        const conflictingFiles = a.conflictDetails?.conflictingFiles || [];
+        const firstFile = conflictingFiles[0];
+
+        return {
+          id: a.id,
+          taskAId: a.taskAId,
+          taskADisplayId: taskA?.displayId || a.taskAId.slice(0, 8),
+          taskATitle: taskA?.title || "Unknown",
+          taskBId: a.taskBId,
+          taskBDisplayId: taskB?.displayId || a.taskBId.slice(0, 8),
+          taskBTitle: taskB?.title || "Unknown",
+          conflictType: "file_conflict",
+          filePath: firstFile?.filePath,
+          operationA: firstFile?.operationA,
+          operationB: firstFile?.operationB,
+          allFileConflicts: conflictingFiles,
+        };
+      });
+
+      const resolvedCount = resolutions.filter(
+        (r) => r.resolution === "dependency_added",
+      ).length;
 
       return res.json({
         taskListId: id,
         totalWaves: waves.length,
         maxParallel,
-        conflictCount,
-        analyses: analyses.length,
+        conflictCount: fileConflicts.length,
+        dependencyCount,
+        conflicts,
+        resolution: shouldFix
+          ? {
+              resolved: resolvedCount,
+              total: resolutions.length,
+              details: resolutions,
+            }
+          : null,
+        analysesCount: analyses.length,
         waves,
         recalculatedAt: new Date().toISOString(),
       });
@@ -555,7 +849,7 @@ router.post("/task-lists/:id/execute", async (req: Request, res: Response) => {
 
       // Log override for audit
       try {
-        const { run } = await import("../../../database/db.js");
+        const { run } = await import("../../database/db.js");
         const { v4: uuidv4 } = await import("uuid");
 
         await run(

@@ -40,6 +40,18 @@ import uuid
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+# OBS-102: Add coding-loops/shared to path for ObservableAgent import
+SHARED_DIR = Path(__file__).parent.parent / "shared"
+sys.path.insert(0, str(SHARED_DIR))
+
+# OBS-102: Import ObservableAgent for unified observability
+try:
+    from observable_agent import ObservableAgent
+    OBSERVABLE_AVAILABLE = True
+except ImportError:
+    OBSERVABLE_AVAILABLE = False
+    print("[BuildAgentWorker] WARNING: ObservableAgent not available. Observability features disabled.", file=sys.stderr)
+
 # Check for anthropic availability
 try:
     import anthropic
@@ -690,7 +702,11 @@ Expected result: exit code 0
 # Build Agent Worker
 # =============================================================================
 
-class BuildAgentWorker:
+# OBS-102: Conditional base class for observability
+_BuildAgentBase = ObservableAgent if OBSERVABLE_AVAILABLE else object
+
+
+class BuildAgentWorker(_BuildAgentBase):
     """
     Build Agent Worker - Executes a single task
 
@@ -701,6 +717,10 @@ class BuildAgentWorker:
     4. Runs validation
     5. Updates task status
     6. Sends heartbeats
+
+    OBS-102: Extends ObservableAgent for unified observability
+    OBS-103: Uses tool logging in _generate_code
+    OBS-104: Uses AssertionRecorder in validation
     """
 
     def __init__(
@@ -708,8 +728,22 @@ class BuildAgentWorker:
         agent_id: str,
         task_id: str,
         task_list_id: str,
-        config: Optional[WorkerConfig] = None
+        config: Optional[WorkerConfig] = None,
+        wave_id: Optional[str] = None,
+        wave_number: Optional[int] = None
     ):
+        # OBS-102: Initialize ObservableAgent base class
+        if OBSERVABLE_AVAILABLE:
+            execution_id = f"build-{agent_id[:8]}"
+            super().__init__(
+                execution_id=execution_id,
+                instance_id=agent_id,
+                agent_type="build-agent",
+                wave_id=wave_id,
+                wave_number=wave_number,
+                db_path=config.db_path if config else PROJECT_ROOT / "database" / "ideas.db"
+            )
+
         self.agent_id = agent_id
         self.task_id = task_id
         self.task_list_id = task_list_id
@@ -763,6 +797,15 @@ class BuildAgentWorker:
             self._log_continuous(f"Starting task: {self.task.display_id} - {self.task.title}")
             if self.previous_context:
                 self._log_continuous(f"Resuming with {len(self.previous_context)} chars of previous context")
+
+            # OBS-102: Log task start with ObservableAgent
+            if OBSERVABLE_AVAILABLE:
+                self.log_task_start(self.task.id, self.task.title, {
+                    "display_id": self.task.display_id,
+                    "category": self.task.category,
+                    "primary_file": self.task.primary_file,
+                    "primary_action": self.task.primary_action
+                })
 
             print(f"[BuildAgentWorker] Loaded task: {self.task.display_id} - {self.task.title}")
 
@@ -856,12 +899,27 @@ class BuildAgentWorker:
                 self._log_continuous(f"Task completed successfully on attempt {self.current_attempt}")
                 self._record_success(result)
 
+                # OBS-102: Log task completion
+                if OBSERVABLE_AVAILABLE:
+                    self.log_task_end(self.task.id, "complete", {
+                        "attempt": self.current_attempt,
+                        "max_retries": max_retries
+                    })
+
                 print(f"[BuildAgentWorker] Task {self.task.display_id} completed successfully")
                 return 0
 
             # All retries exhausted
             self._log_continuous(f"All {max_retries} attempts failed", "ERROR")
             self._record_failure(f"Failed after {max_retries} attempts. Last error: {self.last_error}")
+
+            # OBS-102: Log task failure
+            if OBSERVABLE_AVAILABLE and self.task:
+                self.log_task_end(self.task.id, "failed", {
+                    "attempts": max_retries,
+                    "last_error": self.last_error
+                })
+
             return 1
 
         except Exception as e:
@@ -872,11 +930,21 @@ class BuildAgentWorker:
                 pass
             self._log_continuous(f"Fatal error: {e}", "ERROR")
             self._record_failure(str(e))
+
+            # OBS-102: Log error
+            if OBSERVABLE_AVAILABLE:
+                self.log_error(str(e), self.task.id if self.task else None, include_traceback=True)
+                if self.task:
+                    self.log_task_end(self.task.id, "failed", {"error": str(e)})
+
             return 1
 
         finally:
             self._stop_heartbeat()
             self.db.close()
+            # OBS-102: Close ObservableAgent resources
+            if OBSERVABLE_AVAILABLE:
+                self.close()
 
     def _generate_code_with_retry_context(self, conventions: str, idea_context: str, attempt: int) -> TaskResult:
         """
@@ -1305,18 +1373,55 @@ Please fix this issue and try again. Focus on the specific error mentioned above
         return '\n'.join(formatted)
 
     def _generate_code(self, conventions: str, idea_context: str) -> TaskResult:
-        """Generate code for the task"""
+        """
+        Generate code for the task
+        OBS-103: Added tool logging for observability
+        """
         if not self.task:
             return TaskResult(success=False, error_message="No task loaded")
+
+        # OBS-103: Log tool start for code generation
+        tool_use_id = None
+        if OBSERVABLE_AVAILABLE:
+            tool_use_id = self.log_tool_start(
+                tool_name="CodeGenerator",
+                tool_input={
+                    "task_id": self.task.id,
+                    "display_id": self.task.display_id,
+                    "primary_file": self.task.primary_file,
+                    "action": self.task.primary_action,
+                },
+                task_id=self.task.id
+            )
 
         try:
             # Format gotchas for the prompt (BA-039)
             gotchas_text = self._format_gotchas_for_prompt()
             code = self.code_generator.generate(self.task, conventions, idea_context, gotchas_text)
+
+            # OBS-103: Log tool completion
+            if OBSERVABLE_AVAILABLE and tool_use_id:
+                self.log_tool_end(
+                    tool_use_id=tool_use_id,
+                    output={"code_length": len(code), "success": True},
+                    is_error=False
+                )
+
             return TaskResult(success=True, generated_code=code)
         except Exception as e:
             tb = traceback.format_exc()
-            return TaskResult(success=False, error_message=f"Code generation failed: {e}\n{tb}")
+            error_msg = f"Code generation failed: {e}\n{tb}"
+
+            # OBS-103: Log tool error
+            if OBSERVABLE_AVAILABLE and tool_use_id:
+                self.log_tool_end(
+                    tool_use_id=tool_use_id,
+                    output={"error": str(e)},
+                    is_error=True,
+                    error_message=error_msg
+                )
+
+            return TaskResult(success=False, error_message=error_msg)
 
     def _write_file(self, code: str):
         """Write generated code to file"""
@@ -1481,6 +1586,7 @@ Please fix this issue and try again. Focus on the specific error mentioned above
         Run the validation command (GAP-001: uses task-specific command)
 
         GAP-001: Uses task.validation_command if set, falls back to npx tsc --noEmit
+        OBS-104: Uses AssertionRecorder for validation tracking
         """
         if not self.task:
             return TaskResult(success=False, error_message="No task loaded")
@@ -1493,6 +1599,14 @@ Please fix this issue and try again. Focus on the specific error mentioned above
                 validation_output="Validation skipped (simulation mode - no API key)"
             )
 
+        # OBS-104: Start assertion chain for validation
+        chain_id = None
+        if OBSERVABLE_AVAILABLE:
+            chain_id = self.start_assertion_chain(
+                self.task.id,
+                f"Validation for {self.task.display_id}"
+            )
+
         # GAP-001: Use task-specific validation command or default
         raw_command = self.task.validation_command or "npx tsc --noEmit"
         expected = "exit code 0"
@@ -1501,6 +1615,16 @@ Please fix this issue and try again. Focus on the specific error mentioned above
         is_safe, command, rejection_reason = CommandSanitizer.sanitize(raw_command)
         if not is_safe:
             self._log_continuous(f"Validation command rejected: {rejection_reason}", "WARNING")
+            # OBS-104: Record failed assertion for sanitization
+            if OBSERVABLE_AVAILABLE:
+                self.assert_manual(
+                    self.task.id,
+                    "security",
+                    "Command sanitization",
+                    False,
+                    {"reason": rejection_reason, "command": raw_command}
+                )
+                self.end_assertion_chain(chain_id)
             return TaskResult(
                 success=False,
                 error_message=f"Validation command rejected (security): {rejection_reason}",
@@ -1527,6 +1651,31 @@ Please fix this issue and try again. Focus on the specific error mentioned above
             else:
                 success = expected.lower() in output.lower()
 
+            # OBS-104: Record assertion for TypeScript compilation
+            if OBSERVABLE_AVAILABLE:
+                if "tsc" in command.lower():
+                    self.assert_typescript_compiles(self.task.id)
+                else:
+                    self.assert_custom(
+                        self.task.id,
+                        "validation",
+                        f"Validation command: {command[:50]}...",
+                        command,
+                        timeout=self.config.validation_timeout_seconds
+                    )
+
+                # OBS-104: Record file assertion if we created/modified a file
+                if self.task.primary_file:
+                    if self.task.primary_action == "CREATE":
+                        self.assert_file_created(self.task.id, self.task.primary_file)
+                    elif self.task.primary_action == "UPDATE":
+                        self.assert_file_modified(self.task.id, self.task.primary_file)
+
+                # End assertion chain
+                chain_result = self.end_assertion_chain(chain_id)
+                if chain_result:
+                    print(f"[BuildAgentWorker] Assertion chain: {chain_result.passed_count}/{chain_result.total_count} passed")
+
             if success:
                 return TaskResult(success=True, validation_output=output)
             else:
@@ -1537,8 +1686,28 @@ Please fix this issue and try again. Focus on the specific error mentioned above
                 )
 
         except subprocess.TimeoutExpired:
+            # OBS-104: Record timeout assertion
+            if OBSERVABLE_AVAILABLE:
+                self.assert_manual(
+                    self.task.id,
+                    "validation",
+                    "Validation timeout",
+                    False,
+                    {"timeout_seconds": self.config.validation_timeout_seconds}
+                )
+                self.end_assertion_chain(chain_id)
             return TaskResult(success=False, error_message="Validation timed out")
         except Exception as e:
+            # OBS-104: Record error assertion
+            if OBSERVABLE_AVAILABLE:
+                self.assert_manual(
+                    self.task.id,
+                    "validation",
+                    "Validation error",
+                    False,
+                    {"error": str(e)}
+                )
+                self.end_assertion_chain(chain_id)
             return TaskResult(success=False, error_message=f"Validation error: {e}")
 
     def _check_acceptance_criteria(self, generated_code: str) -> TaskResult:

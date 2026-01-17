@@ -2304,6 +2304,7 @@ router.post(
         "file_impacts",
         "test_commands",
         "dependencies",
+        "description",
       ];
 
       if (!validFields.includes(field)) {

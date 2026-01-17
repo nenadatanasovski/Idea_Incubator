@@ -495,6 +495,7 @@ export default function PipelineDashboard() {
             console.log("Parallelism recalculated:", stats);
             refetch();
           }}
+          onTaskClick={(taskId) => setSelectedTaskId(taskId)}
         />
 
         {showParallelismPreview && (

@@ -1,5 +1,6 @@
 // server/monitoring/monitoring-agent.ts
 // MON-001: Monitoring Agent Core Architecture
+// OBS-109: Extends ObservableAgent for unified observability (inheritance pattern per spec)
 // The "System Soul" - watches all agents and system health
 
 import { EventEmitter } from "events";
@@ -9,6 +10,8 @@ import {
   emitSystemAlert,
   AgentEventType,
 } from "../websocket";
+import { ObservableAgent } from "../agents/observable-agent.js";
+import { v4 as uuidv4 } from "uuid";
 
 interface Database {
   run(
@@ -91,7 +94,11 @@ const DEFAULT_CONFIG: MonitoringConfig = {
   },
 };
 
-export class MonitoringAgent extends EventEmitter {
+/**
+ * OBS-109: MonitoringAgent extends ObservableAgent for unified observability
+ * Uses EventEmitter via composition for event emission (preserves existing API)
+ */
+export class MonitoringAgent extends ObservableAgent {
   private db: Database;
   private config: MonitoringConfig;
   private agentStates: Map<string, AgentState> = new Map();
@@ -102,8 +109,19 @@ export class MonitoringAgent extends EventEmitter {
   private heartbeatInterval?: ReturnType<typeof setInterval>;
   private running: boolean = false;
 
+  // OBS-109: EventEmitter via composition (preserves existing event API)
+  private eventEmitter: EventEmitter = new EventEmitter();
+
   constructor(db: Database, config: Partial<MonitoringConfig> = {}) {
-    super();
+    // OBS-109: Initialize ObservableAgent base class (inheritance pattern per spec)
+    const executionId = `monitoring-${uuidv4().slice(0, 8)}`;
+    const instanceId = `monitoring-agent-${uuidv4().slice(0, 8)}`;
+    super({
+      executionId,
+      instanceId,
+      agentType: "monitoring-agent",
+    });
+
     this.db = db;
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.startTime = new Date();
@@ -118,8 +136,41 @@ export class MonitoringAgent extends EventEmitter {
     };
   }
 
+  // OBS-109: EventEmitter delegation methods (preserves existing API)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on(event: string | symbol, listener: (...args: any[]) => void): this {
+    this.eventEmitter.on(event, listener);
+    return this;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  once(event: string | symbol, listener: (...args: any[]) => void): this {
+    this.eventEmitter.once(event, listener);
+    return this;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  emit(event: string | symbol, ...args: any[]): boolean {
+    return this.eventEmitter.emit(event, ...args);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  removeListener(
+    event: string | symbol,
+    listener: (...args: any[]) => void,
+  ): this {
+    this.eventEmitter.removeListener(event, listener);
+    return this;
+  }
+
+  removeAllListeners(event?: string | symbol): this {
+    this.eventEmitter.removeAllListeners(event);
+    return this;
+  }
+
   /**
    * Start the monitoring agent
+   * OBS-109: Uses ObservableAgent methods for observability logging
    */
   async start(): Promise<void> {
     if (this.running) {
@@ -130,8 +181,21 @@ export class MonitoringAgent extends EventEmitter {
     this.running = true;
     this.startTime = new Date();
 
+    // OBS-109: Log task start using inherited ObservableAgent method
+    await this.logTaskStart(
+      "monitoring-agent-start",
+      "Monitoring Agent Startup",
+    );
+
+    // OBS-109: Log phase for agent state loading
+    await this.logPhaseStart("load_states");
+
     // Load existing agent states from DB
     await this.loadAgentStates();
+
+    await this.logPhaseEnd("load_states", {
+      agentCount: this.agentStates.size,
+    });
 
     // Start periodic health checks
     this.healthCheckInterval = setInterval(
@@ -148,12 +212,20 @@ export class MonitoringAgent extends EventEmitter {
     // Perform initial health check
     await this.performHealthCheck();
 
+    // OBS-109: Log task completion using inherited ObservableAgent method
+    await this.logTaskEnd("monitoring-agent-start", "complete", {
+      level: this.config.level,
+      healthCheckIntervalMs: this.config.healthCheckIntervalMs,
+      heartbeatIntervalMs: this.config.heartbeatIntervalMs,
+    });
+
     console.log(`[MonitoringAgent] Started with level: ${this.config.level}`);
     this.emit("started");
   }
 
   /**
    * Stop the monitoring agent
+   * OBS-109: Calls inherited close() method for cleanup
    */
   async stop(): Promise<void> {
     if (!this.running) {
@@ -171,6 +243,9 @@ export class MonitoringAgent extends EventEmitter {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = undefined;
     }
+
+    // OBS-109: Close ObservableAgent resources
+    await this.close();
 
     console.log("[MonitoringAgent] Stopped");
     this.emit("stopped");
@@ -382,9 +457,15 @@ export class MonitoringAgent extends EventEmitter {
 
   /**
    * Perform periodic health check
+   * OBS-109: Uses inherited ObservableAgent methods for observability logging
    */
   private async performHealthCheck(): Promise<void> {
     const now = new Date();
+
+    // OBS-109: Log health check start using inherited method
+    await this.logPhaseStart("health_check", {
+      timestamp: now.toISOString(),
+    });
 
     // Update system metrics
     this.systemMetrics.systemUptime = now.getTime() - this.startTime.getTime();
@@ -408,7 +489,18 @@ export class MonitoringAgent extends EventEmitter {
     }
 
     // Check for issues
+    const issuesBefore = this.detectedIssues.size;
     await this.checkForIssues();
+    const newIssues = this.detectedIssues.size - issuesBefore;
+
+    // OBS-109: Log health check completion with metrics using inherited method
+    await this.logPhaseEnd("health_check", {
+      activeAgents: this.systemMetrics.activeAgents,
+      blockedAgents: this.systemMetrics.blockedAgents,
+      pendingQuestions: this.systemMetrics.pendingQuestions,
+      newIssuesDetected: newIssues,
+      uptimeMs: this.systemMetrics.systemUptime,
+    });
 
     // Emit health metrics via WebSocket
     emitSystemHealth({
@@ -496,6 +588,7 @@ export class MonitoringAgent extends EventEmitter {
 
   /**
    * Create a detected issue (internal)
+   * OBS-109: Uses inherited ObservableAgent methods for observability logging
    */
   private createIssue(
     data: Omit<DetectedIssue, "id" | "detectedAt" | "resolved">,
@@ -510,6 +603,11 @@ export class MonitoringAgent extends EventEmitter {
 
     this.detectedIssues.set(id, issue);
     this.storeIssueInDb(issue);
+
+    // OBS-109: Log issue detection using inherited ObservableAgent method
+    this.logError(issue.description, data.agentId).catch((err: unknown) =>
+      console.error("[MonitoringAgent] Failed to log issue:", err),
+    );
 
     // Emit alert via WebSocket (map severity to websocket severity)
     const alertSeverity = this.mapSeverityToAlert(issue.severity);

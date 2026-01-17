@@ -448,6 +448,128 @@ export async function cleanupStaleAnalyses(olderThanDays = 7): Promise<number> {
   return result?.count || 0;
 }
 
+/**
+ * Resolution result for a single conflict
+ */
+interface ConflictResolution {
+  taskAId: string;
+  taskBId: string;
+  resolution: "dependency_added" | "already_resolved" | "skipped";
+  dependencyDirection?: "a_before_b" | "b_before_a";
+  reason?: string;
+}
+
+/**
+ * Auto-resolve file conflicts by adding dependencies
+ *
+ * For file conflicts, adds a depends_on relationship to enforce
+ * sequential execution. The task with lower position runs first.
+ */
+export async function resolveConflicts(
+  taskListId: string,
+): Promise<ConflictResolution[]> {
+  const analyses = await analyzeParallelism(taskListId, false);
+  const fileConflicts = analyses.filter(
+    (a) => !a.canParallel && a.conflictType === "file_conflict",
+  );
+
+  if (fileConflicts.length === 0) {
+    return [];
+  }
+
+  const tasks = await query<{ id: string; position: number }>(
+    `SELECT id, position FROM tasks WHERE task_list_id = ?`,
+    [taskListId],
+  );
+  const positionMap = new Map(tasks.map((t) => [t.id, t.position]));
+
+  const resolutions: ConflictResolution[] = [];
+
+  for (const conflict of fileConflicts) {
+    const posA = positionMap.get(conflict.taskAId) ?? 0;
+    const posB = positionMap.get(conflict.taskBId) ?? 0;
+
+    const existingDep = await getOne<{ id: string }>(
+      `SELECT id FROM task_relationships
+       WHERE ((source_task_id = ? AND target_task_id = ?)
+          OR (source_task_id = ? AND target_task_id = ?))
+         AND relationship_type = 'depends_on'`,
+      [conflict.taskAId, conflict.taskBId, conflict.taskBId, conflict.taskAId],
+    );
+
+    if (existingDep) {
+      resolutions.push({
+        taskAId: conflict.taskAId,
+        taskBId: conflict.taskBId,
+        resolution: "already_resolved",
+        reason: "Dependency already exists",
+      });
+      continue;
+    }
+
+    const [sourceId, targetId, direction] =
+      posA < posB
+        ? [conflict.taskBId, conflict.taskAId, "a_before_b" as const]
+        : [conflict.taskAId, conflict.taskBId, "b_before_a" as const];
+
+    const depId = uuidv4();
+    await run(
+      `INSERT INTO task_relationships (id, source_task_id, target_task_id, relationship_type, created_at)
+       VALUES (?, ?, ?, 'depends_on', datetime('now'))`,
+      [depId, sourceId, targetId],
+    );
+
+    await run(
+      `UPDATE parallelism_analysis
+       SET conflict_type = 'dependency',
+           conflict_details = ?,
+           can_parallel = 0
+       WHERE task_a_id = ? AND task_b_id = ?`,
+      [
+        JSON.stringify({ dependencyChain: [direction], autoResolved: true }),
+        conflict.taskAId,
+        conflict.taskBId,
+      ],
+    );
+
+    resolutions.push({
+      taskAId: conflict.taskAId,
+      taskBId: conflict.taskBId,
+      resolution: "dependency_added",
+      dependencyDirection: direction,
+    });
+  }
+
+  await saveDb();
+  return resolutions;
+}
+
+/**
+ * Analyze and optionally auto-resolve conflicts
+ */
+export async function analyzeAndResolve(
+  taskListId: string,
+  autoResolve = true,
+): Promise<{
+  analyses: ParallelismAnalysis[];
+  resolutions: ConflictResolution[];
+  waves: ExecutionWave[];
+}> {
+  let analyses = await analyzeParallelism(taskListId, true);
+
+  let resolutions: ConflictResolution[] = [];
+  if (autoResolve) {
+    resolutions = await resolveConflicts(taskListId);
+    if (resolutions.some((r) => r.resolution === "dependency_added")) {
+      analyses = await analyzeParallelism(taskListId, true);
+    }
+  }
+
+  const waves = await calculateWaves(taskListId);
+
+  return { analyses, resolutions, waves };
+}
+
 export default {
   analyzeParallelism,
   analyzeTaskPair,
@@ -457,4 +579,6 @@ export default {
   getTaskListParallelism,
   getCachedAnalysis,
   cleanupStaleAnalyses,
+  resolveConflicts,
+  analyzeAndResolve,
 };

@@ -3,8 +3,10 @@
  *
  * Modal showing task readiness with missing fields and completion actions.
  * Displays readiness progress bar and allows manual or auto-fill of missing data.
+ * Now supports decomposition flow for non-atomic tasks.
  *
  * Reference: TASK-READINESS-PIPELINE-ENHANCEMENTS-IMPLEMENTATION-PLAN.md Phase 3
+ * Enhanced per: TASK-DECOMPOSITION-COMPREHENSIVE-PLAN.md Phase 3
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -23,7 +25,9 @@ import {
   Play,
   Save,
   Loader2,
+  Scissors,
 } from "lucide-react";
+import TaskDecomposerModal from "./TaskDecomposerModal";
 
 // Types
 interface RuleResult {
@@ -60,6 +64,7 @@ interface TaskCompletionModalProps {
   onClose: () => void;
   onSave?: () => void;
   onExecute?: () => void;
+  onDecompose?: (subtaskIds: string[]) => void;
 }
 
 export default function TaskCompletionModal({
@@ -70,11 +75,16 @@ export default function TaskCompletionModal({
   onClose,
   onSave,
   onExecute,
+  onDecompose,
 }: TaskCompletionModalProps) {
   const [readiness, setReadiness] = useState<ReadinessScore | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savingSection, setSavingSection] = useState<string | null>(null);
+
+  // Decomposition state
+  const [showDecomposer, setShowDecomposer] = useState(false);
+  const [decompositionReason, setDecompositionReason] = useState<string[]>([]);
 
   const fetchReadiness = useCallback(async () => {
     setIsLoading(true);
@@ -123,6 +133,14 @@ export default function TaskCompletionModal({
       }
 
       const suggestData = await suggestResponse.json();
+
+      // Check if decomposition is required (for description field)
+      if (suggestData.requiresDecomposition) {
+        setDecompositionReason(suggestData.decompositionReason || []);
+        setShowDecomposer(true);
+        setSavingSection(null);
+        return;
+      }
 
       // Check if we got any suggestions
       if (!suggestData.suggestions || suggestData.suggestions.length === 0) {
@@ -206,208 +224,283 @@ export default function TaskCompletionModal({
     }
   };
 
+  const handleDecompose = (subtaskIds: string[]) => {
+    setShowDecomposer(false);
+    onDecompose?.(subtaskIds);
+    onClose();
+  };
+
+  // Check if task needs decomposition based on single concern rule
+  const needsDecomposition = !!(
+    readiness &&
+    readiness.rules.singleConcern.status === "fail" &&
+    readiness.rules.singleConcern.score < 50
+  );
+
   return (
-    <div
-      data-testid="task-completion-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="w-full max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              Task Completion
-            </h2>
-            {taskDisplayId && (
-              <span className="text-sm font-mono text-gray-500">
-                {taskDisplayId}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-          {isLoading && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-            </div>
-          )}
-
-          {error && (
-            <div className="p-4 bg-red-50 rounded-lg text-red-700 mb-4">
-              {error}
-            </div>
-          )}
-
-          {readiness && (
-            <div className="space-y-6">
-              {/* Readiness Progress Bar */}
-              <ReadinessProgressBar
-                overall={readiness.overall}
-                threshold={readiness.threshold}
-                isReady={readiness.isReady}
-              />
-
-              {/* Title display */}
-              {taskTitle && (
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm text-gray-600">Task:</span>
-                  <p className="text-gray-900 font-medium">{taskTitle}</p>
-                </div>
+    <>
+      <div
+        data-testid="task-completion-modal"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+      >
+        <div className="w-full max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Task Completion
+              </h2>
+              {taskDisplayId && (
+                <span className="text-sm font-mono text-gray-500">
+                  {taskDisplayId}
+                </span>
               )}
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
 
-              {/* Completion Sections */}
-              <div className="space-y-4">
-                <CompletionSection
-                  icon={<FileText className="w-5 h-5" />}
-                  title="Description"
-                  rule={readiness.rules.singleConcern}
-                  fieldName="description"
-                  onAutoFill={() => handleAutoFill("description")}
-                  onManualAdd={(content) =>
-                    handleManualAdd("description", content)
-                  }
-                  isLoading={savingSection === "description"}
-                />
-
-                <CompletionSection
-                  icon={<FolderOpen className="w-5 h-5" />}
-                  title="File Impacts"
-                  rule={readiness.rules.boundedFiles}
-                  fieldName="file_impacts"
-                  showCount={
-                    (readiness.rules.boundedFiles.details
-                      ?.fileCount as number) || 0
-                  }
-                  countLabel="files"
-                  onAutoFill={() => handleAutoFill("file_impacts")}
-                  onManualAdd={(content) =>
-                    handleManualAdd("file_impacts", content)
-                  }
-                  isLoading={savingSection === "file_impacts"}
-                />
-
-                <CompletionSection
-                  icon={<Target className="w-5 h-5" />}
-                  title="Acceptance Criteria"
-                  rule={readiness.rules.clearCompletion}
-                  fieldName="acceptance_criteria"
-                  showCount={
-                    (readiness.rules.clearCompletion.details
-                      ?.criteriaCount as number) || 0
-                  }
-                  countLabel="criteria"
-                  onAutoFill={() => handleAutoFill("acceptance_criteria")}
-                  onManualAdd={(content) =>
-                    handleManualAdd("acceptance_criteria", content)
-                  }
-                  isLoading={savingSection === "acceptance_criteria"}
-                  isHighPriority
-                />
-
-                <CompletionSection
-                  icon={<TestTube className="w-5 h-5" />}
-                  title="Test Commands"
-                  rule={readiness.rules.testable}
-                  fieldName="test_commands"
-                  onAutoFill={() => handleAutoFill("test_commands")}
-                  onManualAdd={(content) =>
-                    handleManualAdd("test_commands", content)
-                  }
-                  isLoading={savingSection === "test_commands"}
-                  isHighPriority
-                />
-
-                <CompletionSection
-                  icon={<Link className="w-5 h-5" />}
-                  title="Dependencies"
-                  rule={readiness.rules.independent}
-                  fieldName="dependencies"
-                  showCount={
-                    (readiness.rules.independent.details?.depCount as number) ||
-                    0
-                  }
-                  countLabel="pending deps"
-                  onAutoFill={() => handleAutoFill("dependencies")}
-                  onManualAdd={(content) =>
-                    handleManualAdd("dependencies", content)
-                  }
-                  isLoading={savingSection === "dependencies"}
-                />
+          {/* Content */}
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+            {isLoading && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
               </div>
+            )}
 
-              {/* Missing Items Summary */}
-              {readiness.missingItems.length > 0 && (
-                <div className="p-3 bg-amber-50 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-                    <div>
-                      <span className="text-sm font-medium text-amber-800">
-                        Missing Items
-                      </span>
-                      <ul className="mt-1 text-sm text-amber-700 list-disc list-inside">
-                        {readiness.missingItems.map((item, idx) => (
-                          <li key={idx}>{item}</li>
-                        ))}
-                      </ul>
+            {error && (
+              <div className="p-4 bg-red-50 rounded-lg text-red-700 mb-4">
+                {error}
+              </div>
+            )}
+
+            {readiness && (
+              <div className="space-y-6">
+                {/* Readiness Progress Bar */}
+                <ReadinessProgressBar
+                  overall={readiness.overall}
+                  threshold={readiness.threshold}
+                  isReady={readiness.isReady}
+                />
+
+                {/* Title display */}
+                {taskTitle && (
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm text-gray-600">Task:</span>
+                    <p className="text-gray-900 font-medium">{taskTitle}</p>
+                  </div>
+                )}
+
+                {/* Decomposition Warning */}
+                {needsDecomposition && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <Scissors className="w-5 h-5 text-amber-600 mt-0.5" />
+                      <div className="flex-1">
+                        <h3 className="font-medium text-amber-800">
+                          Task Not Atomic
+                        </h3>
+                        <p className="text-sm text-amber-700 mt-1">
+                          This task mentions multiple concerns and should be
+                          decomposed into smaller, focused subtasks before
+                          execution.
+                        </p>
+                        <button
+                          onClick={() => {
+                            setDecompositionReason([
+                              readiness.rules.singleConcern.reason ||
+                                "Task needs decomposition",
+                            ]);
+                            setShowDecomposer(true);
+                          }}
+                          className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-md hover:bg-amber-200 transition-colors text-sm font-medium"
+                        >
+                          <Scissors className="w-4 h-4" />
+                          Decompose Task
+                        </button>
+                      </div>
                     </div>
                   </div>
+                )}
+
+                {/* Completion Sections */}
+                <div className="space-y-4">
+                  <CompletionSection
+                    icon={<FileText className="w-5 h-5" />}
+                    title="Description"
+                    rule={readiness.rules.singleConcern}
+                    fieldName="description"
+                    onAutoFill={() => handleAutoFill("description")}
+                    onManualAdd={(content) =>
+                      handleManualAdd("description", content)
+                    }
+                    isLoading={savingSection === "description"}
+                    showDecomposeHint={needsDecomposition}
+                  />
+
+                  <CompletionSection
+                    icon={<FolderOpen className="w-5 h-5" />}
+                    title="File Impacts"
+                    rule={readiness.rules.boundedFiles}
+                    fieldName="file_impacts"
+                    showCount={
+                      (readiness.rules.boundedFiles.details
+                        ?.fileCount as number) || 0
+                    }
+                    countLabel="files"
+                    onAutoFill={() => handleAutoFill("file_impacts")}
+                    onManualAdd={(content) =>
+                      handleManualAdd("file_impacts", content)
+                    }
+                    isLoading={savingSection === "file_impacts"}
+                  />
+
+                  <CompletionSection
+                    icon={<Target className="w-5 h-5" />}
+                    title="Acceptance Criteria"
+                    rule={readiness.rules.clearCompletion}
+                    fieldName="acceptance_criteria"
+                    showCount={
+                      (readiness.rules.clearCompletion.details
+                        ?.criteriaCount as number) || 0
+                    }
+                    countLabel="criteria"
+                    onAutoFill={() => handleAutoFill("acceptance_criteria")}
+                    onManualAdd={(content) =>
+                      handleManualAdd("acceptance_criteria", content)
+                    }
+                    isLoading={savingSection === "acceptance_criteria"}
+                    isHighPriority
+                  />
+
+                  <CompletionSection
+                    icon={<TestTube className="w-5 h-5" />}
+                    title="Test Commands"
+                    rule={readiness.rules.testable}
+                    fieldName="test_commands"
+                    onAutoFill={() => handleAutoFill("test_commands")}
+                    onManualAdd={(content) =>
+                      handleManualAdd("test_commands", content)
+                    }
+                    isLoading={savingSection === "test_commands"}
+                    isHighPriority
+                  />
+
+                  <CompletionSection
+                    icon={<Link className="w-5 h-5" />}
+                    title="Dependencies"
+                    rule={readiness.rules.independent}
+                    fieldName="dependencies"
+                    showCount={
+                      (readiness.rules.independent.details
+                        ?.depCount as number) || 0
+                    }
+                    countLabel="pending deps"
+                    onAutoFill={() => handleAutoFill("dependencies")}
+                    onManualAdd={(content) =>
+                      handleManualAdd("dependencies", content)
+                    }
+                    isLoading={savingSection === "dependencies"}
+                  />
                 </div>
+
+                {/* Missing Items Summary */}
+                {readiness.missingItems.length > 0 && (
+                  <div className="p-3 bg-amber-50 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                      <div>
+                        <span className="text-sm font-medium text-amber-800">
+                          Missing Items
+                        </span>
+                        <ul className="mt-1 text-sm text-amber-700 list-disc list-inside">
+                          {readiness.missingItems.map((item, idx) => (
+                            <li key={idx}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
+            >
+              Cancel
+            </button>
+
+            <div className="flex items-center gap-3">
+              {onSave && (
+                <button
+                  onClick={onSave}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-md transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  Save & Close
+                </button>
+              )}
+
+              {needsDecomposition && (
+                <button
+                  onClick={() => {
+                    setDecompositionReason([
+                      readiness?.rules.singleConcern.reason ||
+                        "Task needs decomposition",
+                    ]);
+                    setShowDecomposer(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-amber-500 text-white hover:bg-amber-600 rounded-md transition-colors"
+                >
+                  <Scissors className="w-4 h-4" />
+                  Decompose
+                </button>
+              )}
+
+              {onExecute && (
+                <button
+                  data-testid="execute-now-btn"
+                  onClick={onExecute}
+                  disabled={!readiness?.isReady || needsDecomposition}
+                  className={`
+                    flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors
+                    ${
+                      readiness?.isReady && !needsDecomposition
+                        ? "bg-green-600 text-white hover:bg-green-700"
+                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    }
+                  `}
+                >
+                  <Play className="w-4 h-4" />
+                  Execute Now
+                </button>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
-          >
-            Cancel
-          </button>
-
-          <div className="flex items-center gap-3">
-            {onSave && (
-              <button
-                onClick={onSave}
-                className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-md transition-colors"
-              >
-                <Save className="w-4 h-4" />
-                Save & Close
-              </button>
-            )}
-
-            {onExecute && (
-              <button
-                data-testid="execute-now-btn"
-                onClick={onExecute}
-                disabled={!readiness?.isReady}
-                className={`
-                  flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors
-                  ${
-                    readiness?.isReady
-                      ? "bg-green-600 text-white hover:bg-green-700"
-                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  }
-                `}
-              >
-                <Play className="w-4 h-4" />
-                Execute Now
-              </button>
-            )}
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Decomposer Modal */}
+      {showDecomposer && (
+        <TaskDecomposerModal
+          taskId={taskId}
+          taskTitle={taskTitle || ""}
+          reason={decompositionReason}
+          onClose={() => setShowDecomposer(false)}
+          onDecompose={handleDecompose}
+        />
+      )}
+    </>
   );
 }
 
@@ -476,6 +569,7 @@ interface CompletionSectionProps {
   onManualAdd: (content: string) => void;
   isLoading: boolean;
   isHighPriority?: boolean;
+  showDecomposeHint?: boolean;
 }
 
 function CompletionSection({
@@ -489,6 +583,7 @@ function CompletionSection({
   onManualAdd,
   isLoading,
   isHighPriority = false,
+  showDecomposeHint = false,
 }: CompletionSectionProps) {
   const [isAddingManual, setIsAddingManual] = useState(false);
   const [manualInput, setManualInput] = useState("");
@@ -540,6 +635,12 @@ function CompletionSection({
             {showCount !== undefined && (
               <p className="text-sm text-gray-500 mt-1">
                 {showCount} {countLabel}
+              </p>
+            )}
+            {showDecomposeHint && rule.status === "fail" && (
+              <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                <Scissors className="w-3 h-3" />
+                Consider decomposing this task
               </p>
             )}
           </div>

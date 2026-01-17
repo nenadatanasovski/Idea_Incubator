@@ -17,6 +17,8 @@ export {
   BlockedTooltip,
 } from "./BlockedIndicator";
 export { default as ConflictMatrix } from "./ConflictMatrix";
+export { default as ConflictListPanel } from "./ConflictListPanel";
+export type { ConflictItem } from "./ConflictListPanel";
 export { default as ExecutionStream } from "./ExecutionStream";
 export { default as LaneDetailPanel } from "./LaneDetailPanel";
 export { default as TaskDetailModal } from "./TaskDetailModal";

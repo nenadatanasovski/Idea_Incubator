@@ -4,6 +4,8 @@
  * Main entry point that integrates all Spec Agent components.
  * Coordinates brief parsing, requirement analysis, task generation,
  * and spec output.
+ *
+ * OBS-105: Extended ObservableAgent for unified observability
  */
 
 import { ContextLoader, LoadedContext, Gotcha } from "./context-loader.js";
@@ -13,6 +15,8 @@ import { TaskGenerator, AtomicTask, GeneratedTasks } from "./task-generator.js";
 import { GotchaInjector } from "./gotcha-injector.js";
 import { QuestionGenerator, Question } from "./question-generator.js";
 import { AnalyzedRequirements } from "./prompts/tasks.js";
+import { ObservableAgent } from "../../server/agents/observable-agent.js";
+import { v4 as uuid } from "uuid";
 import * as fs from "fs";
 
 export interface SpecOutput {
@@ -43,7 +47,10 @@ export interface SpecAgentConfig {
   strictMode?: boolean;
 }
 
-export class SpecAgent {
+/**
+ * OBS-105: SpecAgent extends ObservableAgent for unified observability
+ */
+export class SpecAgent extends ObservableAgent {
   private contextLoader: ContextLoader;
   private briefParser: BriefParser;
   private claudeClient: ClaudeClient;
@@ -51,6 +58,15 @@ export class SpecAgent {
   private questionGenerator: QuestionGenerator;
 
   constructor(config: SpecAgentConfig = {}) {
+    // OBS-105: Initialize ObservableAgent base class
+    const executionId = `spec-${uuid().slice(0, 8)}`;
+    const instanceId = `spec-agent-${uuid().slice(0, 8)}`;
+    super({
+      executionId,
+      instanceId,
+      agentType: "spec-agent",
+    });
+
     this.contextLoader = new ContextLoader();
     this.briefParser = new BriefParser();
     this.claudeClient = new ClaudeClient({
@@ -66,99 +82,166 @@ export class SpecAgent {
 
   /**
    * Generate a complete specification from a brief
+   * OBS-105: Added 4-phase observability logging
    */
   async generateSpec(options: GenerateOptions): Promise<SpecOutput> {
+    const taskId = `spec-gen-${options.ideaSlug}`;
     const warnings: string[] = [];
 
-    // 1. Load brief content
-    const briefContent = this.loadBrief(options.briefPath);
-    if (!briefContent) {
-      throw new Error(`Failed to load brief from ${options.briefPath}`);
-    }
+    // OBS-105: Log task start
+    await this.logTaskStart(taskId, `Generate spec for ${options.ideaSlug}`);
 
-    // 2. Parse brief
-    const parseResult = this.briefParser.parse(briefContent);
-    if (!parseResult.brief) {
-      throw new Error(
-        `Failed to parse brief: ${parseResult.missing.join(", ")}`,
-      );
-    }
-    warnings.push(...parseResult.warnings);
+    try {
+      // OBS-105: Phase 1 - Parse
+      await this.logPhaseStart("parse", { briefPath: options.briefPath });
 
-    const brief = parseResult.brief;
+      // 1. Load brief content
+      const briefContent = this.loadBrief(options.briefPath);
+      if (!briefContent) {
+        throw new Error(`Failed to load brief from ${options.briefPath}`);
+      }
 
-    // 3. Load context
-    const context = await this.contextLoader.load(options.ideaSlug);
+      // 2. Parse brief
+      const parseResult = this.briefParser.parse(briefContent);
+      if (!parseResult.brief) {
+        throw new Error(
+          `Failed to parse brief: ${parseResult.missing.join(", ")}`,
+        );
+      }
+      warnings.push(...parseResult.warnings);
 
-    // 4. Generate questions if not skipping
-    let questions: Question[] = [];
-    if (!options.skipQuestions) {
-      const emptyReqs: AnalyzedRequirements = {
-        functionalRequirements: [],
-        nonFunctionalRequirements: [],
-        constraints: [],
-        successCriteria: [],
-        ambiguities: [],
-      };
-      const questionResult = this.questionGenerator.generate(brief, emptyReqs);
-      questions = questionResult.questions;
+      const brief = parseResult.brief;
 
-      // Check if we can proceed
-      if (questionResult.blockingCount > 0 && !options.useDefaults) {
-        // Has blocking questions and not using defaults
-        if (
-          !options.answers ||
-          !this.questionGenerator.canProceed(questionResult, options.answers)
-        ) {
-          // Return early with questions - cannot proceed
-          return {
-            spec: "",
-            tasks: "",
-            questions,
-            metadata: {
-              tokensUsed: 0,
-              taskCount: 0,
-              complexity: brief.complexity,
-              warnings: ["Blocked by unanswered questions"],
-            },
-          };
+      await this.logPhaseEnd("parse", {
+        title: brief.title,
+        complexity: brief.complexity,
+        warnings: parseResult.warnings.length,
+      });
+
+      // OBS-105: Phase 2 - Context
+      await this.logPhaseStart("context", { ideaSlug: options.ideaSlug });
+
+      // 3. Load context
+      const context = await this.contextLoader.load(options.ideaSlug);
+
+      // 4. Generate questions if not skipping
+      let questions: Question[] = [];
+      if (!options.skipQuestions) {
+        const emptyReqs: AnalyzedRequirements = {
+          functionalRequirements: [],
+          nonFunctionalRequirements: [],
+          constraints: [],
+          successCriteria: [],
+          ambiguities: [],
+        };
+        const questionResult = this.questionGenerator.generate(
+          brief,
+          emptyReqs,
+        );
+        questions = questionResult.questions;
+
+        // Check if we can proceed
+        if (questionResult.blockingCount > 0 && !options.useDefaults) {
+          // Has blocking questions and not using defaults
+          if (
+            !options.answers ||
+            !this.questionGenerator.canProceed(questionResult, options.answers)
+          ) {
+            await this.logPhaseEnd("context", { blocked: true });
+            await this.logTaskEnd(taskId, "blocked", {
+              reason: "unanswered_questions",
+            });
+            // Return early with questions - cannot proceed
+            return {
+              spec: "",
+              tasks: "",
+              questions,
+              metadata: {
+                tokensUsed: 0,
+                taskCount: 0,
+                complexity: brief.complexity,
+                warnings: ["Blocked by unanswered questions"],
+              },
+            };
+          }
         }
       }
-    }
 
-    // 5. Analyze with Claude
-    const specResult = await this.claudeClient.generateSpec(brief, context);
+      await this.logPhaseEnd("context", {
+        gotchasLoaded: context.gotchas?.length || 0,
+        questionsGenerated: questions.length,
+      });
 
-    // 6. Initialize task generator with context gotchas
-    const taskGenerator = new TaskGenerator({
-      gotchas: context.gotchas as Gotcha[],
-      migrationPrefix: this.getNextMigrationNumber(),
-    });
+      // OBS-105: Phase 3 - Analyze
+      await this.logPhaseStart("analyze");
 
-    // 7. Generate tasks
-    const taskResult = taskGenerator.generate(brief, specResult.requirements);
-    warnings.push(...taskResult.warnings);
+      // 5. Analyze with Claude
+      const specResult = await this.claudeClient.generateSpec(brief, context);
 
-    // 8. Inject additional gotchas into tasks
-    const injectedTasks = this.gotchaInjector.inject(taskResult.tasks);
+      await this.logPhaseEnd("analyze", {
+        tokensUsed: specResult.tokensUsed,
+        requirementsCount:
+          specResult.requirements.functionalRequirements.length,
+      });
 
-    // 9. Render spec.md
-    const specContent = this.renderSpec(brief, specResult, context);
+      // OBS-105: Phase 4 - Generate
+      await this.logPhaseStart("generate");
 
-    // 10. Render tasks.md
-    const tasksContent = this.renderTasks(brief, injectedTasks, taskResult);
+      // 6. Initialize task generator with context gotchas
+      const taskGenerator = new TaskGenerator({
+        gotchas: context.gotchas as Gotcha[],
+        migrationPrefix: this.getNextMigrationNumber(),
+      });
 
-    return {
-      spec: specContent,
-      tasks: tasksContent,
-      questions,
-      metadata: {
+      // 7. Generate tasks
+      const taskResult = taskGenerator.generate(brief, specResult.requirements);
+      warnings.push(...taskResult.warnings);
+
+      // 8. Inject additional gotchas into tasks
+      const injectedTasks = this.gotchaInjector.inject(taskResult.tasks);
+
+      // 9. Render spec.md
+      const specContent = this.renderSpec(brief, specResult, context);
+
+      // 10. Render tasks.md
+      const tasksContent = this.renderTasks(brief, injectedTasks, taskResult);
+
+      await this.logPhaseEnd("generate", {
+        taskCount: injectedTasks.length,
+        specLength: specContent.length,
+        tasksLength: tasksContent.length,
+      });
+
+      // OBS-105: Log task completion
+      await this.logTaskEnd(taskId, "complete", {
         tokensUsed: specResult.tokensUsed,
         taskCount: injectedTasks.length,
         complexity: brief.complexity,
-        warnings,
-      },
-    };
+      });
+
+      return {
+        spec: specContent,
+        tasks: tasksContent,
+        questions,
+        metadata: {
+          tokensUsed: specResult.tokensUsed,
+          taskCount: injectedTasks.length,
+          complexity: brief.complexity,
+          warnings,
+        },
+      };
+    } catch (error) {
+      // OBS-105: Log error
+      await this.logError(
+        error instanceof Error ? error.message : String(error),
+        taskId,
+      );
+      await this.logTaskEnd(taskId, "failed");
+      throw error;
+    } finally {
+      // OBS-105: Cleanup
+      await this.close();
+    }
   }
 
   /**

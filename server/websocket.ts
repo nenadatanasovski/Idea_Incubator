@@ -1303,7 +1303,12 @@ export type PipelineEventType =
   | "conflict:detected" // Conflict detected
   | "dependency:resolved" // Dependency resolved
   | "pipeline:completed" // Pipeline completed
-  | "pipeline:failed"; // Pipeline failed
+  | "pipeline:failed" // Pipeline failed
+  // Decomposition events
+  | "decomposition:started" // Task decomposition started
+  | "decomposition:completed" // Task decomposition completed
+  | "decomposition:failed" // Task decomposition failed
+  | "subtask:created"; // Subtask created from decomposition
 
 export interface PipelineStreamEvent {
   type: "pipeline:event" | "pipeline:status";
@@ -1378,6 +1383,76 @@ export function emitPipelineStatus(status: Record<string, unknown>): void {
  */
 export function getPipelineClientCount(): number {
   return pipelineClients.size;
+}
+
+// ============================================
+// Task Decomposition Functions
+// ============================================
+
+/**
+ * Emit decomposition started event
+ */
+export function emitDecompositionStarted(
+  taskId: string,
+  taskDisplayId: string,
+  reason: string,
+): void {
+  emitPipelineEvent("decomposition:started", {
+    taskId,
+    taskDisplayId,
+    reason,
+  });
+}
+
+/**
+ * Emit decomposition completed event
+ */
+export function emitDecompositionCompleted(
+  taskId: string,
+  taskDisplayId: string,
+  subtaskIds: string[],
+  subtaskCount: number,
+): void {
+  emitPipelineEvent("decomposition:completed", {
+    taskId,
+    taskDisplayId,
+    subtaskIds,
+    subtaskCount,
+  });
+}
+
+/**
+ * Emit decomposition failed event
+ */
+export function emitDecompositionFailed(
+  taskId: string,
+  taskDisplayId: string,
+  error: string,
+): void {
+  emitPipelineEvent("decomposition:failed", {
+    taskId,
+    taskDisplayId,
+    error,
+  });
+}
+
+/**
+ * Emit subtask created event
+ */
+export function emitSubtaskCreated(
+  parentTaskId: string,
+  subtaskId: string,
+  subtaskDisplayId: string,
+  subtaskTitle: string,
+  position: number,
+): void {
+  emitPipelineEvent("subtask:created", {
+    parentTaskId,
+    subtaskId,
+    subtaskDisplayId,
+    subtaskTitle,
+    position,
+  });
 }
 
 export { wss };

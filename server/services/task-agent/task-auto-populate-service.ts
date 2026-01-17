@@ -25,6 +25,9 @@ export interface AutoPopulateResponse {
   suggestions: Suggestion[];
   preview: string;
   generatedAt: string;
+  requiresDecomposition?: boolean;
+  decompositionReason?: string[];
+  redirectTo?: string;
 }
 
 export interface ApplyResult {
@@ -38,7 +41,8 @@ export type AutoPopulateField =
   | "acceptance_criteria"
   | "file_impacts"
   | "test_commands"
-  | "dependencies";
+  | "dependencies"
+  | "description";
 
 interface TaskRow {
   id: string;
@@ -71,25 +75,82 @@ export class TaskAutoPopulateService {
     let suggestions: Suggestion[];
     let preview: string;
 
-    switch (field) {
-      case "acceptance_criteria":
-        suggestions = await this.suggestAcceptanceCriteria(task);
-        preview = this.formatAcceptanceCriteriaPreview(suggestions);
-        break;
-      case "file_impacts":
-        suggestions = await this.suggestFileImpacts(task);
-        preview = this.formatFileImpactsPreview(suggestions);
-        break;
-      case "test_commands":
-        suggestions = await this.suggestTestCommands(task);
-        preview = this.formatTestCommandsPreview(suggestions);
-        break;
-      case "dependencies":
-        suggestions = await this.suggestDependencies(task);
-        preview = this.formatDependenciesPreview(suggestions);
-        break;
-      default:
-        throw new Error(`Unknown field: ${field}`);
+    // Special handling for description field - check atomicity
+    if (field === "description") {
+      const { atomicityValidator } = await import("./atomicity-validator.js");
+
+      // Create a minimal Task object for validation
+      // Cast as 'as any' since we only need certain fields for atomicity check
+      const taskForValidation = {
+        id: task.id,
+        title: task.title,
+        description: task.description || undefined,
+        category: task.category,
+        effort: task.effort,
+        status: "pending",
+        priority: "P3",
+        projectId: task.project_id || undefined,
+        taskListId: undefined,
+        queue: "evaluation" as const,
+        position: 0,
+        phase: 1,
+        displayId: "",
+        owner: "build_agent",
+        createdAt: "",
+        updatedAt: "",
+      };
+
+      const atomicity = await atomicityValidator.validate(
+        taskForValidation as any,
+      );
+
+      // If task is not atomic (especially fails single concern rule), redirect to decomposition
+      const singleConcernScore =
+        atomicity.rules.find((r) => r.rule === "single_concern")?.score ?? 100;
+
+      if (!atomicity.isAtomic && singleConcernScore < 50) {
+        // Log suggestion request for analytics
+        await this.logSuggestionRequest(taskId, field, 0);
+
+        return {
+          taskId,
+          field,
+          suggestions: [],
+          preview:
+            "Task is not atomic and requires decomposition before proceeding.",
+          generatedAt: new Date().toISOString(),
+          requiresDecomposition: true,
+          decompositionReason: atomicity.suggestedSplits || [
+            "Task needs to be split into smaller atomic tasks",
+          ],
+          redirectTo: `/api/task-agent/tasks/${taskId}/decompose`,
+        };
+      }
+
+      // If atomic, provide description suggestions (simple fallback)
+      suggestions = await this.suggestDescription(task);
+      preview = this.formatDescriptionPreview(suggestions);
+    } else {
+      switch (field) {
+        case "acceptance_criteria":
+          suggestions = await this.suggestAcceptanceCriteria(task);
+          preview = this.formatAcceptanceCriteriaPreview(suggestions);
+          break;
+        case "file_impacts":
+          suggestions = await this.suggestFileImpacts(task);
+          preview = this.formatFileImpactsPreview(suggestions);
+          break;
+        case "test_commands":
+          suggestions = await this.suggestTestCommands(task);
+          preview = this.formatTestCommandsPreview(suggestions);
+          break;
+        case "dependencies":
+          suggestions = await this.suggestDependencies(task);
+          preview = this.formatDependenciesPreview(suggestions);
+          break;
+        default:
+          throw new Error(`Unknown field: ${field}`);
+      }
     }
 
     // Log suggestion request for analytics
@@ -160,6 +221,46 @@ export class TaskAutoPopulateService {
   // ============================================
   // Suggestion Generators
   // ============================================
+
+  /**
+   * Generate description suggestions from task title
+   */
+  private async suggestDescription(task: TaskRow): Promise<Suggestion[]> {
+    const suggestions: Suggestion[] = [];
+    const title = task.title || "";
+
+    // Generate description based on task category and title
+    if (task.category === "feature") {
+      suggestions.push({
+        id: uuidv4(),
+        content: `Implement ${title.toLowerCase()} functionality that allows users to interact with the system as specified in the requirements.`,
+        confidence: 0.6,
+        source: "pattern",
+        reasoning: "Feature description template",
+      });
+    }
+
+    if (task.category === "bug") {
+      suggestions.push({
+        id: uuidv4(),
+        content: `Fix the issue where ${title.toLowerCase()}. Investigate root cause, implement fix, and verify no regressions are introduced.`,
+        confidence: 0.7,
+        source: "pattern",
+        reasoning: "Bug fix description template",
+      });
+    }
+
+    // Generic template based on title
+    suggestions.push({
+      id: uuidv4(),
+      content: `${title}: Complete this task by implementing the necessary changes and ensuring all acceptance criteria are met.`,
+      confidence: 0.5,
+      source: "template",
+      reasoning: "Generic description from title",
+    });
+
+    return suggestions;
+  }
 
   /**
    * Generate acceptance criteria suggestions from task description
@@ -495,6 +596,16 @@ export class TaskAutoPopulateService {
   // ============================================
   // Preview Formatters
   // ============================================
+
+  private formatDescriptionPreview(suggestions: Suggestion[]): string {
+    if (suggestions.length === 0)
+      return "No description suggestions available.";
+    return suggestions
+      .map(
+        (s, i) => `${i + 1}. ${s.content} (${Math.round(s.confidence * 100)}%)`,
+      )
+      .join("\n\n");
+  }
 
   private formatAcceptanceCriteriaPreview(suggestions: Suggestion[]): string {
     if (suggestions.length === 0) return "No criteria suggestions available.";
