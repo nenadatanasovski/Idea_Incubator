@@ -23,6 +23,7 @@ Part of: BUILD-AGENT-IMPLEMENTATION-PLAN.md Phase 8 (BA-077 to BA-088)
 import argparse
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
