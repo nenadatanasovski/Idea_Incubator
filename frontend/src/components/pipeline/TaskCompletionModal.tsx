@@ -104,11 +104,70 @@ export default function TaskCompletionModal({
 
   const handleAutoFill = async (section: string) => {
     setSavingSection(section);
-    // TODO: Implement AI auto-fill via suggestion engine
-    // For now, just show loading state briefly
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setSavingSection(null);
-    fetchReadiness(); // Refresh readiness
+    setError(null);
+
+    try {
+      // Step 1: Generate suggestions from backend
+      const suggestResponse = await fetch(
+        `/api/pipeline/tasks/${taskId}/auto-populate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ field: section }),
+        },
+      );
+
+      if (!suggestResponse.ok) {
+        const errorData = await suggestResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to generate suggestions");
+      }
+
+      const suggestData = await suggestResponse.json();
+
+      // Check if we got any suggestions
+      if (!suggestData.suggestions || suggestData.suggestions.length === 0) {
+        setError(
+          `No suggestions available for ${section}. Try adding manually.`,
+        );
+        setSavingSection(null);
+        return;
+      }
+
+      // Step 2: Auto-apply all suggestions
+      const suggestionIds = suggestData.suggestions.map(
+        (s: { id: string }) => s.id,
+      );
+
+      const applyResponse = await fetch(
+        `/api/pipeline/tasks/${taskId}/auto-populate/apply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            field: section,
+            suggestionIds,
+          }),
+        },
+      );
+
+      if (!applyResponse.ok) {
+        const errorData = await applyResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to apply suggestions");
+      }
+
+      const applyResult = await applyResponse.json();
+      console.log(
+        `Auto-fill applied ${applyResult.appliedCount} suggestions for ${section}`,
+      );
+
+      // Step 3: Refresh readiness to see the updated state
+      await fetchReadiness();
+    } catch (err) {
+      console.error("Auto-fill error:", err);
+      setError(err instanceof Error ? err.message : "Auto-fill failed");
+    } finally {
+      setSavingSection(null);
+    }
   };
 
   const handleManualAdd = async (section: string, content: string) => {

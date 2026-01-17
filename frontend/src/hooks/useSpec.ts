@@ -1,7 +1,7 @@
 /**
  * useSpec Hook
  *
- * Manages spec state and WebSocket subscriptions for real-time updates.
+ * Manages spec state via API polling.
  * Part of: Ideation Agent Spec Generation Implementation (SPEC-009-B)
  */
 
@@ -11,7 +11,7 @@ import type { Spec, SpecSection, ReadinessScore } from "../types/spec";
 export interface UseSpecOptions {
   sessionId: string;
   specId?: string | null;
-  /** Set to false to disable auto-fetching and WebSocket connection */
+  /** Set to false to disable auto-fetching */
   enabled?: boolean;
   onWorkflowChange?: (fromState: string, toState: string) => void;
 }
