@@ -48,11 +48,11 @@ interface UseObservabilityConnectionResult {
   subscribe: (eventTypes: ObservabilityEventType[]) => void;
 }
 
-// Connect directly to the API server on port 3001
-const WS_BASE_URL =
-  typeof window !== "undefined"
-    ? `ws://${window.location.hostname}:3001`
-    : "ws://localhost:3001";
+// Connect directly to API server - Vite proxy for WS is unreliable
+function getWsBaseUrl(): string {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//localhost:3001`;
+}
 
 export default function useObservabilityConnection(
   options: UseObservabilityConnectionOptions = {},
@@ -108,8 +108,8 @@ export default function useObservabilityConnection(
       setStatus("reconnecting");
 
       // Server expects observability=all or observability={executionId}
-      const wsUrl = `${WS_BASE_URL}/ws?observability=all`;
-      console.log("[Observability WS] Attempting connection to:", wsUrl);
+      const wsUrl = `${getWsBaseUrl()}/ws?observability=all`;
+      console.log("[Observability WS] Connecting to:", wsUrl);
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -156,7 +156,12 @@ export default function useObservabilityConnection(
       };
 
       ws.onerror = (event) => {
-        console.error("[Observability WS] Error:", event);
+        console.error("[Observability WS] Error connecting to:", wsUrl);
+        console.error(
+          "[Observability WS] WebSocket readyState:",
+          ws.readyState,
+        );
+        console.error("[Observability WS] Event:", event);
         setError(new Error("WebSocket connection error"));
       };
 

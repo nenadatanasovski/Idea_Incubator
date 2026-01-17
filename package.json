@@ -15,8 +15,6 @@
     "schema:push": "drizzle-kit push",
     "schema:studio": "drizzle-kit studio",
     "schema:check": "drizzle-kit check",
-    "schema:validate": "tsx scripts/validate-schema.ts",
-    "schema:migrate-helper": "tsx scripts/migrate-types-to-schema.ts",
     "questions:load": "tsx questions/loader.ts",
     "questions:load:force": "tsx questions/loader.ts --force",
     "test": "vitest",

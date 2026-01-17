@@ -12,7 +12,6 @@ import {
   Bell,
   Workflow,
   Database,
-  FileCode,
   FolderKanban,
 } from "lucide-react";
 import clsx from "clsx";
@@ -29,7 +28,6 @@ const navigation = [
   { name: "Compare", href: "/compare", icon: GitCompare },
   { name: "Debates", href: "/debate", icon: MessageSquare },
   { name: "Objects", href: "/objects", icon: Database },
-  { name: "Schema", href: "/schema", icon: FileCode },
   { name: "Observability", href: "/observability", icon: Activity },
   { name: "Pipeline", href: "/pipeline", icon: Workflow },
   { name: "Agents", href: "/agents", icon: Bot },

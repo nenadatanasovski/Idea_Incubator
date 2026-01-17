@@ -178,7 +178,7 @@ export default function ProjectBuild() {
                   <div
                     className="absolute left-0 top-0 h-full bg-primary-500 rounded-full"
                     style={{
-                      width: `${list.taskCount > 0 ? (list.completedCount / list.taskCount) * 100 : 0}%`,
+                      width: `${list.taskCount > 0 ? ((list.completedCount || 0) / list.taskCount) * 100 : 0}%`,
                     }}
                   />
                 </div>

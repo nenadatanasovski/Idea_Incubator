@@ -48,30 +48,11 @@ This is an idea incubation system that uses AI agents to evaluate and red-team i
 | Schema definitions  | `schema/entities/*.ts`          |
 | Schema registry     | `schema/registry.ts`            |
 
-## Data Model Discovery
+## Data Model
 
 The canonical data model is defined in `schema/entities/*.ts` using Drizzle ORM.
 
-### For Agents (Programmatic Access)
-
-```bash
-# List all entities and endpoints
-curl http://localhost:3001/api/schema
-
-# Get specific entity schema (JSON Schema format)
-curl http://localhost:3001/api/schema/entities/{entityName}
-
-# Get all enums
-curl http://localhost:3001/api/schema/enums
-
-# Get relationship graph
-curl http://localhost:3001/api/schema/relationships
-
-# Get full schema dump
-curl http://localhost:3001/api/schema/full
-```
-
-### For Code (Type-Safe Import)
+### Type-Safe Imports
 
 ```typescript
 // Import types
@@ -90,14 +71,12 @@ const result = insertTaskSchema.safeParse(userInput);
 2. All database tables **MUST** have a corresponding schema entity
 3. When modifying data model, update `schema/entities/*.ts` **ONLY**
 4. Use skills: `/schema-add-entity`, `/schema-modify-entity`, `/schema-add-relationship`
-5. Always run `/schema-validate` before deploying schema changes
 
 ### Schema Commands
 
 ```bash
 npm run schema:generate     # Generate migration from schema changes
 npm run schema:migrate      # Apply migrations to database
-npm run schema:validate     # Validate schema consistency
 npm run schema:studio       # Open Drizzle Studio (visual editor)
 ```
 

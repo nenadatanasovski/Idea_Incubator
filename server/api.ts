@@ -91,7 +91,6 @@ import pipelineRouter from "./routes/pipeline.js";
 import objectsRouter from "./routes/objects.js";
 import projectsRouter from "./routes/projects.js";
 import specsRouter from "./routes/specs.js";
-import schemaRouter from "./routes/schema.js";
 import { initNotificationSystem } from "./notifications/index.js";
 import { getCommunicationHub } from "./communication/communication-hub.js";
 
@@ -192,9 +191,6 @@ app.use("/api/projects", projectsRouter);
 
 // Spec generation routes
 app.use("/api/specs", specsRouter);
-
-// Schema discovery routes
-app.use("/api/schema", schemaRouter);
 
 // Initialize notification system
 initNotificationSystem();
