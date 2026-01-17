@@ -39,6 +39,7 @@ export function IdeationSession({
   const [showIdeaTypeModal, setShowIdeaTypeModal] = useState(false);
   const [isSpecEditing, setIsSpecEditing] = useState(false);
   const [isSpecGenerating, setIsSpecGenerating] = useState(false);
+  const [hasSpec, setHasSpec] = useState(false);
 
   // Spec and readiness hooks (SPEC-006-E integration)
   const {
@@ -54,7 +55,7 @@ export function IdeationSession({
     sessionId: state.session.sessionId || "",
     // Only enable when spec generation is triggered or a spec already exists
     // Don't auto-fetch on resume to avoid 404 noise in console
-    enabled: isSpecGenerating || spec !== null,
+    enabled: isSpecGenerating || hasSpec,
     onWorkflowChange: (fromState, toState) => {
       setToast({
         message: `Spec moved from ${fromState} to ${toState}`,
@@ -63,6 +64,12 @@ export function IdeationSession({
       setTimeout(() => setToast(null), 3000);
     },
   });
+
+  useEffect(() => {
+    if (spec) {
+      setHasSpec(true);
+    }
+  }, [spec]);
 
   const { readiness: _readiness, isReady: isReadyForSpec } = useReadiness({
     sessionId: state.session.sessionId || "",
