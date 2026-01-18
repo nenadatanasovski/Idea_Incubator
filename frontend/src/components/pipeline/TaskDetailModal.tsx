@@ -39,11 +39,8 @@ import {
 import ReadinessIndicator from "./ReadinessIndicator";
 import TaskCompletionModal from "./TaskCompletionModal";
 import TaskSpecLinkModal from "../projects/TaskSpecLinkModal";
-import type {
-  TaskDetailInfo,
-  TaskRelation,
-  TestScope,
-} from "../../types/pipeline";
+import TaskDependencyManager from "../tasks/TaskDependencyManager";
+import type { TaskDetailInfo, TestScope } from "../../types/pipeline";
 import { TEST_SCOPE_CONFIG, TEST_SCOPE_ORDER } from "../../types/pipeline";
 
 interface TaskDetailModalProps {
@@ -272,8 +269,10 @@ export default function TaskDetailModal({
             <>
               {activeTab === "overview" && <OverviewTab task={task} />}
               {activeTab === "dependencies" && (
-                <DependenciesTab
-                  dependencies={task.dependencies}
+                <TaskDependencyManager
+                  taskId={task.id}
+                  projectId={task.projectId}
+                  onDependencyChange={fetchTaskDetail}
                   onTaskClick={handleTaskClick}
                 />
               )}
@@ -641,123 +640,6 @@ function PropertyCard({
         {label}
       </div>
       <div className="text-gray-900 font-medium">{children}</div>
-    </div>
-  );
-}
-
-function DependenciesTab({
-  dependencies,
-  onTaskClick,
-}: {
-  dependencies: TaskDetailInfo["dependencies"];
-  onTaskClick: (taskId: string) => void;
-}) {
-  // All 12 relationship types per task-data-model-diagram.md
-  const sections = [
-    // Original 6 types
-    {
-      title: "Depends On",
-      items: dependencies.dependsOn,
-      color: "text-blue-600",
-    },
-    { title: "Blocks", items: dependencies.blocks, color: "text-amber-600" },
-    {
-      title: "Related To",
-      items: dependencies.relatedTo,
-      color: "text-gray-600",
-    },
-    {
-      title: "Parent Of",
-      items: dependencies.parentOf,
-      color: "text-purple-600",
-    },
-    { title: "Child Of", items: dependencies.childOf, color: "text-teal-600" },
-    {
-      title: "Duplicate Of",
-      items: dependencies.duplicateOf,
-      color: "text-red-600",
-    },
-    // Additional 6 types
-    {
-      title: "Supersedes",
-      items: dependencies.supersedes || [],
-      color: "text-indigo-600",
-    },
-    {
-      title: "Implements",
-      items: dependencies.implements || [],
-      color: "text-green-600",
-    },
-    {
-      title: "Conflicts With",
-      items: dependencies.conflictsWith || [],
-      color: "text-rose-600",
-    },
-    {
-      title: "Enables",
-      items: dependencies.enables || [],
-      color: "text-cyan-600",
-    },
-    {
-      title: "Inspired By",
-      items: dependencies.inspiredBy || [],
-      color: "text-pink-600",
-    },
-    {
-      title: "Tests",
-      items: dependencies.tests || [],
-      color: "text-violet-600",
-    },
-  ];
-
-  const hasAny = sections.some((s) => s.items.length > 0);
-
-  if (!hasAny) {
-    return (
-      <div className="text-center py-12 text-gray-500">
-        <GitBranch className="w-12 h-12 mx-auto mb-3 opacity-50" />
-        <p>No dependencies or relationships defined</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {sections.map(
-        (section) =>
-          section.items.length > 0 && (
-            <div key={section.title}>
-              <h3
-                className={`text-sm font-medium mb-2 flex items-center gap-2 ${section.color}`}
-              >
-                <GitBranch className="w-4 h-4" />
-                {section.title} ({section.items.length})
-              </h3>
-              <div className="space-y-2">
-                {section.items.map((rel: TaskRelation) => (
-                  <div
-                    key={rel.taskId}
-                    onClick={() => onTaskClick(rel.taskId)}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-mono text-xs text-primary-600 bg-white px-2 py-0.5 rounded border border-gray-200">
-                        {rel.displayId || rel.taskId.slice(0, 8)}
-                      </span>
-                      <span className="text-gray-700 truncate">
-                        {rel.title}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={rel.status} />
-                      <ExternalLink className="w-4 h-4 text-gray-400" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ),
-      )}
     </div>
   );
 }

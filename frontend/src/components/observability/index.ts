@@ -34,3 +34,7 @@ export { default as MessageBusLogViewer } from "./MessageBusLogViewer";
 // Container components
 export { default as ObservabilityHub } from "./ObservabilityHub";
 export { default as ExecutionList } from "./ExecutionList";
+
+// Agent session components
+export { default as AgentSessionsView } from "./AgentSessionsView";
+export { default as LogFileModal } from "./LogFileModal";

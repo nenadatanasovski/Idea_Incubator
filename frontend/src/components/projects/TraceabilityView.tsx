@@ -5,6 +5,7 @@
  * Displays overall coverage summary and gap/orphan warnings.
  */
 
+import { useState } from "react";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
@@ -14,6 +15,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Link2Off,
+  Link2,
 } from "lucide-react";
 import clsx from "clsx";
 import {
@@ -27,6 +29,7 @@ import SpecSectionCard from "./SpecSectionCard";
 import TraceabilityGapPanel from "./TraceabilityGapPanel";
 import TraceabilityHierarchy from "./TraceabilityHierarchy";
 import OrphanTaskPanel from "./OrphanTaskPanel";
+import BulkLinkWizard from "./BulkLinkWizard";
 import type { ProjectWithStats } from "../../../../types/project";
 
 interface OutletContext {
@@ -59,6 +62,9 @@ export default function TraceabilityView() {
 
   // Hierarchical view
   const { hierarchy } = useTraceabilityHierarchy({ projectId });
+
+  // Bulk link wizard state
+  const [showBulkLinkWizard, setShowBulkLinkWizard] = useState(false);
 
   // URL-based state for tab persistence
   const [searchParams, setSearchParams] = useSearchParams();
@@ -197,28 +203,29 @@ export default function TraceabilityView() {
                 </span>
               </div>
 
-              {/* Orphan tasks */}
-              <div className="flex items-center gap-2">
-                <Link2Off
-                  className={clsx(
-                    "h-3.5 w-3.5",
-                    traceability.orphanTaskCount > 0
-                      ? "text-amber-500"
-                      : "text-gray-400",
-                  )}
-                />
-                <span className="text-xs text-gray-500">Orphan Tasks</span>
-                <span
-                  className={clsx(
-                    "text-sm font-bold",
-                    traceability.orphanTaskCount > 0
-                      ? "text-amber-600"
-                      : "text-gray-900",
-                  )}
+              {/* Orphan tasks - clickable to open bulk link wizard */}
+              {traceability.orphanTaskCount > 0 ? (
+                <button
+                  onClick={() => setShowBulkLinkWizard(true)}
+                  className="flex items-center gap-2 px-2 py-1 -mx-2 -my-1 rounded hover:bg-amber-50 transition-colors group"
+                  title="Click to link orphan tasks to requirements"
                 >
-                  {traceability.orphanTaskCount}
-                </span>
-              </div>
+                  <Link2Off className="h-3.5 w-3.5 text-amber-500" />
+                  <span className="text-xs text-gray-500 group-hover:text-amber-600">
+                    Orphan Tasks
+                  </span>
+                  <span className="text-sm font-bold text-amber-600">
+                    {traceability.orphanTaskCount}
+                  </span>
+                  <Link2 className="h-3 w-3 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Link2Off className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-xs text-gray-500">Orphan Tasks</span>
+                  <span className="text-sm font-bold text-gray-900">0</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -237,6 +244,9 @@ export default function TraceabilityView() {
         gaps={aiGaps}
         counts={gapCounts}
         isAnalyzing={isAnalyzing}
+        projectId={projectId}
+        projectSlug={projectSlug}
+        prdId={traceability?.prdId || null}
         onAnalyze={runAnalysis}
         onGetSuggestions={getSuggestions}
         onResolve={async (gapId) => {
@@ -245,6 +255,7 @@ export default function TraceabilityView() {
         }}
         onIgnore={ignoreGap}
         onRefetch={refetchGaps}
+        onTaskCreated={refetch}
       />
 
       {/* Hierarchical View */}
@@ -392,6 +403,21 @@ export default function TraceabilityView() {
           )}
         </div>
       </div>
+
+      {/* Bulk Link Wizard Modal */}
+      {showBulkLinkWizard && traceability?.prdId && (
+        <BulkLinkWizard
+          orphanTasks={orphanTasks}
+          projectId={projectId}
+          projectSlug={projectSlug}
+          prdId={traceability.prdId}
+          onComplete={() => {
+            refetch();
+            refetchGaps();
+          }}
+          onClose={() => setShowBulkLinkWizard(false)}
+        />
+      )}
     </div>
   );
 }

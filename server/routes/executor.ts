@@ -10,6 +10,7 @@ import {
   getTaskExecutor,
   createTaskExecutor,
 } from "../services/task-executor.js";
+import { eventService } from "../services/event-service.js";
 
 const router = Router();
 const BASE_PATH = process.cwd();
@@ -90,6 +91,18 @@ router.post("/start", async (req: Request, res: Response): Promise<void> => {
 
     await executor.start();
 
+    // Emit execution_started event
+    eventService
+      .emitEvent({
+        type: "execution_started",
+        source: "pipeline",
+        payload: {
+          taskListPath: status.taskListPath,
+          totalTasks: status.totalTasks,
+        },
+      })
+      .catch(() => {});
+
     res.json({
       success: true,
       message: "Executor started",
@@ -109,6 +122,20 @@ router.post("/pause", async (_req: Request, res: Response): Promise<void> => {
   try {
     const executor = getTaskExecutor();
     await executor.pause();
+
+    // Emit execution_paused event
+    const status = executor.getStatus();
+    eventService
+      .emitEvent({
+        type: "execution_paused",
+        source: "pipeline",
+        payload: {
+          taskListPath: status.taskListPath,
+          completedTasks: status.completedTasks,
+          totalTasks: status.totalTasks,
+        },
+      })
+      .catch(() => {});
 
     res.json({
       success: true,
@@ -130,6 +157,20 @@ router.post("/resume", async (_req: Request, res: Response): Promise<void> => {
     const executor = getTaskExecutor();
     await executor.resume();
 
+    // Emit execution_resumed event
+    const status = executor.getStatus();
+    eventService
+      .emitEvent({
+        type: "execution_resumed",
+        source: "pipeline",
+        payload: {
+          taskListPath: status.taskListPath,
+          completedTasks: status.completedTasks,
+          totalTasks: status.totalTasks,
+        },
+      })
+      .catch(() => {});
+
     res.json({
       success: true,
       message: "Executor resumed",
@@ -148,7 +189,21 @@ router.post("/resume", async (_req: Request, res: Response): Promise<void> => {
 router.post("/stop", async (_req: Request, res: Response): Promise<void> => {
   try {
     const executor = getTaskExecutor();
+    const statusBefore = executor.getStatus();
     await executor.stop();
+
+    // Emit execution_stopped event
+    eventService
+      .emitEvent({
+        type: "execution_stopped",
+        source: "pipeline",
+        payload: {
+          taskListPath: statusBefore.taskListPath,
+          completedTasks: statusBefore.completedTasks,
+          totalTasks: statusBefore.totalTasks,
+        },
+      })
+      .catch(() => {});
 
     res.json({
       success: true,

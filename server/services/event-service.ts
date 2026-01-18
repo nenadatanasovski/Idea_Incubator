@@ -8,7 +8,7 @@
 
 import { EventEmitter } from "events";
 import { v4 as uuidv4 } from "uuid";
-import { query, getOne, run } from "../../database/db.js";
+import { query, getOne, run, saveDb } from "../../database/db.js";
 
 // =============================================================================
 // Types
@@ -236,6 +236,9 @@ export class EventService extends EventEmitter {
           timestamp,
         ],
       );
+
+      // Persist to disk (sql.js runs in-memory, requires explicit save)
+      await saveDb();
 
       const storedEvent: StoredEvent = {
         id,

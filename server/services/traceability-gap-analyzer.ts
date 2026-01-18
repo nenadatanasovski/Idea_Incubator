@@ -79,8 +79,8 @@ export class TraceabilityGapAnalyzer {
         entityType: "requirement",
         entityRef: `${gap.sectionType}[${gap.itemIndex}]`,
         severity: gap.severity === "high" ? "critical" : "warning",
-        title: `Uncovered ${gap.sectionTitle}`,
-        description: `Requirement "${gap.itemContent.slice(0, 100)}${gap.itemContent.length > 100 ? "..." : ""}" has no linked tasks`,
+        title: `Uncovered: ${gap.sectionTitle} #${gap.itemIndex + 1}`,
+        description: gap.itemContent,
         suggestions: [],
         status: "open",
         createdAt: new Date().toISOString(),
@@ -105,8 +105,8 @@ export class TraceabilityGapAnalyzer {
                 entityType: "requirement",
                 entityRef: `${section.sectionType}[${item.index}]`,
                 severity: "warning",
-                title: "Weak Coverage",
-                description: `Requirement has only 1 task and no tests: "${item.content.slice(0, 80)}${item.content.length > 80 ? "..." : ""}"`,
+                title: `Weak Coverage: ${section.sectionTitle} #${item.index + 1}`,
+                description: `${item.content}\n\n(Only 1 task linked, no tests)`,
                 suggestions: [],
                 status: "open",
                 createdAt: new Date().toISOString(),
@@ -138,8 +138,8 @@ export class TraceabilityGapAnalyzer {
         entityType: "task",
         entityRef: task.id,
         severity: "info",
-        title: "Orphan Task",
-        description: `Task "${task.displayId}: ${task.title}" is not linked to any requirement`,
+        title: `Orphan: ${task.displayId}`,
+        description: `${task.title}\n\nThis task is not linked to any PRD requirement.`,
         suggestions: [],
         status: "open",
         createdAt: new Date().toISOString(),
@@ -243,7 +243,7 @@ export class TraceabilityGapAnalyzer {
       const response = await this.client.messages.create({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1024,
-        system: `You are a project management assistant helping to improve traceability between requirements and tasks. Provide 2-3 specific, actionable suggestions. Format each suggestion as a single line starting with a verb.`,
+        system: `You are a project management assistant helping to improve traceability between requirements and tasks. Provide a clear, cohesive action plan to address the gap. Write a brief paragraph explaining what should be done and why.`,
         messages: [{ role: "user", content: prompt }],
       });
 
@@ -270,42 +270,35 @@ export class TraceabilityGapAnalyzer {
         return `A requirement is not covered by any tasks:
 "${gap.description}"
 
-Suggest 2-3 specific actions to address this gap. Each suggestion should be actionable and start with a verb.`;
+Provide a clear action plan: What task(s) should be created to implement this requirement? Be specific about what needs to be built.`;
 
       case "weak_coverage":
         return `A requirement has weak test coverage:
 "${gap.description}"
 
-Suggest 2-3 specific actions to improve coverage. Consider adding tests or additional implementation tasks.`;
+Provide a clear action plan: What additional tasks or tests should be created to properly cover this requirement?`;
 
       case "orphan":
         return `A task exists but isn't linked to any requirement:
 "${gap.description}"
 
-Suggest 2-3 actions: either link it to an existing requirement, or explain why it might be intentionally unlinked.`;
+Provide guidance: Which requirement should this task be linked to, or explain why it might be intentionally unlinked (infrastructure, tech debt, etc.)?`;
 
       default:
         return `Address this traceability gap:
 "${gap.description}"
 
-Suggest 2-3 specific actions.`;
+Provide a clear action plan to resolve this gap.`;
     }
   }
 
   private parseSuggestions(text: string): string[] {
-    // Parse numbered or bulleted list
-    const lines = text.split("\n").filter(Boolean);
-    const suggestions: string[] = [];
-
-    for (const line of lines) {
-      // Remove list markers and trim
-      const cleaned = line.replace(/^[\d\.\-\*\)]+\s*/, "").trim();
-      if (cleaned.length > 10 && cleaned.length < 500) {
-        suggestions.push(cleaned);
-      }
+    // Return the full AI response as a single cohesive suggestion
+    const cleaned = text.trim();
+    if (cleaned.length > 10) {
+      return [cleaned];
     }
-
-    return suggestions.slice(0, 3);
+    return [];
   }
 
   /**

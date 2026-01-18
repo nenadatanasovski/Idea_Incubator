@@ -1,10 +1,10 @@
 /**
  * AgentsTab - Agent monitoring view within Observability
- * Shows agent status, blocking questions, and recent activity
+ * Shows agent status, blocking questions, sessions/lineage, and recent activity
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Bot,
   HelpCircle,
@@ -13,10 +13,16 @@ import {
   Loader2,
   AlertTriangle,
   Clock,
+  GitBranch,
+  LayoutGrid,
 } from "lucide-react";
 import clsx from "clsx";
+import AgentSessionsView from "./AgentSessionsView";
 
 const API_BASE = "http://localhost:3001";
+
+// Sub-tabs for the Agents section
+type AgentSubTab = "monitoring" | "sessions";
 
 // Types
 interface Agent {
@@ -45,10 +51,18 @@ interface Question {
 }
 
 export default function AgentsTab() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeSubTab =
+    (searchParams.get("view") as AgentSubTab) || "monitoring";
+
   const [agents, setAgents] = useState<Agent[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const setActiveSubTab = (tab: AgentSubTab) => {
+    setSearchParams({ view: tab });
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -104,18 +118,53 @@ export default function AgentsTab() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-medium text-gray-900">
-            Agent Monitoring
-          </h2>
-          <p className="text-sm text-gray-500">
-            Monitor build agents, view blocking questions, and track agent
-            activity
-          </p>
+    <div className="p-6 flex flex-col h-full">
+      {/* Header with inline sub-tabs - visible background */}
+      <div className="flex-shrink-0 flex items-center justify-between bg-white rounded-lg px-4 py-3 mb-4 shadow-sm">
+        <div className="flex items-center gap-6">
+          {/* Title */}
+          <div>
+            <h2 className="text-lg font-medium text-gray-900">
+              Agent Monitoring
+            </h2>
+            <p className="text-sm text-gray-500">
+              Monitor agents, questions, and sessions
+            </p>
+          </div>
+
+          {/* Inline sub-tabs */}
+          <nav
+            className="flex gap-1 bg-gray-100 rounded-lg p-1"
+            aria-label="Agent sub-tabs"
+          >
+            <button
+              onClick={() => setActiveSubTab("monitoring")}
+              className={clsx(
+                "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                activeSubTab === "monitoring"
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900",
+              )}
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Status
+            </button>
+            <button
+              onClick={() => setActiveSubTab("sessions")}
+              className={clsx(
+                "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                activeSubTab === "sessions"
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900",
+              )}
+            >
+              <GitBranch className="h-4 w-4" />
+              Sessions
+            </button>
+          </nav>
         </div>
+
+        {/* Right side actions */}
         <div className="flex items-center gap-2">
           <button
             onClick={fetchData}
@@ -132,94 +181,105 @@ export default function AgentsTab() {
         </div>
       </div>
 
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5" />
-          {error}
-        </div>
-      )}
+      {/* Render based on active sub-tab - flex-1 to fill remaining space */}
+      {activeSubTab === "sessions" ? (
+        <AgentSessionsView className="flex-1 min-h-0" />
+      ) : (
+        <>
+          {/* Original monitoring content */}
 
-      {/* Agent Status Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <SummaryCard
-          label="Total Agents"
-          value={statusCounts.total || 0}
-          icon={Bot}
-          color="gray"
-        />
-        <SummaryCard
-          label="Running"
-          value={statusCounts.running}
-          icon={Activity}
-          color="blue"
-        />
-        <SummaryCard
-          label="Blocked"
-          value={statusCounts.blocked}
-          icon={Clock}
-          color={statusCounts.blocked > 0 ? "orange" : "gray"}
-        />
-        <SummaryCard
-          label="Errors"
-          value={statusCounts.error}
-          icon={AlertTriangle}
-          color={statusCounts.error > 0 ? "red" : "gray"}
-        />
-      </div>
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              {error}
+            </div>
+          )}
 
-      {/* Agent Status Grid */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Agent Status</h3>
-        </div>
-        {agents.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            <Bot className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-            <p>No agents registered</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Agents will appear here when they connect
-            </p>
+          {/* Agent Status Summary */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <SummaryCard
+              label="Total Agents"
+              value={statusCounts.total || 0}
+              icon={Bot}
+              color="gray"
+            />
+            <SummaryCard
+              label="Running"
+              value={statusCounts.running}
+              icon={Activity}
+              color="blue"
+            />
+            <SummaryCard
+              label="Blocked"
+              value={statusCounts.blocked}
+              icon={Clock}
+              color={statusCounts.blocked > 0 ? "orange" : "gray"}
+            />
+            <SummaryCard
+              label="Errors"
+              value={statusCounts.error}
+              icon={AlertTriangle}
+              color={statusCounts.error > 0 ? "red" : "gray"}
+            />
           </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {agents.map((agent) => (
-              <AgentCard key={agent.id} agent={agent} />
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Blocking Questions */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">
-            Blocking Questions ({questions.length})
-          </h3>
-        </div>
-        {questions.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            <HelpCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-            <p>No blocking questions</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Questions from agents will appear here
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {questions.slice(0, 5).map((q) => (
-              <QuestionCard key={q.id} question={q} />
-            ))}
-            {questions.length > 5 && (
-              <Link
-                to="/agents"
-                className="block text-center text-sm text-blue-600 hover:text-blue-800"
-              >
-                View all {questions.length} questions →
-              </Link>
+          {/* Agent Status Grid */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Agent Status
+              </h3>
+            </div>
+            {agents.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                <Bot className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p>No agents registered</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Agents will appear here when they connect
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {agents.map((agent) => (
+                  <AgentCard key={agent.id} agent={agent} />
+                ))}
+              </div>
             )}
           </div>
-        )}
-      </div>
+
+          {/* Blocking Questions */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Blocking Questions ({questions.length})
+              </h3>
+            </div>
+            {questions.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                <HelpCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p>No blocking questions</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Questions from agents will appear here
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {questions.slice(0, 5).map((q) => (
+                  <QuestionCard key={q.id} question={q} />
+                ))}
+                {questions.length > 5 && (
+                  <Link
+                    to="/agents"
+                    className="block text-center text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    View all {questions.length} questions →
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -704,8 +704,12 @@ router.get("/status", async (req: Request, res: Response) => {
     const projectId = req.query.projectId as string | undefined;
     const session = await getActiveSession();
 
-    if (!session) {
-      // No active execution session - build visualization from task data
+    // If no session, or session is completed/cancelled, build preview from task data
+    if (
+      !session ||
+      session.status === "completed" ||
+      session.status === "cancelled"
+    ) {
       return res.json(await buildPipelineFromTaskData(taskListId, projectId));
     }
 
@@ -714,6 +718,11 @@ router.get("/status", async (req: Request, res: Response) => {
       `SELECT * FROM execution_lanes WHERE session_id = ? ORDER BY category, name`,
       [session.id],
     );
+
+    // If session exists but has no lanes, fall back to task data preview
+    if (laneRows.length === 0) {
+      return res.json(await buildPipelineFromTaskData(taskListId, projectId));
+    }
 
     const lanes: Lane[] = [];
     for (const laneRow of laneRows) {
@@ -761,12 +770,12 @@ router.get("/status", async (req: Request, res: Response) => {
 
     // Get agents
     const agentRows = await query<AgentRow>(
-      `SELECT ba.id, ba.name, ba.status, ba.current_task_id,
-              t.title as current_task_title, lt.lane_id, ba.last_heartbeat
+      `SELECT ba.id, ba.name, ba.status, ba.task_id as current_task_id,
+              t.title as current_task_title, lt.lane_id, ba.last_heartbeat_at as last_heartbeat
        FROM build_agent_instances ba
-       LEFT JOIN tasks t ON ba.current_task_id = t.id
+       LEFT JOIN tasks t ON ba.task_id = t.id
        LEFT JOIN lane_tasks lt ON t.id = lt.task_id
-       WHERE ba.session_id = ?`,
+       WHERE ba.execution_run_id = ?`,
       [session.id],
     );
 

@@ -21,6 +21,8 @@ export { default as SpecCoverageColumn } from "./SpecCoverageColumn";
 export { default as TraceabilityHierarchy } from "./TraceabilityHierarchy";
 export { default as TraceabilityGapPanel } from "./TraceabilityGapPanel";
 export { default as OrphanTaskPanel } from "./OrphanTaskPanel";
+export { default as BulkLinkWizard } from "./BulkLinkWizard";
+export { default as BulkTaskCreationWizard } from "./BulkTaskCreationWizard";
 
 // Task grouping components
 export { default as TaskGroupSelector } from "./TaskGroupSelector";

@@ -17,6 +17,7 @@ import {
   validateAnswerRequest,
   isSigningEnabled,
 } from "../../utils/url-signer.js";
+import { eventService } from "../services/event-service.js";
 
 // Default timeout for questions without explicit expiry (24 hours)
 const DEFAULT_QUESTION_TIMEOUT_MS = 24 * 60 * 60 * 1000;
@@ -230,6 +231,22 @@ router.post(
         answer,
       });
 
+      // Emit platform event for question answered
+      eventService
+        .emitEvent({
+          type: "question_answered",
+          source: "api",
+          payload: {
+            questionId: id,
+            agentId: row.agent_id,
+            agentType: row.agent_type,
+            questionType: row.type,
+            fromSignedLink,
+          },
+          taskId: row.task_id || undefined,
+        })
+        .catch(() => {});
+
       // For signed links, redirect to a thank you page or return HTML
       if (fromSignedLink) {
         res.send(`
@@ -422,6 +439,23 @@ router.post("/:id/skip", async (req: Request, res: Response): Promise<void> => {
       skipped: true,
       reason,
     });
+
+    // Emit platform event for question skipped
+    eventService
+      .emitEvent({
+        type: "question_skipped",
+        source: "api",
+        payload: {
+          questionId: id,
+          agentId: row.agent_id,
+          agentType: row.agent_type,
+          questionType: row.type,
+          reason: reason || "No reason provided",
+          usedDefault: !!row.default_option,
+        },
+        taskId: row.task_id || undefined,
+      })
+      .catch(() => {});
 
     res.json({
       success: true,

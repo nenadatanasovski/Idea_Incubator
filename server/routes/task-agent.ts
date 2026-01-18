@@ -22,6 +22,7 @@ import { Router, Request, Response } from "express";
 // Import services
 import evaluationQueueManager from "../services/task-agent/evaluation-queue-manager.js";
 import taskCreationService from "../services/task-agent/task-creation-service.js";
+import * as taskAutoInitService from "../services/task-agent/task-auto-initialization-service.js";
 import taskAnalysisPipeline from "../services/task-agent/task-analysis-pipeline.js";
 import autoGroupingEngine from "../services/task-agent/auto-grouping-engine.js";
 import parallelismCalculator from "../services/task-agent/parallelism-calculator.js";
@@ -61,8 +62,15 @@ router.use("/tasks", taskHistoryRouter); // /api/task-agent/tasks/:taskId/histor
  */
 router.post("/tasks", async (req: Request, res: Response) => {
   try {
-    const { title, description, projectId, category, targetTaskListId } =
-      req.body;
+    const {
+      title,
+      description,
+      projectId,
+      category,
+      targetTaskListId,
+      prdId,
+      requirementRef,
+    } = req.body;
 
     if (!title || typeof title !== "string") {
       return res.status(400).json({ error: "Title is required" });
@@ -89,7 +97,32 @@ router.post("/tasks", async (req: Request, res: Response) => {
       });
     }
 
-    // Run analysis pipeline asynchronously
+    // Auto-initialize task with effort, priority, file impacts, and acceptance criteria
+    // This runs SYNCHRONOUSLY so the data is available immediately in the response
+    let autoInitResult: taskAutoInitService.AutoInitResult | null = null;
+    try {
+      autoInitResult = await taskAutoInitService.initializeAndApply({
+        taskId: task.task.id,
+        title,
+        description,
+        category: category || "task",
+        projectId,
+        prdId,
+        requirementRef,
+      });
+      console.log(
+        `[task-agent] Auto-initialized task ${task.task.displayId}: ` +
+          `effort=${autoInitResult.effort}, priority=${autoInitResult.priority}, ` +
+          `files=${autoInitResult.fileImpacts.length}, AC=${autoInitResult.acceptanceCriteria.length}`,
+      );
+    } catch (err) {
+      console.warn(
+        "[task-agent] Auto-initialization failed, using defaults:",
+        err,
+      );
+    }
+
+    // Run analysis pipeline asynchronously (for relationships, duplicates, grouping)
     taskAnalysisPipeline.analyzeTask(task.task.id).catch(console.error);
 
     // Emit task_created event
@@ -99,7 +132,7 @@ router.post("/tasks", async (req: Request, res: Response) => {
         source: "task-agent",
         payload: {
           taskId: task.task.id,
-          displayId: task.task.display_id,
+          displayId: task.task.displayId,
           title: task.task.title,
           taskListId: targetTaskListId || null,
           inEvaluationQueue: !targetTaskListId,
@@ -109,7 +142,27 @@ router.post("/tasks", async (req: Request, res: Response) => {
       })
       .catch(console.error);
 
-    return res.status(201).json(task);
+    // Return enriched response with auto-initialized data
+    return res.status(201).json({
+      ...task,
+      task: {
+        ...task.task,
+        // Override with auto-calculated values if available
+        effort: autoInitResult?.effort || task.task.effort,
+        priority: autoInitResult?.priority || task.task.priority,
+        phase: autoInitResult?.phase || task.task.phase,
+      },
+      // Include auto-populated data for immediate display
+      autoPopulated: autoInitResult
+        ? {
+            fileImpacts: autoInitResult.fileImpacts,
+            acceptanceCriteria: autoInitResult.acceptanceCriteria,
+            effort: autoInitResult.effort,
+            priority: autoInitResult.priority,
+            phase: autoInitResult.phase,
+          }
+        : null,
+    });
   } catch (err) {
     console.error("[task-agent] Error creating task:", err);
     return res.status(500).json({
@@ -1178,6 +1231,38 @@ router.get("/tasks/:id/dependencies", async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Remove dependency between tasks
+ * DELETE /api/task-agent/dependencies
+ *
+ * Body: { sourceTaskId, targetTaskId, relationshipType? }
+ */
+router.delete("/dependencies", async (req: Request, res: Response) => {
+  try {
+    const { sourceTaskId, targetTaskId, relationshipType } = req.body;
+
+    if (!sourceTaskId || !targetTaskId) {
+      return res
+        .status(400)
+        .json({ error: "sourceTaskId and targetTaskId are required" });
+    }
+
+    // Use applyResolution which deletes the dependency
+    const success = await circularDependencyPrevention.applyResolution(
+      sourceTaskId,
+      targetTaskId,
+    );
+
+    return res.json({ success, removed: success });
+  } catch (err) {
+    console.error("[task-agent] Error removing dependency:", err);
+    return res.status(500).json({
+      error: "Failed to remove dependency",
+      message: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
 // =============================================================================
 // Task Lineage Endpoints (Decomposition Tracking)
 // =============================================================================
@@ -1434,6 +1519,207 @@ router.get(
       console.error("[task-agent] Error getting decomposition history:", err);
       return res.status(500).json({
         error: "Failed to get decomposition history",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * Search tasks for dependency dropdown
+ * GET /api/task-agent/tasks/search
+ *
+ * Query params:
+ * - q: search term (optional)
+ * - projectId: filter by project (optional)
+ * - excludeTaskId: exclude a specific task (optional)
+ * - limit: max results (default 20)
+ */
+router.get("/tasks/search", async (req: Request, res: Response) => {
+  try {
+    const q = (req.query.q as string) || "";
+    const projectId = req.query.projectId as string | undefined;
+    const excludeTaskId = req.query.excludeTaskId as string | undefined;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    let sql = `
+      SELECT id, display_id, title, status, category, project_id
+      FROM tasks
+      WHERE 1=1
+    `;
+    const params: (string | number)[] = [];
+
+    // Search by display_id or title
+    if (q) {
+      sql += ` AND (display_id LIKE ? OR title LIKE ?)`;
+      params.push(`%${q}%`, `%${q}%`);
+    }
+
+    // Filter by project
+    if (projectId) {
+      sql += ` AND project_id = ?`;
+      params.push(projectId);
+    }
+
+    // Exclude a specific task (the current task when adding dependency)
+    if (excludeTaskId) {
+      sql += ` AND id != ?`;
+      params.push(excludeTaskId);
+    }
+
+    // Only show actionable tasks
+    sql += ` AND status NOT IN ('cancelled', 'archived')`;
+
+    sql += ` ORDER BY updated_at DESC LIMIT ?`;
+    params.push(limit);
+
+    const tasks = await query<{
+      id: string;
+      display_id: string;
+      title: string;
+      status: string;
+      category: string;
+      project_id: string | null;
+    }>(sql, params);
+
+    return res.json(
+      tasks.map((t) => ({
+        id: t.id,
+        displayId: t.display_id,
+        title: t.title,
+        status: t.status,
+        category: t.category,
+        projectId: t.project_id,
+      })),
+    );
+  } catch (err) {
+    console.error("[task-agent] Error searching tasks:", err);
+    return res.status(500).json({
+      error: "Failed to search tasks",
+      message: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+// =============================================================================
+// Acceptance Criteria Generation Endpoints
+// =============================================================================
+
+import { acceptanceCriteriaGenerator } from "../services/task-agent/acceptance-criteria-generator.js";
+
+/**
+ * Generate acceptance criteria (questions or final criteria)
+ * POST /api/task-agent/tasks/:taskId/generate-acceptance-criteria
+ *
+ * Body:
+ * - phase: "questions" | "criteria"
+ * - prdId?: string
+ * - requirementRef?: string
+ * - adjacentTaskIds?: string[]
+ * - additionalContext?: string
+ * - questionAnswers?: Array<{ question: string; answer: string }> (for criteria phase)
+ */
+router.post(
+  "/tasks/:taskId/generate-acceptance-criteria",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskId } = req.params;
+      const {
+        phase,
+        prdId,
+        requirementRef,
+        adjacentTaskIds,
+        additionalContext,
+        questionAnswers,
+      } = req.body;
+
+      if (!phase || !["questions", "criteria"].includes(phase)) {
+        return res.status(400).json({
+          error: 'phase is required and must be "questions" or "criteria"',
+        });
+      }
+
+      const context = {
+        taskId,
+        prdId,
+        requirementRef,
+        adjacentTaskIds,
+        additionalContext,
+      };
+
+      if (phase === "questions") {
+        const questions =
+          await acceptanceCriteriaGenerator.generateQuestions(context);
+        return res.json({ questions });
+      } else {
+        // criteria phase
+        const answers = questionAnswers || [];
+        const criteria = await acceptanceCriteriaGenerator.generateCriteria(
+          context,
+          answers,
+        );
+        return res.json({ criteria });
+      }
+    } catch (err) {
+      console.error("[task-agent] Error generating acceptance criteria:", err);
+      return res.status(500).json({
+        error: "Failed to generate acceptance criteria",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+// =============================================================================
+// Dependency Suggestion Endpoints
+// =============================================================================
+
+import { dependencySuggester } from "../services/task-agent/dependency-suggester.js";
+
+/**
+ * Get dependency suggestions for a task
+ * GET /api/task-agent/tasks/:taskId/suggest-dependencies
+ */
+router.get(
+  "/tasks/:taskId/suggest-dependencies",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskId } = req.params;
+      const suggestions = await dependencySuggester.suggestDependencies(taskId);
+      return res.json({ suggestions });
+    } catch (err) {
+      console.error("[task-agent] Error getting dependency suggestions:", err);
+      return res.status(500).json({
+        error: "Failed to get dependency suggestions",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * Dismiss a dependency suggestion
+ * POST /api/task-agent/tasks/:taskId/dismiss-suggestion
+ *
+ * Body: { targetTaskId: string }
+ */
+router.post(
+  "/tasks/:taskId/dismiss-suggestion",
+  async (req: Request, res: Response) => {
+    try {
+      const { taskId } = req.params;
+      const { targetTaskId } = req.body;
+
+      if (!targetTaskId) {
+        return res.status(400).json({ error: "targetTaskId is required" });
+      }
+
+      await dependencySuggester.dismissSuggestion(taskId, targetTaskId);
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("[task-agent] Error dismissing suggestion:", err);
+      return res.status(500).json({
+        error: "Failed to dismiss suggestion",
         message: err instanceof Error ? err.message : "Unknown error",
       });
     }
