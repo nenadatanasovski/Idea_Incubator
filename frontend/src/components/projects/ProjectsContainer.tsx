@@ -52,6 +52,7 @@ export default function ProjectsContainer({
   const getActiveTab = (): ProjectTab => {
     const path = location.pathname;
     if (path.endsWith("/spec")) return "spec";
+    if (path.endsWith("/traceability")) return "traceability";
     if (path.endsWith("/build")) return "build";
     return "overview";
   };

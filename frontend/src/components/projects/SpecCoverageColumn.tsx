@@ -3,26 +3,31 @@
  *
  * Displays coverage status (covered/uncovered) with task count.
  * Clickable to show linked tasks popover.
+ *
+ * Accepts pre-fetched tasks prop to avoid N+1 API calls when used in tables.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, AlertTriangle, Loader2, X } from "lucide-react";
 import clsx from "clsx";
-import type { LinkedTask } from "../../../../types/traceability";
-
-const API_BASE = "http://localhost:3001";
+import type { LinkedTask } from "../../hooks/useTraceability";
 
 interface SpecCoverageColumnProps {
   prdId: string;
   sectionType: "success_criteria" | "constraints";
   itemIndex: number;
   projectSlug: string;
+  /** Pre-fetched tasks from parent - avoids individual API calls */
+  preloadedTasks?: LinkedTask[];
+  /** Loading state from parent */
+  isParentLoading?: boolean;
 }
 
 // Status color mapping
 const statusColors: Record<string, { bg: string; text: string }> = {
   completed: { bg: "bg-green-100", text: "text-green-700" },
+  complete: { bg: "bg-green-100", text: "text-green-700" },
   in_progress: { bg: "bg-blue-100", text: "text-blue-700" },
   pending: { bg: "bg-gray-100", text: "text-gray-700" },
   failed: { bg: "bg-red-100", text: "text-red-700" },
@@ -30,43 +35,17 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 };
 
 export default function SpecCoverageColumn({
-  prdId,
-  sectionType,
-  itemIndex,
   projectSlug,
+  preloadedTasks,
+  isParentLoading = false,
 }: SpecCoverageColumnProps) {
-  const [tasks, setTasks] = useState<LinkedTask[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showPopover, setShowPopover] = useState(false);
 
-  // Build the requirement ref in the format "success_criteria[0]" or "constraints[2]"
-  const requirementRef = `${sectionType}[${itemIndex}]`;
-
-  useEffect(() => {
-    const fetchLinkedTasks = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(
-          `${API_BASE}/api/prds/${prdId}/requirement-tasks?ref=${encodeURIComponent(requirementRef)}`,
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setTasks(data.tasks || []);
-        }
-      } catch {
-        // Silently fail - show as uncovered
-        setTasks([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLinkedTasks();
-  }, [prdId, requirementRef]);
-
+  // Use pre-fetched tasks if available
+  const tasks = preloadedTasks || [];
   const isCovered = tasks.length > 0;
 
-  if (isLoading) {
+  if (isParentLoading) {
     return (
       <td className="py-2 w-24 text-center">
         <Loader2 className="h-3 w-3 animate-spin text-gray-400 inline" />

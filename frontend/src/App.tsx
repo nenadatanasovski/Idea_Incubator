@@ -129,6 +129,7 @@ function App() {
           <Route path="agents" element={<AgentsTab />} />
           <Route path="agents/:agentId" element={<AgentDetailPage />} />
           <Route path="analytics" element={<AnalyticsTab />} />
+          <Route path="platform-events" element={<AllEventsViewer />} />
         </Route>
         <Route path="/pipeline" element={<PipelineDashboard />} />
         <Route path="/pipeline/conflicts" element={<PipelineDashboard />} />

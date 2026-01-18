@@ -5,8 +5,7 @@
  * Displays overall coverage summary and gap/orphan warnings.
  */
 
-import { useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   FileText,
@@ -21,9 +20,13 @@ import {
   useTraceability,
   useCoverageGaps,
   useOrphanTasks,
+  useTraceabilityHierarchy,
 } from "../../hooks/useTraceability";
+import { useTraceabilityGaps } from "../../hooks/useTraceabilityGaps";
 import SpecSectionCard from "./SpecSectionCard";
-import LinkedTaskChip from "./LinkedTaskChip";
+import TraceabilityGapPanel from "./TraceabilityGapPanel";
+import TraceabilityHierarchy from "./TraceabilityHierarchy";
+import OrphanTaskPanel from "./OrphanTaskPanel";
 import type { ProjectWithStats } from "../../../../types/project";
 
 interface OutletContext {
@@ -42,7 +45,32 @@ export default function TraceabilityView() {
   const { orphanTasks } = useOrphanTasks({ projectId });
   const { gaps } = useCoverageGaps({ projectId });
 
-  const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  // AI Gap Analysis
+  const {
+    gaps: aiGaps,
+    counts: gapCounts,
+    isAnalyzing,
+    runAnalysis,
+    getSuggestions,
+    resolveGap,
+    ignoreGap,
+    refetch: refetchGaps,
+  } = useTraceabilityGaps(projectId);
+
+  // Hierarchical view
+  const { hierarchy } = useTraceabilityHierarchy({ projectId });
+
+  // URL-based state for tab persistence
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedSection = searchParams.get("section");
+
+  const handleSectionSelect = (sectionType: string) => {
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set("section", sectionType);
+      return newParams;
+    });
+  };
 
   // Loading state
   if (isLoading) {
@@ -94,17 +122,106 @@ export default function TraceabilityView() {
 
   return (
     <div className="space-y-6">
-      {/* Coverage summary header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              Requirement Traceability
-            </h2>
-            <p className="text-sm text-gray-500">
-              PRD: {traceability.prdTitle}
-            </p>
+      {/* Coverage summary header - inline stats */}
+      <div className="bg-white rounded-lg border border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Requirement Traceability
+              </h2>
+              <p className="text-sm text-gray-500">
+                PRD: {traceability.prdTitle}
+              </p>
+            </div>
+
+            {/* Inline stats */}
+            <div className="flex items-center gap-6 pl-6 border-l border-gray-200">
+              {/* Overall coverage */}
+              <div className="flex items-center gap-2">
+                <div
+                  className={clsx(
+                    "h-2.5 w-2.5 rounded-full",
+                    traceability.overallCoverage === 100
+                      ? "bg-green-500"
+                      : traceability.overallCoverage >= 50
+                        ? "bg-amber-500"
+                        : "bg-red-500",
+                  )}
+                />
+                <span className="text-xs text-gray-500">Overall Coverage</span>
+                <span className="text-sm font-bold text-gray-900">
+                  {traceability.overallCoverage}%
+                </span>
+              </div>
+
+              {/* Requirements covered */}
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                <span className="text-xs text-gray-500">Covered</span>
+                <span className="text-sm font-bold text-gray-900">
+                  {traceability.sections.reduce(
+                    (sum, s) => sum + s.coveredItems,
+                    0,
+                  )}
+                  <span className="font-normal text-gray-400">
+                    /
+                    {traceability.sections.reduce(
+                      (sum, s) => sum + s.totalItems,
+                      0,
+                    )}
+                  </span>
+                </span>
+              </div>
+
+              {/* Coverage gaps */}
+              <div className="flex items-center gap-2">
+                <AlertTriangle
+                  className={clsx(
+                    "h-3.5 w-3.5",
+                    traceability.gapCount > 0
+                      ? "text-amber-500"
+                      : "text-gray-400",
+                  )}
+                />
+                <span className="text-xs text-gray-500">Gaps</span>
+                <span
+                  className={clsx(
+                    "text-sm font-bold",
+                    traceability.gapCount > 0
+                      ? "text-amber-600"
+                      : "text-gray-900",
+                  )}
+                >
+                  {traceability.gapCount}
+                </span>
+              </div>
+
+              {/* Orphan tasks */}
+              <div className="flex items-center gap-2">
+                <Link2Off
+                  className={clsx(
+                    "h-3.5 w-3.5",
+                    traceability.orphanTaskCount > 0
+                      ? "text-amber-500"
+                      : "text-gray-400",
+                  )}
+                />
+                <span className="text-xs text-gray-500">Orphan Tasks</span>
+                <span
+                  className={clsx(
+                    "text-sm font-bold",
+                    traceability.orphanTaskCount > 0
+                      ? "text-amber-600"
+                      : "text-gray-900",
+                  )}
+                >
+                  {traceability.orphanTaskCount}
+                </span>
+              </div>
+            </div>
           </div>
+
           <button
             onClick={refetch}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -113,104 +230,31 @@ export default function TraceabilityView() {
             <RefreshCw className="h-5 w-5" />
           </button>
         </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-4 gap-4">
-          {/* Overall coverage */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div
-                className={clsx(
-                  "h-3 w-3 rounded-full",
-                  traceability.overallCoverage === 100
-                    ? "bg-green-500"
-                    : traceability.overallCoverage >= 50
-                      ? "bg-amber-500"
-                      : "bg-red-500",
-                )}
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Overall Coverage
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">
-              {traceability.overallCoverage}%
-            </p>
-          </div>
-
-          {/* Requirements covered */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span className="text-sm font-medium text-gray-700">Covered</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">
-              {traceability.sections.reduce(
-                (sum, s) => sum + s.coveredItems,
-                0,
-              )}
-              <span className="text-sm font-normal text-gray-500">
-                {" "}
-                /{" "}
-                {traceability.sections.reduce(
-                  (sum, s) => sum + s.totalItems,
-                  0,
-                )}
-              </span>
-            </p>
-          </div>
-
-          {/* Coverage gaps */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle
-                className={clsx(
-                  "h-4 w-4",
-                  traceability.gapCount > 0
-                    ? "text-amber-500"
-                    : "text-gray-400",
-                )}
-              />
-              <span className="text-sm font-medium text-gray-700">Gaps</span>
-            </div>
-            <p
-              className={clsx(
-                "text-2xl font-bold",
-                traceability.gapCount > 0 ? "text-amber-600" : "text-gray-900",
-              )}
-            >
-              {traceability.gapCount}
-            </p>
-          </div>
-
-          {/* Orphan tasks */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Link2Off
-                className={clsx(
-                  "h-4 w-4",
-                  traceability.orphanTaskCount > 0
-                    ? "text-amber-500"
-                    : "text-gray-400",
-                )}
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Orphan Tasks
-              </span>
-            </div>
-            <p
-              className={clsx(
-                "text-2xl font-bold",
-                traceability.orphanTaskCount > 0
-                  ? "text-amber-600"
-                  : "text-gray-900",
-              )}
-            >
-              {traceability.orphanTaskCount}
-            </p>
-          </div>
-        </div>
       </div>
+
+      {/* AI Gap Analysis Panel */}
+      <TraceabilityGapPanel
+        gaps={aiGaps}
+        counts={gapCounts}
+        isAnalyzing={isAnalyzing}
+        onAnalyze={runAnalysis}
+        onGetSuggestions={getSuggestions}
+        onResolve={async (gapId) => {
+          await resolveGap(gapId);
+          refetch();
+        }}
+        onIgnore={ignoreGap}
+        onRefetch={refetchGaps}
+      />
+
+      {/* Hierarchical View */}
+      {hierarchy && (
+        <TraceabilityHierarchy
+          hierarchy={hierarchy}
+          projectSlug={projectSlug}
+          defaultExpanded={["section-success_criteria", "section-constraints"]}
+        />
+      )}
 
       {/* Two-panel layout */}
       <div className="grid grid-cols-3 gap-6">
@@ -222,7 +266,7 @@ export default function TraceabilityView() {
           {traceability.sections.map((section) => (
             <button
               key={section.sectionType}
-              onClick={() => setSelectedSection(section.sectionType)}
+              onClick={() => handleSectionSelect(section.sectionType)}
               className={clsx(
                 "w-full text-left p-4 rounded-lg border transition-colors",
                 selectedSection === section.sectionType
@@ -266,42 +310,14 @@ export default function TraceabilityView() {
             </button>
           ))}
 
-          {/* Orphan tasks section */}
-          {orphanTasks.length > 0 && (
-            <div className="border border-amber-200 bg-amber-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Link2Off className="h-4 w-4 text-amber-600" />
-                <span className="font-medium text-amber-800">
-                  Orphan Tasks ({orphanTasks.length})
-                </span>
-              </div>
-              <p className="text-xs text-amber-700 mb-3">
-                These tasks are not linked to any PRD requirement.
-              </p>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {orphanTasks.slice(0, 5).map((task) => (
-                  <LinkedTaskChip
-                    key={task.id}
-                    task={{
-                      id: task.id,
-                      displayId: task.displayId,
-                      title: task.title,
-                      status: task.status,
-                      linkType: "related",
-                    }}
-                    projectSlug={projectSlug}
-                    showLinkType={false}
-                    size="sm"
-                  />
-                ))}
-                {orphanTasks.length > 5 && (
-                  <p className="text-xs text-amber-600">
-                    +{orphanTasks.length - 5} more
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Enhanced Orphan Task Panel with AI suggestions */}
+          <OrphanTaskPanel
+            orphanTasks={orphanTasks}
+            projectId={projectId}
+            projectSlug={projectSlug}
+            onLinkApplied={refetch}
+            onTaskDismissed={refetch}
+          />
         </div>
 
         {/* Right panel - Selected section details */}

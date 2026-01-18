@@ -25,7 +25,11 @@ import clsx from "clsx";
 import type { ProjectWithStats } from "../../../../types/project";
 import SpecCoverageColumn from "./SpecCoverageColumn";
 import AISyncButton from "./AISyncButton";
-import { useCoverageStats } from "../../hooks/useTraceability";
+import {
+  useCoverageStats,
+  usePrdCoverage,
+  type LinkedTask,
+} from "../../hooks/useTraceability";
 
 const API_BASE = "http://localhost:3001";
 
@@ -53,6 +57,161 @@ interface PRD {
   readinessScore?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Helper component that fetches coverage data for a PRD and provides
+ * it to SpecCoverageColumn children to avoid N+1 API calls.
+ */
+interface PRDCriteriaSectionProps {
+  prdId: string;
+  projectSlug: string;
+  successCriteria: Array<{ criterion: string; metric: string; target: string }>;
+  constraints: string[];
+  coverageStats: { overallCoverage: number; totalRequirements: number } | null;
+  onSyncSuccess: (data: unknown) => void;
+}
+
+function PRDCriteriaSection({
+  prdId,
+  projectSlug,
+  successCriteria,
+  constraints,
+  coverageStats,
+  onSyncSuccess,
+}: PRDCriteriaSectionProps) {
+  // Fetch all coverage data for this PRD in a single request
+  const { linksByRef, isLoading: isCoverageLoading } = usePrdCoverage(prdId);
+
+  // Helper to get tasks for a specific requirement
+  const getTasksForRef = (ref: string): LinkedTask[] => {
+    return linksByRef.get(ref) || [];
+  };
+
+  return (
+    <>
+      {/* Success Criteria */}
+      {successCriteria && successCriteria.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Target className="h-4 w-4 text-purple-500" />
+              Success Criteria
+            </div>
+            <div className="flex items-center gap-2">
+              <AISyncButton
+                endpoint="/api/ai/sync-spec-section"
+                payload={{
+                  prdId: prdId,
+                  sectionType: "success_criteria",
+                }}
+                buttonText="Sync from Tasks"
+                confirmText="This will use AI to suggest updates to success criteria based on task progress. Continue?"
+                onSuccess={onSyncSuccess}
+              />
+              {coverageStats && coverageStats.totalRequirements > 0 && (
+                <span
+                  className={clsx(
+                    "text-xs font-medium px-2 py-0.5 rounded",
+                    coverageStats.overallCoverage === 100
+                      ? "bg-green-100 text-green-700"
+                      : coverageStats.overallCoverage >= 50
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-red-100 text-red-700",
+                  )}
+                >
+                  {coverageStats.overallCoverage}% covered
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500">
+                  <th className="pb-2">Criterion</th>
+                  <th className="pb-2">Metric</th>
+                  <th className="pb-2">Target</th>
+                  <th className="pb-2 w-24 text-center">Coverage</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                {successCriteria.map((sc, idx) => (
+                  <tr key={idx} className="border-t border-gray-200">
+                    <td className="py-2">{sc.criterion}</td>
+                    <td className="py-2">{sc.metric}</td>
+                    <td className="py-2 font-medium text-green-600">
+                      {sc.target}
+                    </td>
+                    <SpecCoverageColumn
+                      prdId={prdId}
+                      sectionType="success_criteria"
+                      itemIndex={idx}
+                      projectSlug={projectSlug}
+                      preloadedTasks={getTasksForRef(
+                        `success_criteria[${idx}]`,
+                      )}
+                      isParentLoading={isCoverageLoading}
+                    />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Constraints */}
+      {constraints && constraints.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <List className="h-4 w-4 text-orange-500" />
+              Constraints
+            </div>
+            <AISyncButton
+              endpoint="/api/ai/sync-spec-section"
+              payload={{
+                prdId: prdId,
+                sectionType: "constraints",
+              }}
+              buttonText="Sync from Tasks"
+              confirmText="This will use AI to suggest updates to constraints based on task progress. Continue?"
+              onSuccess={onSyncSuccess}
+            />
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500">
+                  <th className="pb-2">Constraint</th>
+                  <th className="pb-2 w-24 text-center">Coverage</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                {constraints.map((c, idx) => (
+                  <tr key={idx} className="border-t border-gray-200">
+                    <td className="py-2">
+                      <span className="text-orange-500 mr-2">•</span>
+                      {c}
+                    </td>
+                    <SpecCoverageColumn
+                      prdId={prdId}
+                      sectionType="constraints"
+                      itemIndex={idx}
+                      projectSlug={projectSlug}
+                      preloadedTasks={getTasksForRef(`constraints[${idx}]`)}
+                      isParentLoading={isCoverageLoading}
+                    />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 const statusConfig: Record<
@@ -302,144 +461,18 @@ export default function ProjectSpec() {
                     </div>
                   )}
 
-                  {/* Success Criteria */}
-                  {prd.successCriteria && prd.successCriteria.length > 0 && (
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                          <Target className="h-4 w-4 text-purple-500" />
-                          Success Criteria
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <AISyncButton
-                            endpoint="/api/ai/sync-spec-section"
-                            payload={{
-                              prdId: prd.id,
-                              sectionType: "success_criteria",
-                            }}
-                            buttonText="Sync from Tasks"
-                            confirmText="This will use AI to suggest updates to success criteria based on task progress. Continue?"
-                            onSuccess={(data) => {
-                              console.log("AI sync result:", data);
-                              // In a real implementation, show a diff modal
-                              alert(
-                                `AI Suggestion:\n${JSON.stringify(data, null, 2)}`,
-                              );
-                            }}
-                          />
-                          {coverageStats &&
-                            coverageStats.totalRequirements > 0 && (
-                              <span
-                                className={clsx(
-                                  "text-xs font-medium px-2 py-0.5 rounded",
-                                  coverageStats.overallCoverage === 100
-                                    ? "bg-green-100 text-green-700"
-                                    : coverageStats.overallCoverage >= 50
-                                      ? "bg-amber-100 text-amber-700"
-                                      : "bg-red-100 text-red-700",
-                                )}
-                              >
-                                {coverageStats.overallCoverage}% covered
-                              </span>
-                            )}
-                        </div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="text-left text-gray-500">
-                              <th className="pb-2">Criterion</th>
-                              <th className="pb-2">Metric</th>
-                              <th className="pb-2">Target</th>
-                              <th className="pb-2 w-24 text-center">
-                                Coverage
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="text-gray-600">
-                            {prd.successCriteria.map((sc, idx) => (
-                              <tr
-                                key={idx}
-                                className="border-t border-gray-200"
-                              >
-                                <td className="py-2">{sc.criterion}</td>
-                                <td className="py-2">{sc.metric}</td>
-                                <td className="py-2 font-medium text-green-600">
-                                  {sc.target}
-                                </td>
-                                <SpecCoverageColumn
-                                  prdId={prd.id}
-                                  sectionType="success_criteria"
-                                  itemIndex={idx}
-                                  projectSlug={project.slug}
-                                />
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Constraints */}
-                  {prd.constraints && prd.constraints.length > 0 && (
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                          <List className="h-4 w-4 text-orange-500" />
-                          Constraints
-                        </div>
-                        <AISyncButton
-                          endpoint="/api/ai/sync-spec-section"
-                          payload={{
-                            prdId: prd.id,
-                            sectionType: "constraints",
-                          }}
-                          buttonText="Sync from Tasks"
-                          confirmText="This will use AI to suggest updates to constraints based on task progress. Continue?"
-                          onSuccess={(data) => {
-                            console.log("AI sync result:", data);
-                            alert(
-                              `AI Suggestion:\n${JSON.stringify(data, null, 2)}`,
-                            );
-                          }}
-                        />
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="text-left text-gray-500">
-                              <th className="pb-2">Constraint</th>
-                              <th className="pb-2 w-24 text-center">
-                                Coverage
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="text-gray-600">
-                            {prd.constraints.map((c, idx) => (
-                              <tr
-                                key={idx}
-                                className="border-t border-gray-200"
-                              >
-                                <td className="py-2">
-                                  <span className="text-orange-500 mr-2">
-                                    •
-                                  </span>
-                                  {c}
-                                </td>
-                                <SpecCoverageColumn
-                                  prdId={prd.id}
-                                  sectionType="constraints"
-                                  itemIndex={idx}
-                                  projectSlug={project.slug}
-                                />
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
+                  {/* Success Criteria & Constraints - batched coverage fetching */}
+                  <PRDCriteriaSection
+                    prdId={prd.id}
+                    projectSlug={project.slug}
+                    successCriteria={prd.successCriteria || []}
+                    constraints={prd.constraints || []}
+                    coverageStats={coverageStats}
+                    onSyncSuccess={(data) => {
+                      console.log("AI sync result:", data);
+                      alert(`AI Suggestion:\n${JSON.stringify(data, null, 2)}`);
+                    }}
+                  />
 
                   {/* Out of Scope */}
                   {prd.outOfScope && prd.outOfScope.length > 0 && (

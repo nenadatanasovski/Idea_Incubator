@@ -63,6 +63,52 @@ export interface ProjectTraceability {
 }
 
 // ============================================
+// Hierarchy Types (for tree view)
+// ============================================
+
+/**
+ * Metadata for hierarchy nodes
+ */
+export interface HierarchyNodeMetadata {
+  taskCount?: number;
+  coveredCount?: number;
+  displayId?: string;
+  taskListId?: string;
+  requirementRef?: string;
+}
+
+/**
+ * Hierarchical node for traceability tree view
+ */
+export interface HierarchyNode {
+  id: string;
+  type: "prd" | "section" | "requirement" | "task_list" | "task";
+  label: string;
+  status?: TaskStatus;
+  coverage?: number;
+  isCovered?: boolean;
+  linkType?: TraceabilityLinkType;
+  children: HierarchyNode[];
+  metadata?: HierarchyNodeMetadata;
+}
+
+/**
+ * Complete hierarchical traceability view
+ */
+export interface TraceabilityHierarchy {
+  projectId: string;
+  prdId: string;
+  prdTitle: string;
+  root: HierarchyNode;
+  stats: {
+    totalRequirements: number;
+    coveredRequirements: number;
+    totalTasks: number;
+    orphanTasks: number;
+  };
+}
+
+// ============================================
 // Orphan & Gap Types
 // ============================================
 

@@ -10,30 +10,30 @@
  * - Export functionality
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Search,
   ChevronDown,
-  ChevronRight,
+  ChevronUp,
   AlertCircle,
   Info,
   AlertTriangle,
   XCircle,
   Download,
-  X,
-  Pause,
-  Play,
   RefreshCw,
   Wifi,
   WifiOff,
+  Filter,
+  Loader2,
+  Zap,
 } from "lucide-react";
+import clsx from "clsx";
 import {
   useEvents,
   useEventStream,
   useEventStats,
 } from "../../hooks/useEvents";
 import type {
-  PlatformEvent,
   EventFilters,
   EventSeverity,
   EventSource,
@@ -43,8 +43,6 @@ interface AllEventsViewerProps {
   projectId?: string;
   taskId?: string;
   executionId?: string;
-  autoScroll?: boolean;
-  maxHeight?: number;
 }
 
 const severityIcons: Record<EventSeverity, typeof Info> = {
@@ -55,29 +53,22 @@ const severityIcons: Record<EventSeverity, typeof Info> = {
 };
 
 const severityColors: Record<EventSeverity, string> = {
-  info: "text-blue-400",
-  warning: "text-yellow-400",
-  error: "text-red-400",
-  critical: "text-red-600",
-};
-
-const severityBgColors: Record<EventSeverity, string> = {
-  info: "bg-blue-900/20",
-  warning: "bg-yellow-900/20",
-  error: "bg-red-900/20",
-  critical: "bg-red-900/40",
+  info: "bg-blue-100 text-blue-800",
+  warning: "bg-yellow-100 text-yellow-800",
+  error: "bg-red-100 text-red-800",
+  critical: "bg-red-200 text-red-900",
 };
 
 const sourceColors: Record<string, string> = {
-  "task-agent": "text-purple-400",
-  pipeline: "text-green-400",
-  api: "text-blue-400",
-  system: "text-gray-400",
-  ideation: "text-orange-400",
-  "build-agent": "text-cyan-400",
-  websocket: "text-pink-400",
-  telegram: "text-sky-400",
-  monitoring: "text-indigo-400",
+  "task-agent": "bg-purple-100 text-purple-800",
+  pipeline: "bg-green-100 text-green-800",
+  api: "bg-blue-100 text-blue-800",
+  system: "bg-gray-100 text-gray-800",
+  ideation: "bg-orange-100 text-orange-800",
+  "build-agent": "bg-cyan-100 text-cyan-800",
+  websocket: "bg-pink-100 text-pink-800",
+  telegram: "bg-sky-100 text-sky-800",
+  monitoring: "bg-indigo-100 text-indigo-800",
 };
 
 const allSeverities: EventSeverity[] = ["info", "warning", "error", "critical"];
@@ -97,18 +88,26 @@ export default function AllEventsViewer({
   projectId,
   taskId,
   executionId,
-  autoScroll = true,
-  maxHeight = 600,
 }: AllEventsViewerProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState<EventSeverity[]>([]);
   const [sourceFilter, setSourceFilter] = useState<EventSource[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [isPaused, setIsPaused] = useState(false);
   const [showRealtime, setShowRealtime] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const shouldScrollRef = useRef(autoScroll);
+
+  // Toggle functions for tag filters
+  const toggleSeverity = (sev: EventSeverity) => {
+    setSeverityFilter((prev) =>
+      prev.includes(sev) ? prev.filter((s) => s !== sev) : [...prev, sev],
+    );
+  };
+
+  const toggleSource = (src: EventSource) => {
+    setSourceFilter((prev) =>
+      prev.includes(src) ? prev.filter((s) => s !== src) : [...prev, src],
+    );
+  };
 
   // Debounce search input
   useEffect(() => {
@@ -149,18 +148,14 @@ export default function AllEventsViewer({
   } = useEvents(filters);
 
   // Real-time stream
-  const {
-    events: streamEvents,
-    isConnected,
-    clearEvents: clearStreamEvents,
-  } = useEventStream();
+  const { events: streamEvents, isConnected } = useEventStream();
 
   // Get stats
   const { stats } = useEventStats(executionId);
 
   // Combine and filter events
   const allEvents = useMemo(() => {
-    if (!showRealtime || isPaused) {
+    if (!showRealtime) {
       return historicalEvents;
     }
 
@@ -188,15 +183,20 @@ export default function AllEventsViewer({
       return true;
     });
 
-    // Merge with historical, avoiding duplicates
-    const combined = [...filteredStreamEvents];
-    historicalEvents.forEach((hist) => {
-      if (!combined.some((e) => e.id === hist.id)) {
-        combined.push(hist);
-      }
+    // Merge with historical, avoiding duplicates using a Map for O(1) lookup
+    const eventMap = new Map<string, (typeof historicalEvents)[0]>();
+
+    // Add historical events first
+    historicalEvents.forEach((event) => {
+      eventMap.set(event.id, event);
     });
 
-    return combined.sort(
+    // Add/overwrite with stream events (they're more recent)
+    filteredStreamEvents.forEach((event) => {
+      eventMap.set(event.id, event);
+    });
+
+    return Array.from(eventMap.values()).sort(
       (a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
@@ -204,18 +204,10 @@ export default function AllEventsViewer({
     historicalEvents,
     streamEvents,
     showRealtime,
-    isPaused,
     severityFilter,
     sourceFilter,
     debouncedSearch,
   ]);
-
-  // Auto-scroll
-  useEffect(() => {
-    if (shouldScrollRef.current && containerRef.current && !isPaused) {
-      containerRef.current.scrollTop = 0;
-    }
-  }, [allEvents, isPaused]);
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedIds((prev) => {
@@ -227,29 +219,6 @@ export default function AllEventsViewer({
       }
       return next;
     });
-  }, []);
-
-  const toggleSeverity = useCallback((severity: EventSeverity) => {
-    setSeverityFilter((prev) =>
-      prev.includes(severity)
-        ? prev.filter((s) => s !== severity)
-        : [...prev, severity],
-    );
-  }, []);
-
-  const toggleSource = useCallback((source: EventSource) => {
-    setSourceFilter((prev) =>
-      prev.includes(source)
-        ? prev.filter((s) => s !== source)
-        : [...prev, source],
-    );
-  }, []);
-
-  const clearFilters = useCallback(() => {
-    setSearch("");
-    setDebouncedSearch("");
-    setSeverityFilter([]);
-    setSourceFilter([]);
   }, []);
 
   const exportEvents = useCallback(() => {
@@ -269,326 +238,376 @@ export default function AllEventsViewer({
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
-      fractionalSecondDigits: 3,
     });
   };
 
-  const formatEventType = (eventType: string) => {
-    return eventType
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (l) => l.toUpperCase());
-  };
+  if (loading && allEvents.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-gray-900 rounded-lg border border-gray-800">
-      {/* Header with stats */}
-      <div className="p-4 border-b border-gray-800">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold text-white">
+    <div className="flex flex-col h-full p-6">
+      {/* Header with inline stats */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <div>
+            <h2 className="text-lg font-medium text-gray-900">
               Platform Events
-            </h3>
-            <span className="text-sm text-gray-400">
-              {allEvents.length} of {total} events
-            </span>
-            {isConnected ? (
-              <span className="flex items-center gap-1 text-xs text-green-400">
-                <Wifi className="w-3 h-3" />
-                Live
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-xs text-red-400">
-                <WifiOff className="w-3 h-3" />
-                Disconnected
-              </span>
-            )}
+            </h2>
+            <p className="text-sm text-gray-500">
+              View all platform-wide events with real-time streaming
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowRealtime(!showRealtime)}
-              className={`p-2 rounded ${
-                showRealtime
-                  ? "bg-green-900/30 text-green-400"
-                  : "bg-gray-800 text-gray-400"
-              }`}
-              title={showRealtime ? "Disable real-time" : "Enable real-time"}
-            >
-              {showRealtime ? (
-                <Wifi className="w-4 h-4" />
-              ) : (
-                <WifiOff className="w-4 h-4" />
-              )}
-            </button>
-            <button
-              onClick={() => setIsPaused(!isPaused)}
-              className={`p-2 rounded ${
-                isPaused
-                  ? "bg-yellow-900/30 text-yellow-400"
-                  : "bg-gray-800 text-gray-400"
-              }`}
-              title={isPaused ? "Resume" : "Pause"}
-            >
-              {isPaused ? (
-                <Play className="w-4 h-4" />
-              ) : (
-                <Pause className="w-4 h-4" />
-              )}
-            </button>
-            <button
-              onClick={refresh}
-              className="p-2 rounded bg-gray-800 text-gray-400 hover:text-white"
-              title="Refresh"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-            <button
-              onClick={exportEvents}
-              className="p-2 rounded bg-gray-800 text-gray-400 hover:text-white"
-              title="Export JSON"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Search and filters */}
-        <div className="space-y-3">
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          {/* Inline stats */}
+          {stats && (
+            <div className="flex items-center gap-4 ml-4 pl-4 border-l border-gray-200">
+              <div className="text-center">
+                <div className="text-xl font-semibold text-gray-900">
+                  {stats.total}
+                </div>
+                <div className="text-xs text-gray-500">Total</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-semibold text-blue-600">
+                  {stats.bySeverity.info || 0}
+                </div>
+                <div className="text-xs text-gray-500">Info</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-semibold text-yellow-600">
+                  {stats.bySeverity.warning || 0}
+                </div>
+                <div className="text-xs text-gray-500">Warnings</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-semibold text-red-600">
+                  {(stats.bySeverity.error || 0) +
+                    (stats.bySeverity.critical || 0)}
+                </div>
+                <div className="text-xs text-gray-500">Errors</div>
+              </div>
+            </div>
+          )}
+          {/* Search */}
+          <div className="relative ml-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search events..."
-              className="w-full pl-10 pr-10 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              className="pl-9 pr-4 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48"
             />
-            {search && (
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 mr-2">
+            {allEvents.length}/{total}
+          </span>
+          {isConnected ? (
+            <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+              <Wifi className="w-3 h-3" />
+              Live
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+              <WifiOff className="w-3 h-3" />
+              Disconnected
+            </span>
+          )}
+          <button
+            onClick={() => setShowRealtime(!showRealtime)}
+            className={clsx(
+              "px-3 py-1.5 text-sm border rounded-md flex items-center gap-2",
+              showRealtime
+                ? "bg-green-50 border-green-300 text-green-700"
+                : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50",
+            )}
+          >
+            {showRealtime ? (
+              <Wifi className="h-4 w-4" />
+            ) : (
+              <WifiOff className="h-4 w-4" />
+            )}
+            {showRealtime ? "Live" : "Paused"}
+          </button>
+          <button
+            onClick={refresh}
+            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </button>
+          <button
+            onClick={exportEvents}
+            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="bg-white rounded-lg shadow flex flex-col flex-1 min-h-0 overflow-hidden">
+        {/* Filters */}
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 space-y-2">
+          {/* Severity tags */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
+              <Filter className="h-3 w-3" />
+              Severity:
+            </span>
+            {allSeverities.map((sev) => {
+              const isSelected = severityFilter.includes(sev);
+              const SevIcon = severityIcons[sev];
+              return (
+                <button
+                  key={sev}
+                  onClick={() => toggleSeverity(sev)}
+                  className={clsx(
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                    isSelected
+                      ? severityColors[sev]
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200",
+                  )}
+                >
+                  <SevIcon className="h-3 w-3" />
+                  {sev.charAt(0).toUpperCase() + sev.slice(1)}
+                </button>
+              );
+            })}
+            {severityFilter.length > 0 && (
               <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                onClick={() => setSeverityFilter([])}
+                className="text-xs text-gray-400 hover:text-gray-600 ml-1"
               >
-                <X className="w-4 h-4" />
+                Clear
               </button>
             )}
           </div>
 
-          {/* Severity filters */}
-          <div className="flex flex-wrap gap-2">
-            <span className="text-xs text-gray-500 mr-2">Severity:</span>
-            {allSeverities.map((severity) => {
-              const Icon = severityIcons[severity];
-              const isActive = severityFilter.includes(severity);
+          {/* Source tags */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-500 font-medium">Source:</span>
+            {allSources.map((src) => {
+              const isSelected = sourceFilter.includes(src);
               return (
                 <button
-                  key={severity}
-                  onClick={() => toggleSeverity(severity)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
-                    isActive
-                      ? `${severityBgColors[severity]} ${severityColors[severity]}`
-                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                  }`}
-                >
-                  <Icon className="w-3 h-3" />
-                  {severity}
-                  {stats?.bySeverity[severity] !== undefined && (
-                    <span className="ml-1 opacity-60">
-                      ({stats.bySeverity[severity]})
-                    </span>
+                  key={src}
+                  onClick={() => toggleSource(src)}
+                  className={clsx(
+                    "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                    isSelected
+                      ? sourceColors[src] || "bg-gray-200 text-gray-800"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200",
                   )}
+                >
+                  {src}
                 </button>
               );
             })}
-          </div>
-
-          {/* Source filters */}
-          <div className="flex flex-wrap gap-2">
-            <span className="text-xs text-gray-500 mr-2">Source:</span>
-            {allSources.map((source) => {
-              const isActive = sourceFilter.includes(source);
-              return (
-                <button
-                  key={source}
-                  onClick={() => toggleSource(source)}
-                  className={`px-2 py-1 rounded text-xs ${
-                    isActive
-                      ? `bg-gray-700 ${sourceColors[source] || "text-gray-400"}`
-                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                  }`}
-                >
-                  {source}
-                  {stats?.bySource[source] !== undefined && (
-                    <span className="ml-1 opacity-60">
-                      ({stats.bySource[source]})
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Active filters indicator */}
-          {(severityFilter.length > 0 ||
-            sourceFilter.length > 0 ||
-            debouncedSearch) && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Active filters:</span>
+            {sourceFilter.length > 0 && (
               <button
-                onClick={clearFilters}
-                className="text-xs text-blue-400 hover:text-blue-300"
+                onClick={() => setSourceFilter([])}
+                className="text-xs text-gray-400 hover:text-gray-600 ml-1"
               >
-                Clear all
+                Clear
               </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Event list */}
-      <div ref={containerRef} className="overflow-y-auto" style={{ maxHeight }}>
-        {loading && allEvents.length === 0 ? (
-          <div className="flex items-center justify-center py-8 text-gray-500">
-            Loading events...
+            )}
           </div>
-        ) : allEvents.length === 0 ? (
-          <div className="flex items-center justify-center py-8 text-gray-500">
-            No events found
+        </div>
+
+        {/* Table */}
+        {allEvents.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-8">
+            <Zap className="h-12 w-12 mb-3 text-gray-300" />
+            <p>No events found</p>
+            <p className="text-xs mt-1 text-gray-400">
+              Events will appear here as they occur
+            </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-800">
-            {allEvents.map((event) => {
-              const Icon = severityIcons[event.severity];
-              const isExpanded = expandedIds.has(event.id);
+          <div className="overflow-auto flex-1">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Time
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Source
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Severity
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Details
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {allEvents.map((event) => {
+                  const isExpanded = expandedIds.has(event.id);
+                  const SeverityIcon = severityIcons[event.severity];
 
-              return (
-                <div
-                  key={event.id}
-                  className={`${severityBgColors[event.severity]} hover:bg-gray-800/50 transition-colors`}
-                >
-                  {/* Event row */}
-                  <div
-                    className="flex items-start gap-3 p-3 cursor-pointer"
-                    onClick={() => toggleExpand(event.id)}
-                  >
-                    {/* Expand icon */}
-                    <button className="mt-0.5 text-gray-500">
-                      {isExpanded ? (
-                        <ChevronDown className="w-4 h-4" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" />
+                  return (
+                    <React.Fragment key={event.id}>
+                      <tr
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => toggleExpand(event.id)}
+                      >
+                        <td className="px-4 py-2">
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                          )}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                          {formatTimestamp(event.timestamp)}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap">
+                          <span
+                            className={clsx(
+                              "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                              sourceColors[event.source] ||
+                                "bg-gray-100 text-gray-800",
+                            )}
+                          >
+                            {event.source}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className="text-sm font-medium text-gray-900">
+                            {event.eventType}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap">
+                          <span
+                            className={clsx(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium",
+                              severityColors[event.severity],
+                            )}
+                          >
+                            <SeverityIcon className="h-3 w-3" />
+                            {event.severity}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-xs text-gray-600 max-w-md truncate">
+                          {event.payload ? (
+                            JSON.stringify(event.payload).slice(0, 60) +
+                            (JSON.stringify(event.payload).length > 60
+                              ? "..."
+                              : "")
+                          ) : (
+                            <span className="text-gray-400">No payload</span>
+                          )}
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-3 bg-gray-50">
+                            <div className="space-y-2">
+                              {/* IDs */}
+                              <div className="grid grid-cols-2 gap-4 text-xs">
+                                <div>
+                                  <span className="text-gray-500">
+                                    Event ID:{" "}
+                                  </span>
+                                  <code className="text-gray-700 bg-gray-100 px-1 rounded">
+                                    {event.id}
+                                  </code>
+                                </div>
+                                {event.correlationId && (
+                                  <div>
+                                    <span className="text-gray-500">
+                                      Correlation ID:{" "}
+                                    </span>
+                                    <code className="text-blue-700 bg-blue-50 px-1 rounded">
+                                      {event.correlationId}
+                                    </code>
+                                  </div>
+                                )}
+                                {event.taskId && (
+                                  <div>
+                                    <span className="text-gray-500">
+                                      Task ID:{" "}
+                                    </span>
+                                    <code className="text-purple-700 bg-purple-50 px-1 rounded">
+                                      {event.taskId}
+                                    </code>
+                                  </div>
+                                )}
+                                {event.executionId && (
+                                  <div>
+                                    <span className="text-gray-500">
+                                      Execution ID:{" "}
+                                    </span>
+                                    <code className="text-green-700 bg-green-50 px-1 rounded">
+                                      {event.executionId}
+                                    </code>
+                                  </div>
+                                )}
+                                {event.projectId && (
+                                  <div>
+                                    <span className="text-gray-500">
+                                      Project ID:{" "}
+                                    </span>
+                                    <code className="text-orange-700 bg-orange-50 px-1 rounded">
+                                      {event.projectId}
+                                    </code>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Payload */}
+                              {event.payload &&
+                                Object.keys(event.payload).length > 0 && (
+                                  <div>
+                                    <span className="text-xs text-gray-500">
+                                      Payload:
+                                    </span>
+                                    <pre className="mt-1 p-2 bg-gray-100 rounded text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap">
+                                      {JSON.stringify(event.payload, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </button>
-
-                    {/* Severity icon */}
-                    <Icon
-                      className={`w-4 h-4 mt-0.5 ${severityColors[event.severity]}`}
-                    />
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`text-xs font-medium ${sourceColors[event.source] || "text-gray-400"}`}
-                        >
-                          {event.source}
-                        </span>
-                        <span className="text-sm text-white font-medium">
-                          {formatEventType(event.eventType)}
-                        </span>
-                        {event.taskTitle && (
-                          <span className="text-xs text-gray-500">
-                            • {event.taskTitle}
-                          </span>
-                        )}
-                        {event.projectName && (
-                          <span className="text-xs text-purple-400">
-                            {event.projectName}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Quick preview of payload */}
-                      {event.payload && !isExpanded && (
-                        <p className="text-xs text-gray-500 truncate mt-1">
-                          {JSON.stringify(event.payload).slice(0, 100)}
-                          {JSON.stringify(event.payload).length > 100 && "..."}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Timestamp */}
-                    <span className="text-xs text-gray-500 whitespace-nowrap">
-                      {formatTimestamp(event.timestamp)}
-                    </span>
-                  </div>
-
-                  {/* Expanded details */}
-                  {isExpanded && (
-                    <div className="px-12 pb-3 space-y-2">
-                      {/* IDs */}
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-gray-500">Event ID: </span>
-                          <span className="text-gray-400 font-mono">
-                            {event.id}
-                          </span>
-                        </div>
-                        {event.correlationId && (
-                          <div>
-                            <span className="text-gray-500">Correlation: </span>
-                            <span className="text-blue-400 font-mono">
-                              {event.correlationId}
-                            </span>
-                          </div>
-                        )}
-                        {event.taskId && (
-                          <div>
-                            <span className="text-gray-500">Task: </span>
-                            <span className="text-purple-400 font-mono">
-                              {event.taskId}
-                            </span>
-                          </div>
-                        )}
-                        {event.executionId && (
-                          <div>
-                            <span className="text-gray-500">Execution: </span>
-                            <span className="text-green-400 font-mono">
-                              {event.executionId}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Payload */}
-                      {event.payload &&
-                        Object.keys(event.payload).length > 0 && (
-                          <div>
-                            <span className="text-xs text-gray-500">
-                              Payload:
-                            </span>
-                            <pre className="mt-1 p-2 bg-gray-800 rounded text-xs text-gray-300 overflow-x-auto">
-                              {JSON.stringify(event.payload, null, 2)}
-                            </pre>
-                          </div>
-                        )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
 
-        {/* Load more */}
-        {hasMore && (
-          <div className="p-4 text-center">
-            <button
-              onClick={loadMore}
-              disabled={loading}
-              className="px-4 py-2 bg-gray-800 text-gray-400 rounded hover:bg-gray-700 disabled:opacity-50"
-            >
-              {loading ? "Loading..." : "Load More"}
-            </button>
+        {/* Load more / Footer */}
+        {(hasMore || allEvents.length > 0) && (
+          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <span className="text-sm text-gray-500">
+              {allEvents.length} events loaded
+            </span>
+            {hasMore && (
+              <button
+                onClick={loadMore}
+                disabled={loading}
+                className="px-4 py-1.5 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+              >
+                {loading ? "Loading..." : "Load More"}
+              </button>
+            )}
           </div>
         )}
       </div>

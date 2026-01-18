@@ -184,6 +184,10 @@ export function useEventStream(maxEvents = 200): UseEventStreamResult {
 
           if (message.type === "platform:event") {
             setEvents((prev) => {
+              // Prevent duplicates by checking if event already exists
+              if (prev.some((e) => e.id === message.event.id)) {
+                return prev;
+              }
               const newEvents = [message.event, ...prev];
               return newEvents.slice(0, maxEvents);
             });
@@ -209,9 +213,12 @@ export function useEventStream(maxEvents = 200): UseEventStreamResult {
         }, delay);
       };
 
-      ws.onerror = (err) => {
-        setError(new Error("WebSocket connection error"));
-        console.error("WebSocket error:", err);
+      ws.onerror = () => {
+        // Only set error state after multiple failed attempts
+        if (reconnectAttempts.current >= 3) {
+          setError(new Error("WebSocket connection error"));
+        }
+        // Silently handle - onclose will trigger reconnect
       };
 
       wsRef.current = ws;

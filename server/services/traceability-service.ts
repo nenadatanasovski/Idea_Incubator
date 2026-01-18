@@ -17,6 +17,8 @@ import type {
   TaskSpecLink,
   CoverageStats,
   TraceabilityLinkType,
+  TraceabilityHierarchy,
+  HierarchyNode,
 } from "../../types/traceability.js";
 import type { TaskStatus } from "../../types/task-agent.js";
 
@@ -52,7 +54,19 @@ export class TraceabilityService {
     }
 
     // Parse PRD arrays
-    const successCriteria: string[] = JSON.parse(prd.success_criteria || "[]");
+    // Success criteria can be either strings or objects with {criterion, metric, target}
+    const rawSuccessCriteria = JSON.parse(prd.success_criteria || "[]");
+    const successCriteria: string[] = rawSuccessCriteria.map(
+      (
+        item: string | { criterion: string; metric: string; target: string },
+      ) => {
+        if (typeof item === "string") {
+          return item;
+        }
+        // Convert object to readable string
+        return `${item.criterion} (${item.metric}: ${item.target})`;
+      },
+    );
     const constraints: string[] = JSON.parse(prd.constraints || "[]");
 
     // Get all task links for this PRD
@@ -193,7 +207,13 @@ export class TraceabilityService {
         // Get content from appropriate section
         if (sectionType === "success_criteria") {
           const sc = JSON.parse(link.success_criteria || "[]");
-          itemContent = sc[itemIndex] || "";
+          const item = sc[itemIndex];
+          if (typeof item === "string") {
+            itemContent = item;
+          } else if (item) {
+            // Handle object format {criterion, metric, target}
+            itemContent = `${item.criterion} (${item.metric}: ${item.target})`;
+          }
         } else if (sectionType === "constraints") {
           const constraints = JSON.parse(link.constraints || "[]");
           itemContent = constraints[itemIndex] || "";
@@ -279,8 +299,18 @@ export class TraceabilityService {
 
     const gaps: CoverageGap[] = [];
 
-    // Check success criteria
-    const successCriteria: string[] = JSON.parse(prd.success_criteria || "[]");
+    // Check success criteria (can be strings or objects)
+    const rawSuccessCriteria = JSON.parse(prd.success_criteria || "[]");
+    const successCriteria: string[] = rawSuccessCriteria.map(
+      (
+        item: string | { criterion: string; metric: string; target: string },
+      ) => {
+        if (typeof item === "string") {
+          return item;
+        }
+        return `${item.criterion} (${item.metric}: ${item.target})`;
+      },
+    );
     for (let i = 0; i < successCriteria.length; i++) {
       const ref = `success_criteria[${i}]`;
       if (!linkedRefs.has(ref)) {
@@ -369,6 +399,186 @@ export class TraceabilityService {
       totalRequirements,
       orphanTaskCount: traceability.orphanTaskCount,
       gapCount: traceability.gapCount,
+    };
+  }
+
+  /**
+   * Get hierarchical traceability data for tree view
+   */
+  async getHierarchy(projectId: string): Promise<TraceabilityHierarchy | null> {
+    // Get PRD
+    const prd = await getOne<PrdRow>(
+      "SELECT * FROM prds WHERE project_id = ? ORDER BY created_at ASC LIMIT 1",
+      [projectId],
+    );
+
+    if (!prd) return null;
+
+    // Get all task links with task and task list details
+    const taskLinks = await query<{
+      task_id: string;
+      display_id: string;
+      title: string;
+      status: string;
+      task_list_id: string | null;
+      task_list_name: string | null;
+      requirement_ref: string;
+      link_type: string;
+    }>(
+      `
+      SELECT
+        pt.task_id,
+        pt.requirement_ref,
+        pt.link_type,
+        t.display_id,
+        t.title,
+        t.status,
+        t.task_list_id,
+        tl.name as task_list_name
+      FROM prd_tasks pt
+      INNER JOIN tasks t ON pt.task_id = t.id
+      LEFT JOIN task_lists_v2 tl ON t.task_list_id = tl.id
+      WHERE pt.prd_id = ?
+    `,
+      [prd.id],
+    );
+
+    // Parse PRD arrays
+    const rawSuccessCriteria = JSON.parse(prd.success_criteria || "[]");
+    const successCriteria: string[] = rawSuccessCriteria.map(
+      (item: string | { criterion: string }) =>
+        typeof item === "string" ? item : item.criterion,
+    );
+    const constraints: string[] = JSON.parse(prd.constraints || "[]");
+
+    // Build hierarchy root
+    const root: HierarchyNode = {
+      id: prd.id,
+      type: "prd",
+      label: prd.title,
+      children: [],
+      metadata: { taskCount: taskLinks.length },
+    };
+
+    // Build sections
+    const sections = [
+      {
+        type: "success_criteria",
+        title: "Success Criteria",
+        items: successCriteria,
+      },
+      { type: "constraints", title: "Constraints", items: constraints },
+    ];
+
+    for (const section of sections) {
+      const sectionNode: HierarchyNode = {
+        id: `section-${section.type}`,
+        type: "section",
+        label: section.title,
+        children: [],
+        metadata: { taskCount: 0, coveredCount: 0 },
+      };
+
+      // Build requirements
+      for (let i = 0; i < section.items.length; i++) {
+        const ref = `${section.type}[${i}]`;
+        const linkedTasks = taskLinks.filter((t) => t.requirement_ref === ref);
+
+        const requirementNode: HierarchyNode = {
+          id: ref,
+          type: "requirement",
+          label: section.items[i],
+          isCovered: linkedTasks.length > 0,
+          children: [],
+          metadata: {
+            requirementRef: ref,
+            taskCount: linkedTasks.length,
+          },
+        };
+
+        // Group tasks by task list
+        const tasksByList = new Map<string, typeof taskLinks>();
+        for (const task of linkedTasks) {
+          const listId = task.task_list_id || "ungrouped";
+          if (!tasksByList.has(listId)) {
+            tasksByList.set(listId, []);
+          }
+          tasksByList.get(listId)!.push(task);
+        }
+
+        // Build task list nodes
+        for (const [listId, tasks] of tasksByList) {
+          if (listId === "ungrouped" && tasks.length > 0) {
+            // Add tasks directly without list grouping
+            for (const task of tasks) {
+              requirementNode.children.push({
+                id: task.task_id,
+                type: "task",
+                label: task.title,
+                status: task.status as TaskStatus,
+                linkType: task.link_type as TraceabilityLinkType,
+                children: [],
+                metadata: { displayId: task.display_id },
+              });
+            }
+          } else if (tasks.length > 0) {
+            const listNode: HierarchyNode = {
+              id: listId,
+              type: "task_list",
+              label: tasks[0].task_list_name || "Unknown List",
+              children: tasks.map((task) => ({
+                id: task.task_id,
+                type: "task" as const,
+                label: task.title,
+                status: task.status as TaskStatus,
+                linkType: task.link_type as TraceabilityLinkType,
+                children: [],
+                metadata: { displayId: task.display_id },
+              })),
+              metadata: { taskCount: tasks.length },
+            };
+            requirementNode.children.push(listNode);
+          }
+        }
+
+        sectionNode.children.push(requirementNode);
+        sectionNode.metadata!.taskCount! += linkedTasks.length;
+        if (linkedTasks.length > 0) {
+          sectionNode.metadata!.coveredCount!++;
+        }
+      }
+
+      // Calculate section coverage
+      sectionNode.coverage =
+        section.items.length > 0
+          ? Math.round(
+              (sectionNode.metadata!.coveredCount! / section.items.length) *
+                100,
+            )
+          : 100;
+
+      root.children.push(sectionNode);
+    }
+
+    // Get stats
+    const orphanCount = await this.getOrphanTaskCount(projectId);
+    const totalReqs = successCriteria.length + constraints.length;
+    const coveredReqs = root.children.reduce(
+      (sum, s) => sum + (s.metadata?.coveredCount || 0),
+      0,
+    );
+
+    return {
+      projectId,
+      prdId: prd.id,
+      prdTitle: prd.title,
+      root,
+      stats: {
+        totalRequirements: totalReqs,
+        coveredRequirements: coveredReqs,
+        totalTasks: taskLinks.length,
+        orphanTasks: orphanCount,
+      },
     };
   }
 }

@@ -8,6 +8,8 @@
 import { Router, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { traceabilityService } from "../services/traceability-service.js";
+import { traceabilityGapAnalyzer } from "../services/traceability-gap-analyzer.js";
+import { orphanLinkSuggester } from "../services/orphan-link-suggester.js";
 import projectService from "../services/project-service.js";
 import { run, saveDb, getOne, query } from "../../database/db.js";
 import type {
@@ -55,6 +57,324 @@ router.get(
       console.error("[traceability] Error getting traceability:", error);
       res.status(500).json({
         error: "Failed to get traceability",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * GET /api/projects/:id/traceability/hierarchy
+ * Get hierarchical traceability view for tree display
+ */
+router.get(
+  "/projects/:id/traceability/hierarchy",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      // Resolve project ID
+      const projectId = await projectService.resolveProjectId(id);
+      if (!projectId) {
+        res.status(404).json({ error: "Project not found" });
+        return;
+      }
+
+      const hierarchy = await traceabilityService.getHierarchy(projectId);
+
+      if (!hierarchy) {
+        res.status(404).json({ error: "No PRD found for project" });
+        return;
+      }
+
+      res.json(hierarchy);
+    } catch (error) {
+      console.error("[traceability] Error getting hierarchy:", error);
+      res.status(500).json({
+        error: "Failed to get traceability hierarchy",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * POST /api/projects/:id/traceability/analyze
+ * Run AI gap analysis for a project
+ */
+router.post(
+  "/projects/:id/traceability/analyze",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const projectId = await projectService.resolveProjectId(req.params.id);
+      if (!projectId) {
+        res.status(404).json({ error: "Project not found" });
+        return;
+      }
+
+      const gaps = await traceabilityGapAnalyzer.analyzeProject(projectId);
+      const counts = await traceabilityGapAnalyzer.getGapCounts(projectId);
+
+      res.json({
+        success: true,
+        gapsFound: gaps.length,
+        gaps,
+        counts,
+      });
+    } catch (error) {
+      console.error("[traceability] Error analyzing:", error);
+      res.status(500).json({
+        error: "Failed to analyze traceability",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * GET /api/projects/:id/traceability/gaps
+ * Get stored gaps for a project
+ */
+router.get(
+  "/projects/:id/traceability/gaps",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const projectId = await projectService.resolveProjectId(req.params.id);
+      if (!projectId) {
+        res.status(404).json({ error: "Project not found" });
+        return;
+      }
+
+      const status = req.query.status as string | undefined;
+      const gaps = await traceabilityGapAnalyzer.getGaps(projectId, status);
+      const counts = await traceabilityGapAnalyzer.getGapCounts(projectId);
+
+      res.json({ gaps, counts });
+    } catch (error) {
+      console.error("[traceability] Error fetching gaps:", error);
+      res.status(500).json({
+        error: "Failed to fetch gaps",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * POST /api/projects/:id/traceability/gaps/:gapId/suggestions
+ * Generate AI suggestions for a gap
+ */
+router.post(
+  "/projects/:id/traceability/gaps/:gapId/suggestions",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const suggestions = await traceabilityGapAnalyzer.generateSuggestions(
+        req.params.gapId,
+      );
+      res.json({ suggestions });
+    } catch (error) {
+      console.error("[traceability] Error generating suggestions:", error);
+      res.status(500).json({
+        error: "Failed to generate suggestions",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * PUT /api/projects/:id/traceability/gaps/:gapId/resolve
+ * Mark a gap as resolved
+ */
+router.put(
+  "/projects/:id/traceability/gaps/:gapId/resolve",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      await traceabilityGapAnalyzer.resolveGap(req.params.gapId, "user");
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[traceability] Error resolving gap:", error);
+      res.status(500).json({
+        error: "Failed to resolve gap",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * PUT /api/projects/:id/traceability/gaps/:gapId/ignore
+ * Mark a gap as ignored
+ */
+router.put(
+  "/projects/:id/traceability/gaps/:gapId/ignore",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      await traceabilityGapAnalyzer.ignoreGap(req.params.gapId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[traceability] Error ignoring gap:", error);
+      res.status(500).json({
+        error: "Failed to ignore gap",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * GET /api/projects/:id/orphans
+ * Get orphan tasks with link suggestions
+ */
+router.get(
+  "/projects/:id/orphans",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const projectId = await projectService.resolveProjectId(req.params.id);
+      if (!projectId) {
+        res.status(404).json({ error: "Project not found" });
+        return;
+      }
+
+      const orphans =
+        await orphanLinkSuggester.getOrphansWithSuggestions(projectId);
+
+      res.json({
+        orphans,
+        totalCount: orphans.length,
+      });
+    } catch (error) {
+      console.error("[traceability] Error getting orphans:", error);
+      res.status(500).json({
+        error: "Failed to get orphans",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * POST /api/projects/:id/orphans/:taskId/suggest-links
+ * Get AI-powered link suggestions for an orphan task
+ */
+router.post(
+  "/projects/:id/orphans/:taskId/suggest-links",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const projectId = await projectService.resolveProjectId(req.params.id);
+      if (!projectId) {
+        res.status(404).json({ error: "Project not found" });
+        return;
+      }
+
+      const suggestions = await orphanLinkSuggester.suggestLinks(
+        req.params.taskId,
+        projectId,
+      );
+
+      res.json({ suggestions });
+    } catch (error) {
+      console.error("[traceability] Error suggesting links:", error);
+      res.status(500).json({
+        error: "Failed to suggest links",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * POST /api/projects/:id/orphans/:taskId/apply-link
+ * Apply a suggested link
+ */
+router.post(
+  "/projects/:id/orphans/:taskId/apply-link",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const projectId = await projectService.resolveProjectId(req.params.id);
+      if (!projectId) {
+        res.status(404).json({ error: "Project not found" });
+        return;
+      }
+
+      const { requirementRef, linkType } = req.body;
+
+      if (!requirementRef || !linkType) {
+        res.status(400).json({ error: "Missing requirementRef or linkType" });
+        return;
+      }
+
+      // Get PRD for project
+      const prd = await getOne<{ id: string }>(
+        "SELECT id FROM prds WHERE project_id = ? ORDER BY created_at ASC LIMIT 1",
+        [projectId],
+      );
+
+      if (!prd) {
+        res.status(404).json({ error: "No PRD found for project" });
+        return;
+      }
+
+      const result = await orphanLinkSuggester.applyLink(
+        {
+          taskId: req.params.taskId,
+          requirementRef,
+          sectionType: requirementRef.split("[")[0],
+          itemIndex: parseInt(
+            requirementRef.match(/\[(\d+)\]/)?.[1] || "0",
+            10,
+          ),
+          requirementContent: "",
+          linkType,
+          confidence: 100,
+          reasoning: "User applied link",
+        },
+        prd.id,
+      );
+
+      if (!result.success) {
+        res.status(400).json({ error: result.error });
+        return;
+      }
+
+      res.json({ success: true, linkId: result.linkId });
+    } catch (error) {
+      console.error("[traceability] Error applying link:", error);
+      res.status(500).json({
+        error: "Failed to apply link",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
+
+/**
+ * POST /api/projects/:id/orphans/:taskId/dismiss
+ * Dismiss an orphan task (intentionally unlinked)
+ */
+router.post(
+  "/projects/:id/orphans/:taskId/dismiss",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const projectId = await projectService.resolveProjectId(req.params.id);
+      if (!projectId) {
+        res.status(404).json({ error: "Project not found" });
+        return;
+      }
+
+      const { reason } = req.body;
+
+      await orphanLinkSuggester.dismissOrphan(
+        req.params.taskId,
+        projectId,
+        reason,
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[traceability] Error dismissing orphan:", error);
+      res.status(500).json({
+        error: "Failed to dismiss orphan",
         message: error instanceof Error ? error.message : "Unknown error",
       });
     }
