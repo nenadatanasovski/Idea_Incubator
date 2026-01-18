@@ -167,6 +167,10 @@ export class PrdService {
       fields.push("out_of_scope = ?");
       values.push(JSON.stringify(updates.outOfScope));
     }
+    if (updates.businessContext !== undefined) {
+      fields.push("business_context = ?");
+      values.push(JSON.stringify(updates.businessContext));
+    }
     if (updates.status !== undefined) {
       fields.push("status = ?");
       values.push(updates.status);

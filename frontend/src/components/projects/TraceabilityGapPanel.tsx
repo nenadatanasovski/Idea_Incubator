@@ -22,6 +22,7 @@ import {
   ClipboardCheck,
   GitBranch,
   Layers,
+  ArrowRightFromLine,
 } from "lucide-react";
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
@@ -166,6 +167,11 @@ export default function TraceabilityGapPanel({
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [showBulkWizard, setShowBulkWizard] = useState(false);
 
+  // Moving to business context state
+  const [movingToBusinessContext, setMovingToBusinessContext] = useState<
+    string | null
+  >(null);
+
   const toggleGapSelection = (gapId: string) => {
     setSelectedGaps((prev) => {
       const next = new Set(prev);
@@ -208,6 +214,55 @@ export default function TraceabilityGapPanel({
     } finally {
       setIsBulkProcessing(false);
     }
+  };
+
+  // Move a requirement to business context (not analyzed for task coverage)
+  const handleMoveToBusinessContext = async (gap: TraceabilityGap) => {
+    if (!prdId || !gap.entityRef) return;
+
+    // Parse entityRef like "success_criteria[2]" or "constraints[0]"
+    const match = gap.entityRef.match(
+      /^(success_criteria|constraints)\[(\d+)\]$/,
+    );
+    if (!match) {
+      console.error("Invalid entityRef format:", gap.entityRef);
+      return;
+    }
+
+    const sourceType = match[1] as "success_criteria" | "constraints";
+    const itemIndex = parseInt(match[2], 10);
+
+    setMovingToBusinessContext(gap.id);
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/prds/${prdId}/move-to-business-context`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sourceType, itemIndex }),
+        },
+      );
+
+      if (response.ok) {
+        // Mark the gap as resolved and refresh
+        await onResolve(gap.id);
+        await onRefetch();
+      } else {
+        const error = await response.json();
+        console.error("Failed to move item:", error);
+      }
+    } catch (error) {
+      console.error("Error moving to business context:", error);
+    } finally {
+      setMovingToBusinessContext(null);
+    }
+  };
+
+  // Check if gap can be moved to business context
+  const canMoveToBusinessContext = (gap: TraceabilityGap): boolean => {
+    if (!prdId || !gap.entityRef) return false;
+    // Only allow for success_criteria and constraints
+    return /^(success_criteria|constraints)\[\d+\]$/.test(gap.entityRef);
   };
 
   // Open task creation form
@@ -486,6 +541,27 @@ export default function TraceabilityGapPanel({
                 )}
 
                 <div className="flex items-center gap-2">
+                  {/* Move to Business Context - only for success_criteria/constraints */}
+                  {canMoveToBusinessContext(gap) && (
+                    <button
+                      onClick={() => handleMoveToBusinessContext(gap)}
+                      disabled={movingToBusinessContext === gap.id}
+                      className="text-sm text-amber-600 hover:text-amber-700 border border-amber-300 hover:border-amber-400 px-3 py-1 rounded inline-flex items-center gap-1"
+                      title="This is not a functional requirement - move to Business Context"
+                    >
+                      {movingToBusinessContext === gap.id ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Moving...
+                        </>
+                      ) : (
+                        <>
+                          <ArrowRightFromLine className="h-3 w-3" />
+                          Not a Requirement
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={() => onIgnore(gap.id)}
                     className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1"

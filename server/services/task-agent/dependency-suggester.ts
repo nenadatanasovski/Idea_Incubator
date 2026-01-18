@@ -156,8 +156,16 @@ export class DependencySuggester {
    * Get task by ID
    */
   private async getTask(taskId: string): Promise<TaskRow | null> {
-    return getOne<TaskRow>(
+    // Try UUID first, then display_id
+    const task = await getOne<TaskRow>(
       "SELECT id, display_id, title, description, category, project_id, task_list_id FROM tasks WHERE id = ?",
+      [taskId],
+    );
+    if (task) return task;
+
+    // Try display_id if UUID lookup failed
+    return getOne<TaskRow>(
+      "SELECT id, display_id, title, description, category, project_id, task_list_id FROM tasks WHERE display_id = ?",
       [taskId],
     );
   }

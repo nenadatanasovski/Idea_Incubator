@@ -18,6 +18,7 @@
  */
 
 import { Router, Request, Response } from "express";
+import { getOne } from "../../database/db.js";
 
 // Import services
 import evaluationQueueManager from "../services/task-agent/evaluation-queue-manager.js";
@@ -1267,7 +1268,7 @@ router.delete("/dependencies", async (req: Request, res: Response) => {
 // Task Lineage Endpoints (Decomposition Tracking)
 // =============================================================================
 
-import { query, getOne } from "../../database/db.js";
+import { query } from "../../database/db.js";
 
 /**
  * Get parent task of a subtask
@@ -1684,7 +1685,24 @@ router.get(
   "/tasks/:taskId/suggest-dependencies",
   async (req: Request, res: Response) => {
     try {
-      const { taskId } = req.params;
+      let { taskId } = req.params;
+
+      // If taskId doesn't look like a UUID, try to resolve it from display_id
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          taskId,
+        );
+      if (!isUuid) {
+        const task = await getOne<{ id: string }>(
+          "SELECT id FROM tasks WHERE display_id = ?",
+          [taskId],
+        );
+        if (!task) {
+          return res.status(404).json({ error: `Task not found: ${taskId}` });
+        }
+        taskId = task.id;
+      }
+
       const suggestions = await dependencySuggester.suggestDependencies(taskId);
       return res.json({ suggestions });
     } catch (err) {

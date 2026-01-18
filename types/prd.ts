@@ -35,6 +35,10 @@ export interface PRD {
   constraints: string[];
   outOfScope: string[];
 
+  // Business context: non-functional items NOT analyzed for task coverage
+  // (budget constraints, resource limitations, marketing constraints, KPIs)
+  businessContext: string[];
+
   status: PrdStatus;
 
   approvedAt?: string;
@@ -91,6 +95,7 @@ export interface CreatePrdInput {
   successCriteria?: string[];
   constraints?: string[];
   outOfScope?: string[];
+  businessContext?: string[];
 }
 
 /**
@@ -106,6 +111,7 @@ export interface UpdatePrdInput {
   successCriteria?: string[];
   constraints?: string[];
   outOfScope?: string[];
+  businessContext?: string[];
   status?: PrdStatus;
 }
 
@@ -144,6 +150,7 @@ export interface PrdRow {
   success_criteria: string; // JSON array
   constraints: string; // JSON array
   out_of_scope: string; // JSON array
+  business_context: string; // JSON array - non-functional items
   status: string;
   approved_at: string | null;
   approved_by: string | null;
@@ -168,6 +175,7 @@ export function mapPrdRow(row: PrdRow): PRD {
     successCriteria: JSON.parse(row.success_criteria),
     constraints: JSON.parse(row.constraints),
     outOfScope: JSON.parse(row.out_of_scope),
+    businessContext: JSON.parse(row.business_context || "[]"),
     status: row.status as PrdStatus,
     approvedAt: row.approved_at || undefined,
     approvedBy: row.approved_by || undefined,

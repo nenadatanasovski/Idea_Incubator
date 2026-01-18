@@ -278,6 +278,11 @@ export class TraceabilityService {
 
   /**
    * Get coverage gaps (spec items with no linked tasks)
+   *
+   * NOTE: Only analyzes `success_criteria` and `constraints` for task coverage.
+   * The `business_context` field is intentionally NOT analyzed because it contains
+   * non-functional items like budget constraints, resource limitations, and business KPIs
+   * that don't translate to implementation tasks.
    */
   async getCoverageGaps(projectId: string): Promise<CoverageGap[]> {
     // Get the primary PRD for this project

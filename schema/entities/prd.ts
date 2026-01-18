@@ -29,9 +29,14 @@ export const prds = sqliteTable(
     functionalDescription: text("functional_description"),
 
     // JSON arrays stored as text
+    // Functional requirements - these are analyzed for task coverage
     successCriteria: text("success_criteria").notNull().default("[]"),
     constraints: text("constraints").notNull().default("[]"),
     outOfScope: text("out_of_scope").notNull().default("[]"),
+
+    // Business context - NOT analyzed for task coverage
+    // Stores items like: budget constraints, resource limitations, marketing constraints, business KPIs
+    businessContext: text("business_context").notNull().default("[]"),
 
     status: text("status", { enum: prdStatuses }).notNull().default("draft"),
 
@@ -63,6 +68,7 @@ export const updatePrdSchema = z.object({
   successCriteria: z.array(z.string()).optional(),
   constraints: z.array(z.string()).optional(),
   outOfScope: z.array(z.string()).optional(),
+  businessContext: z.array(z.string()).optional(),
   status: z.enum(prdStatuses).optional(),
 });
 

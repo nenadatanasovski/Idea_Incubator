@@ -183,4 +183,83 @@ router.get("/:id/hierarchy", async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Move an item from success_criteria or constraints to business_context
+ * POST /api/prds/:id/move-to-business-context
+ *
+ * Body: { sourceType: "success_criteria" | "constraints", itemIndex: number }
+ *
+ * This is used to move non-functional items (like budget constraints, resource limitations)
+ * out of functional requirement sections so they are not analyzed for task coverage.
+ */
+router.post(
+  "/:id/move-to-business-context",
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { sourceType, itemIndex } = req.body;
+
+      if (
+        !sourceType ||
+        !["success_criteria", "constraints"].includes(sourceType)
+      ) {
+        return res.status(400).json({
+          error: "sourceType must be 'success_criteria' or 'constraints'",
+        });
+      }
+
+      if (typeof itemIndex !== "number" || itemIndex < 0) {
+        return res
+          .status(400)
+          .json({ error: "itemIndex must be a non-negative number" });
+      }
+
+      // Get current PRD
+      const prd = await prdService.getById(id);
+      if (!prd) {
+        return res.status(404).json({ error: "PRD not found" });
+      }
+
+      // Get arrays (already parsed by mapPrdRow)
+      const sourceKey =
+        sourceType === "success_criteria" ? "successCriteria" : "constraints";
+      const sourceArray: string[] = [
+        ...(sourceType === "success_criteria"
+          ? prd.successCriteria
+          : prd.constraints),
+      ];
+      const businessContext: string[] = [...prd.businessContext];
+
+      // Validate index
+      if (itemIndex >= sourceArray.length) {
+        return res
+          .status(400)
+          .json({ error: `Item index ${itemIndex} out of bounds` });
+      }
+
+      // Move item
+      const [movedItem] = sourceArray.splice(itemIndex, 1);
+      businessContext.push(movedItem);
+
+      // Update PRD
+      const updatedPrd = await prdService.update(id, {
+        [sourceKey]: sourceArray,
+        businessContext,
+      });
+
+      return res.json({
+        success: true,
+        movedItem,
+        prd: updatedPrd,
+      });
+    } catch (err) {
+      console.error("[prds] Error moving item to business context:", err);
+      return res.status(500).json({
+        error: "Failed to move item to business context",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
+
 export default router;
