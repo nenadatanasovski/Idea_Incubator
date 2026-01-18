@@ -1,8 +1,17 @@
 /**
  * AssertionDashboard - Assertion pass/fail overview with category breakdown
+ *
+ * Features:
+ * - Overall pass rate with trend indicator
+ * - Result cards (pass, fail, skip, warn)
+ * - Category breakdown with progress bars
+ * - Failed assertions list
+ * - Category filter dropdown
+ * - Real-time updates via WebSocket
+ * - Time-series sparkline for pass rate trend
  */
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import {
   CheckCircle,
   XCircle,
@@ -10,16 +19,71 @@ import {
   MinusCircle,
   TrendingUp,
   TrendingDown,
+  Filter,
+  ChevronDown,
+  RefreshCw,
 } from "lucide-react";
 import {
   useAssertions,
   useAssertionSummary,
 } from "../../hooks/useObservability";
+import { useObservabilityStream } from "../../hooks/useObservabilityStream";
 import type { AssertionResultEntry } from "../../types/observability";
 
 interface AssertionDashboardProps {
   executionId: string;
   onAssertionClick?: (assertion: AssertionResultEntry) => void;
+}
+
+// Time-series sparkline component
+function PassRateTrend({ data }: { data: number[] }) {
+  if (data.length < 2) return null;
+
+  const height = 32;
+  const width = 100;
+  const max = 100;
+  const min = 0;
+
+  const points = data
+    .map((value, i) => {
+      const x = (i / (data.length - 1)) * width;
+      const y = height - ((value - min) / (max - min)) * height;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  // Determine color based on trend
+  const lastValue = data[data.length - 1];
+  const color =
+    lastValue >= 80 ? "#16a34a" : lastValue >= 50 ? "#ca8a04" : "#dc2626";
+
+  return (
+    <div className="flex items-center gap-2">
+      <svg
+        width={width}
+        height={height}
+        className="overflow-visible"
+        viewBox={`0 0 ${width} ${height}`}
+      >
+        <polyline
+          points={points}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Current value dot */}
+        <circle
+          cx={width}
+          cy={height - ((lastValue - min) / (max - min)) * height}
+          r="3"
+          fill={color}
+        />
+      </svg>
+      <span className="text-xs text-gray-500">Trend</span>
+    </div>
+  );
 }
 
 const resultIcons = {
@@ -40,18 +104,72 @@ export default function AssertionDashboard({
   executionId,
   onAssertionClick,
 }: AssertionDashboardProps) {
-  const { summary, loading: summaryLoading } = useAssertionSummary(executionId);
+  const {
+    summary,
+    loading: summaryLoading,
+    refetch,
+  } = useAssertionSummary(executionId);
   const { assertions, loading: assertionsLoading } = useAssertions(
     executionId,
     { limit: 100 },
   );
 
+  // State for filters and trend
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [passRateHistory, setPassRateHistory] = useState<number[]>([]);
+
+  // Real-time updates
+  const { events, isConnected } = useObservabilityStream({
+    executionId,
+    autoConnect: true,
+  });
+
+  // Track pass rate over time
+  useEffect(() => {
+    if (summary?.passRate !== undefined) {
+      setPassRateHistory((prev) => {
+        const newHistory = [...prev, summary.passRate * 100];
+        return newHistory.slice(-20); // Keep last 20 data points
+      });
+    }
+  }, [summary?.passRate]);
+
+  // Count real-time assertion updates
+  const realTimeStats = useMemo(() => {
+    const assertionEvents = events.filter((e) => e.type === "assertion:result");
+    const passed = assertionEvents.filter(
+      (e) => (e.data as { result?: string })?.result === "pass",
+    ).length;
+    const failed = assertionEvents.filter(
+      (e) => (e.data as { result?: string })?.result === "fail",
+    ).length;
+    return { total: assertionEvents.length, passed, failed };
+  }, [events]);
+
   const loading = summaryLoading || assertionsLoading;
 
+  // Get unique categories
+  const categories = useMemo(() => {
+    if (!summary?.byCategory) return [];
+    return Object.keys(summary.byCategory).sort();
+  }, [summary?.byCategory]);
+
+  // Filter assertions by category
+  const filteredAssertions = useMemo(() => {
+    if (!categoryFilter) return assertions;
+    return assertions.filter((a) => a.category === categoryFilter);
+  }, [assertions, categoryFilter]);
+
   const failedAssertions = useMemo(
-    () => assertions.filter((a) => a.result === "fail"),
-    [assertions],
+    () => filteredAssertions.filter((a) => a.result === "fail"),
+    [filteredAssertions],
   );
+
+  // Handle refresh
+  const handleRefresh = useCallback(() => {
+    refetch?.();
+  }, [refetch]);
 
   if (loading) {
     return (
@@ -74,17 +192,109 @@ export default function AssertionDashboard({
 
   return (
     <div className="space-y-6 p-4">
+      {/* Header with filters and real-time indicator */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {/* Category filter */}
+          <div className="relative">
+            <button
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border ${
+                categoryFilter
+                  ? "border-blue-500 bg-blue-50 text-blue-700"
+                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <Filter className="h-4 w-4" />
+              {categoryFilter || "All Categories"}
+              <ChevronDown className="h-4 w-4" />
+            </button>
+            {showFilterDropdown && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowFilterDropdown(false)}
+                />
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border z-20">
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        setCategoryFilter(null);
+                        setShowFilterDropdown(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                        !categoryFilter
+                          ? "font-medium text-blue-600"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      All Categories
+                    </button>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => {
+                          setCategoryFilter(cat);
+                          setShowFilterDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                          categoryFilter === cat
+                            ? "font-medium text-blue-600"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Refresh button */}
+          <button
+            onClick={handleRefresh}
+            className="p-1.5 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100"
+            title="Refresh"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Real-time indicator */}
+        <div className="flex items-center gap-2 text-xs">
+          {isConnected && realTimeStats.total > 0 && (
+            <span className="text-green-600">
+              +{realTimeStats.total} new ({realTimeStats.passed} passed,{" "}
+              {realTimeStats.failed} failed)
+            </span>
+          )}
+          <div
+            className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-gray-300"}`}
+          />
+          <span className="text-gray-500">
+            {isConnected ? "Live" : "Offline"}
+          </span>
+        </div>
+      </div>
+
       {/* Overall health */}
       <div className="bg-white rounded-lg border p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-gray-700">
             Overall Pass Rate
           </h3>
-          {passRate >= 80 ? (
-            <TrendingUp className="h-5 w-5 text-green-500" />
-          ) : (
-            <TrendingDown className="h-5 w-5 text-red-500" />
-          )}
+          <div className="flex items-center gap-3">
+            {passRateHistory.length > 1 && (
+              <PassRateTrend data={passRateHistory} />
+            )}
+            {passRate >= 80 ? (
+              <TrendingUp className="h-5 w-5 text-green-500" />
+            ) : (
+              <TrendingDown className="h-5 w-5 text-red-500" />
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <div
@@ -118,8 +328,12 @@ export default function AssertionDashboard({
           </div>
         </div>
         <div className="flex gap-6 mt-3 text-sm">
-          <span className="text-green-600">{summary.passed} passed</span>
-          <span className="text-red-600">{summary.failed} failed</span>
+          <span className="text-green-600">
+            {summary.passed + realTimeStats.passed} passed
+          </span>
+          <span className="text-red-600">
+            {summary.failed + realTimeStats.failed} failed
+          </span>
           <span className="text-gray-500">{summary.skipped} skipped</span>
           <span className="text-yellow-600">{summary.warned} warned</span>
         </div>

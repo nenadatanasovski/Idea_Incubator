@@ -3,10 +3,10 @@
  */
 
 import { Link } from "react-router-dom";
-import { LayoutDashboard, FileText, Hammer } from "lucide-react";
+import { LayoutDashboard, FileText, Hammer, GitBranch } from "lucide-react";
 import clsx from "clsx";
 
-export type ProjectTab = "overview" | "spec" | "build";
+export type ProjectTab = "overview" | "spec" | "traceability" | "build";
 
 interface SubTab {
   id: ProjectTab;
@@ -33,9 +33,15 @@ export default function ProjectsSubTabs({
     },
     {
       id: "spec",
-      label: "Specification",
+      label: "Specifications",
       icon: FileText,
       href: `/projects/${projectSlug}/spec`,
+    },
+    {
+      id: "traceability",
+      label: "Traceability",
+      icon: GitBranch,
+      href: `/projects/${projectSlug}/traceability`,
     },
     {
       id: "build",

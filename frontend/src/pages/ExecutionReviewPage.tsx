@@ -6,10 +6,10 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useExecution } from "../hooks/useObservability";
 import {
-  ObservabilityHub,
   Breadcrumb,
   buildExecutionBreadcrumb,
   ObsStatusBadge,
+  ExecutionReviewDashboard,
 } from "../components/observability";
 
 export default function ExecutionReviewPage() {
@@ -106,9 +106,9 @@ export default function ExecutionReviewPage() {
         </div>
       </div>
 
-      {/* Observability Hub */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <ObservabilityHub executionId={execution.id} />
+      {/* Review Dashboard */}
+      <div className="space-y-6">
+        <ExecutionReviewDashboard executionId={execution.id} />
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ import NotFound from "./pages/NotFound";
 import ProjectOverview from "./components/projects/ProjectOverview";
 import ProjectSpec from "./components/projects/ProjectSpec";
 import ProjectBuild from "./components/projects/ProjectBuild";
+import TraceabilityView from "./components/projects/TraceabilityView";
 
 // Observability sub-tab components
 import OverviewDashboard from "./components/observability/OverviewDashboard";
@@ -36,6 +37,17 @@ import EventLogTab from "./components/observability/EventLogTab";
 import ExecutionsTab from "./components/observability/ExecutionsTab";
 import AgentsTab from "./components/observability/AgentsTab";
 import AnalyticsTab from "./components/observability/AnalyticsTab";
+import AllEventsViewer from "./components/observability/AllEventsViewer";
+
+// Observability detail pages (deep links)
+import {
+  TaskDetailPage,
+  ToolUseDetailPage,
+  AssertionDetailPage,
+  WaveDetailPage,
+  SkillTraceDetailPage,
+  TranscriptEntryPage,
+} from "./pages/observability";
 
 // Feature flag: Set to true to use the new phase-based UI
 const USE_PHASED_UI = true;
@@ -57,6 +69,7 @@ function App() {
         <Route path="/projects/:slug" element={<ProjectsPage />}>
           <Route index element={<ProjectOverview />} />
           <Route path="spec" element={<ProjectSpec />} />
+          <Route path="traceability" element={<TraceabilityView />} />
           <Route path="build" element={<ProjectBuild />} />
         </Route>
         <Route path="/compare" element={<Comparison />} />
@@ -82,12 +95,37 @@ function App() {
         <Route path="/ideate/:sessionId" element={<IdeationPageWrapper />} />
         {/* Database Objects browser */}
         <Route path="/objects" element={<ObjectsPage />} />
-        {/* Observability with sub-tabs */}
+        {/* Observability with sub-tabs and deep links */}
         <Route path="/observability" element={<ObservabilityPage />}>
           <Route index element={<OverviewDashboard />} />
           <Route path="events" element={<EventLogTab />} />
           <Route path="executions" element={<ExecutionsTab />} />
           <Route path="executions/:id" element={<ExecutionReviewPage />} />
+          {/* Deep link routes for entities within execution */}
+          <Route
+            path="executions/:id/tasks/:taskId"
+            element={<TaskDetailPage />}
+          />
+          <Route
+            path="executions/:id/tools/:toolId"
+            element={<ToolUseDetailPage />}
+          />
+          <Route
+            path="executions/:id/assertions/:assertId"
+            element={<AssertionDetailPage />}
+          />
+          <Route
+            path="executions/:id/waves/:waveNum"
+            element={<WaveDetailPage />}
+          />
+          <Route
+            path="executions/:id/skills/:skillId"
+            element={<SkillTraceDetailPage />}
+          />
+          <Route
+            path="executions/:id/transcript/:entryId"
+            element={<TranscriptEntryPage />}
+          />
           <Route path="agents" element={<AgentsTab />} />
           <Route path="agents/:agentId" element={<AgentDetailPage />} />
           <Route path="analytics" element={<AnalyticsTab />} />

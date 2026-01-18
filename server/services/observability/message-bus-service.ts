@@ -5,7 +5,8 @@
  * Uses the project's sql.js database wrapper.
  */
 
-import { query, getOne } from "../../../database/db.js";
+import { v4 as uuidv4 } from "uuid";
+import { query, getOne, run } from "../../../database/db.js";
 import type {
   MessageBusQuery,
   MessageBusSummaryResponse,
@@ -17,6 +18,8 @@ import type {
   MessageBusCategory,
   CorrelatedEvents,
 } from "../../../frontend/src/types/observability/message-bus.js";
+import { observabilityStream } from "./observability-stream.js";
+import type { MessageBusLogEntry as StreamLogEntry } from "../../types/observability.js";
 
 export class MessageBusService {
   /**
@@ -291,6 +294,89 @@ export class MessageBusService {
       recentErrors: recentErrors.map((row) => this.mapRow(row)),
     };
   }
+
+  // ===========================================================================
+  // OBS-607: Message Bus Logging with Stream Emission
+  // ===========================================================================
+
+  /**
+   * Log a message bus event.
+   */
+  async log(entry: {
+    source: string;
+    eventType: string;
+    humanSummary: string;
+    severity: MessageBusSeverity;
+    category: MessageBusCategory;
+    executionId?: string;
+    taskId?: string;
+    correlationId?: string;
+    transcriptEntryId?: string;
+    payload?: Record<string, unknown>;
+    requiresAction?: boolean;
+  }): Promise<string> {
+    const id = uuidv4();
+    const eventId = uuidv4();
+    const timestamp = new Date().toISOString();
+
+    try {
+      await run(
+        `INSERT INTO message_bus_log (
+          id, event_id, timestamp, source, event_type,
+          correlation_id, human_summary, severity, category,
+          transcript_entry_id, task_id, execution_id, payload,
+          created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          eventId,
+          timestamp,
+          entry.source,
+          entry.eventType,
+          entry.correlationId || null,
+          entry.humanSummary,
+          entry.severity,
+          entry.category,
+          entry.transcriptEntryId || null,
+          entry.taskId || null,
+          entry.executionId || null,
+          entry.payload ? JSON.stringify(entry.payload) : null,
+          timestamp,
+        ],
+      );
+
+      // Emit stream event
+      const streamEntry: StreamLogEntry = {
+        id,
+        eventId,
+        timestamp,
+        source: entry.source,
+        eventType: entry.eventType,
+        correlationId: entry.correlationId || null,
+        humanSummary: entry.humanSummary,
+        severity: entry.severity as StreamLogEntry["severity"],
+        category: entry.category as StreamLogEntry["category"],
+        transcriptEntryId: entry.transcriptEntryId || null,
+        taskId: entry.taskId || null,
+        executionId: entry.executionId || null,
+        payload: entry.payload || null,
+        createdAt: timestamp,
+      };
+
+      observabilityStream.emitMessageBusEvent(
+        streamEntry,
+        entry.requiresAction || false,
+      );
+    } catch (error) {
+      console.error("Failed to log message bus event:", error);
+    }
+
+    return id;
+  }
+
+  // ===========================================================================
+  // Private Methods
+  // ===========================================================================
 
   /**
    * Map database row to MessageBusLogEntry.

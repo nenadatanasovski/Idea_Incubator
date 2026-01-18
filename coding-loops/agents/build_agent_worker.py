@@ -52,6 +52,24 @@ except ImportError:
     OBSERVABLE_AVAILABLE = False
     print("[BuildAgentWorker] WARNING: ObservableAgent not available. Observability features disabled.", file=sys.stderr)
 
+# Observability API client for HTTP-based logging
+try:
+    from observability_api import (
+        create_execution_run,
+        complete_execution_run,
+        record_heartbeat,
+        log_tool_start,
+        log_tool_end,
+        start_assertion_chain,
+        record_assertion,
+        end_assertion_chain,
+        check_observable,
+    )
+    API_OBSERVABLE_AVAILABLE = check_observable()
+except ImportError:
+    API_OBSERVABLE_AVAILABLE = False
+    print("[BuildAgentWorker] INFO: Observability API client not available.", file=sys.stderr)
+
 # Check for anthropic availability
 try:
     import anthropic
@@ -762,6 +780,8 @@ class BuildAgentWorker(_BuildAgentBase):
         # GAP-005: Retry tracking
         self.current_attempt: int = 0
         self.last_error: Optional[str] = None
+        # API Observability tracking
+        self._api_execution_id: Optional[str] = None
 
     def run(self) -> int:
         """
@@ -771,6 +791,17 @@ class BuildAgentWorker(_BuildAgentBase):
             0 on success, non-zero on failure
         """
         print(f"[BuildAgentWorker] Starting agent {self.agent_id} for task {self.task_id}")
+
+        # Create API execution run if available
+        if API_OBSERVABLE_AVAILABLE:
+            try:
+                self._api_execution_id = create_execution_run(
+                    task_list_id=self.task_list_id,
+                    source="build-agent-worker"
+                )
+                print(f"[BuildAgentWorker] Created observability execution: {self._api_execution_id}")
+            except Exception as e:
+                print(f"[BuildAgentWorker] Failed to create observability execution: {e}", file=sys.stderr)
 
         try:
             # Start heartbeat thread
@@ -895,6 +926,7 @@ class BuildAgentWorker(_BuildAgentBase):
                     self._log_continuous(f"All test levels passed")
 
                 # Success!
+                self._success = True  # Flag for observability completion status
                 self._update_progress("completed", 100)
                 self._log_continuous(f"Task completed successfully on attempt {self.current_attempt}")
                 self._record_success(result)
@@ -945,6 +977,13 @@ class BuildAgentWorker(_BuildAgentBase):
             # OBS-102: Close ObservableAgent resources
             if OBSERVABLE_AVAILABLE:
                 self.close()
+            # Complete API observability execution
+            if API_OBSERVABLE_AVAILABLE and self._api_execution_id:
+                try:
+                    status = "completed" if self.task and hasattr(self, '_success') and self._success else "failed"
+                    complete_execution_run(self._api_execution_id, status=status)
+                except Exception as e:
+                    print(f"[BuildAgentWorker] Failed to complete observability execution: {e}", file=sys.stderr)
 
     def _generate_code_with_retry_context(self, conventions: str, idea_context: str, attempt: int) -> TaskResult:
         """
@@ -1382,6 +1421,9 @@ Please fix this issue and try again. Focus on the specific error mentioned above
 
         # OBS-103: Log tool start for code generation
         tool_use_id = None
+        api_tool_id = None
+        start_time = time.time()
+
         if OBSERVABLE_AVAILABLE:
             tool_use_id = self.log_tool_start(
                 tool_name="CodeGenerator",
@@ -1394,10 +1436,29 @@ Please fix this issue and try again. Focus on the specific error mentioned above
                 task_id=self.task.id
             )
 
+        # Also log via HTTP API if available
+        if API_OBSERVABLE_AVAILABLE and self._api_execution_id:
+            try:
+                api_tool_id = log_tool_start(
+                    execution_id=self._api_execution_id,
+                    tool_name="CodeGenerator",
+                    tool_input={
+                        "task_id": self.task.id,
+                        "display_id": self.task.display_id,
+                        "primary_file": self.task.primary_file,
+                        "action": self.task.primary_action,
+                    },
+                    task_id=self.task.id
+                )
+            except Exception as e:
+                print(f"[BuildAgentWorker] API tool log failed: {e}", file=sys.stderr)
+
         try:
             # Format gotchas for the prompt (BA-039)
             gotchas_text = self._format_gotchas_for_prompt()
             code = self.code_generator.generate(self.task, conventions, idea_context, gotchas_text)
+
+            duration_ms = int((time.time() - start_time) * 1000)
 
             # OBS-103: Log tool completion
             if OBSERVABLE_AVAILABLE and tool_use_id:
@@ -1407,10 +1468,23 @@ Please fix this issue and try again. Focus on the specific error mentioned above
                     is_error=False
                 )
 
+            # Also log via HTTP API
+            if API_OBSERVABLE_AVAILABLE and api_tool_id:
+                try:
+                    log_tool_end(
+                        tool_use_id=api_tool_id,
+                        output={"code_length": len(code), "success": True},
+                        is_error=False,
+                        duration_ms=duration_ms
+                    )
+                except Exception as api_err:
+                    print(f"[BuildAgentWorker] API tool end log failed: {api_err}", file=sys.stderr)
+
             return TaskResult(success=True, generated_code=code)
         except Exception as e:
             tb = traceback.format_exc()
             error_msg = f"Code generation failed: {e}\n{tb}"
+            duration_ms = int((time.time() - start_time) * 1000)
 
             # OBS-103: Log tool error
             if OBSERVABLE_AVAILABLE and tool_use_id:
@@ -1420,6 +1494,18 @@ Please fix this issue and try again. Focus on the specific error mentioned above
                     is_error=True,
                     error_message=error_msg
                 )
+
+            # Also log via HTTP API
+            if API_OBSERVABLE_AVAILABLE and api_tool_id:
+                try:
+                    log_tool_end(
+                        tool_use_id=api_tool_id,
+                        output={"error": str(e)},
+                        is_error=True,
+                        duration_ms=duration_ms
+                    )
+                except Exception as api_err:
+                    print(f"[BuildAgentWorker] API tool end log failed: {api_err}", file=sys.stderr)
 
             return TaskResult(success=False, error_message=error_msg)
 

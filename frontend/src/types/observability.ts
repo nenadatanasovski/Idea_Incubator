@@ -12,19 +12,30 @@ export type TranscriptEntryType =
   | "task_end"
   | "tool_use"
   | "skill_invoke"
+  | "skill_complete"
   | "assertion"
+  | "validation"
   | "discovery"
   | "error"
   | "decision"
   | "checkpoint"
-  | "rollback";
+  | "rollback"
+  | "lock_acquire"
+  | "lock_release";
 
 export type EntryCategory =
   | "lifecycle"
+  | "execution"
   | "coordination"
   | "failure"
   | "decision"
-  | "system";
+  | "system"
+  | "tool_use"
+  | "tool"
+  | "assertion"
+  | "discovery"
+  | "skill"
+  | "error";
 
 // === Tool Use Types ===
 
@@ -424,7 +435,12 @@ export type ObservabilityView =
   | "tool-uses"
   | "assertions"
   | "skills"
-  | "logs";
+  | "logs"
+  | "summary"
+  | "heatmap"
+  | "unified"
+  | "messages"
+  | "events";
 
 export interface StatusBadgeProps {
   status: ToolResultStatus | AssertionResult | ExecutionRun["status"];

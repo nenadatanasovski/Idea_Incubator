@@ -9,6 +9,7 @@ import {
   Play,
   Bot,
   BarChart3,
+  Zap,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -17,7 +18,8 @@ export type ObservabilityTab =
   | "events"
   | "executions"
   | "agents"
-  | "analytics";
+  | "analytics"
+  | "platform-events";
 
 interface SubTab {
   id: ObservabilityTab;
@@ -70,6 +72,12 @@ export default function ObservabilitySubTabs({
       icon: BarChart3,
       href: "/observability/analytics",
     },
+    {
+      id: "platform-events",
+      label: "All Events",
+      icon: Zap,
+      href: "/observability/platform-events",
+    },
   ];
 
   // Determine active tab from URL if not explicitly set
@@ -82,6 +90,8 @@ export default function ObservabilitySubTabs({
     if (path.startsWith("/observability/executions")) return "executions";
     if (path.startsWith("/observability/agents")) return "agents";
     if (path.startsWith("/observability/analytics")) return "analytics";
+    if (path.startsWith("/observability/platform-events"))
+      return "platform-events";
     return activeTab;
   };
 

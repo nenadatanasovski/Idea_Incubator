@@ -31,15 +31,19 @@ export type TranscriptEntryType =
   | "lock_release"; // File lock released
 
 /**
- * Categories for grouping transcript entries (6 total).
+ * Categories for grouping transcript entries.
  */
 export type EntryCategory =
   | "lifecycle" // Execution flow events (phase_start, phase_end, task_start, task_end)
+  | "execution" // Alias for lifecycle
   | "tool_use" // Tool operations (tool_use)
+  | "tool" // Alias for tool_use
   | "assertion" // Tests and validations (validation, assertion)
   | "decision" // Agent decisions (decision)
   | "discovery" // Learning and discoveries (discovery)
-  | "coordination"; // Locks, waves, handoffs (checkpoint, lock_acquire, lock_release)
+  | "coordination" // Locks, waves, handoffs (checkpoint, lock_acquire, lock_release)
+  | "skill" // Skill-related events
+  | "error"; // Error events
 
 // =============================================================================
 // CORE TRANSCRIPT ENTRY

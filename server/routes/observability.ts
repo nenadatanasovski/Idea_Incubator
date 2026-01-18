@@ -6,7 +6,7 @@
  */
 
 import { Router, Request, Response } from "express";
-import { query } from "../../database/db.js";
+import { query, run } from "../../database/db.js";
 
 // Import service singletons (OBS-300 to OBS-306)
 import {
@@ -20,7 +20,6 @@ import {
 } from "../services/observability/index.js";
 
 import type {
-  TranscriptEntry,
   ToolUse,
   SkillTrace,
   AssertionResultEntry,
@@ -468,6 +467,243 @@ router.get("/executions/:id", async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/observability/executions/:id/tasks/:taskId
+ * Get a single task by ID (for deep linking)
+ */
+router.get(
+  "/executions/:id/tasks/:taskId",
+  async (req: Request, res: Response) => {
+    try {
+      const { id: executionId, taskId } = req.params;
+
+      // Query task details from the tasks table
+      const rows = await query<{
+        id: string;
+        display_id: string;
+        title: string;
+        status: string;
+        started_at: string | null;
+        completed_at: string | null;
+        wave_number: number | null;
+      }>(
+        `SELECT
+          t.id,
+          t.display_id,
+          t.title,
+          t.status,
+          t.started_at,
+          t.completed_at,
+          pew.wave_number
+        FROM tasks t
+        LEFT JOIN parallel_execution_waves pew ON t.id = pew.task_id
+        WHERE t.id = ?`,
+        [taskId],
+      );
+
+      if (!rows || rows.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Task not found" });
+      }
+
+      const taskRow = rows[0];
+
+      // Calculate duration
+      let durationMs: number | undefined;
+      if (taskRow.started_at && taskRow.completed_at) {
+        durationMs =
+          new Date(taskRow.completed_at).getTime() -
+          new Date(taskRow.started_at).getTime();
+      }
+
+      // Get tool use count for this task
+      const toolUsesResult = await toolUseService.getToolUses(executionId, {
+        taskId,
+        limit: 1,
+        offset: 0,
+      });
+
+      // Get assertion count for this task
+      const assertionsResult = await assertionService.getAssertions(
+        executionId,
+        {
+          taskId,
+          limit: 1,
+          offset: 0,
+        },
+      );
+
+      // Count passed assertions
+      const passedAssertionsResult = await assertionService.getAssertions(
+        executionId,
+        {
+          taskId,
+          result: ["pass"],
+          limit: 1,
+          offset: 0,
+        },
+      );
+
+      return res.json({
+        success: true,
+        data: {
+          id: taskRow.id,
+          displayId: taskRow.display_id,
+          title: taskRow.title,
+          status: taskRow.status,
+          startedAt: taskRow.started_at,
+          completedAt: taskRow.completed_at,
+          durationMs,
+          waveNumber: taskRow.wave_number,
+          toolUseCount: toolUsesResult.total,
+          assertionCount: assertionsResult.total,
+          passedAssertions: passedAssertionsResult.total,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch task:", error);
+      return res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch task" });
+    }
+  },
+);
+
+/**
+ * GET /api/observability/executions/:id/waves/:waveNum
+ * Get wave details by wave number (for deep linking)
+ */
+router.get(
+  "/executions/:id/waves/:waveNum",
+  async (req: Request, res: Response) => {
+    try {
+      const { id: executionId, waveNum } = req.params;
+      const waveNumber = parseInt(waveNum, 10);
+
+      if (isNaN(waveNumber)) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Invalid wave number" });
+      }
+
+      // Query wave details from parallel_execution_waves
+      const waveRows = await query<{
+        id: string;
+        wave_number: number;
+        status: string;
+        started_at: string | null;
+        completed_at: string | null;
+        max_parallel_agents: number;
+      }>(
+        `SELECT
+          id,
+          wave_number,
+          status,
+          started_at,
+          completed_at,
+          max_parallel_agents
+        FROM parallel_execution_waves
+        WHERE execution_id = ? AND wave_number = ?
+        GROUP BY wave_number`,
+        [executionId, waveNumber],
+      );
+
+      if (!waveRows || waveRows.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Wave not found" });
+      }
+
+      const waveRow = waveRows[0];
+
+      // Calculate duration
+      let durationMs: number | undefined;
+      if (waveRow.started_at && waveRow.completed_at) {
+        durationMs =
+          new Date(waveRow.completed_at).getTime() -
+          new Date(waveRow.started_at).getTime();
+      }
+
+      // Get tasks in this wave
+      const taskRows = await query<{
+        id: string;
+        display_id: string;
+        status: string;
+      }>(
+        `SELECT
+          t.id,
+          t.display_id,
+          t.status
+        FROM tasks t
+        INNER JOIN parallel_execution_waves pew ON t.id = pew.task_id
+        WHERE pew.execution_id = ? AND pew.wave_number = ?`,
+        [executionId, waveNumber],
+      );
+
+      // Get agents assigned to this wave
+      const agentRows = await query<{
+        id: string;
+        name: string | null;
+        status: string;
+      }>(
+        `SELECT DISTINCT
+          ba.id,
+          ba.agent_id as name,
+          ba.status
+        FROM build_agent_instances ba
+        WHERE ba.execution_id = ? AND ba.current_wave = ?`,
+        [executionId, waveNumber],
+      );
+
+      // Get total wave count for navigation
+      const maxWaveResult = await query<{ max_wave: number }>(
+        `SELECT MAX(wave_number) as max_wave
+        FROM parallel_execution_waves
+        WHERE execution_id = ?`,
+        [executionId],
+      );
+      const maxWave = maxWaveResult[0]?.max_wave || waveNumber;
+
+      return res.json({
+        success: true,
+        data: {
+          wave: {
+            id: waveRow.id,
+            status: waveRow.status,
+            startedAt: waveRow.started_at,
+            completedAt: waveRow.completed_at,
+            durationMs,
+            taskCount: taskRows.length,
+            maxParallelAgents: waveRow.max_parallel_agents || 1,
+          },
+          tasks: taskRows.map((t) => ({
+            id: t.id,
+            displayId: t.display_id,
+            status: t.status,
+          })),
+          agents: agentRows.map((a) => ({
+            id: a.id,
+            name: a.name,
+            status: a.status,
+          })),
+          navigation: {
+            current: waveNumber,
+            total: maxWave,
+            hasPrevious: waveNumber > 1,
+            hasNext: waveNumber < maxWave,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch wave:", error);
+      return res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch wave" });
+    }
+  },
+);
+
+/**
  * GET /api/observability/executions/:id/transcript
  * Get transcript entries for an execution (using TranscriptService)
  */
@@ -500,6 +736,71 @@ router.get(
       res
         .status(500)
         .json({ success: false, error: "Failed to fetch transcript" });
+    }
+  },
+);
+
+/**
+ * GET /api/observability/executions/:id/transcript/:entryId
+ * Get a single transcript entry by ID (for deep linking)
+ */
+router.get(
+  "/executions/:id/transcript/:entryId",
+  async (req: Request, res: Response) => {
+    try {
+      const { id: executionId, entryId } = req.params;
+
+      // Use TranscriptService to get single entry
+      const entry = await transcriptService.getEntry(entryId);
+
+      if (!entry || entry.executionId !== executionId) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Transcript entry not found" });
+      }
+
+      // Find adjacent entries by sequence
+      const allEntries = await transcriptService.getTranscript(executionId, {
+        limit: 500,
+        offset: 0,
+      });
+
+      const sortedEntries = allEntries.data.sort(
+        (a, b) => a.sequence - b.sequence,
+      );
+      const currentIdx = sortedEntries.findIndex((e) => e.id === entryId);
+
+      const previous =
+        currentIdx > 0
+          ? {
+              id: sortedEntries[currentIdx - 1].id,
+              sequence: sortedEntries[currentIdx - 1].sequence,
+              entryType: sortedEntries[currentIdx - 1].entryType,
+            }
+          : null;
+
+      const next =
+        currentIdx < sortedEntries.length - 1
+          ? {
+              id: sortedEntries[currentIdx + 1].id,
+              sequence: sortedEntries[currentIdx + 1].sequence,
+              entryType: sortedEntries[currentIdx + 1].entryType,
+            }
+          : null;
+
+      return res.json({
+        success: true,
+        data: {
+          entry,
+          previous,
+          next,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch transcript entry:", error);
+      return res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch transcript entry" });
     }
   },
 );
@@ -573,6 +874,35 @@ router.get("/executions/:id/tool-uses", async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/observability/executions/:id/tool-uses/:toolId
+ * Get a single tool use by ID (for deep linking)
+ */
+router.get(
+  "/executions/:id/tool-uses/:toolId",
+  async (req: Request, res: Response) => {
+    try {
+      const { id: executionId, toolId } = req.params;
+
+      // Use ToolUseService to get single tool use (with payloads)
+      const toolUse = await toolUseService.getToolUse(toolId, true);
+
+      if (!toolUse || toolUse.executionId !== executionId) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Tool use not found" });
+      }
+
+      return res.json({ success: true, data: toolUse });
+    } catch (error) {
+      console.error("Failed to fetch tool use:", error);
+      return res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch tool use" });
+    }
+  },
+);
+
+/**
  * GET /api/observability/executions/:id/assertions
  * Get assertions for an execution (using AssertionService)
  */
@@ -632,6 +962,83 @@ router.get(
 );
 
 /**
+ * GET /api/observability/executions/:id/assertions/:assertId
+ * Get a single assertion by ID (for deep linking)
+ */
+router.get(
+  "/executions/:id/assertions/:assertId",
+  async (req: Request, res: Response) => {
+    try {
+      const { id: executionId, assertId } = req.params;
+
+      // Use AssertionService to get single assertion
+      const assertion = await assertionService.getAssertion(assertId);
+
+      if (!assertion || assertion.executionId !== executionId) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Assertion not found" });
+      }
+
+      // Get chain info for navigation
+      let chainInfo = null;
+      if (assertion.chainId) {
+        const chainAssertions = await assertionService.getAssertions(
+          executionId,
+          {
+            chainId: assertion.chainId,
+            limit: 100,
+            offset: 0,
+          },
+        );
+
+        const sorted = chainAssertions.data.sort(
+          (a, b) => (a.chainPosition || 0) - (b.chainPosition || 0),
+        );
+        const currentIdx = sorted.findIndex((a) => a.id === assertId);
+
+        chainInfo = {
+          position: currentIdx + 1,
+          total: sorted.length,
+          previousId: currentIdx > 0 ? sorted[currentIdx - 1].id : undefined,
+          nextId:
+            currentIdx < sorted.length - 1
+              ? sorted[currentIdx + 1].id
+              : undefined,
+        };
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          assertion: {
+            id: assertion.id,
+            taskId: assertion.taskId,
+            executionId: assertion.executionId,
+            category: assertion.category,
+            description: assertion.description,
+            result: assertion.result,
+            evidence: assertion.evidence || {},
+            chainId: assertion.chainId,
+            chainPosition: assertion.chainPosition,
+            timestamp: assertion.timestamp,
+            durationMs: assertion.durationMs,
+            transcriptEntryId: assertion.transcriptEntryId,
+            createdAt: assertion.createdAt,
+          },
+          chainInfo,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch assertion:", error);
+      return res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch assertion" });
+    }
+  },
+);
+
+/**
  * GET /api/observability/executions/:id/skills
  * Get skill traces for an execution (using SkillService)
  */
@@ -685,6 +1092,108 @@ router.get("/executions/:id/skills", async (req: Request, res: Response) => {
       .json({ success: false, error: "Failed to fetch skill traces" });
   }
 });
+
+/**
+ * GET /api/observability/executions/:id/skills/:skillId
+ * Get a single skill trace by ID (for deep linking)
+ */
+router.get(
+  "/executions/:id/skills/:skillId",
+  async (req: Request, res: Response) => {
+    try {
+      const { id: executionId, skillId } = req.params;
+
+      // Use SkillService to get single skill trace
+      const skillTrace = await skillService.getSkillTrace(skillId);
+
+      if (!skillTrace || skillTrace.executionId !== executionId) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Skill trace not found" });
+      }
+
+      // Get related tool calls using within_skill field
+      const toolCallRows = await query<{
+        id: string;
+        tool: string;
+        input_summary: string;
+        result_status: string;
+        duration_ms: number;
+      }>(
+        `SELECT id, tool, input_summary, result_status, duration_ms
+        FROM tool_uses
+        WHERE execution_id = ? AND within_skill = ?
+        LIMIT 50`,
+        [executionId, skillId],
+      );
+
+      const toolCalls = toolCallRows.map((tu) => ({
+        toolUseId: tu.id,
+        tool: tu.tool,
+        inputSummary: tu.input_summary || "",
+        resultStatus: tu.result_status,
+        durationMs: tu.duration_ms,
+      }));
+
+      // Get related assertions (by task if skill has a task)
+      let assertions: Array<{
+        id: string;
+        category: string;
+        description: string;
+        result: string;
+      }> = [];
+
+      if (skillTrace.taskId) {
+        const assertionsResult = await assertionService.getAssertions(
+          executionId,
+          {
+            taskId: skillTrace.taskId,
+            limit: 50,
+            offset: 0,
+          },
+        );
+
+        assertions = assertionsResult.data.map((a) => ({
+          id: a.id,
+          category: a.category,
+          description: a.description,
+          result: a.result,
+        }));
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          skill: {
+            id: skillTrace.id,
+            executionId: skillTrace.executionId,
+            taskId: skillTrace.taskId,
+            skillName: skillTrace.skillName,
+            skillFile: skillTrace.skillFile,
+            lineNumber: skillTrace.lineNumber,
+            sectionTitle: skillTrace.sectionTitle,
+            inputSummary: skillTrace.inputSummary,
+            outputSummary: skillTrace.outputSummary,
+            startTime: skillTrace.startTime,
+            endTime: skillTrace.endTime,
+            durationMs: skillTrace.durationMs,
+            tokenEstimate: skillTrace.tokenEstimate,
+            status: skillTrace.status,
+            errorMessage: skillTrace.errorMessage,
+          },
+          taskId: skillTrace.taskId,
+          toolCalls,
+          assertions,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch skill trace:", error);
+      return res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch skill trace" });
+    }
+  },
+);
 
 /**
  * GET /api/observability/executions/:id/tool-summary
@@ -1283,6 +1792,327 @@ router.get("/search", async (req: Request, res: Response) => {
   }
 });
 
+// === Task-Scoped Endpoints (OBS-708 Support) ===
+
+/**
+ * GET /api/observability/tasks/:taskId/transcript
+ * Get transcript entries for a specific task across all executions
+ */
+router.get("/tasks/:taskId/transcript", async (req: Request, res: Response) => {
+  try {
+    const { taskId } = req.params;
+    const { limit, offset } = buildPagination(req);
+
+    // Query transcript entries filtered by task_id
+    const entries = await query<{
+      id: string;
+      timestamp: string;
+      sequence: number;
+      execution_id: string;
+      task_id: string;
+      instance_id: string;
+      wave_number: number | null;
+      entry_type: string;
+      category: string;
+      summary: string;
+      details: string | null;
+      skill_ref: string | null;
+      tool_calls: string | null;
+      assertions: string | null;
+      duration_ms: number | null;
+      token_estimate: number | null;
+      created_at: string;
+    }>(
+      `SELECT * FROM transcript_entries
+       WHERE task_id = ?
+       ORDER BY timestamp DESC
+       LIMIT ? OFFSET ?`,
+      [taskId, limit, offset],
+    );
+
+    const countResult = await query<{ total: number }>(
+      `SELECT COUNT(*) as total FROM transcript_entries WHERE task_id = ?`,
+      [taskId],
+    );
+    const total = countResult[0]?.total || 0;
+
+    const data = entries.map((e) => ({
+      id: e.id,
+      timestamp: e.timestamp,
+      sequence: e.sequence,
+      executionId: e.execution_id,
+      taskId: e.task_id,
+      instanceId: e.instance_id,
+      waveNumber: e.wave_number,
+      entryType: e.entry_type,
+      category: e.category,
+      summary: e.summary,
+      details: e.details ? JSON.parse(e.details) : null,
+      skillRef: e.skill_ref ? JSON.parse(e.skill_ref) : null,
+      toolCalls: e.tool_calls ? JSON.parse(e.tool_calls) : null,
+      assertions: e.assertions ? JSON.parse(e.assertions) : null,
+      durationMs: e.duration_ms,
+      tokenEstimate: e.token_estimate,
+      createdAt: e.created_at,
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        data,
+        total,
+        limit,
+        offset,
+        hasMore: offset + data.length < total,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch task transcript:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to fetch task transcript" });
+  }
+});
+
+/**
+ * GET /api/observability/tasks/:taskId/tool-uses
+ * Get tool uses for a specific task across all executions
+ */
+router.get("/tasks/:taskId/tool-uses", async (req: Request, res: Response) => {
+  try {
+    const { taskId } = req.params;
+    const { limit, offset } = buildPagination(req);
+
+    const toolUses = await query<{
+      id: string;
+      execution_id: string;
+      task_id: string;
+      transcript_entry_id: string;
+      tool: string;
+      tool_category: string;
+      input: string | null;
+      input_summary: string;
+      result_status: string;
+      output: string | null;
+      output_summary: string;
+      is_error: number;
+      is_blocked: number;
+      error_message: string | null;
+      block_reason: string | null;
+      start_time: string;
+      end_time: string;
+      duration_ms: number;
+      within_skill: string | null;
+      parent_tool_use_id: string | null;
+      created_at: string;
+    }>(
+      `SELECT * FROM tool_uses
+       WHERE task_id = ?
+       ORDER BY start_time DESC
+       LIMIT ? OFFSET ?`,
+      [taskId, limit, offset],
+    );
+
+    const countResult = await query<{ total: number }>(
+      `SELECT COUNT(*) as total FROM tool_uses WHERE task_id = ?`,
+      [taskId],
+    );
+    const total = countResult[0]?.total || 0;
+
+    const data: ToolUse[] = toolUses.map((tu) => ({
+      id: tu.id,
+      executionId: tu.execution_id,
+      taskId: tu.task_id,
+      transcriptEntryId: tu.transcript_entry_id,
+      tool: tu.tool as ToolName,
+      toolCategory: tu.tool_category as ToolCategory,
+      input: tu.input ? JSON.parse(tu.input) : {},
+      inputSummary: tu.input_summary,
+      resultStatus: tu.result_status as ToolResultStatus,
+      output: tu.output ? JSON.parse(tu.output) : null,
+      outputSummary: tu.output_summary,
+      isError: tu.is_error === 1,
+      isBlocked: tu.is_blocked === 1,
+      errorMessage: tu.error_message,
+      blockReason: tu.block_reason,
+      startTime: tu.start_time,
+      endTime: tu.end_time,
+      durationMs: tu.duration_ms,
+      withinSkill: tu.within_skill,
+      parentToolUseId: tu.parent_tool_use_id,
+      createdAt: tu.created_at,
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        data,
+        total,
+        limit,
+        offset,
+        hasMore: offset + data.length < total,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch task tool uses:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to fetch task tool uses" });
+  }
+});
+
+/**
+ * GET /api/observability/tasks/:taskId/assertions
+ * Get assertions for a specific task across all executions
+ */
+router.get("/tasks/:taskId/assertions", async (req: Request, res: Response) => {
+  try {
+    const { taskId } = req.params;
+    const { limit, offset } = buildPagination(req);
+
+    const assertions = await query<{
+      id: string;
+      task_id: string;
+      execution_id: string;
+      category: string;
+      description: string;
+      result: string;
+      evidence: string | null;
+      chain_id: string | null;
+      chain_position: number | null;
+      timestamp: string;
+      duration_ms: number | null;
+      transcript_entry_id: string | null;
+      created_at: string;
+    }>(
+      `SELECT * FROM assertion_results
+       WHERE task_id = ?
+       ORDER BY timestamp DESC
+       LIMIT ? OFFSET ?`,
+      [taskId, limit, offset],
+    );
+
+    const countResult = await query<{ total: number }>(
+      `SELECT COUNT(*) as total FROM assertion_results WHERE task_id = ?`,
+      [taskId],
+    );
+    const total = countResult[0]?.total || 0;
+
+    const data: AssertionResultEntry[] = assertions.map((a) => ({
+      id: a.id,
+      taskId: a.task_id,
+      executionId: a.execution_id,
+      category: a.category as AssertionCategory,
+      description: a.description,
+      result: a.result as AssertionResultEntry["result"],
+      evidence: a.evidence ? JSON.parse(a.evidence) : {},
+      chainId: a.chain_id,
+      chainPosition: a.chain_position,
+      timestamp: a.timestamp,
+      durationMs: a.duration_ms,
+      transcriptEntryId: a.transcript_entry_id,
+      createdAt: a.created_at,
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        data,
+        total,
+        limit,
+        offset,
+        hasMore: offset + data.length < total,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch task assertions:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to fetch task assertions" });
+  }
+});
+
+/**
+ * GET /api/observability/tasks/:taskId/skills
+ * Get skill traces for a specific task across all executions
+ */
+router.get("/tasks/:taskId/skills", async (req: Request, res: Response) => {
+  try {
+    const { taskId } = req.params;
+    const { limit, offset } = buildPagination(req);
+
+    const skills = await query<{
+      id: string;
+      execution_id: string;
+      task_id: string;
+      skill_name: string;
+      skill_file: string;
+      line_number: number | null;
+      section_title: string | null;
+      input_summary: string | null;
+      output_summary: string | null;
+      start_time: string;
+      end_time: string | null;
+      duration_ms: number | null;
+      token_estimate: number | null;
+      status: string;
+      error_message: string | null;
+      tool_calls: string | null;
+      sub_skills: string | null;
+      created_at: string;
+    }>(
+      `SELECT * FROM skill_traces
+       WHERE task_id = ?
+       ORDER BY start_time DESC
+       LIMIT ? OFFSET ?`,
+      [taskId, limit, offset],
+    );
+
+    const countResult = await query<{ total: number }>(
+      `SELECT COUNT(*) as total FROM skill_traces WHERE task_id = ?`,
+      [taskId],
+    );
+    const total = countResult[0]?.total || 0;
+
+    const data: SkillTrace[] = skills.map((s) => ({
+      id: s.id,
+      executionId: s.execution_id,
+      taskId: s.task_id,
+      skillName: s.skill_name,
+      skillFile: s.skill_file,
+      lineNumber: s.line_number,
+      sectionTitle: s.section_title,
+      inputSummary: s.input_summary,
+      outputSummary: s.output_summary,
+      startTime: s.start_time,
+      endTime: s.end_time,
+      durationMs: s.duration_ms,
+      tokenEstimate: s.token_estimate,
+      status: s.status as SkillTrace["status"],
+      errorMessage: s.error_message,
+      toolCalls: s.tool_calls ? JSON.parse(s.tool_calls) : null,
+      subSkills: s.sub_skills ? JSON.parse(s.sub_skills) : null,
+      createdAt: s.created_at,
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        data,
+        total,
+        limit,
+        offset,
+        hasMore: offset + data.length < total,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch task skills:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to fetch task skills" });
+  }
+});
+
 // === Analytics Endpoints ===
 
 /**
@@ -1649,6 +2479,531 @@ router.get("/analytics/errors", async (req: Request, res: Response) => {
     res
       .status(500)
       .json({ success: false, error: "Failed to fetch error analytics" });
+  }
+});
+
+// === Data Producer Endpoints (Python API Client Support) ===
+
+/**
+ * POST /api/observability/executions
+ * Create a new execution run (called by Python agents)
+ */
+router.post("/executions", async (req: Request, res: Response) => {
+  try {
+    const { taskListId, source, sessionId } = req.body;
+
+    if (!taskListId) {
+      res.status(400).json({
+        success: false,
+        error: "taskListId is required",
+      });
+      return;
+    }
+
+    // Import createExecutionRun from execution-manager
+    const { createExecutionRun } =
+      await import("../services/observability/execution-manager.js");
+
+    const executionId = await createExecutionRun(taskListId, sessionId);
+
+    // Optionally track source for analytics
+    if (source) {
+      try {
+        await run(
+          `UPDATE task_list_execution_runs SET source = ? WHERE id = ?`,
+          [source, executionId],
+        );
+      } catch {
+        // source column may not exist
+      }
+    }
+
+    res.json({
+      success: true,
+      data: { executionId },
+    });
+  } catch (error) {
+    console.error("Failed to create execution run:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to create execution run",
+    });
+  }
+});
+
+/**
+ * PUT /api/observability/executions/:id/complete
+ * Complete an execution run
+ */
+router.put("/executions/:id/complete", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status, summary } = req.body;
+
+    if (!status || !["completed", "failed", "cancelled"].includes(status)) {
+      res.status(400).json({
+        success: false,
+        error: "status must be 'completed', 'failed', or 'cancelled'",
+      });
+      return;
+    }
+
+    const { completeExecutionRun } =
+      await import("../services/observability/execution-manager.js");
+
+    await completeExecutionRun(id, status, summary);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Failed to complete execution run:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to complete execution run",
+    });
+  }
+});
+
+/**
+ * POST /api/observability/executions/:id/heartbeat
+ * Record a heartbeat for an agent instance
+ */
+router.post(
+  "/executions/:id/heartbeat",
+  async (req: Request, res: Response) => {
+    try {
+      const { id: executionId } = req.params;
+      const { instanceId, status, metadata } = req.body;
+
+      if (!instanceId) {
+        res.status(400).json({
+          success: false,
+          error: "instanceId is required",
+        });
+        return;
+      }
+
+      // Update agent instance heartbeat
+      const { run } = await import("../../database/db.js");
+      await run(
+        `INSERT INTO build_agent_instances (id, execution_id, status, metadata, last_heartbeat)
+       VALUES (?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(id) DO UPDATE SET
+         status = excluded.status,
+         metadata = excluded.metadata,
+         last_heartbeat = excluded.last_heartbeat`,
+        [
+          instanceId,
+          executionId,
+          status || "running",
+          JSON.stringify(metadata || {}),
+        ],
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to record heartbeat:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to record heartbeat",
+      });
+    }
+  },
+);
+
+/**
+ * POST /api/observability/executions/:id/tool-uses
+ * Log a tool use (start or complete)
+ */
+router.post(
+  "/executions/:id/tool-uses",
+  async (req: Request, res: Response) => {
+    try {
+      const { id: executionId } = req.params;
+      const { tool, input, output, isError, durationMs, taskId, complete } =
+        req.body;
+
+      if (!tool) {
+        res.status(400).json({
+          success: false,
+          error: "tool is required",
+        });
+        return;
+      }
+
+      const toolUseId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      // Summarize input/output
+      const summarize = (data: unknown, maxLen = 500): string => {
+        if (!data) return "";
+        const s =
+          typeof data === "object" ? JSON.stringify(data) : String(data);
+        return s.length > maxLen ? s.slice(0, maxLen - 3) + "..." : s;
+      };
+
+      const { run } = await import("../../database/db.js");
+
+      if (complete) {
+        // Insert complete record
+        await run(
+          `INSERT INTO tool_uses (
+          id, execution_id, task_id, tool, tool_category,
+          input, input_summary, output, output_summary,
+          is_error, result_status, start_time, end_time, duration_ms, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            toolUseId,
+            executionId,
+            taskId || null,
+            tool,
+            "custom",
+            JSON.stringify(input || {}),
+            summarize(input, 200),
+            JSON.stringify(output || {}),
+            summarize(output, 200),
+            isError ? 1 : 0,
+            isError ? "error" : "success",
+            now,
+            now,
+            durationMs || 0,
+            now,
+          ],
+        );
+      } else {
+        // Insert start record (will be completed later)
+        await run(
+          `INSERT INTO tool_uses (
+          id, execution_id, task_id, tool, tool_category,
+          input, input_summary, result_status, start_time, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            toolUseId,
+            executionId,
+            taskId || null,
+            tool,
+            "custom",
+            JSON.stringify(input || {}),
+            summarize(input, 200),
+            "pending",
+            now,
+            now,
+          ],
+        );
+      }
+
+      res.json({
+        success: true,
+        data: { toolUseId },
+      });
+    } catch (error) {
+      console.error("Failed to log tool use:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to log tool use",
+      });
+    }
+  },
+);
+
+/**
+ * PUT /api/observability/tool-uses/:id/complete
+ * Complete a tool use record
+ */
+router.put("/tool-uses/:id/complete", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { output, isError, durationMs } = req.body;
+
+    const summarize = (data: unknown, maxLen = 500): string => {
+      if (!data) return "";
+      const s = typeof data === "object" ? JSON.stringify(data) : String(data);
+      return s.length > maxLen ? s.slice(0, maxLen - 3) + "..." : s;
+    };
+
+    const { run } = await import("../../database/db.js");
+    const now = new Date().toISOString();
+
+    await run(
+      `UPDATE tool_uses SET
+       output = ?,
+       output_summary = ?,
+       is_error = ?,
+       result_status = ?,
+       end_time = ?,
+       duration_ms = COALESCE(?, (strftime('%s', ?) - strftime('%s', start_time)) * 1000)
+     WHERE id = ?`,
+      [
+        JSON.stringify(output || {}),
+        summarize(output, 200),
+        isError ? 1 : 0,
+        isError ? "error" : "success",
+        now,
+        durationMs || null,
+        now,
+        id,
+      ],
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Failed to complete tool use:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to complete tool use",
+    });
+  }
+});
+
+/**
+ * POST /api/observability/executions/:id/assertion-chains
+ * Start an assertion chain
+ */
+router.post(
+  "/executions/:id/assertion-chains",
+  async (req: Request, res: Response) => {
+    try {
+      const { id: executionId } = req.params;
+      const { taskId, name } = req.body;
+
+      if (!taskId || !name) {
+        res.status(400).json({
+          success: false,
+          error: "taskId and name are required",
+        });
+        return;
+      }
+
+      const chainId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      const { run } = await import("../../database/db.js");
+
+      await run(
+        `INSERT INTO assertion_chains (
+        id, execution_id, task_id, name, status, started_at, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [chainId, executionId, taskId, name, "running", now, now],
+      );
+
+      res.json({
+        success: true,
+        data: { chainId },
+      });
+    } catch (error) {
+      console.error("Failed to start assertion chain:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to start assertion chain",
+      });
+    }
+  },
+);
+
+/**
+ * POST /api/observability/assertion-chains/:id/assertions
+ * Record an assertion result
+ */
+router.post(
+  "/assertion-chains/:id/assertions",
+  async (req: Request, res: Response) => {
+    try {
+      const { id: chainId } = req.params;
+      const { description, passed, evidence, category } = req.body;
+
+      if (!description) {
+        res.status(400).json({
+          success: false,
+          error: "description is required",
+        });
+        return;
+      }
+
+      const assertionId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      const { run, query } = await import("../../database/db.js");
+
+      // Get next position in chain
+      const posResult = await query<{ max_pos: number }>(
+        `SELECT COALESCE(MAX(chain_position), 0) as max_pos FROM assertion_results WHERE chain_id = ?`,
+        [chainId],
+      );
+      const position = (posResult[0]?.max_pos || 0) + 1;
+
+      // Get execution_id and task_id from chain
+      const chainInfo = await query<{ execution_id: string; task_id: string }>(
+        `SELECT execution_id, task_id FROM assertion_chains WHERE id = ?`,
+        [chainId],
+      );
+
+      if (chainInfo.length === 0) {
+        res.status(404).json({
+          success: false,
+          error: "Assertion chain not found",
+        });
+        return;
+      }
+
+      await run(
+        `INSERT INTO assertion_results (
+        id, execution_id, task_id, chain_id, chain_position,
+        category, description, result, evidence, timestamp, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          assertionId,
+          chainInfo[0].execution_id,
+          chainInfo[0].task_id,
+          chainId,
+          position,
+          category || "validation",
+          description,
+          passed ? "pass" : "fail",
+          JSON.stringify(evidence || {}),
+          now,
+          now,
+        ],
+      );
+
+      res.json({
+        success: true,
+        data: { assertionId },
+      });
+    } catch (error) {
+      console.error("Failed to record assertion:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to record assertion",
+      });
+    }
+  },
+);
+
+/**
+ * PUT /api/observability/assertion-chains/:id/complete
+ * Complete an assertion chain
+ */
+router.put(
+  "/assertion-chains/:id/complete",
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { passed, summary } = req.body;
+
+      const { run } = await import("../../database/db.js");
+      const now = new Date().toISOString();
+
+      await run(
+        `UPDATE assertion_chains SET
+       status = ?,
+       summary = ?,
+       completed_at = ?
+     WHERE id = ?`,
+        [passed ? "passed" : "failed", summary || null, now, id],
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to complete assertion chain:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to complete assertion chain",
+      });
+    }
+  },
+);
+
+/**
+ * POST /api/observability/executions/:id/phases
+ * Log the start of an execution phase
+ */
+router.post("/executions/:id/phases", async (req: Request, res: Response) => {
+  try {
+    const { id: executionId } = req.params;
+    const { name, metadata } = req.body;
+
+    if (!name) {
+      res.status(400).json({
+        success: false,
+        error: "name is required",
+      });
+      return;
+    }
+
+    const phaseId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const { run } = await import("../../database/db.js");
+
+    // Insert as transcript entry with phase type
+    await run(
+      `INSERT INTO transcript_entries (
+        id, execution_id, entry_type, category, summary, details, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        phaseId,
+        executionId,
+        "phase_start",
+        "system",
+        `Phase: ${name}`,
+        JSON.stringify({ name, metadata: metadata || {} }),
+        now,
+      ],
+    );
+
+    res.json({
+      success: true,
+      data: { phaseId },
+    });
+  } catch (error) {
+    console.error("Failed to log phase start:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to log phase start",
+    });
+  }
+});
+
+/**
+ * PUT /api/observability/phases/:id/complete
+ * Complete an execution phase
+ */
+router.put("/phases/:id/complete", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status, summary } = req.body;
+
+    const { run } = await import("../../database/db.js");
+    const now = new Date().toISOString();
+
+    // Insert phase completion as new transcript entry
+    await run(
+      `INSERT INTO transcript_entries (
+        id, execution_id, entry_type, category, summary, details, created_at
+      ) SELECT
+        ?,
+        execution_id,
+        'phase_complete',
+        'system',
+        ?,
+        ?,
+        ?
+      FROM transcript_entries WHERE id = ?`,
+      [
+        crypto.randomUUID(),
+        `Phase completed: ${status || "completed"}`,
+        JSON.stringify({ phaseId: id, status: status || "completed", summary }),
+        now,
+        id,
+      ],
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Failed to complete phase:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to complete phase",
+    });
   }
 });
 

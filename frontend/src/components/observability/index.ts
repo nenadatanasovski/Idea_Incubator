@@ -26,6 +26,11 @@ export { default as UnifiedLogViewer } from "./UnifiedLogViewer";
 export { default as SkillFlowDiagram } from "./SkillFlowDiagram";
 export { default as AgentActivityGraph } from "./AgentActivityGraph";
 
+// Dashboard components
+export { default as WaveProgressPanel } from "./WaveProgressPanel";
+export { default as ExecutionReviewDashboard } from "./ExecutionReviewDashboard";
+export { default as MessageBusLogViewer } from "./MessageBusLogViewer";
+
 // Container components
 export { default as ObservabilityHub } from "./ObservabilityHub";
 export { default as ExecutionList } from "./ExecutionList";

@@ -388,5 +388,75 @@ class MyLoop(RalphLoopRunner):
 
 ---
 
+## Observability Log Retention
+
+The system includes automated log retention to manage observability data lifecycle.
+
+### Retention Policies
+
+| Data Type          | Hot (SQLite) | Warm (Archive) | Cold (Compressed) |
+| ------------------ | ------------ | -------------- | ----------------- |
+| Transcript entries | 7 days       | 30 days        | 1 year            |
+| Tool uses          | 7 days       | 30 days        | 1 year            |
+| Skill traces       | 7 days       | 30 days        | 1 year            |
+| Assertion results  | 30 days      | 90 days        | 2 years           |
+| Message bus log    | 7 days       | 30 days        | 90 days           |
+
+### CLI Commands
+
+```bash
+# Archive transcripts older than 7 days
+python3 coding-loops/cli.py archive transcripts --older-than 7d
+
+# Archive assertions older than 30 days
+python3 coding-loops/cli.py archive assertions --older-than 30d
+
+# Archive all data
+python3 coding-loops/cli.py archive all --older-than 7d
+
+# Clean up old archives
+python3 coding-loops/cli.py cleanup archives --older-than 1y
+
+# View retention status
+python3 coding-loops/cli.py retention status
+
+# View retention policies
+python3 coding-loops/cli.py retention policy
+```
+
+### Scheduled Jobs
+
+For automated archival, add to crontab:
+
+```cron
+# Daily: Archive transcripts
+0 2 * * * python3 /path/to/coding-loops/cli.py archive transcripts --older-than 7d
+
+# Weekly: Archive assertions
+0 3 * * 0 python3 /path/to/coding-loops/cli.py archive assertions --older-than 30d
+
+# Monthly: Clean up
+0 4 1 * * python3 /path/to/coding-loops/cli.py cleanup archives --older-than 30d
+```
+
+### Archive Structure
+
+```
+coding-loops/archives/
+├── warm/                       # JSONL archives (searchable)
+│   ├── 2026-01-15/
+│   │   ├── transcript_entries.jsonl.gz
+│   │   ├── tool_uses.jsonl.gz
+│   │   └── skill_traces.jsonl.gz
+│   └── 2026-01-16/
+│       └── ...
+└── cold/                       # Compressed monthly archives
+    └── 2025/
+        ├── 2025-11.tar.gz
+        └── 2025-12.tar.gz
+```
+
+---
+
 _Created: 2026-01-07_
-_Last Updated: 2026-01-07_
+_Last Updated: 2026-01-18_

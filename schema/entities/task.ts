@@ -92,6 +92,13 @@ export const tasks = sqliteTable(
     owner: text("owner", { enum: taskOwners }).default("build_agent"),
     assignedAgentId: text("assigned_agent_id"),
 
+    // Decomposition tracking
+    parentTaskId: text("parent_task_id").references(
+      (): ReturnType<typeof text> => tasks.id,
+    ),
+    isDecomposed: integer("is_decomposed").default(0),
+    decompositionId: text("decomposition_id"),
+
     // Timestamps
     createdAt: text("created_at")
       .notNull()
@@ -109,6 +116,8 @@ export const tasks = sqliteTable(
     index("idx_tasks_task_list_id").on(table.taskListId),
     index("idx_tasks_project_id").on(table.projectId),
     index("idx_tasks_priority").on(table.priority),
+    index("idx_tasks_parent_task_id").on(table.parentTaskId),
+    index("idx_tasks_decomposition_id").on(table.decompositionId),
   ],
 );
 
@@ -126,6 +135,9 @@ export const updateTaskSchema = z.object({
   position: z.number().int().min(0).optional(),
   owner: z.enum(taskOwners).optional(),
   assignedAgentId: z.string().optional().nullable(),
+  parentTaskId: z.string().optional().nullable(),
+  isDecomposed: z.boolean().optional(),
+  decompositionId: z.string().optional().nullable(),
 });
 
 export type Task = typeof tasks.$inferSelect;

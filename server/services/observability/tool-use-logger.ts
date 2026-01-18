@@ -8,8 +8,9 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
-import { run, getDb } from "../../../database/db.js";
+import { run } from "../../../database/db.js";
 import { TranscriptWriter } from "./transcript-writer.js";
+import { observabilityStream } from "./observability-stream.js";
 
 export type ToolCategory =
   | "file_read"
@@ -109,6 +110,7 @@ export class ToolUseLogger {
     });
 
     // Insert initial row with pending status
+    const executionId = (this.transcript as any).executionId;
     try {
       await run(
         `INSERT INTO tool_uses (
@@ -119,7 +121,7 @@ export class ToolUseLogger {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           toolId,
-          (this.transcript as any).executionId,
+          executionId,
           taskId || null,
           transcriptId,
           toolName,
@@ -133,6 +135,15 @@ export class ToolUseLogger {
           0,
           (this.transcript as any).waveId || null,
         ],
+      );
+
+      // OBS-604: Emit stream event for tool start
+      observabilityStream.emitToolStart(
+        executionId,
+        toolId,
+        toolName,
+        inputSummary.slice(0, 200),
+        taskId,
       );
     } catch (error) {
       console.error("Failed to log tool start:", error);
@@ -159,6 +170,7 @@ export class ToolUseLogger {
     const durationMs = endTime - pending.startTime;
     const outputSummary = this.summarize(output);
     const status = isError ? "error" : "done";
+    const executionId = (this.transcript as any).executionId;
 
     try {
       await run(
@@ -182,6 +194,17 @@ export class ToolUseLogger {
           toolUseId,
         ],
       );
+
+      // OBS-604: Emit stream event for tool end
+      observabilityStream.emitToolEnd(
+        executionId,
+        toolUseId,
+        status,
+        durationMs,
+        outputSummary.slice(0, 500),
+        isError,
+        false, // not blocked
+      );
     } catch (error) {
       console.error("Failed to log tool end:", error);
     }
@@ -198,6 +221,7 @@ export class ToolUseLogger {
 
     const endTime = Date.now();
     const durationMs = endTime - pending.startTime;
+    const executionId = (this.transcript as any).executionId;
 
     try {
       await run(
@@ -209,6 +233,17 @@ export class ToolUseLogger {
           duration_ms = ?
         WHERE id = ?`,
         ["blocked", 1, reason, new Date().toISOString(), durationMs, toolUseId],
+      );
+
+      // OBS-604: Emit stream event for blocked tool
+      observabilityStream.emitToolEnd(
+        executionId,
+        toolUseId,
+        "blocked",
+        durationMs,
+        reason,
+        false, // not error
+        true, // is blocked
       );
     } catch (error) {
       console.error("Failed to log blocked tool:", error);

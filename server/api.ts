@@ -91,6 +91,9 @@ import pipelineRouter from "./routes/pipeline.js";
 import objectsRouter from "./routes/objects.js";
 import projectsRouter from "./routes/projects.js";
 import specsRouter from "./routes/specs.js";
+import traceabilityRouter from "./routes/traceability.js";
+import aiSyncRouter from "./routes/ai-sync.js";
+import eventsRouter from "./routes/events.js";
 import { initNotificationSystem } from "./notifications/index.js";
 import { getCommunicationHub } from "./communication/communication-hub.js";
 
@@ -191,6 +194,15 @@ app.use("/api/projects", projectsRouter);
 
 // Spec generation routes
 app.use("/api/specs", specsRouter);
+
+// Traceability routes (PRD-Task coverage analysis)
+app.use("/api", traceabilityRouter);
+
+// AI Sync routes (spec-task synchronization)
+app.use("/api/ai", aiSyncRouter);
+
+// Platform events routes
+app.use("/api/events", eventsRouter);
 
 // Initialize notification system
 initNotificationSystem();

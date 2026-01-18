@@ -1,3 +1,15 @@
+---
+id: 7caed2e5-19f4-470b-b7a6-a42c60f349ff
+title: Vibe
+type: business
+stage: BUILD
+created: 2025-01-02
+updated: 2025-01-04
+tags: [ai, saas, ideation, build-platform, autonomous-agents]
+related: []
+summary: "An AI-powered platform that transforms ideas into AI-managed SaaS products through guided ideation, automated building, and proactive networking."
+---
+
 # Vibe
 
 **One-liner:** An AI-powered platform that transforms ideas into AI-managed SaaS products through guided ideation, automated building, and proactive networking.

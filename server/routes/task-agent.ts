@@ -33,6 +33,7 @@ import {
   emitDecompositionCompleted,
   emitDecompositionFailed,
 } from "../websocket.js";
+import { eventService } from "../services/event-service.js";
 
 // Import sub-routers (Task System V2)
 import taskImpactsRouter from "./task-agent/task-impacts.js";
@@ -90,6 +91,23 @@ router.post("/tasks", async (req: Request, res: Response) => {
 
     // Run analysis pipeline asynchronously
     taskAnalysisPipeline.analyzeTask(task.task.id).catch(console.error);
+
+    // Emit task_created event
+    eventService
+      .emitEvent({
+        type: "task_created",
+        source: "task-agent",
+        payload: {
+          taskId: task.task.id,
+          displayId: task.task.display_id,
+          title: task.task.title,
+          taskListId: targetTaskListId || null,
+          inEvaluationQueue: !targetTaskListId,
+        },
+        taskId: task.task.id,
+        projectId: projectId || undefined,
+      })
+      .catch(console.error);
 
     return res.status(201).json(task);
   } catch (err) {
@@ -181,6 +199,20 @@ router.post("/tasks/:id/move", async (req: Request, res: Response) => {
     }
 
     await evaluationQueueManager.moveToTaskList(id, taskListId);
+
+    // Emit task_moved event
+    eventService
+      .emitEvent({
+        type: "task_moved",
+        source: "task-agent",
+        payload: {
+          taskId: id,
+          targetTaskListId: taskListId,
+          fromEvaluationQueue: true,
+        },
+        taskId: id,
+      })
+      .catch(console.error);
 
     return res.json({ success: true, taskId: id, taskListId });
   } catch (err) {
@@ -1145,5 +1177,267 @@ router.get("/tasks/:id/dependencies", async (req: Request, res: Response) => {
     });
   }
 });
+
+// =============================================================================
+// Task Lineage Endpoints (Decomposition Tracking)
+// =============================================================================
+
+import { query, getOne } from "../../database/db.js";
+
+/**
+ * Get parent task of a subtask
+ * GET /api/task-agent/tasks/:id/parent
+ */
+router.get("/tasks/:id/parent", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const task = await getOne<{ parent_task_id: string | null }>(
+      "SELECT parent_task_id FROM tasks WHERE id = ?",
+      [id],
+    );
+
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    if (!task.parent_task_id) {
+      return res.json({ parent: null, message: "Task has no parent" });
+    }
+
+    const parent = await getOne<{
+      id: string;
+      display_id: string;
+      title: string;
+      status: string;
+      is_decomposed: number;
+    }>(
+      "SELECT id, display_id, title, status, is_decomposed FROM tasks WHERE id = ?",
+      [task.parent_task_id],
+    );
+
+    return res.json({ parent });
+  } catch (err) {
+    console.error("[task-agent] Error getting parent task:", err);
+    return res.status(500).json({
+      error: "Failed to get parent task",
+      message: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * Get all subtasks (children) of a task
+ * GET /api/task-agent/tasks/:id/subtasks
+ */
+router.get("/tasks/:id/subtasks", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const subtasks = await query<{
+      id: string;
+      display_id: string;
+      title: string;
+      status: string;
+      category: string;
+      effort: string;
+      position: number;
+      decomposition_id: string | null;
+    }>(
+      `SELECT id, display_id, title, status, category, effort, position, decomposition_id
+       FROM tasks
+       WHERE parent_task_id = ?
+       ORDER BY position ASC`,
+      [id],
+    );
+
+    return res.json({
+      parentTaskId: id,
+      subtaskCount: subtasks.length,
+      subtasks,
+    });
+  } catch (err) {
+    console.error("[task-agent] Error getting subtasks:", err);
+    return res.status(500).json({
+      error: "Failed to get subtasks",
+      message: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * Get decomposition siblings (tasks from same decomposition)
+ * GET /api/task-agent/tasks/:id/siblings
+ */
+router.get("/tasks/:id/siblings", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const task = await getOne<{ decomposition_id: string | null }>(
+      "SELECT decomposition_id FROM tasks WHERE id = ?",
+      [id],
+    );
+
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    if (!task.decomposition_id) {
+      return res.json({
+        siblings: [],
+        message: "Task is not from a decomposition",
+      });
+    }
+
+    const siblings = await query<{
+      id: string;
+      display_id: string;
+      title: string;
+      status: string;
+      position: number;
+    }>(
+      `SELECT id, display_id, title, status, position
+       FROM tasks
+       WHERE decomposition_id = ? AND id != ?
+       ORDER BY position ASC`,
+      [task.decomposition_id, id],
+    );
+
+    return res.json({
+      decompositionId: task.decomposition_id,
+      currentTaskId: id,
+      siblingCount: siblings.length,
+      siblings,
+    });
+  } catch (err) {
+    console.error("[task-agent] Error getting siblings:", err);
+    return res.status(500).json({
+      error: "Failed to get siblings",
+      message: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * Get decomposition history for a task
+ * GET /api/task-agent/tasks/:id/decomposition-history
+ */
+router.get(
+  "/tasks/:id/decomposition-history",
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const task = await getOne<{
+        id: string;
+        display_id: string;
+        title: string;
+        is_decomposed: number;
+        parent_task_id: string | null;
+        decomposition_id: string | null;
+      }>(
+        "SELECT id, display_id, title, is_decomposed, parent_task_id, decomposition_id FROM tasks WHERE id = ?",
+        [id],
+      );
+
+      if (!task) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+
+      // Get ancestors (parent chain)
+      const ancestors: Array<{
+        id: string;
+        display_id: string;
+        title: string;
+        depth: number;
+      }> = [];
+      let currentParentId = task.parent_task_id;
+      let depth = 1;
+
+      while (currentParentId && depth <= 10) {
+        const parent = await getOne<{
+          id: string;
+          display_id: string;
+          title: string;
+          parent_task_id: string | null;
+        }>(
+          "SELECT id, display_id, title, parent_task_id FROM tasks WHERE id = ?",
+          [currentParentId],
+        );
+
+        if (parent) {
+          ancestors.push({
+            id: parent.id,
+            display_id: parent.display_id,
+            title: parent.title,
+            depth,
+          });
+          currentParentId = parent.parent_task_id;
+          depth++;
+        } else {
+          break;
+        }
+      }
+
+      // Get descendants (all subtasks recursively)
+      const getDescendants = async (
+        parentId: string,
+        currentDepth: number,
+      ): Promise<
+        Array<{ id: string; display_id: string; title: string; depth: number }>
+      > => {
+        if (currentDepth > 10) return [];
+
+        const children = await query<{
+          id: string;
+          display_id: string;
+          title: string;
+        }>(
+          "SELECT id, display_id, title FROM tasks WHERE parent_task_id = ? ORDER BY position",
+          [parentId],
+        );
+
+        const result: Array<{
+          id: string;
+          display_id: string;
+          title: string;
+          depth: number;
+        }> = [];
+
+        for (const child of children) {
+          result.push({ ...child, depth: currentDepth });
+          const grandchildren = await getDescendants(
+            child.id,
+            currentDepth + 1,
+          );
+          result.push(...grandchildren);
+        }
+
+        return result;
+      };
+
+      const descendants = await getDescendants(id, 1);
+
+      return res.json({
+        task: {
+          id: task.id,
+          displayId: task.display_id,
+          title: task.title,
+          isDecomposed: task.is_decomposed === 1,
+          decompositionId: task.decomposition_id,
+        },
+        ancestors: ancestors.reverse(),
+        descendants,
+        lineageDepth: ancestors.length + descendants.length + 1,
+      });
+    } catch (err) {
+      console.error("[task-agent] Error getting decomposition history:", err);
+      return res.status(500).json({
+        error: "Failed to get decomposition history",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  },
+);
 
 export default router;

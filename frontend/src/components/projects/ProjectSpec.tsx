@@ -1,10 +1,10 @@
 /**
- * ProjectSpec - Specification sub-tab content
- * Shows spec sections with workflow controls
+ * ProjectSpec - Specifications sub-tab content
+ * Shows PRDs/specs for this project
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, Link } from "react-router-dom";
 import {
   FileText,
   ChevronDown,
@@ -14,15 +14,18 @@ import {
   CheckCircle2,
   Clock,
   Archive,
-  Send,
-  ThumbsUp,
-  RotateCcw,
   Edit3,
-  Save,
-  X,
+  Plus,
+  Target,
+  Users,
+  List,
+  XCircle,
 } from "lucide-react";
 import clsx from "clsx";
 import type { ProjectWithStats } from "../../../../types/project";
+import SpecCoverageColumn from "./SpecCoverageColumn";
+import AISyncButton from "./AISyncButton";
+import { useCoverageStats } from "../../hooks/useTraceability";
 
 const API_BASE = "http://localhost:3001";
 
@@ -30,27 +33,29 @@ interface OutletContext {
   project: ProjectWithStats;
 }
 
-interface SpecSection {
+interface PRD {
   id: string;
-  specId: string;
-  sectionType: string;
+  slug: string;
   title: string;
-  content: string;
-  orderIndex: number;
+  projectId?: string;
+  problemStatement?: string;
+  targetUsers?: string;
+  functionalDescription?: string;
+  successCriteria: Array<{
+    criterion: string;
+    metric: string;
+    target: string;
+  }>;
+  constraints: string[];
+  outOfScope: string[];
+  status: "draft" | "review" | "approved" | "archived";
+  workflowState?: string;
+  readinessScore?: number;
   createdAt: string;
   updatedAt: string;
 }
 
-interface Spec {
-  id: string;
-  sessionId: string;
-  ideaId?: string;
-  workflowState: "draft" | "review" | "approved" | "archived";
-  createdAt: string;
-  updatedAt: string;
-}
-
-const workflowStateConfig: Record<
+const statusConfig: Record<
   string,
   { label: string; color: string; bgColor: string; icon: typeof FileText }
 > = {
@@ -83,186 +88,61 @@ const workflowStateConfig: Record<
 export default function ProjectSpec() {
   const { project } = useOutletContext<OutletContext>();
 
-  const [spec, setSpec] = useState<Spec | null>(null);
-  const [sections, setSections] = useState<SpecSection[]>([]);
+  const [prds, setPrds] = useState<PRD[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(),
-  );
-  const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState("");
+  const [expandedPrds, setExpandedPrds] = useState<Set<string>>(new Set());
 
-  // Fetch spec for this project's idea
-  const fetchSpec = useCallback(async () => {
-    if (!project.ideaId) {
-      setIsLoading(false);
-      return;
-    }
+  // Fetch coverage stats for the project
+  const { stats: coverageStats } = useCoverageStats({ projectId: project.id });
 
+  // Fetch PRDs for this project
+  const fetchPrds = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // First get ideation sessions for this idea
-      const sessionsRes = await fetch(
-        `${API_BASE}/api/ideation/sessions?ideaId=${project.ideaId}`,
-      );
-      if (!sessionsRes.ok) {
-        throw new Error("Failed to fetch sessions");
-      }
-
-      const sessionsData = await sessionsRes.json();
-      const sessions = sessionsData.sessions || [];
-
-      if (sessions.length === 0) {
-        setSpec(null);
-        setSections([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // Get spec for the first session
-      const sessionId = sessions[0].id;
-      const specRes = await fetch(`${API_BASE}/api/specs/session/${sessionId}`);
-
-      if (specRes.status === 404) {
-        setSpec(null);
-        setSections([]);
-        setIsLoading(false);
-        return;
-      }
-
-      if (!specRes.ok) {
-        throw new Error("Failed to fetch spec");
-      }
-
-      const specData = await specRes.json();
-      setSpec(specData.spec);
-      setSections(specData.sections || []);
-
-      // Expand first section by default
-      if (specData.sections?.length > 0) {
-        setExpandedSections(new Set([specData.sections[0].id]));
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch spec");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [project.ideaId]);
-
-  useEffect(() => {
-    fetchSpec();
-  }, [fetchSpec]);
-
-  // Toggle section expansion
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.add(sectionId);
-      }
-      return next;
-    });
-  };
-
-  // Start editing a section
-  const startEditing = (section: SpecSection) => {
-    setEditingSection(section.id);
-    setEditContent(section.content);
-  };
-
-  // Cancel editing
-  const cancelEditing = () => {
-    setEditingSection(null);
-    setEditContent("");
-  };
-
-  // Save section edit
-  const saveSection = async (sectionId: string) => {
-    if (!spec) return;
-
-    try {
+      // Fetch PRDs by project ID
       const response = await fetch(
-        `${API_BASE}/api/specs/${spec.id}/sections/${sectionId}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: editContent }),
-        },
+        `${API_BASE}/api/prds?projectId=${project.id}`,
       );
 
       if (!response.ok) {
-        throw new Error("Failed to update section");
+        throw new Error("Failed to fetch specifications");
       }
 
-      // Update local state
-      setSections((prev) =>
-        prev.map((s) =>
-          s.id === sectionId ? { ...s, content: editContent } : s,
-        ),
+      const data = await response.json();
+      const prdList = Array.isArray(data) ? data : data.prds || [];
+      setPrds(prdList);
+
+      // Expand first PRD by default
+      if (prdList.length > 0) {
+        setExpandedPrds(new Set([prdList[0].id]));
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch specifications",
       );
-      setEditingSection(null);
-      setEditContent("");
-    } catch (err) {
-      console.error("Failed to save section:", err);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [project.id]);
 
-  // Workflow actions
-  const submitForReview = async () => {
-    if (!spec) return;
-    try {
-      const res = await fetch(`${API_BASE}/api/specs/${spec.id}/submit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSpec(data.spec);
-      }
-    } catch (err) {
-      console.error("Failed to submit for review:", err);
-    }
-  };
+  useEffect(() => {
+    fetchPrds();
+  }, [fetchPrds]);
 
-  const approve = async () => {
-    if (!spec) return;
-    try {
-      const res = await fetch(`${API_BASE}/api/specs/${spec.id}/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSpec(data.spec);
+  // Toggle PRD expansion
+  const togglePrd = (prdId: string) => {
+    setExpandedPrds((prev) => {
+      const next = new Set(prev);
+      if (next.has(prdId)) {
+        next.delete(prdId);
+      } else {
+        next.add(prdId);
       }
-    } catch (err) {
-      console.error("Failed to approve:", err);
-    }
-  };
-
-  const requestChanges = async () => {
-    if (!spec) return;
-    try {
-      const res = await fetch(
-        `${API_BASE}/api/specs/${spec.id}/request-changes`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reason: "Needs revision" }),
-        },
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setSpec(data.spec);
-      }
-    } catch (err) {
-      console.error("Failed to request changes:", err);
-    }
+      return next;
+    });
   };
 
   // Loading state
@@ -270,40 +150,6 @@ export default function ProjectSpec() {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
-      </div>
-    );
-  }
-
-  // No linked idea
-  if (!project.ideaId) {
-    return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <div className="bg-gray-50 rounded-lg border border-dashed border-gray-300 p-8 text-center">
-          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No Linked Idea
-          </h3>
-          <p className="text-gray-500">
-            This project doesn't have a linked idea with a specification.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // No spec found
-  if (!spec) {
-    return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <div className="bg-gray-50 rounded-lg border border-dashed border-gray-300 p-8 text-center">
-          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No Specification Yet
-          </h3>
-          <p className="text-gray-500">
-            Generate a specification from an ideation session to see it here.
-          </p>
-        </div>
       </div>
     );
   }
@@ -322,137 +168,294 @@ export default function ProjectSpec() {
     );
   }
 
-  const stateConfig = workflowStateConfig[spec.workflowState];
-  const StateIcon = stateConfig.icon;
+  // No PRDs found
+  if (prds.length === 0) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="bg-gray-50 rounded-lg border border-dashed border-gray-300 p-8 text-center">
+          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No Specifications Yet
+          </h3>
+          <p className="text-gray-500 mb-4">
+            Create a specification to define requirements for this project.
+          </p>
+          <Link
+            to="/prds/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Create Specification
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      {/* Header with workflow state */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <StateIcon className={clsx("h-5 w-5", stateConfig.color)} />
-            <span
-              className={clsx(
-                "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium",
-                stateConfig.bgColor,
-                stateConfig.color,
-              )}
-            >
-              {stateConfig.label}
-            </span>
-            <span className="text-sm text-gray-500">
-              Last updated: {new Date(spec.updatedAt).toLocaleDateString()}
-            </span>
-          </div>
-
-          {/* Workflow actions */}
-          <div className="flex items-center gap-2">
-            {spec.workflowState === "draft" && (
-              <button
-                onClick={submitForReview}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Send className="h-4 w-4" />
-                Submit for Review
-              </button>
-            )}
-            {spec.workflowState === "review" && (
-              <>
-                <button
-                  onClick={requestChanges}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Request Changes
-                </button>
-                <button
-                  onClick={approve}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <ThumbsUp className="h-4 w-4" />
-                  Approve
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Specifications ({prds.length})
+        </h2>
+        <Link
+          to="/prds/new"
+          className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Add Specification
+        </Link>
       </div>
 
-      {/* Sections */}
+      {/* PRD List */}
       <div className="space-y-4">
-        {sections.map((section) => {
-          const isExpanded = expandedSections.has(section.id);
-          const isEditing = editingSection === section.id;
+        {prds.map((prd) => {
+          const isExpanded = expandedPrds.has(prd.id);
+          const config = statusConfig[prd.status] || statusConfig.draft;
+          const StatusIcon = config.icon;
 
           return (
             <div
-              key={section.id}
+              key={prd.id}
               className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden"
             >
-              {/* Section header */}
+              {/* PRD Header */}
               <button
-                onClick={() => toggleSection(section.id)}
+                onClick={() => togglePrd(prd.id)}
                 className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {isExpanded ? (
                     <ChevronDown className="h-4 w-4 text-gray-500" />
                   ) : (
                     <ChevronRight className="h-4 w-4 text-gray-500" />
                   )}
-                  <span className="font-medium text-gray-900">
-                    {section.title}
-                  </span>
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                    {section.sectionType}
-                  </span>
+                  <FileText className="h-5 w-5 text-primary-500" />
+                  <div>
+                    <span className="font-medium text-gray-900">
+                      {prd.title}
+                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span
+                        className={clsx(
+                          "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium",
+                          config.bgColor,
+                          config.color,
+                        )}
+                      >
+                        <StatusIcon className="h-3 w-3" />
+                        {config.label}
+                      </span>
+                      {prd.readinessScore !== undefined && (
+                        <span className="text-xs text-gray-500">
+                          Readiness: {prd.readinessScore}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
+                <span className="text-xs text-gray-500">
+                  Updated: {new Date(prd.updatedAt).toLocaleDateString()}
+                </span>
               </button>
 
-              {/* Section content */}
+              {/* PRD Content */}
               {isExpanded && (
-                <div className="px-4 pb-4 border-t border-gray-100">
-                  {isEditing ? (
-                    <div className="mt-3">
-                      <textarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full h-48 p-3 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
-                      <div className="flex justify-end gap-2 mt-2">
-                        <button
-                          onClick={cancelEditing}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900"
-                        >
-                          <X className="h-4 w-4" />
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => saveSection(section.id)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700"
-                        >
-                          <Save className="h-4 w-4" />
-                          Save
-                        </button>
+                <div className="px-4 pb-4 border-t border-gray-100 space-y-4">
+                  {/* Problem Statement */}
+                  {prd.problemStatement && (
+                    <div className="mt-4">
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <AlertCircle className="h-4 w-4 text-red-500" />
+                        Problem Statement
+                      </div>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                        {prd.problemStatement}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Target Users */}
+                  {prd.targetUsers && (
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <Users className="h-4 w-4 text-blue-500" />
+                        Target Users
+                      </div>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                        {prd.targetUsers}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Functional Description */}
+                  {prd.functionalDescription && (
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <FileText className="h-4 w-4 text-green-500" />
+                        Functional Description
+                      </div>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">
+                        {prd.functionalDescription}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Success Criteria */}
+                  {prd.successCriteria && prd.successCriteria.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                          <Target className="h-4 w-4 text-purple-500" />
+                          Success Criteria
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <AISyncButton
+                            endpoint="/api/ai/sync-spec-section"
+                            payload={{
+                              prdId: prd.id,
+                              sectionType: "success_criteria",
+                            }}
+                            buttonText="Sync from Tasks"
+                            confirmText="This will use AI to suggest updates to success criteria based on task progress. Continue?"
+                            onSuccess={(data) => {
+                              console.log("AI sync result:", data);
+                              // In a real implementation, show a diff modal
+                              alert(
+                                `AI Suggestion:\n${JSON.stringify(data, null, 2)}`,
+                              );
+                            }}
+                          />
+                          {coverageStats &&
+                            coverageStats.totalRequirements > 0 && (
+                              <span
+                                className={clsx(
+                                  "text-xs font-medium px-2 py-0.5 rounded",
+                                  coverageStats.overallCoverage === 100
+                                    ? "bg-green-100 text-green-700"
+                                    : coverageStats.overallCoverage >= 50
+                                      ? "bg-amber-100 text-amber-700"
+                                      : "bg-red-100 text-red-700",
+                                )}
+                              >
+                                {coverageStats.overallCoverage}% covered
+                              </span>
+                            )}
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-left text-gray-500">
+                              <th className="pb-2">Criterion</th>
+                              <th className="pb-2">Metric</th>
+                              <th className="pb-2">Target</th>
+                              <th className="pb-2 w-24 text-center">
+                                Coverage
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="text-gray-600">
+                            {prd.successCriteria.map((sc, idx) => (
+                              <tr
+                                key={idx}
+                                className="border-t border-gray-200"
+                              >
+                                <td className="py-2">{sc.criterion}</td>
+                                <td className="py-2">{sc.metric}</td>
+                                <td className="py-2 font-medium text-green-600">
+                                  {sc.target}
+                                </td>
+                                <SpecCoverageColumn
+                                  prdId={prd.id}
+                                  sectionType="success_criteria"
+                                  itemIndex={idx}
+                                  projectSlug={project.slug}
+                                />
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
-                  ) : (
-                    <div className="mt-3">
-                      <div className="prose prose-sm max-w-none">
-                        <pre className="whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 p-3 rounded-lg overflow-auto">
-                          {section.content}
-                        </pre>
+                  )}
+
+                  {/* Constraints */}
+                  {prd.constraints && prd.constraints.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                          <List className="h-4 w-4 text-orange-500" />
+                          Constraints
+                        </div>
+                        <AISyncButton
+                          endpoint="/api/ai/sync-spec-section"
+                          payload={{
+                            prdId: prd.id,
+                            sectionType: "constraints",
+                          }}
+                          buttonText="Sync from Tasks"
+                          confirmText="This will use AI to suggest updates to constraints based on task progress. Continue?"
+                          onSuccess={(data) => {
+                            console.log("AI sync result:", data);
+                            alert(
+                              `AI Suggestion:\n${JSON.stringify(data, null, 2)}`,
+                            );
+                          }}
+                        />
                       </div>
-                      {spec.workflowState === "draft" && (
-                        <button
-                          onClick={() => startEditing(section)}
-                          className="mt-2 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
-                        >
-                          <Edit3 className="h-3.5 w-3.5" />
-                          Edit
-                        </button>
-                      )}
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-left text-gray-500">
+                              <th className="pb-2">Constraint</th>
+                              <th className="pb-2 w-24 text-center">
+                                Coverage
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="text-gray-600">
+                            {prd.constraints.map((c, idx) => (
+                              <tr
+                                key={idx}
+                                className="border-t border-gray-200"
+                              >
+                                <td className="py-2">
+                                  <span className="text-orange-500 mr-2">
+                                    •
+                                  </span>
+                                  {c}
+                                </td>
+                                <SpecCoverageColumn
+                                  prdId={prd.id}
+                                  sectionType="constraints"
+                                  itemIndex={idx}
+                                  projectSlug={project.slug}
+                                />
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Out of Scope */}
+                  {prd.outOfScope && prd.outOfScope.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <XCircle className="h-4 w-4 text-gray-500" />
+                        Out of Scope
+                      </div>
+                      <ul className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg space-y-1">
+                        {prd.outOfScope.map((item, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-gray-400">•</span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
@@ -461,18 +464,6 @@ export default function ProjectSpec() {
           );
         })}
       </div>
-
-      {sections.length === 0 && (
-        <div className="bg-gray-50 rounded-lg border border-dashed border-gray-300 p-8 text-center">
-          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No Sections Yet
-          </h3>
-          <p className="text-gray-500">
-            This specification doesn't have any sections yet.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

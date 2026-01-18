@@ -22,135 +22,150 @@ export class TranscriptService {
   ): Promise<PaginatedResponse<TranscriptEntry>> {
     const limit = transcriptQuery.limit || 500;
     const offset = transcriptQuery.offset || 0;
-    const conditions: string[] = ["execution_id = ?"];
-    const params: (string | number)[] = [executionId];
 
-    // Filter by entry types
-    if (transcriptQuery.entryTypes?.length) {
-      const placeholders = transcriptQuery.entryTypes.map(() => "?").join(",");
-      conditions.push(`entry_type IN (${placeholders})`);
-      params.push(...transcriptQuery.entryTypes);
+    try {
+      const conditions: string[] = ["execution_id = ?"];
+      const params: (string | number)[] = [executionId];
+
+      // Filter by entry types
+      if (transcriptQuery.entryTypes?.length) {
+        const placeholders = transcriptQuery.entryTypes
+          .map(() => "?")
+          .join(",");
+        conditions.push(`entry_type IN (${placeholders})`);
+        params.push(...transcriptQuery.entryTypes);
+      }
+
+      // Filter by categories
+      if (transcriptQuery.categories?.length) {
+        const placeholders = transcriptQuery.categories
+          .map(() => "?")
+          .join(",");
+        conditions.push(`category IN (${placeholders})`);
+        params.push(...transcriptQuery.categories);
+      }
+
+      // Filter by task
+      if (transcriptQuery.taskId) {
+        conditions.push("task_id = ?");
+        params.push(transcriptQuery.taskId);
+      }
+
+      // Filter by time range
+      if (transcriptQuery.fromTimestamp) {
+        conditions.push("timestamp >= ?");
+        params.push(transcriptQuery.fromTimestamp);
+      }
+
+      if (transcriptQuery.toTimestamp) {
+        conditions.push("timestamp <= ?");
+        params.push(transcriptQuery.toTimestamp);
+      }
+
+      // Search in summary
+      if (transcriptQuery.search) {
+        conditions.push("summary LIKE ?");
+        params.push(`%${transcriptQuery.search}%`);
+      }
+
+      // Cursor-based pagination
+      if (transcriptQuery.cursor) {
+        conditions.push("sequence > ?");
+        params.push(parseInt(transcriptQuery.cursor, 10));
+      }
+
+      const whereClause = conditions.join(" AND ");
+
+      const rows = await query<TranscriptRow>(
+        `SELECT
+          id,
+          timestamp,
+          sequence,
+          execution_id,
+          task_id,
+          instance_id,
+          wave_number,
+          entry_type,
+          category,
+          summary,
+          details,
+          skill_ref,
+          tool_calls,
+          assertions,
+          duration_ms,
+          token_estimate,
+          created_at
+        FROM transcript_entries
+        WHERE ${whereClause}
+        ORDER BY sequence ASC
+        LIMIT ? OFFSET ?`,
+        [...params, limit, offset],
+      );
+
+      // Get total count
+      const countResult = await getOne<{ count: number }>(
+        `SELECT COUNT(*) as count
+        FROM transcript_entries
+        WHERE ${whereClause}`,
+        params,
+      );
+      const total = countResult?.count || 0;
+
+      const data = rows.map((row) => this.mapRow(row));
+      const hasMore = offset + data.length < total;
+
+      return {
+        data,
+        total,
+        limit,
+        offset,
+        hasMore,
+        nextCursor:
+          hasMore && data.length > 0
+            ? String(data[data.length - 1].sequence)
+            : undefined,
+      };
+    } catch (error) {
+      console.warn("TranscriptService.getTranscript error:", error);
+      return { data: [], total: 0, limit, offset, hasMore: false };
     }
-
-    // Filter by categories
-    if (transcriptQuery.categories?.length) {
-      const placeholders = transcriptQuery.categories.map(() => "?").join(",");
-      conditions.push(`category IN (${placeholders})`);
-      params.push(...transcriptQuery.categories);
-    }
-
-    // Filter by task
-    if (transcriptQuery.taskId) {
-      conditions.push("task_id = ?");
-      params.push(transcriptQuery.taskId);
-    }
-
-    // Filter by time range
-    if (transcriptQuery.fromTimestamp) {
-      conditions.push("timestamp >= ?");
-      params.push(transcriptQuery.fromTimestamp);
-    }
-
-    if (transcriptQuery.toTimestamp) {
-      conditions.push("timestamp <= ?");
-      params.push(transcriptQuery.toTimestamp);
-    }
-
-    // Search in summary
-    if (transcriptQuery.search) {
-      conditions.push("summary LIKE ?");
-      params.push(`%${transcriptQuery.search}%`);
-    }
-
-    // Cursor-based pagination
-    if (transcriptQuery.cursor) {
-      conditions.push("sequence > ?");
-      params.push(parseInt(transcriptQuery.cursor, 10));
-    }
-
-    const whereClause = conditions.join(" AND ");
-
-    const rows = await query<TranscriptRow>(
-      `SELECT
-        id,
-        timestamp,
-        sequence,
-        execution_id,
-        task_id,
-        instance_id,
-        wave_number,
-        entry_type,
-        category,
-        summary,
-        details,
-        skill_ref,
-        tool_calls,
-        assertions,
-        duration_ms,
-        token_estimate,
-        created_at
-      FROM transcript_entries
-      WHERE ${whereClause}
-      ORDER BY sequence ASC
-      LIMIT ? OFFSET ?`,
-      [...params, limit, offset],
-    );
-
-    // Get total count
-    const countResult = await getOne<{ count: number }>(
-      `SELECT COUNT(*) as count
-      FROM transcript_entries
-      WHERE ${whereClause}`,
-      params,
-    );
-    const total = countResult?.count || 0;
-
-    const data = rows.map((row) => this.mapRow(row));
-    const hasMore = offset + data.length < total;
-
-    return {
-      data,
-      total,
-      limit,
-      offset,
-      hasMore,
-      nextCursor:
-        hasMore && data.length > 0
-          ? String(data[data.length - 1].sequence)
-          : undefined,
-    };
   }
 
   /**
    * Get a single transcript entry by ID.
    */
   async getEntry(entryId: string): Promise<TranscriptEntry | null> {
-    const row = await getOne<TranscriptRow>(
-      `SELECT
-        id,
-        timestamp,
-        sequence,
-        execution_id,
-        task_id,
-        instance_id,
-        wave_number,
-        entry_type,
-        category,
-        summary,
-        details,
-        skill_ref,
-        tool_calls,
-        assertions,
-        duration_ms,
-        token_estimate,
-        created_at
-      FROM transcript_entries
-      WHERE id = ?`,
-      [entryId],
-    );
+    try {
+      const row = await getOne<TranscriptRow>(
+        `SELECT
+          id,
+          timestamp,
+          sequence,
+          execution_id,
+          task_id,
+          instance_id,
+          wave_number,
+          entry_type,
+          category,
+          summary,
+          details,
+          skill_ref,
+          tool_calls,
+          assertions,
+          duration_ms,
+          token_estimate,
+          created_at
+        FROM transcript_entries
+        WHERE id = ?`,
+        [entryId],
+      );
 
-    if (!row) return null;
-    return this.mapRow(row);
+      if (!row) return null;
+      return this.mapRow(row);
+    } catch (error) {
+      console.warn("TranscriptService.getEntry error:", error);
+      return null;
+    }
   }
 
   /**

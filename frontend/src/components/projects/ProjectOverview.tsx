@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import type { ProjectWithStats } from "../../../../types/project";
+import CoverageStatsCard from "./CoverageStatsCard";
+import AISyncButton from "./AISyncButton";
 
 interface OutletContext {
   project: ProjectWithStats;
@@ -184,15 +186,18 @@ export default function ProjectOverview() {
                   {project.totalTaskLists}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
+              <Link
+                to={`/projects/${project.slug}/spec`}
+                className="flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors"
+              >
                 <div className="flex items-center gap-2 text-gray-600">
                   <FileText className="h-4 w-4" />
-                  <span>PRDs</span>
+                  <span>Specifications</span>
                 </div>
                 <span className="font-medium text-gray-900">
                   {project.totalPrds}
                 </span>
-              </div>
+              </Link>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-gray-600">
                   <AlertCircle className="h-4 w-4" />
@@ -204,6 +209,12 @@ export default function ProjectOverview() {
               </div>
             </div>
           </div>
+
+          {/* Requirement Coverage Card */}
+          <CoverageStatsCard
+            projectId={project.id}
+            projectSlug={project.slug}
+          />
 
           {/* Dates Card */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
@@ -268,6 +279,23 @@ export default function ProjectOverview() {
                 <ArrowRight className="h-4 w-4" />
                 Open Kanban Board
               </Link>
+              <div className="pt-2 border-t border-gray-100 mt-2">
+                <AISyncButton
+                  endpoint="/api/ai/regenerate-summary"
+                  payload={{ projectId: project.id }}
+                  buttonText="Regenerate Summary"
+                  variant="ghost"
+                  size="md"
+                  className="w-full justify-center"
+                  confirmText="This will use AI to generate a new project summary based on task progress. Continue?"
+                  onSuccess={(data) => {
+                    console.log("AI summary result:", data);
+                    alert(
+                      `Generated Summary:\n${JSON.stringify(data, null, 2)}`,
+                    );
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

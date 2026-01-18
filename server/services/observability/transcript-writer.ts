@@ -8,7 +8,9 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
-import { run, getDb } from "../../../database/db.js";
+import { run } from "../../../database/db.js";
+import { observabilityStream } from "./observability-stream.js";
+import type { TranscriptEntry as StreamTranscriptEntry } from "../../types/observability.js";
 
 export type TranscriptEntryType =
   | "phase_start"
@@ -113,6 +115,32 @@ export class TranscriptWriter {
           entry.details ? JSON.stringify(entry.details) : null,
           entry.durationMs || null,
         ],
+      );
+
+      // OBS-603: Emit stream event after successful insert
+      const streamEntry: StreamTranscriptEntry = {
+        id: entryId,
+        timestamp,
+        sequence: this.sequence,
+        executionId: this.executionId,
+        taskId: entry.taskId || null,
+        instanceId: this.instanceId,
+        waveNumber: this.waveNumber || null,
+        entryType: entry.entryType as StreamTranscriptEntry["entryType"],
+        category: entry.category as StreamTranscriptEntry["category"],
+        summary: entry.summary.slice(0, 200),
+        details: entry.details || null,
+        skillRef: null,
+        toolCalls: null,
+        assertions: null,
+        durationMs: entry.durationMs || null,
+        tokenEstimate: null,
+        createdAt: timestamp,
+      };
+      observabilityStream.emitTranscriptEntry(
+        this.executionId,
+        streamEntry,
+        true,
       );
     } catch (error) {
       console.error("Failed to write transcript entry:", error);

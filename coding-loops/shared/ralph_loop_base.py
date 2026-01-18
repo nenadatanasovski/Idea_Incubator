@@ -32,6 +32,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "tests" / "e2e"))
 from claude_code_sdk import ClaudeSDKClient
 from client import create_client
 
+# Observability API client for HTTP-based logging
+try:
+    from observability_api import (
+        create_execution_run,
+        complete_execution_run,
+        record_heartbeat,
+        log_phase_start,
+        log_phase_end,
+        check_observable,
+    )
+    OBS_API_AVAILABLE = check_observable()
+except ImportError:
+    OBS_API_AVAILABLE = False
+
 
 # =========================================================================
 # Default Configuration
@@ -326,6 +340,9 @@ class RalphLoopRunner(ABC):
         # Health check
         hc_config = health_check_config or DEFAULT_CONFIG["health_check"]
         self.health = HealthCheck(name, specs_dir, hc_config)
+
+        # Observability tracking
+        self._obs_execution_id: Optional[str] = None
 
     @classmethod
     def from_config(cls, config: dict, max_iterations: Optional[int] = None) -> "RalphLoopRunner":
@@ -721,6 +738,19 @@ Begin implementation.
             progress={"passed": state["summary"]["passed"], "total": state["summary"]["total"]}
         )
 
+        # Create observability execution run if API is available
+        if OBS_API_AVAILABLE:
+            try:
+                # Use a task list ID based on the loop name and test state
+                task_list_id = f"ralph-loop-{self.name.lower().replace(' ', '-')}"
+                self._obs_execution_id = create_execution_run(
+                    task_list_id=task_list_id,
+                    source="ralph-loop"
+                )
+                print(f"Created observability execution: {self._obs_execution_id}")
+            except Exception as e:
+                print(f"Warning: Could not create observability execution: {e}")
+
         iteration = 0
 
         try:
@@ -749,6 +779,18 @@ Begin implementation.
                 print(f"  ITERATION {iteration}: {test['id']}")
                 print(f"  {test['notes']}")
                 print("=" * 70)
+
+                # Log phase start for this test iteration
+                phase_id = None
+                if OBS_API_AVAILABLE and self._obs_execution_id:
+                    try:
+                        phase_id = log_phase_start(
+                            execution_id=self._obs_execution_id,
+                            phase_name=f"Test: {test['id']}",
+                            metadata={"iteration": iteration, "attempt": test.get("attempts", 0) + 1}
+                        )
+                    except Exception as e:
+                        print(f"Warning: Could not log phase start: {e}")
 
                 # Update health check
                 self.health.update(
@@ -829,12 +871,33 @@ Begin implementation.
                     progress={"passed": state["summary"]["passed"], "total": state["summary"]["total"]}
                 )
 
+                # Log phase end for this test iteration
+                if OBS_API_AVAILABLE and phase_id:
+                    try:
+                        log_phase_end(
+                            phase_id=phase_id,
+                            status=test.get("lastResult", "continue"),
+                            summary=f"Test {test['id']}: {test.get('lastResult', 'continue')}"
+                        )
+                    except Exception as e:
+                        print(f"Warning: Could not log phase end: {e}")
+
                 print(f"\nContinuing in {self.auto_continue_delay}s...")
                 await asyncio.sleep(self.auto_continue_delay)
 
         finally:
             # Always update health on exit
             self.health.stop()
+
+            # Complete observability execution run
+            if OBS_API_AVAILABLE and self._obs_execution_id:
+                try:
+                    # Determine status based on summary
+                    final_status = "completed" if state["summary"]["pending"] == 0 else "failed"
+                    complete_execution_run(self._obs_execution_id, status=final_status)
+                    print(f"Completed observability execution: {self._obs_execution_id}")
+                except Exception as e:
+                    print(f"Warning: Could not complete observability execution: {e}")
 
         print("\n" + "=" * 70)
         print("  DONE")

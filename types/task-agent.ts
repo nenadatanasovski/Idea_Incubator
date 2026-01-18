@@ -94,6 +94,15 @@ export interface Task extends TaskIdentity {
   position: number;
   owner: TaskOwner;
   assignedAgentId?: string;
+
+  // Decomposition tracking
+  /** Parent task ID if this is a subtask created via decomposition */
+  parentTaskId?: string;
+  /** True if this task has been decomposed into subtasks */
+  isDecomposed?: boolean;
+  /** Groups sibling subtasks from the same decomposition event */
+  decompositionId?: string;
+
   createdAt: string;
   updatedAt: string;
   startedAt?: string;
@@ -112,6 +121,10 @@ export interface CreateTaskInput {
   projectId?: string;
   taskListId?: string;
   phase?: number;
+  /** Parent task ID when creating via decomposition */
+  parentTaskId?: string;
+  /** Decomposition group ID when creating via decomposition */
+  decompositionId?: string;
 }
 
 /**
@@ -128,6 +141,8 @@ export interface UpdateTaskInput {
   position?: number;
   owner?: TaskOwner;
   assignedAgentId?: string;
+  /** Mark task as decomposed */
+  isDecomposed?: boolean;
 }
 
 // ============================================

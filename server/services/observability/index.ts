@@ -83,3 +83,12 @@ export {
 
 // OBS-306: Message Bus Service
 export { MessageBusService, messageBusService } from "./message-bus-service.js";
+
+// =============================================================================
+// OBS-600: Phase 6 WebSocket Streaming Service
+// =============================================================================
+
+export {
+  ObservabilityStreamService,
+  observabilityStream,
+} from "./observability-stream.js";

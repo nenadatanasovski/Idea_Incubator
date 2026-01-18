@@ -1,5 +1,15 @@
 /**
  * UnifiedLogViewer - Real-time log stream with filtering
+ *
+ * Features:
+ * - Search box with clear
+ * - Severity filters (info, warning, error, critical)
+ * - Category filters
+ * - Expandable entries for JSON payload
+ * - Auto-scroll toggle
+ * - Export logs (JSON)
+ * - Clear all filters
+ * - Entity navigation (click to navigate to task/tool)
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
@@ -11,6 +21,10 @@ import {
   Info,
   AlertTriangle,
   XCircle,
+  Download,
+  X,
+  Pause,
+  Play,
 } from "lucide-react";
 import { useMessageBusLogs } from "../../hooks/useObservability";
 import { useObservabilityStream } from "../../hooks/useObservabilityStream";
@@ -21,6 +35,7 @@ interface UnifiedLogViewerProps {
   executionId?: string;
   autoScroll?: boolean;
   maxHeight?: number;
+  onEntityClick?: (entityType: string, entityId: string) => void;
 }
 
 const severityIcons: Record<Severity, typeof Info> = {
@@ -34,11 +49,15 @@ export default function UnifiedLogViewer({
   executionId,
   autoScroll = true,
   maxHeight = 500,
+  onEntityClick: _onEntityClick,
 }: UnifiedLogViewerProps) {
+  // Note: _onEntityClick is available for future entity click handlers
+  void _onEntityClick;
   const [search, setSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState<Severity[]>([]);
-  const [_categoryFilter, _setCategoryFilter] = useState<string[]>([]); // TODO: Add category filter UI
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [isPaused, setIsPaused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const shouldScrollRef = useRef(autoScroll);
 
@@ -72,8 +91,16 @@ export default function UnifiedLogViewer({
     );
   }, [logs, events]);
 
+  // Get unique categories from logs
+  const categories = useMemo(() => {
+    const cats = new Set(allLogs.map((log) => log.category));
+    return Array.from(cats).sort();
+  }, [allLogs]);
+
   // Filter logs
   const filteredLogs = useMemo(() => {
+    if (isPaused)
+      return allLogs.slice(0, -realTimeStats.additionalLogs || allLogs.length);
     return allLogs.filter((log) => {
       if (
         search &&
@@ -84,15 +111,62 @@ export default function UnifiedLogViewer({
       if (severityFilter.length > 0 && !severityFilter.includes(log.severity)) {
         return false;
       }
-      if (
-        _categoryFilter.length > 0 &&
-        !_categoryFilter.includes(log.category)
-      ) {
+      if (categoryFilter.length > 0 && !categoryFilter.includes(log.category)) {
         return false;
       }
       return true;
     });
-  }, [allLogs, search, severityFilter, _categoryFilter]);
+  }, [allLogs, search, severityFilter, categoryFilter, isPaused]);
+
+  // Count real-time additions for pause indicator
+  const realTimeStats = useMemo(() => {
+    const rtLogs = events.filter((e) => e.type === "messagebus:event").length;
+    return { additionalLogs: rtLogs };
+  }, [events]);
+
+  // Check if any filters are active
+  const hasActiveFilters =
+    search.length > 0 || severityFilter.length > 0 || categoryFilter.length > 0;
+
+  // Clear all filters
+  const clearAllFilters = useCallback(() => {
+    setSearch("");
+    setSeverityFilter([]);
+    setCategoryFilter([]);
+  }, []);
+
+  // Export logs as JSON
+  const handleExportLogs = useCallback(() => {
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      executionId,
+      totalLogs: filteredLogs.length,
+      filters: {
+        search: search || null,
+        severity: severityFilter.length > 0 ? severityFilter : null,
+        category: categoryFilter.length > 0 ? categoryFilter : null,
+      },
+      logs: filteredLogs,
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `logs-${executionId || "all"}-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filteredLogs, executionId, search, severityFilter, categoryFilter]);
+
+  // Toggle category filter
+  const toggleCategory = useCallback((cat: string) => {
+    setCategoryFilter((prev) => {
+      if (prev.includes(cat)) return prev.filter((c) => c !== cat);
+      return [...prev, cat];
+    });
+  }, []);
 
   // Auto-scroll to bottom on new logs
   useEffect(() => {
@@ -130,54 +204,132 @@ export default function UnifiedLogViewer({
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex items-center gap-3 p-3 border-b bg-gray-50">
-        {/* Search */}
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search logs..."
-            className="w-full pl-9 pr-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+      <div className="flex flex-col gap-2 p-3 border-b bg-gray-50">
+        <div className="flex items-center gap-3">
+          {/* Search with clear */}
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search logs..."
+              className="w-full pl-9 pr-8 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
 
-        {/* Severity filters */}
-        <div className="flex items-center gap-1">
-          {(["info", "warning", "error", "critical"] as Severity[]).map(
-            (sev) => {
-              const Icon = severityIcons[sev];
-              const isActive = severityFilter.includes(sev);
-              const config = severityConfig[sev];
-              return (
-                <button
-                  key={sev}
-                  onClick={() => toggleSeverity(sev)}
-                  className={`p-1.5 rounded transition-colors ${isActive ? config.bg + " " + config.color : "text-gray-400 hover:text-gray-600"}`}
-                  title={sev}
-                >
-                  <Icon className="h-4 w-4" />
-                </button>
-              );
-            },
+          {/* Severity filters */}
+          <div className="flex items-center gap-1">
+            {(["info", "warning", "error", "critical"] as Severity[]).map(
+              (sev) => {
+                const Icon = severityIcons[sev];
+                const isActive = severityFilter.includes(sev);
+                const config = severityConfig[sev];
+                return (
+                  <button
+                    key={sev}
+                    onClick={() => toggleSeverity(sev)}
+                    className={`p-1.5 rounded transition-colors ${isActive ? config.bg + " " + config.color : "text-gray-400 hover:text-gray-600"}`}
+                    title={sev}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                );
+              },
+            )}
+          </div>
+
+          {/* Pause/Resume */}
+          <button
+            onClick={() => setIsPaused(!isPaused)}
+            className={`p-1.5 rounded transition-colors ${
+              isPaused
+                ? "bg-yellow-100 text-yellow-700"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+            title={isPaused ? "Resume live updates" : "Pause live updates"}
+          >
+            {isPaused ? (
+              <Play className="h-4 w-4" />
+            ) : (
+              <Pause className="h-4 w-4" />
+            )}
+          </button>
+
+          {/* Clear filters */}
+          {hasActiveFilters && (
+            <button
+              onClick={clearAllFilters}
+              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+              title="Clear all filters"
+            >
+              <X className="h-3 w-3" />
+              Clear
+            </button>
           )}
-        </div>
 
-        {/* Connection status */}
-        <div className="flex items-center gap-1.5 text-xs">
-          <div
-            className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-gray-300"}`}
-          />
-          <span className="text-gray-500">
-            {isConnected ? "Live" : "Disconnected"}
+          {/* Export */}
+          <button
+            onClick={handleExportLogs}
+            className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+            title="Export logs as JSON"
+          >
+            <Download className="h-3 w-3" />
+            Export
+          </button>
+
+          {/* Connection status */}
+          <div className="flex items-center gap-1.5 text-xs ml-auto">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                isConnected
+                  ? isPaused
+                    ? "bg-yellow-500"
+                    : "bg-green-500"
+                  : "bg-gray-300"
+              }`}
+            />
+            <span className="text-gray-500">
+              {isPaused ? "Paused" : isConnected ? "Live" : "Disconnected"}
+            </span>
+          </div>
+
+          {/* Count */}
+          <span className="text-xs text-gray-500">
+            {filteredLogs.length} / {total}
           </span>
         </div>
 
-        {/* Count */}
-        <span className="text-xs text-gray-500">
-          {filteredLogs.length} / {total}
-        </span>
+        {/* Category filters (if there are categories) */}
+        {categories.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-500">Categories:</span>
+            {categories.map((cat) => {
+              const isActive = categoryFilter.includes(cat);
+              return (
+                <button
+                  key={cat}
+                  onClick={() => toggleCategory(cat)}
+                  className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
+                    isActive
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Log list */}

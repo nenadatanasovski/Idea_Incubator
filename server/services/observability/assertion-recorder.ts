@@ -14,6 +14,11 @@ import { existsSync } from "fs";
 import path from "path";
 import { run } from "../../../database/db.js";
 import { TranscriptWriter } from "./transcript-writer.js";
+import { observabilityStream } from "./observability-stream.js";
+import type {
+  AssertionResultEntry,
+  AssertionEvidence as StreamEvidence,
+} from "../../types/observability.js";
 
 const execAsync = promisify(exec);
 
@@ -195,6 +200,7 @@ export class AssertionRecorder {
     });
 
     // Insert assertion result
+    const timestamp = new Date().toISOString();
     try {
       await run(
         `INSERT INTO assertion_results (
@@ -212,9 +218,36 @@ export class AssertionRecorder {
           JSON.stringify(evidence),
           this.currentChainId || null,
           position,
-          new Date().toISOString(),
+          timestamp,
           (this.transcript as any).waveId || null,
         ],
+      );
+
+      // OBS-605: Emit stream event for assertion result
+      const total = this.chainPassCount + this.chainFailCount;
+      const runningPassRate = total > 0 ? this.chainPassCount / total : 0;
+
+      const streamAssertion: AssertionResultEntry = {
+        id: assertionId,
+        taskId,
+        executionId: this.executionId,
+        category: category as AssertionResultEntry["category"],
+        description,
+        result: result as AssertionResultEntry["result"],
+        evidence: evidence as StreamEvidence,
+        chainId: this.currentChainId || null,
+        chainPosition: position,
+        timestamp,
+        durationMs: null,
+        transcriptEntryId: null,
+        createdAt: timestamp,
+      };
+
+      observabilityStream.emitAssertionResult(
+        this.executionId,
+        taskId,
+        streamAssertion,
+        runningPassRate,
       );
     } catch (error) {
       console.error("Failed to record assertion:", error);

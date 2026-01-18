@@ -5,7 +5,8 @@
  * Uses the project's sql.js database wrapper.
  */
 
-import { query, getOne } from "../../../database/db.js";
+import { v4 as uuidv4 } from "uuid";
+import { query, getOne, run } from "../../../database/db.js";
 import type {
   SkillTraceQuery,
   SkillsUsageSummaryResponse,
@@ -16,6 +17,7 @@ import type {
   SkillsUsageSummary,
   SkillFileReference,
 } from "../../../frontend/src/types/observability/skill.js";
+import { observabilityStream } from "./observability-stream.js";
 
 export class SkillService {
   /**
@@ -279,6 +281,113 @@ export class SkillService {
       },
     };
   }
+
+  // ===========================================================================
+  // OBS-606: Skill Logging Methods with Stream Emission
+  // ===========================================================================
+
+  /**
+   * Log the start of a skill invocation.
+   */
+  async logStart(
+    executionId: string,
+    taskId: string,
+    skillName: string,
+    skillFile: string,
+    lineNumber: number,
+    sectionTitle?: string,
+    inputSummary?: string,
+  ): Promise<string> {
+    const traceId = uuidv4();
+    const startTime = new Date().toISOString();
+
+    try {
+      await run(
+        `INSERT INTO skill_traces (
+          id, execution_id, task_id, skill_name, skill_file,
+          line_number, section_title, input_summary, start_time,
+          status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          traceId,
+          executionId,
+          taskId,
+          skillName,
+          skillFile,
+          lineNumber,
+          sectionTitle || null,
+          inputSummary || null,
+          startTime,
+          "running",
+          startTime,
+        ],
+      );
+
+      // Emit stream event
+      observabilityStream.emitSkillStart(
+        executionId,
+        traceId,
+        skillName,
+        skillFile,
+        lineNumber,
+        taskId,
+      );
+    } catch (error) {
+      console.error("Failed to log skill start:", error);
+    }
+
+    return traceId;
+  }
+
+  /**
+   * Log the end of a skill invocation.
+   */
+  async logEnd(
+    traceId: string,
+    executionId: string,
+    skillName: string,
+    status: "success" | "partial" | "failed",
+    outputSummary?: string,
+    errorMessage?: string,
+    durationMs?: number,
+  ): Promise<void> {
+    const endTime = new Date().toISOString();
+
+    try {
+      await run(
+        `UPDATE skill_traces SET
+          end_time = ?,
+          duration_ms = ?,
+          status = ?,
+          output_summary = ?,
+          error_message = ?
+        WHERE id = ?`,
+        [
+          endTime,
+          durationMs || null,
+          status,
+          outputSummary || null,
+          errorMessage || null,
+          traceId,
+        ],
+      );
+
+      // Emit stream event
+      observabilityStream.emitSkillEnd(
+        executionId,
+        traceId,
+        skillName,
+        status,
+        durationMs || 0,
+      );
+    } catch (error) {
+      console.error("Failed to log skill end:", error);
+    }
+  }
+
+  // ===========================================================================
+  // Private Methods
+  // ===========================================================================
 
   /**
    * Map database row to SkillTrace.

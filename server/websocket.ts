@@ -3,6 +3,15 @@
  */
 import { WebSocketServer, WebSocket } from "ws";
 import type { Server } from "http";
+import { observabilityStream } from "./services/observability/observability-stream.js";
+import type {
+  ObservabilityEvent as StreamObservabilityEvent,
+  SubscriptionRequest,
+  ClientMessage,
+  ObservabilityTopic,
+  EventFilters,
+  ToolUseStartEvent,
+} from "./types/observability-websocket.js";
 
 // Event types that can be broadcast during a debate
 export type DebateEventType =
@@ -158,6 +167,212 @@ const userConnections = new Map<string, Set<WebSocket>>();
 // Track connected clients for pipeline dashboard
 const pipelineClients = new Set<WebSocket>();
 
+// Track connected clients for platform events stream
+const eventsClients = new Set<WebSocket>();
+
+// ============================================
+// OBS-602: Observability Subscription State
+// ============================================
+
+interface ObservabilityClientState {
+  executionId: string;
+  topics: Set<ObservabilityTopic>;
+  filters: EventFilters;
+  eventHandler: ((event: StreamObservabilityEvent) => void) | null;
+}
+
+// Track subscription state per observability client
+const observabilityClientState = new WeakMap<
+  WebSocket,
+  ObservabilityClientState
+>();
+
+/**
+ * Check if event should be sent based on subscriptions and filters.
+ */
+function shouldSendObservabilityEvent(
+  event: StreamObservabilityEvent,
+  topics: Set<ObservabilityTopic>,
+  filters: EventFilters,
+): boolean {
+  // "all" topic gets everything
+  if (topics.has("all")) {
+    // Apply filters even with "all" topic
+    if (
+      filters.taskId &&
+      "taskId" in event &&
+      (event as { taskId?: string }).taskId !== filters.taskId
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  // Map event type to topic
+  const topicMap: Record<string, ObservabilityTopic> = {
+    "transcript:entry": "transcript",
+    "tool:start": "tools",
+    "tool:end": "tools",
+    "tool:output": "tools",
+    "assertion:result": "assertions",
+    "skill:start": "skills",
+    "skill:end": "skills",
+    "messagebus:event": "messagebus",
+    "wave:status": "waves",
+    "agent:heartbeat": "agents",
+    "execution:status": "execution",
+  };
+
+  const eventTopic = topicMap[event.type];
+  if (!eventTopic || !topics.has(eventTopic)) {
+    return false;
+  }
+
+  // Apply additional filters
+  if (
+    filters.taskId &&
+    "taskId" in event &&
+    (event as { taskId?: string }).taskId !== filters.taskId
+  ) {
+    return false;
+  }
+
+  if (filters.tools && event.type === "tool:start") {
+    const toolEvent = event as ToolUseStartEvent;
+    if (!filters.tools.includes(toolEvent.tool as string)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Setup observability streaming for a connected client using ObservabilityStreamService.
+ */
+function setupObservabilityStreaming(ws: WebSocket, executionId: string): void {
+  // Initialize subscription state
+  const state: ObservabilityClientState = {
+    executionId,
+    topics: new Set(["all"] as ObservabilityTopic[]),
+    filters: {},
+    eventHandler: null,
+  };
+
+  // Create event handler
+  const eventHandler = (event: StreamObservabilityEvent): void => {
+    const clientState = observabilityClientState.get(ws);
+    if (!clientState) return;
+
+    // Apply topic filter
+    if (
+      !shouldSendObservabilityEvent(
+        event,
+        clientState.topics,
+        clientState.filters,
+      )
+    ) {
+      return;
+    }
+
+    // Send event
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(event));
+    }
+  };
+
+  state.eventHandler = eventHandler;
+  observabilityClientState.set(ws, state);
+
+  // Subscribe to execution-specific events
+  if (executionId && executionId !== "all") {
+    observabilityStream.on(`observability:${executionId}`, eventHandler);
+
+    // Send buffered events for replay
+    const buffered = observabilityStream.getBufferedEvents(executionId);
+    for (const event of buffered) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(event));
+      }
+    }
+  }
+
+  // Subscribe to global events
+  observabilityStream.on("observability:all", eventHandler);
+
+  // Send connected confirmation
+  const bufferedCount =
+    executionId !== "all"
+      ? observabilityStream.getBufferedEvents(executionId).length
+      : 0;
+
+  ws.send(
+    JSON.stringify({
+      type: "observability:connected",
+      timestamp: new Date().toISOString(),
+      executionId,
+      message:
+        executionId === "all"
+          ? "Connected to all observability events"
+          : `Connected to execution ${executionId}`,
+      bufferedEventCount: bufferedCount,
+    }),
+  );
+}
+
+/**
+ * Handle subscription request from observability client.
+ */
+function handleObservabilitySubscriptionRequest(
+  ws: WebSocket,
+  request: SubscriptionRequest,
+): void {
+  const state = observabilityClientState.get(ws);
+  if (!state) return;
+
+  if (request.action === "subscribe") {
+    state.topics.add(request.topic);
+    if (request.filters) {
+      Object.assign(state.filters, request.filters);
+    }
+    ws.send(
+      JSON.stringify({
+        type: "observability:subscribed",
+        timestamp: new Date().toISOString(),
+        topic: request.topic,
+        executionId: request.executionId,
+      }),
+    );
+  } else if (request.action === "unsubscribe") {
+    state.topics.delete(request.topic);
+    ws.send(
+      JSON.stringify({
+        type: "observability:unsubscribed",
+        timestamp: new Date().toISOString(),
+        topic: request.topic,
+      }),
+    );
+  }
+}
+
+/**
+ * Cleanup observability streaming on disconnect.
+ */
+function cleanupObservabilityStreaming(ws: WebSocket): void {
+  const state = observabilityClientState.get(ws);
+  if (!state || !state.eventHandler) return;
+
+  const handler = state.eventHandler;
+  const execId = state.executionId;
+
+  if (execId && execId !== "all") {
+    observabilityStream.off(`observability:${execId}`, handler);
+  }
+  observabilityStream.off("observability:all", handler);
+
+  observabilityClientState.delete(ws);
+}
+
 // Event handlers for user-specific events (notifications)
 const userEventHandlers = new Map<
   string,
@@ -173,7 +388,7 @@ let wss: WebSocketServer | null = null;
 export function initWebSocket(server: Server): WebSocketServer {
   wss = new WebSocketServer({ server, path: "/ws" });
 
-  wss.on("connection", (ws, req) => {
+  wss.on("connection", async (ws, req) => {
     const url = new URL(req.url || "", `http://${req.headers.host}`);
     const ideaSlug = url.searchParams.get("idea");
     const sessionId = url.searchParams.get("session");
@@ -182,8 +397,9 @@ export function initWebSocket(server: Server): WebSocketServer {
     const executor = url.searchParams.get("executor"); // Task executor monitoring
     const observability = url.searchParams.get("observability"); // Observability monitoring
     const pipeline = url.searchParams.get("pipeline"); // Pipeline dashboard
+    const events = url.searchParams.get("events"); // Platform events stream
 
-    // Must have either idea, session, monitor, user, executor, observability, or pipeline parameter
+    // Must have either idea, session, monitor, user, executor, observability, pipeline, or events parameter
     if (
       !ideaSlug &&
       !sessionId &&
@@ -191,11 +407,12 @@ export function initWebSocket(server: Server): WebSocketServer {
       !userId &&
       executor !== "tasks" &&
       !observability &&
-      pipeline !== "stream"
+      pipeline !== "stream" &&
+      events !== "stream"
     ) {
       ws.close(
         4000,
-        "Missing idea, session, monitor, user, executor, observability, or pipeline parameter",
+        "Missing idea, session, monitor, user, executor, observability, pipeline, or events parameter",
       );
       return;
     }
@@ -218,8 +435,60 @@ export function initWebSocket(server: Server): WebSocketServer {
           },
         }),
       );
+    } else if (events === "stream") {
+      // Platform events stream
+      eventsClients.add(ws);
+      console.log(
+        `Client joined events stream (${eventsClients.size} connected)`,
+      );
+
+      // Setup event listener
+      const { eventService } = await import("./services/event-service.js");
+      const eventHandler = (streamEvent: {
+        type: string;
+        timestamp: string;
+        event: unknown;
+      }) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(streamEvent));
+        }
+      };
+
+      eventService.on("platform:event", eventHandler);
+
+      // Send buffered events for replay
+      const bufferedEvents = eventService.getBufferedEvents();
+      for (const event of bufferedEvents.slice(-50)) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: "platform:event",
+              timestamp: event.timestamp,
+              event,
+            }),
+          );
+        }
+      }
+
+      ws.send(
+        JSON.stringify({
+          type: "events:connected",
+          timestamp: new Date().toISOString(),
+          data: {
+            message: "Connected to platform events stream",
+            clientCount: eventsClients.size,
+            bufferedCount: bufferedEvents.length,
+          },
+        }),
+      );
+
+      // Store handler for cleanup
+      (
+        ws as WebSocket & { _eventHandler?: typeof eventHandler }
+      )._eventHandler = eventHandler;
     } else if (observability) {
-      // Observability monitoring
+      // OBS-602: Enhanced observability connection using ObservabilityStreamService
+      // Keep backward-compatible room tracking
       if (observability === "all") {
         observabilityGlobalClients.add(ws);
         console.log(
@@ -236,19 +505,35 @@ export function initWebSocket(server: Server): WebSocketServer {
         );
       }
 
-      ws.send(
-        JSON.stringify({
-          type: "observability:connected",
-          timestamp: new Date().toISOString(),
-          executionId: observability,
-          data: {
-            message:
-              observability === "all"
-                ? "Connected to all observability events"
-                : `Connected to execution ${observability}`,
-          },
-        }),
-      );
+      // Setup streaming with ObservabilityStreamService (handles buffered events, filtering, etc.)
+      setupObservabilityStreaming(ws, observability);
+
+      // Handle client messages (subscriptions, ping/pong)
+      ws.on("message", (data) => {
+        try {
+          const message = JSON.parse(data.toString()) as ClientMessage;
+
+          if ("type" in message && message.type === "ping") {
+            ws.send(
+              JSON.stringify({
+                type: "pong",
+                timestamp: new Date().toISOString(),
+              }),
+            );
+          } else if ("action" in message) {
+            handleObservabilitySubscriptionRequest(ws, message);
+          }
+        } catch {
+          ws.send(
+            JSON.stringify({
+              type: "observability:error",
+              timestamp: new Date().toISOString(),
+              error: "Invalid message format",
+              code: "INVALID_MESSAGE",
+            }),
+          );
+        }
+      });
     } else if (executor === "tasks") {
       // Task executor monitoring
       taskExecutorClients.add(ws);
@@ -359,13 +644,30 @@ export function initWebSocket(server: Server): WebSocketServer {
     });
 
     // Clean up on disconnect
-    ws.on("close", () => {
+    ws.on("close", async () => {
       if (pipeline === "stream") {
         pipelineClients.delete(ws);
         console.log(
           `Client left pipeline stream (${pipelineClients.size} connected)`,
         );
+      } else if (events === "stream") {
+        // Cleanup events stream listener
+        eventsClients.delete(ws);
+        const handler = (
+          ws as WebSocket & { _eventHandler?: (...args: unknown[]) => void }
+        )._eventHandler;
+        if (handler) {
+          const { eventService } = await import("./services/event-service.js");
+          eventService.off("platform:event", handler);
+        }
+        console.log(
+          `Client left events stream (${eventsClients.size} connected)`,
+        );
       } else if (observability) {
+        // OBS-602: Cleanup stream service listeners
+        cleanupObservabilityStreaming(ws);
+
+        // Keep backward-compatible room cleanup
         if (observability === "all") {
           observabilityGlobalClients.delete(ws);
           console.log(
@@ -445,11 +747,11 @@ export function broadcastDebateEvent(event: DebateEvent): void {
 
   const message = JSON.stringify(event);
 
-  for (const client of room) {
+  room.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
     }
-  }
+  });
 }
 
 /**
@@ -512,11 +814,11 @@ export function broadcastSessionEvent(event: IdeationEvent): void {
     `[WS] Broadcasting ${event.type} to ${room.size} clients in session ${event.sessionId}`,
   );
 
-  for (const client of room) {
+  room.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
     }
-  }
+  });
 }
 
 /**
@@ -555,11 +857,11 @@ export function broadcastToSession(
     data: event.payload,
   });
 
-  for (const client of room) {
+  room.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
     }
-  }
+  });
 }
 
 /**
@@ -624,11 +926,11 @@ export function broadcastAgentEvent(event: AgentEvent): void {
 
   const message = JSON.stringify(event);
 
-  for (const client of agentMonitorClients) {
+  agentMonitorClients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
     }
-  }
+  });
 }
 
 /**
@@ -820,11 +1122,11 @@ export function broadcastBuildEvent(event: BuildEvent): void {
 
   const message = JSON.stringify(event);
 
-  for (const client of room) {
+  room.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
     }
-  }
+  });
 }
 
 /**
@@ -940,11 +1242,11 @@ export function broadcastToUser(
 
   const message = JSON.stringify({ event, data });
 
-  for (const ws of connections) {
+  connections.forEach((ws) => {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(message);
     }
-  }
+  });
 }
 
 /**
@@ -1102,11 +1404,11 @@ export function broadcastTaskExecutorEvent(event: TaskExecutorEvent): void {
     `[WS] Broadcasting ${event.type} to ${taskExecutorClients.size} task executor clients`,
   );
 
-  for (const client of taskExecutorClients) {
+  taskExecutorClients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
     }
-  }
+  });
 }
 
 /**
@@ -1143,20 +1445,20 @@ export function broadcastObservabilityEvent(event: ObservabilityEvent): void {
   // Send to execution-specific clients
   const execRoom = observabilityClients.get(event.executionId);
   if (execRoom && execRoom.size > 0) {
-    for (const client of execRoom) {
+    execRoom.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(message);
       }
-    }
+    });
   }
 
   // Send to global clients (watching all executions)
   if (observabilityGlobalClients.size > 0) {
-    for (const client of observabilityGlobalClients) {
+    observabilityGlobalClients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(message);
       }
-    }
+    });
   }
 }
 
@@ -1341,11 +1643,11 @@ export function broadcastPipelineEvent(event: PipelineStreamEvent): void {
     `[WS] Broadcasting pipeline event to ${pipelineClients.size} clients`,
   );
 
-  for (const client of pipelineClients) {
+  pipelineClients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
     }
-  }
+  });
 }
 
 /**
@@ -1453,6 +1755,38 @@ export function emitSubtaskCreated(
     subtaskTitle,
     position,
   });
+}
+
+// ============================================
+// Platform Events Functions
+// ============================================
+
+/**
+ * Broadcast a platform event to all connected events clients.
+ * This is a low-level broadcast function. Prefer using eventService.emitEvent()
+ * which handles both database persistence and WebSocket broadcast.
+ */
+export function broadcastPlatformEvent(event: {
+  type: string;
+  timestamp: string;
+  event: unknown;
+}): void {
+  if (eventsClients.size === 0) return;
+
+  const message = JSON.stringify(event);
+
+  eventsClients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
+/**
+ * Get count of connected events clients.
+ */
+export function getEventsClientCount(): number {
+  return eventsClients.size;
 }
 
 export { wss };

@@ -26,6 +26,8 @@ import {
   Save,
   Loader2,
   Scissors,
+  GitBranch,
+  ChevronRight,
 } from "lucide-react";
 import TaskDecomposerModal from "./TaskDecomposerModal";
 
@@ -54,6 +56,18 @@ interface ReadinessScore {
   isReady: boolean;
   missingItems: string[];
   calculatedAt: string;
+}
+
+interface TaskLineageInfo {
+  parent: {
+    id: string;
+    display_id: string;
+    title: string;
+    status: string;
+  } | null;
+  subtaskCount: number;
+  siblingCount: number;
+  isDecomposed: boolean;
 }
 
 interface TaskCompletionModalProps {
@@ -86,6 +100,39 @@ export default function TaskCompletionModal({
   const [showDecomposer, setShowDecomposer] = useState(false);
   const [decompositionReason, setDecompositionReason] = useState<string[]>([]);
 
+  // Lineage state
+  const [lineage, setLineage] = useState<TaskLineageInfo | null>(null);
+
+  // Fetch lineage data
+  const fetchLineage = useCallback(async () => {
+    try {
+      const [parentRes, subtasksRes, siblingsRes] = await Promise.all([
+        fetch(`/api/task-agent/tasks/${taskId}/parent`),
+        fetch(`/api/task-agent/tasks/${taskId}/subtasks`),
+        fetch(`/api/task-agent/tasks/${taskId}/siblings`),
+      ]);
+
+      const parentData = parentRes.ok
+        ? await parentRes.json()
+        : { parent: null };
+      const subtasksData = subtasksRes.ok
+        ? await subtasksRes.json()
+        : { subtaskCount: 0 };
+      const siblingsData = siblingsRes.ok
+        ? await siblingsRes.json()
+        : { siblingCount: 0 };
+
+      setLineage({
+        parent: parentData.parent,
+        subtaskCount: subtasksData.subtaskCount || 0,
+        siblingCount: siblingsData.siblingCount || 0,
+        isDecomposed: subtasksData.subtaskCount > 0,
+      });
+    } catch (err) {
+      console.error("Failed to fetch lineage:", err);
+    }
+  }, [taskId]);
+
   // Debug: log when showDecomposer changes
   useEffect(() => {
     console.log(
@@ -115,8 +162,9 @@ export default function TaskCompletionModal({
   useEffect(() => {
     if (isOpen) {
       fetchReadiness();
+      fetchLineage();
     }
-  }, [isOpen, fetchReadiness]);
+  }, [isOpen, fetchReadiness, fetchLineage]);
 
   if (!isOpen) return null;
 
@@ -303,6 +351,99 @@ export default function TaskCompletionModal({
                     <p className="text-gray-900 font-medium">{taskTitle}</p>
                   </div>
                 )}
+
+                {/* Decomposition Status - Always visible */}
+                <div
+                  className={`p-3 rounded-lg border ${
+                    lineage?.subtaskCount && lineage.subtaskCount > 0
+                      ? "bg-purple-50 border-purple-200"
+                      : lineage?.parent
+                        ? "bg-blue-50 border-blue-200"
+                        : "bg-gray-50 border-gray-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <GitBranch
+                        className={`w-4 h-4 ${
+                          lineage?.subtaskCount && lineage.subtaskCount > 0
+                            ? "text-purple-600"
+                            : lineage?.parent
+                              ? "text-blue-600"
+                              : "text-gray-400"
+                        }`}
+                      />
+                      <span
+                        className={`text-sm font-medium ${
+                          lineage?.subtaskCount && lineage.subtaskCount > 0
+                            ? "text-purple-800"
+                            : lineage?.parent
+                              ? "text-blue-800"
+                              : "text-gray-600"
+                        }`}
+                      >
+                        Decomposition Status
+                      </span>
+                    </div>
+                    {/* Status badge */}
+                    {lineage?.subtaskCount && lineage.subtaskCount > 0 ? (
+                      <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
+                        Decomposed → {lineage.subtaskCount} subtasks
+                      </span>
+                    ) : lineage?.parent ? (
+                      <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                        Subtask
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 rounded-full">
+                        Original Task
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Lineage details when present */}
+                  {lineage &&
+                    (lineage.parent ||
+                      lineage.subtaskCount > 0 ||
+                      lineage.siblingCount > 0) && (
+                      <div className="mt-2 pt-2 border-t border-gray-200 space-y-1.5 text-sm">
+                        {lineage.parent && (
+                          <div className="flex items-center gap-2 text-blue-700">
+                            <ChevronRight className="w-3 h-3" />
+                            <span>Parent:</span>
+                            <span className="font-mono text-xs bg-blue-100 px-1.5 py-0.5 rounded">
+                              {lineage.parent.display_id}
+                            </span>
+                            <span className="truncate max-w-[200px]">
+                              {lineage.parent.title}
+                            </span>
+                          </div>
+                        )}
+                        {lineage.subtaskCount > 0 && (
+                          <div className="flex items-center gap-2 text-purple-700">
+                            <ChevronRight className="w-3 h-3" />
+                            <span>
+                              Created {lineage.subtaskCount} subtask
+                              {lineage.subtaskCount > 1 ? "s" : ""} via AI
+                              decomposition
+                            </span>
+                          </div>
+                        )}
+                        {lineage.siblingCount > 0 && (
+                          <div className="flex items-center gap-2 text-blue-700">
+                            <ChevronRight className="w-3 h-3" />
+                            <span>Siblings:</span>
+                            <span className="font-medium">
+                              {lineage.siblingCount}
+                            </span>
+                            <span className="text-xs text-blue-500">
+                              (from same decomposition)
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                </div>
 
                 {/* Decomposition Warning */}
                 {needsDecomposition && (

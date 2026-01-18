@@ -5,7 +5,7 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
-import { getDb, run, query } from "../../../database/db.js";
+import { run } from "../../../database/db.js";
 
 // Event source types
 export type EventSource =
@@ -222,30 +222,34 @@ class UnifiedEventEmitter {
       instance_id: instanceId,
       // Agent-specific context
       task_id:
-        context.source === "agent" ? (context as AgentContext).taskId : null,
+        context.source === "agent"
+          ? ((context as AgentContext).taskId ?? null)
+          : null,
       wave_id:
-        context.source === "agent" ? (context as AgentContext).waveId : null,
+        context.source === "agent"
+          ? ((context as AgentContext).waveId ?? null)
+          : null,
       wave_number:
         context.source === "agent"
-          ? (context as AgentContext).waveNumber
+          ? ((context as AgentContext).waveNumber ?? null)
           : null,
       // Telegram context
       chat_id:
         context.source === "telegram"
-          ? (context as TelegramContext).chatId
+          ? ((context as TelegramContext).chatId ?? null)
           : null,
       telegram_user_id:
         context.source === "telegram"
-          ? (context as TelegramContext).telegramUserId
+          ? ((context as TelegramContext).telegramUserId ?? null)
           : null,
       message_id:
         context.source === "telegram"
-          ? (context as TelegramContext).messageId
+          ? ((context as TelegramContext).messageId ?? null)
           : null,
       // Script context
       script_name:
         context.source === "script"
-          ? (context as ScriptContext).scriptName
+          ? ((context as ScriptContext).scriptName ?? null)
           : null,
       script_args:
         context.source === "script" && (context as ScriptContext).scriptArgs
@@ -254,22 +258,24 @@ class UnifiedEventEmitter {
       // User context
       user_id:
         context.source === "user" || context.source === "ideation"
-          ? (context as UserContext | IdeationContext).userId
+          ? ((context as UserContext | IdeationContext).userId ?? null)
           : null,
       session_id:
         context.source === "user" || context.source === "ideation"
-          ? (context as UserContext | IdeationContext).sessionId
+          ? ((context as UserContext | IdeationContext).sessionId ?? null)
           : null,
       page_url:
-        context.source === "user" ? (context as UserContext).pageUrl : null,
+        context.source === "user"
+          ? ((context as UserContext).pageUrl ?? null)
+          : null,
       // Webhook context
       webhook_url:
         context.source === "webhook"
-          ? (context as WebhookContext).webhookUrl
+          ? ((context as WebhookContext).webhookUrl ?? null)
           : null,
       webhook_method:
         context.source === "webhook"
-          ? (context as WebhookContext).webhookMethod
+          ? ((context as WebhookContext).webhookMethod ?? null)
           : null,
       // Cross-source
       correlation_id: context.correlationId || null,

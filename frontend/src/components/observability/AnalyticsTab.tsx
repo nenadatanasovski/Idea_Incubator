@@ -17,6 +17,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 import clsx from "clsx";
+import AgentActivityGraph from "./AgentActivityGraph";
 
 const API_BASE = "http://localhost:3001";
 
@@ -217,6 +218,24 @@ export default function AnalyticsTab() {
 
         {/* Error Hotspots Panel */}
         <ErrorHotspotsPanel data={errors} />
+      </div>
+
+      {/* Advanced Visualizations */}
+      <div className="mt-8 space-y-6">
+        {/* Agent Activity Graph - works without executionId */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">
+              Agent Activity
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Agent activity timeline and resource utilization
+            </p>
+          </div>
+          <div className="p-6">
+            <AgentActivityGraph />
+          </div>
+        </div>
       </div>
     </div>
   );

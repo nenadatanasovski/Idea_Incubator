@@ -45,7 +45,10 @@ export type ObservabilityView =
   | "assertions"
   | "skills"
   | "logs"
-  | "summary";
+  | "summary"
+  | "heatmap"
+  | "unified"
+  | "messages";
 
 // =============================================================================
 // EXECUTION COMPONENTS

@@ -51,6 +51,171 @@ const entryTypeColors: Partial<Record<TranscriptEntryType, string>> = {
   checkpoint: "bg-gray-200",
 };
 
+// Time axis component with auto-scaling
+function TimeAxis({
+  startTime,
+  endTime,
+  getPosition,
+}: {
+  startTime: Date;
+  endTime: Date;
+  width?: number;
+  getPosition: (time: Date) => number;
+}) {
+  const duration = endTime.getTime() - startTime.getTime();
+
+  // Determine tick interval based on duration
+  const getTickInterval = () => {
+    if (duration < 60000) return 10000; // < 1 min: 10 sec ticks
+    if (duration < 300000) return 30000; // < 5 min: 30 sec ticks
+    if (duration < 600000) return 60000; // < 10 min: 1 min ticks
+    if (duration < 1800000) return 300000; // < 30 min: 5 min ticks
+    return 600000; // 10 min ticks
+  };
+
+  const tickInterval = getTickInterval();
+  const tickCount = Math.floor(duration / tickInterval) + 1;
+  const ticks = Array.from({ length: tickCount }, (_, i) => {
+    const tickTime = new Date(startTime.getTime() + i * tickInterval);
+    return {
+      time: tickTime,
+      position: getPosition(tickTime),
+      label: formatTimeLabel(tickTime, tickInterval),
+    };
+  });
+
+  return (
+    <div className="relative h-6 border-b bg-gray-100">
+      {ticks.map((tick, idx) => (
+        <div
+          key={idx}
+          className="absolute top-0 h-full flex flex-col items-center"
+          style={{ left: tick.position }}
+        >
+          <div className="w-px h-2 bg-gray-400" />
+          <span className="text-[10px] text-gray-500 whitespace-nowrap transform -translate-x-1/2 mt-0.5">
+            {tick.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Format time label based on tick interval
+function formatTimeLabel(time: Date, interval: number): string {
+  if (interval < 60000) {
+    return `${time.getSeconds()}s`;
+  }
+  if (interval < 3600000) {
+    return `${time.getMinutes()}:${time.getSeconds().toString().padStart(2, "0")}`;
+  }
+  return time.toLocaleTimeString();
+}
+
+// Mini tool density sparkline for task rows
+function TaskToolDensity({
+  toolUses,
+  startTime,
+  endTime,
+}: {
+  toolUses: ToolUse[];
+  startTime: Date;
+  endTime: Date;
+}) {
+  if (toolUses.length === 0) return null;
+
+  const duration = (endTime?.getTime() ?? Date.now()) - startTime.getTime();
+  const binCount = 20;
+  const binSize = duration / binCount;
+  const bins = new Array(binCount).fill(0);
+
+  toolUses.forEach((tu) => {
+    const time = new Date(tu.startTime).getTime();
+    const binIdx = Math.min(
+      Math.floor((time - startTime.getTime()) / binSize),
+      binCount - 1,
+    );
+    bins[binIdx]++;
+  });
+
+  const maxCount = Math.max(...bins, 1);
+
+  return (
+    <div className="flex items-end h-3 gap-px px-1">
+      {bins.map((count, idx) => (
+        <div
+          key={idx}
+          className="flex-1 bg-purple-400 rounded-t opacity-60"
+          style={{
+            height: `${(count / maxCount) * 100}%`,
+            minHeight: count > 0 ? 1 : 0,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Event marker component
+function EventMarkers({
+  entries,
+  getPosition,
+  onEntryClick,
+}: {
+  entries: TranscriptEntry[];
+  getPosition: (time: Date) => number;
+  onEntryClick?: (entry: TranscriptEntry) => void;
+}) {
+  const markers = entries.filter(
+    (e) =>
+      e.entryType === "skill_invoke" ||
+      e.entryType === "checkpoint" ||
+      e.entryType === "discovery",
+  );
+
+  if (markers.length === 0) return null;
+
+  const markerStyles: Record<
+    string,
+    { color: string; symbol: string; label: string }
+  > = {
+    skill_invoke: { color: "bg-indigo-500", symbol: "S", label: "Skill" },
+    checkpoint: { color: "bg-gray-500", symbol: "C", label: "Checkpoint" },
+    discovery: { color: "bg-teal-500", symbol: "D", label: "Discovery" },
+  };
+
+  return (
+    <>
+      {markers.map((entry, idx) => {
+        const style = markerStyles[entry.entryType] || {
+          color: "bg-gray-400",
+          symbol: "?",
+          label: entry.entryType,
+        };
+        return (
+          <div
+            key={`${entry.id}-${idx}`}
+            className="absolute top-0 h-full w-px cursor-pointer group"
+            style={{ left: getPosition(new Date(entry.timestamp)) }}
+            onClick={() => onEntryClick?.(entry)}
+          >
+            <div
+              className={`w-0.5 h-full ${style.color} opacity-50 group-hover:opacity-100`}
+            />
+            <div
+              className={`absolute -top-1 -left-1.5 w-3 h-3 ${style.color} rounded-full text-white text-[8px] flex items-center justify-center font-bold group-hover:scale-125 transition-transform`}
+              title={`${style.label}: ${entry.summary}`}
+            >
+              {style.symbol}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 export default function ExecutionTimeline({
   executionId,
   onEntryClick,
@@ -269,6 +434,14 @@ export default function ExecutionTimeline({
       {/* Timeline content */}
       <div className="flex-1 overflow-auto">
         <div className="min-w-max" style={{ width: `${800 * zoom}px` }}>
+          {/* Time axis */}
+          <TimeAxis
+            startTime={timeRange.start}
+            endTime={timeRange.end}
+            width={800 * zoom}
+            getPosition={getPosition}
+          />
+
           {/* Phase bars */}
           {phases.length > 0 && (
             <div className="relative h-8 border-b bg-gray-50">
@@ -324,9 +497,10 @@ export default function ExecutionTimeline({
                       {task.entries.length}
                     </span>
                   </div>
-                  <div className="flex-1 relative h-10 bg-gray-50">
+                  <div className="flex-1 relative h-12 bg-gray-50">
+                    {/* Task bar */}
                     <div
-                      className={`absolute top-2 h-6 rounded border cursor-pointer hover:opacity-80 ${
+                      className={`absolute top-1 h-6 rounded border cursor-pointer hover:opacity-80 ${
                         task.status === "completed"
                           ? "bg-green-200 border-green-400"
                           : task.status === "failed"
@@ -339,12 +513,31 @@ export default function ExecutionTimeline({
                       }}
                       onClick={() => onEntryClick?.(task.entries[0])}
                     />
+
+                    {/* Tool density sparkline */}
+                    {task.toolUses.length > 0 && (
+                      <div
+                        className="absolute bottom-0"
+                        style={{
+                          left: getPosition(task.startTime),
+                          width: getWidth(task.startTime, task.endTime),
+                        }}
+                      >
+                        <TaskToolDensity
+                          toolUses={task.toolUses}
+                          startTime={task.startTime}
+                          endTime={task.endTime || timeRange.end}
+                        />
+                      </div>
+                    )}
+
+                    {/* Error markers */}
                     {task.entries
                       .filter((e) => e.entryType === "error")
                       .map((entry, idx) => (
                         <div
                           key={idx}
-                          className="absolute top-1 h-8 w-1 bg-red-500 cursor-pointer"
+                          className="absolute top-0 h-full w-1 bg-red-500 cursor-pointer z-10"
                           style={{
                             left: getPosition(new Date(entry.timestamp)),
                           }}
@@ -352,6 +545,13 @@ export default function ExecutionTimeline({
                           onClick={() => onEntryClick?.(entry)}
                         />
                       ))}
+
+                    {/* Event markers for skills, checkpoints, discoveries */}
+                    <EventMarkers
+                      entries={task.entries}
+                      getPosition={getPosition}
+                      onEntryClick={onEntryClick}
+                    />
                   </div>
                 </div>
                 {isExpanded && (

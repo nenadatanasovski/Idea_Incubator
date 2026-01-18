@@ -17,6 +17,11 @@ import { Task, TaskCategory } from "../../../types/task-agent.js";
 import { CreateTaskImpactInput } from "../../../types/task-impact.js";
 import { atomicityValidator } from "./atomicity-validator.js";
 import { generateDisplayId } from "./display-id-generator.js";
+import {
+  decompositionAgent,
+  type AIDecompositionResult,
+  type AISubtaskProposal,
+} from "../../../agents/decomposition/index.js";
 
 /**
  * Database row interface for tasks (snake_case columns)
@@ -37,6 +42,9 @@ interface TaskRow {
   position: number;
   owner: string;
   assigned_agent_id: string | null;
+  parent_task_id: string | null;
+  is_decomposed: number;
+  decomposition_id: string | null;
   created_at: string;
   updated_at: string;
   started_at: string | null;
@@ -63,6 +71,9 @@ function mapTaskRow(row: TaskRow): Task {
     position: row.position,
     owner: row.owner as Task["owner"],
     assignedAgentId: row.assigned_agent_id || undefined,
+    parentTaskId: row.parent_task_id || undefined,
+    isDecomposed: row.is_decomposed === 1,
+    decompositionId: row.decomposition_id || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     startedAt: row.started_at || undefined,
@@ -345,6 +356,170 @@ export class TaskDecomposer {
       fileImpacts,
       existingAcceptanceCriteria,
     };
+  }
+
+  /**
+   * Use AI agent to analyze task and suggest decomposition
+   * This is the primary decomposition method - uses Claude for intelligent splitting
+   */
+  async analyzeWithAI(taskId: string): Promise<{
+    result: AIDecompositionResult;
+    tokensUsed: number;
+  }> {
+    console.log(`[TaskDecomposer] Analyzing task ${taskId} with AI agent`);
+
+    // Load context using the AI agent's context loader
+    const context = await decompositionAgent.loadContext(taskId);
+
+    // Analyze the task with AI
+    decompositionAgent.resetTokenCounter();
+    const result = await decompositionAgent.analyzeTask(context);
+    const tokensUsed = decompositionAgent.getTokensUsed();
+
+    console.log(
+      `[TaskDecomposer] AI analysis complete: shouldDecompose=${result.shouldDecompose}, ` +
+        `subtasks=${result.subtasks.length}, confidence=${result.confidence}, tokens=${tokensUsed}`,
+    );
+
+    return { result, tokensUsed };
+  }
+
+  /**
+   * Convert AI subtask proposals to EnhancedSplitSuggestion format
+   */
+  convertAIProposalsToSplits(
+    proposals: AISubtaskProposal[],
+  ): EnhancedSplitSuggestion[] {
+    return proposals.map((proposal) => ({
+      title: proposal.title,
+      description: proposal.description,
+      category: proposal.category,
+      estimatedEffort: proposal.effort,
+      dependencies:
+        proposal.dependsOnIndex !== undefined
+          ? [proposal.dependsOnIndex.toString()]
+          : [],
+      dependsOnIndex: proposal.dependsOnIndex,
+      impacts: proposal.fileImpacts.map((f) => ({
+        taskId: "",
+        impactType: f.impactType as
+          | "file"
+          | "api"
+          | "function"
+          | "database"
+          | "type",
+        operation: f.operation as "CREATE" | "UPDATE" | "DELETE" | "READ",
+        targetPath: f.targetPath,
+      })),
+      acceptanceCriteria: proposal.acceptanceCriteria,
+      testCommands: proposal.testCommands,
+      sourceContext: {
+        reasoning: proposal.rationale,
+        fromParentCriteria: proposal.addressesCriteria,
+      },
+    }));
+  }
+
+  /**
+   * Primary decomposition method - uses AI with heuristic fallback
+   */
+  async decomposeWithAI(
+    taskId: string,
+  ): Promise<DecompositionResult & { aiUsed: boolean; tokensUsed: number }> {
+    const context = await this.loadContext(taskId);
+
+    // Try AI decomposition first
+    try {
+      const { result, tokensUsed } = await this.analyzeWithAI(taskId);
+
+      if (result.shouldDecompose && result.subtasks.length > 0) {
+        const splits = this.convertAIProposalsToSplits(result.subtasks);
+
+        return {
+          originalTaskId: taskId,
+          suggestedTasks: splits,
+          totalEstimatedEffort: this.calculateTotalEffort(splits),
+          decompositionReason: result.reasoning,
+          contextUsed: {
+            prdsUsed: context.linkedPrds.map((p) => p.id),
+            criteriaDistributed: splits.reduce(
+              (sum, s) =>
+                sum + (s.sourceContext.fromParentCriteria?.length || 0),
+              0,
+            ),
+            criteriaGenerated: splits.reduce(
+              (sum, s) =>
+                sum +
+                (s.acceptanceCriteria.length -
+                  (s.sourceContext.fromParentCriteria?.length || 0)),
+              0,
+            ),
+          },
+          aiUsed: true,
+          tokensUsed,
+        };
+      }
+
+      // AI said don't decompose or no subtasks
+      console.log(
+        `[TaskDecomposer] AI declined decomposition: ${result.reasoning}`,
+      );
+    } catch (error) {
+      console.error(
+        `[TaskDecomposer] AI decomposition failed, using heuristics:`,
+        error,
+      );
+    }
+
+    // Fallback to heuristic decomposition
+    const heuristicSplits = await this.suggestSplitsEnhanced(context);
+
+    return {
+      originalTaskId: taskId,
+      suggestedTasks: heuristicSplits,
+      totalEstimatedEffort: this.calculateTotalEffort(heuristicSplits),
+      decompositionReason:
+        "Heuristic-based decomposition (AI unavailable or declined)",
+      contextUsed: {
+        prdsUsed: context.linkedPrds.map((p) => p.id),
+        criteriaDistributed: heuristicSplits.reduce(
+          (sum, s) => sum + (s.sourceContext.fromParentCriteria?.length || 0),
+          0,
+        ),
+        criteriaGenerated: heuristicSplits.reduce(
+          (sum, s) =>
+            sum +
+            (s.acceptanceCriteria.length -
+              (s.sourceContext.fromParentCriteria?.length || 0)),
+          0,
+        ),
+      },
+      aiUsed: false,
+      tokensUsed: 0,
+    };
+  }
+
+  /**
+   * Calculate total effort from splits
+   */
+  private calculateTotalEffort(splits: EnhancedSplitSuggestion[]): string {
+    const effortValues: Record<string, number> = {
+      trivial: 1,
+      small: 2,
+      medium: 4,
+      large: 8,
+      epic: 16,
+    };
+
+    const total = splits.reduce(
+      (sum, s) => sum + (effortValues[s.estimatedEffort] || 2),
+      0,
+    );
+
+    if (total <= 3) return "small";
+    if (total <= 8) return "medium";
+    if (total <= 16) return "large";
+    return "epic";
   }
 
   /**
@@ -901,6 +1076,7 @@ export class TaskDecomposer {
 
   /**
    * Execute decomposition - create subtasks with full context and mark original as skipped
+   * Now sets parent_task_id, decomposition_id, and is_decomposed fields for lineage tracking
    */
   async executeDecomposition(
     taskId: string,
@@ -917,8 +1093,15 @@ export class TaskDecomposer {
 
     const originalTask = mapTaskRow(originalTaskRow);
 
+    // Generate a unique decomposition ID to group all subtasks from this decomposition
+    const decompositionId = uuidv4();
+
     const createdTasks: Task[] = [];
     const idMapping = new Map<number, string>();
+
+    console.log(
+      `[TaskDecomposer] Executing decomposition for ${originalTask.displayId} with decomposition_id=${decompositionId}`,
+    );
 
     // Create subtasks
     for (let i = 0; i < splits.length; i++) {
@@ -932,9 +1115,10 @@ export class TaskDecomposer {
         originalTask.projectId,
       );
 
+      // Insert with parent_task_id and decomposition_id for lineage tracking
       await run(
-        `INSERT INTO tasks (id, display_id, title, description, category, status, queue, task_list_id, project_id, priority, effort, phase, position, owner, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO tasks (id, display_id, title, description, category, status, queue, task_list_id, project_id, priority, effort, phase, position, owner, parent_task_id, decomposition_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           newId,
           displayId,
@@ -950,6 +1134,8 @@ export class TaskDecomposer {
           i + 1,
           i,
           "build_agent",
+          taskId, // parent_task_id - links to original task
+          decompositionId, // decomposition_id - groups siblings
           now,
           now,
         ],
@@ -1086,16 +1272,21 @@ export class TaskDecomposer {
         `Decomposed into ${createdTasks.length} subtasks`,
         JSON.stringify({
           subtaskIds: createdTasks.map((t) => t.id),
+          decompositionId: decompositionId,
           decompositionReason: "Task not atomic",
         }),
         new Date().toISOString(),
       ],
     );
 
-    // Mark original task as skipped
+    // Mark original task as skipped and set is_decomposed flag
     await run(
-      `UPDATE tasks SET status = 'skipped', updated_at = ? WHERE id = ?`,
-      [new Date().toISOString(), taskId],
+      `UPDATE tasks SET status = 'skipped', is_decomposed = 1, decomposition_id = ?, updated_at = ? WHERE id = ?`,
+      [decompositionId, new Date().toISOString(), taskId],
+    );
+
+    console.log(
+      `[TaskDecomposer] Decomposition complete: ${createdTasks.length} subtasks created, parent marked as decomposed`,
     );
 
     await saveDb();

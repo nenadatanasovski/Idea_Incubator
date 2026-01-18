@@ -7,6 +7,8 @@
 
 import { Router, Request, Response } from "express";
 import projectService from "../services/project-service.js";
+import { traceabilityService } from "../services/traceability-service.js";
+import { eventService } from "../services/event-service.js";
 import type { ProjectStatus } from "../../types/project.js";
 
 const router = Router();
@@ -60,6 +62,22 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       ownerId,
     });
 
+    // Emit project_created event
+    eventService
+      .emitEvent({
+        type: "project_created",
+        source: "api",
+        payload: {
+          projectId: project.id,
+          projectCode: project.code,
+          name: project.name,
+          ideaId: ideaId || null,
+        },
+        projectId: project.id,
+        ideaId: ideaId || undefined,
+      })
+      .catch(console.error);
+
     res.status(201).json(project);
   } catch (error) {
     console.error("[projects] Error creating project:", error);
@@ -86,6 +104,24 @@ router.post(
       }
 
       const project = await projectService.createProjectFromIdea(ideaId);
+
+      // Emit project_created event
+      eventService
+        .emitEvent({
+          type: "project_created",
+          source: "api",
+          payload: {
+            projectId: project.id,
+            projectCode: project.code,
+            name: project.name,
+            ideaId,
+            fromIdea: true,
+          },
+          projectId: project.id,
+          ideaId,
+        })
+        .catch(console.error);
+
       res.status(201).json(project);
     } catch (error) {
       console.error("[projects] Error creating project from idea:", error);
@@ -149,11 +185,12 @@ router.get(
 /**
  * GET /api/projects/:ref
  * Get project by ID, code, or slug
+ * Query params: withStats, withCoverage
  */
 router.get("/:ref", async (req: Request, res: Response): Promise<void> => {
   try {
     const { ref } = req.params;
-    const { withStats } = req.query;
+    const { withStats, withCoverage } = req.query;
 
     // If stats requested, get from stats view
     if (withStats === "true") {
@@ -167,6 +204,24 @@ router.get("/:ref", async (req: Request, res: Response): Promise<void> => {
         res.status(404).json({ error: "Project not found" });
         return;
       }
+
+      // Optionally include coverage stats
+      if (withCoverage === "true") {
+        const coverageStats =
+          await traceabilityService.getCoverageStats(projectId);
+        res.json({
+          ...project,
+          coverageStats: coverageStats || {
+            overallCoverage: 100,
+            coveredRequirements: 0,
+            totalRequirements: 0,
+            orphanTaskCount: 0,
+            gapCount: 0,
+          },
+        });
+        return;
+      }
+
       res.json(project);
       return;
     }
@@ -178,6 +233,24 @@ router.get("/:ref", async (req: Request, res: Response): Promise<void> => {
 
     if (!project) {
       res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    // Optionally include coverage stats
+    if (withCoverage === "true") {
+      const coverageStats = await traceabilityService.getCoverageStats(
+        project.id,
+      );
+      res.json({
+        ...project,
+        coverageStats: coverageStats || {
+          overallCoverage: 100,
+          coveredRequirements: 0,
+          totalRequirements: 0,
+          orphanTaskCount: 0,
+          gapCount: 0,
+        },
+      });
       return;
     }
 
@@ -315,6 +388,20 @@ router.post(
         return;
       }
 
+      // Emit project_started event
+      eventService
+        .emitEvent({
+          type: "project_started",
+          source: "api",
+          payload: {
+            projectId: project.id,
+            projectCode: project.code,
+            name: project.name,
+          },
+          projectId: project.id,
+        })
+        .catch(console.error);
+
       res.json(project);
     } catch (error) {
       console.error("[projects] Error starting project:", error);
@@ -343,6 +430,20 @@ router.post(
         res.status(404).json({ error: "Project not found" });
         return;
       }
+
+      // Emit project_completed event
+      eventService
+        .emitEvent({
+          type: "project_completed",
+          source: "api",
+          payload: {
+            projectId: project.id,
+            projectCode: project.code,
+            name: project.name,
+          },
+          projectId: project.id,
+        })
+        .catch(console.error);
 
       res.json(project);
     } catch (error) {

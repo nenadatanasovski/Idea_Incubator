@@ -101,7 +101,7 @@ export default function Layout({ children }: LayoutProps) {
       </header>
 
       {/* Main content - pt-16 accounts for fixed header */}
-      <main className="px-4 sm:px-6 lg:px-8 pt-16 pb-6">{children}</main>
+      <main className="px-4 sm:px-6 lg:px-8 pt-16">{children}</main>
     </div>
   );
 }

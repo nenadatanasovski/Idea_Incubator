@@ -3,6 +3,7 @@
  * Shows tasks, kanban mini-view, and execution status
  */
 
+import { useState } from "react";
 import { useOutletContext, Link } from "react-router-dom";
 import {
   CheckCircle2,
@@ -17,6 +18,10 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { useProjectTasks } from "../../hooks/useProjectTasks";
+import { useGroupedTasks } from "../../hooks/useGroupedTasks";
+import TaskGroupSelector, { type TaskGroupMode } from "./TaskGroupSelector";
+import TaskGroupCard from "./TaskGroupCard";
+import DecompositionTree from "./DecompositionTree";
 import type { ProjectWithStats } from "../../../../types/project";
 
 interface OutletContext {
@@ -76,6 +81,10 @@ export default function ProjectBuild() {
   const { tasks, taskLists, summary, isLoading, error } = useProjectTasks(
     project.id,
   );
+
+  // Grouping state
+  const [groupBy, setGroupBy] = useState<TaskGroupMode>("none");
+  const { groups, ungrouped } = useGroupedTasks(tasks, groupBy);
 
   // Group tasks by status for mini kanban
   const tasksByStatus = {
@@ -188,9 +197,14 @@ export default function ProjectBuild() {
         </div>
       )}
 
-      {/* Mini Kanban */}
+      {/* Task View with Grouping Selector */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-        <h3 className="font-semibold text-gray-900 mb-4">Tasks by Status</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-900">
+            {groupBy === "none" ? "Tasks by Status" : "Tasks Grouped"}
+          </h3>
+          <TaskGroupSelector value={groupBy} onChange={setGroupBy} />
+        </div>
 
         {summary.total === 0 ? (
           <div className="text-center py-8">
@@ -209,7 +223,63 @@ export default function ProjectBuild() {
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
+        ) : groupBy === "parent" ? (
+          /* Decomposition Tree View */
+          <DecompositionTree tasks={tasks} projectSlug={project.slug} />
+        ) : groupBy !== "none" ? (
+          /* Grouped View */
+          <div className="space-y-4">
+            {groups.map((group, idx) => (
+              <TaskGroupCard
+                key={group.key}
+                group={group}
+                projectSlug={project.slug}
+                defaultExpanded={idx === 0}
+                colorScheme={
+                  groupBy === "category"
+                    ? "purple"
+                    : groupBy === "phase"
+                      ? "blue"
+                      : groupBy === "spec_section"
+                        ? "orange"
+                        : "gray"
+                }
+              />
+            ))}
+            {ungrouped.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">
+                  Ungrouped Tasks ({ungrouped.length})
+                </h4>
+                <TaskGroupCard
+                  group={{
+                    key: "ungrouped",
+                    label: "Standalone Tasks",
+                    tasks: ungrouped,
+                    progress: {
+                      completed: ungrouped.filter(
+                        (t) => t.status === "completed",
+                      ).length,
+                      total: ungrouped.length,
+                      percentage:
+                        ungrouped.length > 0
+                          ? Math.round(
+                              (ungrouped.filter((t) => t.status === "completed")
+                                .length /
+                                ungrouped.length) *
+                                100,
+                            )
+                          : 0,
+                    },
+                  }}
+                  projectSlug={project.slug}
+                  colorScheme="gray"
+                />
+              </div>
+            )}
+          </div>
         ) : (
+          /* Mini Kanban View */
           <div className="grid grid-cols-5 gap-4">
             {(
               Object.entries(tasksByStatus) as [

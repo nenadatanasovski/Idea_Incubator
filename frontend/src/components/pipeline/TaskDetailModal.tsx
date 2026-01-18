@@ -34,9 +34,11 @@ import {
   Folder,
   RotateCcw,
   PlayCircle,
+  Link2,
 } from "lucide-react";
 import ReadinessIndicator from "./ReadinessIndicator";
 import TaskCompletionModal from "./TaskCompletionModal";
+import TaskSpecLinkModal from "../projects/TaskSpecLinkModal";
 import type {
   TaskDetailInfo,
   TaskRelation,
@@ -83,6 +85,7 @@ export default function TaskDetailModal({
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
 
   const fetchTaskDetail = useCallback(async () => {
     try {
@@ -154,19 +157,17 @@ export default function TaskDetailModal({
             {loading ? (
               <div className="h-6 w-48 bg-gray-200 animate-pulse rounded" />
             ) : task ? (
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
-                    {task.displayId || task.id.slice(0, 8)}
-                  </span>
-                  <StatusBadge status={task.status} />
-                  <ReadinessIndicator
-                    taskId={task.id}
-                    size="sm"
-                    onClick={() => setShowCompletionModal(true)}
-                  />
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900 mt-1 truncate">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-mono text-sm text-primary-600 bg-primary-50 px-2 py-0.5 rounded shrink-0">
+                  {task.displayId || task.id.slice(0, 8)}
+                </span>
+                <StatusBadge status={task.status} />
+                <ReadinessIndicator
+                  taskId={task.id}
+                  size="sm"
+                  onClick={() => setShowCompletionModal(true)}
+                />
+                <h2 className="text-lg font-semibold text-gray-900 truncate">
                   {task.title}
                 </h2>
               </div>
@@ -197,6 +198,16 @@ export default function TaskDetailModal({
                   className={`w-4 h-4 ${retrying ? "animate-spin" : ""}`}
                 />
                 {retrying ? "Retrying..." : "Retry Task"}
+              </button>
+            )}
+            {task && task.projectId && (
+              <button
+                onClick={() => setShowLinkModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors bg-purple-600 text-white hover:bg-purple-700"
+                title="Link task to specification requirements"
+              >
+                <Link2 className="w-4 h-4" />
+                Link to Spec
               </button>
             )}
             <button
@@ -310,6 +321,18 @@ export default function TaskDetailModal({
             // Trigger execution - this would typically call an API
             console.log("Execute task:", task.id);
           }}
+        />
+      )}
+
+      {/* Task Spec Link Modal */}
+      {task && task.projectId && (
+        <TaskSpecLinkModal
+          isOpen={showLinkModal}
+          onClose={() => setShowLinkModal(false)}
+          taskId={task.id}
+          taskDisplayId={task.displayId || task.id.slice(0, 8)}
+          projectId={task.projectId}
+          onLinksUpdated={fetchTaskDetail}
         />
       )}
     </div>

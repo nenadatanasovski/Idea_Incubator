@@ -18,21 +18,31 @@ import type {
   ExecutionRun,
 } from "../../types/observability";
 
-type StatusType =
+export type StatusType =
   | ToolResultStatus
   | AssertionResult
   | ExecutionRun["status"]
   | "success"
-  | "partial";
+  | "partial"
+  | "in_progress"
+  | "pending"
+  | "running"
+  | "paused"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "active"
+  | "idle"
+  | "terminated";
 
 interface ObsStatusBadgeProps {
-  status: StatusType;
+  status: StatusType | string;
   size?: "sm" | "md" | "lg";
   showLabel?: boolean;
 }
 
 const statusConfig: Record<
-  StatusType,
+  string,
   {
     icon: typeof CheckCircle;
     color: string;
@@ -130,6 +140,38 @@ const statusConfig: Record<
     color: "text-yellow-600",
     bgColor: "bg-yellow-100",
     label: "Partial",
+  },
+
+  // Additional statuses
+  in_progress: {
+    icon: Loader,
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
+    label: "In Progress",
+  },
+  paused: {
+    icon: Clock,
+    color: "text-yellow-600",
+    bgColor: "bg-yellow-100",
+    label: "Paused",
+  },
+  active: {
+    icon: Loader,
+    color: "text-green-600",
+    bgColor: "bg-green-100",
+    label: "Active",
+  },
+  idle: {
+    icon: Clock,
+    color: "text-gray-500",
+    bgColor: "bg-gray-100",
+    label: "Idle",
+  },
+  terminated: {
+    icon: Ban,
+    color: "text-red-600",
+    bgColor: "bg-red-100",
+    label: "Terminated",
   },
 };
 

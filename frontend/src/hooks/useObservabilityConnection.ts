@@ -3,13 +3,23 @@
  *
  * Single WebSocket connection for all Observability tabs with automatic reconnection.
  * Provides connection status and event subscriptions for real-time updates.
+ *
+ * NOTE: This hook provides a different abstraction than useObservabilityStream.
+ * - useObservabilityStream: Low-level WebSocket for raw observability events (transcript, tool use, etc.)
+ * - useObservabilityConnection: High-level WebSocket for dashboard events (execution, agent, question status)
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
 export type ConnectionStatus = "connected" | "reconnecting" | "offline";
 
-export type ObservabilityEventType =
+/**
+ * Dashboard event types for useObservabilityConnection.
+ * These are higher-level events for dashboard status updates,
+ * NOT the same as ObservabilityEventType from types/observability.ts
+ * which is for low-level transcript/tooluse/assertion events.
+ */
+export type DashboardEventType =
   | "execution"
   | "agent"
   | "question"
@@ -17,8 +27,8 @@ export type ObservabilityEventType =
   | "tool-use"
   | "assertion";
 
-export interface ObservabilityEvent {
-  type: ObservabilityEventType;
+export interface DashboardEvent {
+  type: DashboardEventType;
   action:
     | "started"
     | "updated"
@@ -32,26 +42,36 @@ export interface ObservabilityEvent {
   data: Record<string, unknown>;
 }
 
+/**
+ * @deprecated Use DashboardEventType instead - renamed for clarity
+ */
+export type ObservabilityEventType = DashboardEventType;
+
+/**
+ * @deprecated Use DashboardEvent instead - renamed for clarity
+ */
+export type ObservabilityEvent = DashboardEvent;
+
 interface UseObservabilityConnectionOptions {
   enabled?: boolean;
-  onEvent?: (event: ObservabilityEvent) => void;
-  subscriptions?: ObservabilityEventType[];
+  onEvent?: (event: DashboardEvent) => void;
+  subscriptions?: DashboardEventType[];
 }
 
 interface UseObservabilityConnectionResult {
   status: ConnectionStatus;
   isConnected: boolean;
-  events: ObservabilityEvent[];
+  events: DashboardEvent[];
   error: Error | null;
   reconnect: () => void;
   clearEvents: () => void;
-  subscribe: (eventTypes: ObservabilityEventType[]) => void;
+  subscribe: (eventTypes: DashboardEventType[]) => void;
 }
 
-// Connect directly to API server - Vite proxy for WS is unreliable
+// Use current host for WebSocket connection (goes through Vite proxy in dev)
 function getWsBaseUrl(): string {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//localhost:3001`;
+  return `${protocol}//${window.location.host}`;
 }
 
 export default function useObservabilityConnection(
@@ -68,10 +88,10 @@ export default function useObservabilityConnection(
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const subscriptionsRef = useRef<ObservabilityEventType[]>(subscriptions);
+  const subscriptionsRef = useRef<DashboardEventType[]>(subscriptions);
 
   const [status, setStatus] = useState<ConnectionStatus>("offline");
-  const [events, setEvents] = useState<ObservabilityEvent[]>([]);
+  const [events, setEvents] = useState<DashboardEvent[]>([]);
   const [error, setError] = useState<Error | null>(null);
 
   // Update subscriptions ref when prop changes
@@ -89,7 +109,7 @@ export default function useObservabilityConnection(
     setEvents([]);
   }, []);
 
-  const subscribe = useCallback((eventTypes: ObservabilityEventType[]) => {
+  const subscribe = useCallback((eventTypes: DashboardEventType[]) => {
     subscriptionsRef.current = eventTypes;
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "subscribe", eventTypes }));
@@ -133,7 +153,7 @@ export default function useObservabilityConnection(
 
           // Handle different message types
           if (data.type === "observability:event" || data.type === "event") {
-            const obsEvent: ObservabilityEvent = {
+            const obsEvent: DashboardEvent = {
               type: data.eventType || data.payload?.type || "event",
               action: data.action || data.payload?.action || "updated",
               id: data.id || data.payload?.id || "",
@@ -155,13 +175,7 @@ export default function useObservabilityConnection(
         }
       };
 
-      ws.onerror = (event) => {
-        console.error("[Observability WS] Error connecting to:", wsUrl);
-        console.error(
-          "[Observability WS] WebSocket readyState:",
-          ws.readyState,
-        );
-        console.error("[Observability WS] Event:", event);
+      ws.onerror = () => {
         setError(new Error("WebSocket connection error"));
       };
 
