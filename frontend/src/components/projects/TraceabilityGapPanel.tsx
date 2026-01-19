@@ -453,23 +453,24 @@ export default function TraceabilityGapPanel({
             />
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2">
                 <span
                   className={clsx(
-                    "text-xs font-medium px-2 py-0.5 rounded",
+                    "text-xs font-medium px-2 py-0.5 rounded flex-shrink-0",
                     config.bgColor,
                     config.color,
                   )}
                 >
                   {config.label}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 flex-shrink-0">
                   {gapTypeLabels[gap.gapType]}
                 </span>
+                <span className="mx-1 text-gray-300">|</span>
+                <span className="text-sm text-gray-900 truncate">
+                  {gap.description}
+                </span>
               </div>
-              <p className="text-sm text-gray-900 line-clamp-2">
-                {gap.description}
-              </p>
             </div>
 
             {isExpanded ? (

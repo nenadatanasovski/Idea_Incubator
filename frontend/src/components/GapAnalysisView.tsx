@@ -152,7 +152,7 @@ export default function GapAnalysisView({
           />
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={clsx(
                   "text-xs font-medium px-2 py-0.5 rounded",
@@ -165,12 +165,14 @@ export default function GapAnalysisView({
               <span className="text-xs text-gray-500">
                 {categoryLabels[gap.category]}
               </span>
-              <span className="text-xs text-gray-400">
-                • Confidence: {gap.confidence}
+              <span className="text-sm text-gray-900 ml-2">
+                {gap.description}
               </span>
             </div>
 
-            <p className="text-sm text-gray-900">{gap.description}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Confidence: {gap.confidence}
+            </p>
 
             {gap.evidence && (
               <p className="text-xs text-gray-500 mt-1">
