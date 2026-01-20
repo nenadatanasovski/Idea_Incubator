@@ -30,6 +30,7 @@ export const initialState: IdeationStore = {
     isStreaming: false,
     streamingContent: "",
     error: null,
+    followUpPending: false,
   },
   candidate: {
     candidate: null,
@@ -195,6 +196,24 @@ export function ideationReducer(
           isLoading: false,
           isStreaming: false,
           error: action.payload.error,
+        },
+      };
+
+    case "FOLLOWUP_PENDING_START":
+      return {
+        ...state,
+        conversation: {
+          ...state.conversation,
+          followUpPending: true,
+        },
+      };
+
+    case "FOLLOWUP_PENDING_END":
+      return {
+        ...state,
+        conversation: {
+          ...state.conversation,
+          followUpPending: false,
         },
       };
 

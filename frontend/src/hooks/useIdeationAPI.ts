@@ -41,6 +41,16 @@ interface SubAgentTask {
   status: "pending" | "running" | "completed" | "failed";
 }
 
+interface FollowUpContext {
+  reason: "no_question" | "artifact_created" | "search_initiated";
+  artifactType?: string;
+  artifactTitle?: string;
+  searchQueries?: string[];
+  lastUserMessage: string;
+  sessionId: string;
+  assistantMessageId: string;
+}
+
 interface MessageResponse {
   userMessageId?: string;
   messageId?: string;
@@ -59,6 +69,9 @@ interface MessageResponse {
   // Quick-ack fields for parallel sub-agent execution
   isQuickAck?: boolean;
   subAgentTasks?: SubAgentTask[];
+  // Follow-up fields for async engagement
+  followUpPending?: boolean;
+  followUpContext?: FollowUpContext;
 }
 
 interface WebSearchResponse {
@@ -566,6 +579,41 @@ export function useIdeationAPI() {
     [],
   );
 
+  /**
+   * Trigger async follow-up question generation.
+   * Called when the main response lacks engagement (no question, no buttons).
+   */
+  const triggerFollowUp = useCallback(
+    async (
+      sessionId: string,
+      context: FollowUpContext,
+    ): Promise<{
+      success: boolean;
+      messageId?: string;
+      text?: string;
+      buttons?: ButtonOption[];
+    }> => {
+      try {
+        const response = await fetch(`${API_BASE}/follow-up`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId, context }),
+        });
+
+        if (!response.ok) {
+          console.error("[useIdeationAPI] Follow-up request failed");
+          return { success: false };
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error("[useIdeationAPI] Error triggering follow-up:", error);
+        return { success: false };
+      }
+    },
+    [],
+  );
+
   return useMemo(
     () => ({
       startSession,
@@ -585,6 +633,7 @@ export function useIdeationAPI() {
       deleteArtifact,
       updateCandidate,
       linkIdea,
+      triggerFollowUp,
     }),
     [
       startSession,
@@ -604,6 +653,7 @@ export function useIdeationAPI() {
       deleteArtifact,
       updateCandidate,
       linkIdea,
+      triggerFollowUp,
     ],
   );
 }

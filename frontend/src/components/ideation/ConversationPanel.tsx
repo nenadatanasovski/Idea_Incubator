@@ -12,6 +12,7 @@ import type { ConversationPanelProps } from "../../types/ideation";
 export function ConversationPanel({
   messages,
   isLoading,
+  followUpPending = false,
   streamingContent,
   error,
   subAgents = [],
@@ -47,7 +48,7 @@ export function ConversationPanel({
           triggerMessageId={triggerMessageId}
         />
         <TypingIndicator
-          isVisible={isLoading}
+          isVisible={isLoading || followUpPending}
           streamingContent={streamingContent}
         />
         {error && (

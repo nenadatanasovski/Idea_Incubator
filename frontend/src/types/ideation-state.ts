@@ -60,6 +60,7 @@ export interface ConversationState {
   isStreaming: boolean;
   streamingContent: string;
   error: string | null;
+  followUpPending: boolean; // True when async follow-up question is being generated
 }
 
 export interface CandidateState {
@@ -145,6 +146,8 @@ export type IdeationAction =
   | { type: "MESSAGE_STREAM_END"; payload: { message: IdeationMessage } }
   | { type: "MESSAGE_RECEIVED"; payload: { message: IdeationMessage } }
   | { type: "MESSAGE_ERROR"; payload: { error: string } }
+  | { type: "FOLLOWUP_PENDING_START" } // Async follow-up question being generated
+  | { type: "FOLLOWUP_PENDING_END" } // Follow-up generation complete (success or failure)
   | { type: "BUTTON_CLICK"; payload: { buttonId: string; buttonValue: string } }
   | {
       type: "FORM_SUBMIT";

@@ -59,6 +59,8 @@ import {
   subAgentManager,
   SubAgentTask as ManagerSubAgentTask,
 } from "../../agents/ideation/sub-agent-manager.js";
+import { generateFollowUp } from "../../agents/ideation/follow-up-generator.js";
+import { FollowUpContext } from "../../agents/ideation/orchestrator.js";
 
 /**
  * Creates a sub-agent status callback with proper deduplication.
@@ -1301,6 +1303,93 @@ ideationRouter.post("/message/edit", async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.error("Error editing ideation message:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ============================================================================
+// POST /api/ideation/follow-up
+// ============================================================================
+// Generates a follow-up question when the main response lacked engagement.
+// Called asynchronously by the frontend when followUpPending is true.
+// Uses Haiku for fast, low-latency generation.
+
+const FollowUpRequestSchema = z.object({
+  sessionId: z.string().uuid(),
+  context: z.object({
+    reason: z.enum(["no_question", "artifact_created", "search_initiated"]),
+    artifactType: z.string().optional(),
+    artifactTitle: z.string().optional(),
+    searchQueries: z.array(z.string()).optional(),
+    lastUserMessage: z.string(),
+    sessionId: z.string(),
+    assistantMessageId: z.string(),
+  }),
+});
+
+ideationRouter.post("/follow-up", async (req: Request, res: Response) => {
+  try {
+    const parseResult = FollowUpRequestSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: "Validation error",
+        details: parseResult.error.issues,
+      });
+    }
+
+    const { sessionId, context } = parseResult.data;
+
+    // Load session to verify it exists and is active
+    const session = await sessionManager.load(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    if (session.status !== "active") {
+      return res.status(400).json({ error: "Session is not active" });
+    }
+
+    // Emit pending event so frontend shows thinking indicator
+    emitSessionEvent("followup:pending", sessionId, {
+      reason: context.reason,
+    });
+
+    console.log(
+      `[Routes/FollowUp] Generating follow-up for session ${sessionId}, reason: ${context.reason}`,
+    );
+
+    // Generate follow-up question using Haiku
+    const followUp = await generateFollowUp(context as FollowUpContext);
+
+    // Store the follow-up as a new assistant message
+    const followUpMsg = await messageStore.add({
+      sessionId,
+      role: "assistant",
+      content: followUp.text,
+      buttonsShown: followUp.buttons || null,
+      tokenCount: Math.ceil(followUp.text.length / 4),
+    });
+
+    // Emit the follow-up message via WebSocket
+    emitSessionEvent("followup:message", sessionId, {
+      messageId: followUpMsg.id,
+      text: followUp.text,
+      buttons: followUp.buttons || null,
+      reason: context.reason,
+    });
+
+    console.log(
+      `[Routes/FollowUp] Follow-up generated and sent for session ${sessionId}`,
+    );
+
+    return res.json({
+      success: true,
+      messageId: followUpMsg.id,
+      text: followUp.text,
+      buttons: followUp.buttons || null,
+    });
+  } catch (error) {
+    console.error("Error generating follow-up:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });

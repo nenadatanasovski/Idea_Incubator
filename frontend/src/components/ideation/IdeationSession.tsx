@@ -530,6 +530,34 @@ export function IdeationSession({
             }
             break;
 
+          // Follow-up events - async engagement recovery
+          case "followup:pending":
+            console.log("[WebSocket] Follow-up pending:", data.data.reason);
+            dispatch({ type: "FOLLOWUP_PENDING_START" });
+            break;
+
+          case "followup:message":
+            console.log("[WebSocket] Follow-up message received");
+            dispatch({ type: "FOLLOWUP_PENDING_END" });
+            // Add the follow-up message to the conversation
+            if (data.data.text) {
+              dispatch({
+                type: "MESSAGE_RECEIVED",
+                payload: {
+                  message: {
+                    id: data.data.messageId || `followup_${Date.now()}`,
+                    sessionId: state.session.sessionId || "",
+                    role: "assistant",
+                    content: data.data.text,
+                    buttons: data.data.buttons || null,
+                    form: null,
+                    createdAt: new Date().toISOString(),
+                  },
+                },
+              });
+            }
+            break;
+
           default:
             console.log("[WebSocket] Unknown event type:", data.type);
         }
@@ -792,6 +820,28 @@ export function IdeationSession({
               },
             });
           }
+        }
+
+        // Handle follow-up pending - trigger async follow-up question generation
+        if (response.followUpPending && response.followUpContext) {
+          console.log(
+            "[Follow-Up] Response lacks engagement, triggering async follow-up",
+            response.followUpContext.reason,
+          );
+          dispatch({ type: "FOLLOWUP_PENDING_START" });
+
+          // Trigger follow-up generation asynchronously (don't await)
+          api
+            .triggerFollowUp(state.session.sessionId, response.followUpContext)
+            .then((followUpResult) => {
+              console.log("[Follow-Up] Follow-up generated:", followUpResult);
+              // The message will be added via WebSocket event
+              dispatch({ type: "FOLLOWUP_PENDING_END" });
+            })
+            .catch((err) => {
+              console.error("[Follow-Up] Failed to generate follow-up:", err);
+              dispatch({ type: "FOLLOWUP_PENDING_END" });
+            });
         }
       } catch (error) {
         const errorMessage =
@@ -1878,6 +1928,7 @@ export function IdeationSession({
           <ConversationPanel
             messages={state.conversation.messages}
             isLoading={state.conversation.isLoading}
+            followUpPending={state.conversation.followUpPending}
             streamingContent={state.conversation.streamingContent}
             error={state.conversation.error}
             subAgents={state.subAgents.subAgents}

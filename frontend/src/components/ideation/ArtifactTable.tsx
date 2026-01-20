@@ -194,10 +194,29 @@ const getFileIcon = (type: ArtifactType) => {
 // -----------------------------------------------------------------------------
 
 /**
+ * Parse a date string, handling various formats including SQLite's format.
+ * SQLite's CURRENT_TIMESTAMP format is "2026-01-19 04:36:54" without timezone.
+ * This function ensures dates without timezone info are treated as UTC.
+ */
+function parseDate(dateString: string): Date {
+  // If the date string doesn't have a timezone indicator (Z or +/-HH:MM),
+  // and looks like SQLite format "YYYY-MM-DD HH:MM:SS", treat it as UTC
+  if (
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateString) ||
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateString)
+  ) {
+    // Append Z to indicate UTC
+    return new Date(dateString.replace(" ", "T") + "Z");
+  }
+  // Otherwise, parse normally (ISO 8601 with Z or timezone offset)
+  return new Date(dateString);
+}
+
+/**
  * Format date as relative time (e.g., "2 hours ago", "Jan 5")
  */
 function formatRelativeDate(dateString: string): string {
-  const date = new Date(dateString);
+  const date = parseDate(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffSecs = Math.floor(diffMs / 1000);

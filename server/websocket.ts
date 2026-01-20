@@ -41,6 +41,8 @@ export type IdeationEventType =
   | "subagent:spawn" // When a sub-agent starts
   | "subagent:status" // When a sub-agent status changes (running/completed/failed)
   | "subagent:result" // When a sub-agent produces results
+  | "followup:pending" // Follow-up question is being generated
+  | "followup:message" // Follow-up question/message received
   // Spec-related events (SPEC-009)
   | "readiness:update" // Readiness score changed
   | "spec:generating" // Spec generation started

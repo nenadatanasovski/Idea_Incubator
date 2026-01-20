@@ -163,10 +163,10 @@ export const ideationRateLimiter = createRateLimiter({
   message: "Too many messages. Please slow down.",
 });
 
-// Web search rate limiter (5 searches/min)
+// Web search rate limiter (15 searches/min)
 export const searchRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  maxRequests: 5,
+  maxRequests: 15,
   message: "Search rate limit reached. Please wait before searching again.",
 });
 

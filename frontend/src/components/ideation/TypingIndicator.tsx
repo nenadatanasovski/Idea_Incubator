@@ -22,19 +22,21 @@ const STATUS_MESSAGES = [
 export function TypingIndicator({
   isVisible,
   streamingContent,
+  label,
 }: TypingIndicatorProps) {
   const [statusIndex, setStatusIndex] = useState(0);
 
   // Rotate through status messages when not streaming (8 seconds per message)
+  // Don't rotate if a custom label is provided
   useEffect(() => {
-    if (!isVisible || streamingContent) return;
+    if (!isVisible || streamingContent || label) return;
 
     const interval = setInterval(() => {
       setStatusIndex((prev) => (prev + 1) % STATUS_MESSAGES.length);
     }, 8000);
 
     return () => clearInterval(interval);
-  }, [isVisible, streamingContent]);
+  }, [isVisible, streamingContent, label]);
 
   // Reset status index when indicator becomes visible
   useEffect(() => {
@@ -45,11 +47,12 @@ export function TypingIndicator({
 
   if (!isVisible) return null;
 
-  // Get display text - only show actual LLM output, otherwise use rotating status
+  // Get display text - custom label > streaming content > rotating status
   const displayText =
-    streamingContent && streamingContent.trim()
+    label ||
+    (streamingContent && streamingContent.trim()
       ? streamingContent.slice(-100) // Show last 100 chars of actual streaming content
-      : STATUS_MESSAGES[statusIndex];
+      : STATUS_MESSAGES[statusIndex]);
 
   return (
     <div className="typing-indicator flex gap-3">

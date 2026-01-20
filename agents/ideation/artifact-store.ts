@@ -11,6 +11,23 @@
 
 import { query, run, saveDb } from "../../database/db.js";
 
+/**
+ * Convert SQLite CURRENT_TIMESTAMP format to ISO 8601 with UTC indicator.
+ * SQLite stores UTC time as "2026-01-19 04:36:54" but JavaScript interprets
+ * this as local time without the Z suffix. This function adds the Z suffix
+ * to ensure correct timezone handling.
+ */
+function sqliteDateToISO(sqliteDate: string | null | undefined): string {
+  if (!sqliteDate) {
+    return new Date().toISOString();
+  }
+  // SQLite format: "2026-01-19 04:36:54"
+  // ISO 8601 format: "2026-01-19T04:36:54.000Z"
+  // Replace space with T, add .000Z suffix
+  const isoDate = sqliteDate.replace(" ", "T") + ".000Z";
+  return isoDate;
+}
+
 // Track if deprecation warnings have been logged (to avoid spam)
 const deprecationWarningsLogged: Record<string, boolean> = {};
 
@@ -149,8 +166,8 @@ export async function getArtifactsBySession(
     identifier: row.identifier || undefined,
     status: row.status as StoredArtifact["status"],
     error: row.error || undefined,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at || undefined,
+    createdAt: sqliteDateToISO(row.created_at),
+    updatedAt: row.updated_at ? sqliteDateToISO(row.updated_at) : undefined,
   }));
 }
 

@@ -96,6 +96,7 @@ export interface IdeationMessage {
 export interface ConversationPanelProps {
   messages: IdeationMessage[];
   isLoading: boolean;
+  followUpPending?: boolean; // Async follow-up question being generated
   streamingContent?: string;
   error?: string | null;
   subAgents?: SubAgent[];
@@ -165,6 +166,7 @@ export interface MessageTextProps {
 export interface TypingIndicatorProps {
   isVisible: boolean;
   streamingContent?: string;
+  label?: string; // Custom label to display (e.g., "Thinking of a follow-up...")
 }
 
 // -----------------------------------------------------------------------------

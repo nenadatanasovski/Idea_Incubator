@@ -24,6 +24,12 @@ import {
   AgentArtifact,
   AgentArtifactUpdate,
 } from "./signal-extractor.js";
+import {
+  classifyUserIntent,
+  extractOptionsFromMessage,
+  IntentClassification,
+  PresentedOption,
+} from "./intent-classifier.js";
 import { calculateConfidence } from "./confidence-calculator.js";
 import { calculateViability } from "./viability-calculator.js";
 import { calculateTokenUsage } from "./token-counter.js";
@@ -72,6 +78,18 @@ export interface OrchestratorResponse {
   acknowledgmentText?: string; // Custom acknowledgment text if different from reply
   userMessageId?: string; // ID of stored user message
   assistantMessageId?: string; // ID of stored assistant message
+  followUpPending?: boolean; // True if a follow-up question will be sent async
+  followUpContext?: FollowUpContext; // Context for generating the follow-up
+}
+
+export interface FollowUpContext {
+  reason: "no_question" | "artifact_created" | "search_initiated";
+  artifactType?: string;
+  artifactTitle?: string;
+  searchQueries?: string[];
+  lastUserMessage: string;
+  sessionId: string;
+  assistantMessageId: string;
 }
 
 export interface SubAgentTask {
@@ -87,13 +105,6 @@ export interface SubAgentTaskSignal {
   type: "action-plan" | "pitch-refine" | "architecture-explore" | "custom";
   label: string;
   prompt?: string;
-}
-
-export interface TaskSelectionResult {
-  isTaskSelection: boolean;
-  selectedTasks: number[];
-  rawSelection: string;
-  selectAll: boolean;
 }
 
 export interface DirectArtifactRequest {
@@ -129,24 +140,46 @@ export class AgentOrchestrator {
     const messages = await messageStore.getBySession(session.id);
     console.log("[Orchestrator] Total messages in session:", messages.length);
 
-    // Check for task selection (quick acknowledgment pattern)
-    // If user selected from numbered options, return immediately without calling Claude
+    // Check for task selection using Haiku intent classifier
+    // If user wants to execute options, return immediately without calling main Claude
     const lastAssistantMessage = messages
       .filter((m) => m.role === "assistant")
       .pop();
-    const taskSelection = this.detectTaskSelection(
-      userMessage,
-      lastAssistantMessage,
-    );
 
-    if (taskSelection.isTaskSelection && lastAssistantMessage) {
-      console.log("[Orchestrator] QUICK ACK PATH - returning immediately");
-      return this.handleQuickAcknowledgment(
-        session,
-        userMessage,
-        taskSelection,
-        lastAssistantMessage,
+    if (lastAssistantMessage) {
+      const presentedOptions = extractOptionsFromMessage(
+        lastAssistantMessage.content,
       );
+
+      if (presentedOptions.length > 0) {
+        console.log(
+          "[Orchestrator] Options detected, classifying intent with Haiku...",
+        );
+        const intentClassification = await classifyUserIntent(
+          userMessage,
+          presentedOptions,
+          lastAssistantMessage.content,
+        );
+
+        if (intentClassification.shouldSpawnSubtasks) {
+          console.log(
+            "[Orchestrator] QUICK ACK PATH - spawning subtasks for intent:",
+            intentClassification.intent,
+          );
+          return this.handleIntentBasedExecution(
+            session,
+            userMessage,
+            intentClassification,
+            presentedOptions,
+          );
+        }
+
+        console.log(
+          "[Orchestrator] Intent classified as:",
+          intentClassification.intent,
+          "- continuing to main Claude",
+        );
+      }
     }
 
     // Check for direct multi-artifact request (e.g., "create 4 artifacts: 1) X, 2) Y...")
@@ -355,6 +388,19 @@ export class AgentOrchestrator {
       tokenCount: Math.ceil(parsed.reply.length / 4),
     });
 
+    // Check if response needs a follow-up question (async)
+    const followUpContext = this.checkNeedsFollowUp(
+      parsed.reply,
+      parsed.buttons || null,
+      (parsed.formFields as FormDefinition) || null,
+      parsed.artifact,
+      parsed.artifactUpdate,
+      webSearchRequested ? parsed.webSearchNeeded : undefined,
+      userMessage,
+      session.id,
+      assistantMsg.id,
+    );
+
     return {
       reply: parsed.reply,
       buttons: parsed.buttons || null,
@@ -376,6 +422,8 @@ export class AgentOrchestrator {
       artifact: parsed.artifact,
       artifactUpdate: parsed.artifactUpdate,
       isQuickAck: false,
+      followUpPending: followUpContext !== null,
+      followUpContext: followUpContext || undefined,
     };
   }
 
@@ -806,351 +854,6 @@ export class AgentOrchestrator {
   }
 
   /**
-   * Detect if user message is a task selection from numbered options.
-   * Handles patterns like "1", "1 and 3", "all", "first one", "1, 2", etc.
-   *
-   * IMPORTANT: Numbered options may be in the message TEXT (not buttons array).
-   * Example: "1. Update summary\n2. Create action plan\n3. Refine pitch"
-   */
-  private detectTaskSelection(
-    userMessage: string,
-    lastAssistantMessage: IdeationMessage | undefined,
-  ): TaskSelectionResult {
-    const defaultResult: TaskSelectionResult = {
-      isTaskSelection: false,
-      selectedTasks: [],
-      rawSelection: userMessage,
-      selectAll: false,
-    };
-
-    console.log(
-      "[Orchestrator] Checking task selection for:",
-      userMessage.substring(0, 80),
-    );
-
-    if (!lastAssistantMessage) {
-      console.log("[Orchestrator] No last assistant message");
-      return defaultResult;
-    }
-
-    // Extract numbered options from the message TEXT content
-    console.log(
-      "[Orchestrator] Last assistant message (last 500 chars):",
-      lastAssistantMessage.content.slice(-500),
-    );
-    const numberedOptions = this.extractNumberedOptions(
-      lastAssistantMessage.content,
-    );
-    console.log(
-      "[Orchestrator] Found numbered options in text:",
-      numberedOptions.length,
-    );
-
-    if (numberedOptions.length === 0) {
-      // Fall back to checking buttonsShown
-      if (
-        lastAssistantMessage.buttonsShown &&
-        this.hasNumberedTasks(lastAssistantMessage.buttonsShown)
-      ) {
-        console.log("[Orchestrator] Using buttonsShown instead");
-        // Use buttons - convert to options format
-        numberedOptions.push(
-          ...lastAssistantMessage.buttonsShown.map((b, i) => ({
-            number: i + 1,
-            text: b.label,
-            value: b.value,
-          })),
-        );
-      }
-    }
-
-    if (numberedOptions.length === 0) {
-      console.log("[Orchestrator] No numbered options found");
-      return defaultResult;
-    }
-
-    console.log(
-      "[Orchestrator] Options:",
-      numberedOptions.map((o) => `${o.number}. ${o.text.substring(0, 30)}...`),
-    );
-
-    // Check if user input looks like a selection
-    if (!this.isSelectionInput(userMessage)) {
-      console.log("[Orchestrator] Input not a selection pattern");
-      return defaultResult;
-    }
-
-    const maxTasks = numberedOptions.length;
-    const { tasks, selectAll } = this.parseTaskSelection(userMessage, maxTasks);
-    console.log(
-      "[Orchestrator] Parsed tasks:",
-      tasks,
-      "selectAll:",
-      selectAll,
-      "maxTasks:",
-      maxTasks,
-    );
-
-    if (tasks.length === 0 && !selectAll) {
-      console.log("[Orchestrator] No tasks parsed");
-      return defaultResult;
-    }
-
-    console.log("[Orchestrator] Task selection DETECTED!");
-    return {
-      isTaskSelection: true,
-      selectedTasks: selectAll
-        ? Array.from({ length: maxTasks }, (_, i) => i + 1)
-        : tasks,
-      rawSelection: userMessage,
-      selectAll,
-      // Store the extracted options for use in handleQuickAcknowledgment
-      _numberedOptions: numberedOptions,
-    } as TaskSelectionResult & {
-      _numberedOptions: Array<{ number: number; text: string; value?: string }>;
-    };
-  }
-
-  /**
-   * Extract numbered options from message text.
-   * Looks for patterns like "1. Do something" or "1) Do something"
-   */
-  private extractNumberedOptions(
-    content: string,
-  ): Array<{ number: number; text: string; value?: string }> {
-    const options: Array<{ number: number; text: string; value?: string }> = [];
-
-    // Match patterns like "1. Text here" or "1) Text here" at start of line or after newline
-    // Also handles markdown bold like "**1.** Text"
-    const regex =
-      /(?:^|\n)\s*(?:\*\*)?(\d+)[.\)]\*?\*?\s+(.+?)(?=\n\s*(?:\*\*)?\d+[.\)]|\n\n|$)/g;
-
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-      const num = parseInt(match[1], 10);
-      const text = match[2].trim();
-
-      // Only include reasonable option numbers (1-9)
-      if (num >= 1 && num <= 9 && text.length > 0) {
-        options.push({
-          number: num,
-          text: text,
-          value: `option_${num}`,
-        });
-      }
-    }
-
-    return options;
-  }
-
-  /**
-   * Parse user selection into task numbers.
-   */
-  private parseTaskSelection(
-    selection: string,
-    maxTasks: number,
-  ): { tasks: number[]; selectAll: boolean } {
-    const normalized = selection.toLowerCase().trim();
-
-    // Check for "all" variations - including "all 3", "all three points", "do all"
-    if (
-      /\b(do\s+)?all(\s+\d+)?(\s+(points?|options?|tasks?|of\s+(them|the\s+above)))?\b/i.test(
-        normalized,
-      )
-    ) {
-      console.log('[Orchestrator] parseTaskSelection: matched "all" pattern');
-      return { tasks: [], selectAll: true };
-    }
-
-    // Check for "everything" or "both" with context (not just "both" alone which could be a button label)
-    // "both" alone is often an answer option, not a command to execute all tasks
-    // Requires context like "do both", "both of them", "both options", "let's do both"
-    if (
-      /\b(everything|do\s+both|both\s+(of\s+(them|those|the\s+above)|options?|tasks?))\b/i.test(
-        normalized,
-      )
-    ) {
-      console.log(
-        "[Orchestrator] parseTaskSelection: matched everything/both-with-context",
-      );
-      return { tasks: [], selectAll: true };
-    }
-
-    // Check for ordinal words
-    const ordinalMap: Record<string, number> = {
-      first: 1,
-      "first one": 1,
-      "1st": 1,
-      second: 2,
-      "second one": 2,
-      "2nd": 2,
-      third: 3,
-      "third one": 3,
-      "3rd": 3,
-      fourth: 4,
-      "fourth one": 4,
-      "4th": 4,
-      fifth: 5,
-      "fifth one": 5,
-      "5th": 5,
-      last: maxTasks,
-      "last one": maxTasks,
-    };
-
-    // Direct ordinal match (exact)
-    if (ordinalMap[normalized]) {
-      const num = ordinalMap[normalized];
-      return { tasks: num <= maxTasks ? [num] : [], selectAll: false };
-    }
-
-    // Extract numbers from input (handles "1", "1 and 3", "1, 2, 3", "1 2 3", etc.)
-    const numbers: number[] = [];
-
-    // Match standalone numbers (but not things like "R12" or large numbers)
-    const numberMatches = normalized.match(/\b(\d+)\b/g);
-    if (numberMatches) {
-      for (const match of numberMatches) {
-        const num = parseInt(match, 10);
-        // Only consider numbers 1-9 as task selections (ignore R12, R14, etc.)
-        if (
-          num >= 1 &&
-          num <= Math.min(maxTasks, 9) &&
-          !numbers.includes(num)
-        ) {
-          numbers.push(num);
-        }
-      }
-    }
-
-    // Also check for ordinals mixed with numbers ("first and 3")
-    for (const [word, num] of Object.entries(ordinalMap)) {
-      if (
-        normalized.includes(word) &&
-        num <= maxTasks &&
-        !numbers.includes(num)
-      ) {
-        numbers.push(num);
-      }
-    }
-
-    console.log("[Orchestrator] parseTaskSelection: parsed numbers:", numbers);
-    return { tasks: numbers.sort((a, b) => a - b), selectAll: false };
-  }
-
-  /**
-   * Check if buttons represent numbered tasks.
-   */
-  private hasNumberedTasks(buttons: ButtonOption[] | null): boolean {
-    if (!buttons || buttons.length === 0) return false;
-
-    // Check if buttons have numeric labels or are task-like
-    // Tasks typically have labels like "1. Create action plan" or values like "task_1"
-    // This should NOT match simple answer options like "Personal experience", "Both"
-    const hasNumberedLabels = buttons.some(
-      (b) =>
-        /^\d+[\.\)]?\s/.test(b.label) || // Starts with number like "1. Create plan"
-        /^task[_-]?\d+$/i.test(b.value) || // Value like task_1
-        b.value.startsWith("option_"), // Generic option format
-    );
-
-    // Check if buttons look like actionable tasks (contain action verbs)
-    const actionVerbs =
-      /\b(create|build|research|analyze|develop|explore|define|validate|design|implement|start|do|make|write|generate)\b/i;
-    const hasActionButtons = buttons.some((b) => actionVerbs.test(b.label));
-
-    // Only treat as numbered tasks if buttons are explicitly numbered OR contain action verbs
-    // Simple answer options like "Yes", "No", "Both" should NOT trigger quick-ack
-    return hasNumberedLabels || (hasActionButtons && buttons.length >= 2);
-  }
-
-  /**
-   * Check if input looks like a task selection.
-   * More flexible - looks for patterns WITHIN the message, not exact match.
-   */
-  private isSelectionInput(input: string): boolean {
-    const normalized = input.toLowerCase().trim();
-
-    // Short input with just numbers (exact match)
-    if (/^\d+(\s*(,|and|\+|&)\s*\d+)*$/.test(normalized)) {
-      console.log("[Orchestrator] Task selection: just numbers");
-      return true;
-    }
-
-    // Ordinal words (exact match for short inputs)
-    if (
-      /^(first|second|third|fourth|fifth|last|1st|2nd|3rd|4th|5th)(\s+one)?$/i.test(
-        normalized,
-      )
-    ) {
-      console.log("[Orchestrator] Task selection: ordinal word");
-      return true;
-    }
-
-    // "all" variations (exact match)
-    if (
-      /^(all|all of them|everything|do all|run all|both|do both)$/i.test(
-        normalized,
-      )
-    ) {
-      console.log("[Orchestrator] Task selection: all exact");
-      return true;
-    }
-
-    // Single number with optional confirmation (exact match)
-    if (/^\d+\s*(please|thanks|ok|okay)?$/i.test(normalized)) {
-      console.log("[Orchestrator] Task selection: single number");
-      return true;
-    }
-
-    // --- FLEXIBLE PATTERNS (search within message) ---
-
-    // "all 3", "all three", "all of the above", "do all 3 points"
-    if (
-      /\b(do\s+)?(all\s*(\d+|three|four)?(\s+points?|\s+options?|\s+tasks?|\s+of\s+(them|the\s+above))?)\b/i.test(
-        normalized,
-      )
-    ) {
-      console.log("[Orchestrator] Task selection: all N pattern");
-      return true;
-    }
-
-    // "1, 2, and 3" or "1 2 3" within longer text
-    if (
-      /\b(\d+\s*(,|and|&|\s)\s*)+\d+\b/.test(normalized) &&
-      normalized.length < 200
-    ) {
-      console.log("[Orchestrator] Task selection: number list in text");
-      return true;
-    }
-
-    // "options 1 and 2", "tasks 1, 2, 3", "points 1 2 3"
-    if (
-      /\b(options?|tasks?|points?|items?)\s+(\d+\s*(,|and|&|\s)\s*)*\d+\b/i.test(
-        normalized,
-      )
-    ) {
-      console.log("[Orchestrator] Task selection: labeled number list");
-      return true;
-    }
-
-    // "the first and third", "first, second, and third"
-    if (
-      /\b(first|second|third|fourth|fifth)\s*(,|and|&)\s*(first|second|third|fourth|fifth)/i.test(
-        normalized,
-      )
-    ) {
-      console.log("[Orchestrator] Task selection: ordinal list");
-      return true;
-    }
-
-    console.log(
-      "[Orchestrator] Not a task selection:",
-      normalized.substring(0, 50),
-    );
-    return false;
-  }
-
-  /**
    * Detect direct multi-artifact requests in user messages.
    * Patterns like "create 4 artifacts: 1) elevator pitch, 2) personas..."
    */
@@ -1358,69 +1061,68 @@ export class AgentOrchestrator {
   }
 
   /**
-   * Handle quick acknowledgment for task selection.
-   * Returns immediately with "On it..." and includes tasks for background execution.
+   * Handle intent-based execution using Haiku classification.
+   * Spawns sub-agents based on the classified intent.
    */
-  private async handleQuickAcknowledgment(
+  private async handleIntentBasedExecution(
     session: IdeationSession,
     userMessage: string,
-    taskSelection: TaskSelectionResult & {
-      _numberedOptions?: Array<{
-        number: number;
-        text: string;
-        value?: string;
-      }>;
-    },
-    lastAssistantMessage: IdeationMessage,
+    classification: IntentClassification,
+    presentedOptions: PresentedOption[],
   ): Promise<OrchestratorResponse> {
-    // Use extracted numbered options from text, or fall back to buttons
-    const options =
-      taskSelection._numberedOptions ||
-      (lastAssistantMessage.buttonsShown || []).map((b, i) => ({
-        number: i + 1,
-        text: b.label,
-        value: b.value,
-      }));
-
     console.log(
-      "[Orchestrator] handleQuickAcknowledgment - options:",
-      options.length,
+      "[Orchestrator] handleIntentBasedExecution - intent:",
+      classification.intent,
     );
     console.log(
-      "[Orchestrator] handleQuickAcknowledgment - selectedTasks:",
-      taskSelection.selectedTasks,
+      "[Orchestrator] handleIntentBasedExecution - selectedOptions:",
+      classification.selectedOptions,
+    );
+    console.log(
+      "[Orchestrator] handleIntentBasedExecution - reasoning:",
+      classification.reasoning,
     );
 
-    // Build list of selected tasks
-    const selectedTasks: SubAgentTask[] = taskSelection.selectedTasks
-      .filter((num) => num >= 1 && num <= options.length)
-      .map((num, index) => {
-        const option =
-          options.find((o) => o.number === num) || options[num - 1];
-        if (!option) return null;
-        return {
-          id: `task_${Date.now()}_${index}`,
-          type: this.inferTaskType(option.value || "", option.text),
-          label: option.text,
-          prompt: option.value || option.text,
-          status: "pending" as const,
-        } as SubAgentTask;
-      })
-      .filter((t): t is SubAgentTask => t !== null);
+    // Determine which options to execute
+    let optionsToExecute: PresentedOption[];
+
+    if (classification.intent === "execute_all") {
+      optionsToExecute = presentedOptions;
+    } else if (
+      classification.intent === "execute_selection" &&
+      classification.selectedOptions
+    ) {
+      optionsToExecute = presentedOptions.filter((o) =>
+        classification.selectedOptions!.includes(o.number),
+      );
+    } else {
+      // Shouldn't reach here if shouldSpawnSubtasks is true, but handle gracefully
+      optionsToExecute = [];
+    }
 
     console.log(
-      "[Orchestrator] handleQuickAcknowledgment - built tasks:",
-      selectedTasks.length,
+      "[Orchestrator] handleIntentBasedExecution - executing options:",
+      optionsToExecute.map((o) => o.number),
+    );
+
+    // Build sub-agent tasks from options
+    const selectedTasks: SubAgentTask[] = optionsToExecute.map(
+      (option, index) => ({
+        id: `task_${Date.now()}_${index}`,
+        type: this.inferTaskType("", option.text),
+        label: option.text,
+        prompt: option.text,
+        status: "pending" as const,
+      }),
     );
 
     if (selectedTasks.length === 0) {
-      // No valid tasks selected, fall through to normal processing
       console.log(
-        "[Orchestrator] handleQuickAcknowledgment - no tasks, returning error",
+        "[Orchestrator] handleIntentBasedExecution - no tasks to execute",
       );
       return {
         reply:
-          "I couldn't identify which tasks you selected. Could you clarify?",
+          "I couldn't determine which options to execute. Could you clarify?",
         buttons: null,
         form: null,
         candidateUpdate: null,
@@ -1480,6 +1182,64 @@ export class AgentOrchestrator {
       acknowledgmentText,
       userMessageId: userMsg.id,
       assistantMessageId: assistantMsg.id,
+    };
+  }
+
+  /**
+   * Check if a response needs a follow-up question.
+   * Returns context for generating the follow-up, or null if not needed.
+   */
+  private checkNeedsFollowUp(
+    reply: string,
+    buttons: ButtonOption[] | null,
+    form: FormDefinition | null,
+    artifact: AgentArtifact | undefined,
+    artifactUpdate: AgentArtifactUpdate | undefined,
+    webSearchQueries: string[] | undefined,
+    userMessage: string,
+    sessionId: string,
+    assistantMessageId: string,
+  ): FollowUpContext | null {
+    // Has buttons or form - user has clear next action
+    if ((buttons && buttons.length > 0) || form) {
+      return null;
+    }
+
+    // Check if reply ends with a question
+    const trimmedReply = reply.trim();
+    const endsWithQuestion = trimmedReply.endsWith("?");
+
+    // Check for embedded questions (question marks not at end)
+    const questionCount = (trimmedReply.match(/\?/g) || []).length;
+    const hasQuestion = questionCount > 0;
+
+    // If there's a clear question, no follow-up needed
+    if (endsWithQuestion) {
+      return null;
+    }
+
+    // Determine the reason for needing a follow-up
+    let reason: FollowUpContext["reason"] = "no_question";
+
+    if (artifact || artifactUpdate) {
+      reason = "artifact_created";
+    } else if (webSearchQueries && webSearchQueries.length > 0) {
+      reason = "search_initiated";
+    }
+
+    // Log for monitoring
+    console.log(
+      `[Orchestrator] Follow-up needed: reason=${reason}, hasQuestion=${hasQuestion}, endsWithQuestion=${endsWithQuestion}`,
+    );
+
+    return {
+      reason,
+      artifactType: artifact?.type || (artifactUpdate ? "update" : undefined),
+      artifactTitle: artifact?.title,
+      searchQueries: webSearchQueries,
+      lastUserMessage: userMessage,
+      sessionId,
+      assistantMessageId,
     };
   }
 
