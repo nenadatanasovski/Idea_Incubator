@@ -724,6 +724,10 @@ ideationRouter.post(
       }
 
       // Return response
+      console.log(
+        `[Routes/Message] Sending response - followUpPending: ${response.followUpPending}, hasContext: ${!!response.followUpContext}`,
+      );
+
       return res.json({
         userMessageId: response.userMessageId,
         messageId: response.assistantMessageId,
@@ -754,6 +758,9 @@ ideationRouter.post(
         // Quick acknowledgment fields for sub-agent execution
         isQuickAck: response.isQuickAck,
         subAgentTasks: response.subAgentTasks || null,
+        // Follow-up fields for async engagement recovery
+        followUpPending: response.followUpPending || false,
+        followUpContext: response.followUpContext || null,
       });
 
       // If this was a quick-ack response with sub-agent tasks, execute them asynchronously
@@ -1187,6 +1194,10 @@ ideationRouter.post("/message/edit", async (req: Request, res: Response) => {
     }
 
     // Return response
+    console.log(
+      `[Routes/Edit] Sending response - followUpPending: ${response.followUpPending}, hasContext: ${!!response.followUpContext}`,
+    );
+
     return res.json({
       deletedCount,
       userMessageId: response.userMessageId,
@@ -1218,6 +1229,9 @@ ideationRouter.post("/message/edit", async (req: Request, res: Response) => {
       // Quick acknowledgment fields for sub-agent execution
       isQuickAck: response.isQuickAck,
       subAgentTasks: response.subAgentTasks || null,
+      // Follow-up fields for async engagement recovery
+      followUpPending: response.followUpPending || false,
+      followUpContext: response.followUpContext || null,
     });
 
     // If this was a quick-ack response with sub-agent tasks, execute them asynchronously
@@ -1328,6 +1342,9 @@ const FollowUpRequestSchema = z.object({
 });
 
 ideationRouter.post("/follow-up", async (req: Request, res: Response) => {
+  console.log(
+    `[Routes/FollowUp] ========== FOLLOW-UP ENDPOINT CALLED ==========`,
+  );
   try {
     const parseResult = FollowUpRequestSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -1494,6 +1511,10 @@ ideationRouter.post(
       const shouldHandoff = percentUsed >= 80;
 
       // Return response
+      console.log(
+        `[Routes/Button] Sending response - followUpPending: ${response.followUpPending}, hasContext: ${!!response.followUpContext}`,
+      );
+
       return res.json({
         userMessageId: response.userMessageId,
         messageId: response.assistantMessageId,
@@ -1521,6 +1542,9 @@ ideationRouter.post(
         // Quick acknowledgment fields for sub-agent execution
         isQuickAck: response.isQuickAck,
         subAgentTasks: response.subAgentTasks || null,
+        // Follow-up fields for async engagement recovery
+        followUpPending: response.followUpPending || false,
+        followUpContext: response.followUpContext || null,
       });
 
       // If this was a quick-ack response with sub-agent tasks, execute them asynchronously

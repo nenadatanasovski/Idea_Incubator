@@ -14,7 +14,6 @@ import { FollowUpContext } from "./orchestrator.js";
 import { memoryManager } from "./memory-manager.js";
 import { messageStore } from "./message-store.js";
 import { candidateManager } from "./candidate-manager.js";
-import { buildSystemPrompt } from "./system-prompt.js";
 
 export interface FollowUpResponse {
   text: string;
@@ -81,23 +80,16 @@ export async function generateFollowUp(
       content: m.content,
     }));
 
-    // Build the system prompt with follow-up instruction
-    const systemPrompt = buildSystemPrompt({
-      selfDiscovery: memoryState.selfDiscovery || {},
-      marketDiscovery: memoryState.marketDiscovery || {},
-      narrowing: memoryState.narrowingState || {},
-      candidate: candidate
-        ? { title: candidate.title, summary: candidate.summary || undefined }
-        : undefined,
-    });
-
     // Add follow-up specific instruction
     const followUpInstruction = buildFollowUpInstruction(context, contextParts);
 
+    // Use a minimal system prompt for follow-ups - we want SHORT questions only
+    const minimalSystemPrompt = `You are generating a brief follow-up question for an ideation conversation. Your ONLY job is to output a single short question (1-2 sentences max) to keep the conversation flowing. Do NOT provide explanations, analysis, frameworks, or lengthy responses.`;
+
     const response = await anthropicClient.messages.create({
       model: "claude-3-5-haiku-20241022",
-      max_tokens: 400,
-      system: systemPrompt,
+      max_tokens: 100, // Reduced from 400 to enforce brevity
+      system: minimalSystemPrompt,
       messages: [
         ...recentMessages,
         {
@@ -173,28 +165,20 @@ function buildFollowUpInstruction(
       ? `\n\nSession context:\n- ${sessionContext.join("\n- ")}`
       : "";
 
-  return `[SYSTEM INSTRUCTION - FOLLOW-UP REQUIRED]
+  return `Generate a SHORT follow-up question (one sentence only).
 
-${situationContext}
-
-The user's last message was: "${context.lastUserMessage}"
+Context: ${situationContext}
+User said: "${context.lastUserMessage}"
 ${contextSummary}
 
-Your previous response didn't end with a question or provide buttons for the user to continue. Generate a natural follow-up to keep the conversation flowing.
+CRITICAL: Output ONLY a brief question. No explanations, no frameworks, no analysis. Just one question ending with "?"
 
-Requirements:
-1. Ask a question that helps develop the idea further
-2. Make it feel like a natural continuation, not a forced question
-3. Consider what the user might want to explore next based on the context
-4. Keep it concise (1-2 sentences)
+Example good outputs:
+- "What aspect would you like to explore first?"
+- "Does this direction feel right to you?"
+- "What's your biggest concern about this approach?"
 
-Respond with JSON:
-{
-  "text": "Your follow-up question here?",
-  "buttons": [{"id": "opt1", "label": "Label", "value": "value", "style": "secondary"}]
-}
-
-The buttons are optional - only include them if distinct choices make sense.`;
+Respond with JSON: {"text": "Your one-sentence question here?"}`;
 }
 
 /**

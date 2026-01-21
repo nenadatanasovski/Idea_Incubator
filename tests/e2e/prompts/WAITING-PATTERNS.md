@@ -2,11 +2,11 @@
 
 ## The Problem with Time-Based Waits
 
-```javascript
-// BAD: Arbitrary waits that waste time and are unreliable
-new Promise((resolve) => setTimeout(resolve, 3000));
-new Promise((resolve) => setTimeout(resolve, 5000));
-new Promise((resolve) => setTimeout(resolve, 10000));
+```bash
+# BAD: Arbitrary waits that waste time and are unreliable
+sleep 3
+sleep 5
+sleep 10
 ```
 
 **Problems:**
@@ -18,298 +18,240 @@ new Promise((resolve) => setTimeout(resolve, 10000));
 
 ---
 
-## Event-Based Waiting Patterns
+## Event-Based Waiting with agent-browser
 
-### Pattern 1: Wait for Element to Appear
+### Pattern 1: Wait for Text to Appear
 
-```javascript
-// Wait for message to appear after sending
-mcp__puppeteer__puppeteer_evaluate({
-  script: `
-    (async function() {
-      const startTime = Date.now();
-      const timeout = 30000; // 30 second max
+```bash
+# Wait for specific text after sending message
+agent-browser wait --text "Your idea sounds interesting"
 
-      while (Date.now() - startTime < timeout) {
-        // Check for new message element
-        const messages = document.querySelectorAll('[role="log"] > div, .message');
-        const lastMessage = messages[messages.length - 1];
-
-        if (lastMessage && lastMessage.textContent.includes('expected text')) {
-          return { success: true, waitedMs: Date.now() - startTime };
-        }
-
-        // Check for error state
-        const error = document.querySelector('.text-red-500, [role="alert"]');
-        if (error) {
-          return { success: false, error: error.textContent, waitedMs: Date.now() - startTime };
-        }
-
-        await new Promise(r => setTimeout(r, 500)); // Poll every 500ms
-      }
-
-      return { success: false, error: 'timeout', waitedMs: timeout };
-    })()
-  `,
-});
+# With custom timeout (default is 30s)
+agent-browser wait --text "Success" --timeout 60000
 ```
 
-### Pattern 2: Wait for Loading to Complete
+### Pattern 2: Wait for Element to Appear
 
-```javascript
-mcp__puppeteer__puppeteer_evaluate({
-  script: `
-    (async function() {
-      const startTime = Date.now();
-      const timeout = 30000;
+```bash
+# Wait for element by ref (from previous snapshot)
+agent-browser wait @e5
 
-      while (Date.now() - startTime < timeout) {
-        // Check loading indicators
-        const loading = document.querySelector('.loading, [aria-busy="true"], .spinner');
+# Wait for element by selector
+agent-browser wait "[data-testid='message-bubble']"
 
-        if (!loading) {
-          // No loading indicator - check if content is ready
-          const content = document.querySelector('.session-content, .conversation');
-          if (content) {
-            return { success: true, waitedMs: Date.now() - startTime };
-          }
-        }
-
-        await new Promise(r => setTimeout(r, 300));
-      }
-
-      return { success: false, error: 'timeout waiting for loading', waitedMs: timeout };
-    })()
-  `,
-});
+# Wait with timeout
+agent-browser wait @e5 --timeout 15000
 ```
 
-### Pattern 3: Wait for URL Change
+### Pattern 3: Wait for Loading to Complete
 
-```javascript
-mcp__puppeteer__puppeteer_evaluate({
-  script: `
-    (async function() {
-      const startUrl = window.location.href;
-      const startTime = Date.now();
-      const timeout = 10000;
+```bash
+# Wait for network idle (no pending requests for 500ms)
+agent-browser wait --load networkidle
 
-      while (Date.now() - startTime < timeout) {
-        if (window.location.href !== startUrl) {
-          return {
-            success: true,
-            oldUrl: startUrl,
-            newUrl: window.location.href,
-            waitedMs: Date.now() - startTime
-          };
-        }
-        await new Promise(r => setTimeout(r, 200));
-      }
+# Wait for DOM content loaded
+agent-browser wait --load domcontentloaded
 
-      return { success: false, error: 'URL did not change', url: startUrl };
-    })()
-  `,
-});
+# Wait for full page load
+agent-browser wait --load load
 ```
 
-### Pattern 4: Wait for Network Idle
+### Pattern 4: Wait for URL Change
 
-```javascript
-mcp__puppeteer__puppeteer_evaluate({
-  script: `
-    (async function() {
-      return new Promise((resolve) => {
-        let pendingRequests = 0;
-        let lastActivity = Date.now();
-        const idleThreshold = 2000; // 2 seconds of no activity
-        const maxWait = 30000;
-        const startTime = Date.now();
+```bash
+# Wait for URL to match pattern
+agent-browser wait --url "**/dashboard"
 
-        // Monitor fetch requests
-        const originalFetch = window.fetch;
-        window.fetch = async (...args) => {
-          pendingRequests++;
-          lastActivity = Date.now();
-          try {
-            return await originalFetch(...args);
-          } finally {
-            pendingRequests--;
-            lastActivity = Date.now();
-          }
-        };
-
-        const checkIdle = () => {
-          if (Date.now() - startTime > maxWait) {
-            window.fetch = originalFetch;
-            resolve({ success: false, error: 'timeout' });
-            return;
-          }
-
-          if (pendingRequests === 0 && Date.now() - lastActivity > idleThreshold) {
-            window.fetch = originalFetch;
-            resolve({ success: true, waitedMs: Date.now() - startTime });
-            return;
-          }
-
-          setTimeout(checkIdle, 500);
-        };
-
-        checkIdle();
-      });
-    })()
-  `,
-});
+# Wait for specific URL
+agent-browser wait --url "http://localhost:3000/ideate/session/*"
 ```
 
-### Pattern 5: Wait for Specific Message Count
+### Pattern 5: Wait with Custom JavaScript
 
-```javascript
-mcp__puppeteer__puppeteer_evaluate({
-  script: `
-    (async function() {
-      const targetCount = 5; // Expected number of messages
-      const startTime = Date.now();
-      const timeout = 60000; // Longer timeout for multiple messages
+```bash
+# Wait for custom condition
+agent-browser wait --fn "document.querySelectorAll('.message').length >= 5"
 
-      while (Date.now() - startTime < timeout) {
-        const messages = document.querySelectorAll('[role="log"] > div, .message-bubble');
+# Wait for app-specific state
+agent-browser wait --fn "window.appReady === true"
+```
 
-        if (messages.length >= targetCount) {
-          return {
-            success: true,
-            messageCount: messages.length,
-            waitedMs: Date.now() - startTime
-          };
-        }
+### Pattern 6: Wait Fixed Duration (Use Sparingly)
 
-        await new Promise(r => setTimeout(r, 1000));
-      }
+```bash
+# Only when other patterns don't apply
+agent-browser wait 2000    # Wait 2 seconds
+```
 
-      const finalCount = document.querySelectorAll('[role="log"] > div, .message-bubble').length;
-      return {
-        success: false,
-        error: 'timeout',
-        messageCount: finalCount,
-        expected: targetCount
-      };
-    })()
-  `,
-});
+---
+
+## Complete Workflow Examples
+
+### Example 1: Send Message and Wait for Response
+
+```bash
+# 1. Navigate and snapshot
+agent-browser open http://localhost:3000/ideate
+agent-browser snapshot -i
+
+# 2. Fill message input (assume @e2 is the textarea)
+agent-browser fill @e2 "I have an idea for a productivity app"
+
+# 3. Click send button (assume @e3 is send button)
+agent-browser click @e3
+
+# 4. Wait for AI response
+agent-browser wait --text "Tell me more"
+
+# 5. Verify with new snapshot
+agent-browser snapshot -i
+```
+
+### Example 2: Start Session and Wait for Load
+
+```bash
+# 1. Click start button
+agent-browser click @e1
+
+# 2. Wait for network to settle
+agent-browser wait --load networkidle
+
+# 3. Wait for session content
+agent-browser wait --text "Welcome"
+
+# 4. Take screenshot for verification
+agent-browser screenshot tests/e2e/screenshots/session-started.png
+```
+
+### Example 3: Abandon Session and Wait for Navigation
+
+```bash
+# 1. Click abandon button
+agent-browser click @abandon-btn
+
+# 2. Confirm in dialog if needed
+agent-browser dialog accept
+
+# 3. Wait for URL change back to entry page
+agent-browser wait --url "**/ideate"
+
+# 4. Verify we're back
+agent-browser get url
 ```
 
 ---
 
 ## When to Use Each Pattern
 
-| Scenario                    | Pattern to Use                 |
-| --------------------------- | ------------------------------ |
-| After clicking send         | Wait for Element (new message) |
-| After starting session      | Wait for Loading to Complete   |
-| After clicking abandon      | Wait for URL Change            |
-| After multiple API calls    | Wait for Network Idle          |
-| Testing message persistence | Wait for Message Count         |
+| Scenario                    | Pattern to Use                                |
+| --------------------------- | --------------------------------------------- |
+| After clicking send         | `wait --text "expected response"`             |
+| After starting session      | `wait --load networkidle`                     |
+| After clicking abandon      | `wait --url "**/ideate"`                      |
+| After multiple API calls    | `wait --load networkidle`                     |
+| Testing message persistence | `wait --fn "messages.length >= N"`            |
+| Waiting for modal           | `wait @modal-ref` or `wait "[role='dialog']"` |
 
 ---
 
 ## Timeout Guidelines
 
-| Action                  | Recommended Timeout | Why                         |
-| ----------------------- | ------------------- | --------------------------- |
-| Button click effect     | 5 seconds           | Simple UI update            |
-| Send message + response | 30 seconds          | AI generation takes time    |
-| Session start           | 15 seconds          | API + greeting generation   |
-| Page navigation         | 10 seconds          | Route change + render       |
-| Full conversation load  | 60 seconds          | Multiple messages to render |
+| Action                  | Recommended Timeout | Command                                   |
+| ----------------------- | ------------------- | ----------------------------------------- |
+| Button click effect     | 5 seconds           | `wait --text "..." --timeout 5000`        |
+| Send message + response | 30 seconds          | `wait --text "..." --timeout 30000`       |
+| Session start           | 15 seconds          | `wait --load networkidle --timeout 15000` |
+| Page navigation         | 10 seconds          | `wait --url "..." --timeout 10000`        |
+| Full conversation load  | 60 seconds          | `wait --fn "..." --timeout 60000`         |
 
 ---
 
 ## Error Handling in Waits
 
-Always check for error states during waits:
+After a wait, always check the state:
 
-```javascript
-// Check for both success AND failure conditions
-const error = document.querySelector(
-  '.text-red-500, [role="alert"], .error-message',
-);
-if (error) {
-  return {
-    success: false,
-    error: error.textContent,
-    errorType: "ui-error",
-  };
-}
+```bash
+# After waiting, verify with eval
+agent-browser eval "document.querySelector('.text-red-500')?.textContent || 'no error'"
 
-const unexpectedUrl = window.location.pathname === "/ideate";
-if (unexpectedUrl && !expectedHere) {
-  return {
-    success: false,
-    error: "Unexpected navigation to entry page",
-    errorType: "navigation",
-  };
-}
+# Or take snapshot to see current state
+agent-browser snapshot -i
+
+# Check for specific error states
+agent-browser is visible "[role='alert']"
 ```
 
 ---
 
 ## Combining with Diagnostics
 
-If a wait times out, ALWAYS diagnose:
+If a wait times out, diagnose before retrying:
 
-```javascript
-const result = await waitForElement(".expected-element");
+```bash
+# 1. Check what IS on the page
+agent-browser eval "document.body.innerText.slice(0, 500)"
 
-if (!result.success) {
-  // DON'T just retry - diagnose first
+# 2. Check current URL
+agent-browser get url
 
-  // 1. Check what IS on the page
-  const pageContent = document.body.innerText.slice(0, 500);
+# 3. Check for error messages
+agent-browser eval "Array.from(document.querySelectorAll('.error, .text-red-500')).map(e => e.textContent)"
 
-  // 2. Check current URL
-  const currentUrl = window.location.href;
+# 4. Take screenshot for evidence
+agent-browser screenshot tests/e2e/screenshots/timeout-diagnostic.png
 
-  // 3. Check for error messages
-  const errors = document.querySelectorAll(".error, .text-red-500");
-
-  // 4. Return diagnostic info
-  return {
-    success: false,
-    diagnostic: {
-      pageContent,
-      currentUrl,
-      errors: [...errors].map((e) => e.textContent),
-      expectedElement: ".expected-element",
-    },
-  };
-}
+# 5. Check console errors
+agent-browser errors
 ```
 
 ---
 
-## Anti-Pattern: Stacking Timeouts
+## Anti-Pattern: Stacking Waits
 
-```javascript
-// WRONG: Stacking arbitrary waits
-await sleep(3000);
-// still loading...
-await sleep(5000);
-// still loading...
-await sleep(10000);
-// give up or keep going?
+```bash
+# WRONG: Stacking arbitrary waits
+agent-browser wait 3000
+# still loading...
+agent-browser wait 5000
+# still loading...
+agent-browser wait 10000
 ```
 
-```javascript
-// RIGHT: Single wait with proper timeout and diagnostics
-const result = await waitForElement(".expected", { timeout: 30000 });
-if (!result.success) {
-  // Collect diagnostics and decide next action
-  const diagnostic = await collectDiagnostics();
-  if (diagnostic.showsError) {
-    // Handle error case
-  } else if (diagnostic.showsLoading) {
-    // Maybe increase timeout once
-  } else {
-    // Unknown state - investigate
-  }
-}
+```bash
+# RIGHT: Single wait with proper condition
+agent-browser wait --text "Expected content" --timeout 30000
+
+# If that fails, diagnose
+agent-browser snapshot -i
+agent-browser errors
+agent-browser eval "document.body.innerText.slice(0, 300)"
+```
+
+---
+
+## Quick Reference
+
+```bash
+# Navigation
+agent-browser open <url>
+
+# Waiting
+agent-browser wait @ref                    # Element by ref
+agent-browser wait --text "..."            # Text content
+agent-browser wait --url "**/path"         # URL pattern
+agent-browser wait --load networkidle      # Network idle
+agent-browser wait --fn "js expression"    # Custom JS
+agent-browser wait 2000                    # Fixed ms (avoid)
+
+# State checks
+agent-browser is visible @ref
+agent-browser is enabled @ref
+agent-browser get text @ref
+agent-browser eval "js expression"
+
+# Diagnostics
+agent-browser snapshot -i
+agent-browser screenshot <path>
+agent-browser errors
+agent-browser console
 ```

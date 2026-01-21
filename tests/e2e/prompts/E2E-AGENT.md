@@ -91,27 +91,49 @@ cat /Users/nenadatanasovski/idea_incurator/tests/e2e/test-state.json | jq '[.tes
 
 ## STEP 5: VERIFY FIX
 
-**Puppeteer auto-launches a browser. Just call navigate:**
+**Use agent-browser CLI for browser automation:**
 
+```bash
+# Navigate to page
+agent-browser open http://localhost:3000/ideate
+
+# Get interactive elements with refs
+agent-browser snapshot -i
+# Output shows elements like: button "Start" [ref=e1], textbox "Message" [ref=e2]
+
+# Click using ref from snapshot
+agent-browser click @e1
+
+# Fill input using ref
+agent-browser fill @e2 "My idea is..."
+
+# Take screenshot
+agent-browser screenshot tests/e2e/screenshots/test-xxx.png
+
+# Re-snapshot after DOM changes
+agent-browser snapshot -i
 ```
-mcp__puppeteer__puppeteer_navigate → url: http://localhost:3000/ideate
+
+**Workflow:**
+
+1. `agent-browser open <url>` - Navigate
+2. `agent-browser snapshot -i` - Get element refs
+3. Use refs (`@e1`, `@e2`) for interactions
+4. Re-snapshot after significant DOM changes
+
+**Click by selector (alternative):**
+
+```bash
+agent-browser find role button click --name "Help me discover"
+agent-browser find text "Start" click
 ```
 
-**DO NOT:**
+**Wait for conditions:**
 
-- Call `puppeteer_connect_active_tab` (causes errors, wastes 5+ tool calls)
-- Try to start Chrome manually (`open -a "Google Chrome"`)
-- Search for debugging ports
-
-**Click elements:**
-
-```javascript
-// By selector
-mcp__puppeteer__puppeteer_click → selector: [data-testid="start-ideation-btn"]
-
-// By text (use evaluate)
-Array.from(document.querySelectorAll('button'))
-  .find(b => b.textContent.includes('Help me discover'))?.click()
+```bash
+agent-browser wait --text "Success"           # Wait for text
+agent-browser wait --load networkidle         # Wait for network
+agent-browser wait @e1                        # Wait for element
 ```
 
 Take screenshots at key steps. Test through UI, not just curl.
@@ -188,7 +210,7 @@ SELECT id, role, content, created_at FROM ideation_messages;
 2. **Fix code, don't just report** - Your job is to make tests pass
 3. **Single browser session** - Don't restart browser on failure, fix code instead
 4. **Minimal fixes** - Only change what's necessary
-5. **No sleep/waits** - Puppeteer waits automatically
+5. **Use agent-browser waits** - `agent-browser wait --text "..."` or `agent-browser wait --load networkidle`
 
 ---
 
@@ -196,7 +218,7 @@ SELECT id, role, content, created_at FROM ideation_messages;
 
 ```
 BAD: sleep 1, sleep 2, setTimeout(3000)
-DO:  Poll for elements - puppeteer waits automatically
+DO:  Use agent-browser wait commands
 
 BAD: "Test failed" → update state → move on
 DO:  Fix code → verify → THEN update state
@@ -205,11 +227,14 @@ BAD: Failed → navigate to /ideate → new session
 DO:  Stay on page → diagnose → fix code → retry
 
 BAD: Using alert(), confirm(), prompt() for debugging
-DO:  Use console.log() - alerts block UI and puppeteer can't dismiss them
+DO:  Use console.log() - alerts block UI
+
+BAD: Hardcoding CSS selectors in every command
+DO:  Use agent-browser snapshot -i to get refs, then use @refs
 ```
 
-**NEVER use `sleep` or arbitrary waits.** Puppeteer tools wait for elements automatically.
-After click/navigate, just take screenshot or interact with next element - no sleep needed.
+**Use agent-browser wait commands** instead of arbitrary sleeps.
+After click/navigate, use `agent-browser wait` or take a new snapshot.
 
 ---
 

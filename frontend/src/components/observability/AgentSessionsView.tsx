@@ -647,64 +647,38 @@ export default function AgentSessionsView({
               />
             </div>
           </div>
-
-          {/* Column headers - part of sticky area */}
-          <div className="bg-gray-50 border-b border-gray-200 grid grid-cols-[40px_1fr_150px_180px_100px_100px_100px_100px] px-0">
-            <div className="px-3 py-3"></div>
-            <div className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Agent
-            </div>
-            <div className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Project
-            </div>
-            <div className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Task List
-            </div>
-            <div className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </div>
-            <div className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Loop
-            </div>
-            <div className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Tasks
-            </div>
-            <div className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Started
-            </div>
-          </div>
         </div>
 
-        {/* Scrollable table body only */}
-        <div className="overflow-y-auto max-h-[calc(100vh-380px)]">
-          <table className="w-full table-fixed">
-            <thead className="sr-only">
-              <tr>
-                <th className="w-8 px-3 py-3"></th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        {/* Single table with sticky header */}
+        <div className="overflow-y-auto max-h-[calc(100vh-340px)]">
+          <table className="w-full">
+            <thead className="bg-gray-50 sticky top-0 z-10">
+              <tr className="border-b border-gray-200">
+                <th className="w-10 px-3 py-3"></th>
+                <th className="min-w-[180px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Agent
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="min-w-[140px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Project
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="min-w-[180px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Task List
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="min-w-[100px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Loop Progress
+                <th className="min-w-[70px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Loop
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="min-w-[90px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Tasks
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="min-w-[80px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Started
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 bg-white">
               {filteredSessions.length === 0 ? (
                 <tr>
                   <td
@@ -862,7 +836,7 @@ function SessionRow({
         )}
         onClick={onToggle}
       >
-        <td className="px-3 py-3">
+        <td className="w-10 px-3 py-3">
           <button className="p-1 hover:bg-gray-200 rounded">
             {isExpanded ? (
               <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -871,7 +845,7 @@ function SessionRow({
             )}
           </button>
         </td>
-        <td className="px-4 py-3">
+        <td className="min-w-[180px] px-4 py-3">
           <div
             className="flex items-center gap-2"
             style={{ paddingLeft: depth * 20 }}
@@ -885,13 +859,13 @@ function SessionRow({
             </span>
           </div>
         </td>
-        <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[150px]">
-          {session.projectName || "-"}
+        <td className="min-w-[140px] px-4 py-3 text-sm text-gray-600">
+          <span className="truncate block">{session.projectName || "-"}</span>
         </td>
-        <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[180px]">
-          {session.taskListName || "-"}
+        <td className="min-w-[180px] px-4 py-3 text-sm text-gray-600">
+          <span className="truncate block">{session.taskListName || "-"}</span>
         </td>
-        <td className="px-4 py-3">
+        <td className="min-w-[100px] px-4 py-3">
           <span
             className={clsx(
               "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
@@ -902,14 +876,14 @@ function SessionRow({
             {session.status}
           </span>
         </td>
-        <td className="px-4 py-3">
+        <td className="min-w-[70px] px-4 py-3">
           <div className="flex items-center gap-1 text-sm text-gray-600">
             <span className="font-medium">{session.currentIteration}</span>
             <span className="text-gray-400">/</span>
             <span>{session.loopCount}</span>
           </div>
         </td>
-        <td className="px-4 py-3">
+        <td className="min-w-[90px] px-4 py-3">
           <div className="flex items-center gap-2 text-sm">
             <span className="flex items-center gap-1 text-green-600">
               <CheckCircle className="h-3 w-3" />
@@ -923,7 +897,7 @@ function SessionRow({
             )}
           </div>
         </td>
-        <td className="px-4 py-3 text-sm text-gray-500">
+        <td className="min-w-[80px] px-4 py-3 text-sm text-gray-500">
           {new Date(session.startedAt).toLocaleTimeString()}
         </td>
       </tr>

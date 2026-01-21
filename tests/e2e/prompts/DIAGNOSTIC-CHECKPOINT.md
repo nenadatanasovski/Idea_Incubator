@@ -11,22 +11,21 @@ Do NOT retry blindly - diagnose first, then fix, then retry.
 
 ### Step 1: Collect Evidence
 
-```javascript
-// 1. Check browser console for errors
-mcp__puppeteer__puppeteer_evaluate({
-  script: `
-    (function() {
-      const errors = [];
-      // Check for any error elements on page
-      document.querySelectorAll('.text-red-500, [role="alert"], .error').forEach(el => {
-        errors.push({type: 'ui-error', text: el.textContent.trim()});
-      });
-      // Check current URL
-      errors.push({type: 'url', text: window.location.href});
-      return JSON.stringify(errors, null, 2);
-    })()
-  `,
-});
+```bash
+# 1. Check browser console for errors
+agent-browser errors
+
+# 2. Check for UI error elements
+agent-browser eval "Array.from(document.querySelectorAll('.text-red-500, [role=\"alert\"], .error')).map(el => ({type: 'ui-error', text: el.textContent.trim()}))"
+
+# 3. Get current URL
+agent-browser get url
+
+# 4. Take screenshot for visual evidence
+agent-browser screenshot tests/e2e/screenshots/diagnostic.png
+
+# 5. Get page snapshot for element state
+agent-browser snapshot -i
 ```
 
 ### Step 2: Check API State
@@ -156,14 +155,16 @@ Action failed
 
 ## EVIDENCE COLLECTION QUICK REFERENCE
 
-| Check          | Command/Tool          | What to Look For                             |
-| -------------- | --------------------- | -------------------------------------------- |
-| Console errors | puppeteer_evaluate    | TypeError, NetworkError, undefined           |
-| UI errors      | puppeteer_screenshot  | Red text, error messages, unexpected state   |
-| Database state | sqlite3 query         | Missing records, wrong status, orphaned data |
-| Server logs    | tail logs/backend.log | Stack traces, connection errors              |
-| Network        | curl API endpoint     | 4xx/5xx responses, timeouts                  |
-| Source code    | Read tool             | Logic errors, missing error handling         |
+| Check          | Command/Tool                | What to Look For                             |
+| -------------- | --------------------------- | -------------------------------------------- |
+| Console errors | `agent-browser errors`      | TypeError, NetworkError, undefined           |
+| UI errors      | `agent-browser screenshot`  | Red text, error messages, unexpected state   |
+| Page state     | `agent-browser snapshot -i` | Missing elements, wrong visibility           |
+| JS evaluation  | `agent-browser eval "..."`  | DOM state, variable values                   |
+| Database state | sqlite3 query               | Missing records, wrong status, orphaned data |
+| Server logs    | tail logs/backend.log       | Stack traces, connection errors              |
+| Network        | curl API endpoint           | 4xx/5xx responses, timeouts                  |
+| Source code    | Read tool                   | Logic errors, missing error handling         |
 
 ---
 

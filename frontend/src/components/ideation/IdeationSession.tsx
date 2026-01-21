@@ -1316,6 +1316,34 @@ export function IdeationSession({
             });
           }
         }
+
+        // Handle follow-up pending - trigger async follow-up question generation
+        if (response.followUpPending && response.followUpContext) {
+          console.log(
+            "[Follow-Up/Button] Response lacks engagement, triggering async follow-up",
+            response.followUpContext.reason,
+          );
+          dispatch({ type: "FOLLOWUP_PENDING_START" });
+
+          // Trigger follow-up generation asynchronously (don't await)
+          api
+            .triggerFollowUp(state.session.sessionId, response.followUpContext)
+            .then((followUpResult) => {
+              console.log(
+                "[Follow-Up/Button] Follow-up generated:",
+                followUpResult,
+              );
+              // The message will be added via WebSocket event
+              dispatch({ type: "FOLLOWUP_PENDING_END" });
+            })
+            .catch((err) => {
+              console.error(
+                "[Follow-Up/Button] Failed to generate follow-up:",
+                err,
+              );
+              dispatch({ type: "FOLLOWUP_PENDING_END" });
+            });
+        }
       } catch (error) {
         dispatch({
           type: "MESSAGE_ERROR",
@@ -1361,6 +1389,34 @@ export function IdeationSession({
             },
           },
         });
+
+        // Handle follow-up pending - trigger async follow-up question generation
+        if (response.followUpPending && response.followUpContext) {
+          console.log(
+            "[Follow-Up/Form] Response lacks engagement, triggering async follow-up",
+            response.followUpContext.reason,
+          );
+          dispatch({ type: "FOLLOWUP_PENDING_START" });
+
+          // Trigger follow-up generation asynchronously (don't await)
+          api
+            .triggerFollowUp(state.session.sessionId, response.followUpContext)
+            .then((followUpResult) => {
+              console.log(
+                "[Follow-Up/Form] Follow-up generated:",
+                followUpResult,
+              );
+              // The message will be added via WebSocket event
+              dispatch({ type: "FOLLOWUP_PENDING_END" });
+            })
+            .catch((err) => {
+              console.error(
+                "[Follow-Up/Form] Failed to generate follow-up:",
+                err,
+              );
+              dispatch({ type: "FOLLOWUP_PENDING_END" });
+            });
+        }
       } catch (error) {
         dispatch({
           type: "MESSAGE_ERROR",
@@ -1529,6 +1585,34 @@ export function IdeationSession({
               },
             });
           }
+        }
+
+        // Handle follow-up pending - trigger async follow-up question generation
+        if (response.followUpPending && response.followUpContext) {
+          console.log(
+            "[Follow-Up/Edit] Response lacks engagement, triggering async follow-up",
+            response.followUpContext.reason,
+          );
+          dispatch({ type: "FOLLOWUP_PENDING_START" });
+
+          // Trigger follow-up generation asynchronously (don't await)
+          api
+            .triggerFollowUp(state.session.sessionId, response.followUpContext)
+            .then((followUpResult) => {
+              console.log(
+                "[Follow-Up/Edit] Follow-up generated:",
+                followUpResult,
+              );
+              // The message will be added via WebSocket event
+              dispatch({ type: "FOLLOWUP_PENDING_END" });
+            })
+            .catch((err) => {
+              console.error(
+                "[Follow-Up/Edit] Failed to generate follow-up:",
+                err,
+              );
+              dispatch({ type: "FOLLOWUP_PENDING_END" });
+            });
         }
       } catch (error) {
         const errorMessage =

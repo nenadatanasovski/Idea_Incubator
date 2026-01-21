@@ -401,6 +401,15 @@ export class AgentOrchestrator {
       assistantMsg.id,
     );
 
+    console.log(
+      `[Orchestrator] Response followUpPending: ${followUpContext !== null}`,
+    );
+    if (followUpContext) {
+      console.log(
+        `[Orchestrator] followUpContext: ${JSON.stringify(followUpContext).slice(0, 200)}`,
+      );
+    }
+
     return {
       reply: parsed.reply,
       buttons: parsed.buttons || null,
@@ -713,39 +722,45 @@ export class AgentOrchestrator {
         artifactUpdate: parsed.artifactUpdate,
       };
     } catch (e) {
-      // If JSON parsing fails, try to extract meaningful content
+      // If JSON parsing fails, return the full text as-is (it's likely just markdown)
       console.log(
         "[Orchestrator] JSON parsing failed, treating as plain text. Error:",
         e,
       );
 
-      // Try to extract preamble text before any code block (which likely contains malformed JSON)
-      const preambleMatch = text.match(/^([\s\S]*?)(?:```|$)/);
-      if (preambleMatch && preambleMatch[1].trim()) {
-        const preamble = preambleMatch[1].trim();
-        console.log(
-          "[Orchestrator] Extracted preamble text:",
-          preamble.slice(0, 200),
-        );
+      const trimmedText = text.trim();
 
-        // If preamble is just introducing an artifact, provide a cleaner message
-        if (
-          preamble.toLowerCase().includes("artifact") ||
-          preamble.toLowerCase().includes("create")
-        ) {
-          return {
-            reply:
-              "I encountered an issue creating the artifact. Please try again with a simpler request.",
-          };
+      // Check if the response looks like it contains embedded JSON that failed to parse
+      // This would be raw JSON starting the response or JSON in a code block
+      const looksLikeJSON =
+        trimmedText.startsWith("{") ||
+        trimmedText.startsWith("[") ||
+        /^```(?:json)?\s*\{/m.test(trimmedText);
+
+      if (looksLikeJSON) {
+        // Try to extract any preamble text before the malformed JSON
+        const preambleMatch = trimmedText.match(/^([\s\S]*?)(?:```|{|\[)/);
+        if (preambleMatch && preambleMatch[1].trim().length > 20) {
+          const preamble = preambleMatch[1].trim();
+          console.log(
+            "[Orchestrator] Extracted preamble before JSON:",
+            preamble.slice(0, 200),
+          );
+          return { reply: preamble };
         }
-        return { reply: preamble };
+        // No meaningful preamble, return generic error
+        return {
+          reply:
+            "I processed your request but encountered a formatting issue. Please try again.",
+        };
       }
 
-      // Last resort: return a generic message instead of raw JSON
-      return {
-        reply:
-          "I processed your request but encountered a formatting issue. Please try again.",
-      };
+      // Not JSON - return the full markdown text as-is
+      console.log(
+        "[Orchestrator] Returning full markdown response:",
+        trimmedText.slice(0, 200),
+      );
+      return { reply: trimmedText };
     }
   }
 
@@ -1200,25 +1215,73 @@ export class AgentOrchestrator {
     sessionId: string,
     assistantMessageId: string,
   ): FollowUpContext | null {
-    // Has buttons or form - user has clear next action
+    console.log(`\n[FollowUp-Debug] ========== CHECKING FOLLOW-UP ==========`);
+    console.log(`[FollowUp-Debug] Reply length: ${reply.length} chars`);
+    console.log(
+      `[FollowUp-Debug] Has buttons: ${!!(buttons && buttons.length > 0)}, Has form: ${!!form}`,
+    );
+
+    // RULE 1: Explicit UI engagement - never needs follow-up
     if ((buttons && buttons.length > 0) || form) {
+      console.log(`[FollowUp-Debug] SKIP: Has buttons or form`);
       return null;
     }
 
-    // Check if reply ends with a question
-    const trimmedReply = reply.trim();
-    const endsWithQuestion = trimmedReply.endsWith("?");
+    const trimmed = reply.trim();
 
-    // Check for embedded questions (question marks not at end)
-    const questionCount = (trimmedReply.match(/\?/g) || []).length;
-    const hasQuestion = questionCount > 0;
-
-    // If there's a clear question, no follow-up needed
-    if (endsWithQuestion) {
+    // RULE 2: Most direct check - does the response end with a question?
+    if (trimmed.endsWith("?")) {
+      console.log(`[FollowUp-Debug] SKIP: Response ends with "?"`);
       return null;
     }
 
-    // Determine the reason for needing a follow-up
+    const lines = trimmed.split("\n").filter((l) => l.trim());
+    console.log(`[FollowUp-Debug] Total non-empty lines: ${lines.length}`);
+
+    // RULE 3: Check if ANY of the last 5 lines ends with "?" (catches questions followed by blank lines)
+    const lastFiveLines = lines.slice(-5);
+    const hasQuestionInLastLines = lastFiveLines.some((line) =>
+      line.trim().endsWith("?"),
+    );
+
+    if (hasQuestionInLastLines) {
+      console.log(`[FollowUp-Debug] SKIP: Question found in last 5 lines`);
+      return null;
+    }
+
+    // RULE 4: Check for engagement phrases in the last paragraph
+    const paragraphs = trimmed.split(/\n\n+/).filter((p) => p.trim());
+    const lastParagraph = paragraphs[paragraphs.length - 1] || trimmed;
+    console.log(
+      `[FollowUp-Debug] Last paragraph (first 150 chars): "${lastParagraph.slice(0, 150)}..."`,
+    );
+
+    const engagementPhrases = [
+      /what do you think/i,
+      /what are your thoughts/i,
+      /how does (this|that) (sound|feel|look|seem)/i,
+      /does (this|that) (work|sound|feel|resonate|make sense)/i,
+      /would you (like|prefer|want|be interested)/i,
+      /which (one|option|approach|direction|would|do you)/i,
+      /let me know/i,
+      /tell me (more|what|about|if|your)/i,
+      /share (your|with me)/i,
+      /(thoughts|feedback|questions|input)\s*[.?]?\s*$/i,
+      /sound good/i,
+      /make sense/i,
+      /missing (something|anything)/i,
+    ];
+
+    for (const phrase of engagementPhrases) {
+      if (phrase.test(lastParagraph)) {
+        console.log(
+          `[FollowUp-Debug] SKIP: Matched engagement phrase: ${phrase}`,
+        );
+        return null;
+      }
+    }
+
+    // RULE 5: No engagement detected - trigger follow-up
     let reason: FollowUpContext["reason"] = "no_question";
 
     if (artifact || artifactUpdate) {
@@ -1227,9 +1290,9 @@ export class AgentOrchestrator {
       reason = "search_initiated";
     }
 
-    // Log for monitoring
+    console.log(`[FollowUp-Debug] ✓ TRIGGERING FOLLOW-UP: reason=${reason}`);
     console.log(
-      `[Orchestrator] Follow-up needed: reason=${reason}, hasQuestion=${hasQuestion}, endsWithQuestion=${endsWithQuestion}`,
+      `[FollowUp-Debug] ==========================================\n`,
     );
 
     return {

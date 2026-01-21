@@ -15,11 +15,6 @@ from claude_code_sdk.types import HookMatcher
 from security import bash_security_hook
 
 
-# Puppeteer MCP tools for browser automation (use wildcard to allow all)
-PUPPETEER_TOOLS = [
-    "mcp__puppeteer__*",  # Allow ALL puppeteer tools
-]
-
 # Built-in tools
 BUILTIN_TOOLS = [
     "Read",
@@ -58,8 +53,8 @@ def create_client(project_dir: Path, model: str) -> ClaudeSDKClient:
                 "Grep(./**)",
                 # Bash with security hook validation
                 "Bash(*)",
-                # All Puppeteer MCP tools
-                "mcp__puppeteer__*",
+                # agent-browser CLI for browser automation
+                "Bash(agent-browser:*)",
             ],
         },
     }
@@ -73,7 +68,7 @@ def create_client(project_dir: Path, model: str) -> ClaudeSDKClient:
     print(f"   - Model: {model}")
     print("   - Sandbox enabled")
     print(f"   - Filesystem restricted to: {project_dir.resolve()}")
-    print("   - MCP servers: puppeteer")
+    print("   - Browser automation: agent-browser CLI")
     print()
 
     return ClaudeSDKClient(
@@ -82,11 +77,8 @@ def create_client(project_dir: Path, model: str) -> ClaudeSDKClient:
             system_prompt="You are an expert E2E testing agent that FIXES CODE to make tests pass.",
             allowed_tools=[
                 *BUILTIN_TOOLS,
-                *PUPPETEER_TOOLS,
+                "Bash(agent-browser:*)",  # Browser automation via CLI
             ],
-            mcp_servers={
-                "puppeteer": {"command": "npx", "args": ["puppeteer-mcp-server"]}
-            },
             hooks={
                 "PreToolUse": [
                     HookMatcher(matcher="Bash", hooks=[bash_security_hook]),

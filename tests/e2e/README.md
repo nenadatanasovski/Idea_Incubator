@@ -2,7 +2,7 @@
 
 A CLI-driven autonomous testing system where each agent instance runs ONE test, then hands off to the next agent.
 
-**Browser Automation: Puppeteer MCP**
+**Browser Automation: agent-browser CLI**
 
 ## Architecture Overview
 
@@ -79,9 +79,10 @@ Tests are never skipped unless explicitly blocked by dependencies.
    npm run dev
    ```
 
-2. **Puppeteer MCP Server**
-   The orchestrator uses Puppeteer MCP tools for browser automation.
-   Ensure the Puppeteer MCP server is configured in your Claude Code settings.
+2. **agent-browser CLI**
+   The orchestrator uses agent-browser CLI for browser automation.
+   Install globally: `npm install -g agent-browser`
+   Verify: `agent-browser --version`
 
 3. **Database Ready**
    ```bash
@@ -109,22 +110,44 @@ The orchestrator will:
 
 ```bash
 # Run one specific test
-echo "Execute test TEST-SL-001 following tests/e2e/RALPH-LOOP-AGENT.md" | claude -p --allowedTools "mcp__puppeteer__*,Read,Write,Edit"
+echo "Execute test TEST-SL-001 following tests/e2e/RALPH-LOOP-AGENT.md" | claude -p --allowedTools "Bash(agent-browser:*),Read,Write,Edit"
 ```
 
-## Puppeteer MCP Tools
+## agent-browser Commands
 
-The agents use these tools for browser automation:
+The agents use these CLI commands for browser automation:
 
-| Tool                                   | Purpose            | Example                                              |
-| -------------------------------------- | ------------------ | ---------------------------------------------------- |
-| `mcp__puppeteer__puppeteer_navigate`   | Navigate to URL    | `{"url": "http://localhost:3000/ideate"}`            |
-| `mcp__puppeteer__puppeteer_screenshot` | Capture screenshot | `{"name": "test-screenshot"}`                        |
-| `mcp__puppeteer__puppeteer_click`      | Click element      | `{"selector": "button.start-btn"}`                   |
-| `mcp__puppeteer__puppeteer_fill`       | Fill input field   | `{"selector": "input#message", "value": "test"}`     |
-| `mcp__puppeteer__puppeteer_select`     | Select dropdown    | `{"selector": "select#profile", "value": "default"}` |
-| `mcp__puppeteer__puppeteer_hover`      | Hover element      | `{"selector": ".menu-item"}`                         |
-| `mcp__puppeteer__puppeteer_evaluate`   | Run JS in browser  | `{"script": "document.title"}`                       |
+| Command                           | Purpose              | Example                                    |
+| --------------------------------- | -------------------- | ------------------------------------------ |
+| `agent-browser open <url>`        | Navigate to URL      | `agent-browser open http://localhost:3000` |
+| `agent-browser snapshot -i`       | Get interactive refs | Returns elements like `@e1`, `@e2`         |
+| `agent-browser click @ref`        | Click element        | `agent-browser click @e1`                  |
+| `agent-browser fill @ref "text"`  | Fill input field     | `agent-browser fill @e2 "test message"`    |
+| `agent-browser select @ref "val"` | Select dropdown      | `agent-browser select @e3 "default"`       |
+| `agent-browser hover @ref`        | Hover element        | `agent-browser hover @e4`                  |
+| `agent-browser screenshot <path>` | Capture screenshot   | `agent-browser screenshot ./test.png`      |
+| `agent-browser eval "js"`         | Run JS in browser    | `agent-browser eval "document.title"`      |
+| `agent-browser wait --text "..."` | Wait for text        | `agent-browser wait --text "Success"`      |
+| `agent-browser wait --load idle`  | Wait for network     | `agent-browser wait --load networkidle`    |
+
+### Workflow Pattern
+
+```bash
+# 1. Navigate
+agent-browser open http://localhost:3000/ideate
+
+# 2. Get element refs
+agent-browser snapshot -i
+# Output: button "Start" [ref=e1], textbox "Message" [ref=e2]
+
+# 3. Interact using refs
+agent-browser click @e1
+agent-browser fill @e2 "My idea..."
+
+# 4. Wait and verify
+agent-browser wait --text "Response received"
+agent-browser screenshot ./evidence.png
+```
 
 ## Files
 
@@ -203,7 +226,7 @@ rm -rf tests/e2e/logs/*
 
 ### TEST-AGENT
 
-- Executes ONE test using Puppeteer MCP
+- Executes ONE test using agent-browser CLI
 - Updates ONLY that test's status
 - Creates handoff for next test OR bug-fixer
 
@@ -215,7 +238,7 @@ rm -rf tests/e2e/logs/*
 
 ### VALIDATOR-AGENT
 
-- Re-runs blocked test using Puppeteer MCP
+- Re-runs blocked test using agent-browser CLI
 - Validates fix worked
 - Creates handoff for next test or another fix attempt
 
@@ -237,11 +260,12 @@ curl http://localhost:3000 || (cd frontend && npm run dev &)
 curl http://localhost:3001/api/profiles || npm run server &
 ```
 
-### Puppeteer Browser Issues
+### Browser Issues
 
-1. Check if puppeteer MCP server is running
-2. Restart the orchestrator script
-3. Check logs for detailed error messages
+1. Verify agent-browser is installed: `agent-browser --version`
+2. Close any existing browser: `agent-browser close`
+3. Restart with headed mode for debugging: `agent-browser open <url> --headed`
+4. Check logs for detailed error messages
 
 ## Test Plan Reference
 

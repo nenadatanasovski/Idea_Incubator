@@ -1,0 +1,1783 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Idea Incubator - Unified Flow Wireframe v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/d3@7"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+      * {
+        font-family: "Inter", sans-serif;
+      }
+
+      /* Node colors */
+      .node-you {
+        fill: #3b82f6;
+        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+      }
+      .node-problem {
+        fill: #ef4444;
+        filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.4));
+      }
+      .node-solution {
+        fill: #22c55e;
+        filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.4));
+      }
+      .node-market {
+        fill: #a855f7;
+        filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.4));
+      }
+      .node-fit {
+        fill: #eab308;
+        filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.4));
+      }
+      .node-risk {
+        fill: #f97316;
+        filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.4));
+      }
+      .node-business {
+        fill: #14b8a6;
+        filter: drop-shadow(0 0 8px rgba(20, 184, 166, 0.4));
+      }
+
+      .node-empty {
+        fill: #1e293b;
+        stroke: #475569;
+        stroke-width: 2;
+        stroke-dasharray: 4;
+      }
+      .node-partial {
+        opacity: 0.6;
+      }
+
+      .node-selected {
+        stroke: #ffffff;
+        stroke-width: 3;
+      }
+
+      .edge {
+        stroke: #475569;
+        stroke-width: 2;
+        opacity: 0.4;
+      }
+      .edge-strong {
+        stroke: #8b5cf6;
+        stroke-width: 3;
+        opacity: 0.7;
+      }
+      .edge-dashed {
+        stroke-dasharray: 4;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.4;
+        }
+        50% {
+          opacity: 0.8;
+        }
+      }
+      @keyframes glow {
+        0%,
+        100% {
+          filter: brightness(1);
+        }
+        50% {
+          filter: brightness(1.3);
+        }
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes slideRight {
+        from {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes confettiFall {
+        0% {
+          opacity: 1;
+          transform: translateY(0) rotate(0deg);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(150px) rotate(720deg);
+        }
+      }
+
+      .pulse {
+        animation: pulse 2s infinite;
+      }
+      .glow {
+        animation: glow 1.5s ease-in-out;
+      }
+      .slide-in {
+        animation: slideIn 0.3s ease-out;
+      }
+      .slide-right {
+        animation: slideRight 0.25s ease-out;
+      }
+      .fade-in {
+        animation: fadeIn 0.2s ease-out;
+      }
+
+      .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        animation: confettiFall 1.5s ease-out forwards;
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      /* Mode tabs */
+      .mode-tab {
+        transition: all 0.2s;
+      }
+      .mode-tab.active {
+        background: rgba(139, 92, 246, 0.2);
+        border-color: #8b5cf6;
+        color: #a78bfa;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+
+      /* Drawer */
+      .drawer {
+        transform: translateX(100%);
+        transition: transform 0.25s ease-out;
+      }
+      .drawer.open {
+        transform: translateX(0);
+      }
+
+      /* Completeness indicators */
+      .completeness-ring {
+        transition: stroke-dashoffset 0.5s ease;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-900 text-white min-h-screen overflow-hidden">
+    <!-- Header -->
+    <header
+      class="border-b border-slate-700 px-4 py-2 flex items-center justify-between h-14"
+    >
+      <div class="flex items-center gap-4">
+        <button class="text-slate-400 hover:text-white p-1">
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+        <h1 class="text-base font-semibold" id="idea-title">
+          Legal AI Research Tool
+        </h1>
+        <span
+          class="px-2 py-0.5 text-xs bg-purple-500/20 text-purple-300 rounded"
+          id="phase-badge"
+          >Narrowing</span
+        >
+      </div>
+
+      <!-- View Mode Tabs -->
+      <div class="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
+        <button
+          class="mode-tab px-3 py-1.5 text-sm rounded-md border border-transparent"
+          onclick="setMode('chat')"
+          id="tab-chat"
+        >
+          💬 Chat
+        </button>
+        <button
+          class="mode-tab px-3 py-1.5 text-sm rounded-md border border-transparent active"
+          onclick="setMode('explore')"
+          id="tab-explore"
+        >
+          🕸️ Explore
+        </button>
+        <button
+          class="mode-tab px-3 py-1.5 text-sm rounded-md border border-transparent"
+          onclick="setMode('split')"
+          id="tab-split"
+        >
+          📊 Split
+        </button>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <!-- Challenge Intensity -->
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">Challenge:</span>
+          <div class="flex gap-1">
+            <button
+              class="w-2 h-2 rounded-full bg-green-500 hover:ring-2 ring-green-500/50"
+              title="Light"
+              onclick="setChallenge('light')"
+            ></button>
+            <button
+              class="w-2 h-2 rounded-full bg-amber-500 hover:ring-2 ring-amber-500/50"
+              title="Medium"
+              onclick="setChallenge('medium')"
+            ></button>
+            <button
+              class="w-2 h-2 rounded-full bg-slate-600 hover:ring-2 ring-red-500/50"
+              title="Rigorous"
+              onclick="setChallenge('rigorous')"
+            ></button>
+          </div>
+        </div>
+
+        <button class="p-2 text-slate-400 hover:text-white">
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="flex h-[calc(100vh-56px-48px)]" id="main-content">
+      <!-- EXPLORE MODE (Default) -->
+      <div id="mode-explore" class="flex w-full">
+        <!-- Knowledge Graph (70%) -->
+        <div
+          class="w-[70%] relative bg-gradient-to-br from-slate-900 to-slate-800 overflow-hidden"
+        >
+          <!-- Graph Legend -->
+          <div
+            class="absolute top-4 left-4 z-10 bg-slate-800/80 backdrop-blur rounded-lg p-3"
+          >
+            <h3 class="text-xs font-medium text-slate-400 mb-2">
+              KNOWLEDGE GRAPH
+            </h3>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-blue-500"></span> You
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-red-500"></span> Problem
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-green-500"></span> Solution
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-purple-500"></span> Market
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-yellow-500"></span> Fit
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-orange-500"></span> Risk
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-teal-500"></span> Business
+              </div>
+            </div>
+            <div
+              class="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-500"
+            >
+              Click node to explore • Drag to move
+            </div>
+          </div>
+
+          <!-- Metrics Overlay -->
+          <div
+            class="absolute top-4 right-4 z-10 bg-slate-800/80 backdrop-blur rounded-lg p-3"
+          >
+            <div class="flex items-center gap-4">
+              <div>
+                <div class="text-xs text-slate-400 mb-1">Confidence</div>
+                <div class="flex items-center gap-2">
+                  <div
+                    class="w-24 h-2 bg-slate-700 rounded-full overflow-hidden"
+                  >
+                    <div
+                      class="h-full bg-blue-500 transition-all"
+                      style="width: 65%"
+                    ></div>
+                  </div>
+                  <span class="text-sm font-medium">65%</span>
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-slate-400 mb-1">Viability</div>
+                <div class="flex items-center gap-2">
+                  <div
+                    class="w-24 h-2 bg-slate-700 rounded-full overflow-hidden"
+                  >
+                    <div
+                      class="h-full bg-green-500 transition-all"
+                      style="width: 48%"
+                    ></div>
+                  </div>
+                  <span class="text-sm font-medium">48%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- The Graph -->
+          <svg id="graph" class="w-full h-full"></svg>
+
+          <!-- Mini Chat -->
+          <div
+            class="absolute bottom-4 left-4 right-4 bg-slate-800/90 backdrop-blur rounded-lg border border-slate-700"
+          >
+            <div
+              class="p-3 max-h-32 overflow-y-auto text-sm"
+              id="mini-chat-messages"
+            >
+              <div class="text-slate-300">
+                <span class="text-purple-400 font-medium">AI:</span> Who
+                experiences this problem most? Junior associates or partners?
+              </div>
+            </div>
+            <div class="flex gap-2 p-2 border-t border-slate-700">
+              <button
+                class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded transition"
+                onclick="quickAnswer('Junior Associates')"
+              >
+                Junior Associates
+              </button>
+              <button
+                class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded transition"
+                onclick="quickAnswer('Partners')"
+              >
+                Partners
+              </button>
+              <button
+                class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded transition"
+                onclick="quickAnswer('Both')"
+              >
+                Both
+              </button>
+              <input
+                type="text"
+                placeholder="Type response..."
+                class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs focus:outline-none focus:border-purple-500"
+                id="mini-chat-input"
+              />
+              <button
+                class="px-3 py-1 text-xs bg-purple-600 hover:bg-purple-500 rounded transition"
+                onclick="sendMiniChat()"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail Panel (30%) -->
+        <div
+          class="w-[30%] border-l border-slate-700 flex flex-col bg-slate-900"
+          id="detail-panel"
+        >
+          <!-- Panel Header -->
+          <div class="p-4 border-b border-slate-700">
+            <div class="flex items-center gap-3">
+              <div
+                class="w-10 h-10 rounded-full flex items-center justify-center"
+                id="panel-icon"
+                style="background: #ef4444"
+              >
+                <span class="text-white text-sm font-bold">P</span>
+              </div>
+              <div>
+                <h2 class="font-semibold" id="panel-title">Problem</h2>
+                <div class="flex items-center gap-2 text-xs text-slate-400">
+                  <span id="panel-completeness">●●●○○</span>
+                  <span>60% complete</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel Tabs -->
+          <div class="flex border-b border-slate-700 text-sm">
+            <button
+              class="flex-1 px-3 py-2 border-b-2 border-purple-500 text-purple-400"
+              onclick="showPanelTab('evidence')"
+              id="ptab-evidence"
+            >
+              Evidence
+            </button>
+            <button
+              class="flex-1 px-3 py-2 text-slate-400 hover:text-white"
+              onclick="showPanelTab('questions')"
+              id="ptab-questions"
+            >
+              Questions
+            </button>
+            <button
+              class="flex-1 px-3 py-2 text-slate-400 hover:text-white"
+              onclick="showPanelTab('artifacts')"
+              id="ptab-artifacts"
+            >
+              Artifacts
+            </button>
+            <button
+              class="flex-1 px-3 py-2 text-slate-400 hover:text-white"
+              onclick="showPanelTab('related')"
+              id="ptab-related"
+            >
+              Related
+            </button>
+          </div>
+
+          <!-- Panel Content -->
+          <div class="flex-1 overflow-y-auto p-4" id="panel-content">
+            <!-- Evidence Tab (default) -->
+            <div id="panel-evidence">
+              <div class="space-y-4">
+                <!-- Captured Evidence -->
+                <div class="bg-slate-800/50 rounded-lg p-3">
+                  <div
+                    class="flex items-center gap-2 text-green-400 text-xs mb-2"
+                  >
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Core Problem Statement
+                  </div>
+                  <p class="text-sm text-slate-200">
+                    "Lawyers spend 40% of billable time on case law research
+                    that could be automated"
+                  </p>
+                  <p class="text-xs text-slate-500 mt-2">
+                    Captured from message at 10:23am
+                  </p>
+                </div>
+
+                <div class="bg-slate-800/50 rounded-lg p-3">
+                  <div
+                    class="flex items-center gap-2 text-green-400 text-xs mb-2"
+                  >
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Target User
+                  </div>
+                  <p class="text-sm text-slate-200">
+                    "Corporate lawyers at firms billing $500+/hr"
+                  </p>
+                  <p class="text-xs text-slate-500 mt-2">
+                    Captured from message at 10:31am
+                  </p>
+                </div>
+
+                <div
+                  class="bg-slate-800/30 border border-slate-700 border-dashed rounded-lg p-3"
+                >
+                  <div
+                    class="flex items-center gap-2 text-amber-400 text-xs mb-2"
+                  >
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle cx="12" cy="12" r="10" stroke-width="2" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-width="2"
+                        d="M12 6v6"
+                      />
+                    </svg>
+                    Severity (partial)
+                  </div>
+                  <p class="text-sm text-slate-400">
+                    "Insane" frustration signal detected
+                  </p>
+                  <p class="text-xs text-slate-500 mt-2">
+                    Missing: Quantified impact ($, hours)
+                  </p>
+                </div>
+
+                <div
+                  class="bg-slate-800/20 border border-slate-700 border-dashed rounded-lg p-3"
+                >
+                  <div
+                    class="flex items-center gap-2 text-slate-500 text-xs mb-2"
+                  >
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke-width="2"
+                        stroke-dasharray="4"
+                      />
+                    </svg>
+                    Validation
+                  </div>
+                  <p class="text-sm text-slate-500">
+                    No user interviews recorded yet
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Questions Tab (hidden) -->
+            <div id="panel-questions" class="hidden">
+              <div class="space-y-4">
+                <div>
+                  <h4 class="text-xs font-medium text-green-400 mb-2">
+                    ✅ Answered (3)
+                  </h4>
+                  <div class="space-y-2">
+                    <div
+                      class="flex items-center gap-2 text-sm text-slate-300 bg-slate-800/30 rounded p-2"
+                    >
+                      <span class="text-green-400">✓</span>
+                      <span>P1_CORE: What problem are you solving?</span>
+                    </div>
+                    <div
+                      class="flex items-center gap-2 text-sm text-slate-300 bg-slate-800/30 rounded p-2"
+                    >
+                      <span class="text-green-400">✓</span>
+                      <span>P3_WHO: Who has this problem?</span>
+                    </div>
+                    <div
+                      class="flex items-center gap-2 text-sm text-slate-300 bg-slate-800/30 rounded p-2"
+                    >
+                      <span class="text-green-400">✓</span>
+                      <span>P2_SEVERITY: How painful is it?</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 class="text-xs font-medium text-amber-400 mb-2">
+                    ❓ Unanswered Critical (2)
+                  </h4>
+                  <div class="space-y-2">
+                    <div class="bg-slate-800/50 rounded p-3">
+                      <div class="text-sm text-slate-200 mb-2">
+                        P4_VALIDATION: Have you talked to potential users?
+                      </div>
+                      <button
+                        class="text-xs text-purple-400 hover:text-purple-300"
+                        onclick="askQuestion('P4_VALIDATION')"
+                      >
+                        → Ask this question
+                      </button>
+                    </div>
+                    <div class="bg-slate-800/50 rounded p-3">
+                      <div class="text-sm text-slate-200 mb-2">
+                        P5_WORKAROUND: What do they do today?
+                      </div>
+                      <button
+                        class="text-xs text-purple-400 hover:text-purple-300"
+                        onclick="askQuestion('P5_WORKAROUND')"
+                      >
+                        → Ask this question
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 class="text-xs font-medium text-slate-500 mb-2">
+                    📋 Optional (3)
+                  </h4>
+                  <button class="text-xs text-slate-400 hover:text-slate-300">
+                    Show optional questions...
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Artifacts Tab (hidden) -->
+            <div id="panel-artifacts" class="hidden">
+              <div class="space-y-4">
+                <div class="bg-slate-800/50 rounded-lg p-3">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium">📄 User Persona</span>
+                    <span class="text-xs text-green-400">Generated</span>
+                  </div>
+                  <div class="text-xs text-slate-400 mb-2">
+                    Sarah Chen, Corporate Attorney at BigLaw firm
+                  </div>
+                  <div class="flex gap-2">
+                    <button
+                      class="text-xs text-purple-400 hover:text-purple-300"
+                    >
+                      View
+                    </button>
+                    <button class="text-xs text-slate-400 hover:text-slate-300">
+                      Edit
+                    </button>
+                    <button class="text-xs text-slate-400 hover:text-slate-300">
+                      Regenerate
+                    </button>
+                  </div>
+                </div>
+
+                <div class="bg-slate-800/50 rounded-lg p-3">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium"
+                      >📊 Problem Severity Matrix</span
+                    >
+                    <span class="text-xs text-green-400">Mermaid</span>
+                  </div>
+                  <div class="text-xs text-slate-400 mb-2">
+                    Pain point visualization diagram
+                  </div>
+                  <div class="flex gap-2">
+                    <button
+                      class="text-xs text-purple-400 hover:text-purple-300"
+                    >
+                      View
+                    </button>
+                    <button class="text-xs text-slate-400 hover:text-slate-300">
+                      Edit
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  class="border border-dashed border-slate-600 rounded-lg p-4"
+                >
+                  <div class="text-center">
+                    <button
+                      class="text-sm text-purple-400 hover:text-purple-300"
+                      onclick="showArtifactMenu()"
+                    >
+                      + Generate Artifact
+                    </button>
+                    <div class="mt-2 text-xs text-slate-500">
+                      Problem statement, Interview guide, Pain matrix
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Related Tab (hidden) -->
+            <div id="panel-related" class="hidden">
+              <div class="space-y-4">
+                <div>
+                  <h4 class="text-xs font-medium text-slate-400 mb-2">
+                    🔗 Connected Nodes
+                  </h4>
+                  <div class="space-y-2">
+                    <button
+                      class="w-full flex items-center gap-2 p-2 bg-slate-800/50 rounded hover:bg-slate-800 text-left"
+                      onclick="selectNode('solution')"
+                    >
+                      <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                      <span class="text-sm">Solution</span>
+                      <span class="text-xs text-slate-500 ml-auto"
+                        >defines what it solves</span
+                      >
+                    </button>
+                    <button
+                      class="w-full flex items-center gap-2 p-2 bg-slate-800/50 rounded hover:bg-slate-800 text-left"
+                      onclick="selectNode('market')"
+                    >
+                      <span class="w-3 h-3 rounded-full bg-purple-500"></span>
+                      <span class="text-sm">Market</span>
+                      <span class="text-xs text-slate-500 ml-auto"
+                        >problem exists here</span
+                      >
+                    </button>
+                    <button
+                      class="w-full flex items-center gap-2 p-2 bg-slate-800/50 rounded hover:bg-slate-800 text-left"
+                      onclick="selectNode('you')"
+                    >
+                      <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                      <span class="text-sm">You</span>
+                      <span class="text-xs text-slate-500 ml-auto"
+                        >experienced this</span
+                      >
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 class="text-xs font-medium text-slate-400 mb-2">
+                    📁 Related Files
+                  </h4>
+                  <div class="space-y-1 text-sm">
+                    <div class="text-slate-300 hover:text-white cursor-pointer">
+                      ideas/legal-ai/README.md
+                    </div>
+                    <div class="text-slate-300 hover:text-white cursor-pointer">
+                      ideas/legal-ai/development.md
+                    </div>
+                    <div class="text-slate-300 hover:text-white cursor-pointer">
+                      ideas/legal-ai/research/market.md
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 class="text-xs font-medium text-slate-400 mb-2">
+                    🔍 Web Research
+                  </h4>
+                  <div class="text-sm text-slate-300 mb-2">
+                    "Legal tech market analysis 2026"
+                  </div>
+                  <div class="text-xs text-slate-500 mb-2">3 sources found</div>
+                  <button class="text-xs text-purple-400 hover:text-purple-300">
+                    Run new search...
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHAT MODE (hidden by default) -->
+      <div id="mode-chat" class="hidden w-full flex flex-col">
+        <!-- Floating Metrics -->
+        <div
+          class="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-slate-800/90 backdrop-blur rounded-full px-6 py-2 border border-slate-700 flex items-center gap-6"
+          id="floating-metrics"
+        >
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">Confidence:</span>
+            <div class="w-20 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div class="h-full bg-blue-500" style="width: 65%"></div>
+            </div>
+            <span class="text-xs font-medium">65%</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">Viability:</span>
+            <div class="w-20 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div class="h-full bg-green-500" style="width: 48%"></div>
+            </div>
+            <span class="text-xs font-medium">48%</span>
+          </div>
+          <button
+            class="text-xs text-slate-500 hover:text-slate-300"
+            onclick="toggleMetrics()"
+          >
+            ×
+          </button>
+        </div>
+
+        <!-- Full Conversation -->
+        <div
+          class="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full"
+          id="chat-messages"
+        >
+          <!-- Messages will be populated here -->
+        </div>
+
+        <!-- Input Area -->
+        <div class="border-t border-slate-700 p-4 max-w-3xl mx-auto w-full">
+          <div class="flex gap-2">
+            <input
+              type="text"
+              placeholder="Type your response..."
+              class="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-purple-500"
+              id="chat-input"
+            />
+            <button
+              class="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium"
+              onclick="sendChatMessage()"
+            >
+              Send
+            </button>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <button
+              class="px-3 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded border border-slate-700"
+            >
+              📊 View Graph
+            </button>
+            <button
+              class="px-3 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded border border-slate-700"
+            >
+              📄 Artifacts (2)
+            </button>
+            <button
+              class="px-3 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded border border-slate-700"
+            >
+              🔍 Research
+            </button>
+            <button
+              class="px-3 py-1 text-xs bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 rounded border border-purple-500/30"
+            >
+              ⚡ Generate Spec
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SPLIT MODE (hidden by default) -->
+      <div id="mode-split" class="hidden w-full flex">
+        <!-- Conversation (50%) -->
+        <div class="w-1/2 flex flex-col border-r border-slate-700">
+          <div class="flex-1 overflow-y-auto p-4" id="split-messages">
+            <!-- Messages will be populated here -->
+          </div>
+          <div class="border-t border-slate-700 p-3">
+            <div class="flex gap-2">
+              <input
+                type="text"
+                placeholder="Type response..."
+                class="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-purple-500"
+                id="split-input"
+              />
+              <button
+                class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-sm"
+                onclick="sendSplitMessage()"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual Panel (50%) -->
+        <div class="w-1/2 flex flex-col">
+          <!-- Tabs -->
+          <div class="flex border-b border-slate-700 text-sm">
+            <button
+              class="flex-1 px-3 py-2 border-b-2 border-purple-500 text-purple-400"
+              onclick="showSplitTab('graph')"
+              id="stab-graph"
+            >
+              Graph
+            </button>
+            <button
+              class="flex-1 px-3 py-2 text-slate-400 hover:text-white"
+              onclick="showSplitTab('artifacts')"
+              id="stab-artifacts"
+            >
+              Artifacts
+            </button>
+            <button
+              class="flex-1 px-3 py-2 text-slate-400 hover:text-white"
+              onclick="showSplitTab('evidence')"
+              id="stab-evidence"
+            >
+              Evidence
+            </button>
+            <button
+              class="flex-1 px-3 py-2 text-slate-400 hover:text-white"
+              onclick="showSplitTab('forecast')"
+              id="stab-forecast"
+            >
+              Forecast
+            </button>
+          </div>
+
+          <!-- Graph Tab -->
+          <div
+            class="flex-1 relative bg-gradient-to-br from-slate-900 to-slate-800"
+            id="split-graph"
+          >
+            <svg id="split-graph-svg" class="w-full h-full"></svg>
+            <!-- Metrics overlay -->
+            <div
+              class="absolute top-4 right-4 bg-slate-800/80 backdrop-blur rounded-lg p-3"
+            >
+              <div class="text-xs text-slate-400 mb-1">Confidence</div>
+              <div class="flex items-center gap-2 mb-2">
+                <div
+                  class="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden"
+                >
+                  <div class="h-full bg-blue-500" style="width: 65%"></div>
+                </div>
+                <span class="text-xs">65%</span>
+              </div>
+              <div class="text-xs text-slate-400 mb-1">Viability</div>
+              <div class="flex items-center gap-2">
+                <div
+                  class="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden"
+                >
+                  <div class="h-full bg-green-500" style="width: 48%"></div>
+                </div>
+                <span class="text-xs">48%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Other tabs (hidden) -->
+          <div class="flex-1 overflow-y-auto p-4 hidden" id="split-artifacts">
+            <h3 class="text-sm font-medium text-slate-400 mb-3">ARTIFACTS</h3>
+            <div class="space-y-3">
+              <div class="bg-slate-800/50 rounded p-3">
+                <div class="text-sm font-medium mb-1">📄 User Persona</div>
+                <div class="text-xs text-slate-400">
+                  Sarah Chen, Corporate Attorney
+                </div>
+              </div>
+              <div class="bg-slate-800/50 rounded p-3">
+                <div class="text-sm font-medium mb-1">📊 Problem Matrix</div>
+                <div class="text-xs text-slate-400">
+                  Pain point severity diagram
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-1 overflow-y-auto p-4 hidden" id="split-evidence">
+            <h3 class="text-sm font-medium text-slate-400 mb-3">
+              EVIDENCE CAPTURED
+            </h3>
+            <div class="space-y-2 text-sm">
+              <div class="flex items-center gap-2">
+                <span class="text-green-400">✓</span> Problem statement
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-green-400">✓</span> Target user
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-amber-400">◐</span> Severity (partial)
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-slate-500">○</span> Validation
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-1 overflow-y-auto p-4 hidden" id="split-forecast">
+            <h3 class="text-sm font-medium text-slate-400 mb-3">
+              LIVE FORECAST
+            </h3>
+            <div class="space-y-4">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span>Market Size (TAM)</span>
+                  <span class="text-amber-400">Calculating...</span>
+                </div>
+                <div class="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                  <div class="h-full bg-amber-500/50" style="width: 20%"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span>Revenue Potential</span>
+                  <span class="text-slate-500">Insufficient data</span>
+                </div>
+                <div class="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                  <div class="h-full bg-slate-600" style="width: 5%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Progress Bar -->
+    <div
+      class="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 px-6 py-3 h-12"
+    >
+      <div class="flex items-center justify-center gap-4">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-2.5 h-2.5 rounded-full bg-purple-500/30 border border-purple-500"
+          ></div>
+          <span class="text-xs text-slate-400">Exploring</span>
+        </div>
+        <div class="w-6 h-px bg-slate-600"></div>
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+          <span class="text-xs text-white font-medium">Problem</span>
+        </div>
+        <div class="w-6 h-px bg-slate-600"></div>
+        <div class="flex items-center gap-2">
+          <div
+            class="w-2.5 h-2.5 rounded-full bg-slate-600 border border-slate-500"
+          ></div>
+          <span class="text-xs text-slate-500">Solution</span>
+        </div>
+        <div class="w-6 h-px bg-slate-600"></div>
+        <div class="flex items-center gap-2">
+          <div
+            class="w-2.5 h-2.5 rounded-full bg-slate-600 border border-slate-500"
+          ></div>
+          <span class="text-xs text-slate-500">Validation</span>
+        </div>
+        <div class="w-6 h-px bg-slate-600"></div>
+        <div class="flex items-center gap-2">
+          <div
+            class="w-2.5 h-2.5 rounded-full bg-slate-600 border border-slate-500"
+          ></div>
+          <span class="text-xs text-slate-500">Ready</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div
+      id="tooltip"
+      class="fixed hidden bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm max-w-xs shadow-xl z-50 pointer-events-none"
+    >
+      <div class="font-medium mb-1" id="tooltip-title"></div>
+      <div class="text-slate-400 text-xs mb-2" id="tooltip-content"></div>
+      <div class="text-xs text-purple-400" id="tooltip-stats"></div>
+    </div>
+
+    <!-- Context Menu -->
+    <div
+      id="context-menu"
+      class="fixed hidden bg-slate-800 border border-slate-600 rounded-lg py-1 shadow-xl z-50 text-sm"
+    >
+      <button
+        class="w-full px-4 py-2 text-left hover:bg-slate-700 flex items-center gap-2"
+        onclick="contextAction('explore')"
+      >
+        🔍 Explore this area
+      </button>
+      <button
+        class="w-full px-4 py-2 text-left hover:bg-slate-700 flex items-center gap-2"
+        onclick="contextAction('question')"
+      >
+        ❓ Ask a question
+      </button>
+      <button
+        class="w-full px-4 py-2 text-left hover:bg-slate-700 flex items-center gap-2"
+        onclick="contextAction('artifact')"
+      >
+        📄 Generate artifact
+      </button>
+      <button
+        class="w-full px-4 py-2 text-left hover:bg-slate-700 flex items-center gap-2"
+        onclick="contextAction('connections')"
+      >
+        🔗 Show connections
+      </button>
+      <div class="border-t border-slate-700 my-1"></div>
+      <button
+        class="w-full px-4 py-2 text-left hover:bg-slate-700 flex items-center gap-2"
+        onclick="contextAction('focus')"
+      >
+        ⚡ Focus conversation
+      </button>
+      <button
+        class="w-full px-4 py-2 text-left hover:bg-slate-700 flex items-center gap-2"
+        onclick="contextAction('research')"
+      >
+        📊 Run research
+      </button>
+    </div>
+
+    <!-- Milestone Modal -->
+    <div
+      id="milestone-modal"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 hidden"
+    >
+      <div
+        class="bg-slate-800 border border-slate-600 rounded-xl p-6 max-w-md mx-4 shadow-2xl slide-in"
+      >
+        <div class="flex items-center gap-3 mb-4">
+          <div
+            class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center"
+          >
+            <svg
+              class="w-6 h-6 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold">Problem Definition Complete</h3>
+        </div>
+
+        <div class="space-y-2 mb-6">
+          <div class="flex items-center gap-2 text-sm">
+            <span class="text-green-500">✓</span> The problem: Legal research
+            time waste
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <span class="text-green-500">✓</span> Who has it: Corporate lawyers
+            at $500+/hr firms
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <span class="text-green-500">✓</span> How painful: 40% of billable
+            time wasted
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <span class="text-green-500">✓</span> Current workaround: Junior
+            associates + manual search
+          </div>
+        </div>
+
+        <p class="text-sm text-slate-400 mb-6">
+          I think we understand the problem well. Ready to explore solutions?
+        </p>
+
+        <div class="flex gap-3">
+          <button
+            class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium"
+            onclick="closeMilestone('solution')"
+          >
+            Yes, shape the solution
+          </button>
+          <button
+            class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm"
+            onclick="closeMilestone('validate')"
+          >
+            Validate first
+          </button>
+          <button
+            class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm"
+            onclick="closeMilestone('keep')"
+          >
+            Keep exploring
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub-agent Status Bar -->
+    <div
+      id="subagent-bar"
+      class="fixed bottom-14 left-4 right-4 bg-slate-800/90 backdrop-blur border border-slate-700 rounded-lg p-3 hidden z-30"
+    >
+      <div class="flex items-center gap-4 text-sm">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+          <span class="text-slate-300">Generating pitch...</span>
+          <div class="w-24 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              class="h-full bg-amber-500 transition-all"
+              style="width: 45%"
+            ></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 text-green-400">
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          <span>Market research complete</span>
+          <button class="text-xs underline" onclick="viewArtifact('research')">
+            View
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // State
+      let currentMode = "explore";
+      let selectedNode = "problem";
+      let challengeLevel = "light";
+
+      // Graph data with completeness
+      const graphData = {
+        nodes: [
+          { id: "you", label: "You", type: "you", completeness: 70 },
+          {
+            id: "problem",
+            label: "Problem",
+            type: "problem",
+            completeness: 60,
+          },
+          {
+            id: "solution",
+            label: "Solution",
+            type: "solution",
+            completeness: 20,
+          },
+          { id: "market", label: "Market", type: "market", completeness: 10 },
+          { id: "fit", label: "Fit", type: "fit", completeness: 40 },
+          { id: "risk", label: "Risk", type: "risk", completeness: 15 },
+          {
+            id: "business",
+            label: "Business",
+            type: "business",
+            completeness: 0,
+          },
+        ],
+        edges: [
+          { source: "you", target: "problem", strength: 0.8 },
+          { source: "you", target: "solution", strength: 0.3 },
+          { source: "you", target: "fit", strength: 0.5 },
+          { source: "problem", target: "solution", strength: 0.4 },
+          { source: "problem", target: "market", strength: 0.3 },
+          { source: "solution", target: "market", strength: 0.2 },
+          { source: "market", target: "risk", strength: 0.2 },
+          { source: "solution", target: "business", strength: 0.1 },
+        ],
+      };
+
+      const nodeDetails = {
+        you: {
+          title: "You",
+          color: "#3b82f6",
+          icon: "Y",
+          content: "Your profile, skills, goals, and context",
+        },
+        problem: {
+          title: "Problem",
+          color: "#ef4444",
+          icon: "P",
+          content: '"Lawyers spend 40% of billable time on research"',
+        },
+        solution: {
+          title: "Solution",
+          color: "#22c55e",
+          icon: "S",
+          content: "Not yet fully defined - describe your solution",
+        },
+        market: {
+          title: "Market",
+          color: "#a855f7",
+          icon: "M",
+          content: "Market size, competitors, timing signals",
+        },
+        fit: {
+          title: "Fit",
+          color: "#eab308",
+          icon: "F",
+          content: "Founder-market fit assessment",
+        },
+        risk: {
+          title: "Risk",
+          color: "#f97316",
+          icon: "R",
+          content: "Execution, market, technical risks",
+        },
+        business: {
+          title: "Business",
+          color: "#14b8a6",
+          icon: "B",
+          content: "Revenue model, pricing, channels",
+        },
+      };
+
+      // Mode switching
+      function setMode(mode) {
+        currentMode = mode;
+
+        // Update tabs
+        document
+          .querySelectorAll(".mode-tab")
+          .forEach((tab) => tab.classList.remove("active"));
+        document.getElementById(`tab-${mode}`).classList.add("active");
+
+        // Show/hide modes
+        document.getElementById("mode-explore").classList.add("hidden");
+        document.getElementById("mode-chat").classList.add("hidden");
+        document.getElementById("mode-split").classList.add("hidden");
+        document.getElementById(`mode-${mode}`).classList.remove("hidden");
+
+        // Initialize graphs if needed
+        if (mode === "explore") {
+          setTimeout(() => initGraph("graph"), 50);
+        } else if (mode === "split") {
+          setTimeout(() => initGraph("split-graph-svg"), 50);
+          populateSplitMessages();
+        } else if (mode === "chat") {
+          populateChatMessages();
+        }
+      }
+
+      // Initialize D3 Graph
+      function initGraph(svgId) {
+        const svg = d3.select(`#${svgId}`);
+        svg.selectAll("*").remove();
+
+        const rect = svg.node().getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+
+        // Create simulation
+        const simulation = d3
+          .forceSimulation(graphData.nodes)
+          .force(
+            "link",
+            d3
+              .forceLink(graphData.edges)
+              .id((d) => d.id)
+              .distance(100),
+          )
+          .force("charge", d3.forceManyBody().strength(-400))
+          .force("center", d3.forceCenter(width / 2, height / 2))
+          .force("collision", d3.forceCollide().radius(45));
+
+        // Draw edges
+        const edges = svg
+          .selectAll(".edge")
+          .data(graphData.edges)
+          .enter()
+          .append("line")
+          .attr("class", (d) =>
+            d.strength > 0.5 ? "edge edge-strong" : "edge",
+          )
+          .attr("stroke-dasharray", (d) => (d.strength < 0.3 ? "4" : "none"));
+
+        // Draw nodes
+        const nodes = svg
+          .selectAll(".node")
+          .data(graphData.nodes)
+          .enter()
+          .append("g")
+          .attr("class", "node")
+          .style("cursor", "pointer")
+          .call(
+            d3
+              .drag()
+              .on("start", dragstarted)
+              .on("drag", dragged)
+              .on("end", dragended),
+          );
+
+        // Node circles
+        nodes
+          .append("circle")
+          .attr("r", (d) => (d.id === "you" ? 35 : 30))
+          .attr("class", (d) => {
+            let cls = d.completeness > 30 ? `node-${d.type}` : "node-empty";
+            if (d.completeness > 0 && d.completeness <= 30)
+              cls += " node-partial";
+            if (d.id === selectedNode) cls += " node-selected";
+            return cls;
+          });
+
+        // Completeness ring
+        nodes
+          .append("circle")
+          .attr("r", (d) => (d.id === "you" ? 38 : 33))
+          .attr("fill", "none")
+          .attr("stroke", (d) => nodeDetails[d.id].color)
+          .attr("stroke-width", 3)
+          .attr("stroke-dasharray", (d) => {
+            const circumference = 2 * Math.PI * (d.id === "you" ? 38 : 33);
+            const filled = circumference * (d.completeness / 100);
+            return `${filled} ${circumference}`;
+          })
+          .attr("stroke-linecap", "round")
+          .attr("transform", "rotate(-90)")
+          .attr("opacity", 0.8);
+
+        // Labels
+        nodes
+          .append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.35em")
+          .attr("fill", (d) => (d.completeness > 30 ? "white" : "#64748b"))
+          .attr("font-size", "11px")
+          .attr("font-weight", "500")
+          .text((d) => d.label);
+
+        // Events
+        nodes
+          .on("click", (event, d) => {
+            selectedNode = d.id;
+            updateDetailPanel(d.id);
+            updateNodeSelection(svgId);
+          })
+          .on("mouseover", (event, d) => showTooltip(event, d))
+          .on("mouseout", hideTooltip)
+          .on("contextmenu", (event, d) => {
+            event.preventDefault();
+            showContextMenu(event, d);
+          });
+
+        // Simulation tick
+        simulation.on("tick", () => {
+          edges
+            .attr("x1", (d) => d.source.x)
+            .attr("y1", (d) => d.source.y)
+            .attr("x2", (d) => d.target.x)
+            .attr("y2", (d) => d.target.y);
+
+          nodes.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
+        });
+
+        // Drag functions
+        function dragstarted(event, d) {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x;
+          d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+          d.fx = event.x;
+          d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null;
+          d.fy = null;
+        }
+      }
+
+      function updateNodeSelection(svgId) {
+        d3.select(`#${svgId}`)
+          .selectAll(".node circle:first-child")
+          .attr("class", (d) => {
+            let cls = d.completeness > 30 ? `node-${d.type}` : "node-empty";
+            if (d.completeness > 0 && d.completeness <= 30)
+              cls += " node-partial";
+            if (d.id === selectedNode) cls += " node-selected";
+            return cls;
+          });
+      }
+
+      function updateDetailPanel(nodeId) {
+        const node = graphData.nodes.find((n) => n.id === nodeId);
+        const details = nodeDetails[nodeId];
+
+        document.getElementById("panel-icon").style.background = details.color;
+        document.getElementById("panel-icon").innerHTML =
+          `<span class="text-white text-sm font-bold">${details.icon}</span>`;
+        document.getElementById("panel-title").textContent = details.title;
+        document.getElementById("panel-completeness").textContent =
+          getCompletenessIndicator(node.completeness);
+        document.getElementById(
+          "panel-completeness",
+        ).nextElementSibling.textContent = `${node.completeness}% complete`;
+      }
+
+      function getCompletenessIndicator(pct) {
+        const filled = Math.round(pct / 20);
+        return "●".repeat(filled) + "○".repeat(5 - filled);
+      }
+
+      // Panel tab switching
+      function showPanelTab(tabName) {
+        ["evidence", "questions", "artifacts", "related"].forEach((tab) => {
+          document.getElementById(`panel-${tab}`).classList.add("hidden");
+          document
+            .getElementById(`ptab-${tab}`)
+            .classList.remove("border-purple-500", "text-purple-400");
+          document
+            .getElementById(`ptab-${tab}`)
+            .classList.add("text-slate-400");
+        });
+        document.getElementById(`panel-${tabName}`).classList.remove("hidden");
+        document
+          .getElementById(`ptab-${tabName}`)
+          .classList.add("border-purple-500", "text-purple-400");
+        document
+          .getElementById(`ptab-${tabName}`)
+          .classList.remove("text-slate-400");
+      }
+
+      // Split view tab switching
+      function showSplitTab(tabName) {
+        ["graph", "artifacts", "evidence", "forecast"].forEach((tab) => {
+          document.getElementById(`split-${tab}`).classList.add("hidden");
+          document
+            .getElementById(`stab-${tab}`)
+            .classList.remove("border-purple-500", "text-purple-400");
+          document
+            .getElementById(`stab-${tab}`)
+            .classList.add("text-slate-400");
+        });
+        document.getElementById(`split-${tabName}`).classList.remove("hidden");
+        document
+          .getElementById(`stab-${tabName}`)
+          .classList.add("border-purple-500", "text-purple-400");
+        document
+          .getElementById(`stab-${tabName}`)
+          .classList.remove("text-slate-400");
+      }
+
+      // Tooltip
+      function showTooltip(event, d) {
+        const tooltip = document.getElementById("tooltip");
+        const details = nodeDetails[d.id];
+
+        document.getElementById("tooltip-title").textContent = details.title;
+        document.getElementById("tooltip-content").textContent =
+          details.content;
+        document.getElementById("tooltip-stats").textContent =
+          `${getCompletenessIndicator(d.completeness)} ${d.completeness}% complete`;
+
+        tooltip.classList.remove("hidden");
+        tooltip.style.left = event.pageX + 15 + "px";
+        tooltip.style.top = event.pageY - 10 + "px";
+      }
+
+      function hideTooltip() {
+        document.getElementById("tooltip").classList.add("hidden");
+      }
+
+      // Context menu
+      function showContextMenu(event, d) {
+        const menu = document.getElementById("context-menu");
+        menu.classList.remove("hidden");
+        menu.style.left = event.pageX + "px";
+        menu.style.top = event.pageY + "px";
+        menu.dataset.nodeId = d.id;
+      }
+
+      document.addEventListener("click", () => {
+        document.getElementById("context-menu").classList.add("hidden");
+      });
+
+      function contextAction(action) {
+        const nodeId = document.getElementById("context-menu").dataset.nodeId;
+        console.log(`Action: ${action} on node: ${nodeId}`);
+        // Handle actions...
+      }
+
+      // Chat messages
+      const messages = [
+        {
+          role: "ai",
+          content: "What's the most frustrating part of legal research today?",
+        },
+        {
+          role: "user",
+          content:
+            "Lawyers bill $500/hr but spend 40% of time just searching for relevant case law. It's insane.",
+          signals: ["Problem", "Target User", "Severity"],
+        },
+        {
+          role: "ai",
+          content:
+            "That's a significant pain point. <strong>40% of billable time</strong> - at $500/hr, that's real money being burned.\n\nWho specifically struggles with this most? Junior associates or partners?",
+          evidenceCaptured: "Problem Statement",
+        },
+      ];
+
+      function populateChatMessages() {
+        const container = document.getElementById("chat-messages");
+        container.innerHTML = messages
+          .map((m) => createMessageHTML(m))
+          .join("");
+      }
+
+      function populateSplitMessages() {
+        const container = document.getElementById("split-messages");
+        container.innerHTML = messages
+          .map((m) => createMessageHTML(m, true))
+          .join("");
+      }
+
+      function createMessageHTML(msg, compact = false) {
+        if (msg.role === "user") {
+          return `
+                    <div class="flex gap-3 justify-end mb-4 slide-in">
+                        <div class="max-w-[80%]">
+                            <div class="bg-purple-600/30 border border-purple-500/30 rounded-lg rounded-tr-none p-${compact ? "3" : "4"}">
+                                <p class="text-slate-200 ${compact ? "text-sm" : ""}">${msg.content}</p>
+                            </div>
+                            ${
+                              msg.signals
+                                ? `
+                            <div class="mt-2 p-2 bg-slate-800/50 rounded text-xs">
+                                <div class="text-green-400 mb-1">📌 Evidence Captured</div>
+                                ${msg.signals.map((s) => `<span class="inline-block mr-2 text-slate-300">${s}</span>`).join("")}
+                            </div>
+                            `
+                                : ""
+                            }
+                        </div>
+                    </div>
+                `;
+        } else {
+          return `
+                    <div class="flex gap-3 mb-4 slide-in">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs font-bold flex-shrink-0">AI</div>
+                        <div class="flex-1">
+                            <div class="bg-slate-800 rounded-lg rounded-tl-none p-${compact ? "3" : "4"}">
+                                ${
+                                  msg.evidenceCaptured
+                                    ? `
+                                <div class="flex items-center gap-2 text-green-400 text-xs mb-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Evidence captured: ${msg.evidenceCaptured}
+                                </div>`
+                                    : ""
+                                }
+                                <p class="text-slate-200 ${compact ? "text-sm" : ""}">${msg.content}</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <button class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded" onclick="quickAnswer('Junior Associates')">Junior Associates</button>
+                                <button class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded" onclick="quickAnswer('Partners')">Partners</button>
+                                <button class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded" onclick="quickAnswer('Both')">Both</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+        }
+      }
+
+      // Quick answer
+      function quickAnswer(answer) {
+        console.log("Answer:", answer);
+
+        // Add to mini chat
+        const miniChat = document.getElementById("mini-chat-messages");
+        miniChat.innerHTML += `<div class="text-slate-300 mt-1"><span class="text-blue-400 font-medium">You:</span> ${answer}</div>`;
+        miniChat.scrollTop = miniChat.scrollHeight;
+
+        // Show milestone after delay
+        if (answer === "Both" || answer === "Junior Associates") {
+          setTimeout(() => {
+            document
+              .getElementById("milestone-modal")
+              .classList.remove("hidden");
+            triggerConfetti();
+          }, 1000);
+        }
+      }
+
+      function sendMiniChat() {
+        const input = document.getElementById("mini-chat-input");
+        if (input.value.trim()) {
+          quickAnswer(input.value);
+          input.value = "";
+        }
+      }
+
+      function closeMilestone(action) {
+        document.getElementById("milestone-modal").classList.add("hidden");
+        console.log("Next action:", action);
+      }
+
+      function triggerConfetti() {
+        const colors = ["#22c55e", "#8b5cf6", "#f59e0b", "#ec4899", "#3b82f6"];
+        for (let i = 0; i < 30; i++) {
+          const confetti = document.createElement("div");
+          confetti.className = "confetti";
+          confetti.style.left = 50 + (Math.random() - 0.5) * 40 + "%";
+          confetti.style.top = "45%";
+          confetti.style.backgroundColor =
+            colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.animationDelay = Math.random() * 0.3 + "s";
+          document.body.appendChild(confetti);
+          setTimeout(() => confetti.remove(), 1500);
+        }
+      }
+
+      function setChallenge(level) {
+        challengeLevel = level;
+        console.log("Challenge level:", level);
+      }
+
+      function selectNode(nodeId) {
+        selectedNode = nodeId;
+        updateDetailPanel(nodeId);
+        updateNodeSelection("graph");
+      }
+
+      function askQuestion(questionId) {
+        console.log("Ask question:", questionId);
+        const miniChat = document.getElementById("mini-chat-messages");
+        miniChat.innerHTML += `<div class="text-slate-300 mt-1"><span class="text-purple-400 font-medium">AI:</span> Let me ask about ${questionId}...</div>`;
+      }
+
+      // Initialize
+      document.addEventListener("DOMContentLoaded", () => {
+        setMode("explore");
+
+        document
+          .getElementById("mini-chat-input")
+          .addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendMiniChat();
+          });
+      });
+    </script>
+  </body>
+</html>
