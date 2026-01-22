@@ -348,3 +348,219 @@ describe("useGraphFilters URL sync", () => {
     expect(url).toBe("http://localhost:3000/test");
   });
 });
+
+/**
+ * T3.3.6: Filter State in URL
+ * Tests that filter state is preserved in URL and restored when loading
+ */
+describe("T3.3.6: Filter State in URL", () => {
+  const mockNodes: GraphNode[] = [
+    {
+      id: "1",
+      label: "Problem Node",
+      graphMembership: ["problem"],
+      blockType: "content",
+      status: "active",
+      confidence: 0.9,
+      content: "Test content",
+      properties: {},
+      createdAt: "2026-01-22T10:00:00Z",
+      updatedAt: "2026-01-22T10:00:00Z",
+    },
+    {
+      id: "2",
+      label: "Solution Node",
+      graphMembership: ["solution"],
+      blockType: "assumption",
+      status: "draft",
+      confidence: 0.6,
+      content: "Test content",
+      properties: {},
+      createdAt: "2026-01-22T10:00:00Z",
+      updatedAt: "2026-01-22T10:00:00Z",
+    },
+  ];
+
+  beforeEach(() => {
+    mockLocation.search = "";
+    mockReplaceState.mockClear();
+  });
+
+  it("should persist graph type filter to URL when syncToUrl is enabled", () => {
+    const { result } = renderHook(() =>
+      useGraphFilters(mockNodes, [], { syncToUrl: true }),
+    );
+
+    act(() => {
+      result.current.setGraphFilter(["problem"]);
+    });
+
+    expect(mockReplaceState).toHaveBeenCalled();
+    const lastCall =
+      mockReplaceState.mock.calls[mockReplaceState.mock.calls.length - 1];
+    expect(lastCall[2]).toContain("graph=problem");
+  });
+
+  it("should persist block type filter to URL", () => {
+    const { result } = renderHook(() =>
+      useGraphFilters(mockNodes, [], { syncToUrl: true }),
+    );
+
+    act(() => {
+      result.current.setBlockTypeFilter(["assumption"]);
+    });
+
+    expect(mockReplaceState).toHaveBeenCalled();
+    const lastCall =
+      mockReplaceState.mock.calls[mockReplaceState.mock.calls.length - 1];
+    expect(lastCall[2]).toContain("block=assumption");
+  });
+
+  it("should persist status filter to URL", () => {
+    const { result } = renderHook(() =>
+      useGraphFilters(mockNodes, [], { syncToUrl: true }),
+    );
+
+    act(() => {
+      result.current.setStatusFilter(["draft"]);
+    });
+
+    expect(mockReplaceState).toHaveBeenCalled();
+    const lastCall =
+      mockReplaceState.mock.calls[mockReplaceState.mock.calls.length - 1];
+    expect(lastCall[2]).toContain("status=draft");
+  });
+
+  it("should persist confidence range to URL", () => {
+    const { result } = renderHook(() =>
+      useGraphFilters(mockNodes, [], { syncToUrl: true }),
+    );
+
+    act(() => {
+      result.current.setConfidenceRange({ min: 0.5, max: 0.8 });
+    });
+
+    expect(mockReplaceState).toHaveBeenCalled();
+    const lastCall =
+      mockReplaceState.mock.calls[mockReplaceState.mock.calls.length - 1];
+    expect(lastCall[2]).toContain("confMin=0.5");
+    expect(lastCall[2]).toContain("confMax=0.8");
+  });
+
+  it("should load filter state from URL on initialization", () => {
+    // Set URL params before rendering
+    mockLocation.search =
+      "?graph=problem&block=assumption&status=draft&confMin=0.3&confMax=0.9";
+
+    const { result } = renderHook(() =>
+      useGraphFilters(mockNodes, [], { syncToUrl: true }),
+    );
+
+    // Filters should be initialized from URL
+    expect(result.current.graphFilter).toEqual(["problem"]);
+    expect(result.current.blockTypeFilter).toEqual(["assumption"]);
+    expect(result.current.statusFilter).toEqual(["draft"]);
+    expect(result.current.confidenceRange).toEqual({ min: 0.3, max: 0.9 });
+  });
+
+  it("should load multiple graph types from URL", () => {
+    mockLocation.search = "?graph=problem,solution,market";
+
+    const { result } = renderHook(() =>
+      useGraphFilters(mockNodes, [], { syncToUrl: true }),
+    );
+
+    expect(result.current.graphFilter).toEqual([
+      "problem",
+      "solution",
+      "market",
+    ]);
+  });
+
+  it("should preserve other URL params when updating filters", () => {
+    mockLocation.search = "?session=abc123&tab=graph";
+
+    const { result } = renderHook(() =>
+      useGraphFilters(mockNodes, [], { syncToUrl: true }),
+    );
+
+    act(() => {
+      result.current.setGraphFilter(["problem"]);
+    });
+
+    // Should keep existing params
+    const lastCall =
+      mockReplaceState.mock.calls[mockReplaceState.mock.calls.length - 1];
+    expect(lastCall[2]).toContain("session=abc123");
+    expect(lastCall[2]).toContain("tab=graph");
+    expect(lastCall[2]).toContain("graph=problem");
+  });
+
+  it("should clear URL params when filters are reset", () => {
+    mockLocation.search = "?graph=problem&status=draft";
+
+    const { result } = renderHook(() =>
+      useGraphFilters(mockNodes, [], { syncToUrl: true }),
+    );
+
+    act(() => {
+      result.current.resetFilters();
+    });
+
+    // URL should be clean (just pathname)
+    const lastCall =
+      mockReplaceState.mock.calls[mockReplaceState.mock.calls.length - 1];
+    expect(lastCall[2]).toBe("/test");
+  });
+
+  it("should generate shareable URL with all active filters", () => {
+    const { result } = renderHook(() =>
+      useGraphFilters(mockNodes, [], { syncToUrl: true }),
+    );
+
+    act(() => {
+      result.current.setGraphFilter(["problem", "market"]);
+      result.current.setBlockTypeFilter(["content"]);
+      result.current.setStatusFilter(["active", "validated"]);
+      result.current.setConfidenceRange({ min: 0.7, max: 1.0 });
+    });
+
+    const shareableUrl = result.current.getShareableUrl();
+    expect(shareableUrl).toContain("graph=problem");
+    expect(shareableUrl).toContain("block=content");
+    expect(shareableUrl).toContain("status=active");
+    expect(shareableUrl).toContain("confMin=0.7");
+    // confMax=1.0 is not included since it's the default max
+  });
+
+  it("should not persist filters when syncToUrl is false", () => {
+    const { result } = renderHook(() =>
+      useGraphFilters(mockNodes, [], { syncToUrl: false }),
+    );
+
+    act(() => {
+      result.current.setGraphFilter(["problem"]);
+    });
+
+    // replaceState should not be called when syncToUrl is false
+    // Note: it might be called during initial render, so check if any call contains graph param
+    const graphFilterCalls = mockReplaceState.mock.calls.filter(
+      (call) => call[2] && call[2].includes("graph="),
+    );
+    expect(graphFilterCalls).toHaveLength(0);
+  });
+
+  it("should apply filteredNodes based on URL params on load", () => {
+    mockLocation.search = "?graph=problem";
+
+    const { result } = renderHook(() =>
+      useGraphFilters(mockNodes, [], { syncToUrl: true }),
+    );
+
+    // Should only show problem nodes
+    expect(result.current.filteredNodes).toHaveLength(1);
+    expect(result.current.filteredNodes[0].graphMembership).toContain(
+      "problem",
+    );
+  });
+});

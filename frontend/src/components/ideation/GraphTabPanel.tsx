@@ -4,7 +4,17 @@
 // Lazy-loaded for performance
 // =============================================================================
 
-import { lazy, Suspense, useState, useCallback, useEffect, memo } from "react";
+import {
+  lazy,
+  Suspense,
+  useState,
+  useCallback,
+  useEffect,
+  memo,
+  Component,
+  type ReactNode,
+  type ErrorInfo,
+} from "react";
 import type { GraphNode, GraphFilters } from "../../types/graph";
 import { useGraphDataWithWebSocket } from "../graph/hooks/useGraphDataWithWebSocket";
 import { GraphPrompt } from "../graph/GraphPrompt";
@@ -17,6 +27,86 @@ import { analyzeCascadeEffects } from "../graph/utils/cascadeDetection";
 
 // Lazy load GraphContainer for code splitting
 const GraphContainer = lazy(() => import("../graph/GraphContainer"));
+
+/**
+ * Error Boundary for the Graph Canvas to catch WebGL/Reagraph errors
+ */
+interface GraphErrorBoundaryProps {
+  children: ReactNode;
+  fallback?: ReactNode;
+  onError?: (error: Error) => void;
+}
+
+interface GraphErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class GraphErrorBoundary extends Component<
+  GraphErrorBoundaryProps,
+  GraphErrorBoundaryState
+> {
+  constructor(props: GraphErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): GraphErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("[GraphErrorBoundary] Caught error:", error, errorInfo);
+    this.props.onError?.(error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+      return (
+        <div
+          className="flex items-center justify-center h-full min-h-[400px] bg-amber-50 rounded-lg p-6"
+          data-testid="graph-error-boundary"
+        >
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+              <svg
+                className="w-8 h-8 text-amber-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-amber-800 mb-2">
+              Graph Rendering Issue
+            </h3>
+            <p className="text-sm text-amber-600 mb-4 max-w-md">
+              The graph visualization encountered an error. This may be due to
+              WebGL compatibility issues in your browser.
+            </p>
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="px-4 py-2 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition-colors text-sm font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export interface GraphTabPanelProps {
   sessionId: string;
@@ -238,7 +328,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
 
   return (
     <div
-      className={`flex flex-col h-full ${className}`}
+      className={`flex flex-col h-full flex-1 min-w-0 ${className}`}
       role="tabpanel"
       id="graph-panel"
       aria-labelledby="graph-tab"
@@ -256,33 +346,35 @@ export const GraphTabPanel = memo(function GraphTabPanel({
 
       {/* Graph Container */}
       <div className="flex-1 min-h-0" data-testid="graph-canvas">
-        <Suspense fallback={<GraphLoadingSkeleton />}>
-          <GraphContainer
-            nodes={filteredData.nodes.map((node) => ({
-              ...node,
-              isHighlighted: combinedHighlightedNodeIds.has(node.id),
-              isSelected: selectedNode?.id === node.id,
-            }))}
-            edges={filteredData.edges.map((edge) => ({
-              ...edge,
-              isHighlighted: recentlyAddedEdgeIds.has(edge.id),
-            }))}
-            isLoading={isLoading}
-            error={error}
-            onNodeSelect={handleNodeSelect}
-            onRefresh={refetch}
-            lastUpdated={lastUpdated}
-            showFilters={true}
-            showLegend={true}
-            showControls={true}
-            isConnected={isConnected}
-            isReconnecting={isReconnecting}
-            isStale={isStale}
-            recentlyAddedNodeIds={recentlyAddedNodeIds}
-            recentlyAddedEdgeIds={recentlyAddedEdgeIds}
-            className="h-full"
-          />
-        </Suspense>
+        <GraphErrorBoundary>
+          <Suspense fallback={<GraphLoadingSkeleton />}>
+            <GraphContainer
+              nodes={filteredData.nodes.map((node) => ({
+                ...node,
+                isHighlighted: combinedHighlightedNodeIds.has(node.id),
+                isSelected: selectedNode?.id === node.id,
+              }))}
+              edges={filteredData.edges.map((edge) => ({
+                ...edge,
+                isHighlighted: recentlyAddedEdgeIds.has(edge.id),
+              }))}
+              isLoading={isLoading}
+              error={error}
+              onNodeSelect={handleNodeSelect}
+              onRefresh={refetch}
+              lastUpdated={lastUpdated}
+              showFilters={true}
+              showLegend={true}
+              showControls={true}
+              isConnected={isConnected}
+              isReconnecting={isReconnecting}
+              isStale={isStale}
+              recentlyAddedNodeIds={recentlyAddedNodeIds}
+              recentlyAddedEdgeIds={recentlyAddedEdgeIds}
+              className="h-full"
+            />
+          </Suspense>
+        </GraphErrorBoundary>
       </div>
 
       {/* Pending updates banner */}

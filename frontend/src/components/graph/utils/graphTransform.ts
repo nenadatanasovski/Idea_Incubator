@@ -430,29 +430,53 @@ export function transformBlocksToNodes(blocks: ApiBlock[]): GraphNode[] {
 
 /**
  * Transform API links to GraphEdge format
+ * Handles both formats:
+ * - Expected format: { properties: { source, target, link_type, ... } }
+ * - Actual API format: { sourceBlockId, targetBlockId, linkType, ... }
  */
-export function transformLinksToEdges(links: ApiLink[]): GraphEdge[] {
+export function transformLinksToEdges(
+  links: (ApiLink | Record<string, unknown>)[],
+): GraphEdge[] {
   return links.map((link) => {
-    const props = link.properties;
+    // Handle both expected format (with properties) and actual API format (flat)
+    const props = (link as ApiLink).properties;
+    const rawLink = link as Record<string, unknown>;
+
+    // Get source/target from either format
+    const source =
+      props?.source ||
+      (rawLink.sourceBlockId as string) ||
+      (rawLink.source as string);
+    const target =
+      props?.target ||
+      (rawLink.targetBlockId as string) ||
+      (rawLink.target as string);
+    const linkType =
+      props?.link_type || (rawLink.linkType as string) || "references";
+    const status = props?.status || (rawLink.status as string) || "active";
+    const degree = props?.degree || (rawLink.degree as string);
+    const confidence =
+      props?.confidence ?? (rawLink.confidence as number | undefined);
+    const reason = props?.reason || (rawLink.reason as string);
 
     const edge: GraphEdge = {
-      id: link.id,
-      source: props.source,
-      target: props.target,
-      linkType: props.link_type as LinkType,
-      status: (props.status as "active" | "superseded" | "removed") || "active",
+      id: link.id as string,
+      source,
+      target,
+      linkType: linkType as LinkType,
+      status: (status as "active" | "superseded" | "removed") || "active",
     };
 
-    if (props.degree) {
-      edge.degree = props.degree as LinkDegree;
+    if (degree) {
+      edge.degree = degree as LinkDegree;
     }
 
-    if (props.confidence !== undefined) {
-      edge.confidence = props.confidence;
+    if (confidence !== undefined) {
+      edge.confidence = confidence;
     }
 
-    if (props.reason) {
-      edge.reason = props.reason;
+    if (reason) {
+      edge.reason = reason;
     }
 
     return edge;

@@ -177,9 +177,10 @@ export function useGraphWebSocket(
     }
 
     // Build URL based on current location
+    // Server expects session as query param: /ws?session={sessionId}
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
-    return `${protocol}//${host}/ws/graph/${sessionId}`;
+    return `${protocol}//${host}/ws?session=${sessionId}`;
   }, [wsUrl, sessionId]);
 
   /**

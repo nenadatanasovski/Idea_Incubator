@@ -27,6 +27,65 @@ import {
 export const graphRouter = Router();
 
 // ============================================================================
+// GET /session/:sessionId/blocks
+// ============================================================================
+// Get all blocks for a session (used by frontend useGraphData hook)
+
+graphRouter.get("/:sessionId/blocks", async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    const blocks = await blockExtractor.getBlocksForSession(sessionId);
+    const memberships = await blockExtractor.getGraphMemberships(
+      blocks.map((b) => b.id),
+    );
+
+    // Convert to API response format with graph memberships
+    const blocksWithMemberships = blocks.map((block) => ({
+      ...block,
+      graphMembership: memberships.get(block.id) || [],
+    }));
+
+    return res.json({
+      success: true,
+      data: {
+        blocks: blocksWithMemberships,
+      },
+    });
+  } catch (error) {
+    console.error("Error getting blocks:", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal server error" });
+  }
+});
+
+// ============================================================================
+// GET /session/:sessionId/links
+// ============================================================================
+// Get all links for a session (used by frontend useGraphData hook)
+
+graphRouter.get("/:sessionId/links", async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    const links = await blockExtractor.getLinksForSession(sessionId);
+
+    return res.json({
+      success: true,
+      data: {
+        links,
+      },
+    });
+  } catch (error) {
+    console.error("Error getting links:", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal server error" });
+  }
+});
+
+// ============================================================================
 // GET /session/:sessionId/graph
 // ============================================================================
 // Get the full memory graph for a session

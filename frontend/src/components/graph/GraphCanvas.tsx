@@ -336,8 +336,7 @@ export function GraphCanvas({
     return (
       <div
         data-testid="graph-canvas"
-        className={`flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-lg ${className}`}
-        style={{ minHeight: 400 }}
+        className={`flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-lg h-full w-full ${className}`}
       >
         <div className="text-center text-gray-500">
           <svg
@@ -365,8 +364,7 @@ export function GraphCanvas({
   return (
     <div
       data-testid="graph-canvas"
-      className={`relative bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden ${className}`}
-      style={{ minHeight: 400 }}
+      className={`relative bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden h-full w-full ${className}`}
     >
       {/* Zoom Controls */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">

@@ -221,9 +221,9 @@ export function GraphContainer({
 
   return (
     <div className={`flex h-full ${className}`} data-testid="graph-container">
-      {/* Left sidebar: Filters and Legend */}
+      {/* Left sidebar: Filters and Legend - Compact width to maximize graph space */}
       {(showFilters || showLegend) && (
-        <div className="hidden lg:flex lg:flex-col lg:w-64 xl:w-72 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+        <div className="hidden lg:flex lg:flex-col w-56 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto bg-gray-50 dark:bg-gray-900">
           {/* Filters */}
           {showFilters && (
             <GraphFilters
@@ -247,7 +247,7 @@ export function GraphContainer({
       )}
 
       {/* Main Graph Area */}
-      <div className="flex-1 relative">
+      <div className="flex-1 min-w-0 min-h-0 h-full relative">
         <GraphCanvas
           nodes={filteredNodes}
           edges={filteredEdges}
