@@ -119,3 +119,48 @@ export {
   type UpdatePRD,
   type PrdStatus,
 } from "./entities/prd.js";
+
+// Memory Block
+export {
+  memoryBlocks,
+  blockTypes,
+  blockStatuses,
+  abstractionLevels,
+  insertMemoryBlockSchema,
+  selectMemoryBlockSchema,
+  updateMemoryBlockSchema,
+  type MemoryBlock,
+  type NewMemoryBlock,
+  type UpdateMemoryBlock,
+  type BlockType,
+  type BlockStatus,
+  type AbstractionLevel,
+} from "./entities/memory-block.js";
+
+// Memory Link
+export {
+  memoryLinks,
+  linkTypes,
+  linkDegrees,
+  linkStatuses,
+  insertMemoryLinkSchema,
+  selectMemoryLinkSchema,
+  updateMemoryLinkSchema,
+  type MemoryLink,
+  type NewMemoryLink,
+  type UpdateMemoryLink,
+  type LinkType,
+  type LinkDegree,
+  type LinkStatus,
+} from "./entities/memory-link.js";
+
+// Memory Graph Membership
+export {
+  memoryGraphMemberships,
+  graphTypes,
+  insertMemoryGraphMembershipSchema,
+  selectMemoryGraphMembershipSchema,
+  type MemoryGraphMembership,
+  type NewMemoryGraphMembership,
+  type GraphType,
+} from "./entities/memory-graph-membership.js";

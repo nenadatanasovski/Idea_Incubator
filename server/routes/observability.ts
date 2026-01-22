@@ -3025,4 +3025,8 @@ function getTimeFilter(range: string): string {
   }
 }
 
+// Mount memory graph observability routes
+import { memoryGraphRouter } from "./observability/memory-graph-routes.js";
+router.use("/memory-graph", memoryGraphRouter);
+
 export default router;

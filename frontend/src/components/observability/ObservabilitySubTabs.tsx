@@ -10,6 +10,7 @@ import {
   Bot,
   BarChart3,
   Zap,
+  Network,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -19,7 +20,8 @@ export type ObservabilityTab =
   | "executions"
   | "agents"
   | "analytics"
-  | "platform-events";
+  | "platform-events"
+  | "memory-graph";
 
 interface SubTab {
   id: ObservabilityTab;
@@ -78,6 +80,12 @@ export default function ObservabilitySubTabs({
       icon: Zap,
       href: "/observability/platform-events",
     },
+    {
+      id: "memory-graph",
+      label: "Memory Graph",
+      icon: Network,
+      href: "/observability/memory-graph",
+    },
   ];
 
   // Determine active tab from URL if not explicitly set
@@ -92,6 +100,7 @@ export default function ObservabilitySubTabs({
     if (path.startsWith("/observability/analytics")) return "analytics";
     if (path.startsWith("/observability/platform-events"))
       return "platform-events";
+    if (path.startsWith("/observability/memory-graph")) return "memory-graph";
     return activeTab;
   };
 

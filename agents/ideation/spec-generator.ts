@@ -3,13 +3,17 @@
  *
  * Generates structured specifications from ideation session content.
  * Part of: Ideation Agent Spec Generation Implementation (SPEC-004-A)
+ * Enhanced for: Phase 9 - Project Folder & Spec Output (T9.4)
  */
 
 import { v4 as uuidv4 } from "uuid";
+import * as fs from "fs";
+import * as path from "path";
 import { client as anthropicClient } from "../../utils/anthropic-client.js";
 import { query, run } from "../../database/db.js";
 import { messageStore } from "./message-store.js";
 import { buildSpecGenerationPrompt } from "./prompts/spec-generation.js";
+import { getIdeaFolderPath } from "../../utils/folder-structure.js";
 import type { IdeationMessage } from "../../types/ideation.js";
 import type {
   Spec,
@@ -553,4 +557,373 @@ export async function updateSpecWorkflowState(
   );
 
   return getSpec(specId);
+}
+
+// ============================================================================
+// Phase 9: File Output Functions (T9.4)
+// ============================================================================
+
+/**
+ * Spec history entry for version tracking
+ */
+interface SpecHistoryEntry {
+  version: number;
+  createdAt: string;
+  workflowState: string;
+  filename: string;
+  graphSnapshotId?: string;
+  blockReferences?: string[];
+}
+
+/**
+ * Spec history file structure
+ */
+interface SpecHistoryFile {
+  currentVersion: number;
+  history: SpecHistoryEntry[];
+}
+
+/**
+ * Options for saving spec to file
+ */
+export interface SaveSpecToFileOptions {
+  userSlug: string;
+  ideaSlug: string;
+  spec: Spec;
+  sections: SpecSection[];
+  blockReferences?: string[];
+  graphSnapshotId?: string;
+}
+
+/**
+ * Generate markdown content for a spec with YAML frontmatter
+ */
+function generateSpecMarkdown(
+  spec: Spec,
+  sections: SpecSection[],
+  blockReferences?: string[],
+  graphSnapshotId?: string,
+): string {
+  const lines: string[] = [];
+
+  // YAML frontmatter
+  lines.push("---");
+  lines.push(`id: ${spec.id}`);
+  lines.push(`title: ${spec.title}`);
+  lines.push(`version: ${spec.version}`);
+  lines.push(`workflow_state: ${spec.workflowState}`);
+  lines.push(`readiness_score: ${spec.readinessScore}`);
+  lines.push(`source_session_id: ${spec.sourceSessionId || "null"}`);
+  lines.push(`created_at: ${spec.createdAt}`);
+  lines.push(`updated_at: ${spec.updatedAt}`);
+
+  if (graphSnapshotId) {
+    lines.push(`graph_snapshot_id: ${graphSnapshotId}`);
+  }
+
+  if (blockReferences && blockReferences.length > 0) {
+    lines.push("block_references:");
+    for (const ref of blockReferences) {
+      lines.push(`  - ${ref}`);
+    }
+  }
+
+  lines.push("---");
+  lines.push("");
+
+  // Title
+  lines.push(`# ${spec.title}`);
+  lines.push("");
+  lines.push(
+    `**Version:** ${spec.version} | **Status:** ${spec.workflowState} | **Readiness:** ${spec.readinessScore}%`,
+  );
+  lines.push("");
+  lines.push("---");
+  lines.push("");
+
+  // Section definitions with order
+  const sectionConfig: Record<
+    SpecSectionType,
+    { label: string; type: "text" | "list" }
+  > = {
+    problem: { label: "Problem Statement", type: "text" },
+    target_users: { label: "Target Users", type: "text" },
+    functional_desc: { label: "Functional Description", type: "text" },
+    success_criteria: { label: "Success Criteria", type: "list" },
+    constraints: { label: "Constraints", type: "list" },
+    out_of_scope: { label: "Out of Scope", type: "list" },
+    risks: { label: "Risks", type: "list" },
+    assumptions: { label: "Assumptions", type: "list" },
+  };
+
+  const sectionOrder: SpecSectionType[] = [
+    "problem",
+    "target_users",
+    "functional_desc",
+    "success_criteria",
+    "constraints",
+    "out_of_scope",
+    "risks",
+    "assumptions",
+  ];
+
+  for (const sectionType of sectionOrder) {
+    const section = sections.find((s) => s.sectionType === sectionType);
+    const config = sectionConfig[sectionType];
+
+    lines.push(`## ${config.label}`);
+    lines.push("");
+
+    if (section && section.content) {
+      const confidenceNote =
+        section.confidenceScore < 50
+          ? ` *(Confidence: ${section.confidenceScore}% - Needs Review)*`
+          : ` *(Confidence: ${section.confidenceScore}%)*`;
+      lines.push(confidenceNote);
+      lines.push("");
+
+      // Parse content (may be JSON array or plain text)
+      try {
+        const parsed = JSON.parse(section.content);
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            lines.push(`- ${item}`);
+          }
+        } else {
+          lines.push(String(parsed));
+        }
+      } catch {
+        // Plain text content
+        lines.push(section.content);
+      }
+    } else {
+      lines.push("*Not specified*");
+    }
+
+    lines.push("");
+  }
+
+  // Footer with metadata
+  lines.push("---");
+  lines.push("");
+  lines.push(
+    `*Generated from ideation session on ${new Date().toISOString()}*`,
+  );
+
+  return lines.join("\n");
+}
+
+/**
+ * Get the next version number for a spec file
+ */
+function getNextVersionNumber(metadataDir: string): number {
+  const historyPath = path.join(metadataDir, "spec-history.json");
+
+  if (!fs.existsSync(historyPath)) {
+    return 1;
+  }
+
+  try {
+    const content = fs.readFileSync(historyPath, "utf-8");
+    const history: SpecHistoryFile = JSON.parse(content);
+    return history.currentVersion + 1;
+  } catch {
+    return 1;
+  }
+}
+
+/**
+ * Update the spec history file
+ */
+function updateSpecHistory(metadataDir: string, entry: SpecHistoryEntry): void {
+  const historyPath = path.join(metadataDir, "spec-history.json");
+
+  let history: SpecHistoryFile;
+
+  if (fs.existsSync(historyPath)) {
+    try {
+      const content = fs.readFileSync(historyPath, "utf-8");
+      history = JSON.parse(content);
+    } catch {
+      history = { currentVersion: 0, history: [] };
+    }
+  } else {
+    history = { currentVersion: 0, history: [] };
+  }
+
+  // Update current version and add entry
+  history.currentVersion = entry.version;
+  history.history.push(entry);
+
+  // Write updated history
+  fs.writeFileSync(historyPath, JSON.stringify(history, null, 2), "utf-8");
+}
+
+/**
+ * Archive existing spec file by renaming to versioned filename
+ */
+function archiveExistingSpec(buildDir: string, currentVersion: number): void {
+  const currentSpecPath = path.join(buildDir, "APP-SPEC.md");
+
+  if (fs.existsSync(currentSpecPath)) {
+    const archivedFilename = `APP-SPEC-v${currentVersion}.md`;
+    const archivedPath = path.join(buildDir, archivedFilename);
+    fs.renameSync(currentSpecPath, archivedPath);
+    console.log(
+      `[SpecGenerator] Archived existing spec to ${archivedFilename}`,
+    );
+  }
+}
+
+/**
+ * Save a spec to the project folder file system
+ *
+ * - Saves to users/[userSlug]/ideas/[ideaSlug]/build/APP-SPEC.md
+ * - Auto-versions existing specs (renames to APP-SPEC-vN.md)
+ * - Creates/updates .metadata/spec-history.json
+ * - Includes YAML frontmatter with block references
+ *
+ * @param options - Options for saving the spec
+ * @returns The path to the saved spec file
+ */
+export async function saveSpecToFile(
+  options: SaveSpecToFileOptions,
+): Promise<string> {
+  const {
+    userSlug,
+    ideaSlug,
+    spec,
+    sections,
+    blockReferences,
+    graphSnapshotId,
+  } = options;
+
+  console.log(
+    `[SpecGenerator] Saving spec v${spec.version} to file for ${userSlug}/${ideaSlug}`,
+  );
+
+  // Get idea folder path
+  const ideaFolderPath = getIdeaFolderPath(userSlug, ideaSlug);
+
+  // Ensure build and metadata directories exist
+  const buildDir = path.join(ideaFolderPath, "build");
+  const metadataDir = path.join(ideaFolderPath, ".metadata");
+
+  if (!fs.existsSync(buildDir)) {
+    fs.mkdirSync(buildDir, { recursive: true });
+  }
+  if (!fs.existsSync(metadataDir)) {
+    fs.mkdirSync(metadataDir, { recursive: true });
+  }
+
+  // Get next version number from history
+  const fileVersion = getNextVersionNumber(metadataDir);
+
+  // Archive existing spec if present
+  if (fileVersion > 1) {
+    archiveExistingSpec(buildDir, fileVersion - 1);
+  }
+
+  // Generate markdown content
+  const markdownContent = generateSpecMarkdown(
+    spec,
+    sections,
+    blockReferences,
+    graphSnapshotId,
+  );
+
+  // Write spec file
+  const specFilePath = path.join(buildDir, "APP-SPEC.md");
+  fs.writeFileSync(specFilePath, markdownContent, "utf-8");
+
+  console.log(`[SpecGenerator] Wrote spec to ${specFilePath}`);
+
+  // Update spec history
+  const historyEntry: SpecHistoryEntry = {
+    version: fileVersion,
+    createdAt: new Date().toISOString(),
+    workflowState: spec.workflowState,
+    filename: "APP-SPEC.md",
+    graphSnapshotId,
+    blockReferences,
+  };
+
+  updateSpecHistory(metadataDir, historyEntry);
+
+  console.log(`[SpecGenerator] Updated spec history to version ${fileVersion}`);
+
+  return specFilePath;
+}
+
+/**
+ * Get spec history from file system
+ *
+ * @param userSlug - User slug
+ * @param ideaSlug - Idea slug
+ * @returns Spec history or null if not found
+ */
+export function getSpecHistoryFromFile(
+  userSlug: string,
+  ideaSlug: string,
+): SpecHistoryFile | null {
+  try {
+    const ideaFolderPath = getIdeaFolderPath(userSlug, ideaSlug);
+    const historyPath = path.join(
+      ideaFolderPath,
+      ".metadata",
+      "spec-history.json",
+    );
+
+    if (!fs.existsSync(historyPath)) {
+      return null;
+    }
+
+    const content = fs.readFileSync(historyPath, "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load a specific version of the spec from file
+ *
+ * @param userSlug - User slug
+ * @param ideaSlug - Idea slug
+ * @param version - Version number to load (omit for current)
+ * @returns Spec markdown content or null if not found
+ */
+export function loadSpecFromFile(
+  userSlug: string,
+  ideaSlug: string,
+  version?: number,
+): string | null {
+  try {
+    const ideaFolderPath = getIdeaFolderPath(userSlug, ideaSlug);
+    const buildDir = path.join(ideaFolderPath, "build");
+
+    let specFilename: string;
+
+    if (version === undefined) {
+      specFilename = "APP-SPEC.md";
+    } else {
+      // Check if this is the current version
+      const history = getSpecHistoryFromFile(userSlug, ideaSlug);
+      if (history && history.currentVersion === version) {
+        specFilename = "APP-SPEC.md";
+      } else {
+        specFilename = `APP-SPEC-v${version}.md`;
+      }
+    }
+
+    const specPath = path.join(buildDir, specFilename);
+
+    if (!fs.existsSync(specPath)) {
+      return null;
+    }
+
+    return fs.readFileSync(specPath, "utf-8");
+  } catch {
+    return null;
+  }
 }

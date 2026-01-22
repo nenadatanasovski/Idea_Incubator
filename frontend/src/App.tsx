@@ -38,6 +38,7 @@ import ExecutionsTab from "./components/observability/ExecutionsTab";
 import AgentsTab from "./components/observability/AgentsTab";
 import AnalyticsTab from "./components/observability/AnalyticsTab";
 import AllEventsViewer from "./components/observability/AllEventsViewer";
+import MemoryGraphTab from "./components/observability/MemoryGraphTab";
 
 // Observability detail pages (deep links)
 import {
@@ -130,6 +131,7 @@ function App() {
           <Route path="agents/:agentId" element={<AgentDetailPage />} />
           <Route path="analytics" element={<AnalyticsTab />} />
           <Route path="platform-events" element={<AllEventsViewer />} />
+          <Route path="memory-graph" element={<MemoryGraphTab />} />
         </Route>
         <Route path="/pipeline" element={<PipelineDashboard />} />
         <Route path="/pipeline/conflicts" element={<PipelineDashboard />} />

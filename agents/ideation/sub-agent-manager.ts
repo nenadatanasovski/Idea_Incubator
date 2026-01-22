@@ -490,5 +490,65 @@ export class SubAgentManager {
   }
 }
 
+/**
+ * Extract blocks from an artifact after it's created.
+ * This integrates artifact creation with the memory graph.
+ */
+export async function extractBlocksFromArtifact(
+  artifactId: string,
+  artifactType: string,
+  artifactTitle: string,
+  artifactContent: string,
+  sessionId: string,
+): Promise<{
+  blocksCreated: number;
+  linksCreated: number;
+  warnings: string[];
+}> {
+  // Dynamically import to avoid circular dependencies
+  const { blockExtractor } = await import("./block-extractor.js");
+  const { StoredArtifact } = await import("./artifact-store.js");
+
+  const artifact = {
+    id: artifactId,
+    sessionId,
+    type: artifactType as
+      | "research"
+      | "mermaid"
+      | "markdown"
+      | "code"
+      | "analysis"
+      | "comparison"
+      | "idea-summary",
+    title: artifactTitle,
+    content: artifactContent,
+    status: "ready" as const,
+    createdAt: new Date().toISOString(),
+  };
+
+  // Get existing blocks to avoid duplicates
+  const existingBlocks = await blockExtractor.getBlocksForSession(sessionId);
+
+  // Extract blocks from the artifact
+  const result = await blockExtractor.extractFromArtifact(
+    artifact,
+    sessionId,
+    existingBlocks,
+  );
+
+  console.log(
+    `[SubAgentManager] Extracted ${result.blocks.length} blocks and ${result.links.length} links from artifact ${artifactId}`,
+  );
+  if (result.warnings.length > 0) {
+    console.log(`[SubAgentManager] Extraction warnings:`, result.warnings);
+  }
+
+  return {
+    blocksCreated: result.blocks.length,
+    linksCreated: result.links.length,
+    warnings: result.warnings,
+  };
+}
+
 // Export singleton for convenience
 export const subAgentManager = new SubAgentManager();

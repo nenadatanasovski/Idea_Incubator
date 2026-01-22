@@ -23,6 +23,11 @@ import {
   IdeaType,
   ParentInfo,
 } from "./shared.js";
+import {
+  processGraphPrompt,
+  Block,
+  Link,
+} from "../../services/graph-prompt-processor.js";
 
 export const sessionRouter = Router();
 
@@ -512,6 +517,218 @@ sessionRouter.post("/", async (req: Request, res: Response) => {
     return res.status(500).json({
       error: "Internal server error",
       message: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+// ============================================================================
+// POST /session/:sessionId/graph/prompt
+// ============================================================================
+// Process an AI prompt for graph operations (link, filter, highlight, update)
+
+const GraphPromptSchema = z.object({
+  prompt: z.string().min(1, "prompt is required"),
+});
+
+sessionRouter.post(
+  "/:sessionId/graph/prompt",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      // Validate request body
+      const parseResult = GraphPromptSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          error: "Validation error",
+          details: parseResult.error.issues,
+        });
+      }
+
+      const { prompt } = parseResult.data;
+
+      // Verify session exists
+      const session = await sessionManager.load(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      // Get blocks for this session from the database
+      // Note: In Phase 8, this will come from memory_blocks table
+      // For now, we query ideation_memory_files as a proxy or use an in-memory store
+      const blocksResult = await query<{
+        id: string;
+        type: string;
+        content: string;
+        properties: string;
+        status: string;
+      }>(
+        `SELECT id,
+                COALESCE(JSON_EXTRACT(metadata, '$.type'), 'content') as type,
+                content,
+                COALESCE(JSON_EXTRACT(metadata, '$.properties'), '{}') as properties,
+                COALESCE(JSON_EXTRACT(metadata, '$.status'), 'active') as status
+         FROM ideation_memory_files
+         WHERE session_id = ?`,
+        [sessionId],
+      );
+
+      // Transform to Block format
+      const blocks: Block[] = blocksResult.map((row) => ({
+        id: row.id,
+        type: row.type || "content",
+        content: row.content || "",
+        properties:
+          typeof row.properties === "string"
+            ? JSON.parse(row.properties || "{}")
+            : row.properties || {},
+        status: (row.status as Block["status"]) || "active",
+      }));
+
+      // Get existing links (for future use)
+      const links: Link[] = [];
+
+      // Process the prompt
+      const result = await processGraphPrompt(prompt, blocks, links);
+
+      // If the action was successful and modified data, persist changes
+      if (result.action === "link_created" && result.link) {
+        // In Phase 8, we'll persist links to memory_links table
+        // For now, we emit a WebSocket event for real-time updates
+        console.log(
+          `[GraphPrompt] Created link: ${result.link.source} -> ${result.link.target}`,
+        );
+      }
+
+      if (result.action === "block_updated" && result.block) {
+        // In Phase 8, we'll update memory_blocks table
+        // For now, update ideation_memory_files if the block exists
+        if (result.block.status) {
+          await query(
+            `UPDATE ideation_memory_files
+             SET metadata = JSON_SET(COALESCE(metadata, '{}'), '$.status', ?)
+             WHERE id = ? AND session_id = ?`,
+            [result.block.status, result.block.id, sessionId],
+          );
+          await saveDb();
+        }
+        console.log(
+          `[GraphPrompt] Updated block ${result.block.id} status to ${result.block.status}`,
+        );
+      }
+
+      return res.json(result);
+    } catch (error) {
+      console.error("[GraphPrompt] Error processing prompt:", error);
+      return res.status(500).json({
+        action: "error",
+        message:
+          error instanceof Error ? error.message : "Internal server error",
+      });
+    }
+  },
+);
+
+// ============================================================================
+// GET /session/:sessionId/blocks
+// ============================================================================
+// Get all blocks for a session (for graph visualization)
+
+sessionRouter.get("/:sessionId/blocks", async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    // Verify session exists
+    const session = await sessionManager.load(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    // Get blocks from memory files (Phase 8 will use memory_blocks table)
+    const blocksResult = await query<{
+      id: string;
+      content: string;
+      metadata: string;
+      created_at: string;
+      updated_at: string;
+    }>(
+      `SELECT id, content, metadata, created_at, updated_at
+         FROM ideation_memory_files
+         WHERE session_id = ?
+         ORDER BY created_at ASC`,
+      [sessionId],
+    );
+
+    // Transform to the expected API format
+    const blocks = blocksResult.map((row) => {
+      const metadata =
+        typeof row.metadata === "string"
+          ? JSON.parse(row.metadata || "{}")
+          : row.metadata || {};
+      return {
+        id: row.id,
+        type: metadata.type || "content",
+        content: row.content || "",
+        properties: metadata.properties || {},
+        status: metadata.status || "active",
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      };
+    });
+
+    return res.json({
+      success: true,
+      data: { blocks },
+    });
+  } catch (error) {
+    console.error("[Blocks] Error fetching blocks:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+
+// ============================================================================
+// GET /session/:sessionId/links
+// ============================================================================
+// Get all links for a session (for graph visualization)
+
+sessionRouter.get("/:sessionId/links", async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    // Verify session exists
+    const session = await sessionManager.load(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    // In Phase 8, links will come from memory_links table
+    // For now, return empty array or extract from memory files
+    const links: Array<{
+      id: string;
+      type: string;
+      properties: {
+        link_type: string;
+        source: string;
+        target: string;
+        degree?: string;
+        confidence?: number;
+        reason?: string;
+        status?: string;
+      };
+    }> = [];
+
+    return res.json({
+      success: true,
+      data: { links },
+    });
+  } catch (error) {
+    console.error("[Links] Error fetching links:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
     });
   }
 });

@@ -36,6 +36,8 @@ import { calculateTokenUsage } from "./token-counter.js";
 import { prepareHandoff } from "./handoff.js";
 import { buildSystemPrompt, ArtifactSummary } from "./system-prompt.js";
 import { artifactStore } from "./artifact-store.js";
+import { blockExtractor, ExtractionResult } from "./block-extractor.js";
+import { graphAnalysisSubagent } from "./graph-analysis-subagent.js";
 import {
   createDefaultSelfDiscoveryState,
   createDefaultMarketDiscoveryState,
@@ -115,6 +117,20 @@ export interface DirectArtifactRequest {
   }>;
   contextText: string; // The idea/context preceding the artifact list
 }
+
+export interface ExtractionConfig {
+  autoExtractBlocks: boolean;
+  extractionConfidenceThreshold: number;
+  duplicateHandling: "skip" | "merge" | "create";
+  triggerCascadeDetection: boolean;
+}
+
+export const defaultExtractionConfig: ExtractionConfig = {
+  autoExtractBlocks: true,
+  extractionConfidenceThreshold: 0.5,
+  duplicateHandling: "skip",
+  triggerCascadeDetection: true,
+};
 
 export class AgentOrchestrator {
   private client: typeof anthropicClient;
@@ -387,6 +403,17 @@ export class AgentOrchestrator {
       formShown: (parsed.formFields as FormDefinition) || null,
       tokenCount: Math.ceil(parsed.reply.length / 4),
     });
+
+    // Auto-extract blocks from the AI response (runs in background, doesn't block return)
+    // This enables the memory graph to be built automatically from conversation
+    this.extractBlocks(session.id, assistantMsg.id, parsed.reply).catch(
+      (error) => {
+        console.error(
+          "[Orchestrator] Background block extraction failed:",
+          error,
+        );
+      },
+    );
 
     // Check if response needs a follow-up question (async)
     const followUpContext = this.checkNeedsFollowUp(
@@ -1334,6 +1361,119 @@ export class AgentOrchestrator {
       return "architecture-explore";
     }
     return "custom";
+  }
+
+  // ============================================================================
+  // MEMORY GRAPH INTEGRATION
+  // ============================================================================
+
+  /**
+   * Extract blocks from a message and save to the graph.
+   * Called after AI response when autoExtractBlocks is enabled.
+   */
+  private async extractBlocks(
+    sessionId: string,
+    messageId: string,
+    messageContent: string,
+    config: ExtractionConfig = defaultExtractionConfig,
+  ): Promise<ExtractionResult | null> {
+    try {
+      console.log("[Orchestrator] Extracting blocks from message:", messageId);
+
+      // Get existing blocks for duplicate detection
+      const existingBlocks =
+        await blockExtractor.getBlocksForSession(sessionId);
+
+      // Extract blocks from the message
+      const result = await blockExtractor.extractFromMessage(
+        messageContent,
+        sessionId,
+        messageId,
+        existingBlocks,
+      );
+
+      console.log(
+        "[Orchestrator] Extracted",
+        result.blocks.length,
+        "blocks and",
+        result.links.length,
+        "links",
+      );
+
+      // Log any warnings
+      if (result.warnings.length > 0) {
+        console.warn("[Orchestrator] Extraction warnings:", result.warnings);
+      }
+
+      // Trigger cascade detection if blocks were created and enabled
+      if (result.blocks.length > 0 && config.triggerCascadeDetection) {
+        await this.triggerCascadeDetection(
+          sessionId,
+          result.blocks.map((b) => b.id),
+        );
+      }
+
+      return result;
+    } catch (error) {
+      console.error("[Orchestrator] Block extraction failed:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Trigger cascade detection for newly created blocks.
+   * This identifies potential impacts on existing blocks.
+   */
+  private async triggerCascadeDetection(
+    sessionId: string,
+    newBlockIds: string[],
+  ): Promise<void> {
+    try {
+      console.log(
+        "[Orchestrator] Running cascade detection for",
+        newBlockIds.length,
+        "new blocks",
+      );
+
+      // Run cascade detection analysis
+      const result = await graphAnalysisSubagent.runAnalysis(
+        sessionId,
+        "cascade-detection",
+        {
+          newBlockIds,
+          detectSupersession: true,
+          detectConflicts: true,
+        },
+      );
+
+      if (result.success && result.result) {
+        const cascadeResult = result.result as {
+          supersessionChains?: unknown[];
+          conflicts?: unknown[];
+        };
+
+        if (
+          cascadeResult.supersessionChains &&
+          cascadeResult.supersessionChains.length > 0
+        ) {
+          console.log(
+            "[Orchestrator] Detected",
+            cascadeResult.supersessionChains.length,
+            "supersession chains",
+          );
+        }
+
+        if (cascadeResult.conflicts && cascadeResult.conflicts.length > 0) {
+          console.log(
+            "[Orchestrator] Detected",
+            cascadeResult.conflicts.length,
+            "conflicts",
+          );
+        }
+      }
+    } catch (error) {
+      console.error("[Orchestrator] Cascade detection failed:", error);
+    }
   }
 
   // ============================================================================

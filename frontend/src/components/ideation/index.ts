@@ -31,3 +31,12 @@ export { ArtifactPreview } from "./ArtifactPreview";
 export { SessionsView } from "./SessionsView";
 export { IdeaArtifactPanel } from "./IdeaArtifactPanel";
 export { IdeaSelector } from "./IdeaSelector";
+export { SessionTabs, type SessionTab } from "./SessionTabs";
+export { GraphTabPanel } from "./GraphTabPanel";
+export {
+  ProjectContextHeader,
+  type ProjectTab,
+  type LinkedIdeaInfo,
+} from "./ProjectContextHeader";
+export { ProjectFilesPanel, type FileNode } from "./ProjectFilesPanel";
+export { SpecViewPanel, type SpecVersion } from "./SpecViewPanel";

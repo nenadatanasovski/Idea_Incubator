@@ -1984,31 +1984,93 @@ Rationale: Flat storage enables simple querying, indexing, and portability. Nest
 
 **Question**: How does AI determine which block type to create from user input?
 
-**Decision**: **Signal-based classification with confidence threshold of 0.7**
+**Decision**: **Multi-context AI classification with immediate user confirmation UI**
+
+Block type classification requires three context sources, not just user input:
 
 ```mermaid
 graph TD
-    INPUT[User Input] --> CLASSIFY{AI Classifier}
-    CLASSIFY --> |confidence >= 0.7| AUTO[Auto-assign type]
-    CLASSIFY --> |confidence < 0.7| DEFAULT[Default to content]
-    DEFAULT --> SURFACE[Surface for user confirmation later]
+    INPUT[User Input] --> CONTEXT{Context Assembly}
+    NEIGHBOR[Neighboring Nodes] --> CONTEXT
+    CONV[Conversation History] --> CONTEXT
+    CONTEXT --> AI{AI Classifier}
+    AI --> IMPACT{Impact Analysis}
+    IMPACT --> |Cascading changes| CASCADE[Identify affected nodes]
+    IMPACT --> |No cascade| SIMPLE[Simple addition]
+    CASCADE --> CONFIRM[Confirmation Pop-up]
+    SIMPLE --> CONFIRM
+    CONFIRM --> USER{User Decision}
+    USER --> |Confirm| COMMIT[Commit to Memory Graph]
+    USER --> |Modify| EDIT[Edit before commit]
+    USER --> |Reject| DISCARD[Discard]
 ```
 
-**Classification signals by block type**:
+**Context Sources**:
 
-| Block Type    | Primary Signals                                       | Secondary Signals                        |
-| ------------- | ----------------------------------------------------- | ---------------------------------------- |
-| `content`     | Default                                               | Declarative statements, facts            |
-| `meta`        | "I'm not sure", "need to research", "feels weak"      | Self-referential language                |
-| `assumption`  | Implicit from `target_customer`, `market`, `solution` | AI inference from domain patterns        |
-| `decision`    | "should we", "option A vs B", "deciding between"      | Multiple alternatives presented          |
-| `option`      | Listed under a decision context                       | "alternatively", "or we could"           |
-| `placeholder` | "there are X but don't know", "someone", "something"  | Existence + missing details              |
-| `action`      | "need to", "should validate", "must research"         | Imperative verbs + future tense          |
-| `external`    | URL detected                                          | "according to [source]"                  |
-| `derived`     | Mathematical relationship between existing blocks     | "therefore", "which means", calculations |
+| Source                   | What It Provides                    | Example                                         |
+| ------------------------ | ----------------------------------- | ----------------------------------------------- |
+| **User Input**           | Current statement                   | "We're targeting enterprise now"                |
+| **Neighboring Nodes**    | Related nodes that may need updates | Existing "target: SMB" node needs superseding   |
+| **Conversation History** | Who, what, when, where, how context | Knows this came from CEO in strategy discussion |
 
-**Fallback behavior**: If no type matches with >= 0.7 confidence, create `content` block and flag `needs_classification: true` for later review.
+**Conversation Context Tracking (5W1H)**:
+
+| Dimension | Tracked From                           | Used For                            |
+| --------- | -------------------------------------- | ----------------------------------- |
+| **Who**   | Speaker identification in conversation | `stakeholder` attribution           |
+| **What**  | Current topic/decision being discussed | Graph membership, block type        |
+| **When**  | Temporal markers in conversation       | `when`, `planned_for` properties    |
+| **Where** | Market/geography mentions              | Context-qualified properties        |
+| **Why**   | Reasoning and evidence cited           | `evidence_for` links                |
+| **How**   | Methods and approaches discussed       | `solution`, `tactic` classification |
+
+**Cascading Change Detection**:
+
+When new input may affect existing nodes:
+
+1. **Semantic similarity scan**: Find nodes with similarity > 0.7 to new input
+2. **Conflict detection**: Check for contradictions, supersessions, refinements
+3. **Dependency traversal**: Follow `requires`, `blocks`, `derived_from` links
+4. **Impact radius calculation**: Count affected nodes (1-hop, 2-hop, n-hop)
+
+**Confirmation Pop-up UI** (in Ideation Agent chat):
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 📝 Memory Graph Update                                  │
+├─────────────────────────────────────────────────────────┤
+│ New block detected:                                     │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ "We're targeting enterprise now"                    │ │
+│ │ Suggested type: content                             │ │
+│ │ Suggested graph: Market                             │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ ⚠️ This will affect 3 existing nodes:                   │
+│                                                         │
+│ 1. [supersedes] "Target: SMB customers"                 │
+│ 2. [invalidates] "SMB pricing model: $29/mo"            │
+│ 3. [needs review] "Sales cycle: 2 weeks"                │
+│                                                         │
+│ [✓ Confirm All]  [✎ Review Each]  [✗ Cancel]            │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Classification signals** (AI-determined, not keyword-based):
+
+| Block Type    | AI Classification Basis                                  |
+| ------------- | -------------------------------------------------------- |
+| `content`     | Factual statement about the idea domain                  |
+| `meta`        | Self-referential statement about confidence/completeness |
+| `assumption`  | Implicit belief underlying explicit statements           |
+| `decision`    | Choice point with multiple alternatives                  |
+| `option`      | One alternative within a decision context                |
+| `placeholder` | Confirmed existence with missing details                 |
+| `action`      | Task to be completed                                     |
+| `external`    | Reference to external resource                           |
+| `derived`     | Value calculated from other nodes                        |
+
+**No fallback to keyword matching.** If AI confidence is low, surface immediately for user confirmation rather than guessing.
 
 ---
 
@@ -2121,11 +2183,11 @@ confidence = (source_weight × 0.4) + (specificity_weight × 0.3) + (evidence_we
 ```mermaid
 graph TD
     NEW[New Input] --> DETECT{Conflict Detection}
-    DETECT --> |Same topic, different value| CONFLICT[Conflict Found]
+    DETECT --> |Same topic different value| CONFLICT[Conflict Found]
     CONFLICT --> ANALYZE{Analyze Language}
-    ANALYZE --> |"Actually", "Changed mind"| SUPERSEDE[Create with supersedes link]
-    ANALYZE --> |"More specifically"| REFINE[Create with refines link]
-    ANALYZE --> |Unclear| SURFACE[Surface for user: "Is this a change or addition?"]
+    ANALYZE --> |Change signals| SUPERSEDE[Create with supersedes link]
+    ANALYZE --> |Refinement signals| REFINE[Create with refines link]
+    ANALYZE --> |Unclear| SURFACE[Surface for user]
 ```
 
 **Conflict detection rules**:
@@ -2230,22 +2292,35 @@ graph LR
 
 **Question**: How does AI determine `abstraction_level` for new blocks?
 
-**Decision**: **Keyword-based classification with parent inheritance fallback**
+**Decision**: **AI contextual classification with user confirmation (no keywords/regex)**
 
-**Classification keywords**:
+Abstraction level is determined by AI analyzing semantic context, not pattern matching.
 
-| Level            | Keywords/Patterns                                                        |
-| ---------------- | ------------------------------------------------------------------------ |
-| `vision`         | "transform", "revolutionize", "mission", "why we exist", outcome-focused |
-| `strategy`       | "approach", "how we win", "competitive advantage", "differentiation"     |
-| `tactic`         | "use", "implement", "architecture", "pattern", method-focused            |
-| `implementation` | Technology names, API references, specific tools, code patterns          |
+**AI Classification Criteria**:
 
-**Fallback rules**:
+| Level            | AI Evaluates                                                     |
+| ---------------- | ---------------------------------------------------------------- |
+| `vision`         | Outcome-focused statements about ultimate impact, mission, "why" |
+| `strategy`       | Competitive positioning, differentiation, market approach        |
+| `tactic`         | Specific methods, patterns, frameworks to achieve strategy       |
+| `implementation` | Concrete technologies, tools, code, configurations               |
 
-1. If `implements: parent_id` is specified, inherit one level down from parent
-2. If no keywords match and no parent, default to `tactic`
-3. User can always override
+**Classification flow**:
+
+1. AI analyzes content semantics and conversation context
+2. If `implements: parent_id` specified → inherit one level down from parent
+3. Always surface in confirmation pop-up for user verification
+4. Never silently guess based on keyword matching
+
+**Confirmation UI includes abstraction level selector**:
+
+```
+Abstraction Level: [Strategy ▼]
+○ Vision         - Why we exist
+● Strategy       - How we win
+○ Tactic         - What approach
+○ Implementation - Specific tech
+```
 
 ---
 
@@ -2253,20 +2328,30 @@ graph LR
 
 **Question**: When and how are external URLs snapshotted?
 
-**Decision**: **Snapshot on first reference, re-check weekly**
+**Decision**: **Snapshot on first reference, re-check manually (no automatic schedule)**
 
-| Event           | Action                                                           |
-| --------------- | ---------------------------------------------------------------- |
-| URL first added | Fetch content, compute hash, store `snapshot_date`               |
-| Weekly cron     | Re-fetch, compare hash, set `content_changed: true` if different |
-| URL returns 404 | Set `url_status: dead`, flag all `extracted_from` blocks         |
-| URL redirects   | Set `url_status: redirected`, store new URL                      |
+User controls when to refresh external resources. No background cron jobs.
+
+| Event                 | Action                                                           |
+| --------------------- | ---------------------------------------------------------------- |
+| URL first added       | Fetch content, compute hash, store `snapshot_date`               |
+| User clicks "Refresh" | Re-fetch, compare hash, set `content_changed: true` if different |
+| URL returns 404       | Set `url_status: dead`, flag all `extracted_from` blocks         |
+| URL redirects         | Set `url_status: redirected`, store new URL                      |
+
+**Manual refresh triggers**:
+
+- "Refresh" button on individual external resource block
+- "Refresh All External" action in Observability panel
+- Prompt before synthesis/export if any external sources > 30 days old
 
 **Storage policy**:
 
 - Store full text content for `domain_credibility: high` sources
 - Store first 5000 chars + hash for others
 - Never store for `domain_credibility: very_low` (social media)
+
+**Staleness indicator**: Visual warning when `snapshot_date` > 30 days old
 
 ---
 
@@ -2298,20 +2383,20 @@ graph TD
 
 ### Decision Summary Table
 
-| #   | Decision                  | Choice                                    | Rationale                         |
-| --- | ------------------------- | ----------------------------------------- | --------------------------------- |
-| 1   | Property value format     | Flat key-value only                       | Query simplicity, indexing        |
-| 2   | Block type classification | Signal-based, 0.7 threshold               | Balance automation + accuracy     |
-| 3   | Auto-linking threshold    | 0.8 auto, 0.5-0.8 suggest                 | Reduce noise, surface uncertainty |
-| 4   | Graph membership          | First match wins, multi-graph allowed     | Flexibility, no data loss         |
-| 5   | Confidence calculation    | Weighted: source + specificity + evidence | Transparent, tunable              |
-| 6   | Conflict resolution       | Never overwrite, always link              | History preservation              |
-| 7   | Assumption extraction     | Property-triggered templates              | Systematic coverage               |
-| 8   | Cycle detection           | Real-time on link creation                | Immediate feedback                |
-| 9   | Staleness propagation     | Immediate mark, lazy recalc               | Performance + correctness         |
-| 10  | Abstraction inference     | Keyword + parent inheritance              | Reasonable defaults               |
-| 11  | External snapshots        | On first reference + weekly               | Balance freshness + storage       |
-| 12  | Action completion         | Auto-detect, manual outcome               | User stays in control             |
+| #   | Decision                  | Choice                                           | Rationale                          |
+| --- | ------------------------- | ------------------------------------------------ | ---------------------------------- |
+| 1   | Property value format     | Flat key-value only                              | Query simplicity, always parseable |
+| 2   | Block type classification | AI + 3 contexts + user confirmation              | No silent guessing, explainable    |
+| 3   | Auto-linking              | AI semantic + user confirmation (no thresholds)  | No magic numbers, user in control  |
+| 4   | Graph membership          | All matches, multi-graph allowed                 | No order dependence, no data loss  |
+| 5   | Confidence calculation    | Transparent factors + user override              | Explainable, adjustable            |
+| 6   | Conflict resolution       | Never overwrite, always supersede                | History preservation               |
+| 7   | Assumption extraction     | AI contextual + user confirmation (no templates) | Domain-agnostic, context-aware     |
+| 8   | Cycle detection           | Real-time on link creation                       | Immediate feedback                 |
+| 9   | Staleness propagation     | Immediate mark, lazy recalc, depth limit         | Performance + safety               |
+| 10  | Abstraction inference     | AI semantic + user confirmation (no keywords)    | No pattern matching, explainable   |
+| 11  | External snapshots        | Manual refresh only (no cron jobs)               | User controls, no surprises        |
+| 12  | Action completion         | Auto-detect progress, manual outcome             | User stays in control              |
 
 ---
 
@@ -2347,58 +2432,88 @@ sales_cycle: '{"enterprise": "6_months", "smb": "2_weeks"}'
 
 ---
 
-### Decision 2: Block Type Classification ⚠️ NEEDS HARDENING
+### Decision 2: Block Type Classification ✅ ROBUST
 
-**Brittleness**: Fixed 0.7 threshold doesn't account for domain variation.
+**Why robust**: Multi-context AI classification with mandatory user confirmation.
 
-**Robust implementation**:
+**Key design elements**:
 
-```yaml
-Classification Config:
-  default_threshold: 0.7
+1. **No silent guessing** - Always surfaces for user confirmation via pop-up
+2. **Three context sources** - User input + neighboring nodes + conversation history
+3. **Cascading change awareness** - Shows affected nodes before commit
+4. **No keyword/regex fallback** - Pure AI semantic understanding
+5. **5W1H context tracking** - Who, what, when, where, why, how always known
 
-  domain_overrides:
-    legal: 0.65 # More aggressive for known domain
-    healthcare: 0.75 # More conservative for regulated domain
-
-  adaptive: true
-  correction_weight: 0.1 # How much user corrections shift threshold
-  alert_threshold: 0.2 # Alert if correction rate > 20%
-
-  fallback_chain:
-    - ai_classifier
-    - keyword_matcher
-    - default_to_content # Always works
-```
-
-**Feedback loop**: Log every classification. When user reclassifies, store correction. Weekly: retrain threshold per domain.
+**Graceful degradation**: If AI confidence is low, asks user directly rather than defaulting silently.
 
 ---
 
-### Decision 3: Auto-Linking ⚠️ NEEDS HARDENING
+### Decision 3: Auto-Linking ✅ ROBUST
 
-**Brittleness**: Fixed thresholds. High false-positive rate erodes trust.
+**Previous brittleness**: Fixed thresholds and adaptive rules are still magic numbers. Users don't understand why 0.8 vs 0.5, and threshold drift is opaque.
 
-**Robust implementation**:
+**Fix**: **AI semantic linking with mandatory user confirmation (no thresholds)**
 
-```yaml
-Linking Config:
-  thresholds:
-    auto_link: 0.8
-    suggest_link: 0.5
+The same pattern that fixed Decision 2 applies here: AI suggests, user confirms, no silent automation.
 
-  adaptive: true
-  adaptation_rules:
-    - if user_accepts_suggestion: lower suggest_threshold by 0.02
-    - if user_rejects_auto_link: raise auto_threshold by 0.05
-    - if user_creates_link_we_missed: lower thresholds by 0.03
+**Linking Flow**:
 
-  bounds:
-    auto_link: [0.7, 0.95] # Never go below 0.7 or above 0.95
-    suggest: [0.3, 0.7]
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ User Input: "We need to be HIPAA compliant"                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│ 🔗 AI Detected Potential Links                                              │
+│ ────────────────────────────────────────                                    │
+│                                                                             │
+│ ☑ LINK TO: "Target customer: Healthcare enterprises"                        │
+│   Relationship: [constrains ▼]                                              │
+│   Reason: "HIPAA compliance is required for healthcare customers"           │
+│                                                                             │
+│ ☑ LINK TO: "Solution: AI diagnostic assistant"                              │
+│   Relationship: [requires ▼]                                                │
+│   Reason: "Medical AI solutions must meet HIPAA requirements"               │
+│                                                                             │
+│ ☐ LINK TO: "Competitor: HealthTech Inc" (AI less certain)                   │
+│   Relationship: [relates_to ▼]                                              │
+│   Reason: "Competitor also serves healthcare, may share compliance needs"   │
+│                                                                             │
+│                              [Skip All]  [Apply Selected Links (2)]         │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Audit trail**: Every link logs `created_by`, `confidence_at_creation`, `user_action`.
+**Key Design Elements**:
+
+| Element                        | Implementation                                                                     |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| **No thresholds**              | AI suggests all semantically relevant links, sorted by AI confidence (high to low) |
+| **Explained reasoning**        | Each suggestion shows WHY the AI thinks they're related                            |
+| **Relationship type selector** | User can change `relates_to` → `requires` etc.                                     |
+| **Checkbox selection**         | User picks which links to create                                                   |
+| **Less certain = unchecked**   | AI pre-checks high-confidence, leaves low-confidence unchecked                     |
+| **Skip All option**            | User can dismiss without creating links                                            |
+
+**What "AI confidence" means here**:
+
+AI confidence is NOT a threshold—it's a sort order and default checkbox state:
+
+- High confidence: Pre-checked, shown first
+- Medium confidence: Unchecked, shown second
+- Low confidence: Collapsed under "Show more suggestions"
+
+User sees ALL suggestions, decides which to accept. No magic cutoff.
+
+**Learning from corrections**:
+
+| User Action                         | System Learning                             |
+| ----------------------------------- | ------------------------------------------- |
+| User creates link AI didn't suggest | Log as "missed link", feed to AI context    |
+| User removes link AI suggested      | Log as "false positive", feed to AI context |
+| User changes relationship type      | Learn correct relationship patterns         |
+
+**Audit trail** (unchanged): Every link logs `created_by`, `confidence_at_creation`, `user_action`, `ai_reasoning`.
+
+**Graceful degradation**: If AI fails to suggest links, user can still manually create them via graph UI.
 
 ---
 
@@ -2417,34 +2532,84 @@ Block:
 
 ---
 
-### Decision 5: Confidence Calculation ⚠️ NEEDS HARDENING
+### Decision 5: Confidence Calculation ✅ ROBUST
 
-**Brittleness**: Hardcoded weights don't fit all domains.
+**Previous brittleness**: Hardcoded weights (0.4/0.3/0.3) are opaque. Users can't understand or adjust how confidence is calculated. Domain-specific profiles add complexity without solving the core problem.
 
-**Robust implementation**:
+**Fix**: **Transparent confidence with user-visible factors and manual override**
 
-```yaml
-Confidence Profiles:
-  default:
-    source_weight: 0.4
-    specificity_weight: 0.3
-    evidence_weight: 0.3
+Confidence is not a single number—it's a breakdown of factors the user can see and adjust.
 
-  market_research:
-    source_weight: 0.5    # Source matters more
-    specificity_weight: 0.2
-    evidence_weight: 0.3
+**Confidence Display UI**:
 
-  technical:
-    source_weight: 0.2    # Source matters less
-    specificity_weight: 0.5
-    evidence_weight: 0.3
-
-  assignment:
-    - graph: market → profile: market_research
-    - graph: spec → profile: technical
-    - default → profile: default
 ```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Block: "TAM is $50B"                                     Confidence: 72%   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│ Confidence Breakdown:                                        [Edit ✏️]     │
+│ ─────────────────────────────────────────────────────────────────────────── │
+│                                                                             │
+│ Source Quality         ████████░░  80%   "Industry report (Gartner)"        │
+│ Specificity            ██████░░░░  60%   "Point estimate, no range given"   │
+│ Evidence Support       ███████░░░  70%   "2 supporting blocks"              │
+│ Recency                ████████░░  80%   "Data from 2025"                   │
+│                                                                             │
+│ ─────────────────────────────────────────────────────────────────────────── │
+│ Combined: 72%  (simple average)                                             │
+│                                                                             │
+│ 💡 AI Note: "Point estimate without range reduces specificity score.        │
+│    Consider adding min/max bounds for higher confidence."                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Design Elements**:
+
+| Element                         | Implementation                                   |
+| ------------------------------- | ------------------------------------------------ |
+| **Transparent factors**         | User sees exactly what contributes to confidence |
+| **Plain language explanations** | Each factor has human-readable reasoning         |
+| **AI improvement suggestions**  | System suggests how to increase confidence       |
+| **Manual override**             | User can click "Edit" to adjust any factor       |
+| **No hidden weights**           | Simple average of factors (no domain profiles)   |
+
+**Confidence Factors** (all visible to user):
+
+| Factor                | What AI Evaluates                                        | Score Range |
+| --------------------- | -------------------------------------------------------- | ----------- |
+| **Source Quality**    | Who said this? Expert, user guess, AI inference, unknown | 0-100%      |
+| **Specificity**       | Vague claim vs precise data with bounds                  | 0-100%      |
+| **Evidence Support**  | Number and quality of supporting/contradicting blocks    | 0-100%      |
+| **Recency**           | How old is the information?                              | 0-100%      |
+| **Validation Status** | Tested assumption vs untested belief                     | 0-100%      |
+
+**Manual Override Flow**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Edit Confidence: "TAM is $50B"                                         [×] │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│ Source Quality:    [████████░░]  80%  →  [██████████]  95%                  │
+│ Override reason:   [I verified this directly with Gartner analyst    ]     │
+│                                                                             │
+│ ☑ Apply to this block only                                                  │
+│ ☐ Update source quality for all Gartner-sourced blocks                      │
+│                                                                             │
+│                                           [Cancel]  [Save Override]         │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Why this is robust**:
+
+1. **No magic numbers** - User sees all factors and their scores
+2. **Explainable** - AI provides reasoning for each score
+3. **Actionable** - AI suggests how to improve confidence
+4. **Overridable** - User can correct any factor with reasoning
+5. **Auditable** - Override history tracked with reasons
+
+**Graceful degradation**: If AI can't score a factor, it shows "Unknown" and user can fill in manually.
 
 ---
 
@@ -2456,34 +2621,85 @@ Confidence Profiles:
 
 ---
 
-### Decision 7: Assumption Extraction ⚠️ NEEDS HARDENING
+### Decision 7: Assumption Extraction ✅ ROBUST
 
-**Brittleness**: Fixed templates don't cover all domains.
+**Previous brittleness**: Fixed templates (trigger → assumption) can't cover all domains. Template maintenance becomes a burden. Templates miss context-specific assumptions.
 
-**Robust implementation**:
+**Fix**: **AI contextual assumption surfacing with user confirmation (no templates)**
 
-```yaml
-Assumption Templates:
-  core:  # Always active
-    - trigger: target_customer
-      assumptions:
-        - "{target_customer} has budget for this" (critical)
-        - "{target_customer} can make purchase decisions" (critical)
+AI uses semantic understanding of the conversation to surface implicit assumptions. No pre-defined trigger-assumption mappings.
 
-  domains:  # Loaded per idea domain
-    healthcare:
-      - trigger: solution
-        assumptions:
-          - "Solution is HIPAA compliant" (critical)
-    fintech:
-      - trigger: solution
-        assumptions:
-          - "Banking license not required" (critical)
+**Assumption Surfacing Flow**:
 
-  learning:
-    - if dismissed > 5 times: deprioritize template
-    - if user adds same assumption > 3 times: promote to template
 ```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ User Input: "We're targeting enterprise healthcare companies"               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│ 🤔 AI Detected Implicit Assumptions                                         │
+│ ────────────────────────────────────────                                    │
+│                                                                             │
+│ ☑ "Enterprise healthcare companies have budget for new AI tools"            │
+│   Criticality: [critical ▼]                                                 │
+│   Why surfaced: "Enterprise sales assumes procurement budget exists"        │
+│                                                                             │
+│ ☑ "Our solution can meet HIPAA compliance requirements"                     │
+│   Criticality: [critical ▼]                                                 │
+│   Why surfaced: "Healthcare data handling requires HIPAA compliance"        │
+│                                                                             │
+│ ☐ "Enterprise sales cycle (6+ months) fits our runway"                      │
+│   Criticality: [important ▼]                                                │
+│   Why surfaced: "Enterprise deals typically take 6-12 months to close"      │
+│                                                                             │
+│ ☐ "We have/can hire salespeople with healthcare experience"                 │
+│   Criticality: [nice_to_have ▼]                                             │
+│   Why surfaced: "Domain expertise often required for enterprise sales"      │
+│                                                                             │
+│ [Don't surface assumptions for this block]  [Add Selected Assumptions (2)]  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Design Elements**:
+
+| Element                          | Implementation                                                 |
+| -------------------------------- | -------------------------------------------------------------- |
+| **No templates**                 | AI analyzes semantic meaning of content + conversation context |
+| **Explained reasoning**          | Each assumption shows WHY the AI surfaced it                   |
+| **Criticality selector**         | User can adjust critical/important/nice_to_have                |
+| **Checkbox selection**           | User picks which assumptions to track                          |
+| **High-criticality pre-checked** | AI pre-checks assumptions it deems critical                    |
+| **Opt-out option**               | "Don't surface assumptions for this block"                     |
+
+**What AI considers when surfacing assumptions**:
+
+| Context Source            | What It Reveals                                     |
+| ------------------------- | --------------------------------------------------- |
+| **Current block content** | Direct implications of the statement                |
+| **Conversation history**  | What's been discussed, what's known                 |
+| **Existing blocks**       | Gaps between stated goals and current knowledge     |
+| **Domain knowledge**      | Industry-specific requirements (healthcare → HIPAA) |
+| **Block relationships**   | Dependencies that imply unstated beliefs            |
+
+**Criticality determination**:
+
+AI evaluates criticality based on:
+
+- **Critical**: If false, the entire idea fails (e.g., "customers will pay")
+- **Important**: Significantly impacts success but workarounds exist
+- **Nice to have**: Would help but not essential
+
+User can override criticality with one click.
+
+**Learning from user actions**:
+
+| User Action                    | System Learning                                            |
+| ------------------------------ | ---------------------------------------------------------- |
+| User dismisses assumption      | Log pattern, reduce similar surfacing                      |
+| User adds assumption AI missed | Log as "missed assumption", feed to AI context             |
+| User changes criticality       | Learn criticality patterns for similar assumptions         |
+| User validates assumption      | Update assumption status, track what evidence validated it |
+
+**Graceful degradation**: If AI fails to surface assumptions, user can manually add them via "Add Assumption" button.
 
 ---
 
@@ -2516,47 +2732,33 @@ Staleness Config:
 
 ---
 
-### Decision 10: Abstraction Inference ⚠️ NEEDS HARDENING
+### Decision 10: Abstraction Inference ✅ ROBUST
 
-**Brittleness**: Keyword matching is fragile. "Strategy" the word doesn't mean strategy level.
+**Why robust**: AI contextual classification with mandatory user confirmation (no keywords/regex).
 
-**Robust implementation**: Embedding-based classification with keyword fallback.
+**Key design elements**:
 
-```yaml
-Abstraction Classifier:
-  primary: embedding_similarity
-  fallback: keyword_match
-  final_fallback: parent_inheritance
+1. **No pattern matching** - AI evaluates semantic meaning, not keywords
+2. **Always confirms with user** - Level shown in confirmation pop-up
+3. **Parent inheritance** - If `implements` link exists, derives from parent
+4. **User override** - Dropdown selector allows easy correction
 
-  level_embeddings:  # Pre-computed reference embeddings
-    vision: [embeddings of "transform", "mission", "why we exist"...]
-    strategy: [embeddings of "competitive advantage", "how we win"...]
-    tactic: [embeddings of "approach", "method", "pattern"...]
-    implementation: [embeddings of "API", "code", "deploy"...]
-
-  threshold: 0.7  # Use embedding match if similarity > 0.7
-```
+**Graceful degradation**: If AI uncertain, asks user directly via dropdown.
 
 ---
 
-### Decision 11: External Snapshots ⚠️ NEEDS HARDENING
+### Decision 11: External Snapshots ✅ ROBUST
 
-**Brittleness**: "Weekly" is arbitrary.
+**Why robust**: User-controlled refresh with no automatic background schedules.
 
-**Robust implementation**: Policy by credibility + citation count.
+**Key design elements**:
 
-```yaml
-Snapshot Policy:
-  by_credibility:
-    high: check_every: 24h, store_full: true, alert_on_change: true
-    medium: check_every: 7d, store_chars: 10000
-    low: check_every: 30d, store_chars: 2000
-    very_low: check_every: never
+1. **No cron jobs** - User explicitly triggers refresh
+2. **Visual staleness indicator** - Shows when snapshot > 30 days old
+3. **Prompt before synthesis** - Warns if external sources stale before generating outputs
+4. **Manual bulk refresh** - "Refresh All External" button in Observability panel
 
-  by_citations:
-    - if citations >= 5: upgrade one tier
-    - if citations >= 10: check_every: 24h
-```
+**Graceful degradation**: System works with stale snapshots, just warns user.
 
 ---
 
@@ -2570,40 +2772,350 @@ Snapshot Policy:
 
 ### Robustness Summary
 
-| Decision                  | Status     | Required Action                    |
-| ------------------------- | ---------- | ---------------------------------- |
-| 1. Flat properties        | ✅ Robust  | None                               |
-| 2. Block classification   | ⚠️ Brittle | Adaptive thresholds, feedback loop |
-| 3. Auto-linking           | ⚠️ Brittle | Adaptive thresholds, audit trail   |
-| 4. Graph membership       | ⚠️ Minor   | Change to "all matches"            |
-| 5. Confidence calc        | ⚠️ Brittle | Domain-specific profiles           |
-| 6. Conflict resolution    | ✅ Robust  | None                               |
-| 7. Assumption extraction  | ⚠️ Brittle | Domain templates, learning         |
-| 8. Cycle detection        | ✅ Robust  | None                               |
-| 9. Staleness propagation  | ✅ Robust  | Add depth limit                    |
-| 10. Abstraction inference | ⚠️ Brittle | Embedding-based classification     |
-| 11. External snapshots    | ⚠️ Brittle | Policy by credibility + citations  |
-| 12. Action completion     | ✅ Robust  | None                               |
+| Decision                  | Status    | Design Pattern                                   |
+| ------------------------- | --------- | ------------------------------------------------ |
+| 1. Flat properties        | ✅ Robust | Lowest common denominator, always parseable      |
+| 2. Block classification   | ✅ Robust | AI + 3 context sources + user confirmation       |
+| 3. Auto-linking           | ✅ Robust | AI semantic + user confirmation (no thresholds)  |
+| 4. Graph membership       | ✅ Robust | All matches (not first match)                    |
+| 5. Confidence calc        | ✅ Robust | Transparent factors + user override              |
+| 6. Conflict resolution    | ✅ Robust | Never delete, always supersede                   |
+| 7. Assumption extraction  | ✅ Robust | AI contextual + user confirmation (no templates) |
+| 8. Cycle detection        | ✅ Robust | Real-time detection, async fallback              |
+| 9. Staleness propagation  | ✅ Robust | Immediate mark, lazy recalc, depth limit         |
+| 10. Abstraction inference | ✅ Robust | AI semantic + user confirmation (no keywords)    |
+| 11. External snapshots    | ✅ Robust | Manual refresh only (no cron jobs)               |
+| 12. Action completion     | ✅ Robust | Auto-detect progress, manual outcome             |
+
+**Robust: 12/12** ✅
+
+### Robustness Pattern
+
+All 12 decisions now follow the same core pattern:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ROBUSTNESS PATTERN                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. AI SEMANTIC ANALYSIS (not pattern matching)                 │
+│     • No keywords, regex, or templates                          │
+│     • Full context: input + neighbors + conversation            │
+│     • Explained reasoning for every suggestion                  │
+│                                                                 │
+│  2. USER CONFIRMATION (not silent automation)                   │
+│     • Every AI suggestion surfaced in UI                        │
+│     • Checkbox selection with pre-checked defaults              │
+│     • One-click override for any AI decision                    │
+│                                                                 │
+│  3. TRANSPARENT MECHANICS (no magic numbers)                    │
+│     • No hidden thresholds or weights                           │
+│     • All factors visible and adjustable                        │
+│     • Audit trail with reasoning                                │
+│                                                                 │
+│  4. GRACEFUL DEGRADATION (not fail-stop)                        │
+│     • If AI fails → ask user directly                           │
+│     • If feature fails → system still works                     │
+│     • Manual fallback always available                          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### Implementation Priority
 
-**Before Launch** (decisions that break things if wrong):
+**Before Launch** (foundations):
 
-- Decision 4: All matches, not first match
-- Decisions 6, 8, 12: Already correct
+- Decisions 1, 4, 6: Simple, no AI required
+- Decision 8, 9: Standard algorithms with safety limits
 
-**Month 1** (high user impact):
+**Phase 1** (core AI + confirmation UIs):
 
-- Decision 2: Adaptive classification thresholds
-- Decision 3: Adaptive linking + audit
-- Decision 9: Depth limit
+- Decision 2: Block classification confirmation pop-up
+- Decision 3: Link suggestion confirmation UI
+- Decision 7: Assumption surfacing confirmation UI
 
-**Quarter 1** (quality improvements):
+**Phase 2** (enhanced UIs):
 
-- Decision 5: Domain-specific confidence profiles
-- Decision 7: Domain assumption templates
-- Decision 10: Embedding-based abstraction
-- Decision 11: Smart snapshot policy
+- Decision 5: Confidence breakdown display + override UI
+- Decision 10: Abstraction level confirmation + dropdown
+- Decision 11: Manual refresh buttons + staleness indicators
+
+**Phase 3** (polish):
+
+- Decision 12: Action completion prompts + outcome tracking
+- Learning systems: Feed user corrections back to AI context
+
+---
+
+## Memory Graph Observability
+
+The knowledge graph is now officially named **Memory Graph** throughout the system. This section specifies the observability features for monitoring and auditing Memory Graph changes.
+
+### Memory Graph Change Log Table
+
+Located in the **Observability** main tab, this table logs all changes to the Memory Graph in real-time.
+
+**Table Schema**:
+
+| Column             | Type     | Description                                                              |
+| ------------------ | -------- | ------------------------------------------------------------------------ |
+| `timestamp`        | datetime | When the change occurred                                                 |
+| `change_type`      | enum     | `created`, `modified`, `superseded`, `linked`, `unlinked`, `deleted`     |
+| `block_id`         | string   | ID of the affected block                                                 |
+| `block_type`       | enum     | Type of block (content, link, decision, etc.)                            |
+| `property_changed` | string   | Which property was modified (null for create/delete)                     |
+| `old_value`        | string   | Previous value (null for create)                                         |
+| `new_value`        | string   | New value (null for delete)                                              |
+| `triggered_by`     | enum     | `user`, `ai_auto`, `ai_confirmed`, `cascade`, `system`                   |
+| `context_source`   | string   | What triggered this: "ideation_session", "import", "artifact_sync", etc. |
+| `session_id`       | string   | Links to ideation session for audit trail                                |
+| `cascade_depth`    | int      | 0 = direct change, 1+ = downstream cascade effect                        |
+| `affected_blocks`  | array    | IDs of blocks affected by cascade (for cascade changes)                  |
+
+**UI Features**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Memory Graph Change Log                                    [Filter ▼] [⟳]  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Timestamp          │ Type     │ Block          │ Property    │ Triggered By │
+├────────────────────┼──────────┼────────────────┼─────────────┼──────────────┤
+│ 2026-01-22 10:32   │ created  │ blk_target_ent │ -           │ ai_confirmed │
+│ 2026-01-22 10:32   │ linked   │ blk_target_ent │ supersedes  │ cascade      │
+│ 2026-01-22 10:32   │ modified │ blk_target_smb │ status      │ cascade      │
+│ 2026-01-22 10:30   │ created  │ blk_pricing_v2 │ -           │ user         │
+│ 2026-01-22 10:28   │ modified │ blk_market_sz  │ tam_max     │ ai_confirmed │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Filtering Options**:
+
+| Filter        | Options                                                  |
+| ------------- | -------------------------------------------------------- |
+| Time range    | Last hour, Last 24h, Last 7 days, Custom                 |
+| Change type   | created, modified, superseded, linked, unlinked, deleted |
+| Triggered by  | user, ai_auto, ai_confirmed, cascade, system             |
+| Block type    | All block types from Decision 2                          |
+| Session       | Filter by ideation session                               |
+| Show cascades | Show/hide cascade effects                                |
+
+**Row Expansion**: Clicking a row expands to show:
+
+- Full old/new values
+- Conversation context (5W1H at time of change)
+- Related cascade changes grouped together
+- "Revert" button (creates superseding block, doesn't delete)
+
+---
+
+### Memory Graph Health Panel
+
+Adjacent to the Change Log, display a health summary panel.
+
+```
+┌──────────────────────────────────────┐
+│ Memory Graph Health                  │
+├──────────────────────────────────────┤
+│ Total Blocks:          247           │
+│ Active / Superseded:   198 / 49      │
+│                                      │
+│ Stale Derived Values:  3 ⚠️          │
+│ Unresolved Cycles:     1 ⚠️          │
+│ Dead External URLs:    0 ✅          │
+│ Pending Confirmations: 2 📋          │
+│                                      │
+│ Last Updated: 10:32 AM               │
+│ [View Stale] [View Cycles] [Refresh] │
+└──────────────────────────────────────┘
+```
+
+**Health Metrics**:
+
+| Metric                | Calculation                               | Warning Threshold |
+| --------------------- | ----------------------------------------- | ----------------- |
+| Stale derived values  | `type: derived AND stale: true`           | Any > 0           |
+| Unresolved cycles     | `type: cycle AND resolved: false`         | Any > 0           |
+| Dead external URLs    | `type: external AND url_status: dead`     | Any > 0           |
+| Pending confirmations | Blocks awaiting user confirmation         | Any > 5           |
+| Orphan blocks         | Blocks with no incoming or outgoing links | > 10% of total    |
+
+---
+
+## Ideation Agent Memory Graph Integration
+
+### "Update Memory Graph" Button
+
+Located in the Ideation Agent chat interface, this button allows users to sync conversation context and artifacts to the Memory Graph.
+
+**Button Placement**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Ideation Session: Market Analysis                                    [···] │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [Previous conversation messages...]                                        │
+│                                                                             │
+│  Agent: Based on our discussion, your target customer has shifted from      │
+│  SMB to enterprise. This affects several existing assumptions...            │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ [Message input...]                                                          │
+│                                                                             │
+│ [Send]  [Artifacts ▼]  [🧠 Update Memory Graph]                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Button States**:
+
+| State       | Appearance                                | Trigger                     |
+| ----------- | ----------------------------------------- | --------------------------- |
+| Default     | `[🧠 Update Memory Graph]`                | User clicks                 |
+| Processing  | `[🧠 Analyzing...]` with spinner          | AI analyzing context        |
+| Has changes | `[🧠 Update Memory Graph (3)]` with badge | AI detected pending updates |
+| Disabled    | Grayed out                                | No session context yet      |
+
+---
+
+### Confirmation Form
+
+When clicked, the button opens a modal form displaying all proposed changes for user review.
+
+**Form Layout**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Update Memory Graph                                                    [×] │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│ 🔍 AI Analysis of Conversation Context                                      │
+│ ────────────────────────────────────────                                    │
+│ WHO: CEO (Strategy Discussion)                                              │
+│ WHAT: Target customer pivot                                                 │
+│ WHEN: January 2026 planning                                                 │
+│ WHY: Enterprise has bigger budgets                                          │
+│                                                                             │
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │ Proposed Changes (3)                                    [Select All ☑]  │ │
+│ ├─────────────────────────────────────────────────────────────────────────┤ │
+│ │                                                                         │ │
+│ │ ☑ CREATE: Target Customer Block                                         │ │
+│ │   Type: [content ▼]                                                     │ │
+│ │   Content: "Target customer: Enterprise (500+ employees)"               │ │
+│ │   Abstraction: [Strategy ▼]                                             │ │
+│ │   Graphs: ☑ market  ☑ customer  ☐ solution                              │ │
+│ │                                                                         │ │
+│ │   ⚠️ This will supersede: "Target customer: SMB"                        │ │
+│ │   ⚠️ Cascade: 4 blocks reference the old target customer                │ │
+│ │   [Preview Cascade →]                                                   │ │
+│ │                                                                         │ │
+│ │ ─────────────────────────────────────────────────────────────────────── │ │
+│ │                                                                         │ │
+│ │ ☑ CREATE: Assumption Block                                              │ │
+│ │   Type: [assumption ▼]                                                  │ │
+│ │   Content: "Enterprise has budget for AI tools"                         │ │
+│ │   Criticality: [critical ▼]                                             │ │
+│ │   Status: unvalidated                                                   │ │
+│ │                                                                         │ │
+│ │ ─────────────────────────────────────────────────────────────────────── │ │
+│ │                                                                         │ │
+│ │ ☐ CREATE: Pricing Implication (AI-suggested)                            │ │
+│ │   Type: [derived ▼]                                                     │ │
+│ │   Content: "Enterprise pricing likely $X/seat vs SMB $Y"                │ │
+│ │   [Edit before adding...]                                               │ │
+│ │                                                                         │ │
+│ └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │ Real-Time Graph Preview                                   [Expand ↗]   │ │
+│ │ ┌─────────────────────────────────────────────────────────────────────┐ │ │
+│ │ │                                                                     │ │ │
+│ │ │     [Target: SMB] ←──supersedes── [Target: Enterprise] ← NEW        │ │ │
+│ │ │          │                              │                           │ │ │
+│ │ │          │ (stale)                      │                           │ │ │
+│ │ │          ▼                              ▼                           │ │ │
+│ │ │     [Pricing: $X]                 [Assumption: Budget] ← NEW        │ │ │
+│ │ │                                                                     │ │ │
+│ │ └─────────────────────────────────────────────────────────────────────┘ │ │
+│ │ Legend: [NEW] Created  [───] Link  [stale] Affected                     │ │
+│ └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│                              [Cancel]  [Apply Selected Changes (2)]         │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Form Features**:
+
+| Feature              | Behavior                                         |
+| -------------------- | ------------------------------------------------ |
+| 5W1H Context Display | Shows AI's understanding of conversation context |
+| Checkbox Selection   | User selects which changes to apply              |
+| Inline Editing       | User can modify any field before committing      |
+| Type Dropdown        | Change block type if AI misclassified            |
+| Abstraction Dropdown | Change abstraction level if wrong                |
+| Graph Membership     | Toggle which graphs the block belongs to         |
+| Cascade Preview      | Expand to see all downstream effects             |
+| Real-Time Graph      | Visual preview updates as selections change      |
+| Expand Button        | Opens graph preview in larger modal              |
+
+**Real-Time Graph Preview**:
+
+- Updates instantly as user checks/unchecks proposed changes
+- Shows new blocks in highlighted color
+- Shows superseded blocks with strikethrough
+- Shows cascade-affected blocks with warning indicator
+- Animates link creation when changes are selected
+- Zooms to affected area of the graph
+
+**Cascade Preview Modal**:
+
+When user clicks "Preview Cascade →", show:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Cascade Effects                                                        [×] │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│ Superseding "Target: SMB" will affect:                                      │
+│                                                                             │
+│ Level 1 (Direct):                                                           │
+│   • Pricing assumption → will be marked stale                               │
+│   • Sales cycle estimate → will be marked stale                             │
+│                                                                             │
+│ Level 2 (Indirect):                                                         │
+│   • Revenue projection (derived from pricing) → will be marked stale        │
+│   • GTM strategy (references sales cycle) → may need review                 │
+│                                                                             │
+│ ⚠️ 4 blocks will be marked stale                                            │
+│ ℹ️ No blocks will be deleted (supersede preserves history)                  │
+│                                                                             │
+│                                                     [Got it, proceed]       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Artifact Integration
+
+The Memory Graph update button also considers current artifacts in the session.
+
+**Artifact Sources**:
+
+| Artifact Type      | What Gets Extracted                     |
+| ------------------ | --------------------------------------- |
+| Canvas/Whiteboard  | Visual blocks, connections, annotations |
+| Structured Notes   | Key-value pairs, bullet points          |
+| Tables             | Row data as potential blocks            |
+| Diagrams           | Entity relationships, flows             |
+| Uploaded Documents | Extracted facts (with confirmation)     |
+
+**Artifact Sync Flow**:
+
+1. User clicks "Update Memory Graph"
+2. AI scans conversation history AND current artifacts
+3. Proposed changes include artifact-sourced blocks with `source: artifact_{id}`
+4. User reviews and confirms
+5. Blocks created with artifact provenance tracked
 
 ---
 
@@ -2654,6 +3166,6 @@ This stress test validates the model against 27 real-world scenarios across 5 ca
 
 ---
 
-_Document Version: 5.0_
+_Document Version: 7.0_
 _Last Updated: January 2026_
-_Changes: v4→v5: Added Pipeline Decision Points (12 locked-in decisions), added Long-Term Robustness Analysis (5 robust, 7 need hardening)_
+_Changes: v6→v7: Fixed 3 brittle decisions (3, 5, 7) to follow robustness pattern—AI semantic + user confirmation + no magic numbers. All 12 decisions now robust. Added Robustness Pattern diagram. Updated Decision Summary Table and Implementation Priority._

@@ -1,23 +1,23 @@
 [
   {
-    "id": "cp-1768126667774-72792c",
+    "id": "cp-1769060206258-wmj9ye",
     "buildId": "test-build",
     "taskId": "T-007",
-    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-007\"],\"currentTaskIndex\":7,\"context\":{}}",
-    "createdAt": "2026-01-11T10:17:47.774Z"
+    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-007\"],\"currentTaskIndex\":7,\"failedTasks\":[],\"startedAt\":\"2026-01-22T05:36:46.258Z\",\"lastUpdatedAt\":\"2026-01-22T05:36:46.258Z\",\"context\":{}}",
+    "createdAt": "2026-01-22T05:36:46.258Z"
   },
   {
-    "id": "cp-1768126667774-3dplim",
+    "id": "cp-1769060206259-ymc4m6",
     "buildId": "test-build",
     "taskId": "T-008",
-    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-008\"],\"currentTaskIndex\":8,\"context\":{}}",
-    "createdAt": "2026-01-11T10:17:47.774Z"
+    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-008\"],\"currentTaskIndex\":8,\"failedTasks\":[],\"startedAt\":\"2026-01-22T05:36:46.259Z\",\"lastUpdatedAt\":\"2026-01-22T05:36:46.259Z\",\"context\":{}}",
+    "createdAt": "2026-01-22T05:36:46.259Z"
   },
   {
-    "id": "cp-1768126667775-m56d76",
+    "id": "cp-1769060206259-uybweu",
     "buildId": "test-build",
     "taskId": "T-009",
-    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-009\"],\"currentTaskIndex\":9,\"context\":{}}",
-    "createdAt": "2026-01-11T10:17:47.775Z"
+    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-009\"],\"currentTaskIndex\":9,\"failedTasks\":[],\"startedAt\":\"2026-01-22T05:36:46.259Z\",\"lastUpdatedAt\":\"2026-01-22T05:36:46.259Z\",\"context\":{}}",
+    "createdAt": "2026-01-22T05:36:46.259Z"
   }
 ]

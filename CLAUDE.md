@@ -41,6 +41,7 @@ python3 tests/e2e/ralph_loop.py
 
 - `/idea-capture`, `/idea-develop`, `/idea-evaluate`, `/idea-redteam`
 - `/schema-add-entity`, `/schema-modify-entity`, `/schema-validate`
+- `/validate-implementation` - Validate code against specs, find gaps/bugs, and fix them
 
 ## Mistakes to Avoid
 

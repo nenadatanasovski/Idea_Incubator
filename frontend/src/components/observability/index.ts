@@ -38,3 +38,8 @@ export { default as ExecutionList } from "./ExecutionList";
 // Agent session components
 export { default as AgentSessionsView } from "./AgentSessionsView";
 export { default as LogFileModal } from "./LogFileModal";
+
+// Memory Graph Observability components (Phase 8)
+export { MemoryGraphChangeLog } from "./MemoryGraphChangeLog";
+export { MemoryGraphHealthPanel } from "./MemoryGraphHealthPanel";
+export { default as MemoryGraphTab } from "./MemoryGraphTab";
