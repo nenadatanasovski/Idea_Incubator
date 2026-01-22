@@ -23,7 +23,8 @@ export type EventSource =
   | "build-agent"
   | "websocket"
   | "telegram"
-  | "monitoring";
+  | "monitoring"
+  | "memory-graph";
 
 export type EventSeverity = "info" | "warning" | "error" | "critical";
 
@@ -104,6 +105,13 @@ export type PlatformEventType =
   // Spec events
   | "spec_generated"
   | "spec_approved"
+  // Memory graph events
+  | "graph:created"
+  | "graph:modified"
+  | "graph:superseded"
+  | "graph:linked"
+  | "graph:unlinked"
+  | "graph:deleted"
   // Generic events
   | string;
 

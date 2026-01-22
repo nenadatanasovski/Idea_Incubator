@@ -69,6 +69,7 @@ const sourceColors: Record<string, string> = {
   websocket: "bg-pink-100 text-pink-800",
   telegram: "bg-sky-100 text-sky-800",
   monitoring: "bg-indigo-100 text-indigo-800",
+  "memory-graph": "bg-emerald-100 text-emerald-800",
 };
 
 const allSeverities: EventSeverity[] = ["info", "warning", "error", "critical"];
@@ -82,6 +83,7 @@ const allSources: EventSource[] = [
   "websocket",
   "telegram",
   "monitoring",
+  "memory-graph",
 ];
 
 export default function AllEventsViewer({

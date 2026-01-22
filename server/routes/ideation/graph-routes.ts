@@ -23,6 +23,7 @@ import {
   Block,
   Link,
 } from "../../services/graph-prompt-processor.js";
+import { logGraphChange } from "../observability/memory-graph-routes.js";
 
 export const graphRouter = Router();
 
@@ -196,6 +197,17 @@ graphRouter.post(
 
       await saveDb();
 
+      // Log the block creation for change tracking
+      await logGraphChange({
+        changeType: "created",
+        blockId,
+        blockType: data.type,
+        blockLabel: data.content.slice(0, 50),
+        triggeredBy: "user",
+        contextSource: "graph-routes:create-block",
+        sessionId,
+      });
+
       return res.status(201).json({
         id: blockId,
         sessionId,
@@ -303,6 +315,20 @@ graphRouter.patch(
 
       await saveDb();
 
+      // Log the block modification for change tracking
+      const changedProperties = Object.keys(data).filter(
+        (k) => k !== "graphMembership",
+      );
+      await logGraphChange({
+        changeType: data.status === "superseded" ? "superseded" : "modified",
+        blockId,
+        blockType: data.type || "unknown",
+        propertyChanged: changedProperties.join(", "),
+        triggeredBy: "user",
+        contextSource: "graph-routes:update-block",
+        sessionId,
+      });
+
       return res.json({ success: true, updatedAt: now });
     } catch (error) {
       console.error("Error updating block:", error);
@@ -322,6 +348,12 @@ graphRouter.delete(
     try {
       const { sessionId, blockId } = req.params;
 
+      // Get block info before deletion for logging
+      const block = await getOne<{ type: string; content: string }>(
+        `SELECT type, content FROM memory_blocks WHERE id = ? AND session_id = ?`,
+        [blockId, sessionId],
+      );
+
       // Delete memberships first (cascade should handle this, but be explicit)
       await run(`DELETE FROM memory_graph_memberships WHERE block_id = ?`, [
         blockId,
@@ -334,6 +366,19 @@ graphRouter.delete(
       ]);
 
       await saveDb();
+
+      // Log the block deletion for change tracking
+      if (block) {
+        await logGraphChange({
+          changeType: "deleted",
+          blockId,
+          blockType: block.type,
+          blockLabel: block.content.slice(0, 50),
+          triggeredBy: "user",
+          contextSource: "graph-routes:delete-block",
+          sessionId,
+        });
+      }
 
       return res.json({ success: true });
     } catch (error) {
@@ -394,6 +439,18 @@ graphRouter.post(
 
       await saveDb();
 
+      // Log the link creation for change tracking
+      await logGraphChange({
+        changeType: "linked",
+        blockId: data.sourceBlockId,
+        blockType: "link",
+        blockLabel: `${data.linkType}: ${data.sourceBlockId.slice(0, 8)}→${data.targetBlockId.slice(0, 8)}`,
+        triggeredBy: "user",
+        contextSource: "graph-routes:create-link",
+        sessionId,
+        affectedBlocks: [data.sourceBlockId, data.targetBlockId],
+      });
+
       return res.status(201).json({
         id: linkId,
         sessionId,
@@ -420,12 +477,36 @@ graphRouter.delete(
     try {
       const { sessionId, linkId } = req.params;
 
+      // Get link info before deletion for logging
+      const link = await getOne<{
+        source_block_id: string;
+        target_block_id: string;
+        link_type: string;
+      }>(
+        `SELECT source_block_id, target_block_id, link_type FROM memory_links WHERE id = ? AND session_id = ?`,
+        [linkId, sessionId],
+      );
+
       await run(`DELETE FROM memory_links WHERE id = ? AND session_id = ?`, [
         linkId,
         sessionId,
       ]);
 
       await saveDb();
+
+      // Log the link deletion for change tracking
+      if (link) {
+        await logGraphChange({
+          changeType: "unlinked",
+          blockId: link.source_block_id,
+          blockType: "link",
+          blockLabel: `${link.link_type}: ${link.source_block_id.slice(0, 8)}→${link.target_block_id.slice(0, 8)}`,
+          triggeredBy: "user",
+          contextSource: "graph-routes:delete-link",
+          sessionId,
+          affectedBlocks: [link.source_block_id, link.target_block_id],
+        });
+      }
 
       return res.json({ success: true });
     } catch (error) {

@@ -1,58 +1,43 @@
 /**
  * Memory Graph Change Log Component
  *
- * Displays a real-time log of all changes to the Memory Graph
- * including creates, modifications, supersessions, links, and deletions.
+ * Displays a log of all changes to the Memory Graph with tag-based filters,
+ * search, stats panel, and export functionality - matching the All Events viewer style.
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   RefreshCw,
   ChevronDown,
-  ChevronRight,
+  ChevronUp,
   Filter,
   Clock,
   User,
   Bot,
   Zap,
   Undo2,
+  Search,
+  Download,
+  Plus,
+  Edit3,
+  Link2,
+  Unlink,
+  Trash2,
+  RotateCcw,
+  Loader2,
 } from "lucide-react";
+import clsx from "clsx";
+import {
+  useMemoryGraphChanges,
+  useMemoryGraphStats,
+  type ChangeType,
+  type TriggerType,
+  type GraphChangeEntry,
+} from "../../hooks/useMemoryGraphChanges";
 
 // ============================================================================
 // Types
 // ============================================================================
-
-export type ChangeType =
-  | "created"
-  | "modified"
-  | "superseded"
-  | "linked"
-  | "unlinked"
-  | "deleted";
-
-export type TriggerType =
-  | "user"
-  | "ai_auto"
-  | "ai_confirmed"
-  | "cascade"
-  | "system";
-
-export interface GraphChangeEntry {
-  id: string;
-  timestamp: string;
-  changeType: ChangeType;
-  blockId: string;
-  blockType: string;
-  blockLabel?: string;
-  propertyChanged?: string;
-  oldValue?: string;
-  newValue?: string;
-  triggeredBy: TriggerType;
-  contextSource: string;
-  sessionId: string;
-  cascadeDepth: number;
-  affectedBlocks?: string[];
-}
 
 export interface MemoryGraphChangeLogProps {
   sessionId?: string;
@@ -62,40 +47,68 @@ export interface MemoryGraphChangeLogProps {
 }
 
 // ============================================================================
-// Helper Functions
+// Constants
 // ============================================================================
 
-function getChangeTypeColor(type: ChangeType): string {
-  switch (type) {
-    case "created":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-    case "modified":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-    case "superseded":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-    case "linked":
-      return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
-    case "unlinked":
-      return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-    case "deleted":
-      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-    default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
-  }
-}
+const allChangeTypes: ChangeType[] = [
+  "created",
+  "modified",
+  "superseded",
+  "linked",
+  "unlinked",
+  "deleted",
+];
+
+const allTriggerTypes: TriggerType[] = [
+  "user",
+  "ai_auto",
+  "ai_confirmed",
+  "cascade",
+  "system",
+];
+
+const changeTypeColors: Record<ChangeType, string> = {
+  created: "bg-green-100 text-green-800",
+  modified: "bg-blue-100 text-blue-800",
+  superseded: "bg-yellow-100 text-yellow-800",
+  linked: "bg-purple-100 text-purple-800",
+  unlinked: "bg-orange-100 text-orange-800",
+  deleted: "bg-red-100 text-red-800",
+};
+
+const triggerColors: Record<TriggerType, string> = {
+  user: "bg-blue-100 text-blue-800",
+  ai_auto: "bg-purple-100 text-purple-800",
+  ai_confirmed: "bg-green-100 text-green-800",
+  cascade: "bg-yellow-100 text-yellow-800",
+  system: "bg-gray-100 text-gray-800",
+};
+
+const changeTypeIcons: Record<ChangeType, typeof Plus> = {
+  created: Plus,
+  modified: Edit3,
+  superseded: RotateCcw,
+  linked: Link2,
+  unlinked: Unlink,
+  deleted: Trash2,
+};
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
 
 function getTriggerIcon(trigger: TriggerType) {
   switch (trigger) {
     case "user":
-      return <User className="w-4 h-4" />;
+      return <User className="w-3 h-3" />;
     case "ai_auto":
-      return <Bot className="w-4 h-4" />;
+      return <Bot className="w-3 h-3" />;
     case "ai_confirmed":
-      return <Bot className="w-4 h-4 text-green-500" />;
+      return <Bot className="w-3 h-3 text-green-500" />;
     case "cascade":
-      return <Zap className="w-4 h-4 text-yellow-500" />;
+      return <Zap className="w-3 h-3 text-yellow-500" />;
     case "system":
-      return <RefreshCw className="w-4 h-4" />;
+      return <RefreshCw className="w-3 h-3" />;
     default:
       return null;
   }
@@ -103,12 +116,15 @@ function getTriggerIcon(trigger: TriggerType) {
 
 function formatTimestamp(timestamp: string): string {
   const date = new Date(timestamp);
-  return date.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
+  return date.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
+    second: "2-digit",
   });
+}
+
+function formatTriggerLabel(trigger: TriggerType): string {
+  return trigger.replace(/_/g, " ");
 }
 
 // ============================================================================
@@ -125,24 +141,52 @@ function ExpandedRowContent({
   onViewBlock?: (blockId: string) => void;
 }) {
   return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        {/* Old/New Values */}
+    <td colSpan={6} className="px-4 py-3 bg-gray-50">
+      <div className="space-y-2">
+        {/* IDs */}
+        <div className="grid grid-cols-2 gap-4 text-xs">
+          <div>
+            <span className="text-gray-500">Change ID: </span>
+            <code className="text-gray-700 bg-gray-100 px-1 rounded">
+              {entry.id}
+            </code>
+          </div>
+          <div>
+            <span className="text-gray-500">Block ID: </span>
+            <code className="text-blue-700 bg-blue-50 px-1 rounded">
+              {entry.blockId}
+            </code>
+          </div>
+          <div>
+            <span className="text-gray-500">Session ID: </span>
+            <code className="text-purple-700 bg-purple-50 px-1 rounded">
+              {entry.sessionId}
+            </code>
+          </div>
+          <div>
+            <span className="text-gray-500">Context: </span>
+            <code className="text-gray-700 bg-gray-100 px-1 rounded">
+              {entry.contextSource}
+            </code>
+          </div>
+        </div>
+
+        {/* Property change details */}
         {entry.propertyChanged && (
-          <div className="col-span-2 space-y-2">
-            <h4 className="font-medium text-gray-700 dark:text-gray-300">
-              Property: {entry.propertyChanged}
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
+          <div>
+            <span className="text-xs text-gray-500">
+              Property Changed: {entry.propertyChanged}
+            </span>
+            <div className="grid grid-cols-2 gap-4 mt-1">
               <div>
-                <span className="text-xs text-gray-500">Old Value</span>
-                <pre className="mt-1 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs overflow-auto max-h-24">
+                <span className="text-xs text-gray-500">Old Value:</span>
+                <pre className="mt-1 p-2 bg-red-50 rounded text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap max-h-24">
                   {entry.oldValue || "(none)"}
                 </pre>
               </div>
               <div>
-                <span className="text-xs text-gray-500">New Value</span>
-                <pre className="mt-1 p-2 bg-green-50 dark:bg-green-900/20 rounded text-xs overflow-auto max-h-24">
+                <span className="text-xs text-gray-500">New Value:</span>
+                <pre className="mt-1 p-2 bg-green-50 rounded text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap max-h-24">
                   {entry.newValue || "(none)"}
                 </pre>
               </div>
@@ -150,69 +194,43 @@ function ExpandedRowContent({
           </div>
         )}
 
-        {/* Context */}
-        <div>
-          <span className="text-xs text-gray-500">Context Source</span>
-          <p className="mt-1 text-gray-700 dark:text-gray-300">
-            {entry.contextSource}
-          </p>
-        </div>
-
-        <div>
-          <span className="text-xs text-gray-500">Session</span>
-          <p className="mt-1 text-gray-700 dark:text-gray-300 font-mono text-xs">
-            {entry.sessionId}
-          </p>
-        </div>
-
-        {/* Cascade Info */}
+        {/* Cascade info */}
         {entry.cascadeDepth > 0 && (
-          <div className="col-span-2">
-            <span className="text-xs text-gray-500">Cascade Depth</span>
-            <p className="mt-1 text-yellow-600 dark:text-yellow-400">
-              Level {entry.cascadeDepth} (downstream effect)
-            </p>
+          <div className="flex items-center gap-2 text-xs">
+            <Zap className="w-3 h-3 text-yellow-500" />
+            <span className="text-yellow-600">
+              Cascade depth: {entry.cascadeDepth}
+            </span>
             {entry.affectedBlocks && entry.affectedBlocks.length > 0 && (
-              <div className="mt-2">
-                <span className="text-xs text-gray-500">Affected Blocks</span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {entry.affectedBlocks.map((blockId) => (
-                    <button
-                      key={blockId}
-                      onClick={() => onViewBlock?.(blockId)}
-                      className="px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs hover:bg-gray-300 dark:hover:bg-gray-600"
-                    >
-                      {blockId.slice(0, 12)}...
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <span className="text-gray-500">
+                ({entry.affectedBlocks.length} blocks affected)
+              </span>
             )}
           </div>
         )}
-      </div>
 
-      {/* Actions */}
-      <div className="flex gap-2 mt-4">
-        {onViewBlock && (
-          <button
-            className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            onClick={() => onViewBlock(entry.blockId)}
-          >
-            View Block
-          </button>
-        )}
-        {onRevert && entry.changeType !== "deleted" && (
-          <button
-            className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-yellow-600 hover:text-yellow-700 flex items-center gap-1"
-            onClick={() => onRevert(entry.id)}
-          >
-            <Undo2 className="w-4 h-4" />
-            Revert
-          </button>
-        )}
+        {/* Actions */}
+        <div className="flex gap-2 pt-2">
+          {onViewBlock && (
+            <button
+              className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+              onClick={() => onViewBlock(entry.blockId)}
+            >
+              View Block
+            </button>
+          )}
+          {onRevert && entry.changeType !== "deleted" && (
+            <button
+              className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100 transition-colors text-yellow-600 flex items-center gap-1"
+              onClick={() => onRevert(entry.id)}
+            >
+              <Undo2 className="w-3 h-3" />
+              Revert
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </td>
   );
 }
 
@@ -226,49 +244,58 @@ export function MemoryGraphChangeLog({
   onViewBlock,
   className = "",
 }: MemoryGraphChangeLogProps) {
-  const [entries, setEntries] = useState<GraphChangeEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  // Search state
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // Filters
-  const [timeRange, setTimeRange] = useState<string>("24h");
-  const [changeTypeFilter, setChangeTypeFilter] = useState<string>("all");
-  const [triggerFilter, setTriggerFilter] = useState<string>("all");
+  // Filter state
+  const [changeTypeFilter, setChangeTypeFilter] = useState<ChangeType[]>([]);
+  const [triggerFilter, setTriggerFilter] = useState<TriggerType[]>([]);
+  const [timeRange, setTimeRange] = useState("24h");
   const [showCascades, setShowCascades] = useState(true);
 
-  // Fetch entries
-  const fetchEntries = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (sessionId) params.append("sessionId", sessionId);
-      params.append("timeRange", timeRange);
-      if (changeTypeFilter !== "all")
-        params.append("changeType", changeTypeFilter);
-      if (triggerFilter !== "all") params.append("triggeredBy", triggerFilter);
-      params.append("showCascades", String(showCascades));
+  // UI state
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-      const response = await fetch(
-        `/api/observability/memory-graph/changes?${params}`,
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setEntries(data.entries || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch graph changes:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sessionId, timeRange, changeTypeFilter, triggerFilter, showCascades]);
-
+  // Debounce search
   useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  // Toggle row expansion
-  const toggleRow = useCallback((id: string) => {
-    setExpandedRows((prev) => {
+  // Fetch data
+  const { entries, loading, total, hasMore, loadMore, refresh } =
+    useMemoryGraphChanges({
+      sessionId,
+      timeRange,
+      changeType: changeTypeFilter.length > 0 ? changeTypeFilter : undefined,
+      triggeredBy: triggerFilter.length > 0 ? triggerFilter : undefined,
+      showCascades,
+      search: debouncedSearch || undefined,
+    });
+
+  // Fetch stats
+  const { stats } = useMemoryGraphStats(sessionId, timeRange);
+
+  // Toggle functions
+  const toggleChangeType = (type: ChangeType) => {
+    setChangeTypeFilter((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+    );
+  };
+
+  const toggleTrigger = (trigger: TriggerType) => {
+    setTriggerFilter((prev) =>
+      prev.includes(trigger)
+        ? prev.filter((t) => t !== trigger)
+        : [...prev, trigger],
+    );
+  };
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -279,194 +306,341 @@ export function MemoryGraphChangeLog({
     });
   }, []);
 
-  // Filtered and sorted entries
+  // Export functionality
+  const exportChanges = useCallback(() => {
+    const data = JSON.stringify(entries, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `memory-graph-changes-${new Date().toISOString()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [entries]);
+
+  // Sorted entries
   const displayEntries = useMemo(() => {
-    return entries.sort(
+    return [...entries].sort(
       (a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
   }, [entries]);
 
+  if (loading && entries.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
   return (
-    <div className={`bg-white dark:bg-gray-900 rounded-lg border ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="font-semibold text-gray-900 dark:text-white">
-          Memory Graph Change Log
-        </h3>
-        <div className="flex items-center gap-2">
-          <button
-            className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-            onClick={fetchEntries}
-            disabled={isLoading}
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+    <div className={`flex flex-col h-full ${className}`}>
+      {/* Header with stats and search */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <div>
+            <h2 className="text-lg font-medium text-gray-900">
+              Memory Graph Changes
+            </h2>
+            <p className="text-sm text-gray-500">
+              Track all modifications to the memory graph
+            </p>
+          </div>
+          {/* Inline stats */}
+          {stats && (
+            <div className="flex items-center gap-4 ml-4 pl-4 border-l border-gray-200">
+              <div className="text-center">
+                <div className="text-xl font-semibold text-gray-900">
+                  {stats.total}
+                </div>
+                <div className="text-xs text-gray-500">Total</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-semibold text-green-600">
+                  {stats.byChangeType?.created || 0}
+                </div>
+                <div className="text-xs text-gray-500">Created</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-semibold text-blue-600">
+                  {stats.byChangeType?.modified || 0}
+                </div>
+                <div className="text-xs text-gray-500">Modified</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-semibold text-yellow-600">
+                  {stats.cascadeCount || 0}
+                </div>
+                <div className="text-xs text-gray-500">Cascades</div>
+              </div>
+            </div>
+          )}
+          {/* Search */}
+          <div className="relative ml-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search changes..."
+              className="pl-9 pr-4 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48"
             />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 mr-2">
+            {entries.length}/{total}
+          </span>
+          {/* Time range selector */}
+          <select
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+            className="h-8 px-2 text-sm border border-gray-300 rounded-md bg-white"
+          >
+            <option value="1h">Last hour</option>
+            <option value="24h">Last 24h</option>
+            <option value="7d">Last 7 days</option>
+            <option value="all">All time</option>
+          </select>
+          <button
+            onClick={refresh}
+            disabled={loading}
+            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+          <button
+            onClick={exportChanges}
+            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export
           </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <Filter className="w-4 h-4 text-gray-500" />
-
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="h-8 px-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        >
-          <option value="1h">Last hour</option>
-          <option value="24h">Last 24h</option>
-          <option value="7d">Last 7 days</option>
-          <option value="all">All time</option>
-        </select>
-
-        <select
-          value={changeTypeFilter}
-          onChange={(e) => setChangeTypeFilter(e.target.value)}
-          className="h-8 px-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        >
-          <option value="all">All types</option>
-          <option value="created">Created</option>
-          <option value="modified">Modified</option>
-          <option value="superseded">Superseded</option>
-          <option value="linked">Linked</option>
-          <option value="unlinked">Unlinked</option>
-          <option value="deleted">Deleted</option>
-        </select>
-
-        <select
-          value={triggerFilter}
-          onChange={(e) => setTriggerFilter(e.target.value)}
-          className="h-8 px-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        >
-          <option value="all">All triggers</option>
-          <option value="user">User</option>
-          <option value="ai_auto">AI Auto</option>
-          <option value="ai_confirmed">AI Confirmed</option>
-          <option value="cascade">Cascade</option>
-          <option value="system">System</option>
-        </select>
-
-        <label className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 ml-2">
-          <input
-            type="checkbox"
-            checked={showCascades}
-            onChange={(e) => setShowCascades(e.target.checked)}
-            className="rounded"
-          />
-          Show cascades
-        </label>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              <th className="w-8 px-2 py-2"></th>
-              <th className="px-3 py-2 text-left font-medium text-gray-600 dark:text-gray-400">
-                <Clock className="w-4 h-4 inline mr-1" />
-                Timestamp
-              </th>
-              <th className="px-3 py-2 text-left font-medium text-gray-600 dark:text-gray-400">
-                Type
-              </th>
-              <th className="px-3 py-2 text-left font-medium text-gray-600 dark:text-gray-400">
-                Block
-              </th>
-              <th className="px-3 py-2 text-left font-medium text-gray-600 dark:text-gray-400">
-                Property
-              </th>
-              <th className="px-3 py-2 text-left font-medium text-gray-600 dark:text-gray-400">
-                Triggered By
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {displayEntries.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
-                >
-                  {isLoading
-                    ? "Loading changes..."
-                    : "No changes found for the selected filters"}
-                </td>
-              </tr>
-            ) : (
-              displayEntries.map((entry) => (
-                <React.Fragment key={entry.id}>
-                  <tr
-                    className={`hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer ${
-                      entry.cascadeDepth > 0
-                        ? "bg-yellow-50/50 dark:bg-yellow-900/10"
-                        : ""
-                    }`}
-                    onClick={() => toggleRow(entry.id)}
-                  >
-                    <td className="px-2 py-2 text-center">
-                      {expandedRows.has(entry.id) ? (
-                        <ChevronDown className="w-4 h-4 text-gray-400" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                      {formatTimestamp(entry.timestamp)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getChangeTypeColor(entry.changeType)}`}
-                      >
-                        {entry.changeType}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-col">
-                        <span className="text-gray-900 dark:text-white font-mono text-xs">
-                          {entry.blockLabel || entry.blockId.slice(0, 16)}...
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {entry.blockType}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-gray-600 dark:text-gray-400">
-                      {entry.propertyChanged || "-"}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-1">
-                        {getTriggerIcon(entry.triggeredBy)}
-                        <span className="text-gray-600 dark:text-gray-400">
-                          {entry.triggeredBy.replace("_", " ")}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                  {expandedRows.has(entry.id) && (
-                    <tr>
-                      <td colSpan={6} className="p-0">
-                        <ExpandedRowContent
-                          entry={entry}
-                          onRevert={onRevert}
-                          onViewBlock={onViewBlock}
-                        />
-                      </td>
-                    </tr>
+      {/* Main content */}
+      <div className="bg-white rounded-lg shadow flex flex-col flex-1 min-h-0 overflow-hidden">
+        {/* Filters */}
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 space-y-2">
+          {/* Change type tags */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
+              <Filter className="h-3 w-3" />
+              Type:
+            </span>
+            {allChangeTypes.map((type) => {
+              const isSelected = changeTypeFilter.includes(type);
+              const TypeIcon = changeTypeIcons[type];
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleChangeType(type)}
+                  className={clsx(
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                    isSelected
+                      ? changeTypeColors[type]
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200",
                   )}
-                </React.Fragment>
-              ))
+                >
+                  <TypeIcon className="h-3 w-3" />
+                  {type}
+                </button>
+              );
+            })}
+            {changeTypeFilter.length > 0 && (
+              <button
+                onClick={() => setChangeTypeFilter([])}
+                className="text-xs text-gray-400 hover:text-gray-600 ml-1"
+              >
+                Clear
+              </button>
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
 
-      {/* Footer */}
-      <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-        Showing {displayEntries.length} changes
+          {/* Trigger tags */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-500 font-medium">Trigger:</span>
+            {allTriggerTypes.map((trigger) => {
+              const isSelected = triggerFilter.includes(trigger);
+              return (
+                <button
+                  key={trigger}
+                  onClick={() => toggleTrigger(trigger)}
+                  className={clsx(
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                    isSelected
+                      ? triggerColors[trigger]
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200",
+                  )}
+                >
+                  {getTriggerIcon(trigger)}
+                  {formatTriggerLabel(trigger)}
+                </button>
+              );
+            })}
+            {triggerFilter.length > 0 && (
+              <button
+                onClick={() => setTriggerFilter([])}
+                className="text-xs text-gray-400 hover:text-gray-600 ml-1"
+              >
+                Clear
+              </button>
+            )}
+            {/* Cascades toggle */}
+            <label className="flex items-center gap-1 text-xs text-gray-500 ml-4">
+              <input
+                type="checkbox"
+                checked={showCascades}
+                onChange={(e) => setShowCascades(e.target.checked)}
+                className="rounded"
+              />
+              Show cascades
+            </label>
+          </div>
+        </div>
+
+        {/* Table */}
+        {displayEntries.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-8">
+            <Clock className="h-12 w-12 mb-3 text-gray-300" />
+            <p>No changes found</p>
+            <p className="text-xs mt-1 text-gray-400">
+              Changes will appear here as they occur
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-auto flex-1">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Time
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Block
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Trigger
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Details
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {displayEntries.map((entry) => {
+                  const isExpanded = expandedIds.has(entry.id);
+                  const TypeIcon = changeTypeIcons[entry.changeType];
+
+                  return (
+                    <React.Fragment key={entry.id}>
+                      <tr
+                        className={clsx(
+                          "hover:bg-gray-50 cursor-pointer",
+                          entry.cascadeDepth > 0 && "bg-yellow-50/50",
+                        )}
+                        onClick={() => toggleExpand(entry.id)}
+                      >
+                        <td className="px-4 py-2">
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                          )}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                          {formatTimestamp(entry.timestamp)}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap">
+                          <span
+                            className={clsx(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium",
+                              changeTypeColors[entry.changeType],
+                            )}
+                          >
+                            <TypeIcon className="h-3 w-3" />
+                            {entry.changeType}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-900">
+                              {entry.blockLabel || entry.blockId.slice(0, 16)}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {entry.blockType}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap">
+                          <span
+                            className={clsx(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium",
+                              triggerColors[entry.triggeredBy],
+                            )}
+                          >
+                            {getTriggerIcon(entry.triggeredBy)}
+                            {formatTriggerLabel(entry.triggeredBy)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-xs text-gray-600 max-w-md truncate">
+                          {entry.propertyChanged ? (
+                            <span>
+                              {entry.propertyChanged}:{" "}
+                              {entry.newValue?.slice(0, 40)}
+                              {(entry.newValue?.length || 0) > 40 ? "..." : ""}
+                            </span>
+                          ) : entry.cascadeDepth > 0 ? (
+                            <span className="text-yellow-600 flex items-center gap-1">
+                              <Zap className="h-3 w-3" />
+                              Cascade (depth {entry.cascadeDepth})
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr>
+                          <ExpandedRowContent
+                            entry={entry}
+                            onRevert={onRevert}
+                            onViewBlock={onViewBlock}
+                          />
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Footer with Load More */}
+        {(hasMore || entries.length > 0) && (
+          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <span className="text-sm text-gray-500">
+              {entries.length} changes loaded
+            </span>
+            {hasMore && (
+              <button
+                onClick={loadMore}
+                disabled={loading}
+                className="px-4 py-1.5 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+              >
+                {loading ? "Loading..." : "Load More"}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

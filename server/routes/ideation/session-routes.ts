@@ -23,11 +23,7 @@ import {
   IdeaType,
   ParentInfo,
 } from "./shared.js";
-import {
-  processGraphPrompt,
-  Block,
-  Link,
-} from "../../services/graph-prompt-processor.js";
+// Note: processGraphPrompt endpoint is in graph-routes.ts (uses memory_blocks table)
 
 export const sessionRouter = Router();
 
@@ -521,113 +517,8 @@ sessionRouter.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// ============================================================================
-// POST /session/:sessionId/graph/prompt
-// ============================================================================
-// Process an AI prompt for graph operations (link, filter, highlight, update)
-
-const GraphPromptSchema = z.object({
-  prompt: z.string().min(1, "prompt is required"),
-});
-
-sessionRouter.post(
-  "/:sessionId/graph/prompt",
-  async (req: Request, res: Response) => {
-    try {
-      const { sessionId } = req.params;
-
-      // Validate request body
-      const parseResult = GraphPromptSchema.safeParse(req.body);
-      if (!parseResult.success) {
-        return res.status(400).json({
-          error: "Validation error",
-          details: parseResult.error.issues,
-        });
-      }
-
-      const { prompt } = parseResult.data;
-
-      // Verify session exists
-      const session = await sessionManager.load(sessionId);
-      if (!session) {
-        return res.status(404).json({ error: "Session not found" });
-      }
-
-      // Get blocks for this session from the database
-      // Note: In Phase 8, this will come from memory_blocks table
-      // For now, we query ideation_memory_files as a proxy or use an in-memory store
-      const blocksResult = await query<{
-        id: string;
-        type: string;
-        content: string;
-        properties: string;
-        status: string;
-      }>(
-        `SELECT id,
-                COALESCE(JSON_EXTRACT(metadata, '$.type'), 'content') as type,
-                content,
-                COALESCE(JSON_EXTRACT(metadata, '$.properties'), '{}') as properties,
-                COALESCE(JSON_EXTRACT(metadata, '$.status'), 'active') as status
-         FROM ideation_memory_files
-         WHERE session_id = ?`,
-        [sessionId],
-      );
-
-      // Transform to Block format
-      const blocks: Block[] = blocksResult.map((row) => ({
-        id: row.id,
-        type: row.type || "content",
-        content: row.content || "",
-        properties:
-          typeof row.properties === "string"
-            ? JSON.parse(row.properties || "{}")
-            : row.properties || {},
-        status: (row.status as Block["status"]) || "active",
-      }));
-
-      // Get existing links (for future use)
-      const links: Link[] = [];
-
-      // Process the prompt
-      const result = await processGraphPrompt(prompt, blocks, links);
-
-      // If the action was successful and modified data, persist changes
-      if (result.action === "link_created" && result.link) {
-        // In Phase 8, we'll persist links to memory_links table
-        // For now, we emit a WebSocket event for real-time updates
-        console.log(
-          `[GraphPrompt] Created link: ${result.link.source} -> ${result.link.target}`,
-        );
-      }
-
-      if (result.action === "block_updated" && result.block) {
-        // In Phase 8, we'll update memory_blocks table
-        // For now, update ideation_memory_files if the block exists
-        if (result.block.status) {
-          await query(
-            `UPDATE ideation_memory_files
-             SET metadata = JSON_SET(COALESCE(metadata, '{}'), '$.status', ?)
-             WHERE id = ? AND session_id = ?`,
-            [result.block.status, result.block.id, sessionId],
-          );
-          await saveDb();
-        }
-        console.log(
-          `[GraphPrompt] Updated block ${result.block.id} status to ${result.block.status}`,
-        );
-      }
-
-      return res.json(result);
-    } catch (error) {
-      console.error("[GraphPrompt] Error processing prompt:", error);
-      return res.status(500).json({
-        action: "error",
-        message:
-          error instanceof Error ? error.message : "Internal server error",
-      });
-    }
-  },
-);
+// Note: POST /session/:sessionId/graph/prompt is defined in graph-routes.ts
+// (uses memory_blocks table instead of ideation_memory_files)
 
 // ============================================================================
 // GET /session/:sessionId/blocks

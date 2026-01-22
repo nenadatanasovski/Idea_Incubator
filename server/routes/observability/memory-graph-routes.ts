@@ -5,7 +5,11 @@
  */
 
 import { Router, Request, Response } from "express";
-import { query, run, saveDb } from "../../../database/db.js";
+import { query, run, saveDb, getOne } from "../../../database/db.js";
+import {
+  eventService,
+  type EventSeverity,
+} from "../../services/event-service.js";
 
 export const memoryGraphRouter = Router();
 
@@ -48,6 +52,111 @@ interface MemoryLink {
 }
 
 // ============================================================================
+// Helper function for logging graph changes (exported for use by other modules)
+// ============================================================================
+
+export type ChangeType =
+  | "created"
+  | "modified"
+  | "superseded"
+  | "linked"
+  | "unlinked"
+  | "deleted";
+
+export type TriggerType =
+  | "user"
+  | "ai_auto"
+  | "ai_confirmed"
+  | "cascade"
+  | "system";
+
+export interface LogGraphChangeParams {
+  changeType: ChangeType;
+  blockId: string;
+  blockType: string;
+  blockLabel?: string;
+  propertyChanged?: string;
+  oldValue?: string;
+  newValue?: string;
+  triggeredBy: TriggerType;
+  contextSource: string;
+  sessionId: string;
+  cascadeDepth?: number;
+  affectedBlocks?: string[];
+}
+
+function mapChangeTypeToSeverity(
+  changeType: string,
+  cascadeDepth: number,
+): EventSeverity {
+  if (cascadeDepth > 0) return "warning";
+  if (["deleted", "superseded", "unlinked"].includes(changeType))
+    return "warning";
+  return "info";
+}
+
+/**
+ * Log a change to the memory graph and emit a platform event.
+ * Use this function when creating, modifying, or deleting memory blocks.
+ */
+export async function logGraphChange(
+  params: LogGraphChangeParams,
+): Promise<string> {
+  const id = `gc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const timestamp = new Date().toISOString();
+  const cascadeDepth = params.cascadeDepth || 0;
+
+  // Insert into memory_graph_changes table
+  await run(
+    `INSERT INTO memory_graph_changes
+     (id, timestamp, change_type, block_id, block_type, block_label,
+      property_changed, old_value, new_value, triggered_by,
+      context_source, session_id, cascade_depth, affected_blocks)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      timestamp,
+      params.changeType,
+      params.blockId,
+      params.blockType,
+      params.blockLabel || null,
+      params.propertyChanged || null,
+      params.oldValue || null,
+      params.newValue || null,
+      params.triggeredBy,
+      params.contextSource,
+      params.sessionId,
+      cascadeDepth,
+      params.affectedBlocks ? JSON.stringify(params.affectedBlocks) : null,
+    ],
+  );
+
+  // Emit platform event for All Events viewer
+  const severity = mapChangeTypeToSeverity(params.changeType, cascadeDepth);
+  await eventService.emitEvent({
+    type: `graph:${params.changeType}`,
+    source: "memory-graph",
+    severity,
+    sessionId: params.sessionId,
+    payload: {
+      changeId: id,
+      blockId: params.blockId,
+      blockType: params.blockType,
+      blockLabel: params.blockLabel,
+      propertyChanged: params.propertyChanged,
+      oldValue: params.oldValue,
+      newValue: params.newValue,
+      triggeredBy: params.triggeredBy,
+      contextSource: params.contextSource,
+      cascadeDepth,
+      affectedBlocks: params.affectedBlocks,
+    },
+  });
+
+  return id;
+}
+
+// ============================================================================
 // GET /observability/memory-graph/changes
 // ============================================================================
 // Fetch change log entries with filtering
@@ -60,7 +169,13 @@ memoryGraphRouter.get("/changes", async (req: Request, res: Response) => {
       changeType,
       triggeredBy,
       showCascades = "true",
+      search,
+      limit = "50",
+      offset = "0",
     } = req.query;
+
+    const parsedLimit = Math.min(parseInt(limit as string) || 50, 500);
+    const parsedOffset = parseInt(offset as string) || 0;
 
     // Build time filter
     let timeFilter = "";
@@ -109,20 +224,42 @@ memoryGraphRouter.get("/changes", async (req: Request, res: Response) => {
     }
 
     if (changeType && changeType !== "all") {
-      sql += ` AND gc.change_type = ?`;
-      params.push(changeType as string);
+      // Support comma-separated change types
+      const types = (changeType as string).split(",");
+      const placeholders = types.map(() => "?").join(",");
+      sql += ` AND gc.change_type IN (${placeholders})`;
+      params.push(...types);
     }
 
     if (triggeredBy && triggeredBy !== "all") {
-      sql += ` AND gc.triggered_by = ?`;
-      params.push(triggeredBy as string);
+      // Support comma-separated trigger types
+      const triggers = (triggeredBy as string).split(",");
+      const placeholders = triggers.map(() => "?").join(",");
+      sql += ` AND gc.triggered_by IN (${placeholders})`;
+      params.push(...triggers);
     }
 
     if (showCascades === "false") {
       sql += ` AND gc.cascade_depth = 0`;
     }
 
-    sql += ` ORDER BY gc.timestamp DESC LIMIT 500`;
+    // Add search filter
+    if (search && typeof search === "string") {
+      sql += ` AND (gc.block_label LIKE ? OR gc.block_id LIKE ? OR gc.property_changed LIKE ? OR gc.context_source LIKE ?)`;
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern, searchPattern, searchPattern);
+    }
+
+    // Get total count before pagination
+    const countSql = sql.replace(
+      /SELECT[\s\S]*?FROM/,
+      "SELECT COUNT(*) as count FROM",
+    );
+    const countResult = await getOne<{ count: number }>(countSql, params);
+    const total = countResult?.count || 0;
+
+    sql += ` ORDER BY gc.timestamp DESC LIMIT ? OFFSET ?`;
+    params.push(parsedLimit, parsedOffset);
 
     const entries = await query<GraphChangeEntry>(sql, params);
 
@@ -146,7 +283,13 @@ memoryGraphRouter.get("/changes", async (req: Request, res: Response) => {
         : null,
     }));
 
-    return res.json({ entries: formattedEntries });
+    return res.json({
+      entries: formattedEntries,
+      total,
+      limit: parsedLimit,
+      offset: parsedOffset,
+      hasMore: parsedOffset + formattedEntries.length < total,
+    });
   } catch (error) {
     console.error("Error fetching graph changes:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -251,6 +394,85 @@ memoryGraphRouter.get("/health", async (req: Request, res: Response) => {
 });
 
 // ============================================================================
+// GET /observability/memory-graph/changes/stats
+// ============================================================================
+// Get statistics for memory graph changes
+
+memoryGraphRouter.get("/changes/stats", async (req: Request, res: Response) => {
+  try {
+    const { sessionId, timeRange = "24h" } = req.query;
+
+    // Build time filter
+    let timeFilter = "";
+    const now = new Date();
+    switch (timeRange) {
+      case "1h":
+        timeFilter = `AND timestamp >= datetime('${new Date(now.getTime() - 60 * 60 * 1000).toISOString()}')`;
+        break;
+      case "24h":
+        timeFilter = `AND timestamp >= datetime('${new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()}')`;
+        break;
+      case "7d":
+        timeFilter = `AND timestamp >= datetime('${new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()}')`;
+        break;
+      default:
+        timeFilter = "";
+    }
+
+    let sessionFilter = "";
+    const params: string[] = [];
+    if (sessionId && typeof sessionId === "string") {
+      sessionFilter = "AND session_id = ?";
+      params.push(sessionId);
+    }
+
+    // Get total count
+    const totalResult = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM memory_graph_changes WHERE 1=1 ${timeFilter} ${sessionFilter}`,
+      params,
+    );
+
+    // Get counts by change type
+    const byChangeType = await query<{ change_type: string; count: number }>(
+      `SELECT change_type, COUNT(*) as count
+       FROM memory_graph_changes
+       WHERE 1=1 ${timeFilter} ${sessionFilter}
+       GROUP BY change_type`,
+      params,
+    );
+
+    // Get counts by trigger
+    const byTrigger = await query<{ triggered_by: string; count: number }>(
+      `SELECT triggered_by, COUNT(*) as count
+       FROM memory_graph_changes
+       WHERE 1=1 ${timeFilter} ${sessionFilter}
+       GROUP BY triggered_by`,
+      params,
+    );
+
+    // Get cascade count
+    const cascadeResult = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM memory_graph_changes WHERE cascade_depth > 0 ${timeFilter} ${sessionFilter}`,
+      params,
+    );
+
+    return res.json({
+      total: totalResult?.count || 0,
+      byChangeType: Object.fromEntries(
+        byChangeType.map((r) => [r.change_type, r.count]),
+      ),
+      byTrigger: Object.fromEntries(
+        byTrigger.map((r) => [r.triggered_by, r.count]),
+      ),
+      cascadeCount: cascadeResult?.count || 0,
+    });
+  } catch (error) {
+    console.error("Error fetching graph change stats:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ============================================================================
 // POST /observability/memory-graph/changes
 // ============================================================================
 // Log a change to the memory graph (internal use)
@@ -272,36 +494,25 @@ memoryGraphRouter.post("/changes", async (req: Request, res: Response) => {
       affectedBlocks,
     } = req.body;
 
-    const id = `gc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const timestamp = new Date().toISOString();
-
-    await run(
-      `INSERT INTO memory_graph_changes
-       (id, timestamp, change_type, block_id, block_type, block_label,
-        property_changed, old_value, new_value, triggered_by,
-        context_source, session_id, cascade_depth, affected_blocks)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id,
-        timestamp,
-        changeType,
-        blockId,
-        blockType,
-        blockLabel || null,
-        propertyChanged || null,
-        oldValue || null,
-        newValue || null,
-        triggeredBy,
-        contextSource,
-        sessionId,
-        cascadeDepth,
-        affectedBlocks ? JSON.stringify(affectedBlocks) : null,
-      ],
-    );
+    // Use the helper function to log the change
+    const id = await logGraphChange({
+      changeType,
+      blockId,
+      blockType,
+      blockLabel,
+      propertyChanged,
+      oldValue,
+      newValue,
+      triggeredBy,
+      contextSource,
+      sessionId,
+      cascadeDepth,
+      affectedBlocks,
+    });
 
     await saveDb();
 
-    return res.json({ id, timestamp });
+    return res.json({ id, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error("Error logging graph change:", error);
     return res.status(500).json({ error: "Internal server error" });

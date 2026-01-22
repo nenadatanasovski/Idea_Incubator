@@ -12,7 +12,8 @@ export type EventSource =
   | "build-agent"
   | "websocket"
   | "telegram"
-  | "monitoring";
+  | "monitoring"
+  | "memory-graph";
 
 export type EventSeverity = "info" | "warning" | "error" | "critical";
 
