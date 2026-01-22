@@ -515,11 +515,6 @@ export function GraphCanvas({
           },
         }}
       />
-
-      {/* Node Count Badge */}
-      <div className="absolute bottom-4 left-4 z-10 px-3 py-1 bg-white dark:bg-gray-800 rounded-full shadow-md text-xs text-gray-600 dark:text-gray-300">
-        {nodes.length} nodes, {edges.length} edges
-      </div>
     </div>
   );
 }

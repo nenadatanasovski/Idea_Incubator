@@ -39,6 +39,10 @@ export interface GraphContainerProps {
   // Recently added items (for animation highlighting)
   recentlyAddedNodeIds?: Set<string>;
   recentlyAddedEdgeIds?: Set<string>;
+  // Memory Graph Update
+  onUpdateMemoryGraph?: () => void;
+  isAnalyzingGraph?: boolean;
+  pendingGraphChanges?: number;
 }
 
 /**
@@ -121,6 +125,9 @@ export function GraphContainer({
   isStale = false,
   recentlyAddedNodeIds,
   recentlyAddedEdgeIds,
+  onUpdateMemoryGraph,
+  isAnalyzingGraph = false,
+  pendingGraphChanges = 0,
 }: GraphContainerProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
@@ -260,6 +267,44 @@ export function GraphContainer({
           className="h-full"
         />
 
+        {/* Analyzing Overlay */}
+        {isAnalyzingGraph && (
+          <div
+            className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-20"
+            data-testid="graph-analyzing-overlay"
+          >
+            <div className="bg-white rounded-xl shadow-2xl p-8 flex flex-col items-center gap-4">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <svg
+                    className="w-8 h-8 text-purple-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    {/* Brain icon */}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Analyzing Conversation
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Extracting insights and proposed graph updates...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Mobile Filter Toggle */}
         {showFilters && (
           <button
@@ -333,7 +378,7 @@ export function GraphContainer({
 
         {/* Top Controls Bar - Using GraphControls component */}
         {showControls && (
-          <div className="absolute top-4 right-4 z-10">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
             <GraphControls
               onRefresh={onRefresh}
               isRefreshing={isRefreshing}
@@ -341,6 +386,9 @@ export function GraphContainer({
               isStale={isStale}
               isConnected={isConnected}
               isReconnecting={isReconnecting}
+              onUpdateMemoryGraph={onUpdateMemoryGraph}
+              isAnalyzingGraph={isAnalyzingGraph}
+              pendingGraphChanges={pendingGraphChanges}
               showZoomControls={false}
               showLayoutControls={false}
             />
@@ -364,40 +412,39 @@ export function GraphContainer({
           </div>
         )}
 
-        {/* Filter stats badge */}
-        {hasActiveFilters && (
-          <div className="absolute bottom-4 left-4 z-10 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs flex items-center gap-2">
-            <span>
-              Showing {filteredNodes.length} of {nodes.length} nodes
-            </span>
-            <button
-              onClick={resetFilters}
-              className="hover:text-blue-900 dark:hover:text-blue-100"
-              title="Clear filters"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+        {/* Stats badge - single container to prevent overlap */}
+        <div className="absolute bottom-4 left-4 z-10">
+          {hasActiveFilters ? (
+            <div className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs flex items-center gap-2">
+              <span>
+                Showing {filteredNodes.length} of {nodes.length} nodes
+              </span>
+              <button
+                onClick={resetFilters}
+                className="hover:text-blue-900 dark:hover:text-blue-100"
+                title="Clear filters"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {/* Node count badge (when no filters active) */}
-        {!hasActiveFilters && (
-          <div className="absolute bottom-4 left-4 z-10 px-3 py-1 bg-white dark:bg-gray-800 rounded-full shadow-md text-xs text-gray-600 dark:text-gray-300">
-            {nodes.length} nodes, {edges.length} edges
-          </div>
-        )}
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <div className="px-3 py-1 bg-white dark:bg-gray-800 rounded-full shadow-md text-xs text-gray-600 dark:text-gray-300">
+              {nodes.length} nodes, {edges.length} edges
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Inspector Panel (right side)

@@ -43,6 +43,68 @@ export interface ClassificationInfo {
 }
 
 // -----------------------------------------------------------------------------
+// Memory Graph State (for Update Memory Graph button)
+// -----------------------------------------------------------------------------
+
+export interface ProposedChange {
+  id: string;
+  type: "create_block" | "update_block" | "create_link";
+  blockType?: string;
+  content: string;
+  graphMembership?: string[];
+  confidence: number;
+  sourceMessageId?: string;
+}
+
+export interface CascadeEffect {
+  id: string;
+  affectedBlockId: string;
+  affectedBlockContent: string;
+  effectType: "confidence_change" | "status_change" | "link_invalidation";
+  description: string;
+  severity: "low" | "medium" | "high";
+}
+
+export interface GraphNode {
+  id: string;
+  type: string;
+  content: string;
+  isNew?: boolean;
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  linkType: string;
+  isNew?: boolean;
+}
+
+export interface GraphUpdateAnalysis {
+  context: {
+    who: string;
+    what: string;
+    when: string;
+    where: string;
+    why: string;
+  };
+  proposedChanges: ProposedChange[];
+  cascadeEffects: CascadeEffect[];
+  previewNodes: GraphNode[];
+  previewEdges: GraphEdge[];
+}
+
+export interface MemoryGraphState {
+  pendingChangesCount: number;
+  isAnalyzing: boolean;
+  isModalOpen: boolean;
+  analysis: GraphUpdateAnalysis | null;
+  selectedChangeIds: string[];
+  isApplying: boolean;
+  error: string | null;
+}
+
+// -----------------------------------------------------------------------------
 // Session State
 // -----------------------------------------------------------------------------
 
@@ -122,6 +184,7 @@ export interface IdeationStore {
   artifacts: ArtifactState;
   subAgents: SubAgentsState;
   spec: SpecState;
+  memoryGraph: MemoryGraphState;
 }
 
 // -----------------------------------------------------------------------------
@@ -233,4 +296,24 @@ export type IdeationAction =
       type: "SPEC_WORKFLOW_TRANSITION";
       payload: { newState: SpecWorkflowState };
     }
-  | { type: "SPEC_CLEAR" };
+  | { type: "SPEC_CLEAR" }
+  // Memory Graph actions
+  | { type: "MEMORY_GRAPH_ANALYSIS_START" }
+  | {
+      type: "MEMORY_GRAPH_ANALYSIS_COMPLETE";
+      payload: { analysis: GraphUpdateAnalysis };
+    }
+  | { type: "MEMORY_GRAPH_ANALYSIS_ERROR"; payload: { error: string } }
+  | { type: "MEMORY_GRAPH_MODAL_OPEN" }
+  | { type: "MEMORY_GRAPH_MODAL_CLOSE" }
+  | {
+      type: "MEMORY_GRAPH_CHANGES_SELECT";
+      payload: { changeIds: string[] };
+    }
+  | { type: "MEMORY_GRAPH_APPLY_START" }
+  | { type: "MEMORY_GRAPH_APPLY_COMPLETE" }
+  | { type: "MEMORY_GRAPH_APPLY_ERROR"; payload: { error: string } }
+  | {
+      type: "MEMORY_GRAPH_PENDING_COUNT_UPDATE";
+      payload: { count: number };
+    };

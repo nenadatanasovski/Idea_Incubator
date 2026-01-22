@@ -19,6 +19,11 @@ export interface GraphControlsProps {
   lastUpdated?: string | null;
   isStale?: boolean;
 
+  // Memory Graph Update
+  onUpdateMemoryGraph?: () => void;
+  isAnalyzingGraph?: boolean;
+  pendingGraphChanges?: number;
+
   // WebSocket status
   isConnected?: boolean;
   isReconnecting?: boolean;
@@ -95,6 +100,9 @@ export function GraphControls({
   isRefreshing = false,
   lastUpdated,
   isStale = false,
+  onUpdateMemoryGraph,
+  isAnalyzingGraph = false,
+  pendingGraphChanges = 0,
   isConnected,
   isReconnecting = false,
   onZoomIn,
@@ -335,6 +343,56 @@ export function GraphControls({
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {formatTimestamp(lastUpdated)}
           </span>
+        )}
+
+        {/* Update Memory Graph Button */}
+        {onUpdateMemoryGraph && (
+          <button
+            onClick={onUpdateMemoryGraph}
+            disabled={isAnalyzingGraph}
+            className={`relative p-1.5 rounded transition-colors ${
+              isAnalyzingGraph
+                ? "bg-purple-100 dark:bg-purple-900/30 cursor-not-allowed"
+                : pendingGraphChanges > 0
+                  ? "bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-800/40"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+            }`}
+            title={
+              isAnalyzingGraph
+                ? "Analyzing..."
+                : pendingGraphChanges > 0
+                  ? `Update Memory Graph (${pendingGraphChanges} pending)`
+                  : "Update Memory Graph"
+            }
+            data-testid="update-memory-graph-btn"
+          >
+            <svg
+              className={`w-4 h-4 ${
+                isAnalyzingGraph
+                  ? "animate-pulse text-purple-600 dark:text-purple-400"
+                  : pendingGraphChanges > 0
+                    ? "text-purple-600 dark:text-purple-400"
+                    : "text-gray-600 dark:text-gray-300"
+              }`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              {/* Brain icon */}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              />
+            </svg>
+            {/* Badge for pending changes */}
+            {pendingGraphChanges > 0 && !isAnalyzingGraph && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                {pendingGraphChanges > 9 ? "9+" : pendingGraphChanges}
+              </span>
+            )}
+          </button>
         )}
 
         {/* Refresh Button */}

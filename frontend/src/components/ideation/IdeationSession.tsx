@@ -12,6 +12,7 @@ import { GraphTabPanel } from "./GraphTabPanel";
 import { ProjectFilesPanel } from "./ProjectFilesPanel";
 import { SpecViewPanel } from "./SpecViewPanel";
 import { IdeaTypeModal, type IdeaTypeValue } from "./IdeaTypeModal";
+import { UpdateMemoryGraphModal } from "./UpdateMemoryGraphModal";
 import { useIdeationAPI } from "../../hooks/useIdeationAPI";
 import { useSpec } from "../../hooks/useSpec";
 import { useReadiness } from "../../hooks/useReadiness";
@@ -1679,6 +1680,114 @@ export function IdeationSession({
     }
   }, [state.session.sessionId, api, onComplete]);
 
+  // Handle memory graph analysis
+  const handleAnalyzeGraph = useCallback(async () => {
+    if (!state.session.sessionId) return;
+
+    dispatch({ type: "MEMORY_GRAPH_ANALYSIS_START" });
+
+    try {
+      const analysis = await api.analyzeGraphChanges(state.session.sessionId);
+      dispatch({
+        type: "MEMORY_GRAPH_ANALYSIS_COMPLETE",
+        payload: { analysis },
+      });
+    } catch (error) {
+      dispatch({
+        type: "MEMORY_GRAPH_ANALYSIS_ERROR",
+        payload: {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to analyze graph changes",
+        },
+      });
+      setToast({
+        message: "Failed to analyze graph changes",
+        type: "error",
+      });
+      setTimeout(() => setToast(null), 3000);
+    }
+  }, [state.session.sessionId, api]);
+
+  // Handle applying selected graph changes
+  const handleApplyGraphChanges = useCallback(async () => {
+    if (!state.session.sessionId) return;
+    if (!state.memoryGraph.analysis) return;
+
+    dispatch({ type: "MEMORY_GRAPH_APPLY_START" });
+
+    try {
+      const result = await api.applyGraphChanges(
+        state.session.sessionId,
+        state.memoryGraph.selectedChangeIds,
+        state.memoryGraph.analysis.proposedChanges, // Pass the actual changes data
+      );
+      dispatch({ type: "MEMORY_GRAPH_APPLY_COMPLETE" });
+      setToast({
+        message: `Graph updated: ${result.blocksCreated} blocks, ${result.linksCreated} links created`,
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 3000);
+      // Refresh the graph tab count
+      setGraphUpdateCount((prev) => prev + result.blocksCreated);
+    } catch (error) {
+      dispatch({
+        type: "MEMORY_GRAPH_APPLY_ERROR",
+        payload: {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to apply graph changes",
+        },
+      });
+    }
+  }, [
+    state.session.sessionId,
+    state.memoryGraph.selectedChangeIds,
+    state.memoryGraph.analysis,
+    api,
+  ]);
+
+  // Handle toggling a proposed change selection
+  const handleToggleGraphChange = useCallback(
+    (changeId: string) => {
+      const currentSelected = state.memoryGraph.selectedChangeIds;
+      const newSelected = currentSelected.includes(changeId)
+        ? currentSelected.filter((id) => id !== changeId)
+        : [...currentSelected, changeId];
+      dispatch({
+        type: "MEMORY_GRAPH_CHANGES_SELECT",
+        payload: { changeIds: newSelected },
+      });
+    },
+    [state.memoryGraph.selectedChangeIds],
+  );
+
+  // Handle selecting all proposed changes
+  const handleSelectAllGraphChanges = useCallback(() => {
+    if (!state.memoryGraph.analysis) return;
+    dispatch({
+      type: "MEMORY_GRAPH_CHANGES_SELECT",
+      payload: {
+        changeIds: state.memoryGraph.analysis.proposedChanges.map((c) => c.id),
+      },
+    });
+  }, [state.memoryGraph.analysis]);
+
+  // Handle selecting no proposed changes
+  const handleSelectNoGraphChanges = useCallback(() => {
+    dispatch({
+      type: "MEMORY_GRAPH_CHANGES_SELECT",
+      payload: { changeIds: [] },
+    });
+  }, []);
+
+  // Handle closing the memory graph modal
+  const handleCloseGraphModal = useCallback(() => {
+    dispatch({ type: "MEMORY_GRAPH_MODAL_CLOSE" });
+  }, []);
+
   // Handle save for later
   const handleSave = useCallback(async () => {
     console.log("[handleSave] Called, sessionId:", state.session.sessionId);
@@ -2082,6 +2191,9 @@ export function IdeationSession({
             ideaSlug={state.artifacts.linkedIdea?.ideaSlug}
             isVisible={activeTab === "graph"}
             onUpdateCount={handleGraphUpdateCount}
+            onUpdateMemoryGraph={handleAnalyzeGraph}
+            isAnalyzingGraph={state.memoryGraph.isAnalyzing}
+            pendingGraphChanges={state.memoryGraph.pendingChangesCount}
           />
 
           {/* Files Tab Panel (T9.1, T9.2) */}
@@ -2256,6 +2368,20 @@ export function IdeationSession({
         userSlug={profileId}
         onClose={() => setShowIdeaTypeModal(false)}
         onSubmit={handleCreateIdea}
+      />
+
+      {/* Memory Graph Update Modal */}
+      <UpdateMemoryGraphModal
+        isOpen={state.memoryGraph.isModalOpen}
+        analysis={state.memoryGraph.analysis}
+        selectedChangeIds={state.memoryGraph.selectedChangeIds}
+        isApplying={state.memoryGraph.isApplying}
+        error={state.memoryGraph.error}
+        onClose={handleCloseGraphModal}
+        onToggleChange={handleToggleGraphChange}
+        onSelectAll={handleSelectAllGraphChanges}
+        onSelectNone={handleSelectNoGraphChanges}
+        onApply={handleApplyGraphChanges}
       />
     </div>
   );

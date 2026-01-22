@@ -69,6 +69,15 @@ export const initialState: IdeationStore = {
     isSaving: false,
     error: null,
   },
+  memoryGraph: {
+    pendingChangesCount: 0,
+    isAnalyzing: false,
+    isModalOpen: false,
+    analysis: null,
+    selectedChangeIds: [],
+    isApplying: false,
+    error: null,
+  },
 };
 
 export function ideationReducer(
@@ -891,6 +900,117 @@ export function ideationReducer(
           isEditing: false,
           isSaving: false,
           error: null,
+        },
+      };
+
+    // =========================================================================
+    // Memory Graph Actions
+    // =========================================================================
+    case "MEMORY_GRAPH_ANALYSIS_START":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isAnalyzing: true,
+          error: null,
+        },
+      };
+
+    case "MEMORY_GRAPH_ANALYSIS_COMPLETE":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isAnalyzing: false,
+          analysis: action.payload.analysis,
+          isModalOpen: true,
+          selectedChangeIds: action.payload.analysis.proposedChanges.map(
+            (c) => c.id,
+          ),
+          error: null,
+        },
+      };
+
+    case "MEMORY_GRAPH_ANALYSIS_ERROR":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isAnalyzing: false,
+          error: action.payload.error,
+        },
+      };
+
+    case "MEMORY_GRAPH_MODAL_OPEN":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isModalOpen: true,
+        },
+      };
+
+    case "MEMORY_GRAPH_MODAL_CLOSE":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isModalOpen: false,
+          analysis: null,
+          selectedChangeIds: [],
+          error: null,
+        },
+      };
+
+    case "MEMORY_GRAPH_CHANGES_SELECT":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          selectedChangeIds: action.payload.changeIds,
+        },
+      };
+
+    case "MEMORY_GRAPH_APPLY_START":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isApplying: true,
+          error: null,
+        },
+      };
+
+    case "MEMORY_GRAPH_APPLY_COMPLETE":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isApplying: false,
+          isModalOpen: false,
+          analysis: null,
+          selectedChangeIds: [],
+          pendingChangesCount: 0,
+          error: null,
+        },
+      };
+
+    case "MEMORY_GRAPH_APPLY_ERROR":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isApplying: false,
+          error: action.payload.error,
+        },
+      };
+
+    case "MEMORY_GRAPH_PENDING_COUNT_UPDATE":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          pendingChangesCount: action.payload.count,
         },
       };
 

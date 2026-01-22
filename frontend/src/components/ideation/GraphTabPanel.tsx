@@ -115,6 +115,10 @@ export interface GraphTabPanelProps {
   onNodeSelect?: (node: GraphNode | null) => void;
   onUpdateCount?: (count: number) => void;
   className?: string;
+  // Memory Graph Update
+  onUpdateMemoryGraph?: () => void;
+  isAnalyzingGraph?: boolean;
+  pendingGraphChanges?: number;
 }
 
 /**
@@ -142,6 +146,9 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   onNodeSelect,
   onUpdateCount,
   className = "",
+  onUpdateMemoryGraph,
+  isAnalyzingGraph = false,
+  pendingGraphChanges = 0,
 }: GraphTabPanelProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
@@ -321,17 +328,16 @@ export const GraphTabPanel = memo(function GraphTabPanel({
     showUpdateConfirmation,
   ]);
 
-  // Don't render content when not visible (preserve state)
-  if (!isVisible) {
-    return null;
-  }
+  // Keep component mounted but hidden when not visible (T6.1.3 - preserve filter state)
+  // Using CSS to hide instead of returning null preserves all state including filters
 
   return (
     <div
-      className={`flex flex-col h-full flex-1 min-w-0 ${className}`}
+      className={`flex flex-col h-full flex-1 min-w-0 ${className} ${!isVisible ? "hidden" : ""}`}
       role="tabpanel"
       id="graph-panel"
       aria-labelledby="graph-tab"
+      aria-hidden={!isVisible}
       data-testid="graph-panel"
     >
       {/* Graph Prompt Input */}
@@ -371,6 +377,9 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               isStale={isStale}
               recentlyAddedNodeIds={recentlyAddedNodeIds}
               recentlyAddedEdgeIds={recentlyAddedEdgeIds}
+              onUpdateMemoryGraph={onUpdateMemoryGraph}
+              isAnalyzingGraph={isAnalyzingGraph}
+              pendingGraphChanges={pendingGraphChanges}
               className="h-full"
             />
           </Suspense>

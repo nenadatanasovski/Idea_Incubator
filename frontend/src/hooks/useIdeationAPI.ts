@@ -17,6 +17,7 @@ import type {
   IdeaCandidate,
   ViabilityRisk,
 } from "../types";
+import type { GraphUpdateAnalysis } from "../types/ideation-state";
 
 const API_BASE = "/api/ideation";
 
@@ -614,6 +615,86 @@ export function useIdeationAPI() {
     [],
   );
 
+  /**
+   * Analyze session for potential graph updates.
+   * Uses AI to extract proposed blocks and links from conversation.
+   */
+  const analyzeGraphChanges = useCallback(
+    async (sessionId: string): Promise<GraphUpdateAnalysis> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/graph/analyze-changes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to analyze graph changes" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to analyze graph changes",
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  /**
+   * Apply selected graph changes to the memory graph.
+   */
+  const applyGraphChanges = useCallback(
+    async (
+      sessionId: string,
+      changeIds: string[],
+      changes?: Array<{
+        id: string;
+        type: "create_block" | "update_block" | "create_link";
+        blockType?: string;
+        content: string;
+        graphMembership?: string[];
+        confidence?: number;
+        sourceMessageId?: string;
+        sourceBlockId?: string;
+        targetBlockId?: string;
+        linkType?: string;
+      }>,
+    ): Promise<{
+      success: boolean;
+      blocksCreated: number;
+      linksCreated: number;
+      blocksUpdated: number;
+    }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/graph/apply-changes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ changeIds, changes }),
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to apply graph changes" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to apply graph changes",
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
   return useMemo(
     () => ({
       startSession,
@@ -634,6 +715,8 @@ export function useIdeationAPI() {
       updateCandidate,
       linkIdea,
       triggerFollowUp,
+      analyzeGraphChanges,
+      applyGraphChanges,
     }),
     [
       startSession,
@@ -654,6 +737,8 @@ export function useIdeationAPI() {
       updateCandidate,
       linkIdea,
       triggerFollowUp,
+      analyzeGraphChanges,
+      applyGraphChanges,
     ],
   );
 }

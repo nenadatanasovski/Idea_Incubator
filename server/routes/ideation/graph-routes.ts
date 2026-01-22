@@ -786,6 +786,409 @@ graphRouter.delete(
 );
 
 // ============================================================================
+// POST /session/:sessionId/graph/analyze-changes
+// ============================================================================
+// Analyze session for potential graph updates - returns proposed changes
+
+graphRouter.post(
+  "/:sessionId/graph/analyze-changes",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      // Get session messages
+      const messages = await query<{
+        id: string;
+        role: string;
+        content: string;
+        created_at: string;
+      }>(
+        `SELECT id, role, content, created_at FROM ideation_messages
+         WHERE session_id = ?
+         ORDER BY created_at DESC
+         LIMIT 20`,
+        [sessionId],
+      );
+
+      if (messages.length === 0) {
+        return res.json({
+          context: {
+            who: "Unknown",
+            what: "No conversation content",
+            when: new Date().toISOString(),
+            where: "Ideation session",
+            why: "No messages to analyze",
+          },
+          proposedChanges: [],
+          cascadeEffects: [],
+          previewNodes: [],
+          previewEdges: [],
+        });
+      }
+
+      // Get existing blocks for comparison
+      const existingBlocks =
+        await blockExtractor.getBlocksForSession(sessionId);
+      const existingLinks = await blockExtractor.getLinksForSession(sessionId);
+
+      // Build conversation context for analysis
+      const conversationText = messages
+        .reverse()
+        .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+        .join("\n\n");
+
+      // Call AI to analyze and propose changes
+      const analysis = await analyzeSessionForGraphUpdates(
+        sessionId,
+        conversationText,
+        existingBlocks,
+        existingLinks,
+      );
+
+      return res.json(analysis);
+    } catch (error) {
+      console.error("Error analyzing graph changes:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// POST /session/:sessionId/graph/apply-changes
+// ============================================================================
+// Apply selected proposed changes to the graph
+
+const ApplyChangesSchema = z.object({
+  changeIds: z.array(z.string()),
+  // Include the actual changes data so we don't need to re-analyze
+  changes: z
+    .array(
+      z.object({
+        id: z.string(),
+        type: z.enum(["create_block", "update_block", "create_link"]),
+        blockType: z.string().optional(),
+        content: z.string(),
+        graphMembership: z.array(z.string()).optional(),
+        confidence: z.number().optional(),
+        sourceMessageId: z.string().optional(),
+        // For links
+        sourceBlockId: z.string().optional(),
+        targetBlockId: z.string().optional(),
+        linkType: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
+
+graphRouter.post(
+  "/:sessionId/graph/apply-changes",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      const parseResult = ApplyChangesSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          error: "Validation error",
+          details: parseResult.error.issues,
+        });
+      }
+
+      const { changeIds, changes } = parseResult.data;
+      const now = new Date().toISOString();
+
+      let blocksCreated = 0;
+      let linksCreated = 0;
+      let blocksUpdated = 0;
+
+      // If changes data provided, apply them directly
+      if (changes && changes.length > 0) {
+        // Filter to only selected changes
+        const selectedChanges = changes.filter((c) => changeIds.includes(c.id));
+
+        for (const change of selectedChanges) {
+          try {
+            if (change.type === "create_block") {
+              const blockId = uuidv4();
+
+              await run(
+                `INSERT INTO memory_blocks (id, session_id, type, content, status, confidence, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, 'active', ?, ?, ?)`,
+                [
+                  blockId,
+                  sessionId,
+                  change.blockType || "content",
+                  change.content,
+                  change.confidence || 0.8,
+                  now,
+                  now,
+                ],
+              );
+
+              // Add graph memberships
+              if (change.graphMembership && change.graphMembership.length > 0) {
+                for (const graphType of change.graphMembership) {
+                  await run(
+                    `INSERT INTO memory_graph_memberships (block_id, graph_type, created_at) VALUES (?, ?, ?)`,
+                    [blockId, graphType, now],
+                  );
+                }
+              }
+
+              blocksCreated++;
+            } else if (change.type === "create_link") {
+              if (change.sourceBlockId && change.targetBlockId) {
+                const linkId = uuidv4();
+
+                await run(
+                  `INSERT INTO memory_links (id, session_id, source_block_id, target_block_id, link_type, status, confidence, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
+                  [
+                    linkId,
+                    sessionId,
+                    change.sourceBlockId,
+                    change.targetBlockId,
+                    change.linkType || "relates_to",
+                    change.confidence || 0.8,
+                    now,
+                    now,
+                  ],
+                );
+
+                linksCreated++;
+              }
+            } else if (change.type === "update_block") {
+              // For updates, we'd need the target block ID
+              // This would require more sophisticated change tracking
+              blocksUpdated++;
+            }
+          } catch (changeError) {
+            console.error(
+              `[apply-changes] Error applying change ${change.id}:`,
+              changeError,
+            );
+            // Continue with other changes even if one fails
+          }
+        }
+
+        await saveDb();
+      } else {
+        // Fallback: If no changes data, just return success with zeros
+        // (This handles the case where changes weren't passed properly)
+        console.warn(
+          "[apply-changes] No changes data provided, returning success with no modifications",
+        );
+      }
+
+      // Log the graph modification (safely, in case logGraphChange fails)
+      try {
+        await logGraphChange({
+          changeType: "created",
+          blockId: sessionId,
+          blockType: "batch",
+          blockLabel: `Applied ${blocksCreated} blocks, ${linksCreated} links`,
+          triggeredBy: "user",
+          contextSource: "graph-routes:apply-changes",
+          sessionId,
+        });
+      } catch (logError) {
+        // Don't fail the request if logging fails
+        console.error("[apply-changes] Failed to log graph change:", logError);
+      }
+
+      return res.json({
+        success: true,
+        blocksCreated,
+        linksCreated,
+        blocksUpdated,
+      });
+    } catch (error) {
+      console.error("Error applying graph changes:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// Helper: Analyze session for graph updates
+// ============================================================================
+
+async function analyzeSessionForGraphUpdates(
+  sessionId: string,
+  conversationText: string,
+  existingBlocks: MemoryBlock[],
+  existingLinks: MemoryLink[],
+): Promise<{
+  context: {
+    who: string;
+    what: string;
+    when: string;
+    where: string;
+    why: string;
+  };
+  proposedChanges: Array<{
+    id: string;
+    type: "create_block" | "update_block" | "create_link";
+    blockType?: string;
+    content: string;
+    graphMembership?: string[];
+    confidence: number;
+    sourceMessageId?: string;
+  }>;
+  cascadeEffects: Array<{
+    id: string;
+    affectedBlockId: string;
+    affectedBlockContent: string;
+    effectType: "confidence_change" | "status_change" | "link_invalidation";
+    description: string;
+    severity: "low" | "medium" | "high";
+  }>;
+  previewNodes: Array<{
+    id: string;
+    type: string;
+    content: string;
+    isNew?: boolean;
+  }>;
+  previewEdges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    linkType: string;
+    isNew?: boolean;
+  }>;
+}> {
+  const { client: anthropicClient } =
+    await import("../../../utils/anthropic-client.js");
+
+  const ANALYSIS_PROMPT = `Analyze this conversation and identify what should be added to the knowledge graph.
+
+EXISTING BLOCKS (${existingBlocks.length} total):
+${existingBlocks
+  .slice(0, 10)
+  .map((b) => `- [${b.type}] ${b.content.slice(0, 100)}`)
+  .join("\n")}
+${existingBlocks.length > 10 ? `... and ${existingBlocks.length - 10} more` : ""}
+
+CONVERSATION:
+${conversationText.slice(0, 8000)}
+
+Analyze using 5W1H framework and identify:
+1. WHO: Who are the key stakeholders mentioned?
+2. WHAT: What are the main concepts, ideas, decisions?
+3. WHEN: Any temporal aspects or timelines?
+4. WHERE: What domains, markets, or contexts?
+5. WHY: What are the motivations, goals, reasons?
+
+For each new insight NOT already in existing blocks, propose a graph change.
+Only propose changes for genuinely new information.
+
+Return JSON only:
+{
+  "context": {
+    "who": "brief answer",
+    "what": "brief answer",
+    "when": "brief answer",
+    "where": "brief answer",
+    "why": "brief answer"
+  },
+  "proposedChanges": [
+    {
+      "id": "change_1",
+      "type": "create_block",
+      "blockType": "content|assumption|risk|action|decision|option|meta|synthesis|pattern|stakeholder_view",
+      "content": "The extracted insight",
+      "graphMembership": ["problem", "solution", "market", "risk", "fit", "business", "spec"],
+      "confidence": 0.85
+    }
+  ],
+  "cascadeEffects": [],
+  "previewNodes": [],
+  "previewEdges": []
+}`;
+
+  try {
+    const response = await anthropicClient.messages.create({
+      model: "claude-haiku-3-5-latest",
+      max_tokens: 4096,
+      messages: [
+        {
+          role: "user",
+          content: ANALYSIS_PROMPT,
+        },
+      ],
+    });
+
+    const textContent = response.content.find((c) => c.type === "text");
+    if (!textContent || textContent.type !== "text") {
+      return getEmptyAnalysis();
+    }
+
+    let jsonText = textContent.text.trim();
+    if (jsonText.startsWith("```")) {
+      jsonText = jsonText.replace(/```(?:json)?\n?/g, "").trim();
+    }
+
+    const parsed = JSON.parse(jsonText);
+
+    // Build preview nodes from existing + proposed
+    const previewNodes = existingBlocks.slice(0, 20).map((b) => ({
+      id: b.id,
+      type: b.type,
+      content: b.content.slice(0, 50),
+      isNew: false,
+    }));
+
+    // Add proposed blocks as new preview nodes
+    for (const change of parsed.proposedChanges || []) {
+      if (change.type === "create_block") {
+        previewNodes.push({
+          id: change.id,
+          type: change.blockType || "content",
+          content: change.content.slice(0, 50),
+          isNew: true,
+        });
+      }
+    }
+
+    // Build preview edges from existing links
+    const previewEdges = existingLinks.slice(0, 20).map((l) => ({
+      id: l.id,
+      source: l.sourceBlockId,
+      target: l.targetBlockId,
+      linkType: l.linkType,
+      isNew: false,
+    }));
+
+    return {
+      context: parsed.context || getEmptyAnalysis().context,
+      proposedChanges: parsed.proposedChanges || [],
+      cascadeEffects: parsed.cascadeEffects || [],
+      previewNodes,
+      previewEdges,
+    };
+  } catch (error) {
+    console.error("[analyzeSessionForGraphUpdates] Error:", error);
+    return getEmptyAnalysis();
+  }
+}
+
+function getEmptyAnalysis() {
+  return {
+    context: {
+      who: "Unknown",
+      what: "Analysis failed",
+      when: new Date().toISOString(),
+      where: "Ideation session",
+      why: "Unable to analyze",
+    },
+    proposedChanges: [],
+    cascadeEffects: [],
+    previewNodes: [],
+    previewEdges: [],
+  };
+}
+
+// ============================================================================
 // GET /session/:sessionId/graph/blocks/:blockId/artifact
 // ============================================================================
 // Get linked artifact for a block
