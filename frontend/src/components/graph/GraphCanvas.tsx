@@ -9,13 +9,14 @@ import {
   GraphCanvasRef,
   useSelection,
 } from "reagraph";
-import type { GraphNode, GraphEdge } from "../../types/graph";
+import type { GraphNode, GraphEdge, NodeShape } from "../../types/graph";
 
 // Reagraph internal node type (simplified for our handlers)
 interface InternalGraphNode {
   id: string;
   data?: unknown;
 }
+
 import {
   getNodeColor,
   getNodeShape,
@@ -32,6 +33,72 @@ import {
 } from "./utils/edgeStyles";
 
 export type LayoutType = "forceDirected" | "hierarchical" | "radial";
+
+/**
+ * Custom node renderer for different shapes based on graph membership
+ * Uses Three.js geometries to create distinct shapes for each graph type
+ */
+function CustomNodeRenderer({
+  size,
+  color,
+  opacity,
+  node,
+}: {
+  size: number;
+  color: string;
+  opacity: number;
+  node: { shape?: NodeShape };
+}) {
+  const shape = node.shape || "circle";
+
+  // Get geometry segments based on shape
+  // For 2D, we use CircleGeometry with different segment counts
+  const getGeometryArgs = (): [number, number] => {
+    switch (shape) {
+      case "triangle":
+        return [size, 3]; // 3 segments = triangle
+      case "square":
+        return [size, 4]; // 4 segments = square
+      case "pentagon":
+        return [size, 5]; // 5 segments = pentagon
+      case "hexagon":
+        return [size, 6]; // 6 segments = hexagon
+      case "diamond":
+        return [size, 4]; // 4 segments, will be rotated
+      case "star":
+        return [size, 10]; // 10 points for star-like effect
+      case "circle":
+      default:
+        return [size, 32]; // 32 segments = smooth circle
+    }
+  };
+
+  // Calculate rotation for certain shapes
+  const getRotation = (): [number, number, number] => {
+    switch (shape) {
+      case "diamond":
+        return [0, 0, Math.PI / 4]; // Rotate 45° for diamond
+      case "square":
+        return [0, 0, Math.PI / 4]; // Rotate 45° for better visual
+      case "triangle":
+        return [0, 0, -Math.PI / 2]; // Point upward
+      default:
+        return [0, 0, 0];
+    }
+  };
+
+  const [radius, segments] = getGeometryArgs();
+  const rotation = getRotation();
+
+  return (
+    <group rotation={rotation}>
+      <mesh>
+        <circleGeometry args={[radius, segments]} />
+        <meshBasicMaterial color={color} opacity={opacity} transparent />
+      </mesh>
+    </group>
+  );
+}
 
 export interface GraphCanvasProps {
   nodes: GraphNode[];
@@ -538,6 +605,14 @@ export function GraphCanvas({
         draggable
         animated
         cameraMode="pan"
+        renderNode={({ size, color, opacity, node }) => (
+          <CustomNodeRenderer
+            size={size}
+            color={color as string}
+            opacity={opacity}
+            node={node as { shape?: NodeShape }}
+          />
+        )}
         theme={{
           canvas: {
             // Using a valid color instead of "transparent" to avoid THREE.Color warning
