@@ -397,11 +397,11 @@ export function GraphContainer({
 
         {/* Hovered Node Tooltip */}
         {hoveredNode && !selectedNode && (
-          <div className="absolute bottom-16 left-4 z-10 max-w-xs p-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-            <p className="font-medium text-gray-900 dark:text-white text-sm truncate">
-              {hoveredNode.label}
+          <div className="absolute bottom-16 left-4 z-10 max-w-2xl p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+            <p className="font-medium text-gray-900 dark:text-white text-sm whitespace-pre-wrap">
+              {hoveredNode.content || hoveredNode.label}
             </p>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-2">
               <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs">
                 {hoveredNode.blockType}
               </span>
