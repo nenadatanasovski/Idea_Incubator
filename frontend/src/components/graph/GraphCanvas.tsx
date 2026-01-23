@@ -3,7 +3,7 @@
  * Renders the Memory Graph using Reagraph with WebGL acceleration
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import {
   GraphCanvas as ReagraphCanvas,
   GraphCanvasRef,
@@ -203,9 +203,65 @@ export function GraphCanvas({
   className = "",
 }: GraphCanvasProps) {
   const graphRef = useRef<GraphCanvasRef | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [internalHoveredId, setInternalHoveredId] = useState<string | null>(
     null,
   );
+  // Key to force remount when WebGL context is lost
+  const [canvasKey, setCanvasKey] = useState(0);
+  const [isRecovering, setIsRecovering] = useState(false);
+
+  // Handle WebGL context loss recovery
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleContextLost = (event: Event) => {
+      console.warn(
+        "[GraphCanvas] WebGL context lost, will attempt recovery...",
+      );
+      event.preventDefault();
+      setIsRecovering(true);
+
+      // Wait a bit before trying to recover
+      setTimeout(() => {
+        console.log("[GraphCanvas] Attempting to recover WebGL context...");
+        setCanvasKey((prev) => prev + 1);
+        setIsRecovering(false);
+      }, 1000);
+    };
+
+    const handleContextRestored = () => {
+      console.log("[GraphCanvas] WebGL context restored");
+      setIsRecovering(false);
+    };
+
+    // Listen for context events on canvas elements within the container
+    const canvasElements = container.querySelectorAll("canvas");
+    canvasElements.forEach((canvas) => {
+      canvas.addEventListener("webglcontextlost", handleContextLost);
+      canvas.addEventListener("webglcontextrestored", handleContextRestored);
+    });
+
+    // Also listen on the container in case canvas is added later
+    container.addEventListener("webglcontextlost", handleContextLost);
+    container.addEventListener("webglcontextrestored", handleContextRestored);
+
+    return () => {
+      canvasElements.forEach((canvas) => {
+        canvas.removeEventListener("webglcontextlost", handleContextLost);
+        canvas.removeEventListener(
+          "webglcontextrestored",
+          handleContextRestored,
+        );
+      });
+      container.removeEventListener("webglcontextlost", handleContextLost);
+      container.removeEventListener(
+        "webglcontextrestored",
+        handleContextRestored,
+      );
+    };
+  }, [canvasKey]); // Re-attach listeners when canvas remounts
 
   // Calculate connection counts for all nodes
   const connectionCounts = useMemo(
@@ -363,9 +419,19 @@ export function GraphCanvas({
 
   return (
     <div
+      ref={containerRef}
       data-testid="graph-canvas"
       className={`relative bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden h-full w-full ${className}`}
     >
+      {/* WebGL Recovery Overlay */}
+      {isRecovering && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm">
+          <div className="text-center text-white">
+            <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm">Recovering graph visualization...</p>
+          </div>
+        </div>
+      )}
       {/* Zoom Controls */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
         <button
@@ -450,8 +516,9 @@ export function GraphCanvas({
         </button>
       </div>
 
-      {/* Graph Canvas */}
+      {/* Graph Canvas - key forces remount on WebGL context loss */}
       <ReagraphCanvas
+        key={canvasKey}
         ref={graphRef}
         nodes={reagraphNodes}
         edges={reagraphEdges}
@@ -473,7 +540,8 @@ export function GraphCanvas({
         cameraMode="pan"
         theme={{
           canvas: {
-            background: "transparent",
+            // Using a valid color instead of "transparent" to avoid THREE.Color warning
+            background: "#F9FAFB",
           },
           node: {
             fill: "#3B82F6",

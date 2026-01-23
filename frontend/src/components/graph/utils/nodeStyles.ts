@@ -192,7 +192,7 @@ export function getHighlightStyle(
   }
   return {
     strokeWidth: 2,
-    stroke: "transparent",
+    stroke: "none", // No stroke when not highlighted
     glowSize: 0,
   };
 }
