@@ -5,7 +5,7 @@
 
 export { IdeationEntryModal } from "./IdeationEntryModal";
 export { IdeationSession } from "./IdeationSession";
-export { SessionHeader } from "./SessionHeader";
+export { SessionHeader, type SessionTab } from "./SessionHeader";
 export { TokenUsageIndicator } from "./TokenUsageIndicator";
 export { ConversationPanel } from "./ConversationPanel";
 export { MessageList } from "./MessageList";
@@ -31,7 +31,7 @@ export { ArtifactPreview } from "./ArtifactPreview";
 export { SessionsView } from "./SessionsView";
 export { IdeaArtifactPanel } from "./IdeaArtifactPanel";
 export { IdeaSelector } from "./IdeaSelector";
-export { SessionTabs, type SessionTab } from "./SessionTabs";
+// SessionTabs functionality is now integrated into SessionHeader
 export { GraphTabPanel } from "./GraphTabPanel";
 export {
   ProjectContextHeader,

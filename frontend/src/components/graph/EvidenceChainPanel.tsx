@@ -180,10 +180,9 @@ function WarningBanner({
   message: string;
 }) {
   const styles: Record<string, string> = {
-    invalidated: "bg-red-50 border-red-200border-red-800 text-red-700",
-    superseded:
-      "bg-yellow-50bg-yellow-900/20 border-yellow-200border-yellow-800 text-yellow-700",
-    low: "bg-orange-50bg-orange-900/20 border-orange-200border-orange-800 text-orange-700text-orange-300",
+    invalidated: "bg-red-50 border-red-200 text-red-700",
+    superseded: "bg-yellow-50 border-yellow-200 text-yellow-700",
+    low: "bg-orange-50 border-orange-200 text-orange-700",
   };
 
   const icons: Record<string, JSX.Element> = {
@@ -272,7 +271,7 @@ export function EvidenceChainPanel({
   if (chainNodes.length <= 1) {
     return (
       <div className={`p-4 ${className}`}>
-        <p className="text-sm text-gray-500text-gray-400 italic">
+        <p className="text-sm text-gray-500 italic">
           No evidence chain found for this node.
         </p>
       </div>
@@ -285,7 +284,7 @@ export function EvidenceChainPanel({
       data-testid="evidence-chain-panel"
     >
       {/* Derived confidence summary */}
-      <div className="p-4 bg-gray-50bg-gray-800/50 rounded-lg">
+      <div className="p-4 bg-gray-50 rounded-lg">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">
             Derived Confidence
@@ -302,7 +301,7 @@ export function EvidenceChainPanel({
             style={{ width: `${derivedConfidence * 100}%` }}
           />
         </div>
-        <div className="mt-2 text-xs text-gray-500text-gray-400">
+        <div className="mt-2 text-xs text-gray-500">
           Chain length: {chainNodes.length} nodes • Total strength: ×
           {totalStrengthMultiplier.toFixed(2)}
         </div>
@@ -332,7 +331,7 @@ export function EvidenceChainPanel({
 
       {/* Chain visualization */}
       <div className="space-y-2">
-        <h4 className="text-xs font-medium text-gray-500text-gray-400 uppercase tracking-wider">
+        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
           Evidence Chain
         </h4>
         <div className="space-y-2">
@@ -350,11 +349,11 @@ export function EvidenceChainPanel({
       </div>
 
       {/* Calculation breakdown */}
-      <div className="p-3 bg-gray-50bg-gray-800/50 rounded-lg">
-        <h4 className="text-xs font-medium text-gray-500text-gray-400 uppercase tracking-wider mb-2">
+      <div className="p-3 bg-gray-50 rounded-lg">
+        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
           Calculation Breakdown
         </h4>
-        <div className="text-xs text-gray-600text-gray-400 font-mono space-y-1">
+        <div className="text-xs text-gray-600 font-mono space-y-1">
           {chainNodes
             .slice()
             .reverse()

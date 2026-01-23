@@ -316,10 +316,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       ref,
       () => ({
         focusOnNode: (nodeId: string) => {
-          graphRef.current?.fitNodesInView([nodeId]);
+          graphRef.current?.fitNodesInView([nodeId], { padding: 100 });
         },
         fitNodesInView: (nodeIds?: string[]) => {
-          graphRef.current?.fitNodesInView(nodeIds);
+          // Use extra padding when fitting multiple nodes to ensure all are visible
+          const padding = nodeIds && nodeIds.length > 1 ? 150 : 100;
+          graphRef.current?.fitNodesInView(nodeIds, { padding });
         },
         centerGraph: () => {
           graphRef.current?.centerGraph();
@@ -701,17 +703,17 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             },
             node: {
               fill: "#3B82F6",
-              activeFill: "#F97316", // Orange for active/highlighted nodes
+              // No activeFill - keep original node colors, just use full opacity
               opacity: 1,
               selectedOpacity: 1,
-              inactiveOpacity: 0.2, // More contrast for inactive nodes
+              inactiveOpacity: 0.2, // Fade inactive nodes significantly when there are active selections
               label: {
-                color: "#1F2937",
-                activeColor: "#F97316",
+                color: "#1F2937", // Gray-800 - good contrast on light background
+                activeColor: "#111827", // Gray-900 - darker for active/highlighted emphasis
               },
               subLabel: {
-                color: "#6B7280",
-                activeColor: "#F97316",
+                color: "#6B7280", // Gray-500
+                activeColor: "#374151", // Gray-700 - darker for active state
               },
             },
             edge: {
@@ -719,7 +721,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               activeFill: "#F97316", // Orange for active/highlighted edges
               opacity: 0.7,
               selectedOpacity: 1,
-              inactiveOpacity: 0.2,
+              inactiveOpacity: 0.15, // Fade inactive edges significantly when there are active selections
               label: {
                 color: "#6B7280",
                 activeColor: "#6B7280",

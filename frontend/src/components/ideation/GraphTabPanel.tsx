@@ -17,7 +17,6 @@ import {
 } from "react";
 import type { GraphNode, GraphFilters } from "../../types/graph";
 import { useGraphDataWithWebSocket } from "../graph/hooks/useGraphDataWithWebSocket";
-import { GraphPrompt } from "../graph/GraphPrompt";
 import { GraphUpdateConfirmation } from "../graph/GraphUpdateConfirmation";
 import type {
   NewBlockUpdate,
@@ -340,16 +339,6 @@ export const GraphTabPanel = memo(function GraphTabPanel({
       aria-hidden={!isVisible}
       data-testid="graph-panel"
     >
-      {/* Graph Prompt Input */}
-      <div className="flex-shrink-0 p-4 border-b border-gray-200 bg-white">
-        <GraphPrompt
-          sessionId={sessionId}
-          onHighlight={handlePromptHighlight}
-          onFilterChange={handlePromptFilterChange}
-          disabled={isLoading}
-        />
-      </div>
-
       {/* Graph Container */}
       <div className="flex-1 min-h-0" data-testid="graph-canvas">
         <GraphErrorBoundary>
@@ -380,6 +369,9 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               onUpdateMemoryGraph={onUpdateMemoryGraph}
               isAnalyzingGraph={isAnalyzingGraph}
               pendingGraphChanges={pendingGraphChanges}
+              sessionId={sessionId}
+              onPromptHighlight={handlePromptHighlight}
+              onPromptFilterChange={handlePromptFilterChange}
               className="h-full"
             />
           </Suspense>

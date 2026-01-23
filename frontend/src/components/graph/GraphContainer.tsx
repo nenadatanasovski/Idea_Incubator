@@ -3,7 +3,7 @@
  * Main container with responsive layout for graph canvas, filters, legend, and inspector panel
  */
 
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import type {
   GraphNode,
   GraphEdge,
@@ -43,6 +43,10 @@ export interface GraphContainerProps {
   onUpdateMemoryGraph?: () => void;
   isAnalyzingGraph?: boolean;
   pendingGraphChanges?: number;
+  // AI Prompt
+  sessionId?: string;
+  onPromptHighlight?: (nodeIds: string[]) => void;
+  onPromptFilterChange?: (filters: Partial<GraphFiltersType>) => void;
 }
 
 /**
@@ -126,6 +130,9 @@ export function GraphContainer({
   onUpdateMemoryGraph,
   isAnalyzingGraph = false,
   pendingGraphChanges = 0,
+  sessionId,
+  onPromptHighlight,
+  onPromptFilterChange,
 }: GraphContainerProps) {
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -133,6 +140,7 @@ export function GraphContainer({
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [hoveredRelationship, setHoveredRelationship] =
     useState<RelationshipHoverInfo | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Compute highlighted node and edge IDs from hovered relationship
   const highlightedNodeIds = useMemo(() => {
@@ -187,6 +195,54 @@ export function GraphContainer({
     [setGraphFilter, setBlockTypeFilter, setStatusFilter, setConfidenceRange],
   );
 
+  // Handle search query change
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
+
+  // Apply search filtering to nodes
+  const searchFilteredNodes = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return filteredNodes;
+    }
+
+    const lowerQuery = searchQuery.toLowerCase().trim();
+    return filteredNodes.filter((node) => {
+      // Search in content
+      if (node.content?.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+      // Search in label
+      if (node.label?.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+      // Search in block type
+      if (node.blockType?.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+      // Search in graph membership
+      if (
+        node.graphMembership?.some((g) => g.toLowerCase().includes(lowerQuery))
+      ) {
+        return true;
+      }
+      return false;
+    });
+  }, [filteredNodes, searchQuery]);
+
+  // Filter edges to only include those between search-filtered nodes
+  const searchFilteredEdges = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return filteredEdges;
+    }
+
+    const visibleNodeIds = new Set(searchFilteredNodes.map((node) => node.id));
+    return filteredEdges.filter(
+      (edge) =>
+        visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target),
+    );
+  }, [filteredEdges, searchFilteredNodes, searchQuery]);
+
   // Handle node click
   const handleNodeClick = useCallback(
     (node: GraphNode) => {
@@ -225,12 +281,20 @@ export function GraphContainer({
   const handleRelationshipHover = useCallback(
     (info: RelationshipHoverInfo | null) => {
       setHoveredRelationship(info);
-      // Zoom to show both nodes when hovering
+      // Zoom to show both nodes when hovering - use small delay to ensure layout is settled
       if (info) {
+        // Immediate call for responsiveness
         graphCanvasRef.current?.fitNodesInView([
           info.currentNodeId,
           info.relatedNodeId,
         ]);
+        // Follow-up call after layout settles to ensure both nodes are properly in view
+        setTimeout(() => {
+          graphCanvasRef.current?.fitNodesInView([
+            info.currentNodeId,
+            info.relatedNodeId,
+          ]);
+        }, 50);
       }
     },
     [],
@@ -289,8 +353,8 @@ export function GraphContainer({
       <div className="flex-1 min-w-0 min-h-0 h-full relative">
         <GraphCanvas
           ref={graphCanvasRef}
-          nodes={filteredNodes}
-          edges={filteredEdges}
+          nodes={searchFilteredNodes}
+          edges={searchFilteredEdges}
           onNodeClick={handleNodeClick}
           onNodeHover={handleNodeHover}
           selectedNodeId={selectedNode?.id}
@@ -424,6 +488,14 @@ export function GraphContainer({
               pendingGraphChanges={pendingGraphChanges}
               showZoomControls={false}
               showLayoutControls={false}
+              sessionId={sessionId}
+              onPromptHighlight={onPromptHighlight}
+              onPromptFilterChange={onPromptFilterChange}
+              promptDisabled={isLoading}
+              onSearchChange={handleSearchChange}
+              searchQuery={searchQuery}
+              searchResultCount={searchFilteredNodes.length}
+              totalNodeCount={filteredNodes.length}
             />
           </div>
         )}
@@ -447,13 +519,17 @@ export function GraphContainer({
 
         {/* Stats badge - single container to prevent overlap */}
         <div className="absolute bottom-4 left-4 z-10">
-          {hasActiveFilters ? (
+          {hasActiveFilters || searchQuery ? (
             <div className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs flex items-center gap-2">
               <span>
-                Showing {filteredNodes.length} of {nodes.length} nodes
+                Showing {searchFilteredNodes.length} of {nodes.length} nodes
+                {searchQuery && ` (search: "${searchQuery}")`}
               </span>
               <button
-                onClick={resetFilters}
+                onClick={() => {
+                  resetFilters();
+                  setSearchQuery("");
+                }}
                 className="hover:text-blue-900"
                 title="Clear filters"
               >

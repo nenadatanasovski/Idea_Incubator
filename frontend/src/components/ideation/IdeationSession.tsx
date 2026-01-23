@@ -4,8 +4,7 @@
 // =============================================================================
 
 import { useEffect, useReducer, useCallback, useRef, useState } from "react";
-import { SessionHeader } from "./SessionHeader";
-import { SessionTabs, type SessionTab } from "./SessionTabs";
+import { SessionHeader, type SessionTab } from "./SessionHeader";
 import { ConversationPanel } from "./ConversationPanel";
 import { IdeaArtifactPanel } from "./IdeaArtifactPanel";
 import { GraphTabPanel } from "./GraphTabPanel";
@@ -2145,10 +2144,6 @@ export function IdeationSession({
         linkedIdea={state.artifacts.linkedIdea}
         onSelectIdea={handleSelectIdea}
         onNewIdea={handleNewIdea}
-      />
-
-      {/* Tab Navigation (T6.1) */}
-      <SessionTabs
         activeTab={activeTab}
         onTabChange={handleTabChange}
         graphUpdateCount={graphUpdateCount}

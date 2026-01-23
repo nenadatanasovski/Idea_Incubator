@@ -8,9 +8,41 @@
  * - Last updated timestamp
  * - Stale data indicator
  * - WebSocket connection status
+ * - AI prompt button with hover popup
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
+import type { GraphFilters as GraphFiltersType } from "../../types/graph";
+
+// ============================================================================
+// Types for AI Prompt
+// ============================================================================
+
+export type PromptActionType =
+  | "link_created"
+  | "highlight"
+  | "filter"
+  | "block_updated"
+  | "clarification_needed"
+  | "error";
+
+export interface PromptResult {
+  action: PromptActionType;
+  message?: string;
+  link?: {
+    id: string;
+    source: string;
+    target: string;
+    linkType: string;
+  };
+  nodeIds?: string[];
+  filters?: Partial<GraphFiltersType>;
+  block?: {
+    id: string;
+    status?: string;
+    properties?: Record<string, unknown>;
+  };
+}
 
 export interface GraphControlsProps {
   // Refresh
@@ -42,6 +74,19 @@ export interface GraphControlsProps {
   showLayoutControls?: boolean;
   showZoomControls?: boolean;
   showConnectionStatus?: boolean;
+
+  // AI Prompt
+  sessionId?: string;
+  onPromptResult?: (result: PromptResult) => void;
+  onPromptHighlight?: (nodeIds: string[]) => void;
+  onPromptFilterChange?: (filters: Partial<GraphFiltersType>) => void;
+  promptDisabled?: boolean;
+
+  // Search
+  onSearchChange?: (query: string) => void;
+  searchQuery?: string;
+  searchResultCount?: number;
+  totalNodeCount?: number;
 
   className?: string;
 }
@@ -114,9 +159,178 @@ export function GraphControls({
   showLayoutControls = true,
   showZoomControls = true,
   showConnectionStatus = true,
+  sessionId,
+  onPromptResult,
+  onPromptHighlight,
+  onPromptFilterChange,
+  promptDisabled = false,
+  onSearchChange,
+  searchQuery = "",
+  searchResultCount,
+  totalNodeCount,
   className = "",
 }: GraphControlsProps) {
   const [isLayoutDropdownOpen, setIsLayoutDropdownOpen] = useState(false);
+  const [isAiPopupOpen, setIsAiPopupOpen] = useState(false);
+  const [isSearchPopupOpen, setIsSearchPopupOpen] = useState(false);
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
+  const searchPopupRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [prompt, setPrompt] = useState("");
+  const [isPromptLoading, setIsPromptLoading] = useState(false);
+  const [promptError, setPromptError] = useState<string | null>(null);
+  const [lastPromptResult, setLastPromptResult] = useState<PromptResult | null>(
+    null,
+  );
+  const aiButtonRef = useRef<HTMLButtonElement>(null);
+  const aiPopupRef = useRef<HTMLDivElement>(null);
+  const promptInputRef = useRef<HTMLInputElement>(null);
+
+  // Close AI popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        aiPopupRef.current &&
+        !aiPopupRef.current.contains(event.target as Node) &&
+        aiButtonRef.current &&
+        !aiButtonRef.current.contains(event.target as Node)
+      ) {
+        setIsAiPopupOpen(false);
+      }
+    };
+
+    if (isAiPopupOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      // Focus input when popup opens
+      setTimeout(() => promptInputRef.current?.focus(), 100);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isAiPopupOpen]);
+
+  // Close search popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchPopupRef.current &&
+        !searchPopupRef.current.contains(event.target as Node) &&
+        searchButtonRef.current &&
+        !searchButtonRef.current.contains(event.target as Node)
+      ) {
+        setIsSearchPopupOpen(false);
+      }
+    };
+
+    if (isSearchPopupOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      // Focus input when popup opens
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isSearchPopupOpen]);
+
+  // Sync local search query with prop
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery);
+  }, [searchQuery]);
+
+  // Handle search input change
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setLocalSearchQuery(value);
+      onSearchChange?.(value);
+    },
+    [onSearchChange],
+  );
+
+  // Clear search
+  const handleClearSearch = useCallback(() => {
+    setLocalSearchQuery("");
+    onSearchChange?.("");
+  }, [onSearchChange]);
+
+  // Handle prompt submission
+  const handlePromptSubmit = useCallback(
+    async (e?: React.FormEvent) => {
+      e?.preventDefault();
+
+      if (!prompt.trim() || isPromptLoading || promptDisabled || !sessionId) {
+        return;
+      }
+
+      setIsPromptLoading(true);
+      setPromptError(null);
+      setLastPromptResult(null);
+
+      try {
+        const response = await fetch(
+          `/api/ideation/session/${sessionId}/graph/prompt`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ prompt: prompt.trim() }),
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Request failed: ${response.statusText}`);
+        }
+
+        const result: PromptResult = await response.json();
+        setLastPromptResult(result);
+
+        // Handle the result based on action type
+        if (
+          result.action === "highlight" &&
+          result.nodeIds &&
+          onPromptHighlight
+        ) {
+          onPromptHighlight(result.nodeIds);
+        } else if (
+          result.action === "filter" &&
+          result.filters &&
+          onPromptFilterChange
+        ) {
+          onPromptFilterChange(result.filters);
+        }
+
+        // Notify parent of result
+        onPromptResult?.(result);
+
+        // Clear input on success (except for clarification)
+        if (result.action !== "clarification_needed") {
+          setPrompt("");
+        }
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to process prompt";
+        setPromptError(errorMessage);
+        setLastPromptResult({
+          action: "error",
+          message: errorMessage,
+        });
+      } finally {
+        setIsPromptLoading(false);
+      }
+    },
+    [
+      prompt,
+      sessionId,
+      isPromptLoading,
+      promptDisabled,
+      onPromptResult,
+      onPromptHighlight,
+      onPromptFilterChange,
+    ],
+  );
 
   const handleLayoutSelect = useCallback(
     (layout: LayoutOption) => {
@@ -156,6 +370,299 @@ export function GraphControls({
       {/* Divider */}
       {showConnectionStatus && isConnected !== undefined && (
         <div className="w-px h-6 bg-gray-200" />
+      )}
+
+      {/* AI Prompt Button with Popup */}
+      {sessionId && (
+        <>
+          <div className="relative">
+            <button
+              ref={aiButtonRef}
+              onMouseEnter={() => {
+                setIsAiPopupOpen(true);
+                setIsSearchPopupOpen(false); // Close search when opening AI
+              }}
+              onClick={() => {
+                setIsAiPopupOpen(!isAiPopupOpen);
+                if (!isAiPopupOpen) setIsSearchPopupOpen(false);
+              }}
+              disabled={promptDisabled}
+              className={`p-1.5 rounded transition-colors ${
+                isAiPopupOpen
+                  ? "bg-purple-100 text-purple-600"
+                  : "hover:bg-gray-100 text-gray-600"
+              } ${promptDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+              title="Ask AI about the graph"
+              data-testid="ai-prompt-button"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                />
+              </svg>
+            </button>
+
+            {/* AI Popup */}
+            {isAiPopupOpen && (
+              <div
+                ref={aiPopupRef}
+                onMouseLeave={() => {
+                  // Only close if not focused on input
+                  if (document.activeElement !== promptInputRef.current) {
+                    setIsAiPopupOpen(false);
+                  }
+                }}
+                className="absolute top-full left-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                data-testid="ai-prompt-popup"
+              >
+                <div className="p-3">
+                  <form onSubmit={handlePromptSubmit} className="flex gap-2">
+                    <input
+                      ref={promptInputRef}
+                      type="text"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handlePromptSubmit();
+                        } else if (e.key === "Escape") {
+                          setIsAiPopupOpen(false);
+                        }
+                      }}
+                      placeholder="Ask about your graph..."
+                      disabled={promptDisabled || isPromptLoading}
+                      className="flex-1 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={
+                        !prompt.trim() || isPromptLoading || promptDisabled
+                      }
+                      className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isPromptLoading ? (
+                        <svg
+                          className="animate-spin w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                  </form>
+
+                  {/* Error Message */}
+                  {promptError && (
+                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
+                      {promptError}
+                    </div>
+                  )}
+
+                  {/* Result Feedback */}
+                  {lastPromptResult && lastPromptResult.action !== "error" && (
+                    <div
+                      className={`mt-2 p-2 rounded text-xs ${
+                        lastPromptResult.action === "clarification_needed"
+                          ? "bg-amber-50 border border-amber-200 text-amber-600"
+                          : "bg-green-50 border border-green-200 text-green-600"
+                      }`}
+                    >
+                      {lastPromptResult.action === "clarification_needed"
+                        ? lastPromptResult.message ||
+                          "Could you be more specific?"
+                        : lastPromptResult.action === "highlight"
+                          ? `Highlighted ${lastPromptResult.nodeIds?.length || 0} nodes`
+                          : lastPromptResult.action === "link_created"
+                            ? "Link created between blocks"
+                            : lastPromptResult.action === "filter"
+                              ? "Filters applied"
+                              : "Action completed"}
+                    </div>
+                  )}
+
+                  {/* Quick suggestions */}
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {["Find risks", "Show assumptions", "Link blocks"].map(
+                      (suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() => setPrompt(suggestion)}
+                          className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
+                        >
+                          {suggestion}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="w-px h-6 bg-gray-200" />
+        </>
+      )}
+
+      {/* Search Button with Popup */}
+      {onSearchChange && (
+        <>
+          <div className="relative">
+            <button
+              ref={searchButtonRef}
+              onMouseEnter={() => {
+                setIsSearchPopupOpen(true);
+                setIsAiPopupOpen(false); // Close AI when opening search
+              }}
+              onClick={() => {
+                setIsSearchPopupOpen(!isSearchPopupOpen);
+                if (!isSearchPopupOpen) setIsAiPopupOpen(false);
+              }}
+              className={`p-1.5 rounded transition-colors ${
+                isSearchPopupOpen || localSearchQuery
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100 text-gray-600"
+              }`}
+              title="Search nodes"
+              data-testid="search-button"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              {/* Active search indicator */}
+              {localSearchQuery && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
+              )}
+            </button>
+
+            {/* Search Popup */}
+            {isSearchPopupOpen && (
+              <div
+                ref={searchPopupRef}
+                onMouseLeave={() => {
+                  // Only close if not focused on input
+                  if (document.activeElement !== searchInputRef.current) {
+                    setIsSearchPopupOpen(false);
+                  }
+                }}
+                className="absolute top-full left-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                data-testid="search-popup"
+              >
+                <div className="p-3">
+                  <div className="relative">
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={localSearchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          if (localSearchQuery) {
+                            handleClearSearch();
+                          } else {
+                            setIsSearchPopupOpen(false);
+                          }
+                        }
+                      }}
+                      placeholder="Search nodes by keyword..."
+                      className="w-full px-3 py-2 pr-8 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    {localSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={handleClearSearch}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                        title="Clear search"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Search results count */}
+                  {localSearchQuery && searchResultCount !== undefined && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      {searchResultCount === 0 ? (
+                        <span className="text-amber-600">
+                          No matching nodes
+                        </span>
+                      ) : (
+                        <span>
+                          Showing {searchResultCount} of {totalNodeCount} nodes
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Search tips */}
+                  {!localSearchQuery && (
+                    <div className="mt-2 text-xs text-gray-400">
+                      <p>Filter nodes by content, label, or type</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="w-px h-6 bg-gray-200" />
+        </>
       )}
 
       {/* Zoom Controls */}

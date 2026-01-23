@@ -1,13 +1,24 @@
 // =============================================================================
 // FILE: frontend/src/components/ideation/SessionHeader.tsx
-// Session header with token usage, metrics, and actions
+// Session header with token usage, metrics, tabs, and actions
 // =============================================================================
 
 import { useState, useRef, useEffect } from "react";
-import { Minimize2, CheckCircle, Save, Trash2, Pencil } from "lucide-react";
+import {
+  Minimize2,
+  CheckCircle,
+  Save,
+  Trash2,
+  Pencil,
+  MessageSquare,
+  Network,
+  AlertCircle,
+} from "lucide-react";
 import { TokenUsageIndicator } from "./TokenUsageIndicator";
 import { IdeaSelector } from "./IdeaSelector";
 import type { IdeaCandidate } from "../../types/ideation";
+
+export type SessionTab = "chat" | "graph";
 
 export interface SessionHeaderProps {
   sessionId: string;
@@ -30,6 +41,11 @@ export interface SessionHeaderProps {
   linkedIdea?: { userSlug: string; ideaSlug: string } | null;
   onSelectIdea?: (idea: { userSlug: string; ideaSlug: string } | null) => void;
   onNewIdea?: () => void;
+  // Tab props
+  activeTab: SessionTab;
+  onTabChange: (tab: SessionTab) => void;
+  graphUpdateCount?: number;
+  hasGraphUpdates?: boolean;
 }
 
 // Compact meter for header
@@ -84,6 +100,65 @@ function CompactMeter({
   );
 }
 
+// Inline tab buttons
+function InlineTabs({
+  activeTab,
+  onTabChange,
+  graphUpdateCount = 0,
+  hasGraphUpdates = false,
+}: {
+  activeTab: SessionTab;
+  onTabChange: (tab: SessionTab) => void;
+  graphUpdateCount?: number;
+  hasGraphUpdates?: boolean;
+}) {
+  const getTabClass = (tabId: SessionTab) =>
+    `flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+      activeTab === tabId
+        ? "bg-blue-100 text-blue-700"
+        : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+    }`;
+
+  return (
+    <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1">
+      <button
+        onClick={() => onTabChange("chat")}
+        className={getTabClass("chat")}
+        data-testid="chat-tab"
+      >
+        <MessageSquare className="w-3.5 h-3.5" />
+        <span>Chat</span>
+      </button>
+      <button
+        onClick={() => onTabChange("graph")}
+        className={getTabClass("graph")}
+        data-testid="graph-tab"
+      >
+        <Network className="w-3.5 h-3.5" />
+        <span>Memory Graph</span>
+        {hasGraphUpdates && activeTab !== "graph" && (
+          <span
+            className="flex items-center justify-center min-w-[18px] h-4 px-1
+                       bg-blue-500 text-white rounded-full text-[10px] font-semibold
+                       animate-pulse ml-0.5"
+            title={`${graphUpdateCount} new graph update${graphUpdateCount !== 1 ? "s" : ""}`}
+          >
+            {graphUpdateCount > 0 ? (
+              graphUpdateCount > 99 ? (
+                "99+"
+              ) : (
+                graphUpdateCount
+              )
+            ) : (
+              <AlertCircle className="w-2.5 h-2.5" />
+            )}
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
+
 export function SessionHeader({
   sessionId,
   tokenUsage,
@@ -99,6 +174,10 @@ export function SessionHeader({
   linkedIdea,
   onSelectIdea,
   onNewIdea,
+  activeTab,
+  onTabChange,
+  graphUpdateCount = 0,
+  hasGraphUpdates = false,
 }: SessionHeaderProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(candidate?.title || "");
@@ -159,7 +238,7 @@ export function SessionHeader({
 
   return (
     <header className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200">
-      {/* Left: Session info */}
+      {/* Left: Session info + IdeaSelector + Tabs */}
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
           <span className="text-white text-sm font-bold">I</span>
@@ -212,7 +291,7 @@ export function SessionHeader({
 
         {/* IdeaSelector - only show when userSlug is provided */}
         {userSlug && onSelectIdea && (
-          <div className="ml-4">
+          <div className="ml-2">
             <IdeaSelector
               userSlug={userSlug}
               selectedIdea={linkedIdea || null}
@@ -221,79 +300,92 @@ export function SessionHeader({
             />
           </div>
         )}
-      </div>
 
-      {/* Center: Metrics (only show when candidate exists) */}
-      {candidate && (
-        <div className="flex items-center gap-6 mx-4">
-          <CompactMeter
-            label="Confidence"
-            value={confidence}
-            color={getConfidenceColor()}
-          />
-          <CompactMeter
-            label="Viability"
-            value={viability}
-            color={getViabilityColor()}
+        {/* Inline Tabs */}
+        <div className="ml-2">
+          <InlineTabs
+            activeTab={activeTab}
+            onTabChange={onTabChange}
+            graphUpdateCount={graphUpdateCount}
+            hasGraphUpdates={hasGraphUpdates}
           />
         </div>
-      )}
-
-      {/* Token usage - compact */}
-      <div className="flex-1 max-w-[200px] mx-4">
-        <TokenUsageIndicator usage={tokenUsage} />
       </div>
 
-      {/* Right: Actions */}
-      <div className="flex items-center gap-2">
+      {/* Right side: Metrics + Token usage + Actions */}
+      <div className="flex items-center gap-4">
+        {/* Metrics (only show when candidate exists) */}
         {candidate && (
-          <>
-            <button
-              data-testid="header-capture-btn"
-              onClick={onCapture}
-              disabled={confidence < 50}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
-                         bg-green-600 text-white rounded-lg hover:bg-green-700
-                         disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors
-                         focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-              title="Capture Idea"
-            >
-              <CheckCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Capture</span>
-            </button>
-            <button
-              data-testid="header-save-btn"
-              onClick={onSave}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm
-                         border border-gray-300 rounded-lg hover:bg-gray-50
-                         text-gray-700 transition-colors
-                         focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-              title="Save for Later"
-            >
-              <Save className="w-4 h-4" />
-              <span className="hidden sm:inline">Save</span>
-            </button>
-            <button
-              data-testid="header-discard-btn"
-              onClick={onDiscard}
-              className="flex items-center justify-center p-1.5
-                         border border-red-200 rounded-lg hover:bg-red-50
-                         text-red-600 transition-colors
-                         focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-              title="Discard Idea"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-            <div className="w-px h-6 bg-gray-200 mx-1" />
-          </>
+          <div className="flex items-center gap-4">
+            <CompactMeter
+              label="Confidence"
+              value={confidence}
+              color={getConfidenceColor()}
+            />
+            <CompactMeter
+              label="Viability"
+              value={viability}
+              color={getViabilityColor()}
+            />
+          </div>
         )}
-        <button
-          onClick={onMinimize}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-          title="Minimize"
-        >
-          <Minimize2 className="w-4 h-4" />
-        </button>
+
+        {/* Token usage - compact */}
+        <div className="w-[180px]">
+          <TokenUsageIndicator usage={tokenUsage} />
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          {candidate && (
+            <>
+              <button
+                data-testid="header-capture-btn"
+                onClick={onCapture}
+                disabled={confidence < 50}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+                           bg-green-600 text-white rounded-lg hover:bg-green-700
+                           disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors
+                           focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+                title="Capture Idea"
+              >
+                <CheckCircle className="w-4 h-4" />
+                <span className="hidden sm:inline">Capture</span>
+              </button>
+              <button
+                data-testid="header-save-btn"
+                onClick={onSave}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm
+                           border border-gray-300 rounded-lg hover:bg-gray-50
+                           text-gray-700 transition-colors
+                           focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+                title="Save for Later"
+              >
+                <Save className="w-4 h-4" />
+                <span className="hidden sm:inline">Save</span>
+              </button>
+              <button
+                data-testid="header-discard-btn"
+                onClick={onDiscard}
+                className="flex items-center justify-center p-1.5
+                           border border-red-200 rounded-lg hover:bg-red-50
+                           text-red-600 transition-colors
+                           focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+                title="Discard Idea"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <div className="w-px h-6 bg-gray-200 mx-1" />
+            </>
+          )}
+          <button
+            onClick={onMinimize}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+            title="Minimize"
+          >
+            <Minimize2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </header>
   );
