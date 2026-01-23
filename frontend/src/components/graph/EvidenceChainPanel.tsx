@@ -26,9 +26,9 @@ export interface EvidenceChainPanelProps {
  * Get confidence color based on value
  */
 function getConfidenceColor(confidence: number): string {
-  if (confidence >= 0.7) return "text-green-600 dark:text-green-400";
-  if (confidence >= 0.4) return "text-yellow-600 dark:text-yellow-400";
-  return "text-red-600 dark:text-red-400";
+  if (confidence >= 0.7) return "text-green-600";
+  if (confidence >= 0.4) return "text-yellow-600";
+  return "text-red-600";
 }
 
 /**
@@ -51,10 +51,9 @@ function StrengthBadge({
   if (!strength) return null;
 
   const styles: Record<string, string> = {
-    strong: "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300",
-    moderate:
-      "bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300",
-    weak: "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300",
+    strong: "bg-green-100 text-green-700",
+    moderate: "bg-yellow-100 text-yellow-700",
+    weak: "bg-red-100 text-red-700",
   };
 
   const multiplier = STRENGTH_MULTIPLIERS[strength];
@@ -77,9 +76,9 @@ function StatusBadge({
   status: "active" | "invalidated" | "superseded";
 }) {
   const styles: Record<string, string> = {
-    active: "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300",
-    superseded: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
-    invalidated: "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300",
+    active: "bg-green-100 text-green-700",
+    superseded: "bg-gray-100 text-gray-700",
+    invalidated: "bg-red-100 text-red-700",
   };
 
   return (
@@ -109,12 +108,12 @@ function ChainNodeItem({
     <div className="relative">
       {/* Connection line */}
       {!isLast && (
-        <div className="absolute left-4 top-12 w-0.5 h-8 bg-gray-300 dark:bg-gray-600" />
+        <div className="absolute left-4 top-12 w-0.5 h-8 bg-gray-300" />
       )}
 
       <button
         onClick={onClick}
-        className="w-full p-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        className="w-full p-3 text-left rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-start gap-3">
           {/* Node indicator */}
@@ -130,9 +129,7 @@ function ChainNodeItem({
 
           <div className="flex-1 min-w-0">
             {/* Node label */}
-            <h4 className="font-medium text-gray-900 dark:text-white truncate">
-              {node.label}
-            </h4>
+            <h4 className="font-medium text-gray-900 truncate">{node.label}</h4>
 
             {/* Metadata row */}
             <div className="mt-1 flex items-center gap-2 flex-wrap">
@@ -153,7 +150,7 @@ function ChainNodeItem({
 
             {/* Confidence bar */}
             <div className="mt-2 flex items-center gap-2">
-              <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${getConfidenceBarColor(confidence)}`}
                   style={{ width: `${confidence * 100}%` }}
@@ -183,11 +180,10 @@ function WarningBanner({
   message: string;
 }) {
   const styles: Record<string, string> = {
-    invalidated:
-      "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300",
+    invalidated: "bg-red-50 border-red-200border-red-800 text-red-700",
     superseded:
-      "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300",
-    low: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300",
+      "bg-yellow-50bg-yellow-900/20 border-yellow-200border-yellow-800 text-yellow-700",
+    low: "bg-orange-50bg-orange-900/20 border-orange-200border-orange-800 text-orange-700text-orange-300",
   };
 
   const icons: Record<string, JSX.Element> = {
@@ -276,7 +272,7 @@ export function EvidenceChainPanel({
   if (chainNodes.length <= 1) {
     return (
       <div className={`p-4 ${className}`}>
-        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+        <p className="text-sm text-gray-500text-gray-400 italic">
           No evidence chain found for this node.
         </p>
       </div>
@@ -289,9 +285,9 @@ export function EvidenceChainPanel({
       data-testid="evidence-chain-panel"
     >
       {/* Derived confidence summary */}
-      <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+      <div className="p-4 bg-gray-50bg-gray-800/50 rounded-lg">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="text-sm font-medium text-gray-700">
             Derived Confidence
           </span>
           <span
@@ -300,13 +296,13 @@ export function EvidenceChainPanel({
             {Math.round(derivedConfidence * 100)}%
           </span>
         </div>
-        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${getConfidenceBarColor(derivedConfidence)}`}
             style={{ width: `${derivedConfidence * 100}%` }}
           />
         </div>
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-2 text-xs text-gray-500text-gray-400">
           Chain length: {chainNodes.length} nodes • Total strength: ×
           {totalStrengthMultiplier.toFixed(2)}
         </div>
@@ -336,7 +332,7 @@ export function EvidenceChainPanel({
 
       {/* Chain visualization */}
       <div className="space-y-2">
-        <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        <h4 className="text-xs font-medium text-gray-500text-gray-400 uppercase tracking-wider">
           Evidence Chain
         </h4>
         <div className="space-y-2">
@@ -354,11 +350,11 @@ export function EvidenceChainPanel({
       </div>
 
       {/* Calculation breakdown */}
-      <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-        <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+      <div className="p-3 bg-gray-50bg-gray-800/50 rounded-lg">
+        <h4 className="text-xs font-medium text-gray-500text-gray-400 uppercase tracking-wider mb-2">
           Calculation Breakdown
         </h4>
-        <div className="text-xs text-gray-600 dark:text-gray-400 font-mono space-y-1">
+        <div className="text-xs text-gray-600text-gray-400 font-mono space-y-1">
           {chainNodes
             .slice()
             .reverse()
@@ -383,7 +379,7 @@ export function EvidenceChainPanel({
                 </div>
               );
             })}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-1 mt-1">
+          <div className="border-t border-gray-200 pt-1 mt-1">
             <span className="font-medium">
               = {(derivedConfidence * 100).toFixed(1)}% derived confidence
             </span>

@@ -27,17 +27,13 @@ export interface WhyIsThisHerePanelProps {
  */
 function AbstractionLevelBadge({ level }: { level?: string }) {
   const colors: Record<string, string> = {
-    vision:
-      "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300",
-    strategy: "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
-    tactic: "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300",
-    implementation:
-      "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300",
+    vision: "bg-purple-100 text-purple-700",
+    strategy: "bg-blue-100 text-blue-700",
+    tactic: "bg-green-100 text-green-700",
+    implementation: "bg-amber-100 text-amber-700",
   };
 
-  const colorClass = level
-    ? colors[level]
-    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
+  const colorClass = level ? colors[level] : "bg-gray-100 text-gray-700";
 
   return (
     <span className={`px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
@@ -63,13 +59,13 @@ function ChainNodeItem({
   const directionStyles = {
     up: "border-l-4 border-l-purple-400",
     down: "border-l-4 border-l-amber-400",
-    current: "border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-900/20",
+    current: "border-l-4 border-l-blue-500 bg-blue-50",
   };
 
   return (
     <button
       onClick={onClick}
-      className={`w-full p-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${directionStyles[direction]}`}
+      className={`w-full p-3 text-left rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors ${directionStyles[direction]}`}
     >
       <div className="flex items-start gap-3">
         {/* Node indicator */}
@@ -91,9 +87,7 @@ function ChainNodeItem({
 
         <div className="flex-1 min-w-0">
           {/* Node label */}
-          <h4 className="font-medium text-gray-900 dark:text-white truncate">
-            {node.label}
-          </h4>
+          <h4 className="font-medium text-gray-900 truncate">{node.label}</h4>
 
           {/* Metadata row */}
           <div className="mt-1 flex items-center gap-2 flex-wrap">
@@ -171,7 +165,7 @@ export function WhyIsThisHerePanel({
   if (!chain) {
     return (
       <div className={`p-4 ${className}`}>
-        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+        <p className="text-sm text-gray-500 italic">
           Unable to build abstraction chain for this node.
         </p>
       </div>
@@ -202,14 +196,12 @@ export function WhyIsThisHerePanel({
             d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-          Why is this here?
-        </h3>
+        <h3 className="text-sm font-medium text-gray-900">Why is this here?</h3>
       </div>
 
       {/* Explanation text */}
-      <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-        <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+      <div className="p-3 bg-gray-50 rounded-lg">
+        <div className="text-sm text-gray-700 space-y-1">
           {whyIsThisHere.map((line, i) => (
             <p
               key={i}
@@ -224,7 +216,7 @@ export function WhyIsThisHerePanel({
       {/* Abstraction hierarchy visualization */}
       {hasChain && (
         <div className="space-y-2">
-          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
             Abstraction Hierarchy
           </h4>
 
@@ -241,7 +233,7 @@ export function WhyIsThisHerePanel({
           {/* Ancestors (more abstract, shown first) */}
           {ancestors.length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+              <span className="text-xs text-purple-600 font-medium">
                 ↑ More Abstract ({ancestors.length})
               </span>
               <div className="space-y-1">
@@ -261,7 +253,7 @@ export function WhyIsThisHerePanel({
 
           {/* Current node */}
           <div className="py-2">
-            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1 block">
+            <span className="text-xs text-blue-600 font-medium mb-1 block">
               Current Node
             </span>
             <ChainNodeItem
@@ -279,7 +271,7 @@ export function WhyIsThisHerePanel({
           {/* Descendants (more concrete, shown last) */}
           {descendants.length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+              <span className="text-xs text-amber-600 font-medium">
                 ↓ More Concrete ({descendants.length})
               </span>
               <div className="space-y-1">
@@ -301,8 +293,8 @@ export function WhyIsThisHerePanel({
 
       {/* No chain message */}
       {!hasChain && (
-        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="p-3 bg-gray-50 rounded-lg">
+          <p className="text-sm text-gray-500">
             This node has no implements/implemented_by relationships. It stands
             alone in the abstraction hierarchy.
           </p>

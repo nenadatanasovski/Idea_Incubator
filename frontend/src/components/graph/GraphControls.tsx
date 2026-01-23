@@ -128,12 +128,12 @@ export function GraphControls({
 
   return (
     <div
-      className={`flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm ${className}`}
+      className={`flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}
       data-testid="graph-controls"
     >
       {/* Connection Status */}
       {showConnectionStatus && isConnected !== undefined && (
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-900">
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50">
           <span
             className={`w-2 h-2 rounded-full ${
               isReconnecting
@@ -143,7 +143,7 @@ export function GraphControls({
                   : "bg-red-500"
             }`}
           />
-          <span className="text-xs text-gray-600 dark:text-gray-400">
+          <span className="text-xs text-gray-600">
             {isReconnecting
               ? "Reconnecting..."
               : isConnected
@@ -155,7 +155,7 @@ export function GraphControls({
 
       {/* Divider */}
       {showConnectionStatus && isConnected !== undefined && (
-        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
+        <div className="w-px h-6 bg-gray-200" />
       )}
 
       {/* Zoom Controls */}
@@ -165,11 +165,11 @@ export function GraphControls({
             {onZoomIn && (
               <button
                 onClick={onZoomIn}
-                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-1.5 rounded hover:bg-gray-100 transition-colors"
                 title="Zoom in"
               >
                 <svg
-                  className="w-4 h-4 text-gray-600 dark:text-gray-300"
+                  className="w-4 h-4 text-gray-600"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -186,11 +186,11 @@ export function GraphControls({
             {onZoomOut && (
               <button
                 onClick={onZoomOut}
-                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-1.5 rounded hover:bg-gray-100 transition-colors"
                 title="Zoom out"
               >
                 <svg
-                  className="w-4 h-4 text-gray-600 dark:text-gray-300"
+                  className="w-4 h-4 text-gray-600"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -207,11 +207,11 @@ export function GraphControls({
             {onZoomReset && (
               <button
                 onClick={onZoomReset}
-                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-1.5 rounded hover:bg-gray-100 transition-colors"
                 title="Reset zoom"
               >
                 <svg
-                  className="w-4 h-4 text-gray-600 dark:text-gray-300"
+                  className="w-4 h-4 text-gray-600"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -228,11 +228,11 @@ export function GraphControls({
             {onFitToView && (
               <button
                 onClick={onFitToView}
-                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-1.5 rounded hover:bg-gray-100 transition-colors"
                 title="Fit to view"
               >
                 <svg
-                  className="w-4 h-4 text-gray-600 dark:text-gray-300"
+                  className="w-4 h-4 text-gray-600"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -247,7 +247,7 @@ export function GraphControls({
               </button>
             )}
           </div>
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
+          <div className="w-px h-6 bg-gray-200" />
         </>
       )}
 
@@ -257,7 +257,7 @@ export function GraphControls({
           <div className="relative">
             <button
               onClick={() => setIsLayoutDropdownOpen(!isLayoutDropdownOpen)}
-              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 rounded hover:bg-gray-100 transition-colors"
             >
               <svg
                 className="w-4 h-4"
@@ -292,15 +292,15 @@ export function GraphControls({
             </button>
 
             {isLayoutDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 min-w-[140px]">
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[140px]">
                 {LAYOUTS.map((layout) => (
                   <button
                     key={layout.value}
                     onClick={() => handleLayoutSelect(layout.value)}
-                    className={`w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg ${
+                    className={`w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg ${
                       currentLayout === layout.value
-                        ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                        : "text-gray-600 dark:text-gray-300"
+                        ? "bg-blue-50 text-blue-600"
+                        : "text-gray-600"
                     }`}
                   >
                     {layout.label}
@@ -309,7 +309,7 @@ export function GraphControls({
               </div>
             )}
           </div>
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
+          <div className="w-px h-6 bg-gray-200" />
         </>
       )}
 
@@ -320,7 +320,7 @@ export function GraphControls({
       <div className="flex items-center gap-2">
         {/* Stale Indicator */}
         {isStale && (
-          <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded text-xs">
+          <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">
             <svg
               className="w-3.5 h-3.5"
               fill="none"
@@ -340,7 +340,7 @@ export function GraphControls({
 
         {/* Last Updated Timestamp */}
         {lastUpdated && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+          <span className="text-xs text-gray-500">
             {formatTimestamp(lastUpdated)}
           </span>
         )}
@@ -352,10 +352,10 @@ export function GraphControls({
             disabled={isAnalyzingGraph}
             className={`relative p-1.5 rounded transition-colors ${
               isAnalyzingGraph
-                ? "bg-purple-100 dark:bg-purple-900/30 cursor-not-allowed"
+                ? "bg-purple-100 cursor-not-allowed"
                 : pendingGraphChanges > 0
-                  ? "bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-800/40"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  ? "bg-purple-100 hover:bg-purple-200"
+                  : "hover:bg-gray-100"
             }`}
             title={
               isAnalyzingGraph
@@ -369,10 +369,10 @@ export function GraphControls({
             <svg
               className={`w-4 h-4 ${
                 isAnalyzingGraph
-                  ? "animate-pulse text-purple-600 dark:text-purple-400"
+                  ? "animate-pulse text-purple-600"
                   : pendingGraphChanges > 0
-                    ? "text-purple-600 dark:text-purple-400"
-                    : "text-gray-600 dark:text-gray-300"
+                    ? "text-purple-600"
+                    : "text-gray-600"
               }`}
               fill="none"
               viewBox="0 0 24 24"
@@ -402,13 +402,13 @@ export function GraphControls({
             disabled={isRefreshing}
             className={`p-1.5 rounded transition-colors ${
               isRefreshing
-                ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
-                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                ? "bg-gray-100 cursor-not-allowed"
+                : "hover:bg-gray-100"
             }`}
             title="Refresh graph"
           >
             <svg
-              className={`w-4 h-4 text-gray-600 dark:text-gray-300 ${
+              className={`w-4 h-4 text-gray-600 ${
                 isRefreshing ? "animate-spin" : ""
               }`}
               fill="none"

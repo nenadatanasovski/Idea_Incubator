@@ -33,13 +33,20 @@ export {
 
 // Components
 export { GraphCanvas } from "./GraphCanvas";
-export type { GraphCanvasProps, LayoutType } from "./GraphCanvas";
+export type {
+  GraphCanvasProps,
+  GraphCanvasHandle,
+  LayoutType,
+} from "./GraphCanvas";
 
 export { GraphContainer } from "./GraphContainer";
 export type { GraphContainerProps } from "./GraphContainer";
 
 export { NodeInspector } from "./NodeInspector";
-export type { NodeInspectorProps } from "./NodeInspector";
+export type {
+  NodeInspectorProps,
+  RelationshipHoverInfo,
+} from "./NodeInspector";
 
 export { GraphFilters } from "./GraphFilters";
 export type { GraphFiltersProps } from "./GraphFilters";

@@ -9,8 +9,6 @@ import { SessionTabs, type SessionTab } from "./SessionTabs";
 import { ConversationPanel } from "./ConversationPanel";
 import { IdeaArtifactPanel } from "./IdeaArtifactPanel";
 import { GraphTabPanel } from "./GraphTabPanel";
-import { ProjectFilesPanel } from "./ProjectFilesPanel";
-import { SpecViewPanel } from "./SpecViewPanel";
 import { IdeaTypeModal, type IdeaTypeValue } from "./IdeaTypeModal";
 import { UpdateMemoryGraphModal } from "./UpdateMemoryGraphModal";
 import { useIdeationAPI } from "../../hooks/useIdeationAPI";
@@ -18,7 +16,7 @@ import { useSpec } from "../../hooks/useSpec";
 import { useReadiness } from "../../hooks/useReadiness";
 import { ideationReducer, initialState } from "../../reducers/ideationReducer";
 import type { IdeationSessionProps, Artifact } from "../../types/ideation";
-import type { SpecWorkflowState, SpecSectionType } from "../../types/spec";
+import type { SpecWorkflowState } from "../../types/spec";
 
 // Generate unique message IDs
 function generateMessageId(): string {
@@ -45,11 +43,10 @@ export function IdeationSession({
   const [isSpecEditing, setIsSpecEditing] = useState(false);
   const [isSpecGenerating, setIsSpecGenerating] = useState(false);
   const [hasSpec, setHasSpec] = useState(false);
-  // Tab navigation state (T6.1, T9.1)
+  // Tab navigation state (T6.1)
   const [activeTab, setActiveTab] = useState<SessionTab>("chat");
   const [graphUpdateCount, setGraphUpdateCount] = useState(0);
   const [hasGraphUpdates, setHasGraphUpdates] = useState(false);
-  const [filesCount, setFilesCount] = useState(0);
 
   // Spec and readiness hooks (SPEC-006-E integration)
   const {
@@ -1643,6 +1640,11 @@ export function IdeationSession({
     if (tab === "graph") {
       setHasGraphUpdates(false);
       setGraphUpdateCount(0);
+      // Auto-minimize the right panel to give more space for the graph
+      dispatch({ type: "ARTIFACT_PANEL_TOGGLE", payload: { isOpen: false } });
+    } else if (tab === "chat") {
+      // Auto-expand the right panel when returning to chat
+      dispatch({ type: "ARTIFACT_PANEL_TOGGLE", payload: { isOpen: true } });
     }
   }, []);
 
@@ -2145,21 +2147,12 @@ export function IdeationSession({
         onNewIdea={handleNewIdea}
       />
 
-      {/* Tab Navigation (T6.1, T9.1) */}
+      {/* Tab Navigation (T6.1) */}
       <SessionTabs
         activeTab={activeTab}
         onTabChange={handleTabChange}
         graphUpdateCount={graphUpdateCount}
         hasGraphUpdates={hasGraphUpdates}
-        filesCount={filesCount}
-        hasSpec={hasSpec}
-        specStatus={
-          spec
-            ? spec.workflowState === "approved"
-              ? "complete"
-              : "draft"
-            : "none"
-        }
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -2195,74 +2188,6 @@ export function IdeationSession({
             isAnalyzingGraph={state.memoryGraph.isAnalyzing}
             pendingGraphChanges={state.memoryGraph.pendingChangesCount}
           />
-
-          {/* Files Tab Panel (T9.1, T9.2) */}
-          {activeTab === "files" && state.artifacts.linkedIdea && (
-            <ProjectFilesPanel
-              userSlug={state.artifacts.linkedIdea.userSlug}
-              ideaSlug={state.artifacts.linkedIdea.ideaSlug}
-              onFileSelect={(file) => {
-                console.log("[IdeationSession] File selected:", file.path);
-                // File preview is handled within ProjectFilesPanel
-              }}
-              onFilesLoaded={(count) => setFilesCount(count)}
-              className="flex-1"
-            />
-          )}
-
-          {/* Files Tab - No idea linked state */}
-          {activeTab === "files" && !state.artifacts.linkedIdea && (
-            <div className="flex-1 flex items-center justify-center bg-gray-50 p-8">
-              <div className="text-center max-w-md">
-                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-8 h-8 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No Idea Linked
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Link or create an idea to view project files.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Spec Tab Panel (T9.1, T9.3) */}
-          {activeTab === "spec" && (
-            <div className="flex-1 overflow-auto">
-              <SpecViewPanel
-                spec={spec}
-                sections={specSections}
-                isVisible={activeTab === "spec"}
-                isLoading={isSpecLoading || isSpecGenerating}
-                onViewInGraph={(sectionType: SpecSectionType) => {
-                  // Switch to graph tab and filter by section type
-                  setActiveTab("graph");
-                  console.log(
-                    "[IdeationSession] Navigate to graph for section:",
-                    sectionType,
-                  );
-                }}
-                onExport={(format: "md" | "json") => {
-                  console.log("[IdeationSession] Export spec as:", format);
-                  // TODO: Implement export functionality
-                }}
-                onRegenerate={handleGenerateSpec}
-              />
-            </div>
-          )}
         </div>
 
         {/* Combined Idea & Artifact Panel - Right side */}

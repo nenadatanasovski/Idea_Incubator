@@ -45,4 +45,4 @@ python3 tests/e2e/ralph_loop.py
 
 ## Mistakes to Avoid
 
-<!-- Add here when Claude makes mistakes -->
+- **Never upgrade reagraph to 4.30.7** - Causes "Cannot read properties of undefined (reading 'S')" error. Keep at 4.18.1

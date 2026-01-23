@@ -211,10 +211,10 @@ function LegendSection({
   onToggle: () => void;
 }) {
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+    <div className="border-b border-gray-200 last:border-b-0">
       <button
         onClick={onToggle}
-        className="w-full py-2 flex items-center justify-between text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider hover:text-gray-900 dark:hover:text-white"
+        className="w-full py-2 flex items-center justify-between text-xs font-medium text-gray-600 uppercase tracking-wider hover:text-gray-900"
       >
         {title}
         <svg
@@ -270,13 +270,13 @@ export function GraphLegend({
 
   return (
     <div
-      className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${className}`}
+      className={`bg-white rounded-lg border border-gray-200 overflow-hidden ${className}`}
       data-testid="graph-legend"
     >
       {/* Header - always visible */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="w-full px-3 py-2.5 flex items-center justify-between bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"
+        className="w-full px-3 py-2.5 flex items-center justify-between bg-gray-50 border-b border-gray-200"
       >
         <span className="flex items-center gap-2">
           <svg
@@ -292,9 +292,7 @@ export function GraphLegend({
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
             />
           </svg>
-          <span className="text-sm font-medium text-gray-900 dark:text-white">
-            Legend
-          </span>
+          <span className="text-sm font-medium text-gray-900">Legend</span>
         </span>
         <svg
           className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? "" : "rotate-180"}`}
@@ -313,7 +311,7 @@ export function GraphLegend({
 
       {/* Content - collapsible */}
       {!isCollapsed && (
-        <div className="px-3 divide-y divide-gray-200 dark:divide-gray-700">
+        <div className="px-3 divide-y divide-gray-200">
           {/* Node Colors (Block Types) */}
           {showNodeColors && (
             <LegendSection
@@ -328,7 +326,7 @@ export function GraphLegend({
                       className="w-3 h-3 rounded-full flex-shrink-0"
                       style={{ backgroundColor: nodeColors[blockType] }}
                     />
-                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                    <span className="text-xs text-gray-600 truncate">
                       {BLOCK_TYPE_LABELS[blockType]}
                     </span>
                   </div>
@@ -351,7 +349,7 @@ export function GraphLegend({
                       shape={nodeShapes[graphType]}
                       color={graphColors[graphType]}
                     />
-                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                    <span className="text-xs text-gray-600 truncate">
                       {GRAPH_TYPE_LABELS[graphType]}
                     </span>
                   </div>
@@ -370,7 +368,7 @@ export function GraphLegend({
               <div className="space-y-3">
                 {Object.entries(EDGE_STYLE_GROUPS).map(([group, linkTypes]) => (
                   <div key={group}>
-                    <h5 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    <h5 className="text-xs font-medium text-gray-500 mb-1">
                       {group}
                     </h5>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -380,7 +378,7 @@ export function GraphLegend({
                             color={edgeColors[linkType]}
                             style={edgeStyles[linkType]}
                           />
-                          <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                          <span className="text-xs text-gray-600 truncate">
                             {LINK_TYPE_LABELS[linkType]}
                           </span>
                         </div>

@@ -41,16 +41,16 @@ export function RangePropertyDisplay({
 
   return (
     <div
-      className={`p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg ${className}`}
+      className={`p-3 bg-gray-50 bg-gray-800/50 rounded-lg ${className}`}
       data-testid="range-property"
     >
       {/* Header with label and uncertainty warning */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+        <span className="text-sm font-medium text-gray-700 text-gray-300 capitalize">
           {label}
         </span>
         {isHighUncertainty && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 bg-amber-900 text-amber-700 text-amber-300">
             <svg
               className="w-3 h-3"
               fill="none"
@@ -73,12 +73,12 @@ export function RangePropertyDisplay({
       {/* Range visualization */}
       <div className="relative h-8 mb-2">
         {/* Background bar */}
-        <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-2 bg-gray-200 dark:bg-gray-700 rounded-full" />
+        <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-2 bg-gray-200 bg-gray-700 rounded-full" />
 
         {/* Range bar (min to max) */}
         {min !== undefined && max !== undefined && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 h-2 bg-blue-200 dark:bg-blue-800 rounded-full"
+            className="absolute top-1/2 -translate-y-1/2 h-2 bg-blue-200 bg-blue-800 rounded-full"
             style={{
               left: `${((min - rangeMin) / range) * 100}%`,
               width: `${((max - min) / range) * 100}%`,
@@ -89,7 +89,7 @@ export function RangePropertyDisplay({
         {/* Estimate marker */}
         {estimatePosition !== null && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-blue-500 rounded-full border-2 border-white dark:border-gray-800 shadow-sm"
+            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-blue-500 rounded-full border-2 border-white border-gray-800 shadow-sm"
             style={{ left: `calc(${estimatePosition}% - 6px)` }}
           />
         )}
@@ -97,7 +97,7 @@ export function RangePropertyDisplay({
         {/* Min marker */}
         {min !== undefined && (
           <div
-            className="absolute bottom-0 w-px h-3 bg-gray-400 dark:bg-gray-500"
+            className="absolute bottom-0 w-px h-3 bg-gray-400 bg-gray-500"
             style={{ left: `${((min - rangeMin) / range) * 100}%` }}
           />
         )}
@@ -105,17 +105,17 @@ export function RangePropertyDisplay({
         {/* Max marker */}
         {max !== undefined && (
           <div
-            className="absolute bottom-0 w-px h-3 bg-gray-400 dark:bg-gray-500"
+            className="absolute bottom-0 w-px h-3 bg-gray-400 bg-gray-500"
             style={{ left: `${((max - rangeMin) / range) * 100}%` }}
           />
         )}
       </div>
 
       {/* Value labels */}
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+      <div className="flex justify-between text-xs text-gray-500 text-gray-400">
         {min !== undefined && <span>Min: {formatNumber(min)}</span>}
         {estimate !== undefined && (
-          <span className="font-medium text-blue-600 dark:text-blue-400">
+          <span className="font-medium text-blue-600 text-blue-400">
             Est: {formatNumber(estimate)}
           </span>
         )}
@@ -149,24 +149,24 @@ export function ContextQualifiedPropertyDisplay({
 
   return (
     <div
-      className={`p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg ${className}`}
+      className={`p-3 bg-gray-50 bg-gray-800/50 rounded-lg ${className}`}
       data-testid="context-qualified-property"
     >
       {/* Header with label and varies_by indicator */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+        <span className="text-sm font-medium text-gray-700 text-gray-300 capitalize">
           {label}
         </span>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
+        <span className="text-xs text-gray-500 text-gray-400">
           varies by {variesBy}
         </span>
       </div>
 
       {/* Default value if present */}
       {defaultValue !== undefined && (
-        <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm">
-          <span className="text-gray-500 dark:text-gray-400">Default: </span>
-          <span className="font-medium text-blue-700 dark:text-blue-300">
+        <div className="mb-2 p-2 bg-blue-50 bg-blue-900/20 rounded text-sm">
+          <span className="text-gray-500 text-gray-400">Default: </span>
+          <span className="font-medium text-blue-700 text-blue-300">
             {typeof defaultValue === "number"
               ? formatNumber(defaultValue)
               : String(defaultValue)}
@@ -179,12 +179,12 @@ export function ContextQualifiedPropertyDisplay({
         {contextEntries.map(([context, value]) => (
           <div
             key={context}
-            className="flex items-center justify-between py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700/50"
+            className="flex items-center justify-between py-1 px-2 rounded hover:bg-gray-100 hover:bg-gray-700/50"
           >
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-gray-600 text-gray-400">
               {context}
             </span>
-            <span className="text-sm font-medium text-gray-900 dark:text-white">
+            <span className="text-sm font-medium text-gray-900 text-white">
               {typeof value === "number" ? formatNumber(value) : String(value)}
             </span>
           </div>
@@ -225,7 +225,7 @@ export function SpecialPropertiesSection({
       {/* Range Properties */}
       {rangeProperties.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+          <h4 className="text-xs font-medium text-gray-500 text-gray-400 uppercase tracking-wider flex items-center gap-2">
             <svg
               className="w-3 h-3"
               fill="none"
@@ -250,7 +250,7 @@ export function SpecialPropertiesSection({
       {/* Context-Qualified Properties */}
       {contextQualifiedProperties.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+          <h4 className="text-xs font-medium text-gray-500 text-gray-400 uppercase tracking-wider flex items-center gap-2">
             <svg
               className="w-3 h-3"
               fill="none"

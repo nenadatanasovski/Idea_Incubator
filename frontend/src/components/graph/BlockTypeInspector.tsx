@@ -34,14 +34,14 @@ function ProgressBar({
 
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+      <div className="flex justify-between text-xs text-gray-500">
         <span>
           {completed}/{total}
         </span>
         <span>{percentage}%</span>
       </div>
       <div
-        className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
+        className="h-2 bg-gray-200 rounded-full overflow-hidden"
         role="progressbar"
         aria-valuenow={percentage}
         aria-valuemin={0}
@@ -73,12 +73,10 @@ function StatusBadge({
   variant?: "default" | "critical" | "warning" | "success";
 }) {
   const variantStyles: Record<string, string> = {
-    default: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
-    critical: "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300",
-    warning:
-      "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300",
-    success:
-      "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300",
+    default: "bg-gray-100 text-gray-700",
+    critical: "bg-red-100 text-red-700",
+    warning: "bg-amber-100 text-amber-700",
+    success: "bg-green-100 text-green-700",
   };
 
   return (
@@ -104,8 +102,8 @@ function PropertyRow({
 }) {
   return (
     <div className="flex justify-between items-start gap-2 py-1.5">
-      <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
-      <span className="text-sm text-gray-900 dark:text-white text-right">
+      <span className="text-sm text-gray-500">{label}</span>
+      <span className="text-sm text-gray-900 text-right">
         {children || value}
       </span>
     </div>
@@ -117,7 +115,7 @@ function PropertyRow({
  */
 function SectionHeader({ title }: { title: string }) {
   return (
-    <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+    <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
       {title}
     </h4>
   );
@@ -172,7 +170,7 @@ function AssumptionPanel({
           <PropertyRow label="Implied By">
             <button
               onClick={() => onNavigate?.(node.impliedBy!)}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 hover:underline"
             >
               {node.impliedBy}
             </button>
@@ -217,11 +215,9 @@ function DerivedPanel({
       <SectionHeader title="Derived Value" />
 
       {node.stale && (
-        <div className="flex items-center gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-          <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-            STALE
-          </span>
-          <span className="text-xs text-amber-600 dark:text-amber-400">
+        <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
+          <span className="text-xs font-medium text-amber-700">STALE</span>
+          <span className="text-xs text-amber-600">
             Source data has changed
           </span>
         </div>
@@ -230,7 +226,7 @@ function DerivedPanel({
       <div className="space-y-1">
         {node.formula && (
           <PropertyRow label="Formula">
-            <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+            <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
               {node.formula}
             </code>
           </PropertyRow>
@@ -265,7 +261,7 @@ function DerivedPanel({
       {onRecalculate && (
         <button
           onClick={onRecalculate}
-          className="w-full px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+          className="w-full px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
           aria-label="Recalculate"
         >
           Recalculate
@@ -291,9 +287,7 @@ function ActionPanel({ node }: { node: GraphNode }) {
       {node.requiredCount !== undefined &&
         node.completedCount !== undefined && (
           <div>
-            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
-              Progress
-            </span>
+            <span className="text-xs text-gray-500 mb-1 block">Progress</span>
             <ProgressBar
               completed={node.completedCount}
               total={node.requiredCount}
@@ -306,9 +300,7 @@ function ActionPanel({ node }: { node: GraphNode }) {
           <PropertyRow label="Due Date">
             <span
               className={
-                new Date(node.dueDate) < new Date()
-                  ? "text-red-600 dark:text-red-400"
-                  : ""
+                new Date(node.dueDate) < new Date() ? "text-red-600" : ""
               }
             >
               {new Date(node.dueDate).toLocaleDateString()}
@@ -370,7 +362,7 @@ function ExternalPanel({ node }: { node: GraphNode }) {
             href={node.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
+            className="text-sm text-blue-600 hover:underline break-all"
           >
             {node.url}
           </a>
@@ -421,7 +413,7 @@ function StakeholderViewPanel({
       <SectionHeader title="Stakeholder View" />
 
       {node.stakeholder && (
-        <div className="text-lg font-medium text-gray-900 dark:text-white">
+        <div className="text-lg font-medium text-gray-900">
           {node.stakeholder}
         </div>
       )}
@@ -454,7 +446,7 @@ function StakeholderViewPanel({
           <PropertyRow label="Incorporated Into">
             <button
               onClick={() => onNavigate?.(node.incorporatedInto!)}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 hover:underline"
             >
               {node.incorporatedInto}
             </button>
@@ -475,11 +467,9 @@ function PlaceholderPanel({ node }: { node: GraphNode }) {
       <SectionHeader title="Placeholder" />
 
       {node.placeholderFor && (
-        <div className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            Placeholder for:
-          </span>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">
+        <div className="p-2 bg-gray-50 rounded-lg">
+          <span className="text-xs text-gray-500">Placeholder for:</span>
+          <p className="text-sm font-medium text-gray-900">
             {node.placeholderFor}
           </p>
         </div>
@@ -501,10 +491,10 @@ function PlaceholderPanel({ node }: { node: GraphNode }) {
 
       {node.partialInfo && node.partialInfo.length > 0 && (
         <div>
-          <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+          <span className="text-xs text-gray-500 mb-1 block">
             Partial Information
           </span>
-          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+          <ul className="text-sm text-gray-700 space-y-1">
             {node.partialInfo.map((info, i) => (
               <li key={i} className="flex items-start gap-2">
                 <span className="text-gray-400">•</span>
@@ -544,7 +534,7 @@ function MetaPanel({
           <PropertyRow label="About">
             <button
               onClick={() => onNavigate?.(node.about!)}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 hover:underline"
             >
               {node.about}
             </button>
@@ -579,13 +569,9 @@ function DecisionPanel({
       <SectionHeader title="Decision" />
 
       {node.topic && (
-        <div className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            Topic:
-          </span>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">
-            {node.topic}
-          </p>
+        <div className="p-2 bg-gray-50 rounded-lg">
+          <span className="text-xs text-gray-500">Topic:</span>
+          <p className="text-sm font-medium text-gray-900">{node.topic}</p>
         </div>
       )}
 
@@ -602,7 +588,7 @@ function DecisionPanel({
           <PropertyRow label="Decided Option">
             <button
               onClick={() => onNavigate?.(node.decidedOption!)}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 hover:underline"
             >
               {node.decidedOption}
             </button>
@@ -610,12 +596,8 @@ function DecisionPanel({
         )}
         {node.decisionRationale && (
           <div className="pt-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
-              Rationale
-            </span>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
-              {node.decisionRationale}
-            </p>
+            <span className="text-xs text-gray-500 mb-1 block">Rationale</span>
+            <p className="text-sm text-gray-700">{node.decisionRationale}</p>
           </div>
         )}
       </div>
@@ -657,7 +639,7 @@ function OptionPanel({
           <PropertyRow label="Decision">
             <button
               onClick={() => onNavigate?.(node.decision!)}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 hover:underline"
             >
               {node.decision}
             </button>
@@ -667,7 +649,7 @@ function OptionPanel({
 
       {node.alternativeTo && node.alternativeTo.length > 0 && (
         <div>
-          <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+          <span className="text-xs text-gray-500 mb-1 block">
             {node.alternativeTo.length} alternatives
           </span>
           <div className="flex flex-wrap gap-1">
@@ -675,7 +657,7 @@ function OptionPanel({
               <button
                 key={alt}
                 onClick={() => onNavigate?.(alt)}
-                className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="text-xs px-2 py-0.5 bg-gray-100 rounded text-gray-600 hover:bg-gray-200"
               >
                 {alt}
               </button>
@@ -715,7 +697,7 @@ function TopicPanel({
           <PropertyRow label="Decided View">
             <button
               onClick={() => onNavigate?.(node.decidedView!)}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 hover:underline"
             >
               {node.decidedView}
             </button>
@@ -729,19 +711,15 @@ function TopicPanel({
         )}
         {node.topicRationale && (
           <div className="pt-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
-              Rationale
-            </span>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
-              {node.topicRationale}
-            </p>
+            <span className="text-xs text-gray-500 mb-1 block">Rationale</span>
+            <p className="text-sm text-gray-700">{node.topicRationale}</p>
           </div>
         )}
       </div>
 
       {node.stakeholderViews && node.stakeholderViews.length > 0 && (
         <div>
-          <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+          <span className="text-xs text-gray-500 mb-1 block">
             Stakeholder Views ({node.stakeholderViews.length})
           </span>
           <div className="space-y-1">
@@ -749,7 +727,7 @@ function TopicPanel({
               <button
                 key={viewId}
                 onClick={() => onNavigate?.(viewId)}
-                className="w-full text-left text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="w-full text-left text-xs px-2 py-1 bg-gray-100 rounded text-gray-600 hover:bg-gray-200 transition-colors"
               >
                 {viewId}
               </button>
@@ -779,11 +757,9 @@ function SynthesisPanel({
       <SectionHeader title="Synthesis" />
 
       {node.clusterTheme && (
-        <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-          <span className="text-xs text-purple-600 dark:text-purple-400">
-            Cluster Theme:
-          </span>
-          <p className="text-sm font-medium text-purple-900 dark:text-purple-200">
+        <div className="p-2 bg-purple-50 rounded-lg border border-purple-200">
+          <span className="text-xs text-purple-600">Cluster Theme:</span>
+          <p className="text-sm font-medium text-purple-900">
             {node.clusterTheme}
           </p>
         </div>
@@ -791,7 +767,7 @@ function SynthesisPanel({
 
       {node.synthesizes && node.synthesizes.length > 0 && (
         <div>
-          <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+          <span className="text-xs text-gray-500 mb-1 block">
             {node.synthesizes.length} blocks synthesized
           </span>
           <div className="flex flex-wrap gap-1">
@@ -799,7 +775,7 @@ function SynthesisPanel({
               <button
                 key={blockId}
                 onClick={() => onNavigate?.(blockId)}
-                className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 rounded text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50"
+                className="text-xs px-2 py-0.5 bg-purple-100 rounded text-purple-600 hover:bg-purple-200"
               >
                 {blockId}
               </button>
@@ -811,7 +787,7 @@ function SynthesisPanel({
       {onRegenerate && (
         <button
           onClick={onRegenerate}
-          className="w-full px-3 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
+          className="w-full px-3 py-2 text-sm font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
         >
           Regenerate Synthesis
         </button>
@@ -848,14 +824,14 @@ function PatternPanel({ node }: { node: GraphNode }) {
 
       {node.sharedWith && node.sharedWith.length > 0 && (
         <div>
-          <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+          <span className="text-xs text-gray-500 mb-1 block">
             Shared with ideas
           </span>
           <div className="flex flex-wrap gap-1">
             {node.sharedWith.map((ideaId) => (
               <span
                 key={ideaId}
-                className="text-xs px-2 py-0.5 bg-pink-100 dark:bg-pink-900/30 rounded text-pink-600 dark:text-pink-400"
+                className="text-xs px-2 py-0.5 bg-pink-100 rounded text-pink-600"
               >
                 {ideaId}
               </span>
@@ -877,7 +853,7 @@ function CyclePanel({ node }: { node: GraphNode }) {
       <SectionHeader title="Circular Dependency" />
 
       {node.cycleId && (
-        <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+        <div className="p-2 bg-red-50 rounded-lg border border-red-200">
           <div className="flex items-center gap-2 mb-1">
             <svg
               className="w-4 h-4 text-red-500"
@@ -892,7 +868,7 @@ function CyclePanel({ node }: { node: GraphNode }) {
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-            <span className="text-sm font-medium text-red-700 dark:text-red-300">
+            <span className="text-sm font-medium text-red-700">
               Part of circular dependency
             </span>
           </div>
@@ -1008,7 +984,7 @@ export function BlockTypeInspector({
             <rect x="4" y="4" width="12" height="12" rx="2" />
           </svg>
         </div>
-        <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+        <span className="text-sm font-medium text-gray-900 capitalize">
           {node.blockType.replace(/_/g, " ")} Block
         </span>
       </div>

@@ -261,12 +261,9 @@ function QuickActionButton({
     "inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
   const variantClasses = {
-    default:
-      "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600",
-    outline:
-      "border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700",
-    destructive:
-      "bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600",
+    default: "bg-blue-600 text-white hover:bg-blue-700",
+    outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-100",
+    destructive: "bg-red-600 text-white hover:bg-red-700",
   };
 
   return (
@@ -303,16 +300,16 @@ function DeleteConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
         <div className="flex items-start gap-4">
-          <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
-            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+          <div className="p-2 bg-red-100 rounded-full">
+            <AlertTriangle className="h-6 w-6 text-red-600" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-lg font-semibold text-gray-900">
               Delete Selected Blocks
             </h3>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            <p className="mt-2 text-sm text-gray-600">
               Are you sure you want to delete {count} selected block
               {count > 1 ? "s" : ""}? This action cannot be undone.
             </p>
@@ -320,7 +317,7 @@ function DeleteConfirmDialog({
         </div>
         <div className="flex justify-end gap-3 mt-6">
           <button
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
             onClick={onClose}
           >
             Cancel
@@ -544,8 +541,8 @@ export function GraphQuickActions({
   return (
     <div className="space-y-2">
       {/* Quick Actions */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
-        <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+      <div className="rounded-lg border border-gray-200 bg-white p-3">
+        <h4 className="text-xs font-medium text-gray-500 mb-2">
           Quick Actions
         </h4>
         <div className="flex flex-wrap gap-2">
@@ -600,8 +597,8 @@ export function GraphQuickActions({
 
       {/* Selection Actions (only shown when nodes are selected) */}
       {hasSelection && (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
-          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <h4 className="text-xs font-medium text-gray-500 mb-2">
             Selection Actions ({selectedNodeIds.length} node
             {selectedNodeIds.length > 1 ? "s" : ""} selected)
           </h4>
@@ -673,7 +670,7 @@ export function GraphQuickActions({
         contradictionsResult.contradictions.length > 0 && (
           <div className="rounded-lg border border-yellow-500 bg-yellow-500/10 p-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-medium text-yellow-600 dark:text-yellow-400">
+              <h4 className="text-xs font-medium text-yellow-600">
                 Found {contradictionsResult.contradictions.length} Contradiction
                 {contradictionsResult.contradictions.length > 1 ? "s" : ""}
               </h4>
@@ -681,7 +678,7 @@ export function GraphQuickActions({
                 className="p-1 rounded hover:bg-yellow-500/20"
                 onClick={() => setContradictionsResult(null)}
               >
-                <X className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <X className="h-4 w-4 text-yellow-600" />
               </button>
             </div>
           </div>
@@ -692,14 +689,14 @@ export function GraphQuickActions({
         assumptionsResult.surfacedAssumptions.length > 0 && (
           <div className="rounded-lg border border-amber-500 bg-amber-500/10 p-3">
             <div className="flex items-start gap-2 mb-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h4 className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                <h4 className="text-xs font-medium text-amber-600">
                   Found {assumptionsResult.surfacedAssumptions.length} Hidden
                   Assumption
                   {assumptionsResult.surfacedAssumptions.length > 1 ? "s" : ""}
                 </h4>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                <p className="text-xs text-amber-700 mt-1">
                   These assumptions were detected in your graph and may need
                   validation.
                 </p>
@@ -708,7 +705,7 @@ export function GraphQuickActions({
                 className="p-1 rounded hover:bg-amber-500/20"
                 onClick={() => setAssumptionsResult(null)}
               >
-                <X className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <X className="h-4 w-4 text-amber-600" />
               </button>
             </div>
           </div>

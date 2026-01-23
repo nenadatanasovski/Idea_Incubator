@@ -3,7 +3,15 @@
  * Renders the Memory Graph using Reagraph with WebGL acceleration
  */
 
-import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import {
   GraphCanvas as ReagraphCanvas,
   GraphCanvasRef,
@@ -109,10 +117,17 @@ export interface GraphCanvasProps {
   selectedNodeId?: string | null;
   hoveredNodeId?: string | null;
   highlightedNodeIds?: string[];
+  highlightedEdgeIds?: string[];
   recentlyAddedNodeIds?: Set<string>;
   recentlyAddedEdgeIds?: Set<string>;
   layoutType?: LayoutType;
   className?: string;
+}
+
+export interface GraphCanvasHandle {
+  focusOnNode: (nodeId: string) => void;
+  fitNodesInView: (nodeIds?: string[]) => void;
+  centerGraph: () => void;
 }
 
 /**
@@ -143,20 +158,29 @@ function toReagraphNode(
   if (isSelected) {
     strokeWidth = 4;
     stroke = "#FBBF24"; // Yellow
+    opacity = 1; // Full opacity for selected
   } else if (isRecentlyAdded) {
     // Bright green pulsing effect for newly added nodes
     strokeWidth = 4;
     stroke = "#22C55E"; // Green-500
+    opacity = 1;
   } else if (isHighlighted) {
-    strokeWidth = 3;
+    strokeWidth = 4;
     stroke = "#F97316"; // Orange for highlighted
+    opacity = 1; // Full opacity for highlighted
   } else if (isHovered) {
     strokeWidth = 3;
     stroke = "#60A5FA"; // Blue
+    opacity = 1;
   }
 
-  // Increase size slightly for recently added nodes to make them more visible
-  const finalSize = isRecentlyAdded ? size * 1.2 : size;
+  // Increase size for recently added or highlighted nodes to make them more visible
+  let finalSize = size;
+  if (isRecentlyAdded) {
+    finalSize = size * 1.2;
+  } else if (isHighlighted) {
+    finalSize = size * 1.15;
+  }
 
   // Add file reference indicator as subLabel (📎 icon)
   const subLabel = hasFileReferences ? "📎" : undefined;
@@ -173,9 +197,20 @@ function toReagraphNode(
     strokeWidth = 2.5;
   }
 
+  // Use full content for label
+  // Show full text for highlighted/selected/hovered nodes, truncate others
+  const fullLabel = node.content || node.label;
+  const showFullText = isHighlighted || isSelected || isHovered;
+  const maxLabelLength = 50;
+  const displayLabel = showFullText
+    ? fullLabel
+    : fullLabel.length > maxLabelLength
+      ? fullLabel.substring(0, maxLabelLength - 3) + "..."
+      : fullLabel;
+
   return {
     id: node.id,
-    label: node.label,
+    label: displayLabel,
     subLabel,
     fill: isRecentlyAdded ? "#4ADE80" : getNodeColor(node.blockType), // Lighter green fill for new nodes
     size: finalSize,
@@ -218,11 +253,11 @@ function toReagraphEdge(
 
   if (isRecentlyAdded) {
     stroke = "#22C55E"; // Green-500 for new edges
-    strokeWidth = width + 1;
+    strokeWidth = width + 2;
     finalOpacity = 1;
   } else if (isHighlighted) {
-    stroke = "#FBBF24";
-    strokeWidth = width + 1;
+    stroke = "#F97316"; // Orange to match highlighted nodes
+    strokeWidth = width + 2;
     finalOpacity = 1;
   }
 
@@ -255,411 +290,458 @@ function mapLayoutType(
   }
 }
 
-export function GraphCanvas({
-  nodes,
-  edges,
-  onNodeClick,
-  onNodeHover,
-  onEdgeClick,
-  selectedNodeId,
-  hoveredNodeId,
-  highlightedNodeIds = [],
-  recentlyAddedNodeIds = new Set(),
-  recentlyAddedEdgeIds = new Set(),
-  layoutType = "forceDirected",
-  className = "",
-}: GraphCanvasProps) {
-  const graphRef = useRef<GraphCanvasRef | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [internalHoveredId, setInternalHoveredId] = useState<string | null>(
-    null,
-  );
-  // Key to force remount when WebGL context is lost
-  const [canvasKey, setCanvasKey] = useState(0);
-  const [isRecovering, setIsRecovering] = useState(false);
+export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
+  function GraphCanvas(
+    {
+      nodes,
+      edges,
+      onNodeClick,
+      onNodeHover,
+      onEdgeClick,
+      selectedNodeId,
+      hoveredNodeId,
+      highlightedNodeIds = [],
+      highlightedEdgeIds = [],
+      recentlyAddedNodeIds = new Set(),
+      recentlyAddedEdgeIds = new Set(),
+      layoutType = "forceDirected",
+      className = "",
+    },
+    ref,
+  ) {
+    const graphRef = useRef<GraphCanvasRef | null>(null);
 
-  // Handle WebGL context loss recovery
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    // Expose methods via ref
+    useImperativeHandle(
+      ref,
+      () => ({
+        focusOnNode: (nodeId: string) => {
+          graphRef.current?.fitNodesInView([nodeId]);
+        },
+        fitNodesInView: (nodeIds?: string[]) => {
+          graphRef.current?.fitNodesInView(nodeIds);
+        },
+        centerGraph: () => {
+          graphRef.current?.centerGraph();
+        },
+      }),
+      [],
+    );
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const [internalHoveredId, setInternalHoveredId] = useState<string | null>(
+      null,
+    );
+    // Key to force remount when WebGL context is lost
+    const [canvasKey, setCanvasKey] = useState(0);
+    const [isRecovering, setIsRecovering] = useState(false);
 
-    const handleContextLost = (event: Event) => {
-      console.warn(
-        "[GraphCanvas] WebGL context lost, will attempt recovery...",
-      );
-      event.preventDefault();
-      setIsRecovering(true);
+    // Handle WebGL context loss recovery
+    useEffect(() => {
+      const container = containerRef.current;
+      if (!container) return;
 
-      // Wait a bit before trying to recover
-      setTimeout(() => {
-        console.log("[GraphCanvas] Attempting to recover WebGL context...");
-        setCanvasKey((prev) => prev + 1);
+      const handleContextLost = (event: Event) => {
+        console.warn(
+          "[GraphCanvas] WebGL context lost, will attempt recovery...",
+        );
+        event.preventDefault();
+        setIsRecovering(true);
+
+        // Wait a bit before trying to recover
+        setTimeout(() => {
+          console.log("[GraphCanvas] Attempting to recover WebGL context...");
+          setCanvasKey((prev) => prev + 1);
+          setIsRecovering(false);
+        }, 1000);
+      };
+
+      const handleContextRestored = () => {
+        console.log("[GraphCanvas] WebGL context restored");
         setIsRecovering(false);
-      }, 1000);
-    };
+      };
 
-    const handleContextRestored = () => {
-      console.log("[GraphCanvas] WebGL context restored");
-      setIsRecovering(false);
-    };
-
-    // Listen for context events on canvas elements within the container
-    const canvasElements = container.querySelectorAll("canvas");
-    canvasElements.forEach((canvas) => {
-      canvas.addEventListener("webglcontextlost", handleContextLost);
-      canvas.addEventListener("webglcontextrestored", handleContextRestored);
-    });
-
-    // Also listen on the container in case canvas is added later
-    container.addEventListener("webglcontextlost", handleContextLost);
-    container.addEventListener("webglcontextrestored", handleContextRestored);
-
-    return () => {
+      // Listen for context events on canvas elements within the container
+      const canvasElements = container.querySelectorAll("canvas");
       canvasElements.forEach((canvas) => {
-        canvas.removeEventListener("webglcontextlost", handleContextLost);
-        canvas.removeEventListener(
+        canvas.addEventListener("webglcontextlost", handleContextLost);
+        canvas.addEventListener("webglcontextrestored", handleContextRestored);
+      });
+
+      // Also listen on the container in case canvas is added later
+      container.addEventListener("webglcontextlost", handleContextLost);
+      container.addEventListener("webglcontextrestored", handleContextRestored);
+
+      return () => {
+        canvasElements.forEach((canvas) => {
+          canvas.removeEventListener("webglcontextlost", handleContextLost);
+          canvas.removeEventListener(
+            "webglcontextrestored",
+            handleContextRestored,
+          );
+        });
+        container.removeEventListener("webglcontextlost", handleContextLost);
+        container.removeEventListener(
           "webglcontextrestored",
           handleContextRestored,
         );
-      });
-      container.removeEventListener("webglcontextlost", handleContextLost);
-      container.removeEventListener(
-        "webglcontextrestored",
-        handleContextRestored,
+      };
+    }, [canvasKey]); // Re-attach listeners when canvas remounts
+
+    // Calculate connection counts for all nodes
+    const connectionCounts = useMemo(
+      () => createConnectionCountMap(nodes, edges),
+      [nodes, edges],
+    );
+
+    // Create a set for faster lookup of highlighted nodes
+    const highlightedSet = useMemo(
+      () => new Set(highlightedNodeIds),
+      [highlightedNodeIds],
+    );
+
+    // Create a set for faster lookup of highlighted edges
+    const highlightedEdgeSet = useMemo(
+      () => new Set(highlightedEdgeIds),
+      [highlightedEdgeIds],
+    );
+
+    // Transform nodes to Reagraph format
+    const reagraphNodes = useMemo(() => {
+      const effectiveHoveredId = hoveredNodeId ?? internalHoveredId;
+      return nodes.map((node) =>
+        toReagraphNode(
+          node,
+          connectionCounts.get(node.id) || 0,
+          node.id === selectedNodeId,
+          node.id === effectiveHoveredId,
+          highlightedSet.has(node.id),
+          recentlyAddedNodeIds.has(node.id),
+          Boolean(node.fileReferences && node.fileReferences.length > 0),
+        ),
       );
-    };
-  }, [canvasKey]); // Re-attach listeners when canvas remounts
+    }, [
+      nodes,
+      connectionCounts,
+      selectedNodeId,
+      hoveredNodeId,
+      internalHoveredId,
+      highlightedSet,
+      recentlyAddedNodeIds,
+    ]);
 
-  // Calculate connection counts for all nodes
-  const connectionCounts = useMemo(
-    () => createConnectionCountMap(nodes, edges),
-    [nodes, edges],
-  );
+    // Transform edges to Reagraph format
+    const reagraphEdges = useMemo(() => {
+      // Highlight edges connected to selected node OR explicitly highlighted
+      return edges.map((edge) => {
+        const isHighlighted =
+          highlightedEdgeSet.has(edge.id) ||
+          (selectedNodeId !== null &&
+            (edge.source === selectedNodeId || edge.target === selectedNodeId));
+        const isRecentlyAdded = recentlyAddedEdgeIds.has(edge.id);
+        return toReagraphEdge(edge, isHighlighted, isRecentlyAdded);
+      });
+    }, [edges, selectedNodeId, highlightedEdgeSet, recentlyAddedEdgeIds]);
 
-  // Create a set for faster lookup of highlighted nodes
-  const highlightedSet = useMemo(
-    () => new Set(highlightedNodeIds),
-    [highlightedNodeIds],
-  );
-
-  // Transform nodes to Reagraph format
-  const reagraphNodes = useMemo(() => {
-    const effectiveHoveredId = hoveredNodeId ?? internalHoveredId;
-    return nodes.map((node) =>
-      toReagraphNode(
-        node,
-        connectionCounts.get(node.id) || 0,
-        node.id === selectedNodeId,
-        node.id === effectiveHoveredId,
-        highlightedSet.has(node.id),
-        recentlyAddedNodeIds.has(node.id),
-        Boolean(node.fileReferences && node.fileReferences.length > 0),
-      ),
-    );
-  }, [
-    nodes,
-    connectionCounts,
-    selectedNodeId,
-    hoveredNodeId,
-    internalHoveredId,
-    highlightedSet,
-    recentlyAddedNodeIds,
-  ]);
-
-  // Transform edges to Reagraph format
-  const reagraphEdges = useMemo(() => {
-    // Highlight edges connected to selected node
-    return edges.map((edge) => {
-      const isHighlighted =
-        selectedNodeId !== null &&
-        (edge.source === selectedNodeId || edge.target === selectedNodeId);
-      const isRecentlyAdded = recentlyAddedEdgeIds.has(edge.id);
-      return toReagraphEdge(edge, isHighlighted, isRecentlyAdded);
+    // Reagraph selection hook for internal state management
+    const {
+      selections,
+      actives: selectionActives,
+      onNodeClick: handleReagraphNodeClick,
+      onCanvasClick,
+    } = useSelection({
+      ref: graphRef,
+      nodes: reagraphNodes,
+      edges: reagraphEdges,
+      type: "single",
+      pathSelectionType: "direct",
     });
-  }, [edges, selectedNodeId, recentlyAddedEdgeIds]);
 
-  // Reagraph selection hook for internal state management
-  const {
-    selections,
-    actives,
-    onNodeClick: handleReagraphNodeClick,
-    onCanvasClick,
-  } = useSelection({
-    ref: graphRef,
-    nodes: reagraphNodes,
-    edges: reagraphEdges,
-    type: "single",
-    pathSelectionType: "direct",
-  });
+    // Combine selection actives with our highlighted nodes/edges
+    const actives = useMemo(() => {
+      const combined = [...(selectionActives || [])];
+      // Add highlighted node IDs
+      highlightedNodeIds.forEach((id) => {
+        if (!combined.includes(id)) {
+          combined.push(id);
+        }
+      });
+      // Add highlighted edge IDs
+      highlightedEdgeIds.forEach((id) => {
+        if (!combined.includes(id)) {
+          combined.push(id);
+        }
+      });
+      return combined;
+    }, [selectionActives, highlightedNodeIds, highlightedEdgeIds]);
 
-  // Handle node click
-  const handleNodeClick = useCallback(
-    (nodeData: InternalGraphNode) => {
-      if (handleReagraphNodeClick) {
-        handleReagraphNodeClick(nodeData as never);
-      }
-      const node = nodes.find((n) => n.id === nodeData.id);
-      if (node && onNodeClick) {
-        onNodeClick(node);
-      }
-    },
-    [nodes, onNodeClick, handleReagraphNodeClick],
-  );
-
-  // Handle node pointer over (hover)
-  const handleNodePointerOver = useCallback(
-    (nodeData: InternalGraphNode) => {
-      setInternalHoveredId(nodeData.id);
-      const node = nodes.find((n) => n.id === nodeData.id);
-      if (node && onNodeHover) {
-        onNodeHover(node);
-      }
-    },
-    [nodes, onNodeHover],
-  );
-
-  // Handle node pointer out
-  const handleNodePointerOut = useCallback(() => {
-    setInternalHoveredId(null);
-    if (onNodeHover) {
-      onNodeHover(null);
-    }
-  }, [onNodeHover]);
-
-  // Handle edge click
-  const handleEdgeClick = useCallback(
-    (edgeData: { id: string }) => {
-      const edge = edges.find((e) => e.id === edgeData.id);
-      if (edge && onEdgeClick) {
-        onEdgeClick(edge);
-      }
-    },
-    [edges, onEdgeClick],
-  );
-
-  // Zoom controls
-  const handleZoomIn = useCallback(() => {
-    graphRef.current?.zoomIn();
-  }, []);
-
-  const handleZoomOut = useCallback(() => {
-    graphRef.current?.zoomOut();
-  }, []);
-
-  const handleFitView = useCallback(() => {
-    graphRef.current?.fitNodesInView();
-  }, []);
-
-  const handleCenterGraph = useCallback(() => {
-    graphRef.current?.centerGraph();
-  }, []);
-
-  // Empty state
-  if (nodes.length === 0) {
-    return (
-      <div
-        data-testid="graph-canvas"
-        className={`flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-lg h-full w-full ${className}`}
-      >
-        <div className="text-center text-gray-500">
-          <svg
-            className="mx-auto h-12 w-12 mb-4 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
-            />
-          </svg>
-          <p className="text-sm">No graph data to display</p>
-          <p className="text-xs mt-1">
-            Start a conversation to build the knowledge graph
-          </p>
-        </div>
-      </div>
+    // Handle node click
+    const handleNodeClick = useCallback(
+      (nodeData: InternalGraphNode) => {
+        if (handleReagraphNodeClick) {
+          handleReagraphNodeClick(nodeData as never);
+        }
+        const node = nodes.find((n) => n.id === nodeData.id);
+        if (node && onNodeClick) {
+          onNodeClick(node);
+        }
+      },
+      [nodes, onNodeClick, handleReagraphNodeClick],
     );
-  }
 
-  return (
-    <div
-      ref={containerRef}
-      data-testid="graph-canvas"
-      className={`relative bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden h-full w-full ${className}`}
-    >
-      {/* WebGL Recovery Overlay */}
-      {isRecovering && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm">
-          <div className="text-center text-white">
-            <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-sm">Recovering graph visualization...</p>
+    // Handle node pointer over (hover)
+    const handleNodePointerOver = useCallback(
+      (nodeData: InternalGraphNode) => {
+        setInternalHoveredId(nodeData.id);
+        const node = nodes.find((n) => n.id === nodeData.id);
+        if (node && onNodeHover) {
+          onNodeHover(node);
+        }
+      },
+      [nodes, onNodeHover],
+    );
+
+    // Handle node pointer out
+    const handleNodePointerOut = useCallback(() => {
+      setInternalHoveredId(null);
+      if (onNodeHover) {
+        onNodeHover(null);
+      }
+    }, [onNodeHover]);
+
+    // Handle edge click
+    const handleEdgeClick = useCallback(
+      (edgeData: { id: string }) => {
+        const edge = edges.find((e) => e.id === edgeData.id);
+        if (edge && onEdgeClick) {
+          onEdgeClick(edge);
+        }
+      },
+      [edges, onEdgeClick],
+    );
+
+    // Zoom controls
+    const handleZoomIn = useCallback(() => {
+      graphRef.current?.zoomIn();
+    }, []);
+
+    const handleZoomOut = useCallback(() => {
+      graphRef.current?.zoomOut();
+    }, []);
+
+    const handleFitView = useCallback(() => {
+      graphRef.current?.fitNodesInView();
+    }, []);
+
+    const handleCenterGraph = useCallback(() => {
+      graphRef.current?.centerGraph();
+    }, []);
+
+    // Empty state
+    if (nodes.length === 0) {
+      return (
+        <div
+          data-testid="graph-canvas"
+          className={`flex items-center justify-center bg-gray-50 rounded-lg h-full w-full ${className}`}
+        >
+          <div className="text-center text-gray-500">
+            <svg
+              className="mx-auto h-12 w-12 mb-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+              />
+            </svg>
+            <p className="text-sm">No graph data to display</p>
+            <p className="text-xs mt-1">
+              Start a conversation to build the knowledge graph
+            </p>
           </div>
         </div>
-      )}
-      {/* Zoom Controls */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-        <button
-          onClick={handleZoomIn}
-          className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          title="Zoom In"
-          aria-label="Zoom In"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            />
-          </svg>
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          title="Zoom Out"
-          aria-label="Zoom Out"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M20 12H4"
-            />
-          </svg>
-        </button>
-        <button
-          onClick={handleFitView}
-          className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          title="Fit to View"
-          aria-label="Fit to View"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
-            />
-          </svg>
-        </button>
-        <button
-          onClick={handleCenterGraph}
-          className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          title="Center Graph"
-          aria-label="Center Graph"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-            />
-          </svg>
-        </button>
-      </div>
+      );
+    }
 
-      {/* Graph Canvas - key forces remount on WebGL context loss */}
-      <ReagraphCanvas
-        key={canvasKey}
-        ref={graphRef}
-        nodes={reagraphNodes}
-        edges={reagraphEdges}
-        selections={selections}
-        actives={actives}
-        onNodeClick={handleNodeClick as never}
-        onNodePointerOver={handleNodePointerOver as never}
-        onNodePointerOut={handleNodePointerOut}
-        onEdgeClick={handleEdgeClick as never}
-        onCanvasClick={onCanvasClick}
-        layoutType={mapLayoutType(layoutType)}
-        layoutOverrides={{
-          nodeStrength: -100,
-          linkDistance: 100,
-        }}
-        labelType="auto"
-        draggable
-        animated
-        cameraMode="pan"
-        renderNode={({ size, color, opacity, node }) => (
-          <CustomNodeRenderer
-            size={size}
-            color={color as string}
-            opacity={opacity}
-            node={node as { shape?: NodeShape }}
-          />
+    return (
+      <div
+        ref={containerRef}
+        data-testid="graph-canvas"
+        className={`relative bg-gray-50 rounded-lg overflow-hidden h-full w-full ${className}`}
+      >
+        {/* WebGL Recovery Overlay */}
+        {isRecovering && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm">
+            <div className="text-center text-white">
+              <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-sm">Recovering graph visualization...</p>
+            </div>
+          </div>
         )}
-        theme={{
-          canvas: {
-            // Using a valid color instead of "transparent" to avoid THREE.Color warning
-            background: "#F9FAFB",
-          },
-          node: {
-            fill: "#3B82F6",
-            activeFill: "#FBBF24",
-            opacity: 1,
-            selectedOpacity: 1,
-            inactiveOpacity: 0.3,
-            label: {
-              color: "#1F2937",
-              activeColor: "#1F2937",
+        {/* Zoom Controls */}
+        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+          <button
+            onClick={handleZoomIn}
+            className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+            title="Zoom In"
+            aria-label="Zoom In"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={handleZoomOut}
+            className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+            title="Zoom Out"
+            aria-label="Zoom Out"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M20 12H4"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={handleFitView}
+            className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+            title="Fit to View"
+            aria-label="Fit to View"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={handleCenterGraph}
+            className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+            title="Center Graph"
+            aria-label="Center Graph"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Graph Canvas - key forces remount on WebGL context loss */}
+        <ReagraphCanvas
+          key={canvasKey}
+          ref={graphRef}
+          nodes={reagraphNodes}
+          edges={reagraphEdges}
+          selections={selections}
+          actives={actives}
+          onNodeClick={handleNodeClick as never}
+          onNodePointerOver={handleNodePointerOver as never}
+          onNodePointerOut={handleNodePointerOut}
+          onEdgeClick={handleEdgeClick as never}
+          onCanvasClick={onCanvasClick}
+          layoutType={mapLayoutType(layoutType)}
+          layoutOverrides={{
+            nodeStrength: -100,
+            linkDistance: 100,
+          }}
+          labelType="auto"
+          draggable
+          animated
+          cameraMode="pan"
+          renderNode={({ size, color, opacity, node }) => (
+            <CustomNodeRenderer
+              size={size}
+              color={color as string}
+              opacity={opacity}
+              node={node as { shape?: NodeShape }}
+            />
+          )}
+          theme={{
+            canvas: {
+              background: "#F9FAFB",
             },
-            subLabel: {
-              color: "#6B7280",
-              activeColor: "#6B7280",
+            node: {
+              fill: "#3B82F6",
+              activeFill: "#F97316", // Orange for active/highlighted nodes
+              opacity: 1,
+              selectedOpacity: 1,
+              inactiveOpacity: 0.2, // More contrast for inactive nodes
+              label: {
+                color: "#1F2937",
+                activeColor: "#F97316",
+              },
+              subLabel: {
+                color: "#6B7280",
+                activeColor: "#F97316",
+              },
             },
-          },
-          edge: {
-            fill: "#9CA3AF",
-            activeFill: "#FBBF24",
-            opacity: 0.7,
-            selectedOpacity: 1,
-            inactiveOpacity: 0.2,
-            label: {
-              color: "#6B7280",
-              activeColor: "#6B7280",
+            edge: {
+              fill: "#9CA3AF",
+              activeFill: "#F97316", // Orange for active/highlighted edges
+              opacity: 0.7,
+              selectedOpacity: 1,
+              inactiveOpacity: 0.2,
+              label: {
+                color: "#6B7280",
+                activeColor: "#6B7280",
+              },
             },
-          },
-          arrow: {
-            fill: "#9CA3AF",
-            activeFill: "#FBBF24",
-          },
-          ring: {
-            fill: "#FBBF24",
-            activeFill: "#FBBF24",
-          },
-          lasso: {
-            border: "#3B82F6",
-            background: "rgba(59, 130, 246, 0.1)",
-          },
-        }}
-      />
-    </div>
-  );
-}
+            arrow: {
+              fill: "#9CA3AF",
+              activeFill: "#F97316", // Orange for active/highlighted arrows
+            },
+            ring: {
+              fill: "#F97316",
+              activeFill: "#F97316",
+            },
+            lasso: {
+              border: "#3B82F6",
+              background: "rgba(59, 130, 246, 0.1)",
+            },
+          }}
+        />
+      </div>
+    );
+  },
+);
 
 export default GraphCanvas;

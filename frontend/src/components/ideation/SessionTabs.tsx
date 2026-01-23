@@ -1,28 +1,18 @@
 // =============================================================================
 // FILE: frontend/src/components/ideation/SessionTabs.tsx
-// Tab navigation component for switching between Chat, Graph, Files, and Spec views
-// Part of: Phase 9 - Project Folder & Spec Output (T9.1)
+// Tab navigation component for switching between Chat and Memory Graph views
 // =============================================================================
 
 import { memo } from "react";
-import {
-  MessageSquare,
-  Network,
-  AlertCircle,
-  FolderOpen,
-  FileText,
-} from "lucide-react";
+import { MessageSquare, Network, AlertCircle } from "lucide-react";
 
-export type SessionTab = "chat" | "graph" | "files" | "spec";
+export type SessionTab = "chat" | "graph";
 
 export interface SessionTabsProps {
   activeTab: SessionTab;
   onTabChange: (tab: SessionTab) => void;
   graphUpdateCount?: number;
   hasGraphUpdates?: boolean;
-  filesCount?: number;
-  hasSpec?: boolean;
-  specStatus?: "none" | "draft" | "complete";
   className?: string;
 }
 
@@ -31,9 +21,6 @@ export const SessionTabs = memo(function SessionTabs({
   onTabChange,
   graphUpdateCount = 0,
   hasGraphUpdates = false,
-  filesCount = 0,
-  hasSpec = false,
-  specStatus = "none",
   className = "",
 }: SessionTabsProps) {
   const getTabClass = (tabId: SessionTab) => `
@@ -46,20 +33,6 @@ export const SessionTabs = memo(function SessionTabs({
         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
     }
   `;
-
-  const getSpecStatusIndicator = () => {
-    if (specStatus === "complete") {
-      return (
-        <span className="w-2 h-2 rounded-full bg-green-500" title="Complete" />
-      );
-    }
-    if (specStatus === "draft") {
-      return (
-        <span className="w-2 h-2 rounded-full bg-yellow-500" title="Draft" />
-      );
-    }
-    return null;
-  };
 
   return (
     <div
@@ -80,7 +53,7 @@ export const SessionTabs = memo(function SessionTabs({
         <span>Chat</span>
       </button>
 
-      {/* Graph Tab */}
+      {/* Memory Graph Tab */}
       <button
         role="tab"
         aria-selected={activeTab === "graph"}
@@ -90,7 +63,7 @@ export const SessionTabs = memo(function SessionTabs({
         className={getTabClass("graph")}
       >
         <Network className="w-4 h-4" />
-        <span>Graph</span>
+        <span>Memory Graph</span>
 
         {/* Update indicator */}
         {hasGraphUpdates && activeTab !== "graph" && (
@@ -111,46 +84,6 @@ export const SessionTabs = memo(function SessionTabs({
             )}
           </span>
         )}
-      </button>
-
-      {/* Files Tab (T9.1) */}
-      <button
-        role="tab"
-        aria-selected={activeTab === "files"}
-        aria-controls="files-panel"
-        data-testid="files-tab"
-        onClick={() => onTabChange("files")}
-        className={getTabClass("files")}
-      >
-        <FolderOpen className="w-4 h-4" />
-        <span>Files</span>
-
-        {/* File count badge */}
-        {filesCount > 0 && (
-          <span
-            className="flex items-center justify-center min-w-[20px] h-5 px-1.5
-                       bg-gray-100 text-gray-600 rounded-full text-xs font-semibold"
-            title={`${filesCount} file${filesCount !== 1 ? "s" : ""}`}
-          >
-            {filesCount > 99 ? "99+" : filesCount}
-          </span>
-        )}
-      </button>
-
-      {/* Spec Tab (T9.1) */}
-      <button
-        role="tab"
-        aria-selected={activeTab === "spec"}
-        aria-controls="spec-panel"
-        data-testid="spec-tab"
-        onClick={() => onTabChange("spec")}
-        className={getTabClass("spec")}
-      >
-        <FileText className="w-4 h-4" />
-        <span>Spec</span>
-
-        {/* Spec status indicator */}
-        {hasSpec && getSpecStatusIndicator()}
       </button>
     </div>
   );

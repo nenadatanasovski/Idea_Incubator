@@ -15,12 +15,19 @@ import { FileText, ExternalLink, FileCode, File } from "lucide-react";
 import { parseProperties } from "./utils/propertyDisplay";
 import { SpecialPropertiesSection } from "./PropertyDisplayComponents";
 
+export interface RelationshipHoverInfo {
+  currentNodeId: string;
+  relatedNodeId: string;
+  edgeId: string;
+}
+
 export interface NodeInspectorProps {
   node: GraphNode;
   edges: GraphEdge[];
   nodes: GraphNode[];
   onClose: () => void;
   onNodeClick?: (nodeId: string) => void;
+  onRelationshipHover?: (info: RelationshipHoverInfo | null) => void;
   onViewArtifact?: (artifactId: string) => void;
   onUnlinkArtifact?: (nodeId: string) => void;
   onViewFile?: (filePath: string) => void;
@@ -69,9 +76,13 @@ function getLinkTypeLabel(linkType: LinkType): string {
 function RelationshipItem({
   relationship,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   relationship: Relationship;
   onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }) {
   const { edge, relatedNode, direction } = relationship;
   const isIncoming = direction === "incoming";
@@ -79,15 +90,17 @@ function RelationshipItem({
   return (
     <button
       onClick={onClick}
-      className="w-full p-2 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className="w-full p-2 text-left rounded-lg hover:bg-gray-100 transition-colors group"
     >
       <div className="flex items-center gap-2">
         {/* Direction indicator */}
         <div
           className={`w-6 h-6 flex items-center justify-center rounded-full ${
             isIncoming
-              ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400"
-              : "bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400"
+              ? "bg-blue-100 text-blue-600"
+              : "bg-green-100 text-green-600"
           }`}
         >
           <svg
@@ -117,7 +130,7 @@ function RelationshipItem({
         </span>
 
         {/* Related node label */}
-        <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate group-hover:text-gray-900 dark:group-hover:text-white">
+        <span className="flex-1 text-sm text-gray-700 truncate group-hover:text-gray-900">
           {relatedNode.label}
         </span>
       </div>
@@ -146,12 +159,11 @@ function RelationshipItem({
  */
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    active: "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300",
-    validated: "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
-    draft:
-      "bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300",
-    superseded: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
-    abandoned: "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300",
+    active: "bg-green-100 text-green-700",
+    validated: "bg-blue-100 text-blue-700",
+    draft: "bg-yellow-100 text-yellow-700",
+    superseded: "bg-gray-100 text-gray-700",
+    abandoned: "bg-red-100 text-red-700",
   };
 
   return (
@@ -180,15 +192,15 @@ function Section({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+    <div className="border-b border-gray-200 last:border-b-0">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full py-3 flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200"
+        className="w-full py-3 flex items-center justify-between text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
       >
         <span className="flex items-center gap-2">
           {title}
           {count !== undefined && (
-            <span className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded-full text-xs font-normal normal-case">
+            <span className="px-1.5 py-0.5 bg-gray-200 rounded-full text-xs font-normal normal-case">
               {count}
             </span>
           )}
@@ -241,20 +253,20 @@ function FileReferenceItem({
   const Icon = getFileIcon(reference.referenceType);
 
   const typeStyles: Record<FileReference["referenceType"], string> = {
-    spec: "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300",
-    code: "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
-    doc: "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300",
-    other: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
+    spec: "bg-purple-100 text-purple-700",
+    code: "bg-blue-100 text-blue-700",
+    doc: "bg-green-100 text-green-700",
+    other: "bg-gray-100 text-gray-700",
   };
 
   return (
     <button
       onClick={onClick}
-      className="w-full p-2 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+      className="w-full p-2 text-left rounded-lg hover:bg-gray-100 transition-colors group"
     >
       <div className="flex items-center gap-2">
-        <Icon className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-        <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate group-hover:text-gray-900 dark:group-hover:text-white">
+        <Icon className="w-4 h-4 text-gray-500 flex-shrink-0" />
+        <span className="flex-1 text-sm text-gray-700 truncate group-hover:text-gray-900">
           {reference.fileName}
         </span>
         <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -306,10 +318,10 @@ function PropertiesContent({
         <dl className="space-y-2 text-sm">
           {Object.entries(regularProperties).map(([key, value]) => (
             <div key={key} className="flex justify-between gap-2">
-              <dt className="text-gray-500 dark:text-gray-400 truncate">
+              <dt className="text-gray-500 truncate">
                 {key.replace(/_/g, " ")}
               </dt>
-              <dd className="text-gray-900 dark:text-white text-right break-all max-w-[180px]">
+              <dd className="text-gray-900 text-right break-all max-w-[180px]">
                 {typeof value === "object"
                   ? JSON.stringify(value)
                   : String(value)}
@@ -332,6 +344,7 @@ export function NodeInspector({
   nodes,
   onClose,
   onNodeClick,
+  onRelationshipHover,
   onViewArtifact,
   onUnlinkArtifact,
   onViewFile,
@@ -400,8 +413,8 @@ export function NodeInspector({
         w-full sm:w-80 md:w-96
         fixed sm:relative inset-y-0 right-0 sm:inset-auto
         z-30 sm:z-auto
-        bg-white dark:bg-gray-800
-        border-l border-gray-200 dark:border-gray-700
+        bg-white
+        border-l border-gray-200
         shadow-xl sm:shadow-none
         transform transition-transform duration-200 ease-out
         ${isVisible ? "translate-x-0" : "translate-x-full"}
@@ -411,10 +424,10 @@ export function NodeInspector({
       data-testid="node-inspector"
     >
       {/* Header */}
-      <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-start justify-between gap-2">
+      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 dark:text-white break-words">
-            {node.label}
+          <h3 className="font-semibold text-gray-900 break-words">
+            {node.content}
           </h3>
           <div className="mt-1 flex items-center gap-2 flex-wrap">
             <span
@@ -431,7 +444,7 @@ export function NodeInspector({
         </div>
         <button
           onClick={handleClose}
-          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
+          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
           aria-label="Close inspector"
         >
           <svg
@@ -456,13 +469,13 @@ export function NodeInspector({
         <Section title="Metadata" defaultExpanded>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between items-start">
-              <dt className="text-gray-500 dark:text-gray-400">ID</dt>
-              <dd className="text-gray-900 dark:text-white font-mono text-xs break-all text-right max-w-[200px]">
+              <dt className="text-gray-500">ID</dt>
+              <dd className="text-gray-900 font-mono text-xs break-all text-right max-w-[200px]">
                 {node.id}
               </dd>
             </div>
             <div className="flex justify-between items-center">
-              <dt className="text-gray-500 dark:text-gray-400">Graph</dt>
+              <dt className="text-gray-500">Graph</dt>
               <dd className="flex gap-1 flex-wrap justify-end">
                 {node.graphMembership.map((graph) => (
                   <span
@@ -479,37 +492,28 @@ export function NodeInspector({
               </dd>
             </div>
             <div className="flex justify-between items-center">
-              <dt className="text-gray-500 dark:text-gray-400">Confidence</dt>
+              <dt className="text-gray-500">Confidence</dt>
               <dd className="flex items-center gap-2">
-                <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-blue-500 rounded-full transition-all"
                     style={{ width: `${node.confidence * 100}%` }}
                   />
                 </div>
-                <span className="text-gray-900 dark:text-white text-xs">
+                <span className="text-gray-900 text-xs">
                   {Math.round(node.confidence * 100)}%
                 </span>
               </dd>
             </div>
             {node.abstractionLevel && (
               <div className="flex justify-between">
-                <dt className="text-gray-500 dark:text-gray-400">
-                  Abstraction
-                </dt>
-                <dd className="text-gray-900 dark:text-white capitalize">
+                <dt className="text-gray-500">Abstraction</dt>
+                <dd className="text-gray-900 capitalize">
                   {node.abstractionLevel}
                 </dd>
               </div>
             )}
           </dl>
-        </Section>
-
-        {/* Content Section */}
-        <Section title="Content" defaultExpanded>
-          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
-            {node.content}
-          </p>
         </Section>
 
         {/* Relationships Section */}
@@ -519,15 +523,13 @@ export function NodeInspector({
           count={totalRelationships}
         >
           {totalRelationships === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-              No relationships
-            </p>
+            <p className="text-sm text-gray-500 italic">No relationships</p>
           ) : (
             <div className="space-y-4">
               {/* Incoming relationships */}
               {incomingRelationships.length > 0 && (
                 <div>
-                  <h5 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
+                  <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
                     <svg
                       className="w-3 h-3 rotate-180"
                       fill="none"
@@ -553,6 +555,21 @@ export function NodeInspector({
                             ? () => onNodeClick(rel.relatedNode.id)
                             : undefined
                         }
+                        onMouseEnter={
+                          onRelationshipHover
+                            ? () =>
+                                onRelationshipHover({
+                                  currentNodeId: node.id,
+                                  relatedNodeId: rel.relatedNode.id,
+                                  edgeId: rel.edge.id,
+                                })
+                            : undefined
+                        }
+                        onMouseLeave={
+                          onRelationshipHover
+                            ? () => onRelationshipHover(null)
+                            : undefined
+                        }
                       />
                     ))}
                   </div>
@@ -562,7 +579,7 @@ export function NodeInspector({
               {/* Outgoing relationships */}
               {outgoingRelationships.length > 0 && (
                 <div>
-                  <h5 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
+                  <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
                     <svg
                       className="w-3 h-3"
                       fill="none"
@@ -586,6 +603,21 @@ export function NodeInspector({
                         onClick={
                           onNodeClick
                             ? () => onNodeClick(rel.relatedNode.id)
+                            : undefined
+                        }
+                        onMouseEnter={
+                          onRelationshipHover
+                            ? () =>
+                                onRelationshipHover({
+                                  currentNodeId: node.id,
+                                  relatedNodeId: rel.relatedNode.id,
+                                  edgeId: rel.edge.id,
+                                })
+                            : undefined
+                        }
+                        onMouseLeave={
+                          onRelationshipHover
+                            ? () => onRelationshipHover(null)
                             : undefined
                         }
                       />
@@ -612,51 +644,39 @@ export function NodeInspector({
         <Section title="Timeline" defaultExpanded={false}>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <dt className="text-gray-500 dark:text-gray-400">Created</dt>
-              <dd className="text-gray-900 dark:text-white text-xs">
+              <dt className="text-gray-500">Created</dt>
+              <dd className="text-gray-900 text-xs">
                 {new Date(node.createdAt).toLocaleString()}
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-gray-500 dark:text-gray-400">Updated</dt>
-              <dd className="text-gray-900 dark:text-white text-xs">
+              <dt className="text-gray-500">Updated</dt>
+              <dd className="text-gray-900 text-xs">
                 {new Date(node.updatedAt).toLocaleString()}
               </dd>
             </div>
             {node.when && (
               <div className="flex justify-between">
-                <dt className="text-gray-500 dark:text-gray-400">When</dt>
-                <dd className="text-gray-900 dark:text-white text-xs">
-                  {node.when}
-                </dd>
+                <dt className="text-gray-500">When</dt>
+                <dd className="text-gray-900 text-xs">{node.when}</dd>
               </div>
             )}
             {node.duration && (
               <div className="flex justify-between">
-                <dt className="text-gray-500 dark:text-gray-400">Duration</dt>
-                <dd className="text-gray-900 dark:text-white text-xs">
-                  {node.duration}
-                </dd>
+                <dt className="text-gray-500">Duration</dt>
+                <dd className="text-gray-900 text-xs">{node.duration}</dd>
               </div>
             )}
             {node.plannedFor && (
               <div className="flex justify-between">
-                <dt className="text-gray-500 dark:text-gray-400">
-                  Planned For
-                </dt>
-                <dd className="text-gray-900 dark:text-white text-xs">
-                  {node.plannedFor}
-                </dd>
+                <dt className="text-gray-500">Planned For</dt>
+                <dd className="text-gray-900 text-xs">{node.plannedFor}</dd>
               </div>
             )}
             {node.validUntil && (
               <div className="flex justify-between">
-                <dt className="text-gray-500 dark:text-gray-400">
-                  Valid Until
-                </dt>
-                <dd className="text-gray-900 dark:text-white text-xs">
-                  {node.validUntil}
-                </dd>
+                <dt className="text-gray-500">Valid Until</dt>
+                <dd className="text-gray-900 text-xs">{node.validUntil}</dd>
               </div>
             )}
           </dl>
@@ -686,7 +706,7 @@ export function NodeInspector({
         {/* Linked Artifact Section */}
         {node.artifactId && (
           <Section title="Linked Artifact" defaultExpanded>
-            <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 space-y-3">
+            <div className="bg-blue-50 rounded-lg p-3 space-y-3">
               <div className="flex items-center gap-2">
                 <svg
                   className="w-5 h-5 text-blue-500"
@@ -701,33 +721,29 @@ export function NodeInspector({
                     d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
                   />
                 </svg>
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                <span className="text-sm font-medium text-blue-700">
                   📎 Linked Artifact
                 </span>
               </div>
               {node.artifactType && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Type</span>
-                  <span className="text-gray-900 dark:text-white capitalize">
+                  <span className="text-gray-600">Type</span>
+                  <span className="text-gray-900 capitalize">
                     {node.artifactType.replace(/-/g, " ")}
                   </span>
                 </div>
               )}
               {node.artifactSection && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">
-                    Section
-                  </span>
-                  <span className="text-gray-900 dark:text-white">
-                    {node.artifactSection}
-                  </span>
+                  <span className="text-gray-600">Section</span>
+                  <span className="text-gray-900">{node.artifactSection}</span>
                 </div>
               )}
               <div className="flex gap-2">
                 {onViewArtifact && (
                   <button
                     onClick={() => onViewArtifact(node.artifactId!)}
-                    className="flex-1 px-3 py-1.5 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded text-sm font-medium hover:bg-blue-200 transition-colors"
                   >
                     View Artifact
                   </button>
@@ -735,7 +751,7 @@ export function NodeInspector({
                 {onUnlinkArtifact && (
                   <button
                     onClick={() => onUnlinkArtifact(node.id)}
-                    className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200 transition-colors"
                   >
                     Unlink
                   </button>
@@ -751,34 +767,28 @@ export function NodeInspector({
             <dl className="space-y-2 text-sm">
               {node.sourceType && (
                 <div className="flex justify-between">
-                  <dt className="text-gray-500 dark:text-gray-400">Type</dt>
-                  <dd className="text-gray-900 dark:text-white capitalize">
+                  <dt className="text-gray-500">Type</dt>
+                  <dd className="text-gray-900 capitalize">
                     {node.sourceType.replace(/_/g, " ")}
                   </dd>
                 </div>
               )}
               {node.sourceName && (
                 <div className="flex justify-between">
-                  <dt className="text-gray-500 dark:text-gray-400">Name</dt>
-                  <dd className="text-gray-900 dark:text-white">
-                    {node.sourceName}
-                  </dd>
+                  <dt className="text-gray-500">Name</dt>
+                  <dd className="text-gray-900">{node.sourceName}</dd>
                 </div>
               )}
               {node.sourceDate && (
                 <div className="flex justify-between">
-                  <dt className="text-gray-500 dark:text-gray-400">Date</dt>
-                  <dd className="text-gray-900 dark:text-white">
-                    {node.sourceDate}
-                  </dd>
+                  <dt className="text-gray-500">Date</dt>
+                  <dd className="text-gray-900">{node.sourceDate}</dd>
                 </div>
               )}
               {node.verifiable !== undefined && (
                 <div className="flex justify-between">
-                  <dt className="text-gray-500 dark:text-gray-400">
-                    Verifiable
-                  </dt>
-                  <dd className="text-gray-900 dark:text-white">
+                  <dt className="text-gray-500">Verifiable</dt>
+                  <dd className="text-gray-900">
                     {node.verifiable ? "Yes" : "No"}
                   </dd>
                 </div>

@@ -30,9 +30,8 @@ export interface CycleIndicatorProps {
  */
 function CycleTypeBadge({ type }: { type: "blocking" | "reinforcing" }) {
   const styles: Record<string, string> = {
-    blocking: "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300",
-    reinforcing:
-      "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300",
+    blocking: "bg-red-100 text-red-700",
+    reinforcing: "bg-amber-100 text-amber-700",
   };
 
   const icons: Record<string, JSX.Element> = {
@@ -100,10 +99,10 @@ function CycleMemberNode({
         border transition-colors
         ${
           isSuggested
-            ? "border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20"
+            ? "border-green-300 bg-green-50"
             : isBreakPoint
-              ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20"
-              : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              ? "border-amber-300 bg-amber-50"
+              : "border-gray-200 hover:bg-gray-50"
         }
       `}
     >
@@ -119,15 +118,13 @@ function CycleMemberNode({
         </svg>
       </div>
       <div className="flex-1 min-w-0">
-        <span className="text-sm font-medium text-gray-900 dark:text-white truncate block">
+        <span className="text-sm font-medium text-gray-900 truncate block">
           {node.label}
         </span>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          {node.blockType}
-        </span>
+        <span className="text-xs text-gray-500">{node.blockType}</span>
       </div>
       {isSuggested && (
-        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+        <span className="text-xs text-green-600 font-medium">
           Suggested break
         </span>
       )}
@@ -164,18 +161,18 @@ function CycleCard({
 
   return (
     <div
-      className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+      className="border border-gray-200 rounded-lg overflow-hidden"
       data-testid={`cycle-card-${cycle.id}`}
     >
       {/* Header */}
-      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-900 dark:text-white">
+          <span className="text-sm font-medium text-gray-900">
             Circular Dependency
           </span>
           <CycleTypeBadge type={cycle.type} />
         </div>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
+        <span className="text-xs text-gray-500">
           {cycle.members.length} nodes
         </span>
       </div>
@@ -183,7 +180,7 @@ function CycleCard({
       {/* Cycle visualization */}
       <div className="p-4">
         {/* Arrow path visualization */}
-        <div className="flex items-center justify-center mb-4 text-gray-400 dark:text-gray-500">
+        <div className="flex items-center justify-center mb-4 text-gray-400">
           <div className="flex items-center gap-1 text-xs">
             {cycle.members.map((memberId, index) => {
               const node = nodeMap.get(memberId);
@@ -220,7 +217,7 @@ function CycleCard({
 
         {/* Member nodes list */}
         <div className="space-y-2">
-          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
             Cycle Members
           </h4>
           <div className="space-y-1">
@@ -237,7 +234,7 @@ function CycleCard({
 
         {/* Break cycle action */}
         {suggestedBreakPoint && onBreakCycle && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-4 pt-4 border-t border-gray-200">
             <button
               onClick={() => onBreakCycle(cycle.id, suggestedBreakPoint)}
               className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
@@ -297,7 +294,7 @@ export function CycleIndicator({
   if (cycles.length === 0) {
     return (
       <div className={`p-4 ${className}`} data-testid="cycle-indicator">
-        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-2 text-gray-500">
           <svg
             className="w-5 h-5 text-green-500"
             fill="none"
@@ -335,16 +332,16 @@ export function CycleIndicator({
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
             />
           </svg>
-          <span className="text-sm font-medium text-gray-900 dark:text-white">
+          <span className="text-sm font-medium text-gray-900">
             {cycles.length} Circular{" "}
             {cycles.length === 1 ? "Dependency" : "Dependencies"} Detected
           </span>
         </div>
         <div className="flex gap-2">
-          <span className="text-xs px-2 py-0.5 rounded bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300">
+          <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">
             {cycles.filter((c) => c.type === "blocking").length} blocking
           </span>
-          <span className="text-xs px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300">
+          <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700">
             {cycles.filter((c) => c.type === "reinforcing").length} reinforcing
           </span>
         </div>

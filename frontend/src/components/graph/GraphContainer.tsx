@@ -3,14 +3,14 @@
  * Main container with responsive layout for graph canvas, filters, legend, and inspector panel
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import type {
   GraphNode,
   GraphEdge,
   GraphFilters as GraphFiltersType,
 } from "../../types/graph";
-import { GraphCanvas } from "./GraphCanvas";
-import { NodeInspector } from "./NodeInspector";
+import { GraphCanvas, GraphCanvasHandle } from "./GraphCanvas";
+import { NodeInspector, RelationshipHoverInfo } from "./NodeInspector";
 import { GraphFilters } from "./GraphFilters";
 import { GraphLegend } from "./GraphLegend";
 import { GraphControls } from "./GraphControls";
@@ -50,11 +50,11 @@ export interface GraphContainerProps {
  */
 function GraphSkeleton() {
   return (
-    <div className="flex items-center justify-center h-full min-h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg animate-pulse">
+    <div className="flex items-center justify-center h-full min-h-[400px] bg-gray-50 rounded-lg animate-pulse">
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full mb-4" />
-        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded mx-auto mb-2" />
-        <div className="h-3 w-48 bg-gray-200 dark:bg-gray-700 rounded mx-auto" />
+        <div className="mx-auto w-16 h-16 bg-gray-200 rounded-full mb-4" />
+        <div className="h-4 w-32 bg-gray-200 rounded mx-auto mb-2" />
+        <div className="h-3 w-48 bg-gray-200 rounded mx-auto" />
       </div>
     </div>
   );
@@ -71,7 +71,7 @@ function GraphError({
   onRetry?: () => void;
 }) {
   return (
-    <div className="flex items-center justify-center h-full min-h-[400px] bg-red-50 dark:bg-red-900/20 rounded-lg">
+    <div className="flex items-center justify-center h-full min-h-[400px] bg-red-50 rounded-lg">
       <div className="text-center p-6">
         <svg
           className="mx-auto h-12 w-12 text-red-400 mb-4"
@@ -86,14 +86,12 @@ function GraphError({
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
           />
         </svg>
-        <p className="text-red-600 dark:text-red-400 font-medium mb-2">
-          Failed to load graph
-        </p>
-        <p className="text-red-500 dark:text-red-300 text-sm mb-4">{message}</p>
+        <p className="text-red-600 font-medium mb-2">Failed to load graph</p>
+        <p className="text-red-500 text-sm mb-4">{message}</p>
         {onRetry && (
           <button
             onClick={onRetry}
-            className="px-4 py-2 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 rounded-lg hover:bg-red-200 dark:hover:bg-red-700 transition-colors"
+            className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
           >
             Try Again
           </button>
@@ -129,9 +127,26 @@ export function GraphContainer({
   isAnalyzingGraph = false,
   pendingGraphChanges = 0,
 }: GraphContainerProps) {
+  const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [hoveredRelationship, setHoveredRelationship] =
+    useState<RelationshipHoverInfo | null>(null);
+
+  // Compute highlighted node and edge IDs from hovered relationship
+  const highlightedNodeIds = useMemo(() => {
+    if (!hoveredRelationship) return [];
+    return [
+      hoveredRelationship.currentNodeId,
+      hoveredRelationship.relatedNodeId,
+    ];
+  }, [hoveredRelationship]);
+
+  const highlightedEdgeIds = useMemo(() => {
+    if (!hoveredRelationship) return [];
+    return [hoveredRelationship.edgeId];
+  }, [hoveredRelationship]);
 
   // Use the filter hook for managing filter state
   const {
@@ -192,16 +207,33 @@ export function GraphContainer({
     onNodeSelect?.(null);
   }, [onNodeSelect]);
 
-  // Navigate to a node from the inspector
+  // Navigate to a node from the inspector and focus on it in the canvas
   const handleInspectorNodeClick = useCallback(
     (nodeId: string) => {
       const node = nodes.find((n) => n.id === nodeId);
       if (node) {
         setSelectedNode(node);
         onNodeSelect?.(node);
+        // Focus on the node in the canvas and bring it into view
+        graphCanvasRef.current?.focusOnNode(nodeId);
       }
     },
     [nodes, onNodeSelect],
+  );
+
+  // Handle relationship hover from inspector
+  const handleRelationshipHover = useCallback(
+    (info: RelationshipHoverInfo | null) => {
+      setHoveredRelationship(info);
+      // Zoom to show both nodes when hovering
+      if (info) {
+        graphCanvasRef.current?.fitNodesInView([
+          info.currentNodeId,
+          info.relatedNodeId,
+        ]);
+      }
+    },
+    [],
   );
 
   // Loading state
@@ -230,7 +262,7 @@ export function GraphContainer({
     <div className={`flex h-full ${className}`} data-testid="graph-container">
       {/* Left sidebar: Filters and Legend - Compact width to maximize graph space */}
       {(showFilters || showLegend) && (
-        <div className="hidden lg:flex lg:flex-col w-56 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div className="hidden lg:flex lg:flex-col w-56 flex-shrink-0 border-r border-gray-200 overflow-y-auto bg-gray-50">
           {/* Filters */}
           {showFilters && (
             <GraphFilters
@@ -239,7 +271,7 @@ export function GraphContainer({
               onReset={resetFilters}
               nodeCount={nodes.length}
               filteredNodeCount={filteredNodes.length}
-              className="border-b border-gray-200 dark:border-gray-700 rounded-none border-x-0"
+              className="border-b border-gray-200 rounded-none border-x-0"
             />
           )}
 
@@ -256,12 +288,15 @@ export function GraphContainer({
       {/* Main Graph Area */}
       <div className="flex-1 min-w-0 min-h-0 h-full relative">
         <GraphCanvas
+          ref={graphCanvasRef}
           nodes={filteredNodes}
           edges={filteredEdges}
           onNodeClick={handleNodeClick}
           onNodeHover={handleNodeHover}
           selectedNodeId={selectedNode?.id}
           hoveredNodeId={hoveredNode?.id}
+          highlightedNodeIds={highlightedNodeIds}
+          highlightedEdgeIds={highlightedEdgeIds}
           recentlyAddedNodeIds={recentlyAddedNodeIds}
           recentlyAddedEdgeIds={recentlyAddedEdgeIds}
           className="h-full"
@@ -309,11 +344,11 @@ export function GraphContainer({
         {showFilters && (
           <button
             onClick={() => setShowFilterPanel(!showFilterPanel)}
-            className="lg:hidden absolute top-4 left-4 z-10 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
+            className="lg:hidden absolute top-4 left-4 z-10 p-2 bg-white rounded-lg shadow-md border border-gray-200"
             title="Toggle filters"
           >
             <svg
-              className="w-5 h-5 text-gray-600 dark:text-gray-300"
+              className="w-5 h-5 text-gray-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -334,14 +369,12 @@ export function GraphContainer({
         {/* Mobile Filter Panel Overlay */}
         {showFilters && showFilterPanel && (
           <div className="lg:hidden absolute inset-0 z-20 bg-black/50">
-            <div className="absolute left-0 top-0 bottom-0 w-72 bg-white dark:bg-gray-800 overflow-y-auto">
-              <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between">
-                <span className="font-medium text-gray-900 dark:text-white">
-                  Filters
-                </span>
+            <div className="absolute left-0 top-0 bottom-0 w-72 bg-white overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
+                <span className="font-medium text-gray-900">Filters</span>
                 <button
                   onClick={() => setShowFilterPanel(false)}
-                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="p-1 rounded hover:bg-gray-100"
                 >
                   <svg
                     className="w-5 h-5 text-gray-500"
@@ -397,12 +430,12 @@ export function GraphContainer({
 
         {/* Hovered Node Tooltip */}
         {hoveredNode && !selectedNode && (
-          <div className="absolute bottom-16 left-4 z-10 max-w-2xl p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-            <p className="font-medium text-gray-900 dark:text-white text-sm whitespace-pre-wrap">
+          <div className="absolute bottom-16 left-4 z-10 max-w-2xl p-4 bg-white rounded-lg shadow-lg border border-gray-200">
+            <p className="font-medium text-gray-900 text-sm whitespace-pre-wrap">
               {hoveredNode.content || hoveredNode.label}
             </p>
             <div className="flex items-center gap-2 mt-2">
-              <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs">
+              <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
                 {hoveredNode.blockType}
               </span>
               <span className="text-xs text-gray-500">
@@ -415,13 +448,13 @@ export function GraphContainer({
         {/* Stats badge - single container to prevent overlap */}
         <div className="absolute bottom-4 left-4 z-10">
           {hasActiveFilters ? (
-            <div className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs flex items-center gap-2">
+            <div className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs flex items-center gap-2">
               <span>
                 Showing {filteredNodes.length} of {nodes.length} nodes
               </span>
               <button
                 onClick={resetFilters}
-                className="hover:text-blue-900 dark:hover:text-blue-100"
+                className="hover:text-blue-900"
                 title="Clear filters"
               >
                 <svg
@@ -440,7 +473,7 @@ export function GraphContainer({
               </button>
             </div>
           ) : (
-            <div className="px-3 py-1 bg-white dark:bg-gray-800 rounded-full shadow-md text-xs text-gray-600 dark:text-gray-300">
+            <div className="px-3 py-1 bg-white rounded-full shadow-md text-xs text-gray-600">
               {nodes.length} nodes, {edges.length} edges
             </div>
           )}
@@ -459,6 +492,7 @@ export function GraphContainer({
           nodes={nodes}
           onClose={handleCloseInspector}
           onNodeClick={handleInspectorNodeClick}
+          onRelationshipHover={handleRelationshipHover}
         />
       )}
     </div>
