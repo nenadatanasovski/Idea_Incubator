@@ -3,7 +3,7 @@
  * Main container with responsive layout for graph canvas, filters, legend, and inspector panel
  */
 
-import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import type {
   GraphNode,
   GraphEdge,
@@ -207,7 +207,7 @@ export function GraphContainer({
     }
 
     const lowerQuery = searchQuery.toLowerCase().trim();
-    return filteredNodes.filter((node) => {
+    const matchedNodes = filteredNodes.filter((node) => {
       // Search in content
       if (node.content?.toLowerCase().includes(lowerQuery)) {
         return true;
@@ -228,7 +228,26 @@ export function GraphContainer({
       }
       return false;
     });
-  }, [filteredNodes, searchQuery]);
+
+    // If hovering over a relationship, temporarily include the related node
+    // even if it's hidden by the search filter or other filters
+    if (hoveredRelationship) {
+      const matchedNodeIds = new Set(matchedNodes.map((n) => n.id));
+      const relatedNodeId = hoveredRelationship.relatedNodeId;
+
+      // Check if the related node is not already in the matched nodes
+      if (!matchedNodeIds.has(relatedNodeId)) {
+        // Find the related node from the full nodes list (not filtered)
+        // because the NodeInspector shows all relationships regardless of filters
+        const relatedNode = nodes.find((n) => n.id === relatedNodeId);
+        if (relatedNode) {
+          return [...matchedNodes, relatedNode];
+        }
+      }
+    }
+
+    return matchedNodes;
+  }, [filteredNodes, nodes, searchQuery, hoveredRelationship]);
 
   // Filter edges to only include those between search-filtered nodes
   const searchFilteredEdges = useMemo(() => {
@@ -237,11 +256,97 @@ export function GraphContainer({
     }
 
     const visibleNodeIds = new Set(searchFilteredNodes.map((node) => node.id));
-    return filteredEdges.filter(
+    const matchedEdges = filteredEdges.filter(
       (edge) =>
         visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target),
     );
-  }, [filteredEdges, searchFilteredNodes, searchQuery]);
+
+    // If hovering over a relationship, ensure the edge is included
+    // even if filtered out by other filters
+    if (hoveredRelationship) {
+      const hoveredEdgeId = hoveredRelationship.edgeId;
+      const hasHoveredEdge = matchedEdges.some((e) => e.id === hoveredEdgeId);
+
+      if (!hasHoveredEdge) {
+        // Look in full edges list since NodeInspector shows all relationships
+        const hoveredEdge = edges.find((e) => e.id === hoveredEdgeId);
+        if (hoveredEdge) {
+          return [...matchedEdges, hoveredEdge];
+        }
+      }
+    }
+
+    return matchedEdges;
+  }, [
+    edges,
+    filteredEdges,
+    searchFilteredNodes,
+    searchQuery,
+    hoveredRelationship,
+  ]);
+
+  // Compute which nodes are temporarily visible (due to relationship hover but normally filtered)
+  const temporarilyVisibleNodeIds = useMemo(() => {
+    if (!hoveredRelationship || !searchQuery.trim()) {
+      return new Set<string>();
+    }
+
+    const relatedNodeId = hoveredRelationship.relatedNodeId;
+
+    // Check if the related node would normally be in the search results
+    const lowerQuery = searchQuery.toLowerCase().trim();
+    const relatedNode = nodes.find((n) => n.id === relatedNodeId);
+
+    if (!relatedNode) {
+      return new Set<string>();
+    }
+
+    // Check if the node matches the search query
+    const matchesSearch =
+      relatedNode.content?.toLowerCase().includes(lowerQuery) ||
+      relatedNode.label?.toLowerCase().includes(lowerQuery) ||
+      relatedNode.blockType?.toLowerCase().includes(lowerQuery) ||
+      relatedNode.graphMembership?.some((g) =>
+        g.toLowerCase().includes(lowerQuery),
+      );
+
+    // Check if the node is in the filtered nodes (passes other filters)
+    const isInFilteredNodes = filteredNodes.some((n) => n.id === relatedNodeId);
+
+    // If the node doesn't match search OR isn't in filtered nodes, it's temporarily visible
+    if (!matchesSearch || !isInFilteredNodes) {
+      return new Set([relatedNodeId]);
+    }
+
+    return new Set<string>();
+  }, [hoveredRelationship, searchQuery, nodes, filteredNodes]);
+
+  // Compute which edges are temporarily visible
+  const temporarilyVisibleEdgeIds = useMemo(() => {
+    if (!hoveredRelationship || !searchQuery.trim()) {
+      return new Set<string>();
+    }
+
+    const hoveredEdgeId = hoveredRelationship.edgeId;
+
+    // Check if the edge would normally be in the filtered edges
+    const isInFilteredEdges = filteredEdges.some((e) => e.id === hoveredEdgeId);
+
+    // If the related node is temporarily visible, the edge is too
+    if (
+      temporarilyVisibleNodeIds.has(hoveredRelationship.relatedNodeId) ||
+      !isInFilteredEdges
+    ) {
+      return new Set([hoveredEdgeId]);
+    }
+
+    return new Set<string>();
+  }, [
+    hoveredRelationship,
+    searchQuery,
+    filteredEdges,
+    temporarilyVisibleNodeIds,
+  ]);
 
   // Handle node click
   const handleNodeClick = useCallback(
@@ -363,6 +468,8 @@ export function GraphContainer({
           highlightedEdgeIds={highlightedEdgeIds}
           recentlyAddedNodeIds={recentlyAddedNodeIds}
           recentlyAddedEdgeIds={recentlyAddedEdgeIds}
+          temporarilyVisibleNodeIds={temporarilyVisibleNodeIds}
+          temporarilyVisibleEdgeIds={temporarilyVisibleEdgeIds}
           className="h-full"
         />
 

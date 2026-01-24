@@ -97,7 +97,7 @@ function RelationshipItem({
       <div className="flex items-center gap-2">
         {/* Direction indicator */}
         <div
-          className={`w-6 h-6 flex items-center justify-center rounded-full ${
+          className={`w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0 ${
             isIncoming
               ? "bg-blue-100 text-blue-600"
               : "bg-green-100 text-green-600"
@@ -120,7 +120,7 @@ function RelationshipItem({
 
         {/* Link type badge */}
         <span
-          className="px-2 py-0.5 rounded text-xs font-medium"
+          className="px-2 py-0.5 rounded text-xs font-medium flex-shrink-0"
           style={{
             backgroundColor: `${edgeColors[edge.linkType]}20`,
             color: edgeColors[edge.linkType],
@@ -129,16 +129,9 @@ function RelationshipItem({
           {getLinkTypeLabel(edge.linkType)}
         </span>
 
-        {/* Related node label */}
-        <span className="flex-1 text-sm text-gray-700 truncate group-hover:text-gray-900">
-          {relatedNode.label}
-        </span>
-      </div>
-
-      {/* Related node metadata */}
-      <div className="ml-8 mt-1 flex items-center gap-2 text-xs text-gray-500">
+        {/* Related node metadata */}
         <span
-          className="px-1.5 py-0.5 rounded"
+          className="px-1.5 py-0.5 rounded text-xs flex-shrink-0"
           style={{
             backgroundColor: `${nodeColors[relatedNode.blockType]}20`,
             color: nodeColors[relatedNode.blockType],
@@ -147,8 +140,15 @@ function RelationshipItem({
           {relatedNode.blockType}
         </span>
         {edge.confidence !== undefined && (
-          <span>{Math.round(edge.confidence * 100)}% confidence</span>
+          <span className="text-xs text-gray-500 flex-shrink-0">
+            {Math.round(edge.confidence * 100)}% confidence
+          </span>
         )}
+      </div>
+
+      {/* Related node content - full text on its own line */}
+      <div className="ml-8 mt-1 text-sm text-gray-700 group-hover:text-gray-900">
+        {relatedNode.content}
       </div>
     </button>
   );
@@ -465,57 +465,6 @@ export function NodeInspector({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-0">
-        {/* Metadata Section */}
-        <Section title="Metadata" defaultExpanded>
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between items-start">
-              <dt className="text-gray-500">ID</dt>
-              <dd className="text-gray-900 font-mono text-xs break-all text-right max-w-[200px]">
-                {node.id}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <dt className="text-gray-500">Graph</dt>
-              <dd className="flex gap-1 flex-wrap justify-end">
-                {node.graphMembership.map((graph) => (
-                  <span
-                    key={graph}
-                    className="px-2 py-0.5 rounded text-xs"
-                    style={{
-                      backgroundColor: `${graphColors[graph]}20`,
-                      color: graphColors[graph],
-                    }}
-                  >
-                    {graph}
-                  </span>
-                ))}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <dt className="text-gray-500">Confidence</dt>
-              <dd className="flex items-center gap-2">
-                <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 rounded-full transition-all"
-                    style={{ width: `${node.confidence * 100}%` }}
-                  />
-                </div>
-                <span className="text-gray-900 text-xs">
-                  {Math.round(node.confidence * 100)}%
-                </span>
-              </dd>
-            </div>
-            {node.abstractionLevel && (
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Abstraction</dt>
-                <dd className="text-gray-900 capitalize">
-                  {node.abstractionLevel}
-                </dd>
-              </div>
-            )}
-          </dl>
-        </Section>
-
         {/* Relationships Section */}
         <Section
           title="Relationships"
@@ -627,6 +576,57 @@ export function NodeInspector({
               )}
             </div>
           )}
+        </Section>
+
+        {/* Metadata Section */}
+        <Section title="Metadata" defaultExpanded={false}>
+          <dl className="space-y-2 text-sm">
+            <div className="flex justify-between items-start">
+              <dt className="text-gray-500">ID</dt>
+              <dd className="text-gray-900 font-mono text-xs break-all text-right max-w-[200px]">
+                {node.id}
+              </dd>
+            </div>
+            <div className="flex justify-between items-center">
+              <dt className="text-gray-500">Graph</dt>
+              <dd className="flex gap-1 flex-wrap justify-end">
+                {node.graphMembership.map((graph) => (
+                  <span
+                    key={graph}
+                    className="px-2 py-0.5 rounded text-xs"
+                    style={{
+                      backgroundColor: `${graphColors[graph]}20`,
+                      color: graphColors[graph],
+                    }}
+                  >
+                    {graph}
+                  </span>
+                ))}
+              </dd>
+            </div>
+            <div className="flex justify-between items-center">
+              <dt className="text-gray-500">Confidence</dt>
+              <dd className="flex items-center gap-2">
+                <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all"
+                    style={{ width: `${node.confidence * 100}%` }}
+                  />
+                </div>
+                <span className="text-gray-900 text-xs">
+                  {Math.round(node.confidence * 100)}%
+                </span>
+              </dd>
+            </div>
+            {node.abstractionLevel && (
+              <div className="flex justify-between">
+                <dt className="text-gray-500">Abstraction</dt>
+                <dd className="text-gray-900 capitalize">
+                  {node.abstractionLevel}
+                </dd>
+              </div>
+            )}
+          </dl>
         </Section>
 
         {/* Properties Section */}

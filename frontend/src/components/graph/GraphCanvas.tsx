@@ -120,6 +120,10 @@ export interface GraphCanvasProps {
   highlightedEdgeIds?: string[];
   recentlyAddedNodeIds?: Set<string>;
   recentlyAddedEdgeIds?: Set<string>;
+  /** Nodes temporarily visible due to relationship hover (shown with reduced opacity) */
+  temporarilyVisibleNodeIds?: Set<string>;
+  /** Edges temporarily visible due to relationship hover (shown with reduced opacity) */
+  temporarilyVisibleEdgeIds?: Set<string>;
   layoutType?: LayoutType;
   className?: string;
 }
@@ -141,6 +145,7 @@ function toReagraphNode(
   isHighlighted: boolean,
   isRecentlyAdded: boolean,
   hasFileReferences: boolean,
+  isTemporarilyVisible: boolean,
 ) {
   const size = calculateNodeSize(node.confidence, connectionCount);
   const baseOpacity = getNodeOpacity(node.confidence);
@@ -164,6 +169,12 @@ function toReagraphNode(
     strokeWidth = 4;
     stroke = "#22C55E"; // Green-500
     opacity = 1;
+  } else if (isTemporarilyVisible) {
+    // Temporarily visible due to relationship hover - show with reduced opacity
+    // Keep original color but use reduced opacity to indicate it's normally hidden
+    strokeWidth = 3;
+    stroke = "#F97316"; // Orange stroke to show it's highlighted
+    opacity = 0.5; // Reduced opacity to indicate it's normally filtered out
   } else if (isHighlighted) {
     strokeWidth = 4;
     stroke = "#F97316"; // Orange for highlighted
@@ -190,6 +201,7 @@ function toReagraphNode(
     hasFileReferences &&
     !isSelected &&
     !isRecentlyAdded &&
+    !isTemporarilyVisible &&
     !isHighlighted &&
     !isHovered
   ) {
@@ -198,9 +210,10 @@ function toReagraphNode(
   }
 
   // Use full content for label
-  // Show full text for highlighted/selected/hovered nodes, truncate others
+  // Show full text for highlighted/selected/hovered/temporarily visible nodes, truncate others
   const fullLabel = node.content || node.label;
-  const showFullText = isHighlighted || isSelected || isHovered;
+  const showFullText =
+    isHighlighted || isSelected || isHovered || isTemporarilyVisible;
   const maxLabelLength = 50;
   const displayLabel = showFullText
     ? fullLabel
@@ -229,6 +242,7 @@ function toReagraphEdge(
   edge: GraphEdge,
   isHighlighted: boolean,
   isRecentlyAdded: boolean,
+  isTemporarilyVisible: boolean,
 ) {
   const lineStyle = getEdgeLineStyle(edge.linkType);
   const opacity = getEdgeOpacity(edge.confidence);
@@ -255,6 +269,11 @@ function toReagraphEdge(
     stroke = "#22C55E"; // Green-500 for new edges
     strokeWidth = width + 2;
     finalOpacity = 1;
+  } else if (isTemporarilyVisible) {
+    // Temporarily visible due to relationship hover - show with reduced opacity
+    stroke = "#F97316"; // Orange to show it's highlighted
+    strokeWidth = width + 1;
+    finalOpacity = 0.5; // Reduced opacity to indicate it's normally filtered out
   } else if (isHighlighted) {
     stroke = "#F97316"; // Orange to match highlighted nodes
     strokeWidth = width + 2;
@@ -304,6 +323,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       highlightedEdgeIds = [],
       recentlyAddedNodeIds = new Set(),
       recentlyAddedEdgeIds = new Set(),
+      temporarilyVisibleNodeIds = new Set(),
+      temporarilyVisibleEdgeIds = new Set(),
       layoutType = "forceDirected",
       className = "",
     },
@@ -419,6 +440,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           highlightedSet.has(node.id),
           recentlyAddedNodeIds.has(node.id),
           Boolean(node.fileReferences && node.fileReferences.length > 0),
+          temporarilyVisibleNodeIds.has(node.id),
         ),
       );
     }, [
@@ -429,6 +451,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       internalHoveredId,
       highlightedSet,
       recentlyAddedNodeIds,
+      temporarilyVisibleNodeIds,
     ]);
 
     // Transform edges to Reagraph format
@@ -440,9 +463,21 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           (selectedNodeId !== null &&
             (edge.source === selectedNodeId || edge.target === selectedNodeId));
         const isRecentlyAdded = recentlyAddedEdgeIds.has(edge.id);
-        return toReagraphEdge(edge, isHighlighted, isRecentlyAdded);
+        const isTemporarilyVisible = temporarilyVisibleEdgeIds.has(edge.id);
+        return toReagraphEdge(
+          edge,
+          isHighlighted,
+          isRecentlyAdded,
+          isTemporarilyVisible,
+        );
       });
-    }, [edges, selectedNodeId, highlightedEdgeSet, recentlyAddedEdgeIds]);
+    }, [
+      edges,
+      selectedNodeId,
+      highlightedEdgeSet,
+      recentlyAddedEdgeIds,
+      temporarilyVisibleEdgeIds,
+    ]);
 
     // Reagraph selection hook for internal state management
     const {
@@ -474,8 +509,19 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           combined.push(id);
         }
       });
+      // Add temporarily visible node IDs
+      temporarilyVisibleNodeIds.forEach((id) => {
+        if (!combined.includes(id)) {
+          combined.push(id);
+        }
+      });
       return combined;
-    }, [selections, effectiveHoveredId, highlightedNodeIds]);
+    }, [
+      selections,
+      effectiveHoveredId,
+      highlightedNodeIds,
+      temporarilyVisibleNodeIds,
+    ]);
 
     // Combine selection actives with our highlighted nodes/edges and hovered node
     const actives = useMemo(() => {
@@ -486,6 +532,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       }
       // Add highlighted node IDs
       highlightedNodeIds.forEach((id) => {
+        if (!combined.includes(id)) {
+          combined.push(id);
+        }
+      });
+      // Add temporarily visible node IDs (must be active to avoid being faded)
+      temporarilyVisibleNodeIds.forEach((id) => {
         if (!combined.includes(id)) {
           combined.push(id);
         }
@@ -502,6 +554,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       effectiveHoveredId,
       highlightedNodeIds,
       highlightedEdgeIds,
+      temporarilyVisibleNodeIds,
     ]);
 
     // Handle node click
@@ -731,7 +784,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             },
             node: {
               fill: "#3B82F6",
-              // No activeFill - keep original node colors, just use full opacity
+              activeFill: "#3B82F6", // Same as fill - let per-node colors take precedence
               opacity: 1,
               selectedOpacity: 1,
               inactiveOpacity: 0.2, // Fade inactive nodes significantly when there are active selections
