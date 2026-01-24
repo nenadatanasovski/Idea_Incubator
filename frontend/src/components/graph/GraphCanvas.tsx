@@ -458,9 +458,32 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       pathSelectionType: "direct",
     });
 
-    // Combine selection actives with our highlighted nodes/edges
+    // Compute effective hovered ID once
+    const effectiveHoveredId = hoveredNodeId ?? internalHoveredId;
+
+    // Combine selections with hovered/highlighted nodes to trigger inactiveOpacity
+    const effectiveSelections = useMemo(() => {
+      const combined = [...(selections || [])];
+      // Add hovered node ID to selections so inactiveOpacity applies
+      if (effectiveHoveredId && !combined.includes(effectiveHoveredId)) {
+        combined.push(effectiveHoveredId);
+      }
+      // Add highlighted node IDs to selections
+      highlightedNodeIds.forEach((id) => {
+        if (!combined.includes(id)) {
+          combined.push(id);
+        }
+      });
+      return combined;
+    }, [selections, effectiveHoveredId, highlightedNodeIds]);
+
+    // Combine selection actives with our highlighted nodes/edges and hovered node
     const actives = useMemo(() => {
       const combined = [...(selectionActives || [])];
+      // Add hovered node ID (from canvas hover)
+      if (effectiveHoveredId && !combined.includes(effectiveHoveredId)) {
+        combined.push(effectiveHoveredId);
+      }
       // Add highlighted node IDs
       highlightedNodeIds.forEach((id) => {
         if (!combined.includes(id)) {
@@ -474,7 +497,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         }
       });
       return combined;
-    }, [selectionActives, highlightedNodeIds, highlightedEdgeIds]);
+    }, [
+      selectionActives,
+      effectiveHoveredId,
+      highlightedNodeIds,
+      highlightedEdgeIds,
+    ]);
 
     // Handle node click
     const handleNodeClick = useCallback(
@@ -673,7 +701,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           ref={graphRef}
           nodes={reagraphNodes}
           edges={reagraphEdges}
-          selections={selections}
+          selections={effectiveSelections}
           actives={actives}
           onNodeClick={handleNodeClick as never}
           onNodePointerOver={handleNodePointerOver as never}
