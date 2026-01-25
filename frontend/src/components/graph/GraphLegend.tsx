@@ -170,32 +170,39 @@ function ShapeIcon({ shape, color }: { shape: NodeShape; color: string }) {
   }
 }
 
+// Bidirectional link types (arrows on both ends)
+const BIDIRECTIONAL_LINK_TYPES: LinkType[] = ["alternative_to", "contradicts"];
+
 /**
  * Edge style line component
  */
 function EdgeStyleLine({
   color,
   style,
+  bidirectional = false,
 }: {
   color: string;
   style: "solid" | "dashed" | "dotted";
+  bidirectional?: boolean;
 }) {
   const dashArray =
     style === "dashed" ? "4,3" : style === "dotted" ? "1,2" : undefined;
 
   return (
-    <svg width={24} height={12} viewBox="0 0 24 12">
+    <svg width={32} height={12} viewBox="0 0 32 12">
+      {/* Left arrow (only for bidirectional) */}
+      {bidirectional && <polygon points="0,6 6,2 6,10" fill={color} />}
       <line
-        x1="0"
+        x1={bidirectional ? 6 : 0}
         y1="6"
-        x2="24"
+        x2={26}
         y2="6"
         stroke={color}
         strokeWidth="2"
         strokeDasharray={dashArray}
       />
-      {/* Arrow */}
-      <polygon points="24,6 18,2 18,10" fill={color} />
+      {/* Right arrow */}
+      <polygon points="32,6 26,2 26,10" fill={color} />
     </svg>
   );
 }
@@ -406,6 +413,9 @@ export function GraphLegend({
                         <EdgeStyleLine
                           color={edgeColors[linkType]}
                           style={edgeStyles[linkType]}
+                          bidirectional={BIDIRECTIONAL_LINK_TYPES.includes(
+                            linkType,
+                          )}
                         />
                         <span className="text-xs text-gray-600 truncate">
                           {LINK_TYPE_LABELS[linkType]}

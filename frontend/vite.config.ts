@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    include: ["three", "reagraph", "scheduler", "react-reconciler"],
+    include: ["three", "reagraph", "scheduler", "react-reconciler", "mermaid"],
     force: true, // Force re-bundling
     esbuildOptions: {
       // Needed for Three.js to work correctly

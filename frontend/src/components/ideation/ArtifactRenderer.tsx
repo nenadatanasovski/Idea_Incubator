@@ -8,20 +8,33 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import mermaid from "mermaid";
 import type {
   ArtifactRendererProps,
   ResearchResult,
   SynthesizedResearch,
 } from "../../types/ideation";
 
-// Initialize mermaid
-mermaid.initialize({
-  startOnLoad: false,
-  theme: "default",
-  securityLevel: "loose",
-  fontFamily: "inherit",
-});
+// Mermaid is loaded dynamically to avoid Vite bundling issues with its lazy-loaded diagram types
+let mermaidInstance: typeof import("mermaid").default | null = null;
+let mermaidInitPromise: Promise<typeof import("mermaid").default> | null = null;
+
+const getMermaid = async () => {
+  if (mermaidInstance) return mermaidInstance;
+  if (mermaidInitPromise) return mermaidInitPromise;
+
+  mermaidInitPromise = import("mermaid").then((m) => {
+    mermaidInstance = m.default;
+    mermaidInstance.initialize({
+      startOnLoad: false,
+      theme: "default",
+      securityLevel: "loose",
+      fontFamily: "inherit",
+    });
+    return mermaidInstance;
+  });
+
+  return mermaidInitPromise;
+};
 
 // Code artifact renderer
 const CodeArtifact: React.FC<{ content: string; language?: string }> = ({
@@ -61,6 +74,8 @@ const MermaidArtifact: React.FC<{ content: string; id: string }> = ({
       if (!containerRef.current) return;
 
       try {
+        const mermaid = await getMermaid();
+
         // Clean the content
         const cleanedContent = content
           .trim()

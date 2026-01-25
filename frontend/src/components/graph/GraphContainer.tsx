@@ -10,6 +10,7 @@ import type {
   GraphFilters as GraphFiltersType,
 } from "../../types/graph";
 import { GraphCanvas, GraphCanvasHandle } from "./GraphCanvas";
+import type { LayoutOption } from "./GraphControls";
 import { NodeInspector, RelationshipHoverInfo } from "./NodeInspector";
 import { GraphLegend } from "./GraphLegend";
 import { GraphControls } from "./GraphControls";
@@ -200,6 +201,7 @@ export function GraphContainer({
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
+  const [currentLayout, setCurrentLayout] = useState<LayoutOption>("treeLr2d");
   const [hoveredRelationship, setHoveredRelationship] =
     useState<RelationshipHoverInfo | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -373,6 +375,11 @@ export function GraphContainer({
   // Handle search query change
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query);
+  }, []);
+
+  // Handle layout change
+  const handleLayoutChange = useCallback((layout: LayoutOption) => {
+    setCurrentLayout(layout);
   }, []);
 
   // Handle cycle node IDs from CycleIndicator for canvas highlighting
@@ -721,6 +728,7 @@ export function GraphContainer({
           temporarilyVisibleNodeIds={temporarilyVisibleNodeIds}
           temporarilyVisibleEdgeIds={temporarilyVisibleEdgeIds}
           cycleNodeIds={cycleNodeIds}
+          layoutType={currentLayout}
           clusterAttribute={clusterStrategy !== "none" ? "cluster" : undefined}
           clusterStrength={clusterStrength}
           totalNodeCount={nodes.length}
@@ -853,7 +861,9 @@ export function GraphContainer({
               isAnalyzingGraph={isAnalyzingGraph}
               pendingGraphChanges={pendingGraphChanges}
               showZoomControls={false}
-              showLayoutControls={false}
+              showLayoutControls={true}
+              currentLayout={currentLayout}
+              onLayoutChange={handleLayoutChange}
               showClusterControls={true}
               currentClusterStrategy={clusterStrategy}
               onClusterStrategyChange={setClusterStrategy}
@@ -990,6 +1000,7 @@ export function GraphContainer({
           node={selectedNode}
           edges={edges}
           nodes={nodes}
+          sessionId={sessionId}
           onClose={handleCloseInspector}
           onNodeClick={handleInspectorNodeClick}
           onRelationshipHover={handleRelationshipHover}

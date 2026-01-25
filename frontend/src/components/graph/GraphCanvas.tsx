@@ -17,6 +17,7 @@ import {
   GraphCanvas as ReagraphCanvas,
   GraphCanvasRef,
   useSelection,
+  LayoutTypes,
 } from "reagraph";
 import type { GraphNode, GraphEdge, NodeShape } from "../../types/graph";
 
@@ -41,7 +42,8 @@ import {
   getEdgeWidth,
 } from "./utils/edgeStyles";
 
-export type LayoutType = "forceDirected" | "hierarchical" | "radial";
+// Re-export Reagraph's LayoutTypes for external use
+export type LayoutType = LayoutTypes;
 
 /**
  * Hook to detect dark mode via CSS class or media query
@@ -310,30 +312,30 @@ function toReagraphEdge(
   if (edge.status === "superseded") finalOpacity *= 0.5;
   if (edge.status === "removed") finalOpacity *= 0.2;
 
-  // Convert line style to strokeDasharray for Reagraph
-  let strokeDasharray: number[] | undefined;
+  // Convert line style to dashArray for Reagraph (uses [dashSize, gapSize] tuple)
+  let dashArray: [number, number] | undefined;
   if (lineStyle === "dashed") {
-    strokeDasharray = [8, 4];
+    dashArray = [8, 4];
   } else if (lineStyle === "dotted") {
-    strokeDasharray = [2, 2];
+    dashArray = [2, 2];
   }
 
-  // Determine stroke color based on state
-  let stroke = getEdgeColor(edge.linkType);
-  let strokeWidth = width;
+  // Determine fill color based on state (Reagraph uses 'fill' for edge color)
+  let fill = getEdgeColor(edge.linkType);
+  let size = width;
 
   if (isRecentlyAdded) {
-    stroke = "#22C55E"; // Green-500 for new edges
-    strokeWidth = width + 2;
+    fill = "#22C55E"; // Green-500 for new edges
+    size = width + 2;
     finalOpacity = 1;
   } else if (isTemporarilyVisible) {
     // Temporarily visible due to relationship hover - show with reduced opacity
-    stroke = "#F97316"; // Orange to show it's highlighted
-    strokeWidth = width + 1;
+    fill = "#F97316"; // Orange to show it's highlighted
+    size = width + 1;
     finalOpacity = 0.5; // Reduced opacity to indicate it's normally filtered out
   } else if (isHighlighted) {
-    stroke = "#F97316"; // Orange to match highlighted nodes
-    strokeWidth = width + 2;
+    fill = "#F97316"; // Orange to match highlighted nodes
+    size = width + 2;
     finalOpacity = 1;
   }
 
@@ -341,30 +343,16 @@ function toReagraphEdge(
     id: edge.id,
     source: edge.source,
     target: edge.target,
-    stroke,
-    strokeWidth,
+    fill, // Reagraph uses 'fill' for edge color
+    size, // Reagraph uses 'size' for edge width
     opacity: finalOpacity,
-    strokeDasharray,
+    dashArray, // Reagraph uses 'dashArray' for dash patterns
     label: edge.reason || edge.linkType.replace(/_/g, " "),
     data: edge, // Attach original edge data
   };
 }
 
-// Map our layout type to Reagraph layout type
-function mapLayoutType(
-  layoutType: LayoutType,
-): "forceDirected2d" | "hierarchicalTd" | "radialOut2d" {
-  switch (layoutType) {
-    case "forceDirected":
-      return "forceDirected2d";
-    case "hierarchical":
-      return "hierarchicalTd";
-    case "radial":
-      return "radialOut2d";
-    default:
-      return "forceDirected2d";
-  }
-}
+// No mapping needed - using Reagraph layout types directly
 
 export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
   function GraphCanvas(
@@ -384,7 +372,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       temporarilyVisibleNodeIds = new Set(),
       temporarilyVisibleEdgeIds = new Set(),
       cycleNodeIds = new Set(),
-      layoutType = "forceDirected",
+      layoutType = "forceDirected2d",
       clusterAttribute,
       clusterStrength = 0.7,
       className = "",
@@ -910,7 +898,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           onNodePointerOut={handleNodePointerOut}
           onEdgeClick={handleEdgeClick as never}
           onCanvasClick={handleCanvasClick}
-          layoutType={mapLayoutType(layoutType)}
+          layoutType={layoutType}
           clusterAttribute={clusterAttribute}
           layoutOverrides={{
             nodeStrength: -120, // Moderate repulsion between all nodes

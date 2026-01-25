@@ -322,39 +322,39 @@ describe("GraphCanvas", () => {
     expect(screen.getByTestId("reagraph-canvas")).toBeInTheDocument();
   });
 
-  it("should accept layoutType prop with forceDirected", () => {
+  it("should accept layoutType prop with forceDirected2d", () => {
     render(
       <GraphCanvas
         nodes={mockNodes}
         edges={mockEdges}
         onNodeClick={vi.fn()}
-        layoutType="forceDirected"
+        layoutType="forceDirected2d"
       />,
     );
 
     expect(screen.getByTestId("graph-canvas")).toBeInTheDocument();
   });
 
-  it("should accept layoutType prop with hierarchical", () => {
+  it("should accept layoutType prop with treeLr2d", () => {
     render(
       <GraphCanvas
         nodes={mockNodes}
         edges={mockEdges}
         onNodeClick={vi.fn()}
-        layoutType="hierarchical"
+        layoutType="treeLr2d"
       />,
     );
 
     expect(screen.getByTestId("graph-canvas")).toBeInTheDocument();
   });
 
-  it("should accept layoutType prop with radial", () => {
+  it("should accept layoutType prop with radialOut2d", () => {
     render(
       <GraphCanvas
         nodes={mockNodes}
         edges={mockEdges}
         onNodeClick={vi.fn()}
-        layoutType="radial"
+        layoutType="radialOut2d"
       />,
     );
 

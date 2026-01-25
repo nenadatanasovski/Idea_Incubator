@@ -918,6 +918,87 @@ export function useIdeationAPI() {
     [],
   );
 
+  // ============================================================================
+  // Block Source Mapping Methods
+  // ============================================================================
+
+  /**
+   * Get all mapped sources for a specific block.
+   * Returns sources that contributed to creating this block, with relevance scores.
+   */
+  const getBlockSources = useCallback(
+    async (
+      sessionId: string,
+      blockId: string,
+    ): Promise<{
+      success: boolean;
+      blockId: string;
+      sources: Array<{
+        sourceId: string;
+        sourceType: string;
+        title: string | null;
+        contentSnippet: string | null;
+        relevanceScore: number;
+        reason: string;
+      }>;
+    }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/graph/blocks/${blockId}/sources`,
+      );
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to fetch block sources" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to fetch block sources",
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  /**
+   * Trigger source-to-node mapping for all blocks in a session.
+   * Uses Claude Opus 4.5 to analyze which sources contributed to each block.
+   */
+  const mapBlockSources = useCallback(
+    async (
+      sessionId: string,
+    ): Promise<{
+      success: boolean;
+      mappingsCreated: number;
+      blocksProcessed: number;
+      sourcesAnalyzed: number;
+      warnings: string[];
+    }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/graph/map-sources`,
+        {
+          method: "POST",
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to map sources" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to map sources",
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
   return useMemo(
     () => ({
       startSession,
@@ -946,6 +1027,9 @@ export function useIdeationAPI() {
       createGraphSnapshot,
       restoreGraphSnapshot,
       deleteGraphSnapshot,
+      // Block source mapping
+      getBlockSources,
+      mapBlockSources,
     }),
     [
       startSession,
@@ -973,6 +1057,8 @@ export function useIdeationAPI() {
       createGraphSnapshot,
       restoreGraphSnapshot,
       deleteGraphSnapshot,
+      getBlockSources,
+      mapBlockSources,
     ],
   );
 }

@@ -32,13 +32,7 @@ import {
 } from "../../websocket.js";
 import {
   collectAllSources,
-  collectConversationSources,
-  collectArtifactSources,
-  collectMemoryFileSources,
-  collectUserBlockSources,
-  type SourceType,
   type CollectionOptions,
-  type SourceCollectionResult,
 } from "../../services/graph/source-collector.js";
 import {
   buildAnalysisPrompt,
@@ -46,6 +40,10 @@ import {
   type AnalysisResponse,
   type ExistingBlockSummary,
 } from "../../services/graph/analysis-prompt-builder.js";
+import {
+  sourceMapper,
+  type BlockSummary,
+} from "../../services/graph/source-mapper.js";
 
 export const graphRouter = Router();
 
@@ -1515,6 +1513,67 @@ graphRouter.post(
         console.log(
           `[apply-changes] Applied ${blocksCreated} blocks and ${linksCreated} links (ID mappings: ${idMapping.size})`,
         );
+
+        // Step 3: Run AI-powered source-to-node mapping using Claude Opus 4.5
+        // This creates many-to-many relationships between sources and newly created blocks
+        if (blocksCreated > 0) {
+          console.log(
+            `[apply-changes] Step 3: Running source-to-node mapping...`,
+          );
+
+          // Build block summaries for newly created blocks
+          const newBlockSummaries: BlockSummary[] = [];
+          for (const change of selectedChanges) {
+            if (change.type === "create_block" && change.content) {
+              const realBlockId = idMapping.get(change.id);
+              if (realBlockId) {
+                newBlockSummaries.push({
+                  id: realBlockId,
+                  type: change.blockType || "content",
+                  title: change.title || null,
+                  content: change.content,
+                });
+              }
+            }
+          }
+
+          // Fetch full sources with content for the mapper
+          // This ensures the AI has enough context for accurate mapping
+          try {
+            const fullSourcesResult = await collectAllSources(sessionId, {
+              tokenBudget: 40000,
+              conversationLimit: 50,
+            });
+
+            if (fullSourcesResult.sources.length > 0) {
+              // Call the source mapper with Claude Opus 4.5
+              const mappingResult = await sourceMapper.mapSourcesToBlocks(
+                newBlockSummaries,
+                fullSourcesResult.sources,
+                sessionId,
+              );
+              console.log(
+                `[apply-changes] Source mapping complete: ${mappingResult.mappingsCreated} mappings created`,
+              );
+              if (mappingResult.warnings.length > 0) {
+                console.warn(
+                  `[apply-changes] Mapping warnings:`,
+                  mappingResult.warnings,
+                );
+              }
+            } else {
+              console.log(
+                `[apply-changes] No sources available for mapping, skipping`,
+              );
+            }
+          } catch (mappingError) {
+            // Don't fail the entire operation if mapping fails
+            console.error(
+              `[apply-changes] Source mapping failed:`,
+              mappingError,
+            );
+          }
+        }
       } else {
         // Fallback: If no changes data, just return success with zeros
         // (This handles the case where changes weren't passed properly)
@@ -2329,6 +2388,115 @@ graphRouter.delete(
       return res.json({ success: true });
     } catch (error) {
       console.error("Error deleting snapshot:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// GET /session/:sessionId/graph/blocks/:blockId/sources
+// ============================================================================
+// Get all mapped sources for a specific block
+
+graphRouter.get(
+  "/:sessionId/graph/blocks/:blockId/sources",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId, blockId } = req.params;
+
+      // Verify block belongs to session
+      const block = await getOne<{ id: string }>(
+        `SELECT id FROM memory_blocks WHERE id = ? AND session_id = ?`,
+        [blockId, sessionId],
+      );
+
+      if (!block) {
+        return res.status(404).json({ error: "Block not found" });
+      }
+
+      // Get all mapped sources for this block
+      const sources = await sourceMapper.getSourcesForBlock(blockId);
+
+      return res.json({
+        success: true,
+        blockId,
+        sources: sources.map((s) => ({
+          sourceId: s.sourceId,
+          sourceType: s.sourceType,
+          title: s.sourceTitle,
+          contentSnippet: s.sourceContentSnippet,
+          relevanceScore: s.relevanceScore,
+          reason: s.mappingReason,
+        })),
+      });
+    } catch (error) {
+      console.error("Error fetching block sources:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// POST /session/:sessionId/graph/map-sources
+// ============================================================================
+// Manually trigger source-to-node mapping for existing blocks
+// Useful after importing or when mappings need to be regenerated
+
+graphRouter.post(
+  "/:sessionId/graph/map-sources",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      // Get all blocks for the session
+      const blocks = await blockExtractor.getBlocksForSession(sessionId);
+
+      if (blocks.length === 0) {
+        return res.json({
+          success: true,
+          message: "No blocks to map",
+          mappingsCreated: 0,
+        });
+      }
+
+      // Collect sources for the session
+      const collectionResult = await collectAllSources(sessionId, {
+        tokenBudget: 40000,
+        conversationLimit: 50,
+      });
+
+      if (collectionResult.sources.length === 0) {
+        return res.json({
+          success: true,
+          message: "No sources available for mapping",
+          mappingsCreated: 0,
+        });
+      }
+
+      // Build block summaries
+      const blockSummaries: BlockSummary[] = blocks.map((b) => ({
+        id: b.id,
+        type: b.type,
+        title: b.title || null,
+        content: b.content,
+      }));
+
+      // Run the source mapper with Claude Opus 4.5
+      const mappingResult = await sourceMapper.mapSourcesToBlocks(
+        blockSummaries,
+        collectionResult.sources,
+        sessionId,
+      );
+
+      return res.json({
+        success: true,
+        mappingsCreated: mappingResult.mappingsCreated,
+        blocksProcessed: blocks.length,
+        sourcesAnalyzed: collectionResult.sources.length,
+        warnings: mappingResult.warnings,
+      });
+    } catch (error) {
+      console.error("Error mapping sources:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

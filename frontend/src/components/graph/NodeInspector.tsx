@@ -23,12 +23,26 @@ import {
   Layers,
   Trash2,
   Loader2,
+  Sparkles,
+  List,
+  AlignLeft,
 } from "lucide-react";
 import { parseProperties } from "./utils/propertyDisplay";
 import { SpecialPropertiesSection } from "./PropertyDisplayComponents";
 import { EvidenceChainPanel } from "./EvidenceChainPanel";
 import { BlockTypeInspector } from "./BlockTypeInspector";
 import type { SourceType } from "../../types/graph";
+import { useIdeationAPI } from "../../hooks/useIdeationAPI";
+
+// AI-mapped source type from the database
+interface MappedSource {
+  sourceId: string;
+  sourceType: string;
+  title: string | null;
+  contentSnippet: string | null;
+  relevanceScore: number;
+  reason: string;
+}
 
 /**
  * Safely format a date string, returning "Unknown" if invalid
@@ -56,6 +70,7 @@ export interface NodeInspectorProps {
   node: GraphNode;
   edges: GraphEdge[];
   nodes: GraphNode[];
+  sessionId?: string; // Required to fetch AI-mapped sources
   onClose: () => void;
   onNodeClick?: (nodeId: string) => void;
   onRelationshipHover?: (info: RelationshipHoverInfo | null) => void;
@@ -80,6 +95,11 @@ interface Relationship {
   relatedNode: GraphNode;
   direction: "incoming" | "outgoing";
 }
+
+/**
+ * Relationship view mode
+ */
+type RelationshipViewMode = "list" | "prose";
 
 /**
  * Get human-readable link type label
@@ -107,6 +127,36 @@ function getLinkTypeLabel(linkType: LinkType): string {
     includes: "Includes",
     constrained_by: "Constrained By",
     validates_claim: "Validates Claim",
+  };
+  return labels[linkType] || linkType.replace(/_/g, " ");
+}
+
+/**
+ * Get prose-friendly link type label (lowercase for sentence flow)
+ */
+function getLinkTypeLabelProse(linkType: LinkType): string {
+  const labels: Record<LinkType, string> = {
+    addresses: "addresses",
+    creates: "creates",
+    requires: "requires",
+    blocks: "blocks",
+    unblocks: "unblocks",
+    supersedes: "supersedes",
+    refines: "refines",
+    replaces: "replaces",
+    contradicts: "contradicts",
+    evidence_for: "is evidence for",
+    derived_from: "is derived from",
+    implements: "implements",
+    implemented_by: "is implemented by",
+    alternative_to: "is an alternative to",
+    synthesizes: "synthesizes",
+    instance_of: "is an instance of",
+    about: "is about",
+    excludes: "excludes",
+    includes: "includes",
+    constrained_by: "is constrained by",
+    validates_claim: "validates the claim of",
   };
   return labels[linkType] || linkType.replace(/_/g, " ");
 }
@@ -204,6 +254,87 @@ function RelationshipItem({
         >
           {relatedNode.content}
         </div>
+      </div>
+    </button>
+  );
+}
+
+/**
+ * Relationship item component (Prose view - sentence format)
+ * Renders relationships as readable sentences like:
+ * "The solution 'Spec Agent' leads to the solution 'Build Agent'"
+ */
+function RelationshipItemProse({
+  relationship,
+  currentNode,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  relationship: Relationship;
+  currentNode: GraphNode;
+  onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
+  const { edge, relatedNode, direction } = relationship;
+  const isIncoming = direction === "incoming";
+
+  // Build the sentence based on direction
+  // Incoming: "The [source.blockType] '[source.title]' [linkType] the [current.blockType] '[current.title]'"
+  // Outgoing: "The [current.blockType] '[current.title]' [linkType] the [target.blockType] '[target.title]'"
+  const sourceNode = isIncoming ? relatedNode : currentNode;
+  const targetNode = isIncoming ? currentNode : relatedNode;
+
+  const sourceTitle = sourceNode.title || sourceNode.content;
+  const targetTitle = targetNode.title || targetNode.content;
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className="w-full p-3 text-left rounded-lg hover:bg-gray-100 transition-colors group border border-gray-100 mb-2"
+    >
+      <p className="text-sm leading-loose flex flex-wrap items-center gap-1">
+        <span className="text-gray-500">The</span>
+        <span
+          className="px-2 py-1 rounded text-sm font-semibold"
+          style={{
+            backgroundColor: nodeColors[sourceNode.blockType],
+            color: "#ffffff",
+          }}
+        >
+          {sourceNode.blockType}
+        </span>
+        <span className="text-gray-900 font-medium">"{sourceTitle}"</span>
+        <span
+          className="px-2 py-1 rounded text-sm font-semibold"
+          style={{
+            backgroundColor: edgeColors[edge.linkType],
+            color: "#ffffff",
+          }}
+        >
+          {getLinkTypeLabelProse(edge.linkType)}
+        </span>
+        <span className="text-gray-500">the</span>
+        <span
+          className="px-2 py-1 rounded text-sm font-semibold"
+          style={{
+            backgroundColor: nodeColors[targetNode.blockType],
+            color: "#ffffff",
+          }}
+        >
+          {targetNode.blockType}
+        </span>
+        <span className="text-gray-900 font-medium">"{targetTitle}"</span>
+      </p>
+      {/* Metadata row */}
+      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+        {edge.degree && <span className="italic">{edge.degree}</span>}
+        {edge.confidence !== undefined && (
+          <span>{Math.round(edge.confidence * 100)}% confidence</span>
+        )}
       </div>
     </button>
   );
@@ -749,6 +880,7 @@ export function NodeInspector({
   node,
   edges,
   nodes,
+  sessionId,
   onClose,
   onNodeClick,
   onRelationshipHover,
@@ -766,6 +898,11 @@ export function NodeInspector({
   className = "",
 }: NodeInspectorProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [mappedSources, setMappedSources] = useState<MappedSource[]>([]);
+  const [isLoadingSources, setIsLoadingSources] = useState(false);
+  const [relationshipViewMode, setRelationshipViewMode] =
+    useState<RelationshipViewMode>("prose");
+  const { getBlockSources } = useIdeationAPI();
 
   // Animate slide-in on mount
   useEffect(() => {
@@ -773,6 +910,39 @@ export function NodeInspector({
     const timer = setTimeout(() => setIsVisible(true), 10);
     return () => clearTimeout(timer);
   }, []);
+
+  // Fetch AI-mapped sources when node changes
+  useEffect(() => {
+    if (!sessionId || !node.id) {
+      setMappedSources([]);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingSources(true);
+
+    getBlockSources(sessionId, node.id)
+      .then((response) => {
+        if (!cancelled && response.success) {
+          setMappedSources(response.sources);
+        }
+      })
+      .catch((error) => {
+        console.error("[NodeInspector] Error fetching mapped sources:", error);
+        if (!cancelled) {
+          setMappedSources([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingSources(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, node.id, getBlockSources]);
 
   // Handle close with animation
   const handleClose = useCallback(() => {
@@ -916,118 +1086,187 @@ export function NodeInspector({
           </Section>
         )}
 
-        {/* Relationships Section */}
-        <Section
-          title="Relationships"
-          defaultExpanded={totalRelationships > 0}
-          count={totalRelationships}
-        >
-          {totalRelationships === 0 ? (
-            <p className="text-sm text-gray-500 italic">No relationships</p>
-          ) : (
-            <div className="space-y-4">
-              {/* Incoming relationships */}
-              {incomingRelationships.length > 0 && (
-                <div>
-                  <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
-                    <svg
-                      className="w-3 h-3 rotate-180"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M14 5l7 7m0 0l-7 7m7-7H3"
-                      />
-                    </svg>
-                    Incoming ({incomingRelationships.length})
-                  </h5>
-                  <div className="space-y-1">
-                    {incomingRelationships.map((rel) => (
-                      <RelationshipItem
-                        key={rel.edge.id}
-                        relationship={rel}
-                        onClick={
-                          onNodeClick
-                            ? () => onNodeClick(rel.relatedNode.id)
-                            : undefined
-                        }
-                        onMouseEnter={
-                          onRelationshipHover
-                            ? () =>
-                                onRelationshipHover({
-                                  currentNodeId: node.id,
-                                  relatedNodeId: rel.relatedNode.id,
-                                  edgeId: rel.edge.id,
-                                })
-                            : undefined
-                        }
-                        onMouseLeave={
-                          onRelationshipHover
-                            ? () => onRelationshipHover(null)
-                            : undefined
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
+        {/* Relationships Section with View Toggle */}
+        <div className="border-b border-gray-200 last:border-b-0">
+          <div className="w-full py-3 flex items-center justify-between">
+            <span className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Relationships
+              {totalRelationships > 0 && (
+                <span className="px-1.5 py-0.5 bg-gray-200 rounded-full text-xs font-normal normal-case">
+                  {totalRelationships}
+                </span>
               )}
+            </span>
+            {/* View mode toggle */}
+            {totalRelationships > 0 && (
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setRelationshipViewMode("list")}
+                  className={`p-1.5 rounded transition-colors ${
+                    relationshipViewMode === "list"
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  title="List view"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setRelationshipViewMode("prose")}
+                  className={`p-1.5 rounded transition-colors ${
+                    relationshipViewMode === "prose"
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  title="Prose view"
+                >
+                  <AlignLeft className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="pb-4">
+            {totalRelationships === 0 ? (
+              <p className="text-sm text-gray-500 italic">No relationships</p>
+            ) : relationshipViewMode === "prose" ? (
+              /* Prose view - all relationships as sentences */
+              <div className="space-y-1">
+                {[...incomingRelationships, ...outgoingRelationships].map(
+                  (rel) => (
+                    <RelationshipItemProse
+                      key={rel.edge.id}
+                      relationship={rel}
+                      currentNode={node}
+                      onClick={
+                        onNodeClick
+                          ? () => onNodeClick(rel.relatedNode.id)
+                          : undefined
+                      }
+                      onMouseEnter={
+                        onRelationshipHover
+                          ? () =>
+                              onRelationshipHover({
+                                currentNodeId: node.id,
+                                relatedNodeId: rel.relatedNode.id,
+                                edgeId: rel.edge.id,
+                              })
+                          : undefined
+                      }
+                      onMouseLeave={
+                        onRelationshipHover
+                          ? () => onRelationshipHover(null)
+                          : undefined
+                      }
+                    />
+                  ),
+                )}
+              </div>
+            ) : (
+              /* List view - grouped by incoming/outgoing */
+              <div className="space-y-4">
+                {/* Incoming relationships */}
+                {incomingRelationships.length > 0 && (
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
+                      <svg
+                        className="w-3 h-3 rotate-180"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M14 5l7 7m0 0l-7 7m7-7H3"
+                        />
+                      </svg>
+                      Incoming ({incomingRelationships.length})
+                    </h5>
+                    <div className="space-y-1">
+                      {incomingRelationships.map((rel) => (
+                        <RelationshipItem
+                          key={rel.edge.id}
+                          relationship={rel}
+                          onClick={
+                            onNodeClick
+                              ? () => onNodeClick(rel.relatedNode.id)
+                              : undefined
+                          }
+                          onMouseEnter={
+                            onRelationshipHover
+                              ? () =>
+                                  onRelationshipHover({
+                                    currentNodeId: node.id,
+                                    relatedNodeId: rel.relatedNode.id,
+                                    edgeId: rel.edge.id,
+                                  })
+                              : undefined
+                          }
+                          onMouseLeave={
+                            onRelationshipHover
+                              ? () => onRelationshipHover(null)
+                              : undefined
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              {/* Outgoing relationships */}
-              {outgoingRelationships.length > 0 && (
-                <div>
-                  <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
-                    <svg
-                      className="w-3 h-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M14 5l7 7m0 0l-7 7m7-7H3"
-                      />
-                    </svg>
-                    Outgoing ({outgoingRelationships.length})
-                  </h5>
-                  <div className="space-y-1">
-                    {outgoingRelationships.map((rel) => (
-                      <RelationshipItem
-                        key={rel.edge.id}
-                        relationship={rel}
-                        onClick={
-                          onNodeClick
-                            ? () => onNodeClick(rel.relatedNode.id)
-                            : undefined
-                        }
-                        onMouseEnter={
-                          onRelationshipHover
-                            ? () =>
-                                onRelationshipHover({
-                                  currentNodeId: node.id,
-                                  relatedNodeId: rel.relatedNode.id,
-                                  edgeId: rel.edge.id,
-                                })
-                            : undefined
-                        }
-                        onMouseLeave={
-                          onRelationshipHover
-                            ? () => onRelationshipHover(null)
-                            : undefined
-                        }
-                      />
-                    ))}
+                {/* Outgoing relationships */}
+                {outgoingRelationships.length > 0 && (
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M14 5l7 7m0 0l-7 7m7-7H3"
+                        />
+                      </svg>
+                      Outgoing ({outgoingRelationships.length})
+                    </h5>
+                    <div className="space-y-1">
+                      {outgoingRelationships.map((rel) => (
+                        <RelationshipItem
+                          key={rel.edge.id}
+                          relationship={rel}
+                          onClick={
+                            onNodeClick
+                              ? () => onNodeClick(rel.relatedNode.id)
+                              : undefined
+                          }
+                          onMouseEnter={
+                            onRelationshipHover
+                              ? () =>
+                                  onRelationshipHover({
+                                    currentNodeId: node.id,
+                                    relatedNodeId: rel.relatedNode.id,
+                                    edgeId: rel.edge.id,
+                                  })
+                              : undefined
+                          }
+                          onMouseLeave={
+                            onRelationshipHover
+                              ? () => onRelationshipHover(null)
+                              : undefined
+                          }
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-        </Section>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Metadata Section */}
         <Section title="Metadata" defaultExpanded={false}>
@@ -1259,6 +1498,145 @@ export function NodeInspector({
               onNavigateToMemoryDB={onNavigateToMemoryDB}
               onNavigateToExternal={onNavigateToExternal}
             />
+          </Section>
+        )}
+
+        {/* AI-Mapped Sources Section - Shows sources mapped by Claude Opus 4.5 */}
+        {sessionId && (
+          <Section
+            title="AI-Mapped Sources"
+            defaultExpanded={mappedSources.length > 0}
+            count={mappedSources.length}
+          >
+            {isLoadingSources ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Loading sources...</span>
+              </div>
+            ) : mappedSources.length === 0 ? (
+              <p className="text-sm text-gray-500 italic">
+                No AI-mapped sources found. Sources are mapped when nodes are
+                created through the graph analysis flow.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {mappedSources.map((source, idx) => {
+                  // Determine icon and color based on source type
+                  const sourceTypeInfo: Record<
+                    string,
+                    { icon: string; color: string; label: string }
+                  > = {
+                    conversation: {
+                      icon: "💬",
+                      color: "bg-purple-100 text-purple-700",
+                      label: "Chat",
+                    },
+                    conversation_insight: {
+                      icon: "💡",
+                      color: "bg-indigo-100 text-indigo-700",
+                      label: "AI Insight",
+                    },
+                    artifact: {
+                      icon: "📄",
+                      color: "bg-amber-100 text-amber-700",
+                      label: "Artifact",
+                    },
+                    memory_file: {
+                      icon: "🧠",
+                      color: "bg-cyan-100 text-cyan-700",
+                      label: "Memory File",
+                    },
+                    user_block: {
+                      icon: "✏️",
+                      color: "bg-green-100 text-green-700",
+                      label: "User Block",
+                    },
+                    external: {
+                      icon: "🔗",
+                      color: "bg-gray-100 text-gray-700",
+                      label: "External",
+                    },
+                  };
+                  const typeInfo = sourceTypeInfo[source.sourceType] || {
+                    icon: "📎",
+                    color: "bg-gray-100 text-gray-700",
+                    label: source.sourceType,
+                  };
+
+                  const canNavigate =
+                    (source.sourceType === "artifact" &&
+                      onNavigateToArtifact) ||
+                    (source.sourceType === "memory_file" &&
+                      onNavigateToMemoryDB);
+
+                  return (
+                    <div
+                      key={source.sourceId || idx}
+                      className={`p-3 rounded-lg border ${
+                        canNavigate
+                          ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50"
+                          : ""
+                      } border-gray-200 bg-gray-50`}
+                      onClick={() => {
+                        if (
+                          source.sourceType === "artifact" &&
+                          onNavigateToArtifact
+                        ) {
+                          onNavigateToArtifact(source.sourceId);
+                        } else if (
+                          source.sourceType === "memory_file" &&
+                          onNavigateToMemoryDB
+                        ) {
+                          onNavigateToMemoryDB("files", source.sourceId);
+                        }
+                      }}
+                      role={canNavigate ? "button" : undefined}
+                      tabIndex={canNavigate ? 0 : undefined}
+                    >
+                      {/* Header with type badge and relevance */}
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{typeInfo.icon}</span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs font-medium ${typeInfo.color}`}
+                          >
+                            {typeInfo.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles className="w-3 h-3 text-amber-500" />
+                          <span className="text-xs font-medium text-gray-600">
+                            {Math.round(source.relevanceScore * 100)}% relevant
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Title */}
+                      {source.title && (
+                        <p className="text-sm font-medium text-gray-800 mb-1">
+                          {source.title}
+                        </p>
+                      )}
+
+                      {/* Content snippet */}
+                      {source.contentSnippet && (
+                        <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+                          {source.contentSnippet}
+                        </p>
+                      )}
+
+                      {/* AI reasoning */}
+                      <div className="flex items-start gap-1.5 mt-2 pt-2 border-t border-gray-200">
+                        <Sparkles className="w-3 h-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-gray-600 italic">
+                          {source.reason}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </Section>
         )}
       </div>

@@ -123,26 +123,18 @@ export interface GraphControlsProps {
 
 export type LayoutOption =
   | "forceDirected2d"
-  | "forceDirected3d"
   | "treeTd2d"
   | "treeLr2d"
   | "radialOut2d"
-  | "circular2d"
-  | "hierarchical";
+  | "circular2d";
 
 const LAYOUTS: { value: LayoutOption; label: string; description?: string }[] =
   [
+    { value: "treeLr2d", label: "Spread Out" },
     { value: "forceDirected2d", label: "Force 2D" },
     { value: "treeTd2d", label: "Tree (Top-Down)" },
-    { value: "treeLr2d", label: "Tree (Left-Right)" },
     { value: "radialOut2d", label: "Radial" },
     { value: "circular2d", label: "Circular" },
-    {
-      value: "hierarchical",
-      label: "Hierarchical (Abstraction)",
-      description:
-        "Arranges nodes by abstraction level: Vision → Strategy → Tactic → Implementation",
-    },
   ];
 
 /**
