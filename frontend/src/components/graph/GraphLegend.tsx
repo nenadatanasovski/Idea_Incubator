@@ -377,11 +377,8 @@ export function GraphLegend({
             <div className="grid grid-cols-2 gap-x-4 gap-y-1">
               {(Object.keys(nodeShapes) as GraphType[]).map((graphType) => (
                 <div key={graphType} className="flex items-center gap-2">
-                  <ShapeIcon
-                    shape={nodeShapes[graphType]}
-                    color={graphColors[graphType]}
-                  />
-                  <span className="text-xs text-gray-600 truncate">
+                  <ShapeIcon shape={nodeShapes[graphType]} color="#9ca3af" />
+                  <span className="text-xs text-gray-400 truncate">
                     {GRAPH_TYPE_LABELS[graphType]}
                   </span>
                 </div>

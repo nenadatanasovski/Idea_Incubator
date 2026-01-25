@@ -48,8 +48,20 @@ export function IdeationSession({
   const [isSpecEditing, setIsSpecEditing] = useState(false);
   const [isSpecGenerating, setIsSpecGenerating] = useState(false);
   const [hasSpec, setHasSpec] = useState(false);
-  // Tab navigation state (T6.1)
-  const [activeTab, setActiveTab] = useState<SessionTab>("chat");
+  // Tab navigation state (T6.1) - persist across page refreshes
+  const [activeTab, setActiveTab] = useState<SessionTab>(() => {
+    // Try to restore from sessionStorage using the session ID
+    if (initialSessionId) {
+      const stored = sessionStorage.getItem(`ideation-tab-${initialSessionId}`);
+      if (
+        stored &&
+        ["chat", "graph", "memory", "files", "spec"].includes(stored)
+      ) {
+        return stored as SessionTab;
+      }
+    }
+    return "chat";
+  });
   const [graphUpdateCount, setGraphUpdateCount] = useState(0);
   const [hasGraphUpdates, setHasGraphUpdates] = useState(false);
   // T9: Project folder state
@@ -65,6 +77,21 @@ export function IdeationSession({
   const [highlightedMessageId, setHighlightedMessageId] = useState<
     string | undefined
   >();
+
+  // Persist active tab to sessionStorage when it changes
+  useEffect(() => {
+    const sessionId = state.session.sessionId || initialSessionId;
+    if (sessionId) {
+      sessionStorage.setItem(`ideation-tab-${sessionId}`, activeTab);
+    }
+  }, [activeTab, state.session.sessionId, initialSessionId]);
+
+  // Auto-hide artifact panel when graph tab is active on initial load/resume
+  useEffect(() => {
+    if (activeTab === "graph" && state.session.status === "active") {
+      dispatch({ type: "ARTIFACT_PANEL_TOGGLE", payload: { isOpen: false } });
+    }
+  }, [state.session.status]);
 
   // Spec and readiness hooks (SPEC-006-E integration)
   const {
@@ -2260,8 +2287,14 @@ export function IdeationSession({
       <div className="flex-1 flex overflow-hidden">
         {/* Main content area - shows Chat or Graph based on active tab */}
         <div className="flex-1 flex overflow-hidden min-w-0">
-          {/* Chat Tab Panel */}
-          {activeTab === "chat" && (
+          {/* Chat Tab Panel - always mounted to preserve state, hidden via CSS */}
+          <div
+            className={`flex-1 flex flex-col min-w-0 overflow-hidden ${activeTab !== "chat" ? "hidden" : ""}`}
+            role="tabpanel"
+            id="chat-panel"
+            aria-labelledby="chat-tab"
+            aria-hidden={activeTab !== "chat"}
+          >
             <ConversationPanel
               messages={state.conversation.messages}
               isLoading={state.conversation.isLoading}
@@ -2279,7 +2312,7 @@ export function IdeationSession({
               onArtifactClick={handleArtifactClick}
               onConvertToArtifact={handleConvertToArtifact}
             />
-          )}
+          </div>
 
           {/* Graph Tab Panel (T6.1 - lazy loaded) */}
           <GraphTabPanel
@@ -2321,13 +2354,13 @@ export function IdeationSession({
           />
 
           {/* Memory Database Tab Panel - Browse memory blocks and links */}
-          {activeTab === "memory" && state.session.sessionId && (
+          {state.session.sessionId && (
             <MemoryDatabasePanel
               sessionId={state.session.sessionId}
               highlightTable={memoryHighlightTable}
               highlightId={memoryHighlightId}
               onBackToGraph={handleBackToGraph}
-              className="flex-1"
+              className={activeTab === "memory" ? "flex-1" : "hidden"}
             />
           )}
         </div>
