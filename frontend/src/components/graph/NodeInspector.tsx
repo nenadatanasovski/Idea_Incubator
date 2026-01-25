@@ -259,6 +259,22 @@ function RelationshipItem({
   );
 }
 
+// Default fallback color for unknown types
+const FALLBACK_COLOR = "#6B7280"; // Gray
+
+/**
+ * Get the display type and color for a node
+ * Uses graphMembership (solution, problem, etc.) with graphColors
+ */
+function getNodeTypeDisplay(node: GraphNode): { type: string; color: string } {
+  const type = node.graphMembership?.[0] || node.blockType;
+  const color =
+    graphColors[type as keyof typeof graphColors] ||
+    nodeColors[type as keyof typeof nodeColors] ||
+    FALLBACK_COLOR;
+  return { type, color };
+}
+
 /**
  * Relationship item component (Prose view - sentence format)
  * Renders relationships as readable sentences like:
@@ -281,13 +297,17 @@ function RelationshipItemProse({
   const isIncoming = direction === "incoming";
 
   // Build the sentence based on direction
-  // Incoming: "The [source.blockType] '[source.title]' [linkType] the [current.blockType] '[current.title]'"
-  // Outgoing: "The [current.blockType] '[current.title]' [linkType] the [target.blockType] '[target.title]'"
+  // Incoming: "The [source.type] '[source.title]' [linkType] the [current.type] '[current.title]'"
+  // Outgoing: "The [current.type] '[current.title]' [linkType] the [target.type] '[target.title]'"
   const sourceNode = isIncoming ? relatedNode : currentNode;
   const targetNode = isIncoming ? currentNode : relatedNode;
 
   const sourceTitle = sourceNode.title || sourceNode.content;
   const targetTitle = targetNode.title || targetNode.content;
+
+  const sourceDisplay = getNodeTypeDisplay(sourceNode);
+  const targetDisplay = getNodeTypeDisplay(targetNode);
+  const linkColor = edgeColors[edge.linkType] || FALLBACK_COLOR;
 
   return (
     <button
@@ -297,45 +317,42 @@ function RelationshipItemProse({
       className="w-full p-3 text-left rounded-lg hover:bg-gray-100 transition-colors group border border-gray-100 mb-2"
     >
       <p className="text-sm leading-loose flex flex-wrap items-center gap-1">
-        <span className="text-gray-500">The</span>
+        <span className="text-gray-400">The</span>
         <span
           className="px-2 py-1 rounded text-sm font-semibold"
           style={{
-            backgroundColor: nodeColors[sourceNode.blockType],
+            backgroundColor: sourceDisplay.color,
             color: "#ffffff",
           }}
         >
-          {sourceNode.blockType}
+          {sourceDisplay.type}
         </span>
-        <span className="text-gray-900 font-medium">"{sourceTitle}"</span>
+        <span className="text-gray-500 font-medium">"{sourceTitle}"</span>
         <span
           className="px-2 py-1 rounded text-sm font-semibold"
           style={{
-            backgroundColor: edgeColors[edge.linkType],
+            backgroundColor: linkColor,
             color: "#ffffff",
           }}
         >
           {getLinkTypeLabelProse(edge.linkType)}
         </span>
-        <span className="text-gray-500">the</span>
+        <span className="text-gray-400">the</span>
         <span
           className="px-2 py-1 rounded text-sm font-semibold"
           style={{
-            backgroundColor: nodeColors[targetNode.blockType],
+            backgroundColor: targetDisplay.color,
             color: "#ffffff",
           }}
         >
-          {targetNode.blockType}
+          {targetDisplay.type}
         </span>
-        <span className="text-gray-900 font-medium">"{targetTitle}"</span>
+        <span className="text-gray-500 font-medium">"{targetTitle}"</span>
       </p>
-      {/* Metadata row */}
-      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-        {edge.degree && <span className="italic">{edge.degree}</span>}
-        {edge.confidence !== undefined && (
-          <span>{Math.round(edge.confidence * 100)}% confidence</span>
-        )}
-      </div>
+      {/* Metadata row - only show degree */}
+      {edge.degree && (
+        <div className="mt-2 text-xs text-gray-500 italic">{edge.degree}</div>
+      )}
     </button>
   );
 }
@@ -705,18 +722,49 @@ function NavigableSourceSection({
 
   const sourceTypeInfo = sourceType ? SOURCE_TYPE_LABELS[sourceType] : null;
 
+  // Collect all unique source types from allSources for display
+  const uniqueSourceTypes = useMemo(() => {
+    if (!allSources || allSources.length === 0) return [];
+    const types = new Set<string>();
+    allSources.forEach((s) => {
+      if (s.type) types.add(s.type);
+    });
+    return Array.from(types);
+  }, [allSources]);
+
   return (
     <div className="space-y-3">
-      {/* Source type badge */}
-      {sourceTypeInfo && (
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{sourceTypeInfo.icon}</span>
-          <span
-            className={`px-2.5 py-1 rounded-lg text-sm font-medium ${sourceTypeInfo.color}`}
-          >
-            {sourceTypeInfo.label}
-          </span>
+      {/* Source type badges - show all unique types from allSources */}
+      {uniqueSourceTypes.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {uniqueSourceTypes.map((type) => {
+            const typeInfo =
+              SOURCE_TYPE_LABELS[type as SourceType] ||
+              SOURCE_TYPE_LABELS.ai_generated;
+            return (
+              <div key={type} className="flex items-center gap-1">
+                <span className="text-sm">{typeInfo.icon}</span>
+                <span
+                  className={`px-2 py-0.5 rounded-lg text-xs font-medium ${typeInfo.color}`}
+                >
+                  {typeInfo.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
+      ) : (
+        // Fallback to single sourceType if no allSources
+        sourceTypeInfo && (
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{sourceTypeInfo.icon}</span>
+            <span
+              className={`px-2.5 py-1 rounded-lg text-sm font-medium ${sourceTypeInfo.color}`}
+            >
+              {sourceTypeInfo.label}
+            </span>
+          </div>
+        )
       )}
 
       {/* Location info card */}
