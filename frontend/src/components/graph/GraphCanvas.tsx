@@ -178,7 +178,7 @@ export interface GraphCanvasProps {
 
 export interface GraphCanvasHandle {
   focusOnNode: (nodeId: string) => void;
-  fitNodesInView: (nodeIds?: string[]) => void;
+  fitNodesInView: (nodeIds?: string[], options?: { slow?: boolean }) => void;
   centerGraph: () => void;
 }
 
@@ -410,11 +410,26 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         focusOnNode: (nodeId: string) => {
           graphRef.current?.fitNodesInView([nodeId], { padding: 100 });
         },
-        fitNodesInView: (nodeIds?: string[]) => {
+        fitNodesInView: (nodeIds?: string[], options?: { slow?: boolean }) => {
           // Use extra padding when fitting multiple nodes to ensure all are visible
           // For relationship hover (2 nodes), zoom out by ~50% more to ensure second node is in view
           const padding = nodeIds && nodeIds.length > 1 ? 450 : 100;
+
+          // Access camera controls to adjust animation speed
+          const controls = graphRef.current?.getControls();
+          if (controls && options?.slow) {
+            // Set smoothTime to 0.25 for slower transitions (default is 0.1)
+            controls.smoothTime = 0.25;
+          }
+
           graphRef.current?.fitNodesInView(nodeIds, { padding });
+
+          // Reset smoothTime after animation starts
+          if (controls && options?.slow) {
+            setTimeout(() => {
+              controls.smoothTime = 0.1;
+            }, 200);
+          }
         },
         centerGraph: () => {
           graphRef.current?.centerGraph();
@@ -588,14 +603,13 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     // Compute effective hovered ID once
     const effectiveHoveredId = hoveredNodeId ?? internalHoveredId;
 
-    // Combine selections with hovered/highlighted nodes to trigger inactiveOpacity
+    // Combine selections with highlighted nodes to trigger inactiveOpacity
+    // NOTE: Do NOT add hovered node here - adding to selections triggers pathSelectionType
+    // which would also highlight connected nodes. Hover should only highlight the hovered node.
+    // The hovered node is added to `actives` below, which is sufficient to trigger inactiveOpacity.
     const effectiveSelections = useMemo(() => {
       const combined = [...(selections || [])];
-      // Add hovered node ID to selections so inactiveOpacity applies
-      if (effectiveHoveredId && !combined.includes(effectiveHoveredId)) {
-        combined.push(effectiveHoveredId);
-      }
-      // Add highlighted node IDs to selections
+      // Add highlighted node IDs to selections (for relationship hover from inspector)
       highlightedNodeIds.forEach((id) => {
         if (!combined.includes(id)) {
           combined.push(id);
@@ -608,12 +622,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         }
       });
       return combined;
-    }, [
-      selections,
-      effectiveHoveredId,
-      highlightedNodeIds,
-      temporarilyVisibleNodeIds,
-    ]);
+    }, [selections, highlightedNodeIds, temporarilyVisibleNodeIds]);
 
     // Combine selection actives with our highlighted nodes/edges and hovered node
     const actives = useMemo(() => {

@@ -658,14 +658,14 @@ export function GraphContainer({
         relationshipHoverTimeoutRef.current = null;
       }
 
-      // Zoom to show both nodes when hovering - use 250ms delay to allow view to reset
-      // when quickly moving between relationship rows
+      // Zoom to show both nodes when hovering - use 250ms debounce for quick row changes
       if (info) {
         relationshipHoverTimeoutRef.current = setTimeout(() => {
-          graphCanvasRef.current?.fitNodesInView([
-            info.currentNodeId,
-            info.relatedNodeId,
-          ]);
+          // Use slow option for 50% slower camera transition speed
+          graphCanvasRef.current?.fitNodesInView(
+            [info.currentNodeId, info.relatedNodeId],
+            { slow: true },
+          );
         }, 250);
       }
     },
