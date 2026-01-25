@@ -385,12 +385,45 @@ export function MemoryDatabasePanel({
     blocks.forEach((b) =>
       counts.set(b.status, (counts.get(b.status) || 0) + 1),
     );
+    const statusColors: Record<string, string> = {
+      active: "green",
+      validated: "blue",
+      draft: "yellow",
+      superseded: "orange",
+      abandoned: "red",
+    };
     return Array.from(counts.entries())
       .map(([key, count]) => ({
         key,
         label: key,
         count,
-        color: key === "active" ? "green" : "gray",
+        color: statusColors[key] || "gray",
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [blocks]);
+
+  const blockAbstractionOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    blocks.forEach((b) => {
+      if (b.abstractionLevel) {
+        counts.set(
+          b.abstractionLevel,
+          (counts.get(b.abstractionLevel) || 0) + 1,
+        );
+      }
+    });
+    const abstractionColors: Record<string, string> = {
+      vision: "purple",
+      strategy: "blue",
+      tactic: "green",
+      implementation: "gray",
+    };
+    return Array.from(counts.entries())
+      .map(([key, count]) => ({
+        key,
+        label: ABSTRACTION_LEVEL_DISPLAY[key]?.label || key,
+        count,
+        color: abstractionColors[key] || "gray",
       }))
       .sort((a, b) => b.count - a.count);
   }, [blocks]);
@@ -560,6 +593,14 @@ export function MemoryDatabasePanel({
       result = result.filter((b) => blockStatusFilters.has(b.status));
     }
 
+    // Apply abstraction level filters
+    if (blockAbstractionFilters.size > 0) {
+      result = result.filter(
+        (b) =>
+          b.abstractionLevel && blockAbstractionFilters.has(b.abstractionLevel),
+      );
+    }
+
     // Apply search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -572,7 +613,13 @@ export function MemoryDatabasePanel({
     }
 
     return result;
-  }, [blocks, searchQuery, blockTypeFilters, blockStatusFilters]);
+  }, [
+    blocks,
+    searchQuery,
+    blockTypeFilters,
+    blockStatusFilters,
+    blockAbstractionFilters,
+  ]);
 
   // Filter links by search query and tag filters
   const filteredLinks = useMemo(() => {
@@ -723,6 +770,16 @@ export function MemoryDatabasePanel({
               onClearAll={() => setBlockStatusFilters(new Set())}
             />
           )}
+          {blockAbstractionOptions.length > 0 && (
+            <FilterBar
+              filters={blockAbstractionOptions}
+              activeFilters={blockAbstractionFilters}
+              onToggleFilter={(key) =>
+                toggleFilter(setBlockAbstractionFilters, key)
+              }
+              onClearAll={() => setBlockAbstractionFilters(new Set())}
+            />
+          )}
         </div>
       )}
 
@@ -854,86 +911,154 @@ export function MemoryDatabasePanel({
             {filteredBlocks.length === 0 ? (
               <p className="text-center py-8 text-gray-500">No blocks found</p>
             ) : (
-              <table className="w-full min-w-[900px]">
+              <table className="w-full min-w-[1200px]">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr className="border-b border-gray-200">
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                      ID
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
                       Type
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
                       Status
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
+                      Level
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Content
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
                       Confidence
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-44">
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                      Source
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-36">
                       Created
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredBlocks.map((block) => (
-                    <tr
-                      key={block.id}
-                      id={`memory-row-${block.id}`}
-                      className={`hover:bg-gray-50 transition-colors cursor-pointer ${
-                        highlightId === block.id
-                          ? "bg-cyan-50 border-l-4 border-l-cyan-500"
-                          : ""
-                      }`}
-                      onClick={() => setSelectedBlock(block)}
-                    >
-                      <td className="px-4 py-3">
-                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                          {block.type.replace(/_/g, " ")}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-0.5 rounded text-xs font-medium ${
-                            block.status === "active"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {block.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-sm text-gray-700 truncate max-w-lg">
-                          {block.content.substring(0, 150)}
-                          {block.content.length > 150 ? "..." : ""}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        {block.confidence !== undefined ? (
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden w-16">
-                              <div
-                                className="h-full bg-cyan-500 rounded-full"
-                                style={{
-                                  width: `${Math.round(block.confidence * 100)}%`,
-                                }}
-                              />
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {Math.round(block.confidence * 100)}%
+                  {filteredBlocks.map((block) => {
+                    const typeDisplay = BLOCK_TYPE_DISPLAY[block.type] || {
+                      label: block.type.replace(/_/g, " "),
+                      color: "bg-gray-100 text-gray-700",
+                    };
+                    const abstractionDisplay = block.abstractionLevel
+                      ? ABSTRACTION_LEVEL_DISPLAY[block.abstractionLevel]
+                      : null;
+                    const statusColors: Record<string, string> = {
+                      active: "bg-green-100 text-green-700",
+                      validated: "bg-blue-100 text-blue-700",
+                      draft: "bg-yellow-100 text-yellow-700",
+                      superseded: "bg-orange-100 text-orange-700",
+                      abandoned: "bg-red-100 text-red-700",
+                    };
+
+                    // Determine source
+                    let sourceLabel = "—";
+                    let sourceIcon = "";
+                    if (block.extractedFromMessageId) {
+                      sourceLabel = "Chat";
+                      sourceIcon = "💬";
+                    } else if (block.artifactId) {
+                      sourceLabel = "Artifact";
+                      sourceIcon = "📄";
+                    }
+
+                    return (
+                      <tr
+                        key={block.id}
+                        id={`memory-row-${block.id}`}
+                        className={`hover:bg-gray-50 transition-colors cursor-pointer ${
+                          highlightId === block.id
+                            ? "bg-cyan-50 border-l-4 border-l-cyan-500"
+                            : ""
+                        }`}
+                        onClick={() => setSelectedBlock(block)}
+                      >
+                        <td className="px-3 py-2">
+                          <span
+                            className="font-mono text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded cursor-pointer hover:bg-gray-200"
+                            title={block.id}
+                          >
+                            {block.id.slice(0, 8)}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs font-medium ${typeDisplay.color}`}
+                          >
+                            {typeDisplay.label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs font-medium ${
+                              statusColors[block.status] ||
+                              "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {block.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          {abstractionDisplay ? (
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${abstractionDisplay.color}`}
+                            >
+                              <span>{abstractionDisplay.icon}</span>
+                              <span>{abstractionDisplay.label}</span>
                             </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-gray-500">
-                          {new Date(block.createdAt).toLocaleString()}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          <p className="text-sm text-gray-700 truncate max-w-md">
+                            {block.content.substring(0, 100)}
+                            {block.content.length > 100 ? "..." : ""}
+                          </p>
+                        </td>
+                        <td className="px-3 py-2">
+                          {block.confidence !== undefined ? (
+                            <div className="flex items-center gap-1.5">
+                              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden w-12">
+                                <div
+                                  className="h-full bg-cyan-500 rounded-full"
+                                  style={{
+                                    width: `${Math.round(block.confidence * 100)}%`,
+                                  }}
+                                />
+                              </div>
+                              <span className="text-xs text-gray-500 w-8">
+                                {Math.round(block.confidence * 100)}%
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          {sourceLabel !== "—" ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+                              <span>{sourceIcon}</span>
+                              <span>{sourceLabel}</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className="text-xs text-gray-500">
+                            {new Date(block.createdAt).toLocaleDateString()}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
@@ -1083,34 +1208,189 @@ export function MemoryDatabasePanel({
 
       {/* Selected block detail panel */}
       {selectedBlock && (
-        <div className="border-t border-gray-200 bg-gray-50 p-4 max-h-64 overflow-y-auto">
-          <div className="flex items-center justify-between mb-2">
+        <div className="border-t border-gray-200 bg-gray-50 p-4 max-h-80 overflow-y-auto">
+          <div className="flex items-center justify-between mb-3">
             <h3 className="font-medium text-gray-900">Block Details</h3>
             <button
               onClick={() => setSelectedBlock(null)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-gray-600 text-xl leading-none"
             >
               ×
             </button>
           </div>
-          <dl className="space-y-2 text-sm">
-            <div>
-              <dt className="text-gray-500">ID</dt>
-              <dd className="font-mono text-xs text-gray-700">
+
+          {/* Metadata grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="bg-white rounded-lg p-2 border border-gray-200">
+              <dt className="text-xs text-gray-500 mb-1">ID</dt>
+              <dd
+                className="font-mono text-xs text-gray-700 truncate"
+                title={selectedBlock.id}
+              >
                 {selectedBlock.id}
               </dd>
             </div>
-            <div>
-              <dt className="text-gray-500">Content</dt>
-              <dd className="text-gray-700">{selectedBlock.content}</dd>
-            </div>
-            <div>
-              <dt className="text-gray-500">Properties</dt>
-              <dd className="font-mono text-xs text-gray-700 bg-gray-100 p-2 rounded overflow-x-auto">
-                {JSON.stringify(selectedBlock.properties, null, 2)}
+            <div className="bg-white rounded-lg p-2 border border-gray-200">
+              <dt className="text-xs text-gray-500 mb-1">Type</dt>
+              <dd>
+                <span
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${BLOCK_TYPE_DISPLAY[selectedBlock.type]?.color || "bg-gray-100 text-gray-700"}`}
+                >
+                  {BLOCK_TYPE_DISPLAY[selectedBlock.type]?.label ||
+                    selectedBlock.type}
+                </span>
               </dd>
             </div>
-          </dl>
+            <div className="bg-white rounded-lg p-2 border border-gray-200">
+              <dt className="text-xs text-gray-500 mb-1">Status</dt>
+              <dd>
+                <span
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    selectedBlock.status === "active"
+                      ? "bg-green-100 text-green-700"
+                      : selectedBlock.status === "validated"
+                        ? "bg-blue-100 text-blue-700"
+                        : selectedBlock.status === "draft"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {selectedBlock.status}
+                </span>
+              </dd>
+            </div>
+            <div className="bg-white rounded-lg p-2 border border-gray-200">
+              <dt className="text-xs text-gray-500 mb-1">Abstraction</dt>
+              <dd>
+                {selectedBlock.abstractionLevel ? (
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${ABSTRACTION_LEVEL_DISPLAY[selectedBlock.abstractionLevel]?.color || "bg-gray-100 text-gray-700"}`}
+                  >
+                    <span>
+                      {
+                        ABSTRACTION_LEVEL_DISPLAY[
+                          selectedBlock.abstractionLevel
+                        ]?.icon
+                      }
+                    </span>
+                    <span>
+                      {ABSTRACTION_LEVEL_DISPLAY[selectedBlock.abstractionLevel]
+                        ?.label || selectedBlock.abstractionLevel}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="bg-white rounded-lg p-2 border border-gray-200">
+              <dt className="text-xs text-gray-500 mb-1">Confidence</dt>
+              <dd>
+                {selectedBlock.confidence !== undefined ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden max-w-16">
+                      <div
+                        className="h-full bg-cyan-500 rounded-full"
+                        style={{
+                          width: `${Math.round(selectedBlock.confidence * 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-600 font-medium">
+                      {Math.round(selectedBlock.confidence * 100)}%
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-400">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="bg-white rounded-lg p-2 border border-gray-200">
+              <dt className="text-xs text-gray-500 mb-1">Source</dt>
+              <dd className="text-xs text-gray-700">
+                {selectedBlock.extractedFromMessageId ? (
+                  <span className="inline-flex items-center gap-1">
+                    💬 Chat message
+                  </span>
+                ) : selectedBlock.artifactId ? (
+                  <span className="inline-flex items-center gap-1">
+                    📄 Artifact
+                  </span>
+                ) : (
+                  <span className="text-gray-400">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="bg-white rounded-lg p-2 border border-gray-200">
+              <dt className="text-xs text-gray-500 mb-1">Created</dt>
+              <dd className="text-xs text-gray-700">
+                {new Date(selectedBlock.createdAt).toLocaleString()}
+              </dd>
+            </div>
+            <div className="bg-white rounded-lg p-2 border border-gray-200">
+              <dt className="text-xs text-gray-500 mb-1">Updated</dt>
+              <dd className="text-xs text-gray-700">
+                {new Date(selectedBlock.updatedAt).toLocaleString()}
+              </dd>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="mb-3">
+            <dt className="text-xs font-medium text-gray-500 mb-1">Content</dt>
+            <dd className="text-sm text-gray-700 bg-white rounded-lg p-3 border border-gray-200 whitespace-pre-wrap">
+              {selectedBlock.content}
+            </dd>
+          </div>
+
+          {/* Properties (if not empty) */}
+          {Object.keys(selectedBlock.properties).length > 0 && (
+            <div>
+              <dt className="text-xs font-medium text-gray-500 mb-1">
+                Properties
+              </dt>
+              <dd className="font-mono text-xs text-gray-700 bg-white rounded-lg p-3 border border-gray-200 overflow-x-auto">
+                <pre>{JSON.stringify(selectedBlock.properties, null, 2)}</pre>
+              </dd>
+            </div>
+          )}
+
+          {/* Source references */}
+          {(selectedBlock.extractedFromMessageId ||
+            selectedBlock.artifactId ||
+            selectedBlock.ideaId) && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <dt className="text-xs font-medium text-gray-500 mb-2">
+                References
+              </dt>
+              <div className="flex flex-wrap gap-2">
+                {selectedBlock.extractedFromMessageId && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 text-xs text-gray-600">
+                    <span>Message:</span>
+                    <span className="font-mono">
+                      {selectedBlock.extractedFromMessageId.slice(0, 8)}...
+                    </span>
+                  </span>
+                )}
+                {selectedBlock.artifactId && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 text-xs text-gray-600">
+                    <span>Artifact:</span>
+                    <span className="font-mono">
+                      {selectedBlock.artifactId.slice(0, 8)}...
+                    </span>
+                  </span>
+                )}
+                {selectedBlock.ideaId && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 text-xs text-gray-600">
+                    <span>Idea:</span>
+                    <span className="font-mono">
+                      {selectedBlock.ideaId.slice(0, 8)}...
+                    </span>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

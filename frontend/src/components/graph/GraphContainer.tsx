@@ -618,10 +618,10 @@ export function GraphContainer({
               </div>
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Analyzing Conversation
+                  Analyzing All Sources
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  Extracting insights and proposed graph updates...
+                  Chat, Artifacts, Memory Files, Manual Insights...
                 </p>
               </div>
             </div>

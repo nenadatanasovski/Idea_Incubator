@@ -185,26 +185,28 @@ export async function collectArtifactSources(
     [sessionId],
   );
 
-  const sources: CollectedSource[] = artifacts.map((a) => {
-    // Truncate large artifacts with marker
-    let content = a.content;
-    if (content.length > 10000) {
-      content = content.slice(0, 10000) + "\n\n[... TRUNCATED ...]";
-    }
+  const sources: CollectedSource[] = artifacts
+    .filter((a) => a.content != null) // Filter out artifacts with null content
+    .map((a) => {
+      // Truncate large artifacts with marker
+      let content = a.content;
+      if (content.length > 10000) {
+        content = content.slice(0, 10000) + "\n\n[... TRUNCATED ...]";
+      }
 
-    return {
-      id: a.id,
-      type: "artifact",
-      content,
-      metadata: {
-        title: a.title,
-        createdAt: a.created_at,
-        updatedAt: a.updated_at || undefined,
-        artifactType: a.type,
-      },
-      weight: ARTIFACT_WEIGHTS[a.type] || 0.7,
-    };
-  });
+      return {
+        id: a.id,
+        type: "artifact" as SourceType,
+        content,
+        metadata: {
+          title: a.title,
+          createdAt: a.created_at,
+          updatedAt: a.updated_at || undefined,
+          artifactType: a.type,
+        },
+        weight: ARTIFACT_WEIGHTS[a.type] || 0.7,
+      };
+    });
 
   // Log weight breakdown
   const weightBreakdown: Record<string, { count: number; weight: number }> = {};

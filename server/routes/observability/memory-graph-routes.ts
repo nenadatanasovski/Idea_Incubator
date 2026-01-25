@@ -70,6 +70,19 @@ export type TriggerType =
   | "cascade"
   | "system";
 
+export type SourceType =
+  | "conversation"
+  | "artifact"
+  | "memory_file"
+  | "user_block"
+  | "external";
+
+export interface CorroborationInfo {
+  sourceId: string;
+  sourceType: SourceType;
+  snippet?: string;
+}
+
 export interface LogGraphChangeParams {
   changeType: ChangeType;
   blockId: string;
@@ -83,6 +96,11 @@ export interface LogGraphChangeParams {
   sessionId: string;
   cascadeDepth?: number;
   affectedBlocks?: string[];
+  // Source attribution (new)
+  sourceId?: string;
+  sourceType?: SourceType;
+  sourceWeight?: number;
+  corroborations?: CorroborationInfo[];
 }
 
 function mapChangeTypeToSeverity(
@@ -106,13 +124,14 @@ export async function logGraphChange(
   const timestamp = new Date().toISOString();
   const cascadeDepth = params.cascadeDepth || 0;
 
-  // Insert into memory_graph_changes table
+  // Insert into memory_graph_changes table (with source attribution)
   await run(
     `INSERT INTO memory_graph_changes
      (id, timestamp, change_type, block_id, block_type, block_label,
       property_changed, old_value, new_value, triggered_by,
-      context_source, session_id, cascade_depth, affected_blocks)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      context_source, session_id, cascade_depth, affected_blocks,
+      source_id, source_type, source_weight, corroborations)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       timestamp,
@@ -128,10 +147,14 @@ export async function logGraphChange(
       params.sessionId,
       cascadeDepth,
       params.affectedBlocks ? JSON.stringify(params.affectedBlocks) : null,
+      params.sourceId || null,
+      params.sourceType || null,
+      params.sourceWeight || null,
+      params.corroborations ? JSON.stringify(params.corroborations) : null,
     ],
   );
 
-  // Emit platform event for All Events viewer
+  // Emit platform event for All Events viewer (with source attribution)
   const severity = mapChangeTypeToSeverity(params.changeType, cascadeDepth);
   await eventService.emitEvent({
     type: `graph:${params.changeType}`,
@@ -150,6 +173,11 @@ export async function logGraphChange(
       contextSource: params.contextSource,
       cascadeDepth,
       affectedBlocks: params.affectedBlocks,
+      // Source attribution
+      sourceId: params.sourceId,
+      sourceType: params.sourceType,
+      sourceWeight: params.sourceWeight,
+      corroborations: params.corroborations,
     },
   });
 

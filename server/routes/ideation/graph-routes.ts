@@ -38,7 +38,14 @@ import {
   collectUserBlockSources,
   type SourceType,
   type CollectionOptions,
+  type SourceCollectionResult,
 } from "../../services/graph/source-collector.js";
+import {
+  buildAnalysisPrompt,
+  parseAnalysisResponse,
+  type AnalysisResponse,
+  type ExistingBlockSummary,
+} from "../../services/graph/analysis-prompt-builder.js";
 
 export const graphRouter = Router();
 

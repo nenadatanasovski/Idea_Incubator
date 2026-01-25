@@ -1116,10 +1116,10 @@ export function GraphControls({
             }`}
             title={
               isAnalyzingGraph
-                ? "Analyzing..."
+                ? "Analyzing all sources..."
                 : pendingGraphChanges > 0
-                  ? `Update Memory Graph (${pendingGraphChanges} pending)`
-                  : "Update Memory Graph"
+                  ? `Analyze All Sources (${pendingGraphChanges} pending)`
+                  : "Analyze All Sources (chat, artifacts, memory files, manual insights)"
             }
             data-testid="update-memory-graph-btn"
           >
