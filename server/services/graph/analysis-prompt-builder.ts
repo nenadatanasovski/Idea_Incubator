@@ -258,6 +258,7 @@ Return JSON only with the following structure:
       "id": "change_1",
       "type": "create_block",
       "blockType": "content|assumption|risk|action|decision|option|meta|synthesis|pattern|stakeholder_view",
+      "title": "3-5 word summary",
       "content": "The extracted insight",
       "graphMembership": ["problem", "solution", "market", "risk", "fit", "business", "spec"],
       "confidence": 0.85,
@@ -291,6 +292,7 @@ Return JSON only with the following structure:
 
 You must:
 - Identify NEW insights not already captured in existing blocks
+- Create a concise title (3-5 words) for each block that captures its essence
 - Attribute every proposed change to its source (provide sourceId and sourceType)
 - Adjust confidence based on source reliability weights
 - Note when multiple sources corroborate the same insight (increases confidence)
@@ -346,6 +348,7 @@ export interface ProposedChange {
   id: string;
   type: "create_block" | "update_block" | "create_link";
   blockType?: string;
+  title?: string; // Short 3-5 word summary for quick identification
   content: string;
   graphMembership?: string[];
   confidence: number;

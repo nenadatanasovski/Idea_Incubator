@@ -1097,12 +1097,13 @@ graphRouter.post(
               const blockId = uuidv4();
 
               await run(
-                `INSERT INTO memory_blocks (id, session_id, type, content, status, confidence, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, 'active', ?, ?, ?)`,
+                `INSERT INTO memory_blocks (id, session_id, type, title, content, status, confidence, extracted_from_message_id, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, 'active', ?, 'ai_generated', ?, ?)`,
                 [
                   blockId,
                   sessionId,
                   change.blockType || "content",
+                  change.title || null,
                   change.content,
                   change.confidence || 0.8,
                   now,
@@ -1124,7 +1125,7 @@ graphRouter.post(
               emitBlockCreated(sessionId, {
                 id: blockId,
                 type: change.blockType || "content",
-                title: null, // Title can be set later or via AI migration
+                title: change.title || null,
                 content: change.content,
                 confidence: change.confidence || 0.8,
                 graphMembership: change.graphMembership,
