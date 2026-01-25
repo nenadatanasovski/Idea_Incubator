@@ -30,6 +30,15 @@ import {
   emitLinkCreated,
   emitLinkRemoved,
 } from "../../websocket.js";
+import {
+  collectAllSources,
+  collectConversationSources,
+  collectArtifactSources,
+  collectMemoryFileSources,
+  collectUserBlockSources,
+  type SourceType,
+  type CollectionOptions,
+} from "../../services/graph/source-collector.js";
 
 export const graphRouter = Router();
 
@@ -832,6 +841,64 @@ graphRouter.delete(
       return res.json({ success: true });
     } catch (error) {
       console.error("Error unlinking artifact:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// POST /session/:sessionId/graph/collect-sources
+// ============================================================================
+// Collect sources from multiple types for analysis
+
+const CollectSourcesSchema = z.object({
+  sourceTypes: z
+    .array(
+      z.enum([
+        "conversation",
+        "artifact",
+        "memory_file",
+        "user_block",
+        "external",
+      ]),
+    )
+    .optional(),
+  tokenBudget: z.number().min(1000).max(100000).optional(),
+  limit: z.number().min(1).max(100).optional(),
+});
+
+graphRouter.post(
+  "/:sessionId/graph/collect-sources",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      const parseResult = CollectSourcesSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          error: "Validation error",
+          details: parseResult.error.issues,
+        });
+      }
+
+      const { sourceTypes, tokenBudget, limit } = parseResult.data;
+
+      const options: CollectionOptions = {};
+      if (sourceTypes) {
+        options.sourceTypes = sourceTypes as SourceType[];
+      }
+      if (tokenBudget) {
+        options.tokenBudget = tokenBudget;
+      }
+      if (limit) {
+        options.conversationLimit = limit;
+      }
+
+      const result = await collectAllSources(sessionId, options);
+
+      return res.json(result);
+    } catch (error) {
+      console.error("Error collecting sources:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

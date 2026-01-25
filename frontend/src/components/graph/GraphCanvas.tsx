@@ -836,9 +836,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           layoutType={mapLayoutType(layoutType)}
           clusterAttribute={clusterAttribute}
           layoutOverrides={{
-            nodeStrength: -150, // Increased repulsion for better spacing
-            linkDistance: 120, // Slightly longer edges
-            clusterStrength: clusterAttribute ? clusterStrength : undefined, // Keep clusters together
+            nodeStrength: -120, // Moderate repulsion between all nodes
+            linkDistance: 60, // Shorter edges pull connected nodes closer
+            linkStrength: 0.8, // Strong edge attraction keeps relationships tight
+            clusterStrength: clusterAttribute ? clusterStrength : undefined, // Keep attribute clusters together
           }}
           labelType="auto"
           draggable

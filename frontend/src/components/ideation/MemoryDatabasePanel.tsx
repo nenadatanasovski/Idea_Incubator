@@ -29,14 +29,64 @@ export type MemoryTableName =
 
 interface MemoryBlock {
   id: string;
+  sessionId: string;
+  ideaId?: string;
   type: string;
   content: string;
   properties: Record<string, unknown>;
   status: string;
   confidence?: number;
+  abstractionLevel?: string;
   createdAt: string;
   updatedAt: string;
+  extractedFromMessageId?: string;
+  artifactId?: string;
 }
+
+// Block type display config
+const BLOCK_TYPE_DISPLAY: Record<string, { label: string; color: string }> = {
+  content: { label: "Content", color: "bg-blue-100 text-blue-700" },
+  synthesis: { label: "Synthesis", color: "bg-purple-100 text-purple-700" },
+  action: { label: "Action", color: "bg-orange-100 text-orange-700" },
+  decision: { label: "Decision", color: "bg-green-100 text-green-700" },
+  option: { label: "Option", color: "bg-yellow-100 text-yellow-700" },
+  assumption: { label: "Assumption", color: "bg-red-100 text-red-700" },
+  pattern: { label: "Pattern", color: "bg-indigo-100 text-indigo-700" },
+  derived: { label: "Derived", color: "bg-cyan-100 text-cyan-700" },
+  external: { label: "External", color: "bg-gray-100 text-gray-700" },
+  topic: { label: "Topic", color: "bg-teal-100 text-teal-700" },
+  stakeholder_view: {
+    label: "Stakeholder",
+    color: "bg-pink-100 text-pink-700",
+  },
+  cycle: { label: "Cycle", color: "bg-amber-100 text-amber-700" },
+  placeholder: { label: "Placeholder", color: "bg-slate-100 text-slate-700" },
+  meta: { label: "Meta", color: "bg-violet-100 text-violet-700" },
+  link: { label: "Link", color: "bg-sky-100 text-sky-700" },
+};
+
+// Abstraction level display config
+const ABSTRACTION_LEVEL_DISPLAY: Record<
+  string,
+  { label: string; color: string; icon: string }
+> = {
+  vision: {
+    label: "Vision",
+    color: "bg-purple-100 text-purple-700",
+    icon: "🎯",
+  },
+  strategy: {
+    label: "Strategy",
+    color: "bg-blue-100 text-blue-700",
+    icon: "🧭",
+  },
+  tactic: { label: "Tactic", color: "bg-green-100 text-green-700", icon: "🔧" },
+  implementation: {
+    label: "Implementation",
+    color: "bg-gray-100 text-gray-700",
+    icon: "⚙️",
+  },
+};
 
 interface MemoryLink {
   id: string;
@@ -200,102 +250,6 @@ function FilterBar({
 }
 
 /**
- * Block row component
- */
-function BlockRow({
-  block,
-  isHighlighted,
-  onClick,
-}: {
-  block: MemoryBlock;
-  isHighlighted: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-        isHighlighted ? "bg-cyan-50 border-l-4 border-l-cyan-500" : ""
-      }`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">
-            {block.content.substring(0, 100)}
-            {block.content.length > 100 ? "..." : ""}
-          </p>
-          <div className="mt-1 flex items-center gap-2 flex-wrap">
-            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
-              {block.type}
-            </span>
-            <span
-              className={`px-2 py-0.5 rounded text-xs ${
-                block.status === "active"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-gray-100 text-gray-600"
-              }`}
-            >
-              {block.status}
-            </span>
-            {block.confidence !== undefined && (
-              <span className="text-xs text-gray-500">
-                {Math.round(block.confidence * 100)}% confidence
-              </span>
-            )}
-          </div>
-        </div>
-        <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
-      </div>
-    </button>
-  );
-}
-
-/**
- * Link row component
- */
-function LinkRow({
-  link,
-  isHighlighted,
-  onClick,
-}: {
-  link: MemoryLink;
-  isHighlighted: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-        isHighlighted ? "bg-cyan-50 border-l-4 border-l-cyan-500" : ""
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-          {link.linkType.replace(/_/g, " ")}
-        </span>
-        {link.degree && (
-          <span className="text-xs text-gray-500 italic">{link.degree}</span>
-        )}
-        {link.confidence !== undefined && (
-          <span className="text-xs text-gray-500">
-            {Math.round(link.confidence * 100)}%
-          </span>
-        )}
-      </div>
-      <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
-        <span className="font-mono truncate max-w-[120px]">
-          {link.sourceBlockId.slice(0, 8)}
-        </span>
-        <span>→</span>
-        <span className="font-mono truncate max-w-[120px]">
-          {link.targetBlockId.slice(0, 8)}
-        </span>
-      </div>
-    </button>
-  );
-}
-
-/**
  * Memory file type display names and colors
  */
 const MEMORY_FILE_DISPLAY: Record<
@@ -340,76 +294,6 @@ const MEMORY_FILE_DISPLAY: Record<
 };
 
 /**
- * Memory file card component
- */
-function MemoryFileCard({
-  file,
-  isHighlighted,
-  isExpanded,
-  onToggle,
-}: {
-  file: MemoryFile;
-  isHighlighted: boolean;
-  isExpanded: boolean;
-  onToggle: () => void;
-}) {
-  const display = MEMORY_FILE_DISPLAY[file.fileType] || {
-    label: file.fileType.replace(/_/g, " "),
-    color: "bg-gray-100 text-gray-700",
-    icon: "📄",
-  };
-
-  return (
-    <div
-      className={`border-b border-gray-100 ${
-        isHighlighted ? "bg-cyan-50 border-l-4 border-l-cyan-500" : ""
-      }`}
-    >
-      <button
-        onClick={onToggle}
-        className="w-full text-left p-4 hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-xl">{display.icon}</span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-gray-900">
-                  {display.label}
-                </span>
-                <span
-                  className={`px-2 py-0.5 rounded text-xs ${display.color}`}
-                >
-                  v{file.version}
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Updated: {new Date(file.updatedAt).toLocaleString()}
-              </p>
-            </div>
-          </div>
-          {isExpanded ? (
-            <ChevronUp className="w-5 h-5 text-gray-400" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-gray-400" />
-          )}
-        </div>
-      </button>
-
-      {isExpanded && (
-        <div className="px-4 pb-4">
-          <div className="bg-white border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
-            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono">
-              {file.content}
-            </pre>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
  * MemoryDatabasePanel Component
  */
 export function MemoryDatabasePanel({
@@ -440,6 +324,9 @@ export function MemoryDatabasePanel({
   const [blockStatusFilters, setBlockStatusFilters] = useState<Set<string>>(
     new Set(),
   );
+  const [blockAbstractionFilters, setBlockAbstractionFilters] = useState<
+    Set<string>
+  >(new Set());
   const [linkTypeFilters, setLinkTypeFilters] = useState<Set<string>>(
     new Set(),
   );
@@ -459,6 +346,101 @@ export function MemoryDatabasePanel({
       return next;
     });
   }, []);
+
+  // Generic filter toggle helper
+  const toggleFilter = useCallback(
+    (
+      setFilters: React.Dispatch<React.SetStateAction<Set<string>>>,
+      key: string,
+    ) => {
+      setFilters((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  // Compute available filter options from data
+  const blockTypeOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    blocks.forEach((b) => counts.set(b.type, (counts.get(b.type) || 0) + 1));
+    return Array.from(counts.entries())
+      .map(([key, count]) => ({
+        key,
+        label: key.replace(/_/g, " "),
+        count,
+        color: "blue",
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [blocks]);
+
+  const blockStatusOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    blocks.forEach((b) =>
+      counts.set(b.status, (counts.get(b.status) || 0) + 1),
+    );
+    return Array.from(counts.entries())
+      .map(([key, count]) => ({
+        key,
+        label: key,
+        count,
+        color: key === "active" ? "green" : "gray",
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [blocks]);
+
+  const linkTypeOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    links.forEach((l) =>
+      counts.set(l.linkType, (counts.get(l.linkType) || 0) + 1),
+    );
+    return Array.from(counts.entries())
+      .map(([key, count]) => ({
+        key,
+        label: key.replace(/_/g, " "),
+        count,
+        color: "purple",
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [links]);
+
+  const fileTypeOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    memoryFiles.forEach((f) =>
+      counts.set(f.fileType, (counts.get(f.fileType) || 0) + 1),
+    );
+    return Array.from(counts.entries())
+      .map(([key, count]) => {
+        const display = MEMORY_FILE_DISPLAY[key];
+        return {
+          key,
+          label: display?.label || key.replace(/_/g, " "),
+          count,
+          color: display
+            ? display.color.includes("purple")
+              ? "purple"
+              : display.color.includes("blue")
+                ? "blue"
+                : display.color.includes("amber")
+                  ? "amber"
+                  : display.color.includes("green")
+                    ? "green"
+                    : display.color.includes("red")
+                      ? "red"
+                      : display.color.includes("cyan")
+                        ? "cyan"
+                        : "gray"
+            : "gray",
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+  }, [memoryFiles]);
 
   // Fetch data from API
   const fetchData = useCallback(async () => {
@@ -496,14 +478,22 @@ export function MemoryDatabasePanel({
         setBlocks(
           (blocksData.data?.blocks || blocksData.blocks || []).map(
             (b: Record<string, unknown>) => ({
-              id: b.id,
-              type: b.type,
-              content: b.content,
-              properties: b.properties || {},
-              status: b.status || "active",
-              confidence: b.confidence,
-              createdAt: b.created_at || b.createdAt,
-              updatedAt: b.updated_at || b.updatedAt,
+              id: b.id as string,
+              sessionId: (b.sessionId || b.session_id) as string,
+              ideaId: (b.ideaId || b.idea_id) as string | undefined,
+              type: b.type as string,
+              content: b.content as string,
+              properties: (b.properties || {}) as Record<string, unknown>,
+              status: (b.status || "active") as string,
+              confidence: b.confidence as number | undefined,
+              abstractionLevel: (b.abstractionLevel || b.abstraction_level) as
+                | string
+                | undefined,
+              createdAt: (b.created_at || b.createdAt) as string,
+              updatedAt: (b.updated_at || b.updatedAt) as string,
+              extractedFromMessageId: (b.extractedFromMessageId ||
+                b.extracted_from_message_id) as string | undefined,
+              artifactId: (b.artifactId || b.artifact_id) as string | undefined,
             }),
           ),
         );
@@ -556,40 +546,78 @@ export function MemoryDatabasePanel({
     }
   }, [highlightId, activeTable]);
 
-  // Filter blocks by search query
+  // Filter blocks by search query and tag filters
   const filteredBlocks = useMemo(() => {
-    if (!searchQuery) return blocks;
-    const query = searchQuery.toLowerCase();
-    return blocks.filter(
-      (b) =>
-        b.content.toLowerCase().includes(query) ||
-        b.type.toLowerCase().includes(query) ||
-        b.id.includes(query),
-    );
-  }, [blocks, searchQuery]);
+    let result = blocks;
 
-  // Filter links by search query
+    // Apply type filters
+    if (blockTypeFilters.size > 0) {
+      result = result.filter((b) => blockTypeFilters.has(b.type));
+    }
+
+    // Apply status filters
+    if (blockStatusFilters.size > 0) {
+      result = result.filter((b) => blockStatusFilters.has(b.status));
+    }
+
+    // Apply search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (b) =>
+          b.content.toLowerCase().includes(query) ||
+          b.type.toLowerCase().includes(query) ||
+          b.id.includes(query),
+      );
+    }
+
+    return result;
+  }, [blocks, searchQuery, blockTypeFilters, blockStatusFilters]);
+
+  // Filter links by search query and tag filters
   const filteredLinks = useMemo(() => {
-    if (!searchQuery) return links;
-    const query = searchQuery.toLowerCase();
-    return links.filter(
-      (l) =>
-        l.linkType.toLowerCase().includes(query) ||
-        l.sourceBlockId.includes(query) ||
-        l.targetBlockId.includes(query),
-    );
-  }, [links, searchQuery]);
+    let result = links;
 
-  // Filter memory files by search query
+    // Apply link type filters
+    if (linkTypeFilters.size > 0) {
+      result = result.filter((l) => linkTypeFilters.has(l.linkType));
+    }
+
+    // Apply search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (l) =>
+          l.linkType.toLowerCase().includes(query) ||
+          l.sourceBlockId.includes(query) ||
+          l.targetBlockId.includes(query),
+      );
+    }
+
+    return result;
+  }, [links, searchQuery, linkTypeFilters]);
+
+  // Filter memory files by search query and tag filters
   const filteredMemoryFiles = useMemo(() => {
-    if (!searchQuery) return memoryFiles;
-    const query = searchQuery.toLowerCase();
-    return memoryFiles.filter(
-      (f) =>
-        f.fileType.toLowerCase().includes(query) ||
-        f.content.toLowerCase().includes(query),
-    );
-  }, [memoryFiles, searchQuery]);
+    let result = memoryFiles;
+
+    // Apply file type filters
+    if (fileTypeFilters.size > 0) {
+      result = result.filter((f) => fileTypeFilters.has(f.fileType));
+    }
+
+    // Apply search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (f) =>
+          f.fileType.toLowerCase().includes(query) ||
+          f.content.toLowerCase().includes(query),
+      );
+    }
+
+    return result;
+  }, [memoryFiles, searchQuery, fileTypeFilters]);
 
   return (
     <div className={`flex flex-col h-full bg-white ${className}`}>
@@ -667,6 +695,46 @@ export function MemoryDatabasePanel({
         </div>
       </div>
 
+      {/* Filter bars */}
+      {activeTable === "files" && fileTypeOptions.length > 0 && (
+        <FilterBar
+          filters={fileTypeOptions}
+          activeFilters={fileTypeFilters}
+          onToggleFilter={(key) => toggleFilter(setFileTypeFilters, key)}
+          onClearAll={() => setFileTypeFilters(new Set())}
+        />
+      )}
+
+      {activeTable === "blocks" && (
+        <div className="border-b border-gray-100">
+          {blockTypeOptions.length > 0 && (
+            <FilterBar
+              filters={blockTypeOptions}
+              activeFilters={blockTypeFilters}
+              onToggleFilter={(key) => toggleFilter(setBlockTypeFilters, key)}
+              onClearAll={() => setBlockTypeFilters(new Set())}
+            />
+          )}
+          {blockStatusOptions.length > 0 && (
+            <FilterBar
+              filters={blockStatusOptions}
+              activeFilters={blockStatusFilters}
+              onToggleFilter={(key) => toggleFilter(setBlockStatusFilters, key)}
+              onClearAll={() => setBlockStatusFilters(new Set())}
+            />
+          )}
+        </div>
+      )}
+
+      {activeTable === "links" && linkTypeOptions.length > 0 && (
+        <FilterBar
+          filters={linkTypeOptions}
+          activeFilters={linkTypeFilters}
+          onToggleFilter={(key) => toggleFilter(setLinkTypeFilters, key)}
+          onClearAll={() => setLinkTypeFilters(new Set())}
+        />
+      )}
+
       {/* Content area */}
       <div className="flex-1 overflow-y-auto">
         {error && (
@@ -681,9 +749,9 @@ export function MemoryDatabasePanel({
           </div>
         )}
 
-        {/* Memory Files tab */}
+        {/* Memory Files tab - Table View */}
         {!isLoading && !error && activeTable === "files" && (
-          <div>
+          <div className="overflow-x-auto">
             {filteredMemoryFiles.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -694,61 +762,321 @@ export function MemoryDatabasePanel({
                 </p>
               </div>
             ) : (
-              filteredMemoryFiles.map((file) => (
-                <div key={file.id} id={`memory-row-${file.id}`}>
-                  <MemoryFileCard
-                    file={file}
-                    isHighlighted={highlightId === file.id}
-                    isExpanded={expandedFileIds.has(file.id)}
-                    onToggle={() => toggleFileExpansion(file.id)}
-                  />
-                </div>
-              ))
+              <table className="w-full min-w-[700px]">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr className="border-b border-gray-200">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-48">
+                      Type
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-20">
+                      Version
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Content Preview
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-44">
+                      Updated
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-12"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredMemoryFiles.map((file) => {
+                    const display = MEMORY_FILE_DISPLAY[file.fileType] || {
+                      label: file.fileType.replace(/_/g, " "),
+                      color: "bg-gray-100 text-gray-700",
+                      icon: "📄",
+                    };
+                    const isExpanded = expandedFileIds.has(file.id);
+                    return (
+                      <tr
+                        key={file.id}
+                        id={`memory-row-${file.id}`}
+                        className={`hover:bg-gray-50 transition-colors cursor-pointer ${
+                          highlightId === file.id
+                            ? "bg-cyan-50 border-l-4 border-l-cyan-500"
+                            : ""
+                        }`}
+                        onClick={() => toggleFileExpansion(file.id)}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">{display.icon}</span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-medium ${display.color}`}
+                            >
+                              {display.label}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm font-mono text-gray-600">
+                            v{file.version}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm text-gray-700 truncate max-w-md">
+                            {file.content.substring(0, 120)}
+                            {file.content.length > 120 ? "..." : ""}
+                          </p>
+                          {isExpanded && (
+                            <div className="mt-2 bg-white border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto">
+                              <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono">
+                                {file.content}
+                              </pre>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs text-gray-500">
+                            {new Date(file.updatedAt).toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {isExpanded ? (
+                            <ChevronUp className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
           </div>
         )}
 
-        {/* Blocks tab */}
+        {/* Blocks tab - Table View */}
         {!isLoading && !error && activeTable === "blocks" && (
-          <div>
+          <div className="overflow-x-auto">
             {filteredBlocks.length === 0 ? (
               <p className="text-center py-8 text-gray-500">No blocks found</p>
             ) : (
-              filteredBlocks.map((block) => (
-                <div key={block.id} id={`memory-row-${block.id}`}>
-                  <BlockRow
-                    block={block}
-                    isHighlighted={highlightId === block.id}
-                    onClick={() => setSelectedBlock(block)}
-                  />
-                </div>
-              ))
+              <table className="w-full min-w-[900px]">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr className="border-b border-gray-200">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
+                      Type
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Content
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
+                      Confidence
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-44">
+                      Created
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredBlocks.map((block) => (
+                    <tr
+                      key={block.id}
+                      id={`memory-row-${block.id}`}
+                      className={`hover:bg-gray-50 transition-colors cursor-pointer ${
+                        highlightId === block.id
+                          ? "bg-cyan-50 border-l-4 border-l-cyan-500"
+                          : ""
+                      }`}
+                      onClick={() => setSelectedBlock(block)}
+                    >
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                          {block.type.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            block.status === "active"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {block.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-sm text-gray-700 truncate max-w-lg">
+                          {block.content.substring(0, 150)}
+                          {block.content.length > 150 ? "..." : ""}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        {block.confidence !== undefined ? (
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden w-16">
+                              <div
+                                className="h-full bg-cyan-500 rounded-full"
+                                style={{
+                                  width: `${Math.round(block.confidence * 100)}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {Math.round(block.confidence * 100)}%
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs text-gray-500">
+                          {new Date(block.createdAt).toLocaleString()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         )}
 
-        {/* Links tab */}
+        {/* Links tab - Table View */}
         {!isLoading && !error && activeTable === "links" && (
-          <div>
+          <div className="overflow-x-auto">
             {filteredLinks.length === 0 ? (
               <p className="text-center py-8 text-gray-500">No links found</p>
             ) : (
-              filteredLinks.map((link) => (
-                <div key={link.id} id={`memory-row-${link.id}`}>
-                  <LinkRow
-                    link={link}
-                    isHighlighted={highlightId === link.id}
-                  />
-                </div>
-              ))
+              <table className="w-full min-w-[900px]">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr className="border-b border-gray-200">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-36">
+                      Link Type
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                      Degree
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-36">
+                      Source Block
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-36">
+                      Target Block
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
+                      Confidence
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Reason
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredLinks.map((link) => (
+                    <tr
+                      key={link.id}
+                      id={`memory-row-${link.id}`}
+                      className={`hover:bg-gray-50 transition-colors ${
+                        highlightId === link.id
+                          ? "bg-cyan-50 border-l-4 border-l-cyan-500"
+                          : ""
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                          {link.linkType.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {link.degree ? (
+                          <span className="text-xs text-gray-600 italic">
+                            {link.degree}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                          {link.sourceBlockId.slice(0, 12)}...
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                          {link.targetBlockId.slice(0, 12)}...
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {link.confidence !== undefined ? (
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden w-16">
+                              <div
+                                className="h-full bg-purple-500 rounded-full"
+                                style={{
+                                  width: `${Math.round(link.confidence * 100)}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {Math.round(link.confidence * 100)}%
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {link.reason ? (
+                          <p className="text-xs text-gray-600 truncate max-w-xs">
+                            {link.reason}
+                          </p>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         )}
 
-        {/* Graphs tab */}
+        {/* Graphs tab - Table View Placeholder */}
         {!isLoading && !error && activeTable === "graphs" && (
-          <div className="p-4 text-center text-gray-500">
-            Graph membership view coming soon
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px]">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr className="border-b border-gray-200">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-48">
+                    Graph Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                    Nodes
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                    Edges
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-44">
+                    Created
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center">
+                    <Layers className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">
+                      Graph membership view coming soon
+                    </p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Track which blocks belong to which knowledge graphs
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         )}
       </div>
