@@ -52,6 +52,7 @@ export const memoryBlocks = sqliteTable(
     sessionId: text("session_id").notNull(),
     ideaId: text("idea_id"),
     type: text("type", { enum: blockTypes }).notNull(),
+    title: text("title"), // Short 3-5 word summary for quick identification
     content: text("content").notNull(),
     properties: text("properties"), // JSON stored as text
     status: text("status", { enum: blockStatuses }).default("active"),
@@ -72,6 +73,7 @@ export const memoryBlocks = sqliteTable(
     index("idx_memory_blocks_type").on(table.type),
     index("idx_memory_blocks_status").on(table.status),
     index("idx_memory_blocks_artifact").on(table.artifactId),
+    index("idx_memory_blocks_title").on(table.title),
   ],
 );
 
@@ -80,6 +82,7 @@ export const selectMemoryBlockSchema = createSelectSchema(memoryBlocks);
 
 export const updateMemoryBlockSchema = z.object({
   type: z.enum(blockTypes).optional(),
+  title: z.string().max(100).optional().nullable(), // Short 3-5 word summary
   content: z.string().min(1).optional(),
   properties: z.string().optional().nullable(),
   status: z.enum(blockStatuses).optional(),

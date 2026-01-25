@@ -30,6 +30,7 @@ export interface MemoryBlock {
   sessionId: string;
   ideaId?: string | null;
   type: BlockType;
+  title?: string | null; // Short 3-5 word summary for quick identification
   content: string;
   properties?: Record<string, unknown> | null;
   status: BlockStatus;
@@ -315,6 +316,7 @@ export class BlockExtractor {
       session_id: string;
       idea_id: string | null;
       type: string;
+      title: string | null;
       content: string;
       properties: string | null;
       status: string;
@@ -334,6 +336,7 @@ export class BlockExtractor {
       sessionId: row.session_id,
       ideaId: row.idea_id,
       type: row.type as BlockType,
+      title: row.title,
       content: row.content,
       properties: row.properties ? JSON.parse(row.properties) : null,
       status: row.status as BlockStatus,

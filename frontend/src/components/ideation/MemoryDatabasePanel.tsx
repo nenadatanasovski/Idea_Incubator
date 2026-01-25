@@ -32,6 +32,7 @@ interface MemoryBlock {
   sessionId: string;
   ideaId?: string;
   type: string;
+  title?: string | null; // Short 3-5 word summary for quick identification
   content: string;
   properties: Record<string, unknown>;
   status: string;
@@ -515,6 +516,7 @@ export function MemoryDatabasePanel({
               sessionId: (b.sessionId || b.session_id) as string,
               ideaId: (b.ideaId || b.idea_id) as string | undefined,
               type: b.type as string,
+              title: (b.title || null) as string | null | undefined,
               content: b.content as string,
               properties: (b.properties || {}) as Record<string, unknown>,
               status: (b.status || "active") as string,
@@ -608,6 +610,7 @@ export function MemoryDatabasePanel({
         (b) =>
           b.content.toLowerCase().includes(query) ||
           b.type.toLowerCase().includes(query) ||
+          (b.title && b.title.toLowerCase().includes(query)) ||
           b.id.includes(query),
       );
     }
@@ -911,31 +914,34 @@ export function MemoryDatabasePanel({
             {filteredBlocks.length === 0 ? (
               <p className="text-center py-8 text-gray-500">No blocks found</p>
             ) : (
-              <table className="w-full min-w-[1200px]">
+              <table className="w-full min-w-[1600px]">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr className="border-b border-gray-200">
-                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
                       ID
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
                       Type
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[200px]">
+                      Title
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
                       Status
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-36">
                       Level
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[300px]">
                       Content
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
                       Confidence
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
                       Source
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-36">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
                       Created
                     </th>
                   </tr>
@@ -979,7 +985,7 @@ export function MemoryDatabasePanel({
                         }`}
                         onClick={() => setSelectedBlock(block)}
                       >
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2.5">
                           <span
                             className="font-mono text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded cursor-pointer hover:bg-gray-200"
                             title={block.id}
@@ -987,16 +993,27 @@ export function MemoryDatabasePanel({
                             {block.id.slice(0, 8)}
                           </span>
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2.5">
                           <span
-                            className={`px-2 py-0.5 rounded text-xs font-medium ${typeDisplay.color}`}
+                            className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${typeDisplay.color}`}
                           >
                             {typeDisplay.label}
                           </span>
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2.5">
+                          {block.title ? (
+                            <span className="text-sm text-gray-700 font-medium line-clamp-2">
+                              {block.title}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">
+                              —
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5">
                           <span
-                            className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${
                               statusColors[block.status] ||
                               "bg-gray-100 text-gray-600"
                             }`}
@@ -1004,10 +1021,10 @@ export function MemoryDatabasePanel({
                             {block.status}
                           </span>
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2.5">
                           {abstractionDisplay ? (
                             <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${abstractionDisplay.color}`}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${abstractionDisplay.color}`}
                             >
                               <span>{abstractionDisplay.icon}</span>
                               <span>{abstractionDisplay.label}</span>
@@ -1016,16 +1033,16 @@ export function MemoryDatabasePanel({
                             <span className="text-xs text-gray-400">—</span>
                           )}
                         </td>
-                        <td className="px-3 py-2">
-                          <p className="text-sm text-gray-700 truncate max-w-md">
-                            {block.content.substring(0, 100)}
-                            {block.content.length > 100 ? "..." : ""}
+                        <td className="px-4 py-2.5">
+                          <p className="text-sm text-gray-700 line-clamp-2">
+                            {block.content.substring(0, 150)}
+                            {block.content.length > 150 ? "..." : ""}
                           </p>
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2.5">
                           {block.confidence !== undefined ? (
                             <div className="flex items-center gap-1.5">
-                              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden w-12">
+                              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden w-14">
                                 <div
                                   className="h-full bg-cyan-500 rounded-full"
                                   style={{
@@ -1033,7 +1050,7 @@ export function MemoryDatabasePanel({
                                   }}
                                 />
                               </div>
-                              <span className="text-xs text-gray-500 w-8">
+                              <span className="text-xs text-gray-500 whitespace-nowrap">
                                 {Math.round(block.confidence * 100)}%
                               </span>
                             </div>
@@ -1041,9 +1058,9 @@ export function MemoryDatabasePanel({
                             <span className="text-xs text-gray-400">—</span>
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2.5">
                           {sourceLabel !== "—" ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+                            <span className="inline-flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap">
                               <span>{sourceIcon}</span>
                               <span>{sourceLabel}</span>
                             </span>
@@ -1051,8 +1068,8 @@ export function MemoryDatabasePanel({
                             <span className="text-xs text-gray-400">—</span>
                           )}
                         </td>
-                        <td className="px-3 py-2">
-                          <span className="text-xs text-gray-500">
+                        <td className="px-4 py-2.5">
+                          <span className="text-xs text-gray-500 whitespace-nowrap">
                             {new Date(block.createdAt).toLocaleDateString()}
                           </span>
                         </td>
@@ -1334,6 +1351,16 @@ export function MemoryDatabasePanel({
               </dd>
             </div>
           </div>
+
+          {/* Title (if present) */}
+          {selectedBlock.title && (
+            <div className="mb-3">
+              <dt className="text-xs font-medium text-gray-500 mb-1">Title</dt>
+              <dd className="text-sm text-gray-900 font-medium bg-white rounded-lg p-3 border border-gray-200">
+                {selectedBlock.title}
+              </dd>
+            </div>
+          )}
 
           {/* Content */}
           <div className="mb-3">

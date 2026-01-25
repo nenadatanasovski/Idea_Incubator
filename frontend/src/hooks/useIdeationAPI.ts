@@ -618,14 +618,19 @@ export function useIdeationAPI() {
   /**
    * Analyze session for potential graph updates.
    * Uses AI to extract proposed blocks and links from conversation.
+   * @param selectedSourceIds - Optional array of source IDs to include in analysis
    */
   const analyzeGraphChanges = useCallback(
-    async (sessionId: string): Promise<GraphUpdateAnalysis> => {
+    async (
+      sessionId: string,
+      selectedSourceIds?: string[],
+    ): Promise<GraphUpdateAnalysis> => {
       const response = await fetch(
         `${API_BASE}/session/${sessionId}/graph/analyze-changes`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ selectedSourceIds }),
         },
       );
 
@@ -637,6 +642,40 @@ export function useIdeationAPI() {
           typeof error.error === "string"
             ? error.error
             : "Failed to analyze graph changes",
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  /**
+   * Reset (clear) all blocks and links for a session.
+   */
+  const resetGraph = useCallback(
+    async (
+      sessionId: string,
+    ): Promise<{
+      success: boolean;
+      blocksDeleted: number;
+      linksDeleted: number;
+    }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/graph/reset`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to reset graph" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to reset graph",
         );
       }
 
@@ -717,6 +756,7 @@ export function useIdeationAPI() {
       triggerFollowUp,
       analyzeGraphChanges,
       applyGraphChanges,
+      resetGraph,
     }),
     [
       startSession,
@@ -739,6 +779,7 @@ export function useIdeationAPI() {
       triggerFollowUp,
       analyzeGraphChanges,
       applyGraphChanges,
+      resetGraph,
     ],
   );
 }

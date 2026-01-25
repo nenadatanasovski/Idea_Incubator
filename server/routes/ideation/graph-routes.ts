@@ -157,6 +157,7 @@ graphRouter.get("/:sessionId/graph", async (req: Request, res: Response) => {
 
 const CreateBlockSchema = z.object({
   type: z.string(),
+  title: z.string().max(100).optional(), // Short 3-5 word summary
   content: z.string().min(1),
   properties: z.record(z.unknown()).optional(),
   status: z
@@ -190,12 +191,13 @@ graphRouter.post(
 
       // Insert block
       await run(
-        `INSERT INTO memory_blocks (id, session_id, type, content, properties, status, confidence, abstraction_level, created_at, updated_at, artifact_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_blocks (id, session_id, type, title, content, properties, status, confidence, abstraction_level, created_at, updated_at, artifact_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           blockId,
           sessionId,
           data.type,
+          data.title || null,
           data.content,
           data.properties ? JSON.stringify(data.properties) : null,
           data.status,
@@ -234,6 +236,7 @@ graphRouter.post(
       emitBlockCreated(sessionId, {
         id: blockId,
         type: data.type,
+        title: data.title,
         content: data.content,
         properties: data.properties,
         status: data.status,
@@ -245,7 +248,15 @@ graphRouter.post(
       return res.status(201).json({
         id: blockId,
         sessionId,
-        ...data,
+        type: data.type,
+        title: data.title || null,
+        content: data.content,
+        properties: data.properties,
+        status: data.status,
+        confidence: data.confidence,
+        abstractionLevel: data.abstractionLevel,
+        graphMembership: data.graphMembership,
+        artifactId: data.artifactId,
         createdAt: now,
         updatedAt: now,
       });
@@ -263,6 +274,7 @@ graphRouter.post(
 
 const UpdateBlockSchema = z.object({
   type: z.string().optional(),
+  title: z.string().max(100).optional().nullable(), // Short 3-5 word summary
   content: z.string().min(1).optional(),
   properties: z.record(z.unknown()).optional().nullable(),
   status: z
@@ -301,6 +313,10 @@ graphRouter.patch(
       if (data.type !== undefined) {
         updates.push("type = ?");
         params.push(data.type);
+      }
+      if (data.title !== undefined) {
+        updates.push("title = ?");
+        params.push(data.title);
       }
       if (data.content !== undefined) {
         updates.push("content = ?");
@@ -367,6 +383,7 @@ graphRouter.patch(
       emitBlockUpdated(sessionId, {
         id: blockId,
         type: data.type,
+        title: data.title,
         content: data.content,
         properties: data.properties,
         status: data.status,
@@ -854,6 +871,68 @@ graphRouter.delete(
 );
 
 // ============================================================================
+// DELETE /session/:sessionId/graph/reset
+// ============================================================================
+// Reset (clear) all blocks and links for a session
+
+graphRouter.delete(
+  "/:sessionId/graph/reset",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      // Get counts before deletion for logging
+      const blockCount = await getOne<{ count: number }>(
+        `SELECT COUNT(*) as count FROM memory_blocks WHERE session_id = ?`,
+        [sessionId],
+      );
+      const linkCount = await getOne<{ count: number }>(
+        `SELECT COUNT(*) as count FROM memory_links WHERE session_id = ?`,
+        [sessionId],
+      );
+
+      // Delete all graph memberships for blocks in this session
+      await run(
+        `DELETE FROM memory_graph_memberships WHERE block_id IN (SELECT id FROM memory_blocks WHERE session_id = ?)`,
+        [sessionId],
+      );
+
+      // Delete all links for this session
+      await run(`DELETE FROM memory_links WHERE session_id = ?`, [sessionId]);
+
+      // Delete all blocks for this session
+      await run(`DELETE FROM memory_blocks WHERE session_id = ?`, [sessionId]);
+
+      await saveDb();
+
+      // Log the reset for change tracking
+      await logGraphChange({
+        changeType: "deleted",
+        blockId: sessionId,
+        blockType: "graph_reset",
+        blockLabel: `Reset graph: removed ${blockCount?.count || 0} blocks, ${linkCount?.count || 0} links`,
+        triggeredBy: "user",
+        contextSource: "graph-routes:reset-graph",
+        sessionId,
+      });
+
+      console.log(
+        `[graph-reset] Cleared graph for session ${sessionId}: ${blockCount?.count || 0} blocks, ${linkCount?.count || 0} links removed`,
+      );
+
+      return res.json({
+        success: true,
+        blocksDeleted: blockCount?.count || 0,
+        linksDeleted: linkCount?.count || 0,
+      });
+    } catch (error) {
+      console.error("Error resetting graph:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
 // POST /session/:sessionId/graph/collect-sources
 // ============================================================================
 // Collect sources from multiple types for analysis
@@ -915,6 +994,11 @@ graphRouter.post(
 // POST /session/:sessionId/graph/analyze-changes
 // ============================================================================
 // Analyze session for potential graph updates - returns proposed changes
+// Optionally accepts selectedSourceIds to filter which sources to include
+
+const AnalyzeChangesSchema = z.object({
+  selectedSourceIds: z.array(z.string()).optional(),
+});
 
 graphRouter.post(
   "/:sessionId/graph/analyze-changes",
@@ -922,53 +1006,28 @@ graphRouter.post(
     try {
       const { sessionId } = req.params;
 
-      // Get session messages
-      const messages = await query<{
-        id: string;
-        role: string;
-        content: string;
-        created_at: string;
-      }>(
-        `SELECT id, role, content, created_at FROM ideation_messages
-         WHERE session_id = ?
-         ORDER BY created_at DESC
-         LIMIT 20`,
-        [sessionId],
-      );
-
-      if (messages.length === 0) {
-        return res.json({
-          context: {
-            who: "Unknown",
-            what: "No conversation content",
-            when: new Date().toISOString(),
-            where: "Ideation session",
-            why: "No messages to analyze",
-          },
-          proposedChanges: [],
-          cascadeEffects: [],
-          previewNodes: [],
-          previewEdges: [],
+      const parseResult = AnalyzeChangesSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          error: "Validation error",
+          details: parseResult.error.issues,
         });
       }
 
-      // Get existing blocks for comparison
+      const { selectedSourceIds } = parseResult.data;
+
+      // Get existing blocks for comparison (will be empty after reset)
       const existingBlocks =
         await blockExtractor.getBlocksForSession(sessionId);
       const existingLinks = await blockExtractor.getLinksForSession(sessionId);
 
-      // Build conversation context for analysis
-      const conversationText = messages
-        .reverse()
-        .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
-        .join("\n\n");
-
-      // Call AI to analyze and propose changes
+      // Call AI to analyze and propose changes with optional source filtering
       const analysis = await analyzeSessionForGraphUpdates(
         sessionId,
-        conversationText,
+        "", // Legacy parameter no longer used
         existingBlocks,
         existingLinks,
+        selectedSourceIds,
       );
 
       return res.json(analysis);
@@ -1065,6 +1124,7 @@ graphRouter.post(
               emitBlockCreated(sessionId, {
                 id: blockId,
                 type: change.blockType || "content",
+                title: null, // Title can be set later or via AI migration
                 content: change.content,
                 confidence: change.confidence || 0.8,
                 graphMembership: change.graphMembership,
@@ -1154,127 +1214,189 @@ graphRouter.post(
 );
 
 // ============================================================================
-// Helper: Analyze session for graph updates
+// Helper: Analyze session for graph updates (Multi-Source Version)
 // ============================================================================
 
+/**
+ * Analyzes all sources in a session and proposes knowledge graph updates.
+ * Sources include: conversations, artifacts, memory files, and user-created blocks.
+ * Each proposed change includes source attribution for traceability.
+ *
+ * @param selectedSourceIds - Optional array of source IDs to include. If provided,
+ *                           only sources with matching IDs will be analyzed.
+ */
 async function analyzeSessionForGraphUpdates(
   sessionId: string,
-  conversationText: string,
+  _conversationText: string, // Legacy parameter, kept for compatibility
   existingBlocks: MemoryBlock[],
   existingLinks: MemoryLink[],
-): Promise<{
-  context: {
-    who: string;
-    what: string;
-    when: string;
-    where: string;
-    why: string;
-  };
-  proposedChanges: Array<{
-    id: string;
-    type: "create_block" | "update_block" | "create_link";
-    blockType?: string;
-    content: string;
-    graphMembership?: string[];
-    confidence: number;
-    sourceMessageId?: string;
-  }>;
-  cascadeEffects: Array<{
-    id: string;
-    affectedBlockId: string;
-    affectedBlockContent: string;
-    effectType: "confidence_change" | "status_change" | "link_invalidation";
-    description: string;
-    severity: "low" | "medium" | "high";
-  }>;
-  previewNodes: Array<{
-    id: string;
-    type: string;
-    content: string;
-    isNew?: boolean;
-  }>;
-  previewEdges: Array<{
-    id: string;
-    source: string;
-    target: string;
-    linkType: string;
-    isNew?: boolean;
-  }>;
-}> {
-  const { client: anthropicClient } =
-    await import("../../../utils/anthropic-client.js");
-
-  const ANALYSIS_PROMPT = `Analyze this conversation and identify what should be added to the knowledge graph.
-
-EXISTING BLOCKS (${existingBlocks.length} total):
-${existingBlocks
-  .slice(0, 10)
-  .map((b) => `- [${b.type}] ${b.content.slice(0, 100)}`)
-  .join("\n")}
-${existingBlocks.length > 10 ? `... and ${existingBlocks.length - 10} more` : ""}
-
-CONVERSATION:
-${conversationText.slice(0, 8000)}
-
-Analyze using 5W1H framework and identify:
-1. WHO: Who are the key stakeholders mentioned?
-2. WHAT: What are the main concepts, ideas, decisions?
-3. WHEN: Any temporal aspects or timelines?
-4. WHERE: What domains, markets, or contexts?
-5. WHY: What are the motivations, goals, reasons?
-
-For each new insight NOT already in existing blocks, propose a graph change.
-Only propose changes for genuinely new information.
-
-Return JSON only:
-{
-  "context": {
-    "who": "brief answer",
-    "what": "brief answer",
-    "when": "brief answer",
-    "where": "brief answer",
-    "why": "brief answer"
-  },
-  "proposedChanges": [
-    {
-      "id": "change_1",
-      "type": "create_block",
-      "blockType": "content|assumption|risk|action|decision|option|meta|synthesis|pattern|stakeholder_view",
-      "content": "The extracted insight",
-      "graphMembership": ["problem", "solution", "market", "risk", "fit", "business", "spec"],
-      "confidence": 0.85
-    }
-  ],
-  "cascadeEffects": [],
-  "previewNodes": [],
-  "previewEdges": []
-}`;
+  selectedSourceIds?: string[],
+): Promise<
+  AnalysisResponse & {
+    collectionMetadata?: {
+      conversationCount: number;
+      artifactCount: number;
+      memoryFileCount: number;
+      userBlockCount: number;
+      totalTokens: number;
+      truncated: boolean;
+    };
+  }
+> {
+  const startTime = Date.now();
+  console.log(
+    `[analyzeSessionForGraphUpdates] Starting multi-source analysis for session: ${sessionId}`,
+  );
+  if (selectedSourceIds) {
+    console.log(
+      `[analyzeSessionForGraphUpdates] Filtering to ${selectedSourceIds.length} selected sources`,
+    );
+  }
 
   try {
+    // Step 1: Collect sources from all types
+    console.log(
+      `[analyzeSessionForGraphUpdates] Step 1: Collecting sources...`,
+    );
+    let collectionResult = await collectAllSources(sessionId, {
+      tokenBudget: 40000,
+      conversationLimit: 50,
+    });
+
+    // Filter to selected sources if provided
+    if (selectedSourceIds && selectedSourceIds.length > 0) {
+      const selectedSet = new Set(selectedSourceIds);
+      const filteredSources = collectionResult.sources.filter((s) =>
+        selectedSet.has(s.id),
+      );
+
+      // Recalculate metadata
+      const conversationCount = filteredSources.filter(
+        (s) => s.type === "conversation",
+      ).length;
+      const artifactCount = filteredSources.filter(
+        (s) => s.type === "artifact",
+      ).length;
+      const memoryFileCount = filteredSources.filter(
+        (s) => s.type === "memory_file",
+      ).length;
+      const userBlockCount = filteredSources.filter(
+        (s) => s.type === "user_block",
+      ).length;
+
+      // Recalculate token estimate
+      const totalTokenEstimate = filteredSources.reduce(
+        (sum, s) => sum + Math.ceil(s.content.length / 4),
+        0,
+      );
+
+      collectionResult = {
+        sources: filteredSources,
+        totalTokenEstimate,
+        truncated: false,
+        collectionMetadata: {
+          conversationCount,
+          artifactCount,
+          memoryFileCount,
+          userBlockCount,
+        },
+      };
+
+      console.log(
+        `[analyzeSessionForGraphUpdates] Filtered to ${filteredSources.length} selected sources`,
+      );
+    }
+
+    console.log(
+      `[analyzeSessionForGraphUpdates] Collected ${collectionResult.sources.length} sources (~${collectionResult.totalTokenEstimate} tokens)`,
+    );
+
+    // Step 2: Build prompt with source segmentation
+    console.log(
+      `[analyzeSessionForGraphUpdates] Step 2: Building analysis prompt...`,
+    );
+    const existingBlockSummaries: ExistingBlockSummary[] = existingBlocks.map(
+      (b) => ({
+        id: b.id,
+        type: b.type,
+        content: b.content,
+        status: b.status || "active",
+      }),
+    );
+
+    const builtPrompt = buildAnalysisPrompt(
+      collectionResult,
+      existingBlockSummaries,
+    );
+
+    console.log(
+      `[analyzeSessionForGraphUpdates] Prompt built: ~${builtPrompt.totalTokenEstimate} tokens`,
+    );
+    console.log(
+      `[analyzeSessionForGraphUpdates] Source breakdown:`,
+      builtPrompt.sourceSummary,
+    );
+
+    // Step 3: Call AI for analysis
+    console.log(
+      `[analyzeSessionForGraphUpdates] Step 3: Calling AI for analysis...`,
+    );
+    const { client: anthropicClient } =
+      await import("../../../utils/anthropic-client.js");
+
     const response = await anthropicClient.messages.create({
       model: "claude-haiku-3-5-latest",
       max_tokens: 4096,
+      system: builtPrompt.systemPrompt,
       messages: [
         {
           role: "user",
-          content: ANALYSIS_PROMPT,
+          content: builtPrompt.userPrompt,
         },
       ],
     });
 
     const textContent = response.content.find((c) => c.type === "text");
     if (!textContent || textContent.type !== "text") {
-      return getEmptyAnalysis();
+      console.warn(
+        `[analyzeSessionForGraphUpdates] No text content in response`,
+      );
+      return {
+        ...getEmptyAnalysis(),
+        collectionMetadata: {
+          conversationCount:
+            collectionResult.collectionMetadata.conversationCount,
+          artifactCount: collectionResult.collectionMetadata.artifactCount,
+          memoryFileCount: collectionResult.collectionMetadata.memoryFileCount,
+          userBlockCount: collectionResult.collectionMetadata.userBlockCount,
+          totalTokens: collectionResult.totalTokenEstimate,
+          truncated: collectionResult.truncated,
+        },
+      };
     }
 
-    let jsonText = textContent.text.trim();
-    if (jsonText.startsWith("```")) {
-      jsonText = jsonText.replace(/```(?:json)?\n?/g, "").trim();
+    // Step 4: Parse and validate response
+    console.log(`[analyzeSessionForGraphUpdates] Step 4: Parsing response...`);
+    const parsed = parseAnalysisResponse(textContent.text);
+
+    if (!parsed) {
+      console.warn(`[analyzeSessionForGraphUpdates] Failed to parse response`);
+      return {
+        ...getEmptyAnalysis(),
+        collectionMetadata: {
+          conversationCount:
+            collectionResult.collectionMetadata.conversationCount,
+          artifactCount: collectionResult.collectionMetadata.artifactCount,
+          memoryFileCount: collectionResult.collectionMetadata.memoryFileCount,
+          userBlockCount: collectionResult.collectionMetadata.userBlockCount,
+          totalTokens: collectionResult.totalTokenEstimate,
+          truncated: collectionResult.truncated,
+        },
+      };
     }
 
-    const parsed = JSON.parse(jsonText);
-
-    // Build preview nodes from existing + proposed
+    // Step 5: Build preview nodes and edges
+    console.log(`[analyzeSessionForGraphUpdates] Step 5: Building preview...`);
     const previewNodes = existingBlocks.slice(0, 20).map((b) => ({
       id: b.id,
       type: b.type,
@@ -1283,7 +1405,7 @@ Return JSON only:
     }));
 
     // Add proposed blocks as new preview nodes
-    for (const change of parsed.proposedChanges || []) {
+    for (const change of parsed.proposedChanges) {
       if (change.type === "create_block") {
         previewNodes.push({
           id: change.id,
@@ -1303,12 +1425,44 @@ Return JSON only:
       isNew: false,
     }));
 
+    const duration = Date.now() - startTime;
+    console.log(
+      `[analyzeSessionForGraphUpdates] Analysis complete in ${duration}ms`,
+    );
+    console.log(
+      `[analyzeSessionForGraphUpdates] Proposed changes: ${parsed.proposedChanges.length}`,
+    );
+    console.log(
+      `[analyzeSessionForGraphUpdates] Cascade effects: ${parsed.cascadeEffects.length}`,
+    );
+
+    // Log source attribution breakdown
+    const attributionBreakdown: Record<string, number> = {};
+    parsed.proposedChanges.forEach((change) => {
+      const sourceType = change.sourceType || "unknown";
+      attributionBreakdown[sourceType] =
+        (attributionBreakdown[sourceType] || 0) + 1;
+    });
+    console.log(
+      `[analyzeSessionForGraphUpdates] Changes by source:`,
+      attributionBreakdown,
+    );
+
     return {
-      context: parsed.context || getEmptyAnalysis().context,
-      proposedChanges: parsed.proposedChanges || [],
-      cascadeEffects: parsed.cascadeEffects || [],
+      context: parsed.context,
+      proposedChanges: parsed.proposedChanges,
+      cascadeEffects: parsed.cascadeEffects,
       previewNodes,
       previewEdges,
+      collectionMetadata: {
+        conversationCount:
+          collectionResult.collectionMetadata.conversationCount,
+        artifactCount: collectionResult.collectionMetadata.artifactCount,
+        memoryFileCount: collectionResult.collectionMetadata.memoryFileCount,
+        userBlockCount: collectionResult.collectionMetadata.userBlockCount,
+        totalTokens: collectionResult.totalTokenEstimate,
+        truncated: collectionResult.truncated,
+      },
     };
   } catch (error) {
     console.error("[analyzeSessionForGraphUpdates] Error:", error);

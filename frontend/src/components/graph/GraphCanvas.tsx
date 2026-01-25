@@ -236,9 +236,9 @@ function toReagraphNode(
     opacity = Math.max(opacity, 0.9); // Ensure cycle nodes are visible
   }
 
-  // Use full content for label
+  // Use title if available (short summary), otherwise fall back to content/label
   // Show full text for highlighted/selected/hovered/temporarily visible nodes, truncate others
-  const fullLabel = node.content || node.label;
+  const fullLabel = node.title || node.content || node.label;
   const showFullText =
     isHighlighted || isSelected || isHovered || isTemporarilyVisible;
   const maxLabelLength = 50;

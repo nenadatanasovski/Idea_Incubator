@@ -716,9 +716,18 @@ export function NodeInspector({
       {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 break-words">
+          {/* Show title as main heading if available */}
+          {node.title && (
+            <h3 className="font-semibold text-gray-900 break-words">
+              {node.title}
+            </h3>
+          )}
+          {/* Show content - as subtitle if title exists, or as main heading if no title */}
+          <p
+            className={`${node.title ? "mt-1 text-sm text-gray-600" : "font-semibold text-gray-900"} break-words`}
+          >
             {node.content}
-          </h3>
+          </p>
           <div className="mt-1 flex items-center gap-2 flex-wrap">
             <span
               className="px-2 py-0.5 rounded text-xs font-medium"

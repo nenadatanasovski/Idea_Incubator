@@ -10,6 +10,7 @@
     "evaluate": "tsx scripts/evaluate.ts",
     "migrate": "tsx database/migrate.ts",
     "migrate:status": "tsx database/migrate.ts --status",
+    "migrate:titles": "tsx scripts/migrate-titles.ts",
     "schema:generate": "drizzle-kit generate",
     "schema:migrate": "drizzle-kit migrate",
     "schema:push": "drizzle-kit push",

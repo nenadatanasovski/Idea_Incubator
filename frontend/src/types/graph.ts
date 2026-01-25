@@ -136,6 +136,7 @@ export interface GraphNode {
   // Display properties
   label: string;
   subLabel?: string;
+  title?: string | null; // Short 3-5 word summary for quick identification
 
   // Block metadata
   blockType: BlockType;
@@ -458,6 +459,7 @@ export const edgeStyles: Record<LinkType, EdgeStyle> = {
 export interface ApiBlock {
   id: string;
   type: string;
+  title?: string | null; // Short 3-5 word summary
   content: string;
   properties: Record<string, unknown>;
   status: string;

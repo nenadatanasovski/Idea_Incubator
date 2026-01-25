@@ -216,6 +216,7 @@ export function transformBlocksToNodes(blocks: ApiBlock[]): GraphNode[] {
       const node: GraphNode = {
         id: block.id,
         label: createLabel(block.content),
+        title: block.title || null, // Short 3-5 word summary for quick identification
         blockType: block.type as BlockType,
         // Use top-level graphMembership if available (API format), otherwise detect from properties
         graphMembership: block.graphMembership?.length
@@ -742,6 +743,7 @@ export function transformSingleBlockToNode(block: ApiBlock): GraphNode | null {
   const node: GraphNode = {
     id: block.id,
     label: createLabel(block.content || ""),
+    title: block.title || null, // Short 3-5 word summary for quick identification
     blockType: block.type as BlockType,
     graphMembership: detectGraphMembership(props),
     status: (block.status as BlockStatus) || "active",

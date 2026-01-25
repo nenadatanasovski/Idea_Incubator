@@ -3,7 +3,7 @@
  * Main container with responsive layout for graph canvas, filters, legend, and inspector panel
  */
 
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import type {
   GraphNode,
   GraphEdge,
@@ -18,6 +18,7 @@ import { useGraphClustering } from "./hooks/useGraphClustering";
 import { CycleIndicator } from "./CycleIndicator";
 import { GraphQuickActions } from "./GraphQuickActions";
 import { analyzeCycles } from "./utils/cycleDetection";
+import { SourceSelectionModal } from "./SourceSelectionModal";
 
 export interface GraphContainerProps {
   nodes: GraphNode[];
@@ -35,6 +36,8 @@ export interface GraphContainerProps {
   showControls?: boolean;
   syncFiltersToUrl?: boolean;
   className?: string;
+  // Reset trigger - when this value changes, internal filters are reset
+  resetFiltersTrigger?: number;
   // WebSocket status (for real-time updates)
   isConnected?: boolean;
   isReconnecting?: boolean;
@@ -44,6 +47,7 @@ export interface GraphContainerProps {
   recentlyAddedEdgeIds?: Set<string>;
   // Memory Graph Update
   onUpdateMemoryGraph?: () => void;
+  onAnalyzeWithSources?: (selectedSourceIds: string[]) => Promise<void>;
   isAnalyzingGraph?: boolean;
   pendingGraphChanges?: number;
   // AI Prompt
@@ -140,6 +144,7 @@ export function GraphContainer({
   recentlyAddedNodeIds,
   recentlyAddedEdgeIds,
   onUpdateMemoryGraph,
+  onAnalyzeWithSources,
   isAnalyzingGraph = false,
   pendingGraphChanges = 0,
   sessionId,
@@ -152,6 +157,7 @@ export function GraphContainer({
   onLinkNode,
   onGroupIntoSynthesis,
   onDeleteNode,
+  resetFiltersTrigger,
 }: GraphContainerProps) {
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -168,6 +174,10 @@ export function GraphContainer({
   const [expandedPill, setExpandedPill] = useState<
     "actions" | "cycles" | "legend" | null
   >(null);
+
+  // Source selection modal state
+  const [showSourceSelectionModal, setShowSourceSelectionModal] =
+    useState(false);
 
   // Compute highlighted node and edge IDs from hovered relationship or cycle node
   const highlightedNodeIds = useMemo(() => {
@@ -217,6 +227,14 @@ export function GraphContainer({
     resetFilters,
     hasActiveFilters,
   } = useGraphFilters(nodes, edges, { syncToUrl: syncFiltersToUrl });
+
+  // Reset internal filters when trigger changes (from parent "Show all" button)
+  useEffect(() => {
+    if (resetFiltersTrigger !== undefined && resetFiltersTrigger > 0) {
+      resetFilters();
+      setSearchQuery("");
+    }
+  }, [resetFiltersTrigger, resetFilters]);
 
   // Use the clustering hook for managing cluster state
   const {
@@ -300,6 +318,22 @@ export function GraphContainer({
       graphCanvasRef.current?.fitNodesInView(nodeIds);
     }
   }, []);
+
+  // Handle opening source selection modal
+  const handleOpenSourceSelection = useCallback(() => {
+    setShowSourceSelectionModal(true);
+  }, []);
+
+  // Handle source selection confirm (reset & analyze)
+  const handleSourceSelectionConfirm = useCallback(
+    async (selectedSourceIds: string[]) => {
+      if (onAnalyzeWithSources) {
+        await onAnalyzeWithSources(selectedSourceIds);
+      }
+      setShowSourceSelectionModal(false);
+    },
+    [onAnalyzeWithSources],
+  );
 
   // Apply search filtering to nodes
   const searchFilteredNodes = useMemo(() => {
@@ -638,7 +672,11 @@ export function GraphContainer({
               isStale={isStale}
               isConnected={isConnected}
               isReconnecting={isReconnecting}
-              onUpdateMemoryGraph={onUpdateMemoryGraph}
+              onUpdateMemoryGraph={
+                onAnalyzeWithSources
+                  ? handleOpenSourceSelection
+                  : onUpdateMemoryGraph
+              }
               isAnalyzingGraph={isAnalyzingGraph}
               pendingGraphChanges={pendingGraphChanges}
               showZoomControls={false}
@@ -780,6 +818,17 @@ export function GraphContainer({
           onLinkNode={onLinkNode}
           onGroupIntoSynthesis={onGroupIntoSynthesis}
           onDeleteNode={onDeleteNode}
+        />
+      )}
+
+      {/* Source Selection Modal */}
+      {sessionId && (
+        <SourceSelectionModal
+          isOpen={showSourceSelectionModal}
+          onClose={() => setShowSourceSelectionModal(false)}
+          sessionId={sessionId}
+          onConfirm={handleSourceSelectionConfirm}
+          isProcessing={isAnalyzingGraph}
         />
       )}
     </div>

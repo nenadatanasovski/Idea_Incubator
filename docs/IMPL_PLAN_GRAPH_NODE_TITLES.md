@@ -146,35 +146,63 @@ interface GraphNode {
 
 **File:** `frontend/src/components/graph/GraphCanvas.tsx`
 
-#### 3.2.1 Node Label Display
+#### 3.2.1 Update `toReagraphNode` Function (Lines 239-249)
 
-Update node rendering to prioritize title:
+**Current code:**
 
 ```typescript
-const getNodeLabel = (node: GraphNode): string => {
-  if (node.title) {
-    return node.title;
-  }
+// Use full content for label
+// Show full text for highlighted/selected/hovered/temporarily visible nodes, truncate others
+const fullLabel = node.content || node.label;
+const showFullText =
+  isHighlighted || isSelected || isHovered || isTemporarilyVisible;
+const maxLabelLength = 50;
+const displayLabel = showFullText
+  ? fullLabel
+  : fullLabel.length > maxLabelLength
+    ? fullLabel.substring(0, maxLabelLength - 3) + "..."
+    : fullLabel;
+```
+
+**Updated code:**
+
+```typescript
+// Use title for display label, fall back to truncated content
+// Title is short (3-5 words), so no truncation needed
+// On hover/select, show full content instead of title
+const title = node.title;
+const fullContent = node.content || node.label;
+const showFullText =
+  isHighlighted || isSelected || isHovered || isTemporarilyVisible;
+
+let displayLabel: string;
+if (showFullText) {
+  // When focused, show full content for context
+  displayLabel = fullContent;
+} else if (title) {
+  // Default: show short title
+  displayLabel = title;
+} else {
   // Fallback: truncate content to first 5 words
-  return (
-    node.content.split(" ").slice(0, 5).join(" ") +
-    (node.content.split(" ").length > 5 ? "..." : "")
-  );
-};
+  const words = fullContent.split(" ");
+  displayLabel =
+    words.length > 5 ? words.slice(0, 5).join(" ") + "..." : fullContent;
+}
 ```
 
-#### 3.2.2 Node Tooltip
+#### 3.2.2 Behavior Summary
 
-Show full content on hover/tooltip when title is displayed:
+| State                        | Label Shown                      |
+| ---------------------------- | -------------------------------- |
+| Default (has title)          | Short title (3-5 words)          |
+| Default (no title)           | First 5 words of content + "..." |
+| Hovered/Selected/Highlighted | Full content                     |
 
-```typescript
-const getNodeTooltip = (node: GraphNode): string => {
-  if (node.title && node.content !== node.title) {
-    return `${node.title}\n\n${node.content}`;
-  }
-  return node.content;
-};
-```
+This ensures:
+
+- Clean, readable graph by default (short titles)
+- Full context on demand (hover/click)
+- Backwards compatible fallback for nodes without titles
 
 ### 3.3 Update MemoryDatabasePanel Component
 

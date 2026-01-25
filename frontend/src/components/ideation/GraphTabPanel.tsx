@@ -18,6 +18,7 @@ import {
 import type { GraphNode, GraphFilters } from "../../types/graph";
 import { useGraphDataWithWebSocket } from "../graph/hooks/useGraphDataWithWebSocket";
 import { GraphUpdateConfirmation } from "../graph/GraphUpdateConfirmation";
+import { useIdeationAPI } from "../../hooks/useIdeationAPI";
 import type {
   NewBlockUpdate,
   CascadeEffect,
@@ -167,6 +168,8 @@ export const GraphTabPanel = memo(function GraphTabPanel({
 }: GraphTabPanelProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
+  // Trigger to reset GraphContainer's internal filters
+  const [resetFiltersTrigger, setResetFiltersTrigger] = useState(0);
 
   // State for update confirmation dialog (T6.3)
   const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
@@ -314,6 +317,90 @@ export const GraphTabPanel = memo(function GraphTabPanel({
     setShowUpdateConfirmation(false);
   }, []);
 
+  // Get API functions
+  const { resetGraph, analyzeGraphChanges, applyGraphChanges } =
+    useIdeationAPI();
+
+  // State for tracking analysis progress
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Handle analyze with selected sources (reset & analyze flow)
+  const handleAnalyzeWithSources = useCallback(
+    async (selectedSourceIds: string[]) => {
+      console.log(
+        "[GraphTabPanel] Analyzing with sources:",
+        selectedSourceIds.length,
+      );
+
+      setIsAnalyzing(true);
+
+      try {
+        // Step 1: Reset the graph (clear all existing nodes/links)
+        console.log("[GraphTabPanel] Step 1: Resetting graph...");
+        const resetResult = await resetGraph(sessionId);
+        console.log(
+          "[GraphTabPanel] Graph reset:",
+          resetResult.blocksDeleted,
+          "blocks,",
+          resetResult.linksDeleted,
+          "links deleted",
+        );
+
+        // Refetch to clear the UI immediately
+        await refetch();
+
+        // Step 2: Analyze with selected sources
+        console.log(
+          "[GraphTabPanel] Step 2: Analyzing with",
+          selectedSourceIds.length,
+          "sources...",
+        );
+        const analysis = await analyzeGraphChanges(
+          sessionId,
+          selectedSourceIds,
+        );
+        console.log(
+          "[GraphTabPanel] Analysis complete:",
+          analysis.proposedChanges?.length || 0,
+          "proposed changes",
+        );
+
+        // Step 3: Auto-apply all changes (since we reset, we want all new insights)
+        if (analysis.proposedChanges && analysis.proposedChanges.length > 0) {
+          console.log("[GraphTabPanel] Step 3: Applying all changes...");
+          const changeIds = analysis.proposedChanges.map((c) => c.id);
+          const result = await applyGraphChanges(
+            sessionId,
+            changeIds,
+            analysis.proposedChanges.map((c) => ({
+              id: c.id,
+              type: c.type as "create_block" | "update_block" | "create_link",
+              blockType: c.blockType,
+              content: c.content,
+              graphMembership: c.graphMembership,
+              confidence: c.confidence,
+            })),
+          );
+          console.log(
+            "[GraphTabPanel] Changes applied:",
+            result.blocksCreated,
+            "blocks,",
+            result.linksCreated,
+            "links created",
+          );
+        }
+
+        // Refetch to show the new graph
+        await refetch();
+      } catch (error) {
+        console.error("[GraphTabPanel] Error in analyze with sources:", error);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    },
+    [sessionId, resetGraph, analyzeGraphChanges, applyGraphChanges, refetch],
+  );
+
   // Check for cascade effects when new nodes are added (T6.3 - T6.4)
   useEffect(() => {
     // Only check when we have pending node additions
@@ -384,7 +471,8 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               recentlyAddedNodeIds={recentlyAddedNodeIds}
               recentlyAddedEdgeIds={recentlyAddedEdgeIds}
               onUpdateMemoryGraph={onUpdateMemoryGraph}
-              isAnalyzingGraph={isAnalyzingGraph}
+              onAnalyzeWithSources={handleAnalyzeWithSources}
+              isAnalyzingGraph={isAnalyzingGraph || isAnalyzing}
               pendingGraphChanges={pendingGraphChanges}
               sessionId={sessionId}
               onPromptHighlight={handlePromptHighlight}
@@ -396,6 +484,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               onLinkNode={onLinkNode}
               onGroupIntoSynthesis={onGroupIntoSynthesis}
               onDeleteNode={onDeleteNode}
+              resetFiltersTrigger={resetFiltersTrigger}
               className="h-full"
             />
           </Suspense>
@@ -410,7 +499,11 @@ export const GraphTabPanel = memo(function GraphTabPanel({
             {pendingUpdates.length !== 1 ? "s" : ""} from conversation
           </span>
           <button
-            onClick={resetFilters}
+            onClick={() => {
+              // Reset both parent filters and GraphContainer's internal filters
+              resetFilters();
+              setResetFiltersTrigger((prev) => prev + 1);
+            }}
             className="text-sm text-blue-600 hover:text-blue-800 font-medium"
           >
             Show all

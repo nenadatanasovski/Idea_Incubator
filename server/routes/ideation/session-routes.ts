@@ -535,6 +535,7 @@ sessionRouter.get("/:sessionId/blocks", async (req: Request, res: Response) => {
       session_id: string;
       idea_id: string | null;
       type: string;
+      title: string | null;
       content: string;
       properties: string | null;
       status: string;
@@ -577,6 +578,7 @@ sessionRouter.get("/:sessionId/blocks", async (req: Request, res: Response) => {
       sessionId: row.session_id,
       ideaId: row.idea_id,
       type: row.type,
+      title: row.title || null,
       content: row.content || "",
       properties: row.properties ? JSON.parse(row.properties) : {},
       status: row.status || "active",
