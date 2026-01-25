@@ -17,6 +17,7 @@ export function ConversationPanel({
   error,
   subAgents = [],
   triggerMessageId,
+  highlightedMessageId,
   onSendMessage,
   onStopGeneration,
   onButtonClick,
@@ -29,9 +30,12 @@ export function ConversationPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages or sub-agent updates
+  // Skip if a specific message is highlighted (user navigating from graph)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading, subAgents]);
+    if (!highlightedMessageId) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isLoading, subAgents, highlightedMessageId]);
 
   return (
     <div className="conversation-panel flex-1 flex flex-col bg-gray-50 border-r border-gray-200 min-w-0 overflow-hidden">
@@ -46,6 +50,7 @@ export function ConversationPanel({
           isLoading={isLoading}
           subAgents={subAgents}
           triggerMessageId={triggerMessageId}
+          highlightedMessageId={highlightedMessageId}
         />
         <TypingIndicator
           isVisible={isLoading || followUpPending}

@@ -15,7 +15,114 @@ import type {
   LinkDegree,
   AbstractionLevel,
   SourceType,
+  AttributionType,
+  SourceLocation,
 } from "../../../types/graph";
+
+// Internal source types - where block data originated from
+const INTERNAL_SOURCE_TYPES = [
+  "chat",
+  "artifact",
+  "memory_file",
+  "memory_db",
+  "user_created",
+  "ai_generated",
+] as const;
+
+// External attribution types - for research/evidence sourcing (legacy)
+const EXTERNAL_ATTRIBUTION_TYPES = [
+  "research_firm",
+  "primary_research",
+  "expert",
+  "anecdote",
+  "assumption",
+  "unknown",
+] as const;
+
+/**
+ * Check if a value is an internal source type
+ */
+function isInternalSourceType(value: unknown): value is SourceType {
+  return (
+    typeof value === "string" &&
+    INTERNAL_SOURCE_TYPES.includes(value as SourceType)
+  );
+}
+
+/**
+ * Check if a value is an external attribution type
+ */
+function isExternalAttributionType(value: unknown): value is AttributionType {
+  return (
+    typeof value === "string" &&
+    EXTERNAL_ATTRIBUTION_TYPES.includes(value as AttributionType)
+  );
+}
+
+/**
+ * Infer source type from block context (when not explicitly set)
+ */
+function inferSourceType(block: ApiBlock): SourceType {
+  // If block has an artifact_id, it likely came from an artifact
+  if (block.properties?.artifact_id) {
+    return "artifact";
+  }
+  // If block has message_id or turn_index, it came from chat
+  if (block.properties?.message_id || block.properties?.turn_index) {
+    return "chat";
+  }
+  // If block has memory_file_type, it came from memory files
+  if (block.properties?.memory_file_type) {
+    return "memory_file";
+  }
+  // Default to ai_generated for most extracted blocks
+  return "ai_generated";
+}
+
+/**
+ * Build source location from block properties
+ */
+function buildSourceLocation(
+  sourceType: SourceType,
+  props: Record<string, unknown>,
+): SourceLocation | undefined {
+  switch (sourceType) {
+    case "chat":
+      if (props.message_id) {
+        return {
+          type: "chat",
+          messageId: props.message_id as string,
+          turnIndex: props.turn_index as number | undefined,
+        };
+      }
+      break;
+    case "artifact":
+      if (props.artifact_id) {
+        return {
+          type: "artifact",
+          artifactId: props.artifact_id as string,
+          artifactSection: props.artifact_section as string | undefined,
+        };
+      }
+      break;
+    case "memory_db":
+      return {
+        type: "memory_db",
+        tableName: "blocks",
+        blockId: props.id as string | undefined,
+      };
+    case "memory_file":
+      // Memory files would link to external if there's a file path
+      if (props.memory_file_path || props.url) {
+        return {
+          type: "external",
+          url: (props.memory_file_path || props.url) as string,
+        };
+      }
+      break;
+  }
+  return undefined;
+}
 
 // Graph type keywords to detect in properties
 const GRAPH_TYPE_KEYWORDS: Record<GraphType, string[]> = {
@@ -110,9 +217,13 @@ export function transformBlocksToNodes(blocks: ApiBlock[]): GraphNode[] {
         id: block.id,
         label: createLabel(block.content),
         blockType: block.type as BlockType,
-        graphMembership: detectGraphMembership(props),
+        // Use top-level graphMembership if available (API format), otherwise detect from properties
+        graphMembership: block.graphMembership?.length
+          ? (block.graphMembership as GraphType[])
+          : detectGraphMembership(props),
         status: (block.status as BlockStatus) || "active",
-        confidence: extractConfidence(props),
+        // Use top-level confidence if available (API format), otherwise extract from properties
+        confidence: block.confidence ?? extractConfidence(props),
         content: block.content,
         properties: props,
         createdAt: block.created_at,
@@ -120,19 +231,47 @@ export function transformBlocksToNodes(blocks: ApiBlock[]): GraphNode[] {
       };
 
       // Extract optional properties based on block type
-      if (props.abstraction_level) {
+      // Check top-level field first (API format), then fallback to properties (legacy format)
+      if (block.abstractionLevel) {
+        node.abstractionLevel = block.abstractionLevel as AbstractionLevel;
+      } else if (props.abstraction_level) {
         node.abstractionLevel = props.abstraction_level as AbstractionLevel;
       }
 
-      // Source attribution
+      // Source type and attribution handling
+      // Distinguish between internal source types and external attribution types
       if (props.source_type) {
-        node.sourceType = props.source_type as SourceType;
+        if (isInternalSourceType(props.source_type)) {
+          // New internal source type
+          node.sourceType = props.source_type;
+          node.sourceLocation = buildSourceLocation(props.source_type, props);
+        } else if (isExternalAttributionType(props.source_type)) {
+          // Legacy external attribution type - map to attribution fields
+          node.attributionType = props.source_type;
+          // Default source type to ai_generated since we don't know the actual source
+          node.sourceType = inferSourceType(block);
+          node.sourceLocation = buildSourceLocation(node.sourceType, props);
+        }
+      } else {
+        // Infer source type from context when not explicitly set
+        node.sourceType = inferSourceType(block);
+        node.sourceLocation = buildSourceLocation(node.sourceType, props);
       }
-      if (props.source_name) {
-        node.sourceName = props.source_name as string;
+
+      // External attribution details (separate from internal source)
+      if (props.source_name || props.attribution_name) {
+        node.attributionName = (props.attribution_name ||
+          props.source_name) as string;
       }
-      if (props.source_date) {
-        node.sourceDate = props.source_date as string;
+      if (props.source_date || props.attribution_date) {
+        node.attributionDate = (props.attribution_date ||
+          props.source_date) as string;
+      }
+      if (
+        props.attribution_type &&
+        isExternalAttributionType(props.attribution_type)
+      ) {
+        node.attributionType = props.attribution_type;
       }
 
       // Temporal properties
@@ -561,6 +700,19 @@ export function filterNodesByAbstractionLevel(
 }
 
 /**
+ * Filter nodes by source type
+ */
+export function filterNodesBySourceType(
+  nodes: GraphNode[],
+  sourceTypes: SourceType[],
+): GraphNode[] {
+  if (sourceTypes.length === 0) return nodes;
+  return nodes.filter(
+    (node) => node.sourceType && sourceTypes.includes(node.sourceType),
+  );
+}
+
+/**
  * Filter edges to only include those connecting visible nodes
  */
 export function filterEdgesByVisibleNodes(
@@ -619,15 +771,44 @@ function applyOptionalProperties(
     node.abstractionLevel = props.abstraction_level as AbstractionLevel;
   }
 
-  // Source attribution
+  // Source type and attribution handling
+  // Distinguish between internal source types and external attribution types
   if (props.source_type) {
-    node.sourceType = props.source_type as SourceType;
+    if (isInternalSourceType(props.source_type)) {
+      // New internal source type
+      node.sourceType = props.source_type;
+      node.sourceLocation = buildSourceLocation(props.source_type, props);
+    } else if (isExternalAttributionType(props.source_type)) {
+      // Legacy external attribution type - map to attribution fields
+      node.attributionType = props.source_type;
+      // Infer source type from properties
+      if (props.artifact_id) {
+        node.sourceType = "artifact";
+      } else if (props.message_id) {
+        node.sourceType = "chat";
+      } else if (props.memory_file_type) {
+        node.sourceType = "memory_file";
+      } else {
+        node.sourceType = "ai_generated";
+      }
+      node.sourceLocation = buildSourceLocation(node.sourceType, props);
+    }
   }
-  if (props.source_name) {
-    node.sourceName = props.source_name as string;
+
+  // External attribution details (separate from internal source)
+  if (props.source_name || props.attribution_name) {
+    node.attributionName = (props.attribution_name ||
+      props.source_name) as string;
   }
-  if (props.source_date) {
-    node.sourceDate = props.source_date as string;
+  if (props.source_date || props.attribution_date) {
+    node.attributionDate = (props.attribution_date ||
+      props.source_date) as string;
+  }
+  if (
+    props.attribution_type &&
+    isExternalAttributionType(props.attribution_type)
+  ) {
+    node.attributionType = props.attribution_type;
   }
 
   // Temporal properties

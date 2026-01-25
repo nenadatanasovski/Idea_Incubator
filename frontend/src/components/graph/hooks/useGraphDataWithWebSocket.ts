@@ -38,6 +38,7 @@ import {
   filterNodesByStatus,
   filterNodesByConfidence,
   filterNodesByAbstractionLevel,
+  filterNodesBySourceType,
   filterEdgesByVisibleNodes,
 } from "../utils/graphTransform";
 
@@ -443,6 +444,14 @@ export function useGraphDataWithWebSocket(
       filteredNodes = filterNodesByAbstractionLevel(
         filteredNodes,
         filters.abstractionLevels,
+      );
+    }
+
+    // Apply source type filter
+    if (filters.sourceTypes.length > 0) {
+      filteredNodes = filterNodesBySourceType(
+        filteredNodes,
+        filters.sourceTypes,
       );
     }
 

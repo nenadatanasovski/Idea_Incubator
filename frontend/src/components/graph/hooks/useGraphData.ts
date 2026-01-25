@@ -19,6 +19,7 @@ import {
   filterNodesByStatus,
   filterNodesByConfidence,
   filterNodesByAbstractionLevel,
+  filterNodesBySourceType,
   filterEdgesByVisibleNodes,
 } from "../utils/graphTransform";
 
@@ -124,6 +125,7 @@ export function useGraphData(
     blockTypes: [],
     statuses: [],
     abstractionLevels: [],
+    sourceTypes: [],
     confidenceRange: [0, 1],
   });
 
@@ -177,6 +179,7 @@ export function useGraphData(
       blockTypes: [],
       statuses: [],
       abstractionLevels: [],
+      sourceTypes: [],
       confidenceRange: [0, 1],
     });
   }, []);
@@ -207,6 +210,14 @@ export function useGraphData(
       filteredNodes = filterNodesByAbstractionLevel(
         filteredNodes,
         filters.abstractionLevels,
+      );
+    }
+
+    // Apply source type filter
+    if (filters.sourceTypes.length > 0) {
+      filteredNodes = filterNodesBySourceType(
+        filteredNodes,
+        filters.sourceTypes,
       );
     }
 

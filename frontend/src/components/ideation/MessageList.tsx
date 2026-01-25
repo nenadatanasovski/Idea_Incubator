@@ -3,7 +3,7 @@
 // Message list component
 // =============================================================================
 
-import "react";
+import { useEffect, useRef } from "react";
 import { AgentMessage } from "./AgentMessage";
 import { UserMessage } from "./UserMessage";
 import { SubAgentIndicator } from "./SubAgentIndicator";
@@ -19,17 +19,39 @@ export function MessageList({
   isLoading,
   subAgents = [],
   triggerMessageId,
+  highlightedMessageId,
 }: MessageListProps) {
+  const highlightedRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to highlighted message when navigating from graph
+  useEffect(() => {
+    if (highlightedMessageId && highlightedRef.current) {
+      highlightedRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [highlightedMessageId]);
+
   return (
     <div className="message-list space-y-4">
       {messages.map((message, index) => {
         const isLatest = index === messages.length - 1;
         const showSubAgents =
           subAgents.length > 0 && message.id === triggerMessageId;
+        const isHighlighted = message.id === highlightedMessageId;
 
         if (message.role === "assistant") {
           return (
-            <div key={message.id}>
+            <div
+              key={message.id}
+              ref={isHighlighted ? highlightedRef : undefined}
+              className={
+                isHighlighted
+                  ? "ring-2 ring-blue-400 ring-offset-2 rounded-lg transition-all duration-300"
+                  : ""
+              }
+            >
               <AgentMessage
                 message={message}
                 onButtonClick={onButtonClick}
@@ -48,13 +70,22 @@ export function MessageList({
         }
 
         return (
-          <UserMessage
+          <div
             key={message.id}
-            message={message}
-            onEdit={onEditMessage}
-            isEditable={!isLoading}
-            onConvertToArtifact={onConvertToArtifact}
-          />
+            ref={isHighlighted ? highlightedRef : undefined}
+            className={
+              isHighlighted
+                ? "ring-2 ring-blue-400 ring-offset-2 rounded-lg transition-all duration-300"
+                : ""
+            }
+          >
+            <UserMessage
+              message={message}
+              onEdit={onEditMessage}
+              isEditable={!isLoading}
+              onConvertToArtifact={onConvertToArtifact}
+            />
+          </div>
         );
       })}
     </div>

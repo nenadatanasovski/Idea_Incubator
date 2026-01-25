@@ -9,6 +9,7 @@ import type {
   BlockType,
   BlockStatus,
   AbstractionLevel,
+  SourceType,
   GraphFilters as GraphFiltersType,
 } from "../../types/graph";
 import { nodeColors, graphColors } from "../../types/graph";
@@ -68,6 +69,27 @@ const ALL_ABSTRACTION_LEVELS: AbstractionLevel[] = [
   "tactic",
   "implementation",
 ];
+
+// All available source types (internal data sources)
+const ALL_SOURCE_TYPES: SourceType[] = [
+  "chat",
+  "artifact",
+  "memory_file",
+  "memory_db",
+  "user_created",
+  "ai_generated",
+];
+
+// Source type labels and colors (internal data sources)
+const SOURCE_TYPE_LABELS: Record<SourceType, { label: string; color: string }> =
+  {
+    chat: { label: "Chat", color: "#8B5CF6" }, // Purple - conversation
+    artifact: { label: "Artifact", color: "#F59E0B" }, // Amber - markdown files
+    memory_file: { label: "Memory File", color: "#06B6D4" }, // Cyan - ideation agent memory
+    memory_db: { label: "Database", color: "#3B82F6" }, // Blue - memory blocks/links
+    user_created: { label: "User Created", color: "#22C55E" }, // Green - manual
+    ai_generated: { label: "AI Generated", color: "#EC4899" }, // Pink - AI analysis
+  };
 
 // Abstraction level labels and colors
 const ABSTRACTION_LEVEL_LABELS: Record<
@@ -434,6 +456,17 @@ export function GraphFilters({
     [filters, onFiltersChange],
   );
 
+  // Toggle a source type filter
+  const toggleSourceType = useCallback(
+    (sourceType: SourceType) => {
+      const newSourceTypes = filters.sourceTypes.includes(sourceType)
+        ? filters.sourceTypes.filter((s) => s !== sourceType)
+        : [...filters.sourceTypes, sourceType];
+      onFiltersChange({ ...filters, sourceTypes: newSourceTypes });
+    },
+    [filters, onFiltersChange],
+  );
+
   // Update confidence range
   const updateConfidenceRange = useCallback(
     (range: [number, number]) => {
@@ -448,6 +481,7 @@ export function GraphFilters({
     filters.blockTypes.length > 0 ||
     filters.statuses.length > 0 ||
     filters.abstractionLevels.length > 0 ||
+    filters.sourceTypes.length > 0 ||
     filters.confidenceRange[0] > 0 ||
     filters.confidenceRange[1] < 1;
 
@@ -571,6 +605,29 @@ export function GraphFilters({
           <div className="mt-2 text-xs text-gray-500">
             Filter by abstraction hierarchy: Vision → Strategy → Tactic →
             Implementation
+          </div>
+        </FilterSection>
+
+        {/* Source Type */}
+        <FilterSection
+          title="Source Type"
+          isExpanded={expandedSections.has("sourceTypes")}
+          onToggle={() => toggleSection("sourceTypes")}
+          activeCount={filters.sourceTypes.length}
+        >
+          <div className="flex flex-wrap gap-2">
+            {ALL_SOURCE_TYPES.map((sourceType) => (
+              <FilterChip
+                key={sourceType}
+                label={SOURCE_TYPE_LABELS[sourceType].label}
+                isSelected={filters.sourceTypes.includes(sourceType)}
+                onClick={() => toggleSourceType(sourceType)}
+                color={SOURCE_TYPE_LABELS[sourceType].color}
+              />
+            ))}
+          </div>
+          <div className="mt-2 text-xs text-gray-500">
+            Filter by where the data originated from
           </div>
         </FilterSection>
 

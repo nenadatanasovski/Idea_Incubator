@@ -223,8 +223,9 @@ export function generateSampleIdeationGraph(): {
       },
       createdAt: "2026-01-21T10:00:00Z",
       updatedAt: "2026-01-22T10:00:00Z",
-      sourceType: "research_firm",
-      sourceName: "Gartner 2025",
+      sourceType: "chat",
+      attributionType: "research_firm",
+      attributionName: "Gartner 2025",
     },
     {
       id: "risk_1",

@@ -656,3 +656,53 @@ sessionRouter.get("/:sessionId/links", async (req: Request, res: Response) => {
     });
   }
 });
+
+// ============================================================================
+// GET /session/:sessionId/memory-files
+// ============================================================================
+// Get all ideation memory files for a session (self_discovery, market_discovery, etc.)
+
+sessionRouter.get(
+  "/:sessionId/memory-files",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      // Get memory files from ideation_memory_files table
+      const memoryFilesResult = await query<{
+        id: string;
+        session_id: string;
+        file_type: string;
+        content: string;
+        version: number;
+        created_at: string;
+        updated_at: string;
+      }>(
+        `SELECT * FROM ideation_memory_files WHERE session_id = ? ORDER BY file_type ASC`,
+        [sessionId],
+      );
+
+      // Transform to the expected API format
+      const memoryFiles = memoryFilesResult.map((row) => ({
+        id: row.id,
+        sessionId: row.session_id,
+        fileType: row.file_type,
+        content: row.content || "",
+        version: row.version,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+
+      return res.json({
+        success: true,
+        data: { memoryFiles },
+      });
+    } catch (error) {
+      console.error("[MemoryFiles] Error fetching memory files:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+      });
+    }
+  },
+);

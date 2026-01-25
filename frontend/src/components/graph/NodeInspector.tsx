@@ -9,16 +9,47 @@ import type {
   GraphEdge,
   LinkType,
   FileReference,
+  SourceLocation,
 } from "../../types/graph";
 import { nodeColors, edgeColors, graphColors } from "../../types/graph";
-import { FileText, ExternalLink, FileCode, File } from "lucide-react";
+import {
+  FileText,
+  ExternalLink,
+  FileCode,
+  File,
+  MessageSquare,
+  Database,
+  Link2,
+  Layers,
+  Trash2,
+  Loader2,
+} from "lucide-react";
 import { parseProperties } from "./utils/propertyDisplay";
 import { SpecialPropertiesSection } from "./PropertyDisplayComponents";
+import { EvidenceChainPanel } from "./EvidenceChainPanel";
+import { BlockTypeInspector } from "./BlockTypeInspector";
+import type { SourceType } from "../../types/graph";
+
+/**
+ * Safely format a date string, returning "Unknown" if invalid
+ */
+function formatDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return "Unknown";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "Unknown";
+  return date.toLocaleString();
+}
 
 export interface RelationshipHoverInfo {
   currentNodeId: string;
   relatedNodeId: string;
   edgeId: string;
+}
+
+// Internal source info - where the block data originated from
+export interface SourceInfo {
+  sourceType?: SourceType;
+  sourceLocation?: SourceLocation;
 }
 
 export interface NodeInspectorProps {
@@ -31,6 +62,16 @@ export interface NodeInspectorProps {
   onViewArtifact?: (artifactId: string) => void;
   onUnlinkArtifact?: (nodeId: string) => void;
   onViewFile?: (filePath: string) => void;
+  // Source navigation callbacks - each handles a different destination
+  onNavigateToChatMessage?: (messageId: string, turnIndex?: number) => void;
+  onNavigateToArtifact?: (artifactId: string, section?: string) => void;
+  onNavigateToMemoryDB?: (tableName: string, blockId?: string) => void;
+  onNavigateToExternal?: (url: string) => void;
+  // Selection actions for the selected node
+  onLinkNode?: (nodeId: string) => void;
+  onGroupIntoSynthesis?: (nodeId: string) => void;
+  onDeleteNode?: (nodeId: string) => void;
+  isActionLoading?: string | null;
   className?: string;
 }
 
@@ -139,6 +180,11 @@ function RelationshipItem({
         >
           {relatedNode.blockType}
         </span>
+        {edge.degree && (
+          <span className="text-xs text-gray-500 flex-shrink-0 italic">
+            {edge.degree}
+          </span>
+        )}
         {edge.confidence !== undefined && (
           <span className="text-xs text-gray-500 flex-shrink-0">
             {Math.round(edge.confidence * 100)}% confidence
@@ -292,6 +338,238 @@ function FileReferenceItem({
 }
 
 /**
+ * Internal source type display labels and icons
+ */
+const SOURCE_TYPE_LABELS: Record<
+  SourceType,
+  { label: string; color: string; icon: string }
+> = {
+  chat: { label: "Chat", color: "bg-purple-100 text-purple-700", icon: "💬" },
+  artifact: {
+    label: "Artifact",
+    color: "bg-amber-100 text-amber-700",
+    icon: "📄",
+  },
+  memory_file: {
+    label: "Memory File",
+    color: "bg-cyan-100 text-cyan-700",
+    icon: "🧠",
+  },
+  memory_db: {
+    label: "Database",
+    color: "bg-blue-100 text-blue-700",
+    icon: "🗄️",
+  },
+  user_created: {
+    label: "User Created",
+    color: "bg-green-100 text-green-700",
+    icon: "✏️",
+  },
+  ai_generated: {
+    label: "AI Generated",
+    color: "bg-pink-100 text-pink-700",
+    icon: "🤖",
+  },
+};
+
+/**
+ * Get icon and label for source location type
+ */
+function getSourceLocationInfo(location?: SourceLocation): {
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+} {
+  if (!location) {
+    return {
+      icon: <ExternalLink className="w-4 h-4" />,
+      label: "View source",
+      description: "Navigate to source",
+    };
+  }
+
+  switch (location.type) {
+    case "chat":
+      return {
+        icon: <MessageSquare className="w-4 h-4" />,
+        label: "Go to chat message",
+        description: location.turnIndex
+          ? `Message #${location.turnIndex}`
+          : "Chat history",
+      };
+    case "artifact":
+      return {
+        icon: <FileText className="w-4 h-4" />,
+        label: "Open artifact",
+        description: location.artifactSection
+          ? `${location.artifactSection}`
+          : "Artifact document",
+      };
+    case "memory_db":
+      return {
+        icon: <Database className="w-4 h-4" />,
+        label: "View in Memory DB",
+        description: location.tableName
+          ? `${location.tableName} table`
+          : "Memory database",
+      };
+    case "external":
+      return {
+        icon: <ExternalLink className="w-4 h-4" />,
+        label: "Open external link",
+        description: location.url
+          ? new URL(location.url).hostname
+          : "External source",
+      };
+    default:
+      return {
+        icon: <ExternalLink className="w-4 h-4" />,
+        label: "View source",
+        description: "Navigate to source",
+      };
+  }
+}
+
+/**
+ * Navigable Source Section
+ * Displays internal data source with navigation capability
+ */
+function NavigableSourceSection({
+  sourceType,
+  sourceLocation,
+  onNavigateToChat,
+  onNavigateToArtifact,
+  onNavigateToMemoryDB,
+  onNavigateToExternal,
+}: {
+  sourceType?: SourceType;
+  sourceLocation?: SourceLocation;
+  onNavigateToChat?: (messageId: string, turnIndex?: number) => void;
+  onNavigateToArtifact?: (artifactId: string, section?: string) => void;
+  onNavigateToMemoryDB?: (tableName: string, blockId?: string) => void;
+  onNavigateToExternal?: (url: string) => void;
+}) {
+  const hasSource = sourceType || sourceLocation;
+
+  // Determine which navigation handler to use based on location type
+  const handleNavigate = useCallback(() => {
+    if (!sourceLocation) return;
+
+    switch (sourceLocation.type) {
+      case "chat":
+        if (onNavigateToChat && sourceLocation.messageId) {
+          onNavigateToChat(sourceLocation.messageId, sourceLocation.turnIndex);
+        }
+        break;
+      case "artifact":
+        if (onNavigateToArtifact && sourceLocation.artifactId) {
+          onNavigateToArtifact(
+            sourceLocation.artifactId,
+            sourceLocation.artifactSection,
+          );
+        }
+        break;
+      case "memory_db":
+        if (onNavigateToMemoryDB && sourceLocation.tableName) {
+          onNavigateToMemoryDB(
+            sourceLocation.tableName,
+            sourceLocation.blockId,
+          );
+        }
+        break;
+      case "external":
+        if (onNavigateToExternal && sourceLocation.url) {
+          onNavigateToExternal(sourceLocation.url);
+        }
+        break;
+    }
+  }, [
+    sourceLocation,
+    onNavigateToChat,
+    onNavigateToArtifact,
+    onNavigateToMemoryDB,
+    onNavigateToExternal,
+  ]);
+
+  // Check if navigation is available for this source
+  const canNavigate =
+    sourceLocation &&
+    ((sourceLocation.type === "chat" &&
+      onNavigateToChat &&
+      sourceLocation.messageId) ||
+      (sourceLocation.type === "artifact" &&
+        onNavigateToArtifact &&
+        sourceLocation.artifactId) ||
+      (sourceLocation.type === "memory_db" &&
+        onNavigateToMemoryDB &&
+        sourceLocation.tableName) ||
+      (sourceLocation.type === "external" &&
+        onNavigateToExternal &&
+        sourceLocation.url));
+
+  const locationInfo = getSourceLocationInfo(sourceLocation);
+
+  if (!hasSource) {
+    return (
+      <p className="text-sm text-gray-500 italic">No source information</p>
+    );
+  }
+
+  const sourceTypeInfo = sourceType ? SOURCE_TYPE_LABELS[sourceType] : null;
+
+  return (
+    <div className="space-y-3">
+      {/* Source type badge */}
+      {sourceTypeInfo && (
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{sourceTypeInfo.icon}</span>
+          <span
+            className={`px-2.5 py-1 rounded-lg text-sm font-medium ${sourceTypeInfo.color}`}
+          >
+            {sourceTypeInfo.label}
+          </span>
+        </div>
+      )}
+
+      {/* Location info card */}
+      {sourceLocation && (
+        <div
+          className={`w-full text-left p-3 rounded-lg border ${
+            canNavigate
+              ? "border-blue-200 bg-blue-50"
+              : "border-gray-200 bg-gray-50"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            {locationInfo.icon}
+            <span>{locationInfo.description}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation button - different style based on location type */}
+      {canNavigate && (
+        <button
+          onClick={handleNavigate}
+          className={`flex items-center gap-1.5 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            sourceLocation?.type === "chat"
+              ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
+              : sourceLocation?.type === "artifact"
+                ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                : sourceLocation?.type === "memory_db"
+                  ? "bg-cyan-100 text-cyan-700 hover:bg-cyan-200"
+                  : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+          }`}
+        >
+          {locationInfo.icon}
+          {locationInfo.label}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
  * PropertiesContent Component
  * Renders properties with special handling for range and context-qualified values
  */
@@ -348,6 +626,14 @@ export function NodeInspector({
   onViewArtifact,
   onUnlinkArtifact,
   onViewFile,
+  onNavigateToChatMessage,
+  onNavigateToArtifact,
+  onNavigateToMemoryDB,
+  onNavigateToExternal,
+  onLinkNode,
+  onGroupIntoSynthesis,
+  onDeleteNode,
+  isActionLoading,
   className = "",
 }: NodeInspectorProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -407,10 +693,14 @@ export function NodeInspector({
   const totalRelationships =
     incomingRelationships.length + outgoingRelationships.length;
 
+  // Check if any selection actions are available
+  const hasSelectionActions =
+    onLinkNode || onGroupIntoSynthesis || onDeleteNode;
+
   return (
     <div
       className={`
-        w-full sm:w-80 md:w-96
+        w-full sm:w-[640px] md:w-[768px]
         fixed sm:relative inset-y-0 right-0 sm:inset-auto
         z-30 sm:z-auto
         bg-white
@@ -465,6 +755,29 @@ export function NodeInspector({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-0">
+        {/* Block Type Inspector - Type-specific properties panel (T7.3) */}
+        <BlockTypeInspector
+          node={node}
+          onNavigate={onNodeClick}
+          className="mb-4"
+        />
+
+        {/* Evidence Chain Panel - Show for nodes with evidence_for links (T7.1) */}
+        {edges.some(
+          (e) =>
+            e.linkType === "evidence_for" &&
+            (e.source === node.id || e.target === node.id),
+        ) && (
+          <Section title="Evidence Chain" defaultExpanded>
+            <EvidenceChainPanel
+              nodeId={node.id}
+              nodes={nodes}
+              edges={edges}
+              onNodeClick={onNodeClick}
+            />
+          </Section>
+        )}
+
         {/* Relationships Section */}
         <Section
           title="Relationships"
@@ -626,6 +939,31 @@ export function NodeInspector({
                 </dd>
               </div>
             )}
+            {/* Action block progress bar */}
+            {node.blockType === "action" &&
+              node.requiredCount !== undefined &&
+              node.completedCount !== undefined && (
+                <div className="flex justify-between items-center">
+                  <dt className="text-gray-500">Progress</dt>
+                  <dd className="flex items-center gap-2">
+                    <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          node.completedCount >= node.requiredCount
+                            ? "bg-green-500"
+                            : "bg-amber-500"
+                        }`}
+                        style={{
+                          width: `${Math.min(100, (node.completedCount / node.requiredCount) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-gray-900 text-xs">
+                      {node.completedCount}/{node.requiredCount}
+                    </span>
+                  </dd>
+                </div>
+              )}
           </dl>
         </Section>
 
@@ -646,13 +984,13 @@ export function NodeInspector({
             <div className="flex justify-between">
               <dt className="text-gray-500">Created</dt>
               <dd className="text-gray-900 text-xs">
-                {new Date(node.createdAt).toLocaleString()}
+                {formatDate(node.createdAt)}
               </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-500">Updated</dt>
               <dd className="text-gray-900 text-xs">
-                {new Date(node.updatedAt).toLocaleString()}
+                {formatDate(node.updatedAt)}
               </dd>
             </div>
             {node.when && (
@@ -761,42 +1099,71 @@ export function NodeInspector({
           </Section>
         )}
 
-        {/* Source Attribution Section (if available) */}
-        {(node.sourceType || node.sourceName) && (
-          <Section title="Source" defaultExpanded={false}>
-            <dl className="space-y-2 text-sm">
-              {node.sourceType && (
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Type</dt>
-                  <dd className="text-gray-900 capitalize">
-                    {node.sourceType.replace(/_/g, " ")}
-                  </dd>
-                </div>
-              )}
-              {node.sourceName && (
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Name</dt>
-                  <dd className="text-gray-900">{node.sourceName}</dd>
-                </div>
-              )}
-              {node.sourceDate && (
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Date</dt>
-                  <dd className="text-gray-900">{node.sourceDate}</dd>
-                </div>
-              )}
-              {node.verifiable !== undefined && (
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Verifiable</dt>
-                  <dd className="text-gray-900">
-                    {node.verifiable ? "Yes" : "No"}
-                  </dd>
-                </div>
-              )}
-            </dl>
-          </Section>
-        )}
+        {/* Source Section - Shows where the block data originated from */}
+        <Section
+          title="Source"
+          defaultExpanded={!!(node.sourceType || node.sourceLocation)}
+        >
+          <NavigableSourceSection
+            sourceType={node.sourceType}
+            sourceLocation={node.sourceLocation}
+            onNavigateToChat={onNavigateToChatMessage}
+            onNavigateToArtifact={onNavigateToArtifact}
+            onNavigateToMemoryDB={onNavigateToMemoryDB}
+            onNavigateToExternal={onNavigateToExternal}
+          />
+        </Section>
       </div>
+
+      {/* Selection Actions Footer */}
+      {hasSelectionActions && (
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-3">
+          <div className="flex items-center gap-2">
+            {onLinkNode && (
+              <button
+                onClick={() => onLinkNode(node.id)}
+                disabled={isActionLoading === "link"}
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isActionLoading === "link" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Link2 className="h-4 w-4" />
+                )}
+                <span>Link</span>
+              </button>
+            )}
+            {onGroupIntoSynthesis && (
+              <button
+                onClick={() => onGroupIntoSynthesis(node.id)}
+                disabled={isActionLoading === "synthesis"}
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isActionLoading === "synthesis" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Layers className="h-4 w-4" />
+                )}
+                <span>Synthesize</span>
+              </button>
+            )}
+            {onDeleteNode && (
+              <button
+                onClick={() => onDeleteNode(node.id)}
+                disabled={isActionLoading === "delete"}
+                className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isActionLoading === "delete" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                <span>Delete</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

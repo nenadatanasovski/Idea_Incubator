@@ -8,6 +8,12 @@ import { SessionHeader, type SessionTab } from "./SessionHeader";
 import { ConversationPanel } from "./ConversationPanel";
 import { IdeaArtifactPanel } from "./IdeaArtifactPanel";
 import { GraphTabPanel } from "./GraphTabPanel";
+import { ProjectFilesPanel } from "./ProjectFilesPanel";
+import { SpecViewPanel } from "./SpecViewPanel";
+import {
+  MemoryDatabasePanel,
+  type MemoryTableName,
+} from "./MemoryDatabasePanel";
 import { IdeaTypeModal, type IdeaTypeValue } from "./IdeaTypeModal";
 import { UpdateMemoryGraphModal } from "./UpdateMemoryGraphModal";
 import { useIdeationAPI } from "../../hooks/useIdeationAPI";
@@ -46,6 +52,19 @@ export function IdeationSession({
   const [activeTab, setActiveTab] = useState<SessionTab>("chat");
   const [graphUpdateCount, setGraphUpdateCount] = useState(0);
   const [hasGraphUpdates, setHasGraphUpdates] = useState(false);
+  // T9: Project folder state
+  const [filesCount, setFilesCount] = useState(0);
+  // Memory DB navigation state
+  const [memoryHighlightTable, setMemoryHighlightTable] = useState<
+    MemoryTableName | undefined
+  >();
+  const [memoryHighlightId, setMemoryHighlightId] = useState<
+    string | undefined
+  >();
+  // Chat message navigation state (for scrolling to specific messages)
+  const [highlightedMessageId, setHighlightedMessageId] = useState<
+    string | undefined
+  >();
 
   // Spec and readiness hooks (SPEC-006-E integration)
   const {
@@ -1658,6 +1677,92 @@ export function IdeationSession({
     [activeTab],
   );
 
+  // Source navigation handlers (navigate from graph node to source location)
+  const handleNavigateToChatMessage = useCallback(
+    (messageId: string, _turnIndex?: number) => {
+      setActiveTab("chat");
+      setHighlightedMessageId(messageId);
+      // Clear highlight after 3 seconds
+      setTimeout(() => setHighlightedMessageId(undefined), 3000);
+    },
+    [],
+  );
+
+  const handleNavigateToArtifact = useCallback(
+    (artifactId: string, _section?: string) => {
+      // Find and select the artifact
+      const artifact = state.artifacts.artifacts.find(
+        (a) => a.id === artifactId,
+      );
+      if (artifact) {
+        dispatch({
+          type: "ARTIFACT_SELECT",
+          payload: { artifact },
+        });
+        dispatch({
+          type: "ARTIFACT_PANEL_TOGGLE",
+          payload: { isOpen: true },
+        });
+      }
+    },
+    [state.artifacts.artifacts],
+  );
+
+  const handleNavigateToMemoryDB = useCallback(
+    (tableName: string, blockId?: string) => {
+      setActiveTab("memory");
+      setMemoryHighlightTable(tableName as MemoryTableName);
+      setMemoryHighlightId(blockId);
+      // Clear highlight after navigation
+      setTimeout(() => {
+        setMemoryHighlightTable(undefined);
+        setMemoryHighlightId(undefined);
+      }, 5000);
+    },
+    [],
+  );
+
+  const handleNavigateToExternal = useCallback((url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, []);
+
+  const handleBackToGraph = useCallback(() => {
+    setActiveTab("graph");
+  }, []);
+
+  // Graph node selection action handlers
+  const handleLinkNode = useCallback((nodeId: string) => {
+    // TODO: Open a linking dialog to select target node and link type
+    console.log("[IdeationSession] handleLinkNode:", nodeId);
+  }, []);
+
+  const handleGroupIntoSynthesis = useCallback((nodeId: string) => {
+    // TODO: Open a dialog to create a synthesis block grouping selected nodes
+    console.log("[IdeationSession] handleGroupIntoSynthesis:", nodeId);
+  }, []);
+
+  const handleDeleteNode = useCallback(
+    async (nodeId: string) => {
+      if (!state.session.sessionId) return;
+
+      try {
+        const response = await fetch(
+          `/api/ideation/session/${state.session.sessionId}/graph/blocks/${nodeId}`,
+          { method: "DELETE" },
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to delete block");
+        }
+
+        console.log("[IdeationSession] Block deleted:", nodeId);
+      } catch (error) {
+        console.error("[IdeationSession] Error deleting block:", error);
+      }
+    },
+    [state.session.sessionId],
+  );
+
   // Handle capture
   const handleCapture = useCallback(async () => {
     if (!state.session.sessionId) return;
@@ -2148,6 +2253,8 @@ export function IdeationSession({
         onTabChange={handleTabChange}
         graphUpdateCount={graphUpdateCount}
         hasGraphUpdates={hasGraphUpdates}
+        hasSpec={hasSpec}
+        filesCount={filesCount}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -2163,6 +2270,7 @@ export function IdeationSession({
               error={state.conversation.error}
               subAgents={state.subAgents.subAgents}
               triggerMessageId={state.subAgents.triggerMessageId}
+              highlightedMessageId={highlightedMessageId}
               onSendMessage={handleSendMessage}
               onStopGeneration={handleStopGeneration}
               onButtonClick={handleButtonClick}
@@ -2182,7 +2290,46 @@ export function IdeationSession({
             onUpdateMemoryGraph={handleAnalyzeGraph}
             isAnalyzingGraph={state.memoryGraph.isAnalyzing}
             pendingGraphChanges={state.memoryGraph.pendingChangesCount}
+            onNavigateToChatMessage={handleNavigateToChatMessage}
+            onNavigateToArtifact={handleNavigateToArtifact}
+            onNavigateToMemoryDB={handleNavigateToMemoryDB}
+            onNavigateToExternal={handleNavigateToExternal}
+            onLinkNode={handleLinkNode}
+            onGroupIntoSynthesis={handleGroupIntoSynthesis}
+            onDeleteNode={handleDeleteNode}
           />
+
+          {/* Files Tab Panel (T9.2 - Project folder browser) */}
+          {state.artifacts.linkedIdea && (
+            <ProjectFilesPanel
+              userSlug={state.artifacts.linkedIdea.userSlug}
+              ideaSlug={state.artifacts.linkedIdea.ideaSlug}
+              isVisible={activeTab === "files"}
+              onFilesLoaded={setFilesCount}
+              className={activeTab === "files" ? "flex-1" : "hidden"}
+            />
+          )}
+
+          {/* Spec Tab Panel (T9.3 - Spec view and management) */}
+          <SpecViewPanel
+            spec={spec}
+            sections={specSections}
+            isVisible={activeTab === "spec"}
+            isLoading={isSpecLoading}
+            onRegenerate={handleGenerateSpec}
+            className={activeTab === "spec" ? "flex-1" : "hidden"}
+          />
+
+          {/* Memory Database Tab Panel - Browse memory blocks and links */}
+          {activeTab === "memory" && state.session.sessionId && (
+            <MemoryDatabasePanel
+              sessionId={state.session.sessionId}
+              highlightTable={memoryHighlightTable}
+              highlightId={memoryHighlightId}
+              onBackToGraph={handleBackToGraph}
+              className="flex-1"
+            />
+          )}
         </div>
 
         {/* Combined Idea & Artifact Panel - Right side */}

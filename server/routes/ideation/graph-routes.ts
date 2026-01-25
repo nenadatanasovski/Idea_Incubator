@@ -24,6 +24,12 @@ import {
   Link,
 } from "../../services/graph-prompt-processor.js";
 import { logGraphChange } from "../observability/memory-graph-routes.js";
+import {
+  emitBlockCreated,
+  emitBlockUpdated,
+  emitLinkCreated,
+  emitLinkRemoved,
+} from "../../websocket.js";
 
 export const graphRouter = Router();
 
@@ -208,6 +214,18 @@ graphRouter.post(
         sessionId,
       });
 
+      // Broadcast block_created event via WebSocket
+      emitBlockCreated(sessionId, {
+        id: blockId,
+        type: data.type,
+        content: data.content,
+        properties: data.properties,
+        status: data.status,
+        confidence: data.confidence,
+        abstractionLevel: data.abstractionLevel,
+        graphMembership: data.graphMembership,
+      });
+
       return res.status(201).json({
         id: blockId,
         sessionId,
@@ -329,6 +347,18 @@ graphRouter.patch(
         sessionId,
       });
 
+      // Broadcast block_updated event via WebSocket
+      emitBlockUpdated(sessionId, {
+        id: blockId,
+        type: data.type,
+        content: data.content,
+        properties: data.properties,
+        status: data.status,
+        confidence: data.confidence,
+        abstractionLevel: data.abstractionLevel,
+        graphMembership: data.graphMembership,
+      });
+
       return res.json({ success: true, updatedAt: now });
     } catch (error) {
       console.error("Error updating block:", error);
@@ -379,6 +409,12 @@ graphRouter.delete(
           sessionId,
         });
       }
+
+      // Broadcast block_updated event with 'abandoned' status to signal deletion
+      emitBlockUpdated(sessionId, {
+        id: blockId,
+        status: "abandoned",
+      });
 
       return res.json({ success: true });
     } catch (error) {
@@ -451,6 +487,17 @@ graphRouter.post(
         affectedBlocks: [data.sourceBlockId, data.targetBlockId],
       });
 
+      // Broadcast link_created event via WebSocket
+      emitLinkCreated(sessionId, {
+        id: linkId,
+        link_type: data.linkType,
+        source: data.sourceBlockId,
+        target: data.targetBlockId,
+        degree: data.degree,
+        confidence: data.confidence,
+        reason: data.reason,
+      });
+
       return res.status(201).json({
         id: linkId,
         sessionId,
@@ -507,6 +554,11 @@ graphRouter.delete(
           affectedBlocks: [link.source_block_id, link.target_block_id],
         });
       }
+
+      // Broadcast link_removed event via WebSocket
+      emitLinkRemoved(sessionId, {
+        id: linkId,
+      });
 
       return res.json({ success: true });
     } catch (error) {
@@ -935,6 +987,15 @@ graphRouter.post(
                 }
               }
 
+              // Broadcast block_created event via WebSocket
+              emitBlockCreated(sessionId, {
+                id: blockId,
+                type: change.blockType || "content",
+                content: change.content,
+                confidence: change.confidence || 0.8,
+                graphMembership: change.graphMembership,
+              });
+
               blocksCreated++;
             } else if (change.type === "create_link") {
               if (change.sourceBlockId && change.targetBlockId) {
@@ -954,6 +1015,15 @@ graphRouter.post(
                     now,
                   ],
                 );
+
+                // Broadcast link_created event via WebSocket
+                emitLinkCreated(sessionId, {
+                  id: linkId,
+                  link_type: change.linkType || "relates_to",
+                  source: change.sourceBlockId,
+                  target: change.targetBlockId,
+                  confidence: change.confidence || 0.8,
+                });
 
                 linksCreated++;
               }

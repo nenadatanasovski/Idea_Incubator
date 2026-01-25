@@ -13,6 +13,7 @@
 
 import { useCallback, useState, useRef, useEffect } from "react";
 import type { GraphFilters as GraphFiltersType } from "../../types/graph";
+import { GraphFilters } from "./GraphFilters";
 
 // ============================================================================
 // Types for AI Prompt
@@ -87,6 +88,13 @@ export interface GraphControlsProps {
   searchQuery?: string;
   searchResultCount?: number;
   totalNodeCount?: number;
+
+  // Filters (dropdown mode)
+  filters?: GraphFiltersType;
+  onFiltersChange?: (filters: GraphFiltersType) => void;
+  onFiltersReset?: () => void;
+  nodeCount?: number;
+  filteredNodeCount?: number;
 
   className?: string;
 }
@@ -168,15 +176,23 @@ export function GraphControls({
   searchQuery = "",
   searchResultCount,
   totalNodeCount,
+  filters,
+  onFiltersChange,
+  onFiltersReset,
+  nodeCount,
+  filteredNodeCount,
   className = "",
 }: GraphControlsProps) {
   const [isLayoutDropdownOpen, setIsLayoutDropdownOpen] = useState(false);
   const [isAiPopupOpen, setIsAiPopupOpen] = useState(false);
   const [isSearchPopupOpen, setIsSearchPopupOpen] = useState(false);
+  const [isFiltersPopupOpen, setIsFiltersPopupOpen] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const searchPopupRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const filtersButtonRef = useRef<HTMLButtonElement>(null);
+  const filtersPopupRef = useRef<HTMLDivElement>(null);
   const [prompt, setPrompt] = useState("");
   const [isPromptLoading, setIsPromptLoading] = useState(false);
   const [promptError, setPromptError] = useState<string | null>(null);
@@ -234,6 +250,28 @@ export function GraphControls({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isSearchPopupOpen]);
+
+  // Close filters popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        filtersPopupRef.current &&
+        !filtersPopupRef.current.contains(event.target as Node) &&
+        filtersButtonRef.current &&
+        !filtersButtonRef.current.contains(event.target as Node)
+      ) {
+        setIsFiltersPopupOpen(false);
+      }
+    };
+
+    if (isFiltersPopupOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isFiltersPopupOpen]);
 
   // Sync local search query with prop
   useEffect(() => {
@@ -370,6 +408,74 @@ export function GraphControls({
       {/* Divider */}
       {showConnectionStatus && isConnected !== undefined && (
         <div className="w-px h-6 bg-gray-200" />
+      )}
+
+      {/* Filters Button with Dropdown */}
+      {filters && onFiltersChange && (
+        <>
+          <div className="relative">
+            <button
+              ref={filtersButtonRef}
+              onClick={() => {
+                setIsFiltersPopupOpen(!isFiltersPopupOpen);
+                if (!isFiltersPopupOpen) {
+                  setIsAiPopupOpen(false);
+                  setIsSearchPopupOpen(false);
+                }
+              }}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded transition-colors ${
+                isFiltersPopupOpen ||
+                (filteredNodeCount !== undefined &&
+                  nodeCount !== undefined &&
+                  filteredNodeCount < nodeCount)
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100 text-gray-600"
+              }`}
+              title="Filter nodes"
+              data-testid="filters-button"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+              <span className="text-xs font-medium">Filters</span>
+              {filteredNodeCount !== undefined &&
+                nodeCount !== undefined &&
+                filteredNodeCount < nodeCount && (
+                  <span className="px-1.5 py-0.5 text-[10px] bg-blue-500 text-white rounded-full">
+                    {filteredNodeCount}/{nodeCount}
+                  </span>
+                )}
+            </button>
+
+            {/* Filters Popup */}
+            {isFiltersPopupOpen && (
+              <div
+                ref={filtersPopupRef}
+                className="absolute top-full left-0 mt-2 w-80 max-h-[70vh] overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                data-testid="filters-popup"
+              >
+                <GraphFilters
+                  filters={filters}
+                  onFiltersChange={onFiltersChange}
+                  onReset={onFiltersReset || (() => {})}
+                  nodeCount={nodeCount}
+                  filteredNodeCount={filteredNodeCount}
+                />
+              </div>
+            )}
+          </div>
+          <div className="w-px h-6 bg-gray-200" />
+        </>
       )}
 
       {/* AI Prompt Button with Popup */}

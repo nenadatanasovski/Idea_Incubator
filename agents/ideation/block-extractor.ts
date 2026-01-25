@@ -107,8 +107,14 @@ For each block, determine:
 - content: The actual content/text (keep it concise but complete)
 - confidence: 0.0-1.0 how confident this information is correct
 - graph_membership: Which graphs this belongs to: problem, solution, market, risk, fit, business, spec
-- properties: Any structured data (numbers, dates, named entities)
+- properties: Any structured data (numbers, dates, named entities) including source attribution
 - abstraction_level: vision, strategy, tactic, or implementation
+
+For source attribution, extract when applicable and add to properties:
+- source_type: research_firm | primary_research | expert | anecdote | assumption | unknown
+- source_name: The name of the source (e.g., "Gartner 2025 Report", "Interview with John Smith")
+- source_date: When the source was published or obtained (ISO format, e.g., "2025-03-15")
+- verifiable: true if the claim can be independently verified, false otherwise
 
 For links between blocks, identify:
 - source_content_match: Content of the source block
@@ -128,7 +134,11 @@ Return JSON only, no markdown:
       "graph_membership": ["market"],
       "properties": {
         "market_size": 50000000000,
-        "market": "Legal tech"
+        "market": "Legal tech",
+        "source_type": "research_firm",
+        "source_name": "Gartner 2025 Legal Tech Report",
+        "source_date": "2025-03-15",
+        "verifiable": true
       },
       "abstraction_level": "strategy"
     }

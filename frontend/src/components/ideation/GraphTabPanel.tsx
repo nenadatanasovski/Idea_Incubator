@@ -118,6 +118,15 @@ export interface GraphTabPanelProps {
   onUpdateMemoryGraph?: () => void;
   isAnalyzingGraph?: boolean;
   pendingGraphChanges?: number;
+  // Source navigation callbacks
+  onNavigateToChatMessage?: (messageId: string, turnIndex?: number) => void;
+  onNavigateToArtifact?: (artifactId: string, section?: string) => void;
+  onNavigateToMemoryDB?: (tableName: string, blockId?: string) => void;
+  onNavigateToExternal?: (url: string) => void;
+  // Selection actions for the selected node
+  onLinkNode?: (nodeId: string) => void;
+  onGroupIntoSynthesis?: (nodeId: string) => void;
+  onDeleteNode?: (nodeId: string) => void;
 }
 
 /**
@@ -148,6 +157,13 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   onUpdateMemoryGraph,
   isAnalyzingGraph = false,
   pendingGraphChanges = 0,
+  onNavigateToChatMessage,
+  onNavigateToArtifact,
+  onNavigateToMemoryDB,
+  onNavigateToExternal,
+  onLinkNode,
+  onGroupIntoSynthesis,
+  onDeleteNode,
 }: GraphTabPanelProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
@@ -211,6 +227,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
         blockTypes: filters.blockTypes || [],
         statuses: filters.statuses || [],
         abstractionLevels: filters.abstractionLevels || [],
+        sourceTypes: filters.sourceTypes || [],
         confidenceRange: filters.confidenceRange || [0, 1],
       });
     },
@@ -372,6 +389,13 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               sessionId={sessionId}
               onPromptHighlight={handlePromptHighlight}
               onPromptFilterChange={handlePromptFilterChange}
+              onNavigateToChatMessage={onNavigateToChatMessage}
+              onNavigateToArtifact={onNavigateToArtifact}
+              onNavigateToMemoryDB={onNavigateToMemoryDB}
+              onNavigateToExternal={onNavigateToExternal}
+              onLinkNode={onLinkNode}
+              onGroupIntoSynthesis={onGroupIntoSynthesis}
+              onDeleteNode={onDeleteNode}
               className="h-full"
             />
           </Suspense>

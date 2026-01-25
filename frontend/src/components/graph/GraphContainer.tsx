@@ -11,10 +11,12 @@ import type {
 } from "../../types/graph";
 import { GraphCanvas, GraphCanvasHandle } from "./GraphCanvas";
 import { NodeInspector, RelationshipHoverInfo } from "./NodeInspector";
-import { GraphFilters } from "./GraphFilters";
 import { GraphLegend } from "./GraphLegend";
 import { GraphControls } from "./GraphControls";
 import { useGraphFilters } from "./hooks/useGraphFilters";
+import { CycleIndicator } from "./CycleIndicator";
+import { GraphQuickActions } from "./GraphQuickActions";
+import { analyzeCycles } from "./utils/cycleDetection";
 
 export interface GraphContainerProps {
   nodes: GraphNode[];
@@ -47,6 +49,15 @@ export interface GraphContainerProps {
   sessionId?: string;
   onPromptHighlight?: (nodeIds: string[]) => void;
   onPromptFilterChange?: (filters: Partial<GraphFiltersType>) => void;
+  // Source navigation callbacks
+  onNavigateToChatMessage?: (messageId: string, turnIndex?: number) => void;
+  onNavigateToArtifact?: (artifactId: string, section?: string) => void;
+  onNavigateToMemoryDB?: (tableName: string, blockId?: string) => void;
+  onNavigateToExternal?: (url: string) => void;
+  // Selection actions
+  onLinkNode?: (nodeId: string) => void;
+  onGroupIntoSynthesis?: (nodeId: string) => void;
+  onDeleteNode?: (nodeId: string) => void;
 }
 
 /**
@@ -133,38 +144,70 @@ export function GraphContainer({
   sessionId,
   onPromptHighlight,
   onPromptFilterChange,
+  onNavigateToChatMessage,
+  onNavigateToArtifact,
+  onNavigateToMemoryDB,
+  onNavigateToExternal,
+  onLinkNode,
+  onGroupIntoSynthesis,
+  onDeleteNode,
 }: GraphContainerProps) {
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [hoveredRelationship, setHoveredRelationship] =
     useState<RelationshipHoverInfo | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [cycleNodeIds, setCycleNodeIds] = useState<Set<string>>(new Set());
+  const [hoveredCycleNodeId, setHoveredCycleNodeId] = useState<string | null>(
+    null,
+  );
+  const [hoveredCycleNodeIds, setHoveredCycleNodeIds] = useState<string[]>([]);
+  // Track which bottom pill is expanded - only one at a time
+  const [expandedPill, setExpandedPill] = useState<
+    "actions" | "cycles" | "legend" | null
+  >(null);
 
-  // Compute highlighted node and edge IDs from hovered relationship
+  // Compute highlighted node and edge IDs from hovered relationship or cycle node
   const highlightedNodeIds = useMemo(() => {
+    // Cycle card header hover - highlight all nodes in the cycle
+    if (hoveredCycleNodeIds.length > 0) {
+      return hoveredCycleNodeIds;
+    }
+    // Single cycle node hover takes priority
+    if (hoveredCycleNodeId) {
+      return [hoveredCycleNodeId];
+    }
     if (!hoveredRelationship) return [];
     return [
       hoveredRelationship.currentNodeId,
       hoveredRelationship.relatedNodeId,
     ];
-  }, [hoveredRelationship]);
+  }, [hoveredRelationship, hoveredCycleNodeId, hoveredCycleNodeIds]);
 
   const highlightedEdgeIds = useMemo(() => {
     if (!hoveredRelationship) return [];
     return [hoveredRelationship.edgeId];
   }, [hoveredRelationship]);
 
+  // Analyze graph for cycles (T7.2)
+  const cycleAnalysis = useMemo(() => {
+    return analyzeCycles(nodes, edges);
+  }, [nodes, edges]);
+
+  const hasCycles = cycleAnalysis.cycles.length > 0;
+
   // Use the filter hook for managing filter state
   const {
     graphFilter,
     blockTypeFilter,
     statusFilter,
+    abstractionFilter,
     confidenceRange,
     setGraphFilter,
     setBlockTypeFilter,
     setStatusFilter,
+    setAbstractionFilter,
     setConfidenceRange,
     filteredNodes,
     filteredEdges,
@@ -177,7 +220,8 @@ export function GraphContainer({
     graphTypes: graphFilter,
     blockTypes: blockTypeFilter,
     statuses: statusFilter,
-    abstractionLevels: [],
+    abstractionLevels: abstractionFilter,
+    sourceTypes: [],
     confidenceRange: [confidenceRange.min, confidenceRange.max],
   };
 
@@ -187,17 +231,60 @@ export function GraphContainer({
       setGraphFilter(newFilters.graphTypes);
       setBlockTypeFilter(newFilters.blockTypes);
       setStatusFilter(newFilters.statuses);
+      setAbstractionFilter(newFilters.abstractionLevels);
       setConfidenceRange({
         min: newFilters.confidenceRange[0],
         max: newFilters.confidenceRange[1],
       });
     },
-    [setGraphFilter, setBlockTypeFilter, setStatusFilter, setConfidenceRange],
+    [
+      setGraphFilter,
+      setBlockTypeFilter,
+      setStatusFilter,
+      setAbstractionFilter,
+      setConfidenceRange,
+    ],
   );
 
   // Handle search query change
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query);
+  }, []);
+
+  // Handle cycle node IDs from CycleIndicator for canvas highlighting
+  const handleCycleNodeIds = useCallback((nodeIds: string[]) => {
+    setCycleNodeIds(new Set(nodeIds));
+  }, []);
+
+  // Handle pill expansion - only one can be expanded at a time
+  const handleActionsExpandedChange = useCallback((expanded: boolean) => {
+    setExpandedPill(expanded ? "actions" : null);
+  }, []);
+
+  const handleCyclesExpandedChange = useCallback((expanded: boolean) => {
+    setExpandedPill(expanded ? "cycles" : null);
+  }, []);
+
+  const handleLegendExpandedChange = useCallback((expanded: boolean) => {
+    setExpandedPill(expanded ? "legend" : null);
+  }, []);
+
+  // Handle cycle member row hover - highlight node and zoom to it
+  const handleCycleNodeHover = useCallback((nodeId: string | null) => {
+    setHoveredCycleNodeId(nodeId);
+    if (nodeId) {
+      // Zoom to show the hovered node in center view
+      graphCanvasRef.current?.fitNodesInView([nodeId]);
+    }
+  }, []);
+
+  // Handle cycle card header hover - highlight all cycle nodes and zoom to fit them
+  const handleCycleHover = useCallback((nodeIds: string[] | null) => {
+    setHoveredCycleNodeIds(nodeIds || []);
+    if (nodeIds && nodeIds.length > 0) {
+      // Zoom to show all cycle nodes in view
+      graphCanvasRef.current?.fitNodesInView(nodeIds);
+    }
   }, []);
 
   // Apply search filtering to nodes
@@ -229,25 +316,41 @@ export function GraphContainer({
       return false;
     });
 
-    // If hovering over a relationship, temporarily include the related node
+    // If hovering over a relationship or cycle node, temporarily include the node
     // even if it's hidden by the search filter or other filters
-    if (hoveredRelationship) {
-      const matchedNodeIds = new Set(matchedNodes.map((n) => n.id));
-      const relatedNodeId = hoveredRelationship.relatedNodeId;
+    let result = matchedNodes;
+    const matchedNodeIds = new Set(matchedNodes.map((n) => n.id));
 
+    if (hoveredRelationship) {
+      const relatedNodeId = hoveredRelationship.relatedNodeId;
       // Check if the related node is not already in the matched nodes
       if (!matchedNodeIds.has(relatedNodeId)) {
         // Find the related node from the full nodes list (not filtered)
         // because the NodeInspector shows all relationships regardless of filters
         const relatedNode = nodes.find((n) => n.id === relatedNodeId);
         if (relatedNode) {
-          return [...matchedNodes, relatedNode];
+          result = [...result, relatedNode];
+          matchedNodeIds.add(relatedNodeId);
         }
       }
     }
 
-    return matchedNodes;
-  }, [filteredNodes, nodes, searchQuery, hoveredRelationship]);
+    // Also include hovered cycle node if filtered out
+    if (hoveredCycleNodeId && !matchedNodeIds.has(hoveredCycleNodeId)) {
+      const hoveredNode = nodes.find((n) => n.id === hoveredCycleNodeId);
+      if (hoveredNode) {
+        result = [...result, hoveredNode];
+      }
+    }
+
+    return result;
+  }, [
+    filteredNodes,
+    nodes,
+    searchQuery,
+    hoveredRelationship,
+    hoveredCycleNodeId,
+  ]);
 
   // Filter edges to only include those between search-filtered nodes
   const searchFilteredEdges = useMemo(() => {
@@ -285,41 +388,56 @@ export function GraphContainer({
     hoveredRelationship,
   ]);
 
-  // Compute which nodes are temporarily visible (due to relationship hover but normally filtered)
+  // Compute which nodes are temporarily visible (due to relationship/cycle hover but normally filtered)
   const temporarilyVisibleNodeIds = useMemo(() => {
-    if (!hoveredRelationship || !searchQuery.trim()) {
-      return new Set<string>();
-    }
+    const tempVisible = new Set<string>();
 
-    const relatedNodeId = hoveredRelationship.relatedNodeId;
+    // Helper to check if a node would normally be visible
+    const isNodeNormallyVisible = (nodeId: string) => {
+      const node = nodes.find((n) => n.id === nodeId);
+      if (!node) return false;
 
-    // Check if the related node would normally be in the search results
-    const lowerQuery = searchQuery.toLowerCase().trim();
-    const relatedNode = nodes.find((n) => n.id === relatedNodeId);
+      // Check if node passes filters
+      const isInFilteredNodes = filteredNodes.some((n) => n.id === nodeId);
+      if (!isInFilteredNodes) return false;
 
-    if (!relatedNode) {
-      return new Set<string>();
-    }
+      // If no search query, node is visible
+      if (!searchQuery.trim()) return true;
 
-    // Check if the node matches the search query
-    const matchesSearch =
-      relatedNode.content?.toLowerCase().includes(lowerQuery) ||
-      relatedNode.label?.toLowerCase().includes(lowerQuery) ||
-      relatedNode.blockType?.toLowerCase().includes(lowerQuery) ||
-      relatedNode.graphMembership?.some((g) =>
-        g.toLowerCase().includes(lowerQuery),
+      // Check if node matches search query
+      const lowerQuery = searchQuery.toLowerCase().trim();
+      return (
+        node.content?.toLowerCase().includes(lowerQuery) ||
+        node.label?.toLowerCase().includes(lowerQuery) ||
+        node.blockType?.toLowerCase().includes(lowerQuery) ||
+        node.graphMembership?.some((g) =>
+          g.toLowerCase().includes(lowerQuery),
+        ) ||
+        false
       );
+    };
 
-    // Check if the node is in the filtered nodes (passes other filters)
-    const isInFilteredNodes = filteredNodes.some((n) => n.id === relatedNodeId);
-
-    // If the node doesn't match search OR isn't in filtered nodes, it's temporarily visible
-    if (!matchesSearch || !isInFilteredNodes) {
-      return new Set([relatedNodeId]);
+    // Check hovered relationship node
+    if (hoveredRelationship) {
+      const relatedNodeId = hoveredRelationship.relatedNodeId;
+      if (!isNodeNormallyVisible(relatedNodeId)) {
+        tempVisible.add(relatedNodeId);
+      }
     }
 
-    return new Set<string>();
-  }, [hoveredRelationship, searchQuery, nodes, filteredNodes]);
+    // Check hovered cycle node
+    if (hoveredCycleNodeId && !isNodeNormallyVisible(hoveredCycleNodeId)) {
+      tempVisible.add(hoveredCycleNodeId);
+    }
+
+    return tempVisible;
+  }, [
+    hoveredRelationship,
+    hoveredCycleNodeId,
+    searchQuery,
+    nodes,
+    filteredNodes,
+  ]);
 
   // Compute which edges are temporarily visible
   const temporarilyVisibleEdgeIds = useMemo(() => {
@@ -429,31 +547,6 @@ export function GraphContainer({
 
   return (
     <div className={`flex h-full ${className}`} data-testid="graph-container">
-      {/* Left sidebar: Filters and Legend - Compact width to maximize graph space */}
-      {(showFilters || showLegend) && (
-        <div className="hidden lg:flex lg:flex-col w-56 flex-shrink-0 border-r border-gray-200 overflow-y-auto bg-gray-50">
-          {/* Filters */}
-          {showFilters && (
-            <GraphFilters
-              filters={currentFilters}
-              onFiltersChange={handleFiltersChange}
-              onReset={resetFilters}
-              nodeCount={nodes.length}
-              filteredNodeCount={filteredNodes.length}
-              className="border-b border-gray-200 rounded-none border-x-0"
-            />
-          )}
-
-          {/* Legend */}
-          {showLegend && (
-            <GraphLegend
-              className="border-none rounded-none"
-              defaultCollapsed={false}
-            />
-          )}
-        </div>
-      )}
-
       {/* Main Graph Area */}
       <div className="flex-1 min-w-0 min-h-0 h-full relative">
         <GraphCanvas
@@ -462,6 +555,7 @@ export function GraphContainer({
           edges={searchFilteredEdges}
           onNodeClick={handleNodeClick}
           onNodeHover={handleNodeHover}
+          onCanvasClick={handleCloseInspector}
           selectedNodeId={selectedNode?.id}
           hoveredNodeId={hoveredNode?.id}
           highlightedNodeIds={highlightedNodeIds}
@@ -470,6 +564,7 @@ export function GraphContainer({
           recentlyAddedEdgeIds={recentlyAddedEdgeIds}
           temporarilyVisibleNodeIds={temporarilyVisibleNodeIds}
           temporarilyVisibleEdgeIds={temporarilyVisibleEdgeIds}
+          cycleNodeIds={cycleNodeIds}
           className="h-full"
         />
 
@@ -511,78 +606,9 @@ export function GraphContainer({
           </div>
         )}
 
-        {/* Mobile Filter Toggle */}
-        {showFilters && (
-          <button
-            onClick={() => setShowFilterPanel(!showFilterPanel)}
-            className="lg:hidden absolute top-4 left-4 z-10 p-2 bg-white rounded-lg shadow-md border border-gray-200"
-            title="Toggle filters"
-          >
-            <svg
-              className="w-5 h-5 text-gray-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-              />
-            </svg>
-            {hasActiveFilters && (
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full" />
-            )}
-          </button>
-        )}
-
-        {/* Mobile Filter Panel Overlay */}
-        {showFilters && showFilterPanel && (
-          <div className="lg:hidden absolute inset-0 z-20 bg-black/50">
-            <div className="absolute left-0 top-0 bottom-0 w-72 bg-white overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
-                <span className="font-medium text-gray-900">Filters</span>
-                <button
-                  onClick={() => setShowFilterPanel(false)}
-                  className="p-1 rounded hover:bg-gray-100"
-                >
-                  <svg
-                    className="w-5 h-5 text-gray-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <GraphFilters
-                filters={currentFilters}
-                onFiltersChange={handleFiltersChange}
-                onReset={resetFilters}
-                nodeCount={nodes.length}
-                filteredNodeCount={filteredNodes.length}
-                className="border-none rounded-none"
-              />
-              {showLegend && (
-                <GraphLegend
-                  className="border-none rounded-none"
-                  defaultCollapsed
-                />
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Top Controls Bar - Using GraphControls component */}
         {showControls && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
+          <div className="absolute top-4 left-4 z-10">
             <GraphControls
               onRefresh={onRefresh}
               isRefreshing={isRefreshing}
@@ -603,6 +629,11 @@ export function GraphContainer({
               searchQuery={searchQuery}
               searchResultCount={searchFilteredNodes.length}
               totalNodeCount={filteredNodes.length}
+              filters={showFilters ? currentFilters : undefined}
+              onFiltersChange={showFilters ? handleFiltersChange : undefined}
+              onFiltersReset={showFilters ? resetFilters : undefined}
+              nodeCount={nodes.length}
+              filteredNodeCount={filteredNodes.length}
             />
           </div>
         )}
@@ -624,8 +655,17 @@ export function GraphContainer({
           </div>
         )}
 
-        {/* Stats badge - single container to prevent overlap */}
-        <div className="absolute bottom-4 left-4 z-10">
+        {/* Bottom Left - Legend pill and stats */}
+        <div className="absolute bottom-4 left-4 z-10 flex flex-col items-start gap-2">
+          {/* Legend Pill */}
+          {showLegend && (
+            <GraphLegend
+              isExpanded={expandedPill === "legend"}
+              onExpandedChange={handleLegendExpandedChange}
+            />
+          )}
+
+          {/* Stats badge */}
           {hasActiveFilters || searchQuery ? (
             <div className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs flex items-center gap-2">
               <span>
@@ -661,6 +701,36 @@ export function GraphContainer({
             </div>
           )}
         </div>
+
+        {/* Bottom Right Pills - Actions and Cycles (only one expanded at a time) */}
+        <div className="absolute bottom-4 right-4 z-10 flex items-end gap-2">
+          {/* Quick Actions Pill */}
+          {sessionId && (
+            <GraphQuickActions
+              sessionId={sessionId}
+              selectedNodeIds={selectedNode ? [selectedNode.id] : []}
+              onActionComplete={onRefresh || (() => {})}
+              disabled={isLoading || isAnalyzingGraph}
+              isExpanded={expandedPill === "actions"}
+              onExpandedChange={handleActionsExpandedChange}
+            />
+          )}
+
+          {/* Cycle Indicator Pill */}
+          {hasCycles && (
+            <CycleIndicator
+              nodes={nodes}
+              edges={edges}
+              showAll
+              onNodeClick={handleInspectorNodeClick}
+              onNodeHover={handleCycleNodeHover}
+              onCycleHover={handleCycleHover}
+              onCycleNodeIds={handleCycleNodeIds}
+              isExpanded={expandedPill === "cycles"}
+              onExpandedChange={handleCyclesExpandedChange}
+            />
+          )}
+        </div>
       </div>
 
       {/* Inspector Panel (right side)
@@ -676,6 +746,13 @@ export function GraphContainer({
           onClose={handleCloseInspector}
           onNodeClick={handleInspectorNodeClick}
           onRelationshipHover={handleRelationshipHover}
+          onNavigateToChatMessage={onNavigateToChatMessage}
+          onNavigateToArtifact={onNavigateToArtifact}
+          onNavigateToMemoryDB={onNavigateToMemoryDB}
+          onNavigateToExternal={onNavigateToExternal}
+          onLinkNode={onLinkNode}
+          onGroupIntoSynthesis={onGroupIntoSynthesis}
+          onDeleteNode={onDeleteNode}
         />
       )}
     </div>

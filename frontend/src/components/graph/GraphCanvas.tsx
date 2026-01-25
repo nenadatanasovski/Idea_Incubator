@@ -114,6 +114,8 @@ export interface GraphCanvasProps {
   onNodeClick?: (node: GraphNode) => void;
   onNodeHover?: (node: GraphNode | null) => void;
   onEdgeClick?: (edge: GraphEdge) => void;
+  /** Called when clicking on empty canvas area (not on a node) */
+  onCanvasClick?: () => void;
   selectedNodeId?: string | null;
   hoveredNodeId?: string | null;
   highlightedNodeIds?: string[];
@@ -124,6 +126,8 @@ export interface GraphCanvasProps {
   temporarilyVisibleNodeIds?: Set<string>;
   /** Edges temporarily visible due to relationship hover (shown with reduced opacity) */
   temporarilyVisibleEdgeIds?: Set<string>;
+  /** Node IDs involved in cycles - will be highlighted with red glow */
+  cycleNodeIds?: Set<string>;
   layoutType?: LayoutType;
   className?: string;
 }
@@ -146,6 +150,7 @@ function toReagraphNode(
   isRecentlyAdded: boolean,
   hasFileReferences: boolean,
   isTemporarilyVisible: boolean,
+  isInCycle: boolean,
 ) {
   const size = calculateNodeSize(node.confidence, connectionCount);
   const baseOpacity = getNodeOpacity(node.confidence);
@@ -203,10 +208,24 @@ function toReagraphNode(
     !isRecentlyAdded &&
     !isTemporarilyVisible &&
     !isHighlighted &&
-    !isHovered
+    !isHovered &&
+    !isInCycle
   ) {
     stroke = "#8B5CF6"; // Purple for file-referenced nodes
     strokeWidth = 2.5;
+  }
+
+  // Cycle nodes get a red glow effect (lower priority than selected/hovered)
+  if (
+    isInCycle &&
+    !isSelected &&
+    !isHovered &&
+    !isRecentlyAdded &&
+    !isTemporarilyVisible
+  ) {
+    stroke = "#EF4444"; // Red-500 for cycle warning
+    strokeWidth = 4;
+    opacity = Math.max(opacity, 0.9); // Ensure cycle nodes are visible
   }
 
   // Use full content for label
@@ -317,6 +336,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       onNodeClick,
       onNodeHover,
       onEdgeClick,
+      onCanvasClick: onCanvasClickProp,
       selectedNodeId,
       hoveredNodeId,
       highlightedNodeIds = [],
@@ -325,6 +345,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       recentlyAddedEdgeIds = new Set(),
       temporarilyVisibleNodeIds = new Set(),
       temporarilyVisibleEdgeIds = new Set(),
+      cycleNodeIds = new Set(),
       layoutType = "forceDirected",
       className = "",
     },
@@ -341,7 +362,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         },
         fitNodesInView: (nodeIds?: string[]) => {
           // Use extra padding when fitting multiple nodes to ensure all are visible
-          const padding = nodeIds && nodeIds.length > 1 ? 150 : 100;
+          // For relationship hover (2 nodes), use 50% more padding so nodes aren't too large
+          const padding = nodeIds && nodeIds.length > 1 ? 225 : 100;
           graphRef.current?.fitNodesInView(nodeIds, { padding });
         },
         centerGraph: () => {
@@ -441,6 +463,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           recentlyAddedNodeIds.has(node.id),
           Boolean(node.fileReferences && node.fileReferences.length > 0),
           temporarilyVisibleNodeIds.has(node.id),
+          cycleNodeIds.has(node.id),
         ),
       );
     }, [
@@ -452,6 +475,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       highlightedSet,
       recentlyAddedNodeIds,
       temporarilyVisibleNodeIds,
+      cycleNodeIds,
     ]);
 
     // Transform edges to Reagraph format
@@ -484,7 +508,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       selections,
       actives: selectionActives,
       onNodeClick: handleReagraphNodeClick,
-      onCanvasClick,
+      onCanvasClick: reagraphOnCanvasClick,
     } = useSelection({
       ref: graphRef,
       nodes: reagraphNodes,
@@ -492,6 +516,15 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       type: "single",
       pathSelectionType: "direct",
     });
+
+    // Wrapper to call both reagraph's internal handler and our prop callback
+    const handleCanvasClick = useCallback(
+      (event: MouseEvent) => {
+        reagraphOnCanvasClick?.(event);
+        onCanvasClickProp?.();
+      },
+      [reagraphOnCanvasClick, onCanvasClickProp],
+    );
 
     // Compute effective hovered ID once
     const effectiveHoveredId = hoveredNodeId ?? internalHoveredId;
@@ -760,7 +793,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           onNodePointerOver={handleNodePointerOver as never}
           onNodePointerOut={handleNodePointerOut}
           onEdgeClick={handleEdgeClick as never}
-          onCanvasClick={onCanvasClick}
+          onCanvasClick={handleCanvasClick}
           layoutType={mapLayoutType(layoutType)}
           layoutOverrides={{
             nodeStrength: -100,

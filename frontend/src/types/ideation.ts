@@ -101,6 +101,7 @@ export interface ConversationPanelProps {
   error?: string | null;
   subAgents?: SubAgent[];
   triggerMessageId?: string | null;
+  highlightedMessageId?: string; // Message to scroll to and highlight (from graph navigation)
   onSendMessage: (message: string) => void;
   onStopGeneration?: () => void;
   onButtonClick: (
@@ -129,6 +130,7 @@ export interface MessageListProps {
   isLoading: boolean;
   subAgents?: SubAgent[];
   triggerMessageId?: string | null;
+  highlightedMessageId?: string; // Message to highlight (from graph navigation)
 }
 
 export interface AgentMessageProps {

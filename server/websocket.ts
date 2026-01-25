@@ -48,7 +48,12 @@ export type IdeationEventType =
   | "spec:generating" // Spec generation started
   | "spec:generated" // Spec generation complete
   | "spec:updated" // Spec content changed
-  | "spec:workflow:changed"; // Workflow state changed
+  | "spec:workflow:changed" // Workflow state changed
+  // Graph/block events for real-time updates
+  | "block_created" // Memory block created
+  | "block_updated" // Memory block updated
+  | "link_created" // Memory link created
+  | "link_removed"; // Memory link removed
 
 // Event types for agent/monitoring system (WSK-001)
 export type AgentEventType =
@@ -911,6 +916,186 @@ export function emitSubAgentResult(
     subAgentId,
     subAgentStatus: "completed" as SubAgentStatus,
     result,
+  });
+}
+
+// ============================================
+// Graph Event Functions (Real-time Graph Updates)
+// ============================================
+
+/**
+ * Payload interface for block_created events
+ */
+export interface BlockCreatedPayload {
+  id: string;
+  type?: string;
+  content?: string;
+  properties?: Record<string, unknown>;
+  status?: string;
+  confidence?: number;
+  abstractionLevel?: string;
+  graphMembership?: string[];
+}
+
+/**
+ * Payload interface for block_updated events
+ */
+export interface BlockUpdatedPayload {
+  id: string;
+  type?: string;
+  content?: string;
+  properties?: Record<string, unknown>;
+  status?: string;
+  confidence?: number;
+  abstractionLevel?: string;
+  graphMembership?: string[];
+}
+
+/**
+ * Payload interface for link_created events
+ */
+export interface LinkCreatedPayload {
+  id: string;
+  link_type: string;
+  source: string;
+  target: string;
+  degree?: string;
+  confidence?: number;
+  reason?: string;
+}
+
+/**
+ * Payload interface for link_removed events
+ */
+export interface LinkRemovedPayload {
+  id: string;
+}
+
+/**
+ * Emit a block_created event to all clients in a session
+ */
+export function emitBlockCreated(
+  sessionId: string,
+  payload: BlockCreatedPayload,
+): void {
+  const room = sessionRooms.get(sessionId);
+  if (!room || room.size === 0) {
+    console.log(
+      `[WS] No clients in session ${sessionId} to receive block_created event`,
+    );
+    return;
+  }
+
+  const message = JSON.stringify({
+    type: "block_created",
+    payload,
+    timestamp: new Date().toISOString(),
+  });
+
+  console.log(
+    `[WS] Broadcasting block_created to ${room.size} clients in session ${sessionId}`,
+  );
+
+  room.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
+/**
+ * Emit a block_updated event to all clients in a session
+ */
+export function emitBlockUpdated(
+  sessionId: string,
+  payload: BlockUpdatedPayload,
+): void {
+  const room = sessionRooms.get(sessionId);
+  if (!room || room.size === 0) {
+    console.log(
+      `[WS] No clients in session ${sessionId} to receive block_updated event`,
+    );
+    return;
+  }
+
+  const message = JSON.stringify({
+    type: "block_updated",
+    payload,
+    timestamp: new Date().toISOString(),
+  });
+
+  console.log(
+    `[WS] Broadcasting block_updated to ${room.size} clients in session ${sessionId}`,
+  );
+
+  room.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
+/**
+ * Emit a link_created event to all clients in a session
+ */
+export function emitLinkCreated(
+  sessionId: string,
+  payload: LinkCreatedPayload,
+): void {
+  const room = sessionRooms.get(sessionId);
+  if (!room || room.size === 0) {
+    console.log(
+      `[WS] No clients in session ${sessionId} to receive link_created event`,
+    );
+    return;
+  }
+
+  const message = JSON.stringify({
+    type: "link_created",
+    payload,
+    timestamp: new Date().toISOString(),
+  });
+
+  console.log(
+    `[WS] Broadcasting link_created to ${room.size} clients in session ${sessionId}`,
+  );
+
+  room.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
+/**
+ * Emit a link_removed event to all clients in a session
+ */
+export function emitLinkRemoved(
+  sessionId: string,
+  payload: LinkRemovedPayload,
+): void {
+  const room = sessionRooms.get(sessionId);
+  if (!room || room.size === 0) {
+    console.log(
+      `[WS] No clients in session ${sessionId} to receive link_removed event`,
+    );
+    return;
+  }
+
+  const message = JSON.stringify({
+    type: "link_removed",
+    payload,
+    timestamp: new Date().toISOString(),
+  });
+
+  console.log(
+    `[WS] Broadcasting link_removed to ${room.size} clients in session ${sessionId}`,
+  );
+
+  room.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
   });
 }
 

@@ -13,12 +13,15 @@ import {
   MessageSquare,
   Network,
   AlertCircle,
+  FolderOpen,
+  FileText,
+  Database,
 } from "lucide-react";
 import { TokenUsageIndicator } from "./TokenUsageIndicator";
 import { IdeaSelector } from "./IdeaSelector";
 import type { IdeaCandidate } from "../../types/ideation";
 
-export type SessionTab = "chat" | "graph";
+export type SessionTab = "chat" | "graph" | "memory" | "files" | "spec";
 
 export interface SessionHeaderProps {
   sessionId: string;
@@ -46,6 +49,9 @@ export interface SessionHeaderProps {
   onTabChange: (tab: SessionTab) => void;
   graphUpdateCount?: number;
   hasGraphUpdates?: boolean;
+  // T9 props - Files and Spec tabs
+  hasSpec?: boolean;
+  filesCount?: number;
 }
 
 // Compact meter for header
@@ -106,11 +112,17 @@ function InlineTabs({
   onTabChange,
   graphUpdateCount = 0,
   hasGraphUpdates = false,
+  hasLinkedIdea = false,
+  hasSpec = false,
+  filesCount = 0,
 }: {
   activeTab: SessionTab;
   onTabChange: (tab: SessionTab) => void;
   graphUpdateCount?: number;
   hasGraphUpdates?: boolean;
+  hasLinkedIdea?: boolean;
+  hasSpec?: boolean;
+  filesCount?: number;
 }) {
   const getTabClass = (tabId: SessionTab) =>
     `flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
@@ -155,6 +167,47 @@ function InlineTabs({
           </span>
         )}
       </button>
+      {/* Memory Database tab - always available */}
+      <button
+        onClick={() => onTabChange("memory")}
+        className={getTabClass("memory")}
+        data-testid="memory-tab"
+      >
+        <Database className="w-3.5 h-3.5" />
+        <span>Memory DB</span>
+      </button>
+      {/* Files and Spec tabs - only show when idea is linked (T9.1) */}
+      {hasLinkedIdea && (
+        <>
+          <button
+            onClick={() => onTabChange("files")}
+            className={getTabClass("files")}
+            data-testid="files-tab"
+          >
+            <FolderOpen className="w-3.5 h-3.5" />
+            <span>Files</span>
+            {filesCount > 0 && (
+              <span className="ml-0.5 px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded-full text-[10px] font-medium">
+                {filesCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => onTabChange("spec")}
+            className={getTabClass("spec")}
+            data-testid="spec-tab"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Spec</span>
+            {hasSpec && (
+              <span
+                className="ml-0.5 w-2 h-2 bg-green-500 rounded-full"
+                title="Spec available"
+              />
+            )}
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -178,6 +231,8 @@ export function SessionHeader({
   onTabChange,
   graphUpdateCount = 0,
   hasGraphUpdates = false,
+  hasSpec = false,
+  filesCount = 0,
 }: SessionHeaderProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(candidate?.title || "");
@@ -308,6 +363,9 @@ export function SessionHeader({
             onTabChange={onTabChange}
             graphUpdateCount={graphUpdateCount}
             hasGraphUpdates={hasGraphUpdates}
+            hasLinkedIdea={Boolean(linkedIdea)}
+            hasSpec={hasSpec}
+            filesCount={filesCount}
           />
         </div>
       </div>

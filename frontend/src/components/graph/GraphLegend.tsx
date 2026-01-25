@@ -24,6 +24,10 @@ export interface GraphLegendProps {
   showNodeColors?: boolean;
   showNodeShapes?: boolean;
   showEdgeStyles?: boolean;
+  /** External control for expanded state */
+  isExpanded?: boolean;
+  /** Callback when expansion state changes */
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 // Human-readable labels for block types
@@ -237,18 +241,73 @@ function LegendSection({
 }
 
 /**
+ * Compact legend pill for minimized state
+ */
+function LegendPill({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-full shadow-sm transition-all hover:shadow-md"
+      data-testid="legend-pill"
+    >
+      <svg
+        className="w-4 h-4 text-gray-600"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+        />
+      </svg>
+      <span className="text-sm font-medium text-gray-700">Legend</span>
+      <svg
+        className="w-4 h-4 text-gray-500"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M5 15l7-7 7 7"
+        />
+      </svg>
+    </button>
+  );
+}
+
+/**
  * GraphLegend Component
  */
 export function GraphLegend({
   className = "",
-  defaultCollapsed = false,
+  defaultCollapsed = true,
   showNodeColors = true,
   showNodeShapes = true,
   showEdgeStyles = true,
+  isExpanded: externalExpanded,
+  onExpandedChange,
 }: GraphLegendProps) {
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  // Use external state if provided, otherwise use internal state
+  const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
+  const isCollapsed =
+    externalExpanded !== undefined ? !externalExpanded : internalCollapsed;
+
+  const setIsCollapsed = (collapsed: boolean) => {
+    if (onExpandedChange) {
+      onExpandedChange(!collapsed);
+    } else {
+      setInternalCollapsed(collapsed);
+    }
+  };
+
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(["colors", "shapes"]),
+    new Set(["colors", "shapes", "edges"]),
   );
 
   const toggleSection = useCallback((section: string) => {
@@ -268,19 +327,107 @@ export function GraphLegend({
     (type) => type !== "link",
   ) as BlockType[];
 
+  // Collapsed state - show pill
+  if (isCollapsed) {
+    return (
+      <div className={className} data-testid="graph-legend">
+        <LegendPill onClick={() => setIsCollapsed(false)} />
+      </div>
+    );
+  }
+
+  // Expanded state
   return (
     <div
-      className={`bg-white rounded-lg border border-gray-200 overflow-hidden ${className}`}
+      className={`bg-white rounded-lg shadow-lg border border-gray-200 w-72 ${className}`}
       data-testid="graph-legend"
     >
-      {/* Header - always visible */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="w-full px-3 py-2.5 flex items-center justify-between bg-gray-50 border-b border-gray-200"
-      >
-        <span className="flex items-center gap-2">
+      {/* Content */}
+      <div className="px-3 divide-y divide-gray-100">
+        {/* Node Colors (Block Types) */}
+        {showNodeColors && (
+          <LegendSection
+            title="Node Colors"
+            isExpanded={expandedSections.has("colors")}
+            onToggle={() => toggleSection("colors")}
+          >
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              {visibleBlockTypes.map((blockType) => (
+                <div key={blockType} className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: nodeColors[blockType] }}
+                  />
+                  <span className="text-xs text-gray-600 truncate">
+                    {BLOCK_TYPE_LABELS[blockType]}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </LegendSection>
+        )}
+
+        {/* Node Shapes (Graph Types) */}
+        {showNodeShapes && (
+          <LegendSection
+            title="Node Shapes"
+            isExpanded={expandedSections.has("shapes")}
+            onToggle={() => toggleSection("shapes")}
+          >
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              {(Object.keys(nodeShapes) as GraphType[]).map((graphType) => (
+                <div key={graphType} className="flex items-center gap-2">
+                  <ShapeIcon
+                    shape={nodeShapes[graphType]}
+                    color={graphColors[graphType]}
+                  />
+                  <span className="text-xs text-gray-600 truncate">
+                    {GRAPH_TYPE_LABELS[graphType]}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </LegendSection>
+        )}
+
+        {/* Edge Styles (Link Types) */}
+        {showEdgeStyles && (
+          <LegendSection
+            title="Edge Styles"
+            isExpanded={expandedSections.has("edges")}
+            onToggle={() => toggleSection("edges")}
+          >
+            <div className="space-y-3">
+              {Object.entries(EDGE_STYLE_GROUPS).map(([group, linkTypes]) => (
+                <div key={group}>
+                  <h5 className="text-xs font-medium text-gray-500 mb-1">
+                    {group}
+                  </h5>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    {linkTypes.map((linkType) => (
+                      <div key={linkType} className="flex items-center gap-2">
+                        <EdgeStyleLine
+                          color={edgeColors[linkType]}
+                          style={edgeStyles[linkType]}
+                        />
+                        <span className="text-xs text-gray-600 truncate">
+                          {LINK_TYPE_LABELS[linkType]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </LegendSection>
+        )}
+      </div>
+
+      {/* Footer with minimize button - stays at bottom */}
+      <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100">
+        <div className="flex items-center gap-2">
           <svg
-            className="w-4 h-4 text-gray-500"
+            className="w-4 h-4 text-gray-600"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -292,105 +439,29 @@ export function GraphLegend({
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
             />
           </svg>
-          <span className="text-sm font-medium text-gray-900">Legend</span>
-        </span>
-        <svg
-          className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? "" : "rotate-180"}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-
-      {/* Content - collapsible */}
-      {!isCollapsed && (
-        <div className="px-3 divide-y divide-gray-200">
-          {/* Node Colors (Block Types) */}
-          {showNodeColors && (
-            <LegendSection
-              title="Node Colors"
-              isExpanded={expandedSections.has("colors")}
-              onToggle={() => toggleSection("colors")}
-            >
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                {visibleBlockTypes.map((blockType) => (
-                  <div key={blockType} className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: nodeColors[blockType] }}
-                    />
-                    <span className="text-xs text-gray-600 truncate">
-                      {BLOCK_TYPE_LABELS[blockType]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </LegendSection>
-          )}
-
-          {/* Node Shapes (Graph Types) */}
-          {showNodeShapes && (
-            <LegendSection
-              title="Node Shapes"
-              isExpanded={expandedSections.has("shapes")}
-              onToggle={() => toggleSection("shapes")}
-            >
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                {(Object.keys(nodeShapes) as GraphType[]).map((graphType) => (
-                  <div key={graphType} className="flex items-center gap-2">
-                    <ShapeIcon
-                      shape={nodeShapes[graphType]}
-                      color={graphColors[graphType]}
-                    />
-                    <span className="text-xs text-gray-600 truncate">
-                      {GRAPH_TYPE_LABELS[graphType]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </LegendSection>
-          )}
-
-          {/* Edge Styles (Link Types) */}
-          {showEdgeStyles && (
-            <LegendSection
-              title="Edge Styles"
-              isExpanded={expandedSections.has("edges")}
-              onToggle={() => toggleSection("edges")}
-            >
-              <div className="space-y-3">
-                {Object.entries(EDGE_STYLE_GROUPS).map(([group, linkTypes]) => (
-                  <div key={group}>
-                    <h5 className="text-xs font-medium text-gray-500 mb-1">
-                      {group}
-                    </h5>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      {linkTypes.map((linkType) => (
-                        <div key={linkType} className="flex items-center gap-2">
-                          <EdgeStyleLine
-                            color={edgeColors[linkType]}
-                            style={edgeStyles[linkType]}
-                          />
-                          <span className="text-xs text-gray-600 truncate">
-                            {LINK_TYPE_LABELS[linkType]}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </LegendSection>
-          )}
+          <span className="text-sm font-medium text-gray-800">Legend</span>
         </div>
-      )}
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="p-1 hover:bg-gray-100 rounded transition-colors"
+          title="Minimize"
+          data-testid="legend-minimize-btn"
+        >
+          <svg
+            className="w-4 h-4 text-gray-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
