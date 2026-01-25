@@ -11,6 +11,7 @@ import {
   useEffect,
   forwardRef,
   useImperativeHandle,
+  useSyncExternalStore,
 } from "react";
 import {
   GraphCanvas as ReagraphCanvas,
@@ -41,6 +42,41 @@ import {
 } from "./utils/edgeStyles";
 
 export type LayoutType = "forceDirected" | "hierarchical" | "radial";
+
+/**
+ * Hook to detect dark mode via CSS class or media query
+ */
+function useDarkMode(): boolean {
+  const subscribe = useCallback((callback: () => void) => {
+    // Listen for class changes on documentElement
+    const observer = new MutationObserver(callback);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    // Also listen for media query changes
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    mediaQuery.addEventListener("change", callback);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener("change", callback);
+    };
+  }, []);
+
+  const getSnapshot = useCallback(() => {
+    // Check for 'dark' class on html element (Tailwind default) or media query
+    return (
+      document.documentElement.classList.contains("dark") ||
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    );
+  }, []);
+
+  const getServerSnapshot = useCallback(() => false, []);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
 
 /**
  * Custom node renderer for different shapes based on graph membership
@@ -365,6 +401,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     // Determine if empty state is due to filters vs truly no data
     const isFilteredEmpty = nodes.length === 0 && totalNodeCount > 0;
     const graphRef = useRef<GraphCanvasRef | null>(null);
+    const isDarkMode = useDarkMode();
 
     // Expose methods via ref
     useImperativeHandle(
@@ -670,11 +707,11 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       return (
         <div
           data-testid="graph-canvas"
-          className={`flex items-center justify-center bg-gray-50 rounded-lg h-full w-full ${className}`}
+          className={`flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-lg h-full w-full ${className}`}
         >
-          <div className="text-center text-gray-500">
+          <div className="text-center text-gray-500 dark:text-gray-400">
             <svg
-              className="mx-auto h-12 w-12 mb-4 text-gray-400"
+              className="mx-auto h-12 w-12 mb-4 text-gray-400 dark:text-gray-500"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -700,7 +737,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       <div
         ref={containerRef}
         data-testid="graph-canvas"
-        className={`relative bg-gray-50 rounded-lg overflow-hidden h-full w-full ${className}`}
+        className={`relative bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden h-full w-full ${className}`}
       >
         {/* WebGL Recovery Overlay */}
         {isRecovering && (
@@ -713,10 +750,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         )}
         {/* Filtered Empty Overlay - shows when filters result in 0 nodes */}
         {isFilteredEmpty && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-gray-50/90">
-            <div className="text-center text-gray-500">
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-gray-50/90 dark:bg-gray-900/90 pointer-events-none">
+            <div className="text-center text-gray-500 dark:text-gray-400">
               <svg
-                className="mx-auto h-12 w-12 mb-4 text-gray-400"
+                className="mx-auto h-12 w-12 mb-4 text-gray-400 dark:text-gray-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -731,7 +768,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               <p className="text-sm font-medium">
                 No nodes match the selected filters
               </p>
-              <p className="text-xs mt-1 text-gray-400">
+              <p className="text-xs mt-1 text-gray-400 dark:text-gray-500">
                 Try adjusting or clearing your filters
               </p>
             </div>
@@ -741,7 +778,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
           <button
             onClick={handleZoomIn}
-            className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
             title="Zoom In"
             aria-label="Zoom In"
           >
@@ -761,7 +798,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           </button>
           <button
             onClick={handleZoomOut}
-            className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
             title="Zoom Out"
             aria-label="Zoom Out"
           >
@@ -781,7 +818,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           </button>
           <button
             onClick={handleFitView}
-            className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
             title="Fit to View"
             aria-label="Fit to View"
           >
@@ -801,7 +838,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           </button>
           <button
             onClick={handleCenterGraph}
-            className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
             title="Center Graph"
             aria-label="Center Graph"
           >
@@ -821,9 +858,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           </button>
         </div>
 
-        {/* Graph Canvas - key forces remount on WebGL context loss */}
+        {/* Graph Canvas - key forces remount on WebGL context loss or dark mode change */}
         <ReagraphCanvas
-          key={canvasKey}
+          key={`${canvasKey}-${isDarkMode ? "dark" : "light"}`}
           ref={graphRef}
           nodes={reagraphNodes}
           edges={reagraphEdges}
@@ -856,7 +893,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           )}
           theme={{
             canvas: {
-              background: "#F9FAFB",
+              background: isDarkMode ? "#111827" : "#F9FAFB", // gray-900 in dark, gray-50 in light
             },
             node: {
               fill: "#3B82F6",
@@ -865,27 +902,27 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               selectedOpacity: 1,
               inactiveOpacity: 0.2, // Fade inactive nodes significantly when there are active selections
               label: {
-                color: "#1F2937", // Gray-800 - good contrast on light background
-                activeColor: "#111827", // Gray-900 - darker for active/highlighted emphasis
+                color: isDarkMode ? "#F9FAFB" : "#1F2937", // white in dark, gray-800 in light
+                activeColor: isDarkMode ? "#FFFFFF" : "#111827", // pure white in dark, gray-900 in light
               },
               subLabel: {
-                color: "#6B7280", // Gray-500
-                activeColor: "#374151", // Gray-700 - darker for active state
+                color: isDarkMode ? "#9CA3AF" : "#6B7280", // gray-400 in dark, gray-500 in light
+                activeColor: isDarkMode ? "#D1D5DB" : "#374151", // gray-300 in dark, gray-700 in light
               },
             },
             edge: {
-              fill: "#9CA3AF",
+              fill: isDarkMode ? "#6B7280" : "#9CA3AF", // gray-500 in dark, gray-400 in light
               activeFill: "#F97316", // Orange for active/highlighted edges
               opacity: 0.7,
               selectedOpacity: 1,
               inactiveOpacity: 0.15, // Fade inactive edges significantly when there are active selections
               label: {
-                color: "#6B7280",
-                activeColor: "#6B7280",
+                color: isDarkMode ? "#9CA3AF" : "#6B7280", // gray-400 in dark, gray-500 in light
+                activeColor: isDarkMode ? "#D1D5DB" : "#6B7280", // gray-300 in dark, gray-500 in light
               },
             },
             arrow: {
-              fill: "#9CA3AF",
+              fill: isDarkMode ? "#6B7280" : "#9CA3AF", // gray-500 in dark, gray-400 in light
               activeFill: "#F97316", // Orange for active/highlighted arrows
             },
             ring: {
@@ -897,11 +934,13 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               background: "rgba(59, 130, 246, 0.1)",
             },
             cluster: {
-              stroke: "#CBD5E1", // Slate-300 - subtle boundary
-              fill: "rgba(241, 245, 249, 0.3)", // Slate-100 with transparency
+              stroke: isDarkMode ? "#4B5563" : "#CBD5E1", // gray-600 in dark, slate-300 in light
+              fill: isDarkMode
+                ? "rgba(31, 41, 55, 0.5)"
+                : "rgba(241, 245, 249, 0.3)", // gray-800/50 in dark, slate-100/30 in light
               label: {
-                stroke: "#F1F5F9", // Slate-100 - label background
-                color: "#475569", // Slate-600 - label text
+                stroke: isDarkMode ? "#1F2937" : "#F1F5F9", // gray-800 in dark, slate-100 in light
+                color: isDarkMode ? "#D1D5DB" : "#475569", // gray-300 in dark, slate-600 in light
               },
             },
           }}

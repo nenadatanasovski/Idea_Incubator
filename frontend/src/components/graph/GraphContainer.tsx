@@ -49,9 +49,11 @@ export interface GraphContainerProps {
   onUpdateMemoryGraph?: () => void;
   onAnalyzeWithSources?: (selectedSourceIds: string[]) => Promise<void>;
   isAnalyzingGraph?: boolean;
+  isApplyingChanges?: boolean; // Flag to prevent auto-open during apply phase
   pendingGraphChanges?: number;
   // AI Prompt
   sessionId?: string;
+  ideaSlug?: string; // Optional idea slug for file-based artifacts
   onPromptHighlight?: (nodeIds: string[]) => void;
   onPromptFilterChange?: (filters: Partial<GraphFiltersType>) => void;
   // Source navigation callbacks
@@ -62,12 +64,30 @@ export interface GraphContainerProps {
   // Selection actions
   onLinkNode?: (nodeId: string) => void;
   onGroupIntoSynthesis?: (nodeId: string) => void;
-  onDeleteNode?: (nodeId: string) => void;
+  onDeleteNode?: (nodeId: string, nodeLabel: string) => void;
   // Success notification
   successNotification?: {
     action: "created" | "updated" | "deleted";
     nodeLabel: string;
   } | null;
+  onClearNotification?: () => void;
+  // Snapshot/Versioning
+  onSaveSnapshot?: (name: string, description?: string) => Promise<void>;
+  onRestoreSnapshot?: (snapshotId: string) => Promise<void>;
+  onDeleteSnapshot?: (snapshotId: string) => Promise<void>;
+  onLoadSnapshots?: () => void;
+  snapshots?: Array<{
+    id: string;
+    sessionId: string;
+    name: string;
+    description: string | null;
+    blockCount: number;
+    linkCount: number;
+    createdAt: string;
+  }>;
+  isLoadingSnapshots?: boolean;
+  isSavingSnapshot?: boolean;
+  isRestoringSnapshot?: boolean;
 }
 
 /**
@@ -151,8 +171,10 @@ export function GraphContainer({
   onUpdateMemoryGraph,
   onAnalyzeWithSources,
   isAnalyzingGraph = false,
+  isApplyingChanges = false,
   pendingGraphChanges = 0,
   sessionId,
+  ideaSlug,
   onPromptHighlight,
   onPromptFilterChange,
   onNavigateToChatMessage,
@@ -163,6 +185,17 @@ export function GraphContainer({
   onGroupIntoSynthesis,
   onDeleteNode,
   resetFiltersTrigger,
+  successNotification,
+  onClearNotification,
+  // Snapshot/Versioning
+  onSaveSnapshot,
+  onRestoreSnapshot,
+  onDeleteSnapshot,
+  onLoadSnapshots,
+  snapshots = [],
+  isLoadingSnapshots = false,
+  isSavingSnapshot = false,
+  isRestoringSnapshot = false,
 }: GraphContainerProps) {
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -186,13 +219,31 @@ export function GraphContainer({
   // Track if auto-open has been attempted (only once per mount)
   const hasAutoOpenedRef = useRef(false);
 
+  // Auto-dismiss success notification after 2 seconds
+  useEffect(() => {
+    if (successNotification && onClearNotification) {
+      const timer = setTimeout(() => {
+        onClearNotification();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [successNotification, onClearNotification]);
+
+  // Close inspector panel when a node is deleted
+  useEffect(() => {
+    if (successNotification?.action === "deleted") {
+      setSelectedNode(null);
+      onNodeSelect?.(null);
+    }
+  }, [successNotification, onNodeSelect]);
+
   // Auto-open source selection modal when graph is empty (only on initial load)
   useEffect(() => {
     // Only auto-open once per mount if:
     // 1. Haven't already auto-opened
     // 2. Graph has no nodes
     // 3. We have the analyze callback available
-    // 4. We're not currently loading or analyzing
+    // 4. We're not currently loading, analyzing, or applying changes
     // 5. We have a sessionId
     if (
       !hasAutoOpenedRef.current &&
@@ -200,6 +251,7 @@ export function GraphContainer({
       onAnalyzeWithSources &&
       !isLoading &&
       !isAnalyzingGraph &&
+      !isApplyingChanges &&
       sessionId
     ) {
       hasAutoOpenedRef.current = true;
@@ -210,6 +262,7 @@ export function GraphContainer({
     onAnalyzeWithSources,
     isLoading,
     isAnalyzingGraph,
+    isApplyingChanges,
     sessionId,
   ]);
 
@@ -361,10 +414,12 @@ export function GraphContainer({
   // Handle source selection confirm (reset & analyze)
   const handleSourceSelectionConfirm = useCallback(
     async (selectedSourceIds: string[]) => {
+      // Close modal immediately to prevent double-clicks
+      // (analysis completion would briefly enable the button before the modal closes)
+      setShowSourceSelectionModal(false);
       if (onAnalyzeWithSources) {
         await onAnalyzeWithSources(selectedSourceIds);
       }
-      setShowSourceSelectionModal(false);
     },
     [onAnalyzeWithSources],
   );
@@ -686,19 +741,89 @@ export function GraphContainer({
               </div>
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Analyzing All Sources
+                  Analyzing Sources
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  Chat, Artifacts, Memory Files, Manual Insights...
+                  Extracting insights for your knowledge graph...
                 </p>
               </div>
             </div>
           </div>
         )}
 
+        {/* Success Notification Pill */}
+        {successNotification && (
+          <div
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-30 animate-in fade-in slide-in-from-top-2 duration-200"
+            data-testid="graph-success-notification"
+          >
+            <div
+              className={`px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-medium ${
+                successNotification.action === "deleted"
+                  ? "bg-red-100 text-red-800"
+                  : successNotification.action === "created"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-blue-100 text-blue-800"
+              }`}
+            >
+              {successNotification.action === "deleted" && (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              )}
+              {successNotification.action === "created" && (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+              )}
+              {successNotification.action === "updated" && (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              )}
+              <span className="truncate max-w-[200px]">
+                {successNotification.action === "deleted" && "Deleted: "}
+                {successNotification.action === "created" && "Created: "}
+                {successNotification.action === "updated" && "Updated: "}
+                {successNotification.nodeLabel}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Top Controls Bar - Using GraphControls component */}
         {showControls && (
-          <div className="absolute top-4 left-4 z-10">
+          <div className="absolute top-4 left-4 z-50">
             <GraphControls
               onRefresh={onRefresh}
               isRefreshing={isRefreshing}
@@ -733,13 +858,22 @@ export function GraphContainer({
               onFiltersReset={showFilters ? resetFilters : undefined}
               nodeCount={nodes.length}
               filteredNodeCount={filteredNodes.length}
+              // Snapshot/Versioning
+              snapshots={snapshots}
+              onSaveSnapshot={onSaveSnapshot}
+              onRestoreSnapshot={onRestoreSnapshot}
+              onDeleteSnapshot={onDeleteSnapshot}
+              onLoadSnapshots={onLoadSnapshots}
+              isLoadingSnapshots={isLoadingSnapshots}
+              isSavingSnapshot={isSavingSnapshot}
+              isRestoringSnapshot={isRestoringSnapshot}
             />
           </div>
         )}
 
         {/* Hovered Node Tooltip */}
         {hoveredNode && !selectedNode && (
-          <div className="absolute bottom-16 left-4 z-10 max-w-2xl p-4 bg-white rounded-lg shadow-lg border border-gray-200">
+          <div className="absolute bottom-16 left-4 z-20 max-w-2xl p-4 bg-white rounded-lg shadow-lg border border-gray-200">
             <p className="font-medium text-gray-900 text-sm whitespace-pre-wrap">
               {hoveredNode.content || hoveredNode.label}
             </p>
@@ -755,7 +889,7 @@ export function GraphContainer({
         )}
 
         {/* Bottom Left - Legend pill and stats */}
-        <div className="absolute bottom-4 left-4 z-10 flex flex-col items-start gap-2">
+        <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
           {/* Legend Pill */}
           {showLegend && (
             <GraphLegend
@@ -861,6 +995,7 @@ export function GraphContainer({
           isOpen={showSourceSelectionModal}
           onClose={() => setShowSourceSelectionModal(false)}
           sessionId={sessionId}
+          ideaSlug={ideaSlug}
           onConfirm={handleSourceSelectionConfirm}
           isProcessing={isAnalyzingGraph}
         />

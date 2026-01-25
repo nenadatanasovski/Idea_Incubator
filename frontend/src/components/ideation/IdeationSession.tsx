@@ -66,6 +66,11 @@ export function IdeationSession({
   const [hasGraphUpdates, setHasGraphUpdates] = useState(false);
   // Trigger to refetch graph data (e.g., after deletion)
   const [graphRefetchTrigger, setGraphRefetchTrigger] = useState(0);
+  // Success notification for graph actions
+  const [graphSuccessNotification, setGraphSuccessNotification] = useState<{
+    action: "created" | "updated" | "deleted";
+    nodeLabel: string;
+  } | null>(null);
   // T9: Project folder state
   const [filesCount, setFilesCount] = useState(0);
   // Memory DB navigation state
@@ -324,6 +329,24 @@ export function IdeationSession({
           }
         } else {
           console.log("[Session Resume] No sub-agents to restore");
+        }
+
+        // Restore linked idea if present in session data
+        if (sessionData.session.userSlug && sessionData.session.ideaSlug) {
+          console.log(
+            "[Session Resume] Restoring linked idea:",
+            sessionData.session.userSlug,
+            sessionData.session.ideaSlug,
+          );
+          dispatch({
+            type: "SET_LINKED_IDEA",
+            payload: {
+              userSlug: sessionData.session.userSlug,
+              ideaSlug: sessionData.session.ideaSlug,
+            },
+          });
+        } else {
+          console.log("[Session Resume] No linked idea to restore");
         }
       } catch (error) {
         dispatch({
@@ -1771,7 +1794,7 @@ export function IdeationSession({
   }, []);
 
   const handleDeleteNode = useCallback(
-    async (nodeId: string) => {
+    async (nodeId: string, nodeLabel: string) => {
       if (!state.session.sessionId) return;
 
       try {
@@ -1785,6 +1808,11 @@ export function IdeationSession({
         }
 
         console.log("[IdeationSession] Block deleted:", nodeId);
+        // Show success notification
+        setGraphSuccessNotification({
+          action: "deleted",
+          nodeLabel,
+        });
         // Trigger graph refetch to update the UI
         setGraphRefetchTrigger((prev) => prev + 1);
       } catch (error) {
@@ -1793,6 +1821,11 @@ export function IdeationSession({
     },
     [state.session.sessionId],
   );
+
+  // Clear graph notification
+  const handleClearGraphNotification = useCallback(() => {
+    setGraphSuccessNotification(null);
+  }, []);
 
   // Handle capture
   const handleCapture = useCallback(async () => {
@@ -2335,6 +2368,8 @@ export function IdeationSession({
             onGroupIntoSynthesis={handleGroupIntoSynthesis}
             onDeleteNode={handleDeleteNode}
             refetchTrigger={graphRefetchTrigger}
+            successNotification={graphSuccessNotification}
+            onClearNotification={handleClearGraphNotification}
           />
 
           {/* Files Tab Panel (T9.2 - Project folder browser) */}

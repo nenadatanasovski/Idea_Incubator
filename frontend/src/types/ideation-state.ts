@@ -51,10 +51,34 @@ export interface ProposedChange {
   type: "create_block" | "update_block" | "create_link";
   blockType?: string;
   title?: string; // Short 3-5 word summary for the node
-  content: string;
+  content?: string; // Optional for create_link types which don't have content
   graphMembership?: string[];
   confidence: number;
-  sourceMessageId?: string;
+  sourceMessageId?: string; // Legacy field
+  // Link-specific fields (for create_link type)
+  sourceBlockId?: string;
+  targetBlockId?: string;
+  linkType?: string;
+  reason?: string; // Explanation of why these blocks are connected
+  // Source attribution for traceability - CRITICAL for tracking where insights came from
+  sourceId?: string; // ID of the source (message ID, artifact ID, etc.)
+  sourceType?: string; // e.g., "conversation_insight", "artifact", "memory_file"
+  sourceWeight?: number; // Reliability weight 0-1
+  corroboratedBy?: Array<{
+    sourceId: string;
+    sourceType: string;
+    snippet?: string;
+  }>;
+  // Supersession handling
+  supersedesBlockId?: string; // If this block supersedes an existing block
+  supersessionReason?: string; // Reason for superseding
+  // For update_block status changes
+  blockId?: string; // Target block for updates
+  statusChange?: {
+    blockId?: string;
+    newStatus: "superseded" | "abandoned";
+    reason?: string;
+  };
 }
 
 export interface CascadeEffect {
@@ -95,6 +119,16 @@ export interface GraphUpdateAnalysis {
   previewEdges: GraphEdge[];
 }
 
+export interface GraphSnapshotSummary {
+  id: string;
+  sessionId: string;
+  name: string;
+  description: string | null;
+  blockCount: number;
+  linkCount: number;
+  createdAt: string;
+}
+
 export interface MemoryGraphState {
   pendingChangesCount: number;
   isAnalyzing: boolean;
@@ -103,6 +137,12 @@ export interface MemoryGraphState {
   selectedChangeIds: string[];
   isApplying: boolean;
   error: string | null;
+  // Snapshot/versioning state
+  snapshots: GraphSnapshotSummary[];
+  isLoadingSnapshots: boolean;
+  isSavingSnapshot: boolean;
+  isRestoringSnapshot: boolean;
+  snapshotError: string | null;
 }
 
 // -----------------------------------------------------------------------------
@@ -317,4 +357,21 @@ export type IdeationAction =
   | {
       type: "MEMORY_GRAPH_PENDING_COUNT_UPDATE";
       payload: { count: number };
-    };
+    }
+  // Graph Snapshot actions
+  | { type: "GRAPH_SNAPSHOTS_LOAD_START" }
+  | {
+      type: "GRAPH_SNAPSHOTS_LOAD_COMPLETE";
+      payload: { snapshots: GraphSnapshotSummary[] };
+    }
+  | { type: "GRAPH_SNAPSHOTS_LOAD_ERROR"; payload: { error: string } }
+  | { type: "GRAPH_SNAPSHOT_SAVE_START" }
+  | {
+      type: "GRAPH_SNAPSHOT_SAVE_COMPLETE";
+      payload: { snapshot: GraphSnapshotSummary };
+    }
+  | { type: "GRAPH_SNAPSHOT_SAVE_ERROR"; payload: { error: string } }
+  | { type: "GRAPH_SNAPSHOT_RESTORE_START" }
+  | { type: "GRAPH_SNAPSHOT_RESTORE_COMPLETE" }
+  | { type: "GRAPH_SNAPSHOT_RESTORE_ERROR"; payload: { error: string } }
+  | { type: "GRAPH_SNAPSHOT_DELETE"; payload: { snapshotId: string } };

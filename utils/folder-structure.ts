@@ -1311,26 +1311,36 @@ export async function renameDraftToIdea(
 /**
  * Check if an idea folder exists for a given user and idea slug.
  *
- * @param userSlug - The slug identifier for the user
+ * Note: Currently checks the global ideas folder (./ideas/) since
+ * ideas are not user-scoped. The userSlug parameter is kept for future
+ * multi-tenant support.
+ *
+ * @param _userSlug - The slug identifier for the user (currently unused)
  * @param ideaSlug - The slug identifier for the idea
  * @returns True if the idea folder exists, false otherwise
  */
-export function ideaFolderExists(userSlug: string, ideaSlug: string): boolean {
-  const usersRoot = getUsersRoot();
-  const ideaFolder = path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
+export function ideaFolderExists(_userSlug: string, ideaSlug: string): boolean {
+  // Use the global ideas folder from config instead of user-scoped folder
+  const config = getConfig();
+  const ideaFolder = path.resolve(config.paths.ideas, ideaSlug);
   return fs.existsSync(ideaFolder);
 }
 
 /**
  * Get the absolute path to an idea folder.
  *
- * @param userSlug - The slug identifier for the user
+ * Note: Currently returns path in global ideas folder (./ideas/) since
+ * ideas are not user-scoped. The userSlug parameter is kept for future
+ * multi-tenant support.
+ *
+ * @param _userSlug - The slug identifier for the user (currently unused)
  * @param ideaSlug - The slug identifier for the idea
  * @returns The absolute path to the idea folder
  */
-export function getIdeaFolderPath(userSlug: string, ideaSlug: string): string {
-  const usersRoot = getUsersRoot();
-  return path.resolve(usersRoot, userSlug, "ideas", ideaSlug);
+export function getIdeaFolderPath(_userSlug: string, ideaSlug: string): string {
+  // Use the global ideas folder from config instead of user-scoped folder
+  const config = getConfig();
+  return path.resolve(config.paths.ideas, ideaSlug);
 }
 
 /**
@@ -1378,12 +1388,17 @@ export interface IdeaInfo {
  * List all ideas for a user.
  * Reads each idea's README.md to extract frontmatter metadata.
  *
- * @param userSlug - The slug identifier for the user
+ * Note: Currently reads from the global ideas folder (./ideas/) since
+ * ideas are not user-scoped. The userSlug parameter is kept for future
+ * multi-tenant support.
+ *
+ * @param userSlug - The slug identifier for the user (currently unused)
  * @returns Array of idea info objects
  */
-export async function listUserIdeas(userSlug: string): Promise<IdeaInfo[]> {
-  const usersRoot = getUsersRoot();
-  const ideasFolder = path.join(usersRoot, userSlug, "ideas");
+export async function listUserIdeas(_userSlug: string): Promise<IdeaInfo[]> {
+  // Use the global ideas folder from config instead of user-scoped folder
+  const config = getConfig();
+  const ideasFolder = path.resolve(config.paths.ideas);
 
   // Check if ideas folder exists
   if (!fs.existsSync(ideasFolder)) {

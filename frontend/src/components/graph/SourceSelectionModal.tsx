@@ -6,7 +6,7 @@
  * Warns that this will reset the existing graph before analysis.
  */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
 
 // ============================================================================
 // Types
@@ -64,6 +64,7 @@ export interface SourceSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   sessionId: string;
+  ideaSlug?: string; // Optional idea slug to include file-based artifacts
   onConfirm: (selectedSourceIds: string[]) => void;
   isProcessing?: boolean;
 }
@@ -262,6 +263,7 @@ export function SourceSelectionModal({
   isOpen,
   onClose,
   sessionId,
+  ideaSlug,
   onConfirm,
   isProcessing = false,
 }: SourceSelectionModalProps) {
@@ -288,7 +290,10 @@ export function SourceSelectionModal({
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tokenBudget: 100000 }),
+            body: JSON.stringify({
+              tokenBudget: 100000,
+              ideaSlug: ideaSlug, // Include idea slug for file-based artifacts
+            }),
           },
         );
 
@@ -307,7 +312,7 @@ export function SourceSelectionModal({
     };
 
     fetchSources();
-  }, [isOpen, sessionId]);
+  }, [isOpen, sessionId, ideaSlug]);
 
   // Group sources by type
   const sourcesByType = useMemo(() => {
@@ -723,9 +728,8 @@ export function SourceSelectionModal({
                               const tokens = estimateTokens(source.content);
 
                               return (
-                                <>
+                                <Fragment key={source.id}>
                                   <tr
-                                    key={source.id}
                                     className={`hover:bg-gray-50 transition-colors ${
                                       isSelected ? "bg-purple-50/30" : ""
                                     }`}
@@ -818,7 +822,7 @@ export function SourceSelectionModal({
                                     </td>
                                   </tr>
                                   {isExpanded && (
-                                    <tr key={`${source.id}-expanded`}>
+                                    <tr>
                                       <td
                                         colSpan={6}
                                         className="px-3 py-3 bg-gray-50 border-t border-gray-100"
@@ -843,7 +847,7 @@ export function SourceSelectionModal({
                                       </td>
                                     </tr>
                                   )}
-                                </>
+                                </Fragment>
                               );
                             })}
                           </tbody>
@@ -906,10 +910,10 @@ export function SourceSelectionModal({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                     />
                   </svg>
-                  Reset & Analyze ({selectedIds.size})
+                  Analyze Sources ({selectedIds.size})
                 </>
               )}
             </button>

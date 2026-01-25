@@ -9,13 +9,15 @@
  * - External content (imported)
  */
 
-import { query } from "../../../database/db.js";
+import { query, getOne } from "../../../database/db.js";
 import {
   synthesizeConversation,
   INSIGHT_TYPE_WEIGHTS,
   INSIGHT_TYPE_LABELS,
   type InsightType,
 } from "./conversation-synthesizer.js";
+import * as fs from "fs";
+import * as path from "path";
 
 // =============================================================================
 // Types and Interfaces
@@ -70,6 +72,9 @@ export interface CollectionOptions {
   // When true, raw messages are synthesized into meaningful insights
   // When false, raw messages are returned as-is (legacy mode)
   synthesizeConversations?: boolean;
+  // Optional idea slug to collect file-based artifacts from idea folder
+  // Used when session isn't linked but user is viewing a specific idea
+  ideaSlug?: string;
 }
 
 // =============================================================================
@@ -107,12 +112,15 @@ export const ROLE_WEIGHTS: Record<string, number> = {
 };
 
 // Default options
-const DEFAULT_OPTIONS: Required<CollectionOptions> = {
+const DEFAULT_OPTIONS: Required<Omit<CollectionOptions, "ideaSlug">> & {
+  ideaSlug?: string;
+} = {
   sourceTypes: ["conversation", "artifact", "memory_file", "user_block"],
   tokenBudget: 50000,
   conversationLimit: 50,
   includeExistingBlocks: true,
   synthesizeConversations: true, // Use AI synthesis by default
+  ideaSlug: undefined,
 };
 
 // =============================================================================
@@ -256,12 +264,141 @@ export async function collectConversationSources(
 // Artifact Source Collector
 // =============================================================================
 
+/**
+ * Collect file-based artifacts from an idea folder.
+ * Looks for markdown files in the idea folder structure.
+ */
+async function collectIdeaFolderArtifacts(
+  ideaSlug: string,
+): Promise<CollectedSource[]> {
+  const sources: CollectedSource[] = [];
+
+  // Check both legacy and new folder structures
+  const possiblePaths = [
+    path.resolve(process.cwd(), "ideas", ideaSlug), // Legacy: ideas/[slug]/
+  ];
+
+  for (const ideaPath of possiblePaths) {
+    if (!fs.existsSync(ideaPath)) {
+      continue;
+    }
+
+    console.log(
+      `[SourceCollector] Scanning idea folder for artifacts: ${ideaPath}`,
+    );
+
+    // Recursively find all markdown files
+    const findMarkdownFiles = (dir: string, files: string[] = []): string[] => {
+      try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            // Skip hidden directories and node_modules
+            if (!entry.name.startsWith(".") && entry.name !== "node_modules") {
+              findMarkdownFiles(fullPath, files);
+            }
+          } else if (entry.name.endsWith(".md")) {
+            files.push(fullPath);
+          }
+        }
+      } catch (err) {
+        console.warn(`[SourceCollector] Error reading directory ${dir}:`, err);
+      }
+      return files;
+    };
+
+    const markdownFiles = findMarkdownFiles(ideaPath);
+    console.log(
+      `[SourceCollector] Found ${markdownFiles.length} markdown files in idea folder`,
+    );
+
+    for (const filePath of markdownFiles) {
+      try {
+        let content = fs.readFileSync(filePath, "utf-8");
+        const relativePath = path.relative(ideaPath, filePath);
+        const fileName = path.basename(filePath, ".md");
+
+        // Determine artifact type based on path/filename
+        let artifactType = "markdown";
+        if (relativePath.includes("research")) artifactType = "research";
+        else if (relativePath.includes("analysis")) artifactType = "analysis";
+        else if (fileName.includes("pitch") || fileName.includes("elevator"))
+          artifactType = "idea-summary";
+
+        // Truncate large artifacts
+        if (content.length > 10000) {
+          content = content.slice(0, 10000) + "\n\n[... TRUNCATED ...]";
+        }
+
+        // Create a unique ID based on file path
+        // Use full base64 encoding (no truncation) to avoid collisions
+        // for files with similar paths like agents/build-agent-foo.md and agents/build-agent-bar.md
+        const sourceId = `file_${Buffer.from(relativePath)
+          .toString("base64")
+          .replace(/[^a-zA-Z0-9]/g, "")}`;
+
+        sources.push({
+          id: sourceId,
+          type: "artifact" as SourceType,
+          content,
+          metadata: {
+            title: fileName.replace(/-/g, " ").replace(/_/g, " "),
+            createdAt: new Date().toISOString(),
+            artifactType,
+          },
+          weight: ARTIFACT_WEIGHTS[artifactType] || 0.7,
+        });
+
+        console.log(
+          `[SourceCollector]   - File artifact: ${relativePath} (${content.length} chars)`,
+        );
+      } catch (err) {
+        console.warn(`[SourceCollector] Error reading file ${filePath}:`, err);
+      }
+    }
+  }
+
+  return sources;
+}
+
 export async function collectArtifactSources(
   sessionId: string,
+  ideaSlug?: string,
 ): Promise<CollectedSource[]> {
   console.log(
     `[SourceCollector] Collecting artifact sources for session: ${sessionId}`,
   );
+  console.log(
+    `[SourceCollector] ideaSlug param: ${ideaSlug || "(not provided)"}`,
+  );
+
+  // First, get session info to check for linked idea
+  const session = await getOne<{
+    user_slug: string | null;
+    idea_slug: string | null;
+  }>(`SELECT user_slug, idea_slug FROM ideation_sessions WHERE id = ?`, [
+    sessionId,
+  ]);
+
+  console.log(
+    `[SourceCollector] Session idea_slug from DB: ${session?.idea_slug || "(not set)"}`,
+  );
+
+  // Use provided ideaSlug or fall back to session's linked idea
+  const effectiveIdeaSlug = ideaSlug || session?.idea_slug;
+  console.log(
+    `[SourceCollector] effectiveIdeaSlug: ${effectiveIdeaSlug || "(none)"}`,
+  );
+
+  // Check if idea folder exists
+  if (effectiveIdeaSlug) {
+    const ideaPath = path.resolve(process.cwd(), "ideas", effectiveIdeaSlug);
+    console.log(`[SourceCollector] Checking idea folder path: ${ideaPath}`);
+    console.log(
+      `[SourceCollector] Idea folder exists: ${fs.existsSync(ideaPath)}`,
+    );
+  }
 
   const artifacts = await query<{
     id: string;
@@ -299,7 +436,6 @@ export async function collectArtifactSources(
     if (content == null && a.file_path) {
       // Try to read from file
       try {
-        const fs = await import("fs");
         if (fs.existsSync(a.file_path)) {
           content = fs.readFileSync(a.file_path, "utf-8");
           console.log(
@@ -344,6 +480,18 @@ export async function collectArtifactSources(
       },
       weight: ARTIFACT_WEIGHTS[a.type] || 0.7,
     });
+  }
+
+  // Also collect file-based artifacts from idea folder if available
+  if (effectiveIdeaSlug) {
+    console.log(
+      `[SourceCollector] Collecting from idea folder: ${effectiveIdeaSlug}`,
+    );
+    const folderArtifacts = await collectIdeaFolderArtifacts(effectiveIdeaSlug);
+    sources.push(...folderArtifacts);
+    console.log(
+      `[SourceCollector] Added ${folderArtifacts.length} file-based artifacts from idea folder`,
+    );
   }
 
   // Log weight breakdown
@@ -602,7 +750,7 @@ export async function collectAllSources(
           }
           break;
         case "artifact":
-          sources = await collectArtifactSources(sessionId);
+          sources = await collectArtifactSources(sessionId, opts.ideaSlug);
           result.collectionMetadata.artifactCount = sources.length;
           break;
         case "memory_file":

@@ -16,8 +16,10 @@ import {
   type ErrorInfo,
 } from "react";
 import type { GraphNode, GraphFilters } from "../../types/graph";
+import type { ProposedChange } from "../../types/ideation-state";
 import { useGraphDataWithWebSocket } from "../graph/hooks/useGraphDataWithWebSocket";
 import { GraphUpdateConfirmation } from "../graph/GraphUpdateConfirmation";
+import { ProposedChangesReviewModal } from "../graph/ProposedChangesReviewModal";
 import { useIdeationAPI } from "../../hooks/useIdeationAPI";
 import type {
   NewBlockUpdate,
@@ -127,7 +129,7 @@ export interface GraphTabPanelProps {
   // Selection actions for the selected node
   onLinkNode?: (nodeId: string) => void;
   onGroupIntoSynthesis?: (nodeId: string) => void;
-  onDeleteNode?: (nodeId: string) => void;
+  onDeleteNode?: (nodeId: string, nodeLabel: string) => void;
   // Trigger to refetch graph data (increment to trigger refetch)
   refetchTrigger?: number;
   // Success notification to display
@@ -344,21 +346,169 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   }, []);
 
   // Get API functions
-  const { resetGraph, analyzeGraphChanges, applyGraphChanges } =
-    useIdeationAPI();
+  const {
+    resetGraph,
+    analyzeGraphChanges,
+    applyGraphChanges,
+    listGraphSnapshots,
+    createGraphSnapshot,
+    restoreGraphSnapshot,
+    deleteGraphSnapshot,
+  } = useIdeationAPI();
 
-  // State for tracking analysis progress
+  // State for tracking analysis progress and pending proposed changes
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [pendingProposedChanges, setPendingProposedChanges] = useState<
+    ProposedChange[] | null
+  >(null);
+  const [isApplyingChanges, setIsApplyingChanges] = useState(false);
 
-  // Handle analyze with selected sources (reset & analyze flow)
+  // Snapshot/Versioning state
+  const [snapshots, setSnapshots] = useState<
+    Array<{
+      id: string;
+      sessionId: string;
+      name: string;
+      description: string | null;
+      blockCount: number;
+      linkCount: number;
+      createdAt: string;
+    }>
+  >([]);
+  const [isLoadingSnapshots, setIsLoadingSnapshots] = useState(false);
+  const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
+  const [isRestoringSnapshot, setIsRestoringSnapshot] = useState(false);
+
+  // Load snapshots
+  const handleLoadSnapshots = useCallback(async () => {
+    setIsLoadingSnapshots(true);
+    try {
+      const result = await listGraphSnapshots(sessionId);
+      setSnapshots(result.snapshots);
+    } catch (error) {
+      console.error("[GraphTabPanel] Failed to load snapshots:", error);
+    } finally {
+      setIsLoadingSnapshots(false);
+    }
+  }, [sessionId, listGraphSnapshots]);
+
+  // Save snapshot
+  const handleSaveSnapshot = useCallback(
+    async (name: string, description?: string) => {
+      setIsSavingSnapshot(true);
+      try {
+        const result = await createGraphSnapshot(sessionId, name, description);
+        // Add new snapshot to the list
+        setSnapshots((prev) => [result.snapshot, ...prev]);
+      } catch (error) {
+        console.error("[GraphTabPanel] Failed to save snapshot:", error);
+        throw error;
+      } finally {
+        setIsSavingSnapshot(false);
+      }
+    },
+    [sessionId, createGraphSnapshot],
+  );
+
+  // Restore snapshot
+  const handleRestoreSnapshot = useCallback(
+    async (snapshotId: string) => {
+      setIsRestoringSnapshot(true);
+      try {
+        await restoreGraphSnapshot(sessionId, snapshotId);
+        // Refetch graph data after restore
+        refetch();
+        // Reload snapshots list (a backup was auto-created)
+        handleLoadSnapshots();
+      } catch (error) {
+        console.error("[GraphTabPanel] Failed to restore snapshot:", error);
+        throw error;
+      } finally {
+        setIsRestoringSnapshot(false);
+      }
+    },
+    [sessionId, restoreGraphSnapshot, refetch, handleLoadSnapshots],
+  );
+
+  // Delete snapshot
+  const handleDeleteSnapshot = useCallback(
+    async (snapshotId: string) => {
+      try {
+        await deleteGraphSnapshot(sessionId, snapshotId);
+        // Remove from list
+        setSnapshots((prev) => prev.filter((s) => s.id !== snapshotId));
+      } catch (error) {
+        console.error("[GraphTabPanel] Failed to delete snapshot:", error);
+        throw error;
+      }
+    },
+    [sessionId, deleteGraphSnapshot],
+  );
+
+  // Handle analyze with selected sources - Phase 1: Analyze only, don't apply yet
   const handleAnalyzeWithSources = useCallback(
     async (selectedSourceIds: string[]) => {
       console.log(
-        "[GraphTabPanel] Analyzing with sources:",
+        "[GraphTabPanel] Phase 1: Analyzing with sources:",
         selectedSourceIds.length,
       );
+      console.log("[GraphTabPanel] ideaSlug:", ideaSlug || "(not set)");
 
       setIsAnalyzing(true);
+
+      try {
+        // Analyze with selected sources (don't reset or apply yet!)
+        // Pass ideaSlug to include file-based artifacts from idea folder
+        const analysis = await analyzeGraphChanges(
+          sessionId,
+          selectedSourceIds,
+          ideaSlug,
+        );
+        console.log(
+          "[GraphTabPanel] Analysis complete:",
+          analysis.proposedChanges?.length || 0,
+          "proposed changes",
+        );
+
+        // Store the proposed changes for user review
+        if (analysis.proposedChanges && analysis.proposedChanges.length > 0) {
+          setPendingProposedChanges(analysis.proposedChanges);
+          console.log(
+            "[GraphTabPanel] Showing review modal with",
+            analysis.proposedChanges.length,
+            "proposed changes",
+          );
+        } else {
+          console.log("[GraphTabPanel] No changes proposed");
+          setPendingProposedChanges([]);
+        }
+      } catch (error) {
+        console.error("[GraphTabPanel] Error in analyze with sources:", error);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    },
+    [sessionId, ideaSlug, analyzeGraphChanges],
+  );
+
+  // Handle apply confirmed changes - Phase 2: Reset graph and apply selected changes
+  const handleApplyConfirmedChanges = useCallback(
+    async (selectedChanges: ProposedChange[]) => {
+      console.log(
+        "[GraphTabPanel] Phase 2: Applying",
+        selectedChanges.length,
+        "confirmed changes",
+      );
+
+      if (selectedChanges.length === 0) {
+        console.warn(
+          "[GraphTabPanel] No changes to apply, closing modal without changes",
+        );
+        setPendingProposedChanges(null);
+        return;
+      }
+
+      setIsApplyingChanges(true);
 
       try {
         // Step 1: Reset the graph (clear all existing nodes/links)
@@ -375,58 +525,71 @@ export const GraphTabPanel = memo(function GraphTabPanel({
         // Refetch to clear the UI immediately
         await refetch();
 
-        // Step 2: Analyze with selected sources
+        // Step 2: Apply only the user-confirmed changes
         console.log(
-          "[GraphTabPanel] Step 2: Analyzing with",
-          selectedSourceIds.length,
-          "sources...",
+          "[GraphTabPanel] Step 2: Applying",
+          selectedChanges.length,
+          "changes...",
         );
-        const analysis = await analyzeGraphChanges(
+        const changeIds = selectedChanges.map((c) => c.id);
+        console.log("[GraphTabPanel] Change IDs:", changeIds);
+        const result = await applyGraphChanges(
           sessionId,
-          selectedSourceIds,
+          changeIds,
+          selectedChanges.map((c) => ({
+            id: c.id,
+            type: c.type as "create_block" | "update_block" | "create_link",
+            blockType: c.blockType,
+            title: c.title,
+            content: c.content,
+            graphMembership: c.graphMembership,
+            confidence: c.confidence,
+            // Source attribution - CRITICAL for traceability
+            sourceId: c.sourceId,
+            sourceType: c.sourceType,
+            sourceWeight: c.sourceWeight,
+            corroboratedBy: c.corroboratedBy,
+            // Include link-specific fields for create_link type
+            sourceBlockId: c.sourceBlockId,
+            targetBlockId: c.targetBlockId,
+            linkType: c.linkType,
+            // Include supersession fields
+            supersedesBlockId: c.supersedesBlockId,
+            supersessionReason: c.supersessionReason,
+            // Include status change fields for update_block
+            blockId: c.blockId,
+            statusChange: c.statusChange,
+          })),
         );
         console.log(
-          "[GraphTabPanel] Analysis complete:",
-          analysis.proposedChanges?.length || 0,
-          "proposed changes",
+          "[GraphTabPanel] Changes applied:",
+          result.blocksCreated,
+          "blocks,",
+          result.linksCreated,
+          "links created",
         );
-
-        // Step 3: Auto-apply all changes (since we reset, we want all new insights)
-        if (analysis.proposedChanges && analysis.proposedChanges.length > 0) {
-          console.log("[GraphTabPanel] Step 3: Applying all changes...");
-          const changeIds = analysis.proposedChanges.map((c) => c.id);
-          const result = await applyGraphChanges(
-            sessionId,
-            changeIds,
-            analysis.proposedChanges.map((c) => ({
-              id: c.id,
-              type: c.type as "create_block" | "update_block" | "create_link",
-              blockType: c.blockType,
-              title: c.title, // Include the title!
-              content: c.content,
-              graphMembership: c.graphMembership,
-              confidence: c.confidence,
-            })),
-          );
-          console.log(
-            "[GraphTabPanel] Changes applied:",
-            result.blocksCreated,
-            "blocks,",
-            result.linksCreated,
-            "links created",
-          );
-        }
 
         // Refetch to show the new graph
         await refetch();
+
+        // Clear pending changes after successful apply
+        console.log("[GraphTabPanel] Clearing pending changes, closing modal");
+        setPendingProposedChanges(null);
       } catch (error) {
-        console.error("[GraphTabPanel] Error in analyze with sources:", error);
+        console.error("[GraphTabPanel] Error applying changes:", error);
+        // Don't close modal on error so user can retry
       } finally {
-        setIsAnalyzing(false);
+        setIsApplyingChanges(false);
       }
     },
-    [sessionId, resetGraph, analyzeGraphChanges, applyGraphChanges, refetch],
+    [sessionId, resetGraph, applyGraphChanges, refetch],
   );
+
+  // Handle cancel review - discard proposed changes
+  const handleCancelReview = useCallback(() => {
+    console.log("[GraphTabPanel] User cancelled review, discarding changes");
+    setPendingProposedChanges(null);
+  }, []);
 
   // Check for cascade effects when new nodes are added (T6.3 - T6.4)
   useEffect(() => {
@@ -500,8 +663,10 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               onUpdateMemoryGraph={onUpdateMemoryGraph}
               onAnalyzeWithSources={handleAnalyzeWithSources}
               isAnalyzingGraph={isAnalyzingGraph || isAnalyzing}
+              isApplyingChanges={isApplyingChanges}
               pendingGraphChanges={pendingGraphChanges}
               sessionId={sessionId}
+              ideaSlug={ideaSlug}
               onPromptHighlight={handlePromptHighlight}
               onPromptFilterChange={handlePromptFilterChange}
               onNavigateToChatMessage={onNavigateToChatMessage}
@@ -514,6 +679,15 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               resetFiltersTrigger={resetFiltersTrigger}
               successNotification={successNotification}
               onClearNotification={onClearNotification}
+              // Snapshot/Versioning
+              snapshots={snapshots}
+              onSaveSnapshot={handleSaveSnapshot}
+              onRestoreSnapshot={handleRestoreSnapshot}
+              onDeleteSnapshot={handleDeleteSnapshot}
+              onLoadSnapshots={handleLoadSnapshots}
+              isLoadingSnapshots={isLoadingSnapshots}
+              isSavingSnapshot={isSavingSnapshot}
+              isRestoringSnapshot={isRestoringSnapshot}
               className="h-full"
             />
           </Suspense>
@@ -554,6 +728,18 @@ export const GraphTabPanel = memo(function GraphTabPanel({
             isProcessing={isProcessingUpdate}
           />
         </div>
+      )}
+
+      {/* Proposed Changes Review Modal - Phase 2 of source analysis flow */}
+      {pendingProposedChanges !== null && (
+        <ProposedChangesReviewModal
+          isOpen={true}
+          onClose={handleCancelReview}
+          proposedChanges={pendingProposedChanges}
+          onApply={handleApplyConfirmedChanges}
+          onCancel={handleCancelReview}
+          isApplying={isApplyingChanges}
+        />
       )}
     </div>
   );

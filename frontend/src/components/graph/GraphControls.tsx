@@ -15,8 +15,10 @@ import { useCallback, useState, useRef, useEffect } from "react";
 import type {
   GraphFilters as GraphFiltersType,
   ClusterStrategy,
+  GraphSnapshotSummary,
 } from "../../types/graph";
 import { GraphFilters } from "./GraphFilters";
+import { SnapshotControls } from "./SnapshotControls";
 
 // ============================================================================
 // Types for AI Prompt
@@ -59,6 +61,16 @@ export interface GraphControlsProps {
   onUpdateMemoryGraph?: () => void;
   isAnalyzingGraph?: boolean;
   pendingGraphChanges?: number;
+
+  // Snapshot/Versioning
+  snapshots?: GraphSnapshotSummary[];
+  onSaveSnapshot?: (name: string, description?: string) => Promise<void>;
+  onRestoreSnapshot?: (snapshotId: string) => Promise<void>;
+  onDeleteSnapshot?: (snapshotId: string) => Promise<void>;
+  onLoadSnapshots?: () => void;
+  isLoadingSnapshots?: boolean;
+  isSavingSnapshot?: boolean;
+  isRestoringSnapshot?: boolean;
 
   // WebSocket status
   isConnected?: boolean;
@@ -197,6 +209,15 @@ export function GraphControls({
   onUpdateMemoryGraph,
   isAnalyzingGraph = false,
   pendingGraphChanges = 0,
+  // Snapshot/Versioning
+  snapshots = [],
+  onSaveSnapshot,
+  onRestoreSnapshot,
+  onDeleteSnapshot,
+  onLoadSnapshots,
+  isLoadingSnapshots = false,
+  isSavingSnapshot = false,
+  isRestoringSnapshot = false,
   isConnected,
   isReconnecting = false,
   onZoomIn,
@@ -427,12 +448,35 @@ export function GraphControls({
 
   return (
     <div
-      className={`flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}
+      className={`flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm ${className}`}
       data-testid="graph-controls"
     >
+      {/* Snapshot Controls - Save and History */}
+      {onSaveSnapshot && onRestoreSnapshot && onLoadSnapshots && (
+        <SnapshotControls
+          snapshots={snapshots}
+          onSaveSnapshot={onSaveSnapshot}
+          onRestoreSnapshot={onRestoreSnapshot}
+          onDeleteSnapshot={onDeleteSnapshot}
+          onLoadSnapshots={onLoadSnapshots}
+          isLoadingSnapshots={isLoadingSnapshots}
+          isSavingSnapshot={isSavingSnapshot}
+          isRestoringSnapshot={isRestoringSnapshot}
+        />
+      )}
+
       {/* Connection Status */}
       {showConnectionStatus && isConnected !== undefined && (
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50">
+        <div
+          className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-700"
+          onMouseEnter={() => {
+            setIsClusterDropdownOpen(false);
+            setIsLayoutDropdownOpen(false);
+            setIsAiPopupOpen(false);
+            setIsSearchPopupOpen(false);
+            setIsFiltersPopupOpen(false);
+          }}
+        >
           <span
             className={`w-2 h-2 rounded-full ${
               isReconnecting
@@ -442,7 +486,7 @@ export function GraphControls({
                   : "bg-red-500"
             }`}
           />
-          <span className="text-xs text-gray-600">
+          <span className="text-xs text-gray-600 dark:text-gray-300">
             {isReconnecting
               ? "Reconnecting..."
               : isConnected
@@ -454,7 +498,7 @@ export function GraphControls({
 
       {/* Divider */}
       {showConnectionStatus && isConnected !== undefined && (
-        <div className="w-px h-6 bg-gray-200" />
+        <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
       )}
 
       {/* Filters Button with Dropdown */}
@@ -468,15 +512,21 @@ export function GraphControls({
                 if (!isFiltersPopupOpen) {
                   setIsAiPopupOpen(false);
                   setIsSearchPopupOpen(false);
+                  setIsClusterDropdownOpen(false);
+                  setIsLayoutDropdownOpen(false);
                 }
+              }}
+              onMouseEnter={() => {
+                setIsClusterDropdownOpen(false);
+                setIsLayoutDropdownOpen(false);
               }}
               className={`flex items-center gap-1.5 px-2 py-1 rounded transition-colors ${
                 isFiltersPopupOpen ||
                 (filteredNodeCount !== undefined &&
                   nodeCount !== undefined &&
                   filteredNodeCount < nodeCount)
-                  ? "bg-blue-100 text-blue-600"
-                  : "hover:bg-gray-100 text-gray-600"
+                  ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
               }`}
               title="Filter nodes"
               data-testid="filters-button"
@@ -508,7 +558,7 @@ export function GraphControls({
             {isFiltersPopupOpen && (
               <div
                 ref={filtersPopupRef}
-                className="absolute top-full left-0 mt-2 w-80 max-h-[70vh] overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                className="absolute top-full left-0 mt-2 w-80 max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50"
                 data-testid="filters-popup"
               >
                 <GraphFilters
@@ -521,7 +571,7 @@ export function GraphControls({
               </div>
             )}
           </div>
-          <div className="w-px h-6 bg-gray-200" />
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
         </>
       )}
 
@@ -533,7 +583,10 @@ export function GraphControls({
               ref={aiButtonRef}
               onMouseEnter={() => {
                 setIsAiPopupOpen(true);
-                setIsSearchPopupOpen(false); // Close search when opening AI
+                setIsSearchPopupOpen(false);
+                setIsClusterDropdownOpen(false);
+                setIsLayoutDropdownOpen(false);
+                setIsFiltersPopupOpen(false);
               }}
               onClick={() => {
                 setIsAiPopupOpen(!isAiPopupOpen);
@@ -542,8 +595,8 @@ export function GraphControls({
               disabled={promptDisabled}
               className={`p-1.5 rounded transition-colors ${
                 isAiPopupOpen
-                  ? "bg-purple-100 text-purple-600"
-                  : "hover:bg-gray-100 text-gray-600"
+                  ? "bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
               } ${promptDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
               title="Ask AI about the graph"
               data-testid="ai-prompt-button"
@@ -573,7 +626,7 @@ export function GraphControls({
                     setIsAiPopupOpen(false);
                   }
                 }}
-                className="absolute top-full left-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50"
                 data-testid="ai-prompt-popup"
               >
                 <div className="p-3">
@@ -593,7 +646,7 @@ export function GraphControls({
                       }}
                       placeholder="Ask about your graph..."
                       disabled={promptDisabled || isPromptLoading}
-                      className="flex-1 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
+                      className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                     />
                     <button
                       type="submit"
@@ -688,7 +741,7 @@ export function GraphControls({
               </div>
             )}
           </div>
-          <div className="w-px h-6 bg-gray-200" />
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
         </>
       )}
 
@@ -700,7 +753,10 @@ export function GraphControls({
               ref={searchButtonRef}
               onMouseEnter={() => {
                 setIsSearchPopupOpen(true);
-                setIsAiPopupOpen(false); // Close AI when opening search
+                setIsAiPopupOpen(false);
+                setIsClusterDropdownOpen(false);
+                setIsLayoutDropdownOpen(false);
+                setIsFiltersPopupOpen(false);
               }}
               onClick={() => {
                 setIsSearchPopupOpen(!isSearchPopupOpen);
@@ -708,8 +764,8 @@ export function GraphControls({
               }}
               className={`p-1.5 rounded transition-colors ${
                 isSearchPopupOpen || localSearchQuery
-                  ? "bg-blue-100 text-blue-600"
-                  : "hover:bg-gray-100 text-gray-600"
+                  ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
               }`}
               title="Search nodes"
               data-testid="search-button"
@@ -743,7 +799,7 @@ export function GraphControls({
                     setIsSearchPopupOpen(false);
                   }
                 }}
-                className="absolute top-full left-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                className="absolute top-full left-0 mt-2 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50"
                 data-testid="search-popup"
               >
                 <div className="p-3">
@@ -763,13 +819,13 @@ export function GraphControls({
                         }
                       }}
                       placeholder="Search nodes by keyword..."
-                      className="w-full px-3 py-2 pr-8 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                     />
                     {localSearchQuery && (
                       <button
                         type="button"
                         onClick={handleClearSearch}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                         title="Clear search"
                       >
                         <svg
@@ -791,7 +847,7 @@ export function GraphControls({
 
                   {/* Search results count */}
                   {localSearchQuery && searchResultCount !== undefined && (
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                       {searchResultCount === 0 ? (
                         <span className="text-amber-600">
                           No matching nodes
@@ -806,7 +862,7 @@ export function GraphControls({
 
                   {/* Search tips */}
                   {!localSearchQuery && (
-                    <div className="mt-2 text-xs text-gray-400">
+                    <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
                       <p>Filter nodes by content, label, or type</p>
                     </div>
                   )}
@@ -814,14 +870,23 @@ export function GraphControls({
               </div>
             )}
           </div>
-          <div className="w-px h-6 bg-gray-200" />
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
         </>
       )}
 
       {/* Zoom Controls */}
       {showZoomControls && (onZoomIn || onZoomOut || onZoomReset) && (
         <>
-          <div className="flex items-center">
+          <div
+            className="flex items-center"
+            onMouseEnter={() => {
+              setIsClusterDropdownOpen(false);
+              setIsLayoutDropdownOpen(false);
+              setIsAiPopupOpen(false);
+              setIsSearchPopupOpen(false);
+              setIsFiltersPopupOpen(false);
+            }}
+          >
             {onZoomIn && (
               <button
                 onClick={onZoomIn}
@@ -907,7 +972,7 @@ export function GraphControls({
               </button>
             )}
           </div>
-          <div className="w-px h-6 bg-gray-200" />
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
         </>
       )}
 
@@ -917,6 +982,12 @@ export function GraphControls({
           <div className="relative">
             <button
               onClick={() => setIsLayoutDropdownOpen(!isLayoutDropdownOpen)}
+              onMouseEnter={() => {
+                setIsAiPopupOpen(false);
+                setIsSearchPopupOpen(false);
+                setIsClusterDropdownOpen(false);
+                setIsFiltersPopupOpen(false);
+              }}
               className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 rounded hover:bg-gray-100 transition-colors"
             >
               <svg
@@ -969,7 +1040,7 @@ export function GraphControls({
               </div>
             )}
           </div>
-          <div className="w-px h-6 bg-gray-200" />
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
         </>
       )}
 
@@ -979,10 +1050,16 @@ export function GraphControls({
           <div className="relative">
             <button
               onClick={() => setIsClusterDropdownOpen(!isClusterDropdownOpen)}
+              onMouseEnter={() => {
+                setIsAiPopupOpen(false);
+                setIsSearchPopupOpen(false);
+                setIsLayoutDropdownOpen(false);
+                setIsFiltersPopupOpen(false);
+              }}
               className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
                 currentClusterStrategy !== "none"
-                  ? "bg-purple-100 text-purple-600"
-                  : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
               }`}
               title="Cluster nodes by attribute"
             >
@@ -1020,7 +1097,7 @@ export function GraphControls({
             </button>
 
             {isClusterDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[160px]">
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 min-w-[160px]">
                 {CLUSTER_STRATEGIES.map((strategy) => (
                   <button
                     key={strategy.value}
@@ -1028,15 +1105,15 @@ export function GraphControls({
                       onClusterStrategyChange(strategy.value);
                       setIsClusterDropdownOpen(false);
                     }}
-                    className={`w-full px-3 py-2 text-left hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg ${
+                    className={`w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg ${
                       currentClusterStrategy === strategy.value
-                        ? "bg-purple-50 text-purple-600"
-                        : "text-gray-600"
+                        ? "bg-purple-50 dark:bg-purple-900 text-purple-600 dark:text-purple-400"
+                        : "text-gray-600 dark:text-gray-300"
                     }`}
                   >
                     <div className="text-xs font-medium">{strategy.label}</div>
                     {strategy.description && (
-                      <div className="text-[10px] text-gray-400">
+                      <div className="text-[10px] text-gray-400 dark:text-gray-500">
                         {strategy.description}
                       </div>
                     )}
@@ -1046,8 +1123,8 @@ export function GraphControls({
                 {/* Cluster Strength Slider */}
                 {currentClusterStrategy !== "none" &&
                   onClusterStrengthChange && (
-                    <div className="px-3 py-2 border-t border-gray-100">
-                      <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+                    <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-1">
                         <span>Cluster Tightness</span>
                         <span>{Math.round(clusterStrength * 100)}%</span>
                       </div>
@@ -1059,14 +1136,14 @@ export function GraphControls({
                         onChange={(e) =>
                           onClusterStrengthChange(Number(e.target.value) / 100)
                         }
-                        className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                        className="w-full h-1 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-500"
                       />
                     </div>
                   )}
               </div>
             )}
           </div>
-          <div className="w-px h-6 bg-gray-200" />
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
         </>
       )}
 
@@ -1074,7 +1151,16 @@ export function GraphControls({
       <div className="flex-1" />
 
       {/* Last Updated & Refresh */}
-      <div className="flex items-center gap-2">
+      <div
+        className="flex items-center gap-2"
+        onMouseEnter={() => {
+          setIsClusterDropdownOpen(false);
+          setIsLayoutDropdownOpen(false);
+          setIsAiPopupOpen(false);
+          setIsSearchPopupOpen(false);
+          setIsFiltersPopupOpen(false);
+        }}
+      >
         {/* Stale Indicator */}
         {isStale && (
           <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">
@@ -1097,7 +1183,7 @@ export function GraphControls({
 
         {/* Last Updated Timestamp */}
         {lastUpdated && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             {formatTimestamp(lastUpdated)}
           </span>
         )}

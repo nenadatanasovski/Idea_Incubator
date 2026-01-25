@@ -1,0 +1,809 @@
+{
+  "metadata": {
+    "created": "2026-01-25",
+    "analysis_scope": "18 artifact sources: specs, briefs, tasks for Build, SIA, Spec, UX, Validation agents plus first principles analysis and action plan",
+    "total_artifacts_analyzed": 18,
+    "knowledge_graph_type": "multi-agent autonomous development orchestration system"
+  },
+  "executive_summary": {
+    "system_name": "Vibe — AI-Powered Autonomous Multi-Agent Development Platform",
+    "completion_percentage": "25-30% of full autonomous system",
+    "critical_insight": "Current system is functional prototype but lacks true orchestration, inter-agent communication, monitoring, and human oversight required for production autonomy",
+    "core_thesis": "Non-technical users can go from vague idea to working deployed app through AI-guided conversation and autonomous agent coordination"
+  },
+  "agents": {
+    "pipeline_agents": {
+      "ideation_agent": {
+        "status": "existing",
+        "location": "frontend UI + server routes",
+        "purpose": "Transform vague ideas into validated, documented concepts through conversational exploration",
+        "inputs": ["user_ideas", "passion_skills_frustration", "market_context"],
+        "outputs": ["README.md", "development.md", "target-users.md", "problem-solution.md", "planning/brief.md"],
+        "key_behaviors": [
+          "Guide users through 'What makes you tick?' conversation",
+          "Extract passion, skills, and frustration points",
+          "Suggest candidate ideas based on profile intersection",
+          "Validate idea viability through multi-perspective exploration",
+          "Generate handoff brief for Specification Agent"
+        ],
+        "key_metrics": ["completion_rate", "idea_quality_score", "readiness_for_spec"]
+      },
+      "specification_agent": {
+        "status": "new",
+        "location": "agents/specification/ (TypeScript, Vibe platform)",
+        "purpose": "Transform ideation artifacts into executable technical specifications and atomic task breakdown",
+        "inputs": ["planning/brief.md", "development.md", "target-users.md", "problem-solution.md", "research/*.md"],
+        "outputs": ["build/spec.md", "build/tasks.md", "build/decisions.md"],
+        "key_behaviors": [
+          "Extract requirements from ideation artifacts",
+          "Design data models and API contracts",
+          "Break work into atomic tasks (CREATE/UPDATE/ADD/DELETE actions)",
+          "Identify dependencies between tasks",
+          "Request ownership registration for new files",
+          "Query Knowledge Base for gotchas relevant to design decisions"
+        ],
+        "key_metrics": ["atomic_task_quality", "spec_completeness", "dependency_accuracy"],
+        "critical_dependencies": ["Knowledge Base", "Resource Registry"]
+      },
+      "build_agent": {
+        "status": "implementing",
+        "location": "coding-loops/agents/build_agent_worker.py (Python)",
+        "purpose": "Execute atomic tasks and generate working code with validation and error recovery",
+        "inputs": ["build/spec.md", "build/tasks.md", "CLAUDE.md", "Knowledge Base gotchas", "ResourceRegistry ownership"],
+        "outputs": ["git commits", "Knowledge Base entries", "execution reports", "MessageBus events"],
+        "execution_model": "PIV Loop (Prime, Iterate, Validate)",
+        "prime_phase": {
+          "description": "Load all necessary context before execution",
+          "loads": ["task_lists metadata", "tasks in order", "spec.md", "CLAUDE.md sections", "relevant gotchas", "resumption context"]
+        },
+        "iterate_phase": {
+          "description": "Execute tasks sequentially within assigned wave",
+          "workflow": [
+            "Check task executability (dependencies, ownership, locks)",
+            "Load task-specific gotchas from Knowledge Base",
+            "Acquire file lock via MessageBus",
+            "Create git checkpoint",
+            "Build Claude prompt with gotchas and conventions",
+            "Generate code via Claude API",
+            "Write file",
+            "Run validation command",
+            "Commit on success OR rollback to checkpoint on failure",
+            "Release file lock",
+            "Publish completion/failure event"
+          ]
+        },
+        "validate_phase": {
+          "description": "Run comprehensive validation after all tasks complete",
+          "three_level_framework": {
+            "level_1_codebase": ["TypeScript compilation", "linting"],
+            "level_2_api": ["Endpoint tests", "integration tests", "database migrations"],
+            "level_3_ui": ["Component tests", "E2E tests"]
+          }
+        },
+        "key_metrics": ["first_pass_success_rate", "average_retries", "task_execution_time"],
+        "critical_dependencies": ["Message Bus", "Knowledge Base", "Resource Registry", "Verification Gate", "Git Manager", "Checkpoint Manager"]
+      }
+    },
+    "validation_agents": {
+      "validation_agent": {
+        "status": "specified (not yet implemented)",
+        "location": "coding-loops/agents/validation_agent.py (Python)",
+        "purpose": "Comprehensive testing beyond basic validation commands; independent quality assurance gate",
+        "triggers": ["task.completed", "build.validating", "pr.created"],
+        "validation_levels": [
+          "QUICK: syntax, types, lint (< 30s)",
+          "STANDARD: unit tests, coverage (< 2min)",
+          "THOROUGH: integration, edge cases (< 10min)",
+          "COMPREHENSIVE: performance, security, generated tests (< 30min)",
+          "RELEASE: full regression, load testing (< 2hrs)"
+        ],
+        "key_features": [
+          "Test generation from code analysis",
+          "Edge case coverage analysis",
+          "Security scanning (SQL injection, XSS, path traversal, secrets)",
+          "Performance benchmarking",
+          "Mutation testing",
+          "API contract validation",
+          "Coverage reporting"
+        ],
+        "outputs": ["ValidationReport", "generated_test_cases", "security_findings", "coverage_metrics"],
+        "blocking_conditions": [
+          "Critical security vulnerabilities",
+          "Test coverage < 80%",
+          "Performance regression"
+        ],
+        "critical_dependencies": ["Code analysis tools", "Test framework", "Security scanner", "Coverage tools"]
+      },
+      "ux_testing_agent": {
+        "status": "specified (not yet implemented)",
+        "location": "coding-loops/agents/ux_agent.py (Python)",
+        "purpose": "Automated user experience testing via Puppeteer; validates usability, accessibility, and perception",
+        "technology": "Puppeteer MCP (mcp__puppeteer__*)",
+        "triggers": ["build.complete", "ui.changed", "scheduled_daily"],
+        "testing_capabilities": [
+          "User journey simulation and measurement",
+          "First-time user experience analysis",
+          "Nielsen's 10 usability heuristics evaluation",
+          "WCAG 2.1 Level AA accessibility audit",
+          "Performance perception scoring",
+          "Error experience testing",
+          "Keyboard navigation validation",
+          "Screen reader compatibility"
+        ],
+        "outputs": ["UXReport", "usability_score", "accessibility_score", "screenshots", "journey_results"],
+        "key_metrics": ["time_to_first_success", "click_efficiency", "accessibility_issues", "performance_perception"],
+        "blocking_conditions": [
+          "Accessibility level < A",
+          "Critical usability issues",
+          "First-time user success rate < 70%"
+        ],
+        "critical_dependencies": ["Puppeteer MCP", "Accessibility libraries", "Performance monitoring"]
+      }
+    },
+    "infrastructure_agents": {
+      "self_improvement_agent_sia": {
+        "status": "specified",
+        "location": "coding-loops/agents/sia_agent.py (Python)",
+        "purpose": "Learn from agent failures and improve the system; enables self-healing through analysis and propagation",
+        "trigger_conditions": {
+          "primary": "Spawned by Build Agent when task has 3+ failed attempts AND no progress detected",
+          "no_progress_definition": [
+            "Same error message repeating",
+            "No new Git commits between attempts",
+            "No files modified",
+            "Validation score not improving"
+          ],
+          "secondary": ["build.completed events (learn from success)", "ideation.completed events"]
+        },
+        "context_loading": [
+          "Execution record and full task results",
+          "Task list definition (what was queued)",
+          "Spec and tasks files (what was planned)",
+          "Git diff (what actually changed)",
+          "Test results and validation output",
+          "Previous similar reviews for pattern matching"
+        ],
+        "decision_logic": [
+          "Classify divergence: GOOD (enhancement, optimization) vs BAD (shortcut, mistake, deviation)",
+          "Determine if gotcha should be recorded (was_self_corrected, seen_before, reproducible)",
+          "Decide if CLAUDE.md should be updated (new universal pattern)",
+          "Propose fix approach OR task decomposition"
+        ],
+        "outputs": [
+          "Pattern extraction (reusable approaches)",
+          "Gotcha entries (mistakes to avoid)",
+          "CLAUDE.md updates (universal patterns)",
+          "Template improvements",
+          "Task decomposition suggestions",
+          "Follow-up tasks"
+        ],
+        "key_metrics": ["patterns_found", "gotchas_extracted", "improvement_success_rate"],
+        "critical_dependencies": ["Knowledge Base", "Git integration", "Task Agent communication", "Build execution logs"]
+      },
+      "monitor_agent": {
+        "status": "specified (partial implementation in file-based health)",
+        "location": "coding-loops/agents/monitor_agent.py (Python)",
+        "purpose": "Watch all agents in real-time; detect anomalies, health degradation, and deadlocks",
+        "responsibilities": [
+          "Read heartbeats from all Build Agent instances",
+          "Detect stale agents (heartbeat > 60s old)",
+          "Detect stuck agents (same error repeating, no progress)",
+          "Detect deadlocks (circular resource dependencies)",
+          "Track API credit consumption and warn before exhaustion",
+          "Monitor for cascading failures",
+          "Alert to human or PM Agent when thresholds exceeded"
+        ],
+        "detection_mechanisms": [
+          "Stale detection: heartbeat age comparison",
+          "Stuck detection: error pattern matching + git diff analysis",
+          "Deadlock detection: dependency graph cycle detection",
+          "Budget detection: API call tracking vs limits",
+          "Health score: composite of multiple metrics"
+        ],
+        "outputs": ["Health alerts", "Anomaly reports", "escalation_recommendations"],
+        "critical_dependencies": ["Message Bus", "Health monitoring infrastructure", "PM Agent"]
+      },
+      "pm_agent": {
+        "status": "specified (partial implementation)",
+        "location": "server/services/pm-agent/ or coding-loops/agents/pm_agent.py",
+        "purpose": "Coordinate priorities, resolve conflicts, and make strategic decisions across all agents",
+        "responsibilities": [
+          "Coordinate across multiple Build Agent instances",
+          "Resolve file conflicts (which agent gets priority)",
+          "Handle resource constraints (API budget, time limits)",
+          "Prioritize task queues when bottlenecks occur",
+          "Escalate decisions that require human input",
+          "Break deadlocks by reordering dependencies",
+          "Ensure architectural consistency across builds"
+        ],
+        "decision_making": [
+          "Conflict resolution strategy: dependency-based priority",
+          "Resource allocation: fair share across competing agents",
+          "Prioritization: based on task criticality and dependencies",
+          "Escalation: when decision impacts > threshold"
+        ],
+        "outputs": ["Priority adjustments", "Conflict resolutions", "Escalation requests", "Strategic recommendations"],
+        "critical_dependencies": ["Message Bus", "Knowledge Base", "Monitor Agent feedback", "Human Interface"]
+      }
+    },
+    "support_infrastructure": {
+      "verification_gate": {
+        "status": "specified (independent validation needed)",
+        "purpose": "Independent verification that agent claims are actually true (agent says 'TEST PASSED' - verify independently)",
+        "key_problem_it_solves": "Without independent verification, system trusts agent claims blindly; agent could be hallucinating or lying",
+        "validation_approach": [
+          "Re-run tests independently",
+          "Verify code compiles and type-checks",
+          "Check that implementation matches spec requirements",
+          "Validate against acceptance criteria"
+        ],
+        "critical_dependencies": ["Build system", "Test framework", "Specification requirements"]
+      },
+      "knowledge_base": {
+        "status": "specified",
+        "purpose": "Cross-agent context sharing: gotchas, patterns, decisions, and learned insights",
+        "item_types": ["gotcha (mistakes to avoid)", "pattern (reusable approaches)", "decision (architectural choices)"],
+        "querying": [
+          "gotchas_for_file(path: str) → List[Gotcha]",
+          "patterns_for_action(action: CREATE|UPDATE|DELETE) → List[Pattern]",
+          "decisions_for_domain(domain: str) → List[Decision]",
+          "similar_failures(error: str) → List[PastFailure]"
+        ],
+        "recording": [
+          "record_gotcha(gotcha) → entry_id",
+          "record_pattern(pattern) → entry_id"
+        ],
+        "critical_features": [
+          "File pattern matching (e.g., '*.sql', 'server/routes/*')",
+          "Confidence scoring (0.0-1.0)",
+          "Source attribution (which agent discovered)",
+          "Temporal tracking (when discovered)"
+        ]
+      },
+      "message_bus": {
+        "status": "specified",
+        "purpose": "Event-driven inter-agent communication with timeline and persistence",
+        "event_types": [
+          "tasklist.generated → Specification Agent output",
+          "spec.approved → User/auto approval trigger",
+          "task.started/completed/failed → Build Agent task lifecycle",
+          "build.completed/stuck → Build outcome events",
+          "gotcha.discovered/pattern.extracted → Knowledge Base updates",
+          "system.improved → SIA improvements propagation"
+        ],
+        "features": [
+          "Persistent event log (queryable by time, agent, type)",
+          "Subscription mechanism (agents register for event types)",
+          "Timeline reconstruction (understand causality)",
+          "Audit trail (who did what when)"
+        ]
+      },
+      "resource_registry": {
+        "status": "specified",
+        "purpose": "Track file ownership and prevent concurrent modifications",
+        "query_api": ["get_owner(file_path) → owner_loop_id", "get_dependencies(file_path) → List[file]"],
+        "registration": ["register_ownership(file, owner_id) → confirmation"],
+        "lock_mechanism": "Implicit through MessageBus; explicit locks optional"
+      },
+      "git_manager": {
+        "status": "partial",
+        "purpose": "Branch management and controlled merging strategy",
+        "strategy": [
+          "Each Build Agent execution gets unique branch",
+          "Wave-based execution with branch isolation",
+          "Controlled merges to main after verification",
+          "Rollback capability via checkpoints"
+        ]
+      },
+      "checkpoint_manager": {
+        "status": "implementing",
+        "purpose": "Enable rollback on task failure; manage recovery points",
+        "mechanics": [
+          "Create checkpoint before each task (git ref stored)",
+          "On validation failure: git reset --hard <checkpoint_ref>",
+          "On success: checkpoint committed as part of solution",
+          "Maintains checkpoint table: execution_id, task_id, git_ref"
+        ]
+      }
+    }
+  },
+  "problems_solved": {
+    "core_problem": "Non-technical users cannot easily go from vague idea to working deployed application; AI development agents are isolated, uncoordinated, and lack feedback mechanisms",
+    "problems_by_agent": {
+      "ideation_agent": [
+        "How to extract coherent product ideas from vague user concepts?",
+        "How to validate ideas before specification work begins?",
+        "How to structure handoff from ideation to specification?"
+      ],
+      "specification_agent": [
+        "How to translate domain knowledge into implementable technical requirements?",
+        "How to break monolithic features into atomic, parallelizable tasks?",
+        "How to capture architectural decisions for future agents to understand?"
+      ],
+      "build_agent": [
+        "How to execute long-running code generation tasks reliably?",
+        "How to recover from failures without human intervention?",
+        "How to generate code that passes all validation checks?",
+        "How to parallelize task execution safely without file conflicts?"
+      ],
+      "sia_agent": [
+        "How to detect when an agent is stuck in a loop?",
+        "How to diagnose root causes of repeated failures?",
+        "How to suggest alternative approaches when one fails repeatedly?",
+        "How to propagate learned patterns to all agents?"
+      ],
+      "validation_agent": [
+        "How to ensure code quality beyond syntax/types?",
+        "How to generate missing test cases automatically?",
+        "How to catch security vulnerabilities early?",
+        "How to validate that implementation matches specification?"
+      ],
+      "ux_testing_agent": [
+        "How to test usability without human testers?",
+        "How to ensure accessibility compliance automatically?",
+        "How to measure that interfaces feel responsive?",
+        "How to detect confusing user experiences programmatically?"
+      ],
+      "system_level": [
+        "How do multiple agents avoid overwriting each other's work? (Message Bus, Resource Registry)",
+        "How do we know agents aren't hallucinating success? (Verification Gate, Independent Validation)",
+        "How do we detect and recover from cascading failures? (Monitor Agent, Checkpoint/Rollback)",
+        "How do agents learn from mistakes and improve over time? (SIA, Knowledge Base)",
+        "How do humans maintain oversight without being overwhelmed? (PM Agent, Human Interface)"
+      ]
+    }
+  },
+  "solutions": {
+    "architectural_patterns": {
+      "piv_loop": {
+        "description": "Prime-Iterate-Validate loop for task execution",
+        "prime": "Load all context (spec, tasks, conventions, gotchas)",
+        "iterate": "Execute tasks with error handling, retries, and checkpoints",
+        "validate": "Multi-level testing to ensure code quality",
+        "used_by": ["Build Agent", "SIA Agent"]
+      },
+      "wave_based_parallelism": {
+        "description": "Execute independent tasks in parallel waves, sequential across waves",
+        "benefit": "Maximum parallelism without deadlocks or file conflicts",
+        "mechanics": "Dependency graph analysis → wave assignment → Build Agent spawn per task",
+        "used_by": ["Build Agent", "Task Agent Orchestrator"]
+      },
+      "event_driven_orchestration": {
+        "description": "Agents communicate via events on Message Bus; enables coordination without tight coupling",
+        "events": ["tasklist.generated", "task.started", "build.stuck", "pattern.extracted", etc.],
+        "benefit": "Loose coupling, asynchronous coordination, audit trail",
+        "used_by": ["All agents"]
+      },
+      "knowledge_sharing_across_agents": {
+        "description": "Knowledge Base provides discovered gotchas, patterns, and decisions to all agents",
+        "benefit": "System learns from mistakes; prevents repeated errors; improves over time",
+        "mechanics": "Query by file_pattern, action_type, min_confidence; record with source attribution",
+        "used_by": ["Build Agent (loads gotchas)", "SIA (records patterns)", "Validation Agent (learns edge cases)"]
+      },
+      "independent_verification_gate": {
+        "description": "Separate agent verifies critical claims (tests pass, code compiles, implementation correct)",
+        "benefit": "No agent can claim success without independent verification; catches hallucinations",
+        "mechanics": "Build Agent commits, Verification Gate re-runs tests, Validation Agent checks spec compliance",
+        "used_by": ["Verification system"]
+      },
+      "checkpoint_and_rollback": {
+        "description": "Create git checkpoints before each task; on failure, rollback to clean state",
+        "benefit": "Failed tasks don't corrupt codebase; enables retries from known good state",
+        "mechanics": "git commit pre-task state → execute → validate → revert if fail",
+        "used_by": ["Build Agent"]
+      },
+      "ownership_and_locking": {
+        "description": "Track file ownership and prevent concurrent modifications",
+        "benefit": "Multiple Build Agents can run safely without overwriting each other",
+        "mechanics": "Resource Registry tracks ownership; MessageBus provides implicit locks",
+        "used_by": ["Build Agent", "Task Agent"]
+      }
+    },
+    "system_level_solutions": {
+      "multi_agent_orchestration": "Message Bus enables inter-agent communication; PM Agent coordinates priorities; Monitor Agent watches for problems",
+      "learning_from_failures": "SIA analyzes repeated failures, extracts patterns, updates CLAUDE.md and Knowledge Base, and improves system over time",
+      "graceful_degradation": "Monitor Agent detects failures, PM Agent handles escalations, humans have interface to intervene; no single component failure causes cascading collapse",
+      "human_oversight": "Human Interface Agent (TBD) summarizes status, presents decisions, and accepts human input; Telegram provides lightweight command interface",
+      "auditability": "Message Bus maintains event timeline; execution logs stored in database; all decisions attributed to agent/human source"
+    }
+  },
+  "dependencies": {
+    "execution_order_critical_path": [
+      {
+        "phase": "Phase 0: Foundation",
+        "items": [
+          "Message Bus infrastructure (event persistence, subscription)",
+          "Resource Registry (file ownership tracking)",
+          "Knowledge Base (gotcha/pattern storage and querying)"
+        ],
+        "rationale": "All other agents depend on these communication/coordination mechanisms"
+      },
+      {
+        "phase": "Phase 1: Specification Agent",
+        "items": [
+          "API endpoints for spec generation",
+          "Atomic task breakdown logic",
+          "Integration with Knowledge Base for gotchas"
+        ],
+        "rationale": "Build Agent cannot execute without spec and tasks"
+      },
+      {
+        "phase": "Phase 2: Build Agent Core",
+        "items": [
+          "Python worker implementation",
+          "PIV loop (Prime, Iterate, Validate)",
+          "Claude API integration",
+          "Checkpoint/rollback capability"
+        ],
+        "rationale": "Core value delivery; enables task execution"
+      },
+      {
+        "phase": "Phase 3: Parallel Execution",
+        "items": [
+          "Wave calculation from dependency graph",
+          "Multiple Build Agent instance spawn/coordination",
+          "File conflict detection",
+          "Execution isolation by execution_id"
+        ],
+        "rationale": "Enables fast task completion through parallelism"
+      },
+      {
+        "phase": "Phase 4: Error Recovery & SIA",
+        "items": [
+          "Retry logic with exponential backoff",
+          "No-progress detection",
+          "SIA spawn criteria and analysis",
+          "Pattern extraction and propagation"
+        ],
+        "rationale": "Enables self-healing without human intervention"
+      },
+      {
+        "phase": "Phase 5: Monitoring & Control",
+        "items": [
+          "Monitor Agent implementation",
+          "PM Agent coordination logic",
+          "Human Interface Agent (Telegram + Web)"
+        ],
+        "rationale": "Human oversight and system coordination"
+      },
+      {
+        "phase": "Phase 6: Validation & UX Testing",
+        "items": [
+          "Validation Agent with test generation",
+          "Security scanning",
+          "UX Testing Agent with Puppeteer"
+        ],
+        "rationale": "Quality assurance and independent verification"
+      }
+    ],
+    "critical_dependencies_matrix": {
+      "build_agent_depends_on": [
+        "Message Bus (task events, completion notifications)",
+        "Knowledge Base (gotchas by file/action)",
+        "Resource Registry (ownership checks)",
+        "Verification Gate (validation of test results)",
+        "Git Manager (branch management, commits)",
+        "Checkpoint Manager (rollback on failure)",
+        "Claude API (code generation)"
+      ],
+      "sia_depends_on": [
+        "Build Agent execution logs (analysis input)",
+        "Knowledge Base (pattern storage, similarity queries)",
+        "Git (diff analysis, commit history)",
+        "Task Agent (follow-up task creation)"
+      ],
+      "validation_agent_depends_on": [
+        "Build Agent output (code to validate)",
+        "Test framework (execution)",
+        "Specification requirements (acceptance criteria)"
+      ],
+      "ux_testing_agent_depends_on": [
+        "Puppeteer MCP (browser control)",
+        "Build Agent output (deployed app to test)",
+        "User journey definitions (test scenarios)"
+      ],
+      "pm_agent_depends_on": [
+        "Message Bus (inter-agent events)",
+        "Monitor Agent feedback (health status)",
+        "Knowledge Base (decisions, patterns)",
+        "Human Interface (escalation decisions)"
+      ],
+      "monitor_agent_depends_on": [
+        "Build Agent heartbeats (health signals)",
+        "Message Bus (event stream for anomaly detection)",
+        "PM Agent (escalation target)"
+      ]
+    },
+    "blocking_dependencies": [
+      "Verification Gate: Build Agent cannot mark success without independent test validation",
+      "Message Bus: No inter-agent communication without event infrastructure",
+      "Knowledge Base: SIA cannot propagate patterns without storage mechanism"
+    ]
+  },
+  "constraints_and_gotchas": {
+    "system_level_constraints": [
+      "API costs scale with agent execution; need budget manager to prevent runaway spending",
+      "Parallel execution requires file conflict detection; complex tasks touching same files cannot parallelize",
+      "Task atomicity depends on clear requirements; over-specified tasks block agents; under-specified tasks fail validation",
+      "Knowledge Base grows over time; need query optimization to maintain performance",
+      "Agents can generate code that passes tests but doesn't match intent; Specification Agent output quality directly impacts success rate"
+    ],
+    "build_agent_gotchas": [
+      "Gotchas MUST be injected into task prompt; gotcha discovered after task fails reduces effectiveness",
+      "Validation commands must be idempotent and fast (< 30s); slow validation kills iteration speed",
+      "Checkpoint creation must happen BEFORE task execution; post-execution checkpoints are useless",
+      "File locks must be released even on failure; locked files block dependent tasks forever",
+      "Exit codes determine success/failure; agent must exit(0) on success, exit(non-zero) on failure"
+    ],
+    "sia_gotchas": [
+      "SIA triggers on 3+ failures AND no progress; premature trigger wastes resources, late trigger blocks too long",
+      "Pattern extraction requires >1 occurrence; single error is not a pattern, don't pollute knowledge base",
+      "Circular dependencies in task decomposition can create infinite loops; SIA must detect before proposing",
+      "CLAUDE.md updates are global; changes affect ALL future agents; must be high-confidence",
+      "SIA can suggest decomposition but cannot auto-execute it; Task Agent must create follow-up tasks"
+    ],
+    "specification_agent_gotchas": [
+      "Atomic task boundaries are critical; too fine-grained tasks have excessive overhead, too coarse loses parallelism",
+      "Task dependencies must be explicitly stated; implicit dependencies cause deadlocks",
+      "Code templates must be valid starting points; incomplete templates confuse code generation",
+      "File ownership registration must precede Build Agent execution; unregistered files cause conflicts"
+    ],
+    "validation_agent_gotchas": [
+      "Generated tests must be maintainable; auto-generated test crud pollutes codebase",
+      "Security scan false positives erode trust; must be high-precision",
+      "Coverage requirements (e.g., 80%) are aspirational, not absolutes; some code cannot be tested",
+      "Performance thresholds vary by hardware; tests must account for CI environment differences"
+    ],
+    "ux_testing_agent_gotchas": [
+      "User journeys must be representative; testing happy paths misses real user pain points",
+      "Accessibility requirements (WCAG AA) are legal requirement, not optional",
+      "First-time user simulation is approximation, not actual users; must be validated with real feedback",
+      "Puppeteer tests are brittle; CSS selectors break with UI changes; need robust locator strategy"
+    ],
+    "deployment_constraints": [
+      "Reagraph version pinned to 4.18.1; upgrading to 4.30.7 causes 'Cannot read properties of undefined' error",
+      "Python worker must be spawned with python3, not python (Python 2 vs 3 compatibility)",
+      "Database migrations must be idempotent; running twice should not corrupt schema",
+      "Git commits from Build Agent must have valid author; automation commits need bot email"
+    ]
+  },
+  "design_patterns_and_decisions": {
+    "task_identity": {
+      "decision": "UUID primary key + computed display_id",
+      "benefits": ["True uniqueness", "Human-readable display", "Unlimited task relationships"],
+      "trade-offs": ["Display ID requires computation", "Migration complexity to flat IDs"]
+    },
+    "task_grouping": {
+      "decision": "Event-driven auto-grouping on task creation and dependency changes",
+      "benefits": ["Responsive to user actions", "Reduced manual overhead"],
+      "implementation": "Task Agent calculates grouping suggestions; user approves/modifies"
+    },
+    "parallel_execution_model": {
+      "decision": "1 Build Agent = 1 task; unlimited agents per task list",
+      "benefits": ["Maximum parallelism", "Simple failure isolation", "Linear scaling"],
+      "trade-offs": ["High concurrency requires careful resource management"]
+    },
+    "file_conflict_detection": {
+      "decision": "Pre-execution analysis: file + operation type (CREATE/UPDATE/DELETE)",
+      "benefits": ["Prevents most conflicts", "Avoids AST complexity", "Fast to compute"],
+      "limitations": ["Cannot detect semantic conflicts (both modify same field)"]
+    },
+    "error_classification": {
+      "decision": "Classify errors into categories: SYNTAX_ERROR, VALIDATION_FAILED, MISSING_DEPENDENCY, etc.",
+      "benefits": ["Enables targeted recovery strategies", "Feeds into SIA analysis"],
+      "used_by": ["Build Agent retry logic", "SIA error pattern analysis"]
+    },
+    "gotcha_confidence_scoring": {
+      "decision": "0.0-1.0 confidence based on source reliability and evidence strength",
+      "benefits": ["High-confidence gotchas injected into tasks", "Low-confidence gotchas used for learning only"],
+      "implementation": "SIA assigns confidence when recording; Build Agent filters on min_confidence parameter"
+    },
+    "knowledge_base_queries": {
+      "decision": "Filter by file_pattern (glob), action_type, min_confidence, temporal range",
+      "benefits": ["Precise gotcha injection", "Irrelevant gotchas don't clutter prompts"],
+      "performance": ["Requires indexing on file_pattern and action_type"]
+    },
+    "event_persistence": {
+      "decision": "Store all events in database with timestamp, source, type, payload",
+      "benefits": ["Full audit trail", "Timeline reconstruction", "SIA analysis input"],
+      "retention": ["Keep indefinitely or implement retention policy?"]
+    },
+    "checkpoint_strategy": {
+      "decision": "Git-based: create checkpoint before each task, store git ref in database",
+      "benefits": ["Integrates with version control", "Simple recovery mechanism"],
+      "limitations": ["Git overhead on frequent commits", "Cleanup required after completion"]
+    },
+    "wave_calculation": {
+      "decision": "Topological sort of dependency DAG; parallel tasks in same wave",
+      "benefits": ["Provably optimal parallelism", "Provably no deadlocks"],
+      "assumptions": ["Dependency graph is acyclic (validated separately)"]
+    }
+  },
+  "timeline_and_scope": {
+    "estimated_effort": "6-8 weeks of continuous development OR 12-15 weeks at part-time (15-20 hrs/week)",
+    "vibe_90_day_action_plan": {
+      "days_1_30": "Complete ideation agent polish, collaboration framework, orchestrator routing",
+      "days_31_60": "Specification agent, Build Agent foundation, SIA v1",
+      "days_61_90": "Hosting, credit system, UX polish, soft launch preparation",
+      "post_90_days": "Scale based on traction, consider fundraising if strong metrics"
+    },
+    "implementation_phases": [
+      {
+        "phase": "1-2 weeks",
+        "focus": "Foundation: Message Bus, Resource Registry, Knowledge Base",
+        "deliverables": ["Event persistence", "File ownership tracking", "Gotcha/pattern storage"]
+      },
+      {
+        "phase": "1-2 weeks",
+        "focus": "Specification Agent",
+        "deliverables": ["API endpoints", "Atomic task generation", "Dependency analysis"]
+      },
+      {
+        "phase": "2-3 weeks",
+        "focus": "Build Agent Core (PIV loop, validation, error handling)",
+        "deliverables": ["Python worker", "Task execution", "Checkpoint/rollback", "Validation integration"]
+      },
+      {
+        "phase": "1-2 weeks",
+        "focus": "Parallel Execution (waves, conflict detection, isolation)",
+        "deliverables": ["Wave calculation", "Build Agent spawn/coordination", "File lock mechanism"]
+      },
+      {
+        "phase": "1-2 weeks",
+        "focus": "Error Recovery & SIA",
+        "deliverables": ["Retry logic", "SIA implementation", "Pattern propagation", "CLAUDE.md updates"]
+      },
+      {
+        "phase": "1 week",
+        "focus": "Monitoring & PM Agent",
+        "deliverables": ["Monitor Agent implementation", "PM Agent coordination", "Health alerts"]
+      },
+      {
+        "phase": "1-2 weeks",
+        "focus": "Validation & UX Testing Agents",
+        "deliverables": ["Test generation", "Security scanning", "Puppeteer-based UX tests"]
+      },
+      {
+        "phase": "1-2 weeks",
+        "focus": "Human Interface & Integration",
+        "deliverables": ["Telegram command interface", "Web dashboard", "E2E testing"]
+      }
+    ],
+    "current_status_metrics": {
+      "build_agent": "89/100 tasks complete (89%)",
+      "specification_agent": "0% (not yet started)",
+      "sia_agent": "20% (architecture specified, implementation pending)",
+      "validation_agent": "30% (fully specified, implementation pending)",
+      "ux_testing_agent": "25% (fully specified, implementation pending)",
+      "monitor_agent": "20% (partially implemented in file-based health)",
+      "pm_agent": "15% (architecture specified, implementation pending)",
+      "message_bus": "60% (event system exists, needs formalization)",
+      "knowledge_base": "50% (knowledge table exists, query APIs need expansion)",
+      "resource_registry": "0% (specified, not implemented)"
+    }
+  },
+  "success_criteria_and_validation": {
+    "system_level_success_criteria": [
+      "Build Agent can execute 10+ sequential tasks with > 80% first-pass success rate",
+      "Build Agent executes 3+ parallel tasks in separate agents without file conflicts",
+      "SIA successfully diagnoses and fixes a stuck Build Agent within 3 attempts",
+      "Specification Agent generates atomic tasks that Build Agent can execute successfully",
+      "Validation Agent independently verifies Build Agent claims; catches hallucinations",
+      "UX Testing Agent identifies usability issues in generated UIs",
+      "Full flow: user idea → validated concept → spec → working code → deployed app (End-to-end)",
+      "System learns from failures: same error doesn't repeat twice (SIA + Knowledge Base)"
+    ],
+    "build_agent_e2e_tests": {
+      "p0_critical": [
+        "Test 11: Telegram /execute command recognized and shows approval",
+        "Test 12: Python worker executes task and exits with correct code",
+        "Test 13: Task completion triggers Telegram notification"
+      ],
+      "p1_core": [
+        "Test 1: Single task execution (pending → completed)",
+        "Test 2: Multi-task sequential execution with dependencies",
+        "Test 3: Parallel execution (2+ agents in Wave 0)",
+        "Test 4: Failure and retry (3 retries logged, task marked failed)",
+        "Test 5: SIA escalation (build.stuck event published)",
+        "Test 6: Heartbeat monitoring (30s intervals, stale detection)",
+        "Test 7: Full pipeline (Telegram /newtask → grouping → execution → completion)"
+      ],
+      "p2_advanced": [
+        "Test 8: Cross-list file conflict prevention",
+        "Test 9: Discovery recording (subsequent task receives gotcha)",
+        "Test 10: Checkpoint rollback verification"
+      ]
+    },
+    "specification_agent_validation": [
+      "Generates spec.md with all requirements extractable from ideation artifacts",
+      "Generates atomic tasks with clear action (CREATE/UPDATE/ADD/DELETE)",
+      "Dependency analysis correct (no circular dependencies, respects causality)",
+      "Knowledge Base queries return relevant gotchas for design decisions",
+      "Output validates against spec schema"
+    ],
+    "sia_validation": [
+      "Detects stuck loops (same task reworked 3+ times)",
+      "Classifies divergences correctly (GOOD vs BAD)",
+      "Proposes viable fix approaches (decomposition, alternative strategy)",
+      "Records gotchas that prevent repeat errors",
+      "Updates CLAUDE.md with high-confidence patterns",
+      "Follows up with new tasks that Build Agent executes successfully"
+    ],
+    "validation_agent_validation": [
+      "Generated tests pass against actual code",
+      "Security scan catches SQL injection and XSS vulnerabilities",
+      "Coverage report accurately reflects code coverage",
+      "Performance tests catch performance regressions",
+      "Can validate API endpoint specs against implementation"
+    ],
+    "ux_testing_agent_validation": [
+      "User journey execution completes without manual intervention",
+      "Identifies accessibility issues (color contrast, keyboard nav, etc.)",
+      "Detects first-time user confusion (findability, CTAs)",
+      "Generates usability score traceable to Nielsen heuristics",
+      "Screenshots/recordings useful for debugging failed flows"
+    ],
+    "system_integration_validation": [
+      "Message Bus events flow correctly between agents",
+      "Knowledge Base queries return relevant results",
+      "Resource Registry prevents file conflicts",
+      "Checkpoint/rollback restores exact file state",
+      "SIA patterns propagate to Build Agent gotchas",
+      "Monitor Agent detects stuck agents",
+      "PM Agent resolves conflicts without human intervention"
+    ]
+  },
+  "knowledge_graph_key_insights": {
+    "critical_realizations": [
+      "Without independent verification (Verification Gate), agents can claim success without it being true — this is the single biggest reliability issue",
+      "Task atomicity is fundamental to parallelism; poor task boundaries make parallel execution impossible",
+      "Knowledge Base is the only mechanism for system learning; without it, same errors repeat forever",
+      "Wave-based execution is provably optimal for parallelism; better than other strategies",
+      "SIA only works if Build Agent fails consistently; it cannot help with one-off issues",
+      "File conflict detection is essential but imperfect; semantic conflicts (both modify same field) can't be detected pre-execution"
+    ],
+    "architectural_insights": [
+      "Event-driven orchestration is more flexible than synchronous calls; enables late binding and component independence",
+      "Checkpoint/rollback is more important than perfect code generation; allows safe retries",
+      "Message Bus with timeline is better than blackboard approach; enables auditability and causality analysis",
+      "Knowledge Base with confidence scoring prevents low-quality gotchas from polluting prompts",
+      "Wave calculation is deterministic and provably optimal; no need for heuristics or AI"
+    ],
+    "engineering_tradeoffs": [
+      "Fine-grained tasks enable parallelism but increase coordination overhead",
+      "Comprehensive validation (5 levels) catches all issues but slows down iteration",
+      "Generated tests are faster to create but harder to maintain than hand-written",
+      "File-based communication is simple but slower than in-memory; database-backed is better",
+      "Emotional display of progress (screenshots, journey animations) is nice-to-have, not critical"
+    ],
+    "unresolved_questions": [
+      "How to handle tasks that require domain expertise Build Agent doesn't have? (Blocked by Knowledge Base maturity)",
+      "How to prevent SIA from oscillating between two failing approaches? (Need escape hatch for genuinely unsolvable tasks)",
+      "How to validate that generated UI actually solves user's problem, not just technical requirements? (UX Agent helps but not sufficient)",
+      "How to cost-optimize API calls? (Budget Manager needed but not yet specified)",
+      "How to handle async operations that take >30min? (Timeout strategy needed)"
+    ]
+  },
+  "file_structure_reference": {
+    "documentation_artifacts_analyzed": [
+      "docs/specs/AGENT-ARCHITECTURE.md — System overview and component specs",
+      "docs/specs/BUILD-AGENT-DEVELOPER-BRIEF.md — Quick-start guide for Build Agent",
+      "docs/specs/BUILD-AGENT-IMPLEMENTATION-PLAN.md — 100 tasks with pass definitions (89% complete)",
+      "docs/specs/VALIDATION-AND-UX-AGENTS.md — Spec and UX testing agent specs",
+      "docs/specs/AGENT-SPECIFICATIONS-INFRASTRUCTURE.md — SIA, Monitor, PM agent specs",
+      "docs/specs/PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md — Parallelism engine specs",
+      "coding-loops/20260107-multi-agent-coordination-system-FINAL.md — 15-component system spec (116 tests)",
+      "coding-loops/20260107-coding-loop-architecture-critique.md — Critical gap analysis",
+      "ideas/vibe/action-plan.md — 90-day execution timeline",
+      "ideas/vibe/sia-loop-architecture.md — SIA integration specification",
+      "ideas/vibe/autonomous-agent-system.md — System architecture document",
+      "ideas/vibe/technical-architecture.md — Technical design deep dive",
+      "CLAUDE.md — Project rules and guidelines",
+      "docs/specs/BUILD-AGENT-APPENDIX-A-TYPES.md — TypeScript type definitions",
+      "docs/specs/BUILD-AGENT-APPENDIX-B-DATABASE.md — Database schema",
+      "docs/specs/BUILD-AGENT-APPENDIX-C-PYTHON.md — Python implementation skeleton",
+      "docs/specs/BUILD-AGENT-E2E-TEST-PLAN.md — 13 E2E test flows",
+      "docs/specs/E2E-SCENARIOS-CORE.md — Core agent interaction scenarios"
+    ]
+  }
+}

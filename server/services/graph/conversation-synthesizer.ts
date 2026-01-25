@@ -36,6 +36,11 @@ export interface ConversationInsight {
   content: string; // Detailed insight
   confidence: number; // 0.0 - 1.0
   sourceContext: string; // Brief context of where this came from
+  // NEW: Track decision evolution (supersession)
+  supersedes?: {
+    insightId: string; // ID of the earlier insight being replaced
+    reason: string; // Why this insight supersedes the previous one
+  };
 }
 
 export interface SynthesisResult {
@@ -95,6 +100,22 @@ Categories to extract (aim for multiple per category where applicable):
 7. RISKS - Each identified concern, challenge, or potential problem
 8. OPPORTUNITIES - Each identified potential benefit or possibility
 
+CRITICAL: DECISION EVOLUTION DETECTION
+When extracting DECISIONS, you MUST detect when a later statement changes or reverses an earlier decision:
+
+Decision-changing indicators (look for these phrases):
+- "actually", "on second thought", "instead", "let's change", "I've decided against"
+- "rather than", "forget that", "scratch that", "new plan", "better idea"
+- "wait, let's", "never mind", "changed my mind", "I prefer", "let's switch to"
+- Direct contradiction of earlier stated preference (same topic, different choice)
+
+When you detect decision evolution:
+1. Extract BOTH the original decision AND the new decision as separate insights
+2. The NEW decision should include a "supersedes" field referencing the OLD decision
+3. Include the reasoning for the change
+
+IMPORTANT: Only mark as superseding when BOTH insights are about the SAME topic/domain and the newer one REPLACES the older one. Do NOT link unrelated decisions.
+
 For EACH extracted insight:
 - Create a clear, specific title (5-10 words) that stands alone
 - Write self-contained content that captures the full meaning
@@ -123,7 +144,15 @@ Return JSON only:
     },
     {
       "id": "insight_2",
-      ...
+      "type": "decision",
+      "title": "Switch to Vue.js for frontend",
+      "content": "User decided to use Vue.js instead of React for the frontend",
+      "confidence": 0.95,
+      "sourceContext": "User reconsidered after discussing simplicity",
+      "supersedes": {
+        "insightId": "insight_1",
+        "reason": "User changed preference due to simpler learning curve"
+      }
     }
   ]
 }`;
@@ -226,10 +255,20 @@ Extract every distinct piece of knowledge. Return JSON with the insights array.`
     }
 
     // Parse response
+    console.log(
+      `[ConversationSynthesizer] Raw AI response length: ${textContent.text.length} chars`,
+    );
+    console.log(
+      `[ConversationSynthesizer] Raw AI response preview: ${textContent.text.slice(0, 500)}...`,
+    );
+
     const insights = parseInsightsResponse(textContent.text);
 
     if (!insights || insights.length === 0) {
       console.warn(`[ConversationSynthesizer] Failed to parse insights`);
+      console.warn(
+        `[ConversationSynthesizer] Full raw response: ${textContent.text}`,
+      );
       return createEmptyResult(messages.length);
     }
 
@@ -273,25 +312,50 @@ function parseInsightsResponse(responseText: string): ConversationInsight[] {
       return [];
     }
 
+    console.log(
+      `[ConversationSynthesizer] Found ${parsed.insights.length} raw insights in AI response`,
+    );
+
     // Validate and normalize insights
-    return parsed.insights
-      .filter((insight: any) => {
-        return (
-          insight.id &&
-          insight.type &&
-          insight.title &&
-          insight.content &&
-          typeof insight.confidence === "number"
+    const validInsights = parsed.insights.filter((insight: any) => {
+      const isValid =
+        insight.id &&
+        insight.type &&
+        insight.title &&
+        insight.content &&
+        typeof insight.confidence === "number";
+      if (!isValid) {
+        console.log(
+          `[ConversationSynthesizer] Filtering out invalid insight: ${JSON.stringify(insight).slice(0, 200)}`,
         );
-      })
-      .map((insight: any) => ({
+      }
+      return isValid;
+    });
+
+    console.log(
+      `[ConversationSynthesizer] ${validInsights.length} insights passed validation`,
+    );
+
+    return validInsights.map((insight: any) => {
+      const baseInsight: ConversationInsight = {
         id: insight.id,
         type: normalizeInsightType(insight.type),
         title: insight.title,
         content: insight.content,
         confidence: Math.min(1, Math.max(0, insight.confidence)),
         sourceContext: insight.sourceContext || "",
-      }));
+      };
+
+      // Handle supersession field if present
+      if (insight.supersedes && insight.supersedes.insightId) {
+        baseInsight.supersedes = {
+          insightId: insight.supersedes.insightId,
+          reason: insight.supersedes.reason || "Decision changed",
+        };
+      }
+
+      return baseInsight;
+    });
   } catch (error) {
     console.error(`[ConversationSynthesizer] Failed to parse insights:`, error);
     return [];

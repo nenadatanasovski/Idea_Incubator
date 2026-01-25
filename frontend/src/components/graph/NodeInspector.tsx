@@ -70,7 +70,7 @@ export interface NodeInspectorProps {
   // Selection actions for the selected node
   onLinkNode?: (nodeId: string) => void;
   onGroupIntoSynthesis?: (nodeId: string) => void;
-  onDeleteNode?: (nodeId: string) => void;
+  onDeleteNode?: (nodeId: string, nodeLabel: string) => void;
   isActionLoading?: string | null;
   className?: string;
 }
@@ -192,9 +192,18 @@ function RelationshipItem({
         )}
       </div>
 
-      {/* Related node content - full text on its own line */}
-      <div className="ml-8 mt-1 text-sm text-gray-700 group-hover:text-gray-900">
-        {relatedNode.content}
+      {/* Related node title and content */}
+      <div className="ml-8 mt-1">
+        {relatedNode.title && (
+          <div className="text-sm font-medium text-gray-900 group-hover:text-gray-900">
+            {relatedNode.title}
+          </div>
+        )}
+        <div
+          className={`text-sm text-gray-600 group-hover:text-gray-700 ${relatedNode.title ? "mt-0.5" : ""}`}
+        >
+          {relatedNode.content}
+        </div>
       </div>
     </button>
   );
@@ -339,11 +348,13 @@ function FileReferenceItem({
 
 /**
  * Internal source type display labels and icons
+ * Includes both frontend types and server-side types for compatibility
  */
 const SOURCE_TYPE_LABELS: Record<
-  SourceType,
+  string, // Using string to allow both SourceType and server types
   { label: string; color: string; icon: string }
 > = {
+  // Frontend source types
   chat: { label: "Chat", color: "bg-purple-100 text-purple-700", icon: "💬" },
   artifact: {
     label: "Artifact",
@@ -369,6 +380,27 @@ const SOURCE_TYPE_LABELS: Record<
     label: "AI Generated",
     color: "bg-pink-100 text-pink-700",
     icon: "🤖",
+  },
+  // Server-side source types (from source-collector.ts)
+  conversation: {
+    label: "Conversation",
+    color: "bg-purple-100 text-purple-700",
+    icon: "💬",
+  },
+  conversation_insight: {
+    label: "AI Insight",
+    color: "bg-indigo-100 text-indigo-700",
+    icon: "💡",
+  },
+  user_block: {
+    label: "User Block",
+    color: "bg-green-100 text-green-700",
+    icon: "✏️",
+  },
+  external: {
+    label: "External",
+    color: "bg-gray-100 text-gray-700",
+    icon: "🔗",
   },
 };
 
@@ -1158,7 +1190,12 @@ export function NodeInspector({
             )}
             {onDeleteNode && (
               <button
-                onClick={() => onDeleteNode(node.id)}
+                onClick={() =>
+                  onDeleteNode(
+                    node.id,
+                    node.title || node.content?.substring(0, 50) || "Node",
+                  )
+                }
                 disabled={isActionLoading === "delete"}
                 className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
               >

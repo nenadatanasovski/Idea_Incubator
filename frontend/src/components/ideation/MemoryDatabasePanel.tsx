@@ -4,7 +4,7 @@
  * Supports navigation from graph nodes to specific database entries
  */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
 import {
   Database,
   Table,
@@ -16,6 +16,7 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   X,
   Filter,
 } from "lucide-react";
@@ -917,6 +918,7 @@ export function MemoryDatabasePanel({
               <table className="w-full min-w-[1600px]">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr className="border-b border-gray-200">
+                    <th className="px-2 py-3 w-10"></th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
                       ID
                     </th>
@@ -974,106 +976,348 @@ export function MemoryDatabasePanel({
                       sourceIcon = "📄";
                     }
 
+                    const isExpanded = selectedBlock?.id === block.id;
+
                     return (
-                      <tr
-                        key={block.id}
-                        id={`memory-row-${block.id}`}
-                        className={`hover:bg-gray-50 transition-colors cursor-pointer ${
-                          highlightId === block.id
-                            ? "bg-cyan-50 border-l-4 border-l-cyan-500"
-                            : ""
-                        }`}
-                        onClick={() => setSelectedBlock(block)}
-                      >
-                        <td className="px-4 py-2.5">
-                          <span
-                            className="font-mono text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded cursor-pointer hover:bg-gray-200"
-                            title={block.id}
-                          >
-                            {block.id.slice(0, 8)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${typeDisplay.color}`}
-                          >
-                            {typeDisplay.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          {block.title ? (
-                            <span className="text-sm text-gray-700 font-medium line-clamp-2">
-                              {block.title}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-400 italic">
-                              —
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${
-                              statusColors[block.status] ||
-                              "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {block.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          {abstractionDisplay ? (
-                            <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${abstractionDisplay.color}`}
+                      <Fragment key={block.id}>
+                        <tr
+                          id={`memory-row-${block.id}`}
+                          className={`hover:bg-gray-50 transition-colors cursor-pointer ${
+                            highlightId === block.id
+                              ? "bg-cyan-50 border-l-4 border-l-cyan-500"
+                              : isExpanded
+                                ? "bg-gray-100"
+                                : ""
+                          }`}
+                          onClick={() =>
+                            setSelectedBlock(isExpanded ? null : block)
+                          }
+                        >
+                          <td className="px-2 py-2.5 text-center">
+                            <button
+                              className="p-1 hover:bg-gray-200 rounded transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedBlock(isExpanded ? null : block);
+                              }}
                             >
-                              <span>{abstractionDisplay.icon}</span>
-                              <span>{abstractionDisplay.label}</span>
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                              )}
+                            </button>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span
+                              className="font-mono text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded cursor-pointer hover:bg-gray-200"
+                              title={block.id}
+                            >
+                              {block.id.slice(0, 8)}
                             </span>
-                          ) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <p className="text-sm text-gray-700 line-clamp-2">
-                            {block.content.substring(0, 150)}
-                            {block.content.length > 150 ? "..." : ""}
-                          </p>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          {block.confidence !== undefined ? (
-                            <div className="flex items-center gap-1.5">
-                              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden w-14">
-                                <div
-                                  className="h-full bg-cyan-500 rounded-full"
-                                  style={{
-                                    width: `${Math.round(block.confidence * 100)}%`,
-                                  }}
-                                />
-                              </div>
-                              <span className="text-xs text-gray-500 whitespace-nowrap">
-                                {Math.round(block.confidence * 100)}%
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${typeDisplay.color}`}
+                            >
+                              {typeDisplay.label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {block.title ? (
+                              <span className="text-sm text-gray-700 font-medium line-clamp-2">
+                                {block.title}
                               </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          {sourceLabel !== "—" ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap">
-                              <span>{sourceIcon}</span>
-                              <span>{sourceLabel}</span>
+                            ) : (
+                              <span className="text-xs text-gray-400 italic">
+                                —
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${
+                                statusColors[block.status] ||
+                                "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {block.status}
                             </span>
-                          ) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span className="text-xs text-gray-500 whitespace-nowrap">
-                            {new Date(block.createdAt).toLocaleDateString()}
-                          </span>
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {abstractionDisplay ? (
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${abstractionDisplay.color}`}
+                              >
+                                <span>{abstractionDisplay.icon}</span>
+                                <span>{abstractionDisplay.label}</span>
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <p className="text-sm text-gray-700 line-clamp-2">
+                              {block.content.substring(0, 150)}
+                              {block.content.length > 150 ? "..." : ""}
+                            </p>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {block.confidence !== undefined ? (
+                              <div className="flex items-center gap-1.5">
+                                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden w-14">
+                                  <div
+                                    className="h-full bg-cyan-500 rounded-full"
+                                    style={{
+                                      width: `${Math.round(block.confidence * 100)}%`,
+                                    }}
+                                  />
+                                </div>
+                                <span className="text-xs text-gray-500 whitespace-nowrap">
+                                  {Math.round(block.confidence * 100)}%
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {sourceLabel !== "—" ? (
+                              <span className="inline-flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap">
+                                <span>{sourceIcon}</span>
+                                <span>{sourceLabel}</span>
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span className="text-xs text-gray-500 whitespace-nowrap">
+                              {new Date(block.createdAt).toLocaleDateString()}
+                            </span>
+                          </td>
+                        </tr>
+                        {/* Inline expanded details row */}
+                        {isExpanded && (
+                          <tr
+                            key={`${block.id}-details`}
+                            className="bg-gray-50"
+                          >
+                            <td colSpan={10} className="px-4 py-4">
+                              <div className="ml-6">
+                                {/* Metadata grid */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      ID
+                                    </dt>
+                                    <dd
+                                      className="font-mono text-xs text-gray-700 truncate"
+                                      title={block.id}
+                                    >
+                                      {block.id}
+                                    </dd>
+                                  </div>
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      Type
+                                    </dt>
+                                    <dd>
+                                      <span
+                                        className={`px-2 py-0.5 rounded text-xs font-medium ${typeDisplay.color}`}
+                                      >
+                                        {typeDisplay.label}
+                                      </span>
+                                    </dd>
+                                  </div>
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      Status
+                                    </dt>
+                                    <dd>
+                                      <span
+                                        className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                          statusColors[block.status] ||
+                                          "bg-gray-100 text-gray-600"
+                                        }`}
+                                      >
+                                        {block.status}
+                                      </span>
+                                    </dd>
+                                  </div>
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      Abstraction
+                                    </dt>
+                                    <dd>
+                                      {abstractionDisplay ? (
+                                        <span
+                                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${abstractionDisplay.color}`}
+                                        >
+                                          <span>{abstractionDisplay.icon}</span>
+                                          <span>
+                                            {abstractionDisplay.label}
+                                          </span>
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-gray-400">
+                                          —
+                                        </span>
+                                      )}
+                                    </dd>
+                                  </div>
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      Confidence
+                                    </dt>
+                                    <dd>
+                                      {block.confidence !== undefined ? (
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden max-w-16">
+                                            <div
+                                              className="h-full bg-cyan-500 rounded-full"
+                                              style={{
+                                                width: `${Math.round(block.confidence * 100)}%`,
+                                              }}
+                                            />
+                                          </div>
+                                          <span className="text-xs text-gray-600 font-medium">
+                                            {Math.round(block.confidence * 100)}
+                                            %
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs text-gray-400">
+                                          —
+                                        </span>
+                                      )}
+                                    </dd>
+                                  </div>
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      Source
+                                    </dt>
+                                    <dd className="text-xs text-gray-700">
+                                      {block.extractedFromMessageId ? (
+                                        <span className="inline-flex items-center gap-1">
+                                          💬 Chat message
+                                        </span>
+                                      ) : block.artifactId ? (
+                                        <span className="inline-flex items-center gap-1">
+                                          📄 Artifact
+                                        </span>
+                                      ) : (
+                                        <span className="text-gray-400">—</span>
+                                      )}
+                                    </dd>
+                                  </div>
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      Created
+                                    </dt>
+                                    <dd className="text-xs text-gray-700">
+                                      {new Date(
+                                        block.createdAt,
+                                      ).toLocaleString()}
+                                    </dd>
+                                  </div>
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      Updated
+                                    </dt>
+                                    <dd className="text-xs text-gray-700">
+                                      {new Date(
+                                        block.updatedAt,
+                                      ).toLocaleString()}
+                                    </dd>
+                                  </div>
+                                </div>
+
+                                {/* Title (if present) */}
+                                {block.title && (
+                                  <div className="mb-3">
+                                    <dt className="text-xs font-medium text-gray-500 mb-1">
+                                      Title
+                                    </dt>
+                                    <dd className="text-sm text-gray-900 font-medium bg-white rounded-lg p-3 border border-gray-200">
+                                      {block.title}
+                                    </dd>
+                                  </div>
+                                )}
+
+                                {/* Content */}
+                                <div className="mb-3">
+                                  <dt className="text-xs font-medium text-gray-500 mb-1">
+                                    Content
+                                  </dt>
+                                  <dd className="text-sm text-gray-700 bg-white rounded-lg p-3 border border-gray-200 whitespace-pre-wrap">
+                                    {block.content}
+                                  </dd>
+                                </div>
+
+                                {/* Properties (if not empty) */}
+                                {Object.keys(block.properties).length > 0 && (
+                                  <div className="mb-3">
+                                    <dt className="text-xs font-medium text-gray-500 mb-1">
+                                      Properties
+                                    </dt>
+                                    <dd className="font-mono text-xs text-gray-700 bg-white rounded-lg p-3 border border-gray-200 overflow-x-auto">
+                                      <pre>
+                                        {JSON.stringify(
+                                          block.properties,
+                                          null,
+                                          2,
+                                        )}
+                                      </pre>
+                                    </dd>
+                                  </div>
+                                )}
+
+                                {/* Source references */}
+                                {(block.extractedFromMessageId ||
+                                  block.artifactId ||
+                                  block.ideaId) && (
+                                  <div className="pt-3 border-t border-gray-200">
+                                    <dt className="text-xs font-medium text-gray-500 mb-2">
+                                      References
+                                    </dt>
+                                    <div className="flex flex-wrap gap-2">
+                                      {block.extractedFromMessageId && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 text-xs text-gray-600">
+                                          <span>Message:</span>
+                                          <span className="font-mono">
+                                            {block.extractedFromMessageId.slice(
+                                              0,
+                                              8,
+                                            )}
+                                            ...
+                                          </span>
+                                        </span>
+                                      )}
+                                      {block.artifactId && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 text-xs text-gray-600">
+                                          <span>Artifact:</span>
+                                          <span className="font-mono">
+                                            {block.artifactId.slice(0, 8)}...
+                                          </span>
+                                        </span>
+                                      )}
+                                      {block.ideaId && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 text-xs text-gray-600">
+                                          <span>Idea:</span>
+                                          <span className="font-mono">
+                                            {block.ideaId.slice(0, 8)}...
+                                          </span>
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </tbody>
@@ -1222,204 +1466,6 @@ export function MemoryDatabasePanel({
           </div>
         )}
       </div>
-
-      {/* Selected block detail panel */}
-      {selectedBlock && (
-        <div className="border-t border-gray-200 bg-gray-50 p-4 max-h-80 overflow-y-auto">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-gray-900">Block Details</h3>
-            <button
-              onClick={() => setSelectedBlock(null)}
-              className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Metadata grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <div className="bg-white rounded-lg p-2 border border-gray-200">
-              <dt className="text-xs text-gray-500 mb-1">ID</dt>
-              <dd
-                className="font-mono text-xs text-gray-700 truncate"
-                title={selectedBlock.id}
-              >
-                {selectedBlock.id}
-              </dd>
-            </div>
-            <div className="bg-white rounded-lg p-2 border border-gray-200">
-              <dt className="text-xs text-gray-500 mb-1">Type</dt>
-              <dd>
-                <span
-                  className={`px-2 py-0.5 rounded text-xs font-medium ${BLOCK_TYPE_DISPLAY[selectedBlock.type]?.color || "bg-gray-100 text-gray-700"}`}
-                >
-                  {BLOCK_TYPE_DISPLAY[selectedBlock.type]?.label ||
-                    selectedBlock.type}
-                </span>
-              </dd>
-            </div>
-            <div className="bg-white rounded-lg p-2 border border-gray-200">
-              <dt className="text-xs text-gray-500 mb-1">Status</dt>
-              <dd>
-                <span
-                  className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    selectedBlock.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : selectedBlock.status === "validated"
-                        ? "bg-blue-100 text-blue-700"
-                        : selectedBlock.status === "draft"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {selectedBlock.status}
-                </span>
-              </dd>
-            </div>
-            <div className="bg-white rounded-lg p-2 border border-gray-200">
-              <dt className="text-xs text-gray-500 mb-1">Abstraction</dt>
-              <dd>
-                {selectedBlock.abstractionLevel ? (
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${ABSTRACTION_LEVEL_DISPLAY[selectedBlock.abstractionLevel]?.color || "bg-gray-100 text-gray-700"}`}
-                  >
-                    <span>
-                      {
-                        ABSTRACTION_LEVEL_DISPLAY[
-                          selectedBlock.abstractionLevel
-                        ]?.icon
-                      }
-                    </span>
-                    <span>
-                      {ABSTRACTION_LEVEL_DISPLAY[selectedBlock.abstractionLevel]
-                        ?.label || selectedBlock.abstractionLevel}
-                    </span>
-                  </span>
-                ) : (
-                  <span className="text-xs text-gray-400">—</span>
-                )}
-              </dd>
-            </div>
-            <div className="bg-white rounded-lg p-2 border border-gray-200">
-              <dt className="text-xs text-gray-500 mb-1">Confidence</dt>
-              <dd>
-                {selectedBlock.confidence !== undefined ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden max-w-16">
-                      <div
-                        className="h-full bg-cyan-500 rounded-full"
-                        style={{
-                          width: `${Math.round(selectedBlock.confidence * 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-xs text-gray-600 font-medium">
-                      {Math.round(selectedBlock.confidence * 100)}%
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-xs text-gray-400">—</span>
-                )}
-              </dd>
-            </div>
-            <div className="bg-white rounded-lg p-2 border border-gray-200">
-              <dt className="text-xs text-gray-500 mb-1">Source</dt>
-              <dd className="text-xs text-gray-700">
-                {selectedBlock.extractedFromMessageId ? (
-                  <span className="inline-flex items-center gap-1">
-                    💬 Chat message
-                  </span>
-                ) : selectedBlock.artifactId ? (
-                  <span className="inline-flex items-center gap-1">
-                    📄 Artifact
-                  </span>
-                ) : (
-                  <span className="text-gray-400">—</span>
-                )}
-              </dd>
-            </div>
-            <div className="bg-white rounded-lg p-2 border border-gray-200">
-              <dt className="text-xs text-gray-500 mb-1">Created</dt>
-              <dd className="text-xs text-gray-700">
-                {new Date(selectedBlock.createdAt).toLocaleString()}
-              </dd>
-            </div>
-            <div className="bg-white rounded-lg p-2 border border-gray-200">
-              <dt className="text-xs text-gray-500 mb-1">Updated</dt>
-              <dd className="text-xs text-gray-700">
-                {new Date(selectedBlock.updatedAt).toLocaleString()}
-              </dd>
-            </div>
-          </div>
-
-          {/* Title (if present) */}
-          {selectedBlock.title && (
-            <div className="mb-3">
-              <dt className="text-xs font-medium text-gray-500 mb-1">Title</dt>
-              <dd className="text-sm text-gray-900 font-medium bg-white rounded-lg p-3 border border-gray-200">
-                {selectedBlock.title}
-              </dd>
-            </div>
-          )}
-
-          {/* Content */}
-          <div className="mb-3">
-            <dt className="text-xs font-medium text-gray-500 mb-1">Content</dt>
-            <dd className="text-sm text-gray-700 bg-white rounded-lg p-3 border border-gray-200 whitespace-pre-wrap">
-              {selectedBlock.content}
-            </dd>
-          </div>
-
-          {/* Properties (if not empty) */}
-          {Object.keys(selectedBlock.properties).length > 0 && (
-            <div>
-              <dt className="text-xs font-medium text-gray-500 mb-1">
-                Properties
-              </dt>
-              <dd className="font-mono text-xs text-gray-700 bg-white rounded-lg p-3 border border-gray-200 overflow-x-auto">
-                <pre>{JSON.stringify(selectedBlock.properties, null, 2)}</pre>
-              </dd>
-            </div>
-          )}
-
-          {/* Source references */}
-          {(selectedBlock.extractedFromMessageId ||
-            selectedBlock.artifactId ||
-            selectedBlock.ideaId) && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <dt className="text-xs font-medium text-gray-500 mb-2">
-                References
-              </dt>
-              <div className="flex flex-wrap gap-2">
-                {selectedBlock.extractedFromMessageId && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 text-xs text-gray-600">
-                    <span>Message:</span>
-                    <span className="font-mono">
-                      {selectedBlock.extractedFromMessageId.slice(0, 8)}...
-                    </span>
-                  </span>
-                )}
-                {selectedBlock.artifactId && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 text-xs text-gray-600">
-                    <span>Artifact:</span>
-                    <span className="font-mono">
-                      {selectedBlock.artifactId.slice(0, 8)}...
-                    </span>
-                  </span>
-                )}
-                {selectedBlock.ideaId && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-gray-200 text-xs text-gray-600">
-                    <span>Idea:</span>
-                    <span className="font-mono">
-                      {selectedBlock.ideaId.slice(0, 8)}...
-                    </span>
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

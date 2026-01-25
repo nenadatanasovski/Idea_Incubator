@@ -164,3 +164,16 @@ export {
   type NewMemoryGraphMembership,
   type GraphType,
 } from "./entities/memory-graph-membership.js";
+
+// Graph Snapshot
+export {
+  graphSnapshots,
+  insertGraphSnapshotSchema,
+  selectGraphSnapshotSchema,
+  createGraphSnapshotSchema,
+  type GraphSnapshot,
+  type NewGraphSnapshot,
+  type CreateGraphSnapshot,
+  type GraphSnapshotData,
+  type GraphSnapshotSummary,
+} from "./entities/graph-snapshot.js";

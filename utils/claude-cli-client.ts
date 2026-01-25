@@ -69,12 +69,22 @@ export async function callClaudeCli(
     args.push("--system-prompt", systemPrompt);
   }
 
-  // Add the prompt
-  args.push(prompt);
+  // Use stdin for prompt to avoid argument length limits on large prompts
+  // The prompt can be very large (40K+ tokens = 160K+ chars) which exceeds CLI arg limits
+  const useStdin = prompt.length > 10000; // Use stdin for prompts > 10K chars
+
+  if (!useStdin) {
+    // Small prompts can be passed directly as argument
+    args.push(prompt);
+  }
+  // For large prompts, we'll pipe to stdin
 
   // Debug: log the command being run (condensed)
   const toolsStr = tools.length > 0 ? ` [tools: ${tools.join(",")}]` : "";
-  console.log(`[CLI] Running claude --model ${model}${toolsStr}`);
+  const stdinStr = useStdin ? " [stdin]" : "";
+  console.log(
+    `[CLI] Running claude --model ${model}${toolsStr}${stdinStr} (~${Math.round(prompt.length / 4)} tokens)`,
+  );
 
   // Default timeout: 360 seconds for CLI calls (6 minutes)
   // Increased to handle complex requests with large context
@@ -93,9 +103,15 @@ export async function callClaudeCli(
     };
 
     const child = spawn("claude", args, {
-      stdio: ["ignore", "pipe", "pipe"], // Close stdin to prevent hanging
+      stdio: [useStdin ? "pipe" : "ignore", "pipe", "pipe"],
       env,
     });
+
+    // If using stdin, write the prompt and close
+    if (useStdin) {
+      child.stdin?.write(prompt);
+      child.stdin?.end();
+    }
 
     let stdout = "";
     let stderr = "";

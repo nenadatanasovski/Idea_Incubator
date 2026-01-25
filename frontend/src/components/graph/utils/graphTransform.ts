@@ -20,6 +20,7 @@ import type {
 } from "../../../types/graph";
 
 // Internal source types - where block data originated from
+// Matches server SourceType enum from source-collector.ts
 const INTERNAL_SOURCE_TYPES = [
   "chat",
   "artifact",
@@ -27,6 +28,11 @@ const INTERNAL_SOURCE_TYPES = [
   "memory_db",
   "user_created",
   "ai_generated",
+  // Server-side types that map to the above
+  "conversation",
+  "conversation_insight",
+  "user_block",
+  "external",
 ] as const;
 
 // External attribution types - for research/evidence sourcing (legacy)
@@ -61,19 +67,45 @@ function isExternalAttributionType(value: unknown): value is AttributionType {
 
 /**
  * Infer source type from block context (when not explicitly set)
+ * Priority: explicit source_type > type-specific fields > default
  */
 function inferSourceType(block: ApiBlock): SourceType {
+  const props = block.properties;
+
+  // First, check if source_type is explicitly set in properties
+  if (props?.source_type && isInternalSourceType(props.source_type)) {
+    // Map conversation_insight to chat for display purposes
+    if (props.source_type === "conversation_insight") {
+      return "chat";
+    }
+    return props.source_type as SourceType;
+  }
+
+  // Fallback: infer from type-specific fields
   // If block has an artifact_id, it likely came from an artifact
-  if (block.properties?.artifact_id) {
+  if (props?.artifact_id) {
     return "artifact";
   }
   // If block has message_id or turn_index, it came from chat
-  if (block.properties?.message_id || block.properties?.turn_index) {
+  if (props?.message_id || props?.turn_index) {
     return "chat";
   }
   // If block has memory_file_type, it came from memory files
-  if (block.properties?.memory_file_type) {
+  if (props?.memory_file_type) {
     return "memory_file";
+  }
+  // If block has source_id but no source_type, check the ID pattern
+  if (props?.source_id) {
+    const sourceId = props.source_id as string;
+    if (sourceId.startsWith("artifact-") || sourceId.includes("artifact")) {
+      return "artifact";
+    }
+    if (sourceId.startsWith("msg-") || sourceId.includes("message")) {
+      return "chat";
+    }
+    if (sourceId.startsWith("memory-") || sourceId.includes("memory")) {
+      return "memory_file";
+    }
   }
   // Default to ai_generated for most extracted blocks
   return "ai_generated";
@@ -81,26 +113,34 @@ function inferSourceType(block: ApiBlock): SourceType {
 
 /**
  * Build source location from block properties
+ * Uses source_id and source_type from properties when available
  */
 function buildSourceLocation(
   sourceType: SourceType,
   props: Record<string, unknown>,
 ): SourceLocation | undefined {
+  // Get the source ID - prefer source_id, fallback to type-specific fields
+  const sourceId = props.source_id as string | undefined;
+
   switch (sourceType) {
     case "chat":
-      if (props.message_id) {
+      // Use message_id or source_id for chat sources
+      const messageId = (props.message_id || sourceId) as string | undefined;
+      if (messageId) {
         return {
           type: "chat",
-          messageId: props.message_id as string,
+          messageId,
           turnIndex: props.turn_index as number | undefined,
         };
       }
       break;
     case "artifact":
-      if (props.artifact_id) {
+      // Use artifact_id or source_id for artifact sources
+      const artifactId = (props.artifact_id || sourceId) as string | undefined;
+      if (artifactId) {
         return {
           type: "artifact",
-          artifactId: props.artifact_id as string,
+          artifactId,
           artifactSection: props.artifact_section as string | undefined,
         };
       }
@@ -109,7 +149,7 @@ function buildSourceLocation(
       return {
         type: "memory_db",
         tableName: "blocks",
-        blockId: props.id as string | undefined,
+        blockId: (props.id || sourceId) as string | undefined,
       };
     case "memory_file":
       // Memory files would link to external if there's a file path
@@ -117,6 +157,13 @@ function buildSourceLocation(
         return {
           type: "external",
           url: (props.memory_file_path || props.url) as string,
+        };
+      }
+      // If we have a source_id for memory file, use it as the file type
+      if (sourceId || props.memory_file_type) {
+        return {
+          type: "external",
+          url: `memory://${sourceId || props.memory_file_type}`,
         };
       }
       break;

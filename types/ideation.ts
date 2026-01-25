@@ -57,6 +57,9 @@ export interface IdeationSession {
   tokenCount: number;
   messageCount: number;
   currentPhase: SessionPhase;
+  // Linked idea info (optional)
+  userSlug: string | null;
+  ideaSlug: string | null;
 }
 
 export interface IdeationSessionRow {

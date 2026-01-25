@@ -1,0 +1,592 @@
+{
+  "extraction_metadata": {
+    "source": "Vibe Platform Documentation and Architecture Files",
+    "extracted_date": "2026-01-25",
+    "source_files": [
+      "ideas/vibe/README.md",
+      "ideas/vibe/investor-pitch.md",
+      "ideas/vibe/target-customer.md",
+      "ideas/vibe/action-plan.md",
+      "ideas/vibe/skeptic-findings.md",
+      "ideas/vibe/autonomous-agent-system.md",
+      "docs/ARCHITECTURE_ANALYSIS.md"
+    ],
+    "total_insights_extracted": 32
+  },
+  "DECISIONS": [
+    {
+      "id": "D1",
+      "title": "Three-pillar platform architecture: Ideation, Building, Networking",
+      "content": "Vibe is structured around three interconnected but distinct phases. Ideation guides users from vague ideas to validated concepts through conversational AI. Building automates app development using context from ideation. Networking proactively surfaces collaboration opportunities. Each pillar has distinct agents but unified user experience.",
+      "confidence": 0.95,
+      "source_context": "README.md: The Three Pillars section"
+    },
+    {
+      "id": "D2",
+      "title": "Users never see or manage code; platform handles all technical operations",
+      "content": "Explicit design decision: code is abstracted entirely from users. Users own the app and data but not the code. Vibe handles hosting, scaling, updates, security, technical debt. This creates lock-in but also promises permanent technical liberation.",
+      "confidence": 0.95,
+      "source_context": "README.md: User Journey and The Wrapper sections"
+    },
+    {
+      "id": "D3",
+      "title": "Revenue model: multi-stream with credit system and aligned incentives",
+      "content": "Five revenue streams: hosting + database (base cost), Feature Garden (monthly per feature), Custom Features (credits for AI work), Vibe Payments (optional transaction %), Paid Testing (tester compensation fee). Users start with free credits, purchase more for complex work. Complexity correlates to Vibe revenue.",
+      "confidence": 0.95,
+      "source_context": "README.md: Revenue Model and investor-pitch.md"
+    },
+    {
+      "id": "D4",
+      "title": "Primary segment: Corporate employees with side-project ambitions",
+      "content": "Beachhead market is not solopreneurs or small business owners, but employed professionals (28-45, $80-200K/year) with limited time (5-15 hrs/week), domain expertise, and moderate willingness to pay ($50-200/month). Secondary segments include aspiring solopreneurs, small business owners, domain experts, and creators.",
+      "confidence": 0.95,
+      "source_context": "target-customer.md: Primary Segment section"
+    },
+    {
+      "id": "D5",
+      "title": "Self-Improvement Agent (SIA) handles build loop optimization",
+      "content": "When a build task is reworked multiple times, SIA (meta-agent) triggers between loops. SIA analyzes transcripts, modifies agent system prompts, tracks history, prevents regressions. Has failsafe: after X attempts, triggers human escalation. Deterministic pass/fail criteria validate improvements.",
+      "confidence": 0.95,
+      "source_context": "autonomous-agent-system.md and README.md"
+    },
+    {
+      "id": "D6",
+      "title": "Use Ralph loops (AI-guided iteration) as development methodology",
+      "content": "Ralph loops (request-accumulate-loop) accelerate development by having AI build, humans validate, AI iterate. Founder proved feasibility by using this method to build the ideation agent itself. This is foundational to achieving 15-20 hrs/week productivity target.",
+      "confidence": 0.95,
+      "source_context": "README.md: Building section and investor-pitch.md"
+    },
+    {
+      "id": "D7",
+      "title": "MVP scope: Ideation + Building only; Network phase post-MVP",
+      "content": "MVP focuses on end-to-end flow from idea validation to deployed app. Network effects (proactive AI matchmaking) come later. Initially, founder will facilitate connections manually. Automated matching starts at 50-100 apps critical mass threshold.",
+      "confidence": 0.95,
+      "source_context": "README.md: MVP Approach section"
+    },
+    {
+      "id": "D8",
+      "title": "Go-to-market: Build in public on Twitter/Indie Hackers, not paid ads",
+      "content": "Founder constraints (can't use LinkedIn, minimal budget, part-time) drive organic-first GTM. Launch sequence: private beta (friends/family), soft launch (Twitter/Reddit/Indie Hackers), Product Hunt, organic growth. Paid ads tested only after MVP proves product-market fit.",
+      "confidence": 0.95,
+      "source_context": "README.md: Go-to-Market Strategy"
+    },
+    {
+      "id": "D9",
+      "title": "Founder will go full-time when specific signals align",
+      "content": "Clear triggers defined: 10+ paying strangers, $2-5K AUD/month revenue, 40%+ retention at 30 days, 500+ waitlist signups, or inbound investor interest. Until then, operating 15-20 hrs/week alongside full-time employment.",
+      "confidence": 0.95,
+      "source_context": "README.md: Triggers to Go Full-Time"
+    },
+    {
+      "id": "D10",
+      "title": "Platform Continuity Clause in T&Cs: users can purchase codebase if shutdown",
+      "content": "If Vibe discontinues service, users can buy their codebase outright. This addresses lock-in risk and builds trust. Acknowledges that lock-in is a trade-off: users are locked in but permanently liberated from technical burden.",
+      "confidence": 0.95,
+      "source_context": "README.md: Revenue Model and skeptic-findings.md"
+    }
+  ],
+  "ASSUMPTIONS": [
+    {
+      "id": "A1",
+      "title": "Non-technical users will trust AI with their technical future",
+      "content": "Core assumption that dreamers without coding skills will accept permanent platform dependence in exchange for technical liberation. Assumes users prioritize outcomes over control and don't fear obsolescence or company changes.",
+      "confidence": 0.8,
+      "source_context": "README.md: User Retention Strategy and lock-in discussion"
+    },
+    {
+      "id": "A2",
+      "title": "AI can reliably build full-stack applications end-to-end",
+      "content": "Assumes Claude and other LLMs have sufficient capability to handle complete CRUD apps, auth, payments, integrations without constant human intervention. Acknowledges some edge cases require escalation but believes 70-80% of use cases are solvable.",
+      "confidence": 0.8,
+      "source_context": "README.md: What AI Cannot Fully Solve"
+    },
+    {
+      "id": "A3",
+      "title": "Ideation → Build context handoff preserves enough information",
+      "content": "Assumes structured answers from ideation phase provide sufficient specification for build agent. Risk: nuance lost in handoff. Mitigation: git history and transcripts preserve context.",
+      "confidence": 0.75,
+      "source_context": "skeptic-findings.md: Challenge S2"
+    },
+    {
+      "id": "A4",
+      "title": "Self-Improvement Agent (SIA) can generate better system prompts",
+      "content": "Assumes SIA's prompt modifications actually improve agent performance beyond random variation. Risk: modifications could be hallucinated improvements. Mitigation: deterministic pass/fail validation prevents bad changes from shipping.",
+      "confidence": 0.7,
+      "source_context": "skeptic-findings.md: Challenge S1"
+    },
+    {
+      "id": "A5",
+      "title": "Corporate side-hustlers represent large, addressable market",
+      "content": "Assumes millions of employed professionals have ideas, money ($50-200/month), and time (5-15 hrs/week) to invest in building apps. Assumes this segment will convert to paying users at >10% rate.",
+      "confidence": 0.75,
+      "source_context": "target-customer.md: Primary Segment"
+    },
+    {
+      "id": "A6",
+      "title": "Users will pay ongoing subscription after free ideation exploration",
+      "content": "Assumes credit system converts explorers to paid users once they start building. Assumes complexity = willingness to pay more. Risk: users exhaust free credits and abandon rather than pay.",
+      "confidence": 0.7,
+      "source_context": "README.md: Credit System"
+    },
+    {
+      "id": "A7",
+      "title": "Founder-market fit and focus can outpace well-funded competitors",
+      "content": "Assumes speed of learning, product-market fit depth, and continuous innovation beat capital advantage. Assumes Vibe's unique niche (ideation + build + network unified) provides sufficient head start.",
+      "confidence": 0.75,
+      "source_context": "skeptic-findings.md: Competitive Defensibility and Why Vibe Can Win"
+    },
+    {
+      "id": "A8",
+      "title": "AI agents can operate with deterministic validation",
+      "content": "Assumes tasks have clear pass/fail criteria that can guide agent self-improvement and human escalation. Assumes not all work is subjective and can be measured objectively.",
+      "confidence": 0.85,
+      "source_context": "autonomous-agent-system.md: Deterministic Validation"
+    },
+    {
+      "id": "A9",
+      "title": "No-code market will capture 75% of new applications by 2026",
+      "content": "Relies on Gartner forecast that low-code/no-code will dominate. Assumes market growth projections hold ($28B to $265B 2024-2032, 32% CAGR).",
+      "confidence": 0.65,
+      "source_context": "investor-pitch.md: Market Opportunity"
+    },
+    {
+      "id": "A10",
+      "title": "Testing agents in isolated environments won't cause side effects",
+      "content": "Assumes lower environment isolation prevents real data creation, email sending, or production impact. Risk: misconfiguration could cause real damage. Mitigation: explicit protocol that agents cannot initiate communications.",
+      "confidence": 0.8,
+      "source_context": "skeptic-findings.md: Challenge S5"
+    }
+  ],
+  "OPEN_QUESTIONS": [
+    {
+      "id": "OQ1",
+      "title": "What is the exact feature set for MVP launch?",
+      "content": "README lists ideation + build, but feature-level specification is incomplete. What collaboration features are MVP vs. nice-to-have? Can users invite feedback on specific ideas? What deployment targets (web only or mobile PWA)?",
+      "confidence": 0.6,
+      "source_context": "README.md: MVP Approach references 'if time permits' for hosting"
+    },
+    {
+      "id": "OQ2",
+      "title": "How will build agent handle ambiguous or impossible requirements?",
+      "content": "Action plan mentions specification agent extracts requirements, but what happens when user requirements conflict? Can AI detect impossible feature combinations? What's the escalation path?",
+      "confidence": 0.5,
+      "source_context": "action-plan.md mentions 'transparent escalation' but not mechanism"
+    },
+    {
+      "id": "OQ3",
+      "title": "What prevents PoC users from taking learnings and building elsewhere?",
+      "content": "Skeptic challenge R4 noted. Retention tactics are listed but mechanism unclear. How does 'network lock-in' work without critical mass? What makes PoC users stay if they succeed?",
+      "confidence": 0.55,
+      "source_context": "skeptic-findings.md: Retention Tactics section"
+    },
+    {
+      "id": "OQ4",
+      "title": "How will Vibe handle apps that require custom API integrations?",
+      "content": "README acknowledges 'Novel API integrations' as unsolvable without training data. What happens if user wants to integrate their internal company system? How often does this become blocker?",
+      "confidence": 0.6,
+      "source_context": "README.md: What AI Cannot Fully Solve"
+    },
+    {
+      "id": "OQ5",
+      "title": "What is technical architecture for app deployment and hosting?",
+      "content": "MVP approach mentions 'if time permits' for hosting capability. Is hosting the responsibility of Vibe or third-party? What infrastructure scaling strategy? Cost modeling for infrastructure?",
+      "confidence": 0.5,
+      "source_context": "README.md: MVP Approach"
+    },
+    {
+      "id": "OQ6",
+      "title": "How will Vibe monetize without charging per transaction?",
+      "content": "Revenue share only applies to optional Vibe Payments. Most small apps won't process payments. How does Vibe revenue grow? Reliance on Feature Garden and Custom Features feels limited.",
+      "confidence": 0.65,
+      "source_context": "README.md: Revenue Model"
+    },
+    {
+      "id": "OQ7",
+      "title": "What is the exact orchestration protocol between agents?",
+      "content": "Autonomous agent system describes roles but handoff mechanics unclear. How does ideation agent pass context to spec agent? Format of handoff? What information is preserved vs. summarized?",
+      "confidence": 0.5,
+      "source_context": "autonomous-agent-system.md: Agent Lifecycle section incomplete"
+    },
+    {
+      "id": "OQ8",
+      "title": "How will Vibe legally manage liability for AI-generated apps?",
+      "content": "T&Cs mentioned but not drafted. What liability does Vibe accept? What does user accept? How does this change per jurisdiction? How are harmful apps (fraud, weapons, etc.) detected and prevented?",
+      "confidence": 0.55,
+      "source_context": "README.md: Trust & Safety and AI Limitations"
+    },
+    {
+      "id": "OQ9",
+      "title": "What is definition of 'app complexity' for credit consumption?",
+      "content": "Credit system assumes complexity predicts willingness to pay, but how is complexity measured? Authentication = X credits? Payment integration = Y credits? Database size matters?",
+      "confidence": 0.5,
+      "source_context": "README.md: Credit System"
+    },
+    {
+      "id": "OQ10",
+      "title": "How does Vibe prevent prompt injection and model evasion?",
+      "content": "When users describe ideas, can they accidentally (or intentionally) jailbreak AI? What guardrails prevent users from getting agents to do things outside policy?",
+      "confidence": 0.55,
+      "source_context": "README.md: Trust & Safety not explicitly addressed"
+    }
+  ],
+  "KEY_INSIGHTS": [
+    {
+      "id": "KI1",
+      "title": "Gap in market: ideation-to-build is completely unified nowhere else",
+      "content": "Competitive analysis shows all platforms treat ideation and building separately. Validator AI validates but doesn't build. Bolt/Lovable build but don't validate ideas. This whitespace is Vibe's key differentiation. No competitor has unified the full idea-to-deployed-app experience.",
+      "confidence": 0.95,
+      "source_context": "README.md: Competitive Landscape and investor-pitch.md"
+    },
+    {
+      "id": "KI2",
+      "title": "Self-Improvement Agent represents genuine technical innovation",
+      "content": "SIA (agents that improve other agents) is not standard practice in current AI tooling. Combines transcript analysis, prompt engineering, version control, and deterministic validation. If it works, it's proprietary advantage that's hard to replicate quickly.",
+      "confidence": 0.85,
+      "source_context": "autonomous-agent-system.md and README.md: Moat Components"
+    },
+    {
+      "id": "KI3",
+      "title": "Lock-in is presented as liberation, not entrapment",
+      "content": "Founder explicitly frames lock-in as trade-off: users lose code control but gain permanent technical freedom. This is honest positioning. Most platforms hide lock-in; Vibe acknowledges it upfront as value prop.",
+      "confidence": 0.95,
+      "source_context": "README.md: Revenue Model and User Retention Strategy"
+    },
+    {
+      "id": "KI4",
+      "title": "Founder constraints (15-20 hrs/week, no LinkedIn) drive product decisions",
+      "content": "Limited time forces Ralph loop methodology and ruthless prioritization. Can't use LinkedIn forces Twitter/community-based GTM. Constraints are actually competitive advantages: forces focus and authenticity in build-in-public approach.",
+      "confidence": 0.9,
+      "source_context": "README.md: Founder Context and Go-to-Market"
+    },
+    {
+      "id": "KI5",
+      "title": "Revenue model aligns Vibe's success with user success",
+      "content": "Unlike most SaaS (make money if users pay), Vibe makes more money when user apps succeed. Successful apps consume more hosting, enable more features, generate transactions. This removes perverse incentives.",
+      "confidence": 0.95,
+      "source_context": "README.md: Revenue Model and investor-pitch.md"
+    },
+    {
+      "id": "KI6",
+      "title": "Collaboration starts in ideation phase, creating early network effects",
+      "content": "Users invite collaborators during idea development, not after app is built. This creates social lock-in and network effects from day one, before any app exists. Differentiated from typical app platforms.",
+      "confidence": 0.9,
+      "source_context": "README.md: Collaboration Framework"
+    },
+    {
+      "id": "KI7",
+      "title": "Skeptic session surfaced legitimate but mitigatable risks",
+      "content": "Challenges covered: SIA hallucination (mitigated by deterministic validation), context loss (mitigated by transcripts), testing side effects (mitigated by isolation), lock-in perception (mitigated by Platform Continuity clause). Responses are specific and defensible.",
+      "confidence": 0.9,
+      "source_context": "skeptic-findings.md: entire document"
+    },
+    {
+      "id": "KI8",
+      "title": "Business model has 5 distinct revenue streams, not reliant on any single one",
+      "content": "Hosting, Feature Garden, Custom Features, Vibe Payments, Paid Testing provide diversification. No single revenue stream is make-or-break. Provides flexibility if one stream underperforms.",
+      "confidence": 0.85,
+      "source_context": "README.md and investor-pitch.md: Revenue sections"
+    },
+    {
+      "id": "KI9",
+      "title": "Target customer is defined by mindset, not demographics",
+      "content": "Not 'people under 30' or 'in tech' but 'capable people held back by complexity.' Includes retired professionals, corporate employees, creators, small business owners — diverse group unified by pain point.",
+      "confidence": 0.95,
+      "source_context": "target-customer.md: Target User section"
+    },
+    {
+      "id": "KI10",
+      "title": "Founder has 10-year track record proving capability",
+      "content": "Founder built Vibe's ideation agent using Vibe's own methodology (Ralph loops). This is proof-of-concept that both the approach works and founder can execute. Not theoretical pitch; demonstrated capability.",
+      "confidence": 0.95,
+      "source_context": "investor-pitch.md: Founder profile and Vibe's own README"
+    }
+  ],
+  "REQUIREMENTS": [
+    {
+      "id": "R1",
+      "title": "Platform must enable idea-to-deployed-app workflow end-to-end",
+      "content": "MVP must support: conversational ideation → specification extraction → app generation → deployment. If any step requires handoff to external tool, platform is incomplete.",
+      "confidence": 0.95,
+      "source_context": "README.md: MVP Approach"
+    },
+    {
+      "id": "R2",
+      "title": "Users must never see, manage, or need to understand code",
+      "content": "Non-technical users shouldn't encounter technical jargon (git, versioning, deployment). Everything must be translated to user-friendly language. Code must be completely abstracted.",
+      "confidence": 0.95,
+      "source_context": "README.md: Building section and User Journey"
+    },
+    {
+      "id": "R3",
+      "title": "Collaboration system must support granular sharing controls",
+      "content": "Users must control what collaborators see. Can't invite someone to full ideation if it's sensitive. Must support: full access, read-only, comment-only, ask-for-feedback modes.",
+      "confidence": 0.85,
+      "source_context": "README.md: Collaboration Framework"
+    },
+    {
+      "id": "R4",
+      "title": "Platform must have circuit breakers to prevent runaway costs",
+      "content": "Cannot allow agents to consume unlimited credits. Must have: per-task credit limits, cumulative monthly limits, cost forecasts upfront, alerts before overspend.",
+      "confidence": 0.9,
+      "source_context": "README.md: Autonomous Agent System - Circuit Breakers"
+    },
+    {
+      "id": "R5",
+      "title": "SIA must be prevented from degrading agent performance",
+      "content": "System prompt modifications must be validated against deterministic criteria. SIA must track history and rollback if a change doesn't improve outcomes. No permanent regressions.",
+      "confidence": 0.95,
+      "source_context": "autonomous-agent-system.md: SIA Failsafe"
+    },
+    {
+      "id": "R6",
+      "title": "Human-in-the-loop must trigger at defined thresholds",
+      "content": "Cannot loop forever. Define explicit triggers: same task 3+ times, ambiguous criteria 2+ times, external dependency, <60% confidence, safety concern, X failed SIA attempts. Beyond threshold = escalate to human.",
+      "confidence": 0.95,
+      "source_context": "README.md: Human-in-the-Loop Triggers"
+    },
+    {
+      "id": "R7",
+      "title": "Platform Continuity Clause must be in T&Cs",
+      "content": "Users must have legal right to purchase codebase if Vibe shuts down. Amount and process TBD but must be explicit. Builds trust around lock-in.",
+      "confidence": 0.9,
+      "source_context": "README.md: Revenue Model and skeptic-findings.md"
+    },
+    {
+      "id": "R8",
+      "title": "Testing agents must operate in isolated lower environments",
+      "content": "Cannot send real emails, create real data, or have production side effects. Testing must be sandbox-only. Agents must not have capability to initiate communications.",
+      "confidence": 0.95,
+      "source_context": "README.md: Self-Optimization Engine and autonomous-agent-system.md"
+    },
+    {
+      "id": "R9",
+      "title": "Pricing must be transparent upfront with cost forecasting",
+      "content": "No hidden fees. Users must see estimated costs before actions. Complexity must directly correlate to cost (can't surprise users). Pricing changes must be communicated early.",
+      "confidence": 0.9,
+      "source_context": "README.md: Trust & Safety"
+    },
+    {
+      "id": "R10",
+      "title": "Orchestrator must handle dynamic agent creation",
+      "content": "Cannot be limited to fixed set of agent types. When a request doesn't match any existing agent, orchestrator must be able to create and register a new agent type.",
+      "confidence": 0.85,
+      "source_context": "autonomous-agent-system.md: Orchestrator Responsibilities"
+    }
+  ],
+  "CONTEXT": [
+    {
+      "id": "C1",
+      "title": "Founder location and constraints: Sydney, Australia, 15-20 hrs/week",
+      "content": "Ned works full-time in Sydney, dedicating nights/weekends to Vibe. Has $100K AUD savings as runway. Cannot use LinkedIn due to employment contract, forcing Twitter/community-based GTM. Will transition to full-time when defined signals align.",
+      "confidence": 0.95,
+      "source_context": "README.md: Founder Context"
+    },
+    {
+      "id": "C2",
+      "title": "Market window is open but closing due to competitive pressure",
+      "content": "No-code market growing 32% CAGR ($28B to $265B 2024-2032). AI capability crossed threshold in 2024-2025. But window for first-mover advantage in 'ideation + build + network' unified space is 6-12 months, not longer.",
+      "confidence": 0.85,
+      "source_context": "investor-pitch.md: Why Now and README.md: Competitive Defense Strategy"
+    },
+    {
+      "id": "C3",
+      "title": "Vibe was itself built using the methodology it describes (Ralph loops)",
+      "content": "The ideation agent was created through conversational iteration with an AI (Claude). This is not theoretical pitch; founder demonstrated the approach works. The platform eating its own dog food.",
+      "confidence": 0.95,
+      "source_context": "README.md: Key Quotes"
+    },
+    {
+      "id": "C4",
+      "title": "The problem Vibe solves: 42% of startups fail from building wrong thing",
+      "content": "CB Insights data: 42% startup failure due to building something nobody wants. Millions more don't try because of complexity and lack of guidance. Vibe addresses root cause (figuring out what to build) not just symptom (technical execution).",
+      "confidence": 0.9,
+      "source_context": "investor-pitch.md: The Problem"
+    },
+    {
+      "id": "C5",
+      "title": "Market opportunity: intersection of ideas (everyone), no-code skills (most), willingness to pay ($$$)",
+      "content": "Addressable market is much larger than traditional developer audience. Every person with an idea is potential customer. Most non-technical. Willingness to pay for outcomes is high.",
+      "confidence": 0.85,
+      "source_context": "investor-pitch.md: Market Opportunity"
+    },
+    {
+      "id": "C6",
+      "title": "Competitive landscape: all major platforms assume user knows what to build",
+      "content": "Lovable (UI generation), Bolt.new (full-stack), Replit (enterprise), Bubble (proven no-code) all start with 'you know what you want, we'll build it.' None guide from vague idea to validated concept. This is Vibe's unique position.",
+      "confidence": 0.95,
+      "source_context": "README.md: Competitive Landscape"
+    },
+    {
+      "id": "C7",
+      "title": "Skeptic session validated core assumptions through rigorous questioning",
+      "content": "Founder submitted idea to skeptic review covering technical feasibility (agents, SIA, handoffs), business model (lock-in, revenue, retention), and execution (timeline, resources, competition). Responses address real risks, not dismissing them.",
+      "confidence": 0.9,
+      "source_context": "skeptic-findings.md: entire document"
+    },
+    {
+      "id": "C8",
+      "title": "Ralph loop methodology accelerates development by 3-5x vs. traditional",
+      "content": "Founder's hypothesis: AI builds, human validates, AI continues. Iterative rather than waterfall. Has proven this with ideation agent. Enables part-time founder to achieve full-time output.",
+      "confidence": 0.8,
+      "source_context": "README.md: Building section and action-plan.md"
+    },
+    {
+      "id": "C9",
+      "title": "No-code platform's success depends on delighting non-technical users, not techies",
+      "content": "User testing and reviews should come from people without coding skills. Their satisfaction drives retention and word-of-mouth. Technical excellence is table stakes; delighting non-technical users is differentiator.",
+      "confidence": 0.85,
+      "source_context": "target-customer.md: Where to Find Them and behavior signals"
+    },
+    {
+      "id": "C10",
+      "title": "Co-founder search is passive now, active after MVP is demo-able",
+      "content": "Founder open to co-founder (product/growth/technical depth) but not actively recruiting yet. Will search aggressively once MVP is functional and can be demonstrated. Timing is strategic: recruit with proof, not with pitch.",
+      "confidence": 0.9,
+      "source_context": "README.md: Co-founder Search Strategy"
+    }
+  ],
+  "RISKS": [
+    {
+      "id": "RISK1",
+      "title": "Well-funded competitor adds ideation layer and launches similar offering",
+      "content": "Risk Severity: HIGH. Bolts, Lovable, or similar could add ideation in 3-6 months. Mitigation: speed of learning, depth of integration, first-mover advantage. But if competitor has $10M and Vibe has $0, capital could overcome speed.",
+      "confidence": 0.85,
+      "source_context": "skeptic-findings.md: Competitive Defensibility and README.md: The Real Fear"
+    },
+    {
+      "id": "RISK2",
+      "title": "SIA improvements degrade rather than improve agent performance",
+      "content": "Risk Severity: MEDIUM. SIA modifies system prompts but modifications could be hallucinated 'improvements' that actually hurt outcomes. Mitigation: deterministic pass/fail validation prevents bad prompts from shipping. Track history to avoid repeating failed attempts.",
+      "confidence": 0.75,
+      "source_context": "skeptic-findings.md: Challenge S1"
+    },
+    {
+      "id": "RISK3",
+      "title": "Solo founder burnout or leaves due to external pressure",
+      "content": "Risk Severity: HIGH. 15-20 hrs/week is unsustainable long-term while employed. Burnout risk increases with market pressure to move faster. Mitigation: defined triggers for full-time transition, co-founder search, AI augmentation to reduce workload.",
+      "confidence": 0.8,
+      "source_context": "skeptic-findings.md: Challenge R11"
+    },
+    {
+      "id": "RISK4",
+      "title": "Users perceive lock-in as predatory and churn increases",
+      "content": "Risk Severity: MEDIUM. Even with Platform Continuity clause, users may resent that they can't export code or self-host. Perception of vendor lock-in could drive negative reviews and word-of-mouth. Mitigation: radical transparency from day one about trade-offs.",
+      "confidence": 0.75,
+      "source_context": "skeptic-findings.md: Challenge R1 and README.md: Trust & Safety"
+    },
+    {
+      "id": "RISK5",
+      "title": "Target customer won't pay or won't convert from free to paid",
+      "content": "Risk Severity: HIGH. Corporate side-hustlers have time and ideas but may not have $50-200/month budget or may not perceive enough value. Risk: high signup, low payment conversion. Mitigation: validate WTP early with landing page tests and real user conversations.",
+      "confidence": 0.8,
+      "source_context": "target-customer.md: Risk Mitigation - Wrong Segment"
+    },
+    {
+      "id": "RISK6",
+      "title": "Market window closes before MVP is demo-able",
+      "content": "Risk Severity: MEDIUM-HIGH. Competitive pressure could accelerate if well-funded players move into 'ideation + build' space. 6-12 month window is aggressive given part-time founder. Mitigation: ruthless prioritization, Ralph loops, move fast.",
+      "confidence": 0.75,
+      "source_context": "README.md: Competitive Defense Strategy"
+    },
+    {
+      "id": "RISK7",
+      "title": "AI can't handle complexity of real-world apps at scale",
+      "content": "Risk Severity: MEDIUM. Some apps require novel integrations, complex state management, or performance optimization that AI struggles with. Mitigation: human-in-the-loop, SIA system, transparent escalation, start with safe bets and expand.",
+      "confidence": 0.7,
+      "source_context": "README.md: What AI Cannot Fully Solve"
+    },
+    {
+      "id": "RISK8",
+      "title": "Context loss in ideation → build handoff causes rework",
+      "content": "Risk Severity: MEDIUM. When spec agent tries to build on ideation output, nuance could be lost. Users have to re-specify things. Rework increases credits consumed but decreases user satisfaction. Mitigation: transcripts + git history preserve context.",
+      "confidence": 0.7,
+      "source_context": "skeptic-findings.md: Challenge S2"
+    },
+    {
+      "id": "RISK9",
+      "title": "Testing agents cause unintended side effects in production",
+      "content": "Risk Severity: MEDIUM. Even with isolation, misconfigured testing could send emails, create real data, or impact production. Mitigation: explicit protocol that agents cannot initiate communications; sandbox-only testing.",
+      "confidence": 0.65,
+      "source_context": "skeptic-findings.md: Challenge S5"
+    },
+    {
+      "id": "RISK10",
+      "title": "Platform shutdown risk undermines trust even with buyout clause",
+      "content": "Risk Severity: MEDIUM. Users know if Vibe fails, they can buy codebase but implementation is unclear. Price discovery problem: what's fair buyout price? Lack of clarity could undermine trust. Mitigation: clear T&C language and pricing formula upfront.",
+      "confidence": 0.7,
+      "source_context": "skeptic-findings.md: Challenge R2"
+    }
+  ],
+  "OPPORTUNITIES": [
+    {
+      "id": "OPP1",
+      "title": "Network effects multiply value once critical mass of 50-100 apps reached",
+      "content": "Once Vibe has enough apps, proactive AI matchmaking becomes incredibly powerful. Users start getting opportunities without searching. Cross-app discovery creates defensibility. This is long-tail winner-take-most dynamic.",
+      "confidence": 0.85,
+      "source_context": "README.md: Network and MVP Approach"
+    },
+    {
+      "id": "OPP2",
+      "title": "Continuous AI improvement keeps apps fresh and competitive",
+      "content": "Apps automatically improve over time as platform evolves. This creates user delight: 'my app got better without me doing anything.' Competitive moat: can't replicate with exported code.",
+      "confidence": 0.85,
+      "source_context": "README.md: User Retention Strategy"
+    },
+    {
+      "id": "OPP3",
+      "title": "International expansion without localization burden (for first 1M users)",
+      "content": "Vibe's approach is language-agnostic initially. Can expand to UK, Australia, Canada, EU without rebuilding product. Revenue multiples by entering larger markets without major engineering effort.",
+      "confidence": 0.75,
+      "source_context": "README.md: Open Questions for Future Exploration"
+    },
+    {
+      "id": "OPP4",
+      "title": "Feature Garden becomes recurring revenue stream with network effects",
+      "content": "As platform matures, one-click features (auth, payments, email, analytics) create monthly recurring revenue. Network effects: more users → more features built. More features → more users.",
+      "confidence": 0.8,
+      "source_context": "README.md: Revenue Model"
+    },
+    {
+      "id": "OPP5",
+      "title": "Paid testing marketplace creates new revenue and user acquisition",
+      "content": "Vibe takes small fee when creators pay testers. This surfaces Vibe to potential users (testers who become creators). Creates win-win: creators get testers, testers get paid, Vibe gets fees and new users.",
+      "confidence": 0.8,
+      "source_context": "README.md: Revenue Model and Collaboration Framework"
+    },
+    {
+      "id": "OPP6",
+      "title": "Creator monetization layer becomes platform beyond just hosting",
+      "content": "If Vibe adds built-in payments, subscriptions, or affiliate capabilities, creators make more money on Vibe. This increases their WTP and creates lock-in. Platform shifts from builder to business accelerator.",
+      "confidence": 0.75,
+      "source_context": "README.md: Revenue Model and The Wrapper"
+    },
+    {
+      "id": "OPP7",
+      "title": "Trademark 'Vibe coding' as marketing and brand differentiation",
+      "content": "Collins Dictionary Word of Year 2025 = 'vibe coding.' Vibe can lean into this cultural moment. Founder building in public creates narrative: 'this is vibe coding in action.'",
+      "confidence": 0.8,
+      "source_context": "investor-pitch.md: Why Now"
+    },
+    {
+      "id": "OPP8",
+      "title": "Recruit users from frustrated no-code platform users",
+      "content": "100M+ users have tried Bubble, Webflow, Zapier and given up. These users are prime targets: they have ideas, they tried tooling, they're frustrated. Can market directly to Reddit/Twitter communities where these users hang out.",
+      "confidence": 0.85,
+      "source_context": "target-customer.md: Behavioral Signals"
+    },
+    {
+      "id": "OPP9",
+      "title": "Enterprise applications once platform matures and SLA/compliance features added",
+      "content": "MVP targets individual dreamers but foundation supports enterprises. Small business owners, internal tooling, custom apps for departments. Enterprise is 10x larger TAM than SMB.",
+      "confidence": 0.7,
+      "source_context": "README.md: Target User and target-customer.md: Secondary Segments"
+    },
+    {
+      "id": "OPP10",
+      "title": "API marketplace where third-party developers build integrations",
+      "content": "As Vibe matures, external developers can build official integrations (Stripe, Zapier, Salesforce, etc.). Creates extension ecosystem without Vibe building everything.",
+      "confidence": 0.7,
+      "source_context": "Implied by README.md architecture approach"
+    }
+  ]
+}

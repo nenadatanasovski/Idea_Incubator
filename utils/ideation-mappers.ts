@@ -41,6 +41,9 @@ export function mapSessionRowToSession(
     tokenCount: row.token_count,
     messageCount: row.message_count,
     currentPhase: row.current_phase as SessionPhase,
+    // Include linked idea info if present
+    userSlug: (row.user_slug as string) || null,
+    ideaSlug: (row.idea_slug as string) || null,
   };
 }
 

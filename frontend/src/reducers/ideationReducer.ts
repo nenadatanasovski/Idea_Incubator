@@ -77,6 +77,12 @@ export const initialState: IdeationStore = {
     selectedChangeIds: [],
     isApplying: false,
     error: null,
+    // Snapshot/versioning state
+    snapshots: [],
+    isLoadingSnapshots: false,
+    isSavingSnapshot: false,
+    isRestoringSnapshot: false,
+    snapshotError: null,
   },
 };
 
@@ -1011,6 +1017,109 @@ export function ideationReducer(
         memoryGraph: {
           ...state.memoryGraph,
           pendingChangesCount: action.payload.count,
+        },
+      };
+
+    // =========================================================================
+    // Graph Snapshot Actions
+    // =========================================================================
+    case "GRAPH_SNAPSHOTS_LOAD_START":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isLoadingSnapshots: true,
+          snapshotError: null,
+        },
+      };
+
+    case "GRAPH_SNAPSHOTS_LOAD_COMPLETE":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isLoadingSnapshots: false,
+          snapshots: action.payload.snapshots,
+        },
+      };
+
+    case "GRAPH_SNAPSHOTS_LOAD_ERROR":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isLoadingSnapshots: false,
+          snapshotError: action.payload.error,
+        },
+      };
+
+    case "GRAPH_SNAPSHOT_SAVE_START":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isSavingSnapshot: true,
+          snapshotError: null,
+        },
+      };
+
+    case "GRAPH_SNAPSHOT_SAVE_COMPLETE":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isSavingSnapshot: false,
+          snapshots: [action.payload.snapshot, ...state.memoryGraph.snapshots],
+        },
+      };
+
+    case "GRAPH_SNAPSHOT_SAVE_ERROR":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isSavingSnapshot: false,
+          snapshotError: action.payload.error,
+        },
+      };
+
+    case "GRAPH_SNAPSHOT_RESTORE_START":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isRestoringSnapshot: true,
+          snapshotError: null,
+        },
+      };
+
+    case "GRAPH_SNAPSHOT_RESTORE_COMPLETE":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isRestoringSnapshot: false,
+        },
+      };
+
+    case "GRAPH_SNAPSHOT_RESTORE_ERROR":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          isRestoringSnapshot: false,
+          snapshotError: action.payload.error,
+        },
+      };
+
+    case "GRAPH_SNAPSHOT_DELETE":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          snapshots: state.memoryGraph.snapshots.filter(
+            (s) => s.id !== action.payload.snapshotId,
+          ),
         },
       };
 

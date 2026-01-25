@@ -951,6 +951,8 @@ const CollectSourcesSchema = z.object({
     .optional(),
   tokenBudget: z.number().min(1000).max(100000).optional(),
   limit: z.number().min(1).max(100).optional(),
+  // Optional idea slug to include file-based artifacts from idea folder
+  ideaSlug: z.string().optional(),
 });
 
 graphRouter.post(
@@ -967,7 +969,7 @@ graphRouter.post(
         });
       }
 
-      const { sourceTypes, tokenBudget, limit } = parseResult.data;
+      const { sourceTypes, tokenBudget, limit, ideaSlug } = parseResult.data;
 
       const options: CollectionOptions = {};
       if (sourceTypes) {
@@ -978,6 +980,9 @@ graphRouter.post(
       }
       if (limit) {
         options.conversationLimit = limit;
+      }
+      if (ideaSlug) {
+        options.ideaSlug = ideaSlug;
       }
 
       const result = await collectAllSources(sessionId, options);
@@ -998,6 +1003,8 @@ graphRouter.post(
 
 const AnalyzeChangesSchema = z.object({
   selectedSourceIds: z.array(z.string()).optional(),
+  // Optional idea slug to include file-based artifacts from idea folder
+  ideaSlug: z.string().optional(),
 });
 
 graphRouter.post(
@@ -1014,7 +1021,7 @@ graphRouter.post(
         });
       }
 
-      const { selectedSourceIds } = parseResult.data;
+      const { selectedSourceIds, ideaSlug } = parseResult.data;
 
       // Get existing blocks for comparison (will be empty after reset)
       const existingBlocks =
@@ -1028,6 +1035,7 @@ graphRouter.post(
         existingBlocks,
         existingLinks,
         selectedSourceIds,
+        ideaSlug, // Pass ideaSlug for file-based artifacts
       );
 
       return res.json(analysis);
@@ -1051,19 +1059,55 @@ const ApplyChangesSchema = z.object({
       z.object({
         id: z.string(),
         type: z.enum(["create_block", "update_block", "create_link"]),
-        blockType: z.string().optional(),
-        title: z.string().optional(), // Short 3-5 word summary
-        content: z.string(),
-        graphMembership: z.array(z.string()).optional(),
-        confidence: z.number().optional(),
-        sourceMessageId: z.string().optional(),
+        blockType: z.string().nullish(),
+        title: z.string().nullish(), // Short 3-5 word summary
+        content: z.string().nullish(), // Optional for create_link types which don't have content
+        graphMembership: z.array(z.string()).nullish(),
+        confidence: z.number().nullish(),
+        // Source attribution fields - CRITICAL for tracking where insights came from
+        sourceId: z.string().nullish(), // ID of the source (message ID, artifact ID, etc.)
+        sourceType: z
+          .enum([
+            "conversation",
+            "conversation_insight",
+            "artifact",
+            "memory_file",
+            "user_block",
+            "external",
+          ])
+          .nullish(),
+        sourceWeight: z.number().nullish(), // Reliability weight 0-1
+        corroboratedBy: z
+          .array(
+            z.object({
+              sourceId: z.string(),
+              sourceType: z.string(),
+              snippet: z.string().nullish(),
+            }),
+          )
+          .nullish(),
+        // Legacy field
+        sourceMessageId: z.string().nullish(),
         // For links
-        sourceBlockId: z.string().optional(),
-        targetBlockId: z.string().optional(),
-        linkType: z.string().optional(),
+        sourceBlockId: z.string().nullish(),
+        targetBlockId: z.string().nullish(),
+        linkType: z.string().nullish(),
+        reason: z.string().nullish(), // Reason for the link
+        // For supersession handling
+        supersedesBlockId: z.string().nullish(), // If this block supersedes an existing block
+        supersessionReason: z.string().nullish(), // Reason for superseding
+        // For status changes (e.g., marking blocks as superseded)
+        blockId: z.string().nullish(), // Block ID for update_block
+        statusChange: z
+          .object({
+            blockId: z.string().nullish(),
+            newStatus: z.enum(["superseded", "abandoned"]),
+            reason: z.string().nullish(),
+          })
+          .nullish(),
       }),
     )
-    .optional(),
+    .nullish(),
 });
 
 graphRouter.post(
@@ -1074,6 +1118,20 @@ graphRouter.post(
 
       const parseResult = ApplyChangesSchema.safeParse(req.body);
       if (!parseResult.success) {
+        console.error(
+          "[apply-changes] Validation failed. Issues:",
+          JSON.stringify(parseResult.error.issues, null, 2),
+        );
+        console.error(
+          "[apply-changes] Request body keys:",
+          Object.keys(req.body),
+        );
+        if (req.body.changes && req.body.changes.length > 0) {
+          console.error(
+            "[apply-changes] First change:",
+            JSON.stringify(req.body.changes[0], null, 2),
+          );
+        }
         return res.status(400).json({
           error: "Validation error",
           details: parseResult.error.issues,
@@ -1087,26 +1145,77 @@ graphRouter.post(
       let linksCreated = 0;
       let blocksUpdated = 0;
 
+      // Map temporary IDs (from AI response) to actual UUIDs
+      const idMapping = new Map<string, string>();
+
       // If changes data provided, apply them directly
       if (changes && changes.length > 0) {
         // Filter to only selected changes
         const selectedChanges = changes.filter((c) => changeIds.includes(c.id));
 
+        // First pass: Create all blocks and build ID mapping
         for (const change of selectedChanges) {
           try {
             if (change.type === "create_block") {
+              // Skip blocks without content (shouldn't happen, but be defensive)
+              if (!change.content) {
+                console.warn(
+                  `[apply-changes] Skipping block ${change.id} - no content provided`,
+                );
+                continue;
+              }
+
               const blockId = uuidv4();
 
+              // Map the temporary ID to the real UUID
+              idMapping.set(change.id, blockId);
+
+              // Build properties object with source attribution
+              const properties: Record<string, unknown> = {};
+
+              // Store source attribution in properties for traceability
+              if (change.sourceId) {
+                properties.source_id = change.sourceId;
+              }
+              if (change.sourceType) {
+                properties.source_type = change.sourceType;
+                // Also set specific fields based on source type for frontend compatibility
+                if (change.sourceType === "artifact" && change.sourceId) {
+                  properties.artifact_id = change.sourceId;
+                } else if (
+                  change.sourceType === "conversation" ||
+                  change.sourceType === "conversation_insight"
+                ) {
+                  properties.message_id = change.sourceId;
+                } else if (change.sourceType === "memory_file") {
+                  properties.memory_file_type = change.sourceId;
+                }
+              }
+              if (change.sourceWeight !== undefined) {
+                properties.source_weight = change.sourceWeight;
+              }
+              if (change.corroboratedBy && change.corroboratedBy.length > 0) {
+                properties.corroborated_by = change.corroboratedBy;
+              }
+
+              // Use actual source ID for extracted_from_message_id when available
+              const extractedFromId =
+                change.sourceId || change.sourceMessageId || "ai_generated";
+
               await run(
-                `INSERT INTO memory_blocks (id, session_id, type, title, content, status, confidence, extracted_from_message_id, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, 'active', ?, 'ai_generated', ?, ?)`,
+                `INSERT INTO memory_blocks (id, session_id, type, title, content, properties, status, confidence, extracted_from_message_id, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
                 [
                   blockId,
                   sessionId,
                   change.blockType || "content",
                   change.title || null,
                   change.content,
+                  Object.keys(properties).length > 0
+                    ? JSON.stringify(properties)
+                    : null,
                   change.confidence || 0.8,
+                  extractedFromId,
                   now,
                   now,
                 ],
@@ -1133,8 +1242,82 @@ graphRouter.post(
               });
 
               blocksCreated++;
-            } else if (change.type === "create_link") {
+
+              // Handle supersession: if this block supersedes another
+              if (change.supersedesBlockId) {
+                const supersededId =
+                  idMapping.get(change.supersedesBlockId) ||
+                  change.supersedesBlockId;
+
+                // Prevent self-supersession
+                if (supersededId === blockId) {
+                  console.warn(
+                    `[apply-changes] Skipping self-supersession for block ${blockId}`,
+                  );
+                } else {
+                  // Create supersedes link
+                  const linkId = uuidv4();
+                  await run(
+                    `INSERT INTO memory_links (id, session_id, source_block_id, target_block_id, link_type, status, confidence, reason, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, 'supersedes', 'active', 0.95, ?, ?, ?)`,
+                    [
+                      linkId,
+                      sessionId,
+                      blockId,
+                      supersededId,
+                      change.supersessionReason || "Decision changed",
+                      now,
+                      now,
+                    ],
+                  );
+                  linksCreated++;
+
+                  // Mark superseded block as superseded
+                  await run(
+                    `UPDATE memory_blocks SET status = 'superseded', updated_at = ? WHERE id = ?`,
+                    [now, supersededId],
+                  );
+                  blocksUpdated++;
+
+                  console.log(
+                    `[apply-changes] Block ${blockId} supersedes ${supersededId}`,
+                  );
+
+                  // Emit WebSocket events for the supersession
+                  emitLinkCreated(sessionId, {
+                    id: linkId,
+                    link_type: "supersedes",
+                    source: blockId,
+                    target: supersededId,
+                    confidence: 0.95,
+                    reason: change.supersessionReason || "Decision changed",
+                  });
+                  emitBlockUpdated(sessionId, {
+                    id: supersededId,
+                    status: "superseded",
+                  });
+                }
+              }
+            }
+          } catch (changeError) {
+            console.error(
+              `[apply-changes] Error creating block ${change.id}:`,
+              changeError,
+            );
+          }
+        }
+
+        // Second pass: Create all links (after blocks exist)
+        for (const change of selectedChanges) {
+          try {
+            if (change.type === "create_link") {
               if (change.sourceBlockId && change.targetBlockId) {
+                // Resolve temporary IDs to actual UUIDs
+                const resolvedSourceId =
+                  idMapping.get(change.sourceBlockId) || change.sourceBlockId;
+                const resolvedTargetId =
+                  idMapping.get(change.targetBlockId) || change.targetBlockId;
+
                 const linkId = uuidv4();
 
                 await run(
@@ -1143,8 +1326,8 @@ graphRouter.post(
                   [
                     linkId,
                     sessionId,
-                    change.sourceBlockId,
-                    change.targetBlockId,
+                    resolvedSourceId,
+                    resolvedTargetId,
                     change.linkType || "relates_to",
                     change.confidence || 0.8,
                     now,
@@ -1156,17 +1339,40 @@ graphRouter.post(
                 emitLinkCreated(sessionId, {
                   id: linkId,
                   link_type: change.linkType || "relates_to",
-                  source: change.sourceBlockId,
-                  target: change.targetBlockId,
+                  source: resolvedSourceId,
+                  target: resolvedTargetId,
                   confidence: change.confidence || 0.8,
                 });
 
                 linksCreated++;
               }
             } else if (change.type === "update_block") {
-              // For updates, we'd need the target block ID
-              // This would require more sophisticated change tracking
-              blocksUpdated++;
+              // Handle status changes (e.g., marking blocks as superseded)
+              if (change.statusChange) {
+                const targetBlockId =
+                  change.statusChange.blockId ||
+                  change.blockId ||
+                  idMapping.get(change.id);
+                if (targetBlockId) {
+                  await run(
+                    `UPDATE memory_blocks SET status = ?, updated_at = ? WHERE id = ?`,
+                    [change.statusChange.newStatus, now, targetBlockId],
+                  );
+                  blocksUpdated++;
+
+                  console.log(
+                    `[apply-changes] Updated block ${targetBlockId} status to ${change.statusChange.newStatus}`,
+                  );
+
+                  // Emit WebSocket event
+                  emitBlockUpdated(sessionId, {
+                    id: targetBlockId,
+                    status: change.statusChange.newStatus,
+                  });
+                }
+              } else {
+                blocksUpdated++;
+              }
             }
           } catch (changeError) {
             console.error(
@@ -1178,6 +1384,10 @@ graphRouter.post(
         }
 
         await saveDb();
+
+        console.log(
+          `[apply-changes] Applied ${blocksCreated} blocks and ${linksCreated} links (ID mappings: ${idMapping.size})`,
+        );
       } else {
         // Fallback: If no changes data, just return success with zeros
         // (This handles the case where changes weren't passed properly)
@@ -1233,6 +1443,7 @@ async function analyzeSessionForGraphUpdates(
   existingBlocks: MemoryBlock[],
   existingLinks: MemoryLink[],
   selectedSourceIds?: string[],
+  ideaSlug?: string, // Optional idea slug for file-based artifacts
 ): Promise<
   AnalysisResponse & {
     collectionMetadata?: {
@@ -1260,9 +1471,13 @@ async function analyzeSessionForGraphUpdates(
     console.log(
       `[analyzeSessionForGraphUpdates] Step 1: Collecting sources...`,
     );
+    console.log(
+      `[analyzeSessionForGraphUpdates] ideaSlug: ${ideaSlug || "(not provided)"}`,
+    );
     let collectionResult = await collectAllSources(sessionId, {
       tokenBudget: 40000,
       conversationLimit: 50,
+      ideaSlug, // Include file-based artifacts from idea folder
     });
 
     // Filter to selected sources if provided
@@ -1275,6 +1490,9 @@ async function analyzeSessionForGraphUpdates(
       // Recalculate metadata
       const conversationCount = filteredSources.filter(
         (s) => s.type === "conversation",
+      ).length;
+      const conversationInsightCount = filteredSources.filter(
+        (s) => s.type === "conversation_insight",
       ).length;
       const artifactCount = filteredSources.filter(
         (s) => s.type === "artifact",
@@ -1298,6 +1516,7 @@ async function analyzeSessionForGraphUpdates(
         truncated: false,
         collectionMetadata: {
           conversationCount,
+          conversationInsightCount,
           artifactCount,
           memoryFileCount,
           userBlockCount,
@@ -1348,7 +1567,7 @@ async function analyzeSessionForGraphUpdates(
 
     const response = await anthropicClient.messages.create({
       model: "claude-haiku-3-5-latest",
-      max_tokens: 4096,
+      max_tokens: 16384, // Increased from 4096 to allow for more blocks and links
       system: builtPrompt.systemPrompt,
       messages: [
         {
@@ -1363,8 +1582,14 @@ async function analyzeSessionForGraphUpdates(
       console.warn(
         `[analyzeSessionForGraphUpdates] No text content in response`,
       );
+      console.warn(
+        `[analyzeSessionForGraphUpdates] Response content types:`,
+        response.content.map((c) => c.type),
+      );
+      const result = getEmptyAnalysis();
+      result.context.why = `Unable to analyze: No text content in AI response (got types: ${response.content.map((c) => c.type).join(", ")})`;
       return {
-        ...getEmptyAnalysis(),
+        ...result,
         collectionMetadata: {
           conversationCount:
             collectionResult.collectionMetadata.conversationCount,
@@ -1383,8 +1608,14 @@ async function analyzeSessionForGraphUpdates(
 
     if (!parsed) {
       console.warn(`[analyzeSessionForGraphUpdates] Failed to parse response`);
+      console.warn(
+        `[analyzeSessionForGraphUpdates] Raw response preview:`,
+        textContent.text.slice(0, 500),
+      );
+      const result = getEmptyAnalysis();
+      result.context.why = `Unable to analyze: Failed to parse AI response. Preview: ${textContent.text.slice(0, 200)}...`;
       return {
-        ...getEmptyAnalysis(),
+        ...result,
         collectionMetadata: {
           conversationCount:
             collectionResult.collectionMetadata.conversationCount,
@@ -1468,7 +1699,22 @@ async function analyzeSessionForGraphUpdates(
     };
   } catch (error) {
     console.error("[analyzeSessionForGraphUpdates] Error:", error);
-    return getEmptyAnalysis();
+    // Log full error details for debugging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (error instanceof Error) {
+      console.error(
+        "[analyzeSessionForGraphUpdates] Error message:",
+        error.message,
+      );
+      console.error(
+        "[analyzeSessionForGraphUpdates] Error stack:",
+        error.stack,
+      );
+    }
+    // Include error in response for debugging
+    const result = getEmptyAnalysis();
+    result.context.why = `Unable to analyze: ${errorMessage}`;
+    return result;
   }
 }
 
@@ -1529,6 +1775,419 @@ graphRouter.get(
       });
     } catch (error) {
       console.error("Error getting block artifact:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// GRAPH SNAPSHOT / VERSIONING ROUTES
+// ============================================================================
+
+// Auto-create graph_snapshots table if it doesn't exist
+// This handles the case where the server started before migrations were applied
+let snapshotTableEnsured = false;
+async function ensureSnapshotTable(): Promise<void> {
+  if (snapshotTableEnsured) return;
+
+  try {
+    await run(
+      `
+      CREATE TABLE IF NOT EXISTS graph_snapshots (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        block_count INTEGER NOT NULL,
+        link_count INTEGER NOT NULL,
+        snapshot_data TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `,
+      [],
+    );
+
+    await run(
+      `CREATE INDEX IF NOT EXISTS idx_graph_snapshots_session ON graph_snapshots(session_id)`,
+      [],
+    );
+    await run(
+      `CREATE INDEX IF NOT EXISTS idx_graph_snapshots_created_at ON graph_snapshots(created_at)`,
+      [],
+    );
+
+    snapshotTableEnsured = true;
+    console.log("[graph-snapshot] Ensured graph_snapshots table exists");
+  } catch (error) {
+    console.error("[graph-snapshot] Error ensuring table:", error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// GET /session/:sessionId/graph/snapshots
+// ============================================================================
+// List all snapshots for a session (metadata only, not full data)
+
+graphRouter.get(
+  "/:sessionId/graph/snapshots",
+  async (req: Request, res: Response) => {
+    try {
+      await ensureSnapshotTable();
+      const { sessionId } = req.params;
+
+      const snapshots = await query<{
+        id: string;
+        session_id: string;
+        name: string;
+        description: string | null;
+        block_count: number;
+        link_count: number;
+        created_at: string;
+      }>(
+        `SELECT id, session_id, name, description, block_count, link_count, created_at
+         FROM graph_snapshots
+         WHERE session_id = ?
+         ORDER BY created_at DESC`,
+        [sessionId],
+      );
+
+      return res.json({
+        success: true,
+        snapshots: snapshots.map((s) => ({
+          id: s.id,
+          sessionId: s.session_id,
+          name: s.name,
+          description: s.description,
+          blockCount: s.block_count,
+          linkCount: s.link_count,
+          createdAt: s.created_at,
+        })),
+      });
+    } catch (error) {
+      console.error("Error listing snapshots:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// POST /session/:sessionId/graph/snapshots
+// ============================================================================
+// Create a new snapshot of the current graph state
+
+const CreateSnapshotSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+});
+
+graphRouter.post(
+  "/:sessionId/graph/snapshots",
+  async (req: Request, res: Response) => {
+    try {
+      await ensureSnapshotTable();
+      const { sessionId } = req.params;
+
+      const parseResult = CreateSnapshotSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          error: "Validation error",
+          details: parseResult.error.issues,
+        });
+      }
+
+      const { name, description } = parseResult.data;
+      const now = new Date().toISOString();
+      const snapshotId = uuidv4();
+
+      // Collect current graph state
+      const blocks = await query<Record<string, unknown>>(
+        `SELECT * FROM memory_blocks WHERE session_id = ?`,
+        [sessionId],
+      );
+
+      const links = await query<Record<string, unknown>>(
+        `SELECT * FROM memory_links WHERE session_id = ?`,
+        [sessionId],
+      );
+
+      const memberships = await query<Record<string, unknown>>(
+        `SELECT m.* FROM memory_graph_memberships m
+         JOIN memory_blocks b ON m.block_id = b.id
+         WHERE b.session_id = ?`,
+        [sessionId],
+      );
+
+      // Create snapshot data blob
+      const snapshotData = JSON.stringify({
+        blocks,
+        links,
+        memberships,
+      });
+
+      // Insert snapshot
+      await run(
+        `INSERT INTO graph_snapshots (id, session_id, name, description, block_count, link_count, snapshot_data, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          snapshotId,
+          sessionId,
+          name,
+          description || null,
+          blocks.length,
+          links.length,
+          snapshotData,
+          now,
+        ],
+      );
+
+      await saveDb();
+
+      console.log(
+        `[graph-snapshot] Created snapshot "${name}" for session ${sessionId}: ${blocks.length} blocks, ${links.length} links`,
+      );
+
+      return res.status(201).json({
+        success: true,
+        snapshot: {
+          id: snapshotId,
+          sessionId,
+          name,
+          description: description || null,
+          blockCount: blocks.length,
+          linkCount: links.length,
+          createdAt: now,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating snapshot:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// POST /session/:sessionId/graph/snapshots/:snapshotId/restore
+// ============================================================================
+// Restore graph to a previous snapshot state
+
+graphRouter.post(
+  "/:sessionId/graph/snapshots/:snapshotId/restore",
+  async (req: Request, res: Response) => {
+    try {
+      await ensureSnapshotTable();
+      const { sessionId, snapshotId } = req.params;
+      const now = new Date().toISOString();
+
+      // Get the snapshot
+      const snapshot = await getOne<{
+        id: string;
+        session_id: string;
+        name: string;
+        snapshot_data: string;
+      }>(
+        `SELECT id, session_id, name, snapshot_data FROM graph_snapshots WHERE id = ? AND session_id = ?`,
+        [snapshotId, sessionId],
+      );
+
+      if (!snapshot) {
+        return res.status(404).json({ error: "Snapshot not found" });
+      }
+
+      // Parse snapshot data
+      const snapshotData = JSON.parse(snapshot.snapshot_data) as {
+        blocks: Array<{
+          id: string;
+          session_id: string;
+          idea_id: string | null;
+          type: string;
+          title: string | null;
+          content: string;
+          properties: string | null;
+          status: string | null;
+          confidence: number | null;
+          abstraction_level: string | null;
+          created_at: string;
+          updated_at: string;
+          extracted_from_message_id: string | null;
+          artifact_id: string | null;
+        }>;
+        links: Array<{
+          id: string;
+          session_id: string;
+          source_block_id: string;
+          target_block_id: string;
+          link_type: string;
+          degree: string | null;
+          confidence: number | null;
+          reason: string | null;
+          status: string | null;
+          created_at: string;
+          updated_at: string;
+        }>;
+        memberships: Array<{
+          block_id: string;
+          graph_type: string;
+          created_at: string;
+        }>;
+      };
+
+      // Auto-create a "before restore" snapshot for safety
+      const currentBlocks = await query<Record<string, unknown>>(
+        `SELECT * FROM memory_blocks WHERE session_id = ?`,
+        [sessionId],
+      );
+      const currentLinks = await query<Record<string, unknown>>(
+        `SELECT * FROM memory_links WHERE session_id = ?`,
+        [sessionId],
+      );
+      const currentMemberships = await query<Record<string, unknown>>(
+        `SELECT m.* FROM memory_graph_memberships m
+         JOIN memory_blocks b ON m.block_id = b.id
+         WHERE b.session_id = ?`,
+        [sessionId],
+      );
+
+      if (currentBlocks.length > 0 || currentLinks.length > 0) {
+        const autoSnapshotId = uuidv4();
+        await run(
+          `INSERT INTO graph_snapshots (id, session_id, name, description, block_count, link_count, snapshot_data, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            autoSnapshotId,
+            sessionId,
+            `Before restore to "${snapshot.name}"`,
+            `Auto-created before restoring to snapshot "${snapshot.name}"`,
+            currentBlocks.length,
+            currentLinks.length,
+            JSON.stringify({
+              blocks: currentBlocks,
+              links: currentLinks,
+              memberships: currentMemberships,
+            }),
+            now,
+          ],
+        );
+        console.log(
+          `[graph-snapshot] Auto-created backup snapshot before restore: ${autoSnapshotId}`,
+        );
+      }
+
+      // Clear current graph
+      await run(
+        `DELETE FROM memory_graph_memberships WHERE block_id IN (SELECT id FROM memory_blocks WHERE session_id = ?)`,
+        [sessionId],
+      );
+      await run(`DELETE FROM memory_links WHERE session_id = ?`, [sessionId]);
+      await run(`DELETE FROM memory_blocks WHERE session_id = ?`, [sessionId]);
+
+      // Restore blocks
+      for (const block of snapshotData.blocks) {
+        await run(
+          `INSERT INTO memory_blocks (id, session_id, idea_id, type, title, content, properties, status, confidence, abstraction_level, created_at, updated_at, extracted_from_message_id, artifact_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            block.id,
+            block.session_id,
+            block.idea_id,
+            block.type,
+            block.title,
+            block.content,
+            block.properties,
+            block.status,
+            block.confidence,
+            block.abstraction_level,
+            block.created_at,
+            block.updated_at,
+            block.extracted_from_message_id,
+            block.artifact_id,
+          ],
+        );
+      }
+
+      // Restore links
+      for (const link of snapshotData.links) {
+        await run(
+          `INSERT INTO memory_links (id, session_id, source_block_id, target_block_id, link_type, degree, confidence, reason, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            link.id,
+            link.session_id,
+            link.source_block_id,
+            link.target_block_id,
+            link.link_type,
+            link.degree,
+            link.confidence,
+            link.reason,
+            link.status,
+            link.created_at,
+            link.updated_at,
+          ],
+        );
+      }
+
+      // Restore memberships
+      for (const membership of snapshotData.memberships) {
+        await run(
+          `INSERT INTO memory_graph_memberships (block_id, graph_type, created_at)
+           VALUES (?, ?, ?)`,
+          [membership.block_id, membership.graph_type, membership.created_at],
+        );
+      }
+
+      await saveDb();
+
+      console.log(
+        `[graph-snapshot] Restored snapshot "${snapshot.name}" for session ${sessionId}: ${snapshotData.blocks.length} blocks, ${snapshotData.links.length} links`,
+      );
+
+      return res.json({
+        success: true,
+        restoredAt: now,
+        blockCount: snapshotData.blocks.length,
+        linkCount: snapshotData.links.length,
+      });
+    } catch (error) {
+      console.error("Error restoring snapshot:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// DELETE /session/:sessionId/graph/snapshots/:snapshotId
+// ============================================================================
+// Delete a snapshot
+
+graphRouter.delete(
+  "/:sessionId/graph/snapshots/:snapshotId",
+  async (req: Request, res: Response) => {
+    try {
+      await ensureSnapshotTable();
+      const { sessionId, snapshotId } = req.params;
+
+      // Check if snapshot exists first
+      const existing = await getOne<{ id: string }>(
+        `SELECT id FROM graph_snapshots WHERE id = ? AND session_id = ?`,
+        [snapshotId, sessionId],
+      );
+
+      if (!existing) {
+        return res.status(404).json({ error: "Snapshot not found" });
+      }
+
+      await run(`DELETE FROM graph_snapshots WHERE id = ? AND session_id = ?`, [
+        snapshotId,
+        sessionId,
+      ]);
+
+      await saveDb();
+
+      console.log(`[graph-snapshot] Deleted snapshot ${snapshotId}`);
+
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting snapshot:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

@@ -17,7 +17,10 @@ import type {
   IdeaCandidate,
   ViabilityRisk,
 } from "../types";
-import type { GraphUpdateAnalysis } from "../types/ideation-state";
+import type {
+  GraphUpdateAnalysis,
+  GraphSnapshotSummary,
+} from "../types/ideation-state";
 
 const API_BASE = "/api/ideation";
 
@@ -345,6 +348,8 @@ export function useIdeationAPI() {
         profileId: string;
         status: string;
         entryMode: string | null;
+        userSlug?: string | null;
+        ideaSlug?: string | null;
       };
       messages: Array<{
         id: string;
@@ -619,18 +624,20 @@ export function useIdeationAPI() {
    * Analyze session for potential graph updates.
    * Uses AI to extract proposed blocks and links from conversation.
    * @param selectedSourceIds - Optional array of source IDs to include in analysis
+   * @param ideaSlug - Optional idea slug to include file-based artifacts from idea folder
    */
   const analyzeGraphChanges = useCallback(
     async (
       sessionId: string,
       selectedSourceIds?: string[],
+      ideaSlug?: string,
     ): Promise<GraphUpdateAnalysis> => {
       const response = await fetch(
         `${API_BASE}/session/${sessionId}/graph/analyze-changes`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ selectedSourceIds }),
+          body: JSON.stringify({ selectedSourceIds, ideaSlug }),
         },
       );
 
@@ -696,13 +703,33 @@ export function useIdeationAPI() {
         type: "create_block" | "update_block" | "create_link";
         blockType?: string;
         title?: string; // Short 3-5 word summary
-        content: string;
+        content?: string; // Optional for create_link types which don't have content
         graphMembership?: string[];
         confidence?: number;
-        sourceMessageId?: string;
+        // Source attribution - CRITICAL for tracking where insights came from
+        sourceId?: string; // ID of the source (message ID, artifact ID, etc.)
+        sourceType?: string; // e.g., "conversation_insight", "artifact", "memory_file"
+        sourceWeight?: number; // Reliability weight 0-1
+        corroboratedBy?: Array<{
+          sourceId: string;
+          sourceType: string;
+          snippet?: string;
+        }>;
+        sourceMessageId?: string; // Legacy field
         sourceBlockId?: string;
         targetBlockId?: string;
         linkType?: string;
+        reason?: string; // Reason for the link
+        // Supersession handling
+        supersedesBlockId?: string; // If this block supersedes an existing block
+        supersessionReason?: string; // Reason for superseding
+        // For update_block status changes
+        blockId?: string; // Target block for updates
+        statusChange?: {
+          blockId?: string;
+          newStatus: "superseded" | "abandoned";
+          reason?: string;
+        };
       }>,
     ): Promise<{
       success: boolean;
@@ -723,10 +750,156 @@ export function useIdeationAPI() {
         const error = await response
           .json()
           .catch(() => ({ error: "Failed to apply graph changes" }));
+        // Include validation details in error message if available
+        let errorMessage = "Failed to apply graph changes";
+        if (typeof error.error === "string") {
+          errorMessage = error.error;
+          if (error.details && Array.isArray(error.details)) {
+            const detailsStr = error.details
+              .map(
+                (d: { path?: string[]; message?: string }) =>
+                  `${d.path?.join(".") || "field"}: ${d.message || "invalid"}`,
+              )
+              .join("; ");
+            errorMessage += `: ${detailsStr}`;
+            console.error(
+              "[applyGraphChanges] Validation details:",
+              error.details,
+            );
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  // ============================================================================
+  // Graph Snapshot / Versioning Methods
+  // ============================================================================
+
+  /**
+   * List all snapshots for a session (metadata only)
+   */
+  const listGraphSnapshots = useCallback(
+    async (
+      sessionId: string,
+    ): Promise<{ success: boolean; snapshots: GraphSnapshotSummary[] }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/graph/snapshots`,
+      );
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to list snapshots" }));
         throw new Error(
           typeof error.error === "string"
             ? error.error
-            : "Failed to apply graph changes",
+            : "Failed to list snapshots",
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  /**
+   * Create a new snapshot of the current graph state
+   */
+  const createGraphSnapshot = useCallback(
+    async (
+      sessionId: string,
+      name: string,
+      description?: string,
+    ): Promise<{ success: boolean; snapshot: GraphSnapshotSummary }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/graph/snapshots`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, description }),
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to create snapshot" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to create snapshot",
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  /**
+   * Restore graph to a previous snapshot state
+   */
+  const restoreGraphSnapshot = useCallback(
+    async (
+      sessionId: string,
+      snapshotId: string,
+    ): Promise<{
+      success: boolean;
+      restoredAt: string;
+      blockCount: number;
+      linkCount: number;
+    }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/graph/snapshots/${snapshotId}/restore`,
+        {
+          method: "POST",
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to restore snapshot" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to restore snapshot",
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  /**
+   * Delete a snapshot
+   */
+  const deleteGraphSnapshot = useCallback(
+    async (
+      sessionId: string,
+      snapshotId: string,
+    ): Promise<{ success: boolean }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/graph/snapshots/${snapshotId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to delete snapshot" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to delete snapshot",
         );
       }
 
@@ -758,6 +931,11 @@ export function useIdeationAPI() {
       analyzeGraphChanges,
       applyGraphChanges,
       resetGraph,
+      // Snapshot/versioning
+      listGraphSnapshots,
+      createGraphSnapshot,
+      restoreGraphSnapshot,
+      deleteGraphSnapshot,
     }),
     [
       startSession,
@@ -781,6 +959,10 @@ export function useIdeationAPI() {
       analyzeGraphChanges,
       applyGraphChanges,
       resetGraph,
+      listGraphSnapshots,
+      createGraphSnapshot,
+      restoreGraphSnapshot,
+      deleteGraphSnapshot,
     ],
   );
 }
