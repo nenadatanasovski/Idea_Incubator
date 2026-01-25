@@ -12,7 +12,10 @@
  */
 
 import { useCallback, useState, useRef, useEffect } from "react";
-import type { GraphFilters as GraphFiltersType } from "../../types/graph";
+import type {
+  GraphFilters as GraphFiltersType,
+  ClusterStrategy,
+} from "../../types/graph";
 import { GraphFilters } from "./GraphFilters";
 
 // ============================================================================
@@ -96,6 +99,13 @@ export interface GraphControlsProps {
   nodeCount?: number;
   filteredNodeCount?: number;
 
+  // Clustering
+  showClusterControls?: boolean;
+  currentClusterStrategy?: ClusterStrategy;
+  onClusterStrategyChange?: (strategy: ClusterStrategy) => void;
+  clusterStrength?: number;
+  onClusterStrengthChange?: (strength: number) => void;
+
   className?: string;
 }
 
@@ -122,6 +132,37 @@ const LAYOUTS: { value: LayoutOption; label: string; description?: string }[] =
         "Arranges nodes by abstraction level: Vision → Strategy → Tactic → Implementation",
     },
   ];
+
+/**
+ * Cluster strategy options for the dropdown
+ */
+const CLUSTER_STRATEGIES: {
+  value: ClusterStrategy;
+  label: string;
+  description?: string;
+}[] = [
+  { value: "none", label: "No Clustering" },
+  {
+    value: "graphMembership",
+    label: "By Domain",
+    description: "Problem, Solution, Market...",
+  },
+  {
+    value: "blockType",
+    label: "By Type",
+    description: "Content, Synthesis, Decision...",
+  },
+  {
+    value: "abstraction",
+    label: "By Level",
+    description: "Vision, Strategy, Tactic...",
+  },
+  {
+    value: "status",
+    label: "By Status",
+    description: "Draft, Active, Validated...",
+  },
+];
 
 /**
  * Format timestamp for display
@@ -181,9 +222,15 @@ export function GraphControls({
   onFiltersReset,
   nodeCount,
   filteredNodeCount,
+  showClusterControls = true,
+  currentClusterStrategy = "none",
+  onClusterStrategyChange,
+  clusterStrength = 0.7,
+  onClusterStrengthChange,
   className = "",
 }: GraphControlsProps) {
   const [isLayoutDropdownOpen, setIsLayoutDropdownOpen] = useState(false);
+  const [isClusterDropdownOpen, setIsClusterDropdownOpen] = useState(false);
   const [isAiPopupOpen, setIsAiPopupOpen] = useState(false);
   const [isSearchPopupOpen, setIsSearchPopupOpen] = useState(false);
   const [isFiltersPopupOpen, setIsFiltersPopupOpen] = useState(false);
@@ -919,6 +966,103 @@ export function GraphControls({
                     {layout.label}
                   </button>
                 ))}
+              </div>
+            )}
+          </div>
+          <div className="w-px h-6 bg-gray-200" />
+        </>
+      )}
+
+      {/* Cluster Strategy Selector */}
+      {showClusterControls && onClusterStrategyChange && (
+        <>
+          <div className="relative">
+            <button
+              onClick={() => setIsClusterDropdownOpen(!isClusterDropdownOpen)}
+              className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+                currentClusterStrategy !== "none"
+                  ? "bg-purple-100 text-purple-600"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+              title="Cluster nodes by attribute"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+              <span>
+                {CLUSTER_STRATEGIES.find(
+                  (s) => s.value === currentClusterStrategy,
+                )?.label || "Cluster"}
+              </span>
+              <svg
+                className="w-3 h-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {isClusterDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[160px]">
+                {CLUSTER_STRATEGIES.map((strategy) => (
+                  <button
+                    key={strategy.value}
+                    onClick={() => {
+                      onClusterStrategyChange(strategy.value);
+                      setIsClusterDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg ${
+                      currentClusterStrategy === strategy.value
+                        ? "bg-purple-50 text-purple-600"
+                        : "text-gray-600"
+                    }`}
+                  >
+                    <div className="text-xs font-medium">{strategy.label}</div>
+                    {strategy.description && (
+                      <div className="text-[10px] text-gray-400">
+                        {strategy.description}
+                      </div>
+                    )}
+                  </button>
+                ))}
+
+                {/* Cluster Strength Slider */}
+                {currentClusterStrategy !== "none" &&
+                  onClusterStrengthChange && (
+                    <div className="px-3 py-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+                        <span>Cluster Tightness</span>
+                        <span>{Math.round(clusterStrength * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={clusterStrength * 100}
+                        onChange={(e) =>
+                          onClusterStrengthChange(Number(e.target.value) / 100)
+                        }
+                        className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                      />
+                    </div>
+                  )}
               </div>
             )}
           </div>

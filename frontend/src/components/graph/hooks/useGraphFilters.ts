@@ -11,6 +11,7 @@ import type {
   BlockType,
   BlockStatus,
   AbstractionLevel,
+  SourceType,
 } from "../../../types/graph";
 
 export interface FilterState {
@@ -18,6 +19,7 @@ export interface FilterState {
   blockTypes: BlockType[];
   statuses: BlockStatus[];
   abstractionLevels: AbstractionLevel[];
+  sourceTypes: SourceType[];
   confidenceRange: { min: number; max: number };
 }
 
@@ -38,6 +40,7 @@ export interface UseGraphFiltersReturn {
   blockTypeFilter: BlockType[];
   statusFilter: BlockStatus[];
   abstractionFilter: AbstractionLevel[];
+  sourceTypeFilter: SourceType[];
   confidenceRange: { min: number; max: number };
 
   // Setters
@@ -45,6 +48,7 @@ export interface UseGraphFiltersReturn {
   setBlockTypeFilter: (types: BlockType[]) => void;
   setStatusFilter: (statuses: BlockStatus[]) => void;
   setAbstractionFilter: (levels: AbstractionLevel[]) => void;
+  setSourceTypeFilter: (types: SourceType[]) => void;
   setConfidenceRange: (range: { min: number; max: number }) => void;
 
   // Derived data
@@ -65,6 +69,7 @@ const URL_PARAM_KEYS = {
   blockTypes: "block",
   statuses: "status",
   abstractionLevels: "abstraction",
+  sourceTypes: "source",
   confMin: "confMin",
   confMax: "confMax",
 } as const;
@@ -102,6 +107,12 @@ function parseFiltersFromUrl(): Partial<FilterState> {
     filters.abstractionLevels = abstractionParam.split(
       ",",
     ) as AbstractionLevel[];
+  }
+
+  // Parse source types
+  const sourceTypesParam = params.get(URL_PARAM_KEYS.sourceTypes);
+  if (sourceTypesParam) {
+    filters.sourceTypes = sourceTypesParam.split(",") as SourceType[];
   }
 
   // Parse confidence range
@@ -156,6 +167,13 @@ function updateUrlWithFilters(filters: FilterState): void {
     params.delete(URL_PARAM_KEYS.abstractionLevels);
   }
 
+  // Update source types
+  if (filters.sourceTypes.length > 0) {
+    params.set(URL_PARAM_KEYS.sourceTypes, filters.sourceTypes.join(","));
+  } else {
+    params.delete(URL_PARAM_KEYS.sourceTypes);
+  }
+
   // Update confidence range
   if (filters.confidenceRange.min > 0) {
     params.set(URL_PARAM_KEYS.confMin, filters.confidenceRange.min.toString());
@@ -185,6 +203,7 @@ const defaultFilterState: FilterState = {
   blockTypes: [],
   statuses: [],
   abstractionLevels: [],
+  sourceTypes: [],
   confidenceRange: { min: 0, max: 1 },
 };
 
@@ -230,6 +249,10 @@ export function useGraphFilters(
 
   const setAbstractionFilter = useCallback((levels: AbstractionLevel[]) => {
     setFilters((prev) => ({ ...prev, abstractionLevels: levels }));
+  }, []);
+
+  const setSourceTypeFilter = useCallback((types: SourceType[]) => {
+    setFilters((prev) => ({ ...prev, sourceTypes: types }));
   }, []);
 
   const setConfidenceRange = useCallback(
@@ -278,6 +301,14 @@ export function useGraphFilters(
       );
     }
 
+    // Filter by source type
+    if (filters.sourceTypes.length > 0) {
+      result = result.filter(
+        (node) =>
+          node.sourceType && filters.sourceTypes.includes(node.sourceType),
+      );
+    }
+
     // Filter by confidence range
     const { min, max } = filters.confidenceRange;
     if (min > 0 || max < 1) {
@@ -307,6 +338,7 @@ export function useGraphFilters(
       filters.blockTypes.length > 0 ||
       filters.statuses.length > 0 ||
       filters.abstractionLevels.length > 0 ||
+      filters.sourceTypes.length > 0 ||
       filters.confidenceRange.min > 0 ||
       filters.confidenceRange.max < 1
     );
@@ -333,6 +365,9 @@ export function useGraphFilters(
         filters.abstractionLevels.join(","),
       );
     }
+    if (filters.sourceTypes.length > 0) {
+      params.set(URL_PARAM_KEYS.sourceTypes, filters.sourceTypes.join(","));
+    }
     if (filters.confidenceRange.min > 0) {
       params.set(
         URL_PARAM_KEYS.confMin,
@@ -356,6 +391,7 @@ export function useGraphFilters(
     blockTypeFilter: filters.blockTypes,
     statusFilter: filters.statuses,
     abstractionFilter: filters.abstractionLevels,
+    sourceTypeFilter: filters.sourceTypes,
     confidenceRange: filters.confidenceRange,
 
     // Setters
@@ -363,6 +399,7 @@ export function useGraphFilters(
     setBlockTypeFilter,
     setStatusFilter,
     setAbstractionFilter,
+    setSourceTypeFilter,
     setConfidenceRange,
 
     // Derived data

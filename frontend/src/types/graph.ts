@@ -296,6 +296,41 @@ export interface GraphNode {
 }
 
 // ============================================================================
+// Clustering Types
+// ============================================================================
+
+/**
+ * Strategy for auto-assigning nodes to clusters
+ */
+export type ClusterStrategy =
+  | "none" // No clustering
+  | "graphMembership" // Group by graphMembership[0] (problem, solution, market, etc.)
+  | "blockType" // Group by blockType (content, synthesis, decision, etc.)
+  | "abstraction" // Group by abstractionLevel (vision, strategy, tactic, implementation)
+  | "status" // Group by status (draft, active, validated, etc.)
+  | "custom"; // User-defined groups
+
+/**
+ * Configuration for graph clustering behavior
+ */
+export interface ClusterConfig {
+  /** The clustering strategy to use */
+  strategy: ClusterStrategy;
+  /** For custom strategy: maps clusterName -> nodeIds */
+  customGroups?: Record<string, string[]>;
+  /** Cluster tightness: 0.0 (loose) to 1.0 (tight) */
+  strength: number;
+}
+
+/**
+ * Default cluster configuration
+ */
+export const defaultClusterConfig: ClusterConfig = {
+  strategy: "none",
+  strength: 0.7,
+};
+
+// ============================================================================
 // Graph Edge Interface
 // ============================================================================
 

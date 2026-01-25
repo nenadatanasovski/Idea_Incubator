@@ -13,10 +13,11 @@ import {
   Search,
   RefreshCw,
   ArrowLeft,
-  ChevronRight,
   FileText,
   ChevronDown,
   ChevronUp,
+  X,
+  Filter,
 } from "lucide-react";
 
 export type MemoryTableName =
@@ -104,6 +105,97 @@ function TableTab({
         </span>
       )}
     </button>
+  );
+}
+
+/**
+ * Filter tag component
+ */
+function FilterTag({
+  label,
+  count,
+  isActive,
+  color,
+  onClick,
+}: {
+  label: string;
+  count?: number;
+  isActive: boolean;
+  color?: string;
+  onClick: () => void;
+}) {
+  const baseColor = color || "gray";
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full transition-all ${
+        isActive
+          ? `bg-${baseColor}-200 text-${baseColor}-800 ring-2 ring-${baseColor}-400 ring-offset-1`
+          : `bg-${baseColor}-100 text-${baseColor}-700 hover:bg-${baseColor}-200`
+      }`}
+      style={
+        isActive
+          ? {
+              boxShadow: `0 0 0 2px white, 0 0 0 4px var(--tw-ring-color, #94a3b8)`,
+            }
+          : {}
+      }
+    >
+      <span>{label}</span>
+      {count !== undefined && (
+        <span
+          className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+            isActive ? `bg-${baseColor}-300` : `bg-${baseColor}-200`
+          }`}
+        >
+          {count}
+        </span>
+      )}
+      {isActive && <X className="w-3 h-3" />}
+    </button>
+  );
+}
+
+/**
+ * Filter bar component
+ */
+function FilterBar({
+  filters,
+  activeFilters,
+  onToggleFilter,
+  onClearAll,
+}: {
+  filters: { key: string; label: string; count: number; color?: string }[];
+  activeFilters: Set<string>;
+  onToggleFilter: (key: string) => void;
+  onClearAll: () => void;
+}) {
+  if (filters.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 bg-gray-50/50 overflow-x-auto">
+      <Filter className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {filters.map((filter) => (
+          <FilterTag
+            key={filter.key}
+            label={filter.label}
+            count={filter.count}
+            color={filter.color}
+            isActive={activeFilters.has(filter.key)}
+            onClick={() => onToggleFilter(filter.key)}
+          />
+        ))}
+      </div>
+      {activeFilters.size > 0 && (
+        <button
+          onClick={onClearAll}
+          className="ml-auto text-xs text-gray-500 hover:text-gray-700 flex-shrink-0"
+        >
+          Clear all
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -338,6 +430,20 @@ export function MemoryDatabasePanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBlock, setSelectedBlock] = useState<MemoryBlock | null>(null);
   const [expandedFileIds, setExpandedFileIds] = useState<Set<string>>(
+    new Set(),
+  );
+
+  // Filter states
+  const [blockTypeFilters, setBlockTypeFilters] = useState<Set<string>>(
+    new Set(),
+  );
+  const [blockStatusFilters, setBlockStatusFilters] = useState<Set<string>>(
+    new Set(),
+  );
+  const [linkTypeFilters, setLinkTypeFilters] = useState<Set<string>>(
+    new Set(),
+  );
+  const [fileTypeFilters, setFileTypeFilters] = useState<Set<string>>(
     new Set(),
   );
 

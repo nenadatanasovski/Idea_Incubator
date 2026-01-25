@@ -129,7 +129,15 @@ export interface GraphCanvasProps {
   /** Node IDs involved in cycles - will be highlighted with red glow */
   cycleNodeIds?: Set<string>;
   layoutType?: LayoutType;
+  /** Enable clustering by specifying the node field to cluster on (e.g., 'cluster') */
+  clusterAttribute?: string;
+  /** Cluster tightness: 0.0 (loose) to 1.0 (tight). Default: 0.7 */
+  clusterStrength?: number;
   className?: string;
+  /** When true, empty state is due to filters (shows different message) */
+  isFilteredEmpty?: boolean;
+  /** Total unfiltered node count (used to determine if empty is from filters) */
+  totalNodeCount?: number;
 }
 
 export interface GraphCanvasHandle {
@@ -347,10 +355,15 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       temporarilyVisibleEdgeIds = new Set(),
       cycleNodeIds = new Set(),
       layoutType = "forceDirected",
+      clusterAttribute,
+      clusterStrength = 0.7,
       className = "",
+      totalNodeCount = 0,
     },
     ref,
   ) {
+    // Determine if empty state is due to filters vs truly no data
+    const isFilteredEmpty = nodes.length === 0 && totalNodeCount > 0;
     const graphRef = useRef<GraphCanvasRef | null>(null);
 
     // Expose methods via ref
@@ -652,8 +665,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       graphRef.current?.centerGraph();
     }, []);
 
-    // Empty state
-    if (nodes.length === 0) {
+    // Truly empty state (no data at all, not filtered) - return early
+    if (nodes.length === 0 && !isFilteredEmpty) {
       return (
         <div
           data-testid="graph-canvas"
@@ -694,6 +707,32 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             <div className="text-center text-white">
               <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
               <p className="text-sm">Recovering graph visualization...</p>
+            </div>
+          </div>
+        )}
+        {/* Filtered Empty Overlay - shows when filters result in 0 nodes */}
+        {isFilteredEmpty && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-gray-50/90">
+            <div className="text-center text-gray-500">
+              <svg
+                className="mx-auto h-12 w-12 mb-4 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+              <p className="text-sm font-medium">
+                No nodes match the selected filters
+              </p>
+              <p className="text-xs mt-1 text-gray-400">
+                Try adjusting or clearing your filters
+              </p>
             </div>
           </div>
         )}
@@ -795,9 +834,11 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           onEdgeClick={handleEdgeClick as never}
           onCanvasClick={handleCanvasClick}
           layoutType={mapLayoutType(layoutType)}
+          clusterAttribute={clusterAttribute}
           layoutOverrides={{
-            nodeStrength: -100,
-            linkDistance: 100,
+            nodeStrength: -150, // Increased repulsion for better spacing
+            linkDistance: 120, // Slightly longer edges
+            clusterStrength: clusterAttribute ? clusterStrength : undefined, // Keep clusters together
           }}
           labelType="auto"
           draggable
@@ -852,6 +893,14 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             lasso: {
               border: "#3B82F6",
               background: "rgba(59, 130, 246, 0.1)",
+            },
+            cluster: {
+              stroke: "#CBD5E1", // Slate-300 - subtle boundary
+              fill: "rgba(241, 245, 249, 0.3)", // Slate-100 with transparency
+              label: {
+                stroke: "#F1F5F9", // Slate-100 - label background
+                color: "#475569", // Slate-600 - label text
+              },
             },
           }}
         />

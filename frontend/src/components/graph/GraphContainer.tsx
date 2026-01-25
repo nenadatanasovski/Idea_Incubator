@@ -14,6 +14,7 @@ import { NodeInspector, RelationshipHoverInfo } from "./NodeInspector";
 import { GraphLegend } from "./GraphLegend";
 import { GraphControls } from "./GraphControls";
 import { useGraphFilters } from "./hooks/useGraphFilters";
+import { useGraphClustering } from "./hooks/useGraphClustering";
 import { CycleIndicator } from "./CycleIndicator";
 import { GraphQuickActions } from "./GraphQuickActions";
 import { analyzeCycles } from "./utils/cycleDetection";
@@ -203,11 +204,13 @@ export function GraphContainer({
     blockTypeFilter,
     statusFilter,
     abstractionFilter,
+    sourceTypeFilter,
     confidenceRange,
     setGraphFilter,
     setBlockTypeFilter,
     setStatusFilter,
     setAbstractionFilter,
+    setSourceTypeFilter,
     setConfidenceRange,
     filteredNodes,
     filteredEdges,
@@ -215,13 +218,22 @@ export function GraphContainer({
     hasActiveFilters,
   } = useGraphFilters(nodes, edges, { syncToUrl: syncFiltersToUrl });
 
+  // Use the clustering hook for managing cluster state
+  const {
+    clusterStrategy,
+    setClusterStrategy,
+    clusterStrength,
+    setClusterStrength,
+    applyClusterAssignments,
+  } = useGraphClustering(nodes, { syncToUrl: syncFiltersToUrl });
+
   // Convert hook filter state to GraphFilters format for the component
   const currentFilters: GraphFiltersType = {
     graphTypes: graphFilter,
     blockTypes: blockTypeFilter,
     statuses: statusFilter,
     abstractionLevels: abstractionFilter,
-    sourceTypes: [],
+    sourceTypes: sourceTypeFilter,
     confidenceRange: [confidenceRange.min, confidenceRange.max],
   };
 
@@ -232,6 +244,7 @@ export function GraphContainer({
       setBlockTypeFilter(newFilters.blockTypes);
       setStatusFilter(newFilters.statuses);
       setAbstractionFilter(newFilters.abstractionLevels);
+      setSourceTypeFilter(newFilters.sourceTypes);
       setConfidenceRange({
         min: newFilters.confidenceRange[0],
         max: newFilters.confidenceRange[1],
@@ -242,6 +255,7 @@ export function GraphContainer({
       setBlockTypeFilter,
       setStatusFilter,
       setAbstractionFilter,
+      setSourceTypeFilter,
       setConfidenceRange,
     ],
   );
@@ -351,6 +365,11 @@ export function GraphContainer({
     hoveredRelationship,
     hoveredCycleNodeId,
   ]);
+
+  // Apply cluster assignments to nodes based on current strategy
+  const clusteredNodes = useMemo(() => {
+    return applyClusterAssignments(searchFilteredNodes);
+  }, [searchFilteredNodes, applyClusterAssignments]);
 
   // Filter edges to only include those between search-filtered nodes
   const searchFilteredEdges = useMemo(() => {
@@ -551,7 +570,7 @@ export function GraphContainer({
       <div className="flex-1 min-w-0 min-h-0 h-full relative">
         <GraphCanvas
           ref={graphCanvasRef}
-          nodes={searchFilteredNodes}
+          nodes={clusteredNodes}
           edges={searchFilteredEdges}
           onNodeClick={handleNodeClick}
           onNodeHover={handleNodeHover}
@@ -565,6 +584,9 @@ export function GraphContainer({
           temporarilyVisibleNodeIds={temporarilyVisibleNodeIds}
           temporarilyVisibleEdgeIds={temporarilyVisibleEdgeIds}
           cycleNodeIds={cycleNodeIds}
+          clusterAttribute={clusterStrategy !== "none" ? "cluster" : undefined}
+          clusterStrength={clusterStrength}
+          totalNodeCount={nodes.length}
           className="h-full"
         />
 
@@ -621,6 +643,11 @@ export function GraphContainer({
               pendingGraphChanges={pendingGraphChanges}
               showZoomControls={false}
               showLayoutControls={false}
+              showClusterControls={true}
+              currentClusterStrategy={clusterStrategy}
+              onClusterStrategyChange={setClusterStrategy}
+              clusterStrength={clusterStrength}
+              onClusterStrengthChange={setClusterStrength}
               sessionId={sessionId}
               onPromptHighlight={onPromptHighlight}
               onPromptFilterChange={onPromptFilterChange}
