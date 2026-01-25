@@ -1243,23 +1243,49 @@ graphRouter.post(
               // Build properties object with source attribution
               const properties: Record<string, unknown> = {};
 
+              // Determine the effective sourceType - if AI didn't specify or defaulted to "conversation",
+              // infer from available sources (prefer artifact if available)
+              let effectiveSourceType = change.sourceType;
+              if (
+                !effectiveSourceType ||
+                effectiveSourceType === "conversation"
+              ) {
+                // Check if we have artifact sources - if so, likely the insight came from there
+                if (sourcesByType.has("artifact")) {
+                  effectiveSourceType = "artifact";
+                } else if (sourcesByType.has("memory_file")) {
+                  effectiveSourceType = "memory_file";
+                } else if (
+                  sourcesByType.has("conversation") ||
+                  sourcesByType.has("conversation_insight")
+                ) {
+                  effectiveSourceType = "conversation_insight";
+                }
+                // Log when we infer a different sourceType
+                if (effectiveSourceType !== change.sourceType) {
+                  console.log(
+                    `[apply-changes] Inferred sourceType "${effectiveSourceType}" from sources (AI provided: "${change.sourceType}")`,
+                  );
+                }
+              }
+
               // Resolve sourceId - uses AI-provided value if valid, otherwise
               // falls back to matching source from the sources list by sourceType
               const resolvedSourceId = resolveSourceId(
                 change.sourceId,
-                change.sourceType,
+                effectiveSourceType,
               );
 
               // Store source attribution in properties for traceability
               if (resolvedSourceId) {
                 properties.source_id = resolvedSourceId;
               }
-              if (change.sourceType) {
-                properties.source_type = change.sourceType;
+              if (effectiveSourceType) {
+                properties.source_type = effectiveSourceType;
                 // Also set specific fields based on source type for frontend compatibility
                 // These enable navigation to the original source
                 if (resolvedSourceId) {
-                  if (change.sourceType === "artifact") {
+                  if (effectiveSourceType === "artifact") {
                     properties.artifact_id = resolvedSourceId;
                     // Also store the artifact title if available from sources
                     const artifactSource = sourcesByType.get("artifact");
@@ -1267,11 +1293,11 @@ graphRouter.post(
                       properties.artifact_title = artifactSource.title;
                     }
                   } else if (
-                    change.sourceType === "conversation" ||
-                    change.sourceType === "conversation_insight"
+                    effectiveSourceType === "conversation" ||
+                    effectiveSourceType === "conversation_insight"
                   ) {
                     properties.message_id = resolvedSourceId;
-                  } else if (change.sourceType === "memory_file") {
+                  } else if (effectiveSourceType === "memory_file") {
                     properties.memory_file_type = resolvedSourceId;
                     // Store memory file title if available
                     const memorySource = sourcesByType.get("memory_file");
@@ -1286,6 +1312,17 @@ graphRouter.post(
               }
               if (change.corroboratedBy && change.corroboratedBy.length > 0) {
                 properties.corroborated_by = change.corroboratedBy;
+              }
+
+              // Store ALL sources that were part of this analysis for comprehensive lineage
+              // This allows the frontend to show all potential sources for the insight
+              if (sources && sources.length > 0) {
+                properties.all_sources = sources.map((s) => ({
+                  id: s.id,
+                  type: s.type,
+                  title: s.title,
+                  weight: s.weight,
+                }));
               }
 
               // Use resolved source ID for extracted_from_message_id when available

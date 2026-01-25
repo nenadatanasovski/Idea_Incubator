@@ -585,7 +585,8 @@ export function parseAnalysisResponse(
         ...change,
         // Only set sourceId if valid - otherwise leave undefined so frontend can handle gracefully
         sourceId: hasValidSourceId ? change.sourceId : undefined,
-        sourceType: change.sourceType || "conversation",
+        // Don't default sourceType - let apply-changes infer it from available sources
+        sourceType: change.sourceType || undefined,
         sourceWeight: change.sourceWeight || 0.7,
         corroboratedBy: change.corroboratedBy || [],
         contradicts: change.contradicts || [],

@@ -166,23 +166,15 @@ function buildSourceLocation(
         blockId: (props.id || sourceId) as string | undefined,
       };
     case "memory_file":
-      // Memory files would link to external if there's a file path
-      if (props.memory_file_path || props.url) {
-        return {
-          type: "external",
-          url: (props.memory_file_path || props.url) as string,
-          memoryFileTitle: props.memory_file_title as string | undefined,
-        };
-      }
-      // If we have a source_id for memory file, use it as the file type
-      if (sourceId || props.memory_file_type) {
-        return {
-          type: "external",
-          url: `memory://${sourceId || props.memory_file_type}`,
-          memoryFileTitle: props.memory_file_title as string | undefined,
-        };
-      }
-      break;
+      // Memory files navigate to the Memory DB section's "files" tab
+      return {
+        type: "memory_db",
+        tableName: "files",
+        memoryFileTitle: props.memory_file_title as string | undefined,
+        memoryFileType: (sourceId || props.memory_file_type) as
+          | string
+          | undefined,
+      };
   }
   return undefined;
 }
@@ -320,6 +312,16 @@ export function transformBlocksToNodes(blocks: ApiBlock[]): GraphNode[] {
         // Infer source type from context when not explicitly set
         node.sourceType = inferSourceType(block);
         node.sourceLocation = buildSourceLocation(node.sourceType, props);
+      }
+
+      // Extract all sources that contributed to this insight (multi-source lineage)
+      if (props.all_sources && Array.isArray(props.all_sources)) {
+        node.allSources = props.all_sources as Array<{
+          id: string;
+          type: string;
+          title?: string | null;
+          weight?: number | null;
+        }>;
       }
 
       // External attribution details (separate from internal source)
@@ -858,6 +860,16 @@ function applyOptionalProperties(
       }
       node.sourceLocation = buildSourceLocation(node.sourceType, props);
     }
+  }
+
+  // Extract all sources that contributed to this insight (multi-source lineage)
+  if (props.all_sources && Array.isArray(props.all_sources)) {
+    node.allSources = props.all_sources as Array<{
+      id: string;
+      type: string;
+      title?: string | null;
+      weight?: number | null;
+    }>;
   }
 
   // External attribution details (separate from internal source)

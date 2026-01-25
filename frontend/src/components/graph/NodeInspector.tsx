@@ -445,6 +445,16 @@ function getSourceLocationInfo(location?: SourceLocation): {
         description: artifactDescription,
       };
     case "memory_db":
+      // Special handling for memory files (tableName === "files")
+      if (location.tableName === "files") {
+        const fileTitle =
+          location.memoryFileTitle || location.memoryFileType || "Memory file";
+        return {
+          icon: <FileText className="w-4 h-4" />,
+          label: "View in Memory Files",
+          description: fileTitle,
+        };
+      }
       return {
         icon: <Database className="w-4 h-4" />,
         label: "View in Memory DB",
@@ -476,6 +486,7 @@ function getSourceLocationInfo(location?: SourceLocation): {
 function NavigableSourceSection({
   sourceType,
   sourceLocation,
+  allSources,
   onNavigateToChat,
   onNavigateToArtifact,
   onNavigateToMemoryDB,
@@ -483,12 +494,19 @@ function NavigableSourceSection({
 }: {
   sourceType?: SourceType;
   sourceLocation?: SourceLocation;
+  allSources?: Array<{
+    id: string;
+    type: string;
+    title?: string | null;
+    weight?: number | null;
+  }>;
   onNavigateToChat?: (messageId: string, turnIndex?: number) => void;
   onNavigateToArtifact?: (artifactId: string, section?: string) => void;
   onNavigateToMemoryDB?: (tableName: string, blockId?: string) => void;
   onNavigateToExternal?: (url: string) => void;
 }) {
-  const hasSource = sourceType || sourceLocation;
+  const hasSource =
+    sourceType || sourceLocation || (allSources && allSources.length > 0);
 
   // Determine which navigation handler to use based on location type
   const handleNavigate = useCallback(() => {
@@ -603,6 +621,78 @@ function NavigableSourceSection({
           {locationInfo.icon}
           {locationInfo.label}
         </button>
+      )}
+
+      {/* All sources that contributed to this insight */}
+      {allSources && allSources.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <p className="text-xs font-medium text-gray-500 mb-2">
+            Analysis Sources ({allSources.length})
+          </p>
+          <div className="space-y-1.5">
+            {allSources.map((source, idx) => {
+              const sourceTypeLabel =
+                SOURCE_TYPE_LABELS[source.type as SourceType] ||
+                SOURCE_TYPE_LABELS.ai_generated;
+              const isArtifact = source.type === "artifact";
+              const isMemoryFile = source.type === "memory_file";
+              const canNavigateArtifact = isArtifact && onNavigateToArtifact;
+              const canNavigateMemoryFile =
+                isMemoryFile && onNavigateToMemoryDB;
+              const canNavigateSource =
+                canNavigateArtifact || canNavigateMemoryFile;
+
+              // Determine background color based on source type
+              const bgClass = canNavigateArtifact
+                ? "bg-amber-50 hover:bg-amber-100 cursor-pointer"
+                : canNavigateMemoryFile
+                  ? "bg-cyan-50 hover:bg-cyan-100 cursor-pointer"
+                  : "bg-gray-50";
+
+              return (
+                <div
+                  key={source.id || idx}
+                  className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-sm ${bgClass}`}
+                  onClick={() => {
+                    if (canNavigateArtifact) {
+                      onNavigateToArtifact(source.id);
+                    } else if (canNavigateMemoryFile) {
+                      // Navigate to Memory DB files tab
+                      onNavigateToMemoryDB("files", source.id);
+                    }
+                  }}
+                  role={canNavigateSource ? "button" : undefined}
+                  tabIndex={canNavigateSource ? 0 : undefined}
+                  onKeyDown={(e) => {
+                    if (
+                      canNavigateSource &&
+                      (e.key === "Enter" || e.key === " ")
+                    ) {
+                      e.preventDefault();
+                      if (canNavigateArtifact) {
+                        onNavigateToArtifact(source.id);
+                      } else if (canNavigateMemoryFile) {
+                        onNavigateToMemoryDB("files", source.id);
+                      }
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs">{sourceTypeLabel.icon}</span>
+                    <span className="truncate text-gray-700">
+                      {source.title || `${source.type} source`}
+                    </span>
+                  </div>
+                  {source.weight && (
+                    <span className="text-xs text-gray-400 shrink-0">
+                      {Math.round(source.weight * 100)}%
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1151,12 +1241,19 @@ export function NodeInspector({
             Skip if Linked Artifact section already covers this (avoid duplication) */}
         {!(node.artifactId && node.sourceLocation?.type === "artifact") && (
           <Section
-            title="Source"
-            defaultExpanded={!!(node.sourceType || node.sourceLocation)}
+            title={
+              node.allSources && node.allSources.length > 1
+                ? `Sources (${node.allSources.length})`
+                : "Source"
+            }
+            defaultExpanded={
+              !!(node.sourceType || node.sourceLocation || node.allSources)
+            }
           >
             <NavigableSourceSection
               sourceType={node.sourceType}
               sourceLocation={node.sourceLocation}
+              allSources={node.allSources}
               onNavigateToChat={onNavigateToChatMessage}
               onNavigateToArtifact={onNavigateToArtifact}
               onNavigateToMemoryDB={onNavigateToMemoryDB}

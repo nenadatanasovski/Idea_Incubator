@@ -273,22 +273,15 @@ function toReagraphNode(
   }
 
   // Use title if available (short summary), otherwise fall back to content/label
-  // Show full text for highlighted/selected/hovered/temporarily visible nodes, truncate others
-  const fullLabel = node.title || node.content || node.label;
-  const showFullText =
-    isHighlighted || isSelected || isHovered || isTemporarilyVisible;
-  const maxLabelLength = 50;
-  const displayLabel = showFullText
-    ? fullLabel
-    : fullLabel.length > maxLabelLength
-      ? fullLabel.substring(0, maxLabelLength - 3) + "..."
-      : fullLabel;
+  const displayLabel = node.title || node.content || node.label;
 
+  const fillColor = isRecentlyAdded ? "#4ADE80" : getNodeColor(node.blockType);
   return {
     id: node.id,
     label: displayLabel,
     subLabel,
-    fill: isRecentlyAdded ? "#4ADE80" : getNodeColor(node.blockType), // Lighter green fill for new nodes
+    fill: fillColor,
+    activeFill: fillColor, // Keep same color when selected/active
     size: finalSize,
     opacity,
     stroke,
@@ -569,11 +562,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     ]);
 
     // Reagraph selection hook for internal state management
+    // Note: We don't use onNodeClick from useSelection because it applies theme.activeFill
+    // which overrides per-node fill colors. Selection is managed via selectedNodeId prop.
     const {
       selections,
       actives: selectionActives,
       clearSelections,
-      onNodeClick: handleReagraphNodeClick,
       onCanvasClick: reagraphOnCanvasClick,
     } = useSelection({
       ref: graphRef,
@@ -624,13 +618,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       return combined;
     }, [selections, highlightedNodeIds, temporarilyVisibleNodeIds]);
 
-    // Combine selection actives with our highlighted nodes/edges and hovered node
+    // Combine selection actives with our highlighted nodes/edges
+    // Note: We intentionally do NOT add hovered node to actives because reagraph
+    // applies theme.activeFill to nodes in actives, overriding per-node fill colors.
+    // Hover styling (stroke color, opacity) is handled in toReagraphNode instead.
     const actives = useMemo(() => {
       const combined = [...(selectionActives || [])];
-      // Add hovered node ID (from canvas hover)
-      if (effectiveHoveredId && !combined.includes(effectiveHoveredId)) {
-        combined.push(effectiveHoveredId);
-      }
       // Add highlighted node IDs
       highlightedNodeIds.forEach((id) => {
         if (!combined.includes(id)) {
@@ -652,24 +645,24 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       return combined;
     }, [
       selectionActives,
-      effectiveHoveredId,
       highlightedNodeIds,
       highlightedEdgeIds,
       temporarilyVisibleNodeIds,
     ]);
 
     // Handle node click
+    // Note: We intentionally do NOT call handleReagraphNodeClick because reagraph
+    // applies theme.activeFill to selected nodes, overriding per-node fill colors.
+    // Selection state is managed externally via selectedNodeId prop, and
+    // selection styling (yellow stroke) is handled in toReagraphNode.
     const handleNodeClick = useCallback(
       (nodeData: InternalGraphNode) => {
-        if (handleReagraphNodeClick) {
-          handleReagraphNodeClick(nodeData as never);
-        }
         const node = nodes.find((n) => n.id === nodeData.id);
         if (node && onNodeClick) {
           onNodeClick(node);
         }
       },
-      [nodes, onNodeClick, handleReagraphNodeClick],
+      [nodes, onNodeClick],
     );
 
     // Handle node pointer over (hover)
@@ -922,7 +915,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               label: {
                 color: isDarkMode ? "#F9FAFB" : "#1F2937", // white in dark, gray-800 in light
                 activeColor: isDarkMode ? "#FFFFFF" : "#111827", // pure white in dark, gray-900 in light
-              },
+                maxWidth: 65, // 35% narrower than default 100 - labels wrap to more lines
+              } as any,
               subLabel: {
                 color: isDarkMode ? "#9CA3AF" : "#6B7280", // gray-400 in dark, gray-500 in light
                 activeColor: isDarkMode ? "#D1D5DB" : "#374151", // gray-300 in dark, gray-700 in light

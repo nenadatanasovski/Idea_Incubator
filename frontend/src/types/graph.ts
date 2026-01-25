@@ -87,12 +87,22 @@ export interface SourceLocation {
   artifactTitle?: string; // Human-readable title for display
   artifactSection?: string;
   // For memory database navigation
-  tableName?: "blocks" | "links" | "graphs" | "sessions";
+  tableName?: "blocks" | "links" | "graphs" | "sessions" | "files";
   blockId?: string;
+  // For memory file navigation (when tableName is "files")
+  memoryFileType?: string; // e.g., "core_beliefs", "synthesis", etc.
   // For memory file navigation
   memoryFileTitle?: string; // Human-readable title for display
   // For external URLs
   url?: string;
+}
+
+// Source info for lineage tracking - stored in block properties
+export interface SourceInfo {
+  id: string;
+  type: string;
+  title?: string | null;
+  weight?: number | null;
 }
 
 // ============================================================================
@@ -170,6 +180,8 @@ export interface GraphNode {
   // Internal data source - where this block originated from
   sourceType?: SourceType;
   sourceLocation?: SourceLocation;
+  // All sources that contributed to this insight (for multi-source lineage)
+  allSources?: SourceInfo[];
 
   // External attribution - research/evidence source (from Scenario 12)
   attributionType?: AttributionType;
