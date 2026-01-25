@@ -63,6 +63,11 @@ export interface GraphContainerProps {
   onLinkNode?: (nodeId: string) => void;
   onGroupIntoSynthesis?: (nodeId: string) => void;
   onDeleteNode?: (nodeId: string) => void;
+  // Success notification
+  successNotification?: {
+    action: "created" | "updated" | "deleted";
+    nodeLabel: string;
+  } | null;
 }
 
 /**
@@ -178,6 +183,35 @@ export function GraphContainer({
   // Source selection modal state
   const [showSourceSelectionModal, setShowSourceSelectionModal] =
     useState(false);
+  // Track if auto-open has been attempted (only once per mount)
+  const hasAutoOpenedRef = useRef(false);
+
+  // Auto-open source selection modal when graph is empty (only on initial load)
+  useEffect(() => {
+    // Only auto-open once per mount if:
+    // 1. Haven't already auto-opened
+    // 2. Graph has no nodes
+    // 3. We have the analyze callback available
+    // 4. We're not currently loading or analyzing
+    // 5. We have a sessionId
+    if (
+      !hasAutoOpenedRef.current &&
+      nodes.length === 0 &&
+      onAnalyzeWithSources &&
+      !isLoading &&
+      !isAnalyzingGraph &&
+      sessionId
+    ) {
+      hasAutoOpenedRef.current = true;
+      setShowSourceSelectionModal(true);
+    }
+  }, [
+    nodes.length,
+    onAnalyzeWithSources,
+    isLoading,
+    isAnalyzingGraph,
+    sessionId,
+  ]);
 
   // Compute highlighted node and edge IDs from hovered relationship or cycle node
   const highlightedNodeIds = useMemo(() => {

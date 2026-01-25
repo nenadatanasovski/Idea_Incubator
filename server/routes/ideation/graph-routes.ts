@@ -1052,6 +1052,7 @@ const ApplyChangesSchema = z.object({
         id: z.string(),
         type: z.enum(["create_block", "update_block", "create_link"]),
         blockType: z.string().optional(),
+        title: z.string().optional(), // Short 3-5 word summary
         content: z.string(),
         graphMembership: z.array(z.string()).optional(),
         confidence: z.number().optional(),

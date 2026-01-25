@@ -12,9 +12,25 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 // Types
 // ============================================================================
 
+export type InsightType =
+  | "decision"
+  | "assumption"
+  | "open_question"
+  | "key_insight"
+  | "requirement"
+  | "context"
+  | "risk"
+  | "opportunity";
+
 export interface CollectedSource {
   id: string;
-  type: "conversation" | "artifact" | "memory_file" | "user_block" | "external";
+  type:
+    | "conversation"
+    | "conversation_insight"
+    | "artifact"
+    | "memory_file"
+    | "user_block"
+    | "external";
   content: string;
   weight: number;
   metadata: {
@@ -23,6 +39,10 @@ export interface CollectedSource {
     artifactType?: string;
     memoryFileType?: string;
     timestamp?: string;
+    // Conversation insight specific
+    insightType?: InsightType;
+    sourceContext?: string;
+    synthesized?: boolean;
     [key: string]: unknown;
   };
 }
@@ -33,6 +53,7 @@ export interface SourceCollectionResult {
   truncated: boolean;
   collectionMetadata: {
     conversationCount: number;
+    conversationInsightCount: number;
     artifactCount: number;
     memoryFileCount: number;
     userBlockCount: number;
@@ -51,10 +72,72 @@ export interface SourceSelectionModalProps {
 // Source Type Configuration
 // ============================================================================
 
+// Insight type styling for conversation insights
+const INSIGHT_TYPE_CONFIG: Record<
+  InsightType,
+  { label: string; color: string; bgColor: string }
+> = {
+  decision: {
+    label: "Decision",
+    color: "text-emerald-700",
+    bgColor: "bg-emerald-100",
+  },
+  requirement: {
+    label: "Requirement",
+    color: "text-purple-700",
+    bgColor: "bg-purple-100",
+  },
+  assumption: {
+    label: "Assumption",
+    color: "text-amber-700",
+    bgColor: "bg-amber-100",
+  },
+  risk: { label: "Risk", color: "text-red-700", bgColor: "bg-red-100" },
+  key_insight: {
+    label: "Insight",
+    color: "text-blue-700",
+    bgColor: "bg-blue-100",
+  },
+  opportunity: {
+    label: "Opportunity",
+    color: "text-teal-700",
+    bgColor: "bg-teal-100",
+  },
+  open_question: {
+    label: "Question",
+    color: "text-orange-700",
+    bgColor: "bg-orange-100",
+  },
+  context: { label: "Context", color: "text-gray-700", bgColor: "bg-gray-100" },
+};
+
 const SOURCE_TYPE_CONFIG = {
+  conversation_insight: {
+    label: "Conversation Insights",
+    description: "AI-synthesized knowledge from chat",
+    icon: (
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+        />
+      </svg>
+    ),
+    bgColor: "bg-indigo-50",
+    borderColor: "border-indigo-200",
+    textColor: "text-indigo-700",
+    iconColor: "text-indigo-600",
+  },
   conversation: {
-    label: "Conversations",
-    description: "Messages from the chat",
+    label: "Raw Messages",
+    description: "Individual chat messages (legacy)",
     icon: (
       <svg
         className="w-5 h-5"
@@ -229,6 +312,7 @@ export function SourceSelectionModal({
   // Group sources by type
   const sourcesByType = useMemo(() => {
     const grouped: Record<SourceType, CollectedSource[]> = {
+      conversation_insight: [],
       conversation: [],
       artifact: [],
       memory_file: [],
@@ -344,6 +428,11 @@ export function SourceSelectionModal({
   // Get title for a source
   const getSourceTitle = (source: CollectedSource): string => {
     if (source.metadata.title) return source.metadata.title as string;
+    if (source.type === "conversation_insight" && source.metadata.insightType) {
+      const insightType = source.metadata.insightType as InsightType;
+      const label = INSIGHT_TYPE_CONFIG[insightType]?.label || insightType;
+      return `${label}: ${source.content.slice(0, 50)}...`;
+    }
     if (source.type === "conversation" && source.metadata.role) {
       return `${source.metadata.role}`;
     }
@@ -352,11 +441,24 @@ export function SourceSelectionModal({
 
   // Get subtitle for a source
   const getSourceSubtitle = (source: CollectedSource): string | null => {
+    if (source.type === "conversation_insight" && source.metadata.insightType) {
+      const insightType = source.metadata.insightType as InsightType;
+      return INSIGHT_TYPE_CONFIG[insightType]?.label || insightType;
+    }
     if (source.metadata.artifactType) {
       return source.metadata.artifactType as string;
     }
     if (source.metadata.memoryFileType) {
       return source.metadata.memoryFileType as string;
+    }
+    return null;
+  };
+
+  // Get insight type config for styling
+  const getInsightTypeStyle = (source: CollectedSource) => {
+    if (source.type === "conversation_insight" && source.metadata.insightType) {
+      const insightType = source.metadata.insightType as InsightType;
+      return INSIGHT_TYPE_CONFIG[insightType];
     }
     return null;
   };
@@ -655,11 +757,26 @@ export function SourceSelectionModal({
                                       </div>
                                     </td>
                                     <td className="px-3 py-2">
-                                      <span
-                                        className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${config.bgColor} ${config.textColor}`}
-                                      >
-                                        {subtitle || type.replace("_", " ")}
-                                      </span>
+                                      {(() => {
+                                        const insightStyle =
+                                          getInsightTypeStyle(source);
+                                        if (insightStyle) {
+                                          return (
+                                            <span
+                                              className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${insightStyle.bgColor} ${insightStyle.color}`}
+                                            >
+                                              {subtitle}
+                                            </span>
+                                          );
+                                        }
+                                        return (
+                                          <span
+                                            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${config.bgColor} ${config.textColor}`}
+                                          >
+                                            {subtitle || type.replace("_", " ")}
+                                          </span>
+                                        );
+                                      })()}
                                     </td>
                                     <td className="px-3 py-2 text-center">
                                       <span

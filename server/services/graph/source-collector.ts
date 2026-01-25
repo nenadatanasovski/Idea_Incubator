@@ -2,7 +2,7 @@
  * Multi-Source Collector Service
  *
  * Collects and aggregates content from multiple source types for graph analysis:
- * - Conversation messages
+ * - Conversation insights (AI-synthesized from raw messages)
  * - Artifacts (research, code, analysis, etc.)
  * - Memory files (state files with embedded JSON)
  * - User-created blocks (manual insights)
@@ -10,13 +10,20 @@
  */
 
 import { query } from "../../../database/db.js";
+import {
+  synthesizeConversation,
+  INSIGHT_TYPE_WEIGHTS,
+  INSIGHT_TYPE_LABELS,
+  type InsightType,
+} from "./conversation-synthesizer.js";
 
 // =============================================================================
 // Types and Interfaces
 // =============================================================================
 
 export type SourceType =
-  | "conversation" // Chat messages
+  | "conversation" // Raw chat messages (legacy)
+  | "conversation_insight" // AI-synthesized conversation insights
   | "artifact" // Created artifacts
   | "memory_file" // Memory state files
   | "user_block" // User-created blocks
@@ -33,6 +40,10 @@ export interface CollectedSource {
     artifactType?: string;
     memoryFileType?: string;
     role?: "user" | "assistant" | "system";
+    // Conversation insight specific metadata
+    insightType?: InsightType;
+    sourceContext?: string;
+    synthesized?: boolean;
   };
   weight: number; // Source reliability weight (0.0-1.0)
 }
@@ -42,7 +53,8 @@ export interface SourceCollectionResult {
   totalTokenEstimate: number;
   truncated: boolean;
   collectionMetadata: {
-    conversationCount: number;
+    conversationCount: number; // Raw messages (if using legacy mode)
+    conversationInsightCount: number; // Synthesized insights
     artifactCount: number;
     memoryFileCount: number;
     userBlockCount: number;
@@ -54,6 +66,10 @@ export interface CollectionOptions {
   tokenBudget?: number;
   conversationLimit?: number;
   includeExistingBlocks?: boolean;
+  // Use AI synthesis for conversations (default: true)
+  // When true, raw messages are synthesized into meaningful insights
+  // When false, raw messages are returned as-is (legacy mode)
+  synthesizeConversations?: boolean;
 }
 
 // =============================================================================
@@ -96,6 +112,7 @@ const DEFAULT_OPTIONS: Required<CollectionOptions> = {
   tokenBudget: 50000,
   conversationLimit: 50,
   includeExistingBlocks: true,
+  synthesizeConversations: true, // Use AI synthesis by default
 };
 
 // =============================================================================
@@ -110,15 +127,75 @@ function estimateTokens(text: string): number {
 }
 
 // =============================================================================
-// Conversation Source Collector
+// Conversation Source Collector (with AI Synthesis)
 // =============================================================================
 
-export async function collectConversationSources(
+/**
+ * Collect conversation sources as AI-synthesized insights.
+ * Uses the conversation synthesizer to extract meaningful knowledge chunks
+ * (decisions, assumptions, questions, insights, etc.) instead of raw messages.
+ */
+export async function collectConversationInsights(
   sessionId: string,
   limit: number = 50,
 ): Promise<CollectedSource[]> {
   console.log(
-    `[SourceCollector] Collecting conversation sources for session: ${sessionId}`,
+    `[SourceCollector] Synthesizing conversation insights for session: ${sessionId}`,
+  );
+
+  const synthesisResult = await synthesizeConversation(sessionId, limit);
+
+  if (synthesisResult.insights.length === 0) {
+    console.log(`[SourceCollector] No insights synthesized from conversation`);
+    return [];
+  }
+
+  // Convert insights to CollectedSource format
+  const sources: CollectedSource[] = synthesisResult.insights.map(
+    (insight) => ({
+      id: `insight_${insight.id}`,
+      type: "conversation_insight" as SourceType,
+      content: insight.content,
+      metadata: {
+        title: insight.title,
+        createdAt: new Date().toISOString(),
+        insightType: insight.type,
+        sourceContext: insight.sourceContext,
+        synthesized: true,
+      },
+      weight: INSIGHT_TYPE_WEIGHTS[insight.type] * insight.confidence,
+    }),
+  );
+
+  const tokenEstimate = sources.reduce(
+    (acc, s) => acc + estimateTokens(s.content),
+    0,
+  );
+
+  console.log(
+    `[SourceCollector] Synthesized ${sources.length} insights from ${synthesisResult.totalMessages} messages`,
+  );
+  console.log(
+    `[SourceCollector] Insight breakdown:`,
+    synthesisResult.synthesisMetadata,
+  );
+  console.log(
+    `[SourceCollector] Conversation insight collection complete: ~${tokenEstimate} tokens`,
+  );
+
+  return sources;
+}
+
+/**
+ * Collect raw conversation messages (legacy mode).
+ * Returns individual user/assistant messages without synthesis.
+ */
+export async function collectConversationSourcesRaw(
+  sessionId: string,
+  limit: number = 50,
+): Promise<CollectedSource[]> {
+  console.log(
+    `[SourceCollector] Collecting raw conversation sources for session: ${sessionId}`,
   );
 
   const messages = await query<{
@@ -136,11 +213,12 @@ export async function collectConversationSources(
 
   const sources: CollectedSource[] = messages.map((m) => ({
     id: m.id,
-    type: "conversation",
+    type: "conversation" as SourceType,
     content: m.content,
     metadata: {
       createdAt: m.created_at,
       role: m.role as "user" | "assistant" | "system",
+      synthesized: false,
     },
     weight: ROLE_WEIGHTS[m.role] || 0.7,
   }));
@@ -150,13 +228,28 @@ export async function collectConversationSources(
     0,
   );
   console.log(
-    `[SourceCollector] Found ${messages.length} messages (limit: ${limit}, truncated: ${messages.length >= limit})`,
+    `[SourceCollector] Found ${messages.length} raw messages (limit: ${limit})`,
   );
   console.log(
-    `[SourceCollector] Conversation collection complete: ${sources.length} sources, ~${tokenEstimate} tokens`,
+    `[SourceCollector] Raw conversation collection complete: ${sources.length} sources, ~${tokenEstimate} tokens`,
   );
 
   return sources;
+}
+
+/**
+ * Main conversation source collector.
+ * By default uses AI synthesis, but can fall back to raw mode.
+ */
+export async function collectConversationSources(
+  sessionId: string,
+  limit: number = 50,
+  synthesize: boolean = true,
+): Promise<CollectedSource[]> {
+  if (synthesize) {
+    return collectConversationInsights(sessionId, limit);
+  }
+  return collectConversationSourcesRaw(sessionId, limit);
 }
 
 // =============================================================================
@@ -174,39 +267,84 @@ export async function collectArtifactSources(
     id: string;
     type: string;
     title: string;
-    content: string;
+    content: string | null;
+    file_path: string | null;
     created_at: string;
     updated_at: string | null;
   }>(
-    `SELECT id, type, title, content, created_at, updated_at
+    `SELECT id, type, title, content, file_path, created_at, updated_at
      FROM ideation_artifacts
      WHERE session_id = ?
      ORDER BY created_at DESC`,
     [sessionId],
   );
 
-  const sources: CollectedSource[] = artifacts
-    .filter((a) => a.content != null) // Filter out artifacts with null content
-    .map((a) => {
-      // Truncate large artifacts with marker
-      let content = a.content;
-      if (content.length > 10000) {
-        content = content.slice(0, 10000) + "\n\n[... TRUNCATED ...]";
-      }
+  console.log(
+    `[SourceCollector] Found ${artifacts.length} artifacts in database for session ${sessionId}`,
+  );
 
-      return {
-        id: a.id,
-        type: "artifact" as SourceType,
-        content,
-        metadata: {
-          title: a.title,
-          createdAt: a.created_at,
-          updatedAt: a.updated_at || undefined,
-          artifactType: a.type,
-        },
-        weight: ARTIFACT_WEIGHTS[a.type] || 0.7,
-      };
+  // Log details about artifacts found
+  artifacts.forEach((a) => {
+    console.log(
+      `[SourceCollector]   - Artifact ${a.id}: type=${a.type}, title="${a.title?.slice(0, 30)}...", hasContent=${a.content != null}, hasFilePath=${a.file_path != null}`,
+    );
+  });
+
+  const sources: CollectedSource[] = [];
+
+  for (const a of artifacts) {
+    // Get content from content field or read from file
+    let content = a.content;
+
+    if (content == null && a.file_path) {
+      // Try to read from file
+      try {
+        const fs = await import("fs");
+        if (fs.existsSync(a.file_path)) {
+          content = fs.readFileSync(a.file_path, "utf-8");
+          console.log(
+            `[SourceCollector] Read ${content.length} chars from file: ${a.file_path}`,
+          );
+        } else {
+          console.warn(
+            `[SourceCollector] File not found: ${a.file_path} for artifact ${a.id}`,
+          );
+          continue;
+        }
+      } catch (err) {
+        console.error(
+          `[SourceCollector] Error reading file ${a.file_path}:`,
+          err,
+        );
+        continue;
+      }
+    }
+
+    if (content == null) {
+      console.log(
+        `[SourceCollector] Skipping artifact ${a.id}: no content and no file_path`,
+      );
+      continue;
+    }
+
+    // Truncate large artifacts with marker
+    if (content.length > 10000) {
+      content = content.slice(0, 10000) + "\n\n[... TRUNCATED ...]";
+    }
+
+    sources.push({
+      id: a.id,
+      type: "artifact" as SourceType,
+      content,
+      metadata: {
+        title: a.title,
+        createdAt: a.created_at,
+        updatedAt: a.updated_at || undefined,
+        artifactType: a.type,
+      },
+      weight: ARTIFACT_WEIGHTS[a.type] || 0.7,
     });
+  }
 
   // Log weight breakdown
   const weightBreakdown: Record<string, { count: number; weight: number }> = {};
@@ -424,11 +562,16 @@ export async function collectAllSources(
     truncated: false,
     collectionMetadata: {
       conversationCount: 0,
+      conversationInsightCount: 0,
       artifactCount: 0,
       memoryFileCount: 0,
       userBlockCount: 0,
     },
   };
+
+  console.log(
+    `[SourceCollector] Conversation synthesis: ${opts.synthesizeConversations ? "enabled" : "disabled"}`,
+  );
 
   // Collect in priority order: memory_file > artifact > conversation > user_block
   const priorityOrder: SourceType[] = [
@@ -449,8 +592,14 @@ export async function collectAllSources(
           sources = await collectConversationSources(
             sessionId,
             opts.conversationLimit,
+            opts.synthesizeConversations, // Pass synthesis option
           );
-          result.collectionMetadata.conversationCount = sources.length;
+          // Track based on whether we synthesized or not
+          if (opts.synthesizeConversations) {
+            result.collectionMetadata.conversationInsightCount = sources.length;
+          } else {
+            result.collectionMetadata.conversationCount = sources.length;
+          }
           break;
         case "artifact":
           sources = await collectArtifactSources(sessionId);

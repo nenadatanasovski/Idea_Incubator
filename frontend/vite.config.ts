@@ -24,13 +24,18 @@ export default defineConfig({
         target: "http://localhost:3001",
         ws: true,
         changeOrigin: true,
-        rewriteWsOrigin: true,
         configure: (proxy) => {
           proxy.on("error", (err) => {
             // Suppress EPIPE errors - these are normal when connections close
             if ((err as NodeJS.ErrnoException).code !== "EPIPE") {
               console.error("[vite ws proxy]", err.message);
             }
+          });
+          proxy.on("proxyReqWs", (proxyReq, req, socket, options, head) => {
+            console.debug(
+              "[vite ws proxy] WebSocket upgrade request:",
+              req.url,
+            );
           });
         },
       },

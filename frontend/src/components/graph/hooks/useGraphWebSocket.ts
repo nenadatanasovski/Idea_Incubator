@@ -26,6 +26,7 @@ export interface WebSocketEvent<T = unknown> {
 export interface BlockCreatedPayload extends Partial<ApiBlock> {
   id: string;
   type?: string;
+  title?: string | null; // Short 3-5 word summary
   content?: string;
   properties?: Record<string, unknown>;
 }
@@ -291,11 +292,23 @@ export function useGraphWebSocket(
     cleanup();
 
     if (!sessionId) {
+      console.debug("WebSocket connect skipped: no sessionId");
+      return;
+    }
+
+    // Validate sessionId looks like a valid UUID
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidPattern.test(sessionId)) {
+      console.debug(
+        `WebSocket connect skipped: invalid sessionId format "${sessionId}"`,
+      );
       return;
     }
 
     try {
       const url = buildWsUrl();
+      console.debug(`WebSocket connecting to ${url}`);
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
@@ -313,7 +326,11 @@ export function useGraphWebSocket(
       ws.onmessage = handleMessage;
 
       ws.onerror = (event) => {
-        console.error("WebSocket error:", event);
+        // WebSocket error events don't provide much detail
+        // The actual error details come from the close event
+        console.warn(
+          "WebSocket error occurred - waiting for close event for details",
+        );
         const error = new Error("WebSocket connection error");
         if (mountedRef.current) {
           setLastError(error);
@@ -322,6 +339,11 @@ export function useGraphWebSocket(
       };
 
       ws.onclose = (event) => {
+        // Log close details for debugging
+        console.debug(
+          `WebSocket closed: code=${event.code}, reason="${event.reason}", wasClean=${event.wasClean}`,
+        );
+
         if (mountedRef.current) {
           setIsConnected(false);
         }

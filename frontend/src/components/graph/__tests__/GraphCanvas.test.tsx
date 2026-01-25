@@ -110,7 +110,9 @@ describe("GraphCanvas", () => {
 
     expect(screen.getByText("No graph data to display")).toBeInTheDocument();
     expect(
-      screen.getByText("Start a conversation to build the knowledge graph"),
+      screen.getByText(
+        "Start a conversation, then click the lightbulb button at the top left to build the knowledge graph",
+      ),
     ).toBeInTheDocument();
   });
 

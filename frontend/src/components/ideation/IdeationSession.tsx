@@ -64,6 +64,8 @@ export function IdeationSession({
   });
   const [graphUpdateCount, setGraphUpdateCount] = useState(0);
   const [hasGraphUpdates, setHasGraphUpdates] = useState(false);
+  // Trigger to refetch graph data (e.g., after deletion)
+  const [graphRefetchTrigger, setGraphRefetchTrigger] = useState(0);
   // T9: Project folder state
   const [filesCount, setFilesCount] = useState(0);
   // Memory DB navigation state
@@ -1783,6 +1785,8 @@ export function IdeationSession({
         }
 
         console.log("[IdeationSession] Block deleted:", nodeId);
+        // Trigger graph refetch to update the UI
+        setGraphRefetchTrigger((prev) => prev + 1);
       } catch (error) {
         console.error("[IdeationSession] Error deleting block:", error);
       }
@@ -2330,6 +2334,7 @@ export function IdeationSession({
             onLinkNode={handleLinkNode}
             onGroupIntoSynthesis={handleGroupIntoSynthesis}
             onDeleteNode={handleDeleteNode}
+            refetchTrigger={graphRefetchTrigger}
           />
 
           {/* Files Tab Panel (T9.2 - Project folder browser) */}

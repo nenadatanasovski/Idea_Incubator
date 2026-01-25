@@ -128,6 +128,15 @@ export interface GraphTabPanelProps {
   onLinkNode?: (nodeId: string) => void;
   onGroupIntoSynthesis?: (nodeId: string) => void;
   onDeleteNode?: (nodeId: string) => void;
+  // Trigger to refetch graph data (increment to trigger refetch)
+  refetchTrigger?: number;
+  // Success notification to display
+  successNotification?: {
+    action: "created" | "updated" | "deleted";
+    nodeLabel: string;
+  } | null;
+  // Callback to clear the notification
+  onClearNotification?: () => void;
 }
 
 /**
@@ -165,6 +174,9 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   onLinkNode,
   onGroupIntoSynthesis,
   onDeleteNode,
+  refetchTrigger,
+  successNotification,
+  onClearNotification,
 }: GraphTabPanelProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
@@ -206,6 +218,20 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   useEffect(() => {
     onUpdateCount?.(pendingUpdates.length);
   }, [pendingUpdates.length, onUpdateCount]);
+
+  // Refetch graph data when trigger changes (e.g., after node deletion)
+  useEffect(() => {
+    if (refetchTrigger !== undefined && refetchTrigger > 0) {
+      refetch();
+    }
+  }, [refetchTrigger, refetch]);
+
+  // Close inspector panel when a node is deleted
+  useEffect(() => {
+    if (successNotification?.action === "deleted") {
+      setSelectedNode(null);
+    }
+  }, [successNotification]);
 
   // Handle node selection
   const handleNodeSelect = useCallback(
@@ -376,6 +402,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               id: c.id,
               type: c.type as "create_block" | "update_block" | "create_link",
               blockType: c.blockType,
+              title: c.title, // Include the title!
               content: c.content,
               graphMembership: c.graphMembership,
               confidence: c.confidence,
@@ -485,6 +512,8 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               onGroupIntoSynthesis={onGroupIntoSynthesis}
               onDeleteNode={onDeleteNode}
               resetFiltersTrigger={resetFiltersTrigger}
+              successNotification={successNotification}
+              onClearNotification={onClearNotification}
               className="h-full"
             />
           </Suspense>

@@ -203,6 +203,7 @@ export function useGraphDataWithWebSocket(
       const apiBlock: ApiBlock = {
         id: payload.id,
         type: payload.type || "content",
+        title: payload.title || null, // Include title for node display
         content: payload.content || "",
         properties: payload.properties || {},
         status: "active",
@@ -345,13 +346,21 @@ export function useGraphDataWithWebSocket(
     [onEdgeRemoved],
   );
 
-  // Handle WebSocket errors
+  // Handle WebSocket errors - only log when actually expected to be connected
   const handleWsError = useCallback(
     (err: Error) => {
-      console.error("WebSocket error:", err);
+      // Don't log errors when WebSocket is disabled or session is not loaded
+      if (!enableWebSocket || !sessionId) {
+        console.debug(
+          "WebSocket error (ignored - WS disabled or no session):",
+          err.message,
+        );
+        return;
+      }
+      console.warn("WebSocket connection error:", err.message);
       onError?.(err);
     },
-    [onError],
+    [onError, enableWebSocket, sessionId],
   );
 
   // WebSocket connection

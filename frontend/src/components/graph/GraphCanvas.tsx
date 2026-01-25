@@ -688,7 +688,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             </svg>
             <p className="text-sm">No graph data to display</p>
             <p className="text-xs mt-1">
-              Start a conversation to build the knowledge graph
+              Start a conversation, then click the lightbulb button at the top
+              left to build the knowledge graph
             </p>
           </div>
         </div>

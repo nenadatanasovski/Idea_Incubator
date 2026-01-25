@@ -50,6 +50,7 @@ export interface ProposedChange {
   id: string;
   type: "create_block" | "update_block" | "create_link";
   blockType?: string;
+  title?: string; // Short 3-5 word summary for the node
   content: string;
   graphMembership?: string[];
   confidence: number;
