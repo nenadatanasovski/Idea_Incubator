@@ -84,16 +84,17 @@ function useDarkMode(): boolean {
  */
 function CustomNodeRenderer({
   size,
-  color,
   opacity,
   node,
 }: {
   size: number;
-  color: string;
+  color: string; // Ignored - we use node.fill instead to prevent hover/select color changes
   opacity: number;
-  node: { shape?: NodeShape };
+  node: { shape?: NodeShape; fill?: string };
 }) {
   const shape = node.shape || "circle";
+  // Use node's original fill color, not reagraph's computed color (which changes on hover/select)
+  const fillColor = node.fill || "#3B82F6";
 
   // Get geometry segments based on shape
   // For 2D, we use CircleGeometry with different segment counts
@@ -138,7 +139,7 @@ function CustomNodeRenderer({
     <group rotation={rotation}>
       <mesh>
         <circleGeometry args={[radius, segments]} />
-        <meshBasicMaterial color={color} opacity={opacity} transparent />
+        <meshBasicMaterial color={fillColor} opacity={opacity} transparent />
       </mesh>
     </group>
   );
@@ -658,8 +659,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     const handleNodeClick = useCallback(
       (nodeData: InternalGraphNode) => {
         const node = nodes.find((n) => n.id === nodeData.id);
-        if (node && onNodeClick) {
-          onNodeClick(node);
+        if (node) {
+          // Center the clicked node on screen
+          graphRef.current?.fitNodesInView([nodeData.id], { padding: 100 });
+          if (onNodeClick) {
+            onNodeClick(node);
+          }
         }
       },
       [nodes, onNodeClick],
@@ -899,7 +904,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               size={size}
               color={color as string}
               opacity={opacity}
-              node={node as { shape?: NodeShape }}
+              node={node as { shape?: NodeShape; fill?: string }}
             />
           )}
           theme={{
@@ -908,7 +913,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             },
             node: {
               fill: "#3B82F6",
-              activeFill: "#3B82F6", // Same as fill - let per-node colors take precedence
+              // activeFill intentionally omitted - reagraph will use per-node fill colors
               opacity: 1,
               selectedOpacity: 1,
               inactiveOpacity: 0.2, // Fade inactive nodes significantly when there are active selections
