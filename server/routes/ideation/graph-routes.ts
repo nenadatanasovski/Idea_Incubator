@@ -1053,6 +1053,26 @@ graphRouter.post(
 
 const ApplyChangesSchema = z.object({
   changeIds: z.array(z.string()),
+  // Sources from the analysis response - used to resolve sourceIds for lineage tracking
+  sources: z
+    .array(
+      z.object({
+        id: z.string(),
+        type: z.enum([
+          "conversation",
+          "conversation_insight",
+          "artifact",
+          "memory_file",
+          "user_block",
+          "external",
+        ]),
+        title: z.string().nullish(),
+        artifactType: z.string().nullish(),
+        memoryFileType: z.string().nullish(),
+        weight: z.number().nullish(),
+      }),
+    )
+    .nullish(),
   // Include the actual changes data so we don't need to re-analyze
   changes: z
     .array(
@@ -1138,12 +1158,62 @@ graphRouter.post(
         });
       }
 
-      const { changeIds, changes } = parseResult.data;
+      const { changeIds, changes, sources } = parseResult.data;
       const now = new Date().toISOString();
 
       let blocksCreated = 0;
       let linksCreated = 0;
       let blocksUpdated = 0;
+
+      // Build a map from source type to source info for lineage resolution
+      // This allows us to automatically resolve sourceId when AI didn't provide it
+      const sourcesByType = new Map<
+        string,
+        { id: string; title: string | null }
+      >();
+      if (sources && sources.length > 0) {
+        for (const source of sources) {
+          // Store by type - if multiple sources of same type, last one wins
+          // This is a simple heuristic; could be improved with better AI attribution
+          sourcesByType.set(source.type, {
+            id: source.id,
+            title: source.title || null,
+          });
+        }
+        console.log(
+          `[apply-changes] Source lineage available: ${sources.length} sources`,
+          Array.from(sourcesByType.keys()),
+        );
+      }
+
+      // Helper function to resolve sourceId for lineage tracking
+      // If AI provided a valid sourceId, use it. Otherwise, try to match by sourceType.
+      const resolveSourceId = (
+        sourceId: string | null | undefined,
+        sourceType: string | null | undefined,
+      ): string | undefined => {
+        // Check if AI provided a valid sourceId
+        const isValidSourceId =
+          sourceId &&
+          typeof sourceId === "string" &&
+          sourceId.trim() !== "" &&
+          sourceId !== "unknown";
+
+        if (isValidSourceId) {
+          return sourceId;
+        }
+
+        // Try to resolve from sources list by type
+        if (sourceType && sourcesByType.has(sourceType)) {
+          const resolved = sourcesByType.get(sourceType);
+          console.log(
+            `[apply-changes] Resolved sourceId via sourceType "${sourceType}" -> "${resolved?.id}"`,
+          );
+          return resolved?.id;
+        }
+
+        return undefined;
+      };
 
       // Map temporary IDs (from AI response) to actual UUIDs
       const idMapping = new Map<string, string>();
@@ -1173,22 +1243,42 @@ graphRouter.post(
               // Build properties object with source attribution
               const properties: Record<string, unknown> = {};
 
+              // Resolve sourceId - uses AI-provided value if valid, otherwise
+              // falls back to matching source from the sources list by sourceType
+              const resolvedSourceId = resolveSourceId(
+                change.sourceId,
+                change.sourceType,
+              );
+
               // Store source attribution in properties for traceability
-              if (change.sourceId) {
-                properties.source_id = change.sourceId;
+              if (resolvedSourceId) {
+                properties.source_id = resolvedSourceId;
               }
               if (change.sourceType) {
                 properties.source_type = change.sourceType;
                 // Also set specific fields based on source type for frontend compatibility
-                if (change.sourceType === "artifact" && change.sourceId) {
-                  properties.artifact_id = change.sourceId;
-                } else if (
-                  change.sourceType === "conversation" ||
-                  change.sourceType === "conversation_insight"
-                ) {
-                  properties.message_id = change.sourceId;
-                } else if (change.sourceType === "memory_file") {
-                  properties.memory_file_type = change.sourceId;
+                // These enable navigation to the original source
+                if (resolvedSourceId) {
+                  if (change.sourceType === "artifact") {
+                    properties.artifact_id = resolvedSourceId;
+                    // Also store the artifact title if available from sources
+                    const artifactSource = sourcesByType.get("artifact");
+                    if (artifactSource?.title) {
+                      properties.artifact_title = artifactSource.title;
+                    }
+                  } else if (
+                    change.sourceType === "conversation" ||
+                    change.sourceType === "conversation_insight"
+                  ) {
+                    properties.message_id = resolvedSourceId;
+                  } else if (change.sourceType === "memory_file") {
+                    properties.memory_file_type = resolvedSourceId;
+                    // Store memory file title if available
+                    const memorySource = sourcesByType.get("memory_file");
+                    if (memorySource?.title) {
+                      properties.memory_file_title = memorySource.title;
+                    }
+                  }
                 }
               }
               if (change.sourceWeight !== undefined) {
@@ -1198,9 +1288,9 @@ graphRouter.post(
                 properties.corroborated_by = change.corroboratedBy;
               }
 
-              // Use actual source ID for extracted_from_message_id when available
+              // Use resolved source ID for extracted_from_message_id when available
               const extractedFromId =
-                change.sourceId || change.sourceMessageId || "ai_generated";
+                resolvedSourceId || change.sourceMessageId || "ai_generated";
 
               await run(
                 `INSERT INTO memory_blocks (id, session_id, type, title, content, properties, status, confidence, extracted_from_message_id, created_at, updated_at)
@@ -1681,12 +1771,26 @@ async function analyzeSessionForGraphUpdates(
       attributionBreakdown,
     );
 
+    // Include simplified source list for lineage tracking
+    // This allows the frontend to display source info and enables
+    // apply-changes to resolve sourceIds when AI didn't provide them
+    const sourcesForLineage = collectionResult.sources.map((s) => ({
+      id: s.id,
+      type: s.type,
+      title: s.metadata.title || null,
+      artifactType: s.metadata.artifactType || null,
+      memoryFileType: s.metadata.memoryFileType || null,
+      weight: s.weight,
+    }));
+
     return {
       context: parsed.context,
       proposedChanges: parsed.proposedChanges,
       cascadeEffects: parsed.cascadeEffects,
       previewNodes,
       previewEdges,
+      // NEW: Include sources for lineage tracking
+      sources: sourcesForLineage,
       collectionMetadata: {
         conversationCount:
           collectionResult.collectionMetadata.conversationCount,

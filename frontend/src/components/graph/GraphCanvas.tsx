@@ -412,8 +412,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         },
         fitNodesInView: (nodeIds?: string[]) => {
           // Use extra padding when fitting multiple nodes to ensure all are visible
-          // For relationship hover (2 nodes), use 50% more padding so nodes aren't too large
-          const padding = nodeIds && nodeIds.length > 1 ? 225 : 100;
+          // For relationship hover (2 nodes), zoom out by ~50% more to ensure second node is in view
+          const padding = nodeIds && nodeIds.length > 1 ? 450 : 100;
           graphRef.current?.fitNodesInView(nodeIds, { padding });
         },
         centerGraph: () => {
@@ -557,6 +557,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     const {
       selections,
       actives: selectionActives,
+      clearSelections,
       onNodeClick: handleReagraphNodeClick,
       onCanvasClick: reagraphOnCanvasClick,
     } = useSelection({
@@ -566,6 +567,14 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       type: "single",
       pathSelectionType: "direct",
     });
+
+    // Sync external selectedNodeId with reagraph's internal selection
+    // When parent clears selection (selectedNodeId becomes null), clear reagraph's internal state
+    useEffect(() => {
+      if (selectedNodeId === null || selectedNodeId === undefined) {
+        clearSelections();
+      }
+    }, [selectedNodeId, clearSelections]);
 
     // Wrapper to call both reagraph's internal handler and our prop callback
     const handleCanvasClick = useCallback(

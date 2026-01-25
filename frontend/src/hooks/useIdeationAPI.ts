@@ -693,6 +693,7 @@ export function useIdeationAPI() {
 
   /**
    * Apply selected graph changes to the memory graph.
+   * @param sources - Source lineage info from the analysis response, used to resolve sourceIds
    */
   const applyGraphChanges = useCallback(
     async (
@@ -731,6 +732,15 @@ export function useIdeationAPI() {
           reason?: string;
         };
       }>,
+      // Sources from analysis response - used to resolve sourceIds for lineage tracking
+      sources?: Array<{
+        id: string;
+        type: string;
+        title: string | null;
+        artifactType?: string | null;
+        memoryFileType?: string | null;
+        weight?: number | null;
+      }>,
     ): Promise<{
       success: boolean;
       blocksCreated: number;
@@ -742,7 +752,7 @@ export function useIdeationAPI() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ changeIds, changes }),
+          body: JSON.stringify({ changeIds, changes, sources }),
         },
       );
 

@@ -118,6 +118,8 @@ export interface MemoryDatabasePanelProps {
   // Callback to go back to graph
   onBackToGraph?: () => void;
   className?: string;
+  // Trigger to refetch data (increment to trigger refetch, e.g., after snapshot restore)
+  refetchTrigger?: number;
 }
 
 /**
@@ -304,6 +306,7 @@ export function MemoryDatabasePanel({
   highlightId,
   onBackToGraph,
   className = "",
+  refetchTrigger,
 }: MemoryDatabasePanelProps) {
   const [activeTable, setActiveTable] = useState<MemoryTableName>(
     highlightTable || "files",
@@ -564,6 +567,13 @@ export function MemoryDatabasePanel({
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Refetch when trigger changes (e.g., after snapshot restore)
+  useEffect(() => {
+    if (refetchTrigger !== undefined && refetchTrigger > 0) {
+      fetchData();
+    }
+  }, [refetchTrigger, fetchData]);
 
   // Switch to highlighted table when prop changes
   useEffect(() => {

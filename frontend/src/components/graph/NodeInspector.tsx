@@ -430,12 +430,19 @@ function getSourceLocationInfo(location?: SourceLocation): {
           : "Chat history",
       };
     case "artifact":
+      // Build description from title and/or section
+      let artifactDescription = "Artifact document";
+      if (location.artifactTitle) {
+        artifactDescription = location.artifactSection
+          ? `${location.artifactTitle} (${location.artifactSection})`
+          : location.artifactTitle;
+      } else if (location.artifactSection) {
+        artifactDescription = location.artifactSection;
+      }
       return {
         icon: <FileText className="w-4 h-4" />,
         label: "Open artifact",
-        description: location.artifactSection
-          ? `${location.artifactSection}`
-          : "Artifact document",
+        description: artifactDescription,
       };
     case "memory_db":
       return {
@@ -1140,20 +1147,23 @@ export function NodeInspector({
           </Section>
         )}
 
-        {/* Source Section - Shows where the block data originated from */}
-        <Section
-          title="Source"
-          defaultExpanded={!!(node.sourceType || node.sourceLocation)}
-        >
-          <NavigableSourceSection
-            sourceType={node.sourceType}
-            sourceLocation={node.sourceLocation}
-            onNavigateToChat={onNavigateToChatMessage}
-            onNavigateToArtifact={onNavigateToArtifact}
-            onNavigateToMemoryDB={onNavigateToMemoryDB}
-            onNavigateToExternal={onNavigateToExternal}
-          />
-        </Section>
+        {/* Source Section - Shows where the block data originated from
+            Skip if Linked Artifact section already covers this (avoid duplication) */}
+        {!(node.artifactId && node.sourceLocation?.type === "artifact") && (
+          <Section
+            title="Source"
+            defaultExpanded={!!(node.sourceType || node.sourceLocation)}
+          >
+            <NavigableSourceSection
+              sourceType={node.sourceType}
+              sourceLocation={node.sourceLocation}
+              onNavigateToChat={onNavigateToChatMessage}
+              onNavigateToArtifact={onNavigateToArtifact}
+              onNavigateToMemoryDB={onNavigateToMemoryDB}
+              onNavigateToExternal={onNavigateToExternal}
+            />
+          </Section>
+        )}
       </div>
 
       {/* Selection Actions Footer */}

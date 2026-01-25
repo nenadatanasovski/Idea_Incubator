@@ -268,7 +268,28 @@ export function buildAnalysisPrompt(
 
 1. Extract NEW insights not already in the existing graph as BLOCKS
 2. Create LINKS between related blocks (both new and existing)
-3. Attribute each insight to its source (sourceId, sourceType)
+3. **CRITICAL - SOURCE ATTRIBUTION**: For EVERY block, you MUST:
+   - Look at the source header: \`[ID: xxx] [Title: ...] [Type: ...]\`
+   - Copy the EXACT ID value into the "sourceId" field
+   - Set "sourceType" based on which section the source is from
+
+   **EXAMPLE MAPPING**:
+   If you see this source:
+   \`\`\`
+   ### Source 1
+   [ID: 7a3f9c2e-b845-4d12-9e8a-1234567890ab] [Title: Market Research] [Type: research] [Weight: 0.90]
+   The total addressable market is $50B...
+   \`\`\`
+
+   Then your block MUST have:
+   \`\`\`json
+   {
+     "sourceId": "7a3f9c2e-b845-4d12-9e8a-1234567890ab",
+     "sourceType": "artifact"
+   }
+   \`\`\`
+
+   DO NOT use generic values like "unknown" - always copy the actual UUID!
 4. Weight confidence by source reliability
 5. Identify cross-source corroborations (increases confidence)
 6. Flag contradictions between sources
@@ -310,8 +331,8 @@ Return JSON only with the following structure:
       "content": "The extracted insight",
       "graphMembership": ["problem", "solution", "market", "risk", "fit", "business", "spec"],
       "confidence": 0.85,
-      "sourceId": "source-id-here",
-      "sourceType": "conversation|conversation_insight|artifact|memory_file|user_block|external",
+      "sourceId": "7a3f9c2e-b845-4d12-9e8a-1234567890ab",
+      "sourceType": "artifact",
       "sourceWeight": 0.9,
       "corroboratedBy": [
         {
@@ -364,7 +385,11 @@ You must:
 - Extract ALL meaningful insights as separate blocks (aim for 15-40 blocks from substantive content)
 - Create LINKS between related blocks - every block should have at least one connection
 - Create a concise title (3-5 words) for each block
-- Attribute every change to its source (sourceId, sourceType)
+- **MANDATORY SOURCE ATTRIBUTION**: For EVERY block you create:
+  * Copy the EXACT ID from the source's [ID: xxx] header into "sourceId"
+  * Set "sourceType" to match the source type (artifact, conversation, conversation_insight, memory_file, user_block)
+  * Example: If you see "[ID: abc-123-uuid]", use "sourceId": "abc-123-uuid"
+  * The sourceId enables navigation - without it, users cannot trace insights back to their origin!
 - Adjust confidence based on source reliability weights
 - Note when multiple sources corroborate the same insight
 
@@ -549,9 +574,17 @@ export function parseAnalysisResponse(
 
     // Ensure all proposed changes have source attribution and handle supersession
     const validatedChanges = parsed.proposedChanges.map((change: any) => {
+      // Only include sourceId if AI provided a valid one (not empty, not just "unknown")
+      // This prevents storing invalid IDs that break navigation
+      const hasValidSourceId =
+        change.sourceId &&
+        change.sourceId !== "unknown" &&
+        change.sourceId.trim() !== "";
+
       const validated: any = {
         ...change,
-        sourceId: change.sourceId || "unknown",
+        // Only set sourceId if valid - otherwise leave undefined so frontend can handle gracefully
+        sourceId: hasValidSourceId ? change.sourceId : undefined,
         sourceType: change.sourceType || "conversation",
         sourceWeight: change.sourceWeight || 0.7,
         corroboratedBy: change.corroboratedBy || [],

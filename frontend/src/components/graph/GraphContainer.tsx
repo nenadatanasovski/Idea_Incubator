@@ -218,6 +218,8 @@ export function GraphContainer({
     useState(false);
   // Track if auto-open has been attempted (only once per mount)
   const hasAutoOpenedRef = useRef(false);
+  // Debounce timeout for relationship hover focus
+  const relationshipHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-dismiss success notification after 2 seconds
   useEffect(() => {
@@ -245,6 +247,7 @@ export function GraphContainer({
     // 3. We have the analyze callback available
     // 4. We're not currently loading, analyzing, or applying changes
     // 5. We have a sessionId
+    // 6. Initial data load has completed (lastUpdated is set)
     if (
       !hasAutoOpenedRef.current &&
       nodes.length === 0 &&
@@ -252,7 +255,8 @@ export function GraphContainer({
       !isLoading &&
       !isAnalyzingGraph &&
       !isApplyingChanges &&
-      sessionId
+      sessionId &&
+      lastUpdated // Only auto-open AFTER initial data load completes
     ) {
       hasAutoOpenedRef.current = true;
       setShowSourceSelectionModal(true);
@@ -264,6 +268,7 @@ export function GraphContainer({
     isAnalyzingGraph,
     isApplyingChanges,
     sessionId,
+    lastUpdated,
   ]);
 
   // Compute highlighted node and edge IDs from hovered relationship or cycle node
@@ -646,20 +651,22 @@ export function GraphContainer({
   const handleRelationshipHover = useCallback(
     (info: RelationshipHoverInfo | null) => {
       setHoveredRelationship(info);
-      // Zoom to show both nodes when hovering - use small delay to ensure layout is settled
+
+      // Clear any pending hover timeout
+      if (relationshipHoverTimeoutRef.current) {
+        clearTimeout(relationshipHoverTimeoutRef.current);
+        relationshipHoverTimeoutRef.current = null;
+      }
+
+      // Zoom to show both nodes when hovering - use 250ms delay to allow view to reset
+      // when quickly moving between relationship rows
       if (info) {
-        // Immediate call for responsiveness
-        graphCanvasRef.current?.fitNodesInView([
-          info.currentNodeId,
-          info.relatedNodeId,
-        ]);
-        // Follow-up call after layout settles to ensure both nodes are properly in view
-        setTimeout(() => {
+        relationshipHoverTimeoutRef.current = setTimeout(() => {
           graphCanvasRef.current?.fitNodesInView([
             info.currentNodeId,
             info.relatedNodeId,
           ]);
-        }, 50);
+        }, 250);
       }
     },
     [],

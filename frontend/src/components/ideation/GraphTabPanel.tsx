@@ -139,6 +139,8 @@ export interface GraphTabPanelProps {
   } | null;
   // Callback to clear the notification
   onClearNotification?: () => void;
+  // Callback when a snapshot is restored (to refresh other panels like MemoryDatabase)
+  onSnapshotRestored?: () => void;
 }
 
 /**
@@ -179,6 +181,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   refetchTrigger,
   successNotification,
   onClearNotification,
+  onSnapshotRestored,
 }: GraphTabPanelProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
@@ -361,6 +364,15 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   const [pendingProposedChanges, setPendingProposedChanges] = useState<
     ProposedChange[] | null
   >(null);
+  // Sources from analysis - used for lineage tracking when applying changes
+  const [pendingSources, setPendingSources] = useState<Array<{
+    id: string;
+    type: string;
+    title: string | null;
+    artifactType?: string | null;
+    memoryFileType?: string | null;
+    weight?: number | null;
+  }> | null>(null);
   const [isApplyingChanges, setIsApplyingChanges] = useState(false);
 
   // Snapshot/Versioning state
@@ -420,6 +432,8 @@ export const GraphTabPanel = memo(function GraphTabPanel({
         refetch();
         // Reload snapshots list (a backup was auto-created)
         handleLoadSnapshots();
+        // Notify parent to refresh other panels (e.g., MemoryDatabasePanel)
+        onSnapshotRestored?.();
       } catch (error) {
         console.error("[GraphTabPanel] Failed to restore snapshot:", error);
         throw error;
@@ -427,7 +441,13 @@ export const GraphTabPanel = memo(function GraphTabPanel({
         setIsRestoringSnapshot(false);
       }
     },
-    [sessionId, restoreGraphSnapshot, refetch, handleLoadSnapshots],
+    [
+      sessionId,
+      restoreGraphSnapshot,
+      refetch,
+      handleLoadSnapshots,
+      onSnapshotRestored,
+    ],
   );
 
   // Delete snapshot
@@ -470,17 +490,22 @@ export const GraphTabPanel = memo(function GraphTabPanel({
           "proposed changes",
         );
 
-        // Store the proposed changes for user review
+        // Store the proposed changes and sources for user review
+        // Sources are used for lineage tracking when applying changes
         if (analysis.proposedChanges && analysis.proposedChanges.length > 0) {
           setPendingProposedChanges(analysis.proposedChanges);
+          setPendingSources(analysis.sources || null);
           console.log(
             "[GraphTabPanel] Showing review modal with",
             analysis.proposedChanges.length,
-            "proposed changes",
+            "proposed changes and",
+            analysis.sources?.length || 0,
+            "sources for lineage",
           );
         } else {
           console.log("[GraphTabPanel] No changes proposed");
           setPendingProposedChanges([]);
+          setPendingSources(null);
         }
       } catch (error) {
         console.error("[GraphTabPanel] Error in analyze with sources:", error);
@@ -505,6 +530,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
           "[GraphTabPanel] No changes to apply, closing modal without changes",
         );
         setPendingProposedChanges(null);
+        setPendingSources(null);
         return;
       }
 
@@ -560,6 +586,8 @@ export const GraphTabPanel = memo(function GraphTabPanel({
             blockId: c.blockId,
             statusChange: c.statusChange,
           })),
+          // Pass sources for lineage tracking - allows server to resolve sourceIds
+          pendingSources || undefined,
         );
         console.log(
           "[GraphTabPanel] Changes applied:",
@@ -572,9 +600,10 @@ export const GraphTabPanel = memo(function GraphTabPanel({
         // Refetch to show the new graph
         await refetch();
 
-        // Clear pending changes after successful apply
+        // Clear pending changes and sources after successful apply
         console.log("[GraphTabPanel] Clearing pending changes, closing modal");
         setPendingProposedChanges(null);
+        setPendingSources(null);
       } catch (error) {
         console.error("[GraphTabPanel] Error applying changes:", error);
         // Don't close modal on error so user can retry
@@ -582,13 +611,14 @@ export const GraphTabPanel = memo(function GraphTabPanel({
         setIsApplyingChanges(false);
       }
     },
-    [sessionId, resetGraph, applyGraphChanges, refetch],
+    [sessionId, resetGraph, applyGraphChanges, refetch, pendingSources],
   );
 
   // Handle cancel review - discard proposed changes
   const handleCancelReview = useCallback(() => {
     console.log("[GraphTabPanel] User cancelled review, discarding changes");
     setPendingProposedChanges(null);
+    setPendingSources(null);
   }, []);
 
   // Check for cascade effects when new nodes are added (T6.3 - T6.4)

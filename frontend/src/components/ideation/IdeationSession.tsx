@@ -1742,22 +1742,57 @@ export function IdeationSession({
 
   const handleNavigateToArtifact = useCallback(
     (artifactId: string, _section?: string) => {
+      console.log(
+        "[handleNavigateToArtifact] Navigating to artifact:",
+        artifactId,
+      );
+      console.log(
+        "[handleNavigateToArtifact] Available artifacts:",
+        state.artifacts.artifacts.map((a) => ({ id: a.id, title: a.title })),
+      );
+
       // Find and select the artifact
       const artifact = state.artifacts.artifacts.find(
         (a) => a.id === artifactId,
       );
       if (artifact) {
+        console.log(
+          "[handleNavigateToArtifact] Found artifact:",
+          artifact.title,
+        );
         dispatch({
           type: "ARTIFACT_SELECT",
           payload: { artifact },
         });
-        dispatch({
-          type: "ARTIFACT_PANEL_TOGGLE",
-          payload: { isOpen: true },
-        });
+        // Only open the panel if it's currently closed/minimized
+        if (!state.artifacts.isPanelOpen) {
+          dispatch({
+            type: "ARTIFACT_PANEL_TOGGLE",
+            payload: { isOpen: true },
+          });
+        }
+      } else {
+        // Artifact not found - could be a file-based artifact or ID mismatch
+        console.warn(
+          "[handleNavigateToArtifact] Artifact not found in session artifacts. ID:",
+          artifactId,
+          "- This might be a file-based artifact. Consider navigating to Files tab.",
+        );
+        // If it looks like a file-based artifact (contains path-like characters), navigate to Files
+        if (artifactId.includes("-") || artifactId.includes("_")) {
+          console.log(
+            "[handleNavigateToArtifact] Attempting to navigate to Files tab...",
+          );
+          setActiveTab("files");
+          setToast({
+            message: "Artifact may be in project files. Switched to Files tab.",
+            type: "success",
+          });
+          setTimeout(() => setToast(null), 3000);
+        }
       }
     },
-    [state.artifacts.artifacts],
+    [state.artifacts.artifacts, state.artifacts.isPanelOpen],
   );
 
   const handleNavigateToMemoryDB = useCallback(
@@ -1892,6 +1927,7 @@ export function IdeationSession({
         state.session.sessionId,
         state.memoryGraph.selectedChangeIds,
         state.memoryGraph.analysis.proposedChanges, // Pass the actual changes data
+        state.memoryGraph.analysis.sources, // Pass sources for lineage tracking
       );
       dispatch({ type: "MEMORY_GRAPH_APPLY_COMPLETE" });
       setToast({
@@ -2370,6 +2406,9 @@ export function IdeationSession({
             refetchTrigger={graphRefetchTrigger}
             successNotification={graphSuccessNotification}
             onClearNotification={handleClearGraphNotification}
+            onSnapshotRestored={() =>
+              setGraphRefetchTrigger((prev) => prev + 1)
+            }
           />
 
           {/* Files Tab Panel (T9.2 - Project folder browser) */}
@@ -2401,6 +2440,7 @@ export function IdeationSession({
               highlightId={memoryHighlightId}
               onBackToGraph={handleBackToGraph}
               className={activeTab === "memory" ? "flex-1" : "hidden"}
+              refetchTrigger={graphRefetchTrigger}
             />
           )}
         </div>

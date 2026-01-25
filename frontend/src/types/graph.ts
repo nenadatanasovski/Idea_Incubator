@@ -84,10 +84,13 @@ export interface SourceLocation {
   turnIndex?: number;
   // For artifact navigation
   artifactId?: string;
+  artifactTitle?: string; // Human-readable title for display
   artifactSection?: string;
   // For memory database navigation
   tableName?: "blocks" | "links" | "graphs" | "sessions";
   blockId?: string;
+  // For memory file navigation
+  memoryFileTitle?: string; // Human-readable title for display
   // For external URLs
   url?: string;
 }

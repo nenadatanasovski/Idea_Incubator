@@ -112,6 +112,18 @@ function inferSourceType(block: ApiBlock): SourceType {
 }
 
 /**
+ * Check if a source ID is valid (not empty, not "unknown", not whitespace)
+ */
+function isValidSourceId(id: unknown): id is string {
+  return (
+    typeof id === "string" &&
+    id.trim() !== "" &&
+    id !== "unknown" &&
+    id !== "ai_generated"
+  );
+}
+
+/**
  * Build source location from block properties
  * Uses source_id and source_type from properties when available
  */
@@ -126,7 +138,7 @@ function buildSourceLocation(
     case "chat":
       // Use message_id or source_id for chat sources
       const messageId = (props.message_id || sourceId) as string | undefined;
-      if (messageId) {
+      if (isValidSourceId(messageId)) {
         return {
           type: "chat",
           messageId,
@@ -137,10 +149,12 @@ function buildSourceLocation(
     case "artifact":
       // Use artifact_id or source_id for artifact sources
       const artifactId = (props.artifact_id || sourceId) as string | undefined;
-      if (artifactId) {
+      // Only return a source location if we have a valid artifact ID (not "unknown")
+      if (isValidSourceId(artifactId)) {
         return {
           type: "artifact",
           artifactId,
+          artifactTitle: props.artifact_title as string | undefined,
           artifactSection: props.artifact_section as string | undefined,
         };
       }
@@ -157,6 +171,7 @@ function buildSourceLocation(
         return {
           type: "external",
           url: (props.memory_file_path || props.url) as string,
+          memoryFileTitle: props.memory_file_title as string | undefined,
         };
       }
       // If we have a source_id for memory file, use it as the file type
@@ -164,6 +179,7 @@ function buildSourceLocation(
         return {
           type: "external",
           url: `memory://${sourceId || props.memory_file_type}`,
+          memoryFileTitle: props.memory_file_title as string | undefined,
         };
       }
       break;

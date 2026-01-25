@@ -105,6 +105,22 @@ export interface GraphEdge {
   isNew?: boolean;
 }
 
+// Source info for lineage tracking - passed from analysis to apply-changes
+export interface SourceLineageInfo {
+  id: string;
+  type:
+    | "conversation"
+    | "conversation_insight"
+    | "artifact"
+    | "memory_file"
+    | "user_block"
+    | "external";
+  title: string | null;
+  artifactType?: string | null;
+  memoryFileType?: string | null;
+  weight?: number | null;
+}
+
 export interface GraphUpdateAnalysis {
   context: {
     who: string;
@@ -117,6 +133,8 @@ export interface GraphUpdateAnalysis {
   cascadeEffects: CascadeEffect[];
   previewNodes: GraphNode[];
   previewEdges: GraphEdge[];
+  // Sources used in the analysis - for lineage tracking
+  sources?: SourceLineageInfo[];
 }
 
 export interface GraphSnapshotSummary {
