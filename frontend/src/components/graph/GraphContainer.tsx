@@ -667,9 +667,16 @@ export function GraphContainer({
             { slow: true },
           );
         }, 250);
+      } else if (selectedNode) {
+        // Restore focus to the selected node when unhovering
+        relationshipHoverTimeoutRef.current = setTimeout(() => {
+          graphCanvasRef.current?.fitNodesInView([selectedNode.id], {
+            slow: true,
+          });
+        }, 250);
       }
     },
-    [],
+    [selectedNode],
   );
 
   // Loading state

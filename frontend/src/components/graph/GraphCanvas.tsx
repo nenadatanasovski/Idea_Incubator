@@ -591,6 +591,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       (event: MouseEvent) => {
         reagraphOnCanvasClick?.(event);
         onCanvasClickProp?.();
+        // Recenter and fit all nodes in view when clicking empty space
+        graphRef.current?.fitNodesInView(undefined, { padding: 50 });
       },
       [reagraphOnCanvasClick, onCanvasClickProp],
     );
@@ -600,10 +602,18 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
 
     // Combine selections with highlighted nodes to trigger inactiveOpacity
     // NOTE: Do NOT add hovered node here - adding to selections triggers pathSelectionType
-    // which would also highlight connected nodes. Hover should only highlight the hovered node.
-    // The hovered node is added to `actives` below, which is sufficient to trigger inactiveOpacity.
+    // Reagraph's inactiveOpacity is triggered by items in `selections`, not `actives`.
+    // So we add both selected and hovered nodes here to trigger the fade effect.
     const effectiveSelections = useMemo(() => {
       const combined = [...(selections || [])];
+      // Add selected node ID - this triggers inactiveOpacity for other nodes
+      if (selectedNodeId && !combined.includes(selectedNodeId)) {
+        combined.push(selectedNodeId);
+      }
+      // Add hovered node ID - also triggers inactiveOpacity for other nodes
+      if (effectiveHoveredId && !combined.includes(effectiveHoveredId)) {
+        combined.push(effectiveHoveredId);
+      }
       // Add highlighted node IDs to selections (for relationship hover from inspector)
       highlightedNodeIds.forEach((id) => {
         if (!combined.includes(id)) {
@@ -617,14 +627,26 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         }
       });
       return combined;
-    }, [selections, highlightedNodeIds, temporarilyVisibleNodeIds]);
+    }, [
+      selections,
+      selectedNodeId,
+      effectiveHoveredId,
+      highlightedNodeIds,
+      temporarilyVisibleNodeIds,
+    ]);
 
     // Combine selection actives with our highlighted nodes/edges
     // Note: We intentionally do NOT add hovered node to actives because reagraph
     // applies theme.activeFill to nodes in actives, overriding per-node fill colors.
-    // Hover styling (stroke color, opacity) is handled in toReagraphNode instead.
+    // Hover styling (stroke color, opacity) is handled in toReagraphNode.
+    // We can now add hovered node to actives since our custom renderer ignores
+    // reagraph's activeFill and uses the node's original fill color.
     const actives = useMemo(() => {
       const combined = [...(selectionActives || [])];
+      // Add hovered node ID - triggers inactiveOpacity on other nodes
+      if (effectiveHoveredId && !combined.includes(effectiveHoveredId)) {
+        combined.push(effectiveHoveredId);
+      }
       // Add highlighted node IDs
       highlightedNodeIds.forEach((id) => {
         if (!combined.includes(id)) {
@@ -646,6 +668,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       return combined;
     }, [
       selectionActives,
+      effectiveHoveredId,
       highlightedNodeIds,
       highlightedEdgeIds,
       temporarilyVisibleNodeIds,
@@ -893,7 +916,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             nodeStrength: -120, // Moderate repulsion between all nodes
             linkDistance: 60, // Shorter edges pull connected nodes closer
             linkStrength: 0.8, // Strong edge attraction keeps relationships tight
-            clusterStrength: clusterAttribute ? clusterStrength : undefined, // Keep attribute clusters together
+            clusterStrength: clusterAttribute ? clusterStrength : undefined,
           }}
           labelType="auto"
           draggable
@@ -913,20 +936,20 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             },
             node: {
               fill: "#3B82F6",
-              // activeFill intentionally omitted - reagraph will use per-node fill colors
               opacity: 1,
               selectedOpacity: 1,
-              inactiveOpacity: 0.2, // Fade inactive nodes significantly when there are active selections
+              inactiveOpacity: 0.2, // Fade inactive nodes when hovering/selecting
               label: {
                 color: isDarkMode ? "#F9FAFB" : "#1F2937", // white in dark, gray-800 in light
                 activeColor: isDarkMode ? "#FFFFFF" : "#111827", // pure white in dark, gray-900 in light
-                maxWidth: 65, // 35% narrower than default 100 - labels wrap to more lines
-              } as any,
+                fontSize: 5,
+                maxWidth: 25, // Force text to wrap onto multiple lines
+              },
               subLabel: {
                 color: isDarkMode ? "#9CA3AF" : "#6B7280", // gray-400 in dark, gray-500 in light
                 activeColor: isDarkMode ? "#D1D5DB" : "#374151", // gray-300 in dark, gray-700 in light
               },
-            },
+            } as any,
             edge: {
               fill: isDarkMode ? "#6B7280" : "#9CA3AF", // gray-500 in dark, gray-400 in light
               activeFill: "#F97316", // Orange for active/highlighted edges
