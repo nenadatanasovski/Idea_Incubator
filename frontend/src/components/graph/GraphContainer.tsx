@@ -8,6 +8,7 @@ import type {
   GraphNode,
   GraphEdge,
   GraphFilters as GraphFiltersType,
+  ClusterStrategy,
 } from "../../types/graph";
 import { GraphCanvas, GraphCanvasHandle } from "./GraphCanvas";
 import type { LayoutOption } from "./GraphControls";
@@ -378,9 +379,30 @@ export function GraphContainer({
   }, []);
 
   // Handle layout change
-  const handleLayoutChange = useCallback((layout: LayoutOption) => {
-    setCurrentLayout(layout);
-  }, []);
+  const handleLayoutChange = useCallback(
+    (layout: LayoutOption) => {
+      setCurrentLayout(layout);
+      // If switching away from force-directed and clustering is enabled, disable clustering
+      // (clustering only works with force-directed layouts in reagraph)
+      if (layout !== "forceDirected2d" && clusterStrategy !== "none") {
+        setClusterStrategy("none");
+      }
+    },
+    [clusterStrategy, setClusterStrategy],
+  );
+
+  // Handle cluster strategy change - automatically switch to force-directed layout when clustering is enabled
+  // (clustering only works with force-directed layouts in reagraph)
+  const handleClusterStrategyChange = useCallback(
+    (strategy: ClusterStrategy) => {
+      setClusterStrategy(strategy);
+      // If enabling clustering and not using force-directed layout, switch to it
+      if (strategy !== "none" && currentLayout !== "forceDirected2d") {
+        setCurrentLayout("forceDirected2d");
+      }
+    },
+    [setClusterStrategy, currentLayout],
+  );
 
   // Handle cycle node IDs from CycleIndicator for canvas highlighting
   const handleCycleNodeIds = useCallback((nodeIds: string[]) => {
@@ -877,7 +899,7 @@ export function GraphContainer({
               onLayoutChange={handleLayoutChange}
               showClusterControls={true}
               currentClusterStrategy={clusterStrategy}
-              onClusterStrategyChange={setClusterStrategy}
+              onClusterStrategyChange={handleClusterStrategyChange}
               clusterStrength={clusterStrength}
               onClusterStrengthChange={setClusterStrength}
               sessionId={sessionId}
