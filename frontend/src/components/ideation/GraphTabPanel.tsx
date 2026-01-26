@@ -20,6 +20,7 @@ import type { ProposedChange } from "../../types/ideation-state";
 import { useGraphDataWithWebSocket } from "../graph/hooks/useGraphDataWithWebSocket";
 import { GraphUpdateConfirmation } from "../graph/GraphUpdateConfirmation";
 import { SourceMappingStatusPill } from "../graph/SourceMappingStatusPill";
+import { ReportSynthesisStatusPill } from "../graph/ReportSynthesisStatusPill";
 import { ProposedChangesReviewModal } from "../graph/ProposedChangesReviewModal";
 import { useIdeationAPI } from "../../hooks/useIdeationAPI";
 import type {
@@ -218,6 +219,12 @@ export const GraphTabPanel = memo(function GraphTabPanel({
     sourceMappingStatus,
     cancelSourceMapping,
     dismissSourceMappingStatus,
+    // Report synthesis status (background report generation)
+    reportSynthesisStatus,
+    cancelReportSynthesis,
+    dismissReportSynthesisStatus,
+    // Report refresh trigger (incremented when synthesis completes)
+    reportRefreshTrigger,
   } = useGraphDataWithWebSocket({
     sessionId,
     ideaSlug,
@@ -670,19 +677,33 @@ export const GraphTabPanel = memo(function GraphTabPanel({
     >
       {/* Graph Container */}
       <div className="flex-1 min-h-0 relative" data-testid="graph-canvas">
-        {/* Source Mapping Status Pill - shows when background mapping is active or recently completed */}
-        {(sourceMappingStatus.jobId || sourceMappingStatus.status) && (
-          <div
-            className="absolute top-4 right-4 z-30"
-            data-testid="source-mapping-status"
-          >
-            <SourceMappingStatusPill
-              status={sourceMappingStatus}
-              onCancel={cancelSourceMapping}
-              onDismiss={dismissSourceMappingStatus}
-            />
-          </div>
-        )}
+        {/* Status Pills Container - shows when background operations are active or recently completed */}
+        <div
+          className="absolute top-4 right-4 z-30 flex flex-col gap-2"
+          data-testid="status-pills-container"
+        >
+          {/* Source Mapping Status Pill */}
+          {(sourceMappingStatus.jobId || sourceMappingStatus.status) && (
+            <div data-testid="source-mapping-status">
+              <SourceMappingStatusPill
+                status={sourceMappingStatus}
+                onCancel={cancelSourceMapping}
+                onDismiss={dismissSourceMappingStatus}
+              />
+            </div>
+          )}
+
+          {/* Report Synthesis Status Pill */}
+          {(reportSynthesisStatus.jobId || reportSynthesisStatus.status) && (
+            <div data-testid="report-synthesis-status">
+              <ReportSynthesisStatusPill
+                status={reportSynthesisStatus}
+                onCancel={cancelReportSynthesis}
+                onDismiss={dismissReportSynthesisStatus}
+              />
+            </div>
+          )}
+        </div>
 
         <GraphErrorBoundary>
           <Suspense fallback={<GraphLoadingSkeleton />}>
@@ -737,6 +758,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               isLoadingSnapshots={isLoadingSnapshots}
               isSavingSnapshot={isSavingSnapshot}
               isRestoringSnapshot={isRestoringSnapshot}
+              reportRefreshTrigger={reportRefreshTrigger}
               className="h-full"
             />
           </Suspense>

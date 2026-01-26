@@ -133,6 +133,19 @@ export type {
 export { SourceMappingStatusPill } from "./SourceMappingStatusPill";
 export type { SourceMappingStatusPillProps } from "./SourceMappingStatusPill";
 
+// Report Synthesis Status Hook and Component
+export { useReportSynthesisStatus } from "./hooks/useReportSynthesisStatus";
+export type {
+  ReportSynthesisJobStatus,
+  UseReportSynthesisStatusOptions,
+  UseReportSynthesisStatusReturn,
+  ReportSynthesisPayload as ReportSynthesisStatusPayload,
+  ReportSynthesisStatus as ReportSynthesisStatusType,
+} from "./hooks/useReportSynthesisStatus";
+
+export { ReportSynthesisStatusPill } from "./ReportSynthesisStatusPill";
+export type { ReportSynthesisStatusPillProps } from "./ReportSynthesisStatusPill";
+
 export { useGraphDataWithWebSocket } from "./hooks/useGraphDataWithWebSocket";
 export type {
   UseGraphDataWithWebSocketOptions,

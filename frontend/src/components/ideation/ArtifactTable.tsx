@@ -1,6 +1,6 @@
 // =============================================================================
 // FILE: frontend/src/components/ideation/ArtifactTable.tsx
-// Table component for displaying artifacts with folder support
+// Accordion-style component for displaying artifacts with inline preview
 // =============================================================================
 
 import React, {
@@ -12,6 +12,7 @@ import React, {
 } from "react";
 import type { Artifact, ArtifactType } from "../../types/ideation";
 import type { ClassificationInfo } from "../../types/ideation-state";
+import { ArtifactRenderer } from "./ArtifactRenderer";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -23,9 +24,13 @@ export interface ArtifactTableProps {
   onSelect: (artifact: Artifact) => void;
   onToggleFolder: (folderPath: string) => void;
   onDelete?: (artifactId: string) => void;
+  onEdit?: (artifactId: string, content?: string) => void;
+  onCopyRef?: (artifactId: string) => void;
   onClearSelection?: () => void;
   classifications?: Record<string, ClassificationInfo>;
   isLoading?: boolean;
+  /** ID of the most recently created artifact - auto-expands this row */
+  latestArtifactId?: string | null;
 }
 
 interface FolderState {
@@ -82,6 +87,55 @@ const ChevronRightIcon = ({ expanded }: { expanded: boolean }) => (
       strokeLinejoin="round"
       strokeWidth={2}
       d="M9 5l7 7-7 7"
+    />
+  </svg>
+);
+
+// Action Icons for row-level buttons
+const EditIcon = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+    />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
+  </svg>
+);
+
+const LinkIcon = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
     />
   </svg>
 );
@@ -460,26 +514,28 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ classification }) => {
 // -----------------------------------------------------------------------------
 
 const SkeletonRow: React.FC<{ index: number }> = ({ index }) => (
-  <tr className="border-b border-gray-100 animate-pulse">
-    <td className="px-3 py-2">
+  <div className="flex items-center border-b border-gray-100 animate-pulse">
+    <div className="flex-1 px-3 py-2">
       <div className="flex items-center gap-2">
+        <div className="w-4 h-4 bg-gray-200 rounded" />
         <div className="w-4 h-4 bg-gray-200 rounded" />
         <div
           className="h-4 bg-gray-200 rounded"
           style={{ width: `${120 + (index % 3) * 40}px` }}
         />
       </div>
-    </td>
-    <td className="px-3 py-2">
-      <div className="h-4 w-20 bg-gray-200 rounded" />
-    </td>
-    <td className="px-3 py-2">
-      <div className="h-4 w-16 bg-gray-200 rounded" />
-    </td>
-    <td className="px-3 py-2 text-center">
-      <div className="w-3 h-3 bg-gray-200 rounded-full mx-auto" />
-    </td>
-  </tr>
+    </div>
+    <div className="w-24 px-3 py-2">
+      <div className="h-3 w-16 bg-gray-200 rounded" />
+    </div>
+    <div className="w-20 px-3 py-2">
+      <div className="h-3 w-12 bg-gray-200 rounded" />
+    </div>
+    <div className="w-12 px-3 py-2 flex justify-center">
+      <div className="w-3 h-3 bg-gray-200 rounded-full" />
+    </div>
+    <div className="w-6 px-2 py-2" />
+  </div>
 );
 
 // -----------------------------------------------------------------------------
@@ -612,6 +668,146 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
 };
 
 // -----------------------------------------------------------------------------
+// Accordion Row Preview Component
+// -----------------------------------------------------------------------------
+
+interface AccordionPreviewProps {
+  artifact: Artifact;
+  onEdit?: (artifactId: string, content?: string) => void;
+  onDelete?: (artifactId: string) => void;
+  onCopyRef?: (artifactId: string) => void;
+}
+
+const AccordionPreview: React.FC<AccordionPreviewProps> = ({
+  artifact,
+  onEdit,
+  onDelete,
+  onCopyRef,
+}) => {
+  const [copiedRef, setCopiedRef] = useState(false);
+
+  // Get content as string
+  const getContentString = () => {
+    if (typeof artifact.content === "string") {
+      return artifact.content;
+    }
+    if (Array.isArray(artifact.content) && artifact.content.length === 0) {
+      return "";
+    }
+    if (
+      typeof artifact.content === "object" &&
+      artifact.content !== null &&
+      Object.keys(artifact.content).length === 0
+    ) {
+      return "";
+    }
+    return JSON.stringify(artifact.content, null, 2);
+  };
+
+  const contentString = getContentString();
+  const isContentEmpty = !contentString || contentString.trim() === "";
+
+  const handleCopyRef = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const fileName = artifact.title.includes("/")
+        ? artifact.title.split("/").pop() || artifact.title
+        : artifact.title;
+      const reference = `@[${fileName}]`;
+
+      try {
+        await navigator.clipboard.writeText(reference);
+        setCopiedRef(true);
+        setTimeout(() => setCopiedRef(false), 2000);
+        if (onCopyRef) onCopyRef(artifact.id);
+      } catch (err) {
+        console.error("Failed to copy reference:", err);
+      }
+    },
+    [artifact, onCopyRef],
+  );
+
+  return (
+    <div className="bg-gray-50 border-t border-gray-200 flex flex-col flex-1 min-h-0">
+      {/* Action bar */}
+      <div className="flex items-center justify-end gap-1 px-4 py-2 border-b border-gray-200">
+        {onEdit && (
+          <button
+            data-testid="btn-accordion-edit"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(artifact.id);
+            }}
+            className="p-1.5 rounded hover:bg-gray-200 text-gray-500 hover:text-blue-600 transition-colors"
+            title="Edit artifact"
+          >
+            <EditIcon />
+          </button>
+        )}
+        {onDelete && (
+          <button
+            data-testid="btn-accordion-delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(artifact.id);
+            }}
+            className="p-1.5 rounded hover:bg-gray-200 text-gray-500 hover:text-red-600 transition-colors"
+            title="Delete artifact"
+          >
+            <TrashIcon />
+          </button>
+        )}
+        {onCopyRef && (
+          <button
+            data-testid="btn-accordion-copy-ref"
+            onClick={handleCopyRef}
+            className={`flex items-center gap-1 px-1.5 py-1 rounded transition-colors ${
+              copiedRef
+                ? "bg-green-100 text-green-600"
+                : "hover:bg-gray-200 text-gray-500"
+            }`}
+            title="Copy @ref to clipboard"
+          >
+            <LinkIcon />
+            <span className="text-xs font-medium whitespace-nowrap">
+              {copiedRef ? "Copied!" : "Copy @ref"}
+            </span>
+          </button>
+        )}
+      </div>
+
+      {/* Content preview */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        {isContentEmpty ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gray-200 flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-500">No content available</p>
+            </div>
+          </div>
+        ) : (
+          <ArtifactRenderer artifact={artifact} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// -----------------------------------------------------------------------------
 // Main Component
 // -----------------------------------------------------------------------------
 
@@ -621,12 +817,20 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   onSelect,
   onToggleFolder,
   onDelete,
+  onEdit,
+  onCopyRef,
   onClearSelection,
   classifications = {},
   isLoading = false,
+  latestArtifactId = null,
 }) => {
   // Track expanded/collapsed state of folders
   const [folderState, setFolderState] = useState<FolderState>({});
+
+  // Track which artifact rows are expanded (accordion state)
+  const [expandedArtifacts, setExpandedArtifacts] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Track focused index for keyboard navigation
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
@@ -646,8 +850,15 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   });
 
   // Table reference for focus management
-  const tableRef = useRef<HTMLTableElement>(null);
-  const rowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map());
+  const tableRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  // Auto-expand the latest artifact when it changes
+  useEffect(() => {
+    if (latestArtifactId) {
+      setExpandedArtifacts(new Set([latestArtifactId]));
+    }
+  }, [latestArtifactId]);
 
   // Group artifacts by folder
   const groupedArtifacts = useMemo(
@@ -667,6 +878,21 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
     [onToggleFolder],
   );
 
+  // Toggle artifact accordion expansion
+  const toggleArtifactExpansion = useCallback((artifactId: string) => {
+    setExpandedArtifacts((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(artifactId)) {
+        newSet.delete(artifactId);
+      } else {
+        // Close others and open this one (single-open accordion)
+        newSet.clear();
+        newSet.add(artifactId);
+      }
+      return newSet;
+    });
+  }, []);
+
   // Handle row click
   const handleRowClick = useCallback(
     (item: GroupedArtifact, index: number) => {
@@ -674,10 +900,11 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
       if (item.type === "folder") {
         handleFolderToggle(item.path);
       } else if (item.artifact) {
+        toggleArtifactExpansion(item.artifact.id);
         onSelect(item.artifact);
       }
     },
-    [handleFolderToggle, onSelect],
+    [handleFolderToggle, toggleArtifactExpansion, onSelect],
   );
 
   // Check if a folder is expanded (default to true for first load)
@@ -709,7 +936,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTableElement>) => {
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (flattenedItems.length === 0) return;
 
       switch (e.key) {
@@ -736,6 +963,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
             if (item.type === "folder") {
               handleFolderToggle(item.path);
             } else if (item.artifact) {
+              toggleArtifactExpansion(item.artifact.id);
               onSelect(item.artifact);
             }
           }
@@ -785,6 +1013,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
       flattenedItems,
       focusedIndex,
       handleFolderToggle,
+      toggleArtifactExpansion,
       onSelect,
       onDelete,
       onClearSelection,
@@ -803,6 +1032,31 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
     setDeleteConfirm({ show: false, artifactId: "", name: "" });
   }, []);
 
+  // Handle row-level delete with confirmation
+  const handleRowDelete = useCallback(
+    (artifactId: string) => {
+      const artifact = artifacts.find((a) => a.id === artifactId);
+      if (artifact) {
+        setDeleteConfirm({
+          show: true,
+          artifactId: artifact.id,
+          name: artifact.title,
+        });
+      }
+    },
+    [artifacts],
+  );
+
+  // Handle row-level copy ref
+  const handleRowCopyRef = useCallback(
+    (artifactId: string) => {
+      if (onCopyRef) {
+        onCopyRef(artifactId);
+      }
+    },
+    [onCopyRef],
+  );
+
   // Update focused index when selected path changes externally
   useEffect(() => {
     if (selectedPath) {
@@ -820,31 +1074,22 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
     return (
       <div
         data-testid="artifact-table-skeleton"
-        className="w-full overflow-auto"
+        className="w-full overflow-y-auto overflow-x-hidden"
       >
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 sticky top-0">
-            <tr>
-              <th className="text-left px-3 py-2 font-medium text-gray-500">
-                Name
-              </th>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 w-28">
-                Date
-              </th>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 w-24">
-                Type
-              </th>
-              <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">
-                Status
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {[0, 1, 2, 3, 4].map((index) => (
-              <SkeletonRow key={`skeleton-${index}`} index={index} />
-            ))}
-          </tbody>
-        </table>
+        {/* Header row */}
+        <div className="flex items-center bg-gray-50 sticky top-0 z-10 border-b border-gray-200 text-xs font-medium text-gray-500">
+          <div className="flex-1 px-3 py-2">Name</div>
+          <div className="w-24 px-3 py-2">Date</div>
+          <div className="w-20 px-3 py-2">Type</div>
+          <div className="w-12 px-3 py-2 text-center">Status</div>
+          <div className="w-6 px-2 py-2" />
+        </div>
+        {/* Skeleton rows */}
+        <div className="text-sm">
+          {[0, 1, 2, 3, 4].map((index) => (
+            <SkeletonRow key={`skeleton-${index}`} index={index} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -862,95 +1107,123 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   }
 
   return (
-    <div data-testid="artifact-table" className="w-full overflow-auto relative">
-      {/* Keyboard Shortcuts Help Button - positioned below header to avoid overlap */}
-      <div className="absolute top-8 right-0 z-10">
-        <button
-          data-testid="keyboard-help-button"
-          onClick={() => setShowShortcutsHelp((prev) => !prev)}
-          onBlur={() => setShowShortcutsHelp(false)}
-          className="p-1 text-gray-400 hover:text-gray-600 rounded"
-          title="Keyboard shortcuts (?)"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+    <div
+      data-testid="artifact-table"
+      ref={tableRef}
+      className="w-full h-full flex flex-col overflow-hidden relative"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      role="list"
+      aria-label="Artifact list with accordion preview"
+    >
+      {/* Header row */}
+      <div className="flex items-center bg-gray-50 sticky top-0 z-10 border-b border-gray-200 text-xs font-medium text-gray-500">
+        <div className="flex-1 px-3 py-2">Name</div>
+        <div className="w-24 px-3 py-2">Date</div>
+        <div className="w-20 px-3 py-2">Type</div>
+        <div className="w-12 px-3 py-2 text-center">Status</div>
+        <div className="w-6 px-2 py-2">
+          <button
+            data-testid="keyboard-help-button"
+            onClick={() => setShowShortcutsHelp((prev) => !prev)}
+            onBlur={() => setShowShortcutsHelp(false)}
+            className="p-0.5 text-gray-400 hover:text-gray-600 rounded"
+            title="Keyboard shortcuts (?)"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        </button>
-        <KeyboardShortcutsHelp show={showShortcutsHelp} />
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </button>
+          <KeyboardShortcutsHelp show={showShortcutsHelp} />
+        </div>
       </div>
 
-      <table
-        ref={tableRef}
-        className="w-full text-sm"
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-        role="grid"
-        aria-label="Artifact table with keyboard navigation"
-      >
-        <thead className="bg-gray-50 sticky top-0">
-          <tr>
-            <th className="text-left px-3 py-2 font-medium text-gray-500">
-              Name
-            </th>
-            <th className="text-left px-3 py-2 font-medium text-gray-500 w-28">
-              Date
-            </th>
-            <th className="text-left px-3 py-2 font-medium text-gray-500 w-24">
-              Type
-            </th>
-            <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">
-              Status
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {flattenedItems.map((item, index) => {
-            const isFolder = item.type === "folder";
-            const isSelected = !isFolder && item.path === selectedPath;
-            const isFocused = index === focusedIndex;
-            const expanded = isFolder ? isFolderExpanded(item.path) : undefined;
-            const classification =
-              !isFolder && item.artifact
-                ? classifications[item.artifact.id] ||
-                  classifications[item.artifact.title]
-                : undefined;
+      {/* Accordion rows */}
+      <div className="text-sm flex-1 flex flex-col min-h-0">
+        {flattenedItems.map((item, index) => {
+          const isFolder = item.type === "folder";
+          const isSelected = !isFolder && item.path === selectedPath;
+          const isFocused = index === focusedIndex;
+          const folderExpanded = isFolder
+            ? isFolderExpanded(item.path)
+            : undefined;
+          const isArtifactExpanded =
+            !isFolder &&
+            item.artifact &&
+            expandedArtifacts.has(item.artifact.id);
+          const classification =
+            !isFolder && item.artifact
+              ? classifications[item.artifact.id] ||
+                classifications[item.artifact.title]
+              : undefined;
 
-            return (
-              <tr
-                key={`${item.type}-${item.path}-${index}`}
-                ref={(el) => {
-                  if (el) rowRefs.current.set(index, el);
-                  else rowRefs.current.delete(index);
-                }}
-                data-testid={isFolder ? "folder-row" : "artifact-row"}
-                data-index={index}
-                data-id={item.artifact?.id}
-                aria-expanded={isFolder ? expanded : undefined}
+          return (
+            <div
+              key={`${item.type}-${item.path}-${index}`}
+              ref={(el) => {
+                if (el) rowRefs.current.set(index, el);
+                else rowRefs.current.delete(index);
+              }}
+              data-testid={isFolder ? "folder-row" : "artifact-row"}
+              data-index={index}
+              data-id={item.artifact?.id}
+              role="listitem"
+              className={`border-b border-gray-100 ${
+                !isFolder &&
+                item.artifact &&
+                expandedArtifacts.has(item.artifact.id)
+                  ? "flex flex-col flex-1 min-h-0"
+                  : ""
+              }`}
+            >
+              {/* Row header - clickable to expand/collapse */}
+              <div
+                aria-expanded={
+                  isFolder ? folderExpanded : isArtifactExpanded || false
+                }
                 aria-selected={!isFolder ? isSelected : undefined}
-                role="row"
                 tabIndex={isFocused ? 0 : -1}
                 className={`
-                  cursor-pointer transition-colors border-b border-gray-100
-                  ${isSelected ? "bg-blue-50 selected" : "hover:bg-gray-50"}
-                  ${isFocused ? "ring-2 ring-blue-500 ring-inset focus-visible" : ""}
+                  flex items-center cursor-pointer transition-colors
+                  ${isSelected || isArtifactExpanded ? "bg-blue-50" : "hover:bg-gray-50"}
+                  ${isFocused ? "ring-2 ring-blue-500 ring-inset" : ""}
                 `}
                 onClick={() => handleRowClick(item, index)}
               >
-                <td className="px-3 py-2">
+                {/* Name column */}
+                <div className="flex-1 px-3 py-2">
                   <div
                     className="flex items-center gap-2"
                     style={{ paddingLeft: `${item.depth * 16}px` }}
                   >
+                    {/* Expand/collapse chevron for files */}
+                    {!isFolder && item.artifact && (
+                      <button
+                        data-testid="artifact-toggle"
+                        className="p-0.5 hover:bg-gray-200 rounded"
+                        tabIndex={-1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleArtifactExpansion(item.artifact!.id);
+                        }}
+                      >
+                        <ChevronRightIcon
+                          expanded={isArtifactExpanded || false}
+                        />
+                      </button>
+                    )}
+
+                    {/* Folder chevron */}
                     {isFolder && (
                       <button
                         data-testid="folder-toggle"
@@ -961,13 +1234,13 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                           handleFolderToggle(item.path);
                         }}
                       >
-                        <ChevronRightIcon expanded={expanded || false} />
+                        <ChevronRightIcon expanded={folderExpanded || false} />
                       </button>
                     )}
 
                     <span className="flex-shrink-0">
                       {isFolder ? (
-                        expanded ? (
+                        folderExpanded ? (
                           <FolderOpenIcon />
                         ) : (
                           <FolderIcon />
@@ -979,40 +1252,56 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
 
                     <span
                       data-testid="artifact-name"
-                      className={`truncate ${isFolder ? "font-medium" : ""} ${isSelected ? "text-blue-700" : "text-gray-900"}`}
+                      className={`truncate ${isFolder ? "font-medium" : ""} ${isSelected || isArtifactExpanded ? "text-blue-700" : "text-gray-900"}`}
                       title={item.name}
                     >
                       {item.name}
                     </span>
                   </div>
-                </td>
+                </div>
 
-                <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
+                {/* Date column */}
+                <div className="w-24 px-3 py-2 text-gray-500 whitespace-nowrap text-xs">
                   {!isFolder &&
                     item.artifact &&
                     formatRelativeDate(
                       item.artifact.updatedAt || item.artifact.createdAt,
                     )}
-                </td>
+                </div>
 
-                <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
+                {/* Type column */}
+                <div className="w-20 px-3 py-2 text-gray-500 whitespace-nowrap text-xs">
                   {!isFolder && item.artifact && (
                     <span className="capitalize">
                       {getTypeDisplayName(item.artifact.type)}
                     </span>
                   )}
-                </td>
+                </div>
 
-                <td className="px-3 py-2 text-center">
+                {/* Status column */}
+                <div className="w-12 px-3 py-2 flex justify-center">
                   {!isFolder && item.artifact && (
                     <StatusBadge classification={classification} />
                   )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </div>
+
+                {/* Spacer for alignment */}
+                <div className="w-6 px-2 py-2" />
+              </div>
+
+              {/* Accordion content - artifact preview */}
+              {!isFolder && item.artifact && isArtifactExpanded && (
+                <AccordionPreview
+                  artifact={item.artifact}
+                  onEdit={onEdit}
+                  onDelete={onDelete ? handleRowDelete : undefined}
+                  onCopyRef={onCopyRef ? handleRowCopyRef : undefined}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog

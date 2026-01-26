@@ -28,6 +28,7 @@ import {
   AlignLeft,
 } from "lucide-react";
 import { EvidenceChainPanel } from "./EvidenceChainPanel";
+import { GroupReportPanel } from "./GroupReportPanel";
 import type { SourceType } from "../../types/graph";
 import { useIdeationAPI } from "../../hooks/useIdeationAPI";
 
@@ -111,6 +112,10 @@ export interface NodeInspectorProps {
   onDeleteNode?: (nodeId: string, nodeLabel: string) => void;
   isActionLoading?: string | null;
   className?: string;
+  /** Optional trigger to refresh the report - increment when synthesis completes */
+  reportRefreshTrigger?: number;
+  /** Callback when report view state changes - handles layout, zoom, and highlighting */
+  onReportViewChange?: (active: boolean, nodeIds: string[]) => void;
 }
 
 interface Relationship {
@@ -951,12 +956,15 @@ export function NodeInspector({
   onDeleteNode,
   isActionLoading,
   className = "",
+  reportRefreshTrigger,
+  onReportViewChange,
 }: NodeInspectorProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [mappedSources, setMappedSources] = useState<MappedSource[]>([]);
   const [isLoadingSources, setIsLoadingSources] = useState(false);
   const [relationshipViewMode, setRelationshipViewMode] =
     useState<RelationshipViewMode>("prose");
+  const [activeTab, setActiveTab] = useState<"details" | "report">("details");
   const { getBlockSources } = useIdeationAPI();
 
   // Animate slide-in on mount
@@ -1145,424 +1153,478 @@ export function NodeInspector({
         </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-0">
-        {/* Evidence Chain Panel - Show for nodes with evidence_for links (T7.1) */}
-        {edges.some(
-          (e) =>
-            e.linkType === "evidence_for" &&
-            (e.source === node.id || e.target === node.id),
-        ) && (
-          <Section title="Evidence Chain" defaultExpanded>
-            <EvidenceChainPanel
-              nodeId={node.id}
-              nodes={nodes}
-              edges={edges}
-              onNodeClick={onNodeClick}
-            />
-          </Section>
-        )}
+      {/* Tab Navigation */}
+      <div className="flex border-b border-gray-200 px-4">
+        <button
+          className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+            activeTab === "details"
+              ? "text-cyan-600 border-b-2 border-cyan-500"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+          onClick={() => setActiveTab("details")}
+        >
+          Details
+        </button>
+        <button
+          className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+            activeTab === "report"
+              ? "text-cyan-600 border-b-2 border-cyan-500"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+          onClick={() => setActiveTab("report")}
+        >
+          Report
+        </button>
+      </div>
 
-        {/* Relationships Section with View Toggle */}
-        <div className="border-b border-gray-200 last:border-b-0">
-          <div className="w-full py-3 flex items-center justify-between">
-            <span className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Relationships
-              {totalRelationships > 0 && (
-                <span className="px-1.5 py-0.5 bg-gray-200 rounded-full text-xs font-normal normal-case">
-                  {totalRelationships}
-                </span>
-              )}
-            </span>
-            {/* View mode toggle */}
-            {totalRelationships > 0 && (
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
-                <button
-                  onClick={() => setRelationshipViewMode("list")}
-                  className={`p-1.5 rounded transition-colors ${
-                    relationshipViewMode === "list"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                  title="List view"
-                >
-                  <List className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setRelationshipViewMode("prose")}
-                  className={`p-1.5 rounded transition-colors ${
-                    relationshipViewMode === "prose"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                  title="Prose view"
-                >
-                  <AlignLeft className="w-3.5 h-3.5" />
-                </button>
-              </div>
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto space-y-0">
+        {/* Details Tab */}
+        {activeTab === "details" && (
+          <div className="p-4 space-y-0">
+            {/* Evidence Chain Panel - Show for nodes with evidence_for links (T7.1) */}
+            {edges.some(
+              (e) =>
+                e.linkType === "evidence_for" &&
+                (e.source === node.id || e.target === node.id),
+            ) && (
+              <Section title="Evidence Chain" defaultExpanded>
+                <EvidenceChainPanel
+                  nodeId={node.id}
+                  nodes={nodes}
+                  edges={edges}
+                  onNodeClick={onNodeClick}
+                />
+              </Section>
             )}
-          </div>
-          <div className="pb-4">
-            {totalRelationships === 0 ? (
-              <p className="text-sm text-gray-500 italic">No relationships</p>
-            ) : relationshipViewMode === "prose" ? (
-              /* Prose view - all relationships as sentences */
-              <div className="space-y-2">
-                {[...incomingRelationships, ...outgoingRelationships].map(
-                  (rel) => (
-                    <RelationshipItemProse
-                      key={rel.edge.id}
-                      relationship={rel}
-                      currentNode={node}
+
+            {/* Relationships Section with View Toggle */}
+            <div className="border-b border-gray-200 last:border-b-0">
+              <div className="w-full py-3 flex items-center justify-between">
+                <span className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Relationships
+                  {totalRelationships > 0 && (
+                    <span className="px-1.5 py-0.5 bg-gray-200 rounded-full text-xs font-normal normal-case">
+                      {totalRelationships}
+                    </span>
+                  )}
+                </span>
+                {/* View mode toggle */}
+                {totalRelationships > 0 && (
+                  <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+                    <button
+                      onClick={() => setRelationshipViewMode("list")}
+                      className={`p-1.5 rounded transition-colors ${
+                        relationshipViewMode === "list"
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                      title="List view"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setRelationshipViewMode("prose")}
+                      className={`p-1.5 rounded transition-colors ${
+                        relationshipViewMode === "prose"
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                      title="Prose view"
+                    >
+                      <AlignLeft className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="pb-4">
+                {totalRelationships === 0 ? (
+                  <p className="text-sm text-gray-500 italic">
+                    No relationships
+                  </p>
+                ) : relationshipViewMode === "prose" ? (
+                  /* Prose view - all relationships as sentences */
+                  <div className="space-y-2">
+                    {[...incomingRelationships, ...outgoingRelationships].map(
+                      (rel) => (
+                        <RelationshipItemProse
+                          key={rel.edge.id}
+                          relationship={rel}
+                          currentNode={node}
+                          onClick={
+                            onNodeClick
+                              ? () => onNodeClick(rel.relatedNode.id)
+                              : undefined
+                          }
+                          onMouseEnter={
+                            onRelationshipHover
+                              ? () =>
+                                  onRelationshipHover({
+                                    currentNodeId: node.id,
+                                    relatedNodeId: rel.relatedNode.id,
+                                    edgeId: rel.edge.id,
+                                  })
+                              : undefined
+                          }
+                          onMouseLeave={
+                            onRelationshipHover
+                              ? () => onRelationshipHover(null)
+                              : undefined
+                          }
+                        />
+                      ),
+                    )}
+                  </div>
+                ) : (
+                  /* List view - grouped by incoming/outgoing */
+                  <div className="space-y-4">
+                    {/* Incoming relationships */}
+                    {incomingRelationships.length > 0 && (
+                      <div>
+                        <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
+                          <svg
+                            className="w-3 h-3 rotate-180"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M14 5l7 7m0 0l-7 7m7-7H3"
+                            />
+                          </svg>
+                          Incoming ({incomingRelationships.length})
+                        </h5>
+                        <div className="space-y-1">
+                          {incomingRelationships.map((rel) => (
+                            <RelationshipItem
+                              key={rel.edge.id}
+                              relationship={rel}
+                              onClick={
+                                onNodeClick
+                                  ? () => onNodeClick(rel.relatedNode.id)
+                                  : undefined
+                              }
+                              onMouseEnter={
+                                onRelationshipHover
+                                  ? () =>
+                                      onRelationshipHover({
+                                        currentNodeId: node.id,
+                                        relatedNodeId: rel.relatedNode.id,
+                                        edgeId: rel.edge.id,
+                                      })
+                                  : undefined
+                              }
+                              onMouseLeave={
+                                onRelationshipHover
+                                  ? () => onRelationshipHover(null)
+                                  : undefined
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Outgoing relationships */}
+                    {outgoingRelationships.length > 0 && (
+                      <div>
+                        <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M14 5l7 7m0 0l-7 7m7-7H3"
+                            />
+                          </svg>
+                          Outgoing ({outgoingRelationships.length})
+                        </h5>
+                        <div className="space-y-1">
+                          {outgoingRelationships.map((rel) => (
+                            <RelationshipItem
+                              key={rel.edge.id}
+                              relationship={rel}
+                              onClick={
+                                onNodeClick
+                                  ? () => onNodeClick(rel.relatedNode.id)
+                                  : undefined
+                              }
+                              onMouseEnter={
+                                onRelationshipHover
+                                  ? () =>
+                                      onRelationshipHover({
+                                        currentNodeId: node.id,
+                                        relatedNodeId: rel.relatedNode.id,
+                                        edgeId: rel.edge.id,
+                                      })
+                                  : undefined
+                              }
+                              onMouseLeave={
+                                onRelationshipHover
+                                  ? () => onRelationshipHover(null)
+                                  : undefined
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Referenced In Section (T9.6) */}
+            {node.fileReferences && node.fileReferences.length > 0 && (
+              <Section
+                title="Referenced In"
+                defaultExpanded
+                count={node.fileReferences.length}
+              >
+                <div className="space-y-1">
+                  {node.fileReferences.map((ref, index) => (
+                    <FileReferenceItem
+                      key={`${ref.filePath}-${index}`}
+                      reference={ref}
                       onClick={
-                        onNodeClick
-                          ? () => onNodeClick(rel.relatedNode.id)
-                          : undefined
-                      }
-                      onMouseEnter={
-                        onRelationshipHover
-                          ? () =>
-                              onRelationshipHover({
-                                currentNodeId: node.id,
-                                relatedNodeId: rel.relatedNode.id,
-                                edgeId: rel.edge.id,
-                              })
-                          : undefined
-                      }
-                      onMouseLeave={
-                        onRelationshipHover
-                          ? () => onRelationshipHover(null)
-                          : undefined
+                        onViewFile ? () => onViewFile(ref.filePath) : undefined
                       }
                     />
-                  ),
-                )}
-              </div>
-            ) : (
-              /* List view - grouped by incoming/outgoing */
-              <div className="space-y-4">
-                {/* Incoming relationships */}
-                {incomingRelationships.length > 0 && (
-                  <div>
-                    <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
-                      <svg
-                        className="w-3 h-3 rotate-180"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M14 5l7 7m0 0l-7 7m7-7H3"
-                        />
-                      </svg>
-                      Incoming ({incomingRelationships.length})
-                    </h5>
-                    <div className="space-y-1">
-                      {incomingRelationships.map((rel) => (
-                        <RelationshipItem
-                          key={rel.edge.id}
-                          relationship={rel}
-                          onClick={
-                            onNodeClick
-                              ? () => onNodeClick(rel.relatedNode.id)
-                              : undefined
-                          }
-                          onMouseEnter={
-                            onRelationshipHover
-                              ? () =>
-                                  onRelationshipHover({
-                                    currentNodeId: node.id,
-                                    relatedNodeId: rel.relatedNode.id,
-                                    edgeId: rel.edge.id,
-                                  })
-                              : undefined
-                          }
-                          onMouseLeave={
-                            onRelationshipHover
-                              ? () => onRelationshipHover(null)
-                              : undefined
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Outgoing relationships */}
-                {outgoingRelationships.length > 0 && (
-                  <div>
-                    <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M14 5l7 7m0 0l-7 7m7-7H3"
-                        />
-                      </svg>
-                      Outgoing ({outgoingRelationships.length})
-                    </h5>
-                    <div className="space-y-1">
-                      {outgoingRelationships.map((rel) => (
-                        <RelationshipItem
-                          key={rel.edge.id}
-                          relationship={rel}
-                          onClick={
-                            onNodeClick
-                              ? () => onNodeClick(rel.relatedNode.id)
-                              : undefined
-                          }
-                          onMouseEnter={
-                            onRelationshipHover
-                              ? () =>
-                                  onRelationshipHover({
-                                    currentNodeId: node.id,
-                                    relatedNodeId: rel.relatedNode.id,
-                                    edgeId: rel.edge.id,
-                                  })
-                              : undefined
-                          }
-                          onMouseLeave={
-                            onRelationshipHover
-                              ? () => onRelationshipHover(null)
-                              : undefined
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                  ))}
+                </div>
+              </Section>
             )}
-          </div>
-        </div>
 
-        {/* Referenced In Section (T9.6) */}
-        {node.fileReferences && node.fileReferences.length > 0 && (
-          <Section
-            title="Referenced In"
-            defaultExpanded
-            count={node.fileReferences.length}
-          >
-            <div className="space-y-1">
-              {node.fileReferences.map((ref, index) => (
-                <FileReferenceItem
-                  key={`${ref.filePath}-${index}`}
-                  reference={ref}
-                  onClick={
-                    onViewFile ? () => onViewFile(ref.filePath) : undefined
-                  }
-                />
-              ))}
-            </div>
-          </Section>
-        )}
-
-        {/* Linked Artifact Section */}
-        {node.artifactId && (
-          <Section title="Linked Artifact" defaultExpanded>
-            <div className="bg-blue-50 rounded-lg p-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <svg
-                  className="w-5 h-5 text-blue-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                  />
-                </svg>
-                <span className="text-sm font-medium text-blue-700">
-                  📎 Linked Artifact
-                </span>
-              </div>
-              {node.artifactType && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Type</span>
-                  <span className="text-gray-900 capitalize">
-                    {node.artifactType.replace(/-/g, " ")}
-                  </span>
+            {/* Linked Artifact Section */}
+            {node.artifactId && (
+              <Section title="Linked Artifact" defaultExpanded>
+                <div className="bg-blue-50 rounded-lg p-3 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="w-5 h-5 text-blue-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                      />
+                    </svg>
+                    <span className="text-sm font-medium text-blue-700">
+                      📎 Linked Artifact
+                    </span>
+                  </div>
+                  {node.artifactType && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Type</span>
+                      <span className="text-gray-900 capitalize">
+                        {node.artifactType.replace(/-/g, " ")}
+                      </span>
+                    </div>
+                  )}
+                  {node.artifactSection && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Section</span>
+                      <span className="text-gray-900">
+                        {node.artifactSection}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    {onViewArtifact && (
+                      <button
+                        onClick={() => onViewArtifact(node.artifactId!)}
+                        className="flex-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded text-sm font-medium hover:bg-blue-200 transition-colors"
+                      >
+                        View Artifact
+                      </button>
+                    )}
+                    {onUnlinkArtifact && (
+                      <button
+                        onClick={() => onUnlinkArtifact(node.id)}
+                        className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200 transition-colors"
+                      >
+                        Unlink
+                      </button>
+                    )}
+                  </div>
                 </div>
-              )}
-              {node.artifactSection && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Section</span>
-                  <span className="text-gray-900">{node.artifactSection}</span>
-                </div>
-              )}
-              <div className="flex gap-2">
-                {onViewArtifact && (
-                  <button
-                    onClick={() => onViewArtifact(node.artifactId!)}
-                    className="flex-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded text-sm font-medium hover:bg-blue-200 transition-colors"
-                  >
-                    View Artifact
-                  </button>
-                )}
-                {onUnlinkArtifact && (
-                  <button
-                    onClick={() => onUnlinkArtifact(node.id)}
-                    className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200 transition-colors"
-                  >
-                    Unlink
-                  </button>
-                )}
-              </div>
-            </div>
-          </Section>
-        )}
+              </Section>
+            )}
 
-        {/* AI-Mapped Sources Section - Shows sources mapped by Claude Opus 4.5
+            {/* AI-Mapped Sources Section - Shows sources mapped by Claude Opus 4.5
             This is the primary source lineage display - shows only sources that
             directly contributed to this specific node */}
-        {sessionId && (
-          <Section
-            title="Source Lineage"
-            defaultExpanded={true}
-            count={mappedSources.length}
-          >
-            {isLoadingSources ? (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Loading sources...</span>
-              </div>
-            ) : mappedSources.length === 0 ? (
-              <p className="text-sm text-gray-500 italic">
-                No direct source connections found. This node may have been
-                created manually or the source mapping hasn't run yet.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {mappedSources.map((source, idx) => {
-                  // Determine icon and color based on source type
-                  const sourceTypeInfo: Record<
-                    string,
-                    { icon: string; color: string; label: string }
-                  > = {
-                    conversation: {
-                      icon: "💬",
-                      color: "bg-purple-100 text-purple-700",
-                      label: "Chat",
-                    },
-                    conversation_insight: {
-                      icon: "💡",
-                      color: "bg-indigo-100 text-indigo-700",
-                      label: "AI Insight",
-                    },
-                    artifact: {
-                      icon: "📄",
-                      color: "bg-amber-100 text-amber-700",
-                      label: "Artifact",
-                    },
-                    memory_file: {
-                      icon: "🧠",
-                      color: "bg-cyan-100 text-cyan-700",
-                      label: "Memory File",
-                    },
-                    user_block: {
-                      icon: "✏️",
-                      color: "bg-green-100 text-green-700",
-                      label: "User Block",
-                    },
-                    external: {
-                      icon: "🔗",
-                      color: "bg-gray-100 text-gray-700",
-                      label: "External",
-                    },
-                  };
-                  const typeInfo = sourceTypeInfo[source.sourceType] || {
-                    icon: "📎",
-                    color: "bg-gray-100 text-gray-700",
-                    label: source.sourceType,
-                  };
+            {sessionId && (
+              <Section
+                title="Source Lineage"
+                defaultExpanded={true}
+                count={mappedSources.length}
+              >
+                {isLoadingSources ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Loading sources...</span>
+                  </div>
+                ) : mappedSources.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic">
+                    No direct source connections found. This node may have been
+                    created manually or the source mapping hasn't run yet.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {mappedSources.map((source, idx) => {
+                      // Determine icon and color based on source type
+                      const sourceTypeInfo: Record<
+                        string,
+                        { icon: string; color: string; label: string }
+                      > = {
+                        conversation: {
+                          icon: "💬",
+                          color: "bg-purple-100 text-purple-700",
+                          label: "Chat",
+                        },
+                        conversation_insight: {
+                          icon: "💡",
+                          color: "bg-indigo-100 text-indigo-700",
+                          label: "AI Insight",
+                        },
+                        artifact: {
+                          icon: "📄",
+                          color: "bg-amber-100 text-amber-700",
+                          label: "Artifact",
+                        },
+                        memory_file: {
+                          icon: "🧠",
+                          color: "bg-cyan-100 text-cyan-700",
+                          label: "Memory File",
+                        },
+                        user_block: {
+                          icon: "✏️",
+                          color: "bg-green-100 text-green-700",
+                          label: "User Block",
+                        },
+                        external: {
+                          icon: "🔗",
+                          color: "bg-gray-100 text-gray-700",
+                          label: "External",
+                        },
+                      };
+                      const typeInfo = sourceTypeInfo[source.sourceType] || {
+                        icon: "📎",
+                        color: "bg-gray-100 text-gray-700",
+                        label: source.sourceType,
+                      };
 
-                  const canNavigate =
-                    (source.sourceType === "artifact" &&
-                      onNavigateToArtifact) ||
-                    (source.sourceType === "memory_file" &&
-                      onNavigateToMemoryDB);
+                      const canNavigate =
+                        (source.sourceType === "artifact" &&
+                          onNavigateToArtifact) ||
+                        (source.sourceType === "memory_file" &&
+                          onNavigateToMemoryDB);
 
-                  return (
-                    <div
-                      key={source.sourceId || idx}
-                      className={`p-3 rounded-lg border ${
-                        canNavigate
-                          ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50"
-                          : ""
-                      } border-gray-200 bg-gray-50`}
-                      onClick={() => {
-                        if (
-                          source.sourceType === "artifact" &&
-                          onNavigateToArtifact
-                        ) {
-                          onNavigateToArtifact(source.sourceId);
-                        } else if (
-                          source.sourceType === "memory_file" &&
-                          onNavigateToMemoryDB
-                        ) {
-                          onNavigateToMemoryDB("files", source.sourceId);
-                        }
-                      }}
-                      role={canNavigate ? "button" : undefined}
-                      tabIndex={canNavigate ? 0 : undefined}
-                    >
-                      {/* Header with type badge and relevance */}
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{typeInfo.icon}</span>
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs font-medium ${typeInfo.color}`}
-                          >
-                            {typeInfo.label}
-                          </span>
+                      return (
+                        <div
+                          key={source.sourceId || idx}
+                          className={`p-3 rounded-lg border ${
+                            canNavigate
+                              ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50"
+                              : ""
+                          } border-gray-200 bg-gray-50`}
+                          onClick={() => {
+                            if (
+                              source.sourceType === "artifact" &&
+                              onNavigateToArtifact
+                            ) {
+                              onNavigateToArtifact(source.sourceId);
+                            } else if (
+                              source.sourceType === "memory_file" &&
+                              onNavigateToMemoryDB
+                            ) {
+                              onNavigateToMemoryDB("files", source.sourceId);
+                            }
+                          }}
+                          role={canNavigate ? "button" : undefined}
+                          tabIndex={canNavigate ? 0 : undefined}
+                        >
+                          {/* Header with type badge and relevance */}
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{typeInfo.icon}</span>
+                              <span
+                                className={`px-2 py-0.5 rounded text-xs font-medium ${typeInfo.color}`}
+                              >
+                                {typeInfo.label}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Sparkles className="w-3 h-3 text-amber-500" />
+                              <span className="text-xs font-medium text-gray-600">
+                                {Math.round(source.relevanceScore * 100)}%
+                                relevant
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Title */}
+                          {source.title && (
+                            <p className="text-sm font-medium text-gray-800 mb-1">
+                              {source.title}
+                            </p>
+                          )}
+
+                          {/* Content snippet */}
+                          {source.contentSnippet && (
+                            <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+                              {source.contentSnippet}
+                            </p>
+                          )}
+
+                          {/* AI reasoning */}
+                          <div className="flex items-start gap-1.5 mt-2 pt-2 border-t border-gray-200">
+                            <Sparkles className="w-3 h-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-gray-600 italic">
+                              {source.reason}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <Sparkles className="w-3 h-3 text-amber-500" />
-                          <span className="text-xs font-medium text-gray-600">
-                            {Math.round(source.relevanceScore * 100)}% relevant
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Title */}
-                      {source.title && (
-                        <p className="text-sm font-medium text-gray-800 mb-1">
-                          {source.title}
-                        </p>
-                      )}
-
-                      {/* Content snippet */}
-                      {source.contentSnippet && (
-                        <p className="text-xs text-gray-500 line-clamp-2 mb-2">
-                          {source.contentSnippet}
-                        </p>
-                      )}
-
-                      {/* AI reasoning */}
-                      <div className="flex items-start gap-1.5 mt-2 pt-2 border-t border-gray-200">
-                        <Sparkles className="w-3 h-3 text-amber-500 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-gray-600 italic">
-                          {source.reason}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Section>
             )}
-          </Section>
+          </div>
+        )}
+
+        {/* Report Tab */}
+        {activeTab === "report" && sessionId && (
+          <GroupReportPanel
+            sessionId={sessionId}
+            currentNodeId={node.id}
+            nodes={nodes}
+            onNodeClick={onNodeClick}
+            refreshTrigger={reportRefreshTrigger}
+            isActive={activeTab === "report"}
+            onReportViewChange={onReportViewChange}
+          />
+        )}
+
+        {/* Empty state for Report tab without session */}
+        {activeTab === "report" && !sessionId && (
+          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <span className="text-sm">Session ID required to view reports</span>
+          </div>
         )}
       </div>
 

@@ -31,6 +31,10 @@ import {
   type SourceMappingJobStatus,
 } from "./useSourceMappingStatus";
 import {
+  useReportSynthesisStatus,
+  type ReportSynthesisJobStatus,
+} from "./useReportSynthesisStatus";
+import {
   transformSingleBlockToNode,
   transformSingleLinkToEdge,
   addNodeToGraph,
@@ -98,6 +102,14 @@ export interface UseGraphDataWithWebSocketReturn {
   sourceMappingStatus: SourceMappingJobStatus;
   cancelSourceMapping: () => Promise<boolean>;
   dismissSourceMappingStatus: () => void;
+
+  // Report synthesis status (background report generation for node groups)
+  reportSynthesisStatus: ReportSynthesisJobStatus;
+  cancelReportSynthesis: () => Promise<boolean>;
+  dismissReportSynthesisStatus: () => void;
+
+  // Trigger to refresh reports after synthesis completes (increment on each completion)
+  reportRefreshTrigger: number;
 }
 
 export interface PendingUpdate {
@@ -158,6 +170,27 @@ export function useGraphDataWithWebSocket(
     sessionId,
     autoDismissDelay: 5000, // Auto-dismiss after 5 seconds
   });
+
+  // Report synthesis status (background report generation for node groups)
+  const {
+    status: reportSynthesisStatus,
+    cancel: cancelReportSynthesis,
+    dismiss: dismissReportSynthesisStatus,
+    handlers: reportSynthesisHandlers,
+  } = useReportSynthesisStatus({
+    sessionId,
+    autoDismissDelay: 5000, // Auto-dismiss after 5 seconds
+  });
+
+  // Trigger to refresh reports after synthesis completes
+  const [reportRefreshTrigger, setReportRefreshTrigger] = useState(0);
+
+  // Increment refresh trigger when report synthesis completes
+  useEffect(() => {
+    if (reportSynthesisStatus.status === "complete") {
+      setReportRefreshTrigger((prev) => prev + 1);
+    }
+  }, [reportSynthesisStatus.status]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -402,6 +435,15 @@ export function useGraphDataWithWebSocket(
     onSourceMappingComplete: sourceMappingHandlers.onSourceMappingComplete,
     onSourceMappingFailed: sourceMappingHandlers.onSourceMappingFailed,
     onSourceMappingCancelled: sourceMappingHandlers.onSourceMappingCancelled,
+    // Report synthesis event handlers (background report generation)
+    onReportSynthesisStarted: reportSynthesisHandlers.onReportSynthesisStarted,
+    onReportSynthesisProgress:
+      reportSynthesisHandlers.onReportSynthesisProgress,
+    onReportSynthesisComplete:
+      reportSynthesisHandlers.onReportSynthesisComplete,
+    onReportSynthesisFailed: reportSynthesisHandlers.onReportSynthesisFailed,
+    onReportSynthesisCancelled:
+      reportSynthesisHandlers.onReportSynthesisCancelled,
     onError: handleWsError,
     reconnect: true,
   });
@@ -579,6 +621,12 @@ export function useGraphDataWithWebSocket(
     sourceMappingStatus,
     cancelSourceMapping,
     dismissSourceMappingStatus,
+    // Report synthesis status
+    reportSynthesisStatus,
+    cancelReportSynthesis,
+    dismissReportSynthesisStatus,
+    // Report refresh trigger
+    reportRefreshTrigger,
   };
 }
 

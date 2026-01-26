@@ -34,8 +34,20 @@ import {
   emitSourceMappingComplete,
   emitSourceMappingFailed,
   emitSourceMappingCancelled,
+  emitReportSynthesisStarted,
+  emitReportSynthesisDetecting,
+  emitReportSynthesisProgress,
+  emitReportSynthesisComplete,
+  emitReportSynthesisFailed,
+  emitReportSynthesisCancelled,
 } from "../../websocket.js";
 import { sourceMappingTracker } from "../../services/graph/source-mapping-tracker.js";
+import { reportSynthesisTracker } from "../../services/graph/report-synthesis-tracker.js";
+import {
+  reportGenerator,
+  type GraphNode,
+  type GraphEdge,
+} from "../../services/graph/report-generator.js";
 import {
   collectAllSources,
   type CollectionOptions,
@@ -52,6 +64,239 @@ import {
 } from "../../services/graph/source-mapper.js";
 
 export const graphRouter = Router();
+
+// ============================================================================
+// Helper: Generate reports for all node groups in a session
+// ============================================================================
+
+interface ConnectedComponent {
+  nodeIds: string[];
+}
+
+/**
+ * Find connected components in the graph (treating edges as undirected)
+ */
+function findConnectedComponents(
+  nodes: GraphNode[],
+  edges: GraphEdge[],
+): ConnectedComponent[] {
+  // Build adjacency list
+  const adjacency = new Map<string, Set<string>>();
+  for (const node of nodes) {
+    adjacency.set(node.id, new Set());
+  }
+  for (const edge of edges) {
+    if (adjacency.has(edge.source) && adjacency.has(edge.target)) {
+      adjacency.get(edge.source)!.add(edge.target);
+      adjacency.get(edge.target)!.add(edge.source);
+    }
+  }
+
+  // BFS to find components
+  const visited = new Set<string>();
+  const components: ConnectedComponent[] = [];
+
+  for (const node of nodes) {
+    if (visited.has(node.id)) continue;
+
+    const componentNodeIds: string[] = [];
+    const queue: string[] = [node.id];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      if (visited.has(currentId)) continue;
+
+      visited.add(currentId);
+      componentNodeIds.push(currentId);
+
+      const neighbors = adjacency.get(currentId);
+      if (neighbors) {
+        for (const neighborId of neighbors) {
+          if (!visited.has(neighborId)) {
+            queue.push(neighborId);
+          }
+        }
+      }
+    }
+
+    components.push({ nodeIds: componentNodeIds });
+  }
+
+  // Sort by size (largest first)
+  components.sort((a, b) => b.nodeIds.length - a.nodeIds.length);
+  return components;
+}
+
+/**
+ * Generates reports for all connected node groups in a session.
+ * Called after source mapping completes.
+ */
+async function generateReportsForSession(sessionId: string): Promise<void> {
+  // Create job for tracking
+  const { job, abortController } = reportSynthesisTracker.createJob(sessionId);
+  emitReportSynthesisStarted(sessionId, { jobId: job.id });
+
+  try {
+    // Check for cancellation
+    if (reportSynthesisTracker.isCancelled(sessionId)) {
+      emitReportSynthesisCancelled(sessionId, { jobId: job.id });
+      return;
+    }
+
+    // Fetch all nodes and edges for the session
+    reportSynthesisTracker.updateDetectingGroups(sessionId);
+    emitReportSynthesisDetecting(sessionId, { jobId: job.id });
+
+    const nodesRows = await query<{
+      id: string;
+      type: string;
+      title: string | null;
+      content: string;
+      status: string | null;
+      confidence: number | null;
+    }>(
+      `SELECT id, type, title, content, status, confidence FROM memory_blocks WHERE session_id = ?`,
+      [sessionId],
+    );
+
+    const edgesRows = await query<{
+      id: string;
+      source_block_id: string;
+      target_block_id: string;
+      link_type: string;
+    }>(
+      `SELECT id, source_block_id, target_block_id, link_type FROM memory_links WHERE session_id = ?`,
+      [sessionId],
+    );
+
+    const nodes: GraphNode[] = nodesRows.map((row) => ({
+      id: row.id,
+      type: row.type,
+      title: row.title,
+      content: row.content,
+      status: row.status || undefined,
+      confidence: row.confidence || undefined,
+    }));
+
+    const edges: GraphEdge[] = edgesRows.map((row) => ({
+      id: row.id,
+      source: row.source_block_id,
+      target: row.target_block_id,
+      linkType: row.link_type,
+    }));
+
+    if (nodes.length === 0) {
+      console.log(`[generateReportsForSession] No nodes found, skipping`);
+      reportSynthesisTracker.completeJob(sessionId, 0);
+      emitReportSynthesisComplete(sessionId, {
+        jobId: job.id,
+        totalGroups: 0,
+        reportsCreated: 0,
+      });
+      return;
+    }
+
+    // Find connected components
+    const components = findConnectedComponents(nodes, edges);
+    const totalGroups = components.length;
+
+    console.log(
+      `[generateReportsForSession] Found ${totalGroups} connected components`,
+    );
+
+    // Generate report for each component
+    let completedGroups = 0;
+    let reportsCreated = 0;
+
+    for (const component of components) {
+      // Check for cancellation
+      if (reportSynthesisTracker.isCancelled(sessionId)) {
+        emitReportSynthesisCancelled(sessionId, { jobId: job.id });
+        return;
+      }
+
+      const componentNodes = nodes.filter((n) =>
+        component.nodeIds.includes(n.id),
+      );
+      const componentEdges = edges.filter(
+        (e) =>
+          component.nodeIds.includes(e.source) &&
+          component.nodeIds.includes(e.target),
+      );
+
+      try {
+        const startTime = Date.now();
+
+        // Generate report via AI
+        const report = await reportGenerator.generateGroupReport(
+          {
+            sessionId,
+            nodes: componentNodes,
+            edges: componentEdges,
+            componentNodeIds: component.nodeIds,
+          },
+          abortController.signal,
+        );
+
+        const durationMs = Date.now() - startTime;
+
+        // Store in database
+        await reportGenerator.storeReport(
+          sessionId,
+          component.nodeIds,
+          componentEdges.length,
+          report,
+          durationMs,
+        );
+
+        completedGroups++;
+        reportsCreated++;
+
+        const progress = 10 + (completedGroups / totalGroups) * 90;
+        reportSynthesisTracker.updateGenerating(
+          sessionId,
+          totalGroups,
+          completedGroups,
+          report.groupName,
+        );
+        emitReportSynthesisProgress(sessionId, {
+          jobId: job.id,
+          totalGroups,
+          completedGroups,
+          currentGroupName: report.groupName,
+          progress,
+        });
+      } catch (componentError) {
+        console.error(
+          `[generateReportsForSession] Failed to generate report for component:`,
+          componentError,
+        );
+        // Continue with other components
+        completedGroups++;
+      }
+    }
+
+    // Complete
+    reportSynthesisTracker.completeJob(sessionId, reportsCreated);
+    emitReportSynthesisComplete(sessionId, {
+      jobId: job.id,
+      totalGroups,
+      reportsCreated,
+    });
+
+    console.log(
+      `[generateReportsForSession] Complete: ${reportsCreated} reports generated`,
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[generateReportsForSession] Failed:`, error);
+    reportSynthesisTracker.failJob(sessionId, errorMessage);
+    emitReportSynthesisFailed(sessionId, {
+      jobId: job.id,
+      error: errorMessage,
+    });
+  }
+}
 
 // ============================================================================
 // GET /session/:sessionId/blocks
@@ -396,6 +641,9 @@ graphRouter.patch(
         graphMembership: data.graphMembership,
       });
 
+      // Mark reports containing this block as stale
+      await reportGenerator.markReportsStale(sessionId, [blockId]);
+
       return res.json({ success: true, updatedAt: now });
     } catch (error) {
       console.error("Error updating block:", error);
@@ -452,6 +700,9 @@ graphRouter.delete(
         id: blockId,
         status: "abandoned",
       });
+
+      // Mark reports containing this block as stale
+      await reportGenerator.markReportsStale(sessionId, [blockId]);
 
       return res.json({ success: true });
     } catch (error) {
@@ -535,6 +786,12 @@ graphRouter.post(
         reason: data.reason,
       });
 
+      // Mark reports containing either linked block as stale (graph structure changed)
+      await reportGenerator.markReportsStale(sessionId, [
+        data.sourceBlockId,
+        data.targetBlockId,
+      ]);
+
       return res.status(201).json({
         id: linkId,
         sessionId,
@@ -596,6 +853,14 @@ graphRouter.delete(
       emitLinkRemoved(sessionId, {
         id: linkId,
       });
+
+      // Mark reports containing either linked block as stale (graph structure changed)
+      if (link) {
+        await reportGenerator.markReportsStale(sessionId, [
+          link.source_block_id,
+          link.target_block_id,
+        ]);
+      }
 
       return res.json({ success: true });
     } catch (error) {
@@ -1637,6 +1902,14 @@ graphRouter.post(
                   blocksToMap: newBlockSummaries.length,
                   sourcesAvailable: fullSourcesResult.sources.length,
                 });
+
+                // Trigger report synthesis (fire-and-forget)
+                generateReportsForSession(sessionId).catch((err) => {
+                  console.error(
+                    `[apply-changes] Report synthesis failed:`,
+                    err,
+                  );
+                });
               } else {
                 console.log(
                   `[apply-changes] No sources available for mapping, skipping`,
@@ -1648,6 +1921,14 @@ graphRouter.post(
                   mappingsCreated: 0,
                   blocksToMap: newBlockSummaries.length,
                   sourcesAvailable: 0,
+                });
+
+                // Trigger report synthesis even without source mappings
+                generateReportsForSession(sessionId).catch((err) => {
+                  console.error(
+                    `[apply-changes] Report synthesis failed:`,
+                    err,
+                  );
                 });
               }
             } catch (mappingError) {
@@ -2674,6 +2955,306 @@ graphRouter.post(
       });
     } catch (error) {
       console.error("Error cancelling source mapping:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// GET /session/:sessionId/report-synthesis/status
+// ============================================================================
+// Get the current status of a background report synthesis job
+
+graphRouter.get(
+  "/:sessionId/report-synthesis/status",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      const status = reportSynthesisTracker.getJobStatus(sessionId);
+
+      if (!status) {
+        return res.json({
+          success: true,
+          hasActiveJob: false,
+          job: null,
+        });
+      }
+
+      return res.json({
+        success: true,
+        hasActiveJob: reportSynthesisTracker.hasActiveJob(sessionId),
+        job: status,
+      });
+    } catch (error) {
+      console.error("Error getting report synthesis status:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// POST /session/:sessionId/report-synthesis/cancel
+// ============================================================================
+// Cancel a running report synthesis job
+
+graphRouter.post(
+  "/:sessionId/report-synthesis/cancel",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      // Check if there's an active job to cancel
+      if (!reportSynthesisTracker.hasActiveJob(sessionId)) {
+        return res.status(404).json({
+          success: false,
+          error: "No active report synthesis job found for this session",
+        });
+      }
+
+      // Cancel the job
+      const cancelled = reportSynthesisTracker.cancelJob(
+        sessionId,
+        "Cancelled by user",
+      );
+
+      if (cancelled) {
+        // Emit WebSocket event for cancellation
+        const status = reportSynthesisTracker.getJobStatus(sessionId);
+        if (status) {
+          emitReportSynthesisCancelled(sessionId, { jobId: status.id });
+        }
+      }
+
+      return res.json({
+        success: true,
+        cancelled,
+        message: cancelled
+          ? "Report synthesis job cancelled"
+          : "No job to cancel",
+      });
+    } catch (error) {
+      console.error("Error cancelling report synthesis:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// GET /session/:sessionId/reports
+// ============================================================================
+// Get all group reports for a session
+
+graphRouter.get("/:sessionId/reports", async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    const reports = await reportGenerator.getReportsForSession(sessionId);
+
+    return res.json({
+      success: true,
+      reports,
+      count: reports.length,
+    });
+  } catch (error) {
+    console.error("Error getting reports:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ============================================================================
+// GET /session/:sessionId/reports/for-node/:nodeId
+// ============================================================================
+// Get the report for a specific node's group
+
+graphRouter.get(
+  "/:sessionId/reports/for-node/:nodeId",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId, nodeId } = req.params;
+
+      const report = await reportGenerator.getReportForNode(sessionId, nodeId);
+
+      if (!report) {
+        return res.json({
+          success: true,
+          report: null,
+        });
+      }
+
+      return res.json({
+        success: true,
+        report,
+      });
+    } catch (error) {
+      console.error("Error getting report for node:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// POST /session/:sessionId/reports/:reportId/regenerate
+// ============================================================================
+// Regenerate a specific report
+
+graphRouter.post(
+  "/:sessionId/reports/:reportId/regenerate",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId, reportId } = req.params;
+
+      // Get the existing report to find its node IDs
+      const existingReport = await reportGenerator.getReportById(reportId);
+
+      if (!existingReport) {
+        return res.status(404).json({
+          success: false,
+          error: "Report not found",
+        });
+      }
+
+      // Trigger regeneration (fire-and-forget)
+      (async () => {
+        try {
+          // Create a job for tracking
+          const { job, abortController } =
+            reportSynthesisTracker.createJob(sessionId);
+          emitReportSynthesisStarted(sessionId, { jobId: job.id });
+
+          // Fetch the nodes and edges for this group
+          const nodeIds = existingReport.nodeIds;
+
+          const nodesRows = await query<{
+            id: string;
+            type: string;
+            title: string | null;
+            content: string;
+            status: string | null;
+            confidence: number | null;
+          }>(
+            `SELECT id, type, title, content, status, confidence FROM memory_blocks WHERE id IN (${nodeIds.map(() => "?").join(",")})`,
+            nodeIds,
+          );
+
+          const edgesRows = await query<{
+            id: string;
+            source_id: string;
+            target_id: string;
+            link_type: string;
+          }>(
+            `SELECT id, source_id, target_id, link_type FROM memory_links WHERE session_id = ? AND source_id IN (${nodeIds.map(() => "?").join(",")}) AND target_id IN (${nodeIds.map(() => "?").join(",")})`,
+            [sessionId, ...nodeIds, ...nodeIds],
+          );
+
+          const nodes: GraphNode[] = nodesRows.map((row) => ({
+            id: row.id,
+            type: row.type,
+            title: row.title,
+            content: row.content,
+            status: row.status || undefined,
+            confidence: row.confidence || undefined,
+          }));
+
+          const edges: GraphEdge[] = edgesRows.map((row) => ({
+            id: row.id,
+            source: row.source_id,
+            target: row.target_id,
+            linkType: row.link_type,
+          }));
+
+          reportSynthesisTracker.updateGenerating(
+            sessionId,
+            1,
+            0,
+            "Regenerating...",
+          );
+          emitReportSynthesisProgress(sessionId, {
+            jobId: job.id,
+            totalGroups: 1,
+            completedGroups: 0,
+            currentGroupName: existingReport.groupName || "Group",
+            progress: 20,
+          });
+
+          const startTime = Date.now();
+
+          // Generate report via AI
+          const report = await reportGenerator.generateGroupReport(
+            {
+              sessionId,
+              nodes,
+              edges,
+              componentNodeIds: nodeIds,
+            },
+            abortController.signal,
+          );
+
+          const durationMs = Date.now() - startTime;
+
+          // Store in database (will update existing due to unique constraint)
+          await reportGenerator.storeReport(
+            sessionId,
+            nodeIds,
+            edges.length,
+            report,
+            durationMs,
+          );
+
+          reportSynthesisTracker.completeJob(sessionId, 1);
+          emitReportSynthesisComplete(sessionId, {
+            jobId: job.id,
+            totalGroups: 1,
+            reportsCreated: 1,
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          console.error(`[regenerate-report] Failed:`, error);
+          const status = reportSynthesisTracker.getJobStatus(sessionId);
+          if (status) {
+            reportSynthesisTracker.failJob(sessionId, errorMessage);
+            emitReportSynthesisFailed(sessionId, {
+              jobId: status.id,
+              error: errorMessage,
+            });
+          }
+        }
+      })();
+
+      return res.json({
+        success: true,
+        message: "Report regeneration started",
+      });
+    } catch (error) {
+      console.error("Error starting report regeneration:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// POST /session/:sessionId/reports/regenerate-all
+// ============================================================================
+// Regenerate all reports for a session
+
+graphRouter.post(
+  "/:sessionId/reports/regenerate-all",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      // Trigger full report synthesis (fire-and-forget)
+      generateReportsForSession(sessionId).catch((err) => {
+        console.error(`[regenerate-all-reports] Failed:`, err);
+      });
+
+      return res.json({
+        success: true,
+        message: "Report regeneration started",
+      });
+    } catch (error) {
+      console.error("Error starting report regeneration:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

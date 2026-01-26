@@ -20,6 +20,7 @@ import type { ApiBlock } from "../../../types/graph";
 export interface WebSocketEvent<T = unknown> {
   type: string;
   payload: T;
+  data?: T; // Alternative field used by IdeationEvent format
   timestamp?: string;
 }
 
@@ -71,6 +72,26 @@ export interface SourceMappingPayload {
   error?: string;
 }
 
+// Report synthesis event payloads
+export type ReportSynthesisStatus =
+  | "started"
+  | "detecting"
+  | "generating"
+  | "complete"
+  | "failed"
+  | "cancelled";
+
+export interface ReportSynthesisPayload {
+  jobId: string;
+  totalGroups: number;
+  completedGroups: number;
+  currentGroupName?: string;
+  reportsCreated?: number;
+  progress?: number; // 0-100
+  status: ReportSynthesisStatus;
+  error?: string;
+}
+
 export interface UseGraphWebSocketOptions {
   sessionId: string;
   wsUrl?: string;
@@ -84,6 +105,12 @@ export interface UseGraphWebSocketOptions {
   onSourceMappingComplete?: (payload: SourceMappingPayload) => void;
   onSourceMappingFailed?: (payload: SourceMappingPayload) => void;
   onSourceMappingCancelled?: (payload: SourceMappingPayload) => void;
+  // Report synthesis events (background report generation for node groups)
+  onReportSynthesisStarted?: (payload: ReportSynthesisPayload) => void;
+  onReportSynthesisProgress?: (payload: ReportSynthesisPayload) => void;
+  onReportSynthesisComplete?: (payload: ReportSynthesisPayload) => void;
+  onReportSynthesisFailed?: (payload: ReportSynthesisPayload) => void;
+  onReportSynthesisCancelled?: (payload: ReportSynthesisPayload) => void;
   onError?: (error: Error) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
@@ -132,6 +159,11 @@ export function useGraphWebSocket(
     onSourceMappingComplete,
     onSourceMappingFailed,
     onSourceMappingCancelled,
+    onReportSynthesisStarted,
+    onReportSynthesisProgress,
+    onReportSynthesisComplete,
+    onReportSynthesisFailed,
+    onReportSynthesisCancelled,
     onError,
     onConnect,
     onDisconnect,
@@ -166,6 +198,11 @@ export function useGraphWebSocket(
     onSourceMappingComplete,
     onSourceMappingFailed,
     onSourceMappingCancelled,
+    onReportSynthesisStarted,
+    onReportSynthesisProgress,
+    onReportSynthesisComplete,
+    onReportSynthesisFailed,
+    onReportSynthesisCancelled,
     onError,
     onConnect,
     onDisconnect,
@@ -183,6 +220,11 @@ export function useGraphWebSocket(
       onSourceMappingComplete,
       onSourceMappingFailed,
       onSourceMappingCancelled,
+      onReportSynthesisStarted,
+      onReportSynthesisProgress,
+      onReportSynthesisComplete,
+      onReportSynthesisFailed,
+      onReportSynthesisCancelled,
       onError,
       onConnect,
       onDisconnect,
@@ -197,6 +239,11 @@ export function useGraphWebSocket(
     onSourceMappingComplete,
     onSourceMappingFailed,
     onSourceMappingCancelled,
+    onReportSynthesisStarted,
+    onReportSynthesisProgress,
+    onReportSynthesisComplete,
+    onReportSynthesisFailed,
+    onReportSynthesisCancelled,
     onError,
     onConnect,
     onDisconnect,
@@ -293,6 +340,37 @@ export function useGraphWebSocket(
         case "source_mapping_cancelled":
           callbacksRef.current.onSourceMappingCancelled?.(
             data.data as unknown as SourceMappingPayload,
+          );
+          break;
+
+        // Report synthesis events (wrapped in IdeationEvent format)
+        case "report_synthesis_started":
+          callbacksRef.current.onReportSynthesisStarted?.(
+            data.data as unknown as ReportSynthesisPayload,
+          );
+          break;
+
+        case "report_synthesis_progress":
+          callbacksRef.current.onReportSynthesisProgress?.(
+            data.data as unknown as ReportSynthesisPayload,
+          );
+          break;
+
+        case "report_synthesis_complete":
+          callbacksRef.current.onReportSynthesisComplete?.(
+            data.data as unknown as ReportSynthesisPayload,
+          );
+          break;
+
+        case "report_synthesis_failed":
+          callbacksRef.current.onReportSynthesisFailed?.(
+            data.data as unknown as ReportSynthesisPayload,
+          );
+          break;
+
+        case "report_synthesis_cancelled":
+          callbacksRef.current.onReportSynthesisCancelled?.(
+            data.data as unknown as ReportSynthesisPayload,
           );
           break;
 

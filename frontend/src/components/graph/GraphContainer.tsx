@@ -90,6 +90,8 @@ export interface GraphContainerProps {
   isLoadingSnapshots?: boolean;
   isSavingSnapshot?: boolean;
   isRestoringSnapshot?: boolean;
+  // Report refresh trigger - increments when report synthesis completes
+  reportRefreshTrigger?: number;
 }
 
 /**
@@ -198,6 +200,7 @@ export function GraphContainer({
   isLoadingSnapshots = false,
   isSavingSnapshot = false,
   isRestoringSnapshot = false,
+  reportRefreshTrigger,
 }: GraphContainerProps) {
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -215,6 +218,10 @@ export function GraphContainer({
   const [expandedPill, setExpandedPill] = useState<
     "actions" | "cycles" | "legend" | null
   >(null);
+  // Report view state - tracks layout override and highlighted group nodes
+  const [reportViewNodeIds, setReportViewNodeIds] = useState<string[]>([]);
+  // Use ref to avoid callback dependency issues
+  const layoutBeforeReportViewRef = useRef<LayoutOption | null>(null);
 
   // Source selection modal state
   const [showSourceSelectionModal, setShowSourceSelectionModal] =
@@ -274,8 +281,12 @@ export function GraphContainer({
     lastUpdated,
   ]);
 
-  // Compute highlighted node and edge IDs from hovered relationship or cycle node
+  // Compute highlighted node and edge IDs from hovered relationship, cycle node, or report view
   const highlightedNodeIds = useMemo(() => {
+    // Report view highlighting takes priority - show all group nodes
+    if (reportViewNodeIds.length > 0) {
+      return reportViewNodeIds;
+    }
     // Cycle card header hover - highlight all nodes in the cycle
     if (hoveredCycleNodeIds.length > 0) {
       return hoveredCycleNodeIds;
@@ -289,7 +300,12 @@ export function GraphContainer({
       hoveredRelationship.currentNodeId,
       hoveredRelationship.relatedNodeId,
     ];
-  }, [hoveredRelationship, hoveredCycleNodeId, hoveredCycleNodeIds]);
+  }, [
+    hoveredRelationship,
+    hoveredCycleNodeId,
+    hoveredCycleNodeIds,
+    reportViewNodeIds,
+  ]);
 
   const highlightedEdgeIds = useMemo(() => {
     if (!hoveredRelationship) return [];
@@ -439,6 +455,35 @@ export function GraphContainer({
       graphCanvasRef.current?.fitNodesInView(nodeIds);
     }
   }, []);
+
+  // Handle report view state changes - switches layout, highlights nodes, and zooms
+  const handleReportViewChange = useCallback(
+    (active: boolean, nodeIds: string[]) => {
+      if (active && nodeIds.length > 0) {
+        // Entering report view: save current layout, switch to force-directed, highlight nodes
+        setCurrentLayout((prevLayout) => {
+          // Only save if we haven't already saved (prevent overwriting on re-renders)
+          if (layoutBeforeReportViewRef.current === null) {
+            layoutBeforeReportViewRef.current = prevLayout;
+          }
+          return "forceDirected2d";
+        });
+        setReportViewNodeIds(nodeIds);
+        // Zoom to fit all group nodes with a slight delay to allow layout transition
+        setTimeout(() => {
+          graphCanvasRef.current?.fitNodesInView(nodeIds, { slow: true });
+        }, 100);
+      } else {
+        // Exiting report view: restore previous layout and clear highlights
+        if (layoutBeforeReportViewRef.current !== null) {
+          setCurrentLayout(layoutBeforeReportViewRef.current);
+          layoutBeforeReportViewRef.current = null;
+        }
+        setReportViewNodeIds([]);
+      }
+    },
+    [], // No dependencies - uses refs and functional updates
+  );
 
   // Handle opening source selection modal
   const handleOpenSourceSelection = useCallback(() => {
@@ -765,6 +810,7 @@ export function GraphContainer({
           clusterAttribute={clusterStrategy !== "none" ? "cluster" : undefined}
           clusterStrength={clusterStrength}
           totalNodeCount={nodes.length}
+          showAllLabels={reportViewNodeIds.length > 0}
           className="h-full"
         />
 
@@ -1044,6 +1090,8 @@ export function GraphContainer({
           onLinkNode={onLinkNode}
           onGroupIntoSynthesis={onGroupIntoSynthesis}
           onDeleteNode={onDeleteNode}
+          reportRefreshTrigger={reportRefreshTrigger}
+          onReportViewChange={handleReportViewChange}
         />
       )}
 

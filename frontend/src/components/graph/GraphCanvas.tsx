@@ -203,6 +203,8 @@ export interface GraphCanvasProps {
   isFilteredEmpty?: boolean;
   /** Total unfiltered node count (used to determine if empty is from filters) */
   totalNodeCount?: number;
+  /** When true, show labels for all nodes (used in report view) */
+  showAllLabels?: boolean;
 }
 
 export interface GraphCanvasHandle {
@@ -450,6 +452,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       clusterStrength = 0.7,
       className = "",
       totalNodeCount = 0,
+      showAllLabels = false,
     },
     ref,
   ) {
@@ -1002,7 +1005,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             clusterAttribute,
             clusterStrength,
           )}
-          labelType="auto"
+          labelType={showAllLabels ? "all" : "auto"}
           draggable
           animated
           cameraMode="pan"

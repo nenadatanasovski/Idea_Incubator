@@ -19,6 +19,8 @@ import {
   ChevronRight,
   X,
   Filter,
+  FileBarChart,
+  AlertCircle,
 } from "lucide-react";
 
 export type MemoryTableName =
@@ -26,7 +28,8 @@ export type MemoryTableName =
   | "links"
   | "graphs"
   | "sessions"
-  | "files";
+  | "files"
+  | "reports";
 
 interface MemoryBlock {
   id: string;
@@ -108,6 +111,24 @@ interface MemoryFile {
   version: number;
   createdAt: string;
   updatedAt: string;
+}
+
+interface NodeGroupReport {
+  id: string;
+  sessionId: string;
+  nodeIds: string[];
+  groupHash: string;
+  groupName: string | null;
+  overview: string | null;
+  keyThemes: string[];
+  story: string | null;
+  openQuestions: string[];
+  nodeCount: number;
+  edgeCount: number;
+  status: "current" | "stale";
+  generatedAt: string;
+  generationDurationMs: number | null;
+  modelUsed: string | null;
 }
 
 export interface MemoryDatabasePanelProps {
@@ -309,16 +330,20 @@ export function MemoryDatabasePanel({
   refetchTrigger,
 }: MemoryDatabasePanelProps) {
   const [activeTable, setActiveTable] = useState<MemoryTableName>(
-    highlightTable || "files",
+    highlightTable || "reports",
   );
   const [blocks, setBlocks] = useState<MemoryBlock[]>([]);
   const [links, setLinks] = useState<MemoryLink[]>([]);
   const [memoryFiles, setMemoryFiles] = useState<MemoryFile[]>([]);
+  const [reports, setReports] = useState<NodeGroupReport[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBlock, setSelectedBlock] = useState<MemoryBlock | null>(null);
   const [expandedFileIds, setExpandedFileIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [expandedReportIds, setExpandedReportIds] = useState<Set<string>>(
     new Set(),
   );
 
@@ -347,6 +372,19 @@ export function MemoryDatabasePanel({
         next.delete(fileId);
       } else {
         next.add(fileId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Toggle report expansion
+  const toggleReportExpansion = useCallback((reportId: string) => {
+    setExpandedReportIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(reportId)) {
+        next.delete(reportId);
+      } else {
+        next.add(reportId);
       }
       return next;
     });
@@ -556,6 +594,36 @@ export function MemoryDatabasePanel({
           ),
         );
       }
+
+      // Fetch reports
+      const reportsRes = await fetch(
+        `/api/ideation/session/${sessionId}/reports`,
+      );
+      if (reportsRes.ok) {
+        const reportsData = await reportsRes.json();
+        setReports(
+          (reportsData.reports || []).map((r: Record<string, unknown>) => ({
+            id: r.id as string,
+            sessionId: (r.sessionId || r.session_id) as string,
+            nodeIds: (r.nodeIds || []) as string[],
+            groupHash: (r.groupHash || r.group_hash) as string,
+            groupName: (r.groupName || r.group_name) as string | null,
+            overview: r.overview as string | null,
+            keyThemes: (r.keyThemes || r.key_themes || []) as string[],
+            story: r.story as string | null,
+            openQuestions: (r.openQuestions ||
+              r.open_questions ||
+              []) as string[],
+            nodeCount: (r.nodeCount || r.node_count || 0) as number,
+            edgeCount: (r.edgeCount || r.edge_count || 0) as number,
+            status: (r.status || "current") as "current" | "stale",
+            generatedAt: (r.generatedAt || r.generated_at) as string,
+            generationDurationMs: (r.generationDurationMs ||
+              r.generation_duration_ms) as number | null,
+            modelUsed: (r.modelUsed || r.model_used) as string | null,
+          })),
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch data");
     } finally {
@@ -702,6 +770,13 @@ export function MemoryDatabasePanel({
           </div>
           {/* Table tabs - inline with title */}
           <div className="flex items-center gap-2 ml-4">
+            <TableTab
+              name="Reports"
+              icon={FileBarChart}
+              isActive={activeTable === "reports"}
+              count={reports.length}
+              onClick={() => setActiveTable("reports")}
+            />
             <TableTab
               name="Memory Files"
               icon={FileText}
@@ -1472,6 +1547,280 @@ export function MemoryDatabasePanel({
                 </tr>
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Reports tab - Node Group Reports */}
+        {!isLoading && !error && activeTable === "reports" && (
+          <div className="overflow-x-auto">
+            {/* Reports header with Regenerate All button */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+              <div className="text-sm text-gray-600">
+                {reports.length} group{" "}
+                {reports.length === 1 ? "report" : "reports"}
+                {reports.filter((r) => r.status === "stale").length > 0 && (
+                  <span className="ml-2 text-amber-600">
+                    ({reports.filter((r) => r.status === "stale").length} stale)
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    await fetch(
+                      `/api/ideation/session/${sessionId}/reports/regenerate-all`,
+                      { method: "POST" },
+                    );
+                  } catch (err) {
+                    console.error("Failed to regenerate reports:", err);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Regenerate All
+              </button>
+            </div>
+            {reports.length === 0 ? (
+              <div className="text-center py-12">
+                <FileBarChart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No reports generated yet</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Reports are automatically generated after source mapping
+                  completes
+                </p>
+              </div>
+            ) : (
+              <table className="w-full min-w-[1000px]">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr className="border-b border-gray-200">
+                    <th className="px-2 py-3 w-10"></th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[180px]">
+                      Group Name
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-20">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                      Nodes
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                      Edges
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[300px]">
+                      Overview
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-36">
+                      Generated
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {reports.map((report) => {
+                    const isExpanded = expandedReportIds.has(report.id);
+                    return (
+                      <Fragment key={report.id}>
+                        <tr
+                          id={`memory-row-${report.id}`}
+                          className={`hover:bg-gray-50 transition-colors cursor-pointer ${
+                            highlightId === report.id
+                              ? "bg-cyan-50 border-l-4 border-l-cyan-500"
+                              : isExpanded
+                                ? "bg-gray-100"
+                                : ""
+                          }`}
+                          onClick={() => toggleReportExpansion(report.id)}
+                        >
+                          <td className="px-2 py-2.5 text-center">
+                            <button
+                              className="p-1 hover:bg-gray-200 rounded transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleReportExpansion(report.id);
+                              }}
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                              )}
+                            </button>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span className="font-medium text-gray-900">
+                              {report.groupName || "Unnamed Group"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                report.status === "current"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-amber-100 text-amber-700"
+                              }`}
+                            >
+                              {report.status === "current"
+                                ? "Current"
+                                : "Stale"}
+                            </span>
+                            {report.status === "stale" && (
+                              <AlertCircle className="w-3.5 h-3.5 text-amber-500 inline ml-1" />
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span className="text-sm text-gray-600">
+                              {report.nodeCount}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span className="text-sm text-gray-600">
+                              {report.edgeCount}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <p className="text-sm text-gray-700 line-clamp-2">
+                              {report.overview
+                                ? report.overview.substring(0, 150) +
+                                  (report.overview.length > 150 ? "..." : "")
+                                : "—"}
+                            </p>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span className="text-xs text-gray-500 whitespace-nowrap">
+                              {report.generatedAt
+                                ? new Date(
+                                    report.generatedAt,
+                                  ).toLocaleDateString()
+                                : "—"}
+                            </span>
+                          </td>
+                        </tr>
+                        {/* Expanded report details */}
+                        {isExpanded && (
+                          <tr className="bg-gray-50">
+                            <td colSpan={7} className="px-4 py-4">
+                              <div className="ml-6 space-y-4">
+                                {/* Overview */}
+                                {report.overview && (
+                                  <div>
+                                    <dt className="text-xs font-medium text-gray-500 mb-1">
+                                      Overview
+                                    </dt>
+                                    <dd className="text-sm text-gray-700 bg-white rounded-lg p-3 border border-gray-200">
+                                      {report.overview}
+                                    </dd>
+                                  </div>
+                                )}
+
+                                {/* Key Themes */}
+                                {report.keyThemes.length > 0 && (
+                                  <div>
+                                    <dt className="text-xs font-medium text-gray-500 mb-1">
+                                      Key Themes
+                                    </dt>
+                                    <dd className="bg-white rounded-lg p-3 border border-gray-200">
+                                      <ul className="list-disc list-inside space-y-1">
+                                        {report.keyThemes.map((theme, idx) => (
+                                          <li
+                                            key={idx}
+                                            className="text-sm text-gray-700"
+                                          >
+                                            {theme}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </dd>
+                                  </div>
+                                )}
+
+                                {/* Story */}
+                                {report.story && (
+                                  <div>
+                                    <dt className="text-xs font-medium text-gray-500 mb-1">
+                                      Story
+                                    </dt>
+                                    <dd className="text-sm text-gray-700 bg-white rounded-lg p-3 border border-gray-200 whitespace-pre-wrap">
+                                      {report.story}
+                                    </dd>
+                                  </div>
+                                )}
+
+                                {/* Open Questions */}
+                                {report.openQuestions.length > 0 && (
+                                  <div>
+                                    <dt className="text-xs font-medium text-gray-500 mb-1">
+                                      Open Questions
+                                    </dt>
+                                    <dd className="bg-white rounded-lg p-3 border border-gray-200">
+                                      <ul className="list-disc list-inside space-y-1">
+                                        {report.openQuestions.map(
+                                          (question, idx) => (
+                                            <li
+                                              key={idx}
+                                              className="text-sm text-gray-700"
+                                            >
+                                              {question}
+                                            </li>
+                                          ),
+                                        )}
+                                      </ul>
+                                    </dd>
+                                  </div>
+                                )}
+
+                                {/* Metadata */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-gray-200">
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      Report ID
+                                    </dt>
+                                    <dd
+                                      className="font-mono text-xs text-gray-700 truncate"
+                                      title={report.id}
+                                    >
+                                      {report.id.slice(0, 8)}...
+                                    </dd>
+                                  </div>
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      Group Hash
+                                    </dt>
+                                    <dd
+                                      className="font-mono text-xs text-gray-700 truncate"
+                                      title={report.groupHash}
+                                    >
+                                      {report.groupHash.slice(0, 8)}...
+                                    </dd>
+                                  </div>
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      Generation Time
+                                    </dt>
+                                    <dd className="text-xs text-gray-700">
+                                      {report.generationDurationMs
+                                        ? `${(report.generationDurationMs / 1000).toFixed(1)}s`
+                                        : "—"}
+                                    </dd>
+                                  </div>
+                                  <div className="bg-white rounded-lg p-2 border border-gray-200">
+                                    <dt className="text-xs text-gray-500 mb-1">
+                                      Model
+                                    </dt>
+                                    <dd className="text-xs text-gray-700">
+                                      {report.modelUsed || "—"}
+                                    </dd>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </div>

@@ -59,7 +59,13 @@ export type IdeationEventType =
   | "source_mapping_progress" // Source mapping progress update
   | "source_mapping_complete" // Source mapping finished successfully
   | "source_mapping_failed" // Source mapping failed
-  | "source_mapping_cancelled"; // Source mapping was cancelled
+  | "source_mapping_cancelled" // Source mapping was cancelled
+  // Report synthesis events (background report generation for node groups)
+  | "report_synthesis_started" // Report synthesis job started
+  | "report_synthesis_progress" // Report synthesis progress update
+  | "report_synthesis_complete" // Report synthesis finished successfully
+  | "report_synthesis_failed" // Report synthesis failed
+  | "report_synthesis_cancelled"; // Report synthesis was cancelled
 
 // Event types for agent/monitoring system (WSK-001)
 export type AgentEventType =
@@ -1191,6 +1197,126 @@ export function emitSourceMappingCancelled(
   payload: Pick<SourceMappingPayload, "jobId">,
 ): void {
   emitSessionEvent("source_mapping_cancelled", sessionId, {
+    ...payload,
+    status: "cancelled",
+  });
+}
+
+// ============================================
+// Report Synthesis Event Functions
+// ============================================
+
+/**
+ * Payload for report synthesis events
+ */
+export interface ReportSynthesisPayload {
+  jobId: string;
+  totalGroups: number;
+  completedGroups: number;
+  currentGroupName?: string;
+  reportsCreated?: number;
+  progress?: number; // 0-100
+  status:
+    | "started"
+    | "detecting"
+    | "generating"
+    | "complete"
+    | "failed"
+    | "cancelled";
+  error?: string;
+}
+
+/**
+ * Emit report synthesis started event
+ */
+export function emitReportSynthesisStarted(
+  sessionId: string,
+  payload: Pick<ReportSynthesisPayload, "jobId">,
+): void {
+  emitSessionEvent("report_synthesis_started", sessionId, {
+    ...payload,
+    totalGroups: 0,
+    completedGroups: 0,
+    progress: 0,
+    status: "started",
+  });
+}
+
+/**
+ * Emit report synthesis progress event (detecting groups)
+ */
+export function emitReportSynthesisDetecting(
+  sessionId: string,
+  payload: Pick<ReportSynthesisPayload, "jobId">,
+): void {
+  emitSessionEvent("report_synthesis_progress", sessionId, {
+    ...payload,
+    totalGroups: 0,
+    completedGroups: 0,
+    progress: 10,
+    status: "detecting",
+  });
+}
+
+/**
+ * Emit report synthesis progress event (generating reports)
+ */
+export function emitReportSynthesisProgress(
+  sessionId: string,
+  payload: Pick<
+    ReportSynthesisPayload,
+    | "jobId"
+    | "totalGroups"
+    | "completedGroups"
+    | "currentGroupName"
+    | "progress"
+  >,
+): void {
+  emitSessionEvent("report_synthesis_progress", sessionId, {
+    ...payload,
+    status: "generating",
+  });
+}
+
+/**
+ * Emit report synthesis complete event
+ */
+export function emitReportSynthesisComplete(
+  sessionId: string,
+  payload: Pick<
+    ReportSynthesisPayload,
+    "jobId" | "totalGroups" | "reportsCreated"
+  >,
+): void {
+  emitSessionEvent("report_synthesis_complete", sessionId, {
+    ...payload,
+    completedGroups: payload.totalGroups,
+    progress: 100,
+    status: "complete",
+  });
+}
+
+/**
+ * Emit report synthesis failed event
+ */
+export function emitReportSynthesisFailed(
+  sessionId: string,
+  payload: Pick<ReportSynthesisPayload, "jobId" | "error">,
+): void {
+  emitSessionEvent("report_synthesis_failed", sessionId, {
+    ...payload,
+    status: "failed",
+  });
+}
+
+/**
+ * Emit report synthesis cancelled event
+ */
+export function emitReportSynthesisCancelled(
+  sessionId: string,
+  payload: Pick<ReportSynthesisPayload, "jobId">,
+): void {
+  emitSessionEvent("report_synthesis_cancelled", sessionId, {
     ...payload,
     status: "cancelled",
   });

@@ -4,7 +4,7 @@
 // Implements TEST-UI-006 requirements with backwards compatibility
 // =============================================================================
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   FileText,
   ChevronLeft,
@@ -13,8 +13,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { ArtifactTable } from "./ArtifactTable";
-import { ArtifactPreview } from "./ArtifactPreview";
-import { SessionsView } from "./SessionsView";
 import { ConfidenceMeter } from "./ConfidenceMeter";
 import { ViabilityMeter } from "./ViabilityMeter";
 import { RisksList } from "./RisksList";
@@ -59,12 +57,8 @@ export interface IdeaArtifactPanelProps {
   onDeleteArtifact?: (artifactId: string) => void;
   onRenameArtifact?: (artifactId: string, newTitle: string) => Promise<void>;
   onCopyRef?: (artifactId: string) => void;
-  onDeleteSession?: (sessionId: string, artifactIds: string[]) => void;
   isArtifactLoading?: boolean;
   isLoading?: boolean;
-  // View mode props (new for TEST-UI-006)
-  viewMode?: "files" | "sessions";
-  onViewModeChange?: (mode: "files" | "sessions") => void;
   // Panel state
   isMinimized?: boolean;
   onExpandPanel?: () => void;
@@ -104,38 +98,6 @@ const CloseIcon = () => (
   </svg>
 );
 
-const FilesIcon = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-    />
-  </svg>
-);
-
-const SessionsIcon = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-    />
-  </svg>
-);
-
 const ExpandIcon = () => (
   <svg
     className="w-5 h-5"
@@ -167,49 +129,6 @@ const CollapseIcon = () => (
     />
   </svg>
 );
-
-// =============================================================================
-// View Mode Toggle Component
-// =============================================================================
-
-interface ViewModeToggleProps {
-  viewMode: "files" | "sessions";
-  onChange: (mode: "files" | "sessions") => void;
-}
-
-const ViewModeToggle: React.FC<ViewModeToggleProps> = ({
-  viewMode,
-  onChange,
-}) => {
-  return (
-    <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-      <button
-        data-testid="view-mode-files"
-        onClick={() => onChange("files")}
-        className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-          viewMode === "files"
-            ? "bg-white text-blue-600 shadow-sm active"
-            : "text-gray-500 hover:text-gray-700"
-        }`}
-      >
-        <FilesIcon />
-        <span>Files</span>
-      </button>
-      <button
-        data-testid="view-mode-sessions"
-        onClick={() => onChange("sessions")}
-        className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-          viewMode === "sessions"
-            ? "bg-white text-blue-600 shadow-sm active"
-            : "text-gray-500 hover:text-gray-700"
-        }`}
-      >
-        <SessionsIcon />
-        <span>Sessions</span>
-      </button>
-    </div>
-  );
-};
 
 // =============================================================================
 // Idea Content Component (for tab view)
@@ -358,12 +277,8 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
   onDeleteArtifact,
   // onRenameArtifact - intentionally unused, kept for backwards compat
   onCopyRef,
-  onDeleteSession,
   isArtifactLoading = false,
   isLoading = false,
-  // View mode props
-  viewMode: externalViewMode,
-  onViewModeChange: externalOnViewModeChange,
   // Panel state
   isMinimized = false,
   onExpandPanel,
@@ -384,17 +299,30 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>("idea");
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Internal view mode state (if not provided externally)
-  const [internalViewMode, setInternalViewMode] = useState<
-    "files" | "sessions"
-  >("files");
-  const viewMode = externalViewMode ?? internalViewMode;
-  const handleViewModeChange = externalOnViewModeChange ?? setInternalViewMode;
-
   // Track selected artifact object
   const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(
     null,
   );
+
+  // Track latest artifact ID for auto-expanding new artifacts
+  const [latestArtifactId, setLatestArtifactId] = useState<string | null>(null);
+  const prevArtifactsLengthRef = useRef(artifacts.length);
+
+  // Detect when new artifacts are added and track the latest one
+  useEffect(() => {
+    if (artifacts.length > prevArtifactsLengthRef.current) {
+      // New artifact added - find the newest one by createdAt
+      const sorted = [...artifacts].sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
+      if (sorted.length > 0) {
+        setLatestArtifactId(sorted[0].id);
+      }
+    }
+    prevArtifactsLengthRef.current = artifacts.length;
+  }, [artifacts]);
 
   // Compute effective selected path from either new prop or currentArtifact (backwards compat)
   const effectiveSelectedPath =
@@ -446,7 +374,7 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
 
   // Handle edit with content
   const handleEdit = useCallback(
-    (artifactId: string, content: string) => {
+    (artifactId: string, content?: string) => {
       if (onEditArtifact) {
         onEditArtifact(artifactId, content);
       }
@@ -621,74 +549,52 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
         )}
 
         {activeTab === "artifacts" && (
-          /* Artifacts tab with 20/80 layout (TEST-UI-006) */
+          /* Artifacts tab with accordion layout */
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* View mode toggle header for artifacts */}
-            <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200 flex-shrink-0">
-              <ViewModeToggle
-                viewMode={viewMode}
-                onChange={handleViewModeChange}
-              />
-            </div>
-
-            {/* Main content area with 20/80 split - stacks on mobile */}
-            <div className="flex-1 flex flex-col sm:flex-col overflow-hidden">
-              {/* Table container - 20% height on desktop, 33% on mobile */}
-              <div
-                data-testid="artifact-table-container"
-                className="h-1/3 sm:h-[20%] min-h-[100px] max-h-[200px] overflow-auto border-b border-gray-200 flex-shrink-0"
-                style={{ overflowY: "auto" }}
-              >
-                {loading ? (
-                  // Show skeleton loading state
-                  <ArtifactTable
-                    artifacts={[]}
-                    selectedPath={null}
-                    onSelect={() => {}}
-                    onToggleFolder={() => {}}
-                    classifications={{}}
-                    isLoading={true}
-                  />
-                ) : artifacts.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-gray-500 text-sm">
-                    No artifacts yet
-                  </div>
-                ) : viewMode === "files" ? (
-                  <ArtifactTable
-                    artifacts={artifacts}
-                    selectedPath={effectiveSelectedPath}
-                    onSelect={handleSelectArtifact}
-                    onToggleFolder={handleToggleFolder}
-                    onDelete={handleDelete}
-                    onClearSelection={handleClearSelection}
-                    classifications={classifications}
-                    isLoading={false}
-                  />
-                ) : (
-                  // Sessions view - implemented in TEST-UI-007
-                  <SessionsView
-                    artifacts={artifacts}
-                    selectedPath={effectiveSelectedPath}
-                    onSelect={handleSelectArtifact}
-                    onDeleteSession={onDeleteSession}
-                    classifications={classifications}
-                  />
-                )}
-              </div>
-
-              {/* Preview container - 80% height on desktop */}
-              <div
-                data-testid="artifact-preview-container"
-                className="flex-1 sm:flex-1 overflow-hidden"
-              >
-                <ArtifactPreview
-                  artifact={selectedArtifact}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onCopyRef={handleCopyRef}
-                  isLoading={loading}
+            {/* Accordion artifact list - takes full height */}
+            <div
+              data-testid="artifact-table-container"
+              className="flex-1 overflow-auto"
+            >
+              {loading ? (
+                // Show skeleton loading state
+                <ArtifactTable
+                  artifacts={[]}
+                  selectedPath={null}
+                  onSelect={() => {}}
+                  onToggleFolder={() => {}}
+                  classifications={{}}
+                  isLoading={true}
                 />
-              </div>
+              ) : artifacts.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 font-medium">
+                      No artifacts yet
+                    </p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Artifacts created during the session will appear here
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <ArtifactTable
+                  artifacts={artifacts}
+                  selectedPath={effectiveSelectedPath}
+                  onSelect={handleSelectArtifact}
+                  onToggleFolder={handleToggleFolder}
+                  onDelete={handleDelete}
+                  onEdit={handleEdit}
+                  onCopyRef={handleCopyRef}
+                  onClearSelection={handleClearSelection}
+                  classifications={classifications}
+                  isLoading={false}
+                  latestArtifactId={latestArtifactId}
+                />
+              )}
             </div>
           </div>
         )}
