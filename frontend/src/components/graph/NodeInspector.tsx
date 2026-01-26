@@ -28,7 +28,6 @@ import {
   AlignLeft,
 } from "lucide-react";
 import { EvidenceChainPanel } from "./EvidenceChainPanel";
-import { BlockTypeInspector } from "./BlockTypeInspector";
 import type { SourceType } from "../../types/graph";
 import { useIdeationAPI } from "../../hooks/useIdeationAPI";
 
@@ -1148,13 +1147,6 @@ export function NodeInspector({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-0">
-        {/* Block Type Inspector - Type-specific properties panel (T7.3) */}
-        <BlockTypeInspector
-          node={node}
-          onNavigate={onNodeClick}
-          className="mb-4"
-        />
-
         {/* Evidence Chain Panel - Show for nodes with evidence_for links (T7.1) */}
         {edges.some(
           (e) =>

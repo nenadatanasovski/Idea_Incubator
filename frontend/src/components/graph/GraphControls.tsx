@@ -438,10 +438,27 @@ export function GraphControls({
     [onLayoutChange],
   );
 
+  // Close all popups when mouse leaves the container (unless input is focused)
+  const handleContainerMouseLeave = useCallback(() => {
+    const activeElement = document.activeElement;
+    const isInputFocused =
+      activeElement === promptInputRef.current ||
+      activeElement === searchInputRef.current;
+
+    if (!isInputFocused) {
+      setIsAiPopupOpen(false);
+      setIsSearchPopupOpen(false);
+      setIsFiltersPopupOpen(false);
+      setIsLayoutDropdownOpen(false);
+      setIsClusterDropdownOpen(false);
+    }
+  }, []);
+
   return (
     <div
       className={`flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-white rounded-lg shadow-sm ${className}`}
       data-testid="graph-controls"
+      onMouseLeave={handleContainerMouseLeave}
     >
       {/* Snapshot Controls - Save and History */}
       {onSaveSnapshot && onRestoreSnapshot && onLoadSnapshots && (
