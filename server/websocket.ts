@@ -53,7 +53,13 @@ export type IdeationEventType =
   | "block_created" // Memory block created
   | "block_updated" // Memory block updated
   | "link_created" // Memory link created
-  | "link_removed"; // Memory link removed
+  | "link_removed" // Memory link removed
+  // Source mapping events (background Claude Opus 4.5 processing)
+  | "source_mapping_started" // Source mapping job started
+  | "source_mapping_progress" // Source mapping progress update
+  | "source_mapping_complete" // Source mapping finished successfully
+  | "source_mapping_failed" // Source mapping failed
+  | "source_mapping_cancelled"; // Source mapping was cancelled
 
 // Event types for agent/monitoring system (WSK-001)
 export type AgentEventType =
@@ -1096,6 +1102,97 @@ export function emitLinkRemoved(
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
     }
+  });
+}
+
+// ============================================
+// Source Mapping Events (Background Processing)
+// ============================================
+
+/**
+ * Payload for source mapping events
+ */
+export interface SourceMappingPayload {
+  jobId: string;
+  blocksToMap: number;
+  sourcesAvailable: number;
+  mappingsCreated?: number;
+  progress?: number; // 0-100
+  status: "started" | "processing" | "complete" | "failed" | "cancelled";
+  error?: string;
+}
+
+/**
+ * Emit source mapping started event
+ */
+export function emitSourceMappingStarted(
+  sessionId: string,
+  payload: Pick<
+    SourceMappingPayload,
+    "jobId" | "blocksToMap" | "sourcesAvailable"
+  >,
+): void {
+  emitSessionEvent("source_mapping_started", sessionId, {
+    ...payload,
+    status: "started",
+  });
+}
+
+/**
+ * Emit source mapping progress event
+ */
+export function emitSourceMappingProgress(
+  sessionId: string,
+  payload: Pick<
+    SourceMappingPayload,
+    "jobId" | "progress" | "blocksToMap" | "sourcesAvailable"
+  >,
+): void {
+  emitSessionEvent("source_mapping_progress", sessionId, {
+    ...payload,
+    status: "processing",
+  });
+}
+
+/**
+ * Emit source mapping complete event
+ */
+export function emitSourceMappingComplete(
+  sessionId: string,
+  payload: Pick<
+    SourceMappingPayload,
+    "jobId" | "mappingsCreated" | "blocksToMap" | "sourcesAvailable"
+  >,
+): void {
+  emitSessionEvent("source_mapping_complete", sessionId, {
+    ...payload,
+    status: "complete",
+  });
+}
+
+/**
+ * Emit source mapping failed event
+ */
+export function emitSourceMappingFailed(
+  sessionId: string,
+  payload: Pick<SourceMappingPayload, "jobId" | "error">,
+): void {
+  emitSessionEvent("source_mapping_failed", sessionId, {
+    ...payload,
+    status: "failed",
+  });
+}
+
+/**
+ * Emit source mapping cancelled event
+ */
+export function emitSourceMappingCancelled(
+  sessionId: string,
+  payload: Pick<SourceMappingPayload, "jobId">,
+): void {
+  emitSessionEvent("source_mapping_cancelled", sessionId, {
+    ...payload,
+    status: "cancelled",
   });
 }
 

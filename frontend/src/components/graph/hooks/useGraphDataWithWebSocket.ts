@@ -27,6 +27,10 @@ import {
   type LinkRemovedPayload,
 } from "./useGraphWebSocket";
 import {
+  useSourceMappingStatus,
+  type SourceMappingJobStatus,
+} from "./useSourceMappingStatus";
+import {
   transformSingleBlockToNode,
   transformSingleLinkToEdge,
   addNodeToGraph,
@@ -89,6 +93,11 @@ export interface UseGraphDataWithWebSocketReturn {
   // Recently added items (for animation highlighting)
   recentlyAddedNodeIds: Set<string>;
   recentlyAddedEdgeIds: Set<string>;
+
+  // Source mapping status (background Claude Opus 4.5 processing)
+  sourceMappingStatus: SourceMappingJobStatus;
+  cancelSourceMapping: () => Promise<boolean>;
+  dismissSourceMappingStatus: () => void;
 }
 
 export interface PendingUpdate {
@@ -138,6 +147,17 @@ export function useGraphDataWithWebSocket(
     new Set(),
   );
   const highlightTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // Source mapping status (background Claude Opus 4.5 processing)
+  const {
+    status: sourceMappingStatus,
+    cancel: cancelSourceMapping,
+    dismiss: dismissSourceMappingStatus,
+    handlers: sourceMappingHandlers,
+  } = useSourceMappingStatus({
+    sessionId,
+    autoDismissDelay: 5000, // Auto-dismiss after 5 seconds
+  });
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -376,6 +396,12 @@ export function useGraphDataWithWebSocket(
     onBlockUpdated: handleBlockUpdated,
     onLinkCreated: handleLinkCreated,
     onLinkRemoved: handleLinkRemoved,
+    // Source mapping event handlers (background Claude Opus 4.5 processing)
+    onSourceMappingStarted: sourceMappingHandlers.onSourceMappingStarted,
+    onSourceMappingProgress: sourceMappingHandlers.onSourceMappingProgress,
+    onSourceMappingComplete: sourceMappingHandlers.onSourceMappingComplete,
+    onSourceMappingFailed: sourceMappingHandlers.onSourceMappingFailed,
+    onSourceMappingCancelled: sourceMappingHandlers.onSourceMappingCancelled,
     onError: handleWsError,
     reconnect: true,
   });
@@ -549,6 +575,10 @@ export function useGraphDataWithWebSocket(
     dismissPendingUpdates,
     recentlyAddedNodeIds,
     recentlyAddedEdgeIds,
+    // Source mapping status
+    sourceMappingStatus,
+    cancelSourceMapping,
+    dismissSourceMappingStatus,
   };
 }
 

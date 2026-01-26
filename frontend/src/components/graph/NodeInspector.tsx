@@ -264,13 +264,13 @@ const FALLBACK_COLOR = "#6B7280"; // Gray
 
 /**
  * Get the display type and color for a node
- * Uses graphMembership (solution, problem, etc.) with graphColors
+ * Uses blockType to match the header display, with appropriate colors
  */
 function getNodeTypeDisplay(node: GraphNode): { type: string; color: string } {
-  const type = node.graphMembership?.[0] || node.blockType;
+  const type = node.blockType;
   const color =
-    graphColors[type as keyof typeof graphColors] ||
     nodeColors[type as keyof typeof nodeColors] ||
+    graphColors[type as keyof typeof graphColors] ||
     FALLBACK_COLOR;
   return { type, color };
 }
@@ -297,16 +297,11 @@ function RelationshipItemProse({
   const isIncoming = direction === "incoming";
 
   // Build the sentence based on direction
-  // Incoming: "The [source.type] '[source.title]' [linkType] the [current.type] '[current.title]'"
-  // Outgoing: "The [current.type] '[current.title]' [linkType] the [target.type] '[target.title]'"
-  const sourceNode = isIncoming ? relatedNode : currentNode;
-  const targetNode = isIncoming ? currentNode : relatedNode;
-
-  const sourceTitle = sourceNode.title || sourceNode.content;
-  const targetTitle = targetNode.title || targetNode.content;
-
-  const sourceDisplay = getNodeTypeDisplay(sourceNode);
-  const targetDisplay = getNodeTypeDisplay(targetNode);
+  // Incoming: "The [relatedType] '[relatedTitle]' [linkType] the above [currentType]"
+  // Outgoing: "The above [currentType] [linkType] '[relatedTitle]' [relatedType]"
+  const relatedDisplay = getNodeTypeDisplay(relatedNode);
+  const currentDisplay = getNodeTypeDisplay(currentNode);
+  const relatedTitle = relatedNode.title || relatedNode.content;
   const linkColor = edgeColors[edge.linkType] || FALLBACK_COLOR;
 
   return (
@@ -314,44 +309,76 @@ function RelationshipItemProse({
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="w-full p-3 text-left rounded-lg hover:bg-gray-100 transition-colors group border border-gray-100 mb-2"
+      className="w-full p-3 text-left rounded-lg hover:bg-gray-100 transition-colors group border border-gray-100"
     >
-      <p className="text-sm leading-loose flex flex-wrap items-center gap-1">
-        <span className="text-gray-400">The</span>
-        <span
-          className="px-2 py-1 rounded text-sm font-semibold"
-          style={{
-            backgroundColor: sourceDisplay.color,
-            color: "#ffffff",
-          }}
-        >
-          {sourceDisplay.type}
-        </span>
-        <span className="text-gray-500 font-medium">"{sourceTitle}"</span>
-        <span
-          className="px-2 py-1 rounded text-sm font-semibold"
-          style={{
-            backgroundColor: linkColor,
-            color: "#ffffff",
-          }}
-        >
-          {getLinkTypeLabelProse(edge.linkType)}
-        </span>
-        <span className="text-gray-400">the</span>
-        <span
-          className="px-2 py-1 rounded text-sm font-semibold"
-          style={{
-            backgroundColor: targetDisplay.color,
-            color: "#ffffff",
-          }}
-        >
-          {targetDisplay.type}
-        </span>
-        <span className="text-gray-500 font-medium">"{targetTitle}"</span>
-      </p>
-      {/* Metadata row - only show degree */}
-      {edge.degree && (
-        <div className="mt-2 text-xs text-gray-500 italic">{edge.degree}</div>
+      {isIncoming ? (
+        /* Incoming: "The [relatedType] '[relatedTitle]' [linkType] the above [currentType]" */
+        <p className="text-sm leading-loose flex flex-wrap items-center gap-1">
+          <span className="text-gray-400">The</span>
+          <span
+            className="px-2 py-1 rounded text-sm font-semibold"
+            style={{
+              backgroundColor: relatedDisplay.color,
+              color: "#ffffff",
+            }}
+          >
+            {relatedDisplay.type}
+          </span>
+          <span className="text-gray-500 font-medium">"{relatedTitle}"</span>
+          <span
+            className="px-2 py-1 rounded text-sm font-semibold"
+            style={{
+              backgroundColor: linkColor,
+              color: "#ffffff",
+            }}
+          >
+            {getLinkTypeLabelProse(edge.linkType)}
+          </span>
+          <span className="text-gray-400">the above</span>
+          <span
+            className="px-2 py-1 rounded text-sm font-semibold"
+            style={{
+              backgroundColor: currentDisplay.color,
+              color: "#ffffff",
+            }}
+          >
+            {currentDisplay.type}
+          </span>
+        </p>
+      ) : (
+        /* Outgoing: "The above [currentType] [linkType] the [relatedType] '[relatedTitle]'" */
+        <p className="text-sm leading-loose flex flex-wrap items-center gap-1">
+          <span className="text-gray-400">The above</span>
+          <span
+            className="px-2 py-1 rounded text-sm font-semibold"
+            style={{
+              backgroundColor: currentDisplay.color,
+              color: "#ffffff",
+            }}
+          >
+            {currentDisplay.type}
+          </span>
+          <span
+            className="px-2 py-1 rounded text-sm font-semibold"
+            style={{
+              backgroundColor: linkColor,
+              color: "#ffffff",
+            }}
+          >
+            {getLinkTypeLabelProse(edge.linkType)}
+          </span>
+          <span className="text-gray-400">the</span>
+          <span
+            className="px-2 py-1 rounded text-sm font-semibold"
+            style={{
+              backgroundColor: relatedDisplay.color,
+              color: "#ffffff",
+            }}
+          >
+            {relatedDisplay.type}
+          </span>
+          <span className="text-gray-500 font-medium">"{relatedTitle}"</span>
+        </p>
       )}
     </button>
   );
@@ -1047,7 +1074,7 @@ export function NodeInspector({
   return (
     <div
       className={`
-        w-full sm:w-[640px] md:w-[768px]
+        w-full sm:w-[624px] md:w-[749px]
         fixed sm:relative inset-y-0 right-0 sm:inset-auto
         z-30 sm:z-auto
         bg-white
@@ -1178,7 +1205,7 @@ export function NodeInspector({
               <p className="text-sm text-gray-500 italic">No relationships</p>
             ) : relationshipViewMode === "prose" ? (
               /* Prose view - all relationships as sentences */
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {[...incomingRelationships, ...outgoingRelationships].map(
                   (rel) => (
                     <RelationshipItemProse
@@ -1524,36 +1551,13 @@ export function NodeInspector({
           </Section>
         )}
 
-        {/* Source Section - Shows where the block data originated from
-            Skip if Linked Artifact section already covers this (avoid duplication) */}
-        {!(node.artifactId && node.sourceLocation?.type === "artifact") && (
-          <Section
-            title={
-              node.allSources && node.allSources.length > 1
-                ? `Sources (${node.allSources.length})`
-                : "Source"
-            }
-            defaultExpanded={
-              !!(node.sourceType || node.sourceLocation || node.allSources)
-            }
-          >
-            <NavigableSourceSection
-              sourceType={node.sourceType}
-              sourceLocation={node.sourceLocation}
-              allSources={node.allSources}
-              onNavigateToChat={onNavigateToChatMessage}
-              onNavigateToArtifact={onNavigateToArtifact}
-              onNavigateToMemoryDB={onNavigateToMemoryDB}
-              onNavigateToExternal={onNavigateToExternal}
-            />
-          </Section>
-        )}
-
-        {/* AI-Mapped Sources Section - Shows sources mapped by Claude Opus 4.5 */}
+        {/* AI-Mapped Sources Section - Shows sources mapped by Claude Opus 4.5
+            This is the primary source lineage display - shows only sources that
+            directly contributed to this specific node */}
         {sessionId && (
           <Section
-            title="AI-Mapped Sources"
-            defaultExpanded={mappedSources.length > 0}
+            title="Source Lineage"
+            defaultExpanded={true}
             count={mappedSources.length}
           >
             {isLoadingSources ? (
@@ -1563,8 +1567,8 @@ export function NodeInspector({
               </div>
             ) : mappedSources.length === 0 ? (
               <p className="text-sm text-gray-500 italic">
-                No AI-mapped sources found. Sources are mapped when nodes are
-                created through the graph analysis flow.
+                No direct source connections found. This node may have been
+                created manually or the source mapping hasn't run yet.
               </p>
             ) : (
               <div className="space-y-3">

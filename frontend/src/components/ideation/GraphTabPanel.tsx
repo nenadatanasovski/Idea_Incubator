@@ -19,6 +19,7 @@ import type { GraphNode, GraphFilters } from "../../types/graph";
 import type { ProposedChange } from "../../types/ideation-state";
 import { useGraphDataWithWebSocket } from "../graph/hooks/useGraphDataWithWebSocket";
 import { GraphUpdateConfirmation } from "../graph/GraphUpdateConfirmation";
+import { SourceMappingStatusPill } from "../graph/SourceMappingStatusPill";
 import { ProposedChangesReviewModal } from "../graph/ProposedChangesReviewModal";
 import { useIdeationAPI } from "../../hooks/useIdeationAPI";
 import type {
@@ -213,6 +214,10 @@ export const GraphTabPanel = memo(function GraphTabPanel({
     pendingUpdates,
     recentlyAddedNodeIds,
     recentlyAddedEdgeIds,
+    // Source mapping status (background Claude Opus 4.5 processing)
+    sourceMappingStatus,
+    cancelSourceMapping,
+    dismissSourceMappingStatus,
   } = useGraphDataWithWebSocket({
     sessionId,
     ideaSlug,
@@ -664,7 +669,21 @@ export const GraphTabPanel = memo(function GraphTabPanel({
       data-testid="graph-panel"
     >
       {/* Graph Container */}
-      <div className="flex-1 min-h-0" data-testid="graph-canvas">
+      <div className="flex-1 min-h-0 relative" data-testid="graph-canvas">
+        {/* Source Mapping Status Pill - shows when background mapping is active or recently completed */}
+        {(sourceMappingStatus.jobId || sourceMappingStatus.status) && (
+          <div
+            className="absolute top-4 right-4 z-30"
+            data-testid="source-mapping-status"
+          >
+            <SourceMappingStatusPill
+              status={sourceMappingStatus}
+              onCancel={cancelSourceMapping}
+              onDismiss={dismissSourceMappingStatus}
+            />
+          </div>
+        )}
+
         <GraphErrorBoundary>
           <Suspense fallback={<GraphLoadingSkeleton />}>
             <GraphContainer

@@ -49,21 +49,29 @@ export interface MappingResult {
 
 const SOURCE_MAPPING_SYSTEM_PROMPT = `You are an expert at analyzing knowledge graphs and tracing where insights originated.
 
-Your task is to map sources (conversation messages, artifacts, memory files) to knowledge graph nodes (blocks).
+Your task is to map sources to knowledge graph nodes (blocks) - but ONLY when there is a DIRECT, SPECIFIC connection.
 
-For each block, identify which sources contributed to that insight. A source contributes to a block if:
-1. The block's content is directly derived from or extracted from the source
-2. The source provides evidence, data, or reasoning that supports the block
-3. The source mentions concepts, entities, or claims that appear in the block
-4. The source provides context that informed the creation of the block
+BE HIGHLY SELECTIVE. A source should ONLY be mapped to a block if:
+1. The block's content is DIRECTLY extracted or derived from that specific source (not just related topics)
+2. The source contains the EXACT data, quotes, or facts that appear in the block
+3. There is a clear, traceable lineage from source to block
 
-Important rules:
-- A block can have multiple contributing sources
-- A source can contribute to multiple blocks
-- Not every source will contribute to every block - be selective
-- Focus on meaningful semantic relationships, not superficial word matches
-- Provide a brief reason explaining why each source contributes to each block
-- Rate relevance from 0.0 to 1.0 (0.8+ for direct derivation, 0.5-0.8 for supporting evidence, 0.3-0.5 for contextual relevance)
+DO NOT map sources that are merely:
+- On the same general topic
+- Tangentially related
+- Providing general context without specific content contribution
+
+CRITICAL RULES:
+- Most blocks will have 0-3 relevant sources, NOT all sources
+- Most sources will only map to 1-2 blocks where they DIRECTLY contributed
+- If you're unsure whether a source contributed, DON'T include it
+- Only map relevance scores of 0.5 or higher (meaningful connection required)
+- An empty mappings array is perfectly acceptable if no direct connections exist
+
+Relevance scoring (only include 0.5+):
+- 0.9-1.0: Block content is directly quoted or extracted from this source
+- 0.7-0.9: Block synthesizes specific data/claims from this source
+- 0.5-0.7: Source provides specific evidence or context used in the block
 
 Return JSON only, no markdown:
 {
@@ -72,12 +80,12 @@ Return JSON only, no markdown:
       "block_id": "block-uuid",
       "source_id": "source-id",
       "relevance_score": 0.85,
-      "reason": "Block content about market size directly extracted from this artifact's research section"
+      "reason": "Block states '10 years experience' which is directly from user message stating their background"
     }
   ]
 }
 
-If no meaningful mappings exist, return: {"mappings": []}`;
+If no strong mappings exist, return: {"mappings": []}`;
 
 // ============================================================================
 // Source Mapper Class
@@ -250,7 +258,7 @@ export class SourceMapper {
       )
       .join("\n\n---\n\n");
 
-    const userPrompt = `Analyze these memory graph blocks and determine which sources contributed to each block.
+    const userPrompt = `Analyze these memory graph blocks and determine which sources DIRECTLY contributed to each block.
 
 ## BLOCKS TO MAP (${blocks.length} total)
 
@@ -262,10 +270,17 @@ ${sourcesSection}
 
 ## TASK
 
-For each block above, identify which sources contributed to it. Consider:
-- Direct content derivation (high relevance 0.8+)
-- Supporting evidence or data (medium relevance 0.5-0.8)
-- Contextual information (lower relevance 0.3-0.5)
+BE HIGHLY SELECTIVE. Only map sources that DIRECTLY contributed specific content to a block.
+
+For each block, identify ONLY sources where:
+- The block contains content that was DIRECTLY extracted from that source
+- There is a clear, specific connection (not just topic similarity)
+
+IMPORTANT:
+- Most blocks should have 0-3 source mappings, not all sources
+- Only include mappings with relevance 0.5 or higher
+- If unsure, don't include the mapping
+- An empty mappings array is fine if no direct connections exist
 
 Return your analysis as JSON with mappings array.`;
 
@@ -306,8 +321,11 @@ Return your analysis as JSON with mappings array.`;
 
         console.log(`[SourceMapper] AI returned ${mappings.length} mappings`);
 
+        // Minimum relevance threshold - only keep meaningful connections
+        const MIN_RELEVANCE_THRESHOLD = 0.5;
+
         // Validate and filter mappings
-        return mappings.filter(
+        const validMappings = mappings.filter(
           (m: {
             block_id?: string;
             source_id?: string;
@@ -317,8 +335,15 @@ Return your analysis as JSON with mappings array.`;
             m.block_id &&
             m.source_id &&
             typeof m.relevance_score === "number" &&
+            m.relevance_score >= MIN_RELEVANCE_THRESHOLD &&
             m.reason,
         );
+
+        console.log(
+          `[SourceMapper] After filtering (>=${MIN_RELEVANCE_THRESHOLD}): ${validMappings.length} mappings`,
+        );
+
+        return validMappings;
       } catch (parseError) {
         console.error(
           `[SourceMapper] Failed to parse AI response:`,

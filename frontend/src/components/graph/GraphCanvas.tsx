@@ -354,6 +354,53 @@ function toReagraphEdge(
 
 // No mapping needed - using Reagraph layout types directly
 
+/**
+ * Get layout-specific overrides based on the layout type.
+ * Different layout algorithms require different parameters.
+ */
+function getLayoutOverrides(
+  layoutType: LayoutType,
+  clusterAttribute?: string,
+  clusterStrength?: number,
+): Record<string, unknown> {
+  const baseClusterStrength = clusterAttribute ? clusterStrength : undefined;
+
+  switch (layoutType) {
+    // Tree layouts use nodeSeparation (factor) and nodeSize [width, height]
+    case "treeLr2d":
+    case "treeTd2d":
+      return {
+        nodeSeparation: 2.5, // Factor of distance between sibling nodes (default 1)
+        nodeSize: [120, 120], // Size allocation per node [width, height] (default [50, 50])
+        clusterStrength: baseClusterStrength,
+      };
+
+    // Radial layouts spread nodes outward from center
+    case "radialOut2d":
+      return {
+        nodeSeparation: 2,
+        nodeSize: [100, 100],
+        clusterStrength: baseClusterStrength,
+      };
+
+    // Circular layout arranges nodes in a circle
+    case "circular2d":
+      return {
+        clusterStrength: baseClusterStrength,
+      };
+
+    // Force-directed layouts use physics-based parameters
+    case "forceDirected2d":
+    default:
+      return {
+        nodeStrength: -120, // Repulsion between all nodes
+        linkDistance: 60, // Target edge length
+        linkStrength: 0.8, // Edge attraction strength
+        clusterStrength: baseClusterStrength,
+      };
+  }
+}
+
 export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
   function GraphCanvas(
     {
@@ -765,6 +812,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         ref={containerRef}
         data-testid="graph-canvas"
         className={`relative bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden h-full w-full ${className}`}
+        onPointerLeave={handleNodePointerOut}
       >
         {/* WebGL Recovery Overlay */}
         {isRecovering && (
@@ -900,12 +948,11 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           onCanvasClick={handleCanvasClick}
           layoutType={layoutType}
           clusterAttribute={clusterAttribute}
-          layoutOverrides={{
-            nodeStrength: -120, // Moderate repulsion between all nodes
-            linkDistance: 60, // Shorter edges pull connected nodes closer
-            linkStrength: 0.8, // Strong edge attraction keeps relationships tight
-            clusterStrength: clusterAttribute ? clusterStrength : undefined,
-          }}
+          layoutOverrides={getLayoutOverrides(
+            layoutType,
+            clusterAttribute,
+            clusterStrength,
+          )}
           labelType="auto"
           draggable
           animated

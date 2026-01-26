@@ -53,6 +53,24 @@ export interface LinkRemovedPayload {
   id: string;
 }
 
+// Source mapping event payloads
+export type SourceMappingStatus =
+  | "started"
+  | "processing"
+  | "complete"
+  | "failed"
+  | "cancelled";
+
+export interface SourceMappingPayload {
+  jobId: string;
+  blocksToMap: number;
+  sourcesAvailable: number;
+  mappingsCreated?: number;
+  progress?: number; // 0-100
+  status: SourceMappingStatus;
+  error?: string;
+}
+
 export interface UseGraphWebSocketOptions {
   sessionId: string;
   wsUrl?: string;
@@ -60,6 +78,12 @@ export interface UseGraphWebSocketOptions {
   onBlockUpdated?: (payload: BlockUpdatedPayload) => void;
   onLinkCreated?: (payload: LinkCreatedPayload) => void;
   onLinkRemoved?: (payload: LinkRemovedPayload) => void;
+  // Source mapping events (background Claude Opus 4.5 processing)
+  onSourceMappingStarted?: (payload: SourceMappingPayload) => void;
+  onSourceMappingProgress?: (payload: SourceMappingPayload) => void;
+  onSourceMappingComplete?: (payload: SourceMappingPayload) => void;
+  onSourceMappingFailed?: (payload: SourceMappingPayload) => void;
+  onSourceMappingCancelled?: (payload: SourceMappingPayload) => void;
   onError?: (error: Error) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
@@ -103,6 +127,11 @@ export function useGraphWebSocket(
     onBlockUpdated,
     onLinkCreated,
     onLinkRemoved,
+    onSourceMappingStarted,
+    onSourceMappingProgress,
+    onSourceMappingComplete,
+    onSourceMappingFailed,
+    onSourceMappingCancelled,
     onError,
     onConnect,
     onDisconnect,
@@ -132,6 +161,11 @@ export function useGraphWebSocket(
     onBlockUpdated,
     onLinkCreated,
     onLinkRemoved,
+    onSourceMappingStarted,
+    onSourceMappingProgress,
+    onSourceMappingComplete,
+    onSourceMappingFailed,
+    onSourceMappingCancelled,
     onError,
     onConnect,
     onDisconnect,
@@ -144,6 +178,11 @@ export function useGraphWebSocket(
       onBlockUpdated,
       onLinkCreated,
       onLinkRemoved,
+      onSourceMappingStarted,
+      onSourceMappingProgress,
+      onSourceMappingComplete,
+      onSourceMappingFailed,
+      onSourceMappingCancelled,
       onError,
       onConnect,
       onDisconnect,
@@ -153,6 +192,11 @@ export function useGraphWebSocket(
     onBlockUpdated,
     onLinkCreated,
     onLinkRemoved,
+    onSourceMappingStarted,
+    onSourceMappingProgress,
+    onSourceMappingComplete,
+    onSourceMappingFailed,
+    onSourceMappingCancelled,
     onError,
     onConnect,
     onDisconnect,
@@ -218,6 +262,37 @@ export function useGraphWebSocket(
         case "link_removed":
           callbacksRef.current.onLinkRemoved?.(
             data.payload as LinkRemovedPayload,
+          );
+          break;
+
+        // Source mapping events (wrapped in IdeationEvent format)
+        case "source_mapping_started":
+          callbacksRef.current.onSourceMappingStarted?.(
+            data.data as unknown as SourceMappingPayload,
+          );
+          break;
+
+        case "source_mapping_progress":
+          callbacksRef.current.onSourceMappingProgress?.(
+            data.data as unknown as SourceMappingPayload,
+          );
+          break;
+
+        case "source_mapping_complete":
+          callbacksRef.current.onSourceMappingComplete?.(
+            data.data as unknown as SourceMappingPayload,
+          );
+          break;
+
+        case "source_mapping_failed":
+          callbacksRef.current.onSourceMappingFailed?.(
+            data.data as unknown as SourceMappingPayload,
+          );
+          break;
+
+        case "source_mapping_cancelled":
+          callbacksRef.current.onSourceMappingCancelled?.(
+            data.data as unknown as SourceMappingPayload,
           );
           break;
 

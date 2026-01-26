@@ -130,7 +130,7 @@ export type LayoutOption =
 
 const LAYOUTS: { value: LayoutOption; label: string; description?: string }[] =
   [
-    { value: "treeLr2d", label: "Spread Out" },
+    { value: "treeLr2d", label: "Spread out/Left to Right" },
     { value: "forceDirected2d", label: "Force 2D" },
     { value: "treeTd2d", label: "Tree (Top-Down)" },
     { value: "radialOut2d", label: "Radial" },

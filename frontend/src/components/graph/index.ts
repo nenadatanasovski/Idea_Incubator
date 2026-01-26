@@ -118,7 +118,20 @@ export type {
   LinkCreatedPayload,
   LinkRemovedPayload,
   WebSocketEvent,
+  SourceMappingPayload,
+  SourceMappingStatus,
 } from "./hooks/useGraphWebSocket";
+
+export { useSourceMappingStatus } from "./hooks/useSourceMappingStatus";
+export type {
+  SourceMappingJobStatus,
+  UseSourceMappingStatusOptions,
+  UseSourceMappingStatusReturn,
+} from "./hooks/useSourceMappingStatus";
+
+// Source Mapping Status Component
+export { SourceMappingStatusPill } from "./SourceMappingStatusPill";
+export type { SourceMappingStatusPillProps } from "./SourceMappingStatusPill";
 
 export { useGraphDataWithWebSocket } from "./hooks/useGraphDataWithWebSocket";
 export type {

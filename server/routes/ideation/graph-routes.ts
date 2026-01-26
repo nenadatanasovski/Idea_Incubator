@@ -29,7 +29,13 @@ import {
   emitBlockUpdated,
   emitLinkCreated,
   emitLinkRemoved,
+  emitSourceMappingStarted,
+  emitSourceMappingProgress,
+  emitSourceMappingComplete,
+  emitSourceMappingFailed,
+  emitSourceMappingCancelled,
 } from "../../websocket.js";
+import { sourceMappingTracker } from "../../services/graph/source-mapping-tracker.js";
 import {
   collectAllSources,
   type CollectionOptions,
@@ -1516,9 +1522,11 @@ graphRouter.post(
 
         // Step 3: Run AI-powered source-to-node mapping using Claude Opus 4.5
         // This creates many-to-many relationships between sources and newly created blocks
+        // IMPORTANT: Run this in the background (non-blocking) so the UI doesn't freeze
+        // Uses sourceMappingTracker for status updates and cancellation support
         if (blocksCreated > 0) {
           console.log(
-            `[apply-changes] Step 3: Running source-to-node mapping...`,
+            `[apply-changes] Step 3: Scheduling source-to-node mapping (async)...`,
           );
 
           // Build block summaries for newly created blocks
@@ -1537,42 +1545,125 @@ graphRouter.post(
             }
           }
 
-          // Fetch full sources with content for the mapper
-          // This ensures the AI has enough context for accurate mapping
-          try {
-            const fullSourcesResult = await collectAllSources(sessionId, {
-              tokenBudget: 40000,
-              conversationLimit: 50,
-            });
+          // Create a tracked job for this mapping operation
+          const { job } = sourceMappingTracker.createJob(
+            sessionId,
+            newBlockSummaries.length,
+          );
 
-            if (fullSourcesResult.sources.length > 0) {
-              // Call the source mapper with Claude Opus 4.5
-              const mappingResult = await sourceMapper.mapSourcesToBlocks(
-                newBlockSummaries,
-                fullSourcesResult.sources,
-                sessionId,
-              );
-              console.log(
-                `[apply-changes] Source mapping complete: ${mappingResult.mappingsCreated} mappings created`,
-              );
-              if (mappingResult.warnings.length > 0) {
-                console.warn(
-                  `[apply-changes] Mapping warnings:`,
-                  mappingResult.warnings,
-                );
+          // Emit WebSocket event: mapping started
+          emitSourceMappingStarted(sessionId, {
+            jobId: job.id,
+            blocksToMap: newBlockSummaries.length,
+            sourcesAvailable: 0, // Will be updated after collection
+          });
+
+          // Run source mapping in background - don't await, fire-and-forget
+          // This prevents the UI from freezing while Claude Opus 4.5 processes
+          (async () => {
+            try {
+              // Check for cancellation before collecting sources
+              if (sourceMappingTracker.isCancelled(sessionId)) {
+                emitSourceMappingCancelled(sessionId, { jobId: job.id });
+                return;
               }
-            } else {
-              console.log(
-                `[apply-changes] No sources available for mapping, skipping`,
+
+              // Update status: collecting sources
+              sourceMappingTracker.updateCollecting(sessionId);
+              emitSourceMappingProgress(sessionId, {
+                jobId: job.id,
+                progress: 20,
+                blocksToMap: newBlockSummaries.length,
+                sourcesAvailable: 0,
+              });
+
+              const fullSourcesResult = await collectAllSources(sessionId, {
+                tokenBudget: 40000,
+                conversationLimit: 50,
+              });
+
+              // Check for cancellation after collecting sources
+              if (sourceMappingTracker.isCancelled(sessionId)) {
+                emitSourceMappingCancelled(sessionId, { jobId: job.id });
+                return;
+              }
+
+              if (fullSourcesResult.sources.length > 0) {
+                // Update status: mapping in progress
+                sourceMappingTracker.updateMapping(
+                  sessionId,
+                  fullSourcesResult.sources.length,
+                );
+                emitSourceMappingProgress(sessionId, {
+                  jobId: job.id,
+                  progress: 50,
+                  blocksToMap: newBlockSummaries.length,
+                  sourcesAvailable: fullSourcesResult.sources.length,
+                });
+
+                const mappingResult = await sourceMapper.mapSourcesToBlocks(
+                  newBlockSummaries,
+                  fullSourcesResult.sources,
+                  sessionId,
+                );
+
+                // Check for cancellation after mapping (before marking complete)
+                if (sourceMappingTracker.isCancelled(sessionId)) {
+                  emitSourceMappingCancelled(sessionId, { jobId: job.id });
+                  return;
+                }
+
+                console.log(
+                  `[apply-changes] Background source mapping complete: ${mappingResult.mappingsCreated} mappings created`,
+                );
+                if (mappingResult.warnings.length > 0) {
+                  console.warn(
+                    `[apply-changes] Mapping warnings:`,
+                    mappingResult.warnings,
+                  );
+                }
+
+                // Mark job complete and emit WebSocket event
+                sourceMappingTracker.completeJob(
+                  sessionId,
+                  mappingResult.mappingsCreated,
+                );
+                emitSourceMappingComplete(sessionId, {
+                  jobId: job.id,
+                  mappingsCreated: mappingResult.mappingsCreated,
+                  blocksToMap: newBlockSummaries.length,
+                  sourcesAvailable: fullSourcesResult.sources.length,
+                });
+              } else {
+                console.log(
+                  `[apply-changes] No sources available for mapping, skipping`,
+                );
+                // Mark job complete with 0 mappings
+                sourceMappingTracker.completeJob(sessionId, 0);
+                emitSourceMappingComplete(sessionId, {
+                  jobId: job.id,
+                  mappingsCreated: 0,
+                  blocksToMap: newBlockSummaries.length,
+                  sourcesAvailable: 0,
+                });
+              }
+            } catch (mappingError) {
+              console.error(
+                `[apply-changes] Background source mapping failed:`,
+                mappingError,
               );
+              // Mark job failed and emit WebSocket event
+              const errorMessage =
+                mappingError instanceof Error
+                  ? mappingError.message
+                  : String(mappingError);
+              sourceMappingTracker.failJob(sessionId, errorMessage);
+              emitSourceMappingFailed(sessionId, {
+                jobId: job.id,
+                error: errorMessage,
+              });
             }
-          } catch (mappingError) {
-            // Don't fail the entire operation if mapping fails
-            console.error(
-              `[apply-changes] Source mapping failed:`,
-              mappingError,
-            );
-          }
+          })();
         }
       } else {
         // Fallback: If no changes data, just return success with zeros
@@ -2497,6 +2588,86 @@ graphRouter.post(
       });
     } catch (error) {
       console.error("Error mapping sources:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// GET /session/:sessionId/source-mapping/status
+// ============================================================================
+// Get the current status of a background source mapping job
+
+graphRouter.get(
+  "/:sessionId/source-mapping/status",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      const status = sourceMappingTracker.getJobStatus(sessionId);
+
+      if (!status) {
+        return res.json({
+          success: true,
+          hasActiveJob: false,
+          job: null,
+        });
+      }
+
+      return res.json({
+        success: true,
+        hasActiveJob: sourceMappingTracker.hasActiveJob(sessionId),
+        job: status,
+      });
+    } catch (error) {
+      console.error("Error getting source mapping status:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// POST /session/:sessionId/source-mapping/cancel
+// ============================================================================
+// Cancel a running source mapping job
+
+graphRouter.post(
+  "/:sessionId/source-mapping/cancel",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      // Check if there's an active job to cancel
+      if (!sourceMappingTracker.hasActiveJob(sessionId)) {
+        return res.status(404).json({
+          success: false,
+          error: "No active source mapping job found for this session",
+        });
+      }
+
+      // Cancel the job
+      const cancelled = sourceMappingTracker.cancelJob(
+        sessionId,
+        "Cancelled by user",
+      );
+
+      if (cancelled) {
+        // Emit WebSocket event for cancellation
+        const status = sourceMappingTracker.getJobStatus(sessionId);
+        if (status) {
+          emitSourceMappingCancelled(sessionId, { jobId: status.id });
+        }
+      }
+
+      return res.json({
+        success: true,
+        cancelled,
+        message: cancelled
+          ? "Source mapping job cancelled"
+          : "No job to cancel",
+      });
+    } catch (error) {
+      console.error("Error cancelling source mapping:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   },
