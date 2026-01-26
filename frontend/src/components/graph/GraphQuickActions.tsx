@@ -215,7 +215,7 @@ function QuickActionsPill({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full shadow-sm transition-all hover:shadow-md"
+      className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-white rounded-full shadow-sm transition-all hover:shadow-md"
       data-testid="quick-actions-pill"
     >
       <Zap className="w-4 h-4 text-blue-600" />
@@ -402,7 +402,7 @@ export function GraphQuickActions({
   // Expanded state
   return (
     <div data-testid="quick-actions">
-      <div className="bg-white rounded-lg shadow-lg border border-gray-200 w-56">
+      <div className="bg-white rounded-lg shadow-lg border border-white w-56">
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
           <div className="flex items-center gap-2">

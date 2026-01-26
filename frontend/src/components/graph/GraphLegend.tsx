@@ -253,7 +253,7 @@ function LegendPill({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-full shadow-sm transition-all hover:shadow-md"
+      className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-50 border border-white rounded-full shadow-sm transition-all hover:shadow-md"
       data-testid="legend-pill"
     >
       <svg
@@ -345,7 +345,7 @@ export function GraphLegend({
   // Expanded state
   return (
     <div
-      className={`bg-white rounded-lg shadow-lg border border-gray-200 w-72 ${className}`}
+      className={`bg-white rounded-lg shadow-lg border border-white w-72 ${className}`}
       data-testid="graph-legend"
     >
       {/* Content */}

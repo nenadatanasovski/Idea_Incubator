@@ -1577,9 +1577,12 @@ graphRouter.post(
                 sourcesAvailable: 0,
               });
 
+              // Use raw messages for source mapping (not synthesized insights)
+              // This allows AI to trace direct connections to user statements
               const fullSourcesResult = await collectAllSources(sessionId, {
                 tokenBudget: 40000,
                 conversationLimit: 50,
+                synthesizeConversations: false, // Raw messages for lineage tracking
               });
 
               // Check for cancellation after collecting sources
@@ -2551,9 +2554,12 @@ graphRouter.post(
       }
 
       // Collect sources for the session
+      // IMPORTANT: Use raw messages (not synthesized insights) for source mapping
+      // Raw messages allow the AI to trace direct connections to user statements
       const collectionResult = await collectAllSources(sessionId, {
         tokenBudget: 40000,
         conversationLimit: 50,
+        synthesizeConversations: false, // Use raw messages for lineage tracking
       });
 
       if (collectionResult.sources.length === 0) {

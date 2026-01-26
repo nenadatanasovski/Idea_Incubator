@@ -282,8 +282,15 @@ export function transformBlocksToNodes(blocks: ApiBlock[]): GraphNode[] {
         confidence: block.confidence ?? extractConfidence(props),
         content: block.content,
         properties: props,
-        createdAt: block.created_at,
-        updatedAt: block.updated_at,
+        // Handle both snake_case (API type) and camelCase (actual API response)
+        createdAt:
+          block.created_at ||
+          (block as unknown as { createdAt?: string }).createdAt ||
+          "",
+        updatedAt:
+          block.updated_at ||
+          (block as unknown as { updatedAt?: string }).updatedAt ||
+          "",
       };
 
       // Extract optional properties based on block type
@@ -815,8 +822,9 @@ export function transformSingleBlockToNode(block: ApiBlock): GraphNode | null {
     confidence: extractConfidence(props),
     content: block.content || "",
     properties: props,
-    createdAt: block.created_at || new Date().toISOString(),
-    updatedAt: block.updated_at || new Date().toISOString(),
+    // Handle both snake_case (API type) and camelCase (actual API response)
+    createdAt: block.created_at || block.createdAt || new Date().toISOString(),
+    updatedAt: block.updated_at || block.updatedAt || new Date().toISOString(),
   };
 
   // Apply same property extractions as transformBlocksToNodes

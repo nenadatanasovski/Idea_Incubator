@@ -935,7 +935,7 @@ export function GraphContainer({
 
           {/* Stats badge */}
           {hasActiveFilters || searchQuery ? (
-            <div className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs flex items-center gap-2">
+            <div className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs flex items-center gap-2 border border-white">
               <span>
                 Showing {searchFilteredNodes.length} of {nodes.length} nodes
                 {searchQuery && ` (search: "${searchQuery}")`}
@@ -964,7 +964,7 @@ export function GraphContainer({
               </button>
             </div>
           ) : (
-            <div className="px-3 py-1 bg-white rounded-full shadow-md text-xs text-gray-600">
+            <div className="px-3 py-1 bg-white rounded-full shadow-md text-xs text-gray-600 border border-white">
               {nodes.length} nodes, {edges.length} edges
             </div>
           )}

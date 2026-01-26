@@ -440,7 +440,7 @@ export function GraphControls({
 
   return (
     <div
-      className={`flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm ${className}`}
+      className={`flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-white rounded-lg shadow-sm ${className}`}
       data-testid="graph-controls"
     >
       {/* Snapshot Controls - Save and History */}
@@ -638,7 +638,7 @@ export function GraphControls({
                       }}
                       placeholder="Ask about your graph..."
                       disabled={promptDisabled || isPromptLoading}
-                      className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                      className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                     />
                     <button
                       type="submit"
@@ -811,7 +811,7 @@ export function GraphControls({
                         }
                       }}
                       placeholder="Search nodes by keyword..."
-                      className="w-full px-3 py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                      className="w-full px-3 py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                     />
                     {localSearchQuery && (
                       <button
@@ -1099,7 +1099,7 @@ export function GraphControls({
                     }}
                     className={`w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg ${
                       currentClusterStrategy === strategy.value
-                        ? "bg-purple-50 dark:bg-purple-900 text-purple-600 dark:text-purple-400"
+                        ? "bg-purple-50 bg-purple-100 text-purple-600 dark:text-purple-400"
                         : "text-gray-600 dark:text-gray-300"
                     }`}
                   >
@@ -1115,7 +1115,7 @@ export function GraphControls({
                 {/* Cluster Strength Slider */}
                 {currentClusterStrategy !== "none" &&
                   onClusterStrengthChange && (
-                    <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700">
+                    <div className="px-3 py-2 border-t border-gray-100 border-gray-200">
                       <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-1">
                         <span>Cluster Tightness</span>
                         <span>{Math.round(clusterStrength * 100)}%</span>

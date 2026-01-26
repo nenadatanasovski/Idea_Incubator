@@ -485,8 +485,11 @@ export interface ApiBlock {
   content: string;
   properties: Record<string, unknown>;
   status: string;
-  created_at: string;
-  updated_at: string;
+  // Support both snake_case (type definition) and camelCase (actual API response)
+  created_at?: string;
+  updated_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
   // Optional top-level fields from API (newer format)
   confidence?: number;
   abstractionLevel?: string;

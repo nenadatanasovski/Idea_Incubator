@@ -52,7 +52,7 @@ function CyclePill({
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-full shadow-sm transition-all hover:shadow-md"
+      className="flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 border border-white rounded-full shadow-sm transition-all hover:shadow-md"
       data-testid="cycle-pill"
     >
       <div className="flex items-center gap-1.5">
@@ -373,7 +373,7 @@ export function CycleIndicator({
   // Expanded state
   return (
     <div
-      className={`bg-white rounded-lg shadow-lg border border-gray-200 w-72 ${className}`}
+      className={`bg-white rounded-lg shadow-lg border border-white w-72 ${className}`}
       data-testid="cycle-indicator"
     >
       {/* Header with minimize button */}

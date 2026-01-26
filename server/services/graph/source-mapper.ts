@@ -47,31 +47,38 @@ export interface MappingResult {
 // AI Mapping Prompt
 // ============================================================================
 
-const SOURCE_MAPPING_SYSTEM_PROMPT = `You are an expert at analyzing knowledge graphs and tracing where insights originated.
+const SOURCE_MAPPING_SYSTEM_PROMPT = `You are an expert at analyzing knowledge graphs and tracing the origins of AI-generated insights.
 
-Your task is to map sources to knowledge graph nodes (blocks) - but ONLY when there is a DIRECT, SPECIFIC connection.
+CONTEXT: This is an ideation system where:
+- Users have conversations with an AI about their ideas
+- The AI generates memory graph blocks (insights, problems, hypotheses, etc.) based on user messages
+- Blocks are NOT direct quotes - they are AI-synthesized insights DERIVED FROM user inputs
+- Your job is to trace which user messages INFORMED or INSPIRED each block
 
-BE HIGHLY SELECTIVE. A source should ONLY be mapped to a block if:
-1. The block's content is DIRECTLY extracted or derived from that specific source (not just related topics)
-2. The source contains the EXACT data, quotes, or facts that appear in the block
-3. There is a clear, traceable lineage from source to block
+Your task: Map sources (user messages, fetched URLs) to blocks they contributed to.
 
-DO NOT map sources that are merely:
-- On the same general topic
-- Tangentially related
-- Providing general context without specific content contribution
+A source should be mapped to a block when:
+1. The source contains information that the AI used to generate the block
+2. The block represents an insight, analysis, or synthesis of content from that source
+3. There is a semantic connection - the block's topic/content is informed by the source
 
-CRITICAL RULES:
-- Most blocks will have 0-3 relevant sources, NOT all sources
-- Most sources will only map to 1-2 blocks where they DIRECTLY contributed
-- If you're unsure whether a source contributed, DON'T include it
-- Only map relevance scores of 0.5 or higher (meaningful connection required)
-- An empty mappings array is perfectly acceptable if no direct connections exist
+DO NOT map sources that are:
+- Completely unrelated topics
+- Generic greetings with no substantive content
+- System messages that didn't contribute information
 
-Relevance scoring (only include 0.5+):
-- 0.9-1.0: Block content is directly quoted or extracted from this source
-- 0.7-0.9: Block synthesizes specific data/claims from this source
-- 0.5-0.7: Source provides specific evidence or context used in the block
+GUIDELINES:
+- User messages about a topic SHOULD map to blocks about that same topic
+- If a user discusses "X problem", blocks analyzing "X problem" should trace back to that message
+- Each block typically traces to 1-4 sources that informed it
+- Some sources (like detailed descriptions) may inform multiple related blocks
+- Map liberally for lineage tracking - err on the side of inclusion
+
+Relevance scoring:
+- 0.9-1.0: Block directly addresses or analyzes content from this source
+- 0.7-0.9: Block synthesizes or expands on ideas from this source
+- 0.5-0.7: Source provides context that influenced the block's generation
+- 0.3-0.5: Weak but traceable connection (include these too)
 
 Return JSON only, no markdown:
 {
@@ -80,12 +87,10 @@ Return JSON only, no markdown:
       "block_id": "block-uuid",
       "source_id": "source-id",
       "relevance_score": 0.85,
-      "reason": "Block states '10 years experience' which is directly from user message stating their background"
+      "reason": "User described their problem with X, and this block analyzes the X problem"
     }
   ]
-}
-
-If no strong mappings exist, return: {"mappings": []}`;
+}`;
 
 // ============================================================================
 // Source Mapper Class
@@ -258,7 +263,7 @@ export class SourceMapper {
       )
       .join("\n\n---\n\n");
 
-    const userPrompt = `Analyze these memory graph blocks and determine which sources DIRECTLY contributed to each block.
+    const userPrompt = `Analyze these memory graph blocks and trace which sources informed their creation.
 
 ## BLOCKS TO MAP (${blocks.length} total)
 
@@ -270,23 +275,26 @@ ${sourcesSection}
 
 ## TASK
 
-BE HIGHLY SELECTIVE. Only map sources that DIRECTLY contributed specific content to a block.
+Trace the lineage of each block back to its source(s). Remember:
+- Blocks are AI-generated insights BASED ON user messages
+- If a user talked about topic X, blocks about X should trace to that message
+- We want comprehensive lineage tracking, not just direct quotes
 
-For each block, identify ONLY sources where:
-- The block contains content that was DIRECTLY extracted from that source
-- There is a clear, specific connection (not just topic similarity)
+For each block, identify sources that:
+- Provided the topic, problem, or context the block analyzes
+- Contain information that the AI synthesized into the block
+- Have clear semantic connection to the block's content
 
-IMPORTANT:
-- Most blocks should have 0-3 source mappings, not all sources
-- Only include mappings with relevance 0.5 or higher
-- If unsure, don't include the mapping
-- An empty mappings array is fine if no direct connections exist
+Include mappings with relevance 0.3 or higher. Each block should typically have at least one source connection.
 
 Return your analysis as JSON with mappings array.`;
 
     try {
       console.log(
         `[SourceMapper] Calling Claude Opus 4.5 for source mapping...`,
+      );
+      console.log(
+        `[SourceMapper] User prompt preview (first 500 chars): ${userPrompt.slice(0, 500)}...`,
       );
 
       const response = await this.client.messages.create({
@@ -309,10 +317,23 @@ Return your analysis as JSON with mappings array.`;
 
       // Parse JSON response
       let jsonText = textContent.text.trim();
+      console.log(
+        `[SourceMapper] AI response (first 1000 chars): ${jsonText.slice(0, 1000)}`,
+      );
 
-      // Remove markdown code blocks if present
-      if (jsonText.startsWith("```")) {
-        jsonText = jsonText.replace(/```(?:json)?\n?/g, "").trim();
+      // Extract JSON from response - AI often includes prose before/after the JSON
+      // Look for JSON code block first, then try to find raw JSON object
+      const jsonCodeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonCodeBlockMatch) {
+        jsonText = jsonCodeBlockMatch[1].trim();
+        console.log("[SourceMapper] Extracted JSON from code block");
+      } else {
+        // Try to find JSON object directly (starts with { ends with })
+        const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonText = jsonMatch[0];
+          console.log("[SourceMapper] Extracted JSON object from response");
+        }
       }
 
       try {
@@ -321,8 +342,8 @@ Return your analysis as JSON with mappings array.`;
 
         console.log(`[SourceMapper] AI returned ${mappings.length} mappings`);
 
-        // Minimum relevance threshold - only keep meaningful connections
-        const MIN_RELEVANCE_THRESHOLD = 0.5;
+        // Minimum relevance threshold - lowered to capture more lineage connections
+        const MIN_RELEVANCE_THRESHOLD = 0.3;
 
         // Validate and filter mappings
         const validMappings = mappings.filter(

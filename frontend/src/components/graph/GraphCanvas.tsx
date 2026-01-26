@@ -46,38 +46,64 @@ import {
 export type LayoutType = LayoutTypes;
 
 /**
- * Hook to detect dark mode via CSS class or media query
+ * Hook to detect dark mode - supports Dark Reader extension detection
+ * Also syncs the 'dark' class on HTML element for Tailwind's class-based dark mode
  */
 function useDarkMode(): boolean {
-  const subscribe = useCallback((callback: () => void) => {
-    // Listen for class changes on documentElement
-    const observer = new MutationObserver(callback);
+  const [isDark, setIsDark] = useState(() => {
+    // Check for Dark Reader extension (it adds data-darkreader attributes or styles)
+    const hasDarkReader =
+      document.documentElement.hasAttribute("data-darkreader-mode") ||
+      document.documentElement.hasAttribute("data-darkreader-scheme") ||
+      document.querySelector('meta[name="darkreader"]') !== null ||
+      document.querySelector("style.darkreader") !== null ||
+      document.querySelector('style[class*="darkreader"]') !== null;
+
+    return hasDarkReader;
+  });
+
+  useEffect(() => {
+    const checkDarkMode = () => {
+      // Check for Dark Reader extension
+      const hasDarkReader =
+        document.documentElement.hasAttribute("data-darkreader-mode") ||
+        document.documentElement.hasAttribute("data-darkreader-scheme") ||
+        document.querySelector('meta[name="darkreader"]') !== null ||
+        document.querySelector("style.darkreader") !== null ||
+        document.querySelector('style[class*="darkreader"]') !== null;
+
+      setIsDark(hasDarkReader);
+
+      // Sync 'dark' class on HTML element for Tailwind's class-based dark mode
+      if (hasDarkReader) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    };
+
+    // Listen for attribute changes on html element (Dark Reader modifies attributes)
+    const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["class"],
+      attributeFilter: ["data-darkreader-mode", "data-darkreader-scheme"],
     });
 
-    // Also listen for media query changes
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    mediaQuery.addEventListener("change", callback);
+    // Also observe head for Dark Reader style injection/removal
+    observer.observe(document.head, {
+      childList: true,
+      subtree: true,
+    });
+
+    // Check immediately
+    checkDarkMode();
 
     return () => {
       observer.disconnect();
-      mediaQuery.removeEventListener("change", callback);
     };
   }, []);
 
-  const getSnapshot = useCallback(() => {
-    // Check for 'dark' class on html element (Tailwind default) or media query
-    return (
-      document.documentElement.classList.contains("dark") ||
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    );
-  }, []);
-
-  const getServerSnapshot = useCallback(() => false, []);
-
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return isDark;
 }
 
 /**
@@ -598,7 +624,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     // which overrides per-node fill colors. Selection is managed via selectedNodeId prop.
     const {
       selections,
-      actives: selectionActives,
+      // Note: We don't use actives from useSelection - see actives useMemo below for explanation
       clearSelections,
       onCanvasClick: reagraphOnCanvasClick,
     } = useSelection({
@@ -668,14 +694,18 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       temporarilyVisibleNodeIds,
     ]);
 
-    // Combine selection actives with our highlighted nodes/edges
-    // Note: We intentionally do NOT add hovered node to actives because reagraph
-    // applies theme.activeFill to nodes in actives, overriding per-node fill colors.
-    // Hover styling (stroke color, opacity) is handled in toReagraphNode.
-    // We can now add hovered node to actives since our custom renderer ignores
-    // reagraph's activeFill and uses the node's original fill color.
+    // Compute active node/edge IDs for reagraph
+    // IMPORTANT: We do NOT use selectionActives from useSelection because:
+    // 1. We manage selection externally via selectedNodeId prop (not useSelection's click handler)
+    // 2. useSelection's actives state can become stale/out-of-sync with our external selection
+    // 3. This caused a bug where previously selected nodes stayed at 100% opacity after deselection
+    // Instead, we compute actives entirely from our own state to ensure consistency.
     const actives = useMemo(() => {
-      const combined = [...(selectionActives || [])];
+      const combined: string[] = [];
+      // Add selected node ID - must be active so it's not dimmed
+      if (selectedNodeId && !combined.includes(selectedNodeId)) {
+        combined.push(selectedNodeId);
+      }
       // Add hovered node ID - triggers inactiveOpacity on other nodes
       if (effectiveHoveredId && !combined.includes(effectiveHoveredId)) {
         combined.push(effectiveHoveredId);
@@ -700,7 +730,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       });
       return combined;
     }, [
-      selectionActives,
+      selectedNodeId,
       effectiveHoveredId,
       highlightedNodeIds,
       highlightedEdgeIds,
@@ -779,11 +809,14 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       return (
         <div
           data-testid="graph-canvas"
-          className={`flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-lg h-full w-full ${className}`}
+          className={`flex items-center justify-center h-full w-full ${className}`}
+          style={{ backgroundColor: isDarkMode ? "#111827" : "#F9FAFB" }}
         >
-          <div className="text-center text-gray-500 dark:text-gray-400">
+          <div
+            className={`text-center ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}
+          >
             <svg
-              className="mx-auto h-12 w-12 mb-4 text-gray-400 dark:text-gray-500"
+              className={`mx-auto h-12 w-12 mb-4 ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -809,7 +842,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       <div
         ref={containerRef}
         data-testid="graph-canvas"
-        className={`relative bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden h-full w-full ${className}`}
+        className={`relative overflow-hidden h-full w-full ${className}`}
+        style={{ backgroundColor: isDarkMode ? "#111827" : "#F9FAFB" }}
         onPointerLeave={handleNodePointerOut}
       >
         {/* WebGL Recovery Overlay */}
@@ -823,10 +857,19 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         )}
         {/* Filtered Empty Overlay - shows when filters result in 0 nodes */}
         {isFilteredEmpty && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-gray-50/90 dark:bg-gray-900/90 pointer-events-none">
-            <div className="text-center text-gray-500 dark:text-gray-400">
+          <div
+            className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none"
+            style={{
+              backgroundColor: isDarkMode
+                ? "rgba(17, 24, 39, 0.9)"
+                : "rgba(249, 250, 251, 0.9)",
+            }}
+          >
+            <div
+              className={`text-center ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}
+            >
               <svg
-                className="mx-auto h-12 w-12 mb-4 text-gray-400 dark:text-gray-500"
+                className={`mx-auto h-12 w-12 mb-4 ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -841,17 +884,25 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               <p className="text-sm font-medium">
                 No nodes match the selected filters
               </p>
-              <p className="text-xs mt-1 text-gray-400 dark:text-gray-500">
+              <p
+                className={`text-xs mt-1 ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}
+              >
                 Try adjusting or clearing your filters
               </p>
             </div>
           </div>
         )}
         {/* Zoom Controls */}
-        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        <div
+          className="absolute top-4 right-4 z-10 flex flex-col gap-2 p-1 rounded-lg border shadow-sm"
+          style={{
+            backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF",
+            borderColor: isDarkMode ? "#374151" : "#E5E7EB",
+          }}
+        >
           <button
             onClick={handleZoomIn}
-            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+            className={`p-2 rounded-lg transition-colors ${isDarkMode ? "hover:bg-gray-700 text-gray-300" : "hover:bg-gray-100 text-gray-700"}`}
             title="Zoom In"
             aria-label="Zoom In"
           >
@@ -871,7 +922,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           </button>
           <button
             onClick={handleZoomOut}
-            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+            className={`p-2 rounded-lg transition-colors ${isDarkMode ? "hover:bg-gray-700 text-gray-300" : "hover:bg-gray-100 text-gray-700"}`}
             title="Zoom Out"
             aria-label="Zoom Out"
           >
@@ -891,7 +942,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           </button>
           <button
             onClick={handleFitView}
-            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+            className={`p-2 rounded-lg transition-colors ${isDarkMode ? "hover:bg-gray-700 text-gray-300" : "hover:bg-gray-100 text-gray-700"}`}
             title="Fit to View"
             aria-label="Fit to View"
           >
@@ -911,7 +962,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           </button>
           <button
             onClick={handleCenterGraph}
-            className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+            className={`p-2 rounded-lg transition-colors ${isDarkMode ? "hover:bg-gray-700 text-gray-300" : "hover:bg-gray-100 text-gray-700"}`}
             title="Center Graph"
             aria-label="Center Graph"
           >
@@ -965,7 +1016,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           )}
           theme={{
             canvas: {
-              background: isDarkMode ? "#111827" : "#F9FAFB", // gray-900 in dark, gray-50 in light
+              background: isDarkMode ? "#111827" : "#F9FAFB", // Match container background
             },
             node: {
               fill: "#3B82F6",

@@ -242,14 +242,14 @@ export function SnapshotControls({
                   }
                 }}
                 placeholder="Snapshot name (required)"
-                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 mb-2"
+                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 mb-2"
               />
               <textarea
                 value={snapshotDescription}
                 onChange={(e) => setSnapshotDescription(e.target.value)}
                 placeholder="Description (optional)"
                 rows={2}
-                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 mb-2 resize-none"
+                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 mb-2 resize-none"
               />
               <div className="flex justify-end gap-2">
                 <button
@@ -340,7 +340,7 @@ export function SnapshotControls({
             className="absolute top-full left-0 mt-2 w-80 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50"
             data-testid="snapshot-history-dropdown"
           >
-            <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+            <div className="p-2 border-b border-gray-100 border-gray-200">
               <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 Snapshot History
               </h3>

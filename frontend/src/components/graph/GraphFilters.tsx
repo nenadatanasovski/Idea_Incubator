@@ -164,7 +164,7 @@ function FilterChip({
         ${
           isSelected
             ? "border-transparent shadow-sm"
-            : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300"
+            : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300"
         }
       `}
       style={{
@@ -201,7 +201,7 @@ function FilterSection({
     <div className="border-b border-gray-200 dark:border-gray-700 last:border-b-0">
       <button
         onClick={onToggle}
-        className="w-full py-2.5 flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+        className="w-full py-2.5 flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
       >
         <span className="flex items-center gap-2">
           {title}
@@ -344,11 +344,11 @@ function ConfidenceSlider({
         />
         {/* Visual thumb indicators */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white dark:bg-gray-200 border-2 border-blue-500 rounded-full shadow-sm pointer-events-none"
+          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white dark:bg-gray-800 border-2 border-blue-500 rounded-full shadow-sm pointer-events-none"
           style={{ left: `calc(${min * 100}% - 8px)` }}
         />
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white dark:bg-gray-200 border-2 border-blue-500 rounded-full shadow-sm pointer-events-none"
+          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white dark:bg-gray-800 border-2 border-blue-500 rounded-full shadow-sm pointer-events-none"
           style={{ left: `calc(${max * 100}% - 8px)` }}
         />
       </div>

@@ -27,8 +27,6 @@ import {
   List,
   AlignLeft,
 } from "lucide-react";
-import { parseProperties } from "./utils/propertyDisplay";
-import { SpecialPropertiesSection } from "./PropertyDisplayComponents";
 import { EvidenceChainPanel } from "./EvidenceChainPanel";
 import { BlockTypeInspector } from "./BlockTypeInspector";
 import type { SourceType } from "../../types/graph";
@@ -52,6 +50,32 @@ function formatDate(dateStr: string | undefined | null): string {
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return "Unknown";
   return date.toLocaleString();
+}
+
+/**
+ * Format a date as a compact relative or short date string for header display
+ */
+function formatDateCompact(dateStr: string | undefined | null): string {
+  if (!dateStr) return "Unknown";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "Unknown";
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  // For older dates, show short date
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export interface RelationshipHoverInfo {
@@ -905,49 +929,6 @@ function NavigableSourceSection({
 }
 
 /**
- * PropertiesContent Component
- * Renders properties with special handling for range and context-qualified values
- */
-function PropertiesContent({
-  properties,
-}: {
-  properties: Record<string, unknown>;
-}) {
-  const parsedProps = useMemo(() => parseProperties(properties), [properties]);
-
-  const { regularProperties, rangeProperties, contextQualifiedProperties } =
-    parsedProps;
-
-  return (
-    <div className="space-y-4">
-      {/* Special Properties (Range and Context-Qualified) */}
-      <SpecialPropertiesSection
-        rangeProperties={rangeProperties}
-        contextQualifiedProperties={contextQualifiedProperties}
-      />
-
-      {/* Regular Properties */}
-      {Object.keys(regularProperties).length > 0 && (
-        <dl className="space-y-2 text-sm">
-          {Object.entries(regularProperties).map(([key, value]) => (
-            <div key={key} className="flex justify-between gap-2">
-              <dt className="text-gray-500 truncate">
-                {key.replace(/_/g, " ")}
-              </dt>
-              <dd className="text-gray-900 text-right break-all max-w-[180px]">
-                {typeof value === "object"
-                  ? JSON.stringify(value)
-                  : String(value)}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
-    </div>
-  );
-}
-
-/**
  * NodeInspector Component
  * Displays detailed information about a selected node including relationships
  */
@@ -1102,17 +1083,46 @@ export function NodeInspector({
           >
             {node.content}
           </p>
-          <div className="mt-1 flex items-center gap-2 flex-wrap">
-            <span
-              className="px-2 py-0.5 rounded text-xs font-medium"
-              style={{
-                backgroundColor: `${nodeColors[node.blockType]}20`,
-                color: nodeColors[node.blockType],
-              }}
-            >
-              {node.blockType}
-            </span>
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            {(() => {
+              const display = getNodeTypeDisplay(node);
+              return (
+                <span
+                  className="px-2 py-1 rounded text-sm font-semibold"
+                  style={{
+                    backgroundColor: display.color,
+                    color: "#ffffff",
+                  }}
+                >
+                  {display.type}
+                </span>
+              );
+            })()}
             <StatusBadge status={node.status} />
+            {/* Confidence bar */}
+            <div className="flex items-center gap-1.5 ml-1">
+              <span className="text-xs text-gray-500">Confidence</span>
+              <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all"
+                  style={{ width: `${node.confidence * 100}%` }}
+                />
+              </div>
+              <span className="text-xs text-gray-500">
+                {Math.round(node.confidence * 100)}%
+              </span>
+            </div>
+            {/* Created/Updated dates */}
+            <div className="flex items-center gap-3 ml-1 text-xs text-gray-400">
+              <span title={formatDate(node.createdAt)}>
+                <span className="text-gray-500">Created:</span>{" "}
+                {formatDateCompact(node.createdAt)}
+              </span>
+              <span title={formatDate(node.updatedAt)}>
+                <span className="text-gray-500">Updated:</span>{" "}
+                {formatDateCompact(node.updatedAt)}
+              </span>
+            </div>
           </div>
         </div>
         <button
@@ -1342,135 +1352,6 @@ export function NodeInspector({
             )}
           </div>
         </div>
-
-        {/* Metadata Section */}
-        <Section title="Metadata" defaultExpanded={false}>
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between items-start">
-              <dt className="text-gray-500">ID</dt>
-              <dd className="text-gray-900 font-mono text-xs break-all text-right max-w-[200px]">
-                {node.id}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <dt className="text-gray-500">Graph</dt>
-              <dd className="flex gap-1 flex-wrap justify-end">
-                {node.graphMembership.map((graph) => (
-                  <span
-                    key={graph}
-                    className="px-2 py-0.5 rounded text-xs"
-                    style={{
-                      backgroundColor: `${graphColors[graph]}20`,
-                      color: graphColors[graph],
-                    }}
-                  >
-                    {graph}
-                  </span>
-                ))}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <dt className="text-gray-500">Confidence</dt>
-              <dd className="flex items-center gap-2">
-                <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 rounded-full transition-all"
-                    style={{ width: `${node.confidence * 100}%` }}
-                  />
-                </div>
-                <span className="text-gray-900 text-xs">
-                  {Math.round(node.confidence * 100)}%
-                </span>
-              </dd>
-            </div>
-            {node.abstractionLevel && (
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Abstraction</dt>
-                <dd className="text-gray-900 capitalize">
-                  {node.abstractionLevel}
-                </dd>
-              </div>
-            )}
-            {/* Action block progress bar */}
-            {node.blockType === "action" &&
-              node.requiredCount !== undefined &&
-              node.completedCount !== undefined && (
-                <div className="flex justify-between items-center">
-                  <dt className="text-gray-500">Progress</dt>
-                  <dd className="flex items-center gap-2">
-                    <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          node.completedCount >= node.requiredCount
-                            ? "bg-green-500"
-                            : "bg-amber-500"
-                        }`}
-                        style={{
-                          width: `${Math.min(100, (node.completedCount / node.requiredCount) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-gray-900 text-xs">
-                      {node.completedCount}/{node.requiredCount}
-                    </span>
-                  </dd>
-                </div>
-              )}
-          </dl>
-        </Section>
-
-        {/* Properties Section */}
-        {Object.keys(node.properties).length > 0 && (
-          <Section
-            title="Properties"
-            defaultExpanded={false}
-            count={Object.keys(node.properties).length}
-          >
-            <PropertiesContent properties={node.properties} />
-          </Section>
-        )}
-
-        {/* Timeline Section */}
-        <Section title="Timeline" defaultExpanded={false}>
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Created</dt>
-              <dd className="text-gray-900 text-xs">
-                {formatDate(node.createdAt)}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Updated</dt>
-              <dd className="text-gray-900 text-xs">
-                {formatDate(node.updatedAt)}
-              </dd>
-            </div>
-            {node.when && (
-              <div className="flex justify-between">
-                <dt className="text-gray-500">When</dt>
-                <dd className="text-gray-900 text-xs">{node.when}</dd>
-              </div>
-            )}
-            {node.duration && (
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Duration</dt>
-                <dd className="text-gray-900 text-xs">{node.duration}</dd>
-              </div>
-            )}
-            {node.plannedFor && (
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Planned For</dt>
-                <dd className="text-gray-900 text-xs">{node.plannedFor}</dd>
-              </div>
-            )}
-            {node.validUntil && (
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Valid Until</dt>
-                <dd className="text-gray-900 text-xs">{node.validUntil}</dd>
-              </div>
-            )}
-          </dl>
-        </Section>
 
         {/* Referenced In Section (T9.6) */}
         {node.fileReferences && node.fileReferences.length > 0 && (
