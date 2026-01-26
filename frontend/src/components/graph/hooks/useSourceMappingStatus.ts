@@ -100,7 +100,7 @@ export function useSourceMappingStatus(
 
     try {
       const response = await fetch(
-        `/api/ideation/graph/${sessionId}/source-mapping/status`,
+        `/api/ideation/session/${sessionId}/source-mapping/status`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -135,7 +135,7 @@ export function useSourceMappingStatus(
 
     try {
       const response = await fetch(
-        `/api/ideation/graph/${sessionId}/source-mapping/cancel`,
+        `/api/ideation/session/${sessionId}/source-mapping/cancel`,
         { method: "POST" },
       );
       return response.ok;

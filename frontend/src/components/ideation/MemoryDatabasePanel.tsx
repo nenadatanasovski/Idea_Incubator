@@ -682,8 +682,8 @@ export function MemoryDatabasePanel({
 
   return (
     <div className={`flex flex-col h-full bg-white ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+      {/* Header with inline tabs */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 overflow-x-auto">
         <div className="flex items-center gap-3">
           {onBackToGraph && (
             <button
@@ -700,6 +700,36 @@ export function MemoryDatabasePanel({
               Memory Database
             </h2>
           </div>
+          {/* Table tabs - inline with title */}
+          <div className="flex items-center gap-2 ml-4">
+            <TableTab
+              name="Memory Files"
+              icon={FileText}
+              isActive={activeTable === "files"}
+              count={memoryFiles.length}
+              onClick={() => setActiveTable("files")}
+            />
+            <TableTab
+              name="Blocks"
+              icon={Table}
+              isActive={activeTable === "blocks"}
+              count={blocks.length}
+              onClick={() => setActiveTable("blocks")}
+            />
+            <TableTab
+              name="Links"
+              icon={Link2}
+              isActive={activeTable === "links"}
+              count={links.length}
+              onClick={() => setActiveTable("links")}
+            />
+            <TableTab
+              name="Graphs"
+              icon={Layers}
+              isActive={activeTable === "graphs"}
+              onClick={() => setActiveTable("graphs")}
+            />
+          </div>
         </div>
         <button
           onClick={fetchData}
@@ -709,37 +739,6 @@ export function MemoryDatabasePanel({
           <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
           Refresh
         </button>
-      </div>
-
-      {/* Table tabs */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-gray-50 overflow-x-auto">
-        <TableTab
-          name="Memory Files"
-          icon={FileText}
-          isActive={activeTable === "files"}
-          count={memoryFiles.length}
-          onClick={() => setActiveTable("files")}
-        />
-        <TableTab
-          name="Blocks"
-          icon={Table}
-          isActive={activeTable === "blocks"}
-          count={blocks.length}
-          onClick={() => setActiveTable("blocks")}
-        />
-        <TableTab
-          name="Links"
-          icon={Link2}
-          isActive={activeTable === "links"}
-          count={links.length}
-          onClick={() => setActiveTable("links")}
-        />
-        <TableTab
-          name="Graphs"
-          icon={Layers}
-          isActive={activeTable === "graphs"}
-          onClick={() => setActiveTable("graphs")}
-        />
       </div>
 
       {/* Search bar */}

@@ -634,10 +634,21 @@ export function GraphContainer({
     setHoveredNode(node);
   }, []);
 
-  // Close inspector panel
+  // Close inspector panel and clear all highlight states
+  // Hard rule: clicking empty canvas space must remove all overlays
   const handleCloseInspector = useCallback(() => {
     setSelectedNode(null);
     onNodeSelect?.(null);
+    // Clear all hover/highlight states that contribute to the overlay
+    setHoveredNode(null);
+    setHoveredRelationship(null);
+    setHoveredCycleNodeId(null);
+    setHoveredCycleNodeIds([]);
+    // Clear any pending relationship hover camera movements
+    if (relationshipHoverTimeoutRef.current) {
+      clearTimeout(relationshipHoverTimeoutRef.current);
+      relationshipHoverTimeoutRef.current = null;
+    }
   }, [onNodeSelect]);
 
   // Navigate to a node from the inspector and focus on it in the canvas

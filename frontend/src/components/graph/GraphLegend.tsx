@@ -6,7 +6,6 @@
 import { useState, useCallback } from "react";
 import {
   nodeColors,
-  graphColors,
   edgeColors,
   edgeStyles,
   nodeShapes,

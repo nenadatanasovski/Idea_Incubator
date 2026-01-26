@@ -437,13 +437,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       ref,
       () => ({
         focusOnNode: (nodeId: string) => {
-          graphRef.current?.fitNodesInView([nodeId], { padding: 100 });
+          graphRef.current?.fitNodesInView([nodeId]);
         },
         fitNodesInView: (nodeIds?: string[], options?: { slow?: boolean }) => {
-          // Use extra padding when fitting multiple nodes to ensure all are visible
-          // For relationship hover (2 nodes), zoom out by ~50% more to ensure second node is in view
-          const padding = nodeIds && nodeIds.length > 1 ? 450 : 100;
-
           // Access camera controls to adjust animation speed
           const controls = graphRef.current?.getControls();
           if (controls && options?.slow) {
@@ -451,7 +447,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             controls.smoothTime = 0.25;
           }
 
-          graphRef.current?.fitNodesInView(nodeIds, { padding });
+          graphRef.current?.fitNodesInView(nodeIds);
 
           // Reset smoothTime after animation starts
           if (controls && options?.slow) {
@@ -626,8 +622,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       (event: MouseEvent) => {
         reagraphOnCanvasClick?.(event);
         onCanvasClickProp?.();
+        // Hard rule: always clear internal hover state when clicking empty canvas
+        setInternalHoveredId(null);
         // Recenter and fit all nodes in view when clicking empty space
-        graphRef.current?.fitNodesInView(undefined, { padding: 50 });
+        graphRef.current?.fitNodesInView();
       },
       [reagraphOnCanvasClick, onCanvasClickProp],
     );
@@ -719,7 +717,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         const node = nodes.find((n) => n.id === nodeData.id);
         if (node) {
           // Center the clicked node on screen
-          graphRef.current?.fitNodesInView([nodeData.id], { padding: 100 });
+          graphRef.current?.fitNodesInView([nodeData.id]);
           if (onNodeClick) {
             onNodeClick(node);
           }
