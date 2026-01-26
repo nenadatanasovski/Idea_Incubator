@@ -177,6 +177,18 @@ export class AgentOrchestrator {
           lastAssistantMessage.content,
         );
 
+        console.log(
+          "[Orchestrator] Intent classification result:",
+          JSON.stringify({
+            intent: intentClassification.intent,
+            optionsAreDiscussionTopics:
+              intentClassification.optionsAreDiscussionTopics,
+            shouldSpawnSubtasks: intentClassification.shouldSpawnSubtasks,
+            selectedOptions: intentClassification.selectedOptions,
+            reasoning: intentClassification.reasoning,
+          }),
+        );
+
         if (intentClassification.shouldSpawnSubtasks) {
           console.log(
             "[Orchestrator] QUICK ACK PATH - spawning subtasks for intent:",
@@ -187,6 +199,17 @@ export class AgentOrchestrator {
             userMessage,
             intentClassification,
             presentedOptions,
+          );
+        }
+
+        // If user selected discussion topics, log why we're not spawning subtasks
+        if (
+          intentClassification.optionsAreDiscussionTopics &&
+          (intentClassification.intent === "execute_selection" ||
+            intentClassification.intent === "execute_all")
+        ) {
+          console.log(
+            "[Orchestrator] User selected discussion topic(s) - continuing main conversation instead of spawning sub-agents",
           );
         }
 

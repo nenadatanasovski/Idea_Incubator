@@ -32,13 +32,21 @@ export interface IntentClassification {
   selectedOptions?: number[];
 
   /**
+   * Are the presented options discussion topics rather than executable tasks?
+   * Discussion topics: "THE DATA PROBLEM", "Why now?", questions to think about
+   * Executable tasks: "Generate action plan", "Create pitch", "Research competitors"
+   */
+  optionsAreDiscussionTopics: boolean;
+
+  /**
    * The key decision: should we spawn sub-tasks/agents for parallel execution?
+   * Only true when intent is execute_selection/execute_all AND options are executable tasks.
    */
   shouldSpawnSubtasks: boolean;
 
   /**
    * Should the main Claude conversation handle this response?
-   * True for questions, suggestions, and general conversation.
+   * True for questions, suggestions, general conversation, AND when selecting discussion topics.
    */
   respondWithClaude: boolean;
 
@@ -85,45 +93,62 @@ Assistant's message context:
 ## User's Response
 "${userMessage}"
 
-## Your Task
-Classify the user's intent into ONE of these categories:
+## STEP 1: Classify the OPTIONS themselves
 
-1. **execute_selection** - User clearly wants to RUN/DO specific numbered options
-   Examples: "1", "do 1 and 3", "the first one", "options 2 and 4", "1, 2, and 3"
+First, determine what TYPE of options these are:
 
-2. **execute_all** - User clearly wants to RUN/DO ALL options
+**DISCUSSION TOPICS** - Things to TALK ABOUT, explore, or think through:
+- Questions or challenges to consider (e.g., "THE DATA PROBLEM", "Why now?", "The pricing question")
+- Topics for further discussion (e.g., "Explore market fit", "Discuss the competition")
+- Points to clarify (e.g., "Who is the buyer?", "What about validation?")
+- Numbered sections of analysis or critique
+- Things the assistant wants the user to THINK about or DISCUSS
+
+**EXECUTABLE TASKS** - Concrete artifacts or deliverables to CREATE:
+- "Generate action plan", "Create pitch", "Build roadmap"
+- "Research competitors", "Analyze market"
+- "Write summary", "Design architecture"
+- Tasks that produce a tangible output/artifact
+
+## STEP 2: Classify the USER'S INTENT
+
+1. **execute_selection** - User wants to SELECT/FOCUS ON specific numbered options
+   Examples: "1", "let's tackle 1", "the first one", "options 2 and 4", "1, 2, and 3", "let's start with 1"
+
+2. **execute_all** - User wants ALL options
    Examples: "all of them", "do everything", "run all", "yes do all 4", "let's do them all"
 
-3. **question** - User is ASKING something, not commanding execution
-   Examples: "why not all?", "what's the difference between 1 and 2?", "can you explain option 3?", "which one is better?"
+3. **question** - User is ASKING something
+   Examples: "why not all?", "what's the difference between 1 and 2?", "can you explain option 3?"
 
-4. **suggestion** - User is PROPOSING a different approach or modification
-   Examples: "combine 1 and 3 into one approach", "what if we did something else?", "I'd rather focus on...", "can we merge these?"
+4. **suggestion** - User is PROPOSING something different
+   Examples: "combine 1 and 3", "what if we did something else?", "I'd rather focus on..."
 
 5. **continue_conversation** - General response that isn't about the options
-   Examples: "interesting", "tell me more", "I'm not sure yet", "let me think about it"
+   Examples: "interesting", "tell me more", "I'm not sure yet"
 
-## Critical Distinctions
-- "all of the above" as a STATEMENT = execute_all (do all options)
-- "why not all of the above?" as a QUESTION = question (asking about combining)
-- "let's do all of them" = execute_all
-- "could we do all of them?" = question (asking if possible)
-- "1" = execute_selection
-- "what about 1?" = question
+## Critical Rule
+When the user selects a DISCUSSION TOPIC (e.g., "1" when option 1 is "THE DATA PROBLEM"):
+- This is execute_selection intent
+- BUT optionsAreDiscussionTopics = true
+- So shouldSpawnSubtasks = false (no artifacts to create)
+- And respondWithClaude = true (continue the conversation about that topic)
 
 ## Response Format
 Respond with ONLY valid JSON (no markdown, no explanation):
 {
   "intent": "execute_selection" | "execute_all" | "question" | "suggestion" | "continue_conversation",
   "selectedOptions": [1, 2, 3] or null,
+  "optionsAreDiscussionTopics": true/false,
   "shouldSpawnSubtasks": true/false,
   "respondWithClaude": true/false,
   "reasoning": "brief explanation"
 }
 
-Rules for the boolean fields:
-- shouldSpawnSubtasks: true ONLY for execute_selection or execute_all
-- respondWithClaude: true for question, suggestion, continue_conversation; false for execute_selection/execute_all`;
+## Rules for boolean fields:
+- optionsAreDiscussionTopics: true if options are topics to discuss, false if they're tasks to execute
+- shouldSpawnSubtasks: true ONLY when (intent is execute_selection/execute_all) AND (optionsAreDiscussionTopics is false)
+- respondWithClaude: true for question/suggestion/continue_conversation, OR when optionsAreDiscussionTopics is true`;
 
   try {
     console.log("[IntentClassifier] Classifying user intent with Haiku...");
@@ -179,6 +204,7 @@ function isValidClassification(obj: unknown): obj is IntentClassification {
   return (
     typeof c.intent === "string" &&
     validIntents.includes(c.intent) &&
+    typeof c.optionsAreDiscussionTopics === "boolean" &&
     typeof c.shouldSpawnSubtasks === "boolean" &&
     typeof c.respondWithClaude === "boolean" &&
     typeof c.reasoning === "string"
@@ -196,6 +222,7 @@ function createFallbackClassification(
 
   return {
     intent: "continue_conversation",
+    optionsAreDiscussionTopics: true, // Safe default: assume discussion
     shouldSpawnSubtasks: false,
     respondWithClaude: true,
     reasoning: `Fallback: could not classify "${userMessage.slice(0, 50)}..."`,

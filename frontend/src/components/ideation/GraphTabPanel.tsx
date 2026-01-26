@@ -673,7 +673,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
         {/* Source Mapping Status Pill - shows when background mapping is active or recently completed */}
         {(sourceMappingStatus.jobId || sourceMappingStatus.status) && (
           <div
-            className="absolute top-4 left-1/2 -translate-x-1/2 z-30"
+            className="absolute top-4 right-4 z-30"
             data-testid="source-mapping-status"
           >
             <SourceMappingStatusPill
