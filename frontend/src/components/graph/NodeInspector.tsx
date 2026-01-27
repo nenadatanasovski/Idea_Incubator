@@ -1354,20 +1354,49 @@ export function NodeInspector({
                   {node.content}
                 </p>
                 <div className="mt-2 flex items-center gap-2 flex-wrap">
-                  {(() => {
-                    const display = getNodeTypeDisplay(node);
-                    return (
-                      <span
-                        className="px-2 py-1 rounded text-sm font-semibold"
-                        style={{
-                          backgroundColor: display.color,
-                          color: "#ffffff",
-                        }}
-                      >
-                        {display.type}
+                  {/* Block Type tags */}
+                  <span className="text-xs text-gray-500 font-medium">
+                    Type
+                  </span>
+                  {(node.blockTypes && node.blockTypes.length > 0
+                    ? node.blockTypes
+                    : [node.blockType]
+                  ).map((bt) => (
+                    <span
+                      key={bt}
+                      className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                      style={{
+                        backgroundColor:
+                          nodeColors[bt as keyof typeof nodeColors] ||
+                          FALLBACK_COLOR,
+                        color: "#ffffff",
+                      }}
+                    >
+                      {bt}
+                    </span>
+                  ))}
+                  {/* Graph Membership tags */}
+                  {node.graphMembership.length > 0 && (
+                    <>
+                      <span className="text-xs text-gray-500 font-medium ml-2">
+                        Graph
                       </span>
-                    );
-                  })()}
+                      {node.graphMembership.map((gm) => (
+                        <span
+                          key={gm}
+                          className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                          style={{
+                            backgroundColor:
+                              graphColors[gm as keyof typeof graphColors] ||
+                              FALLBACK_COLOR,
+                            color: "#ffffff",
+                          }}
+                        >
+                          {gm}
+                        </span>
+                      ))}
+                    </>
+                  )}
                   <StatusBadge status={node.status} />
                   {/* Confidence bar */}
                   <div className="flex items-center gap-1.5 ml-1">

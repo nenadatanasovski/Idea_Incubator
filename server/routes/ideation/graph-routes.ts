@@ -308,13 +308,14 @@ graphRouter.get("/:sessionId/blocks", async (req: Request, res: Response) => {
     const { sessionId } = req.params;
 
     const blocks = await blockExtractor.getBlocksForSession(sessionId);
-    const memberships = await blockExtractor.getGraphMemberships(
-      blocks.map((b) => b.id),
-    );
+    const blockIds = blocks.map((b) => b.id);
+    const memberships = await blockExtractor.getGraphMemberships(blockIds);
+    const blockTypesMap = await blockExtractor.getBlockTypes(blockIds);
 
-    // Convert to API response format with graph memberships
+    // Convert to API response format with graph memberships and block types
     const blocksWithMemberships = blocks.map((block) => ({
       ...block,
+      blockTypes: blockTypesMap.get(block.id) || [],
       graphMembership: memberships.get(block.id) || [],
     }));
 
@@ -368,13 +369,14 @@ graphRouter.get("/:sessionId/graph", async (req: Request, res: Response) => {
 
     const blocks = await blockExtractor.getBlocksForSession(sessionId);
     const links = await blockExtractor.getLinksForSession(sessionId);
-    const memberships = await blockExtractor.getGraphMemberships(
-      blocks.map((b) => b.id),
-    );
+    const blockIds = blocks.map((b) => b.id);
+    const memberships = await blockExtractor.getGraphMemberships(blockIds);
+    const blockTypesMap = await blockExtractor.getBlockTypes(blockIds);
 
     // Convert to API response format
     const blocksWithMemberships = blocks.map((block) => ({
       ...block,
+      blockTypes: blockTypesMap.get(block.id) || [],
       graphMembership: memberships.get(block.id) || [],
     }));
 
@@ -406,6 +408,7 @@ graphRouter.get("/:sessionId/graph", async (req: Request, res: Response) => {
 
 const CreateBlockSchema = z.object({
   type: z.string(),
+  types: z.array(z.string()).optional(), // Multiple block types (new)
   title: z.string().max(100).optional(), // Short 3-5 word summary
   content: z.string().min(1),
   properties: z.record(z.unknown()).optional(),
@@ -468,6 +471,16 @@ graphRouter.post(
         }
       }
 
+      // Insert block types into junction table
+      const blockTypes =
+        data.types && data.types.length > 0 ? data.types : [data.type];
+      for (const bt of blockTypes) {
+        await run(
+          `INSERT OR IGNORE INTO memory_block_types (block_id, block_type, created_at) VALUES (?, ?, ?)`,
+          [blockId, bt, now],
+        );
+      }
+
       await saveDb();
 
       // Log the block creation for change tracking
@@ -498,6 +511,7 @@ graphRouter.post(
         id: blockId,
         sessionId,
         type: data.type,
+        blockTypes,
         title: data.title || null,
         content: data.content,
         properties: data.properties,
@@ -523,6 +537,7 @@ graphRouter.post(
 
 const UpdateBlockSchema = z.object({
   type: z.string().optional(),
+  types: z.array(z.string()).optional(), // Multiple block types (new)
   title: z.string().max(100).optional().nullable(), // Short 3-5 word summary
   content: z.string().min(1).optional(),
   properties: z.record(z.unknown()).optional().nullable(),
@@ -608,6 +623,19 @@ graphRouter.patch(
           await run(
             `INSERT INTO memory_graph_memberships (block_id, graph_type, created_at) VALUES (?, ?, ?)`,
             [blockId, graphType, now],
+          );
+        }
+      }
+
+      // Update block types if provided
+      if (data.types !== undefined) {
+        await run(`DELETE FROM memory_block_types WHERE block_id = ?`, [
+          blockId,
+        ]);
+        for (const bt of data.types) {
+          await run(
+            `INSERT OR IGNORE INTO memory_block_types (block_id, block_type, created_at) VALUES (?, ?, ?)`,
+            [blockId, bt, now],
           );
         }
       }
@@ -1844,11 +1872,26 @@ graphRouter.post(
 
               // Use raw messages for source mapping (not synthesized insights)
               // This allows AI to trace direct connections to user statements
-              const fullSourcesResult = await collectAllSources(sessionId, {
+              let fullSourcesResult = await collectAllSources(sessionId, {
                 tokenBudget: 40000,
                 conversationLimit: 50,
                 synthesizeConversations: false, // Raw messages for lineage tracking
               });
+
+              // Filter to only the sources that were selected during analysis
+              // This respects the user's source selection (e.g., deselecting memory files)
+              if (sources && sources.length > 0) {
+                const selectedSourceIds = new Set(sources.map((s) => s.id));
+                const filteredSources = fullSourcesResult.sources.filter((s) =>
+                  selectedSourceIds.has(s.id),
+                );
+                if (filteredSources.length > 0) {
+                  fullSourcesResult = {
+                    ...fullSourcesResult,
+                    sources: filteredSources,
+                  };
+                }
+              }
 
               // Check for cancellation after collecting sources
               if (sourceMappingTracker.isCancelled(sessionId)) {

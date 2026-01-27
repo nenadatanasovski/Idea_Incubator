@@ -550,9 +550,10 @@ sessionRouter.get("/:sessionId/blocks", async (req: Request, res: Response) => {
       [sessionId],
     );
 
-    // Get graph memberships for all blocks
+    // Get graph memberships and block types for all blocks
     const blockIds = blocksResult.map((b) => b.id);
     let memberships: Record<string, string[]> = {};
+    let blockTypesMap: Record<string, string[]> = {};
 
     if (blockIds.length > 0) {
       const placeholders = blockIds.map(() => "?").join(",");
@@ -570,6 +571,21 @@ sessionRouter.get("/:sessionId/blocks", async (req: Request, res: Response) => {
         }
         memberships[row.block_id].push(row.graph_type);
       }
+
+      const blockTypeRows = await query<{
+        block_id: string;
+        block_type: string;
+      }>(
+        `SELECT block_id, block_type FROM memory_block_types WHERE block_id IN (${placeholders})`,
+        blockIds,
+      );
+
+      for (const row of blockTypeRows) {
+        if (!blockTypesMap[row.block_id]) {
+          blockTypesMap[row.block_id] = [];
+        }
+        blockTypesMap[row.block_id].push(row.block_type);
+      }
     }
 
     // Transform to the expected API format
@@ -578,6 +594,7 @@ sessionRouter.get("/:sessionId/blocks", async (req: Request, res: Response) => {
       sessionId: row.session_id,
       ideaId: row.idea_id,
       type: row.type,
+      blockTypes: blockTypesMap[row.id] || [],
       title: row.title || null,
       content: row.content || "",
       properties: row.properties ? JSON.parse(row.properties) : {},

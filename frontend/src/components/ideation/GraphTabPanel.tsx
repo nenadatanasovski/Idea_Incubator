@@ -683,7 +683,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
         {/* Note: ReportSynthesisStatusPill is now rendered in GraphControls next to the brain button */}
         {(sourceMappingStatus.jobId || sourceMappingStatus.status) && (
           <div
-            className="absolute top-4 right-4 z-30"
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-30"
             data-testid="status-pills-container"
           >
             {/* Source Mapping Status Pill */}

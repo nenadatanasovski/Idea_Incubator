@@ -19,6 +19,8 @@ import {
   GraphType,
   LinkType,
   linkTypes,
+  canonicalBlockTypes,
+  type CanonicalBlockType,
 } from "../../schema/index.js";
 
 // ============================================================================
@@ -63,7 +65,8 @@ export interface ExtractionResult {
 }
 
 interface ExtractedBlock {
-  type: string;
+  type?: string; // Legacy single type (backward compat)
+  types?: string[]; // New multi-type field
   content: string;
   confidence: number;
   graph_membership: string[];
@@ -90,24 +93,27 @@ interface ExtractionResponse {
 // ============================================================================
 
 const BLOCK_EXTRACTION_PROMPT = `
-Analyze this message and extract structured blocks. For each block, identify:
+Analyze this message and extract structured blocks. For each block, assign one or more types from ONLY these 11 canonical block types:
 
-1. **Content blocks**: Facts, claims, insights, data points about the idea
-2. **Assumption blocks**: Implicit or explicit assumptions being made
-3. **Risk blocks**: Identified risks, concerns, red flags
-4. **Action blocks**: Next steps, validation tasks, to-dos
-5. **Decision blocks**: Choices made or pending decisions
-6. **Option blocks**: Alternatives being considered
-7. **Meta blocks**: Questions, uncertainties, notes about other blocks
-8. **Synthesis blocks**: Conclusions drawn from multiple pieces of information
-9. **Pattern blocks**: Recurring themes or patterns identified
-10. **Stakeholder_view blocks**: Perspectives from different user types
+1. **insight** - Key findings, conclusions, "aha" moments, non-obvious observations
+2. **fact** - Verifiable data points, claims, statistics, evidence
+3. **assumption** - Implicit or explicit assumptions being made
+4. **question** - Open questions, unknowns, things to investigate
+5. **decision** - Choices made or pending decisions
+6. **action** - Next steps, validation tasks, to-dos
+7. **requirement** - Must-have constraints, specifications, acceptance criteria
+8. **option** - Alternatives being considered, possible approaches
+9. **pattern** - Recurring themes or patterns identified across information
+10. **synthesis** - Conclusions drawn from combining multiple pieces of information
+11. **meta** - Notes about the process, uncertainties about other blocks
+
+IMPORTANT: Do NOT use graph dimension names as block types. The following are graph dimensions (not block types): problem, solution, market, risk, fit, business, spec, distribution, marketing, manufacturing. These belong in graph_membership only.
 
 For each block, determine:
-- type: The block type from the list above
+- types: Array of block types from the 11 canonical types above (at least one)
 - content: The actual content/text (keep it concise but complete)
 - confidence: 0.0-1.0 how confident this information is correct
-- graph_membership: Which graphs this belongs to: problem, solution, market, risk, fit, business, spec
+- graph_membership: Which business dimensions this belongs to: problem, solution, market, risk, fit, business, spec, distribution, marketing, manufacturing
 - properties: Any structured data (numbers, dates, named entities) including source attribution
 - abstraction_level: vision, strategy, tactic, or implementation
 
@@ -129,7 +135,7 @@ Return JSON only, no markdown:
 {
   "blocks": [
     {
-      "type": "content",
+      "types": ["fact"],
       "content": "Legal tech market is $50B TAM",
       "confidence": 0.85,
       "graph_membership": ["market"],
@@ -415,6 +421,33 @@ export class BlockExtractor {
     return memberships;
   }
 
+  /**
+   * Get block types from the junction table for blocks.
+   */
+  async getBlockTypes(blockIds: string[]): Promise<Map<string, string[]>> {
+    if (blockIds.length === 0) {
+      return new Map();
+    }
+
+    const placeholders = blockIds.map(() => "?").join(",");
+    const rows = await query<{
+      block_id: string;
+      block_type: string;
+    }>(
+      `SELECT block_id, block_type FROM memory_block_types WHERE block_id IN (${placeholders})`,
+      blockIds,
+    );
+
+    const typeMap = new Map<string, string[]>();
+    for (const row of rows) {
+      const existing = typeMap.get(row.block_id) || [];
+      existing.push(row.block_type);
+      typeMap.set(row.block_id, existing);
+    }
+
+    return typeMap;
+  }
+
   // ============================================================================
   // PRIVATE METHODS
   // ============================================================================
@@ -487,12 +520,21 @@ export class BlockExtractor {
 
     // Process blocks
     for (const extracted of extraction.blocks) {
-      // Validate block type
-      const blockType = this.validateBlockType(extracted.type);
-      if (!blockType) {
-        warnings.push(`Invalid block type: ${extracted.type}`);
-        continue;
-      }
+      // Support both new "types" array and legacy "type" string
+      const rawTypes =
+        extracted.types && extracted.types.length > 0
+          ? extracted.types
+          : extracted.type
+            ? [extracted.type]
+            : [];
+
+      // Validate block types and remap graph dimension names
+      const { blockTypes: validatedTypes, remappedGraphTypes } =
+        this.validateBlockTypes(rawTypes);
+
+      // Also validate via legacy method for backward compat on memory_blocks.type column
+      const primaryType =
+        this.validateBlockType(validatedTypes[0]) || ("content" as BlockType);
 
       // Check for duplicates using semantic similarity
       const duplicate = this.findDuplicate(extracted.content, existingBlocks);
@@ -508,7 +550,7 @@ export class BlockExtractor {
       const block: MemoryBlock = {
         id: uuidv4(),
         sessionId,
-        type: blockType,
+        type: primaryType,
         content: extracted.content,
         properties: extracted.properties || null,
         status: "active",
@@ -542,10 +584,24 @@ export class BlockExtractor {
         ],
       );
 
-      // Save graph memberships
+      // Save block types to junction table
+      for (const bt of validatedTypes) {
+        await run(
+          `INSERT OR IGNORE INTO memory_block_types (block_id, block_type, created_at) VALUES (?, ?, ?)`,
+          [block.id, bt, now],
+        );
+      }
+
+      // Save graph memberships (merge extracted + remapped from block type validation)
       const graphMemberships = this.validateGraphMemberships(
         extracted.graph_membership,
       );
+      // Add remapped graph types (from AI using graph names as block types)
+      for (const gt of remappedGraphTypes) {
+        if (!graphMemberships.includes(gt)) {
+          graphMemberships.push(gt);
+        }
+      }
       for (const graphType of graphMemberships) {
         await run(
           `INSERT INTO memory_graph_memberships (block_id, graph_type, created_at) VALUES (?, ?, ?)`,
@@ -698,6 +754,36 @@ export class BlockExtractor {
       return normalized as BlockType;
     }
     return null;
+  }
+
+  /**
+   * Validate block types array, remap graph dimension names to canonical block types.
+   * Returns { blockTypes, remappedGraphTypes } where remappedGraphTypes should be
+   * added to graphMembership.
+   */
+  private validateBlockTypes(types: string[]): {
+    blockTypes: CanonicalBlockType[];
+    remappedGraphTypes: GraphType[];
+  } {
+    const validBlockTypes: CanonicalBlockType[] = [];
+    const remappedGraphTypes: GraphType[] = [];
+
+    for (const t of types) {
+      const normalized = t.toLowerCase().replace(/-/g, "_");
+      if (canonicalBlockTypes.includes(normalized as CanonicalBlockType)) {
+        validBlockTypes.push(normalized as CanonicalBlockType);
+      } else if (graphTypes.includes(normalized as GraphType)) {
+        // This is a graph dimension name used as block type — remap
+        remappedGraphTypes.push(normalized as GraphType);
+      }
+    }
+
+    // If AI returned only graph types, default block type to "insight"
+    if (validBlockTypes.length === 0) {
+      validBlockTypes.push("insight");
+    }
+
+    return { blockTypes: validBlockTypes, remappedGraphTypes };
   }
 
   /**

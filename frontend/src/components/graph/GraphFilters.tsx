@@ -118,6 +118,10 @@ const BLOCK_TYPE_LABELS: Record<FilterableBlockType, string> = {
   topic: "Topic",
   external: "External",
   action: "Action",
+  question: "Question",
+  insight: "Insight",
+  fact: "Fact",
+  requirement: "Requirement",
 };
 
 // Human-readable labels for graph types
@@ -129,6 +133,9 @@ const GRAPH_TYPE_LABELS: Record<GraphType, string> = {
   fit: "Fit",
   business: "Business",
   spec: "Spec",
+  distribution: "Distribution",
+  marketing: "Marketing",
+  manufacturing: "Manufacturing",
 };
 
 // Status labels with icons

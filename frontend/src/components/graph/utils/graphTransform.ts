@@ -19,6 +19,44 @@ import type {
   SourceLocation,
 } from "../../../types/graph";
 
+// Graph dimension names that should NOT appear as block types
+const GRAPH_TYPE_SET = new Set([
+  "problem",
+  "solution",
+  "market",
+  "risk",
+  "fit",
+  "business",
+  "spec",
+  "distribution",
+  "marketing",
+  "manufacturing",
+]);
+
+// Legacy type remapping to canonical block types
+const LEGACY_TYPE_REMAP: Record<string, BlockType> = {
+  content: "fact",
+  context: "fact",
+  opportunity: "insight",
+  stakeholder_view: "fact",
+};
+
+/**
+ * Resolve blockTypes from API response with backward compat and remapping
+ */
+function resolveBlockTypes(block: ApiBlock): BlockType[] {
+  // Prefer blockTypes array from API
+  if (block.blockTypes && block.blockTypes.length > 0) {
+    return block.blockTypes
+      .filter((t) => !GRAPH_TYPE_SET.has(t))
+      .map((t) => (LEGACY_TYPE_REMAP[t] || t) as BlockType);
+  }
+  // Fallback to single type field
+  const t = block.type;
+  if (GRAPH_TYPE_SET.has(t)) return ["insight"];
+  return [(LEGACY_TYPE_REMAP[t] || t) as BlockType];
+}
+
 // Internal source types - where block data originated from
 // Matches server SourceType enum from source-collector.ts
 const INTERNAL_SOURCE_TYPES = [
@@ -195,6 +233,9 @@ const GRAPH_TYPE_KEYWORDS: Record<GraphType, string[]> = {
     "unit_economics",
   ],
   spec: ["spec", "specification", "requirement", "feature", "implementation"],
+  distribution: [],
+  marketing: [],
+  manufacturing: [],
 };
 
 /**
@@ -273,6 +314,7 @@ export function transformBlocksToNodes(blocks: ApiBlock[]): GraphNode[] {
         label: createLabel(block.content),
         title: block.title || null, // Short 3-5 word summary for quick identification
         blockType: block.type as BlockType,
+        blockTypes: resolveBlockTypes(block),
         // Use top-level graphMembership if available (API format), otherwise detect from properties
         graphMembership: block.graphMembership?.length
           ? (block.graphMembership as GraphType[])
@@ -817,6 +859,7 @@ export function transformSingleBlockToNode(block: ApiBlock): GraphNode | null {
     label: createLabel(block.content || ""),
     title: block.title || null, // Short 3-5 word summary for quick identification
     blockType: block.type as BlockType,
+    blockTypes: resolveBlockTypes(block),
     graphMembership: detectGraphMembership(props),
     status: (block.status as BlockStatus) || "active",
     confidence: extractConfidence(props),

@@ -3,7 +3,12 @@
  * Maps graph nodes to Reagraph visual properties
  */
 
-import type { GraphNode, BlockType, GraphType } from "../../../types/graph";
+import type {
+  GraphNode,
+  BlockType,
+  GraphType,
+  NodeShape,
+} from "../../../types/graph";
 import { nodeColors, graphColors, nodeShapes } from "../../../types/graph";
 
 /**
@@ -22,27 +27,29 @@ const DEFAULT_SIZE_CONFIG: NodeSizeConfig = {
 };
 
 /**
- * Get node fill color based on block type
+ * Get node fill color based on block type(s)
+ * Accepts single BlockType or array; uses first type for fill color
  */
-export function getNodeColor(blockType: BlockType): string {
-  return nodeColors[blockType] || nodeColors.content;
+export function getNodeColor(blockType: BlockType | BlockType[]): string {
+  const primary = Array.isArray(blockType) ? blockType[0] : blockType;
+  return (primary && nodeColors[primary]) || nodeColors.fact;
 }
 
 /**
- * Get node shape based on primary graph membership
- * Uses the first graph membership if multiple exist
+ * Valid graph types that have defined shapes
  */
-export function getNodeShape(
-  graphMembership: GraphType[],
-):
-  | "hexagon"
-  | "diamond"
-  | "circle"
-  | "triangle"
-  | "square"
-  | "pentagon"
-  | "star" {
-  const primaryGraph = graphMembership[0] || "problem";
+const VALID_GRAPH_TYPES = new Set<string>(Object.keys(nodeShapes));
+
+/**
+ * Get node shape based on block type and graph membership
+ * Prioritizes blockType when it's a valid GraphType, then falls back to
+ * the first valid GraphType in graphMembership
+ */
+export function getNodeShape(graphMembership: GraphType[]): NodeShape {
+  const validMembership = graphMembership.filter((g) =>
+    VALID_GRAPH_TYPES.has(g),
+  );
+  const primaryGraph = validMembership[0] || "problem";
   return nodeShapes[primaryGraph] || "circle";
 }
 
@@ -51,7 +58,10 @@ export function getNodeShape(
  * Uses the first graph membership for consistency
  */
 export function getNodeBorderColor(graphMembership: GraphType[]): string {
-  const primaryGraph = graphMembership[0] || "problem";
+  const validMembership = graphMembership.filter((g) =>
+    VALID_GRAPH_TYPES.has(g),
+  );
+  const primaryGraph = validMembership[0] || "problem";
   return graphColors[primaryGraph] || graphColors.problem;
 }
 
@@ -139,19 +149,12 @@ export function getNodeStyle(
   opacity: number;
   stroke: string;
   strokeWidth: number;
-  shape:
-    | "hexagon"
-    | "diamond"
-    | "circle"
-    | "triangle"
-    | "square"
-    | "pentagon"
-    | "star";
+  shape: NodeShape;
 } {
   const baseStyle = getStatusStyle(node.status);
 
   return {
-    fill: getNodeColor(node.blockType),
+    fill: getNodeColor(node.blockTypes || [node.blockType]),
     size: calculateNodeSize(node.confidence, connectionCount),
     opacity: baseStyle.opacity * getNodeOpacity(node.confidence),
     stroke: getNodeBorderColor(node.graphMembership),

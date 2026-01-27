@@ -44,6 +44,18 @@ export const clusterColors: Record<GraphType, ClusterColorConfig> = {
     stroke: "#5EEAD4", // Teal-300
     fill: "rgba(204, 251, 241, 0.3)", // Teal-100 with transparency
   },
+  distribution: {
+    stroke: "#D946EF", // Fuchsia-500
+    fill: "rgba(217, 70, 239, 0.3)", // Fuchsia with transparency
+  },
+  marketing: {
+    stroke: "#F43F5E", // Rose-500
+    fill: "rgba(244, 63, 94, 0.3)", // Rose with transparency
+  },
+  manufacturing: {
+    stroke: "#78716C", // Stone-500
+    fill: "rgba(120, 113, 108, 0.3)", // Stone with transparency
+  },
   spec: {
     stroke: "#D1D5DB", // Gray-300
     fill: "rgba(243, 244, 246, 0.3)", // Gray-100 with transparency

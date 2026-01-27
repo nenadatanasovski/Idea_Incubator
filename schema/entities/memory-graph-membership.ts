@@ -16,6 +16,9 @@ export const graphTypes = [
   "fit",
   "business",
   "spec",
+  "distribution",
+  "marketing",
+  "manufacturing",
 ] as const;
 
 export type GraphType = (typeof graphTypes)[number];

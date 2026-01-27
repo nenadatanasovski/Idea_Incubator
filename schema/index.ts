@@ -165,6 +165,17 @@ export {
   type GraphType,
 } from "./entities/memory-graph-membership.js";
 
+// Memory Block Type
+export {
+  memoryBlockTypes,
+  canonicalBlockTypes,
+  insertMemoryBlockTypeSchema,
+  selectMemoryBlockTypeSchema,
+  type MemoryBlockType,
+  type NewMemoryBlockType,
+  type CanonicalBlockType,
+} from "./entities/memory-block-type.js";
+
 // Graph Snapshot
 export {
   graphSnapshots,

@@ -20,14 +20,17 @@ import { query } from "../../../database/db.js";
 // =============================================================================
 
 export type InsightType =
-  | "decision" // Something that was decided
-  | "assumption" // An assumption being made
-  | "open_question" // A question that remains unanswered
-  | "key_insight" // Important observation or conclusion
-  | "requirement" // Explicitly stated requirement
-  | "context" // Important background information
-  | "risk" // Identified risk or concern
-  | "opportunity"; // Identified opportunity
+  | "insight" // Key findings, conclusions, "aha" moments
+  | "fact" // Verifiable data points, background context
+  | "assumption" // Implicit or explicit assumptions
+  | "question" // Open questions, unknowns
+  | "decision" // Choices made or pending
+  | "action" // Next steps, validation tasks
+  | "requirement" // Must-have constraints, specifications
+  | "option" // Alternatives being considered
+  | "pattern" // Recurring themes or patterns
+  | "synthesis" // Conclusions from combining information
+  | "meta"; // Notes about the process
 
 export interface ConversationInsight {
   id: string;
@@ -46,40 +49,37 @@ export interface ConversationInsight {
 export interface SynthesisResult {
   insights: ConversationInsight[];
   totalMessages: number;
-  synthesisMetadata: {
-    decisionCount: number;
-    assumptionCount: number;
-    questionCount: number;
-    insightCount: number;
-    requirementCount: number;
-    contextCount: number;
-    riskCount: number;
-    opportunityCount: number;
-  };
+  synthesisMetadata: Record<InsightType, number>;
 }
 
 // Weights for different insight types (higher = more valuable for graph)
 export const INSIGHT_TYPE_WEIGHTS: Record<InsightType, number> = {
-  decision: 0.95, // Decisions are critical
-  requirement: 0.95, // Requirements are ground truth
-  assumption: 0.9, // Assumptions need tracking
-  risk: 0.9, // Risks need attention
-  key_insight: 0.85, // Important observations
-  opportunity: 0.85, // Opportunities worth noting
-  open_question: 0.8, // Questions drive exploration
-  context: 0.7, // Background info
+  decision: 0.95,
+  requirement: 0.95,
+  assumption: 0.9,
+  insight: 0.85,
+  synthesis: 0.85,
+  pattern: 0.85,
+  action: 0.85,
+  option: 0.8,
+  question: 0.8,
+  fact: 0.7,
+  meta: 0.6,
 };
 
 // Labels for UI display
 export const INSIGHT_TYPE_LABELS: Record<InsightType, string> = {
-  decision: "Decision",
-  requirement: "Requirement",
+  insight: "Insight",
+  fact: "Fact",
   assumption: "Assumption",
-  risk: "Risk",
-  key_insight: "Key Insight",
-  opportunity: "Opportunity",
-  open_question: "Open Question",
-  context: "Context",
+  question: "Question",
+  decision: "Decision",
+  action: "Action",
+  requirement: "Requirement",
+  option: "Option",
+  pattern: "Pattern",
+  synthesis: "Synthesis",
+  meta: "Meta",
 };
 
 // =============================================================================
@@ -90,15 +90,20 @@ const SYNTHESIS_SYSTEM_PROMPT = `You are a knowledge extraction specialist. Your
 
 CRITICAL: Extract MANY insights (typically 10-30+ from a substantive conversation). Each distinct piece of knowledge should be its own insight. Do NOT combine multiple concepts into one.
 
-Categories to extract (aim for multiple per category where applicable):
-1. DECISIONS - Each decision or conclusion made (even implicit ones)
-2. ASSUMPTIONS - Each belief or premise being taken as true
-3. OPEN QUESTIONS - Each question that remains unanswered or needs exploration
-4. KEY INSIGHTS - Each important observation, conclusion, or realization
-5. REQUIREMENTS - Each explicitly stated must-have or constraint
-6. CONTEXT - Each piece of important background information
-7. RISKS - Each identified concern, challenge, or potential problem
-8. OPPORTUNITIES - Each identified potential benefit or possibility
+Use ONLY these 11 canonical block types:
+1. INSIGHT - Key findings, conclusions, "aha" moments, non-obvious observations
+2. FACT - Verifiable data points, statistics, background context, evidence
+3. ASSUMPTION - Implicit or explicit assumptions being made
+4. QUESTION - Open questions, unknowns, things to investigate
+5. DECISION - Choices made or pending decisions
+6. ACTION - Next steps, validation tasks, to-dos
+7. REQUIREMENT - Must-have constraints, specifications, acceptance criteria
+8. OPTION - Alternatives being considered, possible approaches
+9. PATTERN - Recurring themes or patterns identified
+10. SYNTHESIS - Conclusions drawn from combining multiple pieces of information
+11. META - Notes about the process, uncertainties
+
+IMPORTANT: Do NOT use "risk", "opportunity", "context", "key_insight", or "open_question" as types. Use the 11 types above only.
 
 CRITICAL: DECISION EVOLUTION DETECTION
 When extracting DECISIONS, you MUST detect when a later statement changes or reverses an earlier decision:
@@ -136,7 +141,7 @@ Return JSON only:
   "insights": [
     {
       "id": "insight_1",
-      "type": "decision|assumption|open_question|key_insight|requirement|context|risk|opportunity",
+      "type": "insight|fact|assumption|question|decision|action|requirement|option|pattern|synthesis|meta",
       "title": "Clear 5-10 word title",
       "content": "Comprehensive description with full context and implications",
       "confidence": 0.85,
@@ -189,14 +194,17 @@ export async function synthesizeConversation(
       insights: [],
       totalMessages: 0,
       synthesisMetadata: {
-        decisionCount: 0,
-        assumptionCount: 0,
-        questionCount: 0,
-        insightCount: 0,
-        requirementCount: 0,
-        contextCount: 0,
-        riskCount: 0,
-        opportunityCount: 0,
+        insight: 0,
+        fact: 0,
+        assumption: 0,
+        question: 0,
+        decision: 0,
+        action: 0,
+        requirement: 0,
+        option: 0,
+        pattern: 0,
+        synthesis: 0,
+        meta: 0,
       },
     };
   }
@@ -236,7 +244,7 @@ export async function synthesizeConversation(
           role: "user",
           content: `Analyze this conversation thoroughly and extract ALL meaningful knowledge as SEPARATE insights.
 
-Be exhaustive - a typical conversation should yield 10-30+ distinct insights across categories (decisions, assumptions, questions, insights, requirements, context, risks, opportunities).
+Be exhaustive - a typical conversation should yield 10-30+ distinct insights across the 11 canonical types (insight, fact, assumption, question, decision, action, requirement, option, pattern, synthesis, meta).
 
 CONVERSATION TO ANALYZE:
 ---
@@ -364,14 +372,17 @@ function parseInsightsResponse(responseText: string): ConversationInsight[] {
 
 function normalizeInsightType(type: string): InsightType {
   const validTypes: InsightType[] = [
-    "decision",
+    "insight",
+    "fact",
     "assumption",
-    "open_question",
-    "key_insight",
+    "question",
+    "decision",
+    "action",
+    "option",
     "requirement",
-    "context",
-    "risk",
-    "opportunity",
+    "pattern",
+    "synthesis",
+    "meta",
   ];
 
   const normalized = type.toLowerCase().replace(/\s+/g, "_");
@@ -380,68 +391,49 @@ function normalizeInsightType(type: string): InsightType {
     return normalized as InsightType;
   }
 
-  // Map common variations
-  if (normalized.includes("question")) return "open_question";
-  if (normalized.includes("insight")) return "key_insight";
+  // Map legacy types to canonical
+  if (normalized === "key_insight" || normalized.includes("insight"))
+    return "insight";
+  if (normalized === "open_question" || normalized.includes("question"))
+    return "question";
+  if (normalized === "context" || normalized.includes("context")) return "fact";
+  if (
+    normalized === "risk" ||
+    normalized.includes("risk") ||
+    normalized.includes("concern")
+  )
+    return "insight";
+  if (normalized === "opportunity" || normalized.includes("opportun"))
+    return "insight";
   if (normalized.includes("decide") || normalized.includes("conclusion"))
     return "decision";
   if (normalized.includes("assume")) return "assumption";
   if (normalized.includes("require") || normalized.includes("must"))
     return "requirement";
-  if (normalized.includes("risk") || normalized.includes("concern"))
-    return "risk";
-  if (normalized.includes("opportun")) return "opportunity";
 
-  return "context"; // Default fallback
+  return "fact"; // Default fallback
 }
 
-function calculateMetadata(insights: ConversationInsight[]): {
-  decisionCount: number;
-  assumptionCount: number;
-  questionCount: number;
-  insightCount: number;
-  requirementCount: number;
-  contextCount: number;
-  riskCount: number;
-  opportunityCount: number;
-} {
-  const counts = {
-    decisionCount: 0,
-    assumptionCount: 0,
-    questionCount: 0,
-    insightCount: 0,
-    requirementCount: 0,
-    contextCount: 0,
-    riskCount: 0,
-    opportunityCount: 0,
+function calculateMetadata(
+  insights: ConversationInsight[],
+): Record<InsightType, number> {
+  const counts: Record<InsightType, number> = {
+    insight: 0,
+    fact: 0,
+    assumption: 0,
+    question: 0,
+    decision: 0,
+    action: 0,
+    requirement: 0,
+    option: 0,
+    pattern: 0,
+    synthesis: 0,
+    meta: 0,
   };
 
   for (const insight of insights) {
-    switch (insight.type) {
-      case "decision":
-        counts.decisionCount++;
-        break;
-      case "assumption":
-        counts.assumptionCount++;
-        break;
-      case "open_question":
-        counts.questionCount++;
-        break;
-      case "key_insight":
-        counts.insightCount++;
-        break;
-      case "requirement":
-        counts.requirementCount++;
-        break;
-      case "context":
-        counts.contextCount++;
-        break;
-      case "risk":
-        counts.riskCount++;
-        break;
-      case "opportunity":
-        counts.opportunityCount++;
-        break;
+    if (insight.type in counts) {
+      counts[insight.type]++;
     }
   }
 
@@ -453,14 +445,17 @@ function createEmptyResult(totalMessages: number): SynthesisResult {
     insights: [],
     totalMessages,
     synthesisMetadata: {
-      decisionCount: 0,
-      assumptionCount: 0,
-      questionCount: 0,
-      insightCount: 0,
-      requirementCount: 0,
-      contextCount: 0,
-      riskCount: 0,
-      opportunityCount: 0,
+      insight: 0,
+      fact: 0,
+      assumption: 0,
+      question: 0,
+      decision: 0,
+      action: 0,
+      requirement: 0,
+      option: 0,
+      pattern: 0,
+      synthesis: 0,
+      meta: 0,
     },
   };
 }

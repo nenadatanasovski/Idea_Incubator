@@ -7,22 +7,31 @@
 // Block Types
 // ============================================================================
 
+// Canonical block types (11 primary types)
+export type CanonicalBlockType =
+  | "insight"
+  | "fact"
+  | "assumption"
+  | "question"
+  | "decision"
+  | "action"
+  | "requirement"
+  | "option"
+  | "pattern"
+  | "synthesis"
+  | "meta";
+
+// All block types (canonical + legacy for backward compat)
 export type BlockType =
+  | CanonicalBlockType
   | "content"
   | "link"
-  | "meta"
-  | "synthesis"
-  | "pattern"
-  | "decision"
-  | "option"
   | "derived"
-  | "assumption"
   | "cycle"
   | "placeholder"
   | "stakeholder_view"
   | "topic"
-  | "external"
-  | "action";
+  | "external";
 
 export type GraphType =
   | "problem"
@@ -31,7 +40,10 @@ export type GraphType =
   | "risk"
   | "fit"
   | "business"
-  | "spec";
+  | "spec"
+  | "distribution"
+  | "marketing"
+  | "manufacturing";
 
 export type BlockStatus =
   | "draft"
@@ -159,7 +171,8 @@ export interface GraphNode {
   title?: string | null; // Short 3-5 word summary for quick identification
 
   // Block metadata
-  blockType: BlockType;
+  blockType: BlockType; // Primary type (first in blockTypes, for backward compat)
+  blockTypes?: BlockType[]; // All block types (new multi-type support)
   graphMembership: GraphType[];
   status: BlockStatus;
   confidence: number;
@@ -378,21 +391,27 @@ export interface GraphEdge {
 // ============================================================================
 
 export const nodeColors: Record<BlockType, string> = {
-  content: "#3B82F6", // Blue
-  link: "#6B7280", // Gray (usually hidden)
-  meta: "#F59E0B", // Amber
-  synthesis: "#8B5CF6", // Purple
-  pattern: "#EC4899", // Pink
-  decision: "#EF4444", // Red
-  option: "#F97316", // Orange
-  derived: "#14B8A6", // Teal
+  // Canonical block types (11)
+  insight: "#8B5CF6", // Purple
+  fact: "#3B82F6", // Blue
   assumption: "#FBBF24", // Yellow
+  question: "#F59E0B", // Amber
+  decision: "#EF4444", // Red
+  action: "#22C55E", // Green
+  requirement: "#06B6D4", // Cyan
+  option: "#F97316", // Orange
+  pattern: "#EC4899", // Pink
+  synthesis: "#A855F7", // Violet
+  meta: "#6B7280", // Gray
+  // Legacy block types
+  content: "#3B82F6", // Blue (same as fact)
+  link: "#6B7280", // Gray (usually hidden)
+  derived: "#14B8A6", // Teal
   cycle: "#DC2626", // Dark red
   placeholder: "#9CA3AF", // Light gray
   stakeholder_view: "#06B6D4", // Cyan
   topic: "#0EA5E9", // Light blue
   external: "#84CC16", // Lime
-  action: "#22C55E", // Green
 };
 
 export const graphColors: Record<GraphType, string> = {
@@ -403,6 +422,9 @@ export const graphColors: Record<GraphType, string> = {
   fit: "#8B5CF6", // Purple
   business: "#14B8A6", // Teal
   spec: "#6B7280", // Gray
+  distribution: "#D946EF", // Fuchsia
+  marketing: "#F43F5E", // Rose
+  manufacturing: "#78716C", // Stone
 };
 
 export type NodeShape =
@@ -412,7 +434,10 @@ export type NodeShape =
   | "triangle"
   | "square"
   | "pentagon"
-  | "star";
+  | "star"
+  | "octagon"
+  | "cross"
+  | "pill";
 
 export const nodeShapes: Record<GraphType, NodeShape> = {
   problem: "hexagon",
@@ -422,6 +447,9 @@ export const nodeShapes: Record<GraphType, NodeShape> = {
   fit: "square",
   business: "pentagon",
   spec: "star",
+  distribution: "octagon",
+  marketing: "cross",
+  manufacturing: "pill",
 };
 
 export const edgeColors: Record<LinkType, string> = {
@@ -481,6 +509,7 @@ export const edgeStyles: Record<LinkType, EdgeStyle> = {
 export interface ApiBlock {
   id: string;
   type: string;
+  blockTypes?: string[]; // New multi-type support
   title?: string | null; // Short 3-5 word summary
   content: string;
   properties: Record<string, unknown>;

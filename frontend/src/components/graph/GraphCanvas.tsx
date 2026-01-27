@@ -22,6 +22,7 @@ import {
 import type { GraphNode, GraphEdge, NodeShape } from "../../types/graph";
 // @ts-ignore - troika-three-text is a transitive dependency via reagraph
 import { Text as TroikaText } from "troika-three-text";
+import * as THREE from "three";
 
 // Reagraph internal node type (simplified for our handlers)
 interface InternalGraphNode {
@@ -131,7 +132,118 @@ function CustomNodeRenderer({
   // Visual scale: make nodes appear larger without affecting layout spacing
   const visualSize = size * 1.3;
 
-  const getGeometryArgs = (): [number, number] => {
+  // Create a star-shaped BufferGeometry with alternating outer/inner vertices
+  const createStarGeometry = (
+    outerRadius: number,
+    points: number,
+  ): THREE.BufferGeometry => {
+    const innerRadius = outerRadius * 0.45;
+    const totalPoints = points * 2;
+    const vertices: number[] = [0, 0, 0]; // center
+    for (let i = 0; i < totalPoints; i++) {
+      const angle = (i * Math.PI) / points - Math.PI / 2;
+      const r = i % 2 === 0 ? outerRadius : innerRadius;
+      vertices.push(Math.cos(angle) * r, Math.sin(angle) * r, 0);
+    }
+    const indices: number[] = [];
+    for (let i = 1; i <= totalPoints; i++) {
+      indices.push(0, i, i < totalPoints ? i + 1 : 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+    geo.setIndex(indices);
+    return geo;
+  };
+
+  // Create a cross/plus-sign shaped BufferGeometry
+  const createCrossGeometry = (radius: number): THREE.BufferGeometry => {
+    const w = radius * 0.35; // arm width
+    const l = radius; // arm length
+    // Plus sign: two overlapping rectangles
+    const vertices = [
+      // Vertical bar
+      -w,
+      -l,
+      0,
+      w,
+      -l,
+      0,
+      w,
+      l,
+      0,
+      -w,
+      l,
+      0,
+      // Horizontal bar
+      -l,
+      -w,
+      0,
+      l,
+      -w,
+      0,
+      l,
+      w,
+      0,
+      -l,
+      w,
+      0,
+    ];
+    const indices = [
+      0,
+      1,
+      2,
+      0,
+      2,
+      3, // vertical
+      4,
+      5,
+      6,
+      4,
+      6,
+      7, // horizontal
+    ];
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+    geo.setIndex(indices);
+    return geo;
+  };
+
+  // Create a pill/rounded-rectangle shaped BufferGeometry
+  const createPillGeometry = (radius: number): THREE.BufferGeometry => {
+    const hw = radius; // half-width
+    const hh = radius * 0.55; // half-height (shorter than wide)
+    const cr = hh; // corner radius = half-height for full rounding
+    const segments = 8;
+    const vertices: number[] = [0, 0, 0]; // center
+    // Build rounded rectangle path
+    const corners = [
+      { cx: hw - cr, cy: hh - cr, startAngle: 0 },
+      { cx: -(hw - cr), cy: hh - cr, startAngle: Math.PI / 2 },
+      { cx: -(hw - cr), cy: -(hh - cr), startAngle: Math.PI },
+      { cx: hw - cr, cy: -(hh - cr), startAngle: (3 * Math.PI) / 2 },
+    ];
+    for (const corner of corners) {
+      for (let i = 0; i <= segments; i++) {
+        const angle = corner.startAngle + (i / segments) * (Math.PI / 2);
+        vertices.push(
+          corner.cx + Math.cos(angle) * cr,
+          corner.cy + Math.sin(angle) * cr,
+          0,
+        );
+      }
+    }
+    const totalVerts = vertices.length / 3 - 1;
+    const indices: number[] = [];
+    for (let i = 1; i <= totalVerts; i++) {
+      indices.push(0, i, i < totalVerts ? i + 1 : 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+    geo.setIndex(indices);
+    return geo;
+  };
+
+  const getGeometryArgs = (): [number, number] | null => {
     switch (shape) {
       case "triangle":
         return [visualSize, 3];
@@ -143,8 +255,12 @@ function CustomNodeRenderer({
         return [visualSize, 6];
       case "diamond":
         return [visualSize, 4];
+      case "octagon":
+        return [visualSize, 8];
       case "star":
-        return [visualSize, 10];
+      case "cross":
+      case "pill":
+        return null; // uses custom geometry
       case "circle":
       default:
         return [visualSize, 32];
@@ -154,9 +270,9 @@ function CustomNodeRenderer({
   const getRotation = (): [number, number, number] => {
     switch (shape) {
       case "diamond":
-        return [0, 0, Math.PI / 4];
+        return [0, 0, 0]; // no rotation: vertices at top/right/bottom/left = ◇
       case "square":
-        return [0, 0, Math.PI / 4];
+        return [0, 0, Math.PI / 4]; // rotated 45°: flat sides = □
       case "triangle":
         return [0, 0, -Math.PI / 2];
       default:
@@ -164,8 +280,14 @@ function CustomNodeRenderer({
     }
   };
 
-  const [radius, segments] = getGeometryArgs();
+  const geometryArgs = getGeometryArgs();
   const rotation = getRotation();
+  const customGeometry = useMemo(() => {
+    if (shape === "star") return createStarGeometry(visualSize, 5);
+    if (shape === "cross") return createCrossGeometry(visualSize);
+    if (shape === "pill") return createPillGeometry(visualSize);
+    return null;
+  }, [shape, visualSize]);
 
   // Truncate label for display inside node
   const truncatedLabel =
@@ -199,7 +321,11 @@ function CustomNodeRenderer({
     <group>
       <group rotation={rotation}>
         <mesh>
-          <circleGeometry args={[radius, segments]} />
+          {customGeometry ? (
+            <primitive object={customGeometry} attach="geometry" />
+          ) : (
+            <circleGeometry args={[geometryArgs![0], geometryArgs![1]]} />
+          )}
           <meshBasicMaterial color={fillColor} opacity={opacity} transparent />
         </mesh>
       </group>
@@ -1035,7 +1161,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             clusterStrength,
           )}
           labelType="all"
-          labelFontUrl="https://fonts.gstatic.com/s/robotocondensed/v27/ieVi2ZhZI2eCN5jzbjEETS9weq8-33mZGCQYag.woff"
+          labelFontUrl="https://fonts.gstatic.com/s/robotocondensed/v31/ieVo2ZhZI2eCN5jzbjEETS9weq8-_d6T_POl0fRJeyWyovBJ.ttf"
           draggable
           animated
           cameraMode="pan"

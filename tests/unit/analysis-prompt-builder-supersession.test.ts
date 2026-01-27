@@ -63,7 +63,7 @@ describe("Analysis Prompt Builder - Supersession", () => {
           content: "Some regular insight without supersession",
           weight: 0.8,
           metadata: {
-            insightType: "context",
+            insightType: "fact",
             title: "Regular Insight",
           },
         },

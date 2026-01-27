@@ -13,14 +13,17 @@ import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
 // ============================================================================
 
 export type InsightType =
-  | "decision"
+  | "insight"
+  | "fact"
   | "assumption"
-  | "open_question"
-  | "key_insight"
+  | "question"
+  | "decision"
+  | "action"
   | "requirement"
-  | "context"
-  | "risk"
-  | "opportunity";
+  | "option"
+  | "pattern"
+  | "synthesis"
+  | "meta";
 
 export interface CollectedSource {
   id: string;
@@ -73,43 +76,58 @@ export interface SourceSelectionModalProps {
 // Source Type Configuration
 // ============================================================================
 
-// Insight type styling for conversation insights
+// Insight type styling - uses canonical block type colors
 const INSIGHT_TYPE_CONFIG: Record<
   InsightType,
   { label: string; color: string; bgColor: string }
 > = {
+  insight: {
+    label: "Insight",
+    color: "text-purple-300",
+    bgColor: "bg-purple-900/40",
+  },
+  fact: { label: "Fact", color: "text-blue-300", bgColor: "bg-blue-900/40" },
+  assumption: {
+    label: "Assumption",
+    color: "text-amber-300",
+    bgColor: "bg-amber-900/40",
+  },
+  question: {
+    label: "Question",
+    color: "text-orange-300",
+    bgColor: "bg-orange-900/40",
+  },
   decision: {
     label: "Decision",
-    color: "text-emerald-700",
-    bgColor: "bg-emerald-100",
+    color: "text-emerald-300",
+    bgColor: "bg-emerald-900/40",
+  },
+  action: {
+    label: "Action",
+    color: "text-pink-300",
+    bgColor: "bg-pink-900/40",
   },
   requirement: {
     label: "Requirement",
-    color: "text-purple-700",
-    bgColor: "bg-purple-100",
+    color: "text-violet-300",
+    bgColor: "bg-violet-900/40",
   },
-  assumption: {
-    label: "Assumption",
-    color: "text-amber-700",
-    bgColor: "bg-amber-100",
+  option: {
+    label: "Option",
+    color: "text-cyan-300",
+    bgColor: "bg-cyan-900/40",
   },
-  risk: { label: "Risk", color: "text-red-700", bgColor: "bg-red-100" },
-  key_insight: {
-    label: "Insight",
-    color: "text-blue-700",
-    bgColor: "bg-blue-100",
+  pattern: {
+    label: "Pattern",
+    color: "text-indigo-300",
+    bgColor: "bg-indigo-900/40",
   },
-  opportunity: {
-    label: "Opportunity",
-    color: "text-teal-700",
-    bgColor: "bg-teal-100",
+  synthesis: {
+    label: "Synthesis",
+    color: "text-rose-300",
+    bgColor: "bg-rose-900/40",
   },
-  open_question: {
-    label: "Question",
-    color: "text-orange-700",
-    bgColor: "bg-orange-100",
-  },
-  context: { label: "Context", color: "text-gray-700", bgColor: "bg-gray-100" },
+  meta: { label: "Meta", color: "text-gray-300", bgColor: "bg-gray-700/40" },
 };
 
 const SOURCE_TYPE_CONFIG = {

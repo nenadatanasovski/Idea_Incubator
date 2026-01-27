@@ -31,22 +31,43 @@ export interface GraphLegendProps {
 
 // Human-readable labels for block types
 const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
+  // Canonical (11)
+  insight: "Insight",
+  fact: "Fact",
+  assumption: "Assumption",
+  question: "Question",
+  decision: "Decision",
+  action: "Action",
+  requirement: "Requirement",
+  option: "Option",
+  pattern: "Pattern",
+  synthesis: "Synthesis",
+  meta: "Meta",
+  // Legacy (hidden from legend)
   content: "Content",
   link: "Link",
-  meta: "Meta",
-  synthesis: "Synthesis",
-  pattern: "Pattern",
-  decision: "Decision",
-  option: "Option",
   derived: "Derived",
-  assumption: "Assumption",
   cycle: "Cycle",
   placeholder: "Placeholder",
   stakeholder_view: "Stakeholder View",
   topic: "Topic",
   external: "External",
-  action: "Action",
 };
+
+// Canonical block types to show in legend (11 items)
+const CANONICAL_BLOCK_TYPES: BlockType[] = [
+  "insight",
+  "fact",
+  "assumption",
+  "question",
+  "decision",
+  "action",
+  "requirement",
+  "option",
+  "pattern",
+  "synthesis",
+  "meta",
+];
 
 // Human-readable labels for graph types
 const GRAPH_TYPE_LABELS: Record<GraphType, string> = {
@@ -57,6 +78,9 @@ const GRAPH_TYPE_LABELS: Record<GraphType, string> = {
   fit: "Fit",
   business: "Business",
   spec: "Spec",
+  distribution: "Distribution",
+  marketing: "Marketing",
+  manufacturing: "Manufacturing",
 };
 
 // Human-readable labels for link types
@@ -158,6 +182,30 @@ function ShapeIcon({ shape, color }: { shape: NodeShape; color: string }) {
             points={`${center},1 ${center + 2},6 ${size - 1},6 ${center + 3},9 ${size - 2},${size - 1} ${center},11 2,${size - 1} ${center - 3},9 1,6 ${center - 2},6`}
             fill={color}
           />
+        </svg>
+      );
+    case "octagon":
+      return (
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <polygon
+            points={`5,2 11,2 14,5 14,11 11,14 5,14 2,11 2,5`}
+            fill={color}
+          />
+        </svg>
+      );
+    case "cross":
+      return (
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <polygon
+            points={`6,2 10,2 10,6 14,6 14,10 10,10 10,14 6,14 6,10 2,10 2,6 6,6`}
+            fill={color}
+          />
+        </svg>
+      );
+    case "pill":
+      return (
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <rect x="1" y="4" width={14} height={8} rx={4} fill={color} />
         </svg>
       );
     default:
@@ -328,10 +376,8 @@ export function GraphLegend({
     });
   }, []);
 
-  // Filter out link type from display (it's usually hidden)
-  const visibleBlockTypes = Object.keys(nodeColors).filter(
-    (type) => type !== "link",
-  ) as BlockType[];
+  // Show only canonical 11 block types in legend
+  const visibleBlockTypes = CANONICAL_BLOCK_TYPES;
 
   // Collapsed state - show pill
   if (isCollapsed) {
@@ -357,6 +403,9 @@ export function GraphLegend({
             isExpanded={expandedSections.has("colors")}
             onToggle={() => toggleSection("colors")}
           >
+            <p className="text-xs text-gray-400 mb-2">
+              Color indicates what kind of information the node represents.
+            </p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1">
               {visibleBlockTypes.map((blockType) => (
                 <div key={blockType} className="flex items-center gap-2">
@@ -380,6 +429,9 @@ export function GraphLegend({
             isExpanded={expandedSections.has("shapes")}
             onToggle={() => toggleSection("shapes")}
           >
+            <p className="text-xs text-gray-400 mb-2">
+              Shape indicates which business dimension the node belongs to.
+            </p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1">
               {(Object.keys(nodeShapes) as GraphType[]).map((graphType) => (
                 <div key={graphType} className="flex items-center gap-2">
