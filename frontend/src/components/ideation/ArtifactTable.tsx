@@ -33,10 +33,6 @@ export interface ArtifactTableProps {
   latestArtifactId?: string | null;
 }
 
-interface FolderState {
-  [path: string]: boolean; // true = expanded, false = collapsed
-}
-
 interface GroupedArtifact {
   type: "folder" | "file";
   path: string;
@@ -49,31 +45,6 @@ interface GroupedArtifact {
 // -----------------------------------------------------------------------------
 // Icons
 // -----------------------------------------------------------------------------
-
-const FolderIcon = () => (
-  <svg
-    className="w-4 h-4 text-yellow-500"
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
-    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-  </svg>
-);
-
-const FolderOpenIcon = () => (
-  <svg
-    className="w-4 h-4 text-yellow-500"
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
-    <path
-      fillRule="evenodd"
-      d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v1.5a1.5 1.5 0 01-3 0V6z"
-      clipRule="evenodd"
-    />
-    <path d="M6 12a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H2h2a2 2 0 002-2v-2z" />
-  </svg>
-);
 
 const ChevronRightIcon = ({ expanded }: { expanded: boolean }) => (
   <svg
@@ -269,8 +240,12 @@ function parseDate(dateString: string): Date {
 /**
  * Format date as relative time (e.g., "2 hours ago", "Jan 5")
  */
-function formatRelativeDate(dateString: string): string {
+function formatRelativeDate(dateString: string | null | undefined): string {
+  if (!dateString) return "";
+
   const date = parseDate(dateString);
+  if (isNaN(date.getTime())) return "";
+
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffSecs = Math.floor(diffMs / 1000);
@@ -348,106 +323,30 @@ function getTypeDisplayName(type: ArtifactType): string {
 }
 
 /**
- * Extract folder path from artifact
- */
-function extractFolderPath(artifact: Artifact): string {
-  // Check if title contains path separators
-  if (artifact.title.includes("/")) {
-    const parts = artifact.title.split("/");
-    parts.pop(); // Remove filename
-    return parts.length > 0 ? parts.join("/") : "/";
-  }
-
-  // Check identifier for path structure
-  if (artifact.identifier && artifact.identifier.includes("/")) {
-    const parts = artifact.identifier.split("/");
-    parts.pop();
-    return parts.length > 0 ? parts.join("/") : "/";
-  }
-
-  // No folder structure - root folder
-  return "/";
-}
-
-/**
- * Extract filename from artifact
- */
-function extractFileName(artifact: Artifact): string {
-  if (artifact.title.includes("/")) {
-    const parts = artifact.title.split("/");
-    return parts[parts.length - 1];
-  }
-  return artifact.title;
-}
-
-/**
- * Group artifacts by folder structure and sort appropriately
+ * Create a flat list of artifacts sorted by date (newest first)
+ * No folder grouping - just a simple list
  */
 function groupArtifactsByFolder(artifacts: Artifact[]): GroupedArtifact[] {
-  const folders: Map<string, Artifact[]> = new Map();
-  const rootFiles: Artifact[] = [];
-
-  // Group by folder path
-  for (const artifact of artifacts) {
-    const folderPath = extractFolderPath(artifact);
-    if (folderPath === "/") {
-      rootFiles.push(artifact);
-    } else {
-      if (!folders.has(folderPath)) {
-        folders.set(folderPath, []);
-      }
-      folders.get(folderPath)!.push(artifact);
-    }
-  }
-
-  const result: GroupedArtifact[] = [];
-
-  // Add folders first (sorted alphabetically)
-  const sortedFolders = Array.from(folders.keys()).sort((a, b) =>
-    a.localeCompare(b),
+  // Filter out invalid artifacts (must have id and title)
+  const validArtifacts = artifacts.filter(
+    (a) => a && a.id && a.title && a.title !== "null" && a.title.trim() !== "",
   );
-  for (const folderPath of sortedFolders) {
-    const folderArtifacts = folders.get(folderPath)!;
-    // Sort files by date (newest first)
-    folderArtifacts.sort((a, b) => {
-      const dateA = new Date(a.updatedAt || a.createdAt).getTime();
-      const dateB = new Date(b.updatedAt || b.createdAt).getTime();
-      return dateB - dateA;
-    });
 
-    result.push({
-      type: "folder",
-      path: folderPath,
-      name: folderPath.split("/").pop() || folderPath,
-      depth: 0,
-      children: folderArtifacts.map((artifact) => ({
-        type: "file" as const,
-        path: artifact.id,
-        name: extractFileName(artifact),
-        artifact,
-        depth: 1,
-      })),
-    });
-  }
-
-  // Add root files (sorted by date, newest first)
-  rootFiles.sort((a, b) => {
+  // Sort all artifacts by date (newest first)
+  const sortedArtifacts = [...validArtifacts].sort((a, b) => {
     const dateA = new Date(a.updatedAt || a.createdAt).getTime();
     const dateB = new Date(b.updatedAt || b.createdAt).getTime();
     return dateB - dateA;
   });
 
-  for (const artifact of rootFiles) {
-    result.push({
-      type: "file",
-      path: artifact.id,
-      name: extractFileName(artifact),
-      artifact,
-      depth: 0,
-    });
-  }
-
-  return result;
+  // Return flat list of all artifacts
+  return sortedArtifacts.map((artifact) => ({
+    type: "file" as const,
+    path: artifact.id,
+    name: artifact.title,
+    artifact,
+    depth: 0,
+  }));
 }
 
 // -----------------------------------------------------------------------------
@@ -673,19 +572,9 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
 
 interface AccordionPreviewProps {
   artifact: Artifact;
-  onEdit?: (artifactId: string, content?: string) => void;
-  onDelete?: (artifactId: string) => void;
-  onCopyRef?: (artifactId: string) => void;
 }
 
-const AccordionPreview: React.FC<AccordionPreviewProps> = ({
-  artifact,
-  onEdit,
-  onDelete,
-  onCopyRef,
-}) => {
-  const [copiedRef, setCopiedRef] = useState(false);
-
+const AccordionPreview: React.FC<AccordionPreviewProps> = ({ artifact }) => {
   // Get content as string
   const getContentString = () => {
     if (typeof artifact.content === "string") {
@@ -707,76 +596,9 @@ const AccordionPreview: React.FC<AccordionPreviewProps> = ({
   const contentString = getContentString();
   const isContentEmpty = !contentString || contentString.trim() === "";
 
-  const handleCopyRef = useCallback(
-    async (e: React.MouseEvent) => {
-      e.stopPropagation();
-      const fileName = artifact.title.includes("/")
-        ? artifact.title.split("/").pop() || artifact.title
-        : artifact.title;
-      const reference = `@[${fileName}]`;
-
-      try {
-        await navigator.clipboard.writeText(reference);
-        setCopiedRef(true);
-        setTimeout(() => setCopiedRef(false), 2000);
-        if (onCopyRef) onCopyRef(artifact.id);
-      } catch (err) {
-        console.error("Failed to copy reference:", err);
-      }
-    },
-    [artifact, onCopyRef],
-  );
-
   return (
-    <div className="bg-gray-50 border-t border-gray-200">
-      {/* Action bar */}
-      <div className="flex items-center justify-end gap-1 px-4 py-2 border-b border-gray-200">
-        {onEdit && (
-          <button
-            data-testid="btn-accordion-edit"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(artifact.id);
-            }}
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-500 hover:text-blue-600 transition-colors"
-            title="Edit artifact"
-          >
-            <EditIcon />
-          </button>
-        )}
-        {onDelete && (
-          <button
-            data-testid="btn-accordion-delete"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(artifact.id);
-            }}
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-500 hover:text-red-600 transition-colors"
-            title="Delete artifact"
-          >
-            <TrashIcon />
-          </button>
-        )}
-        {onCopyRef && (
-          <button
-            data-testid="btn-accordion-copy-ref"
-            onClick={handleCopyRef}
-            className={`flex items-center gap-1 px-1.5 py-1 rounded transition-colors ${
-              copiedRef
-                ? "bg-green-100 text-green-600"
-                : "hover:bg-gray-200 text-gray-500"
-            }`}
-            title="Copy @ref to clipboard"
-          >
-            <LinkIcon />
-            <span className="text-xs font-medium whitespace-nowrap">
-              {copiedRef ? "Copied!" : "Copy @ref"}
-            </span>
-          </button>
-        )}
-      </div>
-
-      {/* Content preview */}
+    <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+      {/* Content preview only - no action bar */}
       <div
         className="overflow-y-auto overflow-x-hidden"
         style={{ maxHeight: "calc(100vh - 300px)" }}
@@ -784,7 +606,7 @@ const AccordionPreview: React.FC<AccordionPreviewProps> = ({
         {isContentEmpty ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
-              <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gray-200 flex items-center justify-center">
+              <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                 <svg
                   className="w-5 h-5 text-gray-400"
                   fill="none"
@@ -799,7 +621,9 @@ const AccordionPreview: React.FC<AccordionPreviewProps> = ({
                   />
                 </svg>
               </div>
-              <p className="text-sm text-gray-500">No content available</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                No content available
+              </p>
             </div>
           </div>
         ) : (
@@ -827,9 +651,6 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   isLoading = false,
   latestArtifactId = null,
 }) => {
-  // Track expanded/collapsed state of folders
-  const [folderState, setFolderState] = useState<FolderState>({});
-
   // Track which artifact rows are expanded (accordion state)
   const [expandedArtifacts, setExpandedArtifacts] = useState<Set<string>>(
     new Set(),
@@ -869,18 +690,6 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
     [artifacts],
   );
 
-  // Handle folder toggle
-  const handleFolderToggle = useCallback(
-    (folderPath: string) => {
-      setFolderState((prev) => ({
-        ...prev,
-        [folderPath]: !prev[folderPath],
-      }));
-      onToggleFolder(folderPath);
-    },
-    [onToggleFolder],
-  );
-
   // Toggle artifact accordion expansion
   const toggleArtifactExpansion = useCallback((artifactId: string) => {
     setExpandedArtifacts((prev) => {
@@ -900,42 +709,18 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   const handleRowClick = useCallback(
     (item: GroupedArtifact, index: number) => {
       setFocusedIndex(index);
-      if (item.type === "folder") {
-        handleFolderToggle(item.path);
-      } else if (item.artifact) {
+      if (item.artifact) {
         toggleArtifactExpansion(item.artifact.id);
         onSelect(item.artifact);
       }
     },
-    [handleFolderToggle, toggleArtifactExpansion, onSelect],
+    [toggleArtifactExpansion, onSelect],
   );
 
-  // Check if a folder is expanded (default to true for first load)
-  const isFolderExpanded = useCallback(
-    (folderPath: string): boolean => {
-      return folderState[folderPath] !== false; // Default to expanded
-    },
-    [folderState],
-  );
-
-  // Flatten grouped items for rendering (respecting expanded/collapsed state)
+  // Flat list of items for rendering (no folder hierarchy)
   const flattenedItems = useMemo(() => {
-    const result: GroupedArtifact[] = [];
-
-    for (const item of groupedArtifacts) {
-      result.push(item);
-
-      if (
-        item.type === "folder" &&
-        item.children &&
-        isFolderExpanded(item.path)
-      ) {
-        result.push(...item.children);
-      }
-    }
-
-    return result;
-  }, [groupedArtifacts, isFolderExpanded]);
+    return groupedArtifacts;
+  }, [groupedArtifacts]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
@@ -963,9 +748,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
           e.preventDefault();
           if (focusedIndex >= 0 && focusedIndex < flattenedItems.length) {
             const item = flattenedItems[focusedIndex];
-            if (item.type === "folder") {
-              handleFolderToggle(item.path);
-            } else if (item.artifact) {
+            if (item.artifact) {
               toggleArtifactExpansion(item.artifact.id);
               onSelect(item.artifact);
             }
@@ -1015,7 +798,6 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
     [
       flattenedItems,
       focusedIndex,
-      handleFolderToggle,
       toggleArtifactExpansion,
       onSelect,
       onDelete,
@@ -1151,107 +933,70 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
         </div>
       </div>
 
-      {/* Accordion rows */}
+      {/* Artifact rows */}
       <div className="text-sm">
         {flattenedItems.map((item, index) => {
-          const isFolder = item.type === "folder";
-          const isSelected = !isFolder && item.path === selectedPath;
+          if (!item.artifact) return null;
+
+          const isSelected = item.path === selectedPath;
           const isFocused = index === focusedIndex;
-          const folderExpanded = isFolder
-            ? isFolderExpanded(item.path)
-            : undefined;
-          // An artifact is expanded if it's selected OR explicitly expanded
           const isArtifactExpanded =
-            !isFolder &&
-            item.artifact &&
-            (expandedArtifacts.has(item.artifact.id) ||
-              item.path === selectedPath);
+            expandedArtifacts.has(item.artifact.id) ||
+            item.path === selectedPath;
           const classification =
-            !isFolder && item.artifact
-              ? classifications[item.artifact.id] ||
-                classifications[item.artifact.title]
-              : undefined;
+            classifications[item.artifact.id] ||
+            classifications[item.artifact.title];
 
           return (
             <div
-              key={`${item.type}-${item.path}-${index}`}
+              key={`artifact-${item.artifact.id}-${index}`}
               ref={(el) => {
                 if (el) rowRefs.current.set(index, el);
                 else rowRefs.current.delete(index);
               }}
-              data-testid={isFolder ? "folder-row" : "artifact-row"}
+              data-testid="artifact-row"
               data-index={index}
-              data-id={item.artifact?.id}
+              data-id={item.artifact.id}
               role="listitem"
-              className="border-b border-gray-100"
+              className="border-b border-gray-100 dark:border-gray-700"
             >
               {/* Row header - clickable to expand/collapse */}
               <div
-                aria-expanded={
-                  isFolder ? folderExpanded : isArtifactExpanded || false
-                }
-                aria-selected={!isFolder ? isSelected : undefined}
+                aria-expanded={isArtifactExpanded}
+                aria-selected={isSelected}
                 tabIndex={isFocused ? 0 : -1}
                 className={`
-                  flex items-center cursor-pointer transition-colors
-                  ${isSelected || isArtifactExpanded ? "bg-blue-50" : "hover:bg-gray-50"}
+                  group flex items-center cursor-pointer transition-colors
+                  ${isSelected || isArtifactExpanded ? "bg-blue-50 dark:bg-blue-900/30" : "hover:bg-gray-50 dark:hover:bg-gray-800"}
                   ${isFocused ? "ring-2 ring-blue-500 ring-inset" : ""}
                 `}
                 onClick={() => handleRowClick(item, index)}
               >
                 {/* Name column */}
                 <div className="flex-1 px-3 py-2">
-                  <div
-                    className="flex items-center gap-2"
-                    style={{ paddingLeft: `${item.depth * 16}px` }}
-                  >
-                    {/* Expand/collapse chevron for files */}
-                    {!isFolder && item.artifact && (
-                      <button
-                        data-testid="artifact-toggle"
-                        className="p-0.5 hover:bg-gray-200 rounded"
-                        tabIndex={-1}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleArtifactExpansion(item.artifact!.id);
-                        }}
-                      >
-                        <ChevronRightIcon
-                          expanded={isArtifactExpanded || false}
-                        />
-                      </button>
-                    )}
+                  <div className="flex items-center gap-2">
+                    {/* Expand/collapse chevron */}
+                    <button
+                      data-testid="artifact-toggle"
+                      className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                      tabIndex={-1}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleArtifactExpansion(item.artifact!.id);
+                      }}
+                    >
+                      <ChevronRightIcon expanded={isArtifactExpanded} />
+                    </button>
 
-                    {/* Folder chevron */}
-                    {isFolder && (
-                      <button
-                        data-testid="folder-toggle"
-                        className="p-0.5 hover:bg-gray-200 rounded"
-                        tabIndex={-1}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleFolderToggle(item.path);
-                        }}
-                      >
-                        <ChevronRightIcon expanded={folderExpanded || false} />
-                      </button>
-                    )}
-
+                    {/* File icon */}
                     <span className="flex-shrink-0">
-                      {isFolder ? (
-                        folderExpanded ? (
-                          <FolderOpenIcon />
-                        ) : (
-                          <FolderIcon />
-                        )
-                      ) : item.artifact ? (
-                        getFileIcon(item.artifact.type)
-                      ) : null}
+                      {getFileIcon(item.artifact.type)}
                     </span>
 
+                    {/* Artifact name */}
                     <span
                       data-testid="artifact-name"
-                      className={`truncate ${isFolder ? "font-medium" : ""} ${isSelected || isArtifactExpanded ? "text-blue-700" : "text-gray-900"}`}
+                      className={`truncate ${isSelected || isArtifactExpanded ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-gray-100"}`}
                       title={item.name}
                     >
                       {item.name}
@@ -1260,42 +1005,71 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                 </div>
 
                 {/* Date column */}
-                <div className="w-24 px-3 py-2 text-gray-500 whitespace-nowrap text-xs">
-                  {!isFolder &&
-                    item.artifact &&
-                    formatRelativeDate(
-                      item.artifact.updatedAt || item.artifact.createdAt,
-                    )}
+                <div className="w-24 px-3 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">
+                  {formatRelativeDate(
+                    item.artifact.updatedAt || item.artifact.createdAt,
+                  )}
                 </div>
 
                 {/* Type column */}
-                <div className="w-20 px-3 py-2 text-gray-500 whitespace-nowrap text-xs">
-                  {!isFolder && item.artifact && (
-                    <span className="capitalize">
-                      {getTypeDisplayName(item.artifact.type)}
-                    </span>
-                  )}
+                <div className="w-20 px-3 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">
+                  <span className="capitalize">
+                    {getTypeDisplayName(item.artifact.type)}
+                  </span>
                 </div>
 
                 {/* Status column */}
                 <div className="w-12 px-3 py-2 flex justify-center">
-                  {!isFolder && item.artifact && (
-                    <StatusBadge classification={classification} />
-                  )}
+                  <StatusBadge classification={classification} />
                 </div>
 
-                {/* Spacer for alignment */}
-                <div className="w-6 px-2 py-2" />
+                {/* Row-level action buttons - always visible on row */}
+                <div className="flex items-center gap-1 px-2 py-1">
+                  {onEdit && (
+                    <button
+                      data-testid="btn-row-edit"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(item.artifact!.id);
+                      }}
+                      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+                      title="Edit"
+                    >
+                      <EditIcon />
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      data-testid="btn-row-delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRowDelete(item.artifact!.id);
+                      }}
+                      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400 transition-colors"
+                      title="Delete"
+                    >
+                      <TrashIcon />
+                    </button>
+                  )}
+                  {onCopyRef && (
+                    <button
+                      data-testid="btn-row-copy-ref"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRowCopyRef(item.artifact!.id);
+                      }}
+                      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-green-600 dark:text-gray-500 dark:hover:text-green-400 transition-colors"
+                      title="Copy @ref"
+                    >
+                      <LinkIcon />
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Accordion content - artifact preview */}
-              {!isFolder && item.artifact && isArtifactExpanded && (
-                <AccordionPreview
-                  artifact={item.artifact}
-                  onEdit={onEdit}
-                  onDelete={onDelete ? handleRowDelete : undefined}
-                  onCopyRef={onCopyRef ? handleRowCopyRef : undefined}
-                />
+              {/* Accordion content - artifact preview (NO action buttons here anymore) */}
+              {isArtifactExpanded && (
+                <AccordionPreview artifact={item.artifact} />
               )}
             </div>
           );

@@ -991,62 +991,63 @@ export function NodeInspector({
   const prevNodeIdRef = useRef<string>(node.id);
   const [activeTab, setActiveTab] = useState<"details" | "report">("details");
 
-  // Track if user clicked a node from within the report (should show details for that node)
-  const forceDetailsForNodeRef = useRef<string | null>(null);
+  // Track if user explicitly set a tab (to prevent auto-switching)
+  const userSetTabRef = useRef<boolean>(false);
 
-  // When node changes OR when report finishes loading for current node, auto-select appropriate tab
-  // Logic:
-  // 1. If user clicked a node within the report panel → show Details (forceDetailsForNodeRef)
-  // 2. Otherwise, if report exists → show Report (default when report available)
-  // 3. Otherwise → show Details
+  // Track the previous sameNodeClickTrigger to detect changes
+  const prevSameNodeClickTriggerRef = useRef<number>(sameNodeClickTrigger || 0);
+
+  // When node changes, auto-select appropriate tab (report if available)
   useEffect(() => {
     const nodeChanged = prevNodeIdRef.current !== node.id;
 
     if (nodeChanged) {
       prevNodeIdRef.current = node.id;
-      // Clear the force-details flag when switching to a different node
-      // (only relevant if user clicks a different node via canvas, not via report)
-      if (forceDetailsForNodeRef.current !== node.id) {
-        forceDetailsForNodeRef.current = null;
-      }
+      // Reset user override when switching to a new node
+      userSetTabRef.current = false;
     }
 
-    // Check if user requested to force details view for this node
-    // (from clicking a node within the report panel)
-    // This flag persists for as long as we're viewing this node
-    if (forceDetailsForNodeRef.current === node.id) {
-      setActiveTab("details");
-      // Don't clear the flag here - it should persist while viewing this node
-      // to prevent auto-switch when groupReport loads
+    // Only auto-select on node change or initial load, not when user has set tab
+    if (userSetTabRef.current) {
       return;
     }
 
-    // Only auto-select tab when NOT overridden by user intent
     // When loading completes, auto-select tab based on report availability
-    // Report is the default view when available
     if (!isReportLoading) {
       if (groupReport !== null) {
-        // Report exists - show report tab (default)
         setActiveTab("report");
       } else {
-        // No report - show details tab
         setActiveTab("details");
       }
     }
   }, [node.id, isReportLoading, groupReport]);
 
-  // Handle same-node click - toggle from report to details view
+  // Handle same-node click (from canvas) - toggle between report and details views
   useEffect(() => {
-    if (
-      sameNodeClickTrigger &&
-      sameNodeClickTrigger > 0 &&
-      activeTab === "report"
-    ) {
-      setActiveTab("details");
-      // Also set the force flag to prevent auto-switch back to report
-      forceDetailsForNodeRef.current = node.id;
+    const triggerChanged =
+      sameNodeClickTrigger !== prevSameNodeClickTriggerRef.current;
+    prevSameNodeClickTriggerRef.current = sameNodeClickTrigger || 0;
+
+    if (triggerChanged && sameNodeClickTrigger && sameNodeClickTrigger > 0) {
+      userSetTabRef.current = true;
+      if (activeTab === "report") {
+        setActiveTab("details");
+        // When toggling to details, zoom to the node after layout settles
+        if (onFocusOnSelectedNode) {
+          setTimeout(() => onFocusOnSelectedNode(node.id), 300);
+          setTimeout(() => onFocusOnSelectedNode(node.id), 700);
+        }
+      } else if (activeTab === "details" && groupReport !== null) {
+        setActiveTab("report");
+      }
     }
-  }, [sameNodeClickTrigger, activeTab, node.id]);
+  }, [
+    sameNodeClickTrigger,
+    activeTab,
+    groupReport,
+    node.id,
+    onFocusOnSelectedNode,
+  ]);
 
   // Animate slide-in on mount
   useEffect(() => {
@@ -1098,19 +1099,19 @@ export function NodeInspector({
   // Handle node click from within report - switch to details tab and navigate to the node
   const handleNodeClickFromReport = useCallback(
     (nodeId: string) => {
-      // Mark that we want to show details for this specific node
-      // This prevents the auto-switch-to-report logic from overriding our intent
-      forceDetailsForNodeRef.current = nodeId;
+      // Mark that user explicitly set the tab to prevent auto-switching
+      userSetTabRef.current = true;
       // Call the original onNodeClick to select the node (triggers node change)
       onNodeClick?.(nodeId);
-      // Also set the tab immediately in case the node is already selected
+      // Set the tab to details
       setActiveTab("details");
-      // Focus on the clicked node after a delay to allow layout restoration to complete
-      // (the report view deactivation restores the previous layout)
+      // Focus on the clicked node after delays to allow layout restoration to complete
+      // The layout change animation takes time, so we zoom multiple times to ensure it works
       if (onFocusOnSelectedNode) {
-        setTimeout(() => {
-          onFocusOnSelectedNode(nodeId);
-        }, 200);
+        // First attempt after layout starts changing
+        setTimeout(() => onFocusOnSelectedNode(nodeId), 300);
+        // Second attempt after layout should be mostly settled
+        setTimeout(() => onFocusOnSelectedNode(nodeId), 700);
       }
     },
     [onNodeClick, onFocusOnSelectedNode],
@@ -1118,12 +1119,21 @@ export function NodeInspector({
 
   // Handle switching to details tab - focus on the selected node
   const handleSwitchToDetails = useCallback(() => {
+    userSetTabRef.current = true;
     setActiveTab("details");
     // Focus on the selected node when switching to details
     if (onFocusOnSelectedNode && node.id) {
-      onFocusOnSelectedNode(node.id);
+      // Zoom with delays to ensure layout is settled
+      setTimeout(() => onFocusOnSelectedNode(node.id), 100);
+      setTimeout(() => onFocusOnSelectedNode(node.id), 400);
     }
   }, [onFocusOnSelectedNode, node.id]);
+
+  // Handle switching to report tab
+  const handleSwitchToReport = useCallback(() => {
+    userSetTabRef.current = true;
+    setActiveTab("report");
+  }, []);
 
   // Create a map of nodes for quick lookup
   const nodeMap = useMemo(() => {
@@ -1198,7 +1208,7 @@ export function NodeInspector({
                     ? "text-cyan-600 border-b-2 border-cyan-500"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
-                onClick={() => setActiveTab("report")}
+                onClick={handleSwitchToReport}
               >
                 Node Group Report
               </button>
@@ -1231,7 +1241,7 @@ export function NodeInspector({
                     ? "text-cyan-600 border-b-2 border-cyan-500"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
-                onClick={() => setActiveTab("report")}
+                onClick={handleSwitchToReport}
               >
                 Node Group Report
               </button>

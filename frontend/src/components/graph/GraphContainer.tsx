@@ -491,6 +491,8 @@ export function GraphContainer({
           layoutBeforeReportViewRef.current = null;
         }
         setReportViewNodeIds([]);
+        // Note: Zoom to the clicked node is handled by handleNodeClickFromReport
+        // with appropriate delay to allow layout to settle
       }
     },
     [], // No dependencies - uses refs and functional updates
@@ -498,7 +500,8 @@ export function GraphContainer({
 
   // Handle focusing on selected node (when switching to Node Details tab)
   const handleFocusOnSelectedNode = useCallback((nodeId: string) => {
-    graphCanvasRef.current?.focusOnNode(nodeId);
+    // Use fitNodesInView with slow option for smoother zoom transition
+    graphCanvasRef.current?.fitNodesInView([nodeId], { slow: true });
   }, []);
 
   // Handle opening source selection modal
