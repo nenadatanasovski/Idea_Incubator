@@ -20,6 +20,8 @@ import {
   LayoutTypes,
 } from "reagraph";
 import type { GraphNode, GraphEdge, NodeShape } from "../../types/graph";
+// @ts-ignore - troika-three-text is a transitive dependency via reagraph
+import { Text as TroikaText } from "troika-three-text";
 
 // Reagraph internal node type (simplified for our handlers)
 interface InternalGraphNode {
@@ -109,53 +111,54 @@ function useDarkMode(): boolean {
 /**
  * Custom node renderer for different shapes based on graph membership
  * Uses Three.js geometries to create distinct shapes for each graph type
- * Labels are rendered by reagraph's built-in label system positioned near nodes
+ * Text is rendered inside the node using troika-three-text via <primitive>
  */
 function CustomNodeRenderer({
   size,
   opacity,
   node,
+  label,
 }: {
   size: number;
-  color: string; // Ignored - we use node.fill instead to prevent hover/select color changes
+  color: string;
   opacity: number;
   node: { shape?: NodeShape; fill?: string };
+  label?: string;
 }) {
   const shape = node.shape || "circle";
-  // Use node's original fill color, not reagraph's computed color (which changes on hover/select)
   const fillColor = node.fill || "#3B82F6";
 
-  // Get geometry segments based on shape
-  // For 2D, we use CircleGeometry with different segment counts
+  // Visual scale: make nodes appear larger without affecting layout spacing
+  const visualSize = size * 2;
+
   const getGeometryArgs = (): [number, number] => {
     switch (shape) {
       case "triangle":
-        return [size, 3]; // 3 segments = triangle
+        return [visualSize, 3];
       case "square":
-        return [size, 4]; // 4 segments = square
+        return [visualSize, 4];
       case "pentagon":
-        return [size, 5]; // 5 segments = pentagon
+        return [visualSize, 5];
       case "hexagon":
-        return [size, 6]; // 6 segments = hexagon
+        return [visualSize, 6];
       case "diamond":
-        return [size, 4]; // 4 segments, will be rotated
+        return [visualSize, 4];
       case "star":
-        return [size, 10]; // 10 points for star-like effect
+        return [visualSize, 10];
       case "circle":
       default:
-        return [size, 32]; // 32 segments = smooth circle
+        return [visualSize, 32];
     }
   };
 
-  // Calculate rotation for certain shapes
   const getRotation = (): [number, number, number] => {
     switch (shape) {
       case "diamond":
-        return [0, 0, Math.PI / 4]; // Rotate 45° for diamond
+        return [0, 0, Math.PI / 4];
       case "square":
-        return [0, 0, Math.PI / 4]; // Rotate 45° for better visual
+        return [0, 0, Math.PI / 4];
       case "triangle":
-        return [0, 0, -Math.PI / 2]; // Point upward
+        return [0, 0, -Math.PI / 2];
       default:
         return [0, 0, 0];
     }
@@ -164,12 +167,43 @@ function CustomNodeRenderer({
   const [radius, segments] = getGeometryArgs();
   const rotation = getRotation();
 
+  // Truncate label for display inside node
+  const truncatedLabel =
+    label && label.length > 60 ? label.substring(0, 57) + "..." : label;
+
+  // Create troika text mesh for centered label inside node
+  const textMesh = useMemo(() => {
+    const t = new TroikaText();
+    t.text = truncatedLabel || "";
+    t.fontSize = visualSize * 0.35;
+    t.color = 0xffffff;
+    t.anchorX = "center";
+    t.anchorY = "middle";
+    t.textAlign = "center";
+    t.maxWidth = visualSize * 1.6;
+    t.outlineWidth = visualSize * 0.04;
+    t.outlineColor = 0x000000;
+    t.position.z = 0.5;
+    t.sync();
+    return t;
+  }, [truncatedLabel, visualSize]);
+
+  // Clean up troika text on unmount
+  useEffect(() => {
+    return () => {
+      textMesh.dispose();
+    };
+  }, [textMesh]);
+
   return (
-    <group rotation={rotation}>
-      <mesh>
-        <circleGeometry args={[radius, segments]} />
-        <meshBasicMaterial color={fillColor} opacity={opacity} transparent />
-      </mesh>
+    <group>
+      <group rotation={rotation}>
+        <mesh>
+          <circleGeometry args={[radius, segments]} />
+          <meshBasicMaterial color={fillColor} opacity={opacity} transparent />
+        </mesh>
+      </group>
+      {truncatedLabel && <primitive object={textMesh} />}
     </group>
   );
 }
@@ -310,8 +344,8 @@ function toReagraphNode(
   const fillColor = isRecentlyAdded ? "#4ADE80" : getNodeColor(node.blockType);
   return {
     id: node.id,
-    label: displayLabel,
-    subLabel,
+    label: " ", // Hidden - troika renders text inside nodes
+    subLabel: "", // Hidden
     fill: fillColor,
     activeFill: fillColor, // Keep same color when selected/active
     size: finalSize,
@@ -1016,6 +1050,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               color={color as string}
               opacity={opacity}
               node={node as { shape?: NodeShape; fill?: string }}
+              label={
+                ((node as any).data as GraphNode)?.title ||
+                ((node as any).data as GraphNode)?.content ||
+                ((node as any).data as GraphNode)?.label ||
+                ""
+              }
             />
           )}
           theme={{
@@ -1028,12 +1068,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               selectedOpacity: 1,
               inactiveOpacity: 0.2, // Fade inactive nodes when hovering/selecting
               label: {
-                color: isDarkMode ? "#F9FAFB" : "#1F2937", // white in dark, gray-800 in light
-                activeColor: isDarkMode ? "#FFFFFF" : "#111827", // pure white in dark, gray-900 in light
-                fontSize: 10, // Larger labels for better readability
-                maxWidth: 60, // Wider text wrapping
-                stroke: isDarkMode ? "#111827" : "#F9FAFB", // Outline for contrast
-                strokeWidth: 2.5,
+                color: "transparent", // Hidden - labels rendered inside nodes via troika
+                activeColor: "transparent",
+                fontSize: 1,
               },
               subLabel: {
                 color: isDarkMode ? "#9CA3AF" : "#6B7280", // gray-400 in dark, gray-500 in light

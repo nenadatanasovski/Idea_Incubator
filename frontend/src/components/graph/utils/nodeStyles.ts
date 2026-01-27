@@ -17,8 +17,8 @@ export interface NodeSizeConfig {
 
 const DEFAULT_SIZE_CONFIG: NodeSizeConfig = {
   minSize: 12,
-  maxSize: 40,
-  baseSize: 20,
+  maxSize: 30,
+  baseSize: 18,
 };
 
 /**
