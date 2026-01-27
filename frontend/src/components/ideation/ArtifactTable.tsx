@@ -728,7 +728,7 @@ const AccordionPreview: React.FC<AccordionPreviewProps> = ({
   );
 
   return (
-    <div className="bg-gray-50 border-t border-gray-200 flex flex-col flex-1 min-h-0">
+    <div className="bg-gray-50 border-t border-gray-200">
       {/* Action bar */}
       <div className="flex items-center justify-end gap-1 px-4 py-2 border-b border-gray-200">
         {onEdit && (
@@ -777,7 +777,10 @@ const AccordionPreview: React.FC<AccordionPreviewProps> = ({
       </div>
 
       {/* Content preview */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div
+        className="overflow-y-auto overflow-x-hidden"
+        style={{ maxHeight: "calc(100vh - 300px)" }}
+      >
         {isContentEmpty ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
@@ -1110,7 +1113,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
     <div
       data-testid="artifact-table"
       ref={tableRef}
-      className="w-full h-full flex flex-col overflow-hidden relative"
+      className="w-full h-full overflow-y-auto overflow-x-hidden relative"
       tabIndex={0}
       onKeyDown={handleKeyDown}
       role="list"
@@ -1149,7 +1152,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
       </div>
 
       {/* Accordion rows */}
-      <div className="text-sm flex-1 flex flex-col min-h-0">
+      <div className="text-sm">
         {flattenedItems.map((item, index) => {
           const isFolder = item.type === "folder";
           const isSelected = !isFolder && item.path === selectedPath;
@@ -1157,10 +1160,12 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
           const folderExpanded = isFolder
             ? isFolderExpanded(item.path)
             : undefined;
+          // An artifact is expanded if it's selected OR explicitly expanded
           const isArtifactExpanded =
             !isFolder &&
             item.artifact &&
-            expandedArtifacts.has(item.artifact.id);
+            (expandedArtifacts.has(item.artifact.id) ||
+              item.path === selectedPath);
           const classification =
             !isFolder && item.artifact
               ? classifications[item.artifact.id] ||
@@ -1178,13 +1183,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
               data-index={index}
               data-id={item.artifact?.id}
               role="listitem"
-              className={`border-b border-gray-100 ${
-                !isFolder &&
-                item.artifact &&
-                expandedArtifacts.has(item.artifact.id)
-                  ? "flex flex-col flex-1 min-h-0"
-                  : ""
-              }`}
+              className="border-b border-gray-100"
             >
               {/* Row header - clickable to expand/collapse */}
               <div

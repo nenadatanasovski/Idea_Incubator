@@ -18,7 +18,7 @@ import {
   AlertTriangle,
   Sparkles,
 } from "lucide-react";
-import { useGroupReport } from "./hooks/useGroupReport";
+import { useGroupReport, type GroupReport } from "./hooks/useGroupReport";
 import type { GraphNode } from "../../types/graph";
 
 // ============================================================================
@@ -37,6 +37,8 @@ export interface GroupReportPanelProps {
   isActive?: boolean;
   /** Callback when report view state changes - handles layout, zoom, and highlighting */
   onReportViewChange?: (active: boolean, nodeIds: string[]) => void;
+  /** If report was already fetched by parent, pass it here to avoid double-fetching */
+  existingReport?: GroupReport | null;
 }
 
 // ============================================================================
@@ -151,12 +153,23 @@ export function GroupReportPanel({
   refreshTrigger,
   isActive = false,
   onReportViewChange,
+  existingReport,
 }: GroupReportPanelProps) {
-  const { report, isLoading, error, isStale, regenerate } = useGroupReport({
+  // Use existing report if provided, otherwise fetch
+  const {
+    report: fetchedReport,
+    isLoading,
+    error,
+    isStale,
+    regenerate,
+  } = useGroupReport({
     sessionId,
     nodeId: currentNodeId,
     refreshTrigger,
   });
+
+  // Prefer existing report if provided (already fetched by parent)
+  const report = existingReport !== undefined ? existingReport : fetchedReport;
 
   // Use ref to store callback to avoid stale closures in cleanup
   const onReportViewChangeRef = useRef(onReportViewChange);

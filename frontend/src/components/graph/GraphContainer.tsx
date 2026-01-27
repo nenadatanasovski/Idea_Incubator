@@ -21,6 +21,7 @@ import { CycleIndicator } from "./CycleIndicator";
 import { GraphQuickActions } from "./GraphQuickActions";
 import { analyzeCycles } from "./utils/cycleDetection";
 import { SourceSelectionModal } from "./SourceSelectionModal";
+import type { ReportSynthesisJobStatus } from "./hooks/useReportSynthesisStatus";
 
 export interface GraphContainerProps {
   nodes: GraphNode[];
@@ -92,6 +93,10 @@ export interface GraphContainerProps {
   isRestoringSnapshot?: boolean;
   // Report refresh trigger - increments when report synthesis completes
   reportRefreshTrigger?: number;
+  // Report synthesis status (for displaying status pill in controls)
+  reportSynthesisStatus?: ReportSynthesisJobStatus;
+  onCancelReportSynthesis?: () => void;
+  onDismissReportSynthesisStatus?: () => void;
 }
 
 /**
@@ -201,6 +206,9 @@ export function GraphContainer({
   isSavingSnapshot = false,
   isRestoringSnapshot = false,
   reportRefreshTrigger,
+  reportSynthesisStatus,
+  onCancelReportSynthesis,
+  onDismissReportSynthesisStatus,
 }: GraphContainerProps) {
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -484,6 +492,11 @@ export function GraphContainer({
     },
     [], // No dependencies - uses refs and functional updates
   );
+
+  // Handle focusing on selected node (when switching to Node Details tab)
+  const handleFocusOnSelectedNode = useCallback((nodeId: string) => {
+    graphCanvasRef.current?.focusOnNode(nodeId);
+  }, []);
 
   // Handle opening source selection modal
   const handleOpenSourceSelection = useCallback(() => {
@@ -1092,6 +1105,7 @@ export function GraphContainer({
           onDeleteNode={onDeleteNode}
           reportRefreshTrigger={reportRefreshTrigger}
           onReportViewChange={handleReportViewChange}
+          onFocusOnSelectedNode={handleFocusOnSelectedNode}
         />
       )}
 

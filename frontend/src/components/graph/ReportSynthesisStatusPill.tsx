@@ -55,12 +55,12 @@ export function ReportSynthesisStatusPill({
   const getStatusConfig = () => {
     if (isActive) {
       return {
-        bgColor: "bg-indigo-50",
-        textColor: "text-indigo-700",
-        borderColor: "border-indigo-200",
-        progressBg: "bg-indigo-200",
-        progressFill: "bg-indigo-600",
-        hoverBg: "hover:bg-indigo-200",
+        bgColor: "bg-amber-100 dark:bg-amber-900/80",
+        textColor: "text-amber-800 dark:text-amber-200",
+        borderColor: "border-amber-300 dark:border-amber-600",
+        progressBg: "bg-amber-200 dark:bg-amber-700",
+        progressFill: "bg-amber-500 dark:bg-amber-400",
+        hoverBg: "hover:bg-amber-200 dark:hover:bg-amber-800",
         icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
         label: getActiveLabel(),
         showCancel: true,
@@ -69,12 +69,12 @@ export function ReportSynthesisStatusPill({
     }
     if (isComplete) {
       return {
-        bgColor: "bg-green-50",
-        textColor: "text-green-700",
-        borderColor: "border-green-200",
+        bgColor: "bg-green-100 dark:bg-green-900/80",
+        textColor: "text-green-800 dark:text-green-200",
+        borderColor: "border-green-300 dark:border-green-600",
         progressBg: "",
         progressFill: "",
-        hoverBg: "hover:bg-green-200",
+        hoverBg: "hover:bg-green-200 dark:hover:bg-green-800",
         icon: <Check className="w-3.5 h-3.5" />,
         label: `${status.reportsCreated} report${status.reportsCreated !== 1 ? "s" : ""} generated`,
         showCancel: false,
@@ -83,12 +83,12 @@ export function ReportSynthesisStatusPill({
     }
     if (isFailed) {
       return {
-        bgColor: "bg-red-50",
-        textColor: "text-red-700",
-        borderColor: "border-red-200",
+        bgColor: "bg-red-100 dark:bg-red-900/80",
+        textColor: "text-red-800 dark:text-red-200",
+        borderColor: "border-red-300 dark:border-red-600",
         progressBg: "",
         progressFill: "",
-        hoverBg: "hover:bg-red-200",
+        hoverBg: "hover:bg-red-200 dark:hover:bg-red-800",
         icon: <AlertCircle className="w-3.5 h-3.5" />,
         label: "Report generation failed",
         showCancel: false,
@@ -97,12 +97,12 @@ export function ReportSynthesisStatusPill({
     }
     if (isCancelled) {
       return {
-        bgColor: "bg-gray-50",
-        textColor: "text-gray-600",
-        borderColor: "border-gray-200",
+        bgColor: "bg-gray-100 dark:bg-gray-700",
+        textColor: "text-gray-700 dark:text-gray-200",
+        borderColor: "border-gray-300 dark:border-gray-500",
         progressBg: "",
         progressFill: "",
-        hoverBg: "hover:bg-gray-200",
+        hoverBg: "hover:bg-gray-200 dark:hover:bg-gray-600",
         icon: <XCircle className="w-3.5 h-3.5" />,
         label: "Report generation cancelled",
         showCancel: false,
@@ -111,9 +111,9 @@ export function ReportSynthesisStatusPill({
     }
     // Default fallback
     return {
-      bgColor: "bg-gray-50",
-      textColor: "text-gray-600",
-      borderColor: "border-gray-200",
+      bgColor: "bg-gray-100 dark:bg-gray-700",
+      textColor: "text-gray-700 dark:text-gray-200",
+      borderColor: "border-gray-300 dark:border-gray-500",
       progressBg: "",
       progressFill: "",
       hoverBg: "",

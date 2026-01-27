@@ -346,6 +346,7 @@ export function MemoryDatabasePanel({
   const [expandedReportIds, setExpandedReportIds] = useState<Set<string>>(
     new Set(),
   );
+  const [isRegeneratingReports, setIsRegeneratingReports] = useState(false);
 
   // Filter states
   const [blockTypeFilters, setBlockTypeFilters] = useState<Set<string>>(
@@ -601,8 +602,8 @@ export function MemoryDatabasePanel({
       );
       if (reportsRes.ok) {
         const reportsData = await reportsRes.json();
-        setReports(
-          (reportsData.reports || []).map((r: Record<string, unknown>) => ({
+        const fetchedReports = (reportsData.reports || []).map(
+          (r: Record<string, unknown>) => ({
             id: r.id as string,
             sessionId: (r.sessionId || r.session_id) as string,
             nodeIds: (r.nodeIds || []) as string[],
@@ -621,8 +622,15 @@ export function MemoryDatabasePanel({
             generationDurationMs: (r.generationDurationMs ||
               r.generation_duration_ms) as number | null,
             modelUsed: (r.modelUsed || r.model_used) as string | null,
-          })),
+          }),
         );
+        setReports(fetchedReports);
+        // Clear regenerating state if all reports are now current
+        if (
+          fetchedReports.every((r: NodeGroupReport) => r.status === "current")
+        ) {
+          setIsRegeneratingReports(false);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch data");
@@ -1566,19 +1574,33 @@ export function MemoryDatabasePanel({
               </div>
               <button
                 onClick={async () => {
+                  if (isRegeneratingReports) return;
+                  setIsRegeneratingReports(true);
                   try {
                     await fetch(
                       `/api/ideation/session/${sessionId}/reports/regenerate-all`,
                       { method: "POST" },
                     );
+                    // The actual regeneration happens asynchronously via WebSocket
+                    // We'll keep the loading state for a reasonable time, or until user refreshes
+                    // A 30-second timeout gives visual feedback during the process
+                    setTimeout(() => setIsRegeneratingReports(false), 30000);
                   } catch (err) {
                     console.error("Failed to regenerate reports:", err);
+                    setIsRegeneratingReports(false);
                   }
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors"
+                disabled={isRegeneratingReports}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  isRegeneratingReports
+                    ? "bg-cyan-400 text-white cursor-not-allowed"
+                    : "text-white bg-cyan-600 hover:bg-cyan-700"
+                }`}
               >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Regenerate All
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${isRegeneratingReports ? "animate-spin" : ""}`}
+                />
+                {isRegeneratingReports ? "Regenerating..." : "Regenerate All"}
               </button>
             </div>
             {reports.length === 0 ? (
