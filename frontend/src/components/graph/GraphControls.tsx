@@ -19,6 +19,8 @@ import type {
 } from "../../types/graph";
 import { GraphFilters } from "./GraphFilters";
 import { SnapshotControls } from "./SnapshotControls";
+import { ReportSynthesisStatusPill } from "./ReportSynthesisStatusPill";
+import type { ReportSynthesisJobStatus } from "./hooks/useReportSynthesisStatus";
 
 // ============================================================================
 // Types for AI Prompt
@@ -117,6 +119,11 @@ export interface GraphControlsProps {
   onClusterStrategyChange?: (strategy: ClusterStrategy) => void;
   clusterStrength?: number;
   onClusterStrengthChange?: (strength: number) => void;
+
+  // Report synthesis status
+  reportSynthesisStatus?: ReportSynthesisJobStatus;
+  onCancelReportSynthesis?: () => void;
+  onDismissReportSynthesisStatus?: () => void;
 
   className?: string;
 }
@@ -240,6 +247,10 @@ export function GraphControls({
   onClusterStrategyChange,
   clusterStrength = 0.7,
   onClusterStrengthChange,
+  // Report synthesis status
+  reportSynthesisStatus,
+  onCancelReportSynthesis,
+  onDismissReportSynthesisStatus,
   className = "",
 }: GraphControlsProps) {
   const [isLayoutDropdownOpen, setIsLayoutDropdownOpen] = useState(false);
@@ -1246,6 +1257,18 @@ export function GraphControls({
             )}
           </button>
         )}
+
+        {/* Report Synthesis Status Pill - shown next to brain button */}
+        {reportSynthesisStatus &&
+          (reportSynthesisStatus.jobId || reportSynthesisStatus.status) &&
+          onCancelReportSynthesis &&
+          onDismissReportSynthesisStatus && (
+            <ReportSynthesisStatusPill
+              status={reportSynthesisStatus}
+              onCancel={onCancelReportSynthesis}
+              onDismiss={onDismissReportSynthesisStatus}
+            />
+          )}
 
         {/* Refresh Button */}
         {onRefresh && (

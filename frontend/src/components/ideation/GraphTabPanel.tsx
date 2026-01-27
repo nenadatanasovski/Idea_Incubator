@@ -20,7 +20,6 @@ import type { ProposedChange } from "../../types/ideation-state";
 import { useGraphDataWithWebSocket } from "../graph/hooks/useGraphDataWithWebSocket";
 import { GraphUpdateConfirmation } from "../graph/GraphUpdateConfirmation";
 import { SourceMappingStatusPill } from "../graph/SourceMappingStatusPill";
-import { ReportSynthesisStatusPill } from "../graph/ReportSynthesisStatusPill";
 import { ProposedChangesReviewModal } from "../graph/ProposedChangesReviewModal";
 import { useIdeationAPI } from "../../hooks/useIdeationAPI";
 import type {
@@ -132,6 +131,8 @@ export interface GraphTabPanelProps {
   onLinkNode?: (nodeId: string) => void;
   onGroupIntoSynthesis?: (nodeId: string) => void;
   onDeleteNode?: (nodeId: string, nodeLabel: string) => void;
+  /** Callback to delete all nodes in a group (from Node Group Report view) */
+  onDeleteNodeGroup?: (nodeIds: string[], groupName: string) => void;
   // Trigger to refetch graph data (increment to trigger refetch)
   refetchTrigger?: number;
   // Success notification to display
@@ -180,6 +181,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   onLinkNode,
   onGroupIntoSynthesis,
   onDeleteNode,
+  onDeleteNodeGroup,
   refetchTrigger,
   successNotification,
   onClearNotification,
@@ -678,12 +680,13 @@ export const GraphTabPanel = memo(function GraphTabPanel({
       {/* Graph Container */}
       <div className="flex-1 min-h-0 relative" data-testid="graph-canvas">
         {/* Status Pills Container - shows when background operations are active or recently completed */}
-        <div
-          className="absolute top-4 right-4 z-30 flex flex-col gap-2"
-          data-testid="status-pills-container"
-        >
-          {/* Source Mapping Status Pill */}
-          {(sourceMappingStatus.jobId || sourceMappingStatus.status) && (
+        {/* Note: ReportSynthesisStatusPill is now rendered in GraphControls next to the brain button */}
+        {(sourceMappingStatus.jobId || sourceMappingStatus.status) && (
+          <div
+            className="absolute top-4 right-4 z-30"
+            data-testid="status-pills-container"
+          >
+            {/* Source Mapping Status Pill */}
             <div data-testid="source-mapping-status">
               <SourceMappingStatusPill
                 status={sourceMappingStatus}
@@ -691,19 +694,8 @@ export const GraphTabPanel = memo(function GraphTabPanel({
                 onDismiss={dismissSourceMappingStatus}
               />
             </div>
-          )}
-
-          {/* Report Synthesis Status Pill */}
-          {(reportSynthesisStatus.jobId || reportSynthesisStatus.status) && (
-            <div data-testid="report-synthesis-status">
-              <ReportSynthesisStatusPill
-                status={reportSynthesisStatus}
-                onCancel={cancelReportSynthesis}
-                onDismiss={dismissReportSynthesisStatus}
-              />
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <GraphErrorBoundary>
           <Suspense fallback={<GraphLoadingSkeleton />}>
@@ -746,6 +738,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               onLinkNode={onLinkNode}
               onGroupIntoSynthesis={onGroupIntoSynthesis}
               onDeleteNode={onDeleteNode}
+              onDeleteNodeGroup={onDeleteNodeGroup}
               resetFiltersTrigger={resetFiltersTrigger}
               successNotification={successNotification}
               onClearNotification={onClearNotification}
@@ -759,6 +752,10 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               isSavingSnapshot={isSavingSnapshot}
               isRestoringSnapshot={isRestoringSnapshot}
               reportRefreshTrigger={reportRefreshTrigger}
+              // Report synthesis status (moved to GraphControls toolbar)
+              reportSynthesisStatus={reportSynthesisStatus}
+              onCancelReportSynthesis={cancelReportSynthesis}
+              onDismissReportSynthesisStatus={dismissReportSynthesisStatus}
               className="h-full"
             />
           </Suspense>

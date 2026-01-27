@@ -11,14 +11,7 @@
  * - Survives page refresh (queries server for active jobs)
  */
 
-import {
-  X,
-  Loader2,
-  Check,
-  AlertCircle,
-  XCircle,
-  FileText,
-} from "lucide-react";
+import { X, Loader2, Check, AlertCircle, XCircle } from "lucide-react";
 import type { ReportSynthesisJobStatus } from "./hooks/useReportSynthesisStatus";
 
 // ============================================================================

@@ -111,6 +111,8 @@ export interface NodeInspectorProps {
   onLinkNode?: (nodeId: string) => void;
   onGroupIntoSynthesis?: (nodeId: string) => void;
   onDeleteNode?: (nodeId: string, nodeLabel: string) => void;
+  /** Callback to delete all nodes in a group (when in Node Group Report view) */
+  onDeleteNodeGroup?: (nodeIds: string[], groupName: string) => void;
   isActionLoading?: string | null;
   className?: string;
   /** Optional trigger to refresh the report - increment when synthesis completes */
@@ -957,6 +959,7 @@ export function NodeInspector({
   onLinkNode,
   onGroupIntoSynthesis,
   onDeleteNode,
+  onDeleteNodeGroup,
   isActionLoading,
   className = "",
   reportRefreshTrigger,
@@ -968,6 +971,7 @@ export function NodeInspector({
   const [isLoadingSources, setIsLoadingSources] = useState(false);
   const [relationshipViewMode, setRelationshipViewMode] =
     useState<RelationshipViewMode>("prose");
+  const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false);
   const { getBlockSources } = useIdeationAPI();
 
   // Lift useGroupReport to this level so we can determine if a report exists
@@ -987,50 +991,46 @@ export function NodeInspector({
   // Track if user clicked a node from within the report (should show details for that node)
   const forceDetailsForNodeRef = useRef<string | null>(null);
 
-  // Track if this is the initial load for the current node (to distinguish from external clicks)
-  const isInitialLoadRef = useRef(true);
-
   // When node changes OR when report finishes loading for current node, auto-select appropriate tab
+  // Logic:
+  // 1. If user clicked a node within the report panel → show Details (forceDetailsForNodeRef)
+  // 2. Otherwise, if report exists → show Report (default when report available)
+  // 3. Otherwise → show Details
   useEffect(() => {
     const nodeChanged = prevNodeIdRef.current !== node.id;
 
     if (nodeChanged) {
       prevNodeIdRef.current = node.id;
-      // Mark that we're starting a new load cycle for this node
-      isInitialLoadRef.current = true;
+      // Clear the force-details flag when switching to a different node
+      // (only relevant if user clicks a different node via canvas, not via report)
+      if (forceDetailsForNodeRef.current !== node.id) {
+        forceDetailsForNodeRef.current = null;
+      }
     }
 
     // Check if user requested to force details view for this node
-    // (from clicking a node in the report panel)
+    // (from clicking a node within the report panel)
+    // This flag persists for as long as we're viewing this node
     if (forceDetailsForNodeRef.current === node.id) {
       setActiveTab("details");
-      // Only clear the flag once loading is complete to prevent auto-switch to report
-      if (!isReportLoading) {
-        forceDetailsForNodeRef.current = null;
-      }
+      // Don't clear the flag here - it should persist while viewing this node
+      // to prevent auto-switch when groupReport loads
       return;
     }
 
-    // If node changed while viewing report tab, switch to details
-    // (This handles clicks on the graph canvas while in report view)
-    if (nodeChanged && activeTab === "report") {
-      setActiveTab("details");
-      isInitialLoadRef.current = false;
-      return;
-    }
-
-    // Only auto-switch to report on initial load (when loading completes for the first time)
-    if (!isReportLoading && isInitialLoadRef.current) {
-      isInitialLoadRef.current = false;
+    // Only auto-select tab when NOT overridden by user intent
+    // When loading completes, auto-select tab based on report availability
+    // Report is the default view when available
+    if (!isReportLoading) {
       if (groupReport !== null) {
-        // Report exists - show report tab
+        // Report exists - show report tab (default)
         setActiveTab("report");
       } else {
         // No report - show details tab
         setActiveTab("details");
       }
     }
-  }, [node.id, isReportLoading, groupReport, activeTab]);
+  }, [node.id, isReportLoading, groupReport]);
 
   // Animate slide-in on mount
   useEffect(() => {
@@ -1089,8 +1089,15 @@ export function NodeInspector({
       onNodeClick?.(nodeId);
       // Also set the tab immediately in case the node is already selected
       setActiveTab("details");
+      // Focus on the clicked node after a delay to allow layout restoration to complete
+      // (the report view deactivation restores the previous layout)
+      if (onFocusOnSelectedNode) {
+        setTimeout(() => {
+          onFocusOnSelectedNode(nodeId);
+        }, 200);
+      }
     },
-    [onNodeClick],
+    [onNodeClick, onFocusOnSelectedNode],
   );
 
   // Handle switching to details tab - focus on the selected node
@@ -1786,14 +1793,10 @@ export function NodeInspector({
                 <span>Synthesize</span>
               </button>
             )}
-            {onDeleteNode && (
+            {/* Delete button - behaves differently in report view vs details view */}
+            {activeTab === "report" && onDeleteNodeGroup && groupReport ? (
               <button
-                onClick={() =>
-                  onDeleteNode(
-                    node.id,
-                    node.title || node.content?.substring(0, 50) || "Node",
-                  )
-                }
+                onClick={() => setShowDeleteGroupConfirm(true)}
                 disabled={isActionLoading === "delete"}
                 className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
               >
@@ -1802,9 +1805,83 @@ export function NodeInspector({
                 ) : (
                   <Trash2 className="h-4 w-4" />
                 )}
-                <span>Delete</span>
+                <span>Delete Group</span>
               </button>
+            ) : (
+              onDeleteNode && (
+                <button
+                  onClick={() =>
+                    onDeleteNode(
+                      node.id,
+                      node.title || node.content?.substring(0, 50) || "Node",
+                    )
+                  }
+                  disabled={isActionLoading === "delete"}
+                  className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isActionLoading === "delete" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  <span>Delete</span>
+                </button>
+              )
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Group Confirmation Dialog */}
+      {showDeleteGroupConfirm && groupReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 rounded-full">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Delete Node Group?
+              </h3>
+            </div>
+            <p className="text-gray-600 mb-2">
+              This will permanently delete{" "}
+              <span className="font-semibold text-gray-900">
+                {groupReport.nodeIds.length} nodes
+              </span>{" "}
+              in the group "{groupReport.groupName || "Unnamed Group"}".
+            </p>
+            <p className="text-sm text-red-600 mb-6">
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteGroupConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (onDeleteNodeGroup && groupReport.nodeIds.length > 0) {
+                    onDeleteNodeGroup(
+                      groupReport.nodeIds,
+                      groupReport.groupName || "Unnamed Group",
+                    );
+                  }
+                  setShowDeleteGroupConfirm(false);
+                }}
+                disabled={isActionLoading === "delete"}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isActionLoading === "delete" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Delete {groupReport.nodeIds.length} Nodes
+              </button>
+            </div>
           </div>
         </div>
       )}

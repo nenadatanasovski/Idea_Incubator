@@ -68,6 +68,8 @@ export interface GraphContainerProps {
   onLinkNode?: (nodeId: string) => void;
   onGroupIntoSynthesis?: (nodeId: string) => void;
   onDeleteNode?: (nodeId: string, nodeLabel: string) => void;
+  /** Callback to delete all nodes in a group (from Node Group Report view) */
+  onDeleteNodeGroup?: (nodeIds: string[], groupName: string) => void;
   // Success notification
   successNotification?: {
     action: "created" | "updated" | "deleted";
@@ -193,6 +195,7 @@ export function GraphContainer({
   onLinkNode,
   onGroupIntoSynthesis,
   onDeleteNode,
+  onDeleteNodeGroup,
   resetFiltersTrigger,
   successNotification,
   onClearNotification,
@@ -983,6 +986,10 @@ export function GraphContainer({
               isLoadingSnapshots={isLoadingSnapshots}
               isSavingSnapshot={isSavingSnapshot}
               isRestoringSnapshot={isRestoringSnapshot}
+              // Report synthesis status
+              reportSynthesisStatus={reportSynthesisStatus}
+              onCancelReportSynthesis={onCancelReportSynthesis}
+              onDismissReportSynthesisStatus={onDismissReportSynthesisStatus}
             />
           </div>
         )}
@@ -1103,6 +1110,7 @@ export function GraphContainer({
           onLinkNode={onLinkNode}
           onGroupIntoSynthesis={onGroupIntoSynthesis}
           onDeleteNode={onDeleteNode}
+          onDeleteNodeGroup={onDeleteNodeGroup}
           reportRefreshTrigger={reportRefreshTrigger}
           onReportViewChange={handleReportViewChange}
           onFocusOnSelectedNode={handleFocusOnSelectedNode}

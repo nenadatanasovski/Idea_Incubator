@@ -1857,6 +1857,60 @@ export function IdeationSession({
     [state.session.sessionId],
   );
 
+  // Handle deleting all nodes in a group (from Node Group Report view)
+  const handleDeleteNodeGroup = useCallback(
+    async (nodeIds: string[], groupName: string) => {
+      if (!state.session.sessionId || nodeIds.length === 0) return;
+
+      try {
+        console.log(
+          "[IdeationSession] Deleting node group:",
+          groupName,
+          "with",
+          nodeIds.length,
+          "nodes",
+        );
+
+        // Delete all nodes in parallel
+        const deletePromises = nodeIds.map((nodeId) =>
+          fetch(
+            `/api/ideation/session/${state.session.sessionId}/graph/blocks/${nodeId}`,
+            { method: "DELETE" },
+          ),
+        );
+
+        const results = await Promise.all(deletePromises);
+        const failedCount = results.filter((r) => !r.ok).length;
+
+        if (failedCount > 0) {
+          console.warn(
+            "[IdeationSession] Some blocks failed to delete:",
+            failedCount,
+          );
+        }
+
+        console.log(
+          "[IdeationSession] Node group deleted:",
+          nodeIds.length - failedCount,
+          "of",
+          nodeIds.length,
+          "nodes",
+        );
+
+        // Show success notification
+        setGraphSuccessNotification({
+          action: "deleted",
+          nodeLabel: `${nodeIds.length} nodes from "${groupName}"`,
+        });
+        // Trigger graph refetch to update the UI
+        setGraphRefetchTrigger((prev) => prev + 1);
+      } catch (error) {
+        console.error("[IdeationSession] Error deleting node group:", error);
+      }
+    },
+    [state.session.sessionId],
+  );
+
   // Clear graph notification
   const handleClearGraphNotification = useCallback(() => {
     setGraphSuccessNotification(null);
@@ -2403,6 +2457,7 @@ export function IdeationSession({
             onLinkNode={handleLinkNode}
             onGroupIntoSynthesis={handleGroupIntoSynthesis}
             onDeleteNode={handleDeleteNode}
+            onDeleteNodeGroup={handleDeleteNodeGroup}
             refetchTrigger={graphRefetchTrigger}
             successNotification={graphSuccessNotification}
             onClearNotification={handleClearGraphNotification}
