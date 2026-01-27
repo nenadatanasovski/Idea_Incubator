@@ -123,6 +123,8 @@ export interface NodeInspectorProps {
   onFocusOnSelectedNode?: (nodeId: string) => void;
   /** Trigger that increments when the same node is clicked again - toggles to details view */
   sameNodeClickTrigger?: number;
+  /** Trigger that increments when a NEW node is selected from the canvas - switches to report view */
+  newNodeFromCanvasTrigger?: number;
 }
 
 interface Relationship {
@@ -968,6 +970,7 @@ export function NodeInspector({
   onReportViewChange,
   onFocusOnSelectedNode,
   sameNodeClickTrigger,
+  newNodeFromCanvasTrigger,
 }: NodeInspectorProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [mappedSources, setMappedSources] = useState<MappedSource[]>([]);
@@ -987,56 +990,80 @@ export function NodeInspector({
   // Check if a report is available (and not loading)
   const hasReport = groupReport !== null && !isReportLoading;
 
-  // Track current node ID to detect node changes
-  // Start as null so the effect runs on first render
-  const prevNodeIdRef = useRef<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"details" | "report">("report");
+  // Default to "report" tab - this is shown on initial render
+  const [activeTab, setActiveTabInternal] = useState<"details" | "report">(
+    "report",
+  );
 
-  // Track the last node ID that user explicitly selected from the report panel
-  // This is simpler than tracking both nodeId and tab - the click handler already sets the tab
-  const userSelectedFromReportRef = useRef<string | null>(null);
+  // Wrapper to log all tab changes
+  const setActiveTab = (tab: "details" | "report", source: string) => {
+    console.log(
+      `[NodeInspector] setActiveTab("${tab}") called from: ${source}, current node: ${node.id}`,
+    );
+    console.trace();
+    setActiveTabInternal(tab);
+  };
 
-  // Track the previous sameNodeClickTrigger to detect changes
-  const prevSameNodeClickTriggerRef = useRef<number>(sameNodeClickTrigger || 0);
+  // Track the previous trigger values to detect changes
+  // IMPORTANT: Initialize to 0, not current value, so first change is detected on mount
+  const prevSameNodeClickTriggerRef = useRef<number>(0);
+  const prevNewNodeFromCanvasTriggerRef = useRef<number>(0);
 
-  // Auto-select tab when node changes (external selection from canvas)
-  // This effect ONLY sets "report" for external selections, never for internal ones
+  // When a NEW node is selected from the CANVAS:
+  // - FIRST selection (trigger=1): show report (user is exploring the graph)
+  // - SUBSEQUENT selections (trigger>1): show details (user is drilling down from report view)
+  // - Same node click: handled by sameNodeClickTrigger effect (toggles)
   useEffect(() => {
-    // Skip if node hasn't changed
-    if (prevNodeIdRef.current === node.id) {
-      return;
-    }
-    prevNodeIdRef.current = node.id;
+    const triggerChanged =
+      newNodeFromCanvasTrigger !== prevNewNodeFromCanvasTriggerRef.current;
+    const isFirstSelection = newNodeFromCanvasTrigger === 1;
+    console.log(
+      `[NodeInspector] newNodeFromCanvas effect: trigger=${newNodeFromCanvasTrigger}, prev=${prevNewNodeFromCanvasTriggerRef.current}, changed=${triggerChanged}, isFirstSelection=${isFirstSelection}`,
+    );
+    prevNewNodeFromCanvasTriggerRef.current = newNodeFromCanvasTrigger || 0;
 
-    // If this node was selected from the report panel, the click handler
-    // already set the tab to "details" - don't override it
-    if (userSelectedFromReportRef.current === node.id) {
-      // Don't clear the ref here - let it persist until a different action
-      return;
+    if (
+      triggerChanged &&
+      newNodeFromCanvasTrigger &&
+      newNodeFromCanvasTrigger > 0
+    ) {
+      if (isFirstSelection) {
+        // First node selection - show report view
+        setActiveTab("report", "newNodeFromCanvas effect (first selection)");
+      } else {
+        // Subsequent node selection - show details view (drilling down)
+        setActiveTab(
+          "details",
+          "newNodeFromCanvas effect (subsequent selection)",
+        );
+        // Focus on the node after switching to details
+        if (onFocusOnSelectedNode) {
+          setTimeout(() => onFocusOnSelectedNode(node.id), 300);
+          setTimeout(() => onFocusOnSelectedNode(node.id), 700);
+        }
+      }
     }
-
-    // This is an external selection (canvas click or initial load)
-    // Default to report view
-    setActiveTab("report");
-  }, [node.id]);
+  }, [newNodeFromCanvasTrigger, node.id, onFocusOnSelectedNode]);
 
   // Handle same-node click (from canvas) - toggle between report and details views
-  // This doesn't need to update userSelectedFromReportRef because node.id isn't changing
   useEffect(() => {
     const triggerChanged =
       sameNodeClickTrigger !== prevSameNodeClickTriggerRef.current;
+    console.log(
+      `[NodeInspector] sameNodeClick effect: trigger=${sameNodeClickTrigger}, prev=${prevSameNodeClickTriggerRef.current}, changed=${triggerChanged}, activeTab=${activeTab}`,
+    );
     prevSameNodeClickTriggerRef.current = sameNodeClickTrigger || 0;
 
     if (triggerChanged && sameNodeClickTrigger && sameNodeClickTrigger > 0) {
       if (activeTab === "report") {
-        setActiveTab("details");
+        setActiveTab("details", "sameNodeClick effect (toggle from report)");
         // When toggling to details, zoom to the node after layout settles
         if (onFocusOnSelectedNode) {
           setTimeout(() => onFocusOnSelectedNode(node.id), 300);
           setTimeout(() => onFocusOnSelectedNode(node.id), 700);
         }
       } else if (activeTab === "details" && groupReport !== null) {
-        setActiveTab("report");
+        setActiveTab("report", "sameNodeClick effect (toggle from details)");
       }
     }
   }, [
@@ -1046,6 +1073,19 @@ export function NodeInspector({
     node.id,
     onFocusOnSelectedNode,
   ]);
+
+  // DEBUG: Log render
+  console.log(
+    `[NodeInspector] RENDER: node.id=${node.id}, activeTab=${activeTab}, newNodeFromCanvasTrigger=${newNodeFromCanvasTrigger}, sameNodeClickTrigger=${sameNodeClickTrigger}`,
+  );
+
+  // DEBUG: Detect mount/unmount
+  useEffect(() => {
+    console.log(`[NodeInspector] *** MOUNTED *** with node.id=${node.id}`);
+    return () => {
+      console.log(`[NodeInspector] *** UNMOUNTED ***`);
+    };
+  }, []);
 
   // Animate slide-in on mount
   useEffect(() => {
@@ -1095,15 +1135,17 @@ export function NodeInspector({
   }, [onClose]);
 
   // Handle node click from within report - switch to details tab and navigate to the node
+  // This does NOT trigger newNodeFromCanvasTrigger, so the report tab won't be auto-selected
   const handleNodeClickFromReport = useCallback(
     (nodeId: string) => {
-      // Mark that this node was selected from the report panel
-      // The auto-select effect will check this and skip setting "report"
-      userSelectedFromReportRef.current = nodeId;
-      // Set the tab to details BEFORE calling onNodeClick
-      // This ensures the tab is set before any re-renders from parent state changes
-      setActiveTab("details");
+      console.log(
+        `[NodeInspector] handleNodeClickFromReport called with nodeId: ${nodeId}`,
+      );
+      // Set the tab to details
+      setActiveTab("details", "handleNodeClickFromReport");
       // Call the original onNodeClick to select the node (triggers node change in parent)
+      // Note: This uses handleInspectorNodeClick which does NOT increment newNodeFromCanvasTrigger
+      console.log(`[NodeInspector] calling onNodeClick(${nodeId})`);
       onNodeClick?.(nodeId);
       // Focus on the clicked node after delays to allow layout restoration to complete
       if (onFocusOnSelectedNode) {
@@ -1116,7 +1158,7 @@ export function NodeInspector({
 
   // Handle switching to details tab - focus on the selected node
   const handleSwitchToDetails = useCallback(() => {
-    setActiveTab("details");
+    setActiveTab("details", "handleSwitchToDetails (tab button click)");
     // Focus on the selected node when switching to details
     if (onFocusOnSelectedNode && node.id) {
       // Zoom with delays to ensure layout is settled
@@ -1127,7 +1169,7 @@ export function NodeInspector({
 
   // Handle switching to report tab
   const handleSwitchToReport = useCallback(() => {
-    setActiveTab("report");
+    setActiveTab("report", "handleSwitchToReport (tab button click)");
   }, []);
 
   // Create a map of nodes for quick lookup

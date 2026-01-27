@@ -709,16 +709,28 @@ export function GraphContainer({
   // Track same-node click to toggle views in inspector
   const [sameNodeClickTrigger, setSameNodeClickTrigger] = useState(0);
 
-  // Handle node click
+  // Track when a NEW node is selected from the canvas (not from inspector)
+  // This triggers the inspector to show the "report" tab
+  const [newNodeFromCanvasTrigger, setNewNodeFromCanvasTrigger] = useState(0);
+
+  // Handle node click from CANVAS (not from inspector)
   const handleNodeClick = useCallback(
     (node: GraphNode) => {
       // Check if clicking the same node that's already selected
       const isSameNode = selectedNode?.id === node.id;
+      console.log(
+        `[GraphContainer] handleNodeClick (CANVAS): node=${node.id}, isSameNode=${isSameNode}`,
+      );
       setSelectedNode(node);
       onNodeSelect?.(node);
-      // If same node clicked, trigger toggle in inspector
       if (isSameNode) {
+        // Same node clicked - trigger toggle in inspector
+        console.log(`[GraphContainer] incrementing sameNodeClickTrigger`);
         setSameNodeClickTrigger((prev) => prev + 1);
+      } else {
+        // NEW node clicked from canvas - trigger inspector to show report tab
+        console.log(`[GraphContainer] incrementing newNodeFromCanvasTrigger`);
+        setNewNodeFromCanvasTrigger((prev) => prev + 1);
       }
     },
     [onNodeSelect, selectedNode?.id],
@@ -747,14 +759,21 @@ export function GraphContainer({
   }, [onNodeSelect]);
 
   // Navigate to a node from the inspector and focus on it in the canvas
+  // NOTE: This does NOT increment newNodeFromCanvasTrigger because it's from the inspector
   const handleInspectorNodeClick = useCallback(
     (nodeId: string) => {
+      console.log(
+        `[GraphContainer] handleInspectorNodeClick (FROM INSPECTOR): nodeId=${nodeId}`,
+      );
       const node = nodes.find((n) => n.id === nodeId);
       if (node) {
+        console.log(`[GraphContainer] found node, calling setSelectedNode`);
         setSelectedNode(node);
         onNodeSelect?.(node);
         // Focus on the node in the canvas and bring it into view
         graphCanvasRef.current?.focusOnNode(nodeId);
+      } else {
+        console.log(`[GraphContainer] WARNING: node not found in nodes array!`);
       }
     },
     [nodes, onNodeSelect],
@@ -1127,6 +1146,7 @@ export function GraphContainer({
           onReportViewChange={handleReportViewChange}
           onFocusOnSelectedNode={handleFocusOnSelectedNode}
           sameNodeClickTrigger={sameNodeClickTrigger}
+          newNodeFromCanvasTrigger={newNodeFromCanvasTrigger}
         />
       )}
 

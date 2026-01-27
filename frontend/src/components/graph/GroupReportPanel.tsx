@@ -126,7 +126,12 @@ function MarkdownWithNodeLinks({
         part.type === "link" && part.nodeId ? (
           <button
             key={index}
-            onClick={() => onNodeClick?.(part.nodeId!)}
+            onClick={() => {
+              console.log(
+                `[GroupReportPanel] MarkdownWithNodeLinks click: nodeId=${part.nodeId}`,
+              );
+              onNodeClick?.(part.nodeId!);
+            }}
             className="text-cyan-600 hover:text-cyan-700 hover:underline cursor-pointer font-medium"
             data-testid={`report-node-link-${part.nodeId}`}
           >
@@ -381,7 +386,12 @@ export function GroupReportPanel({
             {report.nodesSummary.map((nodeSummary) => (
               <li key={nodeSummary.nodeId} className="flex items-start gap-2">
                 <button
-                  onClick={() => onNodeClick?.(nodeSummary.nodeId)}
+                  onClick={() => {
+                    console.log(
+                      `[GroupReportPanel] nodesSummary click: nodeId=${nodeSummary.nodeId}`,
+                    );
+                    onNodeClick?.(nodeSummary.nodeId);
+                  }}
                   className="text-sm text-cyan-600 hover:text-cyan-700 hover:underline font-medium shrink-0"
                 >
                   {nodeSummary.title || "Untitled"}
