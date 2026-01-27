@@ -902,17 +902,17 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
       aria-label="Artifact list with accordion preview"
     >
       {/* Header row */}
-      <div className="flex items-center bg-gray-50 sticky top-0 z-10 border-b border-gray-200 text-xs font-medium text-gray-500">
+      <div className="flex items-center bg-gray-50 dark:bg-gray-800 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
         <div className="flex-1 px-3 py-2">Name</div>
         <div className="w-24 px-3 py-2">Date</div>
         <div className="w-20 px-3 py-2">Type</div>
         <div className="w-12 px-3 py-2 text-center">Status</div>
-        <div className="w-6 px-2 py-2">
+        <div className="w-24 px-2 py-2 text-center relative">
           <button
             data-testid="keyboard-help-button"
             onClick={() => setShowShortcutsHelp((prev) => !prev)}
             onBlur={() => setShowShortcutsHelp(false)}
-            className="p-0.5 text-gray-400 hover:text-gray-600 rounded"
+            className="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded"
             title="Keyboard shortcuts (?)"
           >
             <svg
@@ -1024,7 +1024,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                 </div>
 
                 {/* Row-level action buttons - always visible on row */}
-                <div className="flex items-center gap-1 px-2 py-1">
+                <div className="w-24 flex items-center justify-center gap-1 px-2 py-1">
                   {onEdit && (
                     <button
                       data-testid="btn-row-edit"

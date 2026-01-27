@@ -988,48 +988,46 @@ export function NodeInspector({
   const hasReport = groupReport !== null && !isReportLoading;
 
   // Track current node ID to detect node changes
-  const prevNodeIdRef = useRef<string>(node.id);
-  const [activeTab, setActiveTab] = useState<"details" | "report">("details");
+  // Start as null so the effect runs on first render
+  const prevNodeIdRef = useRef<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"details" | "report">("report");
 
-  // Track if user explicitly set a tab (to prevent auto-switching)
-  const userSetTabRef = useRef<boolean>(false);
+  // Track the last node ID that user explicitly selected from the report panel
+  // This is simpler than tracking both nodeId and tab - the click handler already sets the tab
+  const userSelectedFromReportRef = useRef<string | null>(null);
 
   // Track the previous sameNodeClickTrigger to detect changes
   const prevSameNodeClickTriggerRef = useRef<number>(sameNodeClickTrigger || 0);
 
-  // When node changes, auto-select appropriate tab (report if available)
+  // Auto-select tab when node changes (external selection from canvas)
+  // This effect ONLY sets "report" for external selections, never for internal ones
   useEffect(() => {
-    const nodeChanged = prevNodeIdRef.current !== node.id;
-
-    if (nodeChanged) {
-      prevNodeIdRef.current = node.id;
-      // Reset user override when switching to a new node
-      userSetTabRef.current = false;
+    // Skip if node hasn't changed
+    if (prevNodeIdRef.current === node.id) {
+      return;
     }
+    prevNodeIdRef.current = node.id;
 
-    // Only auto-select on node change or initial load, not when user has set tab
-    if (userSetTabRef.current) {
+    // If this node was selected from the report panel, the click handler
+    // already set the tab to "details" - don't override it
+    if (userSelectedFromReportRef.current === node.id) {
+      // Don't clear the ref here - let it persist until a different action
       return;
     }
 
-    // When loading completes, auto-select tab based on report availability
-    if (!isReportLoading) {
-      if (groupReport !== null) {
-        setActiveTab("report");
-      } else {
-        setActiveTab("details");
-      }
-    }
-  }, [node.id, isReportLoading, groupReport]);
+    // This is an external selection (canvas click or initial load)
+    // Default to report view
+    setActiveTab("report");
+  }, [node.id]);
 
   // Handle same-node click (from canvas) - toggle between report and details views
+  // This doesn't need to update userSelectedFromReportRef because node.id isn't changing
   useEffect(() => {
     const triggerChanged =
       sameNodeClickTrigger !== prevSameNodeClickTriggerRef.current;
     prevSameNodeClickTriggerRef.current = sameNodeClickTrigger || 0;
 
     if (triggerChanged && sameNodeClickTrigger && sameNodeClickTrigger > 0) {
-      userSetTabRef.current = true;
       if (activeTab === "report") {
         setActiveTab("details");
         // When toggling to details, zoom to the node after layout settles
@@ -1099,18 +1097,17 @@ export function NodeInspector({
   // Handle node click from within report - switch to details tab and navigate to the node
   const handleNodeClickFromReport = useCallback(
     (nodeId: string) => {
-      // Mark that user explicitly set the tab to prevent auto-switching
-      userSetTabRef.current = true;
-      // Call the original onNodeClick to select the node (triggers node change)
-      onNodeClick?.(nodeId);
-      // Set the tab to details
+      // Mark that this node was selected from the report panel
+      // The auto-select effect will check this and skip setting "report"
+      userSelectedFromReportRef.current = nodeId;
+      // Set the tab to details BEFORE calling onNodeClick
+      // This ensures the tab is set before any re-renders from parent state changes
       setActiveTab("details");
+      // Call the original onNodeClick to select the node (triggers node change in parent)
+      onNodeClick?.(nodeId);
       // Focus on the clicked node after delays to allow layout restoration to complete
-      // The layout change animation takes time, so we zoom multiple times to ensure it works
       if (onFocusOnSelectedNode) {
-        // First attempt after layout starts changing
         setTimeout(() => onFocusOnSelectedNode(nodeId), 300);
-        // Second attempt after layout should be mostly settled
         setTimeout(() => onFocusOnSelectedNode(nodeId), 700);
       }
     },
@@ -1119,7 +1116,6 @@ export function NodeInspector({
 
   // Handle switching to details tab - focus on the selected node
   const handleSwitchToDetails = useCallback(() => {
-    userSetTabRef.current = true;
     setActiveTab("details");
     // Focus on the selected node when switching to details
     if (onFocusOnSelectedNode && node.id) {
@@ -1131,7 +1127,6 @@ export function NodeInspector({
 
   // Handle switching to report tab
   const handleSwitchToReport = useCallback(() => {
-    userSetTabRef.current = true;
     setActiveTab("report");
   }, []);
 
