@@ -459,6 +459,8 @@ function getLayoutOverrides(
         nodeStrength: -120, // Repulsion between all nodes
         linkDistance: 60, // Target edge length
         linkStrength: 0.8, // Edge attraction strength
+        warmTicks: 100, // Run simulation for 100 ticks before rendering (pre-compute layout)
+        cooldownTicks: 0, // Don't run simulation after rendering (freeze layout)
         clusterStrength: baseClusterStrength,
       };
   }
@@ -703,7 +705,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     // So we add both selected and hovered nodes here to trigger the fade effect.
     const effectiveSelections = useMemo(() => {
       const combined = [...(selections || [])];
-      // Add selected node ID - this triggers inactiveOpacity for other nodes
       if (selectedNodeId && !combined.includes(selectedNodeId)) {
         combined.push(selectedNodeId);
       }
@@ -711,12 +712,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       if (effectiveHoveredId && !combined.includes(effectiveHoveredId)) {
         combined.push(effectiveHoveredId);
       }
-      // Add highlighted node IDs to selections (for relationship hover from inspector)
-      highlightedNodeIds.forEach((id) => {
-        if (!combined.includes(id)) {
-          combined.push(id);
-        }
-      });
+      // NOTE: highlightedNodeIds are added to `actives` only (not selections)
+      // so they get visual highlighting without being group-dragged together
       // Add temporarily visible node IDs
       temporarilyVisibleNodeIds.forEach((id) => {
         if (!combined.includes(id)) {
@@ -728,7 +725,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       selections,
       selectedNodeId,
       effectiveHoveredId,
-      highlightedNodeIds,
       temporarilyVisibleNodeIds,
     ]);
 
@@ -1041,6 +1037,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             clusterStrength,
           )}
           labelType="all"
+          labelFontUrl="https://fonts.gstatic.com/s/robotocondensed/v27/ieVi2ZhZI2eCN5jzbjEETS9weq8-33mZGCQYag.woff"
           draggable
           animated
           cameraMode="pan"
@@ -1079,19 +1076,19 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             } as any,
             edge: {
               fill: isDarkMode ? "#9CA3AF" : "#9CA3AF", // lighter gray for better visibility
-              activeFill: "#F97316", // Orange for active/highlighted edges
+              activeFill: "#FB923C", // Orange-400 for active/highlighted edges
               opacity: 0.7,
               selectedOpacity: 1,
               inactiveOpacity: 0.15, // Fade inactive edges significantly when there are active selections
               label: {
                 color: isDarkMode ? "#D1D5DB" : "#374151", // gray-300 in dark, gray-700 in light
                 activeColor: "#000000", // Black text for max contrast on orange arrows
-                fontSize: 7,
+                fontSize: 9,
               },
             },
             arrow: {
               fill: isDarkMode ? "#9CA3AF" : "#9CA3AF", // lighter gray for better visibility
-              activeFill: "#F97316", // Orange for active/highlighted arrows
+              activeFill: "#FB923C", // Orange-400 for active/highlighted arrows
             },
             ring: {
               fill: "#F97316",
