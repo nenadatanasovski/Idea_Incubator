@@ -1009,16 +1009,25 @@ export function NodeInspector({
   const prevSameNodeClickTriggerRef = useRef<number>(0);
   const prevNewNodeFromCanvasTriggerRef = useRef<number>(0);
 
+  // Track the previous group's node IDs to detect group changes
+  const prevGroupNodeIdsRef = useRef<Set<string>>(new Set());
+
   // When a NEW node is selected from the CANVAS:
-  // - FIRST selection (trigger=1): show report (user is exploring the graph)
-  // - SUBSEQUENT selections (trigger>1): show details (user is drilling down from report view)
-  // - Same node click: handled by sameNodeClickTrigger effect (toggles)
+  // - If node is in SAME group as previous → show details (drilling down within group)
+  // - If node is in DIFFERENT group → show report (exploring new cluster)
+  // - First selection ever → show report
   useEffect(() => {
     const triggerChanged =
       newNodeFromCanvasTrigger !== prevNewNodeFromCanvasTriggerRef.current;
     const isFirstSelection = newNodeFromCanvasTrigger === 1;
+
+    // Check if the new node was in the previous group
+    const wasInPreviousGroup =
+      prevGroupNodeIdsRef.current.size > 0 &&
+      prevGroupNodeIdsRef.current.has(node.id);
+
     console.log(
-      `[NodeInspector] newNodeFromCanvas effect: trigger=${newNodeFromCanvasTrigger}, prev=${prevNewNodeFromCanvasTriggerRef.current}, changed=${triggerChanged}, isFirstSelection=${isFirstSelection}`,
+      `[NodeInspector] newNodeFromCanvas effect: trigger=${newNodeFromCanvasTrigger}, prev=${prevNewNodeFromCanvasTriggerRef.current}, changed=${triggerChanged}, isFirstSelection=${isFirstSelection}, wasInPreviousGroup=${wasInPreviousGroup}, prevGroupSize=${prevGroupNodeIdsRef.current.size}`,
     );
     prevNewNodeFromCanvasTriggerRef.current = newNodeFromCanvasTrigger || 0;
 
@@ -1028,22 +1037,39 @@ export function NodeInspector({
       newNodeFromCanvasTrigger > 0
     ) {
       if (isFirstSelection) {
-        // First node selection - show report view
+        // First node selection ever - show report view
         setActiveTab("report", "newNodeFromCanvas effect (first selection)");
-      } else {
-        // Subsequent node selection - show details view (drilling down)
+      } else if (wasInPreviousGroup) {
+        // Node is in the same group - show details (drilling down)
         setActiveTab(
           "details",
-          "newNodeFromCanvas effect (subsequent selection)",
+          "newNodeFromCanvas effect (same group - drilling down)",
         );
         // Focus on the node after switching to details
         if (onFocusOnSelectedNode) {
           setTimeout(() => onFocusOnSelectedNode(node.id), 300);
           setTimeout(() => onFocusOnSelectedNode(node.id), 700);
         }
+      } else {
+        // Node is in a different group - show report (exploring new cluster)
+        setActiveTab(
+          "report",
+          "newNodeFromCanvas effect (different group - new cluster)",
+        );
       }
     }
   }, [newNodeFromCanvasTrigger, node.id, onFocusOnSelectedNode]);
+
+  // Update the previous group tracking when groupReport changes
+  // This runs AFTER we've made the tab decision above
+  useEffect(() => {
+    if (groupReport?.nodeIds && groupReport.nodeIds.length > 0) {
+      console.log(
+        `[NodeInspector] Updating prevGroupNodeIds: ${groupReport.nodeIds.length} nodes`,
+      );
+      prevGroupNodeIdsRef.current = new Set(groupReport.nodeIds);
+    }
+  }, [groupReport?.nodeIds]);
 
   // Handle same-node click (from canvas) - toggle between report and details views
   useEffect(() => {

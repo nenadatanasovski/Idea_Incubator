@@ -109,6 +109,7 @@ function useDarkMode(): boolean {
 /**
  * Custom node renderer for different shapes based on graph membership
  * Uses Three.js geometries to create distinct shapes for each graph type
+ * Labels are rendered by reagraph's built-in label system positioned near nodes
  */
 function CustomNodeRenderer({
   size,
@@ -1005,7 +1006,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             clusterAttribute,
             clusterStrength,
           )}
-          labelType={showAllLabels ? "all" : "auto"}
+          labelType="all"
           draggable
           animated
           cameraMode="pan"
@@ -1029,8 +1030,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               label: {
                 color: isDarkMode ? "#F9FAFB" : "#1F2937", // white in dark, gray-800 in light
                 activeColor: isDarkMode ? "#FFFFFF" : "#111827", // pure white in dark, gray-900 in light
-                fontSize: 5,
-                maxWidth: 25, // Force text to wrap onto multiple lines
+                fontSize: 10, // Larger labels for better readability
+                maxWidth: 60, // Wider text wrapping
+                stroke: isDarkMode ? "#111827" : "#F9FAFB", // Outline for contrast
+                strokeWidth: 2.5,
               },
               subLabel: {
                 color: isDarkMode ? "#9CA3AF" : "#6B7280", // gray-400 in dark, gray-500 in light
