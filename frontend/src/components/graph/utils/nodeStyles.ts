@@ -16,9 +16,9 @@ export interface NodeSizeConfig {
 }
 
 const DEFAULT_SIZE_CONFIG: NodeSizeConfig = {
-  minSize: 12,
-  maxSize: 30,
-  baseSize: 18,
+  minSize: 28,
+  maxSize: 40,
+  baseSize: 32,
 };
 
 /**
@@ -100,13 +100,8 @@ export function calculateNodeSize(
   connectionCount: number,
   config: NodeSizeConfig = DEFAULT_SIZE_CONFIG,
 ): number {
-  // Combine confidence and connection count for sizing
-  const connectionFactor = Math.log2(connectionCount + 1);
-  const confidenceFactor = confidence * 0.5 + 0.5; // Maps 0-1 to 0.5-1
-
-  const size = config.baseSize + connectionFactor * 2 * confidenceFactor;
-
-  return Math.min(Math.max(size, config.minSize), config.maxSize);
+  // Fixed size for all nodes - uniform appearance
+  return config.baseSize;
 }
 
 /**

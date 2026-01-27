@@ -129,7 +129,7 @@ function CustomNodeRenderer({
   const fillColor = node.fill || "#3B82F6";
 
   // Visual scale: make nodes appear larger without affecting layout spacing
-  const visualSize = size * 2;
+  const visualSize = size * 1.3;
 
   const getGeometryArgs = (): [number, number] => {
     switch (shape) {
@@ -1078,18 +1078,19 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               },
             } as any,
             edge: {
-              fill: isDarkMode ? "#6B7280" : "#9CA3AF", // gray-500 in dark, gray-400 in light
+              fill: isDarkMode ? "#9CA3AF" : "#9CA3AF", // lighter gray for better visibility
               activeFill: "#F97316", // Orange for active/highlighted edges
               opacity: 0.7,
               selectedOpacity: 1,
               inactiveOpacity: 0.15, // Fade inactive edges significantly when there are active selections
               label: {
-                color: isDarkMode ? "#9CA3AF" : "#6B7280", // gray-400 in dark, gray-500 in light
-                activeColor: isDarkMode ? "#D1D5DB" : "#6B7280", // gray-300 in dark, gray-500 in light
+                color: isDarkMode ? "#D1D5DB" : "#374151", // gray-300 in dark, gray-700 in light
+                activeColor: "#000000", // Black text for max contrast on orange arrows
+                fontSize: 7,
               },
             },
             arrow: {
-              fill: isDarkMode ? "#6B7280" : "#9CA3AF", // gray-500 in dark, gray-400 in light
+              fill: isDarkMode ? "#9CA3AF" : "#9CA3AF", // lighter gray for better visibility
               activeFill: "#F97316", // Orange for active/highlighted arrows
             },
             ring: {

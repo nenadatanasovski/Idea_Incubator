@@ -319,9 +319,22 @@ export function GraphContainer({
   ]);
 
   const highlightedEdgeIds = useMemo(() => {
-    if (!hoveredRelationship) return [];
-    return [hoveredRelationship.edgeId];
-  }, [hoveredRelationship]);
+    const ids: string[] = [];
+    // Report view - highlight all edges between group nodes
+    if (reportViewNodeIds.length > 0) {
+      const nodeSet = new Set(reportViewNodeIds);
+      edges.forEach((edge) => {
+        if (nodeSet.has(edge.source) && nodeSet.has(edge.target)) {
+          ids.push(edge.id);
+        }
+      });
+    }
+    // Hovered relationship edge
+    if (hoveredRelationship) {
+      ids.push(hoveredRelationship.edgeId);
+    }
+    return ids;
+  }, [hoveredRelationship, reportViewNodeIds, edges]);
 
   // Analyze graph for cycles (T7.2)
   const cycleAnalysis = useMemo(() => {
