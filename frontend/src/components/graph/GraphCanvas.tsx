@@ -459,8 +459,6 @@ function getLayoutOverrides(
         nodeStrength: -120, // Repulsion between all nodes
         linkDistance: 60, // Target edge length
         linkStrength: 0.8, // Edge attraction strength
-        warmTicks: 100, // Run simulation for 100 ticks before rendering (pre-compute layout)
-        cooldownTicks: 0, // Don't run simulation after rendering (freeze layout)
         clusterStrength: baseClusterStrength,
       };
   }
@@ -672,7 +670,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       nodes: reagraphNodes,
       edges: reagraphEdges,
       type: "single",
-      pathSelectionType: "direct",
+      pathSelectionType: undefined, // Don't auto-select neighbors - prevents group dragging
     });
 
     // Sync external selectedNodeId with reagraph's internal selection
