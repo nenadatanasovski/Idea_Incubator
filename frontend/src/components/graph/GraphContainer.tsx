@@ -703,13 +703,22 @@ export function GraphContainer({
     temporarilyVisibleNodeIds,
   ]);
 
+  // Track same-node click to toggle views in inspector
+  const [sameNodeClickTrigger, setSameNodeClickTrigger] = useState(0);
+
   // Handle node click
   const handleNodeClick = useCallback(
     (node: GraphNode) => {
+      // Check if clicking the same node that's already selected
+      const isSameNode = selectedNode?.id === node.id;
       setSelectedNode(node);
       onNodeSelect?.(node);
+      // If same node clicked, trigger toggle in inspector
+      if (isSameNode) {
+        setSameNodeClickTrigger((prev) => prev + 1);
+      }
     },
-    [onNodeSelect],
+    [onNodeSelect, selectedNode?.id],
   );
 
   // Handle node hover
@@ -1114,6 +1123,7 @@ export function GraphContainer({
           reportRefreshTrigger={reportRefreshTrigger}
           onReportViewChange={handleReportViewChange}
           onFocusOnSelectedNode={handleFocusOnSelectedNode}
+          sameNodeClickTrigger={sameNodeClickTrigger}
         />
       )}
 

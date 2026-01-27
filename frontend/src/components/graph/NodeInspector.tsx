@@ -121,6 +121,8 @@ export interface NodeInspectorProps {
   onReportViewChange?: (active: boolean, nodeIds: string[]) => void;
   /** Callback to focus on the selected node in the graph canvas */
   onFocusOnSelectedNode?: (nodeId: string) => void;
+  /** Trigger that increments when the same node is clicked again - toggles to details view */
+  sameNodeClickTrigger?: number;
 }
 
 interface Relationship {
@@ -965,6 +967,7 @@ export function NodeInspector({
   reportRefreshTrigger,
   onReportViewChange,
   onFocusOnSelectedNode,
+  sameNodeClickTrigger,
 }: NodeInspectorProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [mappedSources, setMappedSources] = useState<MappedSource[]>([]);
@@ -1031,6 +1034,19 @@ export function NodeInspector({
       }
     }
   }, [node.id, isReportLoading, groupReport]);
+
+  // Handle same-node click - toggle from report to details view
+  useEffect(() => {
+    if (
+      sameNodeClickTrigger &&
+      sameNodeClickTrigger > 0 &&
+      activeTab === "report"
+    ) {
+      setActiveTab("details");
+      // Also set the force flag to prevent auto-switch back to report
+      forceDetailsForNodeRef.current = node.id;
+    }
+  }, [sameNodeClickTrigger, activeTab, node.id]);
 
   // Animate slide-in on mount
   useEffect(() => {
