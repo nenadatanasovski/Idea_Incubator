@@ -795,6 +795,10 @@ export function GraphContainer({
       console.log(
         `[GraphContainer] handleNodeClick (CANVAS): node=${node.id}, isSameNode=${isSameNode}`,
       );
+      // Clear hover tooltip immediately on click to prevent it persisting
+      // during zoom/pan transitions to the new node group
+      setHoveredNode(null);
+      setTooltipPosition(null);
       setSelectedNode(node);
       onNodeSelect?.(node);
       if (isSameNode) {

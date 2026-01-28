@@ -410,7 +410,8 @@ Block types to use (ONLY these 11 canonical types):
 - synthesis: Conclusions drawn from combining multiple pieces of information
 - meta: Notes about the process, uncertainties
 
-IMPORTANT: Do NOT use "problem", "solution", "risk", "opportunity", "context", or "content" as block types. Those are graph dimensions (graphMembership), not block types.
+IMPORTANT: Do NOT use graph dimensions as block types. The ONLY valid block types are the 11 listed above.
+Valid graphMembership values (business dimensions): "problem", "solution", "market", "risk", "fit", "business", "spec", "distribution", "marketing", "manufacturing". Do NOT use any other values for graphMembership.
 
 Link types to use:
 - supports, contradicts, refines, depends_on, leads_to, related_to, addresses, validates, derived_from

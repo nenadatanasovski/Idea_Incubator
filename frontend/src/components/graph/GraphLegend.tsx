@@ -399,7 +399,7 @@ export function GraphLegend({
         {/* Node Colors (Block Types) */}
         {showNodeColors && (
           <LegendSection
-            title="Node Colors"
+            title="Block Type"
             isExpanded={expandedSections.has("colors")}
             onToggle={() => toggleSection("colors")}
           >
@@ -425,7 +425,7 @@ export function GraphLegend({
         {/* Node Shapes (Graph Types) */}
         {showNodeShapes && (
           <LegendSection
-            title="Node Shapes"
+            title="Graph Type"
             isExpanded={expandedSections.has("shapes")}
             onToggle={() => toggleSection("shapes")}
           >

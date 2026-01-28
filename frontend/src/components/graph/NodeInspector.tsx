@@ -1052,27 +1052,8 @@ export function NodeInspector({
       newNodeFromCanvasTrigger &&
       newNodeFromCanvasTrigger > 0
     ) {
-      if (isFirstSelection) {
-        // First node selection ever - show report view
-        setActiveTab("report", "newNodeFromCanvas effect (first selection)");
-      } else if (wasInPreviousGroup) {
-        // Node is in the same group - show details (drilling down)
-        setActiveTab(
-          "details",
-          "newNodeFromCanvas effect (same group - drilling down)",
-        );
-        // Focus on the node after switching to details
-        if (onFocusOnSelectedNode) {
-          setTimeout(() => onFocusOnSelectedNode(node.id), 300);
-          setTimeout(() => onFocusOnSelectedNode(node.id), 700);
-        }
-      } else {
-        // Node is in a different group - show report (exploring new cluster)
-        setActiveTab(
-          "report",
-          "newNodeFromCanvas effect (different group - new cluster)",
-        );
-      }
+      // Always default to report view when clicking a node on the canvas
+      setActiveTab("report", "newNodeFromCanvas effect (always report)");
     }
   }, [newNodeFromCanvasTrigger, node.id, onFocusOnSelectedNode]);
 

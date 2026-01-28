@@ -1210,7 +1210,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               label: {
                 color: isDarkMode ? "#D1D5DB" : "#374151", // gray-300 in dark, gray-700 in light
                 activeColor: "#000000", // Black text for max contrast on orange arrows
-                fontSize: 9,
+                fontSize: 7.5,
               },
             },
             arrow: {

@@ -8,6 +8,8 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { query, run, saveDb, getOne } from "../../../database/db.js";
+import { graphTypes } from "../../../schema/entities/memory-graph-membership.js";
+import { canonicalBlockTypes } from "../../../schema/entities/memory-block-type.js";
 import {
   blockExtractor,
   MemoryBlock,
@@ -419,7 +421,7 @@ const CreateBlockSchema = z.object({
   abstractionLevel: z
     .enum(["vision", "strategy", "tactic", "implementation"])
     .optional(),
-  graphMembership: z.array(z.string()).optional(),
+  graphMembership: z.array(z.enum(graphTypes)).optional(),
   artifactId: z.string().optional(),
 });
 
@@ -549,7 +551,7 @@ const UpdateBlockSchema = z.object({
     .enum(["vision", "strategy", "tactic", "implementation"])
     .optional()
     .nullable(),
-  graphMembership: z.array(z.string()).optional(),
+  graphMembership: z.array(z.enum(graphTypes)).optional(),
   artifactId: z.string().optional().nullable(),
 });
 
@@ -1379,7 +1381,7 @@ const ApplyChangesSchema = z.object({
         blockType: z.string().nullish(),
         title: z.string().nullish(), // Short 3-5 word summary
         content: z.string().nullish(), // Optional for create_link types which don't have content
-        graphMembership: z.array(z.string()).nullish(),
+        graphMembership: z.array(z.enum(graphTypes)).nullish(),
         confidence: z.number().nullish(),
         // Source attribution fields - CRITICAL for tracking where insights came from
         sourceId: z.string().nullish(), // ID of the source (message ID, artifact ID, etc.)
@@ -1701,7 +1703,7 @@ graphRouter.post(
                 title: change.title || null,
                 content: change.content,
                 confidence: change.confidence || 0.8,
-                graphMembership: change.graphMembership,
+                graphMembership: change.graphMembership as string[] | undefined,
               });
 
               blocksCreated++;
@@ -1921,8 +1923,18 @@ graphRouter.post(
               // This respects the user's source selection (e.g., deselecting memory files)
               if (sources && sources.length > 0) {
                 const selectedSourceIds = new Set(sources.map((s) => s.id));
-                const filteredSources = fullSourcesResult.sources.filter((s) =>
-                  selectedSourceIds.has(s.id),
+                // Also track which source types were selected, since conversation sources
+                // have synthesized IDs (insight_X) during analysis but raw message UUIDs
+                // during source mapping - direct ID matching would filter them all out
+                const selectedSourceTypes = new Set(sources.map((s) => s.type));
+                const filteredSources = fullSourcesResult.sources.filter(
+                  (s) =>
+                    selectedSourceIds.has(s.id) ||
+                    // Allow conversation sources through by type match, since their IDs
+                    // differ between synthesis (analysis) and raw (mapping) modes
+                    (s.type === "conversation" &&
+                      (selectedSourceTypes.has("conversation") ||
+                        selectedSourceTypes.has("conversation_insight"))),
                 );
                 if (filteredSources.length > 0) {
                   fullSourcesResult = {
