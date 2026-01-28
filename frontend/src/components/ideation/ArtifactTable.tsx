@@ -940,9 +940,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
 
           const isSelected = item.path === selectedPath;
           const isFocused = index === focusedIndex;
-          const isArtifactExpanded =
-            expandedArtifacts.has(item.artifact.id) ||
-            item.path === selectedPath;
+          const isArtifactExpanded = expandedArtifacts.has(item.artifact.id);
           const classification =
             classifications[item.artifact.id] ||
             classifications[item.artifact.title];

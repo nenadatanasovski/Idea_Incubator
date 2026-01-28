@@ -294,15 +294,8 @@ async function collectIdeaFolderArtifacts(
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
           if (entry.isDirectory()) {
-            // Skip hidden directories, node_modules, and build/implementation directories
-            // Build artifacts (specs, tasks, briefs for agents/components) are implementation
-            // details not useful for idea-level knowledge graph analysis
-            if (
-              !entry.name.startsWith(".") &&
-              entry.name !== "node_modules" &&
-              entry.name !== "build" &&
-              entry.name !== "reference"
-            ) {
+            // Skip hidden directories and node_modules
+            if (!entry.name.startsWith(".") && entry.name !== "node_modules") {
               findMarkdownFiles(fullPath, files);
             }
           } else if (entry.name.endsWith(".md")) {
@@ -345,7 +338,16 @@ async function collectIdeaFolderArtifacts(
           type: "artifact" as SourceType,
           content,
           metadata: {
-            title: fileName.replace(/-/g, " ").replace(/_/g, " "),
+            title: (() => {
+              const baseName = fileName.replace(/-/g, " ").replace(/_/g, " ");
+              const relDir = path.dirname(relativePath);
+              if (relDir === ".") return baseName;
+              const pathPrefix = relDir
+                .split(path.sep)
+                .map((s) => s.replace(/-/g, " ").replace(/_/g, " "))
+                .join(" / ");
+              return `${pathPrefix} / ${baseName}`;
+            })(),
             createdAt: new Date().toISOString(),
             artifactType,
           },
@@ -718,11 +720,11 @@ export async function collectAllSources(
     `[SourceCollector] Conversation synthesis: ${opts.synthesizeConversations ? "enabled" : "disabled"}`,
   );
 
-  // Collect in priority order: memory_file > artifact > conversation > user_block
+  // Collect in priority order: conversation first (AI synthesis), then memory_file > artifact > user_block
   const priorityOrder: SourceType[] = [
+    "conversation",
     "memory_file",
     "artifact",
-    "conversation",
     "user_block",
   ];
 

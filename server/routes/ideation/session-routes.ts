@@ -7,6 +7,8 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
+import fs from "fs";
+import path from "path";
 import {
   sessionManager,
   candidateManager,
@@ -22,8 +24,78 @@ import {
   renameDraftToIdea,
   IdeaType,
   ParentInfo,
+  listUnifiedArtifacts,
 } from "./shared.js";
+import { parseFrontmatter } from "../../../agents/ideation/unified-artifact-store.js";
+import { getConfig } from "../../../config/index.js";
 // Note: processGraphPrompt endpoint is in graph-routes.ts (uses memory_blocks table)
+
+interface FileArtifactEntry {
+  id: string;
+  type: string;
+  title: string;
+  filePath: string;
+  status: "ready";
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Scan a legacy idea folder (ideas/{slug}/) for .md files recursively.
+ * Returns lightweight artifact metadata entries (no content).
+ */
+function scanFolderForMdArtifacts(
+  ideaFolder: string,
+  ideaSlug: string,
+): FileArtifactEntry[] {
+  const results: FileArtifactEntry[] = [];
+
+  function walk(dir: string) {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue;
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.isFile() && entry.name.endsWith(".md")) {
+        const relativePath = path.relative(ideaFolder, fullPath);
+        const stats = fs.statSync(fullPath);
+        const baseName = path
+          .basename(entry.name, ".md")
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+        // For nested files, include parent dirs to distinguish e.g. "agents/sia/build/spec.md"
+        const relDir = path.dirname(relativePath);
+        const title =
+          relDir === "."
+            ? baseName
+            : `${relDir
+                .split(path.sep)
+                .map((s) =>
+                  s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+                )
+                .join(" / ")} / ${baseName}`;
+        results.push({
+          id: `file-${ideaSlug}-${relativePath.replace(/[/\\]/g, "-")}`,
+          type: "markdown",
+          title,
+          filePath: relativePath,
+          status: "ready",
+          createdAt: stats.birthtime.toISOString(),
+          updatedAt: stats.mtime.toISOString(),
+        });
+      }
+    }
+  }
+
+  walk(ideaFolder);
+  return results;
+}
 
 export const sessionRouter = Router();
 
@@ -48,12 +120,104 @@ sessionRouter.get("/:sessionId", async (req: Request, res: Response) => {
     if (session.status === "abandoned") {
       await sessionManager.update(sessionId, { status: "active" });
       session = await sessionManager.load(sessionId);
+      if (!session) {
+        return res
+          .status(404)
+          .json({ error: "Session not found after reactivation" });
+      }
     }
 
     const messages = await messageStore.getBySession(sessionId);
     const candidate = await candidateManager.getActiveForSession(sessionId);
-    const artifacts = await artifactStore.getBySession(sessionId);
+    const dbArtifacts = await artifactStore.getBySession(sessionId);
     const subAgents = await subAgentStore.getBySession(sessionId);
+
+    // Merge file-based artifacts from the idea folder (if session is linked to an idea)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let artifacts: any[] = [...dbArtifacts];
+    if (session.ideaSlug) {
+      try {
+        const config = getConfig();
+
+        // Try user-scoped path first (users/{userSlug}/ideas/{ideaSlug}),
+        // then fall back to legacy path (ideas/{ideaSlug})
+        let fileArtifacts: FileArtifactEntry[] = session.userSlug
+          ? (
+              await listUnifiedArtifacts(session.userSlug, session.ideaSlug)
+            ).map((ua) => ({
+              id: ua.id,
+              type: ua.type,
+              title: ua.title,
+              filePath: ua.filePath,
+              status: "ready" as const,
+              createdAt: ua.createdAt,
+              updatedAt: ua.updatedAt,
+            }))
+          : [];
+
+        // Resolve the idea folder path for reading file content
+        let ideaFolder: string;
+        const projectRoot = path.dirname(path.resolve(config.paths.ideas));
+
+        if (fileArtifacts.length > 0 && session.userSlug) {
+          // User-scoped path
+          ideaFolder = path.resolve(
+            projectRoot,
+            "users",
+            session.userSlug,
+            "ideas",
+            session.ideaSlug,
+          );
+        } else {
+          // Legacy path: ideas/{ideaSlug}
+          ideaFolder = path.resolve(config.paths.ideas, session.ideaSlug);
+          if (fs.existsSync(ideaFolder)) {
+            fileArtifacts = scanFolderForMdArtifacts(
+              ideaFolder,
+              session.ideaSlug,
+            );
+          }
+        }
+
+        if (fileArtifacts.length > 0) {
+          // Build a set of DB artifact titles for deduplication
+          const dbTitles = new Set(
+            dbArtifacts.map((a) => a.title.toLowerCase()),
+          );
+
+          const mappedFileArtifacts = fileArtifacts
+            .filter((fa) => !dbTitles.has(fa.title.toLowerCase()))
+            .map((fa) => {
+              let content = "";
+              try {
+                const absolutePath = path.join(ideaFolder, fa.filePath);
+                const raw = fs.readFileSync(absolutePath, "utf-8");
+                const parsed = parseFrontmatter(raw);
+                content = parsed.body;
+              } catch {
+                // Skip unreadable files
+              }
+
+              return {
+                id: fa.id,
+                sessionId: session.id,
+                type: fa.type as string,
+                title: fa.title,
+                content,
+                status: fa.status,
+                createdAt: fa.createdAt,
+                updatedAt: fa.updatedAt,
+              };
+            })
+            .filter((a) => a.content.length > 0);
+
+          artifacts = [...dbArtifacts, ...mappedFileArtifacts];
+        }
+      } catch (err) {
+        console.warn(`[GetSession] Failed to load file-based artifacts:`, err);
+        // Fall back to DB-only artifacts
+      }
+    }
 
     console.log(
       `[GetSession] Returning ${artifacts.length} artifacts, ${subAgents.length} sub-agents:`,

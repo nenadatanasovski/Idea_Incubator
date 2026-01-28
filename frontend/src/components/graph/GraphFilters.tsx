@@ -32,25 +32,25 @@ const ALL_GRAPH_TYPES: GraphType[] = [
   "fit",
   "business",
   "spec",
+  "distribution",
+  "marketing",
+  "manufacturing",
 ];
 
-// All available block types (excludes 'link' as it's typically hidden in graph display)
+// Canonical block types for filtering (matches legend and classification system)
 type FilterableBlockType = Exclude<BlockType, "link">;
 const ALL_BLOCK_TYPES: FilterableBlockType[] = [
-  "content",
-  "meta",
-  "synthesis",
-  "pattern",
-  "decision",
-  "option",
-  "derived",
+  "insight",
+  "fact",
   "assumption",
-  "cycle",
-  "placeholder",
-  "stakeholder_view",
-  "topic",
-  "external",
+  "question",
+  "decision",
   "action",
+  "requirement",
+  "option",
+  "pattern",
+  "synthesis",
+  "meta",
 ];
 
 // All available statuses
