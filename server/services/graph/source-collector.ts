@@ -294,8 +294,15 @@ async function collectIdeaFolderArtifacts(
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
           if (entry.isDirectory()) {
-            // Skip hidden directories and node_modules
-            if (!entry.name.startsWith(".") && entry.name !== "node_modules") {
+            // Skip hidden directories, node_modules, and build/implementation directories
+            // Build artifacts (specs, tasks, briefs for agents/components) are implementation
+            // details not useful for idea-level knowledge graph analysis
+            if (
+              !entry.name.startsWith(".") &&
+              entry.name !== "node_modules" &&
+              entry.name !== "build" &&
+              entry.name !== "reference"
+            ) {
               findMarkdownFiles(fullPath, files);
             }
           } else if (entry.name.endsWith(".md")) {
@@ -325,11 +332,6 @@ async function collectIdeaFolderArtifacts(
         else if (relativePath.includes("analysis")) artifactType = "analysis";
         else if (fileName.includes("pitch") || fileName.includes("elevator"))
           artifactType = "idea-summary";
-
-        // Truncate large artifacts
-        if (content.length > 10000) {
-          content = content.slice(0, 10000) + "\n\n[... TRUNCATED ...]";
-        }
 
         // Create a unique ID based on file path
         // Use full base64 encoding (no truncation) to avoid collisions
@@ -461,11 +463,6 @@ export async function collectArtifactSources(
         `[SourceCollector] Skipping artifact ${a.id}: no content and no file_path`,
       );
       continue;
-    }
-
-    // Truncate large artifacts with marker
-    if (content.length > 10000) {
-      content = content.slice(0, 10000) + "\n\n[... TRUNCATED ...]";
     }
 
     sources.push({
@@ -742,8 +739,17 @@ export async function collectAllSources(
             opts.conversationLimit,
             opts.synthesizeConversations, // Pass synthesis option
           );
-          // Track based on whether we synthesized or not
-          if (opts.synthesizeConversations) {
+          // If synthesis returned nothing, fall back to raw messages
+          if (sources.length === 0 && opts.synthesizeConversations) {
+            console.warn(
+              `[SourceCollector] Synthesis returned 0 insights, falling back to raw messages`,
+            );
+            sources = await collectConversationSourcesRaw(
+              sessionId,
+              opts.conversationLimit,
+            );
+            result.collectionMetadata.conversationCount = sources.length;
+          } else if (opts.synthesizeConversations) {
             result.collectionMetadata.conversationInsightCount = sources.length;
           } else {
             result.collectionMetadata.conversationCount = sources.length;
@@ -767,8 +773,28 @@ export async function collectAllSources(
         `[SourceCollector] Error collecting ${sourceType} sources:`,
         error,
       );
-      // Continue with other sources on partial failure
-      continue;
+      // For conversations, fall back to raw messages if synthesis fails
+      if (sourceType === "conversation" && opts.synthesizeConversations) {
+        console.warn(
+          `[SourceCollector] Conversation synthesis failed, falling back to raw messages`,
+        );
+        try {
+          sources = await collectConversationSourcesRaw(
+            sessionId,
+            opts.conversationLimit,
+          );
+          result.collectionMetadata.conversationCount = sources.length;
+        } catch (fallbackError) {
+          console.error(
+            `[SourceCollector] Raw conversation fallback also failed:`,
+            fallbackError,
+          );
+          continue;
+        }
+      } else {
+        // Continue with other sources on partial failure
+        continue;
+      }
     }
 
     // Add sources respecting token budget

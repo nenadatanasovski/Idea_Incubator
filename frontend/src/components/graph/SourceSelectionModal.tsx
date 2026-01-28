@@ -83,51 +83,51 @@ const INSIGHT_TYPE_CONFIG: Record<
 > = {
   insight: {
     label: "Insight",
-    color: "text-purple-300",
-    bgColor: "bg-purple-900/40",
+    color: "text-purple-700",
+    bgColor: "bg-purple-100",
   },
-  fact: { label: "Fact", color: "text-blue-300", bgColor: "bg-blue-900/40" },
+  fact: { label: "Fact", color: "text-blue-700", bgColor: "bg-blue-100" },
   assumption: {
     label: "Assumption",
-    color: "text-amber-300",
-    bgColor: "bg-amber-900/40",
+    color: "text-amber-700",
+    bgColor: "bg-amber-100",
   },
   question: {
     label: "Question",
-    color: "text-orange-300",
-    bgColor: "bg-orange-900/40",
+    color: "text-orange-700",
+    bgColor: "bg-orange-100",
   },
   decision: {
     label: "Decision",
-    color: "text-emerald-300",
-    bgColor: "bg-emerald-900/40",
+    color: "text-emerald-700",
+    bgColor: "bg-emerald-100",
   },
   action: {
     label: "Action",
-    color: "text-pink-300",
-    bgColor: "bg-pink-900/40",
+    color: "text-pink-700",
+    bgColor: "bg-pink-100",
   },
   requirement: {
     label: "Requirement",
-    color: "text-violet-300",
-    bgColor: "bg-violet-900/40",
+    color: "text-violet-700",
+    bgColor: "bg-violet-100",
   },
   option: {
     label: "Option",
-    color: "text-cyan-300",
-    bgColor: "bg-cyan-900/40",
+    color: "text-cyan-700",
+    bgColor: "bg-cyan-100",
   },
   pattern: {
     label: "Pattern",
-    color: "text-indigo-300",
-    bgColor: "bg-indigo-900/40",
+    color: "text-indigo-700",
+    bgColor: "bg-indigo-100",
   },
   synthesis: {
     label: "Synthesis",
-    color: "text-rose-300",
-    bgColor: "bg-rose-900/40",
+    color: "text-rose-700",
+    bgColor: "bg-rose-100",
   },
-  meta: { label: "Meta", color: "text-gray-300", bgColor: "bg-gray-700/40" },
+  meta: { label: "Meta", color: "text-gray-700", bgColor: "bg-gray-100" },
 };
 
 const SOURCE_TYPE_CONFIG = {

@@ -258,15 +258,23 @@ function RelationshipItem({
         </span>
 
         {/* Related node metadata */}
-        <span
-          className="px-1.5 py-0.5 rounded text-xs flex-shrink-0"
-          style={{
-            backgroundColor: `${nodeColors[relatedNode.blockType]}20`,
-            color: nodeColors[relatedNode.blockType],
-          }}
-        >
-          {relatedNode.blockType}
-        </span>
+        {(() => {
+          const displayType =
+            relatedNode.blockTypes && relatedNode.blockTypes.length > 0
+              ? relatedNode.blockTypes[0]
+              : relatedNode.blockType;
+          return (
+            <span
+              className="px-1.5 py-0.5 rounded text-xs flex-shrink-0"
+              style={{
+                backgroundColor: `${nodeColors[displayType]}20`,
+                color: nodeColors[displayType],
+              }}
+            >
+              {displayType}
+            </span>
+          );
+        })()}
         {edge.degree && (
           <span className="text-xs text-gray-500 flex-shrink-0 italic">
             {edge.degree}
@@ -304,7 +312,10 @@ const FALLBACK_COLOR = "#6B7280"; // Gray
  * Uses blockType to match the header display, with appropriate colors
  */
 function getNodeTypeDisplay(node: GraphNode): { type: string; color: string } {
-  const type = node.blockType;
+  const type =
+    node.blockTypes && node.blockTypes.length > 0
+      ? node.blockTypes[0]
+      : node.blockType;
   const color =
     nodeColors[type as keyof typeof nodeColors] ||
     graphColors[type as keyof typeof graphColors] ||

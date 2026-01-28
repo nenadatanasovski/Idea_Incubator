@@ -1632,7 +1632,7 @@ graphRouter.post(
                 [
                   blockId,
                   sessionId,
-                  change.blockType || "content",
+                  change.blockType || "fact",
                   change.title || null,
                   change.content,
                   Object.keys(properties).length > 0
@@ -1644,6 +1644,45 @@ graphRouter.post(
                   now,
                 ],
               );
+
+              // Add block type to junction table with remapping
+              {
+                const GRAPH_DIMENSIONS = new Set([
+                  "problem",
+                  "solution",
+                  "market",
+                  "risk",
+                  "fit",
+                  "business",
+                  "spec",
+                  "distribution",
+                  "marketing",
+                  "manufacturing",
+                ]);
+                const LEGACY_REMAP: Record<string, string> = {
+                  content: "fact",
+                  context: "fact",
+                  opportunity: "insight",
+                  risk: "insight",
+                  problem: "insight",
+                  solution: "insight",
+                };
+                const rawType = change.blockType || "fact";
+                const canonicalType =
+                  LEGACY_REMAP[rawType] ||
+                  (GRAPH_DIMENSIONS.has(rawType) ? "insight" : rawType);
+                await run(
+                  `INSERT OR IGNORE INTO memory_block_types (block_id, block_type, created_at) VALUES (?, ?, ?)`,
+                  [blockId, canonicalType, now],
+                );
+                // Also fix the memory_blocks.type column if it was a legacy type
+                if (canonicalType !== rawType) {
+                  await run(`UPDATE memory_blocks SET type = ? WHERE id = ?`, [
+                    canonicalType,
+                    blockId,
+                  ]);
+                }
+              }
 
               // Add graph memberships
               if (change.graphMembership && change.graphMembership.length > 0) {
@@ -1658,7 +1697,7 @@ graphRouter.post(
               // Broadcast block_created event via WebSocket
               emitBlockCreated(sessionId, {
                 id: blockId,
-                type: change.blockType || "content",
+                type: change.blockType || "fact",
                 title: change.title || null,
                 content: change.content,
                 confidence: change.confidence || 0.8,
@@ -1830,7 +1869,7 @@ graphRouter.post(
               if (realBlockId) {
                 newBlockSummaries.push({
                   id: realBlockId,
-                  type: change.blockType || "content",
+                  type: change.blockType || "fact",
                   title: change.title || null,
                   content: change.content,
                 });
@@ -2079,7 +2118,7 @@ async function analyzeSessionForGraphUpdates(
       `[analyzeSessionForGraphUpdates] ideaSlug: ${ideaSlug || "(not provided)"}`,
     );
     let collectionResult = await collectAllSources(sessionId, {
-      tokenBudget: 40000,
+      tokenBudget: 100000,
       conversationLimit: 50,
       ideaSlug, // Include file-based artifacts from idea folder
     });
@@ -2152,6 +2191,7 @@ async function analyzeSessionForGraphUpdates(
     const builtPrompt = buildAnalysisPrompt(
       collectionResult,
       existingBlockSummaries,
+      { ideaSlug },
     );
 
     console.log(
@@ -2171,7 +2211,7 @@ async function analyzeSessionForGraphUpdates(
 
     const response = await anthropicClient.messages.create({
       model: "claude-haiku-3-5-latest",
-      max_tokens: 16384, // Increased from 4096 to allow for more blocks and links
+      max_tokens: 32768,
       system: builtPrompt.systemPrompt,
       messages: [
         {
@@ -2246,7 +2286,7 @@ async function analyzeSessionForGraphUpdates(
       if (change.type === "create_block") {
         previewNodes.push({
           id: change.id,
-          type: change.blockType || "content",
+          type: change.blockType || "fact",
           content: change.content.slice(0, 50),
           isNew: true,
         });

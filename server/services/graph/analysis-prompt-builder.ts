@@ -28,6 +28,7 @@ export interface PromptBuildOptions {
   includeExistingBlocks?: boolean;
   maxSourcesPerType?: number;
   includeSourceMetadata?: boolean;
+  ideaSlug?: string;
 }
 
 export interface BuiltPrompt {
@@ -109,12 +110,8 @@ function formatSource(
     lines.push(meta.join(" "));
   }
 
-  // Add content (truncate if very long)
+  // Pass full content to AI - truncation happens at source collection level
   let content = source.content;
-  if (content.length > 2000) {
-    content =
-      content.slice(0, 2000) + "\n\n[... content truncated for analysis ...]";
-  }
   lines.push(content);
 
   // Include supersession info if present (for conversation insights)
@@ -191,6 +188,7 @@ export function buildAnalysisPrompt(
     includeExistingBlocks = true,
     maxSourcesPerType = 20,
     includeSourceMetadata = true,
+    ideaSlug,
   } = options;
 
   console.log(
@@ -300,6 +298,7 @@ export function buildAnalysisPrompt(
    - The superseded block should be marked for status change to "superseded"
 
 IMPORTANT: Create BOTH blocks AND links! A knowledge graph needs connections between nodes.
+Extract each distinct piece of knowledge as its own block. Be granular — do NOT combine multiple concepts into a single block.
 
 Link types to use:
 - "supports" - one insight backs up another
@@ -326,10 +325,10 @@ Return JSON only with the following structure:
     {
       "id": "block_1",
       "type": "create_block",
-      "blockType": "problem|solution|assumption|risk|decision|requirement|insight|question|opportunity|context|content",
-      "title": "3-5 word summary",
-      "content": "The extracted insight",
-      "graphMembership": ["problem", "solution", "market", "risk", "fit", "business", "spec"],
+      "blockType": "fact",
+      "title": "Market size is $50B",
+      "content": "The total addressable market for legal tech is $50 billion",
+      "graphMembership": ["market"],
       "confidence": 0.85,
       "sourceId": "7a3f9c2e-b845-4d12-9e8a-1234567890ab",
       "sourceType": "artifact",
@@ -377,8 +376,13 @@ Return JSON only with the following structure:
 
   const userPrompt = sections.join("\n") + "\n" + instructionSection;
 
-  const systemPrompt = `You are a knowledge graph analyst. Your task is to analyze content from multiple sources and build a CONNECTED knowledge graph with both BLOCKS (nodes) and LINKS (edges).
+  const ideaContext = ideaSlug
+    ? `\nYou are building a knowledge graph for the idea/project: "${ideaSlug.replace(/-/g, " ")}".
+SCOPING RULE: ONLY extract knowledge that is directly about THIS idea/project. Sources may reference competitors, other projects, or external examples for context — do NOT create blocks for those. Only extract insights, facts, and decisions that pertain to THIS idea.\n`
+    : "";
 
+  const systemPrompt = `You are a knowledge graph analyst. Your task is to analyze content from multiple sources and build a CONNECTED knowledge graph with both BLOCKS (nodes) and LINKS (edges).
+${ideaContext}
 CRITICAL: A knowledge graph is USELESS without connections! You MUST create links between related blocks.
 
 You must:
@@ -393,18 +397,20 @@ You must:
 - Adjust confidence based on source reliability weights
 - Note when multiple sources corroborate the same insight
 
-Block types to use:
-- problem: Issues, challenges, pain points
-- solution: Proposed solutions, approaches
-- assumption: Beliefs being taken as true
-- risk: Concerns, potential problems
-- decision: Choices made or to be made
-- requirement: Must-haves, constraints
-- insight: Key observations, realizations
-- question: Open questions needing answers
-- opportunity: Potential benefits
-- context: Background information
-- content: General content that doesn't fit other types
+Block types to use (ONLY these 11 canonical types):
+- insight: Key findings, conclusions, "aha" moments, non-obvious observations
+- fact: Verifiable data points, statistics, background context, evidence
+- assumption: Implicit or explicit assumptions being made
+- question: Open questions, unknowns, things to investigate
+- decision: Choices made or pending decisions
+- action: Next steps, validation tasks, to-dos
+- requirement: Must-have constraints, specifications, acceptance criteria
+- option: Alternatives being considered, possible approaches
+- pattern: Recurring themes or patterns identified
+- synthesis: Conclusions drawn from combining multiple pieces of information
+- meta: Notes about the process, uncertainties
+
+IMPORTANT: Do NOT use "problem", "solution", "risk", "opportunity", "context", or "content" as block types. Those are graph dimensions (graphMembership), not block types.
 
 Link types to use:
 - supports, contradicts, refines, depends_on, leads_to, related_to, addresses, validates, derived_from
@@ -580,6 +586,21 @@ export function parseAnalysisResponse(
         change.sourceId &&
         change.sourceId !== "unknown" &&
         change.sourceId.trim() !== "";
+
+      // Fix AI confusion: if "type" contains a blockType value instead of a change type,
+      // move it to blockType and set type to "create_block"
+      const VALID_CHANGE_TYPES = new Set([
+        "create_block",
+        "update_block",
+        "create_link",
+      ]);
+      if (!VALID_CHANGE_TYPES.has(change.type)) {
+        // AI put the blockType in the type field
+        if (!change.blockType) {
+          change.blockType = change.type;
+        }
+        change.type = change.content ? "create_block" : "create_link";
+      }
 
       const validated: any = {
         ...change,

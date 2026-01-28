@@ -10,6 +10,7 @@ import type {
   GraphFilters as GraphFiltersType,
   ClusterStrategy,
 } from "../../types/graph";
+import { nodeColors, graphColors } from "../../types/graph";
 import { GraphCanvas, GraphCanvasHandle } from "./GraphCanvas";
 import type { LayoutOption } from "./GraphControls";
 import { NodeInspector, RelationshipHoverInfo } from "./NodeInspector";
@@ -22,6 +23,7 @@ import { GraphQuickActions } from "./GraphQuickActions";
 import { analyzeCycles } from "./utils/cycleDetection";
 import { SourceSelectionModal } from "./SourceSelectionModal";
 import type { ReportSynthesisJobStatus } from "./hooks/useReportSynthesisStatus";
+import type { SourceMappingJobStatus } from "./hooks/useSourceMappingStatus";
 
 export interface GraphContainerProps {
   nodes: GraphNode[];
@@ -99,6 +101,10 @@ export interface GraphContainerProps {
   reportSynthesisStatus?: ReportSynthesisJobStatus;
   onCancelReportSynthesis?: () => void;
   onDismissReportSynthesisStatus?: () => void;
+  // Source mapping status (for displaying status pill in controls)
+  sourceMappingStatus?: SourceMappingJobStatus;
+  onCancelSourceMapping?: () => void;
+  onDismissSourceMappingStatus?: () => void;
 }
 
 /**
@@ -212,11 +218,15 @@ export function GraphContainer({
   reportSynthesisStatus,
   onCancelReportSynthesis,
   onDismissReportSynthesisStatus,
+  sourceMappingStatus,
+  onCancelSourceMapping,
+  onDismissSourceMappingStatus,
 }: GraphContainerProps) {
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
-  const [currentLayout, setCurrentLayout] = useState<LayoutOption>("treeLr2d");
+  const [currentLayout, setCurrentLayout] =
+    useState<LayoutOption>("forceDirected2d");
   const [hoveredRelationship, setHoveredRelationship] =
     useState<RelationshipHoverInfo | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1034,6 +1044,10 @@ export function GraphContainer({
               reportSynthesisStatus={reportSynthesisStatus}
               onCancelReportSynthesis={onCancelReportSynthesis}
               onDismissReportSynthesisStatus={onDismissReportSynthesisStatus}
+              // Source mapping status
+              sourceMappingStatus={sourceMappingStatus}
+              onCancelSourceMapping={onCancelSourceMapping}
+              onDismissSourceMappingStatus={onDismissSourceMappingStatus}
             />
           </div>
         )}
@@ -1041,16 +1055,93 @@ export function GraphContainer({
         {/* Hovered Node Tooltip */}
         {hoveredNode && !selectedNode && (
           <div className="absolute bottom-16 left-4 z-20 max-w-2xl p-4 bg-white rounded-lg shadow-lg border border-gray-200">
-            <p className="font-medium text-gray-900 text-sm whitespace-pre-wrap">
+            {hoveredNode.title && (
+              <h3 className="font-semibold text-gray-900 text-sm break-words">
+                {hoveredNode.title}
+              </h3>
+            )}
+            <p
+              className={`${hoveredNode.title ? "mt-1 text-sm text-gray-600" : "font-semibold text-gray-900 text-sm"} break-words whitespace-pre-wrap`}
+            >
               {hoveredNode.content || hoveredNode.label}
             </p>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
-                {hoveredNode.blockType}
-              </span>
-              <span className="text-xs text-gray-500">
-                {Math.round(hoveredNode.confidence * 100)}% confidence
-              </span>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-500 font-medium">Type</span>
+              {(hoveredNode.blockTypes && hoveredNode.blockTypes.length > 0
+                ? hoveredNode.blockTypes
+                : [hoveredNode.blockType]
+              ).map((bt: string) => {
+                const color =
+                  nodeColors[bt as keyof typeof nodeColors] || "#6B7280";
+                return (
+                  <span
+                    key={bt}
+                    className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                    style={{
+                      backgroundColor: `${color}20`,
+                      color: color,
+                    }}
+                  >
+                    {bt}
+                  </span>
+                );
+              })}
+              {hoveredNode.graphMembership &&
+                hoveredNode.graphMembership.length > 0 && (
+                  <>
+                    <span className="text-xs text-gray-500 font-medium ml-2">
+                      Graph
+                    </span>
+                    {hoveredNode.graphMembership.map((gm: string) => {
+                      const color =
+                        graphColors[gm as keyof typeof graphColors] ||
+                        "#6B7280";
+                      return (
+                        <span
+                          key={gm}
+                          className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                          style={{
+                            backgroundColor: `${color}20`,
+                            color: color,
+                          }}
+                        >
+                          {gm}
+                        </span>
+                      );
+                    })}
+                  </>
+                )}
+              {hoveredNode.status && (
+                <span
+                  className={`px-2 py-0.5 rounded text-xs ${
+                    hoveredNode.status === "active"
+                      ? "bg-green-100 text-green-700"
+                      : hoveredNode.status === "validated"
+                        ? "bg-blue-100 text-blue-700"
+                        : hoveredNode.status === "draft"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : hoveredNode.status === "superseded"
+                            ? "bg-gray-100 text-gray-700"
+                            : hoveredNode.status === "abandoned"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {hoveredNode.status}
+                </span>
+              )}
+              <div className="flex items-center gap-1.5 ml-1">
+                <span className="text-xs text-gray-500">Confidence</span>
+                <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ width: `${hoveredNode.confidence * 100}%` }}
+                  />
+                </div>
+                <span className="text-xs text-gray-500">
+                  {Math.round(hoveredNode.confidence * 100)}%
+                </span>
+              </div>
             </div>
           </div>
         )}

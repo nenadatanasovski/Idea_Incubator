@@ -20,7 +20,9 @@ import type {
 import { GraphFilters } from "./GraphFilters";
 import { SnapshotControls } from "./SnapshotControls";
 import { ReportSynthesisStatusPill } from "./ReportSynthesisStatusPill";
+import { SourceMappingStatusPill } from "./SourceMappingStatusPill";
 import type { ReportSynthesisJobStatus } from "./hooks/useReportSynthesisStatus";
+import type { SourceMappingJobStatus } from "./hooks/useSourceMappingStatus";
 
 // ============================================================================
 // Types for AI Prompt
@@ -124,6 +126,11 @@ export interface GraphControlsProps {
   reportSynthesisStatus?: ReportSynthesisJobStatus;
   onCancelReportSynthesis?: () => void;
   onDismissReportSynthesisStatus?: () => void;
+
+  // Source mapping status
+  sourceMappingStatus?: SourceMappingJobStatus;
+  onCancelSourceMapping?: () => void;
+  onDismissSourceMappingStatus?: () => void;
 
   className?: string;
 }
@@ -251,6 +258,9 @@ export function GraphControls({
   reportSynthesisStatus,
   onCancelReportSynthesis,
   onDismissReportSynthesisStatus,
+  sourceMappingStatus,
+  onCancelSourceMapping,
+  onDismissSourceMappingStatus,
   className = "",
 }: GraphControlsProps) {
   const [isLayoutDropdownOpen, setIsLayoutDropdownOpen] = useState(false);
@@ -1267,6 +1277,18 @@ export function GraphControls({
               status={reportSynthesisStatus}
               onCancel={onCancelReportSynthesis}
               onDismiss={onDismissReportSynthesisStatus}
+            />
+          )}
+
+        {/* Source Mapping Status Pill - shown next to brain button */}
+        {sourceMappingStatus &&
+          (sourceMappingStatus.jobId || sourceMappingStatus.status) &&
+          onCancelSourceMapping &&
+          onDismissSourceMappingStatus && (
+            <SourceMappingStatusPill
+              status={sourceMappingStatus}
+              onCancel={onCancelSourceMapping}
+              onDismiss={onDismissSourceMappingStatus}
             />
           )}
 

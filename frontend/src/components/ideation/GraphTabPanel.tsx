@@ -19,7 +19,7 @@ import type { GraphNode, GraphFilters } from "../../types/graph";
 import type { ProposedChange } from "../../types/ideation-state";
 import { useGraphDataWithWebSocket } from "../graph/hooks/useGraphDataWithWebSocket";
 import { GraphUpdateConfirmation } from "../graph/GraphUpdateConfirmation";
-import { SourceMappingStatusPill } from "../graph/SourceMappingStatusPill";
+
 import { ProposedChangesReviewModal } from "../graph/ProposedChangesReviewModal";
 import { useIdeationAPI } from "../../hooks/useIdeationAPI";
 import type {
@@ -679,24 +679,6 @@ export const GraphTabPanel = memo(function GraphTabPanel({
     >
       {/* Graph Container */}
       <div className="flex-1 min-h-0 relative" data-testid="graph-canvas">
-        {/* Status Pills Container - shows when background operations are active or recently completed */}
-        {/* Note: ReportSynthesisStatusPill is now rendered in GraphControls next to the brain button */}
-        {(sourceMappingStatus.jobId || sourceMappingStatus.status) && (
-          <div
-            className="absolute top-4 left-1/2 -translate-x-1/2 z-30"
-            data-testid="status-pills-container"
-          >
-            {/* Source Mapping Status Pill */}
-            <div data-testid="source-mapping-status">
-              <SourceMappingStatusPill
-                status={sourceMappingStatus}
-                onCancel={cancelSourceMapping}
-                onDismiss={dismissSourceMappingStatus}
-              />
-            </div>
-          </div>
-        )}
-
         <GraphErrorBoundary>
           <Suspense fallback={<GraphLoadingSkeleton />}>
             <GraphContainer
@@ -756,6 +738,10 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               reportSynthesisStatus={reportSynthesisStatus}
               onCancelReportSynthesis={cancelReportSynthesis}
               onDismissReportSynthesisStatus={dismissReportSynthesisStatus}
+              // Source mapping status (moved to GraphControls toolbar)
+              sourceMappingStatus={sourceMappingStatus}
+              onCancelSourceMapping={cancelSourceMapping}
+              onDismissSourceMappingStatus={dismissSourceMappingStatus}
               className="h-full"
             />
           </Suspense>
