@@ -391,6 +391,15 @@ export function MemoryDatabasePanel({
     });
   }, []);
 
+  // Filter reports to only those whose nodeIds reference blocks in the current session
+  const activeReports = useMemo(() => {
+    if (blocks.length === 0) return reports;
+    const blockIdSet = new Set(blocks.map((b) => b.id));
+    return reports.filter((r) =>
+      r.nodeIds.some((nid: string) => blockIdSet.has(nid)),
+    );
+  }, [reports, blocks]);
+
   // Generic filter toggle helper
   const toggleFilter = useCallback(
     (
@@ -782,7 +791,7 @@ export function MemoryDatabasePanel({
               name="Reports"
               icon={FileBarChart}
               isActive={activeTable === "reports"}
-              count={reports.length}
+              count={activeReports.length}
               onClick={() => setActiveTable("reports")}
             />
             <TableTab
@@ -1564,11 +1573,13 @@ export function MemoryDatabasePanel({
             {/* Reports header with Regenerate All button */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
               <div className="text-sm text-gray-600">
-                {reports.length} group{" "}
-                {reports.length === 1 ? "report" : "reports"}
-                {reports.filter((r) => r.status === "stale").length > 0 && (
+                {activeReports.length} group{" "}
+                {activeReports.length === 1 ? "report" : "reports"}
+                {activeReports.filter((r) => r.status === "stale").length >
+                  0 && (
                   <span className="ml-2 text-amber-600">
-                    ({reports.filter((r) => r.status === "stale").length} stale)
+                    ({activeReports.filter((r) => r.status === "stale").length}{" "}
+                    stale)
                   </span>
                 )}
               </div>
@@ -1603,7 +1614,7 @@ export function MemoryDatabasePanel({
                 {isRegeneratingReports ? "Regenerating..." : "Regenerate All"}
               </button>
             </div>
-            {reports.length === 0 ? (
+            {activeReports.length === 0 ? (
               <div className="text-center py-12">
                 <FileBarChart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">No reports generated yet</p>
@@ -1638,7 +1649,7 @@ export function MemoryDatabasePanel({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {reports.map((report) => {
+                  {activeReports.map((report) => {
                     const isExpanded = expandedReportIds.has(report.id);
                     return (
                       <Fragment key={report.id}>
