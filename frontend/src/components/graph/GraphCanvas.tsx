@@ -131,7 +131,8 @@ function CustomNodeRenderer({
 
   // Visual scale: make nodes appear larger without affecting layout spacing
   const visualSize = size * 2.0;
-  const textSize = size * 1.0; // Keep text at previous size
+  const textScale = (node as any)?._textScale || 1.0;
+  const textSize = size * 1.0 * textScale;
 
   // Create a star-shaped BufferGeometry with alternating outer/inner vertices
   const createStarGeometry = (
@@ -734,8 +735,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     // Transform nodes to Reagraph format
     const reagraphNodes = useMemo(() => {
       const effectiveHoveredId = hoveredNodeId ?? internalHoveredId;
-      return nodes.map((node) =>
-        toReagraphNode(
+      const hasSelection = selectedNodeId != null;
+      return nodes.map((node) => {
+        const rNode = toReagraphNode(
           node,
           connectionCounts.get(node.id) || 0,
           node.id === selectedNodeId,
@@ -745,8 +747,13 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           Boolean(node.fileReferences && node.fileReferences.length > 0),
           temporarilyVisibleNodeIds.has(node.id),
           cycleNodeIds.has(node.id),
-        ),
-      );
+        );
+        // Pass fit-to-view text scale boost when nothing is selected
+        if (!hasSelection) {
+          (rNode as any)._textScale = 1.5;
+        }
+        return rNode;
+      });
     }, [
       nodes,
       connectionCounts,
