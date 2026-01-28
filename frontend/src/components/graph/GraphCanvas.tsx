@@ -130,7 +130,8 @@ function CustomNodeRenderer({
   const fillColor = node.fill || "#3B82F6";
 
   // Visual scale: make nodes appear larger without affecting layout spacing
-  const visualSize = size * 1.3;
+  const visualSize = size * 2.0;
+  const textSize = size * 1.0; // Keep text at previous size
 
   // Create a star-shaped BufferGeometry with alternating outer/inner vertices
   const createStarGeometry = (
@@ -297,18 +298,18 @@ function CustomNodeRenderer({
   const textMesh = useMemo(() => {
     const t = new TroikaText();
     t.text = truncatedLabel || "";
-    t.fontSize = visualSize * 0.35;
+    t.fontSize = textSize * 0.35;
     t.color = 0xffffff;
     t.anchorX = "center";
     t.anchorY = "middle";
     t.textAlign = "center";
-    t.maxWidth = visualSize * 1.6;
-    t.outlineWidth = visualSize * 0.04;
+    t.maxWidth = textSize * 2.4;
+    t.outlineWidth = textSize * 0.04;
     t.outlineColor = 0x000000;
     t.position.z = 0.5;
     t.sync();
     return t;
-  }, [truncatedLabel, visualSize]);
+  }, [truncatedLabel, textSize]);
 
   // Clean up troika text on unmount
   useEffect(() => {
