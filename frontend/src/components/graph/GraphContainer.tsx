@@ -1053,7 +1053,7 @@ export function GraphContainer({
         )}
 
         {/* Hovered Node Tooltip */}
-        {hoveredNode && !selectedNode && (
+        {hoveredNode && (
           <div className="absolute bottom-16 left-4 z-20 max-w-2xl p-4 bg-white rounded-lg shadow-lg border border-gray-200">
             {hoveredNode.title && (
               <h3 className="font-semibold text-gray-900 text-sm break-words">
@@ -1237,6 +1237,7 @@ export function GraphContainer({
           sessionId={sessionId}
           onClose={handleCloseInspector}
           onNodeClick={handleInspectorNodeClick}
+          onNodeHover={handleNodeHover}
           onRelationshipHover={handleRelationshipHover}
           onNavigateToChatMessage={onNavigateToChatMessage}
           onNavigateToArtifact={onNavigateToArtifact}

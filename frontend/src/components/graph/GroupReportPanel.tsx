@@ -30,6 +30,7 @@ export interface GroupReportPanelProps {
   currentNodeId: string;
   nodes: GraphNode[];
   onNodeClick?: (nodeId: string) => void;
+  onNodeHover?: (node: GraphNode | null) => void;
   onGenerateReport?: () => void;
   /** Optional refresh trigger - when this changes, the report will be re-fetched */
   refreshTrigger?: number;
@@ -53,10 +54,12 @@ function MarkdownWithNodeLinks({
   content,
   nodes,
   onNodeClick,
+  onNodeHover,
 }: {
   content: string;
   nodes: GraphNode[];
   onNodeClick?: (nodeId: string) => void;
+  onNodeHover?: (node: GraphNode | null) => void;
 }) {
   // Create a map of lowercase titles to node IDs for matching
   const titleToNodeMap = useMemo(() => {
@@ -132,6 +135,11 @@ function MarkdownWithNodeLinks({
               );
               onNodeClick?.(part.nodeId!);
             }}
+            onMouseEnter={() => {
+              const node = nodes.find((n) => n.id === part.nodeId);
+              if (node && onNodeHover) onNodeHover(node);
+            }}
+            onMouseLeave={() => onNodeHover?.(null)}
             className="text-cyan-600 hover:text-cyan-700 hover:underline cursor-pointer font-medium"
             data-testid={`report-node-link-${part.nodeId}`}
           >
@@ -154,6 +162,7 @@ export function GroupReportPanel({
   currentNodeId,
   nodes,
   onNodeClick,
+  onNodeHover,
   onGenerateReport,
   refreshTrigger,
   isActive = false,
@@ -311,6 +320,7 @@ export function GroupReportPanel({
               content={report.overview}
               nodes={nodes}
               onNodeClick={onNodeClick}
+              onNodeHover={onNodeHover}
             />
           </div>
         </section>
@@ -349,6 +359,7 @@ export function GroupReportPanel({
               content={report.story}
               nodes={nodes}
               onNodeClick={onNodeClick}
+              onNodeHover={onNodeHover}
             />
           </div>
         </section>
@@ -392,6 +403,11 @@ export function GroupReportPanel({
                     );
                     onNodeClick?.(nodeSummary.nodeId);
                   }}
+                  onMouseEnter={() => {
+                    const node = nodes.find((n) => n.id === nodeSummary.nodeId);
+                    if (node && onNodeHover) onNodeHover(node);
+                  }}
+                  onMouseLeave={() => onNodeHover?.(null)}
                   className="text-sm text-cyan-600 hover:text-cyan-700 hover:underline font-medium shrink-0"
                 >
                   {nodeSummary.title || "Untitled"}

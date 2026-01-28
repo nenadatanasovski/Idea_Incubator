@@ -98,6 +98,7 @@ export interface NodeInspectorProps {
   sessionId?: string; // Required to fetch AI-mapped sources
   onClose: () => void;
   onNodeClick?: (nodeId: string) => void;
+  onNodeHover?: (node: GraphNode | null) => void;
   onRelationshipHover?: (info: RelationshipHoverInfo | null) => void;
   onViewArtifact?: (artifactId: string) => void;
   onUnlinkArtifact?: (nodeId: string) => void;
@@ -963,6 +964,7 @@ export function NodeInspector({
   sessionId,
   onClose,
   onNodeClick,
+  onNodeHover,
   onRelationshipHover,
   onViewArtifact,
   onUnlinkArtifact,
@@ -1875,6 +1877,7 @@ export function NodeInspector({
             currentNodeId={node.id}
             nodes={nodes}
             onNodeClick={handleNodeClickFromReport}
+            onNodeHover={onNodeHover}
             refreshTrigger={reportRefreshTrigger}
             isActive={activeTab === "report"}
             onReportViewChange={onReportViewChange}
