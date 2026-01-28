@@ -30,7 +30,10 @@ export interface GroupReportPanelProps {
   currentNodeId: string;
   nodes: GraphNode[];
   onNodeClick?: (nodeId: string) => void;
-  onNodeHover?: (node: GraphNode | null) => void;
+  onNodeHover?: (
+    node: GraphNode | null,
+    position?: { x: number; y: number },
+  ) => void;
   onGenerateReport?: () => void;
   /** Optional refresh trigger - when this changes, the report will be re-fetched */
   refreshTrigger?: number;
@@ -59,7 +62,10 @@ function MarkdownWithNodeLinks({
   content: string;
   nodes: GraphNode[];
   onNodeClick?: (nodeId: string) => void;
-  onNodeHover?: (node: GraphNode | null) => void;
+  onNodeHover?: (
+    node: GraphNode | null,
+    position?: { x: number; y: number },
+  ) => void;
 }) {
   // Create a map of lowercase titles to node IDs for matching
   const titleToNodeMap = useMemo(() => {
@@ -135,9 +141,15 @@ function MarkdownWithNodeLinks({
               );
               onNodeClick?.(part.nodeId!);
             }}
-            onMouseEnter={() => {
+            onMouseEnter={(e) => {
               const node = nodes.find((n) => n.id === part.nodeId);
-              if (node && onNodeHover) onNodeHover(node);
+              if (node && onNodeHover) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                onNodeHover(node, {
+                  x: rect.left,
+                  y: rect.bottom,
+                });
+              }
             }}
             onMouseLeave={() => onNodeHover?.(null)}
             className="text-cyan-600 hover:text-cyan-700 hover:underline cursor-pointer font-medium"
@@ -395,7 +407,7 @@ export function GroupReportPanel({
           </h4>
           <ul className="space-y-2">
             {report.nodesSummary.map((nodeSummary) => (
-              <li key={nodeSummary.nodeId} className="flex items-start gap-2">
+              <li key={nodeSummary.nodeId}>
                 <button
                   onClick={() => {
                     console.log(
@@ -403,18 +415,24 @@ export function GroupReportPanel({
                     );
                     onNodeClick?.(nodeSummary.nodeId);
                   }}
-                  onMouseEnter={() => {
+                  onMouseEnter={(e) => {
                     const node = nodes.find((n) => n.id === nodeSummary.nodeId);
-                    if (node && onNodeHover) onNodeHover(node);
+                    if (node && onNodeHover) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      onNodeHover(node, {
+                        x: rect.left,
+                        y: rect.bottom,
+                      });
+                    }
                   }}
                   onMouseLeave={() => onNodeHover?.(null)}
-                  className="text-sm text-cyan-600 hover:text-cyan-700 hover:underline font-medium shrink-0"
+                  className="text-sm text-cyan-600 hover:text-cyan-700 hover:underline font-medium text-left"
                 >
                   {nodeSummary.title || "Untitled"}
                 </button>
-                <span className="text-xs text-gray-500">
-                  — {nodeSummary.oneLiner}
-                </span>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {nodeSummary.oneLiner}
+                </p>
               </li>
             ))}
           </ul>

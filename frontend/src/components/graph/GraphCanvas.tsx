@@ -808,12 +808,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     }, [selectedNodeId, clearSelections]);
 
     // Wrapper to handle clicking empty canvas space.
-    // NOTE: We intentionally do NOT call reagraphOnCanvasClick here because
-    // reagraph's useSelection onCanvasClick internally calls fitNodesInView
-    // with its own parameters, which races with our fitNodesInView call and
-    // causes the camera to overshoot on the first click. Instead, we clear
-    // selections via the useEffect on selectedNodeId (line ~805) and handle
-    // the camera fit ourselves.
     const handleCanvasClick = useCallback(
       (event: MouseEvent) => {
         if (event.button === 2) return; // Ignore right-clicks
@@ -821,7 +815,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         onCanvasClickProp?.();
         // Hard rule: always clear internal hover state when clicking empty canvas
         setInternalHoveredId(null);
-        // Recenter and fit all nodes in view when clicking empty space
+        // Fit all nodes in view. When the inspector panel is open this will
+        // fit to the current (narrower) viewport — GraphContainer has a
+        // useEffect that re-fits after the panel unmounts and canvas resizes.
         graphRef.current?.fitNodesInView();
       },
       [clearSelections, onCanvasClickProp],

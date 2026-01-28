@@ -225,6 +225,11 @@ export function GraphContainer({
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [currentLayout, setCurrentLayout] =
     useState<LayoutOption>("forceDirected2d");
   const [hoveredRelationship, setHoveredRelationship] =
@@ -261,6 +266,52 @@ export function GraphContainer({
       return () => clearTimeout(timer);
     }
   }, [successNotification, onClearNotification]);
+
+  // Fit-to-view after inspector panel closes.
+  // When selectedNode transitions from non-null to null, the inspector panel
+  // unmounts and the canvas expands to full width. We need to wait for the
+  // resize to complete before fitting, otherwise fitNodesInView calculates
+  // bounds for the old narrow viewport, causing the view to appear too
+  // zoomed out once the canvas widens.
+  const prevSelectedNodeRef = useRef<GraphNode | null>(null);
+  useEffect(() => {
+    const wasSelected = prevSelectedNodeRef.current !== null;
+    prevSelectedNodeRef.current = selectedNode;
+    if (wasSelected && selectedNode === null) {
+      // Panel just closed — wait for DOM resize + Three.js canvas update
+      // Use ResizeObserver on the container for a reliable signal
+      const el = containerRef.current;
+      if (el) {
+        let done = false;
+        const observer = new ResizeObserver(() => {
+          if (!done) {
+            done = true;
+            observer.disconnect();
+            // One more rAF so Three.js/reagraph picks up the new canvas size
+            requestAnimationFrame(() => {
+              graphCanvasRef.current?.fitNodesInView();
+            });
+          }
+        });
+        observer.observe(el);
+        // Fallback if no resize occurs (e.g. panel wasn't visible)
+        const fallback = setTimeout(() => {
+          if (!done) {
+            done = true;
+            observer.disconnect();
+            graphCanvasRef.current?.fitNodesInView();
+          }
+        }, 300);
+        return () => {
+          done = true;
+          observer.disconnect();
+          clearTimeout(fallback);
+        };
+      } else {
+        graphCanvasRef.current?.fitNodesInView();
+      }
+    }
+  }, [selectedNode]);
 
   // Close inspector panel when a node is deleted
   useEffect(() => {
@@ -760,9 +811,17 @@ export function GraphContainer({
   );
 
   // Handle node hover
-  const handleNodeHover = useCallback((node: GraphNode | null) => {
-    setHoveredNode(node);
-  }, []);
+  const handleNodeHover = useCallback(
+    (node: GraphNode | null, position?: { x: number; y: number }) => {
+      setHoveredNode(node);
+      if (position) {
+        setTooltipPosition(position);
+      } else if (!node) {
+        setTooltipPosition(null);
+      }
+    },
+    [],
+  );
 
   // Close inspector panel and clear all highlight states
   // Hard rule: clicking empty canvas space must remove all overlays
@@ -771,6 +830,7 @@ export function GraphContainer({
     onNodeSelect?.(null);
     // Clear all hover/highlight states that contribute to the overlay
     setHoveredNode(null);
+    setTooltipPosition(null);
     setHoveredRelationship(null);
     setHoveredCycleNodeId(null);
     setHoveredCycleNodeIds([]);
@@ -859,7 +919,18 @@ export function GraphContainer({
   return (
     <div className={`flex h-full ${className}`} data-testid="graph-container">
       {/* Main Graph Area */}
-      <div className="flex-1 min-w-0 min-h-0 h-full relative">
+      <div
+        ref={containerRef}
+        className="flex-1 min-w-0 min-h-0 h-full relative"
+        onMouseMove={(e) => {
+          if (hoveredNode) {
+            setTooltipPosition({
+              x: e.clientX,
+              y: e.clientY,
+            });
+          }
+        }}
+      >
         <GraphCanvas
           ref={graphCanvasRef}
           nodes={clusteredNodes}
@@ -1053,8 +1124,15 @@ export function GraphContainer({
         )}
 
         {/* Hovered Node Tooltip */}
-        {hoveredNode && (
-          <div className="absolute bottom-16 left-4 z-20 max-w-2xl p-4 bg-white rounded-lg shadow-lg border border-gray-200">
+        {hoveredNode && tooltipPosition && (
+          <div
+            className="fixed z-50 p-4 bg-white rounded-lg shadow-lg border border-gray-200 pointer-events-none"
+            style={{
+              left: `${tooltipPosition.x}px`,
+              top: `${tooltipPosition.y + 16}px`,
+              maxWidth: "26rem",
+            }}
+          >
             {hoveredNode.title && (
               <h3 className="font-semibold text-gray-900 text-sm break-words">
                 {hoveredNode.title}
@@ -1130,18 +1208,6 @@ export function GraphContainer({
                   {hoveredNode.status}
                 </span>
               )}
-              <div className="flex items-center gap-1.5 ml-1">
-                <span className="text-xs text-gray-500">Confidence</span>
-                <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 rounded-full"
-                    style={{ width: `${hoveredNode.confidence * 100}%` }}
-                  />
-                </div>
-                <span className="text-xs text-gray-500">
-                  {Math.round(hoveredNode.confidence * 100)}%
-                </span>
-              </div>
             </div>
           </div>
         )}

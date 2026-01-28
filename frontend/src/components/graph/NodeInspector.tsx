@@ -98,7 +98,10 @@ export interface NodeInspectorProps {
   sessionId?: string; // Required to fetch AI-mapped sources
   onClose: () => void;
   onNodeClick?: (nodeId: string) => void;
-  onNodeHover?: (node: GraphNode | null) => void;
+  onNodeHover?: (
+    node: GraphNode | null,
+    position?: { x: number; y: number },
+  ) => void;
   onRelationshipHover?: (info: RelationshipHoverInfo | null) => void;
   onViewArtifact?: (artifactId: string) => void;
   onUnlinkArtifact?: (nodeId: string) => void;
