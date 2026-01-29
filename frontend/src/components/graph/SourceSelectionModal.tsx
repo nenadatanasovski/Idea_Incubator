@@ -79,7 +79,10 @@ export interface SourceSelectionModalProps {
   onClose: () => void;
   sessionId: string;
   ideaSlug?: string; // Optional idea slug to include file-based artifacts
-  onConfirm: (selectedSourceIds: string[]) => void;
+  onConfirm: (
+    selectedSourceIds: string[],
+    selectedSources: CollectedSource[],
+  ) => void;
   isProcessing?: boolean;
   existingInsights?: PendingInsight[]; // Insights from the right panel
 }
@@ -503,10 +506,12 @@ export function SourceSelectionModal({
     setSelectedIds(new Set());
   }, []);
 
-  // Handle confirm
+  // Handle confirm - pass both IDs and full sources for backend analysis
   const handleConfirm = useCallback(() => {
-    onConfirm(Array.from(selectedIds));
-  }, [selectedIds, onConfirm]);
+    const ids = Array.from(selectedIds);
+    const selectedSources = sources.filter((s) => selectedIds.has(s.id));
+    onConfirm(ids, selectedSources);
+  }, [selectedIds, sources, onConfirm]);
 
   // Get title for a source
   const getSourceTitle = (source: CollectedSource): string => {

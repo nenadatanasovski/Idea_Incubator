@@ -52,7 +52,16 @@ export interface GraphContainerProps {
   recentlyAddedEdgeIds?: Set<string>;
   // Memory Graph Update
   onUpdateMemoryGraph?: () => void;
-  onAnalyzeWithSources?: (selectedSourceIds: string[]) => Promise<void>;
+  onAnalyzeWithSources?: (
+    selectedSourceIds: string[],
+    selectedSources?: Array<{
+      id: string;
+      type: string;
+      content: string;
+      weight: number;
+      metadata: Record<string, unknown>;
+    }>,
+  ) => Promise<void>;
   isAnalyzingGraph?: boolean;
   isApplyingChanges?: boolean; // Flag to prevent auto-open during apply phase
   pendingGraphChanges?: number;
@@ -598,12 +607,21 @@ export function GraphContainer({
 
   // Handle source selection confirm (reset & analyze)
   const handleSourceSelectionConfirm = useCallback(
-    async (selectedSourceIds: string[]) => {
+    async (
+      selectedSourceIds: string[],
+      selectedSources: Array<{
+        id: string;
+        type: string;
+        content: string;
+        weight: number;
+        metadata: Record<string, unknown>;
+      }>,
+    ) => {
       // Close modal immediately to prevent double-clicks
       // (analysis completion would briefly enable the button before the modal closes)
       setShowSourceSelectionModal(false);
       if (onAnalyzeWithSources) {
-        await onAnalyzeWithSources(selectedSourceIds);
+        await onAnalyzeWithSources(selectedSourceIds, selectedSources);
       }
     },
     [onAnalyzeWithSources],

@@ -1962,6 +1962,31 @@ export function IdeationSession({
     setHighlightInsightSourceId(null);
   }, []);
 
+  // Refresh insights from backend (called when source mapping completes via WebSocket)
+  const handleInsightsRefresh = useCallback(async () => {
+    if (!state.session.sessionId) return;
+
+    try {
+      console.log(
+        "[IdeationSession] Refreshing insights after source mapping complete",
+      );
+      const insightsResponse = await api.fetchAppliedInsights(
+        state.session.sessionId,
+      );
+      if (insightsResponse.success && insightsResponse.data.insights) {
+        dispatch({
+          type: "MEMORY_GRAPH_INSIGHTS_LOAD",
+          payload: { insights: insightsResponse.data.insights },
+        });
+        console.log(
+          `[IdeationSession] Refreshed ${insightsResponse.data.insights.length} applied insights`,
+        );
+      }
+    } catch (error) {
+      console.warn("[IdeationSession] Failed to refresh insights:", error);
+    }
+  }, [state.session.sessionId, api]);
+
   const handleBackToGraph = useCallback(() => {
     setActiveTab("graph");
   }, []);
@@ -2631,6 +2656,7 @@ export function IdeationSession({
               setGraphRefetchTrigger((prev) => prev + 1)
             }
             existingInsights={state.memoryGraph.analysis?.proposedChanges || []}
+            onInsightsRefresh={handleInsightsRefresh}
           />
 
           {/* Files Tab Panel (T9.2 - Project folder browser) */}

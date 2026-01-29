@@ -148,6 +148,8 @@ export interface GraphTabPanelProps {
   onSnapshotRestored?: () => void;
   // Existing insights from the right panel for source selection
   existingInsights?: ProposedChange[];
+  // Callback when source mapping completes (to refresh insights in right panel)
+  onInsightsRefresh?: () => void;
 }
 
 /**
@@ -192,6 +194,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   onClearNotification,
   onSnapshotRestored,
   existingInsights = [],
+  onInsightsRefresh,
 }: GraphTabPanelProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
@@ -233,6 +236,8 @@ export const GraphTabPanel = memo(function GraphTabPanel({
     dismissReportSynthesisStatus,
     // Report refresh trigger (incremented when synthesis completes)
     reportRefreshTrigger,
+    // Insights refresh trigger (incremented when source mapping completes)
+    insightsRefreshTrigger,
   } = useGraphDataWithWebSocket({
     sessionId,
     ideaSlug,
@@ -257,6 +262,13 @@ export const GraphTabPanel = memo(function GraphTabPanel({
       setSelectedNode(null);
     }
   }, [successNotification]);
+
+  // Notify parent to refresh insights when source mapping completes
+  useEffect(() => {
+    if (insightsRefreshTrigger > 0) {
+      onInsightsRefresh?.();
+    }
+  }, [insightsRefreshTrigger, onInsightsRefresh]);
 
   // Handle node selection
   const handleNodeSelect = useCallback(
@@ -488,22 +500,40 @@ export const GraphTabPanel = memo(function GraphTabPanel({
 
   // Handle analyze with selected sources - Phase 1: Analyze only, don't apply yet
   const handleAnalyzeWithSources = useCallback(
-    async (selectedSourceIds: string[]) => {
+    async (
+      selectedSourceIds: string[],
+      selectedSources?: Array<{
+        id: string;
+        type: string;
+        content: string;
+        weight: number;
+        metadata: Record<string, unknown>;
+      }>,
+    ) => {
       console.log(
         "[GraphTabPanel] Phase 1: Analyzing with sources:",
         selectedSourceIds.length,
       );
       console.log("[GraphTabPanel] ideaSlug:", ideaSlug || "(not set)");
+      if (selectedSources) {
+        console.log(
+          "[GraphTabPanel] Pre-collected sources provided:",
+          selectedSources.length,
+        );
+      }
 
       setIsAnalyzing(true);
 
       try {
         // Analyze with selected sources (don't reset or apply yet!)
         // Pass ideaSlug to include file-based artifacts from idea folder
+        // Pass preCollectedSources to avoid re-synthesizing conversations
         const analysis = await analyzeGraphChanges(
           sessionId,
           selectedSourceIds,
           ideaSlug,
+          undefined, // sinceTimestamp
+          selectedSources, // preCollectedSources - avoids expensive re-synthesis
         );
         console.log(
           "[GraphTabPanel] Analysis complete:",

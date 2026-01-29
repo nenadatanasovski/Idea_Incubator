@@ -54,7 +54,10 @@ import {
   collectAllSources,
   type CollectionOptions,
   type SourceType,
+  type CollectedSource,
+  type SourceCollectionResult,
 } from "../../services/graph/source-collector.js";
+import { type InsightType } from "../../services/graph/conversation-synthesizer.js";
 import {
   buildAnalysisPrompt,
   parseAnalysisResponse,
@@ -1428,6 +1431,18 @@ const AnalyzeChangesSchema = z.object({
   selectedSourceIds: z.array(z.string()).optional(),
   // Optional idea slug to include file-based artifacts from idea folder
   ideaSlug: z.string().optional(),
+  // Pre-collected sources from the modal to avoid re-synthesizing conversations
+  preCollectedSources: z
+    .array(
+      z.object({
+        id: z.string(),
+        type: z.string(),
+        content: z.string(),
+        weight: z.number(),
+        metadata: z.record(z.unknown()),
+      }),
+    )
+    .optional(),
 });
 
 graphRouter.post(
@@ -1444,7 +1459,8 @@ graphRouter.post(
         });
       }
 
-      const { selectedSourceIds, ideaSlug } = parseResult.data;
+      const { selectedSourceIds, ideaSlug, preCollectedSources } =
+        parseResult.data;
 
       // Get existing blocks for comparison (will be empty after reset)
       const existingBlocks =
@@ -1452,6 +1468,7 @@ graphRouter.post(
       const existingLinks = await blockExtractor.getLinksForSession(sessionId);
 
       // Call AI to analyze and propose changes with optional source filtering
+      // Pass preCollectedSources to avoid re-synthesizing conversations
       const analysis = await analyzeSessionForGraphUpdates(
         sessionId,
         "", // Legacy parameter no longer used
@@ -1459,6 +1476,7 @@ graphRouter.post(
         existingLinks,
         selectedSourceIds,
         ideaSlug, // Pass ideaSlug for file-based artifacts
+        preCollectedSources, // Pre-collected sources to avoid re-synthesis
       );
 
       return res.json(analysis);
@@ -2220,6 +2238,8 @@ graphRouter.post(
  *
  * @param selectedSourceIds - Optional array of source IDs to include. If provided,
  *                           only sources with matching IDs will be analyzed.
+ * @param preCollectedSources - Optional pre-collected sources from the modal.
+ *                              When provided, skips re-collecting (and expensive re-synthesis).
  */
 async function analyzeSessionForGraphUpdates(
   sessionId: string,
@@ -2228,6 +2248,13 @@ async function analyzeSessionForGraphUpdates(
   existingLinks: MemoryLink[],
   selectedSourceIds?: string[],
   ideaSlug?: string, // Optional idea slug for file-based artifacts
+  preCollectedSources?: Array<{
+    id: string;
+    type: string;
+    content: string;
+    weight: number;
+    metadata: Record<string, unknown>;
+  }>, // Pre-collected sources to avoid re-synthesis
 ): Promise<
   AnalysisResponse & {
     collectionMetadata?: {
@@ -2261,18 +2288,81 @@ async function analyzeSessionForGraphUpdates(
   }
 
   try {
-    // Step 1: Collect sources from all types
+    // Step 1: Collect sources from all types (or use pre-collected sources)
     console.log(
       `[analyzeSessionForGraphUpdates] Step 1: Collecting sources...`,
     );
     console.log(
       `[analyzeSessionForGraphUpdates] ideaSlug: ${ideaSlug || "(not provided)"}`,
     );
-    let collectionResult = await collectAllSources(sessionId, {
-      tokenBudget: 100000,
-      conversationLimit: 50,
-      ideaSlug, // Include file-based artifacts from idea folder
-    });
+
+    let collectionResult: SourceCollectionResult;
+
+    // Use pre-collected sources if provided (avoids expensive re-synthesis)
+    if (preCollectedSources && preCollectedSources.length > 0) {
+      console.log(
+        `[analyzeSessionForGraphUpdates] Using ${preCollectedSources.length} pre-collected sources from modal (skipping re-collection/re-synthesis)`,
+      );
+
+      // Convert pre-collected sources to CollectedSource format
+      const sources: CollectedSource[] = preCollectedSources.map((s) => ({
+        id: s.id,
+        type: s.type as SourceType,
+        content: s.content,
+        weight: s.weight,
+        metadata: {
+          title: (s.metadata.title as string) || undefined,
+          createdAt:
+            (s.metadata.timestamp as string) || new Date().toISOString(),
+          artifactType: s.metadata.artifactType as string | undefined,
+          memoryFileType: s.metadata.memoryFileType as string | undefined,
+          role: s.metadata.role as "user" | "assistant" | "system" | undefined,
+          insightType: s.metadata.insightType as InsightType | undefined,
+          sourceContext: s.metadata.sourceContext as string | undefined,
+          synthesized: s.metadata.synthesized as boolean | undefined,
+        },
+      }));
+
+      // Calculate metadata from pre-collected sources
+      collectionResult = {
+        sources,
+        totalTokenEstimate: sources.reduce(
+          (sum, s) => sum + Math.ceil(s.content.length / 4),
+          0,
+        ),
+        truncated: false,
+        collectionMetadata: {
+          conversationCount: sources.filter((s) => s.type === "conversation")
+            .length,
+          conversationInsightCount: sources.filter(
+            (s) => s.type === "conversation_insight",
+          ).length,
+          artifactCount: sources.filter((s) => s.type === "artifact").length,
+          memoryFileCount: sources.filter((s) => s.type === "memory_file")
+            .length,
+          userBlockCount: sources.filter((s) => s.type === "user_block").length,
+        },
+      };
+    } else {
+      // No pre-collected sources - need to collect fresh
+      // Check if selected sources already include conversation_insight IDs (from modal)
+      // If so, skip re-synthesizing conversations to avoid expensive duplicate AI call
+      const hasPreSynthesizedInsights =
+        selectedSourceIds?.some((id) => id.startsWith("insight_")) ?? false;
+      if (hasPreSynthesizedInsights) {
+        console.log(
+          `[analyzeSessionForGraphUpdates] Skipping conversation synthesis - using pre-synthesized insights from modal`,
+        );
+      }
+
+      collectionResult = await collectAllSources(sessionId, {
+        tokenBudget: 100000,
+        conversationLimit: 50,
+        ideaSlug, // Include file-based artifacts from idea folder
+        // Skip conversation synthesis if modal already provided synthesized insights
+        synthesizeConversations: !hasPreSynthesizedInsights,
+      });
+    }
 
     // Filter to selected sources if provided
     if (selectedSourceIds && selectedSourceIds.length > 0) {

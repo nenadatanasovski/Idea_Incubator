@@ -659,13 +659,25 @@ export function useIdeationAPI() {
       selectedSourceIds?: string[],
       ideaSlug?: string,
       sinceTimestamp?: string, // Only analyze conversations since this timestamp
+      preCollectedSources?: Array<{
+        id: string;
+        type: string;
+        content: string;
+        weight: number;
+        metadata: Record<string, unknown>;
+      }>, // Pre-collected sources to avoid re-synthesis
     ): Promise<GraphUpdateAnalysis> => {
       const response = await fetch(
         `${API_BASE}/session/${sessionId}/graph/analyze-changes`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ selectedSourceIds, ideaSlug, sinceTimestamp }),
+          body: JSON.stringify({
+            selectedSourceIds,
+            ideaSlug,
+            sinceTimestamp,
+            preCollectedSources,
+          }),
         },
       );
 

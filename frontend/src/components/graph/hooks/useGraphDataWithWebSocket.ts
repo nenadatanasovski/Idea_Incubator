@@ -110,6 +110,9 @@ export interface UseGraphDataWithWebSocketReturn {
 
   // Trigger to refresh reports after synthesis completes (increment on each completion)
   reportRefreshTrigger: number;
+
+  // Trigger to refresh insights after source mapping completes (increment on each completion)
+  insightsRefreshTrigger: number;
 }
 
 export interface PendingUpdate {
@@ -185,12 +188,22 @@ export function useGraphDataWithWebSocket(
   // Trigger to refresh reports after synthesis completes
   const [reportRefreshTrigger, setReportRefreshTrigger] = useState(0);
 
+  // Trigger to refresh insights after source mapping completes
+  const [insightsRefreshTrigger, setInsightsRefreshTrigger] = useState(0);
+
   // Increment refresh trigger when report synthesis completes
   useEffect(() => {
     if (reportSynthesisStatus.status === "complete") {
       setReportRefreshTrigger((prev) => prev + 1);
     }
   }, [reportSynthesisStatus.status]);
+
+  // Increment insights refresh trigger when source mapping completes
+  useEffect(() => {
+    if (sourceMappingStatus.status === "complete") {
+      setInsightsRefreshTrigger((prev) => prev + 1);
+    }
+  }, [sourceMappingStatus.status]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -627,6 +640,8 @@ export function useGraphDataWithWebSocket(
     dismissReportSynthesisStatus,
     // Report refresh trigger
     reportRefreshTrigger,
+    // Insights refresh trigger (when source mapping completes)
+    insightsRefreshTrigger,
   };
 }
 

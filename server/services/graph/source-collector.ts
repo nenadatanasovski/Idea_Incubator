@@ -20,6 +20,35 @@ import * as fs from "fs";
 import * as path from "path";
 
 // =============================================================================
+// Conversation Insight Cache
+// =============================================================================
+// Cache synthesized insights to avoid expensive re-synthesis when no new messages
+
+interface CachedInsights {
+  insights: CollectedSource[];
+  lastMessageTimestamp: string;
+  lastMessageId: string;
+  cachedAt: string;
+}
+
+// In-memory cache keyed by sessionId
+const conversationInsightCache = new Map<string, CachedInsights>();
+
+// Clear cache for a session (call when conversation changes significantly)
+export function clearConversationInsightCache(sessionId: string): void {
+  conversationInsightCache.delete(sessionId);
+  console.log(
+    `[SourceCollector] Cleared insight cache for session: ${sessionId}`,
+  );
+}
+
+// Clear entire cache (for server restart)
+export function clearAllConversationInsightCaches(): void {
+  conversationInsightCache.clear();
+  console.log(`[SourceCollector] Cleared all insight caches`);
+}
+
+// =============================================================================
 // Types and Interfaces
 // =============================================================================
 
@@ -142,19 +171,65 @@ function estimateTokens(text: string): number {
  * Collect conversation sources as AI-synthesized insights.
  * Uses the conversation synthesizer to extract meaningful knowledge chunks
  * (decisions, assumptions, questions, insights, etc.) instead of raw messages.
+ *
+ * OPTIMIZATION: Caches synthesized insights and only re-synthesizes when new messages exist.
+ * This avoids expensive AI calls when the user repeatedly opens the source selection modal.
  */
 export async function collectConversationInsights(
   sessionId: string,
   limit: number = 50,
 ): Promise<CollectedSource[]> {
   console.log(
-    `[SourceCollector] Synthesizing conversation insights for session: ${sessionId}`,
+    `[SourceCollector] Collecting conversation insights for session: ${sessionId}`,
   );
 
+  // Check for cached insights first
+  const cached = conversationInsightCache.get(sessionId);
+
+  // Get the latest message to check if we need to re-synthesize
+  const latestMessage = await getOne<{
+    id: string;
+    created_at: string;
+  }>(
+    `SELECT id, created_at FROM ideation_messages
+     WHERE session_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [sessionId],
+  );
+
+  // If we have cached insights and no new messages, return cached
+  if (cached && latestMessage) {
+    const lastCachedTimestamp = new Date(cached.lastMessageTimestamp).getTime();
+    const latestMessageTimestamp = new Date(latestMessage.created_at).getTime();
+
+    if (latestMessageTimestamp <= lastCachedTimestamp) {
+      console.log(
+        `[SourceCollector] Using cached insights (${cached.insights.length} insights, no new messages since ${cached.lastMessageTimestamp})`,
+      );
+      return cached.insights;
+    }
+
+    console.log(
+      `[SourceCollector] Cache invalidated - new messages detected since ${cached.lastMessageTimestamp}`,
+    );
+  }
+
+  // No cache or new messages exist - need to synthesize
+  console.log(`[SourceCollector] Synthesizing conversation insights...`);
   const synthesisResult = await synthesizeConversation(sessionId, limit);
 
   if (synthesisResult.insights.length === 0) {
     console.log(`[SourceCollector] No insights synthesized from conversation`);
+    // Still cache empty result to avoid re-synthesizing empty conversations
+    if (latestMessage) {
+      conversationInsightCache.set(sessionId, {
+        insights: [],
+        lastMessageTimestamp: latestMessage.created_at,
+        lastMessageId: latestMessage.id,
+        cachedAt: new Date().toISOString(),
+      });
+    }
     return [];
   }
 
@@ -174,6 +249,19 @@ export async function collectConversationInsights(
       weight: INSIGHT_TYPE_WEIGHTS[insight.type] * insight.confidence,
     }),
   );
+
+  // Cache the results
+  if (latestMessage) {
+    conversationInsightCache.set(sessionId, {
+      insights: sources,
+      lastMessageTimestamp: latestMessage.created_at,
+      lastMessageId: latestMessage.id,
+      cachedAt: new Date().toISOString(),
+    });
+    console.log(
+      `[SourceCollector] Cached ${sources.length} insights for session ${sessionId}`,
+    );
+  }
 
   const tokenEstimate = sources.reduce(
     (acc, s) => acc + estimateTokens(s.content),
