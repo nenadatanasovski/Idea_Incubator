@@ -16,9 +16,9 @@ export interface EdgeWidthConfig {
 }
 
 const DEFAULT_WIDTH_CONFIG: EdgeWidthConfig = {
-  minWidth: 1,
-  maxWidth: 4,
-  baseWidth: 2,
+  minWidth: 4,
+  maxWidth: 10,
+  baseWidth: 6,
 };
 
 /**
