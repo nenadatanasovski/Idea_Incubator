@@ -69,6 +69,14 @@ export interface ProposedChange {
     sourceType: string;
     snippet?: string;
   }>;
+  // All sources that contributed to this insight (with original content)
+  allSources?: Array<{
+    id: string;
+    type: string;
+    title: string | null;
+    weight: number | null;
+    contentSnippet: string | null;
+  }>;
   // Supersession handling
   supersedesBlockId?: string; // If this block supersedes an existing block
   supersessionReason?: string; // Reason for superseding
@@ -119,6 +127,8 @@ export interface SourceLineageInfo {
   artifactType?: string | null;
   memoryFileType?: string | null;
   weight?: number | null;
+  // Content snippet for display - truncated to 500 chars
+  contentSnippet?: string | null;
 }
 
 export interface GraphUpdateAnalysis {
@@ -155,6 +165,10 @@ export interface MemoryGraphState {
   selectedChangeIds: string[];
   isApplying: boolean;
   error: string | null;
+  // Timestamp tracking for incremental analysis
+  lastAnalyzedAt: string | null;
+  // Applied insights - persisted after changes are applied to the graph
+  appliedInsights: ProposedChange[];
   // Snapshot/versioning state
   snapshots: GraphSnapshotSummary[];
   isLoadingSnapshots: boolean;
@@ -173,6 +187,7 @@ export interface IdeationSessionState {
   status: "idle" | "loading" | "active" | "completed" | "abandoned" | "error";
   entryMode: EntryMode;
   error: string | null;
+  title: string | null;
 }
 
 export interface ConversationState {
@@ -186,8 +201,6 @@ export interface ConversationState {
 
 export interface CandidateState {
   candidate: IdeaCandidate | null;
-  confidence: number;
-  viability: number;
   risks: ViabilityRisk[];
   showIntervention: boolean;
   interventionType: "warning" | "critical" | null;
@@ -262,6 +275,7 @@ export type IdeationAction =
   | { type: "SESSION_ERROR"; payload: { error: string } }
   | { type: "SESSION_COMPLETE"; payload: { ideaId: string } }
   | { type: "SESSION_ABANDON" }
+  | { type: "SESSION_TITLE_UPDATE"; payload: { title: string } }
   | { type: "MESSAGE_SEND"; payload: { content: string } }
   | { type: "MESSAGE_STREAM_START" }
   | { type: "MESSAGE_STREAM_CHUNK"; payload: { chunk: string } }
@@ -375,6 +389,29 @@ export type IdeationAction =
   | {
       type: "MEMORY_GRAPH_PENDING_COUNT_UPDATE";
       payload: { count: number };
+    }
+  // Proposed change management actions (for insights panel)
+  | {
+      type: "MEMORY_GRAPH_CHANGE_DELETE";
+      payload: { changeId: string };
+    }
+  | {
+      type: "MEMORY_GRAPH_CHANGE_EDIT";
+      payload: { changeId: string; updates: Partial<ProposedChange> };
+    }
+  | {
+      type: "MEMORY_GRAPH_LAST_ANALYZED_UPDATE";
+      payload: { timestamp: string };
+    }
+  // Real-time insight addition (via WebSocket)
+  | {
+      type: "MEMORY_GRAPH_INSIGHT_ADD";
+      payload: { insight: ProposedChange };
+    }
+  // Load applied insights from backend (session resume)
+  | {
+      type: "MEMORY_GRAPH_INSIGHTS_LOAD";
+      payload: { insights: ProposedChange[] };
     }
   // Graph Snapshot actions
   | { type: "GRAPH_SNAPSHOTS_LOAD_START" }

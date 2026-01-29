@@ -6,8 +6,6 @@
 import { useState, useRef, useEffect } from "react";
 import {
   Minimize2,
-  CheckCircle,
-  Save,
   Trash2,
   Pencil,
   MessageSquare,
@@ -25,6 +23,7 @@ export type SessionTab = "chat" | "graph" | "memory" | "files" | "spec";
 
 export interface SessionHeaderProps {
   sessionId: string;
+  sessionTitle?: string | null;
   tokenUsage: {
     total: number;
     limit: number;
@@ -32,10 +31,6 @@ export interface SessionHeaderProps {
     shouldHandoff: boolean;
   };
   candidate: IdeaCandidate | null;
-  confidence: number;
-  viability: number;
-  onCapture: () => void;
-  onSave: () => void;
   onDiscard: () => void;
   onMinimize: () => void;
   onUpdateTitle?: (newTitle: string) => void;
@@ -52,58 +47,6 @@ export interface SessionHeaderProps {
   // T9 props - Files and Spec tabs
   hasSpec?: boolean;
   filesCount?: number;
-}
-
-// Compact meter for header
-function CompactMeter({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: "blue" | "green" | "yellow" | "red";
-}) {
-  const getColorClasses = () => {
-    switch (color) {
-      case "green":
-        return "bg-green-500";
-      case "yellow":
-        return "bg-yellow-500";
-      case "red":
-        return "bg-red-500";
-      default:
-        return "bg-blue-500";
-    }
-  };
-
-  const getTextColorClass = () => {
-    switch (color) {
-      case "green":
-        return "text-green-600";
-      case "yellow":
-        return "text-yellow-600";
-      case "red":
-        return "text-red-600";
-      default:
-        return "text-blue-600";
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-500 whitespace-nowrap">{label}</span>
-      <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all ${getColorClasses()}`}
-          style={{ width: `${value}%` }}
-        />
-      </div>
-      <span className={`text-xs font-medium ${getTextColorClass()}`}>
-        {value}%
-      </span>
-    </div>
-  );
 }
 
 // Inline tab buttons
@@ -214,12 +157,9 @@ function InlineTabs({
 
 export function SessionHeader({
   sessionId,
+  sessionTitle,
   tokenUsage,
   candidate,
-  confidence,
-  viability,
-  onCapture,
-  onSave,
   onDiscard,
   onMinimize,
   onUpdateTitle,
@@ -234,15 +174,18 @@ export function SessionHeader({
   hasSpec = false,
   filesCount = 0,
 }: SessionHeaderProps) {
+  // Use session title as primary, fall back to candidate title for backward compatibility
+  const displayTitle = sessionTitle || candidate?.title || "";
+
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(candidate?.title || "");
+  const [editedTitle, setEditedTitle] = useState(displayTitle);
   const [isHoveringTitle, setIsHoveringTitle] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Update edited title when candidate changes
+  // Update edited title when session/candidate title changes
   useEffect(() => {
-    setEditedTitle(candidate?.title || "");
-  }, [candidate?.title]);
+    setEditedTitle(displayTitle);
+  }, [displayTitle]);
 
   // Focus input when entering edit mode
   useEffect(() => {
@@ -253,17 +196,17 @@ export function SessionHeader({
   }, [isEditingTitle]);
 
   const handleStartEdit = () => {
-    if (candidate && onUpdateTitle) {
+    if (onUpdateTitle) {
       setIsEditingTitle(true);
     }
   };
 
   const handleSaveTitle = () => {
     const trimmed = editedTitle.trim();
-    if (trimmed && trimmed !== candidate?.title && onUpdateTitle) {
+    if (trimmed && trimmed !== displayTitle && onUpdateTitle) {
       onUpdateTitle(trimmed);
     } else {
-      setEditedTitle(candidate?.title || "");
+      setEditedTitle(displayTitle);
     }
     setIsEditingTitle(false);
   };
@@ -272,23 +215,9 @@ export function SessionHeader({
     if (e.key === "Enter") {
       handleSaveTitle();
     } else if (e.key === "Escape") {
-      setEditedTitle(candidate?.title || "");
+      setEditedTitle(displayTitle);
       setIsEditingTitle(false);
     }
-  };
-
-  // Determine viability color
-  const getViabilityColor = (): "green" | "yellow" | "red" => {
-    if (viability >= 70) return "green";
-    if (viability >= 40) return "yellow";
-    return "red";
-  };
-
-  // Determine confidence color
-  const getConfidenceColor = (): "blue" | "green" | "yellow" => {
-    if (confidence >= 70) return "green";
-    if (confidence >= 30) return "blue";
-    return "yellow";
   };
 
   return (
@@ -317,18 +246,14 @@ export function SessionHeader({
             >
               <h1
                 className={`text-sm font-semibold text-gray-900 truncate ${
-                  candidate && onUpdateTitle
-                    ? "cursor-pointer hover:text-blue-600"
-                    : ""
+                  onUpdateTitle ? "cursor-pointer hover:text-blue-600" : ""
                 }`}
                 onClick={handleStartEdit}
-                title={
-                  candidate && onUpdateTitle ? "Click to edit title" : undefined
-                }
+                title={onUpdateTitle ? "Click to edit title" : undefined}
               >
-                {candidate?.title || "Ideation Session"}
+                {displayTitle || "Ideation Session"}
               </h1>
-              {candidate && onUpdateTitle && isHoveringTitle && (
+              {onUpdateTitle && isHoveringTitle && (
                 <button
                   onClick={handleStartEdit}
                   className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-blue-600 transition-colors"
@@ -370,24 +295,8 @@ export function SessionHeader({
         </div>
       </div>
 
-      {/* Right side: Metrics + Token usage + Actions */}
+      {/* Right side: Token usage + Actions */}
       <div className="flex items-center gap-4">
-        {/* Metrics (only show when candidate exists) */}
-        {candidate && (
-          <div className="flex items-center gap-4">
-            <CompactMeter
-              label="Confidence"
-              value={confidence}
-              color={getConfidenceColor()}
-            />
-            <CompactMeter
-              label="Viability"
-              value={viability}
-              color={getViabilityColor()}
-            />
-          </div>
-        )}
-
         {/* Token usage - compact */}
         <div className="w-[180px]">
           <TokenUsageIndicator usage={tokenUsage} />
@@ -397,31 +306,6 @@ export function SessionHeader({
         <div className="flex items-center gap-2">
           {candidate && (
             <>
-              <button
-                data-testid="header-capture-btn"
-                onClick={onCapture}
-                disabled={confidence < 50}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
-                           bg-green-600 text-white rounded-lg hover:bg-green-700
-                           disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors
-                           focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-                title="Capture Idea"
-              >
-                <CheckCircle className="w-4 h-4" />
-                <span className="hidden sm:inline">Capture</span>
-              </button>
-              <button
-                data-testid="header-save-btn"
-                onClick={onSave}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm
-                           border border-gray-300 rounded-lg hover:bg-gray-50
-                           text-gray-700 transition-colors
-                           focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-                title="Save for Later"
-              >
-                <Save className="w-4 h-4" />
-                <span className="hidden sm:inline">Save</span>
-              </button>
               <button
                 data-testid="header-discard-btn"
                 onClick={onDiscard}

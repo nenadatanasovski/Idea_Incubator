@@ -17,16 +17,12 @@ export interface CreateCandidateParams {
   sessionId: string;
   title: string;
   summary?: string;
-  confidence?: number;
-  viability?: number;
   userSuggested?: boolean;
 }
 
 export interface UpdateCandidateParams {
   title?: string;
   summary?: string;
-  confidence?: number;
-  viability?: number;
   status?: CandidateStatus;
   capturedIdeaId?: string;
 }
@@ -67,15 +63,15 @@ export class CandidateManager {
         id, session_id, title, summary, confidence, viability,
         user_suggested, status, version, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'forming', 1, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'active', 1, ?, ?)
     `,
       [
         id,
         params.sessionId,
         params.title,
         params.summary || null,
-        params.confidence || 0,
-        params.viability || 100,
+        0,
+        100,
         params.userSuggested ? 1 : 0,
         now,
         now,
@@ -145,8 +141,6 @@ export class CandidateManager {
     params: {
       title: string;
       summary?: string;
-      confidence: number;
-      viability: number;
     },
   ): Promise<IdeaCandidate> {
     const existing = await this.getActiveForSession(sessionId);
@@ -156,9 +150,7 @@ export class CandidateManager {
       return this.update(existing.id, {
         title: params.title,
         summary: params.summary,
-        confidence: params.confidence,
-        viability: params.viability,
-        status: params.confidence >= 50 ? "active" : "forming",
+        status: "active",
       }) as Promise<IdeaCandidate>;
     }
 
@@ -167,8 +159,6 @@ export class CandidateManager {
       sessionId,
       title: params.title,
       summary: params.summary,
-      confidence: params.confidence,
-      viability: params.viability,
     });
   }
 
@@ -190,14 +180,6 @@ export class CandidateManager {
     if (params.summary !== undefined) {
       updates.push("summary = ?");
       values.push(params.summary);
-    }
-    if (params.confidence !== undefined) {
-      updates.push("confidence = ?");
-      values.push(params.confidence);
-    }
-    if (params.viability !== undefined) {
-      updates.push("viability = ?");
-      values.push(params.viability);
     }
     if (params.status !== undefined) {
       updates.push("status = ?");

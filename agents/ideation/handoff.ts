@@ -22,8 +22,6 @@ export interface HandoffState {
   marketDiscovery: MarketDiscoveryState;
   narrowingState: NarrowingState;
   candidate: IdeaCandidate | null;
-  confidence: number;
-  viability: number;
   risks: ViabilityRisk[];
 }
 
@@ -53,14 +51,6 @@ export async function prepareHandoff(
     marketDiscovery: state.marketDiscovery,
     narrowingState: state.narrowingState,
     candidate: state.candidate,
-    viability: {
-      total: state.viability,
-      risks: state.risks.map((r) => ({
-        type: r.riskType,
-        description: r.description,
-        severity: r.severity,
-      })),
-    },
   });
 
   // Create handoff summary
@@ -77,7 +67,7 @@ export async function prepareHandoff(
   return {
     success: true,
     handoffId,
-    memoryFilesCreated: 5, // self_discovery, market_discovery, narrowing_state, idea_candidate, viability_assessment
+    memoryFilesCreated: 4, // self_discovery, market_discovery, narrowing_state, idea_candidate
     tokensSaved,
   };
 }
@@ -108,8 +98,9 @@ function generateConversationSummary(
   // Candidate status
   if (state.candidate) {
     sections.push(`- **Active Candidate:** ${state.candidate.title}`);
-    sections.push(`- **Confidence:** ${state.confidence}%`);
-    sections.push(`- **Viability:** ${state.viability}%`);
+    if (state.candidate.summary) {
+      sections.push(`- **Summary:** ${state.candidate.summary}`);
+    }
   } else {
     sections.push("- No candidate formed yet, still exploring");
   }
@@ -158,10 +149,10 @@ function generateConversationSummary(
     state.narrowingState.questionsNeeded.slice(0, 3).forEach((q) => {
       sections.push(`  - ${q.question}`);
     });
-  } else if (state.confidence < 30) {
-    sections.push("- Continue exploring to build confidence");
-  } else if (state.viability < 50) {
-    sections.push("- Address viability concerns before proceeding");
+  } else if (!state.candidate) {
+    sections.push("- Continue exploring to form an idea candidate");
+  } else if (state.risks.length > 0) {
+    sections.push("- Address identified risks before proceeding");
   } else {
     sections.push("- Continue refining the current candidate");
   }

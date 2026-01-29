@@ -66,6 +66,8 @@ export interface GraphContainerProps {
   onNavigateToArtifact?: (artifactId: string, section?: string) => void;
   onNavigateToMemoryDB?: (tableName: string, blockId?: string) => void;
   onNavigateToExternal?: (url: string) => void;
+  // Navigate to Insights tab and highlight the insight with matching sourceId
+  onNavigateToInsight?: (sourceId: string) => void;
   // Selection actions
   onLinkNode?: (nodeId: string) => void;
   onGroupIntoSynthesis?: (nodeId: string) => void;
@@ -105,6 +107,15 @@ export interface GraphContainerProps {
   sourceMappingStatus?: SourceMappingJobStatus;
   onCancelSourceMapping?: () => void;
   onDismissSourceMappingStatus?: () => void;
+  // Existing insights from the right panel for source selection
+  existingInsights?: Array<{
+    id: string;
+    type: "create_block" | "update_block" | "create_link";
+    blockType?: string;
+    title?: string;
+    content?: string;
+    confidence: number;
+  }>;
 }
 
 /**
@@ -198,6 +209,7 @@ export function GraphContainer({
   onNavigateToArtifact,
   onNavigateToMemoryDB,
   onNavigateToExternal,
+  onNavigateToInsight,
   onLinkNode,
   onGroupIntoSynthesis,
   onDeleteNode,
@@ -221,6 +233,7 @@ export function GraphContainer({
   sourceMappingStatus,
   onCancelSourceMapping,
   onDismissSourceMappingStatus,
+  existingInsights = [],
 }: GraphContainerProps) {
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -687,7 +700,13 @@ export function GraphContainer({
       if (!hasHoveredEdge) {
         // Look in full edges list since NodeInspector shows all relationships
         const hoveredEdge = edges.find((e) => e.id === hoveredEdgeId);
-        if (hoveredEdge) {
+        // Only add if both source and target nodes exist in the full nodes list
+        // to avoid NaN positions in reagraph
+        if (
+          hoveredEdge &&
+          nodes.some((n) => n.id === hoveredEdge.source) &&
+          nodes.some((n) => n.id === hoveredEdge.target)
+        ) {
           return [...matchedEdges, hoveredEdge];
         }
       }
@@ -779,6 +798,37 @@ export function GraphContainer({
     filteredEdges,
     temporarilyVisibleNodeIds,
   ]);
+
+  // Combine clustered nodes with temporarily visible nodes to avoid NaN edge positions
+  // When edges reference temporarily visible nodes, those nodes must be in the array
+  const nodesWithTemporaryVisible = useMemo(() => {
+    if (temporarilyVisibleNodeIds.size === 0) {
+      return clusteredNodes;
+    }
+
+    // Find temporarily visible nodes from the full nodes list
+    const tempNodes = nodes.filter((n) => temporarilyVisibleNodeIds.has(n.id));
+
+    // Avoid duplicates (shouldn't happen but be safe)
+    const existingIds = new Set(clusteredNodes.map((n) => n.id));
+    const newTempNodes = tempNodes.filter((n) => !existingIds.has(n.id));
+
+    if (newTempNodes.length === 0) {
+      return clusteredNodes;
+    }
+
+    return [...clusteredNodes, ...newTempNodes];
+  }, [clusteredNodes, temporarilyVisibleNodeIds, nodes]);
+
+  // Final safety filter: ensure all edges reference nodes that actually exist
+  // This prevents THREE.js NaN errors when edges reference deleted/non-existent nodes
+  const safeEdges = useMemo(() => {
+    const visibleNodeIds = new Set(nodesWithTemporaryVisible.map((n) => n.id));
+    return searchFilteredEdges.filter(
+      (edge) =>
+        visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target),
+    );
+  }, [searchFilteredEdges, nodesWithTemporaryVisible]);
 
   // Track same-node click to toggle views in inspector
   const [sameNodeClickTrigger, setSameNodeClickTrigger] = useState(0);
@@ -937,8 +987,8 @@ export function GraphContainer({
       >
         <GraphCanvas
           ref={graphCanvasRef}
-          nodes={clusteredNodes}
-          edges={searchFilteredEdges}
+          nodes={nodesWithTemporaryVisible}
+          edges={safeEdges}
           onNodeClick={handleNodeClick}
           onNodeHover={handleNodeHover}
           onCanvasClick={handleCloseInspector}
@@ -1313,6 +1363,7 @@ export function GraphContainer({
           onNavigateToArtifact={onNavigateToArtifact}
           onNavigateToMemoryDB={onNavigateToMemoryDB}
           onNavigateToExternal={onNavigateToExternal}
+          onNavigateToInsight={onNavigateToInsight}
           onLinkNode={onLinkNode}
           onGroupIntoSynthesis={onGroupIntoSynthesis}
           onDeleteNode={onDeleteNode}
@@ -1334,6 +1385,7 @@ export function GraphContainer({
           ideaSlug={ideaSlug}
           onConfirm={handleSourceSelectionConfirm}
           isProcessing={isAnalyzingGraph}
+          existingInsights={existingInsights}
         />
       )}
     </div>

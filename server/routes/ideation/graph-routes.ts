@@ -53,6 +53,7 @@ import {
 import {
   collectAllSources,
   type CollectionOptions,
+  type SourceType,
 } from "../../services/graph/source-collector.js";
 import {
   buildAnalysisPrompt,
@@ -402,6 +403,129 @@ graphRouter.get("/:sessionId/graph", async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// ============================================================================
+// GET /session/:sessionId/graph/applied-insights
+// ============================================================================
+// Get applied insights (blocks that were created from conversation analysis)
+// These are reconstructed from memory_blocks for the Insights tab in the frontend
+
+graphRouter.get(
+  "/:sessionId/graph/applied-insights",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      // Query blocks that have source_type in their properties (indicates they came from source analysis)
+      // These are the blocks created from ProposedChange objects during apply-changes
+      const blocks = await query<{
+        id: string;
+        type: string;
+        title: string | null;
+        content: string;
+        confidence: number | null;
+        properties: string | null;
+        created_at: string;
+      }>(
+        `SELECT id, type, title, content, confidence, properties, created_at
+         FROM memory_blocks
+         WHERE session_id = ?
+           AND status = 'active'
+           AND properties IS NOT NULL
+           AND json_extract(properties, '$.source_type') IS NOT NULL
+         ORDER BY created_at DESC`,
+        [sessionId],
+      );
+
+      // Get graph memberships for these blocks
+      const blockIds = blocks.map((b) => b.id);
+      const memberships =
+        blockIds.length > 0
+          ? await blockExtractor.getGraphMemberships(blockIds)
+          : new Map<string, string[]>();
+
+      // Get specific source mappings for each block from memory_block_sources table
+      // This is the same data shown in Source Lineage in NodeInspector
+      const blockSourceMappings = new Map<
+        string,
+        Array<{
+          id: string;
+          type: string;
+          title: string | null;
+          weight: number | null;
+          contentSnippet: string | null;
+        }>
+      >();
+
+      if (blockIds.length > 0) {
+        const sourceMappings = await query<{
+          block_id: string;
+          source_id: string;
+          source_type: string;
+          source_title: string | null;
+          source_content_snippet: string | null;
+          relevance_score: number | null;
+        }>(
+          `SELECT block_id, source_id, source_type, source_title, source_content_snippet, relevance_score
+           FROM memory_block_sources
+           WHERE block_id IN (${blockIds.map(() => "?").join(",")})
+           ORDER BY relevance_score DESC`,
+          blockIds,
+        );
+
+        // Group sources by block_id
+        for (const mapping of sourceMappings) {
+          const existing = blockSourceMappings.get(mapping.block_id) || [];
+          existing.push({
+            id: mapping.source_id,
+            type: mapping.source_type,
+            title: mapping.source_title,
+            weight: mapping.relevance_score,
+            contentSnippet: mapping.source_content_snippet,
+          });
+          blockSourceMappings.set(mapping.block_id, existing);
+        }
+      }
+
+      // Transform blocks back to ProposedChange format for frontend
+      const insights = blocks.map((block) => {
+        const props = block.properties ? JSON.parse(block.properties) : {};
+
+        // Reconstruct ProposedChange object
+        return {
+          id: block.id, // Use block ID as insight ID for navigation
+          type: "create_block" as const,
+          blockType: block.type,
+          title: block.title || undefined,
+          content: block.content,
+          confidence: block.confidence || 0.8,
+          graphMembership: memberships.get(block.id) || [],
+          // Source attribution from properties
+          sourceId: props.source_id || props.message_id || props.artifact_id,
+          sourceType: props.source_type,
+          sourceWeight: props.source_weight,
+          corroboratedBy: props.corroborated_by || [],
+          // Use specific source mappings from memory_block_sources table
+          // This matches what Source Lineage shows in NodeInspector
+          allSources: blockSourceMappings.get(block.id) || [],
+        };
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          insights,
+          count: insights.length,
+        },
+      });
+    } catch (error) {
+      console.error("Error getting applied insights:", error);
+      return res
+        .status(500)
+        .json({ success: false, error: "Internal server error" });
+    }
+  },
+);
 
 // ============================================================================
 // POST /session/:sessionId/graph/blocks
@@ -1369,6 +1493,8 @@ const ApplyChangesSchema = z.object({
         artifactType: z.string().nullish(),
         memoryFileType: z.string().nullish(),
         weight: z.number().nullish(),
+        // Content snippet for display - truncated to 500 chars
+        contentSnippet: z.string().nullish(),
       }),
     )
     .nullish(),
@@ -1615,12 +1741,15 @@ graphRouter.post(
 
               // Store ALL sources that were part of this analysis for comprehensive lineage
               // This allows the frontend to show all potential sources for the insight
+              // Now includes content snippets for display in the UI
               if (sources && sources.length > 0) {
                 properties.all_sources = sources.map((s) => ({
                   id: s.id,
                   type: s.type,
                   title: s.title,
                   weight: s.weight,
+                  // Include content snippet for display in insights panel
+                  contentSnippet: s.contentSnippet || null,
                 }));
               }
 
@@ -2109,6 +2238,16 @@ async function analyzeSessionForGraphUpdates(
       totalTokens: number;
       truncated: boolean;
     };
+    // Sources for lineage tracking - includes content snippets
+    sources?: Array<{
+      id: string;
+      type: string;
+      title: string | null;
+      artifactType?: string | null;
+      memoryFileType?: string | null;
+      weight?: number | null;
+      contentSnippet?: string;
+    }>;
   }
 > {
   const startTime = Date.now();
@@ -2337,9 +2476,10 @@ async function analyzeSessionForGraphUpdates(
       attributionBreakdown,
     );
 
-    // Include simplified source list for lineage tracking
-    // This allows the frontend to display source info and enables
+    // Include source list for lineage tracking with content snippets
+    // This allows the frontend to display source info with context and enables
     // apply-changes to resolve sourceIds when AI didn't provide them
+    // Content is truncated to 500 chars to balance detail with payload size
     const sourcesForLineage = collectionResult.sources.map((s) => ({
       id: s.id,
       type: s.type,
@@ -2347,6 +2487,8 @@ async function analyzeSessionForGraphUpdates(
       artifactType: s.metadata.artifactType || null,
       memoryFileType: s.metadata.memoryFileType || null,
       weight: s.weight,
+      // Include full content for display (no truncation - let frontend handle display)
+      contentSnippet: s.content,
     }));
 
     return {

@@ -14,7 +14,7 @@ import {
   IdeaTypeSelectionState,
   IdeaTypeSelection,
 } from "../../types/ideation.js";
-// sessionManager import removed - not currently used
+import { sessionManager } from "./session-manager.js";
 import { messageStore } from "./message-store.js";
 import { memoryManager } from "./memory-manager.js";
 import { candidateManager } from "./candidate-manager.js";
@@ -30,8 +30,6 @@ import {
   IntentClassification,
   PresentedOption,
 } from "./intent-classifier.js";
-import { calculateConfidence } from "./confidence-calculator.js";
-import { calculateViability } from "./viability-calculator.js";
 import { calculateTokenUsage } from "./token-counter.js";
 import { prepareHandoff } from "./handoff.js";
 import { buildSystemPrompt, ArtifactSummary } from "./system-prompt.js";
@@ -66,8 +64,6 @@ export interface OrchestratorResponse {
     title: string;
     summary?: string;
   } | null;
-  confidence: number;
-  viability: number;
   risks: ViabilityRisk[];
   requiresIntervention: boolean;
   handoffOccurred: boolean;
@@ -305,7 +301,7 @@ export class AgentOrchestrator {
     const existingCandidate = await candidateManager.getActiveForSession(
       session.id,
     );
-    const candidateForCalculation = parsed.candidateTitle
+    const candidateForUpdate = parsed.candidateTitle
       ? { title: parsed.candidateTitle, summary: parsed.candidateSummary }
       : existingCandidate
         ? {
@@ -314,17 +310,7 @@ export class AgentOrchestrator {
           }
         : null;
 
-    // Calculate meters
-    const confidenceResult = calculateConfidence({
-      selfDiscovery: selfDiscovery as SelfDiscoveryState,
-      marketDiscovery: marketDiscovery as MarketDiscoveryState,
-      narrowingState: narrowingState as NarrowingState,
-      candidate: candidateForCalculation,
-      userConfirmations: this.countConfirmations(messages),
-    });
-
     // Track if web search was requested (will be handled asynchronously)
-    let webSearchResults: WebSearchResult[] = [];
     const webSearchRequested =
       parsed.webSearchNeeded && parsed.webSearchNeeded.length > 0;
 
@@ -332,19 +318,6 @@ export class AgentOrchestrator {
     // The response is returned immediately without waiting for search results.
     // If webSearchNeeded is set, the frontend should call the search endpoint
     // and display results in the artifact panel.
-
-    const viabilityResult = calculateViability({
-      selfDiscovery: selfDiscovery as SelfDiscoveryState,
-      marketDiscovery: marketDiscovery as MarketDiscoveryState,
-      narrowingState: narrowingState as NarrowingState,
-      webSearchResults: webSearchResults,
-      candidate: candidateForCalculation
-        ? {
-            id: existingCandidate?.id || "",
-            title: candidateForCalculation.title,
-          }
-        : null,
-    });
 
     // Determine candidate for memory update - preserve existing if no new one
     const candidateForMemory = parsed.candidateTitle
@@ -354,8 +327,8 @@ export class AgentOrchestrator {
           title: parsed.candidateTitle,
           summary:
             parsed.candidateSummary || existingCandidate?.summary || null,
-          confidence: confidenceResult.total,
-          viability: viabilityResult.total,
+          confidence: 0,
+          viability: 100,
           userSuggested: existingCandidate?.userSuggested || false,
           status: existingCandidate?.status || ("forming" as const),
           capturedIdeaId: existingCandidate?.capturedIdeaId || null,
@@ -366,28 +339,19 @@ export class AgentOrchestrator {
       : existingCandidate
         ? {
             ...existingCandidate,
-            confidence: confidenceResult.total,
-            viability: viabilityResult.total,
             updatedAt: new Date(),
           }
         : null;
 
     // Update memory files
-    // Map ViabilityRisk to ViabilityRiskSummary format expected by memory manager
-    const riskSummaries = viabilityResult.risks.map((r) => ({
-      type: r.riskType,
-      description: r.description,
-      severity: r.severity,
-    }));
     await memoryManager.updateAll(session.id, {
       selfDiscovery: selfDiscovery as SelfDiscoveryState,
       marketDiscovery: marketDiscovery as MarketDiscoveryState,
       narrowingState: narrowingState as NarrowingState,
       candidate: candidateForMemory,
-      viability: { total: viabilityResult.total, risks: riskSummaries },
     });
 
-    // Save candidate to database
+    // Save candidate to database and update session title
     if (parsed.candidateTitle) {
       // New candidate or update
       if (existingCandidate) {
@@ -396,8 +360,6 @@ export class AgentOrchestrator {
           title: parsed.candidateTitle,
           summary:
             parsed.candidateSummary || existingCandidate.summary || undefined,
-          confidence: confidenceResult.total,
-          viability: viabilityResult.total,
         });
       } else {
         // Create new candidate
@@ -405,16 +367,11 @@ export class AgentOrchestrator {
           sessionId: session.id,
           title: parsed.candidateTitle,
           summary: parsed.candidateSummary,
-          confidence: confidenceResult.total,
-          viability: viabilityResult.total,
         });
       }
-    } else if (existingCandidate) {
-      // Update confidence/viability for existing candidate
-      await candidateManager.update(existingCandidate.id, {
-        confidence: confidenceResult.total,
-        viability: viabilityResult.total,
-      });
+
+      // Also update session title (primary source of truth for UI)
+      await sessionManager.updateTitle(session.id, parsed.candidateTitle);
     }
 
     // Store assistant message (user message was stored earlier, before Claude call)
@@ -464,16 +421,14 @@ export class AgentOrchestrator {
       reply: parsed.reply,
       buttons: parsed.buttons || null,
       form: (parsed.formFields as FormDefinition) || null,
-      candidateUpdate: candidateForCalculation
+      candidateUpdate: candidateForUpdate
         ? {
-            title: candidateForCalculation.title,
-            summary: candidateForCalculation.summary,
+            title: candidateForUpdate.title,
+            summary: candidateForUpdate.summary,
           }
         : null,
-      confidence: confidenceResult.total,
-      viability: viabilityResult.total,
-      risks: viabilityResult.risks || [],
-      requiresIntervention: viabilityResult.requiresIntervention,
+      risks: [],
+      requiresIntervention: false,
       handoffOccurred,
       userMessageId: userMsg.id,
       assistantMessageId: assistantMsg.id,
@@ -912,8 +867,6 @@ export class AgentOrchestrator {
       marketDiscovery: state.marketDiscovery as MarketDiscoveryState,
       narrowingState: state.narrowing as NarrowingState,
       candidate: null,
-      confidence: 0,
-      viability: 100,
       risks: [],
     });
   }
@@ -1097,7 +1050,7 @@ export class AgentOrchestrator {
       tokenCount: Math.ceil(acknowledgmentText.length / 4),
     });
 
-    // Load current state for confidence/viability
+    // Load existing candidate for update
     const existingCandidate = await candidateManager.getActiveForSession(
       session.id,
     );
@@ -1112,8 +1065,6 @@ export class AgentOrchestrator {
             summary: existingCandidate.summary || undefined,
           }
         : null,
-      confidence: existingCandidate?.confidence || 0,
-      viability: existingCandidate?.viability || 100,
       risks: [],
       requiresIntervention: false,
       handoffOccurred: false,
@@ -1191,8 +1142,6 @@ export class AgentOrchestrator {
         buttons: null,
         form: null,
         candidateUpdate: null,
-        confidence: 0,
-        viability: 0,
         risks: [],
         requiresIntervention: false,
         handoffOccurred: false,
@@ -1237,8 +1186,6 @@ export class AgentOrchestrator {
             summary: existingCandidate.summary || undefined,
           }
         : null,
-      confidence: existingCandidate?.confidence || 0,
-      viability: existingCandidate?.viability || 100,
       risks: [],
       requiresIntervention: false,
       handoffOccurred: false,
@@ -1692,8 +1639,6 @@ What kind of idea is this?`;
       buttons,
       form: null,
       candidateUpdate: null,
-      confidence: 0,
-      viability: 100,
       risks: [],
       requiresIntervention: false,
       handoffOccurred: false,
@@ -1765,8 +1710,6 @@ What kind of idea is this?`;
       buttons: null,
       form: null,
       candidateUpdate: null,
-      confidence: 0,
-      viability: 100,
       risks: [],
       requiresIntervention: false,
       handoffOccurred: false,
@@ -1848,8 +1791,6 @@ You can type the name of the platform (e.g., "Shopify", "Slack", "Notion") or se
       buttons,
       form: null,
       candidateUpdate: null,
-      confidence: 0,
-      viability: 100,
       risks: [],
       requiresIntervention: false,
       handoffOccurred: false,
@@ -1944,8 +1885,6 @@ You can type the name of the platform (e.g., "Shopify", "Slack", "Notion") or se
       buttons: null,
       form: null,
       candidateUpdate: null,
-      confidence: 0,
-      viability: 100,
       risks: [],
       requiresIntervention: false,
       handoffOccurred: false,

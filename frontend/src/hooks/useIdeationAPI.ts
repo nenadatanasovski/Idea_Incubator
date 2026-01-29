@@ -62,10 +62,7 @@ interface MessageResponse {
   buttons?: ButtonOption[];
   form?: FormDefinition;
   candidateUpdate?: IdeaCandidate;
-  confidence?: number;
-  viability?: number;
   risks?: ViabilityRisk[];
-  intervention?: { type: "warning" | "critical" };
   tokenUsage?: TokenUsageInfo;
   webSearchQueries?: string[]; // Queries to execute async
   artifact?: Artifact; // Visual artifact from agent
@@ -106,8 +103,6 @@ interface SessionResponse {
   entryMode: string;
   messages: IdeationMessage[];
   candidate?: IdeaCandidate;
-  confidence: number;
-  viability: number;
   risks: ViabilityRisk[];
   tokenUsage: TokenUsageInfo;
 }
@@ -120,8 +115,6 @@ interface SessionListResponse {
     entryMode: string;
     messageCount: number;
     candidateTitle?: string;
-    confidence?: number;
-    viability?: number;
     lastActivityAt: string;
   }>;
 }
@@ -348,6 +341,7 @@ export function useIdeationAPI() {
         profileId: string;
         status: string;
         entryMode: string | null;
+        title?: string | null;
         userSlug?: string | null;
         ideaSlug?: string | null;
       };
@@ -363,8 +357,6 @@ export function useIdeationAPI() {
         id: string;
         title: string;
         summary: string | null;
-        confidence: number;
-        viability: number;
       } | null;
       artifacts?: Artifact[];
       subAgents?: Array<{
@@ -513,6 +505,41 @@ export function useIdeationAPI() {
   );
 
   /**
+   * Update session title
+   */
+  const updateSessionTitle = useCallback(
+    async (
+      sessionId: string,
+      title: string,
+    ): Promise<{
+      success: boolean;
+      title: string;
+      folderCreated: boolean;
+      folder: { userSlug: string; ideaSlug: string } | null;
+    }> => {
+      const response = await fetch(`${API_BASE}/session/${sessionId}/title`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to update session title" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to update session title",
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  /**
    * Link a session to a specific user/idea
    */
   const linkIdea = useCallback(
@@ -631,13 +658,14 @@ export function useIdeationAPI() {
       sessionId: string,
       selectedSourceIds?: string[],
       ideaSlug?: string,
+      sinceTimestamp?: string, // Only analyze conversations since this timestamp
     ): Promise<GraphUpdateAnalysis> => {
       const response = await fetch(
         `${API_BASE}/session/${sessionId}/graph/analyze-changes`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ selectedSourceIds, ideaSlug }),
+          body: JSON.stringify({ selectedSourceIds, ideaSlug, sinceTimestamp }),
         },
       );
 
@@ -963,6 +991,63 @@ export function useIdeationAPI() {
   );
 
   /**
+   * Fetch applied insights (blocks created from conversation analysis).
+   * These are reconstructed from memory_blocks for the Insights tab.
+   */
+  const fetchAppliedInsights = useCallback(
+    async (
+      sessionId: string,
+    ): Promise<{
+      success: boolean;
+      data: {
+        insights: Array<{
+          id: string;
+          type: "create_block" | "update_block" | "create_link";
+          blockType: string;
+          title?: string;
+          content: string;
+          confidence: number;
+          graphMembership: string[];
+          sourceId?: string;
+          sourceType?: string;
+          sourceWeight?: number;
+          corroboratedBy?: Array<{
+            sourceId: string;
+            sourceType: string;
+            snippet?: string;
+          }>;
+          allSources?: Array<{
+            id: string;
+            type: string;
+            title: string | null;
+            weight: number | null;
+            contentSnippet: string | null;
+          }>;
+        }>;
+        count: number;
+      };
+    }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/graph/applied-insights`,
+      );
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to fetch applied insights" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to fetch applied insights",
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  /**
    * Trigger source-to-node mapping for all blocks in a session.
    * Uses Claude Opus 4.5 to analyze which sources contributed to each block.
    */
@@ -1017,6 +1102,7 @@ export function useIdeationAPI() {
       saveArtifact,
       deleteArtifact,
       updateCandidate,
+      updateSessionTitle,
       linkIdea,
       triggerFollowUp,
       analyzeGraphChanges,
@@ -1030,6 +1116,7 @@ export function useIdeationAPI() {
       // Block source mapping
       getBlockSources,
       mapBlockSources,
+      fetchAppliedInsights,
     }),
     [
       startSession,
@@ -1048,6 +1135,7 @@ export function useIdeationAPI() {
       saveArtifact,
       deleteArtifact,
       updateCandidate,
+      updateSessionTitle,
       linkIdea,
       triggerFollowUp,
       analyzeGraphChanges,
@@ -1059,6 +1147,7 @@ export function useIdeationAPI() {
       deleteGraphSnapshot,
       getBlockSources,
       mapBlockSources,
+      fetchAppliedInsights,
     ],
   );
 }

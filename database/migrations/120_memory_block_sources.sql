@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS memory_block_sources (
 
     -- Source metadata for display
     source_title TEXT,
-    source_content_snippet TEXT, -- First ~200 chars of source content for preview
+    source_content_snippet TEXT, -- First ~500 chars of source content for preview
 
     -- AI mapping metadata
     relevance_score REAL, -- 0.0-1.0 how relevant this source is to the block

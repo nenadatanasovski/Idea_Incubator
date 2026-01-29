@@ -127,6 +127,8 @@ export interface GraphTabPanelProps {
   onNavigateToArtifact?: (artifactId: string, section?: string) => void;
   onNavigateToMemoryDB?: (tableName: string, blockId?: string) => void;
   onNavigateToExternal?: (url: string) => void;
+  // Navigate to Insights tab and highlight the insight with matching sourceId
+  onNavigateToInsight?: (sourceId: string) => void;
   // Selection actions for the selected node
   onLinkNode?: (nodeId: string) => void;
   onGroupIntoSynthesis?: (nodeId: string) => void;
@@ -144,6 +146,8 @@ export interface GraphTabPanelProps {
   onClearNotification?: () => void;
   // Callback when a snapshot is restored (to refresh other panels like MemoryDatabase)
   onSnapshotRestored?: () => void;
+  // Existing insights from the right panel for source selection
+  existingInsights?: ProposedChange[];
 }
 
 /**
@@ -178,6 +182,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   onNavigateToArtifact,
   onNavigateToMemoryDB,
   onNavigateToExternal,
+  onNavigateToInsight,
   onLinkNode,
   onGroupIntoSynthesis,
   onDeleteNode,
@@ -186,6 +191,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   successNotification,
   onClearNotification,
   onSnapshotRestored,
+  existingInsights = [],
 }: GraphTabPanelProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
@@ -386,6 +392,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
     artifactType?: string | null;
     memoryFileType?: string | null;
     weight?: number | null;
+    contentSnippet?: string | null;
   }> | null>(null);
   const [isApplyingChanges, setIsApplyingChanges] = useState(false);
 
@@ -717,6 +724,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               onNavigateToArtifact={onNavigateToArtifact}
               onNavigateToMemoryDB={onNavigateToMemoryDB}
               onNavigateToExternal={onNavigateToExternal}
+              onNavigateToInsight={onNavigateToInsight}
               onLinkNode={onLinkNode}
               onGroupIntoSynthesis={onGroupIntoSynthesis}
               onDeleteNode={onDeleteNode}
@@ -742,6 +750,8 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               sourceMappingStatus={sourceMappingStatus}
               onCancelSourceMapping={cancelSourceMapping}
               onDismissSourceMappingStatus={dismissSourceMappingStatus}
+              // Existing insights for source selection
+              existingInsights={existingInsights}
               className="h-full"
             />
           </Suspense>

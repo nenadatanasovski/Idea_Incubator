@@ -23,6 +23,7 @@ export const initialState: IdeationStore = {
     status: "idle",
     entryMode: null,
     error: null,
+    title: null,
   },
   conversation: {
     messages: [],
@@ -34,8 +35,6 @@ export const initialState: IdeationStore = {
   },
   candidate: {
     candidate: null,
-    confidence: 0,
-    viability: 100,
     risks: [],
     showIntervention: false,
     interventionType: null,
@@ -77,6 +76,10 @@ export const initialState: IdeationStore = {
     selectedChangeIds: [],
     isApplying: false,
     error: null,
+    // Timestamp tracking for incremental analysis
+    lastAnalyzedAt: null,
+    // Applied insights - persisted after changes are applied to the graph
+    appliedInsights: [],
     // Snapshot/versioning state
     snapshots: [],
     isLoadingSnapshots: false,
@@ -141,6 +144,15 @@ export function ideationReducer(
         session: {
           ...state.session,
           status: "abandoned",
+        },
+      };
+
+    case "SESSION_TITLE_UPDATE":
+      return {
+        ...state,
+        session: {
+          ...state.session,
+          title: action.payload.title,
         },
       };
 
@@ -271,6 +283,11 @@ export function ideationReducer(
           ...state.candidate,
           candidate: action.payload.candidate,
         },
+        // Also update session title when candidate title changes (sync)
+        session: {
+          ...state.session,
+          title: action.payload.candidate.title || state.session.title,
+        },
       };
 
     case "CANDIDATE_CLEAR":
@@ -279,28 +296,7 @@ export function ideationReducer(
         candidate: {
           ...state.candidate,
           candidate: null,
-          confidence: 0,
-          viability: 100,
           risks: [],
-        },
-      };
-
-    case "CONFIDENCE_UPDATE":
-      return {
-        ...state,
-        candidate: {
-          ...state.candidate,
-          confidence: action.payload.confidence,
-        },
-      };
-
-    case "VIABILITY_UPDATE":
-      return {
-        ...state,
-        candidate: {
-          ...state.candidate,
-          viability: action.payload.viability,
-          risks: action.payload.risks,
         },
       };
 
@@ -934,6 +930,8 @@ export function ideationReducer(
             (c) => c.id,
           ),
           error: null,
+          // Update timestamp when analysis completes
+          lastAnalyzedAt: new Date().toISOString(),
         },
       };
 
@@ -987,7 +985,12 @@ export function ideationReducer(
         },
       };
 
-    case "MEMORY_GRAPH_APPLY_COMPLETE":
+    case "MEMORY_GRAPH_APPLY_COMPLETE": {
+      // Preserve the applied insights before clearing the analysis
+      const appliedChanges =
+        state.memoryGraph.analysis?.proposedChanges.filter((change) =>
+          state.memoryGraph.selectedChangeIds.includes(change.id),
+        ) || [];
       return {
         ...state,
         memoryGraph: {
@@ -998,8 +1001,14 @@ export function ideationReducer(
           selectedChangeIds: [],
           pendingChangesCount: 0,
           error: null,
+          // Add newly applied insights to the persisted list
+          appliedInsights: [
+            ...state.memoryGraph.appliedInsights,
+            ...appliedChanges,
+          ],
         },
       };
+    }
 
     case "MEMORY_GRAPH_APPLY_ERROR":
       return {
@@ -1019,6 +1028,117 @@ export function ideationReducer(
           pendingChangesCount: action.payload.count,
         },
       };
+
+    case "MEMORY_GRAPH_CHANGE_DELETE": {
+      // Remove a proposed change from the analysis
+      if (!state.memoryGraph.analysis) return state;
+      const filteredChanges = state.memoryGraph.analysis.proposedChanges.filter(
+        (c) => c.id !== action.payload.changeId,
+      );
+      const filteredSelectedIds = state.memoryGraph.selectedChangeIds.filter(
+        (id) => id !== action.payload.changeId,
+      );
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          analysis: {
+            ...state.memoryGraph.analysis,
+            proposedChanges: filteredChanges,
+          },
+          selectedChangeIds: filteredSelectedIds,
+        },
+      };
+    }
+
+    case "MEMORY_GRAPH_CHANGE_EDIT": {
+      // Update a proposed change in the analysis
+      if (!state.memoryGraph.analysis) return state;
+      const updatedChanges = state.memoryGraph.analysis.proposedChanges.map(
+        (c) =>
+          c.id === action.payload.changeId
+            ? { ...c, ...action.payload.updates }
+            : c,
+      );
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          analysis: {
+            ...state.memoryGraph.analysis,
+            proposedChanges: updatedChanges,
+          },
+        },
+      };
+    }
+
+    case "MEMORY_GRAPH_LAST_ANALYZED_UPDATE":
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          lastAnalyzedAt: action.payload.timestamp,
+        },
+      };
+
+    case "MEMORY_GRAPH_INSIGHT_ADD": {
+      // Add a single insight to the existing analysis (real-time via WebSocket)
+      const newInsight = action.payload.insight;
+      if (state.memoryGraph.analysis) {
+        // Append to existing analysis
+        return {
+          ...state,
+          memoryGraph: {
+            ...state.memoryGraph,
+            analysis: {
+              ...state.memoryGraph.analysis,
+              proposedChanges: [
+                ...state.memoryGraph.analysis.proposedChanges,
+                newInsight,
+              ],
+            },
+            // Auto-select the new insight
+            selectedChangeIds: [
+              ...state.memoryGraph.selectedChangeIds,
+              newInsight.id,
+            ],
+          },
+        };
+      }
+      // Create new analysis with just this insight
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          analysis: {
+            context: {
+              who: "system",
+              what: "auto-generated insight",
+              when: new Date().toISOString(),
+              where: "conversation",
+              why: "real-time analysis",
+            },
+            proposedChanges: [newInsight],
+            cascadeEffects: [],
+            previewNodes: [],
+            previewEdges: [],
+          },
+          selectedChangeIds: [newInsight.id],
+        },
+      };
+    }
+
+    case "MEMORY_GRAPH_INSIGHTS_LOAD": {
+      // Load applied insights from backend (session resume)
+      // This populates appliedInsights with persisted insights
+      return {
+        ...state,
+        memoryGraph: {
+          ...state.memoryGraph,
+          appliedInsights: action.payload.insights,
+        },
+      };
+    }
 
     // =========================================================================
     // Graph Snapshot Actions

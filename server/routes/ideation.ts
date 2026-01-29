@@ -265,13 +265,14 @@ async function getProfileById(profileId: string): Promise<UserProfile | null> {
   const profile = await getOne<{
     id: string;
     name: string;
+    slug: string | null;
     technical_skills: string | null;
     interests: string | null;
     professional_experience: string | null;
     city: string | null;
     country: string | null;
   }>(
-    "SELECT id, name, technical_skills, interests, professional_experience, city, country FROM user_profiles WHERE id = ?",
+    "SELECT id, name, slug, technical_skills, interests, professional_experience, city, country FROM user_profiles WHERE id = ?",
     [profileId],
   );
 
@@ -293,6 +294,7 @@ async function getProfileById(profileId: string): Promise<UserProfile | null> {
 
   return {
     name: profile.name,
+    slug: profile.slug || undefined,
     skills: parseField(profile.technical_skills),
     interests: parseField(profile.interests),
     experience: profile.professional_experience
@@ -308,6 +310,110 @@ async function getProfileById(profileId: string): Promise<UserProfile | null> {
           }
         : undefined,
   };
+}
+
+/**
+ * Auto-creates an idea folder when a candidate gets a title.
+ * This eliminates the need for manual "Capture" button clicks.
+ */
+async function autoCreateIdeaFolder(
+  sessionId: string,
+  candidateTitle: string,
+  profileId: string,
+): Promise<{ userSlug: string; ideaSlug: string } | null> {
+  try {
+    // Get session to check current idea_slug
+    const db = await import("../../database/db.js");
+    const sessionRow = await db.getOne<{
+      user_slug: string | null;
+      idea_slug: string | null;
+    }>(`SELECT user_slug, idea_slug FROM ideation_sessions WHERE id = ?`, [
+      sessionId,
+    ]);
+
+    if (!sessionRow) {
+      console.log(`[AutoCreate] Session ${sessionId} not found`);
+      return null;
+    }
+
+    // If already has a non-draft idea_slug, don't overwrite
+    if (sessionRow.idea_slug && !sessionRow.idea_slug.startsWith("draft_")) {
+      console.log(
+        `[AutoCreate] Session already linked to idea: ${sessionRow.idea_slug}`,
+      );
+      return {
+        userSlug: sessionRow.user_slug || "",
+        ideaSlug: sessionRow.idea_slug,
+      };
+    }
+
+    // Get profile to get user_slug
+    const profile = await getProfileById(profileId);
+    if (!profile?.slug) {
+      console.log(`[AutoCreate] Profile ${profileId} has no slug`);
+      return null;
+    }
+
+    const userSlug = profile.slug;
+
+    // Generate idea slug from candidate title
+    const ideaSlug = candidateTitle
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 50);
+
+    // Check if idea already exists
+    if (ideaFolderExists(userSlug, ideaSlug)) {
+      console.log(`[AutoCreate] Idea folder already exists: ${ideaSlug}`);
+      // Link to existing idea
+      await db.run(
+        `UPDATE ideation_sessions SET user_slug = ?, idea_slug = ?, last_activity_at = ? WHERE id = ?`,
+        [userSlug, ideaSlug, new Date().toISOString(), sessionId],
+      );
+      await db.saveDb();
+      return { userSlug, ideaSlug };
+    }
+
+    // If has draft, rename it
+    if (sessionRow.idea_slug?.startsWith("draft_")) {
+      console.log(
+        `[AutoCreate] Renaming draft ${sessionRow.idea_slug} to ${ideaSlug}`,
+      );
+      await renameDraftToIdea(
+        userSlug,
+        sessionRow.idea_slug,
+        ideaSlug,
+        "business",
+      );
+    } else {
+      // Create new idea folder directly
+      console.log(`[AutoCreate] Creating new idea folder: ${ideaSlug}`);
+      const draftResult = await createDraftFolder(userSlug);
+      await renameDraftToIdea(
+        userSlug,
+        draftResult.draftId,
+        ideaSlug,
+        "business",
+      );
+    }
+
+    // Update session with idea link
+    await db.run(
+      `UPDATE ideation_sessions SET user_slug = ?, idea_slug = ?, last_activity_at = ? WHERE id = ?`,
+      [userSlug, ideaSlug, new Date().toISOString(), sessionId],
+    );
+    await db.saveDb();
+
+    console.log(
+      `[AutoCreate] Successfully created idea folder and linked session: ${userSlug}/${ideaSlug}`,
+    );
+    return { userSlug, ideaSlug };
+  } catch (error) {
+    console.error("[AutoCreate] Error auto-creating idea folder:", error);
+    return null;
+  }
 }
 
 async function createIdea(params: {
@@ -589,50 +695,25 @@ ideationRouter.post(
         tokenCount: totalTokens,
       });
 
-      // Get or create candidate if confidence is high enough
+      // Get or create candidate whenever candidateUpdate exists
       let candidateData = null;
-      if (response.confidence >= 30 && response.candidateUpdate) {
+      if (response.candidateUpdate) {
         const candidate = await candidateManager.getOrCreateForSession(
           sessionId,
           {
             title: response.candidateUpdate.title,
             summary: response.candidateUpdate.summary,
-            confidence: response.confidence,
-            viability: response.viability,
           },
         );
         candidateData = candidate;
-      }
-
-      // Build intervention if needed
-      let intervention = null;
-      if (response.requiresIntervention) {
-        intervention = {
-          type: response.viability < 25 ? "critical" : "warning",
-          message: "Viability concerns detected",
-          options: [
-            {
-              id: "address",
-              label: "Address challenges",
-              value: "Let's address these challenges",
-            },
-            {
-              id: "pivot",
-              label: "Pivot direction",
-              value: "I want to explore a different direction",
-            },
-            {
-              id: "continue",
-              label: "Continue anyway",
-              value: "I understand the risks, let's continue",
-            },
-            {
-              id: "fresh",
-              label: "Start fresh",
-              value: "Let's start with a completely new idea",
-            },
-          ],
-        };
+        // Auto-create idea folder when candidate gets a title
+        if (response.candidateUpdate.title && session) {
+          await autoCreateIdeaFolder(
+            sessionId,
+            response.candidateUpdate.title,
+            session.profileId,
+          );
+        }
       }
 
       // Calculate token usage for frontend display
@@ -741,10 +822,7 @@ ideationRouter.post(
               summary: candidateData.summary,
             }
           : null,
-        confidence: response.confidence,
-        viability: response.viability,
         risks: response.risks || [],
-        intervention,
         handoffOccurred: response.handoffOccurred,
         tokenUsage: {
           total: totalTokens,
@@ -1059,72 +1137,50 @@ ideationRouter.post("/message/edit", async (req: Request, res: Response) => {
       tokenCount: totalTokens,
     });
 
-    // Get or update candidate - always update existing candidate with new scores after edit
+    // Get or update candidate
     let candidateData = null;
     const existingCandidate =
       await candidateManager.getActiveForSession(sessionId);
+    let ideaLinked: { userSlug: string; ideaSlug: string } | null = null;
 
     if (existingCandidate) {
-      // Update existing candidate with recalculated scores
-      await candidateManager.update(existingCandidate.id, {
-        confidence: response.confidence,
-        viability: response.viability,
-        ...(response.candidateUpdate
-          ? {
-              title: response.candidateUpdate.title,
-              summary: response.candidateUpdate.summary,
-            }
-          : {}),
-      });
+      // Update existing candidate
+      if (response.candidateUpdate) {
+        await candidateManager.update(existingCandidate.id, {
+          title: response.candidateUpdate.title,
+          summary: response.candidateUpdate.summary,
+        });
+        // Auto-create idea folder when candidate gets a title
+        if (response.candidateUpdate.title && session) {
+          ideaLinked = await autoCreateIdeaFolder(
+            sessionId,
+            response.candidateUpdate.title,
+            session.profileId,
+          );
+        }
+      }
       candidateData = {
         ...existingCandidate,
-        confidence: response.confidence,
-        viability: response.viability,
         ...(response.candidateUpdate || {}),
       };
-    } else if (response.confidence >= 30 && response.candidateUpdate) {
-      // Create new candidate if confidence is high enough
+    } else if (response.candidateUpdate) {
+      // Create new candidate whenever candidateUpdate exists
       const candidate = await candidateManager.getOrCreateForSession(
         sessionId,
         {
           title: response.candidateUpdate.title,
           summary: response.candidateUpdate.summary,
-          confidence: response.confidence,
-          viability: response.viability,
         },
       );
       candidateData = candidate;
-    }
-
-    // Build intervention if needed
-    let intervention = null;
-    if (response.requiresIntervention) {
-      intervention = {
-        type: response.viability < 25 ? "critical" : "warning",
-        message: "Viability concerns detected",
-        options: [
-          {
-            id: "address",
-            label: "Address challenges",
-            value: "Let's address these challenges",
-          },
-          {
-            id: "pivot",
-            label: "Pivot direction",
-            value: "I want to explore a different direction",
-          },
-          {
-            id: "continue",
-            label: "Continue anyway",
-            value: "I understand the risks, let's continue",
-          },
-          {
-            id: "fresh",
-            label: "Start fresh",
-            value: "Let's start with a completely new idea",
-          },
-        ],
-      };
+      // Auto-create idea folder when candidate gets a title
+      if (response.candidateUpdate.title && session) {
+        ideaLinked = await autoCreateIdeaFolder(
+          sessionId,
+          response.candidateUpdate.title,
+          session.profileId,
+        );
+      }
     }
 
     // Calculate token usage for frontend display
@@ -1212,10 +1268,7 @@ ideationRouter.post("/message/edit", async (req: Request, res: Response) => {
             summary: candidateData.summary,
           }
         : null,
-      confidence: response.confidence,
-      viability: response.viability,
       risks: response.risks || [],
-      intervention,
       handoffOccurred: response.handoffOccurred,
       tokenUsage: {
         total: totalTokens,
@@ -1490,19 +1543,25 @@ ideationRouter.post(
         tokenCount: totalTokens,
       });
 
-      // Get or create candidate if confidence is high enough
+      // Get or create candidate whenever candidateUpdate exists
       let candidateData = null;
-      if (response.confidence >= 30 && response.candidateUpdate) {
+      if (response.candidateUpdate) {
         const candidate = await candidateManager.getOrCreateForSession(
           sessionId,
           {
             title: response.candidateUpdate.title,
             summary: response.candidateUpdate.summary,
-            confidence: response.confidence,
-            viability: response.viability,
           },
         );
         candidateData = candidate;
+        // Auto-create idea folder when candidate gets a title
+        if (response.candidateUpdate.title && session) {
+          await autoCreateIdeaFolder(
+            sessionId,
+            response.candidateUpdate.title,
+            session.profileId,
+          );
+        }
       }
 
       // Calculate token usage for frontend display
@@ -1528,8 +1587,6 @@ ideationRouter.post(
               summary: candidateData.summary,
             }
           : null,
-        confidence: response.confidence,
-        viability: response.viability,
         risks: response.risks || [],
         handoffOccurred: response.handoffOccurred,
         tokenUsage: {
@@ -1697,16 +1754,12 @@ ideationRouter.post("/form", async (req: Request, res: Response) => {
         await candidateManager.update(candidate.id, {
           title: agentResponse.candidateUpdate.title,
           summary: agentResponse.candidateUpdate.summary,
-          confidence: agentResponse.confidence,
-          viability: agentResponse.viability,
         });
       } else {
         await candidateManager.create({
           sessionId,
           title: agentResponse.candidateUpdate.title,
           summary: agentResponse.candidateUpdate.summary,
-          confidence: agentResponse.confidence,
-          viability: agentResponse.viability,
         });
       }
     }
@@ -1781,8 +1834,6 @@ ideationRouter.post("/capture", async (req: Request, res: Response) => {
       },
       ideationMetadata: {
         sessionId,
-        confidenceAtCapture: candidate.confidence,
-        viabilityAtCapture: candidate.viability,
       },
     });
   } catch (error) {
@@ -2158,6 +2209,68 @@ ideationRouter.patch(
 );
 
 // ============================================================================
+// PATCH /api/ideation/session/:sessionId/title
+// ============================================================================
+// Update session title and trigger folder creation if needed
+
+const UpdateSessionTitleSchema = z.object({
+  title: z.string().min(1, "title is required").max(200, "title too long"),
+});
+
+ideationRouter.patch(
+  "/session/:sessionId/title",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      // Validate request body
+      const parseResult = UpdateSessionTitleSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          error: "Validation error",
+          details: parseResult.error.issues,
+        });
+      }
+
+      const { title } = parseResult.data;
+
+      // Load session
+      const session = await sessionManager.load(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      // Update session title
+      await sessionManager.updateTitle(sessionId, title);
+
+      // Auto-create idea folder if title is set (and folder doesn't exist yet)
+      let folderInfo: { userSlug: string; ideaSlug: string } | null = null;
+      if (title && session.profileId) {
+        folderInfo = await autoCreateIdeaFolder(
+          sessionId,
+          title,
+          session.profileId,
+        );
+      }
+
+      // Load updated session
+      const updatedSession = await sessionManager.load(sessionId);
+
+      return res.json({
+        success: true,
+        title,
+        session: updatedSession,
+        folderCreated: folderInfo !== null,
+        folder: folderInfo,
+      });
+    } catch (error) {
+      console.error("Error updating session title:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
 // POST /api/ideation/session/:sessionId/name-idea
 // ============================================================================
 // Converts a draft folder to a named idea by renaming it and adding templates
@@ -2328,8 +2441,9 @@ ideationRouter.get("/sessions", async (req: Request, res: Response) => {
       token_count: number;
       started_at: string;
       completed_at: string | null;
+      title: string | null;
     }>(
-      `SELECT id, profile_id, status, entry_mode, message_count, token_count, started_at, completed_at
+      `SELECT id, profile_id, status, entry_mode, message_count, token_count, started_at, completed_at, title
        FROM ideation_sessions
        WHERE profile_id = ?
        ORDER BY started_at DESC`,
@@ -2361,6 +2475,8 @@ ideationRouter.get("/sessions", async (req: Request, res: Response) => {
           tokenCount: session.token_count,
           startedAt: session.started_at,
           completedAt: session.completed_at,
+          // Session title takes precedence, fall back to candidate title for backward compatibility
+          title: session.title || candidate?.title || null,
           candidateTitle: candidate?.title || null,
           candidateSummary: candidate?.summary || null,
           lastMessagePreview: lastMessage?.content?.slice(0, 100) || null,

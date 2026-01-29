@@ -111,6 +111,8 @@ export interface NodeInspectorProps {
   onNavigateToArtifact?: (artifactId: string, section?: string) => void;
   onNavigateToMemoryDB?: (tableName: string, blockId?: string) => void;
   onNavigateToExternal?: (url: string) => void;
+  // Navigate to Insights tab and highlight the insight with matching sourceId
+  onNavigateToInsight?: (sourceId: string) => void;
   // Selection actions for the selected node
   onLinkNode?: (nodeId: string) => void;
   onGroupIntoSynthesis?: (nodeId: string) => void;
@@ -913,7 +915,8 @@ function NavigableSourceSection({
                   className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-sm ${bgClass}`}
                   onClick={() => {
                     if (canNavigateArtifact) {
-                      onNavigateToArtifact(source.id);
+                      // Pass title for matching (more reliable than file_xxx IDs)
+                      onNavigateToArtifact(source.title || source.id);
                     } else if (canNavigateMemoryFile) {
                       // Navigate to Memory DB files tab
                       onNavigateToMemoryDB("files", source.id);
@@ -928,7 +931,8 @@ function NavigableSourceSection({
                     ) {
                       e.preventDefault();
                       if (canNavigateArtifact) {
-                        onNavigateToArtifact(source.id);
+                        // Pass title for matching (more reliable than file_xxx IDs)
+                        onNavigateToArtifact(source.title || source.id);
                       } else if (canNavigateMemoryFile) {
                         onNavigateToMemoryDB("files", source.id);
                       }
@@ -976,6 +980,7 @@ export function NodeInspector({
   onNavigateToArtifact,
   onNavigateToMemoryDB,
   onNavigateToExternal,
+  onNavigateToInsight,
   onLinkNode,
   onGroupIntoSynthesis,
   onDeleteNode,
@@ -1052,8 +1057,16 @@ export function NodeInspector({
       newNodeFromCanvasTrigger &&
       newNodeFromCanvasTrigger > 0
     ) {
-      // Always default to report view when clicking a node on the canvas
-      setActiveTab("report", "newNodeFromCanvas effect (always report)");
+      if (isFirstSelection) {
+        // First node selection ever → show report (node group view)
+        setActiveTab("report", "newNodeFromCanvas effect (first selection)");
+      } else if (wasInPreviousGroup) {
+        // Node is in the SAME group as previous → show details (stay focused on node)
+        setActiveTab("details", "newNodeFromCanvas effect (same group)");
+      } else {
+        // Node is in a DIFFERENT group → show report (explore new cluster)
+        setActiveTab("report", "newNodeFromCanvas effect (different group)");
+      }
     }
   }, [newNodeFromCanvasTrigger, node.id, onFocusOnSelectedNode]);
 
@@ -1243,7 +1256,7 @@ export function NodeInspector({
   return (
     <div
       className={`
-        w-full sm:w-[624px] md:w-[749px]
+        w-full sm:w-1/3
         fixed sm:relative inset-y-0 right-0 sm:inset-auto
         z-30 sm:z-auto
         bg-white
@@ -1773,11 +1786,17 @@ export function NodeInspector({
                           label: source.sourceType,
                         };
 
+                        // For conversation sources (both raw and synthesized),
+                        // navigate to Insights tab and highlight this block
+                        // (the block we're viewing is the insight derived from the source)
                         const canNavigate =
                           (source.sourceType === "artifact" &&
                             onNavigateToArtifact) ||
                           (source.sourceType === "memory_file" &&
-                            onNavigateToMemoryDB);
+                            onNavigateToMemoryDB) ||
+                          ((source.sourceType === "conversation" ||
+                            source.sourceType === "conversation_insight") &&
+                            onNavigateToInsight);
 
                         return (
                           <div
@@ -1792,12 +1811,24 @@ export function NodeInspector({
                                 source.sourceType === "artifact" &&
                                 onNavigateToArtifact
                               ) {
-                                onNavigateToArtifact(source.sourceId);
+                                // Pass title for matching (more reliable than file_xxx IDs)
+                                onNavigateToArtifact(
+                                  source.title || source.sourceId,
+                                );
                               } else if (
                                 source.sourceType === "memory_file" &&
                                 onNavigateToMemoryDB
                               ) {
                                 onNavigateToMemoryDB("files", source.sourceId);
+                              } else if (
+                                (source.sourceType === "conversation" ||
+                                  source.sourceType ===
+                                    "conversation_insight") &&
+                                onNavigateToInsight
+                              ) {
+                                // Navigate to Insights tab and highlight the current block
+                                // (the block we're viewing is the insight derived from this source)
+                                onNavigateToInsight(node.id);
                               }
                             }}
                             role={canNavigate ? "button" : undefined}

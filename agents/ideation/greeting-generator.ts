@@ -8,6 +8,7 @@ import { ButtonOption } from "../../types/ideation.js";
 
 export interface UserProfile {
   name?: string;
+  slug?: string; // User slug for folder paths
   skills?: string[];
   interests?: string[];
   experience?: {

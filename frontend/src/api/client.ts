@@ -1137,6 +1137,7 @@ export interface IdeationSessionSummary {
   tokenCount: number;
   startedAt: string;
   completedAt: string | null;
+  title: string | null; // Session title (takes precedence over candidateTitle)
   candidateTitle: string | null;
   candidateSummary: string | null;
   lastMessagePreview: string | null;

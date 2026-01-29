@@ -662,6 +662,44 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     const [canvasKey, setCanvasKey] = useState(0);
     const [isRecovering, setIsRecovering] = useState(false);
 
+    // Suppress THREE.js NaN warnings from reagraph's internal edge rendering
+    // These occur during layout transitions when positions are being computed
+    // and don't affect functionality - just spam the console
+    useEffect(() => {
+      const originalError = console.error;
+      const originalWarn = console.warn;
+
+      const suppressedMessages = [
+        "computeBoundingSphere(): Computed radius is NaN",
+        "THREE.BufferGeometry.computeBoundingSphere",
+        "The computed radius is NaN",
+      ];
+
+      const shouldSuppress = (args: unknown[]) => {
+        const message = args.join(" ");
+        return suppressedMessages.some((suppressed) =>
+          message.includes(suppressed),
+        );
+      };
+
+      console.error = (...args: unknown[]) => {
+        if (!shouldSuppress(args)) {
+          originalError.apply(console, args);
+        }
+      };
+
+      console.warn = (...args: unknown[]) => {
+        if (!shouldSuppress(args)) {
+          originalWarn.apply(console, args);
+        }
+      };
+
+      return () => {
+        console.error = originalError;
+        console.warn = originalWarn;
+      };
+    }, []);
+
     // Handle WebGL context loss recovery
     useEffect(() => {
       const container = containerRef.current;

@@ -36,7 +36,7 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
     const query = searchQuery.toLowerCase();
     return sessions.filter(
       (session) =>
-        session.candidateTitle?.toLowerCase().includes(query) ||
+        session.title?.toLowerCase().includes(query) ||
         session.lastMessagePreview?.toLowerCase().includes(query),
     );
   }, [sessions, searchQuery]);
@@ -187,13 +187,13 @@ export function SessionList({ profileId, onSelectSession }: SessionListProps) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      {session.candidateTitle ? (
+                      {session.title ? (
                         <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0" />
                       ) : (
                         <MessageSquare className="w-4 h-4 text-gray-400 flex-shrink-0" />
                       )}
                       <span className="font-medium text-gray-900 truncate">
-                        {session.candidateTitle || "Untitled Session"}
+                        {session.title || "Untitled Session"}
                       </span>
                       {getStatusBadge(session.status)}
                     </div>

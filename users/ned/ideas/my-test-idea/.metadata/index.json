@@ -1,0 +1,133 @@
+{
+  "updatedAt": "2026-01-29T05:02:08.553Z",
+  "artifacts": {
+    "README.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "README.md",
+      "tokenCount": 126,
+      "updatedAt": "2026-01-29T04:56:53.889Z"
+    },
+    "build/spec.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "build/spec.md",
+      "tokenCount": 137,
+      "updatedAt": "2026-01-29T04:56:53.873Z"
+    },
+    "business-model.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "business-model.md",
+      "tokenCount": 123,
+      "updatedAt": "2026-01-29T04:56:53.874Z"
+    },
+    "development.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "development.md",
+      "tokenCount": 202,
+      "updatedAt": "2026-01-29T04:56:53.876Z"
+    },
+    "marketing/gtm.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "marketing/gtm.md",
+      "tokenCount": 115,
+      "updatedAt": "2026-01-29T04:56:53.879Z"
+    },
+    "marketing/pitch.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "marketing/pitch.md",
+      "tokenCount": 102,
+      "updatedAt": "2026-01-29T04:56:53.880Z"
+    },
+    "networking/contacts.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "networking/contacts.md",
+      "tokenCount": 113,
+      "updatedAt": "2026-01-29T04:56:53.882Z"
+    },
+    "planning/architecture.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "planning/architecture.md",
+      "tokenCount": 123,
+      "updatedAt": "2026-01-29T04:56:53.884Z"
+    },
+    "planning/brief.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "planning/brief.md",
+      "tokenCount": 105,
+      "updatedAt": "2026-01-29T04:56:53.885Z"
+    },
+    "planning/mvp-scope.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "planning/mvp-scope.md",
+      "tokenCount": 123,
+      "updatedAt": "2026-01-29T04:56:53.887Z"
+    },
+    "problem-solution.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "problem-solution.md",
+      "tokenCount": 118,
+      "updatedAt": "2026-01-29T04:56:53.888Z"
+    },
+    "research/competitive.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "research/competitive.md",
+      "tokenCount": 149,
+      "updatedAt": "2026-01-29T04:56:53.891Z"
+    },
+    "research/market.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "research/market.md",
+      "tokenCount": 115,
+      "updatedAt": "2026-01-29T04:56:53.892Z"
+    },
+    "target-users.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "target-users.md",
+      "tokenCount": 124,
+      "updatedAt": "2026-01-29T04:56:53.894Z"
+    },
+    "team.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "team.md",
+      "tokenCount": 129,
+      "updatedAt": "2026-01-29T04:56:53.895Z"
+    },
+    "validation/assumptions.md": {
+      "id": "my-test-idea",
+      "title": "My Test Idea",
+      "type": "markdown",
+      "filePath": "validation/assumptions.md",
+      "tokenCount": 129,
+      "updatedAt": "2026-01-29T04:56:53.897Z"
+    }
+  }
+}

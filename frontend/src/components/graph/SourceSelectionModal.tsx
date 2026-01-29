@@ -33,7 +33,8 @@ export interface CollectedSource {
     | "artifact"
     | "memory_file"
     | "user_block"
-    | "external";
+    | "external"
+    | "pending_insight";
   content: string;
   weight: number;
   metadata: {
@@ -63,6 +64,16 @@ export interface SourceCollectionResult {
   };
 }
 
+// Pending insight type from memory graph analysis
+export interface PendingInsight {
+  id: string;
+  type: "create_block" | "update_block" | "create_link";
+  blockType?: string;
+  title?: string;
+  content?: string;
+  confidence: number;
+}
+
 export interface SourceSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -70,6 +81,7 @@ export interface SourceSelectionModalProps {
   ideaSlug?: string; // Optional idea slug to include file-based artifacts
   onConfirm: (selectedSourceIds: string[]) => void;
   isProcessing?: boolean;
+  existingInsights?: PendingInsight[]; // Insights from the right panel
 }
 
 // ============================================================================
@@ -269,6 +281,29 @@ const SOURCE_TYPE_CONFIG = {
     textColor: "text-gray-700",
     iconColor: "text-gray-600",
   },
+  pending_insight: {
+    label: "Pending Insights",
+    description: "Chat insights awaiting graph update",
+    icon: (
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+        />
+      </svg>
+    ),
+    bgColor: "bg-yellow-50",
+    borderColor: "border-yellow-200",
+    textColor: "text-yellow-700",
+    iconColor: "text-yellow-600",
+  },
 };
 
 type SourceType = keyof typeof SOURCE_TYPE_CONFIG;
@@ -284,6 +319,7 @@ export function SourceSelectionModal({
   ideaSlug,
   onConfirm,
   isProcessing = false,
+  existingInsights = [],
 }: SourceSelectionModalProps) {
   const [sources, setSources] = useState<CollectedSource[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -292,6 +328,26 @@ export function SourceSelectionModal({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [collapsedTypes, setCollapsedTypes] = useState<Set<SourceType>>(
     new Set(),
+  );
+
+  // Convert pending insights to CollectedSource format
+  const convertInsightsToSources = useCallback(
+    (insights: PendingInsight[]): CollectedSource[] => {
+      return insights
+        .filter((insight) => insight.type === "create_block" && insight.content)
+        .map((insight) => ({
+          id: `pending_${insight.id}`,
+          type: "pending_insight" as const,
+          content: insight.content || "",
+          weight: insight.confidence,
+          metadata: {
+            title: insight.title || insight.blockType || "Pending Insight",
+            insightType: (insight.blockType || "insight") as InsightType,
+            timestamp: new Date().toISOString(),
+          },
+        }));
+    },
+    [],
   );
 
   // Fetch sources when modal opens
@@ -320,8 +376,11 @@ export function SourceSelectionModal({
         }
 
         const result: SourceCollectionResult = await response.json();
-        setSources(result.sources);
-        setSelectedIds(new Set(result.sources.map((s) => s.id)));
+        // Merge fetched sources with existing insights
+        const insightSources = convertInsightsToSources(existingInsights);
+        const allSources = [...result.sources, ...insightSources];
+        setSources(allSources);
+        setSelectedIds(new Set(allSources.map((s) => s.id)));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load sources");
       } finally {
@@ -330,11 +389,12 @@ export function SourceSelectionModal({
     };
 
     fetchSources();
-  }, [isOpen, sessionId, ideaSlug]);
+  }, [isOpen, sessionId, ideaSlug, existingInsights, convertInsightsToSources]);
 
   // Group sources by type
   const sourcesByType = useMemo(() => {
     const grouped: Record<SourceType, CollectedSource[]> = {
+      pending_insight: [],
       conversation_insight: [],
       conversation: [],
       artifact: [],

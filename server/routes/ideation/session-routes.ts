@@ -494,8 +494,9 @@ sessionRouter.get("/", async (req: Request, res: Response) => {
       token_count: number;
       started_at: string;
       completed_at: string | null;
+      title: string | null;
     }>(
-      `SELECT id, profile_id, status, entry_mode, message_count, token_count, started_at, completed_at
+      `SELECT id, profile_id, status, entry_mode, message_count, token_count, started_at, completed_at, title
        FROM ideation_sessions
        WHERE profile_id = ?
        ORDER BY started_at DESC`,
@@ -526,6 +527,8 @@ sessionRouter.get("/", async (req: Request, res: Response) => {
           tokenCount: session.token_count,
           startedAt: session.started_at,
           completedAt: session.completed_at,
+          // Session title takes precedence, fall back to candidate title for backward compatibility
+          title: session.title || candidate?.title || null,
           candidateTitle: candidate?.title || null,
           candidateSummary: candidate?.summary || null,
           lastMessagePreview: lastMessage?.content?.slice(0, 100) || null,

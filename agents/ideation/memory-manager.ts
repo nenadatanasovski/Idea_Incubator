@@ -30,7 +30,7 @@ export interface MemoryState {
   marketDiscovery: MarketDiscoveryState;
   narrowingState: NarrowingState;
   candidate: IdeaCandidate | null;
-  viability: { total: number; risks: ViabilityRiskSummary[] };
+  viability?: { total: number; risks: ViabilityRiskSummary[] };
   ideaTypeSelection?: IdeaTypeSelectionState;
 }
 
@@ -87,7 +87,9 @@ export class MemoryManager {
       case "idea_candidate":
         return this.generateCandidateMarkdown(state.candidate);
       case "viability_assessment":
-        return this.generateViabilityMarkdown(state.viability);
+        return state.viability
+          ? this.generateViabilityMarkdown(state.viability)
+          : "# Viability Assessment\n\nNo assessment generated.";
       case "conversation_summary":
         return "# Conversation Summary\n\nNo summary generated yet.";
       case "handoff_notes":

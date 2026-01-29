@@ -41,6 +41,8 @@ export function mapSessionRowToSession(
     tokenCount: row.token_count,
     messageCount: row.message_count,
     currentPhase: row.current_phase as SessionPhase,
+    // Session title
+    title: row.title || null,
     // Include linked idea info if present
     userSlug: (row.user_slug as string) || null,
     ideaSlug: (row.idea_slug as string) || null,
@@ -69,6 +71,7 @@ export function mapSessionToRow(
     row.message_count = session.messageCount;
   if (session.currentPhase !== undefined)
     row.current_phase = session.currentPhase;
+  if (session.title !== undefined) row.title = session.title;
 
   return row;
 }

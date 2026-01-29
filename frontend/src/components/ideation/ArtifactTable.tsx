@@ -427,13 +427,10 @@ const SkeletonRow: React.FC<{ index: number }> = ({ index }) => (
     <div className="w-24 px-3 py-2">
       <div className="h-3 w-16 bg-gray-200 rounded" />
     </div>
-    <div className="w-20 px-3 py-2">
-      <div className="h-3 w-12 bg-gray-200 rounded" />
-    </div>
     <div className="w-12 px-3 py-2 flex justify-center">
       <div className="w-3 h-3 bg-gray-200 rounded-full" />
     </div>
-    <div className="w-6 px-2 py-2" />
+    <div className="w-28 px-2 py-2" />
   </div>
 );
 
@@ -677,6 +674,9 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
+  // Track if selection change came from internal row click (vs external navigation)
+  const wasInternalClickRef = useRef(false);
+
   // Auto-expand the latest artifact when it changes
   useEffect(() => {
     if (latestArtifactId) {
@@ -708,6 +708,8 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   // Handle row click
   const handleRowClick = useCallback(
     (item: GroupedArtifact, index: number) => {
+      // Mark this as an internal click so the useEffect doesn't auto-expand
+      wasInternalClickRef.current = true;
       setFocusedIndex(index);
       if (item.artifact) {
         toggleArtifactExpansion(item.artifact.id);
@@ -842,7 +844,7 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
     [onCopyRef],
   );
 
-  // Update focused index when selected path changes externally
+  // Update focused index, auto-expand, and scroll when selected path changes externally
   useEffect(() => {
     if (selectedPath) {
       const index = flattenedItems.findIndex(
@@ -850,6 +852,23 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
       );
       if (index >= 0) {
         setFocusedIndex(index);
+
+        // Only auto-expand and scroll for external navigation (not internal row clicks)
+        if (!wasInternalClickRef.current) {
+          // Auto-expand the selected artifact
+          setExpandedArtifacts(new Set([selectedPath]));
+
+          // Scroll the selected row into view after a brief delay for DOM update
+          setTimeout(() => {
+            rowRefs.current.get(index)?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          }, 50);
+        }
+
+        // Reset the flag for next selection change
+        wasInternalClickRef.current = false;
       }
     }
   }, [selectedPath, flattenedItems]);
@@ -865,9 +884,8 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
         <div className="flex items-center bg-gray-50 sticky top-0 z-10 border-b border-gray-200 text-xs font-medium text-gray-500">
           <div className="flex-1 px-3 py-2">Name</div>
           <div className="w-24 px-3 py-2">Date</div>
-          <div className="w-20 px-3 py-2">Type</div>
           <div className="w-12 px-3 py-2 text-center">Status</div>
-          <div className="w-6 px-2 py-2" />
+          <div className="w-28 px-2 py-2" />
         </div>
         {/* Skeleton rows */}
         <div className="text-sm">
@@ -905,9 +923,8 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
       <div className="flex items-center bg-gray-50 dark:bg-gray-800 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
         <div className="flex-1 px-3 py-2">Name</div>
         <div className="w-24 px-3 py-2">Date</div>
-        <div className="w-20 px-3 py-2">Type</div>
         <div className="w-12 px-3 py-2 text-center">Status</div>
-        <div className="w-24 px-2 py-2 text-center relative">
+        <div className="w-28 px-2 py-2 text-center relative">
           <button
             data-testid="keyboard-help-button"
             onClick={() => setShowShortcutsHelp((prev) => !prev)}
@@ -1009,20 +1026,13 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                   )}
                 </div>
 
-                {/* Type column */}
-                <div className="w-20 px-3 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">
-                  <span className="capitalize">
-                    {getTypeDisplayName(item.artifact.type)}
-                  </span>
-                </div>
-
                 {/* Status column */}
                 <div className="w-12 px-3 py-2 flex justify-center">
                   <StatusBadge classification={classification} />
                 </div>
 
                 {/* Row-level action buttons - always visible on row */}
-                <div className="w-24 flex items-center justify-center gap-1 px-2 py-1">
+                <div className="w-28 flex items-center justify-end gap-1 px-2 py-1 flex-shrink-0">
                   {onEdit && (
                     <button
                       data-testid="btn-row-edit"

@@ -57,6 +57,8 @@ export interface IdeationSession {
   tokenCount: number;
   messageCount: number;
   currentPhase: SessionPhase;
+  // Session title (editable, auto-populated by AI)
+  title: string | null;
   // Linked idea info (optional)
   userSlug: string | null;
   ideaSlug: string | null;
@@ -74,6 +76,7 @@ export interface IdeationSessionRow {
   token_count: number;
   message_count: number;
   current_phase: string;
+  title: string | null;
   [key: string]: unknown;
 }
 

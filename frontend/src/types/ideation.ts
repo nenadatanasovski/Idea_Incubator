@@ -388,60 +388,22 @@ export interface SendButtonProps {
 
 export interface IdeaCandidatePanelProps {
   candidate: IdeaCandidate | null;
-  confidence: number;
-  viability: number;
   risks: ViabilityRisk[];
-  onCapture: () => void;
-  onSave: () => void;
   onDiscard: () => void;
-  onContinue: () => void;
-  showIntervention: boolean;
 }
 
 export interface EmptyStateProps {
   message?: string;
 }
 
-export interface FormingStateProps {
-  confidence: number;
-  threshold: number;
-}
-
 export interface ActiveStateProps {
   candidate: IdeaCandidate;
-  confidence: number;
-  viability: number;
   risks: ViabilityRisk[];
-  onCapture: () => void;
-  onSave: () => void;
-}
-
-export interface WarningStateProps {
-  candidate: IdeaCandidate;
-  viability: number;
-  risks: ViabilityRisk[];
-  onAddressRisks: () => void;
-  onPivot: () => void;
-  onContinueAnyway: () => void;
-  onDiscard: () => void;
 }
 
 // -----------------------------------------------------------------------------
-// Meters
+// Risks List
 // -----------------------------------------------------------------------------
-
-export interface ConfidenceMeterProps {
-  value: number; // 0-100
-  showLabel: boolean;
-  size?: "sm" | "md" | "lg";
-}
-
-export interface ViabilityMeterProps {
-  value: number; // 0-100
-  risks: ViabilityRisk[];
-  showWarning: boolean;
-  size?: "sm" | "md" | "lg";
-}
 
 export interface RisksListProps {
   risks: ViabilityRisk[];

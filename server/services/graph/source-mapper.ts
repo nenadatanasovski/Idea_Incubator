@@ -167,7 +167,7 @@ export class SourceMapper {
         }
 
         const mappingId = uuidv4();
-        const contentSnippet = source.content.slice(0, 200);
+        const contentSnippet = source.content.slice(0, 500);
 
         try {
           await run(

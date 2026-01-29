@@ -29,6 +29,7 @@ export interface UpdateSessionParams {
   tokenCount?: number;
   messageCount?: number;
   handoffCount?: number;
+  title?: string;
 }
 
 /**
@@ -128,6 +129,10 @@ export class SessionManager {
     if (params.handoffCount !== undefined) {
       updates.push("handoff_count = ?");
       values.push(params.handoffCount);
+    }
+    if (params.title !== undefined) {
+      updates.push("title = ?");
+      values.push(params.title);
     }
 
     updates.push("last_activity_at = ?");
@@ -283,6 +288,31 @@ export class SessionManager {
     const candidate = mapCandidateRowToCandidate(candidateRow);
 
     return { session: activeSession, candidate };
+  }
+
+  /**
+   * Update session title.
+   * This is the primary method for setting/changing the session name.
+   */
+  async updateTitle(
+    sessionId: string,
+    title: string,
+  ): Promise<IdeationSession | null> {
+    const db = await getDb();
+    const now = new Date().toISOString();
+
+    db.run(
+      `
+      UPDATE ideation_sessions
+      SET title = ?, last_activity_at = ?
+      WHERE id = ?
+    `,
+      [title, now, sessionId],
+    );
+
+    await saveDb();
+
+    return this.load(sessionId);
   }
 
   /**

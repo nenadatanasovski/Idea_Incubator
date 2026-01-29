@@ -84,6 +84,14 @@ export function IdeationSession({
   const [highlightedMessageId, setHighlightedMessageId] = useState<
     string | undefined
   >();
+  // Insight navigation state (for highlighting specific insights in the Insights tab)
+  const [highlightInsightSourceId, setHighlightInsightSourceId] = useState<
+    string | null
+  >(null);
+  // Force artifact panel tab switch (for navigation from Source Lineage)
+  const [forceArtifactPanelTab, setForceArtifactPanelTab] = useState<
+    "idea" | "artifacts" | "spec" | "insights" | null
+  >(null);
 
   // Persist active tab to sessionStorage when it changes
   useEffect(() => {
@@ -195,6 +203,14 @@ export function IdeationSession({
           payload: { sessionId: initialSessionId, greeting: "" },
         });
 
+        // Restore session title if present
+        if (sessionData.session?.title) {
+          dispatch({
+            type: "SESSION_TITLE_UPDATE",
+            payload: { title: sessionData.session.title },
+          });
+        }
+
         // Add all existing messages
         for (const msg of sessionData.messages) {
           dispatch({
@@ -227,8 +243,9 @@ export function IdeationSession({
                 sessionId: initialSessionId,
                 title: sessionData.candidate.title,
                 summary: sessionData.candidate.summary,
-                confidence: sessionData.candidate.confidence,
-                viability: sessionData.candidate.viability,
+                // Use defaults - confidence/viability deprecated
+                confidence: 0,
+                viability: 100,
                 userSuggested: false,
                 status: "forming" as const,
                 capturedIdeaId: null,
@@ -236,17 +253,6 @@ export function IdeationSession({
                 createdAt: new Date(),
                 updatedAt: new Date(),
               },
-            },
-          });
-          dispatch({
-            type: "CONFIDENCE_UPDATE",
-            payload: { confidence: sessionData.candidate.confidence },
-          });
-          dispatch({
-            type: "VIABILITY_UPDATE",
-            payload: {
-              viability: sessionData.candidate.viability,
-              risks: [],
             },
           });
         }
@@ -347,6 +353,50 @@ export function IdeationSession({
           });
         } else {
           console.log("[Session Resume] No linked idea to restore");
+        }
+
+        // Restore applied insights from memory blocks
+        try {
+          console.log("[Session Resume] Fetching applied insights...");
+          const insightsResponse =
+            await api.fetchAppliedInsights(initialSessionId);
+          if (
+            insightsResponse.success &&
+            insightsResponse.data.insights.length > 0
+          ) {
+            console.log(
+              "[Session Resume] Restoring",
+              insightsResponse.data.insights.length,
+              "applied insights",
+            );
+            dispatch({
+              type: "MEMORY_GRAPH_INSIGHTS_LOAD",
+              payload: {
+                insights: insightsResponse.data.insights.map((insight) => ({
+                  ...insight,
+                  // Ensure required ProposedChange fields are present
+                  type: insight.type || "create_block",
+                  blockType: insight.blockType,
+                  title: insight.title,
+                  content: insight.content,
+                  confidence: insight.confidence || 0.8,
+                  graphMembership: insight.graphMembership || [],
+                  sourceId: insight.sourceId,
+                  sourceType: insight.sourceType,
+                  sourceWeight: insight.sourceWeight,
+                  corroboratedBy: insight.corroboratedBy || [],
+                })),
+              },
+            });
+          } else {
+            console.log("[Session Resume] No applied insights to restore");
+          }
+        } catch (insightsError) {
+          // Non-critical - just log and continue
+          console.warn(
+            "[Session Resume] Failed to load applied insights:",
+            insightsError,
+          );
         }
       } catch (error) {
         dispatch({
@@ -635,6 +685,68 @@ export function IdeationSession({
             }
             break;
 
+          // Chat insights events - real-time insight updates
+          case "insight:created":
+            console.log("[WebSocket] Insight created:", data.data.insight?.id);
+            if (data.data.insight) {
+              // Use the efficient INSIGHT_ADD action (handles both cases internally)
+              dispatch({
+                type: "MEMORY_GRAPH_INSIGHT_ADD",
+                payload: { insight: data.data.insight },
+              });
+            }
+            break;
+
+          case "insights:batch":
+            console.log(
+              "[WebSocket] Insights batch received:",
+              data.data.insights?.length,
+            );
+            if (data.data.insights && data.data.insights.length > 0) {
+              dispatch({
+                type: "MEMORY_GRAPH_ANALYSIS_COMPLETE",
+                payload: {
+                  analysis: {
+                    context: data.data.context || {
+                      who: "system",
+                      what: "batch insights",
+                      when: new Date().toISOString(),
+                      where: "conversation",
+                      why: "real-time analysis",
+                    },
+                    proposedChanges: data.data.insights,
+                    cascadeEffects: data.data.cascadeEffects || [],
+                    previewNodes: data.data.previewNodes || [],
+                    previewEdges: data.data.previewEdges || [],
+                  },
+                },
+              });
+            }
+            break;
+
+          case "insight:deleted":
+            console.log("[WebSocket] Insight deleted:", data.data.insightId);
+            if (data.data.insightId) {
+              dispatch({
+                type: "MEMORY_GRAPH_CHANGE_DELETE",
+                payload: { changeId: data.data.insightId },
+              });
+            }
+            break;
+
+          case "insight:updated":
+            console.log("[WebSocket] Insight updated:", data.data.insightId);
+            if (data.data.insightId && data.data.updates) {
+              dispatch({
+                type: "MEMORY_GRAPH_CHANGE_EDIT",
+                payload: {
+                  changeId: data.data.insightId,
+                  updates: data.data.updates,
+                },
+              });
+            }
+            break;
+
           default:
             console.log("[WebSocket] Unknown event type:", data.type);
         }
@@ -790,31 +902,6 @@ export function IdeationSession({
           dispatch({
             type: "CANDIDATE_UPDATE",
             payload: { candidate: response.candidateUpdate },
-          });
-        }
-
-        // Update confidence/viability
-        if (response.confidence !== undefined) {
-          dispatch({
-            type: "CONFIDENCE_UPDATE",
-            payload: { confidence: response.confidence },
-          });
-        }
-        if (response.viability !== undefined) {
-          dispatch({
-            type: "VIABILITY_UPDATE",
-            payload: {
-              viability: response.viability,
-              risks: response.risks || [],
-            },
-          });
-        }
-
-        // Check for intervention
-        if (response.intervention) {
-          dispatch({
-            type: "INTERVENTION_SHOW",
-            payload: { type: response.intervention.type },
           });
         }
 
@@ -1322,22 +1409,7 @@ export function IdeationSession({
           },
         });
 
-        // Update metrics if present
-        if (response.confidence !== undefined) {
-          dispatch({
-            type: "CONFIDENCE_UPDATE",
-            payload: { confidence: response.confidence },
-          });
-        }
-        if (response.viability !== undefined) {
-          dispatch({
-            type: "VIABILITY_UPDATE",
-            payload: {
-              viability: response.viability,
-              risks: response.risks || [],
-            },
-          });
-        }
+        // Update candidate if present
         if (response.candidateUpdate) {
           dispatch({
             type: "CANDIDATE_UPDATE",
@@ -1574,23 +1646,6 @@ export function IdeationSession({
           });
         }
 
-        // Update confidence/viability
-        if (response.confidence !== undefined) {
-          dispatch({
-            type: "CONFIDENCE_UPDATE",
-            payload: { confidence: response.confidence },
-          });
-        }
-        if (response.viability !== undefined) {
-          dispatch({
-            type: "VIABILITY_UPDATE",
-            payload: {
-              viability: response.viability,
-              risks: response.risks || [],
-            },
-          });
-        }
-
         // Update token usage
         if (response.tokenUsage) {
           dispatch({
@@ -1741,20 +1796,83 @@ export function IdeationSession({
   );
 
   const handleNavigateToArtifact = useCallback(
-    (artifactId: string, _section?: string) => {
+    (artifactIdOrTitle: string, _section?: string) => {
       console.log(
         "[handleNavigateToArtifact] Navigating to artifact:",
-        artifactId,
+        artifactIdOrTitle,
       );
       console.log(
         "[handleNavigateToArtifact] Available artifacts:",
         state.artifacts.artifacts.map((a) => ({ id: a.id, title: a.title })),
       );
 
-      // Find and select the artifact
-      const artifact = state.artifacts.artifacts.find(
-        (a) => a.id === artifactId,
+      // Helper to normalize titles for comparison
+      const normalizeTitle = (title: string) =>
+        title.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+      // Try multiple matching strategies:
+      // 1. Exact ID match
+      let artifact = state.artifacts.artifacts.find(
+        (a) => a.id === artifactIdOrTitle,
       );
+
+      // 2. If not found, try matching by title (the artifactIdOrTitle might be a title)
+      if (!artifact) {
+        const normalizedInput = normalizeTitle(artifactIdOrTitle);
+        artifact = state.artifacts.artifacts.find(
+          (a) => normalizeTitle(a.title) === normalizedInput,
+        );
+        if (artifact) {
+          console.log(
+            "[handleNavigateToArtifact] Found artifact by exact title match:",
+            artifact.title,
+          );
+        }
+      }
+
+      // 3. If still not found, try partial title match (input contains title or vice versa)
+      if (!artifact) {
+        const normalizedInput = normalizeTitle(artifactIdOrTitle);
+        artifact = state.artifacts.artifacts.find((a) => {
+          const normalizedTitle = normalizeTitle(a.title);
+          return (
+            normalizedTitle.includes(normalizedInput) ||
+            normalizedInput.includes(normalizedTitle)
+          );
+        });
+        if (artifact) {
+          console.log(
+            "[handleNavigateToArtifact] Found artifact by partial title match:",
+            artifact.title,
+          );
+        }
+      }
+
+      // 4. If still not found, try matching title words (for "Research: topic" format)
+      if (!artifact && artifactIdOrTitle.includes(":")) {
+        const titlePart = artifactIdOrTitle
+          .split(":")
+          .slice(1)
+          .join(":")
+          .trim();
+        if (titlePart) {
+          const normalizedTitlePart = normalizeTitle(titlePart);
+          artifact = state.artifacts.artifacts.find((a) => {
+            const normalizedTitle = normalizeTitle(a.title);
+            return (
+              normalizedTitle.includes(normalizedTitlePart) ||
+              normalizedTitlePart.includes(normalizedTitle)
+            );
+          });
+          if (artifact) {
+            console.log(
+              "[handleNavigateToArtifact] Found artifact by title part match:",
+              artifact.title,
+            );
+          }
+        }
+      }
+
       if (artifact) {
         console.log(
           "[handleNavigateToArtifact] Found artifact:",
@@ -1771,15 +1889,20 @@ export function IdeationSession({
             payload: { isOpen: true },
           });
         }
+        // Force the artifact panel to switch to the artifacts tab
+        setForceArtifactPanelTab("artifacts");
       } else {
         // Artifact not found - could be a file-based artifact or ID mismatch
         console.warn(
-          "[handleNavigateToArtifact] Artifact not found in session artifacts. ID:",
-          artifactId,
+          "[handleNavigateToArtifact] Artifact not found in session artifacts. ID/Title:",
+          artifactIdOrTitle,
           "- This might be a file-based artifact. Consider navigating to Files tab.",
         );
-        // If it looks like a file-based artifact (contains path-like characters), navigate to Files
-        if (artifactId.includes("-") || artifactId.includes("_")) {
+        // If it looks like a file-based artifact (starts with file_ or contains path-like characters)
+        if (
+          artifactIdOrTitle.startsWith("file_") ||
+          artifactIdOrTitle.includes("/")
+        ) {
           console.log(
             "[handleNavigateToArtifact] Attempting to navigate to Files tab...",
           );
@@ -1811,6 +1934,32 @@ export function IdeationSession({
 
   const handleNavigateToExternal = useCallback((url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
+  }, []);
+
+  // Navigate to Insights tab and highlight the insight with matching sourceId
+  const handleNavigateToInsight = useCallback(
+    (sourceId: string) => {
+      console.log(
+        "[handleNavigateToInsight] Navigating to insight with sourceId:",
+        sourceId,
+      );
+      // Open the artifact panel if not already open
+      if (!state.artifacts.isPanelOpen) {
+        dispatch({
+          type: "ARTIFACT_PANEL_TOGGLE",
+          payload: { isOpen: true },
+        });
+      }
+      // Set the highlight source ID which will trigger the IdeaArtifactPanel
+      // to switch to insights tab and highlight the matching insight
+      setHighlightInsightSourceId(sourceId);
+    },
+    [state.artifacts.isPanelOpen],
+  );
+
+  // Clear insight highlight (called by IdeaArtifactPanel after highlight timeout)
+  const handleClearHighlightInsight = useCallback(() => {
+    setHighlightInsightSourceId(null);
   }, []);
 
   const handleBackToGraph = useCallback(() => {
@@ -1916,29 +2065,6 @@ export function IdeationSession({
     setGraphSuccessNotification(null);
   }, []);
 
-  // Handle capture
-  const handleCapture = useCallback(async () => {
-    if (!state.session.sessionId) return;
-
-    try {
-      const result = await api.captureIdea(state.session.sessionId);
-      dispatch({
-        type: "SESSION_COMPLETE",
-        payload: { ideaId: result.ideaId },
-      });
-      // Pass slug for navigation since route is /ideas/:slug
-      onComplete(result.ideaSlug);
-    } catch (error) {
-      dispatch({
-        type: "MESSAGE_ERROR",
-        payload: {
-          error:
-            error instanceof Error ? error.message : "Failed to capture idea",
-        },
-      });
-    }
-  }, [state.session.sessionId, api, onComplete]);
-
   // Handle memory graph analysis
   const handleAnalyzeGraph = useCallback(async () => {
     if (!state.session.sessionId) return;
@@ -1946,7 +2072,13 @@ export function IdeationSession({
     dispatch({ type: "MEMORY_GRAPH_ANALYSIS_START" });
 
     try {
-      const analysis = await api.analyzeGraphChanges(state.session.sessionId);
+      // Pass lastAnalyzedAt for incremental analysis (only analyze new conversations)
+      const analysis = await api.analyzeGraphChanges(
+        state.session.sessionId,
+        undefined, // selectedSourceIds
+        undefined, // ideaSlug
+        state.memoryGraph.lastAnalyzedAt || undefined, // sinceTimestamp
+      );
       dispatch({
         type: "MEMORY_GRAPH_ANALYSIS_COMPLETE",
         payload: { analysis },
@@ -1967,7 +2099,7 @@ export function IdeationSession({
       });
       setTimeout(() => setToast(null), 3000);
     }
-  }, [state.session.sessionId, api]);
+  }, [state.session.sessionId, state.memoryGraph.lastAnalyzedAt, api]);
 
   // Handle applying selected graph changes
   const handleApplyGraphChanges = useCallback(async () => {
@@ -1991,6 +2123,29 @@ export function IdeationSession({
       setTimeout(() => setToast(null), 3000);
       // Refresh the graph tab count
       setGraphUpdateCount((prev) => prev + result.blocksCreated);
+
+      // Fetch updated applied insights from backend to get full data including allSources
+      // This runs after source mapping is complete
+      try {
+        const insightsResponse = await api.fetchAppliedInsights(
+          state.session.sessionId,
+        );
+        if (insightsResponse.success && insightsResponse.data.insights) {
+          dispatch({
+            type: "MEMORY_GRAPH_INSIGHTS_LOAD",
+            payload: { insights: insightsResponse.data.insights },
+          });
+          console.log(
+            `[Graph Apply] Refreshed ${insightsResponse.data.insights.length} applied insights`,
+          );
+        }
+      } catch (fetchError) {
+        console.warn(
+          "[Graph Apply] Failed to refresh applied insights:",
+          fetchError,
+        );
+        // Don't fail the whole operation - the local state has the basic insight data
+      }
     } catch (error) {
       dispatch({
         type: "MEMORY_GRAPH_APPLY_ERROR",
@@ -2043,39 +2198,29 @@ export function IdeationSession({
     });
   }, []);
 
+  // Handle deleting an insight (proposed change) from the insights panel
+  const handleDeleteInsight = useCallback((insightId: string) => {
+    dispatch({
+      type: "MEMORY_GRAPH_CHANGE_DELETE",
+      payload: { changeId: insightId },
+    });
+  }, []);
+
+  // Handle editing an insight (proposed change) from the insights panel
+  const handleEditInsight = useCallback(
+    (insightId: string, updates: { title?: string; content?: string }) => {
+      dispatch({
+        type: "MEMORY_GRAPH_CHANGE_EDIT",
+        payload: { changeId: insightId, updates },
+      });
+    },
+    [],
+  );
+
   // Handle closing the memory graph modal
   const handleCloseGraphModal = useCallback(() => {
     dispatch({ type: "MEMORY_GRAPH_MODAL_CLOSE" });
   }, []);
-
-  // Handle save for later
-  const handleSave = useCallback(async () => {
-    console.log("[handleSave] Called, sessionId:", state.session.sessionId);
-    if (!state.session.sessionId) {
-      console.log("[handleSave] No session ID, returning early");
-      return;
-    }
-
-    try {
-      console.log("[handleSave] Calling api.saveForLater...");
-      await api.saveForLater(state.session.sessionId);
-      console.log("[handleSave] Success! Setting toast...");
-      // Show success toast
-      setToast({
-        message: "Idea saved for later! You can resume this session anytime.",
-        type: "success",
-      });
-      // Auto-hide after 4 seconds
-      setTimeout(() => setToast(null), 4000);
-    } catch (error) {
-      console.log("[handleSave] Error:", error);
-      setToast({
-        message: error instanceof Error ? error.message : "Failed to save idea",
-        type: "error",
-      });
-      setTimeout(() => setToast(null), 4000);
-    }
-  }, [state.session.sessionId, api]);
 
   // Handle discard candidate
   const handleDiscard = useCallback(() => {
@@ -2214,25 +2359,48 @@ export function IdeationSession({
     setTimeout(() => setToast(null), 3000);
   }, [spec]);
 
-  // Handle updating candidate title
+  // Handle updating session title
   const handleUpdateTitle = useCallback(
     async (newTitle: string) => {
-      if (!state.candidate.candidate || !state.session.sessionId) return;
+      if (!state.session.sessionId) return;
 
       try {
-        // Update in the backend first
-        await api.updateCandidate(state.session.sessionId, { title: newTitle });
+        // Update session title in the backend (triggers folder creation if needed)
+        const result = await api.updateSessionTitle(
+          state.session.sessionId,
+          newTitle,
+        );
 
-        // Then update local state
+        // Update session title in local state
         dispatch({
-          type: "CANDIDATE_UPDATE",
-          payload: {
-            candidate: {
-              ...state.candidate.candidate,
-              title: newTitle,
-            },
-          },
+          type: "SESSION_TITLE_UPDATE",
+          payload: { title: newTitle },
         });
+
+        // Also update candidate for backward compatibility if one exists
+        if (state.candidate.candidate) {
+          await api.updateCandidate(state.session.sessionId, {
+            title: newTitle,
+          });
+          dispatch({
+            type: "CANDIDATE_UPDATE",
+            payload: {
+              candidate: {
+                ...state.candidate.candidate,
+                title: newTitle,
+              },
+            },
+          });
+        }
+
+        // Update linked idea if folder was created
+        if (result.folderCreated && result.folder) {
+          dispatch({
+            type: "SET_LINKED_IDEA",
+            payload: result.folder,
+          });
+        }
+
         setToast({ message: "Title updated", type: "success" });
       } catch (error) {
         console.error("Failed to update title:", error);
@@ -2390,12 +2558,9 @@ export function IdeationSession({
     <div className="ideation-session h-full flex flex-col relative">
       <SessionHeader
         sessionId={state.session.sessionId || ""}
+        sessionTitle={state.session.title}
         tokenUsage={state.tokens.usage}
         candidate={state.candidate.candidate}
-        confidence={state.candidate.confidence}
-        viability={state.candidate.viability}
-        onCapture={handleCapture}
-        onSave={handleSave}
         onDiscard={handleDiscard}
         onMinimize={onExit}
         onUpdateTitle={handleUpdateTitle}
@@ -2454,6 +2619,7 @@ export function IdeationSession({
             onNavigateToArtifact={handleNavigateToArtifact}
             onNavigateToMemoryDB={handleNavigateToMemoryDB}
             onNavigateToExternal={handleNavigateToExternal}
+            onNavigateToInsight={handleNavigateToInsight}
             onLinkNode={handleLinkNode}
             onGroupIntoSynthesis={handleGroupIntoSynthesis}
             onDeleteNode={handleDeleteNode}
@@ -2464,6 +2630,7 @@ export function IdeationSession({
             onSnapshotRestored={() =>
               setGraphRefetchTrigger((prev) => prev + 1)
             }
+            existingInsights={state.memoryGraph.analysis?.proposedChanges || []}
           />
 
           {/* Files Tab Panel (T9.2 - Project folder browser) */}
@@ -2503,8 +2670,6 @@ export function IdeationSession({
         {/* Combined Idea & Artifact Panel - Right side */}
         <IdeaArtifactPanel
           candidate={state.candidate.candidate}
-          confidence={state.candidate.confidence}
-          viability={state.candidate.viability}
           risks={state.candidate.risks}
           showIntervention={state.candidate.showIntervention}
           onContinue={handleContinue}
@@ -2531,6 +2696,27 @@ export function IdeationSession({
           onSpecCreateTasks={handleSpecCreateTasks}
           onGenerateSpec={isReadyForSpec ? handleGenerateSpec : undefined}
           isSpecLoading={isSpecLoading || isSpecGenerating}
+          // Insights props (chat insights from memory graph analysis)
+          // Show both pending (in analysis) and applied insights
+          insights={[
+            ...(state.memoryGraph.analysis?.proposedChanges || []),
+            ...state.memoryGraph.appliedInsights,
+          ]}
+          pendingInsightsCount={state.memoryGraph.pendingChangesCount}
+          onAnalyzeInsights={handleAnalyzeGraph}
+          isAnalyzingInsights={state.memoryGraph.isAnalyzing}
+          onDeleteInsight={handleDeleteInsight}
+          onEditInsight={handleEditInsight}
+          // Navigation callbacks for source lineage in insights
+          onNavigateToChatMessage={handleNavigateToChatMessage}
+          onNavigateToArtifact={handleNavigateToArtifact}
+          onNavigateToMemoryDB={handleNavigateToMemoryDB}
+          // Highlight specific insight (used for navigation from Source Lineage)
+          highlightInsightSourceId={highlightInsightSourceId}
+          onClearHighlightInsight={handleClearHighlightInsight}
+          // Force tab switch (for navigation from Source Lineage)
+          forceActiveTab={forceArtifactPanelTab}
+          onForceActiveTabHandled={() => setForceArtifactPanelTab(null)}
         />
       </div>
 

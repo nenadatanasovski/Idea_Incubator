@@ -221,8 +221,8 @@ describe("ideationReducer", () => {
             sessionId: "session-1",
             title: "My Idea",
             summary: null,
-            confidence: 75,
-            viability: 80,
+            confidence: 0,
+            viability: 100,
             userSuggested: false,
             status: "active" as const,
             capturedIdeaId: null,
@@ -230,52 +230,14 @@ describe("ideationReducer", () => {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
-          confidence: 75,
-          viability: 80,
+          risks: [],
         },
       };
       const action: IdeationAction = { type: "CANDIDATE_CLEAR" };
       const state = ideationReducer(stateWithCandidate, action);
 
       expect(state.candidate.candidate).toBeNull();
-      expect(state.candidate.confidence).toBe(0);
-      expect(state.candidate.viability).toBe(100);
-    });
-
-    it("handles CONFIDENCE_UPDATE", () => {
-      const action: IdeationAction = {
-        type: "CONFIDENCE_UPDATE",
-        payload: { confidence: 65 },
-      };
-      const state = ideationReducer(initialState, action);
-
-      expect(state.candidate.confidence).toBe(65);
-    });
-
-    it("handles VIABILITY_UPDATE", () => {
-      const risks = [
-        {
-          id: "risk-1",
-          candidateId: "cand-1",
-          riskType: "saturated_market" as const,
-          description: "Market is crowded",
-          evidenceUrl: null,
-          evidenceText: null,
-          severity: "high" as const,
-          userAcknowledged: false,
-          userResponse: null,
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      const action: IdeationAction = {
-        type: "VIABILITY_UPDATE",
-        payload: { viability: 45, risks },
-      };
-      const state = ideationReducer(initialState, action);
-
-      expect(state.candidate.viability).toBe(45);
-      expect(state.candidate.risks).toHaveLength(1);
-      expect(state.candidate.risks[0].riskType).toBe("saturated_market");
+      expect(state.candidate.risks).toEqual([]);
     });
   });
 
