@@ -136,8 +136,22 @@ function findConnectedComponents(
 /**
  * Generates reports for all connected node groups in a session.
  * Called after source mapping completes.
+ *
+ * IMPORTANT: This function is idempotent - if a report synthesis job is already
+ * actively running for this session, we skip starting a new one rather than
+ * cancelling the existing job. This prevents interruption when the browser
+ * refreshes or navigates, which could trigger this function again.
  */
 async function generateReportsForSession(sessionId: string): Promise<void> {
+  // Check if there's already an active job running - if so, don't interrupt it
+  if (reportSynthesisTracker.hasActiveJob(sessionId)) {
+    const existingJob = reportSynthesisTracker.getJobStatus(sessionId);
+    console.log(
+      `[generateReportsForSession] Skipping - active job ${existingJob?.id} already running for session ${sessionId} (status: ${existingJob?.status})`,
+    );
+    return;
+  }
+
   // Create job for tracking
   const { job, abortController } = reportSynthesisTracker.createJob(sessionId);
   emitReportSynthesisStarted(sessionId, { jobId: job.id });

@@ -542,6 +542,74 @@ export interface AnalysisResponse {
 }
 
 /**
+ * Attempt to repair common JSON formatting issues from AI responses
+ */
+function repairJson(jsonText: string): string {
+  let repaired = jsonText;
+
+  // Remove trailing commas before } or ]
+  repaired = repaired.replace(/,(\s*[}\]])/g, "$1");
+
+  // Fix unescaped newlines in strings (common in AI responses with multi-line content)
+  // This is a simplified approach - find strings and escape newlines within them
+  repaired = repaired.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
+    // Replace actual newlines with escaped newlines inside the string
+    return match.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+  });
+
+  // Handle truncated JSON - try to close any open structures
+  // Count open/close braces and brackets
+  let braceCount = 0;
+  let bracketCount = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (const char of repaired) {
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+
+    if (char === "{") braceCount++;
+    else if (char === "}") braceCount--;
+    else if (char === "[") bracketCount++;
+    else if (char === "]") bracketCount--;
+  }
+
+  // Close any unclosed structures (truncated response)
+  // First close arrays, then objects
+  while (bracketCount > 0) {
+    repaired = repaired.trimEnd();
+    // Remove trailing comma before closing
+    if (repaired.endsWith(",")) {
+      repaired = repaired.slice(0, -1);
+    }
+    repaired += "]";
+    bracketCount--;
+  }
+  while (braceCount > 0) {
+    repaired = repaired.trimEnd();
+    // Remove trailing comma before closing
+    if (repaired.endsWith(",")) {
+      repaired = repaired.slice(0, -1);
+    }
+    repaired += "}";
+    braceCount--;
+  }
+
+  return repaired;
+}
+
+/**
  * Parse and validate AI response
  */
 export function parseAnalysisResponse(
@@ -569,7 +637,27 @@ export function parseAnalysisResponse(
       }
     }
 
-    const parsed = JSON.parse(jsonText);
+    // First attempt: try to parse as-is
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch (firstError) {
+      // Second attempt: try to repair and parse
+      console.log(
+        "[AnalysisPromptBuilder] First parse failed, attempting JSON repair...",
+      );
+      const repairedJson = repairJson(jsonText);
+      try {
+        parsed = JSON.parse(repairedJson);
+        console.log("[AnalysisPromptBuilder] JSON repair successful!");
+      } catch (repairError) {
+        // Log both errors for debugging
+        console.error("[AnalysisPromptBuilder] JSON repair also failed");
+        console.error("[AnalysisPromptBuilder] Original error:", firstError);
+        console.error("[AnalysisPromptBuilder] Repair error:", repairError);
+        throw firstError; // Throw original error for logging
+      }
+    }
 
     // Basic validation
     if (!parsed.context || !parsed.proposedChanges) {

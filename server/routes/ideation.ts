@@ -534,8 +534,8 @@ ideationRouter.post(
         return res.status(404).json({ error: "Session not found" });
       }
 
-      // Reactivate abandoned sessions when user sends a message
-      if (session.status === "abandoned") {
+      // Reactivate abandoned or completed sessions when user sends a message
+      if (session.status === "abandoned" || session.status === "completed") {
         await sessionManager.update(sessionId, { status: "active" });
         session = await sessionManager.load(sessionId);
       }
@@ -2592,8 +2592,8 @@ ideationRouter.post("/message/stream", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Session not found" });
     }
 
-    // Reactivate abandoned sessions when user sends a streaming message
-    if (session.status === "abandoned") {
+    // Reactivate abandoned or completed sessions when user sends a streaming message
+    if (session.status === "abandoned" || session.status === "completed") {
       await sessionManager.update(sessionId, { status: "active" });
       session = await sessionManager.load(sessionId);
     }

@@ -9,7 +9,7 @@
  * - External content (imported)
  */
 
-import { query, getOne } from "../../../database/db.js";
+import { query, getOne, run, saveDb } from "../../../database/db.js";
 import {
   synthesizeConversation,
   INSIGHT_TYPE_WEIGHTS,
@@ -20,31 +20,115 @@ import * as fs from "fs";
 import * as path from "path";
 
 // =============================================================================
-// Conversation Insight Cache
+// Conversation Insight Cache (Persistent)
 // =============================================================================
-// Cache synthesized insights to avoid expensive re-synthesis when no new messages
+// Cache synthesized insights in the database to avoid expensive re-synthesis
+// when no new messages exist. Persists across server restarts.
 
-interface CachedInsights {
-  insights: CollectedSource[];
+// Track in-progress synthesis operations to prevent concurrent synthesis for same session
+const synthesisInProgress = new Map<string, Promise<any>>();
+
+// Initialize the cache table
+async function ensureCacheTable(): Promise<void> {
+  await run(`
+    CREATE TABLE IF NOT EXISTS conversation_insight_cache (
+      session_id TEXT PRIMARY KEY,
+      last_message_timestamp TEXT NOT NULL,
+      last_message_id TEXT NOT NULL,
+      insights_json TEXT NOT NULL,
+      cached_at TEXT NOT NULL
+    )
+  `);
+}
+
+// Get cached insights from database
+async function getCachedInsights(sessionId: string): Promise<{
+  insights: any[];
   lastMessageTimestamp: string;
   lastMessageId: string;
   cachedAt: string;
+} | null> {
+  console.log(`[SourceCollector] Checking DB cache for session: ${sessionId}`);
+  await ensureCacheTable();
+  const row = await getOne<{
+    last_message_timestamp: string;
+    last_message_id: string;
+    insights_json: string;
+    cached_at: string;
+  }>(
+    `SELECT last_message_timestamp, last_message_id, insights_json, cached_at
+     FROM conversation_insight_cache WHERE session_id = ?`,
+    [sessionId],
+  );
+
+  if (!row) {
+    console.log(
+      `[SourceCollector] No cache found in DB for session: ${sessionId}`,
+    );
+    return null;
+  }
+
+  console.log(
+    `[SourceCollector] Found cache in DB, last_message_timestamp: ${row.last_message_timestamp}`,
+  );
+
+  try {
+    return {
+      insights: JSON.parse(row.insights_json),
+      lastMessageTimestamp: row.last_message_timestamp,
+      lastMessageId: row.last_message_id,
+      cachedAt: row.cached_at,
+    };
+  } catch (e) {
+    console.log(`[SourceCollector] Error parsing cached insights: ${e}`);
+    return null;
+  }
 }
 
-// In-memory cache keyed by sessionId
-const conversationInsightCache = new Map<string, CachedInsights>();
+// Save insights to database cache
+async function saveCachedInsights(
+  sessionId: string,
+  insights: any[],
+  lastMessageTimestamp: string,
+  lastMessageId: string,
+): Promise<void> {
+  await ensureCacheTable();
+  const cachedAt = new Date().toISOString();
+  const insightsJson = JSON.stringify(insights);
 
-// Clear cache for a session (call when conversation changes significantly)
-export function clearConversationInsightCache(sessionId: string): void {
-  conversationInsightCache.delete(sessionId);
+  await run(
+    `INSERT OR REPLACE INTO conversation_insight_cache
+     (session_id, last_message_timestamp, last_message_id, insights_json, cached_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [sessionId, lastMessageTimestamp, lastMessageId, insightsJson, cachedAt],
+  );
+
+  // Persist to disk so cache survives server restarts
+  await saveDb();
+  console.log(
+    `[SourceCollector] Cache persisted to disk for session ${sessionId}`,
+  );
+}
+
+// Clear cache for a session
+export async function clearConversationInsightCache(
+  sessionId: string,
+): Promise<void> {
+  await ensureCacheTable();
+  await run(`DELETE FROM conversation_insight_cache WHERE session_id = ?`, [
+    sessionId,
+  ]);
+  synthesisInProgress.delete(sessionId);
   console.log(
     `[SourceCollector] Cleared insight cache for session: ${sessionId}`,
   );
 }
 
-// Clear entire cache (for server restart)
-export function clearAllConversationInsightCaches(): void {
-  conversationInsightCache.clear();
+// Clear entire cache
+export async function clearAllConversationInsightCaches(): Promise<void> {
+  await ensureCacheTable();
+  await run(`DELETE FROM conversation_insight_cache`);
+  synthesisInProgress.clear();
   console.log(`[SourceCollector] Cleared all insight caches`);
 }
 
@@ -183,9 +267,6 @@ export async function collectConversationInsights(
     `[SourceCollector] Collecting conversation insights for session: ${sessionId}`,
   );
 
-  // Check for cached insights first
-  const cached = conversationInsightCache.get(sessionId);
-
   // Get the latest message to check if we need to re-synthesize
   const latestMessage = await getOne<{
     id: string;
@@ -198,6 +279,9 @@ export async function collectConversationInsights(
     [sessionId],
   );
 
+  // Check for cached insights in database (persists across server restarts)
+  const cached = await getCachedInsights(sessionId);
+
   // If we have cached insights and no new messages, return cached
   if (cached && latestMessage) {
     const lastCachedTimestamp = new Date(cached.lastMessageTimestamp).getTime();
@@ -205,9 +289,9 @@ export async function collectConversationInsights(
 
     if (latestMessageTimestamp <= lastCachedTimestamp) {
       console.log(
-        `[SourceCollector] Using cached insights (${cached.insights.length} insights, no new messages since ${cached.lastMessageTimestamp})`,
+        `[SourceCollector] Using PERSISTENT cached insights (${cached.insights.length} insights, no new messages since ${cached.lastMessageTimestamp})`,
       );
-      return cached.insights;
+      return cached.insights as CollectedSource[];
     }
 
     console.log(
@@ -215,7 +299,37 @@ export async function collectConversationInsights(
     );
   }
 
-  // No cache or new messages exist - need to synthesize
+  // Check if synthesis is already in progress for this session (in-memory lock)
+  const existingPromise = synthesisInProgress.get(sessionId);
+  if (existingPromise) {
+    console.log(
+      `[SourceCollector] Synthesis already in progress for session ${sessionId}, waiting...`,
+    );
+    return existingPromise;
+  }
+
+  // Start synthesis and track the promise
+  const synthesisPromise = doSynthesis(sessionId, limit, latestMessage);
+  synthesisInProgress.set(sessionId, synthesisPromise);
+
+  try {
+    const result = await synthesisPromise;
+    return result;
+  } finally {
+    // Clean up the in-progress tracker
+    synthesisInProgress.delete(sessionId);
+  }
+}
+
+/**
+ * Internal function to perform the actual synthesis.
+ * Separated to allow tracking with synthesisInProgress.
+ */
+async function doSynthesis(
+  sessionId: string,
+  limit: number,
+  latestMessage: { id: string; created_at: string } | undefined,
+): Promise<CollectedSource[]> {
   console.log(`[SourceCollector] Synthesizing conversation insights...`);
   const synthesisResult = await synthesizeConversation(sessionId, limit);
 
@@ -223,12 +337,12 @@ export async function collectConversationInsights(
     console.log(`[SourceCollector] No insights synthesized from conversation`);
     // Still cache empty result to avoid re-synthesizing empty conversations
     if (latestMessage) {
-      conversationInsightCache.set(sessionId, {
-        insights: [],
-        lastMessageTimestamp: latestMessage.created_at,
-        lastMessageId: latestMessage.id,
-        cachedAt: new Date().toISOString(),
-      });
+      await saveCachedInsights(
+        sessionId,
+        [],
+        latestMessage.created_at,
+        latestMessage.id,
+      );
     }
     return [];
   }
@@ -250,16 +364,16 @@ export async function collectConversationInsights(
     }),
   );
 
-  // Cache the results
+  // Cache the results to database (persists across server restarts)
   if (latestMessage) {
-    conversationInsightCache.set(sessionId, {
-      insights: sources,
-      lastMessageTimestamp: latestMessage.created_at,
-      lastMessageId: latestMessage.id,
-      cachedAt: new Date().toISOString(),
-    });
+    await saveCachedInsights(
+      sessionId,
+      sources,
+      latestMessage.created_at,
+      latestMessage.id,
+    );
     console.log(
-      `[SourceCollector] Cached ${sources.length} insights for session ${sessionId}`,
+      `[SourceCollector] PERSISTENTLY cached ${sources.length} insights for session ${sessionId}`,
     );
   }
 
