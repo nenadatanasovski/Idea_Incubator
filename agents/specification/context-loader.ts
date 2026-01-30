@@ -11,14 +11,24 @@
 import { readFile } from "fs/promises";
 import { existsSync } from "fs";
 import * as path from "path";
+import { graphQueryService } from "../../server/services/graph/graph-query-service.js";
 
 export interface LoadedContext {
   claude: string;
   templates: Record<string, string>;
   gotchas: Gotcha[];
+  requirements: Requirement[];
   ideaReadme?: string;
   ideaBrief?: string;
   tokenEstimate: number;
+}
+
+export interface Requirement {
+  id: string;
+  content: string;
+  type: "requirement" | "constraint";
+  confidence: number;
+  source: "graph" | "spec";
 }
 
 export interface Gotcha {
@@ -177,10 +187,11 @@ export class ContextLoader {
    * Load all context needed for spec generation
    */
   async load(ideaSlug?: string): Promise<LoadedContext> {
-    const [claude, templates, gotchas] = await Promise.all([
+    const [claude, templates, gotchas, requirements] = await Promise.all([
       this.loadClaude(),
       this.loadTemplates(),
-      this.loadGotchas(),
+      this.loadGotchas(ideaSlug),
+      this.loadRequirements(ideaSlug),
     ]);
 
     let ideaReadme: string | undefined;
@@ -195,6 +206,7 @@ export class ContextLoader {
     let totalText = claude;
     totalText += Object.values(templates).join("\n");
     totalText += gotchas.map((g) => g.content).join("\n");
+    totalText += requirements.map((r) => r.content).join("\n");
     if (ideaReadme) totalText += ideaReadme;
     if (ideaBrief) totalText += ideaBrief;
 
@@ -204,6 +216,7 @@ export class ContextLoader {
       claude,
       templates,
       gotchas,
+      requirements,
       ideaReadme,
       ideaBrief,
       tokenEstimate,
@@ -258,20 +271,126 @@ export class ContextLoader {
   }
 
   /**
-   * Load gotchas - hardcoded for v0.1
-   * Will query Knowledge Base in v0.2
+   * Load gotchas from memory graph, falling back to hardcoded gotchas
    */
-  async loadGotchas(): Promise<Gotcha[]> {
-    // In v0.1, return hardcoded gotchas
-    // In v0.2, this will query the Knowledge Base
-    return HARDCODED_GOTCHAS;
+  async loadGotchas(ideaSlug?: string): Promise<Gotcha[]> {
+    // Start with hardcoded gotchas as baseline
+    const gotchas: Gotcha[] = [...HARDCODED_GOTCHAS];
+
+    // If ideaSlug provided, query graph for additional learnings/gotchas
+    if (ideaSlug) {
+      try {
+        const learnings = await graphQueryService.getLearnings(ideaSlug);
+
+        // Convert graph learnings to gotchas
+        for (const block of learnings.blocks) {
+          // Skip if already have this gotcha (by content similarity)
+          const exists = gotchas.some(
+            (g) => g.content.toLowerCase() === block.content.toLowerCase(),
+          );
+          if (exists) continue;
+
+          gotchas.push({
+            id: block.id,
+            content: block.content,
+            filePattern: (block.properties?.filePattern as string) || "*.ts",
+            actionType: (block.properties?.actionType as string) || "*",
+            confidence: this.mapConfidence(block.confidence),
+            source: "knowledge_base",
+          });
+        }
+
+        console.log(
+          `[ContextLoader] Loaded ${learnings.blocks.length} gotchas from graph for ${ideaSlug}`,
+        );
+      } catch (err) {
+        console.warn("[ContextLoader] Failed to load gotchas from graph:", err);
+        // Fall back to hardcoded gotchas only
+      }
+    }
+
+    return gotchas;
+  }
+
+  /**
+   * Load requirements from memory graph
+   */
+  async loadRequirements(ideaSlug?: string): Promise<Requirement[]> {
+    if (!ideaSlug) {
+      return [];
+    }
+
+    try {
+      const result = await graphQueryService.getSpecRequirements(ideaSlug);
+
+      return result.blocks.map((block) => ({
+        id: block.id,
+        content: block.content,
+        type: block.blockTypes.includes("constraint")
+          ? ("constraint" as const)
+          : ("requirement" as const),
+        confidence: block.confidence ?? 0.8,
+        source: "graph" as const,
+      }));
+    } catch (err) {
+      console.warn(
+        "[ContextLoader] Failed to load requirements from graph:",
+        err,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Map confidence score to confidence level
+   */
+  private mapConfidence(score: number | null): "high" | "medium" | "low" {
+    if (score === null) return "medium";
+    if (score >= 0.8) return "high";
+    if (score >= 0.5) return "medium";
+    return "low";
+  }
+
+  /**
+   * Check if idea is ready for spec generation
+   */
+  async checkSpecReadiness(ideaSlug: string): Promise<{
+    ready: boolean;
+    score: number;
+    missing: string[];
+    warnings: string[];
+  }> {
+    const readiness = await graphQueryService.checkSpecReadiness(ideaSlug);
+
+    const warnings: string[] = [];
+
+    // Add warnings for low confidence requirements
+    const requirements = await this.loadRequirements(ideaSlug);
+    const lowConfidenceReqs = requirements.filter((r) => r.confidence < 0.6);
+    if (lowConfidenceReqs.length > 0) {
+      warnings.push(
+        `${lowConfidenceReqs.length} requirements have low confidence`,
+      );
+    }
+
+    return {
+      ready: readiness.ready,
+      score: readiness.score,
+      missing: readiness.missing,
+      warnings,
+    };
   }
 
   /**
    * Get gotchas relevant to a specific file pattern and action
    */
-  getRelevantGotchas(filePattern: string, actionType: string): Gotcha[] {
-    return HARDCODED_GOTCHAS.filter((gotcha) => {
+  getRelevantGotchas(
+    filePattern: string,
+    actionType: string,
+    allGotchas?: Gotcha[],
+  ): Gotcha[] {
+    const gotchas = allGotchas || HARDCODED_GOTCHAS;
+    return gotchas.filter((gotcha) => {
       const patternMatch = this.matchPattern(filePattern, gotcha.filePattern);
       const actionMatch =
         gotcha.actionType === actionType || gotcha.actionType === "*";
@@ -379,6 +498,21 @@ export class ContextLoader {
         "## Tasks Template\n\n```markdown\n" +
           context.templates["tasks.md"] +
           "\n```",
+      );
+    }
+
+    // Requirements
+    if (context.requirements.length > 0) {
+      const reqList = context.requirements
+        .map((r) => `- [${r.type}] ${r.content}`)
+        .join("\n");
+      const constraintCount = context.requirements.filter(
+        (r) => r.type === "constraint",
+      ).length;
+      const reqCount = context.requirements.length - constraintCount;
+      sections.push(
+        `## Requirements (${reqCount} requirements, ${constraintCount} constraints)\n\n` +
+          reqList,
       );
     }
 

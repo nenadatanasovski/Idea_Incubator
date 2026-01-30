@@ -11,7 +11,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getOne, query, saveDb } from "../../../database/db.js";
 import { sessionManager } from "../../../agents/ideation/session-manager.js";
 import { messageStore } from "../../../agents/ideation/message-store.js";
-import { memoryManager } from "../../../agents/ideation/memory-manager.js";
+import { graphStateLoader } from "../../../agents/ideation/graph-state-loader.js";
 import { agentOrchestrator } from "../../../agents/ideation/orchestrator.js";
 import { generateGreetingWithButtons } from "../../../agents/ideation/greeting-generator.js";
 import type { UserProfile } from "../../../agents/ideation/greeting-generator.js";
@@ -70,7 +70,7 @@ export {
   saveDb,
   sessionManager,
   messageStore,
-  memoryManager,
+  graphStateLoader,
   agentOrchestrator,
   generateGreetingWithButtons,
   UserProfile,

@@ -290,6 +290,10 @@ const InsightsContent: React.FC<InsightsContentProps> = ({
   const [expandedSources, setExpandedSources] = useState<Set<string>>(
     new Set(),
   );
+  // Track which insights have their sources accordion expanded
+  const [expandedSourcesAccordion, setExpandedSourcesAccordion] = useState<
+    Set<string>
+  >(new Set());
 
   // Toggle content expansion
   const toggleContentExpansion = (insightId: string) => {
@@ -318,12 +322,31 @@ const InsightsContent: React.FC<InsightsContentProps> = ({
     });
   };
 
+  // Toggle sources accordion
+  const toggleSourcesAccordion = (insightId: string) => {
+    setExpandedSourcesAccordion((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(insightId)) {
+        newSet.delete(insightId);
+      } else {
+        newSet.add(insightId);
+      }
+      return newSet;
+    });
+  };
+
   // Ref for scrolling to highlighted insight
   const highlightedRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to highlighted insight when it changes
+  // Scroll to highlighted insight and expand sources when it changes
   useEffect(() => {
     if (highlightedInsightId && highlightedRef.current) {
+      // Auto-expand sources accordion for highlighted insight
+      setExpandedSourcesAccordion((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(highlightedInsightId);
+        return newSet;
+      });
       highlightedRef.current.scrollIntoView({
         behavior: "smooth",
         block: "center",
@@ -600,151 +623,182 @@ const InsightsContent: React.FC<InsightsContentProps> = ({
 
                   {/* Link info */}
                   {insight.type === "create_link" && insight.reason && (
-                    <p className="text-xs text-gray-500 mt-2 italic">
-                      "{insight.reason}"
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 font-medium">
+                      {insight.reason}
                     </p>
                   )}
 
-                  {/* Source attribution - enhanced with navigation */}
+                  {/* Source attribution - collapsible accordion */}
                   {(insight.sourceType ||
-                    (insight.corroboratedBy &&
-                      insight.corroboratedBy.length > 0)) && (
-                    <div className="mt-2 pt-2 border-t border-gray-100 space-y-2">
-                      {/* Primary source */}
-                      {insight.sourceType && (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-gray-400">
-                              Source:
-                            </span>
-                            <button
-                              onClick={() => {
-                                if (insight.sourceId) {
-                                  if (
-                                    insight.sourceType === "artifact" &&
-                                    onNavigateToArtifact
-                                  ) {
-                                    onNavigateToArtifact(insight.sourceId);
-                                  } else if (
-                                    insight.sourceType === "memory_file" &&
-                                    onNavigateToMemoryDB
-                                  ) {
-                                    onNavigateToMemoryDB(
-                                      "files",
-                                      insight.sourceId,
-                                    );
-                                  } else if (
-                                    (insight.sourceType === "conversation" ||
-                                      insight.sourceType ===
-                                        "conversation_insight") &&
-                                    onNavigateToChatMessage
-                                  ) {
-                                    onNavigateToChatMessage(insight.sourceId);
-                                  }
-                                }
-                              }}
-                              className={`text-xs px-1.5 py-0.5 rounded ${
-                                insight.sourceId &&
-                                ((insight.sourceType === "artifact" &&
-                                  onNavigateToArtifact) ||
-                                  (insight.sourceType === "memory_file" &&
-                                    onNavigateToMemoryDB) ||
-                                  ((insight.sourceType === "conversation" ||
-                                    insight.sourceType ===
-                                      "conversation_insight") &&
-                                    onNavigateToChatMessage))
-                                  ? "bg-blue-50 text-blue-600 hover:bg-blue-100 cursor-pointer"
-                                  : "bg-gray-50 text-gray-500 cursor-default"
-                              }`}
-                            >
-                              {insight.sourceType.replace(/_/g, " ")}
-                            </button>
-                          </div>
-                          {insight.sourceWeight !== undefined && (
-                            <span className="text-xs text-gray-400">
-                              {Math.round(insight.sourceWeight * 100)}% weight
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* All sources - show original source content */}
-                      {insight.allSources && insight.allSources.length > 0 && (
-                        <div className="space-y-1.5">
-                          <span className="text-xs text-gray-400">
-                            Also supported by {insight.allSources.length} source
-                            {insight.allSources.length > 1 ? "s" : ""}:
+                    (insight.allSources && insight.allSources.length > 0)) && (
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      {/* Accordion header - clickable to expand/collapse */}
+                      <button
+                        onClick={() => toggleSourcesAccordion(insight.id)}
+                        className="flex items-center gap-1.5 w-full text-left hover:bg-gray-50 rounded px-1 py-0.5 -mx-1 transition-colors"
+                      >
+                        <svg
+                          className={`w-3 h-3 text-gray-400 transition-transform ${
+                            expandedSourcesAccordion.has(insight.id)
+                              ? "rotate-90"
+                              : ""
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                        <span className="text-xs text-gray-400">
+                          {insight.allSources && insight.allSources.length > 0
+                            ? `${insight.allSources.length + 1} sources`
+                            : "1 source"}
+                        </span>
+                        {insight.sourceType && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-gray-50 text-gray-500">
+                            {insight.sourceType.replace(/_/g, " ")}
                           </span>
-                          {insight.allSources.slice(0, 3).map((source, idx) => (
-                            <div
-                              key={idx}
-                              className="ml-2 p-2 bg-gray-50 rounded-md"
-                            >
+                        )}
+                      </button>
+
+                      {/* Accordion content - sources list */}
+                      {expandedSourcesAccordion.has(insight.id) && (
+                        <div className="mt-2 space-y-2 pl-4">
+                          {/* Primary source */}
+                          {insight.sourceType && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-gray-400">
+                                Primary:
+                              </span>
                               <button
                                 onClick={() => {
-                                  if (
-                                    source.type === "artifact" &&
-                                    onNavigateToArtifact
-                                  ) {
-                                    // Pass title for matching (more reliable than file_xxx IDs)
-                                    // Falls back to ID if title not available
-                                    onNavigateToArtifact(
-                                      source.title || source.id,
-                                    );
-                                  } else if (
-                                    source.type === "memory_file" &&
-                                    onNavigateToMemoryDB
-                                  ) {
-                                    onNavigateToMemoryDB("files", source.id);
+                                  if (insight.sourceId) {
+                                    if (
+                                      insight.sourceType === "artifact" &&
+                                      onNavigateToArtifact
+                                    ) {
+                                      onNavigateToArtifact(insight.sourceId);
+                                    } else if (
+                                      insight.sourceType === "memory_file" &&
+                                      onNavigateToMemoryDB
+                                    ) {
+                                      onNavigateToMemoryDB(
+                                        "files",
+                                        insight.sourceId,
+                                      );
+                                    } else if (
+                                      (insight.sourceType === "conversation" ||
+                                        insight.sourceType ===
+                                          "conversation_insight") &&
+                                      onNavigateToChatMessage
+                                    ) {
+                                      onNavigateToChatMessage(insight.sourceId);
+                                    }
                                   }
                                 }}
-                                className={`text-xs font-medium ${
-                                  (source.type === "artifact" &&
+                                className={`text-xs px-1.5 py-0.5 rounded ${
+                                  insight.sourceId &&
+                                  ((insight.sourceType === "artifact" &&
                                     onNavigateToArtifact) ||
-                                  (source.type === "memory_file" &&
-                                    onNavigateToMemoryDB)
-                                    ? "text-blue-600 hover:text-blue-800 cursor-pointer"
-                                    : "text-gray-600"
+                                    (insight.sourceType === "memory_file" &&
+                                      onNavigateToMemoryDB) ||
+                                    ((insight.sourceType === "conversation" ||
+                                      insight.sourceType ===
+                                        "conversation_insight") &&
+                                      onNavigateToChatMessage))
+                                    ? "bg-blue-50 text-blue-600 hover:bg-blue-100 cursor-pointer"
+                                    : "bg-gray-50 text-gray-500 cursor-default"
                                 }`}
                               >
-                                {source.title || source.type.replace(/_/g, " ")}
+                                {insight.sourceType.replace(/_/g, " ")}
                               </button>
-                              {source.contentSnippet && (
-                                <div className="mt-1">
-                                  <p
-                                    className={`text-xs text-gray-500 dark:text-gray-400 italic ${
-                                      !expandedSources.has(
-                                        `${insight.id}-${idx}`,
-                                      )
-                                        ? "line-clamp-3"
-                                        : ""
-                                    }`}
-                                  >
-                                    "{source.contentSnippet}"
-                                  </p>
-                                  {source.contentSnippet.length > 200 && (
-                                    <button
-                                      onClick={() =>
-                                        toggleSourceExpansion(insight.id, idx)
-                                      }
-                                      className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mt-1"
-                                    >
-                                      {expandedSources.has(
-                                        `${insight.id}-${idx}`,
-                                      )
-                                        ? "Show less"
-                                        : "Show more"}
-                                    </button>
-                                  )}
-                                </div>
-                              )}
                             </div>
-                          ))}
-                          {insight.allSources.length > 3 && (
-                            <span className="text-xs text-gray-400 ml-2">
-                              +{insight.allSources.length - 3} more
-                            </span>
                           )}
+
+                          {/* All sources - show original source content */}
+                          {insight.allSources &&
+                            insight.allSources.length > 0 && (
+                              <div className="space-y-1.5">
+                                <span className="text-xs text-gray-400">
+                                  Supporting sources:
+                                </span>
+                                {insight.allSources.map((source, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="ml-2 p-2 bg-gray-50 rounded-md"
+                                  >
+                                    <button
+                                      onClick={() => {
+                                        if (
+                                          source.type === "artifact" &&
+                                          onNavigateToArtifact
+                                        ) {
+                                          onNavigateToArtifact(
+                                            source.title || source.id,
+                                          );
+                                        } else if (
+                                          source.type === "memory_file" &&
+                                          onNavigateToMemoryDB
+                                        ) {
+                                          onNavigateToMemoryDB(
+                                            "files",
+                                            source.id,
+                                          );
+                                        }
+                                      }}
+                                      className={`text-xs font-medium ${
+                                        (source.type === "artifact" &&
+                                          onNavigateToArtifact) ||
+                                        (source.type === "memory_file" &&
+                                          onNavigateToMemoryDB)
+                                          ? "text-blue-600 hover:text-blue-800 cursor-pointer"
+                                          : "text-gray-600"
+                                      }`}
+                                    >
+                                      {source.title ||
+                                        source.type.replace(/_/g, " ")}
+                                    </button>
+                                    {source.contentSnippet && (
+                                      <div className="mt-1">
+                                        <p
+                                          className={`text-xs text-gray-500 dark:text-gray-400 italic ${
+                                            !expandedSources.has(
+                                              `${insight.id}-${idx}`,
+                                            )
+                                              ? "line-clamp-3"
+                                              : ""
+                                          }`}
+                                        >
+                                          "{source.contentSnippet}"
+                                        </p>
+                                        {source.contentSnippet.length > 200 && (
+                                          <button
+                                            onClick={() =>
+                                              toggleSourceExpansion(
+                                                insight.id,
+                                                idx,
+                                              )
+                                            }
+                                            className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mt-1"
+                                          >
+                                            {expandedSources.has(
+                                              `${insight.id}-${idx}`,
+                                            )
+                                              ? "Show less"
+                                              : "Show more"}
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                         </div>
                       )}
                     </div>
@@ -1025,23 +1079,11 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
         `}
       >
         {/* Header with main tabs */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white flex-shrink-0">
-          <div className="flex gap-1">
-            <button
-              onClick={() => setActiveTab("idea")}
-              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
-              ${
-                activeTab === "idea"
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <Lightbulb className="w-4 h-4" />
-              Idea
-            </button>
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-white flex-shrink-0">
+          <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
             <button
               onClick={() => setActiveTab("artifacts")}
-              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex-shrink-0
               ${
                 activeTab === "artifacts"
                   ? "bg-blue-100 text-blue-700"
@@ -1057,33 +1099,8 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
               )}
             </button>
             <button
-              onClick={() => setActiveTab("spec")}
-              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
-              ${
-                activeTab === "spec"
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              Spec
-              {spec && (
-                <span
-                  className={`ml-1 px-1.5 py-0.5 text-xs rounded-full ${
-                    spec.workflowState === "approved"
-                      ? "bg-green-200 text-green-700"
-                      : spec.workflowState === "review"
-                        ? "bg-blue-200 text-blue-700"
-                        : "bg-yellow-200 text-yellow-700"
-                  }`}
-                >
-                  {spec.workflowState}
-                </span>
-              )}
-            </button>
-            <button
               onClick={() => setActiveTab("insights")}
-              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex-shrink-0
               ${
                 activeTab === "insights"
                   ? "bg-purple-100 text-purple-700"
@@ -1107,7 +1124,7 @@ export const IdeaArtifactPanel: React.FC<IdeaArtifactPanelProps> = ({
               )}
             </button>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
               className="p-1.5 rounded hover:bg-gray-100 text-gray-500 transition-colors"

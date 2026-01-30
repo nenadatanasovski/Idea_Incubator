@@ -111,6 +111,9 @@ interface MemoryFile {
   version: number;
   createdAt: string;
   updatedAt: string;
+  // Memory Graph Migration: Added fields for combined legacy + graph data
+  source?: "legacy" | "memory_graph";
+  confidence?: number;
 }
 
 interface NodeGroupReport {
@@ -276,11 +279,13 @@ function FilterBar({
 
 /**
  * Memory file type display names and colors
+ * Memory Graph Migration: Added new block types from memory_blocks table
  */
 const MEMORY_FILE_DISPLAY: Record<
   string,
   { label: string; color: string; icon: string }
 > = {
+  // Legacy memory file types
   self_discovery: {
     label: "Self Discovery",
     color: "bg-purple-100 text-purple-700",
@@ -315,6 +320,32 @@ const MEMORY_FILE_DISPLAY: Record<
     label: "Handoff Notes",
     color: "bg-cyan-100 text-cyan-700",
     icon: "🤝",
+  },
+  // Memory Graph: New block types from memory_blocks table
+  learning: {
+    label: "Learning",
+    color: "bg-emerald-100 text-emerald-700",
+    icon: "🧠",
+  },
+  pattern: {
+    label: "Pattern",
+    color: "bg-indigo-100 text-indigo-700",
+    icon: "🔄",
+  },
+  synthesis: {
+    label: "Synthesis",
+    color: "bg-violet-100 text-violet-700",
+    icon: "✨",
+  },
+  decision: {
+    label: "Decision",
+    color: "bg-rose-100 text-rose-700",
+    icon: "⚡",
+  },
+  assumption: {
+    label: "Assumption",
+    color: "bg-orange-100 text-orange-700",
+    icon: "❓",
   },
 };
 
@@ -912,6 +943,7 @@ export function MemoryDatabasePanel({
         )}
 
         {/* Memory Files tab - Table View */}
+        {/* Memory Graph Migration: Now shows both legacy files and memory blocks */}
         {!isLoading && !error && activeTable === "files" && (
           <div className="overflow-x-auto">
             {filteredMemoryFiles.length === 0 ? (
@@ -919,19 +951,22 @@ export function MemoryDatabasePanel({
                 <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">No memory files found</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  Memory files are created as the ideation agent learns about
+                  Memory is stored in blocks as the ideation agent learns about
                   your idea
                 </p>
               </div>
             ) : (
-              <table className="w-full min-w-[700px]">
+              <table className="w-full min-w-[800px]">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr className="border-b border-gray-200">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-48">
                       Type
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-20">
-                      Version
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                      Source
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                      Confidence
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Content Preview
@@ -950,6 +985,7 @@ export function MemoryDatabasePanel({
                       icon: "📄",
                     };
                     const isExpanded = expandedFileIds.has(file.id);
+                    const isLegacy = file.source === "legacy" || !file.source;
                     return (
                       <tr
                         key={file.id}
@@ -972,9 +1008,34 @@ export function MemoryDatabasePanel({
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-sm font-mono text-gray-600">
-                            v{file.version}
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs font-medium ${
+                              isLegacy
+                                ? "bg-gray-100 text-gray-600"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {isLegacy ? "Legacy" : "Graph"}
                           </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {file.confidence !== undefined ? (
+                            <div className="flex items-center gap-1.5">
+                              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden w-14">
+                                <div
+                                  className="h-full bg-cyan-500 rounded-full"
+                                  style={{
+                                    width: `${Math.round((file.confidence || 0) * 100)}%`,
+                                  }}
+                                />
+                              </div>
+                              <span className="text-xs text-gray-500 whitespace-nowrap">
+                                {Math.round((file.confidence || 0) * 100)}%
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <p className="text-sm text-gray-700 truncate max-w-md">

@@ -567,49 +567,71 @@ npm test -- --grep "ideation"
 
 ---
 
+## Migration Script
+
+A migration script is available to migrate any remaining data from the deprecated `ideation_memory_files` table to the new `memory_blocks` system:
+
+```bash
+# Preview what will be migrated (dry run)
+npx tsx scripts/migrate-memory-files-to-blocks.ts --dry-run
+
+# Run the actual migration
+npx tsx scripts/migrate-memory-files-to-blocks.ts
+```
+
+The script:
+
+- Maps legacy file types to appropriate block types and graph memberships
+- Preserves all content and timestamps
+- Tracks migration metadata in block properties
+- Skips already-migrated files
+- Supports backward compatibility by keeping the legacy table intact
+
+---
+
 ## Summary Checklist
 
 ### Phase 1: Schema Foundation
 
-- [ ] Task 1.1: Add new graph dimensions
-- [ ] Task 1.2: Add new block types
-- [ ] Task 1.3: Create database migration
-- [ ] Task 1.4: Create node groups table
-- [ ] Task 1.5: Create GraphQuery types
-- [ ] Task 1.6: Update frontend constants
-- [ ] Task 1.7: Add colors/icons for new types
-- [ ] Task 1.8: Update legend and filters
+- [x] Task 1.1: Add new graph dimensions
+- [x] Task 1.2: Add new block types
+- [x] Task 1.3: Create database migration
+- [x] Task 1.4: Create node groups table
+- [x] Task 1.5: Create GraphQuery types
+- [x] Task 1.6: Update frontend constants
+- [x] Task 1.7: Add colors/icons for new types
+- [x] Task 1.8: Update legend and filters
 
 ### Phase 2: Query Infrastructure
 
-- [ ] Task 2.1: Create GraphQueryService
-- [ ] Task 2.2: Add agent-specific queries
-- [ ] Task 2.3: Create API routes
-- [ ] Task 2.4: Create source loader
+- [x] Task 2.1: Create GraphQueryService
+- [x] Task 2.2: Add agent-specific queries
+- [x] Task 2.3: Create API routes
+- [x] Task 2.4: Create source loader
 
 ### Phase 3: Ideation Agent Migration
 
-- [ ] Task 3.1: Create graph state loader
-- [ ] Task 3.2: Update orchestrator
-- [ ] Task 3.3: Replace handoff with context manager
-- [ ] Task 3.4: Update ideation routes
-- [ ] Task 3.5: Update frontend state
-- [ ] Task 3.6: Create context limit modal
-- [ ] Task 3.7: Remove memory manager
-- [ ] Task 3.8: Update tests
+- [x] Task 3.1: Create graph state loader
+- [x] Task 3.2: Update orchestrator
+- [x] Task 3.3: Replace handoff with context manager
+- [x] Task 3.4: Update ideation routes
+- [x] Task 3.5: Update frontend state
+- [x] Task 3.6: Create context limit modal
+- [x] Task 3.7: Remove memory manager
+- [x] Task 3.8: Update tests
 
 ### Phase 4: Other Agent Integration
 
-- [ ] Task 4.1: Build agent integration
-- [ ] Task 4.2: Spec agent integration
-- [ ] Task 4.3: SIA agent integration
-- [ ] Task 4.4: Evaluator integration
-- [ ] Task 4.5: Add readiness checks
-- [ ] Task 4.6: Create readiness dashboard
+- [x] Task 4.1: Build agent integration
+- [x] Task 4.2: Spec agent integration
+- [x] Task 4.3: SIA agent integration
+- [x] Task 4.4: Evaluator integration
+- [x] Task 4.5: Add readiness checks
+- [x] Task 4.6: Create readiness dashboard
 
 ### Phase 5: Cleanup and Testing
 
-- [ ] Task 5.1: Remove deprecated code
-- [ ] Task 5.2: Run full test suite
-- [ ] Task 5.3: Integration testing
-- [ ] Task 5.4: Documentation update
+- [x] Task 5.1: Remove deprecated code
+- [x] Task 5.2: Run full test suite
+- [x] Task 5.3: Integration testing
+- [x] Task 5.4: Documentation update

@@ -212,6 +212,28 @@ export interface TokenState {
   handoffCount: number;
 }
 
+// -----------------------------------------------------------------------------
+// Context Status (Memory Graph Migration)
+// -----------------------------------------------------------------------------
+
+export interface ContextStatus {
+  tokensUsed: number;
+  tokenLimit: number;
+  percentUsed: number;
+  shouldPromptSave: boolean;
+}
+
+export interface ContextState {
+  status: ContextStatus | null;
+  isSaving: boolean;
+  saveResult: {
+    blocksCreated: number;
+    linksCreated: number;
+    success: boolean;
+    error?: string;
+  } | null;
+}
+
 export interface ArtifactState {
   artifacts: Artifact[];
   currentArtifact: Artifact | null;
@@ -257,6 +279,7 @@ export interface IdeationStore {
   subAgents: SubAgentsState;
   spec: SpecState;
   memoryGraph: MemoryGraphState;
+  context: ContextState;
 }
 
 // -----------------------------------------------------------------------------
@@ -429,4 +452,17 @@ export type IdeationAction =
   | { type: "GRAPH_SNAPSHOT_RESTORE_START" }
   | { type: "GRAPH_SNAPSHOT_RESTORE_COMPLETE" }
   | { type: "GRAPH_SNAPSHOT_RESTORE_ERROR"; payload: { error: string } }
-  | { type: "GRAPH_SNAPSHOT_DELETE"; payload: { snapshotId: string } };
+  | { type: "GRAPH_SNAPSHOT_DELETE"; payload: { snapshotId: string } }
+  // Context management actions (Memory Graph Migration)
+  | { type: "CONTEXT_STATUS_UPDATE"; payload: { status: ContextStatus } }
+  | { type: "CONTEXT_SAVE_START" }
+  | {
+      type: "CONTEXT_SAVE_COMPLETE";
+      payload: {
+        blocksCreated: number;
+        linksCreated: number;
+        success: boolean;
+        error?: string;
+      };
+    }
+  | { type: "CONTEXT_SAVE_ERROR"; payload: { error: string } };

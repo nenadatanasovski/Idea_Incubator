@@ -7,8 +7,9 @@
 // Block Types
 // ============================================================================
 
-// Canonical block types (11 primary types)
+// Canonical block types (21 primary types)
 export type CanonicalBlockType =
+  // Core types (11)
   | "insight"
   | "fact"
   | "assumption"
@@ -19,7 +20,18 @@ export type CanonicalBlockType =
   | "option"
   | "pattern"
   | "synthesis"
-  | "meta";
+  | "meta"
+  // New types (10)
+  | "constraint"
+  | "blocker"
+  | "epic"
+  | "story"
+  | "task"
+  | "bug"
+  | "persona"
+  | "milestone"
+  | "evaluation"
+  | "learning";
 
 // All block types (canonical + legacy for backward compat)
 export type BlockType =
@@ -34,6 +46,7 @@ export type BlockType =
   | "external";
 
 export type GraphType =
+  // Core dimensions (10)
   | "problem"
   | "solution"
   | "market"
@@ -43,7 +56,15 @@ export type GraphType =
   | "spec"
   | "distribution"
   | "marketing"
-  | "manufacturing";
+  | "manufacturing"
+  // New dimensions (7)
+  | "user"
+  | "competition"
+  | "validation"
+  | "tasks"
+  | "timeline"
+  | "customer"
+  | "product";
 
 export type BlockStatus =
   | "draft"
@@ -403,6 +424,17 @@ export const nodeColors: Record<BlockType, string> = {
   pattern: "#EC4899", // Pink
   synthesis: "#A855F7", // Violet
   meta: "#6B7280", // Gray
+  // New canonical block types (10)
+  constraint: "#FF5722", // Deep Orange
+  blocker: "#D32F2F", // Dark Red
+  epic: "#7B1FA2", // Dark Purple
+  story: "#512DA8", // Deep Purple
+  task: "#1976D2", // Dark Blue
+  bug: "#C62828", // Red 800
+  persona: "#00796B", // Teal
+  milestone: "#FFA000", // Amber
+  evaluation: "#388E3C", // Green 700
+  learning: "#5D4037", // Brown 700
   // Legacy block types
   content: "#3B82F6", // Blue (same as fact)
   link: "#6B7280", // Gray (usually hidden)
@@ -415,6 +447,7 @@ export const nodeColors: Record<BlockType, string> = {
 };
 
 export const graphColors: Record<GraphType, string> = {
+  // Core dimensions (10)
   problem: "#EF4444", // Red
   solution: "#22C55E", // Green
   market: "#3B82F6", // Blue
@@ -425,6 +458,14 @@ export const graphColors: Record<GraphType, string> = {
   distribution: "#D946EF", // Fuchsia
   marketing: "#F43F5E", // Rose
   manufacturing: "#78716C", // Stone
+  // New dimensions (7)
+  user: "#7C3AED", // Violet
+  competition: "#DC2626", // Red 600
+  validation: "#059669", // Emerald
+  tasks: "#2563EB", // Blue 600
+  timeline: "#9333EA", // Purple 600
+  customer: "#0891B2", // Cyan 600
+  product: "#65A30D", // Lime 600
 };
 
 export type NodeShape =
@@ -440,6 +481,7 @@ export type NodeShape =
   | "pill";
 
 export const nodeShapes: Record<GraphType, NodeShape> = {
+  // Core dimensions (10)
   problem: "hexagon",
   solution: "diamond",
   market: "circle",
@@ -450,6 +492,14 @@ export const nodeShapes: Record<GraphType, NodeShape> = {
   distribution: "octagon",
   marketing: "cross",
   manufacturing: "pill",
+  // New dimensions (7)
+  user: "circle",
+  competition: "hexagon",
+  validation: "diamond",
+  tasks: "square",
+  timeline: "octagon",
+  customer: "pentagon",
+  product: "star",
 };
 
 export const edgeColors: Record<LinkType, string> = {

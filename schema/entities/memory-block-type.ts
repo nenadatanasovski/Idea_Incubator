@@ -9,6 +9,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { memoryBlocks } from "./memory-block.js";
 
 export const canonicalBlockTypes = [
+  // Core types (11)
   "insight",
   "fact",
   "assumption",
@@ -20,6 +21,17 @@ export const canonicalBlockTypes = [
   "pattern",
   "synthesis",
   "meta",
+  // New types (10)
+  "constraint", // Limitations, boundaries, non-negotiables
+  "blocker", // Active blockers preventing progress
+  "epic", // Large body of work (task management)
+  "story", // User story / feature request
+  "task", // Specific work item
+  "bug", // Defect or issue
+  "persona", // Customer persona definition
+  "milestone", // Timeline marker / deadline
+  "evaluation", // Evaluation result (score, rationale)
+  "learning", // SIA-extracted gotcha or pattern
 ] as const;
 
 export type CanonicalBlockType = (typeof canonicalBlockTypes)[number];

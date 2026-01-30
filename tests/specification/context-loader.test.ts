@@ -91,12 +91,35 @@ describe("context-loader", () => {
     });
   });
 
+  describe("loadRequirements", () => {
+    it("should return empty array without ideaSlug", async () => {
+      const requirements = await loader.loadRequirements();
+      expect(requirements).toEqual([]);
+    });
+
+    it("should return empty array for non-existent idea", async () => {
+      const requirements = await loader.loadRequirements("non-existent-idea");
+      expect(requirements).toEqual([]);
+    });
+  });
+
+  describe("checkSpecReadiness", () => {
+    it("should return readiness status", async () => {
+      const readiness = await loader.checkSpecReadiness("test-idea");
+      expect(readiness).toHaveProperty("ready");
+      expect(readiness).toHaveProperty("score");
+      expect(readiness).toHaveProperty("missing");
+      expect(readiness).toHaveProperty("warnings");
+    });
+  });
+
   describe("load", () => {
     it("should load complete context", async () => {
       const context = await loader.load();
       expect(context.claude).toBeDefined();
       expect(context.templates).toBeDefined();
       expect(context.gotchas).toBeDefined();
+      expect(context.requirements).toBeDefined();
       expect(context.tokenEstimate).toBeGreaterThan(0);
     });
 
@@ -112,7 +135,8 @@ describe("context-loader", () => {
       const totalLength =
         context.claude.length +
         Object.values(context.templates).join("").length +
-        context.gotchas.map((g) => g.content).join("").length;
+        context.gotchas.map((g) => g.content).join("").length +
+        context.requirements.map((r) => r.content).join("").length;
       const expectedEstimate = Math.ceil(totalLength / 4);
       expect(context.tokenEstimate).toBeCloseTo(expectedEstimate, -2); // Within 100
     });
@@ -129,6 +153,7 @@ describe("context-loader", () => {
         claude: "x".repeat(200000),
         templates: {},
         gotchas: [],
+        requirements: [],
         tokenEstimate: 60000, // Over 50k limit
       };
       expect(loader.isWithinLimits(oversizedContext)).toBe(false);

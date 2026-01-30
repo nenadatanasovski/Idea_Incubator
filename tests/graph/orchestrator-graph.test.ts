@@ -65,19 +65,19 @@ vi.mock("../../agents/ideation/message-store.js", () => ({
   },
 }));
 
-vi.mock("../../agents/ideation/memory-manager.js", () => ({
-  memoryManager: {
-    getAll: vi.fn().mockResolvedValue([]),
+vi.mock("../../agents/ideation/graph-state-loader.js", () => ({
+  graphStateLoader: {
     loadState: vi.fn().mockResolvedValue({
       selfDiscovery: {},
       marketDiscovery: {},
       narrowingState: {},
     }),
-    updateAll: vi.fn().mockResolvedValue(undefined),
+    getContextFiles: vi.fn().mockResolvedValue([]),
     loadIdeaTypeSelection: vi.fn().mockResolvedValue({
       ideaTypeSelected: true,
       parentSelected: true,
     }),
+    updateIdeaTypeSelection: vi.fn().mockResolvedValue(undefined),
   },
 }));
 

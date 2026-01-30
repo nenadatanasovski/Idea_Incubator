@@ -188,3 +188,19 @@ export {
   type GraphSnapshotData,
   type GraphSnapshotSummary,
 } from "./entities/graph-snapshot.js";
+
+// Memory Node Group
+export {
+  memoryNodeGroups,
+  memoryNodeGroupBlocks,
+  insertMemoryNodeGroupSchema,
+  selectMemoryNodeGroupSchema,
+  updateMemoryNodeGroupSchema,
+  insertMemoryNodeGroupBlockSchema,
+  selectMemoryNodeGroupBlockSchema,
+  type MemoryNodeGroup,
+  type NewMemoryNodeGroup,
+  type UpdateMemoryNodeGroup,
+  type MemoryNodeGroupBlock,
+  type NewMemoryNodeGroupBlock,
+} from "./entities/memory-node-group.js";

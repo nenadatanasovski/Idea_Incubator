@@ -16,7 +16,7 @@ import {
 } from "../../types/ideation.js";
 import { sessionManager } from "./session-manager.js";
 import { messageStore } from "./message-store.js";
-import { memoryManager } from "./memory-manager.js";
+import { graphStateLoader } from "./graph-state-loader.js";
 import { candidateManager } from "./candidate-manager.js";
 import {
   extractSignals,
@@ -31,7 +31,7 @@ import {
   PresentedOption,
 } from "./intent-classifier.js";
 import { calculateTokenUsage } from "./token-counter.js";
-import { prepareHandoff } from "./handoff.js";
+import { contextManager } from "./context-manager.js";
 import { buildSystemPrompt, ArtifactSummary } from "./system-prompt.js";
 import { artifactStore } from "./artifact-store.js";
 import { blockExtractor, ExtractionResult } from "./block-extractor.js";
@@ -279,23 +279,10 @@ export class AgentOrchestrator {
     // Parse response (cast to handle SDK type variations)
     const parsed = this.parseResponse(response as Anthropic.Message);
 
-    // Extract signals
-    const currentState = await this.loadSessionState(session.id);
-    const signals = extractSignals(userMessage, parsed, currentState);
-
-    // Update states
-    const selfDiscovery = this.mergeState(
-      currentState.selfDiscovery,
-      signals.selfDiscovery,
-    );
-    const marketDiscovery = this.mergeState(
-      currentState.marketDiscovery,
-      signals.marketDiscovery,
-    );
-    const narrowingState = this.mergeState(
-      currentState.narrowing,
-      signals.narrowing,
-    );
+    // Extract signals (used for block extraction, state persistence via graph)
+    const currentState = await this.loadSessionState(session.ideaSlug);
+    // Signal extraction populates the graph via block-extractor
+    extractSignals(userMessage, parsed, currentState);
 
     // Load existing candidate if current response doesn't have one
     const existingCandidate = await candidateManager.getActiveForSession(
@@ -319,37 +306,7 @@ export class AgentOrchestrator {
     // If webSearchNeeded is set, the frontend should call the search endpoint
     // and display results in the artifact panel.
 
-    // Determine candidate for memory update - preserve existing if no new one
-    const candidateForMemory = parsed.candidateTitle
-      ? {
-          id: existingCandidate?.id || "",
-          sessionId: session.id,
-          title: parsed.candidateTitle,
-          summary:
-            parsed.candidateSummary || existingCandidate?.summary || null,
-          confidence: 0,
-          viability: 100,
-          userSuggested: existingCandidate?.userSuggested || false,
-          status: existingCandidate?.status || ("forming" as const),
-          capturedIdeaId: existingCandidate?.capturedIdeaId || null,
-          version: (existingCandidate?.version || 0) + 1,
-          createdAt: existingCandidate?.createdAt || new Date(),
-          updatedAt: new Date(),
-        }
-      : existingCandidate
-        ? {
-            ...existingCandidate,
-            updatedAt: new Date(),
-          }
-        : null;
-
-    // Update memory files
-    await memoryManager.updateAll(session.id, {
-      selfDiscovery: selfDiscovery as SelfDiscoveryState,
-      marketDiscovery: marketDiscovery as MarketDiscoveryState,
-      narrowingState: narrowingState as NarrowingState,
-      candidate: candidateForMemory,
-    });
+    // State persistence now handled by block extraction in graph
 
     // Save candidate to database and update session title
     if (parsed.candidateTitle) {
@@ -453,13 +410,31 @@ export class AgentOrchestrator {
   ): Promise<AgentContext> {
     let memoryFiles: { fileType: string; content: string }[] | undefined;
 
-    // Load memory files if handoff or returning session
-    if (isHandoff || session.handoffCount > 0) {
-      const files = await memoryManager.getAll(session.id);
-      memoryFiles = files.map((f) => ({
-        fileType: f.fileType,
-        content: f.content,
-      }));
+    // ALWAYS load memory graph context for the session
+    // This provides the agent with knowledge blocks, reports, and navigation instructions
+    const agentContext = await graphStateLoader.getAgentContext(session.id);
+    if (agentContext.stats.blockCount > 0) {
+      console.log(
+        `[BuildContext] 🧠 Memory graph loaded: ${agentContext.stats.blockCount} blocks, ${agentContext.stats.reportCount} reports`,
+      );
+      // Convert new context format to memoryFiles format for buildSystemPrompt
+      memoryFiles = [
+        { fileType: "memory_graph_overview", content: agentContext.topLevel },
+        {
+          fileType: "memory_graph_navigation",
+          content: agentContext.instructions,
+        },
+        {
+          fileType: "key_decisions_requirements",
+          content: agentContext.keyBlocks,
+        },
+      ];
+    } else {
+      console.log(`[BuildContext] ⚠️ No memory graph data for session yet`);
+      // Fallback to legacy context files if no blocks but idea exists (for backwards compat)
+      if (session.ideaSlug) {
+        memoryFiles = await graphStateLoader.getContextFiles(session.ideaSlug);
+      }
     }
 
     // Load artifacts for context so agent can reference and edit them
@@ -770,15 +745,24 @@ export class AgentOrchestrator {
   }
 
   /**
-   * Load current session state from memory files.
+   * Load current session state from graph.
    */
-  private async loadSessionState(sessionId: string): Promise<{
+  private async loadSessionState(ideaSlug: string | null): Promise<{
     selfDiscovery: Partial<SelfDiscoveryState>;
     marketDiscovery: Partial<MarketDiscoveryState>;
     narrowing: Partial<NarrowingState>;
   }> {
-    // Load from memory manager
-    const state = await memoryManager.loadState(sessionId);
+    if (!ideaSlug) {
+      // No idea linked yet, return defaults
+      return {
+        selfDiscovery: createDefaultSelfDiscoveryState(),
+        marketDiscovery: createDefaultMarketDiscoveryState(),
+        narrowing: createDefaultNarrowingState(),
+      };
+    }
+
+    // Load from graph state loader
+    const state = await graphStateLoader.loadState(ideaSlug);
 
     return {
       selfDiscovery: state.selfDiscovery || createDefaultSelfDiscoveryState(),
@@ -854,21 +838,28 @@ export class AgentOrchestrator {
   }
 
   /**
-   * Perform handoff preparation.
+   * Perform handoff preparation by saving conversation to memory graph.
    */
   private async performHandoff(
     session: IdeationSession,
     _messages: IdeationMessage[],
   ): Promise<void> {
-    const state = await this.loadSessionState(session.id);
+    // Save conversation insights to memory graph
+    const result = await contextManager.saveConversationToGraph(
+      session.id,
+      session.ideaSlug || "",
+    );
 
-    await prepareHandoff(session, {
-      selfDiscovery: state.selfDiscovery as SelfDiscoveryState,
-      marketDiscovery: state.marketDiscovery as MarketDiscoveryState,
-      narrowingState: state.narrowing as NarrowingState,
-      candidate: null,
-      risks: [],
-    });
+    if (!result.success) {
+      console.error(
+        "[Orchestrator] Failed to save conversation to graph:",
+        result.error,
+      );
+    } else {
+      console.log(
+        `[Orchestrator] Saved ${result.blocksCreated} blocks and ${result.linksCreated} links to graph`,
+      );
+    }
   }
 
   /**
@@ -1526,8 +1517,10 @@ export class AgentOrchestrator {
     messages: IdeationMessage[],
     lastAssistantMessage: IdeationMessage | undefined,
   ): Promise<OrchestratorResponse | null> {
-    // Load current idea type selection state
-    const ideaTypeState = await memoryManager.loadIdeaTypeSelection(session.id);
+    // Load current idea type selection state from graph
+    const ideaTypeState = await graphStateLoader.loadIdeaTypeSelection(
+      session.ideaSlug || session.id,
+    );
     console.log(
       "[Orchestrator] Idea type state:",
       JSON.stringify(ideaTypeState),
@@ -1677,7 +1670,10 @@ What kind of idea is this?`;
     };
 
     // Persist the state
-    await memoryManager.updateIdeaTypeSelection(session.id, updatedState);
+    await graphStateLoader.updateIdeaTypeSelection(
+      session.ideaSlug || session.id,
+      updatedState,
+    );
 
     // Store the user message (showing the button label)
     const buttonLabel =
@@ -1855,7 +1851,10 @@ You can type the name of the platform (e.g., "Shopify", "Slack", "Notion") or se
     };
 
     // Persist the state
-    await memoryManager.updateIdeaTypeSelection(session.id, updatedState);
+    await graphStateLoader.updateIdeaTypeSelection(
+      session.ideaSlug || session.id,
+      updatedState,
+    );
 
     // Store the user message
     const userMsg = await messageStore.add({

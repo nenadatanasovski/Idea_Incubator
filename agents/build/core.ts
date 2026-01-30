@@ -33,6 +33,24 @@ import {
   emitBuildProgress,
 } from "../../server/websocket.js";
 import { BuildOptions, AtomicTask } from "../../types/build-agent.js";
+import { graphQueryService } from "../../server/services/graph/graph-query-service.js";
+
+/**
+ * Context loaded from memory graph for build execution
+ */
+interface GraphBuildContext {
+  requirements: Array<{
+    id: string;
+    content: string;
+    type: "requirement" | "constraint";
+  }>;
+  learnings: Array<{
+    id: string;
+    content: string;
+    confidence: number;
+    type: "pattern" | "gotcha";
+  }>;
+}
 
 export interface BuildAgentOptions {
   apiKey?: string;
@@ -42,6 +60,7 @@ export interface BuildAgentOptions {
   skipValidation?: boolean;
   dryRun?: boolean;
   tokenLimit?: number;
+  ideaId?: string; // For loading context from memory graph
   onProgress?: (progress: ExecutionProgress) => void;
   onTaskComplete?: (result: ExecutionResult) => void;
   onTaskFailed?: (taskId: string, error: Error) => void;
@@ -103,6 +122,35 @@ export class BuildAgent {
   }
 
   /**
+   * Load build context from memory graph
+   * This provides additional requirements and learnings that may not be in the task file
+   */
+  private async loadGraphContext(ideaId: string): Promise<GraphBuildContext> {
+    const [requirements, learnings] = await Promise.all([
+      graphQueryService.getSpecRequirements(ideaId),
+      graphQueryService.getLearnings(ideaId),
+    ]);
+
+    return {
+      requirements: requirements.blocks.map((b) => ({
+        id: b.id,
+        content: b.content,
+        type: b.blockTypes.includes("constraint")
+          ? ("constraint" as const)
+          : ("requirement" as const),
+      })),
+      learnings: learnings.blocks.map((b) => ({
+        id: b.id,
+        content: b.content,
+        confidence: b.confidence || 0,
+        type: b.blockTypes.includes("pattern")
+          ? ("pattern" as const)
+          : ("gotcha" as const),
+      })),
+    };
+  }
+
+  /**
    * Run a build from a tasks.md file
    */
   async run(
@@ -142,18 +190,42 @@ export class BuildAgent {
       tasksTotal: tasks.length,
     });
 
+    // Load graph context if ideaId is provided
+    let graphContext: GraphBuildContext | null = null;
+    if (opts.ideaId) {
+      try {
+        graphContext = await this.loadGraphContext(opts.ideaId);
+        console.log(
+          `[BuildAgent] Loaded ${graphContext.requirements.length} requirements and ${graphContext.learnings.length} learnings from graph`,
+        );
+      } catch (err) {
+        console.warn("[BuildAgent] Failed to load graph context:", err);
+      }
+    }
+
     // Order tasks by dependencies
     const orderedTasks = this.taskLoader.orderByDependency(tasks);
 
-    // Convert LoadedTask to AtomicTask
+    // Convert LoadedTask to AtomicTask, merging graph context
+    const graphGotchas = graphContext
+      ? graphContext.learnings
+          .filter((l) => l.type === "gotcha")
+          .map((l) => l.content)
+      : [];
+    const graphRequirements = graphContext
+      ? graphContext.requirements.map((r) => r.content)
+      : [];
+
     const atomicTasks: AtomicTask[] = orderedTasks.map((t) => ({
       id: t.id,
       phase: t.phase,
       action: t.action,
       file: t.file,
       status: t.status,
-      requirements: t.requirements,
-      gotchas: t.gotchas,
+      // Merge graph requirements with task requirements
+      requirements: [...(t.requirements || []), ...graphRequirements],
+      // Merge graph gotchas with task gotchas
+      gotchas: [...(t.gotchas || []), ...graphGotchas],
       validation: t.validation,
       codeTemplate: t.codeTemplate,
       dependsOn: t.dependsOn,

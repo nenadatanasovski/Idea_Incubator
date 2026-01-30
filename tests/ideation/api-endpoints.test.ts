@@ -34,11 +34,14 @@ vi.mock("../../agents/ideation/message-store.js", () => ({
   },
 }));
 
-vi.mock("../../agents/ideation/memory-manager.js", () => ({
-  memoryManager: {
-    upsert: vi.fn(),
-    getByType: vi.fn(),
-    getAll: vi.fn(),
+vi.mock("../../agents/ideation/graph-state-loader.js", () => ({
+  graphStateLoader: {
+    loadState: vi.fn().mockResolvedValue({
+      selfDiscovery: {},
+      marketDiscovery: {},
+      narrowingState: {},
+    }),
+    getContextFiles: vi.fn().mockResolvedValue([]),
   },
 }));
 

@@ -228,7 +228,7 @@ export const ROLE_WEIGHTS: Record<string, number> = {
 const DEFAULT_OPTIONS: Required<Omit<CollectionOptions, "ideaSlug">> & {
   ideaSlug?: string;
 } = {
-  sourceTypes: ["conversation", "artifact", "memory_file", "user_block"],
+  sourceTypes: ["conversation", "artifact", "user_block"], // memory_file removed - using memory graph instead
   tokenBudget: 50000,
   conversationLimit: 50,
   includeExistingBlocks: true,
@@ -722,6 +722,9 @@ export async function collectArtifactSources(
 
 // =============================================================================
 // Memory File Source Collector
+// Memory Graph Migration: Now queries memory_blocks table instead of
+// deprecated ideation_memory_files table. The ideation_memory_files table
+// is kept for backward compatibility but no longer written to.
 // =============================================================================
 
 /**
@@ -748,14 +751,93 @@ function extractStateFromMemoryFile(content: string): {
   return { markdown: content, state: null };
 }
 
+/**
+ * Collect memory sources from memory_blocks table.
+ * Memory Graph Migration: This replaces the deprecated ideation_memory_files table.
+ * Blocks with types like 'learning', 'pattern', 'synthesis' serve as memory.
+ */
 export async function collectMemoryFileSources(
   sessionId: string,
 ): Promise<CollectedSource[]> {
   console.log(
-    `[SourceCollector] Collecting memory file sources for session: ${sessionId}`,
+    `[SourceCollector] Collecting memory sources from graph for session: ${sessionId}`,
   );
 
-  const memoryFiles = await query<{
+  // Query memory blocks that serve as "memory" (learnings, patterns, synthesis, etc.)
+  const memoryBlocks = await query<{
+    id: string;
+    type: string;
+    content: string;
+    properties: string | null;
+    confidence: number | null;
+    created_at: string;
+    updated_at: string;
+  }>(
+    `SELECT id, type, content, properties, confidence, created_at, updated_at
+     FROM memory_blocks
+     WHERE session_id = ?
+       AND type IN ('learning', 'pattern', 'synthesis', 'decision', 'assumption')
+       AND status = 'active'
+     ORDER BY updated_at DESC`,
+    [sessionId],
+  );
+
+  // Map block types to memory file weights for backward compatibility
+  const blockTypeToWeight: Record<string, number> = {
+    learning: 0.9, // High value learnings
+    pattern: 0.85, // Recognized patterns
+    synthesis: 0.8, // Synthesized insights
+    decision: 0.85, // Validated decisions
+    assumption: 0.7, // Working assumptions
+  };
+
+  const sources: CollectedSource[] = memoryBlocks.map((block) => {
+    const { markdown, state } = extractStateFromMemoryFile(block.content);
+
+    // Include both markdown and state in content for analysis
+    let content = markdown;
+    if (state) {
+      content += `\n\n## Extracted State\n\`\`\`json\n${JSON.stringify(state, null, 2)}\n\`\`\``;
+    }
+
+    // Include relevant properties if present (exclude bulky arrays like all_sources)
+    if (block.properties) {
+      try {
+        const props = JSON.parse(block.properties);
+        // Remove large arrays that bloat content unnecessarily
+        const {
+          all_sources: _allSources,
+          corroborated_by: _corroborated,
+          ...relevantProps
+        } = props;
+        if (Object.keys(relevantProps).length > 0) {
+          content += `\n\n## Properties\n\`\`\`json\n${JSON.stringify(relevantProps, null, 2)}\n\`\`\``;
+        }
+      } catch {
+        // Ignore parsing errors
+      }
+    }
+
+    // Use block confidence if available, otherwise use type-based weight
+    const baseWeight = blockTypeToWeight[block.type] || 0.7;
+    const weight =
+      block.confidence !== null ? block.confidence * baseWeight : baseWeight;
+
+    return {
+      id: block.id,
+      type: "memory_file" as SourceType, // Keep type for backward compatibility
+      content,
+      metadata: {
+        createdAt: block.created_at,
+        updatedAt: block.updated_at,
+        memoryFileType: block.type, // Use block type as the "file type"
+      },
+      weight,
+    };
+  });
+
+  // Also check legacy ideation_memory_files for backward compatibility
+  const legacyMemoryFiles = await query<{
     id: string;
     file_type: string;
     content: string;
@@ -769,18 +851,16 @@ export async function collectMemoryFileSources(
     [sessionId],
   );
 
-  const parsedStates: string[] = [];
-  const sources: CollectedSource[] = memoryFiles.map((mf) => {
+  // Add legacy memory files if any exist
+  for (const mf of legacyMemoryFiles) {
     const { markdown, state } = extractStateFromMemoryFile(mf.content);
 
-    // Include both markdown and state in content for analysis
     let content = markdown;
     if (state) {
       content += `\n\n## Extracted State\n\`\`\`json\n${JSON.stringify(state, null, 2)}\n\`\`\``;
-      parsedStates.push(mf.file_type);
     }
 
-    return {
+    sources.push({
       id: mf.id,
       type: "memory_file" as SourceType,
       content,
@@ -790,8 +870,8 @@ export async function collectMemoryFileSources(
         memoryFileType: mf.file_type,
       },
       weight: MEMORY_FILE_WEIGHTS[mf.file_type] || 0.7,
-    };
-  });
+    });
+  }
 
   // Log breakdown
   const weightBreakdown: Record<string, { count: number; weight: number }> = {};
@@ -807,14 +887,11 @@ export async function collectMemoryFileSources(
     (acc, s) => acc + estimateTokens(s.content),
     0,
   );
-  console.log(`[SourceCollector] Found ${memoryFiles.length} memory files`);
-  if (parsedStates.length > 0) {
-    console.log(
-      `[SourceCollector] Parsed state from: ${parsedStates.join(", ")}`,
-    );
-  }
   console.log(
-    `[SourceCollector] Memory file collection complete: ${sources.length} sources, ~${tokenEstimate} tokens`,
+    `[SourceCollector] Found ${memoryBlocks.length} memory blocks + ${legacyMemoryFiles.length} legacy files`,
+  );
+  console.log(
+    `[SourceCollector] Memory source collection complete: ${sources.length} sources, ~${tokenEstimate} tokens`,
   );
   Object.entries(weightBreakdown).forEach(([type, data]) => {
     console.log(`  - ${type}: ${data.count} (weight: ${data.weight})`);
@@ -922,10 +999,10 @@ export async function collectAllSources(
     `[SourceCollector] Conversation synthesis: ${opts.synthesizeConversations ? "enabled" : "disabled"}`,
   );
 
-  // Collect in priority order: conversation first (AI synthesis), then memory_file > artifact > user_block
+  // Collect in priority order: conversation first (AI synthesis), then artifact > user_block
+  // memory_file removed - using memory graph context injection instead
   const priorityOrder: SourceType[] = [
     "conversation",
-    "memory_file",
     "artifact",
     "user_block",
   ];
@@ -963,10 +1040,7 @@ export async function collectAllSources(
           sources = await collectArtifactSources(sessionId, opts.ideaSlug);
           result.collectionMetadata.artifactCount = sources.length;
           break;
-        case "memory_file":
-          sources = await collectMemoryFileSources(sessionId);
-          result.collectionMetadata.memoryFileCount = sources.length;
-          break;
+        // memory_file case removed - using memory graph context injection instead
         case "user_block":
           sources = await collectUserBlockSources(sessionId);
           result.collectionMetadata.userBlockCount = sources.length;

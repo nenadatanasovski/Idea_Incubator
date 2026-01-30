@@ -40,3 +40,4 @@ export {
 } from "./ProjectContextHeader";
 export { ProjectFilesPanel, type FileNode } from "./ProjectFilesPanel";
 export { SpecViewPanel, type SpecVersion } from "./SpecViewPanel";
+export { ContextLimitModal } from "./ContextLimitModal";

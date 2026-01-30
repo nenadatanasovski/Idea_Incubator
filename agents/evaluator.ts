@@ -1,6 +1,8 @@
 /**
  * Generalist Evaluator Agent
  * Evaluates ideas across all 30 criteria in 6 categories
+ *
+ * Memory Graph Migration: Adds ability to load context from and store results to memory graph
  */
 import { client } from "../utils/anthropic-client.js";
 import { CostTracker } from "../utils/cost-tracker.js";
@@ -16,6 +18,9 @@ import {
   type CriterionDefinition,
 } from "./config.js";
 import { type ProfileContext } from "../utils/schemas.js";
+import { graphQueryService } from "../server/services/graph/graph-query-service.js";
+import { getDb, saveDb } from "../database/db.js";
+import { v4 as uuid } from "uuid";
 
 // Broadcaster type for WebSocket events
 type Broadcaster = ReturnType<
@@ -1289,4 +1294,247 @@ export function formatEvaluationResults(result: FullEvaluationResult): string {
   }
 
   return lines.join("\n");
+}
+
+// ============================================================================
+// Memory Graph Integration (Memory Graph Migration)
+// ============================================================================
+
+/**
+ * Graph-based context for evaluation
+ */
+export interface GraphEvaluationContext {
+  userProfile?: {
+    expertise: Array<{ area: string; depth: string }>;
+    interests: string[];
+    constraints: string[];
+  };
+  problemContext?: {
+    painPoints: string[];
+    targetUsers: string[];
+    existingSolutions: string[];
+  };
+  solutionContext?: {
+    features: string[];
+    differentiators: string[];
+    technicalApproach: string[];
+  };
+  validationEvidence?: {
+    facts: string[];
+    evaluations: string[];
+  };
+}
+
+/**
+ * Load evaluation context from memory graph
+ */
+export async function loadGraphEvaluationContext(
+  ideaId: string,
+): Promise<GraphEvaluationContext> {
+  const context: GraphEvaluationContext = {};
+
+  try {
+    // Load user profile context
+    const userProfile = await graphQueryService.getUserProfile(ideaId);
+    if (userProfile.blocks.length > 0) {
+      context.userProfile = {
+        expertise: [],
+        interests: [],
+        constraints: [],
+      };
+
+      for (const block of userProfile.blocks) {
+        if (block.blockTypes.includes("fact")) {
+          const skillName = block.properties?.skill_name as string;
+          const proficiency = block.properties?.proficiency as string;
+          if (skillName && proficiency) {
+            context.userProfile.expertise.push({
+              area: skillName,
+              depth: proficiency,
+            });
+          }
+        }
+        if (block.blockTypes.includes("constraint")) {
+          context.userProfile.constraints.push(block.content);
+        }
+        if (block.blockTypes.includes("insight")) {
+          context.userProfile.interests.push(block.content);
+        }
+      }
+    }
+
+    // Load problem/solution context
+    const problemSolution = await graphQueryService.getProblemSolution(ideaId);
+    if (problemSolution.blocks.length > 0) {
+      context.problemContext = {
+        painPoints: [],
+        targetUsers: [],
+        existingSolutions: [],
+      };
+      context.solutionContext = {
+        features: [],
+        differentiators: [],
+        technicalApproach: [],
+      };
+
+      for (const block of problemSolution.blocks) {
+        if (block.graphMemberships.includes("problem")) {
+          if (block.blockTypes.includes("insight")) {
+            context.problemContext.painPoints.push(block.content);
+          }
+        }
+        if (block.graphMemberships.includes("solution")) {
+          if (block.blockTypes.includes("decision")) {
+            context.solutionContext.features.push(block.content);
+          }
+        }
+      }
+    }
+
+    // Load validation evidence
+    const evidence = await graphQueryService.getValidationEvidence(ideaId);
+    if (evidence.blocks.length > 0) {
+      context.validationEvidence = {
+        facts: evidence.blocks
+          .filter((b) => b.blockTypes.includes("fact"))
+          .map((b) => b.content),
+        evaluations: evidence.blocks
+          .filter((b) => b.blockTypes.includes("evaluation"))
+          .map((b) => b.content),
+      };
+    }
+
+    logInfo(
+      `[Evaluator] Loaded graph context: ${userProfile.blocks.length} user blocks, ${problemSolution.blocks.length} problem/solution blocks`,
+    );
+  } catch (error) {
+    logDebug(
+      `[Evaluator] Failed to load graph context: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  return context;
+}
+
+/**
+ * Store evaluation result to memory graph
+ */
+export async function storeEvaluationToGraph(
+  result: FullEvaluationResult,
+  sessionId: string,
+): Promise<string | null> {
+  if (!sessionId) {
+    logDebug("[Evaluator] No sessionId provided, skipping graph storage");
+    return null;
+  }
+
+  try {
+    const db = await getDb();
+    const now = new Date().toISOString();
+    const blockId = `eval_${uuid().slice(0, 8)}`;
+
+    // Build evaluation summary
+    const summary = `Evaluation Score: ${result.overallScore.toFixed(2)}/10 (${(result.overallConfidence * 100).toFixed(0)}% confidence)`;
+
+    // Build properties with all scores
+    const properties = {
+      idea_slug: result.ideaSlug,
+      idea_id: result.ideaId,
+      overall_score: result.overallScore,
+      overall_confidence: result.overallConfidence,
+      category_scores: result.categoryScores,
+      evaluation_count: result.evaluations.length,
+      tokens_used: result.tokensUsed,
+      timestamp: result.timestamp,
+    };
+
+    // Insert evaluation block
+    db.run(
+      `INSERT INTO memory_blocks
+       (id, session_id, type, content, properties, status, confidence, created_at, updated_at)
+       VALUES (?, ?, 'evaluation', ?, ?, 'active', ?, ?, ?)`,
+      [
+        blockId,
+        sessionId,
+        summary,
+        JSON.stringify(properties),
+        result.overallConfidence,
+        now,
+        now,
+      ],
+    );
+
+    // Add block type
+    db.run(
+      `INSERT OR IGNORE INTO memory_block_types (block_id, block_type) VALUES (?, 'evaluation')`,
+      [blockId],
+    );
+
+    // Add graph membership (validation dimension)
+    db.run(
+      `INSERT INTO memory_graph_memberships (block_id, graph_type, created_at) VALUES (?, 'validation', ?)`,
+      [blockId, now],
+    );
+
+    await saveDb();
+    logInfo(`[Evaluator] Stored evaluation to graph: ${blockId}`);
+
+    return blockId;
+  } catch (error) {
+    logDebug(
+      `[Evaluator] Failed to store evaluation to graph: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return null;
+  }
+}
+
+/**
+ * Format graph context for evaluator prompt supplement
+ */
+export function formatGraphContextForPrompt(
+  ctx: GraphEvaluationContext,
+): string {
+  if (
+    !ctx.userProfile &&
+    !ctx.problemContext &&
+    !ctx.solutionContext &&
+    !ctx.validationEvidence
+  ) {
+    return "";
+  }
+
+  const parts: string[] = ["## Additional Context from Memory Graph\n"];
+
+  if (ctx.userProfile) {
+    if (ctx.userProfile.expertise.length > 0) {
+      parts.push("### Creator Expertise");
+      ctx.userProfile.expertise.forEach((e) => {
+        parts.push(`- ${e.area}: ${e.depth}`);
+      });
+      parts.push("");
+    }
+    if (ctx.userProfile.constraints.length > 0) {
+      parts.push("### Constraints");
+      ctx.userProfile.constraints.forEach((c) => parts.push(`- ${c}`));
+      parts.push("");
+    }
+  }
+
+  if (ctx.problemContext && ctx.problemContext.painPoints.length > 0) {
+    parts.push("### Identified Pain Points");
+    ctx.problemContext.painPoints
+      .slice(0, 5)
+      .forEach((p) => parts.push(`- ${p}`));
+    parts.push("");
+  }
+
+  if (ctx.validationEvidence && ctx.validationEvidence.facts.length > 0) {
+    parts.push("### Validation Evidence");
+    ctx.validationEvidence.facts
+      .slice(0, 5)
+      .forEach((f) => parts.push(`- ${f}`));
+    parts.push("");
+  }
+
+  return parts.join("\n");
 }

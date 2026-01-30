@@ -34,6 +34,40 @@ export const projectRouter = Router();
 projectRouter.use(timeoutMiddleware);
 
 // ============================================================================
+// Legacy Path Support
+// ============================================================================
+
+/**
+ * Get the legacy (root-level) idea folder path
+ * Legacy ideas are stored at: ideas/[ideaSlug]
+ */
+function getLegacyIdeaFolderPath(ideaSlug: string): string {
+  return path.resolve(process.cwd(), "ideas", ideaSlug);
+}
+
+/**
+ * Check if idea folder exists (checks both user-scoped and legacy locations)
+ * Returns the path if found, null if not found
+ */
+function findIdeaFolder(userSlug: string, ideaSlug: string): string | null {
+  // First check user-scoped path: users/[userSlug]/ideas/[ideaSlug]
+  if (ideaFolderExists(userSlug, ideaSlug)) {
+    return getIdeaFolderPath(userSlug, ideaSlug);
+  }
+
+  // Fall back to legacy path: ideas/[ideaSlug]
+  const legacyPath = getLegacyIdeaFolderPath(ideaSlug);
+  if (fs.existsSync(legacyPath)) {
+    console.log(
+      `[ProjectRoutes] Using legacy path for ${ideaSlug}: ${legacyPath}`,
+    );
+    return legacyPath;
+  }
+
+  return null;
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -181,17 +215,18 @@ projectRouter.get(
         });
       }
 
-      // Check if idea folder exists
-      if (!ideaFolderExists(userSlug, ideaSlug)) {
+      // Find idea folder (checks both user-scoped and legacy locations)
+      const ideaFolderPath = findIdeaFolder(userSlug, ideaSlug);
+      if (!ideaFolderPath) {
         return res.status(404).json({
           error: "Not found",
           message: `Idea folder not found: ${ideaSlug}`,
         });
       }
 
-      const ideaFolderPath = getIdeaFolderPath(userSlug, ideaSlug);
-
-      console.log(`[ProjectRoutes] Listing files for ${userSlug}/${ideaSlug}`);
+      console.log(
+        `[ProjectRoutes] Listing files for ${userSlug}/${ideaSlug} at ${ideaFolderPath}`,
+      );
 
       const files = buildFileTree(ideaFolderPath);
 
@@ -230,15 +265,15 @@ projectRouter.get(
         });
       }
 
-      // Check if idea folder exists
-      if (!ideaFolderExists(userSlug, ideaSlug)) {
+      // Find idea folder (checks both user-scoped and legacy locations)
+      const ideaFolderPath = findIdeaFolder(userSlug, ideaSlug);
+      if (!ideaFolderPath) {
         return res.status(404).json({
           error: "Not found",
           message: `Idea folder not found: ${ideaSlug}`,
         });
       }
 
-      const ideaFolderPath = getIdeaFolderPath(userSlug, ideaSlug);
       const fullPath = path.join(ideaFolderPath, filePath);
 
       // Security check: ensure path is within idea folder
@@ -327,15 +362,15 @@ projectRouter.post(
 
       const { path: filePath, content } = parseResult.data;
 
-      // Check if idea folder exists
-      if (!ideaFolderExists(userSlug, ideaSlug)) {
+      // Find idea folder (checks both user-scoped and legacy locations)
+      const ideaFolderPath = findIdeaFolder(userSlug, ideaSlug);
+      if (!ideaFolderPath) {
         return res.status(404).json({
           error: "Not found",
           message: `Idea folder not found: ${ideaSlug}`,
         });
       }
 
-      const ideaFolderPath = getIdeaFolderPath(userSlug, ideaSlug);
       const fullPath = path.join(ideaFolderPath, filePath);
 
       // Security check: ensure path is within idea folder

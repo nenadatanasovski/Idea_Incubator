@@ -329,7 +329,8 @@ describe("Database Schema", () => {
     });
   });
 
-  describe("ideation_memory_files table", () => {
+  // Note: ideation_memory_files table is deprecated in favor of memory_blocks graph
+  describe.skip("ideation_memory_files table (DEPRECATED)", () => {
     test("PASS: Unique constraint on session_id + file_type", async () => {
       const sessionId = `test_session_mem_${Date.now()}`;
       const memoryId1 = `memory_1_${Date.now()}`;

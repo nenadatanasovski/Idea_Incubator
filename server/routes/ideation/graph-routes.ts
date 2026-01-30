@@ -68,6 +68,10 @@ import {
   sourceMapper,
   type BlockSummary,
 } from "../../services/graph/source-mapper.js";
+import {
+  graphQueryService,
+  type GraphQuery,
+} from "../../services/graph/graph-query-service.js";
 
 export const graphRouter = Router();
 
@@ -1236,6 +1240,89 @@ graphRouter.get(
       });
     } catch (error) {
       console.error("Error checking spec readiness:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// GET /idea/:ideaId/graph/readiness
+// ============================================================================
+// Memory Graph Migration: Overall readiness check for spec, build, and launch
+
+import {
+  checkSpecReadiness as checkSpecReadinessDetailed,
+  checkLaunchReadiness as checkLaunchReadinessDetailed,
+  checkBuildReadiness,
+  getOverallReadiness,
+} from "../../services/graph/readiness-checks.js";
+
+graphRouter.get(
+  "/idea/:ideaId/graph/readiness",
+  async (req: Request, res: Response) => {
+    try {
+      const { ideaId } = req.params;
+      const readiness = await getOverallReadiness(ideaId);
+      return res.json(readiness);
+    } catch (error) {
+      console.error("Error checking overall readiness:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// GET /idea/:ideaId/graph/readiness/spec
+// ============================================================================
+// Detailed spec readiness check using memory graph
+
+graphRouter.get(
+  "/idea/:ideaId/graph/readiness/spec",
+  async (req: Request, res: Response) => {
+    try {
+      const { ideaId } = req.params;
+      const readiness = await checkSpecReadinessDetailed(ideaId);
+      return res.json(readiness);
+    } catch (error) {
+      console.error("Error checking spec readiness:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// GET /idea/:ideaId/graph/readiness/build
+// ============================================================================
+// Build phase readiness check
+
+graphRouter.get(
+  "/idea/:ideaId/graph/readiness/build",
+  async (req: Request, res: Response) => {
+    try {
+      const { ideaId } = req.params;
+      const readiness = await checkBuildReadiness(ideaId);
+      return res.json(readiness);
+    } catch (error) {
+      console.error("Error checking build readiness:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// GET /idea/:ideaId/graph/readiness/launch
+// ============================================================================
+// Marketing/launch readiness check
+
+graphRouter.get(
+  "/idea/:ideaId/graph/readiness/launch",
+  async (req: Request, res: Response) => {
+    try {
+      const { ideaId } = req.params;
+      const readiness = await checkLaunchReadinessDetailed(ideaId);
+      return res.json(readiness);
+    } catch (error) {
+      console.error("Error checking launch readiness:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -3597,6 +3684,120 @@ graphRouter.post(
     } catch (error) {
       console.error("Error starting report regeneration:", error);
       return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// ============================================================================
+// AGENT QUERY ENDPOINTS (Memory Graph Migration)
+// ============================================================================
+
+/**
+ * POST /api/ideation/graph/query
+ * Execute a graph query with full filtering options
+ */
+graphRouter.post("/query", async (req: Request, res: Response) => {
+  try {
+    const queryObj: GraphQuery = req.body;
+
+    // Validate required fields
+    if (!queryObj.ideaId) {
+      return res.status(400).json({ error: "ideaId is required" });
+    }
+
+    const result = await graphQueryService.query(queryObj);
+    return res.json(result);
+  } catch (error) {
+    console.error("Graph query error:", error);
+    return res.status(500).json({ error: "Failed to execute graph query" });
+  }
+});
+
+/**
+ * GET /api/ideation/graph/idea/:ideaId/user-profile
+ * Get user profile blocks for ideation agent
+ */
+graphRouter.get(
+  "/idea/:ideaId/user-profile",
+  async (req: Request, res: Response) => {
+    try {
+      const { ideaId } = req.params;
+      const result = await graphQueryService.getUserProfile(ideaId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+  },
+);
+
+/**
+ * GET /api/ideation/graph/idea/:ideaId/spec-requirements
+ * Get spec requirements for spec agent
+ */
+graphRouter.get(
+  "/idea/:ideaId/spec-requirements",
+  async (req: Request, res: Response) => {
+    try {
+      const { ideaId } = req.params;
+      const result = await graphQueryService.getSpecRequirements(ideaId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch spec requirements" });
+    }
+  },
+);
+
+/**
+ * GET /api/ideation/graph/idea/:ideaId/task-context
+ * Get task context for build agent
+ */
+graphRouter.get(
+  "/idea/:ideaId/task-context",
+  async (req: Request, res: Response) => {
+    try {
+      const { ideaId } = req.params;
+      const result = await graphQueryService.getTaskContext(ideaId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch task context" });
+    }
+  },
+);
+
+/**
+ * GET /api/ideation/graph/idea/:ideaId/learnings
+ * Get SIA learnings for build agent
+ */
+graphRouter.get(
+  "/idea/:ideaId/learnings",
+  async (req: Request, res: Response) => {
+    try {
+      const { ideaId } = req.params;
+      const result = await graphQueryService.getLearnings(ideaId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch learnings" });
+    }
+  },
+);
+
+/**
+ * GET /api/ideation/graph/block/:blockId/sources
+ * Get sources for a specific block
+ */
+graphRouter.get(
+  "/block/:blockId/sources",
+  async (req: Request, res: Response) => {
+    try {
+      const { blockId } = req.params;
+      const includeContent = req.query.includeContent === "true";
+      const sources = await graphQueryService.getBlockSources(
+        blockId,
+        includeContent,
+      );
+      res.json({ sources });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch block sources" });
     }
   },
 );

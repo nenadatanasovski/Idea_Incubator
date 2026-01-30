@@ -394,7 +394,11 @@ When a user asks you to edit, modify, update, remove content from, or change an 
 ## USER PROFILE
 {{USER_PROFILE}}
 
-## MEMORY FILES (if handoff)
+## MEMORY GRAPH CONTEXT
+
+**IMPORTANT: This is your persistent knowledge about this conversation and idea.**
+When answering questions, ALWAYS check this context first. Reference specific blocks, decisions, and requirements from here. Don't give generic answers when you have specific knowledge below.
+
 {{MEMORY_FILES}}
 `;
 
@@ -466,7 +470,10 @@ export function buildSystemPrompt(
       .join("\n\n");
     prompt = prompt.replace(MEMORY_FILES_PLACEHOLDER, memoryContent);
   } else {
-    prompt = prompt.replace(MEMORY_FILES_PLACEHOLDER, "No previous handoff.");
+    prompt = prompt.replace(
+      MEMORY_FILES_PLACEHOLDER,
+      "No knowledge blocks extracted yet. Continue the conversation to build up context.",
+    );
   }
 
   return prompt;

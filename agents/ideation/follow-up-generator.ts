@@ -11,7 +11,6 @@
 import { client as anthropicClient } from "../../utils/anthropic-client.js";
 import { ButtonOption } from "../../types/ideation.js";
 import { FollowUpContext } from "./orchestrator.js";
-import { memoryManager } from "./memory-manager.js";
 import { messageStore } from "./message-store.js";
 import { candidateManager } from "./candidate-manager.js";
 
@@ -28,44 +27,14 @@ export async function generateFollowUp(
   context: FollowUpContext,
 ): Promise<FollowUpResponse> {
   try {
-    // Load full session context
-    const [memoryState, messages, candidate] = await Promise.all([
-      memoryManager.loadState(context.sessionId),
+    // Load session context (messages and candidate)
+    const [messages, candidate] = await Promise.all([
       messageStore.getBySession(context.sessionId),
       candidateManager.getActiveForSession(context.sessionId),
     ]);
 
-    // Build context summary from memory
+    // Build context summary from candidate and recent messages
     const contextParts: string[] = [];
-
-    if (memoryState.selfDiscovery) {
-      const sd = memoryState.selfDiscovery;
-      if (sd.expertise?.length) {
-        contextParts.push(
-          `User expertise: ${sd.expertise.map((e) => e.area).join(", ")}`,
-        );
-      }
-      if (sd.interests?.length) {
-        contextParts.push(
-          `User interests: ${sd.interests.map((i) => i.topic).join(", ")}`,
-        );
-      }
-      if (sd.frustrations?.length) {
-        contextParts.push(
-          `User frustrations: ${sd.frustrations.map((f) => f.description).join("; ")}`,
-        );
-      }
-    }
-
-    if (memoryState.narrowingState) {
-      const ns = memoryState.narrowingState;
-      if (ns.customerType?.value) {
-        contextParts.push(`Target customer: ${ns.customerType.value}`);
-      }
-      if (ns.productType?.value) {
-        contextParts.push(`Product type: ${ns.productType.value}`);
-      }
-    }
 
     if (candidate) {
       contextParts.push(`Current idea: "${candidate.title}"`);

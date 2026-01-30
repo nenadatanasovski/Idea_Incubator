@@ -414,23 +414,20 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ classification }) => {
 
 const SkeletonRow: React.FC<{ index: number }> = ({ index }) => (
   <div className="flex items-center border-b border-gray-100 animate-pulse">
-    <div className="flex-1 px-3 py-2">
+    <div className="flex-1 min-w-0 px-3 py-2">
       <div className="flex items-center gap-2">
-        <div className="w-4 h-4 bg-gray-200 rounded" />
-        <div className="w-4 h-4 bg-gray-200 rounded" />
+        <div className="w-4 h-4 bg-gray-200 rounded flex-shrink-0" />
+        <div className="w-4 h-4 bg-gray-200 rounded flex-shrink-0" />
         <div
           className="h-4 bg-gray-200 rounded"
           style={{ width: `${120 + (index % 3) * 40}px` }}
         />
       </div>
     </div>
-    <div className="w-24 px-3 py-2">
-      <div className="h-3 w-16 bg-gray-200 rounded" />
+    <div className="w-20 px-2 py-2 flex-shrink-0">
+      <div className="h-3 w-14 bg-gray-200 rounded" />
     </div>
-    <div className="w-12 px-3 py-2 flex justify-center">
-      <div className="w-3 h-3 bg-gray-200 rounded-full" />
-    </div>
-    <div className="w-28 px-2 py-2" />
+    <div className="w-24 px-2 py-2 flex-shrink-0" />
   </div>
 );
 
@@ -882,10 +879,9 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
       >
         {/* Header row */}
         <div className="flex items-center bg-gray-50 sticky top-0 z-10 border-b border-gray-200 text-xs font-medium text-gray-500">
-          <div className="flex-1 px-3 py-2">Name</div>
-          <div className="w-24 px-3 py-2">Date</div>
-          <div className="w-12 px-3 py-2 text-center">Status</div>
-          <div className="w-28 px-2 py-2" />
+          <div className="flex-1 min-w-0 px-3 py-2">Name</div>
+          <div className="w-20 px-2 py-2 flex-shrink-0">Date</div>
+          <div className="w-24 px-2 py-2 flex-shrink-0" />
         </div>
         {/* Skeleton rows */}
         <div className="text-sm">
@@ -921,10 +917,9 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
     >
       {/* Header row */}
       <div className="flex items-center bg-gray-50 dark:bg-gray-800 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
-        <div className="flex-1 px-3 py-2">Name</div>
-        <div className="w-24 px-3 py-2">Date</div>
-        <div className="w-12 px-3 py-2 text-center">Status</div>
-        <div className="w-28 px-2 py-2 text-center relative">
+        <div className="flex-1 min-w-0 px-3 py-2">Name</div>
+        <div className="w-20 px-2 py-2 flex-shrink-0">Date</div>
+        <div className="w-24 px-2 py-2 text-center flex-shrink-0 relative">
           <button
             data-testid="keyboard-help-button"
             onClick={() => setShowShortcutsHelp((prev) => !prev)}
@@ -958,9 +953,6 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
           const isSelected = item.path === selectedPath;
           const isFocused = index === focusedIndex;
           const isArtifactExpanded = expandedArtifacts.has(item.artifact.id);
-          const classification =
-            classifications[item.artifact.id] ||
-            classifications[item.artifact.title];
 
           return (
             <div
@@ -988,12 +980,12 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                 onClick={() => handleRowClick(item, index)}
               >
                 {/* Name column */}
-                <div className="flex-1 px-3 py-2">
+                <div className="flex-1 min-w-0 px-3 py-2">
                   <div className="flex items-center gap-2">
                     {/* Expand/collapse chevron */}
                     <button
                       data-testid="artifact-toggle"
-                      className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                      className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex-shrink-0"
                       tabIndex={-1}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1020,19 +1012,14 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
                 </div>
 
                 {/* Date column */}
-                <div className="w-24 px-3 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">
+                <div className="w-20 px-2 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs flex-shrink-0">
                   {formatRelativeDate(
                     item.artifact.updatedAt || item.artifact.createdAt,
                   )}
                 </div>
 
-                {/* Status column */}
-                <div className="w-12 px-3 py-2 flex justify-center">
-                  <StatusBadge classification={classification} />
-                </div>
-
                 {/* Row-level action buttons - always visible on row */}
-                <div className="w-28 flex items-center justify-end gap-1 px-2 py-1 flex-shrink-0">
+                <div className="w-24 flex items-center justify-end gap-1 px-2 py-1 flex-shrink-0">
                   {onEdit && (
                     <button
                       data-testid="btn-row-edit"

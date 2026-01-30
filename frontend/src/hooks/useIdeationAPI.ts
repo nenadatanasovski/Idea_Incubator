@@ -1096,6 +1096,84 @@ export function useIdeationAPI() {
     [],
   );
 
+  // =========================================================================
+  // Context Management Methods (Memory Graph Migration)
+  // =========================================================================
+
+  const checkContextStatus = useCallback(
+    async (
+      sessionId: string,
+      tokensUsed: number,
+      tokenLimit: number,
+    ): Promise<{
+      tokensUsed: number;
+      tokenLimit: number;
+      percentUsed: number;
+      shouldPromptSave: boolean;
+    }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/context-status?tokensUsed=${tokensUsed}&tokenLimit=${tokenLimit}`,
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to check context status");
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  const saveToGraph = useCallback(
+    async (
+      sessionId: string,
+      ideaId: string,
+    ): Promise<{
+      blocksCreated: number;
+      linksCreated: number;
+      success: boolean;
+      error?: string;
+    }> => {
+      const response = await fetch(
+        `${API_BASE}/session/${sessionId}/save-to-graph`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ideaId }),
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to save to graph" }));
+        throw new Error(
+          typeof error.error === "string"
+            ? error.error
+            : "Failed to save to graph",
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  const getSessionContext = useCallback(
+    async (ideaId: string): Promise<{ context: string }> => {
+      const response = await fetch(
+        `${API_BASE}/idea/${ideaId}/session-context`,
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to get session context");
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
   return useMemo(
     () => ({
       startSession,
@@ -1129,6 +1207,10 @@ export function useIdeationAPI() {
       getBlockSources,
       mapBlockSources,
       fetchAppliedInsights,
+      // Context management (Memory Graph Migration)
+      checkContextStatus,
+      saveToGraph,
+      getSessionContext,
     }),
     [
       startSession,
@@ -1160,6 +1242,10 @@ export function useIdeationAPI() {
       getBlockSources,
       mapBlockSources,
       fetchAppliedInsights,
+      // Context management (Memory Graph Migration)
+      checkContextStatus,
+      saveToGraph,
+      getSessionContext,
     ],
   );
 }

@@ -87,6 +87,11 @@ export const initialState: IdeationStore = {
     isRestoringSnapshot: false,
     snapshotError: null,
   },
+  context: {
+    status: null,
+    isSaving: false,
+    saveResult: null,
+  },
 };
 
 export function ideationReducer(
@@ -1240,6 +1245,59 @@ export function ideationReducer(
           snapshots: state.memoryGraph.snapshots.filter(
             (s) => s.id !== action.payload.snapshotId,
           ),
+        },
+      };
+
+    // =========================================================================
+    // Context Management Actions (Memory Graph Migration)
+    // =========================================================================
+
+    case "CONTEXT_STATUS_UPDATE":
+      return {
+        ...state,
+        context: {
+          ...state.context,
+          status: action.payload.status,
+        },
+      };
+
+    case "CONTEXT_SAVE_START":
+      return {
+        ...state,
+        context: {
+          ...state.context,
+          isSaving: true,
+          saveResult: null,
+        },
+      };
+
+    case "CONTEXT_SAVE_COMPLETE":
+      return {
+        ...state,
+        context: {
+          ...state.context,
+          isSaving: false,
+          saveResult: {
+            blocksCreated: action.payload.blocksCreated,
+            linksCreated: action.payload.linksCreated,
+            success: action.payload.success,
+            error: action.payload.error,
+          },
+        },
+      };
+
+    case "CONTEXT_SAVE_ERROR":
+      return {
+        ...state,
+        context: {
+          ...state.context,
+          isSaving: false,
+          saveResult: {
+            blocksCreated: 0,
+            linksCreated: 0,
+            success: false,
+            error: action.payload.error,
+          },
         },
       };
 

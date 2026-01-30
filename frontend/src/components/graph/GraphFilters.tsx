@@ -23,8 +23,9 @@ export interface GraphFiltersProps {
   className?: string;
 }
 
-// All available graph types
+// All available graph types (17 dimensions)
 const ALL_GRAPH_TYPES: GraphType[] = [
+  // Core dimensions (10)
   "problem",
   "solution",
   "market",
@@ -35,11 +36,20 @@ const ALL_GRAPH_TYPES: GraphType[] = [
   "distribution",
   "marketing",
   "manufacturing",
+  // New dimensions (7)
+  "user",
+  "competition",
+  "validation",
+  "tasks",
+  "timeline",
+  "customer",
+  "product",
 ];
 
 // Canonical block types for filtering (matches legend and classification system)
 type FilterableBlockType = Exclude<BlockType, "link">;
 const ALL_BLOCK_TYPES: FilterableBlockType[] = [
+  // Core types (11)
   "insight",
   "fact",
   "assumption",
@@ -51,6 +61,17 @@ const ALL_BLOCK_TYPES: FilterableBlockType[] = [
   "pattern",
   "synthesis",
   "meta",
+  // New types (10)
+  "constraint",
+  "blocker",
+  "epic",
+  "story",
+  "task",
+  "bug",
+  "persona",
+  "milestone",
+  "evaluation",
+  "learning",
 ];
 
 // All available statuses
@@ -104,6 +125,7 @@ const ABSTRACTION_LEVEL_LABELS: Record<
 
 // Human-readable labels for block types (excludes 'link' as it's typically hidden)
 const BLOCK_TYPE_LABELS: Record<FilterableBlockType, string> = {
+  // Core types
   content: "Content",
   meta: "Meta",
   synthesis: "Synthesis",
@@ -122,10 +144,22 @@ const BLOCK_TYPE_LABELS: Record<FilterableBlockType, string> = {
   insight: "Insight",
   fact: "Fact",
   requirement: "Requirement",
+  // New types (10)
+  constraint: "Constraint",
+  blocker: "Blocker",
+  epic: "Epic",
+  story: "Story",
+  task: "Task",
+  bug: "Bug",
+  persona: "Persona",
+  milestone: "Milestone",
+  evaluation: "Evaluation",
+  learning: "Learning",
 };
 
-// Human-readable labels for graph types
+// Human-readable labels for graph types (17 dimensions)
 const GRAPH_TYPE_LABELS: Record<GraphType, string> = {
+  // Core dimensions (10)
   problem: "Problem",
   solution: "Solution",
   market: "Market",
@@ -136,6 +170,14 @@ const GRAPH_TYPE_LABELS: Record<GraphType, string> = {
   distribution: "Distribution",
   marketing: "Marketing",
   manufacturing: "Manufacturing",
+  // New dimensions (7)
+  user: "User Profile",
+  competition: "Competition",
+  validation: "Validation",
+  tasks: "Tasks",
+  timeline: "Timeline",
+  customer: "Customer",
+  product: "Product",
 };
 
 // Status labels with icons

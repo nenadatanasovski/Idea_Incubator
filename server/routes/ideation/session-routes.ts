@@ -25,6 +25,7 @@ import {
   IdeaType,
   ParentInfo,
   listUnifiedArtifacts,
+  graphStateLoader,
 } from "./shared.js";
 import { parseFrontmatter } from "../../../agents/ideation/unified-artifact-store.js";
 import { getConfig } from "../../../config/index.js";
@@ -575,6 +576,19 @@ sessionRouter.delete("/:sessionId", async (req: Request, res: Response) => {
     await query("DELETE FROM ideation_memory_files WHERE session_id = ?", [
       sessionId,
     ]);
+    // Memory Graph Migration: Also clean up memory graph tables
+    await query("DELETE FROM memory_links WHERE session_id = ?", [sessionId]);
+    await query(
+      `DELETE FROM memory_graph_memberships WHERE block_id IN
+       (SELECT id FROM memory_blocks WHERE session_id = ?)`,
+      [sessionId],
+    );
+    await query(
+      `DELETE FROM memory_block_types WHERE block_id IN
+       (SELECT id FROM memory_blocks WHERE session_id = ?)`,
+      [sessionId],
+    );
+    await query("DELETE FROM memory_blocks WHERE session_id = ?", [sessionId]);
     await query("DELETE FROM ideation_searches WHERE session_id = ?", [
       sessionId,
     ]);
@@ -847,6 +861,9 @@ sessionRouter.get("/:sessionId/links", async (req: Request, res: Response) => {
 // GET /session/:sessionId/memory-files
 // ============================================================================
 // Get all ideation memory files for a session (self_discovery, market_discovery, etc.)
+// Memory Graph Migration: This endpoint now returns both legacy memory files
+// AND memory blocks that serve as memory (learnings, patterns, etc.)
+// DEPRECATED: Use /session/:sessionId/blocks with appropriate type filters instead
 
 sessionRouter.get(
   "/:sessionId/memory-files",
@@ -854,7 +871,7 @@ sessionRouter.get(
     try {
       const { sessionId } = req.params;
 
-      // Get memory files from ideation_memory_files table
+      // Get legacy memory files from ideation_memory_files table
       const memoryFilesResult = await query<{
         id: string;
         session_id: string;
@@ -868,8 +885,27 @@ sessionRouter.get(
         [sessionId],
       );
 
-      // Transform to the expected API format
-      const memoryFiles = memoryFilesResult.map((row) => ({
+      // Also get memory blocks that serve as "memory" (learnings, patterns, synthesis, etc.)
+      const memoryBlocksResult = await query<{
+        id: string;
+        session_id: string;
+        type: string;
+        content: string;
+        confidence: number | null;
+        created_at: string;
+        updated_at: string;
+      }>(
+        `SELECT id, session_id, type, content, confidence, created_at, updated_at
+         FROM memory_blocks
+         WHERE session_id = ?
+           AND type IN ('learning', 'pattern', 'synthesis', 'decision', 'assumption')
+           AND status = 'active'
+         ORDER BY type ASC, created_at DESC`,
+        [sessionId],
+      );
+
+      // Transform legacy memory files
+      const legacyFiles = memoryFilesResult.map((row) => ({
         id: row.id,
         sessionId: row.session_id,
         fileType: row.file_type,
@@ -877,14 +913,145 @@ sessionRouter.get(
         version: row.version,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
+        source: "legacy" as const,
       }));
+
+      // Transform memory blocks to match the memory file format
+      const blockBasedMemory = memoryBlocksResult.map((row) => ({
+        id: row.id,
+        sessionId: row.session_id,
+        fileType: row.type, // Use block type as file type
+        content: row.content || "",
+        version: 1, // Blocks don't have versions
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        source: "memory_graph" as const,
+        confidence: row.confidence,
+      }));
+
+      // Combine both sources
+      const memoryFiles = [...legacyFiles, ...blockBasedMemory];
 
       return res.json({
         success: true,
         data: { memoryFiles },
+        _deprecated:
+          "This endpoint is deprecated. Use /session/:sessionId/blocks with type filters instead.",
       });
     } catch (error) {
       console.error("[MemoryFiles] Error fetching memory files:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+      });
+    }
+  },
+);
+
+// ============================================================================
+// GET /session/:sessionId/debug/memory-graph-context
+// ============================================================================
+// Debug endpoint: Shows what memory graph context would be sent to the agent
+// This proves the memory graph is being used in the agent's context
+
+sessionRouter.get(
+  "/:sessionId/debug/memory-graph-context",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      // Load session to get ideaSlug
+      const session = await sessionManager.load(sessionId);
+      if (!session) {
+        return res.status(404).json({
+          success: false,
+          error: "Session not found",
+        });
+      }
+
+      if (!session.ideaSlug) {
+        return res.json({
+          success: true,
+          warning:
+            "Session has no ideaSlug - memory graph context will NOT be loaded",
+          data: {
+            sessionId,
+            ideaSlug: null,
+            memoryGraphContextLoaded: false,
+            contextFiles: [],
+          },
+        });
+      }
+
+      // Load the memory graph context (same function used by the agent)
+      console.log(
+        `[Debug] Loading memory graph context for session ${sessionId}, idea ${session.ideaSlug}`,
+      );
+      const contextFiles = await graphStateLoader.getContextFiles(
+        session.ideaSlug,
+      );
+
+      // Also load the raw state for visibility
+      const rawState = await graphStateLoader.loadState(session.ideaSlug);
+
+      // NEW: Load the actual agent context that gets injected (uses sessionId, not ideaSlug)
+      const agentContext = await graphStateLoader.getAgentContext(sessionId);
+
+      return res.json({
+        success: true,
+        data: {
+          sessionId,
+          ideaSlug: session.ideaSlug,
+          memoryGraphContextLoaded: true,
+          // NEW: Show the actual context that gets sent to the agent
+          agentContext: {
+            stats: agentContext.stats,
+            topLevelPreview:
+              agentContext.topLevel.substring(0, 1000) +
+              (agentContext.topLevel.length > 1000 ? "..." : ""),
+            instructionsPreview:
+              agentContext.instructions.substring(0, 1000) +
+              (agentContext.instructions.length > 1000 ? "..." : ""),
+            keyBlocksPreview:
+              agentContext.keyBlocks.substring(0, 1000) +
+              (agentContext.keyBlocks.length > 1000 ? "..." : ""),
+          },
+          // LEGACY: Old context files (for comparison)
+          legacyContextFiles: contextFiles.map((f) => ({
+            fileType: f.fileType,
+            contentLength: f.content.length,
+            contentPreview:
+              f.content.substring(0, 500) +
+              (f.content.length > 500 ? "..." : ""),
+          })),
+          rawState: {
+            selfDiscovery: {
+              expertiseCount: rawState.selfDiscovery?.expertise?.length || 0,
+              frustrationCount:
+                rawState.selfDiscovery?.frustrations?.length || 0,
+              interestsCount: rawState.selfDiscovery?.interests?.length || 0,
+              hasImpactVision:
+                !!rawState.selfDiscovery?.impactVision?.description,
+            },
+            marketDiscovery: {
+              competitorCount:
+                rawState.marketDiscovery?.competitors?.length || 0,
+              gapsCount: rawState.marketDiscovery?.gaps?.length || 0,
+              timingSignalsCount:
+                rawState.marketDiscovery?.timingSignals?.length || 0,
+            },
+            narrowingState: {
+              hypothesesCount: rawState.narrowingState?.hypotheses?.length || 0,
+              questionsCount:
+                rawState.narrowingState?.questionsNeeded?.length || 0,
+              hasProductType: !!rawState.narrowingState?.productType?.value,
+              hasCustomerType: !!rawState.narrowingState?.customerType?.value,
+            },
+          },
+        },
+      });
+    } catch (error) {
+      console.error("[Debug] Error loading memory graph context:", error);
       return res.status(500).json({
         success: false,
         error: "Internal server error",

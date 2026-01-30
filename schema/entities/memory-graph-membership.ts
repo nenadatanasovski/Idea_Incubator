@@ -9,6 +9,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { memoryBlocks } from "./memory-block.js";
 
 export const graphTypes = [
+  // Core dimensions (10)
   "problem",
   "solution",
   "market",
@@ -19,6 +20,14 @@ export const graphTypes = [
   "distribution",
   "marketing",
   "manufacturing",
+  // New dimensions (7)
+  "user", // Founder/builder profile (skills, constraints, preferences)
+  "competition", // Competitive landscape analysis
+  "validation", // Experiments, tests, proof points
+  "tasks", // Task management (epics, stories, bugs)
+  "timeline", // Phases, milestones, deadlines
+  "customer", // Target customer profiles/personas
+  "product", // Current product state (live, not pending changes)
 ] as const;
 
 export type GraphType = (typeof graphTypes)[number];

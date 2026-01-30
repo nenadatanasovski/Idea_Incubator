@@ -9,7 +9,8 @@ import {
 } from "../middleware/rate-limiter.js";
 import { sessionManager } from "../../agents/ideation/session-manager.js";
 import { messageStore } from "../../agents/ideation/message-store.js";
-import { memoryManager } from "../../agents/ideation/memory-manager.js";
+import { contextManager } from "../../agents/ideation/context-manager.js";
+import { graphStateLoader } from "../../agents/ideation/graph-state-loader.js";
 import { agentOrchestrator } from "../../agents/ideation/orchestrator.js";
 import {
   generateGreetingWithButtons,
@@ -851,8 +852,7 @@ ideationRouter.post(
           `[Routes/Message] Quick-ack detected, spawning ${response.subAgentTasks!.length} sub-agents`,
         );
 
-        // Build context for sub-agents from memory files
-        const memoryFiles = await memoryManager.getAll(sessionId);
+        // Build context for sub-agents from graph state
         const contextParts: string[] = [];
 
         // Add candidate info
@@ -864,9 +864,29 @@ ideationRouter.post(
           }
         }
 
-        // Add memory file context
-        for (const file of memoryFiles) {
-          contextParts.push(`\n## ${file.fileType}\n${file.content}`);
+        // Add memory graph context if available
+        // Uses new getAgentContext() which provides:
+        // 1. Top-level summaries from reports
+        // 2. Navigation instructions for drilling deeper
+        // 3. Key blocks (decisions, requirements)
+        const agentContext = await graphStateLoader.getAgentContext(sessionId);
+        if (agentContext.stats.blockCount > 0) {
+          console.log(
+            `[Ideation] 🔗 Session ${sessionId} has ${agentContext.stats.blockCount} blocks, ${agentContext.stats.reportCount} reports`,
+          );
+          console.log(
+            `[Ideation] 📥 Injecting memory graph context into agent...`,
+          );
+          contextParts.push(agentContext.topLevel);
+          contextParts.push(agentContext.instructions);
+          contextParts.push(agentContext.keyBlocks);
+          console.log(
+            `[Ideation] ✅ Memory graph context injected (${agentContext.stats.reportCount} reports, ${agentContext.stats.blockCount} blocks)`,
+          );
+        } else {
+          console.log(
+            `[Ideation] ⚠️ Session ${sessionId} has no memory graph data yet`,
+          );
         }
 
         const context = contextParts.join("\n");
@@ -979,8 +999,8 @@ ideationRouter.post("/message/edit", async (req: Request, res: Response) => {
       messageId,
     );
 
-    // Reset memory state so it can be recalculated from remaining messages
-    await memoryManager.resetState(sessionId);
+    // Note: In graph-based architecture, state is reconstructed from blocks on demand
+    // No explicit reset needed since loadState() queries fresh from graph
 
     // Load profile
     if (!session) {
@@ -1297,24 +1317,30 @@ ideationRouter.post("/message/edit", async (req: Request, res: Response) => {
         `[Routes/MessageEdit] Quick-ack detected, spawning ${response.subAgentTasks!.length} sub-agents`,
       );
 
-      // Build context for sub-agents from memory files
-      const memoryState = await memoryManager.loadState(sessionId);
+      // Build context for sub-agents from graph state
       const contextParts: string[] = [];
 
-      if (memoryState.selfDiscovery) {
-        contextParts.push(
-          `## Self Discovery\n${JSON.stringify(memoryState.selfDiscovery, null, 2)}`,
+      // Load graph state if session is linked to an idea
+      const editSession = await sessionManager.load(sessionId);
+      if (editSession?.ideaSlug) {
+        const graphState = await graphStateLoader.loadState(
+          editSession.ideaSlug,
         );
-      }
-      if (memoryState.marketDiscovery) {
-        contextParts.push(
-          `## Market Discovery\n${JSON.stringify(memoryState.marketDiscovery, null, 2)}`,
-        );
-      }
-      if (memoryState.narrowingState) {
-        contextParts.push(
-          `## Narrowing State\n${JSON.stringify(memoryState.narrowingState, null, 2)}`,
-        );
+        if (graphState.selfDiscovery) {
+          contextParts.push(
+            `## Self Discovery\n${JSON.stringify(graphState.selfDiscovery, null, 2)}`,
+          );
+        }
+        if (graphState.marketDiscovery) {
+          contextParts.push(
+            `## Market Discovery\n${JSON.stringify(graphState.marketDiscovery, null, 2)}`,
+          );
+        }
+        if (graphState.narrowingState) {
+          contextParts.push(
+            `## Narrowing State\n${JSON.stringify(graphState.narrowingState, null, 2)}`,
+          );
+        }
       }
       if (candidateData) {
         contextParts.push(
@@ -1614,8 +1640,7 @@ ideationRouter.post(
           `[Routes/Button] Quick-ack detected, spawning ${response.subAgentTasks!.length} sub-agents`,
         );
 
-        // Build context for sub-agents from memory files
-        const memoryFiles = await memoryManager.getAll(sessionId);
+        // Build context for sub-agents from graph state
         const contextParts: string[] = [];
 
         // Add candidate info
@@ -1627,9 +1652,22 @@ ideationRouter.post(
           }
         }
 
-        // Add memory file context
-        for (const file of memoryFiles) {
-          contextParts.push(`\n## ${file.fileType}\n${file.content}`);
+        // Add memory graph context
+        const buttonAgentContext =
+          await graphStateLoader.getAgentContext(sessionId);
+        if (buttonAgentContext.stats.blockCount > 0) {
+          console.log(
+            `[Ideation/Button] 🔗 Session has ${buttonAgentContext.stats.blockCount} blocks, ${buttonAgentContext.stats.reportCount} reports`,
+          );
+          console.log(`[Ideation/Button] 📥 Injecting memory graph context...`);
+          contextParts.push(buttonAgentContext.topLevel);
+          contextParts.push(buttonAgentContext.instructions);
+          contextParts.push(buttonAgentContext.keyBlocks);
+          console.log(
+            `[Ideation/Button] ✅ Memory graph context injected (${buttonAgentContext.stats.reportCount} reports, ${buttonAgentContext.stats.blockCount} blocks)`,
+          );
+        } else {
+          console.log(`[Ideation/Button] ⚠️ No memory graph data yet`);
         }
 
         const context = contextParts.join("\n");
@@ -1887,19 +1925,8 @@ ideationRouter.post("/save", async (req: Request, res: Response) => {
     // Note: Session remains 'active' since 'paused' is not in the DB schema
     // The candidate's 'saved' status indicates this session has a saved idea
 
-    // Store save action as memory
-    await memoryManager.upsert(
-      sessionId,
-      "conversation_summary",
-      `
-# Conversation Summary
-
-## Saved for Later
-**Timestamp**: ${new Date().toISOString()}
-**Candidate**: ${candidate.title}
-${notes ? `**Notes**: ${notes}` : ""}
-`,
-    );
+    // Note: In graph-based architecture, save events are captured through
+    // block extraction from conversation rather than explicit memory file updates
 
     return res.json({
       success: true,
@@ -2006,18 +2033,10 @@ ideationRouter.post("/discard", async (req: Request, res: Response) => {
       });
     }
 
-    // Store discard reason if provided
+    // Note: Discard reason is logged but not stored in graph since session is being abandoned
     if (reason) {
-      await memoryManager.upsert(
-        sessionId,
-        "conversation_summary",
-        `
-# Conversation Summary
-
-## Session Discarded
-**Timestamp**: ${new Date().toISOString()}
-**Reason**: ${reason}
-`,
+      console.log(
+        `[Routes/Discard] Session ${sessionId} discarded with reason: ${reason}`,
       );
     }
 
@@ -3418,3 +3437,75 @@ ideationRouter.post("/session", async (req: Request, res: Response) => {
     });
   }
 });
+
+// ============================================================================
+// CONTEXT MANAGEMENT ENDPOINTS (Memory Graph Migration)
+// ============================================================================
+
+/**
+ * GET /api/ideation/session/:sessionId/context-status
+ * Check if context limit is approaching
+ */
+ideationRouter.get(
+  "/session/:sessionId/context-status",
+  async (req: Request, res: Response) => {
+    try {
+      const tokensUsed = Number(req.query.tokensUsed) || 0;
+      const tokenLimit = Number(req.query.tokenLimit) || 100000;
+
+      const status = contextManager.checkContextStatus(tokensUsed, tokenLimit);
+
+      return res.json(status);
+    } catch (error) {
+      console.error("[Context] Error checking status:", error);
+      return res.status(500).json({ error: "Failed to check context status" });
+    }
+  },
+);
+
+/**
+ * POST /api/ideation/session/:sessionId/save-to-graph
+ * Save conversation insights to memory graph
+ */
+ideationRouter.post(
+  "/session/:sessionId/save-to-graph",
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      const { ideaId } = req.body;
+
+      if (!ideaId) {
+        return res.status(400).json({ error: "ideaId is required" });
+      }
+
+      const result = await contextManager.saveConversationToGraph(
+        sessionId,
+        ideaId,
+      );
+      return res.json(result);
+    } catch (error) {
+      console.error("[Context] Error saving to graph:", error);
+      return res.status(500).json({ error: "Failed to save to graph" });
+    }
+  },
+);
+
+/**
+ * GET /api/ideation/idea/:ideaId/session-context
+ * Get context from graph for new session
+ */
+ideationRouter.get(
+  "/idea/:ideaId/session-context",
+  async (req: Request, res: Response) => {
+    try {
+      const { ideaId } = req.params;
+      const context = await contextManager.prepareNewSessionContext(ideaId);
+      return res.json({ context });
+    } catch (error) {
+      console.error("[Context] Error preparing session context:", error);
+      return res
+        .status(500)
+        .json({ error: "Failed to prepare session context" });
+    }
+  },
+);

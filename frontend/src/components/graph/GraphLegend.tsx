@@ -43,6 +43,17 @@ const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   pattern: "Pattern",
   synthesis: "Synthesis",
   meta: "Meta",
+  // New canonical types (10)
+  constraint: "Constraint",
+  blocker: "Blocker",
+  epic: "Epic",
+  story: "Story",
+  task: "Task",
+  bug: "Bug",
+  persona: "Persona",
+  milestone: "Milestone",
+  evaluation: "Evaluation",
+  learning: "Learning",
   // Legacy (hidden from legend)
   content: "Content",
   link: "Link",
@@ -54,8 +65,9 @@ const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   external: "External",
 };
 
-// Canonical block types to show in legend (11 items)
+// Canonical block types to show in legend (21 items)
 const CANONICAL_BLOCK_TYPES: BlockType[] = [
+  // Core types (11)
   "insight",
   "fact",
   "assumption",
@@ -67,10 +79,22 @@ const CANONICAL_BLOCK_TYPES: BlockType[] = [
   "pattern",
   "synthesis",
   "meta",
+  // New types (10)
+  "constraint",
+  "blocker",
+  "epic",
+  "story",
+  "task",
+  "bug",
+  "persona",
+  "milestone",
+  "evaluation",
+  "learning",
 ];
 
-// Human-readable labels for graph types
+// Human-readable labels for graph types (17 dimensions)
 const GRAPH_TYPE_LABELS: Record<GraphType, string> = {
+  // Core dimensions (10)
   problem: "Problem",
   solution: "Solution",
   market: "Market",
@@ -81,6 +105,14 @@ const GRAPH_TYPE_LABELS: Record<GraphType, string> = {
   distribution: "Distribution",
   marketing: "Marketing",
   manufacturing: "Manufacturing",
+  // New dimensions (7)
+  user: "User Profile",
+  competition: "Competition",
+  validation: "Validation",
+  tasks: "Tasks",
+  timeline: "Timeline",
+  customer: "Customer",
+  product: "Product",
 };
 
 // Human-readable labels for link types
@@ -376,7 +408,7 @@ export function GraphLegend({
     });
   }, []);
 
-  // Show only canonical 11 block types in legend
+  // Show all 21 canonical block types in legend
   const visibleBlockTypes = CANONICAL_BLOCK_TYPES;
 
   // Collapsed state - show pill
