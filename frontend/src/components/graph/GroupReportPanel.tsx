@@ -6,7 +6,7 @@
  * Node titles in the story are clickable to navigate to that node.
  */
 
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import {
   Loader2,
   AlertCircle,
@@ -17,6 +17,8 @@ import {
   Users,
   AlertTriangle,
   Sparkles,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { useGroupReport, type GroupReport } from "./hooks/useGroupReport";
 import type { GraphNode } from "../../types/graph";
@@ -48,6 +50,41 @@ export interface GroupReportPanelProps {
 // ============================================================================
 // Helper Components
 // ============================================================================
+
+/**
+ * Collapsible section wrapper for report sections.
+ */
+function CollapsibleSection({
+  title,
+  icon: Icon,
+  children,
+  defaultExpanded = false,
+}: {
+  title: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+  defaultExpanded?: boolean;
+}) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  return (
+    <section>
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center gap-1.5 w-full text-left font-medium text-gray-700 mb-2 text-sm hover:text-gray-900 transition-colors"
+      >
+        {isExpanded ? (
+          <ChevronDown className="w-4 h-4 text-gray-400" />
+        ) : (
+          <ChevronRight className="w-4 h-4 text-gray-400" />
+        )}
+        <Icon className="w-4 h-4" />
+        {title}
+      </button>
+      {isExpanded && <div className="ml-5">{children}</div>}
+    </section>
+  );
+}
 
 /**
  * Renders markdown-like text with clickable node title references.
@@ -320,7 +357,7 @@ export function GroupReportPanel({
         </div>
       </div>
 
-      {/* Overview */}
+      {/* Overview - Always expanded */}
       {report.overview && (
         <section>
           <h4 className="flex items-center gap-1.5 font-medium text-gray-700 mb-2 text-sm">
@@ -338,46 +375,7 @@ export function GroupReportPanel({
         </section>
       )}
 
-      {/* Key Themes */}
-      {report.keyThemes && report.keyThemes.length > 0 && (
-        <section>
-          <h4 className="flex items-center gap-1.5 font-medium text-gray-700 mb-2 text-sm">
-            <Lightbulb className="w-4 h-4" />
-            Key Themes
-          </h4>
-          <ul className="space-y-1.5">
-            {report.keyThemes.map((theme, i) => (
-              <li
-                key={i}
-                className="flex items-start gap-2 text-sm text-gray-600"
-              >
-                <span className="text-cyan-500 mt-1.5">•</span>
-                <span>{theme}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* The Story */}
-      {report.story && (
-        <section>
-          <h4 className="flex items-center gap-1.5 font-medium text-gray-700 mb-2 text-sm">
-            <BookOpen className="w-4 h-4" />
-            The Story
-          </h4>
-          <div className="prose prose-sm max-w-none text-gray-600 whitespace-pre-line">
-            <MarkdownWithNodeLinks
-              content={report.story}
-              nodes={nodes}
-              onNodeClick={onNodeClick}
-              onNodeHover={onNodeHover}
-            />
-          </div>
-        </section>
-      )}
-
-      {/* Open Questions */}
+      {/* Open Questions - Always expanded, moved below Overview */}
       {report.openQuestions && report.openQuestions.length > 0 && (
         <section>
           <h4 className="flex items-center gap-1.5 font-medium text-gray-700 mb-2 text-sm">
@@ -398,13 +396,43 @@ export function GroupReportPanel({
         </section>
       )}
 
-      {/* Nodes in Group */}
+      {/* Key Themes - Collapsible, collapsed by default */}
+      {report.keyThemes && report.keyThemes.length > 0 && (
+        <CollapsibleSection title="Key Themes" icon={Lightbulb}>
+          <ul className="space-y-1.5">
+            {report.keyThemes.map((theme, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-2 text-sm text-gray-600"
+              >
+                <span className="text-cyan-500 mt-1.5">•</span>
+                <span>{theme}</span>
+              </li>
+            ))}
+          </ul>
+        </CollapsibleSection>
+      )}
+
+      {/* The Story - Collapsible, collapsed by default */}
+      {report.story && (
+        <CollapsibleSection title="The Story" icon={BookOpen}>
+          <div className="prose prose-sm max-w-none text-gray-600 whitespace-pre-line">
+            <MarkdownWithNodeLinks
+              content={report.story}
+              nodes={nodes}
+              onNodeClick={onNodeClick}
+              onNodeHover={onNodeHover}
+            />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Nodes in Group - Collapsible, collapsed by default */}
       {report.nodesSummary && report.nodesSummary.length > 0 && (
-        <section>
-          <h4 className="flex items-center gap-1.5 font-medium text-gray-700 mb-2 text-sm">
-            <Users className="w-4 h-4" />
-            Nodes in This Group ({report.nodesSummary.length})
-          </h4>
+        <CollapsibleSection
+          title={`Nodes in This Group (${report.nodesSummary.length})`}
+          icon={Users}
+        >
           <ul className="space-y-2">
             {report.nodesSummary.map((nodeSummary) => (
               <li key={nodeSummary.nodeId}>
@@ -436,7 +464,7 @@ export function GroupReportPanel({
               </li>
             ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
 
       {/* Metadata */}
