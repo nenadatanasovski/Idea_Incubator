@@ -24,6 +24,7 @@ import ObjectsPage from "./pages/ObjectsPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import NotFound from "./pages/NotFound";
+import ClusterDemoPage from "./pages/ClusterDemoPage";
 
 // Projects sub-tab components
 import ProjectOverview from "./components/projects/ProjectOverview";
@@ -136,6 +137,8 @@ function App() {
         <Route path="/pipeline" element={<PipelineDashboard />} />
         <Route path="/pipeline/conflicts" element={<PipelineDashboard />} />
         <Route path="/pipeline/stream" element={<PipelineDashboard />} />
+        {/* Test pages */}
+        <Route path="/test/cluster-demo" element={<ClusterDemoPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>

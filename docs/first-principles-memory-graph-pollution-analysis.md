@@ -1,100 +1,267 @@
-# Memory Graph Integration: Visual Design
+# Memory Graph Integration: Planning Agent Design
 
-## The Two States
+## Concepts Summary
 
-### Default View: Chat + Graph Side by Side
+This document captures the complete design for the Planning Agent and Memory Graph integration. Below is every concept discussed, organized by category.
 
-No transition needed. Graph is always visible from the start.
+### Core Architecture
+
+| Concept                 | Definition                                                                                        | Key Details                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Planning Agent**      | Renamed from Ideation Agent. Guides the entire product lifecycle, not just idea formation.        | Phases: Planning → Build → Testing → Launch → Distribution → Marketing. Reverse-engineers from each phase to determine what questions to ask now. |
+| **Idea Node**           | A single, unique node per idea that serves as the gravitational center of the graph.              | Starts with title "Incubating" until formed. All other nodes must connect to it (directly or transitively). Used for scope drift detection.       |
+| **Planning Graph Type** | New graph type (added to existing 17 dimensions). Houses the Idea node and initial questions.     | The ONLY graph type that contains the Idea node. Starting point for all ideas.                                                                    |
+| **Graph Query AI**      | Read-only AI interface for querying and managing the graph. Already exists as button in top-left. | Separate from Planning Agent. Does not write to graph. Does not pollute.                                                                          |
+
+### Block & Link System
+
+| Concept                | Definition                                                | Key Details                                                                                                                 |
+| ---------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Block Types**        | 11 canonical types for storing knowledge.                 | `insight`, `decision`, `question`, `fact`, `constraint`, `assumption`, `risk`, `requirement`, `goal`, `metric`, `reference` |
+| **Link Types**         | 21 relationship types connecting blocks.                  | Including `constrained_by`, `requires`, `depends_on`, `validates`, `contradicts`, etc.                                      |
+| **`anchors` Link**     | Implicit relationship establishing relevance to the Idea. | NOT a new explicit link type. Determined by graph traversal — if a node can reach the Idea through any path, it's anchored. |
+| **Question Lifecycle** | Question blocks track their state.                        | When answered, question node remains with `answered` status. Does not transform or disappear.                               |
+
+### Pollution Prevention
+
+| Concept                     | Definition                                                                               | Key Details                                                                                                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Creation-Time Filtering** | Block extraction filters out irrelevant content before nodes enter the graph. No queue.  | Uses LLM classification (Haiku) to detect: meta-conversation, queries about the tool, comments not related to the idea. Filtered content never enters the graph. |
+| **Scope Drift Detection**   | Centered on Idea node. If a proposed node can't path to the Idea, it's flagged as drift. | Algorithm: 1) New block proposed, 2) Traverse toward Idea, 3) No path = reject or ask user for clarification.                                                    |
+| **Path-to-Idea Check**      | Validation that all nodes relate to the Idea.                                            | Uses existing link traversal. No new link type needed. Orphaned nodes = irrelevant content.                                                                      |
+
+### Agent Behaviors
+
+| Concept                     | Definition                                                      | Key Details                                                                                                              |
+| --------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Lifecycle Awareness**     | Agent knows what each phase (build, test, launch) needs.        | Can ask questions that span multiple phases. Knows dependencies between phases.                                          |
+| **Question Prioritization** | Agent determines which questions to ask first.                  | Based on: dependency analysis, downstream impact, reverse engineering from build goals, current graph gaps.              |
+| **Question Generation**     | Agent creates new questions proactively.                        | Generates questions user hasn't thought of. Based on what's needed for each lifecycle phase.                             |
+| **Scope Definition**        | Agent forces scope decisions early.                             | Before feature questions, asks scope questions. Prevents wasted effort on wrong direction.                               |
+| **Drift Warning**           | Agent detects when user steers away from established decisions. | Shows impact analysis: how many blocks affected, what changes required. Offers: Continue, Keep original, Start new idea. |
+| **Pivot Proposal**          | When changes are too large, agent suggests fresh start.         | Fork flow with option to copy relevant blocks. Preview shows orphaned links.                                             |
+
+### Existing Code Behaviors (From Analysis)
+
+| Concept                 | Location                                             | How It Works                                                                                                                      |
+| ----------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Candidate Creation**  | `orchestrator.ts`, `candidate-manager.ts`            | Agent autonomously creates candidate when it includes `candidateUpdate.title` in response. No threshold in code — Claude decides. |
+| **Candidate Lifecycle** | `candidate-manager.ts`                               | `Creating → active → [captured / saved / discarded]`. Only `active` or `forming` appear in UI.                                    |
+| **Scope Storage**       | `memory-block-type.ts`, `graph-analysis-subagent.ts` | Stored as `decision`/`constraint` blocks with `validated` status. Confidence 0.6+ = established.                                  |
+| **Drift Detection**     | `graph-analysis-subagent.ts`                         | Uses `contradiction-scan`, `cascade-detection`, `stale-detection`.                                                                |
+
+### UI Decisions
+
+| Concept                  | Decision                                                                   | Rationale                                     |
+| ------------------------ | -------------------------------------------------------------------------- | --------------------------------------------- |
+| **Layout**               | Chat + graph side by side from start. No transition.                       | Graph always visible. No separate states.     |
+| **Graph Distribution**   | Part of existing filter panel. Just `%` next to checkboxes. No bars.       | Unified UI. Not a separate bottom section.    |
+| **Starting Screen**      | Idea node with "Incubating" title + first question node in Planning graph. | Immediate visual feedback.                    |
+| **User Agency**          | Dismissable suggestions.                                                   | Balance guidance with control.                |
+| **Fork Handling**        | Preview with orphan highlighting (red).                                    | Transparency before copying.                  |
+| **Return After Absence** | Recap message after 7+ days.                                               | Context restoration.                          |
+| **Mobile**               | Chat-first with tabs for graph.                                            | Matches mobile model.                         |
+| **Accessibility**        | WCAG 2.1 AA compliance.                                                    | Keyboard nav, screen reader, colorblind-safe. |
+
+### Open Decisions
+
+| Area                       | Options Considered                                       | Recommendation                       | Status      |
+| -------------------------- | -------------------------------------------------------- | ------------------------------------ | ----------- |
+| **`anchors` as link type** | A) Explicit new link, B) Implicit via traversal, C) Both | **B: Implicit** — see analysis below | Recommended |
+
+---
+
+## The Idea Node: Central Anchor
+
+### Definition
+
+The **Idea** is a singular, unique node that serves as the gravitational center of the entire memory graph. Every idea can only have ONE Idea node.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│  Idea Incubator                              Select an idea...  ▼    Context 5% │
-├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
-│ ┌────────────────────┐ ┌──────────────────────────────────┐ ┌────────────────┐ │
-│ │ CHAT               │ │         MEMORY GRAPH             │ │ ARTIFACTS ▶    │ │
-│ │                    │ │                                  │ │                │ │
-│ │ 🤖 What problem    │ │ ┌──────────────────────────────┐ │ │ [Collapsed]    │ │
-│ │ are you most       │ │ │ 🔍 "find gaps"               │ │ │                │ │
-│ │ passionate about   │ │ └──────────────────────────────┘ │ │                │ │
-│ │ solving?           │ │                                  │ │                │ │
-│ │                    │ │ ┌──────────────────────────────┐ │ │                │ │
-│ │ 👤 I've noticed    │ │ │                              │ │ │                │ │
-│ │ people with skin   │ │ │   Start the conversation     │ │ │                │ │
-│ │ picking disorder   │ │ │   to start populating        │ │ │                │ │
-│ │ don't have good    │ │ │   the memory graph.          │ │ │                │ │
-│ │ apps...            │ │ │                              │ │ │                │ │
-│ │                    │ │ │         📊                   │ │ │                │ │
-│ │ 🤖 What's missing  │ │ │                              │ │ │                │ │
-│ │ from current       │ │ └──────────────────────────────┘ │ │                │ │
-│ │ solutions?         │ │                                  │ │                │ │
-│ │                    │ │                                  │ │                │ │
-│ │ ┌────────────────┐ │ │                                  │ │                │ │
-│ │ │ [Input...]     │ │ │                                  │ │                │ │
-│ │ └────────────────┘ │ │                                  │ │                │ │
-│ └────────────────────┘ └──────────────────────────────────┘ └────────────────┘ │
+│   THE IDEA NODE                                                                 │
+│   ─────────────                                                                 │
 │                                                                                 │
-│ ┌──────────────────────────────────────────────────────────────────────────┐   │
-│ │ GRAPH DISTRIBUTION                                                       │   │
-│ │ [Empty - will populate as conversation progresses]                       │   │
-│ └──────────────────────────────────────────────────────────────────────────┘   │
+│   An Idea is NOT:                          An Idea IS:                          │
+│   ──────────────                           ──────────                           │
+│                                                                                 │
+│   • A node group (too broad)               • A single, unique node              │
+│   • A collection (too vague)               • The gravitational center           │
+│   • A category (too organizational)        • The scope anchor                   │
+│   • A container (too structural)           • The drift detector                 │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────────────────┐   │
+│   │                                                                         │   │
+│   │                           ┌───────────┐                                 │   │
+│   │                           │           │                                 │   │
+│   │        problem ●──────────│   IDEA    │──────────● solution             │   │
+│   │                  \        │  (ONE)    │        /                        │   │
+│   │        market ●───────────│           │───────────● user                │   │
+│   │                      \    └───────────┘    /                            │   │
+│   │        spec ●─────────────────│   │───────────────● validation          │   │
+│   │                               │   │                                     │   │
+│   │        business ●─────────────┘   └───────────────● distribution        │   │
+│   │                                                                         │   │
+│   │   ALL nodes connect to the Idea (directly or transitively)              │   │
+│   │                                                                         │   │
+│   └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Idea Node Properties
+
+| Property            | Value                                                                  |
+| ------------------- | ---------------------------------------------------------------------- |
+| **Uniqueness**      | Exactly 1 per idea — enforced at schema level                          |
+| **Required fields** | `title`, `one_liner` (the elevator pitch)                              |
+| **Initial state**   | Title = "Incubating" until agent forms the idea                        |
+| **Formed when**     | Agent includes `candidateUpdate.title` with actual name                |
+| **Connection type** | Implicit `anchors` via graph traversal (not explicit link)             |
+| **Traversal**       | All paths in graph should terminate at Idea node (validates relevance) |
+
+### The `anchors` Relationship (Analysis)
+
+How should we determine if a node is "anchored" to the Idea?
+
+| Option                        | How It Works                                                                              | Pros                                                          | Cons                                                                                    | Long-term                      |
+| ----------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------ |
+| **A: Explicit new link type** | Add `anchors` as 22nd link type. Every node gets explicit link to Idea.                   | Clear, queryable, easy validation                             | Every node needs this link (redundant), visual clutter (star graph), maintenance burden | Poor — creates noise           |
+| **B: Implicit via traversal** | Infer anchoring by traversing existing links. If any path reaches Idea, node is anchored. | No additional links, uses natural relationships, less clutter | More expensive to compute, harder to query directly                                     | Good — matches graph semantics |
+| **C: Both**                   | Explicit for direct connections, implicit for transitive.                                 | Flexibility                                                   | Inconsistency, confusing mental model, complexity                                       | Poor — worst of both           |
+
+**Recommendation: B (Implicit via traversal)**
+
+Reasoning:
+
+- The purpose of "anchors" is scope drift detection, not visualization
+- Graph traversal is a background computation, not user-facing
+- Existing links already show how nodes relate semantically
+- Adding explicit anchors creates a star graph (everything pointing to center) — visual noise
+- Orphan detection via traversal is cleaner: "can this node reach the Idea through any path?"
+
+---
+
+### Scope Drift Detection (Centered on Idea)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│   SCOPE DRIFT = CAN'T REACH THE IDEA                                            │
+│   ──────────────────────────────────                                            │
+│                                                                                 │
+│   When new content is proposed, the system asks:                                │
+│   "Can this node reach the Idea through any path?"                              │
+│                                                                                 │
+│   ┌─────────────────────────────────────────────────────────────────────────┐   │
+│   │                                                                         │   │
+│   │       ● problem ──────┐                                                 │   │
+│   │                       │                                                 │   │
+│   │       ● solution ─────┼────── ◉ IDEA ← Everything reaches here          │   │
+│   │                       │                                                 │   │
+│   │       ● market ───────┘                                                 │   │
+│   │                                                                         │   │
+│   │                                                                         │   │
+│   │       ● "How does Claude work?" ─────── ✗ NO PATH TO IDEA              │   │
+│   │         (meta-conversation)               ↓                             │   │
+│   │                                      FILTERED OUT                       │   │
+│   │                                                                         │   │
+│   └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+│   Detection algorithm (at block creation time):                                 │
+│   1. New block proposed from conversation/artifact                              │
+│   2. LLM classifies: idea-relevant vs meta-conversation                         │
+│   3. Check if block can path to Idea (via proposed links)                       │
+│   4. If no path AND classified as meta → reject silently                        │
+│   5. If no path BUT seems idea-relevant → ask user for clarification            │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### After Conversation Progresses (Graph Populated)
+## Pollution Prevention (Creation-Time Filtering)
+
+### The Approach
+
+Instead of a queue where users accept/reject proposed nodes, we filter at creation time. Irrelevant content never enters the graph.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│  BFRB Companion App                                             Context 34%     │
-├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
-│ ┌────────────────────┐ ┌──────────────────────────────────┐ ┌────────────────┐ │
-│ │ ◀ CHAT             │ │         MEMORY GRAPH             │ │ ARTIFACTS ▶    │ │
-│ │                    │ │                                  │ │                │ │
-│ │ ┌────────────────┐ │ │ ┌──────────────────────────────┐ │ │ [Collapsed]    │ │
-│ │ │ 🤖 Before we   │ │ │ │ 🔍 "find unvalidated gaps"  │ │ │                │ │
-│ │ │ dive into      │ │ │ └──────────────────────────────┘ │ │                │ │
-│ │ │ features, we   │ │ │                                  │ │                │ │
-│ │ │ need to nail   │ │ │       ●═══════●                  │ │                │ │
-│ │ │ down scope.    │ │ │      ╱ Problem ╲                 │ │                │ │
-│ │ │                │ │ │     ●    Gap    ●───●            │ │                │ │
-│ │ │ ⚠️ SCOPE       │ │ │     │           │   │            │ │                │ │
-│ │ │ QUESTION:      │ │ │     ●───●───────●   ●            │ │                │ │
-│ │ │                │ │ │      Solution     Market         │ │                │ │
-│ │ │ Are we         │ │ │                                  │ │                │ │
-│ │ │ building for:  │ │ │                                  │ │                │ │
-│ │ │                │ │ │                                  │ │                │ │
-│ │ │ [Self-guided]  │ │ │                                  │ │                │ │
-│ │ │ [Therapist-    │ │ │                                  │ │                │ │
-│ │ │  supported]    │ │ │                                  │ │                │ │
-│ │ │ [Both]         │ │ │                                  │ │                │ │
-│ │ │                │ │ │                                  │ │                │ │
-│ │ └────────────────┘ │ │                                  │ │                │ │
-│ │                    │ │                                  │ │                │ │
-│ │ ┌────────────────┐ │ │                                  │ │                │ │
-│ │ │ [Input...]     │ │ │                                  │ │                │ │
-│ │ └────────────────┘ │ │                                  │ │                │ │
-│ └────────────────────┘ └──────────────────────────────────┘ └────────────────┘ │
+│   CREATION-TIME FILTERING                                                       │
+│   ───────────────────────                                                       │
 │                                                                                 │
-│ ┌──────────────────────────────────────────────────────────────────────────┐   │
-│ │ GRAPH DISTRIBUTION                                                       │   │
-│ │                                                                          │   │
-│ │ BY TYPE        problem 35% ████████░░░░░░░░░░░░░░                        │   │
-│ │                solution 25% ██████░░░░░░░░░░░░░░░░                        │   │
-│ │                market   20% █████░░░░░░░░░░░░░░░░░                        │   │
-│ │                user     15% ████░░░░░░░░░░░░░░░░░░                        │   │
-│ │                spec      5% █░░░░░░░░░░░░░░░░░░░░░                        │   │
-│ │                                                                          │   │
-│ │ BY BLOCK       insight  40% ██████████░░░░░░░░░░░░                        │   │
-│ │                decision 20% █████░░░░░░░░░░░░░░░░░                        │   │
-│ │                question 15% ████░░░░░░░░░░░░░░░░░░                        │   │
-│ │                fact     15% ████░░░░░░░░░░░░░░░░░░                        │   │
-│ │                assume   10% ███░░░░░░░░░░░░░░░░░░░                        │   │
-│ │                                                                          │   │
-│ └──────────────────────────────────────────────────────────────────────────┘   │
+│   ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐          │
+│   │                 │     │                 │     │                 │          │
+│   │  Conversation   │────▶│  Block          │────▶│  Filter         │──┬──▶ Graph
+│   │  or Artifact    │     │  Extraction     │     │  (Haiku + Path) │  │       │
+│   │                 │     │                 │     │                 │  │       │
+│   └─────────────────┘     └─────────────────┘     └─────────────────┘  │       │
+│                                                                        │       │
+│                                                            ┌───────────┘       │
+│                                                            ▼                   │
+│                                                   ┌─────────────────┐          │
+│                                                   │   Rejected      │          │
+│                                                   │   (discarded)   │          │
+│                                                   └─────────────────┘          │
+│                                                                                 │
+│   Filter criteria:                                                              │
+│   ──────────────────                                                            │
+│   REJECT if ANY of:                                                             │
+│   • LLM classifies as meta-conversation (about the tool, not the idea)          │
+│   • LLM classifies as generic query/question not producing insight              │
+│   • Proposed block has no path to Idea (can't establish relevance)              │
+│   • Content is a comment/reaction without substantive insight                   │
+│                                                                                 │
+│   ACCEPT if ALL of:                                                             │
+│   • LLM classifies as idea-relevant                                             │
+│   • Block can path to Idea (directly or through proposed links)                 │
+│   • Content produces actionable insight, decision, fact, etc.                   │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Planning Graph Type
+
+A new graph type (18th dimension) that houses the initial planning questions and the Idea node.
+
+### Planning Graph Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│   PLANNING GRAPH TYPE                                                           │
+│   ───────────────────                                                           │
+│                                                                                 │
+│   Purpose: Starting point for all ideas                                         │
+│                                                                                 │
+│   Contains:                                                                     │
+│   ┌─────────────────────────────────────────────────────────────────────────┐   │
+│   │                                                                         │   │
+│   │   ◉ IDEA NODE (the one and only)                                        │   │
+│   │     │                                                                   │   │
+│   │     └── Initial questions (block type: question)                        │   │
+│   │           • "What problem are you most passionate about solving?"       │   │
+│   │           • "Who experiences this problem most acutely?"                │   │
+│   │           • "What does success look like in 6 months?"                  │   │
+│   │                                                                         │   │
+│   │   The Planning graph is the ONLY graph type that contains the Idea      │   │
+│   │                                                                         │   │
+│   └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+│   Relationship to other graphs:                                                 │
+│                                                                                 │
+│   ┌──────────┐                                                                  │
+│   │ PLANNING │──┬──▶ Problem                                                    │
+│   │   ◉ IDEA │  ├──▶ Solution                                                   │
+│   │          │  ├──▶ Market                                                     │
+│   └──────────┘  ├──▶ User                                                       │
+│                 ├──▶ Spec                                                       │
+│                 └──▶ etc...                                                     │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -154,16 +321,6 @@ Focus: Idea formation                 Focus: Entire lifecycle
 │                                                                                 │
 │                         GRAPH TYPES (dimensions)                                │
 │                                                                                 │
-│   Example: To LAUNCH, you need:                                                 │
-│     • Working product (BUILD) → spec, tasks                                     │
-│     • Validated solution (TESTING) → validation, fit                            │
-│     • Business model (PLANNING) → business, market                              │
-│                                                                                 │
-│   So before asking "what's the launch strategy?", the agent ensures:            │
-│     → Problem is validated                                                      │
-│     → Solution is specified                                                     │
-│     → MVP is buildable                                                          │
-│                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -178,6 +335,116 @@ Focus: Idea formation                 Focus: Entire lifecycle
 | **Proactively defines scope** | Forces scope decisions EARLY before wasted effort             |
 | **Warns on drift**            | Detects when user is steering away from established decisions |
 | **Proposes pivots**           | When changes are too large, suggests fresh start              |
+
+---
+
+## UI Design
+
+### Starting Screen (New Conversation)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  Idea Incubator                              Select an idea...  ▼    Context 0% │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│ ┌────────────────────┐ ┌──────────────────────────────────────┐ ┌────────────┐ │
+│ │ CHAT               │ │         MEMORY GRAPH                 │ │ ARTIFACTS ▶│ │
+│ │                    │ │                                      │ │            │ │
+│ │ 🤖 What problem    │ │ ┌────────────────────────────────┐   │ │            │ │
+│ │ are you most       │ │ │ 🔍 Query               [Filters]│   │ │            │ │
+│ │ passionate about   │ │ └────────────────────────────────┘   │ │            │ │
+│ │ solving?           │ │                                      │ │            │ │
+│ │                    │ │                                      │ │            │ │
+│ │                    │ │      ┌─────────────────────┐         │ │            │ │
+│ │                    │ │      │                     │         │ │            │ │
+│ │                    │ │      │  ◉ "Incubating"     │         │ │            │ │
+│ │                    │ │      │     (Idea node)     │         │ │            │ │
+│ │                    │ │      │                     │         │ │            │ │
+│ │                    │ │      └──────────┬──────────┘         │ │            │ │
+│ │                    │ │                 │                    │ │            │ │
+│ │                    │ │      ┌──────────┴──────────┐         │ │            │ │
+│ │                    │ │      │                     │         │ │            │ │
+│ │                    │ │      │  ❓ "What problem   │         │ │            │ │
+│ │                    │ │      │  are you most       │         │ │            │ │
+│ │                    │ │      │  passionate about   │         │ │            │ │
+│ │                    │ │      │  solving?"          │         │ │            │ │
+│ │                    │ │      │                     │         │ │            │ │
+│ │                    │ │      └─────────────────────┘         │ │            │ │
+│ │                    │ │                                      │ │            │ │
+│ │ ┌────────────────┐ │ │                                      │ │            │ │
+│ │ │ [Input...]     │ │ │                                      │ │            │ │
+│ │ └────────────────┘ │ │                                      │ │            │ │
+│ └────────────────────┘ └──────────────────────────────────────┘ └────────────┘ │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### After Idea Forms (Graph Populated)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  BFRB Companion App                                             Context 34%     │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│ ┌────────────────────┐ ┌──────────────────────────────────────┐ ┌────────────┐ │
+│ │ ◀ CHAT             │ │         MEMORY GRAPH                 │ │ ARTIFACTS ▶│ │
+│ │                    │ │                                      │ │            │ │
+│ │ ┌────────────────┐ │ │ ┌────────────────────────────────┐   │ │            │ │
+│ │ │ 🤖 Before we   │ │ │ │ 🔍 Query               [Filters]│   │ │            │ │
+│ │ │ dive into      │ │ │ └────────────────────────────────┘   │ │            │ │
+│ │ │ features, we   │ │ │                                      │ │            │ │
+│ │ │ need to nail   │ │ │       ●═══════●                      │ │            │ │
+│ │ │ down scope.    │ │ │      ╱ Problem ╲                     │ │            │ │
+│ │ │                │ │ │     ●    Gap    ●───●                │ │            │ │
+│ │ │ ⚠️ SCOPE       │ │ │     │           │   │                │ │            │ │
+│ │ │ QUESTION:      │ │ │     ●───●───────●   ●                │ │            │ │
+│ │ │                │ │ │      Solution     Market             │ │            │ │
+│ │ │ Are we         │ │ │                                      │ │            │ │
+│ │ │ building for:  │ │ │                                      │ │            │ │
+│ │ │                │ │ │                                      │ │            │ │
+│ │ │ [Self-guided]  │ │ │                                      │ │            │ │
+│ │ │ [Therapist-    │ │ │                                      │ │            │ │
+│ │ │  supported]    │ │ │                                      │ │            │ │
+│ │ │ [Both]         │ │ │                                      │ │            │ │
+│ │ │                │ │ │                                      │ │            │ │
+│ │ └────────────────┘ │ │                                      │ │            │ │
+│ │                    │ │                                      │ │            │ │
+│ │ ┌────────────────┐ │ │                                      │ │            │ │
+│ │ │ [Input...]     │ │ │                                      │ │            │ │
+│ │ └────────────────┘ │ │                                      │ │            │ │
+│ └────────────────────┘ └──────────────────────────────────────┘ └────────────┘ │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Graph Distribution in Filters (Expanded)
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│ FILTERS                                                                    │
+│ ────────────────────────────────────────────────────────────────────────── │
+│                                                                            │
+│ GRAPH TYPE                                BLOCK TYPE                       │
+│ ──────────                                ──────────                       │
+│ ☑ Planning     15%                        ☑ insight     40%                │
+│ ☑ Problem      25%                        ☑ decision    20%                │
+│ ☑ Solution     20%                        ☑ question    15%                │
+│ ☑ Market       15%                        ☑ fact        10%                │
+│ ☑ User         10%                        ☑ constraint   8%                │
+│ ☐ Spec          5%                        ☑ assumption   5%                │
+│ ☐ Validation    5%                        ☐ risk         2%                │
+│ ☐ Business      5%                                                         │
+│                                                                            │
+│ STATUS                                    CONFIDENCE                       │
+│ ──────                                    ──────────                       │
+│ ☑ Active                                  ○ All                            │
+│ ☑ Validated                               ○ High (0.8+)                    │
+│ ☐ Stale                                   ● Medium+ (0.6+)                 │
+│ ☐ Archived                                ○ Any                            │
+│                                                                            │
+│                                      [Reset]  [Apply]                      │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -252,7 +519,7 @@ When user says something that conflicts with established scope:
 
 ## Question Surfacing In Chat
 
-The Question Agent surfaces questions directly in the conversation:
+The Planning Agent surfaces questions directly in the conversation:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
@@ -282,38 +549,6 @@ The Question Agent surfaces questions directly in the conversation:
 │     own condition, or for therapists helping patients?                         │
 │                                                                                │
 │     [For individuals]  [For therapists]  [Both - explain trade-offs]           │
-│                                                                                │
-└────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### "Why These Questions?" Expansion
-
-```
-┌────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                │
-│  WHY THESE QUESTIONS MATTER                                                    │
-│  ──────────────────────────                                                    │
-│                                                                                │
-│  To build an app that does intervention for skin picking, you need:            │
-│                                                                                │
-│  BUILD REQUIREMENTS          WHAT WE NEED TO KNOW FIRST                        │
-│  ──────────────────          ─────────────────────────                         │
-│                                                                                │
-│  • Feature set           ←   WHO is the user (scope)                           │
-│  • Technical stack       ←   WHAT features, HOW complex                        │
-│  • Go-to-market          ←   WHO pays, HOW we reach them                       │
-│  • MVP definition        ←   WHAT's essential vs nice-to-have                  │
-│  • Pricing model         ←   WHO pays, HOW much value                          │
-│                                                                                │
-│  Current blockers:                                                             │
-│                                                                                │
-│  ┌─────────────────────────────────────────────────────────────────────────┐   │
-│  │ ❌ Can't define features → don't know user type                         │   │
-│  │ ❌ Can't size market → don't know customer segment                       │   │
-│  │ ❌ Can't prioritize MVP → don't know problem severity                    │   │
-│  └─────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                │
-│  [Got it, let's answer these]                                                  │
 │                                                                                │
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -351,8 +586,8 @@ The Question Agent surfaces questions directly in the conversation:
 ```
 ┌────────────────────────────────────────────────────┐
 │ ┌────────────────────────────────────────────────┐ │
-│ │ 🔍 Query: "find assumptions"                   │ │  ← Graph Query AI (read-only)
-│ └────────────────────────────────────────────────┘ │
+│ │ 🔍 Query: "find assumptions"         [Filters] │ │  ← Graph Query AI (read-only)
+│ └────────────────────────────────────────────────┘ │    ← Distribution % in filters
 │                                                    │
 │ ┌────────────────────────────────────────────────┐ │
 │ │                                                │ │
@@ -363,23 +598,6 @@ The Question Agent surfaces questions directly in the conversation:
 │ └────────────────────────────────────────────────┘ │
 │                                                    │
 └────────────────────────────────────────────────────┘
-```
-
-### Bottom Bar: Graph Distribution
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ GRAPH DISTRIBUTION                                                           │
-│                                                                              │
-│ BY GRAPH TYPE                          BY BLOCK TYPE                         │
-│ ──────────────                         ─────────────                         │
-│ problem    ████████░░░░  35%           insight   ██████████░░  40%           │
-│ solution   ██████░░░░░░  25%           decision  █████░░░░░░░  20%           │
-│ market     █████░░░░░░░  20%           question  ████░░░░░░░░  15%           │
-│ user       ████░░░░░░░░  15%           fact      ████░░░░░░░░  15%           │
-│ spec       █░░░░░░░░░░░   5%           assume    ███░░░░░░░░░  10%           │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -394,7 +612,7 @@ The Question Agent surfaces questions directly in the conversation:
 | **Creates questions** | Yes - proactively, for all phases                  | No                                   |
 | **Warns on drift**    | Yes - with impact analysis                         | No                                   |
 | **Can propose pivot** | Yes - new idea flow                                | No                                   |
-| **Pollution risk**    | Mitigated (idea-focused, not system-focused)       | None                                 |
+| **Pollution risk**    | Mitigated (filtered at creation time)              | None                                 |
 
 ---
 
@@ -427,35 +645,6 @@ The Question Agent surfaces questions directly in the conversation:
 │      Which graph dimensions are underpopulated?                                 │
 │      → If 0% spec blocks, don't ask spec questions yet                          │
 │      → If 0% problem blocks, start there                                        │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Question Generation
-
-The agent doesn't just use existing questions—it creates new ones:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                 │
-│   QUESTION GENERATION                                                           │
-│   ───────────────────                                                           │
-│                                                                                 │
-│   Given: User says "I want to build an app for skin picking"                    │
-│                                                                                 │
-│   Agent thinks:                                                                 │
-│   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │ To build this app, I need to know:                                      │   │
-│   │                                                                         │   │
-│   │ SCOPE          → B2C or B2B? Individual or clinical?                    │   │
-│   │ PROBLEM        → How severe? What triggers? What current solutions?     │   │
-│   │ SOLUTION       → Mobile or web? Real-time or async? AI or rules?        │   │
-│   │ MARKET         → How big? Who's competing? What's the timing?           │   │
-│   │ VALIDATION     → How will we know it works? What's success?             │   │
-│   │ BUSINESS       → Who pays? How much? How do we reach them?              │   │
-│   └─────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                 │
-│   Agent generates questions for each, prioritized by dependency                 │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -501,20 +690,7 @@ Scope is stored as:
 
 ## Solutions with Pros/Cons
 
-### 1. Meta-Conversation Pollution Prevention
-
-| Option                    | How It Works                                                              | Pros                                 | Cons                                  | Long-term             |
-| ------------------------- | ------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------- | --------------------- |
-| **A: Pattern detection**  | Regex for "how does this tool", "show me the graph", etc. Skip extraction | Simple, no user action               | False positives, misses novel phrases | Maintenance burden    |
-| **B: LLM classification** | Before extraction, Haiku classifies: idea vs tool discussion              | High accuracy, handles novel phrases | Adds latency                          | Scales well           |
-| **C: Explicit toggle**    | User clicks "This is about the tool"                                      | Zero false positives                 | Friction, users forget                | Poor UX               |
-| **D: Separate help chat** | "?" button opens system help that never extracts                          | Clear separation                     | More UI                               | Cleanest architecture |
-
-**Recommendation**: **B (LLM classification)** + **D (separate help)** for explicit questions.
-
----
-
-### 2. Graph Distribution Bar — Making It Actionable
+### 1. Graph Distribution Bar — Making It Actionable
 
 | Option                  | How It Works                                  | Pros                | Cons                | Long-term       |
 | ----------------------- | --------------------------------------------- | ------------------- | ------------------- | --------------- |
@@ -527,7 +703,7 @@ Scope is stored as:
 
 ---
 
-### 3. User Agency — Guided vs Open Mode
+### 2. User Agency — Guided vs Open Mode
 
 | Option               | How It Works                               | Pros        | Cons                   | Long-term          |
 | -------------------- | ------------------------------------------ | ----------- | ---------------------- | ------------------ |
@@ -540,7 +716,7 @@ Scope is stored as:
 
 ---
 
-### 4. Fork/New Idea — Handling Orphaned Links
+### 3. Fork/New Idea — Handling Orphaned Links
 
 | Option                     | How It Works                         | Pros         | Cons          | Long-term             |
 | -------------------------- | ------------------------------------ | ------------ | ------------- | --------------------- |
@@ -553,7 +729,7 @@ Scope is stored as:
 
 ---
 
-### 5. Return After Long Absence
+### 4. Return After Long Absence
 
 | Option                     | How It Works                           | Pros            | Cons          | Long-term             |
 | -------------------------- | -------------------------------------- | --------------- | ------------- | --------------------- |
@@ -566,7 +742,7 @@ Scope is stored as:
 
 ---
 
-### 6. Mobile/Responsive Layout
+### 5. Mobile/Responsive Layout
 
 | Option                   | How It Works               | Pros                 | Cons              | Long-term         |
 | ------------------------ | -------------------------- | -------------------- | ----------------- | ----------------- |
@@ -579,7 +755,7 @@ Scope is stored as:
 
 ---
 
-### 7. Accessibility
+### 6. Accessibility
 
 | Requirement            | Priority | Implementation                            |
 | ---------------------- | -------- | ----------------------------------------- |
@@ -595,452 +771,22 @@ Scope is stored as:
 
 ## Final Decisions
 
-| Area                     | Decision                                        | Rationale                     |
-| ------------------------ | ----------------------------------------------- | ----------------------------- |
-| **Start state**          | Chat + graph side by side, placeholder in graph | No transition needed          |
-| **Pollution prevention** | LLM classification (Haiku)                      | High accuracy, low latency    |
-| **Distribution bar**     | Show gaps, not percentages                      | Actionable                    |
-| **User agency**          | Dismissable suggestions                         | Balance guidance with control |
-| **Fork handling**        | Preview with orphan highlighting                | Transparency                  |
-| **Return after absence** | Recap after 7+ days                             | Context restoration           |
-| **Mobile**               | Chat-first with tabs                            | Matches mobile model          |
-| **Accessibility**        | WCAG 2.1 AA                                     | Inclusive design              |
-
----
-
-## The Idea Node: Central Anchor
-
-### Definition
-
-The **Idea** is a singular, unique node that serves as the gravitational center of the entire memory graph. Every idea can only have ONE Idea node.
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                 │
-│   THE IDEA NODE                                                                 │
-│   ─────────────                                                                 │
-│                                                                                 │
-│   An Idea is NOT:                          An Idea IS:                          │
-│   ──────────────                           ──────────                           │
-│                                                                                 │
-│   • A node group (too broad)               • A single, unique node              │
-│   • A collection (too vague)               • The gravitational center           │
-│   • A category (too organizational)        • The scope anchor                   │
-│   • A container (too structural)           • The drift detector                 │
-│                                                                                 │
-│   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │                                                                         │   │
-│   │                           ┌───────────┐                                 │   │
-│   │                           │           │                                 │   │
-│   │        problem ●──────────│   IDEA    │──────────● solution             │   │
-│   │                  \        │  (ONE)    │        /                        │   │
-│   │        market ●───────────│           │───────────● user                │   │
-│   │                      \    └───────────┘    /                            │   │
-│   │        spec ●─────────────────│   │───────────────● validation          │   │
-│   │                               │   │                                     │   │
-│   │        business ●─────────────┘   └───────────────● distribution        │   │
-│   │                                                                         │   │
-│   │   ALL nodes connect to the Idea (directly or transitively)              │   │
-│   │                                                                         │   │
-│   └─────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Idea Node Properties
-
-| Property            | Value                                                                  |
-| ------------------- | ---------------------------------------------------------------------- |
-| **Uniqueness**      | Exactly 1 per idea — enforced at schema level                          |
-| **Required fields** | `title`, `one_liner` (the elevator pitch)                              |
-| **Created when**    | Agent includes `candidateUpdate.title` in response                     |
-| **Connection type** | Special `anchors` link — distinct from other relationship types        |
-| **Traversal**       | All paths in graph should terminate at Idea node (validates relevance) |
-
-### The `anchors` Link Type
-
-A new link type that connects ALL nodes to the Idea:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                 │
-│   LINK TYPE: anchors                                                            │
-│   ──────────────────                                                            │
-│                                                                                 │
-│   Purpose: Establish that a node is relevant to THIS idea                       │
-│                                                                                 │
-│   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │                                                                         │   │
-│   │   "Users want real-time intervention"                                   │   │
-│   │                    │                                                    │   │
-│   │                    │ anchors                                            │   │
-│   │                    ▼                                                    │   │
-│   │            ┌─────────────┐                                              │   │
-│   │            │ BFRB        │                                              │   │
-│   │            │ Companion   │                                              │   │
-│   │            │ App         │                                              │   │
-│   │            └─────────────┘                                              │   │
-│   │                    ▲                                                    │   │
-│   │                    │ anchors                                            │   │
-│   │                    │                                                    │   │
-│   │   "App Store is primary distribution"                                   │   │
-│   │                                                                         │   │
-│   └─────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                 │
-│   Rules:                                                                        │
-│   • Every node MUST have a path to the Idea (direct or transitive)              │
-│   • Nodes without path = orphaned = potential scope drift                       │
-│   • `anchors` is implicit through graph traversal, not always explicit          │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Scope Drift Detection (Centered on Idea)
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                 │
-│   SCOPE DRIFT = CAN'T REACH THE IDEA                                            │
-│   ──────────────────────────────────                                            │
-│                                                                                 │
-│   When new content is created, the system asks:                                 │
-│   "Can this node reach the Idea through any path?"                              │
-│                                                                                 │
-│   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │                                                                         │   │
-│   │       ● problem ──────┐                                                 │   │
-│   │                       │                                                 │   │
-│   │       ● solution ─────┼────── ◉ IDEA ← Everything reaches here          │   │
-│   │                       │                                                 │   │
-│   │       ● market ───────┘                                                 │   │
-│   │                                                                         │   │
-│   │                                                                         │   │
-│   │       ● "How does Claude work?" ─────── ✗ NO PATH TO IDEA              │   │
-│   │         (meta-conversation)               ↓                             │   │
-│   │                                      SCOPE DRIFT                        │   │
-│   │                                                                         │   │
-│   └─────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                 │
-│   Detection algorithm:                                                          │
-│   1. New block created                                                          │
-│   2. Traverse graph from block toward Idea                                      │
-│   3. If no path exists → flag as potential drift                                │
-│   4. Ask user: "How does this relate to [Idea]?"                                │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Node Update Queue (Pollution Prevention)
-
-### The Problem Restated
-
-When users chat about the platform itself, the block extraction process might capture these meta-conversations as insights. The Node Update Queue prevents pollution by requiring user approval before new nodes enter the graph.
-
-### How It Works
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                 │
-│   NODE UPDATE QUEUE                                                             │
-│   ─────────────────                                                             │
-│                                                                                 │
-│   ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐          │
-│   │                 │     │                 │     │                 │          │
-│   │  Conversation   │────▶│  Background     │────▶│  Node Update    │          │
-│   │  or Artifact    │     │  Processor      │     │  Queue          │          │
-│   │  Created        │     │                 │     │                 │          │
-│   │                 │     │                 │     │                 │          │
-│   └─────────────────┘     └─────────────────┘     └────────┬────────┘          │
-│                                                            │                    │
-│                                                            ▼                    │
-│                           ┌─────────────────────────────────────────────────┐   │
-│                           │                                                 │   │
-│                           │  PENDING NODES (3)                    [Clear]   │   │
-│                           │  ──────────────────────────────────────────────  │   │
-│                           │                                                 │   │
-│                           │  ┌───────────────────────────────────────────┐  │   │
-│                           │  │ "Users prefer haptic feedback over sound" │  │   │
-│                           │  │  Type: insight │ Graph: user              │  │   │
-│                           │  │  Source: Chat 2024-01-30 14:23            │  │   │
-│                           │  │                                           │  │   │
-│                           │  │  [Accept ✓]  [Reject ✗]  [Edit ✎]         │  │   │
-│                           │  └───────────────────────────────────────────┘  │   │
-│                           │                                                 │   │
-│                           │  ┌───────────────────────────────────────────┐  │   │
-│                           │  │ "The graph AI should be read-only"        │  │   │
-│                           │  │  Type: decision │ Graph: spec             │  │   │
-│                           │  │  Source: Chat 2024-01-30 14:25            │  │   │
-│                           │  │  ⚠️ Potential meta-conversation           │  │   │
-│                           │  │                                           │  │   │
-│                           │  │  [Accept ✓]  [Reject ✗]  [Edit ✎]         │  │   │
-│                           │  └───────────────────────────────────────────┘  │   │
-│                           │                                                 │   │
-│                           └─────────────────────────────────────────────────┘   │
-│                                                                                 │
-│   Trigger: Background process runs when:                                        │
-│   • New conversation messages added                                             │
-│   • New artifacts created                                                       │
-│   • User returns after absence                                                  │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Queue Workflow
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                 │
-│   1. EXTRACTION (Background)                                                    │
-│      ─────────────────────                                                      │
-│      • Same as current source-collector logic                                   │
-│      • Runs asynchronously after conversation/artifact creation                 │
-│      • Proposes blocks but doesn't commit them                                  │
-│                                                                                 │
-│   2. CLASSIFICATION (Background)                                                │
-│      ──────────────────────                                                     │
-│      • Haiku classifies: idea-relevant vs meta-conversation                     │
-│      • Checks if node can path to Idea (scope relevance)                        │
-│      • Flags suspicious nodes with ⚠️                                           │
-│                                                                                 │
-│   3. QUEUE POPULATION                                                           │
-│      ────────────────────                                                       │
-│      • Nodes appear in queue with source context                                │
-│      • Grouped by source (conversation, artifact)                               │
-│      • Most recent at top                                                       │
-│                                                                                 │
-│   4. USER REVIEW                                                                │
-│      ─────────────                                                              │
-│      • User accepts → node enters graph                                         │
-│      • User rejects → node discarded                                            │
-│      • User edits → modified node enters graph                                  │
-│      • Bulk actions: "Accept all", "Reject flagged"                             │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Queue UI Location
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  Idea Incubator                              Select an idea...  ▼    Context 5% │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│ ┌────────────────────┐ ┌──────────────────────────────────┐ ┌────────────────┐ │
-│ │ ◀ CHAT             │ │         MEMORY GRAPH             │ │ ARTIFACTS ▶    │ │
-│ │                    │ │                                  │ │                │ │
-│ │                    │ │ ┌──────────────────────────────┐ │ │                │ │
-│ │                    │ │ │ 🔍 Query                     │ │ │                │ │
-│ │                    │ │ └──────────────────────────────┘ │ │                │ │
-│ │                    │ │                                  │ │                │ │
-│ │                    │ │        [Graph canvas]            │ │                │ │
-│ │                    │ │                                  │ │                │ │
-│ │                    │ │                                  │ │                │ │
-│ │                    │ │                                  │ │                │ │
-│ │                    │ │ ┌──────────────────────────────┐ │ │                │ │
-│ │                    │ │ │ 📥 Node Queue (3)     [View] │ │ │                │ │
-│ │                    │ │ └──────────────────────────────┘ │ │                │ │
-│ │                    │ │                                  │ │                │ │
-│ └────────────────────┘ └──────────────────────────────────┘ └────────────────┘ │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-
-                                    │
-                                    │ Click "View"
-                                    ▼
-
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  Node Update Queue                                              [Close ✕]       │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│  3 pending updates from recent activity                                         │
-│                                                                                 │
-│  ┌───────────────────────────────────────────────────────────────────────────┐  │
-│  │ From: Conversation (10 min ago)                            [Accept All]   │  │
-│  │ ─────────────────────────────────────────────────────────────────────────  │  │
-│  │                                                                           │  │
-│  │  ☐ "Users prefer haptic feedback over sound"                              │  │
-│  │     insight │ user │ confidence: 0.8                                      │  │
-│  │                                                                           │  │
-│  │  ☐ "App needs offline mode for transit"                                   │  │
-│  │     requirement │ spec │ confidence: 0.9                                  │  │
-│  │                                                                           │  │
-│  └───────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                 │
-│  ┌───────────────────────────────────────────────────────────────────────────┐  │
-│  │ From: Artifact "MVP Spec" (2 hours ago)                    [Accept All]   │  │
-│  │ ─────────────────────────────────────────────────────────────────────────  │  │
-│  │                                                                           │  │
-│  │  ☐ "The graph AI should be read-only" ⚠️ Meta-conversation                │  │
-│  │     decision │ spec │ confidence: 0.6                                     │  │
-│  │                                                                           │  │
-│  └───────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                 │
-│  [Accept Selected]  [Reject Selected]  [Reject All Flagged]                     │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Graph Distribution as Filters
-
-Graph distribution moves from a separate bottom bar into the filter system, showing percentages for each type.
-
-### Updated Filter Panel
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                 │
-│  MEMORY GRAPH                                                                   │
-│  ────────────                                                                   │
-│                                                                                 │
-│  ┌──────────────────────────────────────────────────────────────────────────┐   │
-│  │ 🔍 "find gaps"                                                [Filters ▼]│   │
-│  └──────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                 │
-│      ┌──────────────────────────────────────────────────────────────────────┐   │
-│      │ FILTERS                                                              │   │
-│      │ ─────────────────────────────────────────────────────────────────── │   │
-│      │                                                                      │   │
-│      │ GRAPH TYPE                              BLOCK TYPE                   │   │
-│      │ ──────────                              ──────────                   │   │
-│      │ ☑ Planning    15%  ███░░░░░░░           ☑ insight    40%  ████████   │   │
-│      │ ☑ Problem     25%  █████░░░░░           ☑ decision   20%  ████░░░░   │   │
-│      │ ☑ Solution    20%  ████░░░░░░           ☑ question   15%  ███░░░░░   │   │
-│      │ ☑ Market      15%  ███░░░░░░░           ☑ fact       10%  ██░░░░░░   │   │
-│      │ ☑ User        10%  ██░░░░░░░░           ☑ constraint  8%  ██░░░░░░   │   │
-│      │ ☐ Spec         5%  █░░░░░░░░░           ☑ assumption  5%  █░░░░░░░   │   │
-│      │ ☐ Validation   5%  █░░░░░░░░░           ☐ risk        2%  ░░░░░░░░   │   │
-│      │ ☐ Business     5%  █░░░░░░░░░                                        │   │
-│      │                                                                      │   │
-│      │ STATUS                                  CONFIDENCE                   │   │
-│      │ ──────                                  ──────────                   │   │
-│      │ ☑ Active                                ○ All                        │   │
-│      │ ☑ Validated                             ○ High (0.8+)                │   │
-│      │ ☐ Stale                                 ● Medium+ (0.6+)             │   │
-│      │ ☐ Archived                              ○ Any                        │   │
-│      │                                                                      │   │
-│      │                            [Reset]  [Apply]                          │   │
-│      └──────────────────────────────────────────────────────────────────────┘   │
-│                                                                                 │
-│  ┌──────────────────────────────────────────────────────────────────────────┐   │
-│  │                                                                          │   │
-│  │                        [GRAPH CANVAS]                                    │   │
-│  │                                                                          │   │
-│  └──────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Filter Summary Bar (Collapsed State)
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ 🔍 "query"  │ Planning 15% │ Problem 25% │ Solution 20% │ +5 more  [Filters]│
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-The percentages show total distribution at a glance without expanding filters.
-
----
-
-## Planning Graph Type
-
-A new graph type that houses the initial planning questions and the Idea node itself.
-
-### Planning Graph Structure
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                 │
-│   PLANNING GRAPH TYPE                                                           │
-│   ───────────────────                                                           │
-│                                                                                 │
-│   Purpose: Starting point for all ideas                                         │
-│                                                                                 │
-│   Contains:                                                                     │
-│   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │                                                                         │   │
-│   │   ◉ IDEA NODE (the one and only)                                        │   │
-│   │     └── Initial questions (block type: question)                        │   │
-│   │           • "What problem are you most passionate about solving?"       │   │
-│   │           • "Who experiences this problem most acutely?"                │   │
-│   │           • "What does success look like in 6 months?"                  │   │
-│   │                                                                         │   │
-│   │   The Planning graph is the ONLY graph type that contains the Idea      │   │
-│   │                                                                         │   │
-│   └─────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                 │
-│   Relationship to other graphs:                                                 │
-│                                                                                 │
-│   ┌──────────┐                                                                  │
-│   │ PLANNING │──┬──▶ Problem                                                    │
-│   │   ◉ IDEA │  ├──▶ Solution                                                   │
-│   │          │  ├──▶ Market                                                     │
-│   └──────────┘  ├──▶ User                                                       │
-│                 ├──▶ Spec                                                       │
-│                 └──▶ etc...                                                     │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Starting Screen (New Conversation)
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  Idea Incubator                              Select an idea...  ▼    Context 0% │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│ ┌────────────────────┐ ┌──────────────────────────────────────┐ ┌────────────┐ │
-│ │ CHAT               │ │         MEMORY GRAPH                 │ │ ARTIFACTS ▶│ │
-│ │                    │ │                                      │ │            │ │
-│ │ 🤖 What problem    │ │ ┌────────────────────────────────────┐│ │            │ │
-│ │ are you most       │ │ │ Planning 100% │ 0 other types     ││ │            │ │
-│ │ passionate about   │ │ └────────────────────────────────────┘│ │            │ │
-│ │ solving?           │ │                                      │ │            │ │
-│ │                    │ │          ┌─────────────────┐         │ │            │ │
-│ │                    │ │          │                 │         │ │            │ │
-│ │                    │ │          │   ❓ question    │         │ │            │ │
-│ │                    │ │          │                 │         │ │            │ │
-│ │                    │ │          │  "What problem  │         │ │            │ │
-│ │                    │ │          │  are you most   │         │ │            │ │
-│ │                    │ │          │  passionate     │         │ │            │ │
-│ │                    │ │          │  about solving?"│         │ │            │ │
-│ │                    │ │          │                 │         │ │            │ │
-│ │                    │ │          └─────────────────┘         │ │            │ │
-│ │                    │ │                                      │ │            │ │
-│ │                    │ │   Graph: Planning  │  Block: question│ │            │ │
-│ │                    │ │                                      │ │            │ │
-│ │ ┌────────────────┐ │ │ ┌────────────────────────────────────┐│ │            │ │
-│ │ │ [Input...]     │ │ │ │ 📥 Node Queue (0)                 ││ │            │ │
-│ │ └────────────────┘ │ │ └────────────────────────────────────┘│ │            │ │
-│ └────────────────────┘ └──────────────────────────────────────┘ └────────────┘ │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-The starting graph shows a single `question` block in the `Planning` graph type, matching the agent's first question.
-
----
-
-## Updated Final Decisions
-
-| Area                     | Decision                                         | Rationale                            |
-| ------------------------ | ------------------------------------------------ | ------------------------------------ |
-| **Idea node**            | Single unique node per idea, `anchors` link type | Scope anchor, drift detection center |
-| **Scope drift**          | Path-to-Idea traversal check                     | If can't reach Idea = drift          |
-| **Pollution prevention** | Node Update Queue (user accepts/rejects)         | Human-in-the-loop, no auto-pollution |
-| **Graph distribution**   | Part of filters with percentages                 | Unified UI, actionable               |
-| **Starting state**       | Planning graph with question node                | Immediate visual feedback            |
-| **Planning graph type**  | New graph type housing Idea + initial questions  | Central anchor location              |
-| **Start state**          | Chat + graph side by side, question in graph     | No transition needed                 |
-| **User agency**          | Dismissable suggestions                          | Balance guidance with control        |
-| **Fork handling**        | Preview with orphan highlighting                 | Transparency                         |
-| **Return after absence** | Recap after 7+ days                              | Context restoration                  |
-| **Mobile**               | Chat-first with tabs                             | Matches mobile model                 |
-| **Accessibility**        | WCAG 2.1 AA                                      | Inclusive design                     |
+| Area                     | Decision                                            | Rationale                            |
+| ------------------------ | --------------------------------------------------- | ------------------------------------ |
+| **Idea node**            | Single unique node per idea, starts as "Incubating" | Scope anchor, drift detection center |
+| **Anchors relationship** | Implicit via graph traversal (not explicit link)    | Avoids visual clutter, natural       |
+| **Scope drift**          | Path-to-Idea traversal check                        | If can't reach Idea = drift          |
+| **Pollution prevention** | Creation-time filtering (Haiku + path check)        | No queue, clean graph                |
+| **Graph distribution**   | Part of filters, just % next to checkboxes          | Unified UI, no bars                  |
+| **Starting state**       | Planning graph with Idea ("Incubating") + question  | Immediate visual feedback            |
+| **Planning graph type**  | New graph type housing Idea + initial questions     | Central anchor location              |
+| **Question lifecycle**   | Answered questions remain with `answered` status    | Preserve history                     |
+| **Start state**          | Chat + graph side by side, no transition            | Always visible                       |
+| **User agency**          | Dismissable suggestions                             | Balance guidance with control        |
+| **Fork handling**        | Preview with orphan highlighting                    | Transparency                         |
+| **Return after absence** | Recap after 7+ days                                 | Context restoration                  |
+| **Mobile**               | Chat-first with tabs                                | Matches mobile model                 |
+| **Accessibility**        | WCAG 2.1 AA                                         | Inclusive design                     |
 
 ---
 
