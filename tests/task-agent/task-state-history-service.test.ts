@@ -12,6 +12,25 @@ import { run, saveDb } from "../../database/db";
 
 const TEST_PREFIX = "HISTORY-TEST-";
 
+// Helper to call record with object syntax
+async function recordTransition(input: {
+  taskId: string;
+  fromStatus?: string | null;
+  toStatus: string;
+  reason?: string;
+  triggeredBy?: string;
+  agentId?: string;
+}) {
+  return taskStateHistoryService.record(
+    input.taskId,
+    (input.fromStatus as any) || null,
+    input.toStatus as any,
+    input.agentId || input.triggeredBy || "test-user",
+    input.agentId ? "agent" : "user",
+    input.reason,
+  );
+}
+
 // Create test task
 async function createTestTask(): Promise<string> {
   const taskId = uuidv4();
@@ -49,9 +68,9 @@ describe("TaskStateHistoryService", () => {
     testTaskId = await createTestTask();
   });
 
-  describe("recordTransition", () => {
+  describe("record", () => {
     it("should record a state transition", async () => {
-      const entry = await taskStateHistoryService.recordTransition({
+      const entry = await recordTransition({
         taskId: testTaskId,
         fromStatus: "pending",
         toStatus: "in_progress",
@@ -69,7 +88,7 @@ describe("TaskStateHistoryService", () => {
 
     it("should record transition with agent ID", async () => {
       const agentId = uuidv4();
-      const entry = await taskStateHistoryService.recordTransition({
+      const entry = await recordTransition({
         taskId: testTaskId,
         fromStatus: "pending",
         toStatus: "in_progress",
@@ -81,7 +100,7 @@ describe("TaskStateHistoryService", () => {
     });
 
     it("should record transition with metadata", async () => {
-      const entry = await taskStateHistoryService.recordTransition({
+      const entry = await recordTransition({
         taskId: testTaskId,
         fromStatus: "in_progress",
         toStatus: "failed",
@@ -97,20 +116,20 @@ describe("TaskStateHistoryService", () => {
 
   describe("getHistory", () => {
     it("should return all history for a task", async () => {
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         toStatus: "pending",
         triggeredBy: "system",
       });
 
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         fromStatus: "pending",
         toStatus: "in_progress",
         triggeredBy: "user",
       });
 
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         fromStatus: "in_progress",
         toStatus: "completed",
@@ -132,7 +151,7 @@ describe("TaskStateHistoryService", () => {
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         toStatus: "pending",
         triggeredBy: "system",
@@ -150,13 +169,13 @@ describe("TaskStateHistoryService", () => {
 
   describe("getTransitionCount", () => {
     it("should count transitions for a task", async () => {
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         toStatus: "pending",
         triggeredBy: "system",
       });
 
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         fromStatus: "pending",
         toStatus: "in_progress",
@@ -172,7 +191,7 @@ describe("TaskStateHistoryService", () => {
 
   describe("getLastTransition", () => {
     it("should return the most recent transition", async () => {
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         toStatus: "pending",
         triggeredBy: "system",
@@ -180,7 +199,7 @@ describe("TaskStateHistoryService", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         fromStatus: "pending",
         toStatus: "in_progress",
@@ -203,7 +222,7 @@ describe("TaskStateHistoryService", () => {
   describe("getTimeInStatus", () => {
     it("should calculate time spent in a status", async () => {
       // Record entering pending
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         toStatus: "pending",
         triggeredBy: "system",
@@ -213,7 +232,7 @@ describe("TaskStateHistoryService", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Record leaving pending
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         fromStatus: "pending",
         toStatus: "in_progress",
@@ -234,13 +253,13 @@ describe("TaskStateHistoryService", () => {
     it("should return recent transitions across all tasks", async () => {
       const task2 = await createTestTask();
 
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         toStatus: "pending",
         triggeredBy: "system",
       });
 
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: task2,
         toStatus: "in_progress",
         triggeredBy: "user",
@@ -253,7 +272,7 @@ describe("TaskStateHistoryService", () => {
 
     it("should respect limit parameter", async () => {
       for (let i = 0; i < 5; i++) {
-        await taskStateHistoryService.recordTransition({
+        await recordTransition({
           taskId: testTaskId,
           toStatus: "pending",
           triggeredBy: "system",
@@ -268,13 +287,13 @@ describe("TaskStateHistoryService", () => {
 
   describe("hasBeenInStatus", () => {
     it("should return true if task has been in status", async () => {
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         toStatus: "pending",
         triggeredBy: "system",
       });
 
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         fromStatus: "pending",
         toStatus: "in_progress",
@@ -290,7 +309,7 @@ describe("TaskStateHistoryService", () => {
     });
 
     it("should return false if task has never been in status", async () => {
-      await taskStateHistoryService.recordTransition({
+      await recordTransition({
         taskId: testTaskId,
         toStatus: "pending",
         triggeredBy: "system",
