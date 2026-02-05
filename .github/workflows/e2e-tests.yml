@@ -1,0 +1,219 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  e2e-tests:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Run tests in parallel by shard
+        shardIndex: [1, 2]
+        shardTotal: [2]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Run Playwright tests
+        working-directory: frontend
+        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        env:
+          CI: true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.shardIndex }}
+          path: frontend/playwright-report/
+          retention-days: 30
+
+      - name: Upload test screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-screenshots-${{ matrix.shardIndex }}
+          path: frontend/test-results/
+          retention-days: 7
+
+      - name: Upload trace files
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-traces-${{ matrix.shardIndex }}
+          path: frontend/test-results/**/*.zip
+          retention-days: 7
+
+  # Merge reports from shards
+  merge-reports:
+    name: Merge E2E Reports
+    needs: e2e-tests
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all report artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: playwright-report-*
+          path: all-reports
+          merge-multiple: true
+
+      - name: Upload merged report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-merged
+          path: all-reports/
+          retention-days: 30
+
+  # Comment on PR with test results
+  pr-comment:
+    name: PR Comment
+    needs: e2e-tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && always()
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: playwright-report-*
+          path: reports
+          merge-multiple: true
+
+      - name: Create PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            let totalPassed = 0;
+            let totalFailed = 0;
+            let totalSkipped = 0;
+            
+            // Try to parse results
+            const reportsDir = 'reports';
+            if (fs.existsSync(reportsDir)) {
+              const files = fs.readdirSync(reportsDir);
+              for (const file of files) {
+                if (file.endsWith('.json')) {
+                  try {
+                    const data = JSON.parse(fs.readFileSync(path.join(reportsDir, file), 'utf8'));
+                    if (data.stats) {
+                      totalPassed += data.stats.expected || 0;
+                      totalFailed += data.stats.unexpected || 0;
+                      totalSkipped += data.stats.skipped || 0;
+                    }
+                  } catch (e) {
+                    console.log('Could not parse', file);
+                  }
+                }
+              }
+            }
+            
+            const total = totalPassed + totalFailed + totalSkipped;
+            const emoji = totalFailed > 0 ? '❌' : '✅';
+            const status = totalFailed > 0 ? 'Failed' : 'Passed';
+            
+            const body = `## ${emoji} E2E Test Results
+            
+            | Status | Count |
+            |--------|-------|
+            | ✅ Passed | ${totalPassed} |
+            | ❌ Failed | ${totalFailed} |
+            | ⏭️ Skipped | ${totalSkipped} |
+            | **Total** | ${total} |
+            
+            **Overall Status:** ${status}
+            
+            ${totalFailed > 0 ? `
+            ⚠️ Some tests failed. Check the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+            
+            Download test artifacts for screenshots and traces.
+            ` : '🎉 All tests passed!'}
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+
+# Separate job for Vercel preview deployments
+  e2e-vercel-preview:
+    name: E2E on Vercel Preview
+    runs-on: ubuntu-latest
+    if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success'
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests against preview
+        working-directory: frontend
+        run: npx playwright test --project=chromium
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.target_url }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-preview
+          path: frontend/playwright-report/
+          retention-days: 14

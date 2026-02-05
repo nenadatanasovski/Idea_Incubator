@@ -32,3 +32,9 @@ npm-debug.log*
 __pycache__/
 *.pyc
 .venv/
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+frontend/playwright/.cache/
+frontend/e2e/*.spec.ts-snapshots/
