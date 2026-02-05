@@ -201,6 +201,8 @@ export interface ConversationState {
 
 export interface CandidateState {
   candidate: IdeaCandidate | null;
+  confidence: number;
+  viability: number;
   risks: ViabilityRisk[];
   showIntervention: boolean;
   interventionType: "warning" | "critical" | null;

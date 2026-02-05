@@ -35,6 +35,8 @@ export const initialState: IdeationStore = {
   },
   candidate: {
     candidate: null,
+    confidence: 0,
+    viability: 100,
     risks: [],
     showIntervention: false,
     interventionType: null,
@@ -301,7 +303,28 @@ export function ideationReducer(
         candidate: {
           ...state.candidate,
           candidate: null,
+          confidence: 0,
+          viability: 100,
           risks: [],
+        },
+      };
+
+    case "CONFIDENCE_UPDATE":
+      return {
+        ...state,
+        candidate: {
+          ...state.candidate,
+          confidence: action.payload.confidence,
+        },
+      };
+
+    case "VIABILITY_UPDATE":
+      return {
+        ...state,
+        candidate: {
+          ...state.candidate,
+          viability: action.payload.viability,
+          risks: action.payload.risks || state.candidate.risks,
         },
       };
 
