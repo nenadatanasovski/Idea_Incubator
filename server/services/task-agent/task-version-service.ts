@@ -23,13 +23,29 @@ import { Task } from "../../../types/task-agent.js";
 export class TaskVersionService {
   /**
    * Create a new version (called automatically on task changes)
+   * Supports two signatures:
+   * 1. createVersion(taskId, changedFields[], reason?, userId?)
+   * 2. createVersion(taskId, { title?, description?, category?, changedBy, changeReason })
    */
   async createVersion(
     taskId: string,
-    changedFields: string[],
+    changedFieldsOrUpdate: string[] | {
+      title?: string;
+      description?: string;
+      category?: string;
+      changedBy?: string;
+      changeReason?: string;
+    },
     reason?: string,
     userId: string = "system",
   ): Promise<TaskVersion> {
+    // Detect which signature is being used
+    const isUpdateObject = !Array.isArray(changedFieldsOrUpdate) && typeof changedFieldsOrUpdate === 'object';
+
+    let changedFields: string[] = [];
+    let actualReason = reason;
+    let actualUserId = userId;
+
     // Get current task state
     const task = await getOne<Record<string, unknown>>(
       "SELECT * FROM tasks WHERE id = ?",
@@ -40,9 +56,61 @@ export class TaskVersionService {
       throw new Error(`Task ${taskId} not found`);
     }
 
+    if (isUpdateObject) {
+      // New signature: apply updates to task
+      const updates = changedFieldsOrUpdate as {
+        title?: string;
+        description?: string;
+        category?: string;
+        changedBy?: string;
+        changeReason?: string;
+      };
+
+      const updateFields: string[] = [];
+      const updateValues: (string | null)[] = [];
+
+      if (updates.title !== undefined) {
+        updateFields.push('title = ?');
+        updateValues.push(updates.title);
+        changedFields.push('title');
+      }
+      if (updates.description !== undefined) {
+        updateFields.push('description = ?');
+        updateValues.push(updates.description);
+        changedFields.push('description');
+      }
+      if (updates.category !== undefined) {
+        updateFields.push('category = ?');
+        updateValues.push(updates.category);
+        changedFields.push('category');
+      }
+
+      if (updateFields.length > 0) {
+        updateFields.push('updated_at = ?');
+        updateValues.push(new Date().toISOString());
+        updateValues.push(taskId);
+        await run(
+          `UPDATE tasks SET ${updateFields.join(', ')} WHERE id = ?`,
+          updateValues,
+        );
+      }
+
+      actualReason = updates.changeReason || null;
+      actualUserId = updates.changedBy || 'system';
+    } else {
+      // Original signature
+      changedFields = changedFieldsOrUpdate as string[];
+    }
+
     // Get next version number
     const latestVersion = await this.getLatestVersion(taskId);
     const nextVersion = (latestVersion?.version ?? 0) + 1;
+
+    // Get updated task state for snapshot
+    const updatedTask = await getOne<Record<string, unknown>>(
+      "SELECT * FROM tasks WHERE id = ?",
+      [taskId],
+    );
 
     const id = uuidv4();
     const now = new Date().toISOString();
@@ -54,12 +122,12 @@ export class TaskVersionService {
         id,
         taskId,
         nextVersion,
-        JSON.stringify(task),
+        JSON.stringify(updatedTask || task),
         JSON.stringify(changedFields),
-        reason || null,
+        actualReason || null,
         0, // not a checkpoint
         null,
-        userId,
+        actualUserId,
         now,
       ],
     );

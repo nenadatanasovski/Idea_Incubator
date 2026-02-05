@@ -18,6 +18,7 @@ import {
 } from "../../../types/task-agent.js";
 import { generateDisplayId } from "./display-id-generator.js";
 import { addToQueue } from "./evaluation-queue-manager.js";
+import { taskVersionService } from "./task-version-service.js";
 
 /**
  * Database row type for tasks
@@ -126,6 +127,13 @@ export async function createListlessTask(
 
   const task = mapTaskRow(row);
 
+  // Create initial version (version 1)
+  try {
+    await taskVersionService.createVersion(id, ["*"], "Initial task creation", "system");
+  } catch {
+    // Ignore version creation errors (non-critical)
+  }
+
   // Analysis will be triggered separately by the analysis pipeline
   return {
     task,
@@ -217,6 +225,13 @@ export async function createTaskInList(
   }
 
   const task = mapTaskRow(row);
+
+  // Create initial version (version 1)
+  try {
+    await taskVersionService.createVersion(id, ["*"], "Initial task creation", "system");
+  } catch {
+    // Ignore version creation errors (non-critical)
+  }
 
   return {
     task,
