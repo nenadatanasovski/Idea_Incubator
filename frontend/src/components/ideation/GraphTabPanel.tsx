@@ -362,15 +362,99 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   );
 
   // Handle confirm all in update confirmation
-  const handleConfirmAllUpdates = useCallback(() => {
+  const handleConfirmAllUpdates = useCallback(async () => {
+    if (!pendingNewBlock || !cascadeEffects) {
+      console.warn("[GraphTabPanel] No pending changes to confirm");
+      return;
+    }
+
     setIsProcessingUpdate(true);
-    // TODO: Apply all cascade changes via API
     console.log("[GraphTabPanel] Confirming all updates:", pendingNewBlock);
-    setIsProcessingUpdate(false);
-    setShowUpdateConfirmation(false);
-    setPendingNewBlock(null);
-    setCascadeEffects(null);
-  }, [pendingNewBlock]);
+
+    try {
+      // Build the list of changes to apply
+      const changes: Array<{
+        id: string;
+        type: "create_block" | "update_block" | "create_link";
+        blockType?: string;
+        title?: string;
+        content?: string;
+        graphMembership?: string[];
+        confidence?: number;
+        sourceBlockId?: string;
+        targetBlockId?: string;
+        linkType?: string;
+        reason?: string;
+        blockId?: string;
+        statusChange?: {
+          newStatus: "superseded" | "abandoned";
+          reason?: string;
+        };
+      }> = [];
+
+      // 1. Create the new block
+      changes.push({
+        id: pendingNewBlock.id,
+        type: "create_block",
+        blockType: pendingNewBlock.suggestedType,
+        content: pendingNewBlock.content,
+        graphMembership: pendingNewBlock.suggestedGraph,
+        confidence: pendingNewBlock.confidence,
+      });
+
+      // 2. Add status changes for affected nodes
+      for (const affected of cascadeEffects.affectedNodes) {
+        if (affected.proposedAction === "supersedes") {
+          changes.push({
+            id: `update-${affected.id}`,
+            type: "update_block",
+            blockId: affected.id,
+            statusChange: {
+              newStatus: "superseded",
+              reason: affected.reason,
+            },
+          });
+        } else if (affected.proposedAction === "invalidates") {
+          changes.push({
+            id: `update-${affected.id}`,
+            type: "update_block",
+            blockId: affected.id,
+            statusChange: {
+              newStatus: "abandoned",
+              reason: affected.reason,
+            },
+          });
+        }
+      }
+
+      // 3. Create new links
+      for (const link of cascadeEffects.newLinks) {
+        changes.push({
+          id: `link-${link.source}-${link.target}`,
+          type: "create_link",
+          sourceBlockId: link.source,
+          targetBlockId: link.target,
+          linkType: link.linkType,
+          reason: link.reason,
+        });
+      }
+
+      // Apply all changes via API
+      const changeIds = changes.map((c) => c.id);
+      await applyGraphChanges(sessionId, changeIds, changes);
+      console.log("[GraphTabPanel] Cascade changes applied successfully");
+
+      // Refresh the graph
+      refetch();
+    } catch (error) {
+      console.error("[GraphTabPanel] Error applying cascade changes:", error);
+    } finally {
+      setIsProcessingUpdate(false);
+      setShowUpdateConfirmation(false);
+      setPendingNewBlock(null);
+      setCascadeEffects(null);
+    }
+  }, [pendingNewBlock, cascadeEffects, sessionId, applyGraphChanges, refetch]);
 
   // Handle review each in update confirmation
   const handleReviewEachUpdate = useCallback(() => {
