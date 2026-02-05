@@ -666,11 +666,12 @@ describe("8.3 Cascade Propagation", () => {
   it("should propagate status changes through dependency chain", async () => {
     // Mark task1 as failed
     await run(`UPDATE tasks SET status = 'failed' WHERE id = ?`, [task1Id]);
-    await taskStateHistoryService.recordStateChange(
+    await taskStateHistoryService.record(
       task1Id,
       "pending",
       "failed",
       "test",
+      "system",
       "Simulated failure",
     );
 
@@ -773,7 +774,7 @@ describe("8.4 Versioning and Rollback", () => {
 
   it("should create version 1 on task creation", async () => {
     // Get initial version
-    const versions = await taskVersionService.getVersionHistory(taskId);
+    const versions = await taskVersionService.getVersions(taskId);
 
     expect(versions).toBeDefined();
     expect(versions.length).toBeGreaterThanOrEqual(1);
@@ -790,7 +791,7 @@ describe("8.4 Versioning and Rollback", () => {
     });
 
     // Get version history
-    const versions = await taskVersionService.getVersionHistory(taskId);
+    const versions = await taskVersionService.getVersions(taskId);
 
     expect(versions.length).toBe(2);
     expect(versions[1].version).toBe(2);
@@ -815,7 +816,7 @@ describe("8.4 Versioning and Rollback", () => {
     });
 
     // Get version history
-    const versions = await taskVersionService.getVersionHistory(taskId);
+    const versions = await taskVersionService.getVersions(taskId);
     expect(versions.length).toBe(3);
 
     // Compare versions
@@ -850,7 +851,7 @@ describe("8.4 Versioning and Rollback", () => {
     );
 
     // Verify rollback created v3 with v1 content
-    const versions = await taskVersionService.getVersionHistory(taskId);
+    const versions = await taskVersionService.getVersions(taskId);
     expect(versions.length).toBe(3);
 
     const rolledBackTask = (await getOne(
@@ -862,46 +863,52 @@ describe("8.4 Versioning and Rollback", () => {
 
   it("should record state transitions in history", async () => {
     // Record various state changes
-    await taskStateHistoryService.recordStateChange(
+    await taskStateHistoryService.record(
       taskId,
       "pending",
       "in_progress",
       "agent-1",
+      "agent",
       "Started work",
     );
-    await taskStateHistoryService.recordStateChange(
+    await taskStateHistoryService.record(
       taskId,
       "in_progress",
       "validating",
       "agent-1",
+      "agent",
       "Code complete",
     );
-    await taskStateHistoryService.recordStateChange(
+    await taskStateHistoryService.record(
       taskId,
       "validating",
       "failed",
       "validator",
+      "system",
       "Tests failed",
     );
-    await taskStateHistoryService.recordStateChange(
+    await taskStateHistoryService.record(
       taskId,
       "failed",
       "in_progress",
       "agent-1",
+      "agent",
       "Retry attempt",
     );
-    await taskStateHistoryService.recordStateChange(
+    await taskStateHistoryService.record(
       taskId,
       "in_progress",
       "validating",
       "agent-1",
+      "agent",
       "Fixed issue",
     );
-    await taskStateHistoryService.recordStateChange(
+    await taskStateHistoryService.record(
       taskId,
       "validating",
       "completed",
       "validator",
+      "system",
       "All tests passed",
     );
 
@@ -930,7 +937,7 @@ describe("8.4 Versioning and Rollback", () => {
     });
 
     // Get version metadata
-    const versions = await taskVersionService.getVersionHistory(taskId);
+    const versions = await taskVersionService.getVersions(taskId);
 
     expect(versions[0].createdAt).toBeDefined();
     expect(versions[1].createdAt).toBeDefined();
