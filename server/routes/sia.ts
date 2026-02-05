@@ -17,6 +17,7 @@ import {
   writeGotchas,
   writePatterns,
 } from "../../agents/sia/knowledge-writer.js";
+import { applyProposal } from "../../agents/sia/claude-md-updater.js";
 import { KnowledgeQuery, ProposalStatus } from "../../types/sia.js";
 
 const router = Router();
@@ -244,13 +245,22 @@ router.post(
       const notes = req.body.notes as string | undefined;
       await updateProposalStatus(req.params.id, "approved", notes);
 
-      // TODO: Apply the change to CLAUDE.md and commit
-      // This would be implemented in claude-md-updater.ts
-
-      res.json({
-        success: true,
-        appliedContent: proposal.proposedContent,
-      });
+      // Apply the change to CLAUDE.md and commit
+      try {
+        const commitHash = await applyProposal(req.params.id);
+        res.json({
+          success: true,
+          appliedContent: proposal.proposedContent,
+          commitHash,
+        });
+      } catch (applyError) {
+        // Proposal was approved but applying failed
+        res.status(500).json({
+          success: false,
+          approved: true,
+          error: `Approved but failed to apply: ${(applyError as Error).message}`,
+        });
+      }
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
     }
