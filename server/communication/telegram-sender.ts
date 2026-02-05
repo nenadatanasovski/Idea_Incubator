@@ -10,6 +10,7 @@ import {
   SendOptions,
   SendResult,
 } from "./types";
+import { httpsPostIPv4 } from "./http-utils";
 
 export class TelegramSender {
   private botRegistry: BotRegistry;
@@ -323,6 +324,7 @@ export class TelegramSender {
 
   /**
    * Send with retry logic and exponential backoff.
+   * Uses IPv4-forced HTTPS to avoid Node.js IPv6 timeout issues.
    */
   private async sendWithRetry(
     url: string,
@@ -330,13 +332,7 @@ export class TelegramSender {
     attempt: number = 1,
   ): Promise<SendResult> {
     try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
+      const data = await httpsPostIPv4(url, body, 30000);
 
       if (data.ok) {
         return { success: true, messageId: data.result?.message_id };

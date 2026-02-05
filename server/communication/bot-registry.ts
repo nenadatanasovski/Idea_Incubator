@@ -3,6 +3,7 @@
 
 import { AgentType, RegisteredBot, TelegramBot } from "./types";
 import { BOT_CONFIGS } from "./config";
+import { httpsGetIPv4 } from "./http-utils";
 
 export class BotRegistry {
   private bots: Map<AgentType, RegisteredBot> = new Map();
@@ -152,20 +153,14 @@ export class BotRegistry {
 
   /**
    * Validate a bot token by calling Telegram's getMe API.
-   * Uses AbortController for timeout to prevent hanging on network issues.
+   * Uses IPv4-forced HTTPS to avoid Node.js IPv6 timeout issues.
    */
   private async validateToken(token: string): Promise<TelegramBot | null> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    
     try {
-      const response = await fetch(
+      const data = await httpsGetIPv4(
         `https://api.telegram.org/bot${token}/getMe`,
-        { signal: controller.signal }
+        10000
       );
-      clearTimeout(timeoutId);
-      
-      const data = await response.json();
 
       if (data.ok) {
         return data.result as TelegramBot;
@@ -174,12 +169,7 @@ export class BotRegistry {
       console.error("[BotRegistry] getMe failed:", data.description);
       return null;
     } catch (error) {
-      clearTimeout(timeoutId);
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.warn("[BotRegistry] Token validation timed out (10s)");
-      } else {
-        console.error("[BotRegistry] Failed to validate bot token:", error);
-      }
+      console.error("[BotRegistry] Failed to validate bot token:", error);
       return null;
     }
   }

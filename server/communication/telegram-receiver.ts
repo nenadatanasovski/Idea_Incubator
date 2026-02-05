@@ -4,6 +4,7 @@
 import { EventEmitter } from "events";
 import { BotRegistry } from "./bot-registry";
 import { AgentType, RegisteredBot } from "./types";
+import { httpsPostIPv4 } from "./http-utils";
 
 interface TelegramUpdate {
   update_id: number;
@@ -146,22 +147,17 @@ export class TelegramReceiver extends EventEmitter {
 
   /**
    * Get updates from Telegram API using long polling.
+   * Uses IPv4-forced HTTPS to avoid Node.js IPv6 timeout issues.
    */
   private async getUpdates(bot: RegisteredBot): Promise<TelegramUpdate[]> {
     const offset = this.offsets.get(bot.agentType) || 0;
     const url = `https://api.telegram.org/bot${bot.token}/getUpdates`;
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        offset,
-        timeout: 30, // Long polling timeout in seconds
-        allowed_updates: ["message", "callback_query"],
-      }),
-    });
-
-    const data = await response.json();
+    const data = await httpsPostIPv4(url, {
+      offset,
+      timeout: 30, // Long polling timeout in seconds
+      allowed_updates: ["message", "callback_query"],
+    }, 35000); // 35s timeout to account for 30s long poll
 
     if (data.ok) {
       return data.result as TelegramUpdate[];
@@ -383,11 +379,7 @@ export class TelegramReceiver extends EventEmitter {
     const url = `https://api.telegram.org/bot${bot.token}/answerCallbackQuery`;
 
     try {
-      await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ callback_query_id: callbackId }),
-      });
+      await httpsPostIPv4(url, { callback_query_id: callbackId }, 10000);
     } catch (error) {
       console.error(
         `[TelegramReceiver] Failed to answer callback query: ${error}`,
