@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { BriefParser as _BriefParser } from "../../agents/specification/brief-parser.js";
+import { BriefParser } from "../../agents/specification/brief-parser.js";
 import * as fs from "fs";
 import * as path from "path";
 
