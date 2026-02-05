@@ -52,7 +52,7 @@ describe("Parallel Task Execution E2E", () => {
       const description = "Testing listless task creation from UI";
 
       // Act
-      const task = await taskCreationService.createListlessTask(title, {
+      const task = await taskCreationService.createListlessTask({ title,
         description,
         category: "test",
       });
@@ -82,7 +82,7 @@ describe("Parallel Task Execution E2E", () => {
       const category = "feature"; // Auto-detected
 
       // Act
-      const task = await taskCreationService.createListlessTask(title, {
+      const task = await taskCreationService.createListlessTask({ title,
         category,
       });
 
@@ -104,20 +104,18 @@ describe("Parallel Task Execution E2E", () => {
       const tasks = [
         {
           title: "E2E-GROUP Create database schema for users",
-          category: "database",
+          category: "infrastructure",
         },
-        { title: "E2E-GROUP Create user types", category: "types" },
-        { title: "E2E-GROUP Create user API routes", category: "api" },
+        { title: "E2E-GROUP Create user types", category: "task" },
+        { title: "E2E-GROUP Create user API routes", category: "feature" },
       ];
 
       const createdTasks = [];
       for (const taskData of tasks) {
-        const task = await taskCreationService.createListlessTask(
-          taskData.title,
-          {
-            category: taskData.category,
-          },
-        );
+        const task = await taskCreationService.createListlessTask({
+          title: taskData.title,
+          category: taskData.category,
+        });
         createdTasks.push(task);
       }
 
@@ -235,7 +233,7 @@ describe("Parallel Task Execution E2E", () => {
       const task1 = await taskCreationService.createTaskInList(
         "E2E-FAIL Task 1 - Database",
         taskListId,
-        { category: "database" },
+        { category: "infrastructure" },
       );
       task1Id = task1.id;
 
@@ -249,7 +247,7 @@ describe("Parallel Task Execution E2E", () => {
       const task3 = await taskCreationService.createTaskInList(
         "E2E-FAIL Task 3 - API (depends on T1)",
         taskListId,
-        { category: "api" },
+        { category: "feature" },
       );
       task3Id = task3.id;
 
@@ -292,22 +290,22 @@ describe("Parallel Task Execution E2E", () => {
       await cleanupTestData("E2E-CYCLE-");
 
       // Create tasks in evaluation queue (no task list needed)
-      const task1 = await taskCreationService.createListlessTask(
-        "E2E-CYCLE Task 1",
-        { category: "test" },
-      );
+      const task1 = await taskCreationService.createListlessTask({
+        title: "E2E-CYCLE Task 1",
+        category: "test",
+      });
       task1Id = task1.id;
 
-      const task2 = await taskCreationService.createListlessTask(
-        "E2E-CYCLE Task 2",
-        { category: "test" },
-      );
+      const task2 = await taskCreationService.createListlessTask({
+        title: "E2E-CYCLE Task 2",
+        category: "test",
+      });
       task2Id = task2.id;
 
-      const task3 = await taskCreationService.createListlessTask(
-        "E2E-CYCLE Task 3",
-        { category: "test" },
-      );
+      const task3 = await taskCreationService.createListlessTask({
+        title: "E2E-CYCLE Task 3",
+        category: "test",
+      });
       task3Id = task3.id;
 
       // Create initial dependencies: T1 -> T2 -> T3
@@ -352,16 +350,16 @@ describe("Parallel Task Execution E2E", () => {
       await cleanupTestData("E2E-CONFLICT-");
 
       // Create tasks
-      const task1 = await taskCreationService.createListlessTask(
-        "E2E-CONFLICT Task 1 - Modify database.ts",
-        { category: "database" },
-      );
+      const task1 = await taskCreationService.createListlessTask({
+        title: "E2E-CONFLICT Task 1 - Modify database.ts",
+        category: "infrastructure",
+      });
       task1Id = task1.id;
 
-      const task2 = await taskCreationService.createListlessTask(
-        "E2E-CONFLICT Task 2 - Also modify database.ts",
-        { category: "database" },
-      );
+      const task2 = await taskCreationService.createListlessTask({
+        title: "E2E-CONFLICT Task 2 - Also modify database.ts",
+        category: "infrastructure",
+      });
       task2Id = task2.id;
 
       // Add file impacts (both UPDATE same file)
@@ -418,16 +416,17 @@ describe("Integration: Full Workflow", () => {
   it("should complete full workflow from task creation to execution ready", async () => {
     // Step 1: Create multiple listless tasks
     const tasks = await Promise.all([
-      taskCreationService.createListlessTask(
-        "E2E-FULL Create database schema",
-        { category: "database" },
-      ),
-      taskCreationService.createListlessTask(
-        "E2E-FULL Create TypeScript types",
-        { category: "types" },
-      ),
-      taskCreationService.createListlessTask("E2E-FULL Create API routes", {
-        category: "api",
+      taskCreationService.createListlessTask({
+        title: "E2E-FULL Create database schema",
+        category: "infrastructure",
+      }),
+      taskCreationService.createListlessTask({
+        title: "E2E-FULL Create TypeScript types",
+        category: "task",
+      }),
+      taskCreationService.createListlessTask({
+        title: "E2E-FULL Create API routes",
+        category: "feature",
       }),
     ]);
 
