@@ -283,14 +283,14 @@ describe("Task Agent Litmus Tests", () => {
 
       // Add file impacts (both UPDATE same file)
       await run(
-        `INSERT INTO task_file_impacts (id, task_id, file_path, operation, confidence, source)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [uuidv4(), task1.id, "server/config.ts", "UPDATE", 0.9, "ai_estimate"],
+        `INSERT INTO task_impacts (id, task_id, impact_type, target_path, operation, confidence, source)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [uuidv4(), task1.id, "file", "server/config.ts", "UPDATE", 0.9, "ai"],
       );
       await run(
-        `INSERT INTO task_file_impacts (id, task_id, file_path, operation, confidence, source)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [uuidv4(), task2.id, "server/config.ts", "UPDATE", 0.9, "ai_estimate"],
+        `INSERT INTO task_impacts (id, task_id, impact_type, target_path, operation, confidence, source)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [uuidv4(), task2.id, "file", "server/config.ts", "UPDATE", 0.9, "ai"],
       );
       await saveDb();
 
