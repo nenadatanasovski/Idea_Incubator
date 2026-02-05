@@ -562,7 +562,7 @@ program
       // Run evaluation based on mode
       let result: FullEvaluationResult;
       if (mode === "v2") {
-        // v2: Parallel specialized evaluators (TODO: Add strategicContext support)
+        // v2: Parallel specialized evaluators with full context
         const v2Result = await runAllSpecializedEvaluators(
           slug,
           ideaData.id,
@@ -571,7 +571,8 @@ program
           broadcaster,
           profileContext,
           structuredContext,
-          research, // Pass research context
+          research,
+          strategicContext, // Pass strategic positioning context
         );
         result = {
           ideaSlug: slug,

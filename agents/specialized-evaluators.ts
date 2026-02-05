@@ -11,6 +11,7 @@ import { EVALUATION_CRITERIA, CATEGORIES, type Category } from "./config.js";
 import {
   type EvaluationResult,
   type StructuredEvaluationContext,
+  type StrategicPositioningContext,
   formatStructuredDataForPrompt,
 } from "./evaluator.js";
 import { type ProfileContext } from "../utils/schemas.js";
@@ -256,6 +257,69 @@ Be thorough in risk identification. A 7+ risk score means risks are acknowledged
 };
 
 /**
+ * Format strategic positioning context for evaluator prompts
+ */
+function formatStrategicContextForPrompt(
+  context: StrategicPositioningContext | null,
+  category: Category,
+): string {
+  if (!context) return "";
+
+  // Strategic context is most relevant for these categories
+  const relevantCategories: Category[] = [
+    "solution",
+    "market",
+    "risk",
+    "feasibility",
+  ];
+  if (!relevantCategories.includes(category)) return "";
+
+  const sections: string[] = [];
+
+  if (context.selectedStrategy) {
+    sections.push(`## Strategic Position
+**Selected Strategy:** ${context.selectedStrategy.name}
+${context.selectedStrategy.description || ""}
+${context.selectedStrategy.differentiators?.length ? `**Differentiators:** ${context.selectedStrategy.differentiators.join(", ")}` : ""}`);
+  }
+
+  if (context.strategicApproach) {
+    const approaches: Record<string, string> = {
+      create: "Create New Category - First mover in new market",
+      copy_improve: "Copy & Improve - Better execution of existing solution",
+      combine: "Combine - Merge multiple solutions",
+      localize: "Localize - Adapt for specific region/market",
+      specialize: "Specialize - Focus on specific niche",
+      time: "Timing Play - Market conditions are changing",
+    };
+    sections.push(
+      `**Strategic Approach:** ${approaches[context.strategicApproach] || context.strategicApproach}`,
+    );
+  }
+
+  if (context.timing) {
+    sections.push(`## Market Timing
+**Decision:** ${context.timing.decision || "Not specified"}
+${context.timing.rationale ? `**Rationale:** ${context.timing.rationale}` : ""}`);
+  }
+
+  if (context.differentiation?.topOpportunities?.length) {
+    sections.push(`## Differentiation Opportunities
+${context.differentiation.topOpportunities.map((o: any) => `- ${o.name}: ${o.description || ""}`).join("\n")}`);
+  }
+
+  if (sections.length === 0) return "";
+
+  return `## Strategic Positioning Context (User's Chosen Direction)
+
+${sections.join("\n\n")}
+
+**Note:** Consider this strategic context when evaluating. The user has made deliberate positioning choices.
+
+`;
+}
+
+/**
  * Run a single specialized evaluator
  */
 export async function runSpecializedEvaluator(
@@ -267,6 +331,7 @@ export async function runSpecializedEvaluator(
   profileContext?: ProfileContext | null,
   structuredContext?: StructuredEvaluationContext | null,
   research?: ResearchResult | null,
+  strategicContext?: StrategicPositioningContext | null,
 ): Promise<EvaluationResult[]> {
   const config = getConfig();
   const evaluator = SPECIALIZED_EVALUATORS[category];
@@ -297,6 +362,12 @@ export async function runSpecializedEvaluator(
   // Add research context (for market and solution categories)
   const researchSection = formatResearchForCategory(research ?? null, category);
 
+  // Add strategic positioning context (for solution, market, risk, feasibility)
+  const strategicSection = formatStrategicContextForPrompt(
+    strategicContext ?? null,
+    category,
+  );
+
   logDebug(`Running specialized evaluator: ${evaluator.name}`);
 
   // Note: We don't broadcast roundStarted at category level - only per criterion via evaluatorSpeaking
@@ -326,6 +397,7 @@ Respond in JSON format:
 
 ${researchSection}
 ${structuredSection}
+${strategicSection}
 ## Idea Content
 
 ${ideaContent}
@@ -512,6 +584,7 @@ export async function runAllSpecializedEvaluators(
   profileContext?: ProfileContext | null,
   structuredContext?: StructuredEvaluationContext | null,
   research?: ResearchResult | null,
+  strategicContext?: StrategicPositioningContext | null,
 ): Promise<{
   evaluations: EvaluationResult[];
   categoryScores: Record<Category, number>;
@@ -544,6 +617,7 @@ export async function runAllSpecializedEvaluators(
       profileContext,
       structuredContext,
       research,
+      strategicContext,
     ),
   );
 
