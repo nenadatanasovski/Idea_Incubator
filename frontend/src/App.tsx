@@ -25,6 +25,7 @@ import ProjectListPage from "./pages/ProjectListPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import NotFound from "./pages/NotFound";
 import ClusterDemoPage from "./pages/ClusterDemoPage";
+import UnifiedIdeaPage from "./pages/UnifiedIdeaPage";
 
 // Projects sub-tab components
 import ProjectOverview from "./components/projects/ProjectOverview";
@@ -95,6 +96,8 @@ function App() {
         <Route path="/tasks/kanban" element={<KanbanBoard />} />
         <Route path="/ideate" element={<IdeationPageWrapper />} />
         <Route path="/ideate/:sessionId" element={<IdeationPageWrapper />} />
+        {/* New unified idea page with chat-left layout */}
+        <Route path="/idea/:ideaId" element={<UnifiedIdeaPage />} />
         {/* Database Objects browser */}
         <Route path="/objects" element={<ObjectsPage />} />
         {/* Observability with sub-tabs and deep links */}
