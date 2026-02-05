@@ -236,7 +236,54 @@ export async function seedTranscriptData(
     },
   ];
 
-  // Configure mock for transcript queries
+  // Use service mock (new architecture)
+  mockTranscriptService.getTranscript.mockImplementation((execId: string, options?: { limit?: number; offset?: number; entryTypes?: string[]; categories?: string[] }) => {
+    if (execId === executionId) {
+      const limit = options?.limit || 50;
+      const offset = options?.offset || 0;
+      
+      // Filter by entryType and category if specified
+      let filteredEntries = defaultEntries;
+      if (options?.entryTypes?.length) {
+        filteredEntries = filteredEntries.filter(e => options.entryTypes!.includes(e.entryType));
+      }
+      if (options?.categories?.length) {
+        filteredEntries = filteredEntries.filter(e => options.categories!.includes(e.category));
+      }
+      
+      const paginatedEntries = filteredEntries.slice(offset, offset + limit);
+      const hasMore = offset + paginatedEntries.length < filteredEntries.length;
+      
+      return Promise.resolve({
+        data: paginatedEntries.map((e) => ({
+          id: e.id,
+          timestamp: e.createdAt,
+          sequence: e.sequence,
+          executionId: executionId,
+          taskId: null,
+          instanceId: "instance-001",
+          waveNumber: null,
+          entryType: e.entryType,
+          category: e.category,
+          summary: e.summary,
+          details: null,
+          skillRef: null,
+          toolCalls: null,
+          assertions: null,
+          durationMs: null,
+          tokenEstimate: null,
+          createdAt: e.createdAt,
+        })),
+        total: filteredEntries.length,
+        limit,
+        offset,
+        hasMore,
+      });
+    }
+    return Promise.resolve({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
+  });
+
+  // Also keep query mock for backwards compatibility
   mockQuery.mockImplementation((sql: string, params: unknown[]) => {
     if (
       sql.includes("FROM transcript_entries") &&
@@ -343,6 +390,18 @@ export function resetMocks(): void {
   mockExecutionService.getExecution.mockResolvedValue(null);
   mockExecutionService.listExecutions.mockResolvedValue([]);
   mockExecutionService.getExecutionStats.mockResolvedValue({ activeRuns: 0, totalRuns: 0, failedRecent: 0 });
+  mockTranscriptService.getTranscript.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
+  mockTranscriptService.getTranscriptEntry.mockResolvedValue(null);
+  mockAssertionService.getAssertions.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0 });
+  mockAssertionService.getAssertionSummary.mockResolvedValue({
+    summary: { totalAssertions: 0, passed: 0, failed: 0, skipped: 0, warnings: 0, passRate: 0 },
+    byCategory: {},
+    chains: { total: 0, passed: 0, failed: 0 },
+  });
+  mockCrossReferenceService.getCrossReferences.mockResolvedValue(null);
+  mockToolUseService.getToolUses.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0 });
+  mockSkillService.getSkillTraces.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0 });
+  mockMessageBusService.getLogs.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0 });
 }
 
 /**

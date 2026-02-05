@@ -22,19 +22,18 @@ describe("GET /api/observability/cross-refs/:entityType/:entityId", () => {
   });
 
   it("returns cross references for tool_use entity", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string) => {
-      if (sql.includes("FROM tool_uses WHERE id = ?")) {
-        return Promise.resolve([
-          {
-            transcript_entry_id: "transcript-001",
-            task_id: "task-001",
-            within_skill: null,
-            execution_id: "exec-001",
-          },
-        ]);
-      }
-      return Promise.resolve([]);
+    const { mockCrossReferenceService } = getMocks();
+    mockCrossReferenceService.getCrossReferences.mockResolvedValue({
+      type: "toolUse",
+      refs: {
+        transcriptEntry: "transcript-001",
+        task: "task-001",
+        execution: "exec-001",
+        skill: null,
+        parentToolUse: null,
+        childToolUses: [],
+        relatedAssertions: [],
+      },
     });
 
     const res = await request(app).get(
@@ -50,19 +49,17 @@ describe("GET /api/observability/cross-refs/:entityType/:entityId", () => {
   });
 
   it("returns cross references for assertion entity", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string) => {
-      if (sql.includes("FROM assertion_results WHERE id = ?")) {
-        return Promise.resolve([
-          {
-            task_id: "task-001",
-            execution_id: "exec-001",
-            chain_id: "chain-001",
-            transcript_entry_id: null,
-          },
-        ]);
-      }
-      return Promise.resolve([]);
+    const { mockCrossReferenceService } = getMocks();
+    mockCrossReferenceService.getCrossReferences.mockResolvedValue({
+      type: "assertion",
+      refs: {
+        task: "task-001",
+        chain: "chain-001",
+        transcriptEntries: [],
+        toolUses: ["tool-001"],
+        previousInChain: undefined,
+        nextInChain: undefined,
+      },
     });
 
     const res = await request(app).get(
@@ -75,18 +72,17 @@ describe("GET /api/observability/cross-refs/:entityType/:entityId", () => {
   });
 
   it("returns cross references for skill_trace entity", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string) => {
-      if (sql.includes("FROM skill_traces WHERE id = ?")) {
-        return Promise.resolve([
-          {
-            execution_id: "exec-001",
-            task_id: "task-001",
-            tool_calls: JSON.stringify(["tool-001", "tool-002"]),
-          },
-        ]);
-      }
-      return Promise.resolve([]);
+    const { mockCrossReferenceService } = getMocks();
+    mockCrossReferenceService.getCrossReferences.mockResolvedValue({
+      type: "skillTrace",
+      refs: {
+        task: "task-001",
+        transcriptEntries: [],
+        toolUses: ["tool-001", "tool-002"],
+        assertions: [],
+        parentSkill: undefined,
+        childSkills: [],
+      },
     });
 
     const res = await request(app).get(
@@ -104,19 +100,15 @@ describe("GET /api/observability/cross-refs/:entityType/:entityId", () => {
   });
 
   it("returns cross references for transcript entity", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string) => {
-      if (sql.includes("FROM transcript_entries WHERE id = ?")) {
-        return Promise.resolve([
-          {
-            execution_id: "exec-001",
-            task_id: "task-001",
-            skill_ref: null,
-            tool_calls: JSON.stringify([{ toolUseId: "tool-001" }]),
-          },
-        ]);
-      }
-      return Promise.resolve([]);
+    const { mockCrossReferenceService } = getMocks();
+    mockCrossReferenceService.getCrossReferences.mockResolvedValue({
+      type: "transcriptEntry",
+      refs: {
+        execution: "exec-001",
+        task: "task-001",
+        skill: null,
+        toolUses: ["tool-001"],
+      },
     });
 
     const res = await request(app).get(
@@ -138,31 +130,28 @@ describe("GET /api/observability/cross-refs/:entityType/:entityId", () => {
   });
 
   it("returns empty relatedTo for non-existent entity", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockResolvedValue([]);
-
+    // Default mock returns null for non-existent entity
     const res = await request(app).get(
       "/api/observability/cross-refs/tool_use/nonexistent",
     );
 
-    expect(res.status).toBe(200);
-    expect(res.body.data.relatedTo).toEqual([]);
+    // Service returns null → route returns 404
+    expect(res.status).toBe(404);
   });
 
   it("related items have type and id", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string) => {
-      if (sql.includes("FROM tool_uses WHERE id = ?")) {
-        return Promise.resolve([
-          {
-            transcript_entry_id: "transcript-001",
-            task_id: "task-001",
-            within_skill: "skill-001",
-            execution_id: "exec-001",
-          },
-        ]);
-      }
-      return Promise.resolve([]);
+    const { mockCrossReferenceService } = getMocks();
+    mockCrossReferenceService.getCrossReferences.mockResolvedValue({
+      type: "toolUse",
+      refs: {
+        transcriptEntry: "transcript-001",
+        task: "task-001",
+        execution: "exec-001",
+        skill: "skill-001",
+        parentToolUse: null,
+        childToolUses: [],
+        relatedAssertions: [],
+      },
     });
 
     const res = await request(app).get(
@@ -177,30 +166,30 @@ describe("GET /api/observability/cross-refs/:entityType/:entityId", () => {
     });
   });
 
-  it("includes execution reference in all entity types", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string) => {
-      if (sql.includes("FROM tool_uses WHERE id = ?")) {
-        return Promise.resolve([
-          {
-            transcript_entry_id: "transcript-001",
-            task_id: null,
-            within_skill: null,
-            execution_id: "exec-001",
-          },
-        ]);
-      }
-      return Promise.resolve([]);
+  it("includes transcript reference for tool_use entity", async () => {
+    // Note: execution reference is not part of ToolUseCrossRefs interface
+    // Tool uses link to transcript entries which have execution context
+    const { mockCrossReferenceService } = getMocks();
+    mockCrossReferenceService.getCrossReferences.mockResolvedValue({
+      type: "toolUse",
+      refs: {
+        transcriptEntry: "transcript-001",
+        task: "task-001",
+        skill: null,
+        parentToolUse: null,
+        childToolUses: [],
+        relatedAssertions: [],
+      },
     });
 
     const res = await request(app).get(
       "/api/observability/cross-refs/tool_use/tool-001",
     );
 
-    const execRef = res.body.data.relatedTo.find(
-      (r: { type: string }) => r.type === "execution",
+    const transcriptRef = res.body.data.relatedTo.find(
+      (r: { type: string }) => r.type === "transcript",
     );
-    expect(execRef).toBeDefined();
-    expect(execRef.id).toBe("exec-001");
+    expect(transcriptRef).toBeDefined();
+    expect(transcriptRef.id).toBe("transcript-001");
   });
 });

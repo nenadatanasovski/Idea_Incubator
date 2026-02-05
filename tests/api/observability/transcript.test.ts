@@ -65,94 +65,45 @@ describe("GET /api/observability/executions/:id/transcript", () => {
   });
 
   it("filters by entryType parameter", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string, params: unknown[]) => {
-      if (sql.includes("FROM transcript_entries")) {
-        if (sql.includes("COUNT(*)")) {
-          return Promise.resolve([{ count: 1 }]);
-        }
-        // Only return tool_call entries
-        return Promise.resolve([
-          {
-            id: "transcript-003",
-            timestamp: new Date().toISOString(),
-            sequence: 3,
-            execution_id: execId,
-            task_id: null,
-            instance_id: "instance-001",
-            wave_number: null,
-            entry_type: "tool_call",
-            category: "execution",
-            summary: "Tool was called",
-            details: null,
-            skill_ref: null,
-            tool_calls: null,
-            assertions: null,
-            duration_ms: null,
-            token_estimate: null,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-      }
-      return Promise.resolve([]);
-    });
+    // Seed with mixed entry types, filter will return only tool_call
+    await seedTranscriptData(execId, [
+      { id: "t-001", sequence: 1, entryType: "message", category: "input", summary: "Message", createdAt: new Date().toISOString() },
+      { id: "t-002", sequence: 2, entryType: "tool_call", category: "execution", summary: "Tool", createdAt: new Date().toISOString() },
+      { id: "t-003", sequence: 3, entryType: "response", category: "output", summary: "Response", createdAt: new Date().toISOString() },
+    ]);
 
     const res = await request(app)
       .get(`/api/observability/executions/${execId}/transcript`)
       .query({ entryType: "tool_call" });
 
     expect(res.status).toBe(200);
+    expect(res.body.data.data.length).toBe(1);
     res.body.data.data.forEach((entry: { entryType: string }) => {
       expect(entry.entryType).toBe("tool_call");
     });
   });
 
   it("filters by category parameter", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string) => {
-      if (sql.includes("FROM transcript_entries")) {
-        if (sql.includes("COUNT(*)")) {
-          return Promise.resolve([{ count: 1 }]);
-        }
-        return Promise.resolve([
-          {
-            id: "transcript-001",
-            timestamp: new Date().toISOString(),
-            sequence: 1,
-            execution_id: execId,
-            task_id: null,
-            instance_id: "instance-001",
-            wave_number: null,
-            entry_type: "message",
-            category: "input",
-            summary: "User message",
-            details: null,
-            skill_ref: null,
-            tool_calls: null,
-            assertions: null,
-            duration_ms: null,
-            token_estimate: null,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-      }
-      return Promise.resolve([]);
-    });
+    // Seed with mixed categories, filter will return only input
+    await seedTranscriptData(execId, [
+      { id: "t-001", sequence: 1, entryType: "message", category: "input", summary: "Message", createdAt: new Date().toISOString() },
+      { id: "t-002", sequence: 2, entryType: "tool_call", category: "execution", summary: "Tool", createdAt: new Date().toISOString() },
+      { id: "t-003", sequence: 3, entryType: "response", category: "output", summary: "Response", createdAt: new Date().toISOString() },
+    ]);
 
     const res = await request(app)
       .get(`/api/observability/executions/${execId}/transcript`)
       .query({ category: "input" });
 
     expect(res.status).toBe(200);
+    expect(res.body.data.data.length).toBe(1);
     res.body.data.data.forEach((entry: { category: string }) => {
       expect(entry.category).toBe("input");
     });
   });
 
   it("returns empty array for execution with no transcript", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockResolvedValue([]);
-
+    // Service mock returns empty by default for unknown execIds
     const res = await request(app).get(
       "/api/observability/executions/empty-exec/transcript",
     );
