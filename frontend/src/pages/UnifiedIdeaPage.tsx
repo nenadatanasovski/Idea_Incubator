@@ -8,7 +8,11 @@ import { useParams } from "react-router-dom";
 import { UnifiedLayout, IdeaPhase } from "../components/UnifiedLayout";
 import { ChatPanel, ChatMessage } from "../components/ChatPanel";
 import { ContentArea } from "../components/ContentArea";
-import { Loader2, Network, FileText } from "lucide-react";
+import { GraphTabPanel } from "../components/ideation/GraphTabPanel";
+import { SimpleArtifactList } from "../components/SimpleArtifactList";
+import { useSessionData } from "../hooks/useSessionData";
+import { Loader2 } from "lucide-react";
+import type { GraphNode } from "../types/graph";
 
 // API response types
 interface PipelineState {
@@ -257,39 +261,60 @@ export function UnifiedIdeaPage() {
     />
   );
 
-  // Render content area - placeholder implementations
-  // TODO: Wire these to actual graph/artifact loading hooks
-  const renderGraph = () => (
-    <div className="h-full p-4 flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <Network className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-        <p className="text-gray-600 font-medium">Memory Graph</p>
-        <p className="text-sm text-gray-400 mt-1">
-          Knowledge extracted from conversations will appear here
-        </p>
-        <p className="text-xs text-gray-300 mt-4">
-          Idea: {ideaId}
-        </p>
-      </div>
-    </div>
-  );
+  // Load session data including artifacts
+  const sessionData = useSessionData(session?.id);
 
-  const renderArtifacts = () => (
-    <div className="h-full p-4 flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-        <p className="text-gray-600 font-medium">Artifacts</p>
-        <p className="text-sm text-gray-400 mt-1">
-          Generated specs, briefs, and documents will appear here
-        </p>
-        {session && (
-          <p className="text-xs text-gray-300 mt-4">
-            Session: {session.id}
-          </p>
-        )}
+  // State for graph interaction
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+
+  // Handle node selection in graph
+  const handleNodeSelect = useCallback((node: GraphNode | null) => {
+    setSelectedNode(node);
+  }, []);
+
+  // Render memory graph using existing GraphTabPanel
+  const renderGraph = () => {
+    if (!session?.id) {
+      return (
+        <div className="h-full flex items-center justify-center bg-gray-50">
+          <p className="text-gray-500">Start a session to see the memory graph</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="h-full">
+        <GraphTabPanel
+          sessionId={session.id}
+          ideaSlug={ideaId}
+          isVisible={true}
+          onNodeSelect={handleNodeSelect}
+          className="h-full"
+        />
       </div>
-    </div>
-  );
+    );
+  };
+
+  // Render artifacts using SimpleArtifactList
+  const renderArtifacts = () => {
+    if (!session?.id) {
+      return (
+        <div className="h-full flex items-center justify-center bg-gray-50">
+          <p className="text-gray-500">Start a session to see artifacts</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="h-full overflow-auto p-4">
+        <SimpleArtifactList 
+          artifacts={sessionData.artifacts}
+          isLoading={sessionData.isLoading}
+        />
+      </div>
+    );
+  };
 
   return (
     <UnifiedLayout
