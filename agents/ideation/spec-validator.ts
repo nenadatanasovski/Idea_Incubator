@@ -380,7 +380,7 @@ export class SpecValidator {
     const claimsWithEvidence = new Set(
       evidenceLinks.map((l) => l.targetBlockId),
     );
-    const contentBlocks = blocks.filter((b) => b.type === "content");
+    const contentBlocks = blocks.filter((b) => b.type === "knowledge");
     const claimsWithoutEvidence = contentBlocks.filter(
       (b) => !claimsWithEvidence.has(b.id),
     );
@@ -505,12 +505,12 @@ export class SpecValidator {
       questions.push({
         question: "What specific problem does your idea solve?",
         targetGraphType: "problem",
-        targetBlockType: "content",
+        targetBlockType: "knowledge",
       });
       questions.push({
         question: "Who experiences this problem and how often?",
         targetGraphType: "problem",
-        targetBlockType: "content",
+        targetBlockType: "knowledge",
       });
     }
 
@@ -518,7 +518,7 @@ export class SpecValidator {
       questions.push({
         question: "How does your idea solve this problem?",
         targetGraphType: "solution",
-        targetBlockType: "content",
+        targetBlockType: "knowledge",
       });
     }
 
@@ -526,12 +526,12 @@ export class SpecValidator {
       questions.push({
         question: "What is the size of your target market?",
         targetGraphType: "market",
-        targetBlockType: "content",
+        targetBlockType: "knowledge",
       });
       questions.push({
         question: "Who are your main competitors?",
         targetGraphType: "market",
-        targetBlockType: "content",
+        targetBlockType: "knowledge",
       });
     }
 
@@ -543,7 +543,7 @@ export class SpecValidator {
         questions.push({
           question: `How have you validated: "${assumption.content.substring(0, 50)}..."?`,
           targetGraphType: "fit",
-          targetBlockType: "content",
+          targetBlockType: "knowledge",
           prefillContent: `Validation for: ${assumption.content}`,
         });
       }

@@ -93,21 +93,22 @@ interface ExtractionResponse {
 // ============================================================================
 
 const BLOCK_EXTRACTION_PROMPT = `
-Analyze this message and extract structured blocks. For each block, assign one or more types from ONLY these 11 canonical block types:
+Analyze this message and extract structured blocks. For each block, assign ONE type from these 9 canonical block types (ARCH-001):
 
-1. **insight** - Key findings, conclusions, "aha" moments, non-obvious observations
-2. **fact** - Verifiable data points, claims, statistics, evidence
-3. **assumption** - Implicit or explicit assumptions being made
-4. **question** - Open questions, unknowns, things to investigate
-5. **decision** - Choices made or pending decisions
-6. **action** - Next steps, validation tasks, to-dos
-7. **requirement** - Must-have constraints, specifications, acceptance criteria
-8. **option** - Alternatives being considered, possible approaches
-9. **pattern** - Recurring themes or patterns identified across information
-10. **synthesis** - Conclusions drawn from combining multiple pieces of information
-11. **meta** - Notes about the process, uncertainties about other blocks
+1. **knowledge** - Verified facts, patterns, insights, conclusions, observations
+2. **decision** - Choices made or being considered, with rationale
+3. **assumption** - Unverified beliefs being made (implicit or explicit)
+4. **question** - Open unknowns, things to investigate
+5. **requirement** - Must-have constraints, specifications, acceptance criteria
+6. **task** - Actions, next steps, to-dos, work items
+7. **proposal** - Suggested changes or improvements awaiting approval
+8. **artifact** - References to outputs (code, docs, specs, files)
+9. **evidence** - Validation data, proof, measurements, external research
 
-IMPORTANT: Do NOT use graph dimension names as block types. The following are graph dimensions (not block types): problem, solution, market, risk, fit, business, spec, distribution, marketing, manufacturing. These belong in graph_membership only.
+IMPORTANT: 
+- Use exactly ONE type per block from the 9 above
+- Do NOT use: insight, fact, pattern, synthesis, option, action, meta (these are old types)
+- Graph dimensions (problem, solution, market, risk, etc.) go in graph_membership, NOT as types
 
 For each block, determine:
 - types: Array of block types from the 11 canonical types above (at least one)
@@ -534,7 +535,7 @@ export class BlockExtractor {
 
       // Also validate via legacy method for backward compat on memory_blocks.type column
       const primaryType =
-        this.validateBlockType(validatedTypes[0]) || ("content" as BlockType);
+        this.validateBlockType(validatedTypes[0]) || ("knowledge" as BlockType);
 
       // Check for duplicates using semantic similarity
       const duplicate = this.findDuplicate(extracted.content, existingBlocks);
@@ -757,7 +758,7 @@ export class BlockExtractor {
   }
 
   /**
-   * Validate block types array, remap graph dimension names to canonical block types.
+   * Validate block types array, remap old types to ARCH-001 types.
    * Returns { blockTypes, remappedGraphTypes } where remappedGraphTypes should be
    * added to graphMembership.
    */
@@ -768,19 +769,54 @@ export class BlockExtractor {
     const validBlockTypes: CanonicalBlockType[] = [];
     const remappedGraphTypes: GraphType[] = [];
 
+    // Map old types to new ARCH-001 types
+    const typeMapping: Record<string, CanonicalBlockType> = {
+      // Old extractor types → new
+      'insight': 'knowledge',
+      'fact': 'knowledge',
+      'pattern': 'knowledge',
+      'synthesis': 'knowledge',
+      'option': 'decision',
+      'action': 'task',
+      'meta': 'knowledge',
+      // Old schema types → new
+      'content': 'knowledge',
+      'derived': 'knowledge',
+      'cycle': 'knowledge',
+      'stakeholder_view': 'knowledge',
+      'external': 'evidence',
+      'placeholder': 'question',
+      'learning': 'knowledge',
+      'persona': 'knowledge',
+      'constraint': 'requirement',
+      'blocker': 'task',
+      'epic': 'task',
+      'story': 'task',
+      'bug': 'task',
+      'milestone': 'task',
+      'evaluation': 'evidence',
+    };
+
     for (const t of types) {
       const normalized = t.toLowerCase().replace(/-/g, "_");
+      
+      // Check if it's already a valid ARCH-001 type
       if (canonicalBlockTypes.includes(normalized as CanonicalBlockType)) {
         validBlockTypes.push(normalized as CanonicalBlockType);
-      } else if (graphTypes.includes(normalized as GraphType)) {
-        // This is a graph dimension name used as block type — remap
+      }
+      // Check if it's an old type that needs mapping
+      else if (typeMapping[normalized]) {
+        validBlockTypes.push(typeMapping[normalized]);
+      }
+      // Check if it's a graph dimension (should be in graph_membership)
+      else if (graphTypes.includes(normalized as GraphType)) {
         remappedGraphTypes.push(normalized as GraphType);
       }
     }
 
-    // If AI returned only graph types, default block type to "insight"
+    // Default to "knowledge" if no valid type found
     if (validBlockTypes.length === 0) {
-      validBlockTypes.push("insight");
+      validBlockTypes.push("knowledge");
     }
 
     return { blockTypes: validBlockTypes, remappedGraphTypes };

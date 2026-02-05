@@ -8,30 +8,21 @@ import { sqliteTable, text, index, primaryKey } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { memoryBlocks } from "./memory-block.js";
 
+/**
+ * ARCH-001: 9 canonical block types
+ * 
+ * Consolidated from 21 organic types. See ARCH-001-TYPE-MAPPING.md for migration.
+ */
 export const canonicalBlockTypes = [
-  // Core types (11)
-  "insight",
-  "fact",
-  "assumption",
-  "question",
-  "decision",
-  "action",
-  "requirement",
-  "option",
-  "pattern",
-  "synthesis",
-  "meta",
-  // New types (10)
-  "constraint", // Limitations, boundaries, non-negotiables
-  "blocker", // Active blockers preventing progress
-  "epic", // Large body of work (task management)
-  "story", // User story / feature request
-  "task", // Specific work item
-  "bug", // Defect or issue
-  "persona", // Customer persona definition
-  "milestone", // Timeline marker / deadline
-  "evaluation", // Evaluation result (score, rationale)
-  "learning", // SIA-extracted gotcha or pattern
+  "knowledge",    // Verified facts, patterns, insights (was: insight, fact, pattern, synthesis, learning, persona)
+  "decision",     // Choices made with rationale (was: decision, option)
+  "assumption",   // Unverified beliefs to test
+  "question",     // Open unknowns to investigate
+  "requirement",  // Constraints, must-haves (was: requirement, constraint)
+  "task",         // Work items, actions (was: action, task, story, bug, epic, blocker, milestone)
+  "proposal",     // Suggested changes awaiting approval
+  "artifact",     // Outputs (code, docs, specs)
+  "evidence",     // Validation data, proof (was: evaluation)
 ] as const;
 
 export type CanonicalBlockType = (typeof canonicalBlockTypes)[number];

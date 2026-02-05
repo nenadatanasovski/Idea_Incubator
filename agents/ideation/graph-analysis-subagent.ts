@@ -890,11 +890,11 @@ export async function getFileBlockReferences(
     if (existing) {
       existing.blockIds.push(block.id);
     } else {
-      // Determine reference type based on block type
+      // Determine reference type based on block type (ARCH-001 types)
       let refType: FileBlockReference["referenceType"] = "references";
-      if (block.type === "synthesis" || block.type === "derived") {
+      if (block.type === "artifact") {
         refType = "generated_from";
-      } else if (block.type === "content") {
+      } else if (block.type === "evidence" || block.type === "knowledge") {
         refType = "describes";
       }
 

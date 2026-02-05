@@ -2,9 +2,11 @@
 
 > **Purpose:** Identify fundamental gaps in the current system for evaluating and continuously incubating ideas.
 >
-> **Date:** 2025-12-28
+> **Date:** 2025-12-28 | **Revised:** 2025-01-17
 >
 > **Methodology:** First-principles reasoning applied to the question: "What is truly required to transform a raw idea into a validated, viable venture?"
+>
+> **Revision Note (2025-01-17):** Status column added to reflect gaps addressed by the new unified architecture. See [`docs/source-truth/00-ARCHITECTURE-OVERVIEW.md`](./source-truth/00-ARCHITECTURE-OVERVIEW.md) for the architecture that addresses these gaps.
 
 ---
 
@@ -16,17 +18,19 @@ The Idea Incubator is an impressive **AI-powered evaluation system** with sophis
 
 ### Critical Missing Fundamentals (Priority Order)
 
-| Priority    | Gap                             | Impact                                                      |
-| ----------- | ------------------------------- | ----------------------------------------------------------- |
-| 🔴 Critical | Evidence & Validation Tracking  | Scores remain theoretical without reality feedback          |
-| 🔴 Critical | Assumption Management           | No systematic way to identify and test critical assumptions |
-| 🔴 Critical | Learning & Iteration Loop       | No mechanism to evolve ideas through insights               |
-| 🟠 High     | Unit Economics & Business Model | No viability math beyond qualitative scores                 |
-| 🟠 High     | First Customer & ICP Definition | No path from idea to actual customer                        |
-| 🟠 High     | Decision & Progress Tracking    | No accountability or momentum measurement                   |
-| 🟡 Medium   | Portfolio & Resource Allocation | Can't optimize across multiple ideas                        |
-| 🟡 Medium   | Exit Criteria & Pivot Logic     | No principled framework for when to quit                    |
-| 🟡 Medium   | External Event Monitoring       | Ideas exist in vacuum without market context                |
+| Priority    | Gap                             | Impact                                                      | Status |
+| ----------- | ------------------------------- | ----------------------------------------------------------- | ------ |
+| 🔴 Critical | Evidence & Validation Tracking  | Scores remain theoretical without reality feedback          | ✅ ADDRESSED |
+| 🔴 Critical | Assumption Management           | No systematic way to identify and test critical assumptions | ✅ ADDRESSED |
+| 🔴 Critical | Learning & Iteration Loop       | No mechanism to evolve ideas through insights               | ✅ ADDRESSED |
+| 🟠 High     | Unit Economics & Business Model | No viability math beyond qualitative scores                 | 🔲 NEEDED |
+| 🟠 High     | First Customer & ICP Definition | No path from idea to actual customer                        | 🔲 NEEDED |
+| 🟠 High     | Decision & Progress Tracking    | No accountability or momentum measurement                   | ✅ ADDRESSED |
+| 🟡 Medium   | Portfolio & Resource Allocation | Can't optimize across multiple ideas                        | 🔲 NEEDED |
+| 🟡 Medium   | Exit Criteria & Pivot Logic     | No principled framework for when to quit                    | 🔲 NEEDED |
+| 🟡 Medium   | External Event Monitoring       | Ideas exist in vacuum without market context                | 🔲 NEEDED |
+
+**Status Key:** ✅ ADDRESSED = Architecture provides solution | 🔲 NEEDED = Still requires implementation
 
 ---
 
@@ -80,6 +84,11 @@ The current system excels at **Step 0** (initial evaluation) but lacks infrastru
 
 ### 🔴 Gap 1: Evidence & Validation Tracking
 
+> **✅ STATUS: ADDRESSED** by unified architecture
+> - `evidence` block type captures validation data linked to assumptions
+> - ARCH-011 (Evidence-Grounded Scoring) ensures scores reflect reality
+> - Sub-gaps still needed: Customer Discovery Tracking (interview logs, surveys), Signal Tracking dashboard
+
 **What's Missing:**
 The system produces scores based on AI reasoning about the idea's potential, but provides no way to track **real-world evidence** that validates or invalidates these assessments.
 
@@ -125,6 +134,12 @@ Without evidence tracking, evaluations remain **intellectual exercises**. An ide
 ---
 
 ### 🔴 Gap 2: Assumption Management
+
+> **✅ STATUS: ADDRESSED** by unified architecture
+> - `assumption` block type with validation status tracking (untested → validated/invalidated)
+> - `question` block type for unknowns requiring investigation
+> - Assumptions link to evidence blocks when validated
+> - Sub-gap still needed: Experiment Design Templates
 
 **What's Missing:**
 The synthesis mentions "critical assumptions" but there's no systematic framework to:
@@ -177,6 +192,12 @@ Many ideas fail because founders test the wrong assumptions (the ones they're co
 ---
 
 ### 🔴 Gap 3: Learning & Iteration Loop
+
+> **✅ STATUS: ADDRESSED** by unified architecture
+> - ARCH-013 (Proactive Loop) provides continuous monitoring and reassessment
+> - ARCH-012 (SIA - Structured Insight Accumulator) captures and synthesizes learnings
+> - Insight blocks link to idea evolution
+> - Version tracking through block history
 
 **What's Missing:**
 No mechanism exists to:
@@ -232,6 +253,10 @@ Without iteration tracking, you can't tell if you're making progress. You might 
 ---
 
 ### 🟠 Gap 4: Unit Economics & Business Model
+
+> **🔲 STATUS: STILL NEEDED**
+> - Architecture provides foundation (blocks can store this data)
+> - Requires: Unit Economics Calculator, Business Model Canvas templates, viability analysis tools
 
 **What's Missing:**
 The system evaluates market size and feasibility qualitatively but lacks:
@@ -296,6 +321,10 @@ Many passionate founders pursue ideas that are structurally unprofitable. Early 
 
 ### 🟠 Gap 5: First Customer & ICP Definition
 
+> **🔲 STATUS: STILL NEEDED**
+> - Architecture can store customer data via blocks
+> - Requires: ICP Definition Framework, Customer Journey templates, segment prioritization tools
+
 **What's Missing:**
 The system evaluates "target user clarity" (P3) but doesn't provide:
 
@@ -359,6 +388,12 @@ You can't validate an idea without talking to customers. You can't talk to custo
 ---
 
 ### 🟠 Gap 6: Decision & Progress Tracking
+
+> **✅ STATUS: ADDRESSED** by unified architecture
+> - `decision` block type logs decisions with rationale and outcomes
+> - `task` block type with status tracking (pending → done/blocked)
+> - Block relationships create accountability chains
+> - History preserved through immutable block log
 
 **What's Missing:**
 No mechanism for:
@@ -426,6 +461,10 @@ Without progress tracking, you can work for months without real advancement. Mil
 
 ### 🟡 Gap 7: Portfolio & Resource Allocation
 
+> **🔲 STATUS: STILL NEEDED**
+> - Ideas exist as separate block trees; cross-idea comparison not yet implemented
+> - Requires: Portfolio dashboard, resource allocation views, opportunity cost analysis
+
 **What's Missing:**
 
 - No way to compare resource allocation across multiple ideas
@@ -449,6 +488,10 @@ Most founders/creators have multiple ideas. Choosing which to pursue is as impor
 
 ### 🟡 Gap 8: Exit Criteria & Pivot Logic
 
+> **🔲 STATUS: STILL NEEDED**
+> - Decision blocks can record pivot/kill decisions
+> - Requires: Pre-defined kill criteria framework, pivot trigger templates, sunk cost analysis tools
+
 **What's Missing:**
 
 - No formal "when to quit" criteria
@@ -471,6 +514,10 @@ Knowing when to stop is as important as knowing when to start. Most ideas should
 ---
 
 ### 🟡 Gap 9: External Event Monitoring
+
+> **🔲 STATUS: STILL NEEDED**
+> - Proactive Loop (ARCH-013) could integrate external monitoring
+> - Requires: Market news integration, competitor tracking, regulatory alerts
 
 **What's Missing:**
 
@@ -510,6 +557,8 @@ Ideas don't exist in a vacuum. External events can make an idea suddenly viable 
 ---
 
 ## Part 5: Architectural Recommendations
+
+> **📌 Note (2025-01-17):** Recommendations 1-3 are now addressed by the unified architecture. The incubation cycle is supported by the Proactive Loop (ARCH-013), reality-grounding by evidence blocks + ARCH-011, and assumption-experiment-evidence pipeline by the block type system. See implementation in `00-ARCHITECTURE-OVERVIEW.md`.
 
 ### 1. Shift from "Evaluation" to "Incubation" Mental Model
 
@@ -612,33 +661,35 @@ FOLLOW-UP (3 months later):
 
 ## Part 6: Implementation Priorities
 
-### Phase 1: Evidence Foundation (Critical)
+### Phase 1: Evidence Foundation (Critical) — ✅ ADDRESSED
 
-1. **Assumption Tracker** - Extract, prioritize, and track assumptions
-2. **Experiment Log** - Design, run, and record experiments
-3. **Evidence Store** - Link evidence to assumptions and scores
-4. **Reality-Grounded Scoring** - Add evidence dimension to scores
+1. ✅ **Assumption Tracker** - `assumption` block type with status tracking
+2. ⚠️ **Experiment Log** - Block infrastructure exists; templates needed
+3. ✅ **Evidence Store** - `evidence` block type with assumption links
+4. ✅ **Reality-Grounded Scoring** - ARCH-011 Evidence-Grounded Scoring
 
-### Phase 2: Customer & Economics (High)
+### Phase 2: Customer & Economics (High) — 🔲 PARTIAL
 
-5. **ICP Builder** - Structured ideal customer profile
-6. **Customer Discovery Log** - Interview tracking with insights
-7. **Unit Economics Calculator** - CAC, LTV, break-even analysis
-8. **Business Model Canvas** - Structured model definition
+5. 🔲 **ICP Builder** - Structured ideal customer profile
+6. 🔲 **Customer Discovery Log** - Interview tracking with insights
+7. 🔲 **Unit Economics Calculator** - CAC, LTV, break-even analysis
+8. 🔲 **Business Model Canvas** - Structured model definition
 
-### Phase 3: Progress & Learning (High)
+### Phase 3: Progress & Learning (High) — ✅ ADDRESSED
 
-9. **Idea Versioning** - Track idea evolution over time
-10. **Decision Log** - Record and learn from decisions
-11. **Milestone Tracker** - Progress against defined milestones
-12. **Weekly Check-in** - Structured reflection prompts
+9. ✅ **Idea Versioning** - Block history and relationships
+10. ✅ **Decision Log** - `decision` block type
+11. ✅ **Milestone Tracker** - `task` block type with status
+12. ⚠️ **Weekly Check-in** - Proactive Loop supports this; prompts needed
 
-### Phase 4: Portfolio & Strategy (Medium)
+### Phase 4: Portfolio & Strategy (Medium) — 🔲 NEEDED
 
-13. **Portfolio Dashboard** - Compare and prioritize ideas
-14. **Kill Criteria** - Pre-defined exit conditions
-15. **Pivot Framework** - When and how to pivot
-16. **External Monitor** - Market and competitor tracking
+13. 🔲 **Portfolio Dashboard** - Compare and prioritize ideas
+14. 🔲 **Kill Criteria** - Pre-defined exit conditions
+15. 🔲 **Pivot Framework** - When and how to pivot
+16. 🔲 **External Monitor** - Market and competitor tracking
+
+**Legend:** ✅ Done | ⚠️ Partial | 🔲 Needed
 
 ---
 
@@ -654,6 +705,33 @@ The Idea Incubator has built an impressive **evaluation engine**, but evaluation
 - From **single evaluation** → **iterative learning loops**
 
 The path forward is clear: build the infrastructure that connects ideas to reality through assumptions, experiments, evidence, and evolution. Without this, even the most sophisticated AI evaluation remains an intellectual exercise rather than a practical incubation system.
+
+---
+
+## 2025-01-17 Update: Progress Summary
+
+The unified architecture (see [`00-ARCHITECTURE-OVERVIEW.md`](./source-truth/00-ARCHITECTURE-OVERVIEW.md)) addresses the most critical gaps:
+
+| Category | Gaps Addressed | Gaps Remaining |
+|----------|----------------|----------------|
+| 🔴 Critical | 3/3 (100%) | — |
+| 🟠 High | 1/3 (33%) | Unit Economics, ICP Definition |
+| 🟡 Medium | 0/3 (0%) | Portfolio, Exit Criteria, External Monitoring |
+
+**Key architecture components addressing gaps:**
+- **Block Types:** `evidence`, `assumption`, `question`, `decision`, `task`
+- **ARCH-011:** Evidence-Grounded Scoring
+- **ARCH-012:** Structured Insight Accumulator (SIA)
+- **ARCH-013:** Proactive Loop for continuous reassessment
+
+**Remaining implementation priorities:**
+1. Unit Economics Calculator & Business Model Canvas
+2. ICP Definition Framework
+3. Customer Discovery Tracking (interview logs, surveys)
+4. Experiment Design Templates
+5. Portfolio Dashboard & Resource Allocation
+6. Exit Criteria & Pivot Logic Framework
+7. External Event Monitoring Integration
 
 ---
 
