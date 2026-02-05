@@ -115,7 +115,7 @@ async def create_link(
 async def get_block_links(
     block_id: str,
     service: Annotated[MemoryService, Depends(get_memory_service)],
-    direction: str = Query("both", regex="^(both|incoming|outgoing)$"),
+    direction: str = Query("both", pattern="^(both|incoming|outgoing)$"),
 ):
     """Get links for a block."""
     return await service.get_block_links(block_id, direction)
