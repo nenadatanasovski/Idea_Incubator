@@ -163,6 +163,8 @@ Return JSON only, no markdown:
 }
 
 If no meaningful blocks can be extracted, return: {"blocks": [], "links": []}
+
+CRITICAL: Your entire response must be valid JSON. Start with { and end with }. No explanations, no markdown, no text before or after. Just the JSON object.
 `;
 
 // ============================================================================
@@ -484,6 +486,18 @@ export class BlockExtractor {
         if (jsonText.startsWith("```")) {
           jsonText = jsonText.replace(/```(?:json)?\n?/g, "").trim();
         }
+        
+        // Try to extract JSON if response starts with non-JSON text
+        if (!jsonText.startsWith("{")) {
+          const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            jsonText = jsonMatch[0];
+          } else {
+            // No JSON found at all - model returned prose
+            console.warn("[BlockExtractor] No JSON found in response, returning empty");
+            return { blocks: [], links: [] };
+          }
+        }
 
         const parsed = JSON.parse(jsonText);
         return {
@@ -494,6 +508,10 @@ export class BlockExtractor {
         console.error(
           "[BlockExtractor] Failed to parse extraction response:",
           parseError,
+        );
+        console.error(
+          "[BlockExtractor] Raw response (first 200 chars):",
+          textContent.text.slice(0, 200),
         );
         return { blocks: [], links: [] };
       }
