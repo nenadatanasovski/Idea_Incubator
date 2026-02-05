@@ -14,7 +14,7 @@ describe("Config", () => {
 
   it("should return default config", () => {
     const config = getConfig();
-    expect(config.model).toBe("claude-opus-4-5-20251101");
+    expect(config.model).toBe("claude-opus-4-6");
     expect(config.budget.default).toBe(15.0); // Updated from $10 to $15 per Q10
   });
 
@@ -24,7 +24,7 @@ describe("Config", () => {
     });
 
     expect(updated.budget.default).toBe(20.0);
-    expect(updated.model).toBe("claude-opus-4-5-20251101"); // unchanged
+    expect(updated.model).toBe("claude-opus-4-6"); // unchanged
   });
 
   it("should reset config to defaults", () => {

@@ -85,7 +85,7 @@ describe("code-generator", () => {
     it("should create generator with default options", () => {
       const defaultGenerator = new CodeGenerator();
       expect(defaultGenerator).toBeDefined();
-      expect(defaultGenerator.getModel()).toBe("claude-sonnet-4-20250514");
+      expect(defaultGenerator.getModel()).toBe("claude-opus-4-6");
       expect(defaultGenerator.getMaxTokens()).toBe(8192);
     });
 
