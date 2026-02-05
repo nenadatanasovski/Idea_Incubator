@@ -14,20 +14,18 @@ import { query, run } from "../../database/db.js";
 import { messageStore } from "./message-store.js";
 import { buildSpecGenerationPrompt } from "./prompts/spec-generation.js";
 import { getIdeaFolderPath } from "../../utils/folder-structure.js";
-import type { IdeationMessage } from "../../types/ideation.js";
 import type {
   Spec,
   SpecSection,
   SpecSectionType,
   SpecGenerationResult,
-  CreateSpecInput,
 } from "../../types/spec.js";
 
 // Confidence threshold for flagging sections as needing review
 const LOW_CONFIDENCE_THRESHOLD = 50;
 
-// Section type order for display
-const SECTION_ORDER: SpecSectionType[] = [
+// Section type order for display (kept for reference but unused)
+const _SECTION_ORDER: SpecSectionType[] = [
   "problem",
   "target_users",
   "functional_desc",

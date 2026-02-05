@@ -7,10 +7,9 @@
  * Part of: Ideation Agent Spec Generation Implementation (SPEC-003)
  */
 
-import Anthropic from "@anthropic-ai/sdk";
 import { client as anthropicClient } from "../../utils/anthropic-client.js";
 import type { IdeationMessage } from "../../types/ideation.js";
-import type { ReadinessScore, ReadinessDimension } from "../../types/spec.js";
+import type { ReadinessScore } from "../../types/spec.js";
 
 // Readiness threshold for auto-suggesting spec generation
 const READINESS_THRESHOLD = 75;
