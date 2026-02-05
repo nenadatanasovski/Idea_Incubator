@@ -10,6 +10,12 @@ import { prdService } from "../../server/services/prd-service";
 import { run, saveDb } from "../../database/db";
 
 const TEST_PREFIX = "PRD-TEST-";
+const TEST_USER_ID = "test-user-prd-service";
+
+// Helper to create test PRD with userId
+async function createTestPRD(input: Parameters<typeof prdService.create>[0]) {
+  return prdService.create(input, TEST_USER_ID);
+}
 
 // Cleanup test data
 async function cleanupTestData(): Promise<void> {
@@ -32,10 +38,9 @@ describe("PRDService", () => {
 
   describe("create", () => {
     it("should create a new PRD", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}Test PRD`,
         description: "A test PRD description",
-        status: "draft",
       });
 
       expect(prd).toBeDefined();
@@ -45,26 +50,23 @@ describe("PRDService", () => {
     });
 
     it("should create a child PRD with parent reference", async () => {
-      const parent = await prdService.create({
+      const parent = await createTestPRD({
         title: `${TEST_PREFIX}Parent PRD`,
-        status: "draft",
       });
 
-      const child = await prdService.create({
+      const child = await createTestPRD({
         title: `${TEST_PREFIX}Child PRD`,
-        status: "draft",
-        parentId: parent.id,
+        parentPrdId: parent.id,
       });
 
-      expect(child.parentId).toBe(parent.id);
+      expect(child.parentPrdId).toBe(parent.id);
     });
   });
 
   describe("getById", () => {
     it("should return a PRD by ID", async () => {
-      const created = await prdService.create({
+      const created = await createTestPRD({
         title: `${TEST_PREFIX}Get By ID Test`,
-        status: "draft",
       });
 
       const found = await prdService.getById(created.id);
@@ -80,35 +82,31 @@ describe("PRDService", () => {
     });
   });
 
-  describe("getAll", () => {
+  describe("list", () => {
     it("should return all PRDs", async () => {
-      await prdService.create({
+      await createTestPRD({
         title: `${TEST_PREFIX}PRD 1`,
-        status: "draft",
       });
-      await prdService.create({
+      await createTestPRD({
         title: `${TEST_PREFIX}PRD 2`,
-        status: "draft",
       });
 
-      const prds = await prdService.getAll();
+      const prds = await prdService.list();
 
       expect(prds.length).toBeGreaterThanOrEqual(2);
     });
 
     it("should filter by status", async () => {
-      await prdService.create({
+      await createTestPRD({
         title: `${TEST_PREFIX}Draft PRD`,
-        status: "draft",
       });
-      const approved = await prdService.create({
+      const toApprove = await createTestPRD({
         title: `${TEST_PREFIX}Approved PRD`,
-        status: "draft",
       });
-      await prdService.approve(approved.id, "test-user");
+      await prdService.approve(toApprove.id, TEST_USER_ID);
 
-      const draftPrds = await prdService.getByStatus("draft");
-      const approvedPrds = await prdService.getByStatus("approved");
+      const draftPrds = await prdService.list({ status: "draft" });
+      const approvedPrds = await prdService.list({ status: "approved" });
 
       expect(draftPrds.some((p) => p.title === `${TEST_PREFIX}Draft PRD`)).toBe(
         true,
@@ -121,27 +119,25 @@ describe("PRDService", () => {
 
   describe("update", () => {
     it("should update PRD fields", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}Original Title`,
-        description: "Original description",
-        status: "draft",
+        problemStatement: "Original problem statement",
       });
 
       const updated = await prdService.update(prd.id, {
         title: `${TEST_PREFIX}Updated Title`,
-        description: "Updated description",
+        problemStatement: "Updated problem statement",
       });
 
       expect(updated.title).toBe(`${TEST_PREFIX}Updated Title`);
-      expect(updated.description).toBe("Updated description");
+      expect(updated.problemStatement).toBe("Updated problem statement");
     });
   });
 
   describe("approve", () => {
     it("should approve a PRD", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}To Approve`,
-        status: "draft",
       });
 
       const approved = await prdService.approve(prd.id, "test-approver");
@@ -158,14 +154,13 @@ describe("PRDService", () => {
     });
   });
 
-  describe("archive", () => {
-    it("should archive a PRD", async () => {
-      const prd = await prdService.create({
+  describe("updateStatus", () => {
+    it("should update PRD status", async () => {
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}To Archive`,
-        status: "draft",
       });
 
-      const archived = await prdService.archive(prd.id);
+      const archived = await prdService.updateStatus(prd.id, "archived");
 
       expect(archived.status).toBe("archived");
     });
@@ -173,21 +168,18 @@ describe("PRDService", () => {
 
   describe("getChildren", () => {
     it("should return child PRDs", async () => {
-      const parent = await prdService.create({
+      const parent = await createTestPRD({
         title: `${TEST_PREFIX}Parent`,
-        status: "draft",
       });
 
-      await prdService.create({
+      await createTestPRD({
         title: `${TEST_PREFIX}Child 1`,
-        status: "draft",
-        parentId: parent.id,
+        parentPrdId: parent.id,
       });
 
-      await prdService.create({
+      await createTestPRD({
         title: `${TEST_PREFIX}Child 2`,
-        status: "draft",
-        parentId: parent.id,
+        parentPrdId: parent.id,
       });
 
       const children = await prdService.getChildren(parent.id);
@@ -198,9 +190,8 @@ describe("PRDService", () => {
 
   describe("delete", () => {
     it("should delete a PRD", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}To Delete`,
-        status: "draft",
       });
 
       await prdService.delete(prd.id);
