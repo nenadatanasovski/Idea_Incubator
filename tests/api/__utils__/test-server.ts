@@ -529,6 +529,72 @@ export function mockAssertions(
     chainId?: string;
   }>,
 ): void {
+  // Use service mock (new architecture)
+  mockAssertionService.getAssertions.mockImplementation((execId: string) => {
+    if (execId === executionId) {
+      return Promise.resolve({
+        data: assertions.map((a) => ({
+          id: a.id,
+          taskId: a.taskId,
+          executionId: executionId,
+          category: a.category,
+          description: a.description,
+          result: a.result,
+          evidence: a.evidence || {},
+          chainId: a.chainId || null,
+          chainPosition: null,
+          timestamp: new Date().toISOString(),
+          durationMs: null,
+          transcriptEntryId: null,
+          createdAt: new Date().toISOString(),
+        })),
+        total: assertions.length,
+        limit: 50,
+        offset: 0,
+      });
+    }
+    return Promise.resolve({ data: [], total: 0, limit: 50, offset: 0 });
+  });
+
+  // Mock assertion summary
+  const passed = assertions.filter((a) => a.result === "pass").length;
+  const failed = assertions.filter((a) => a.result === "fail").length;
+  const byCategory: Record<string, { total: number; passed: number }> = {};
+  for (const a of assertions) {
+    if (!byCategory[a.category]) {
+      byCategory[a.category] = { total: 0, passed: 0 };
+    }
+    byCategory[a.category].total++;
+    if (a.result === "pass") byCategory[a.category].passed++;
+  }
+
+  mockAssertionService.getAssertionSummary.mockImplementation((execId: string) => {
+    if (execId === executionId) {
+      return Promise.resolve({
+        summary: {
+          totalAssertions: assertions.length,
+          passed,
+          failed,
+          skipped: 0,
+          warnings: 0,
+          passRate: assertions.length > 0 ? (passed / assertions.length) * 100 : 0,
+        },
+        byCategory,
+        chains: {
+          total: 0,
+          passed: 0,
+          failed: 0,
+        },
+      });
+    }
+    return Promise.resolve({
+      summary: { totalAssertions: 0, passed: 0, failed: 0, skipped: 0, warnings: 0, passRate: 0 },
+      byCategory: {},
+      chains: { total: 0, passed: 0, failed: 0 },
+    });
+  });
+
+  // Also keep query mock for backwards compatibility
   mockQuery.mockImplementation((sql: string, params: unknown[]) => {
     if (
       sql.includes("FROM assertion_results") &&
