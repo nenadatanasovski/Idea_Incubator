@@ -1,0 +1,315 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================================================
+// CORE ENTITIES
+// ============================================================================
+
+/// Core idea entity for the incubation system
+model Idea {
+  id             String   @id
+  slug           String   @unique
+  title          String
+  summary        String?
+  ideaType       String?  @map("idea_type") // business, creative, technical, personal, research
+  lifecycleStage String   @default("SPARK") @map("lifecycle_stage")
+  contentHash    String?  @map("content_hash")
+  folderPath     String   @map("folder_path")
+  createdAt      String   @map("created_at")
+  updatedAt      String   @map("updated_at")
+
+  // Relations
+  memoryBlocks MemoryBlock[]
+  projects     Project[]
+  prds         PRD[]
+
+  @@index([lifecycleStage])
+  @@index([ideaType])
+  @@map("ideas")
+}
+
+/// Project entity linked to ideas
+model Project {
+  id          String   @id
+  ideaId      String   @map("idea_id")
+  name        String
+  description String?
+  status      String   @default("active")
+  priority    Int      @default(0)
+  createdAt   String   @map("created_at")
+  updatedAt   String   @map("updated_at")
+
+  // Relations
+  idea      Idea       @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  taskLists TaskList[]
+
+  @@index([ideaId])
+  @@index([status])
+  @@map("projects")
+}
+
+/// Product Requirements Document
+model PRD {
+  id               String   @id
+  ideaId           String   @map("idea_id")
+  title            String
+  content          String
+  version          String   @default("1.0")
+  status           String   @default("draft")
+  targetPersona    String?  @map("target_persona")
+  problemStatement String?  @map("problem_statement")
+  successMetrics   String?  @map("success_metrics") // JSON as text
+  createdAt        String   @map("created_at")
+  updatedAt        String   @map("updated_at")
+
+  // Relations
+  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  @@index([ideaId])
+  @@index([status])
+  @@map("prds")
+}
+
+// ============================================================================
+// MEMORY GRAPH ENTITIES
+// ============================================================================
+
+/// Memory Block - graph nodes for the memory graph system
+/// ARCH-001: 9 canonical block types
+model MemoryBlock {
+  id                     String   @id
+  sessionId              String   @map("session_id")
+  ideaId                 String?  @map("idea_id")
+  type                   String   // knowledge, decision, assumption, question, requirement, task, proposal, artifact, evidence
+  title                  String?
+  content                String
+  properties             String?  // JSON as text
+  status                 String?  @default("active") // draft, active, validated, superseded, abandoned
+  confidence             Float?
+  abstractionLevel       String?  @map("abstraction_level") // vision, strategy, tactic, implementation
+  createdAt              String   @map("created_at")
+  updatedAt              String   @map("updated_at")
+  extractedFromMessageId String?  @map("extracted_from_message_id")
+  artifactId             String?  @map("artifact_id")
+
+  // Relations
+  idea             Idea?                    @relation(fields: [ideaId], references: [id], onDelete: SetNull)
+  blockTypes       MemoryBlockType[]
+  graphMemberships MemoryGraphMembership[]
+  sourceLinks      MemoryLink[]             @relation("SourceBlock")
+  targetLinks      MemoryLink[]             @relation("TargetBlock")
+  nodeGroups       MemoryNodeGroupBlock[]
+
+  @@index([sessionId])
+  @@index([ideaId])
+  @@index([type])
+  @@index([status])
+  @@index([artifactId])
+  @@index([title])
+  @@map("memory_blocks")
+}
+
+/// Junction table for block-to-block-type assignments (many-to-many)
+model MemoryBlockType {
+  blockId   String @map("block_id")
+  blockType String @map("block_type")
+  createdAt String @map("created_at")
+
+  // Relations
+  block MemoryBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@id([blockId, blockType])
+  @@index([blockType])
+  @@map("memory_block_types")
+}
+
+/// Junction table for block-to-graph-type assignments
+model MemoryGraphMembership {
+  blockId   String @map("block_id")
+  graphType String @map("graph_type") // problem, solution, market, risk, fit, business, spec, distribution, marketing, manufacturing, user, competition, validation, tasks, timeline, customer, product
+  createdAt String @map("created_at")
+
+  // Relations
+  block MemoryBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@id([blockId, graphType])
+  @@index([graphType])
+  @@map("memory_graph_memberships")
+}
+
+/// Memory Link - edges/relationships between blocks
+model MemoryLink {
+  id            String   @id
+  sessionId     String   @map("session_id")
+  sourceBlockId String   @map("source_block_id")
+  targetBlockId String   @map("target_block_id")
+  linkType      String   @map("link_type") // addresses, creates, requires, conflicts, supports, depends_on, enables, suggests, supersedes, validates, invalidates, references, evidence_for, elaborates, refines, specializes, alternative_to, instance_of, constrained_by, derived_from, measured_by
+  degree        String?  // full, partial, minimal
+  confidence    Float?
+  reason        String?
+  status        String?  @default("active") // active, superseded, removed
+  createdAt     String   @map("created_at")
+  updatedAt     String   @map("updated_at")
+
+  // Relations
+  sourceBlock MemoryBlock @relation("SourceBlock", fields: [sourceBlockId], references: [id], onDelete: Cascade)
+  targetBlock MemoryBlock @relation("TargetBlock", fields: [targetBlockId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([sourceBlockId])
+  @@index([targetBlockId])
+  @@index([linkType])
+  @@map("memory_links")
+}
+
+/// Memory Node Group - logical groupings of blocks
+model MemoryNodeGroup {
+  id          String   @id
+  sessionId   String   @map("session_id")
+  name        String
+  description String?
+  groupType   String   @map("group_type") // topic, lifecycle, abstraction, custom
+  status      String   @default("active")
+  metadata    String?  // JSON as text
+  createdAt   String   @map("created_at")
+  updatedAt   String   @map("updated_at")
+
+  // Relations
+  blocks  MemoryNodeGroupBlock[]
+  reports NodeGroupReport[]
+
+  @@index([sessionId])
+  @@index([groupType])
+  @@map("memory_node_groups")
+}
+
+/// Junction table for node group to block membership
+model MemoryNodeGroupBlock {
+  groupId   String @map("group_id")
+  blockId   String @map("block_id")
+  createdAt String @map("created_at")
+
+  // Relations
+  group MemoryNodeGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  block MemoryBlock     @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, blockId])
+  @@index([blockId])
+  @@map("memory_node_group_blocks")
+}
+
+/// Reports generated for node groups
+model NodeGroupReport {
+  id        String   @id
+  groupId   String   @map("group_id")
+  sessionId String   @map("session_id")
+  title     String
+  content   String
+  reportType String  @map("report_type") // summary, analysis, recommendations
+  metadata  String?  // JSON as text
+  createdAt String   @map("created_at")
+
+  // Relations
+  group MemoryNodeGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([sessionId])
+  @@index([reportType])
+  @@map("node_group_reports")
+}
+
+/// Point-in-time snapshots of memory graph state
+model GraphSnapshot {
+  id           String @id
+  sessionId    String @map("session_id")
+  name         String
+  description  String?
+  blockCount   Int    @map("block_count")
+  linkCount    Int    @map("link_count")
+  snapshotData String @map("snapshot_data") // JSON blob: { blocks: [], links: [], memberships: [] }
+  createdAt    String @map("created_at")
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("graph_snapshots")
+}
+
+// ============================================================================
+// TASK MANAGEMENT ENTITIES
+// ============================================================================
+
+/// Task List - container for tasks
+model TaskList {
+  id          String   @id
+  projectId   String   @map("project_id")
+  name        String
+  description String?
+  position    Int      @default(0)
+  status      String   @default("active")
+  createdAt   String   @map("created_at")
+  updatedAt   String   @map("updated_at")
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@index([projectId])
+  @@index([status])
+  @@map("task_lists")
+}
+
+/// Task entity
+model Task {
+  id          String   @id
+  taskListId  String   @map("task_list_id")
+  title       String
+  description String?
+  status      String   @default("pending") // pending, in_progress, completed, blocked, cancelled
+  priority    String   @default("medium") // low, medium, high, critical
+  taskType    String   @default("task") @map("task_type") // task, bug, story, epic
+  position    Int      @default(0)
+  dueDate     String?  @map("due_date")
+  assignee    String?
+  blockId     String?  @map("block_id") // Link to memory block if derived from one
+  metadata    String?  // JSON as text
+  createdAt   String   @map("created_at")
+  updatedAt   String   @map("updated_at")
+
+  // Relations
+  taskList           TaskList           @relation(fields: [taskListId], references: [id], onDelete: Cascade)
+  sourceRelations    TaskRelationship[] @relation("SourceTask")
+  targetRelations    TaskRelationship[] @relation("TargetTask")
+
+  @@index([taskListId])
+  @@index([status])
+  @@index([priority])
+  @@index([taskType])
+  @@index([blockId])
+  @@map("tasks")
+}
+
+/// Task relationships (dependencies, parent-child, etc.)
+model TaskRelationship {
+  id             String @id
+  sourceTaskId   String @map("source_task_id")
+  targetTaskId   String @map("target_task_id")
+  relationshipType String @map("relationship_type") // blocks, depends_on, parent_of, subtask_of, related_to
+  createdAt      String @map("created_at")
+
+  // Relations
+  sourceTask Task @relation("SourceTask", fields: [sourceTaskId], references: [id], onDelete: Cascade)
+  targetTask Task @relation("TargetTask", fields: [targetTaskId], references: [id], onDelete: Cascade)
+
+  @@index([sourceTaskId])
+  @@index([targetTaskId])
+  @@index([relationshipType])
+  @@map("task_relationships")
+}
