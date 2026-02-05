@@ -398,6 +398,23 @@ export class ClaudeClient {
   }
 
   /**
+   * Generic completion method for flexible prompts
+   * Used by spec session agent for various generation tasks
+   */
+  async complete(options: {
+    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+    maxTokens?: number;
+  }): Promise<string> {
+    const systemMessage = options.messages.find(m => m.role === 'system');
+    const userMessages = options.messages.filter(m => m.role !== 'system');
+    
+    const systemPrompt = systemMessage?.content || 'You are a helpful assistant.';
+    const userPrompt = userMessages.map(m => m.content).join('\n\n');
+    
+    return this.callWithRetry(systemPrompt, userPrompt);
+  }
+
+  /**
    * Get total tokens used
    */
   getTokensUsed(): number {
