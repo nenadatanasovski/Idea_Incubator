@@ -405,7 +405,7 @@ export class AgentOrchestrator {
     session: IdeationSession,
     messages: IdeationMessage[],
     userProfile: Record<string, unknown>,
-    isHandoff: boolean,
+    _isHandoff: boolean,
     currentUserMessage?: string,
   ): Promise<AgentContext> {
     let memoryFiles: { fileType: string; content: string }[] | undefined;
@@ -774,8 +774,9 @@ export class AgentOrchestrator {
 
   /**
    * Merge existing state with new signals.
+   * @deprecated Currently unused - may be needed for future state merging
    */
-  private mergeState<T extends Record<string, unknown>>(
+  private _mergeState<T extends Record<string, unknown>>(
     existing: Partial<T>,
     updates: Partial<T>,
   ): Partial<T> {
@@ -821,8 +822,9 @@ export class AgentOrchestrator {
 
   /**
    * Count user confirmations in conversation.
+   * @deprecated Currently unused - may be needed for future confirmation tracking
    */
-  private countConfirmations(messages: IdeationMessage[]): number {
+  private _countConfirmations(messages: IdeationMessage[]): number {
     const confirmationPatterns = [
       /yes/i,
       /exactly/i,

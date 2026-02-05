@@ -604,7 +604,7 @@ Output JSON only:
 
   private async runCompletenessCheck(
     sessionId: string,
-    params: GraphAnalysisParams,
+    _params: GraphAnalysisParams,
     onProgress?: ProgressCallback,
   ): Promise<{
     score: number;

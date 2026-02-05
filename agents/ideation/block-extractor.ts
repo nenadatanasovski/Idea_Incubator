@@ -6,9 +6,8 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
-import Anthropic from "@anthropic-ai/sdk";
 import { client as anthropicClient } from "../../utils/anthropic-client.js";
-import { query, run, saveDb, getOne } from "../../database/db.js";
+import { query, run, saveDb } from "../../database/db.js";
 import { IdeationMessage } from "../../types/ideation.js";
 import { StoredArtifact } from "./artifact-store.js";
 import {

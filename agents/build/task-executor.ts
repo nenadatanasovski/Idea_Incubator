@@ -303,19 +303,6 @@ export class TaskExecutor {
   }
 
   /**
-   * Check if all dependencies are satisfied
-   */
-  private _areDependenciesSatisfied(task: AtomicTask): boolean {
-    for (const depId of task.dependsOn) {
-      const depState = this.taskStates.get(depId);
-      if (depState !== "done") {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
    * Get list of unsatisfied dependencies for a task
    */
   private getUnsatisfiedDependencies(task: AtomicTask): string[] {
