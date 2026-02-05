@@ -78,7 +78,7 @@ export class GraphStateLoader {
     // Find impact vision block
     const visionBlock = blocks.find(
       (b) =>
-        (b.blockTypes.includes("insight") &&
+        (b.blockTypes.includes("knowledge") &&
           b.content.toLowerCase().includes("impact")) ||
         b.title?.toLowerCase().includes("vision"),
     );
@@ -99,7 +99,7 @@ export class GraphStateLoader {
 
     // Find expertise blocks
     const expertise = blocks
-      .filter((b) => b.blockTypes.includes("fact") && b.properties?.skill_name)
+      .filter((b) => b.blockTypes.includes("knowledge") && b.properties?.skill_name)
       .map((b) => ({
         area: (b.properties?.skill_name as string) || b.title || "",
         depth:
@@ -108,9 +108,9 @@ export class GraphStateLoader {
         evidence: (b.properties?.evidence as string) || b.content,
       }));
 
-    // Find constraint blocks
+    // Find constraint blocks (now stored as 'requirement' type with constraint properties)
     const constraintBlocks = blocks.filter((b) =>
-      b.blockTypes.includes("constraint"),
+      b.blockTypes.includes("requirement") && b.properties?.constraint_type,
     );
     const timeConstraint = constraintBlocks.find(
       (b) => b.properties?.constraint_type === "time",
@@ -210,7 +210,7 @@ export class GraphStateLoader {
       gaps: marketBlocks
         .filter(
           (b) =>
-            b.blockTypes.includes("insight") || b.blockTypes.includes("option"),
+            b.blockTypes.includes("knowledge") || b.blockTypes.includes("decision"),
         )
         .map((b) => ({
           description: b.content,
@@ -228,7 +228,7 @@ export class GraphStateLoader {
       failedAttempts: marketBlocks
         .filter(
           (b) =>
-            b.blockTypes.includes("learning") ||
+            b.blockTypes.includes("knowledge") ||
             b.properties?.type === "failed_attempt",
         )
         .map((b) => ({
@@ -594,16 +594,17 @@ export class GraphStateLoader {
       "### By Block Type:",
     ];
 
-    // Add block type inventory
+    // Add block type inventory (ARCH-001: 9 canonical types)
     const blockTypeDescriptions: Record<string, string> = {
+      knowledge: "Verified facts, patterns, insights, observations",
       decision: "Strategic choices and commitments made",
+      assumption: "Hypotheses and unverified beliefs to test",
+      question: "Open unknowns to investigate",
       requirement: "Must-have constraints and specifications",
-      insight: "Key findings and non-obvious observations",
-      fact: "Verified data points and evidence",
-      assumption: "Hypotheses that need validation",
-      pattern: "Recurring themes identified",
-      question: "Open questions to investigate",
-      action: "Next steps and tasks",
+      task: "Work items, actions, next steps",
+      proposal: "Suggested changes awaiting approval",
+      artifact: "Outputs (code, docs, specs)",
+      evidence: "Validation data, proof, measurements",
     };
 
     for (const [type, count] of Object.entries(blocksByType)) {

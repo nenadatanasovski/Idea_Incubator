@@ -111,7 +111,7 @@ IMPORTANT:
 - Graph dimensions (problem, solution, market, risk, etc.) go in graph_membership, NOT as types
 
 For each block, determine:
-- types: Array of block types from the 11 canonical types above (at least one)
+- types: Array with exactly ONE block type from the 9 canonical types above
 - content: The actual content/text (keep it concise but complete)
 - confidence: 0.0-1.0 how confident this information is correct
 - graph_membership: Which business dimensions this belongs to: problem, solution, market, risk, fit, business, spec, distribution, marketing, manufacturing
@@ -136,7 +136,7 @@ Return JSON only, no markdown:
 {
   "blocks": [
     {
-      "types": ["fact"],
+      "types": ["knowledge"],
       "content": "Legal tech market is $50B TAM",
       "confidence": 0.85,
       "graph_membership": ["market"],
