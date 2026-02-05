@@ -13,70 +13,65 @@ The proactive loop is the self-evolution engine of Vibe. It's **bidirectional**:
 1. **System → Human:** Proposals, decisions needing approval, status updates
 2. **Human → System:** Answers when agents are stuck (arch clarifications, coding decisions)
 
-This ensures the system never stays stuck silently.
+---
+
+## Vertical Slice First
+
+Before building the full loop, get end-to-end working ugly:
+
+```
+1. Hardcode 1 gap: "Decision X has no evidence"
+2. Generate 1 proposal: "Research evidence for X"
+3. Log to console (not Telegram)
+4. Hardcode approval
+5. Mark proposal executed
+6. THEN add Telegram, real gap analysis, debate, etc.
+```
 
 ---
 
 ## Loop Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           PROACTIVE LOOP                                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐           │
-│  │ Trigger  │────▶│   Gap    │────▶│ Proposal │────▶│  Debate  │           │
-│  │          │     │ Analysis │     │Generator │     │ (Red Tm) │           │
-│  └──────────┘     └──────────┘     └──────────┘     └──────────┘           │
-│       │                                                   │                  │
-│       │ (event/cron)                                      ▼                  │
-│       │                                            ┌──────────┐             │
-│       │                                            │  Batch   │             │
-│       │                                            │ & Notify │             │
-│       │                                            └──────────┘             │
-│       │                                                   │                  │
-│       │                                                   ▼                  │
-│       │                                            ┌──────────┐             │
-│       │            ┌─────────────────────────────▶│  Human   │             │
-│       │            │  Questions when stuck        │          │             │
-│       │            │                              └──────────┘             │
-│       │            │                                    │                   │
-│       │      ┌──────────┐                               │ approve/reject    │
-│       │      │ Escalate │                               │ + answers         │
-│       │      │  Agent   │◀──────────────────────────────┘                   │
-│       │      └──────────┘                               │                   │
-│       │            │                                    ▼                   │
-│       │            │ (when stuck)               ┌──────────┐               │
-│       │            │                            │ Execute  │               │
-│       │            ▼                            │          │               │
-│       │      ┌──────────┐                       └──────────┘               │
-│       └─────▶│ Coding   │                             │                    │
-│              │  Loops   │◀────────────────────────────┘                    │
-│              └──────────┘                                                   │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                           PROACTIVE LOOP                                  │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  TRIGGER ──▶ GAP ANALYSIS ──▶ PROPOSAL ──▶ DEBATE ──▶ NOTIFY ──▶ HUMAN  │
+│     │              │              │            │          │         │     │
+│     │              ▼              ▼            ▼          ▼         ▼     │
+│     │          (fail: retry)  (fail: log)  (fail:     (fail:    APPROVE  │
+│     │                                      escalate)  queue)    REJECT   │
+│     │                                                              │      │
+│     │◀─────────────────────────── EXECUTE ◀────────────────────────┘      │
+│     │                                                                     │
+│     │                         STUCK? ──────▶ ESCALATE ──▶ HUMAN          │
+│     │                                                       │             │
+│     │◀──────────────────────────────────────────────────────┘             │
+│                                                              (answer)     │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 1. Triggers (ARCH-013)
 
-### Event-Driven Triggers
+### Event-Driven
 
-| Event | Triggers |
-|-------|----------|
-| New block created | Gap analysis on related context |
+| Event | Action |
+|-------|--------|
+| Block created | Gap analysis on related context |
 | Task completed | Re-evaluate dependencies |
-| Task failed | Escalation to human |
+| Task failed | Escalate to human |
 | Evidence added | Re-score related assumptions |
-| Approval received | Execute approved proposal |
-| Rejection received | Learn from rejection (ARCH-029) |
+| Approval received | Execute proposal |
+| Rejection received | Learn, don't re-propose similar |
 
-### Scheduled Triggers
+### Scheduled
 
 | Schedule | Action |
 |----------|--------|
-| Daily (9am) | Full gap analysis against North Star |
+| Daily | Full gap analysis against North Star |
 | Hourly | Health check on all loops |
 | Every 15min | Check for stuck agents |
 
@@ -85,54 +80,35 @@ This ensures the system never stays stuck silently.
 ```python
 # coding-loops/cron/scheduler.py
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from api.routes.jobs import trigger_job
 
 scheduler = AsyncIOScheduler()
 
-@scheduler.scheduled_job('cron', hour=9, minute=0)
+@scheduler.scheduled_job('cron', hour=9)
 async def daily_gap_analysis():
-    await trigger_job(JobTrigger(job_type='gap_analysis'))
+    await trigger_job('gap_analysis', {})
 
 @scheduler.scheduled_job('interval', minutes=15)
-async def check_stuck_agents():
-    stuck = await find_stuck_agents()
+async def check_stuck():
+    stuck = await find_stuck_agents(threshold_minutes=15)
     for agent in stuck:
         await escalate_to_human(agent)
 ```
 
 ---
 
-## 2. Gap Analysis Agent
+## 2. Gap Analysis
 
-### Input
-- North Star (vision, capabilities, constraints)
-- Current state (all active blocks)
-- Recent changes
+### MVP Query (ARCH-027)
 
-### Output
-- List of gaps (what's missing vs North Star)
-- Prioritized by impact
-- Evidence for each gap
-
-### Query Pattern
+Start with "decisions lacking evidence":
 
 ```cypher
-// Get North Star vision
-MATCH (ns:Block:Knowledge {topic: 'north_star'})
-WHERE ns.status = 'active'
-RETURN ns
-
-// Get current capabilities
-MATCH (c:Block:Knowledge {topic: 'capability'})
-WHERE c.status = 'active'
-RETURN c
-
-// Find decisions without evidence (ARCH-027 MVP)
 MATCH (d:Block:Decision)
 WHERE d.status = 'active'
 AND NOT exists((d)<-[:SUPPORTS|EVIDENCE_FOR]-(:Block:Evidence))
 RETURN d
-ORDER BY d.createdAt DESC
+ORDER BY d.createdAt ASC
+LIMIT 5
 ```
 
 ### Gap Structure
@@ -140,25 +116,33 @@ ORDER BY d.createdAt DESC
 ```typescript
 interface Gap {
   id: string;
-  type: 'missing_capability' | 'unvalidated_assumption' | 'unsupported_decision' | 'blocked_task';
+  type: 'unvalidated_decision' | 'missing_capability' | 'blocked_task' | 'unvalidated_assumption';
+  severity: 'critical' | 'high' | 'medium' | 'low';
   description: string;
-  impact: 'critical' | 'significant' | 'minor';
-  relatedBlocks: string[];  // Block IDs
+  relatedBlocks: string[];
   suggestedAction: string;
 }
 ```
+
+### Error Handling
+
+| Failure | Recovery |
+|---------|----------|
+| Neo4j connection fails | Retry 3x with backoff, then alert |
+| Query times out | Reduce scope (LIMIT 3), log warning |
+| No gaps found | Log info, skip cycle (not an error) |
 
 ---
 
 ## 3. Proposal Generator
 
 ### Input
-- Gaps from analysis
+- Gap from analysis
 - Context from graph
-- Past rejections (to avoid repeating)
+- Past rejections (avoid repeating)
 
 ### Output
-- Proposals (block type: `proposal`)
+- Proposal block stored in Neo4j
 
 ### Proposal Structure
 
@@ -169,154 +153,137 @@ interface Proposal {
   title: string;
   content: string;
   proposalType: 'feature' | 'improvement' | 'fix' | 'architecture' | 'knowledge';
-  addressesGap: string;  // Gap ID
+  addressesGap: string;
   impact: 'high' | 'medium' | 'low';
   effort: 'high' | 'medium' | 'low';
   status: 'draft' | 'debating' | 'ready' | 'approved' | 'rejected' | 'executed';
   confidence: number;
-  properties: {
-    debateStatus?: string;
-    debateOutcome?: string;
-    approvalStatus?: string;
-    rejectionReason?: string;
-  };
 }
 ```
 
-### Neo4j Storage
+### Status Lifecycle
 
-```cypher
-CREATE (p:Block:Proposal {
-  id: $id,
-  sessionId: $sessionId,
-  title: $title,
-  content: $content,
-  status: 'draft',
-  confidence: 0.7,
-  properties: $propertiesJson,
-  createdAt: datetime()
-})
-
-// Link to gap
-MATCH (g:Gap {id: $gapId})
-CREATE (p)-[:ADDRESSES]->(g)
 ```
+draft → debating → ready → approved → executing → executed
+                      ↘ rejected (with reason)
+```
+
+### Error Handling
+
+| Failure | Recovery |
+|---------|----------|
+| LLM call fails | Retry 2x, then skip this gap |
+| Proposal too vague | Log for manual review |
+| Similar to rejected | Skip, log as "avoided" |
 
 ---
 
 ## 4. Auto-Debate (ARCH-023)
 
-Before presenting to human, proposals go through red-team debate.
+Before human sees proposal, red team vets it.
 
-### Debate Flow
+### Flow
 
 ```
-┌──────────┐     ┌──────────┐     ┌──────────┐
-│ Proposer │────▶│ Critic   │────▶│ Arbiter  │
-│          │     │ (Red Tm) │     │          │
-└──────────┘     └──────────┘     └──────────┘
-     │                │                │
-     │                │                ▼
-     │                │         Strengthened
-     │                │         Proposal or
-     │                │         Rejected
-     │                │
-     ▼                ▼
-   Original      Challenges
-   Proposal
+Proposer → Critic (challenges) → Arbiter (decides)
 ```
 
-### Debate Outcome
+### Outcomes
 
 | Outcome | Action |
 |---------|--------|
-| Passes debate | Mark ready, send to human |
-| Fails debate (weak) | Strengthen and re-debate |
-| Fails debate (fundamentally flawed) | Reject, don't send to human |
+| Strong pass | Mark ready, send to human |
+| Weak pass | Strengthen, re-debate once |
+| Fail | Reject, don't show human |
 
-### Existing Code
+### Error Handling
 
-`agents/debate.ts` already implements debate patterns. Integrate with proposal flow.
+| Failure | Recovery |
+|---------|----------|
+| Debate loops >3 rounds | Escalate to human with both positions |
+| Critic always rejects | Log pattern, review critic prompts |
+| Arbiter undecided | Default to showing human with "uncertain" flag |
 
 ---
 
-## 5. Batching & Notification (ARCH-028, ARCH-020)
+## 5. Notification (ARCH-020, ARCH-028)
 
 ### Batching Rules
-
-- Group proposals by theme (same gap type or related blocks)
-- Maximum 5 proposals per notification
+- Group by theme (same gap type)
+- Max 5 per notification
 - Prioritize by impact
-- Don't repeat recently rejected proposals
+- Don't repeat recently rejected
 
-### Notification Format (Telegram)
+### Telegram Format
 
 ```
 🔔 *Vibe Proposals* (3 items)
 
-*1. Add caching layer* (HIGH impact)
+*1. Add caching layer* [HIGH]
 Gap: Performance below target
 → /approve_1 or /reject_1
 
-*2. Update auth flow* (MEDIUM impact)
+*2. Update auth flow* [MEDIUM]
 Gap: Security review finding
 → /approve_2 or /reject_2
 
-*3. Add error tracking* (LOW impact)
-Gap: Missing observability
-→ /approve_3 or /reject_3
-
-Reply with number to see details.
-View all: [web link]
+Reply number for details. /reject_N [never|not_now|bad_approach]
 ```
 
 ### Complex Proposals → Web
-
-When proposal needs more context (architecture changes, multiple options), link to web view:
 
 ```
 🔔 *Architecture Proposal*
 
 *Migrate to event sourcing*
 
-This is a significant change. Review details:
-→ [View full proposal](https://vibe.app/proposals/arch-001)
+This needs detailed review:
+→ [View proposal](https://vibe.app/proposals/123)
 
 Reply /approve or /reject after reviewing.
 ```
+
+### Error Handling
+
+| Failure | Recovery |
+|---------|----------|
+| Telegram API fails | Queue message, retry every 5min |
+| Rate limited | Batch more aggressively, slow down |
+| Message too long | Split or link to web |
 
 ---
 
 ## 6. Human Escalation (Questions)
 
-When agents get stuck, they escalate to human.
+### Escalation SLA
 
-### Escalation Triggers
-
-| Trigger | Example |
-|---------|---------|
-| Coding loop blocked | "Test fails, can't figure out why" |
-| Architecture unclear | "Should this be sync or async?" |
-| Priority conflict | "Task A and B both need same file" |
-| External dependency | "Need API key for service X" |
+| Duration Stuck | Action |
+|----------------|--------|
+| 5 min | Log to debug |
+| 15 min | Publish to message bus |
+| 30 min | Send Telegram question |
+| 2 hours | Re-send with 🔴 URGENT |
+| 8 hours | Pause loop, await human |
 
 ### Question Format
 
 ```
-❓ *Agent needs help*
+❓ *[Build Agent] needs help*
 
-*Build Agent* is stuck on:
-Task: Implement user auth
+**Task:** Implement user authentication
+**Stuck on:** Which OAuth provider to use
 
-Question:
-"Should password reset use email or SMS verification?"
+**Question:**
+Should we use Auth0, Firebase Auth, or roll our own?
 
-Context:
-- No decision exists in graph
-- Both options have tradeoffs
-- Blocking 2 downstream tasks
+**Options:**
+A) Auth0 - managed, costs $$$
+B) Firebase - Google lock-in
+C) Custom - more control, more work
 
-Reply with your decision or type /details for more context.
+**Blocked:** 3 downstream tasks waiting
+
+Reply A, B, or C with optional reasoning.
 ```
 
 ### Question Structure
@@ -327,65 +294,62 @@ interface EscalationQuestion {
   agentName: string;
   taskId: string;
   question: string;
-  context: string[];  // Relevant block IDs
-  options?: string[];  // If multiple choice
+  options?: string[];
+  context: string[];
   blockedTasks: string[];
   askedAt: Date;
-  answeredAt?: Date;
-  answer?: string;
+  urgency: 'normal' | 'urgent' | 'critical';
 }
 ```
 
 ### Answer Flow
 
-1. Human answers via Telegram
-2. Answer stored as Decision block
-3. Agent notified via message bus
-4. Agent resumes with answer as context
+1. Human replies via Telegram
+2. Parse answer (option letter or free text)
+3. Store as Decision block in Neo4j
+4. Notify agent via message bus
+5. Agent resumes with decision as context
+
+### Error Handling
+
+| Failure | Recovery |
+|---------|----------|
+| Human gives unclear answer | Ask clarifying follow-up |
+| Human ignores for 24h | Re-escalate with higher urgency |
+| Answer doesn't match options | Accept free text, log for review |
 
 ---
 
 ## 7. Approval Flow
 
-### Approval States
-
-```
-draft → debating → ready → approved → executing → executed
-                       ↘ rejected
-```
-
-### Approval Commands
+### Commands
 
 | Command | Action |
 |---------|--------|
 | `/approve_N` | Approve proposal N |
-| `/reject_N` | Reject proposal N |
-| `/reject_N never` | Reject + never propose similar (ARCH-029) |
-| `/reject_N not_now` | Reject + try again later |
-| `/reject_N bad_approach` | Reject + approach is wrong |
+| `/reject_N` | Reject (default: not_now) |
+| `/reject_N never` | Never propose similar |
+| `/reject_N not_now` | Try again later |
+| `/reject_N bad_approach` | Approach is wrong |
 
 ### Rejection Learning (ARCH-029)
 
-Store rejection reason to improve future proposals:
+Store rejection to avoid repeating:
 
 ```cypher
-MATCH (p:Proposal {id: $proposalId})
+MATCH (p:Proposal {id: $id})
 SET p.status = 'rejected',
-    p.properties = apoc.convert.toJson(
-      apoc.convert.fromJsonMap(p.properties) + {
-        rejectionType: $rejectionType,
-        rejectionReason: $reason,
-        rejectedAt: datetime()
-      }
-    )
+    p.rejectionType = $type,
+    p.rejectionReason = $reason,
+    p.rejectedAt = datetime()
 ```
 
-Query past rejections before generating similar proposals:
+Before generating similar:
 
 ```cypher
 MATCH (p:Proposal)
 WHERE p.status = 'rejected'
-AND p.properties CONTAINS 'never'
+AND p.rejectionType = 'never'
 RETURN p.title, p.content
 ```
 
@@ -395,22 +359,21 @@ RETURN p.title, p.content
 
 | Block Type | Autonomy |
 |------------|----------|
-| Knowledge | Auto-approve (low risk) |
-| Evidence | Auto-approve |
+| Knowledge | Auto-create |
+| Evidence | Auto-create |
 | Question | Auto-create |
-| Assumption | Auto-create, human validates |
-| Task | Require approval if > P2 |
+| Assumption | Auto-create |
+| Task (P3) | Auto-approve |
+| Task (P0-P2) | Require approval |
 | Decision | Require approval |
 | Proposal | Require approval |
 | Artifact (code) | Require approval |
 | North Star | Require approval |
 
-### Implementation
-
 ```typescript
 function requiresApproval(block: Block): boolean {
-  const autoApprove = ['knowledge', 'evidence', 'question'];
-  if (autoApprove.includes(block.type)) return false;
+  const autoCreate = ['knowledge', 'evidence', 'question', 'assumption'];
+  if (autoCreate.includes(block.type)) return false;
   
   if (block.type === 'task' && block.priority === 'P3') return false;
   
@@ -420,46 +383,29 @@ function requiresApproval(block: Block): boolean {
 
 ---
 
-## 9. MVP Loop: Decisions Lacking Evidence (ARCH-027)
+## 9. Outcome Metrics
 
-First test of full pipeline:
-
-### Query
-```cypher
-MATCH (d:Block:Decision)
-WHERE d.status = 'active'
-AND NOT exists((d)<-[:SUPPORTS|EVIDENCE_FOR]-(:Block:Evidence))
-RETURN d
-ORDER BY d.createdAt ASC
-LIMIT 5
-```
-
-### Gap
-"Decision X has no supporting evidence"
-
-### Proposal
-"Research evidence for decision X" or "Mark decision X as assumption"
-
-### Execution
-- Research agent gathers evidence
-- Or human provides evidence
-- Or decision downgraded to assumption
+| Metric | Target | Meaning |
+|--------|--------|---------|
+| Proposal acceptance rate | >50% | System proposes useful things |
+| Gap detection accuracy | >80% | Gaps are real, not noise |
+| Escalation resolution time | <4h | Humans respond promptly |
+| Loop stuck rate | <5% | System rarely blocks |
 
 ---
 
-## 10. Exit Criteria
+## 10. Exit Criteria (Phase 2)
 
-### Phase 2 Complete When:
-
-- [ ] Gap Analysis runs daily
-- [ ] Proposals created and stored in Neo4j
-- [ ] Debate runs before human sees proposals
+- [ ] Gap analysis runs daily
+- [ ] Finds "decisions lacking evidence" correctly
+- [ ] Proposals stored in Neo4j
+- [ ] Debate filters weak proposals (>30% filtered)
 - [ ] Notifications sent to Telegram
-- [ ] Approval/rejection works via chat
-- [ ] Rejection reasons stored
-- [ ] Questions escalated when agents stuck
+- [ ] Human can approve/reject via reply
+- [ ] Rejection reason stored
+- [ ] Questions escalated when stuck
 - [ ] Answers flow back to agents
-- [ ] MVP loop "decisions lacking evidence" runs
+- [ ] Full cycle works: gap → propose → debate → approve → execute
 
 ---
 
@@ -468,6 +414,7 @@ LIMIT 5
 | Date | Change | Author |
 |------|--------|--------|
 | 2026-02-05 | Initial creation | AI Agent (Kai) |
+| 2026-02-05 | Added error handling, escalation SLA, question format, vertical slice | AI Agent (Kai) |
 
 ---
 

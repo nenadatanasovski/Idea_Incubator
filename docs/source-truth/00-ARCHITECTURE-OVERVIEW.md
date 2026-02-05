@@ -84,7 +84,7 @@ All canonical architecture documentation lives in this directory. Documents are 
 | `04-CODE-AUDIT-CHECKLIST.md` | How to review existing code against ARCH decisions | ✅ Active |
 | `05-PHASE1-FOUNDATION.md` | Neo4j + Prisma migration details | ✅ Active |
 | `06-PROACTIVE-LOOP-SPEC.md` | Bidirectional loop implementation | ✅ Active |
-| `07-NORTH-STAR-SCHEMA.md` | Vision, capabilities, constraints, priorities | 🔲 Planned |
+| `07-NORTH-STAR-SCHEMA.md` | Vision, capabilities, constraints, priorities | ✅ Active |
 | `08-AGENT-REGISTRY.md` | Agent types, capabilities, lifecycle | 🔲 Planned |
 
 ### Related Documents (Outside Source-Truth)

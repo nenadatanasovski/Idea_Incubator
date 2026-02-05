@@ -8,212 +8,171 @@
 
 ## Purpose
 
-Existing code was built organically before the 32 ARCH decisions were locked. This checklist ensures each component is reviewed for alignment before we build on top of it.
+Existing code was built organically before the 32 ARCH decisions were locked. This checklist ensures each component is reviewed for alignment.
+
+**Key principle:** Audit blocking components first. Don't audit everything before starting.
 
 ---
 
-## Audit Process
+## Priority Tiers
 
-### For Each Component:
+| Tier | Meaning | When to Audit |
+|------|---------|---------------|
+| 🔴 P0 | Blocks Phase 1 | Before Phase 1 completes |
+| 🟡 P1 | Blocks specific phase | Before that phase starts |
+| 🟢 P2 | Non-blocking | Incrementally, as touched |
 
-1. **Read the code** — Understand what it does
-2. **Check ARCH alignment** — Does it follow locked decisions?
-3. **Document issues** — What needs to change?
-4. **Estimate effort** — How much work to align?
-5. **Prioritize** — Block migration or defer?
+---
 
-### Issue Severity
+## P0 Components (Must Audit First)
 
-| Severity | Meaning | Action |
-|----------|---------|--------|
-| 🔴 Blocker | Fundamentally incompatible | Must fix before Phase 1 complete |
-| 🟡 Major | Significant misalignment | Fix during Phase 1 |
-| 🟢 Minor | Small adjustments needed | Can fix incrementally |
-| ⚪ OK | Aligned | No changes needed |
+These block the Neo4j migration. Audit before anything else.
+
+### 1. Memory Block Schema
+**Location:** `schema/entities/memory-block.ts`
+
+**Check:**
+- [ ] Uses which of the old 15 types?
+- [ ] Maps cleanly to new 9 types?
+- [ ] What fields need migration?
+
+**Acceptance:** Document type mapping, identify breaking changes.
+
+---
+
+### 2. Block Extractor
+**Location:** `agents/ideation/block-extractor.ts`
+
+**Check:**
+- [ ] What block types does it create?
+- [ ] How does it assign types?
+- [ ] Does it use hardcoded type strings?
+
+**Acceptance:** List all type references, plan refactor to 9 types.
+
+---
+
+### 3. Graph State Loader
+**Location:** `agents/ideation/graph-state-loader.ts`
+
+**Check:**
+- [ ] What queries does it run?
+- [ ] SQLite-specific syntax?
+- [ ] Can queries translate to Cypher?
+
+**Acceptance:** Document all queries, draft Cypher equivalents.
+
+---
+
+## P1 Components (Audit Before Phase)
+
+### Phase 2 Blockers
+
+#### Gap Analysis Agent
+**Location:** `agents/gap-analysis.ts`
+
+**Check:**
+- [ ] What inputs does it need?
+- [ ] Does it query the graph?
+- [ ] Output format matches Proposal structure?
+
+**Acceptance:** Confirm integration points with Neo4j and Proposal flow.
+
+---
+
+### Phase 3 Blockers
+
+#### Message Bus
+**Location:** `coding-loops/shared/message_bus.py`
+
+**Check:**
+- [ ] Publish/subscribe works?
+- [ ] File locking tested under load?
+- [ ] Event delivery latency?
+
+**Acceptance:** Run stress test (100 events, 3 subscribers), measure latency.
+
+---
+
+## P2 Components (Audit Incrementally)
+
+| Component | Location | Audit When |
+|-----------|----------|------------|
+| Ideation Agent | `agents/ideation/orchestrator.ts` | When modifying |
+| Intent Classifier | `agents/ideation/intent-classifier.ts` | When modifying |
+| SIA | `agents/sia/` | When integrating with loop |
+| Build Agent | `coding-loops/agents/build_agent_worker.py` | When modifying |
+| Debate Agent | `agents/debate.ts` | Phase 4 |
+| Research Agent | `agents/research.ts` | When needed |
 
 ---
 
 ## ARCH Decision Checklist
 
-### Data Model (ARCH-001, ARCH-021, ARCH-022)
+For each component, verify:
 
-For each file that handles data:
+### Data Model (ARCH-001)
+- [ ] Uses only 9 block types
+- [ ] No references to old types (content, synthesis, pattern, option, action, external, etc.)
+- [ ] Dimensions as JSON property, not type
 
-- [ ] Uses 9 block types only (not old 15 types)
-  - knowledge, decision, assumption, question, requirement, task, proposal, artifact, evidence
-- [ ] Dimensions stored as JSON property (not separate types)
-- [ ] North Star queryable as graph subgraph (when implemented)
-
-**Files to check:**
-- `schema/entities/*.ts`
-- `agents/ideation/block-extractor.ts`
-- `types/*.ts`
-
-### Storage Layer (ARCH-002, ARCH-003, ARCH-006, ARCH-031)
-
-- [ ] Graph queries ready for Neo4j (not SQLite-specific)
-- [ ] Operational state uses Prisma patterns (not raw SQL)
-- [ ] Scale assumption: ~100K nodes
-
-**Files to check:**
-- `database/*.ts`
-- `agents/*/db.ts`
-- Any file with SQL queries
-
-### Deterministic vs AI (ARCH Philosophy)
-
-For each agent/function:
-
-- [ ] Routing is deterministic (not AI)
-- [ ] Context assembly is deterministic (graph query)
-- [ ] Validation is deterministic (type checks, tests)
-- [ ] AI used only for: intent, gap analysis, proposal generation, execution
-
-**Red flag:** AI call for something that could be a graph query or lookup.
-
-### Plugin Architecture (ARCH-009)
-
-- [ ] Ralph loops invoked as tools by Execution Agent
-- [ ] Loops don't contain agent logic (they're execution harnesses)
-
-**Files to check:**
-- `coding-loops/shared/ralph_loop_base.py`
-- `coding-loops/agents/build_agent_worker.py`
-
-### Event System (ARCH-013)
-
-- [ ] Events published to message bus
-- [ ] Subscribers don't assume ordering
-- [ ] Event-driven triggers exist (not just polling)
-
-**Files to check:**
-- `coding-loops/shared/message_bus.py`
-- Any file with "subscribe" or "publish"
-
-### Approval Gates (ARCH-014, ARCH-030)
-
-- [ ] Proposals require explicit approval
-- [ ] Knowledge can auto-approve
-- [ ] Code/decisions/North Star require human approval
-- [ ] Chat-primary UX (Telegram)
-
-**Files to check:**
-- Any file handling approvals
-- Notification code
+### Deterministic vs AI
+- [ ] Routing is code, not AI
+- [ ] Context assembly is graph query, not AI
+- [ ] Validation is type checks, not AI
+- [ ] AI only for: intent, gap analysis, proposal generation, code generation
 
 ### Observability (ARCH-007)
-
-- [ ] Agent extends ObservableAgent
+- [ ] Extends ObservableAgent (Python) or equivalent
 - [ ] Actions traced to Langfuse
 - [ ] Errors logged with context
 
-**Files to check:**
-- All files in `agents/`
-- `coding-loops/shared/observable_agent.py`
-
-### Coordination (ARCH-015, ARCH-016, ARCH-032)
-
-- [ ] Parallel execution safe (file locking)
-- [ ] Branch-per-loop strategy
-- [ ] FastAPI endpoints for coordination (when implemented)
-
-**Files to check:**
-- `coding-loops/shared/message_bus.py` (file locking)
-- Git-related code
-
 ---
 
-## Component Audit Template
-
-Use this template for each component:
+## Audit Report Template
 
 ```markdown
-## Component: [Name]
+## Audit: [Component Name]
 
 **Location:** `path/to/files`
+**Auditor:** [name]
+**Date:** [date]
 
-**Purpose:** What does it do?
+### Summary
+[1-2 sentences: what it does, overall status]
 
-**ARCH Alignment:**
+### ARCH Alignment
+
 | Decision | Status | Notes |
 |----------|--------|-------|
-| ARCH-001 (9 types) | ⚪/🟢/🟡/🔴 | |
-| ARCH-002 (Neo4j) | ⚪/🟢/🟡/🔴 | |
-| ... | | |
+| ARCH-001 (9 types) | ✅/🟡/❌ | |
+| Deterministic routing | ✅/🟡/❌ | |
+| Observability | ✅/🟡/❌ | |
 
-**Issues Found:**
-1. [Issue description]
-2. [Issue description]
+### Issues Found
 
-**Effort Estimate:** [Hours/Days]
+1. **[Issue]** - [Severity: Blocker/Major/Minor]
+   - Location: `file:line`
+   - Fix: [what to do]
 
-**Priority:** [Blocker/Major/Minor/OK]
+### Effort Estimate
+[Hours to fix issues]
 
-**Recommendation:** [Keep as-is / Refactor / Rewrite / Remove]
+### Recommendation
+[Keep / Refactor / Rewrite]
 ```
 
 ---
 
-## Components to Audit
+## Audit Progress Tracker
 
-### Priority 1: Data Layer (Blocks Migration)
-
-| Component | Location | Auditor | Status |
-|-----------|----------|---------|--------|
-| Memory Block Schema | `schema/entities/memory-block.ts` | — | 🔲 |
-| Memory Link Schema | `schema/entities/memory-link.ts` | — | 🔲 |
-| Block Extractor | `agents/ideation/block-extractor.ts` | — | 🔲 |
-| Graph State Loader | `agents/ideation/graph-state-loader.ts` | — | 🔲 |
-
-### Priority 2: Core Agents
-
-| Component | Location | Auditor | Status |
-|-----------|----------|---------|--------|
-| Ideation Orchestrator | `agents/ideation/orchestrator.ts` | — | 🔲 |
-| Intent Classifier | `agents/ideation/intent-classifier.ts` | — | 🔲 |
-| Gap Analysis | `agents/gap-analysis.ts` | — | 🔲 |
-| SIA | `agents/sia/` | — | 🔲 |
-
-### Priority 3: Infrastructure
-
-| Component | Location | Auditor | Status |
-|-----------|----------|---------|--------|
-| Message Bus | `coding-loops/shared/message_bus.py` | — | 🔲 |
-| Ralph Loop Base | `coding-loops/shared/ralph_loop_base.py` | — | 🔲 |
-| Build Agent | `coding-loops/agents/build_agent_worker.py` | — | 🔲 |
-| Observable Agent | `coding-loops/shared/observable_agent.py` | — | 🔲 |
-
-### Priority 4: Supporting Code
-
-| Component | Location | Auditor | Status |
-|-----------|----------|---------|--------|
-| Knowledge Base | `agents/knowledge-base/` | — | 🔲 |
-| Spec Generator | `agents/ideation/spec-generator.ts` | — | 🔲 |
-| Debate Agent | `agents/debate.ts` | — | 🔲 |
-| Research Agent | `agents/research.ts` | — | 🔲 |
-
----
-
-## Audit Results Summary
-
-*To be filled as audits complete:*
-
-| Category | Total | OK | Minor | Major | Blocker |
-|----------|-------|-----|-------|-------|---------|
-| Data Layer | 4 | — | — | — | — |
-| Core Agents | 4 | — | — | — | — |
-| Infrastructure | 4 | — | — | — | — |
-| Supporting | 4 | — | — | — | — |
-| **Total** | 16 | — | — | — | — |
-
----
-
-## Post-Audit Actions
-
-1. **Blockers** → Create tasks, assign to Phase 1
-2. **Major issues** → Document in `05-PHASE1-FOUNDATION.md`
-3. **Minor issues** → Add to backlog, fix incrementally
-4. **OK components** → Ready for integration
+| Component | Priority | Auditor | Status | Issues |
+|-----------|----------|---------|--------|--------|
+| Memory Block Schema | 🔴 P0 | — | 🔲 | — |
+| Block Extractor | 🔴 P0 | — | 🔲 | — |
+| Graph State Loader | 🔴 P0 | — | 🔲 | — |
+| Gap Analysis Agent | 🟡 P1 | — | 🔲 | — |
+| Message Bus | 🟡 P1 | — | 🔲 | — |
 
 ---
 
@@ -222,6 +181,7 @@ Use this template for each component:
 | Date | Change | Author |
 |------|--------|--------|
 | 2026-02-05 | Initial creation | AI Agent (Kai) |
+| 2026-02-05 | Added priority tiers, focused on blocking components | AI Agent (Kai) |
 
 ---
 

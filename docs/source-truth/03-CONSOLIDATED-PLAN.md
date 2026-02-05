@@ -18,17 +18,19 @@ Vibe is a self-evolving platform that transforms ideas into AI-managed SaaS prod
 
 ### What Exists (Needs Audit)
 
-| Component | Location | Status |
-|-----------|----------|--------|
-| Ideation Agent | `agents/ideation/` | Functional, needs ARCH alignment |
-| Intent Classifier | `agents/ideation/intent-classifier.ts` | Functional |
-| SIA (Self-Improvement) | `agents/sia/` | Functional, needs integration |
-| Gap Analysis Agent | `agents/gap-analysis.ts` | Exists, needs proactive trigger |
-| Message Bus | `coding-loops/shared/message_bus.py` | Built, SQLite-backed |
-| Ralph Loop Base | `coding-loops/shared/ralph_loop_base.py` | Built |
-| Build Agent | `coding-loops/agents/build_agent_worker.py` | 98KB, needs review |
-| Block Extractor | `agents/ideation/block-extractor.ts` | Functional |
-| Observable Agent | `coding-loops/shared/observable_agent.py` | Base class ready |
+| Component | Location | Audit Priority | Blocks Phase |
+|-----------|----------|----------------|--------------|
+| Block Extractor | `agents/ideation/block-extractor.ts` | 🔴 P0 | Phase 1 |
+| Memory Block Schema | `schema/entities/memory-block.ts` | 🔴 P0 | Phase 1 |
+| Graph State Loader | `agents/ideation/graph-state-loader.ts` | 🔴 P0 | Phase 1 |
+| Gap Analysis Agent | `agents/gap-analysis.ts` | 🟡 P1 | Phase 2 |
+| Message Bus | `coding-loops/shared/message_bus.py` | 🟡 P1 | Phase 3 |
+| Ideation Agent | `agents/ideation/` | 🟢 P2 | — |
+| Intent Classifier | `agents/ideation/intent-classifier.ts` | 🟢 P2 | — |
+| SIA | `agents/sia/` | 🟢 P2 | — |
+| Build Agent | `coding-loops/agents/build_agent_worker.py` | 🟢 P2 | — |
+
+**P0 = Must audit before Phase 1 completes. P1 = Must audit before that phase. P2 = Audit incrementally.**
 
 ### What's Missing
 
@@ -36,7 +38,7 @@ Vibe is a self-evolving platform that transforms ideas into AI-managed SaaS prod
 |-----------|----------|------------|
 | Neo4j graph storage | P0 | Foundation for everything |
 | Prisma operational layer | P0 | Replace Drizzle |
-| FastAPI coordination layer | P1 | Agent-to-agent communication |
+| FastAPI coordination layer | P0 | Fast agent-to-agent communication |
 | North Star storage | P1 | Required for gap analysis |
 | Proactive Loop scheduler | P1 | Triggers gap analysis |
 | Proposal entity + flow | P1 | Gap → Proposal → Approval |
@@ -45,153 +47,158 @@ Vibe is a self-evolving platform that transforms ideas into AI-managed SaaS prod
 
 ## Tech Stack (Locked)
 
-| Layer | Technology | Decision |
-|-------|------------|----------|
-| Graph DB | Neo4j | ARCH-002 |
-| Operational DB | Postgres + Prisma | ARCH-006, ARCH-031 |
-| User-facing API | TypeScript | Existing |
-| Agent coordination | FastAPI (Python) | ARCH-032 |
-| Message Bus | SQLite-backed | Existing |
-| LLM (reasoning) | Claude Opus | — |
-| LLM (classification) | Claude Haiku | — |
-| Observability | Langfuse | ARCH-007 |
-| Agent framework | Pydantic AI | ARCH-008 |
+| Layer | Technology | Decision | Why |
+|-------|------------|----------|-----|
+| Graph DB | Neo4j | ARCH-002 | Complex traversals, relationship-first |
+| Operational DB | Postgres + Prisma | ARCH-006, ARCH-031 | Nested relations, visual tooling |
+| User-facing API | TypeScript | Existing | Web/chat interface |
+| Agent coordination | FastAPI (Python) | ARCH-032 | Faster, async-native, better for AI agents |
+| Message Bus | SQLite-backed | Existing | Async event pub/sub |
+| LLM (reasoning) | Claude Opus | — | Complex tasks, code generation |
+| LLM (classification) | Claude Haiku | — | Fast, cheap classification |
+| Observability | Langfuse | ARCH-007 | Trace all agent actions |
+| Agent framework | Pydantic AI | ARCH-008 | Typed outputs, structured tools |
+
+### External Dependencies
+
+| Service | Used For | Fallback |
+|---------|----------|----------|
+| Anthropic API | All LLM calls | Queue requests, retry with backoff |
+| Telegram API | Notifications, approvals | Log to console, queue for later |
+| Neo4j | Graph queries | None (critical) |
+| Postgres | Operational state | None (critical) |
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: Foundation (Weeks 1-3)
+### Phase 1: Foundation
 
-**Goal:** Solid storage layer, audited codebase.
+**Goal:** Solid storage layer, critical code audited.
 
 **Branch:** `foundation/neo4j-prisma`
 
-| Task | Details | Doc Reference |
-|------|---------|---------------|
-| Neo4j setup | Docker, schema, indexes | `02-NEO4J-SCHEMA.md` |
-| Prisma setup | Schema, migrations, client | `05-PHASE1-FOUNDATION.md` |
-| Code audit | Review all agents against ARCH | `04-CODE-AUDIT-CHECKLIST.md` |
-| Migration scripts | SQLite → Neo4j, Drizzle → Prisma | `05-PHASE1-FOUNDATION.md` |
-| FastAPI scaffold | Basic coordination endpoints | `05-PHASE1-FOUNDATION.md` |
+| Task | Acceptance Criteria |
+|------|---------------------|
+| Neo4j setup | 100 test blocks created, queries return in <50ms |
+| Prisma setup | Schema generated FROM existing Drizzle, all existing queries ported |
+| FastAPI scaffold | Health endpoint returns in <10ms, job trigger queues work |
+| P0 Code audit | Block Extractor, Memory Block Schema, Graph State Loader reviewed, issues documented |
+| Migration scripts | All blocks migrated, count matches, spot-check 10 random blocks manually |
 
-**Exit Criteria:**
-- [ ] Neo4j running with 9 block type schema
-- [ ] Prisma client generated, basic ops working
-- [ ] FastAPI health endpoint responding
-- [ ] All agents audited, issues documented
-- [ ] Migration scripts tested on copy of prod data
+**Vertical Slice (build first):**
+1. Create 1 hardcoded Knowledge block in Neo4j
+2. Query it back
+3. Store related Task in Prisma
+4. Trigger via FastAPI endpoint
+5. End-to-end works ugly before making it pretty
 
 ---
 
-### Phase 2: North Star + Proactive Loop (Weeks 4-6)
+### Phase 2: North Star + Proactive Loop
 
 **Goal:** System can analyze itself and propose improvements.
 
 **Branch:** `feature/proactive-loop`
 
-| Task | Details | Doc Reference |
-|------|---------|---------------|
-| North Star schema | Vision, capabilities, constraints in Neo4j | `07-NORTH-STAR-SCHEMA.md` |
-| Seed Vibe vision | Vibe as "idea #0" | — |
-| Proactive scheduler | Event-driven + daily cron fallback | ARCH-013 |
-| Gap Analysis trigger | Connect existing agent to scheduler | — |
-| Proposal entity | Schema, storage, lifecycle | `06-PROACTIVE-LOOP-SPEC.md` |
-| Notification flow | Telegram-primary | ARCH-020 |
-| Human escalation | Questions when agents stuck | `06-PROACTIVE-LOOP-SPEC.md` |
+| Task | Acceptance Criteria |
+|------|---------------------|
+| North Star schema | Vision, capabilities, constraints stored as blocks in Neo4j |
+| Seed Vibe vision | At least 10 North Star blocks defining what Vibe should become |
+| Proactive scheduler | Triggers gap analysis on events + daily fallback |
+| Gap Analysis trigger | Finds "decisions lacking evidence" (ARCH-027 MVP) |
+| Proposal entity | Proposals stored with status lifecycle |
+| Notification flow | Telegram message sent, human can reply |
+| Human escalation | Questions sent when stuck, answers flow back |
 
-**Exit Criteria:**
-- [ ] North Star seeded with Vibe vision
-- [ ] Scheduler triggers gap analysis daily
-- [ ] Proposals stored in Neo4j
-- [ ] Notifications sent to Telegram
-- [ ] Human can approve/reject via chat
-- [ ] System asks questions when stuck
+**Vertical Slice (build first):**
+1. Hardcode 1 gap: "Decision X has no evidence"
+2. Generate 1 proposal: "Research evidence for X"
+3. Log to console (not Telegram yet)
+4. Hardcode approval
+5. Mark proposal executed
+6. Then add Telegram, real gap analysis, etc.
+
+**Error Handling:**
+| Failure | Recovery |
+|---------|----------|
+| Gap Analysis fails | Log error, retry next cycle, alert if 3 failures |
+| Telegram notification fails | Queue message, retry with backoff, log to console |
+| Human doesn't respond (24h) | Re-notify with escalation flag |
+| Debate agents disagree (3 rounds) | Escalate to human with both positions |
 
 ---
 
-### Phase 3: Coordination + Parallelism (Weeks 7-9)
+### Phase 3: Coordination + Parallelism
 
 **Goal:** Multiple loops running in parallel, coordinated.
 
 **Branch:** `feature/parallel-coordination`
 
-| Task | Details | Doc Reference |
-|------|---------|---------------|
-| Message Bus integration | Connect all agents to bus | Existing code |
-| FastAPI endpoints | Job triggers, status, health | — |
-| Loop coordination | Parallel execution, conflict prevention | ARCH-015 |
-| Monitor Agent | Health checks, stuck detection | — |
-| PM Agent | Conflict resolution, priorities | — |
-| Git strategy | Branch-per-loop, task checkpoints | ARCH-016 |
+**Pre-requisite:** Validate existing parallelism works.
 
-**Exit Criteria:**
-- [ ] 3 loops running in parallel
-- [ ] No file conflicts (locking works)
-- [ ] Monitor detects stuck loops
-- [ ] PM resolves conflicts
-- [ ] Git branches auto-managed
+| Task | Acceptance Criteria |
+|------|---------------------|
+| Parallelism stress test | Run 3 loops simultaneously for 1 hour, no deadlocks, no file conflicts |
+| Message Bus integration | All agents publish/subscribe, events delivered in <100ms |
+| FastAPI endpoints | Job trigger, status query, health check all working |
+| Loop coordination | File locking prevents conflicts, PM Agent resolves priorities |
+| Monitor Agent | Detects stuck loop within 5 minutes, alerts |
+| Git strategy | Each loop has branch, merges don't conflict |
+
+**Error Handling:**
+| Failure | Recovery |
+|---------|----------|
+| Loop stuck >15min | Monitor kills loop, restarts from last checkpoint |
+| File lock timeout | Release lock, retry, escalate if 3 failures |
+| Git merge conflict | PM Agent pauses conflicting loop, human resolves |
 
 ---
 
-### Phase 4: Verification + Safety (Weeks 10-12)
+### Phase 4: Verification + Safety
 
 **Goal:** Production-ready safety and human interface.
 
 **Branch:** `feature/verification-gate`
 
-| Task | Details | Doc Reference |
-|------|---------|---------------|
-| Verification Gate | Independent validation of outputs | — |
-| Auto-debate | Red team vets proposals | ARCH-023 |
-| Evidence system | 3-tier confidence | ARCH-024 |
-| CLI interface | Status, pause, resume, decide | — |
-| Rejection learning | Track why, adapt future | ARCH-029 |
-| Autonomy tiers | Auto-approve knowledge only | ARCH-030 |
-
-**Exit Criteria:**
-- [ ] All code changes pass verification
-- [ ] Proposals debated before human sees
-- [ ] Evidence confidence tracked
-- [ ] CLI can control system
-- [ ] Rejections inform future proposals
+| Task | Acceptance Criteria |
+|------|---------------------|
+| Verification Gate | All code changes pass TypeScript compile + tests before merge |
+| Auto-debate | Proposals debated, >70% pass rate (weak proposals filtered) |
+| Evidence system | 3-tier confidence tracked, auto-upgrades when evidence added |
+| CLI interface | Can view status, pause loops, resume, approve/reject proposals |
+| Rejection learning | Rejected proposals stored with reason, similar proposals avoided |
+| Autonomy tiers | Knowledge auto-approved, code requires human approval |
 
 ---
 
-## Parallel Workstreams
+## Outcome Metrics (Not Output Metrics)
 
-The coding-loops system already supports parallelism:
+| Metric | Target | Why |
+|--------|--------|-----|
+| Proposal acceptance rate | >50% | System proposes useful things |
+| Time from gap to resolution | <48h for P1 gaps | System moves fast |
+| Human intervention frequency | Decreasing trend | System learns |
+| Loop stuck rate | <5% of cycles | System is reliable |
+| False positive gaps | <20% | Gap analysis is accurate |
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    PARALLEL EXECUTION                        │
-├─────────────────────────────────────────────────────────────┤
-│  Loop 1: Critical Path    │  UFS → Spec → Build             │
-│  Loop 2: Infrastructure   │  Auth → Credits → Hosting       │
-│  Loop 3: Polish           │  Monitoring → E2E → PWA         │
-├─────────────────────────────────────────────────────────────┤
-│                    COORDINATION LAYER                        │
-│  Message Bus  │  File Locking  │  PM Agent  │  Monitor      │
-└─────────────────────────────────────────────────────────────┘
-```
+---
 
-Each phase of this plan should leverage parallel execution where possible.
+## Cost Budget
+
+| Operation | Estimated Cost | Cap |
+|-----------|----------------|-----|
+| Gap Analysis (Opus) | ~$0.10/run | $5/day |
+| Proposal Generation (Opus) | ~$0.15/proposal | $10/day |
+| Intent Classification (Haiku) | ~$0.001/call | $1/day |
+| Debate (Opus x2) | ~$0.30/debate | $15/day |
+| **Total** | — | **$30/day max** |
+
+If approaching cap: reduce debate frequency, batch gap analysis, skip low-priority proposals.
 
 ---
 
 ## The Bidirectional Loop
-
-The proactive loop is not one-way. It handles:
-
-### System → Human
-- Proposals for improvements
-- Decisions needing approval
-- Status updates
-
-### Human → System (via questions)
-- Architecture clarifications when stuck
-- Coding decisions when blocked
-- Priority guidance
 
 ```
 ┌─────────┐                      ┌─────────┐
@@ -203,41 +210,51 @@ The proactive loop is not one-way. It handles:
 └─────────┘                      └─────────┘
 ```
 
-This ensures the system never stays stuck silently.
+### Escalation SLA
+
+| Stuck Duration | Action |
+|----------------|--------|
+| 5 minutes | Log to debug |
+| 15 minutes | Publish to message bus |
+| 30 minutes | Send Telegram question |
+| 2 hours | Re-send with URGENT flag |
+| 8 hours | Pause loop, await human |
+
+### Question Format
+
+```
+❓ *[AGENT_NAME] needs help*
+
+**Task:** [task title]
+**Stuck on:** [specific blocker]
+
+**Question:**
+[Clear, specific question]
+
+**Options (if applicable):**
+A) [option 1]
+B) [option 2]
+
+**Context:** [link to relevant blocks]
+
+Reply with your answer or A/B.
+```
 
 ---
 
-## Risk Mitigation
+## Testing Strategy
 
-| Risk | Mitigation |
-|------|------------|
-| Migration breaks existing functionality | Branch strategy, extensive testing on data copy |
-| Code audit reveals major issues | Document issues, prioritize by impact |
-| Neo4j learning curve | Start with simple queries, expand gradually |
-| Parallel loops conflict | Message bus + file locking already built |
-| Scope creep | Strict phase gates, defer nice-to-haves |
+| Level | What | How |
+|-------|------|-----|
+| Unit | Individual functions | Vitest for TS, pytest for Python |
+| Integration | Agent + DB interactions | Test containers (Neo4j, Postgres) |
+| E2E Loop | Full cycle gap→proposal→execute | Scripted scenario, mock Telegram |
+| Stress | Parallel loops under load | 3 loops, 100 tasks, 1 hour |
 
----
-
-## Success Metrics
-
-### Phase 1 Complete
-- [ ] Storage layer fully migrated
-- [ ] Zero data loss
-- [ ] All existing tests pass
-
-### Phase 2 Complete
-- [ ] System proposes at least 1 improvement per day
-- [ ] Human can approve/reject via Telegram
-- [ ] System asks for help when stuck
-
-### Phase 3 Complete
-- [ ] 3 loops running concurrently
-- [ ] No deadlocks for 1 week
-
-### Phase 4 Complete
-- [ ] MVP loop "decisions lacking evidence" running (ARCH-027)
-- [ ] Full cycle: gap → proposal → debate → approve → execute → verify
+**Coverage targets:**
+- Unit: 70% line coverage on new code
+- Integration: All happy paths + top 3 error paths
+- E2E: 1 full cycle test per phase
 
 ---
 
@@ -249,6 +266,8 @@ This ensures the system never stays stuck silently.
          ├── 01-CODE-FRAMEWORK-MAP.md (what exists)
          │
          ├── 02-NEO4J-SCHEMA.md (graph schema)
+         │
+         ├── 07-NORTH-STAR-SCHEMA.md (vision structure) ← NEW
          │
          └── 03-CONSOLIDATED-PLAN.md (this doc)
                   │
@@ -266,6 +285,7 @@ This ensures the system never stays stuck silently.
 | Date | Change | Author |
 |------|--------|--------|
 | 2026-02-05 | Initial creation | AI Agent (Kai) |
+| 2026-02-05 | Added: acceptance criteria, error handling, cost budget, testing strategy, escalation SLA, outcome metrics, external deps | AI Agent (Kai) |
 
 ---
 

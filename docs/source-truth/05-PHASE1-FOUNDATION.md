@@ -12,23 +12,31 @@ Phase 1 establishes the solid storage foundation everything else builds on:
 
 1. **Neo4j** — Graph database for knowledge (blocks, relationships)
 2. **Prisma** — Postgres ORM for operational state (tasks, sessions, users)
-3. **FastAPI** — Python coordination layer for agent communication
-4. **Code Audit** — Align existing code with ARCH decisions
+3. **FastAPI** — Python coordination layer for fast agent-to-agent communication
 
 **Branch:** `foundation/neo4j-prisma`
 
-**Duration:** Weeks 1-3
+---
+
+## Vertical Slice First
+
+Before building each component fully, get end-to-end working ugly:
+
+```
+1. Create 1 Knowledge block in Neo4j manually
+2. Query it back via TypeScript
+3. Store related Task in Prisma
+4. Trigger a job via FastAPI endpoint
+5. Verify the chain works
+```
+
+Then expand each piece.
 
 ---
 
 ## 1. Neo4j Setup
 
 ### 1.1 Local Development
-
-```bash
-# Docker Compose for local dev
-docker-compose -f docker-compose.neo4j.yml up -d
-```
 
 ```yaml
 # docker-compose.neo4j.yml
@@ -44,11 +52,13 @@ services:
       - NEO4J_PLUGINS=["apoc"]
     volumes:
       - neo4j_data:/data
-      - neo4j_logs:/logs
 
 volumes:
   neo4j_data:
-  neo4j_logs:
+```
+
+```bash
+docker-compose -f docker-compose.neo4j.yml up -d
 ```
 
 ### 1.2 Schema Application
@@ -56,17 +66,16 @@ volumes:
 Apply schema from `02-NEO4J-SCHEMA.md`:
 
 ```bash
-# Run schema setup script
 npm run neo4j:schema
 ```
 
-Script should:
-1. Create constraints (Block id unique)
-2. Create indexes (session, status, title, etc.)
-3. Create full-text search index
-4. Verify with test queries
+**Acceptance Criteria:**
+- [ ] Constraints created (Block id unique)
+- [ ] All indexes created
+- [ ] Full-text search index works
+- [ ] Test query returns in <50ms
 
-### 1.3 Connection Configuration
+### 1.3 Connection Config
 
 ```typescript
 // config/neo4j.ts
@@ -79,30 +88,24 @@ export const driver = neo4j.driver(
     process.env.NEO4J_PASSWORD || 'localdevpassword'
   )
 );
-
-export async function getSession() {
-  return driver.session();
-}
 ```
 
-### 1.4 Verification Queries
+### 1.4 Verification
 
 ```cypher
-// Verify schema
-SHOW CONSTRAINTS;
-SHOW INDEXES;
-
-// Test block creation
+// Create test block
 CREATE (b:Block:Knowledge {
   id: 'test-001',
   sessionId: 'test-session',
   title: 'Test block',
   content: 'Test content',
   status: 'active',
-  createdAt: datetime(),
-  updatedAt: datetime()
+  createdAt: datetime()
 })
 RETURN b;
+
+// Query it back
+MATCH (b:Block {id: 'test-001'}) RETURN b;
 
 // Cleanup
 MATCH (b:Block {id: 'test-001'}) DELETE b;
@@ -112,17 +115,31 @@ MATCH (b:Block {id: 'test-001'}) DELETE b;
 
 ## 2. Prisma Setup
 
-### 2.1 Installation
+### 2.1 Generate From Existing Drizzle
+
+**Do not design from scratch.** Introspect existing schema:
 
 ```bash
+# Step 1: Export existing Drizzle schema
+npm run drizzle:introspect > existing-schema.sql
+
+# Step 2: Initialize Prisma
 npm install prisma @prisma/client
 npx prisma init
+
+# Step 3: Point Prisma at existing DB and introspect
+npx prisma db pull
 ```
 
-### 2.2 Schema Definition
+This generates `prisma/schema.prisma` matching existing data.
+
+### 2.2 Refine Schema
+
+After introspection, add Prisma features:
 
 ```prisma
-// prisma/schema.prisma
+// prisma/schema.prisma (refined from introspection)
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -132,8 +149,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// === Operational State ===
-
+// Keep existing tables, add relations
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -142,184 +158,139 @@ model User {
   updatedAt DateTime @updatedAt
   
   sessions  Session[]
-  ideas     Idea[]
 }
 
 model Session {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  channel   String   // telegram, web, cli
-  kind      String   // main, isolated, sub-agent
+  channel   String
+  kind      String
   createdAt DateTime @default(now())
-  lastActivityAt DateTime @updatedAt
   
-  messages  Message[]
   tasks     Task[]
-}
-
-model Message {
-  id        String   @id @default(uuid())
-  sessionId String
-  session   Session  @relation(fields: [sessionId], references: [id])
-  role      String   // user, assistant, system, tool
-  content   String
-  timestamp DateTime @default(now())
-  
-  // Tool-specific
-  toolCallId String?
-  toolName   String?
-  toolResult Json?
-}
-
-model Idea {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  name        String
-  description String?
-  status      String   @default("draft") // draft, active, validated, archived
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  tasks       Task[]
 }
 
 model Task {
   id          String   @id @default(uuid())
   sessionId   String?
   session     Session? @relation(fields: [sessionId], references: [id])
-  ideaId      String?
-  idea        Idea?    @relation(fields: [ideaId], references: [id])
-  
   title       String
-  description String?
-  status      String   @default("pending") // pending, in_progress, completed, blocked, failed
-  priority    String   @default("P2") // P0, P1, P2, P3
-  
-  // Execution tracking
-  assignedTo  String?  // agent or loop name
-  startedAt   DateTime?
-  completedAt DateTime?
-  error       String?
-  
+  status      String   @default("pending")
+  priority    String   @default("P2")
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
   
-  // Self-referential for subtasks
+  // Subtasks
   parentId    String?
-  parent      Task?    @relation("TaskSubtasks", fields: [parentId], references: [id])
-  subtasks    Task[]   @relation("TaskSubtasks")
-}
-
-// === Coordination State ===
-
-model AgentHealth {
-  id          String   @id @default(uuid())
-  agentName   String   @unique
-  status      String   // healthy, degraded, unhealthy
-  lastPing    DateTime @default(now())
-  errorCount  Int      @default(0)
-  lastError   String?
+  parent      Task?    @relation("Subtasks", fields: [parentId], references: [id])
+  subtasks    Task[]   @relation("Subtasks")
 }
 
 model ApprovalRequest {
   id          String   @id @default(uuid())
   proposalId  String   // References Neo4j Proposal block
-  status      String   @default("pending") // pending, approved, rejected
+  status      String   @default("pending")
   requestedAt DateTime @default(now())
   decidedAt   DateTime?
-  decidedBy   String?
-  reason      String?  // Rejection reason
+  reason      String?
+}
+
+model AgentHealth {
+  id          String   @id @default(uuid())
+  agentName   String   @unique
+  status      String
+  lastPing    DateTime @default(now())
+  errorCount  Int      @default(0)
 }
 ```
 
-### 2.3 Migration
+### 2.3 Generate Client
 
 ```bash
-# Generate migration
-npx prisma migrate dev --name init
-
-# Generate client
 npx prisma generate
 ```
 
-### 2.4 Client Usage
+### 2.4 Verification
 
 ```typescript
-// utils/prisma.ts
 import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 
-export const prisma = new PrismaClient();
-
-// Example: Create task with subtasks
+// Test nested create
 const task = await prisma.task.create({
   data: {
-    title: 'Implement feature X',
-    status: 'pending',
+    title: 'Test task',
     subtasks: {
       create: [
-        { title: 'Design API', status: 'pending' },
-        { title: 'Write tests', status: 'pending' },
-        { title: 'Implement', status: 'pending' },
+        { title: 'Subtask 1' },
+        { title: 'Subtask 2' },
       ]
     }
   },
   include: { subtasks: true }
 });
+
+console.log(task); // Should show task with 2 subtasks
 ```
+
+**Acceptance Criteria:**
+- [ ] Schema generated from existing DB
+- [ ] All existing data accessible via Prisma
+- [ ] Nested creates work
+- [ ] No data loss
 
 ---
 
 ## 3. FastAPI Setup
 
-### 3.1 Project Structure
+### 3.1 Why FastAPI?
+
+Per ARCH-032, FastAPI for agent coordination because:
+- **Faster** than Flask/Django for async operations
+- **Better for AI agents** — async-native, handles concurrent requests well
+- **Auto-docs** — OpenAPI generated automatically
+- **Pydantic** — Already using for agent framework (ARCH-008)
+
+### 3.2 Project Structure
 
 ```
 coding-loops/
 ├── api/
 │   ├── __init__.py
-│   ├── main.py           # FastAPI app
+│   ├── main.py
 │   ├── routes/
-│   │   ├── health.py     # Health checks
-│   │   ├── jobs.py       # Job triggers
-│   │   └── status.py     # Agent status
+│   │   ├── health.py
+│   │   ├── jobs.py
+│   │   └── agents.py
 │   └── models/
-│       └── schemas.py    # Pydantic models
-├── shared/
-│   └── ... (existing)
-└── requirements.txt      # Add fastapi, uvicorn
+│       └── schemas.py
+└── requirements.txt
 ```
 
-### 3.2 Main App
+### 3.3 Main App
 
 ```python
 # coding-loops/api/main.py
 from fastapi import FastAPI
-from api.routes import health, jobs, status
+from api.routes import health, jobs, agents
 
 app = FastAPI(
     title="Vibe Agent Coordination API",
-    description="Internal API for agent-to-agent communication",
+    description="Fast internal API for agent-to-agent communication",
     version="1.0.0"
 )
 
 app.include_router(health.router, prefix="/health", tags=["Health"])
 app.include_router(jobs.router, prefix="/jobs", tags=["Jobs"])
-app.include_router(status.router, prefix="/status", tags=["Status"])
-
-@app.get("/")
-async def root():
-    return {"service": "vibe-coordination", "status": "running"}
+app.include_router(agents.router, prefix="/agents", tags=["Agents"])
 ```
 
-### 3.3 Health Routes
+### 3.4 Health Routes
 
 ```python
 # coding-loops/api/routes/health.py
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import Dict, Any
 from datetime import datetime
 
 router = APIRouter()
@@ -327,258 +298,244 @@ router = APIRouter()
 class HealthResponse(BaseModel):
     status: str
     timestamp: datetime
-    components: Dict[str, Any]
+    latency_ms: float
 
 @router.get("/", response_model=HealthResponse)
 async def health_check():
+    start = datetime.utcnow()
+    # Quick DB ping here
+    latency = (datetime.utcnow() - start).total_seconds() * 1000
     return HealthResponse(
         status="healthy",
         timestamp=datetime.utcnow(),
-        components={
-            "neo4j": await check_neo4j(),
-            "postgres": await check_postgres(),
-            "message_bus": await check_message_bus(),
-        }
+        latency_ms=latency
     )
-
-@router.get("/agent/{agent_name}")
-async def agent_health(agent_name: str):
-    # Query agent health from DB
-    pass
 ```
 
-### 3.4 Job Routes
+### 3.5 Job Routes
 
 ```python
 # coding-loops/api/routes/jobs.py
 from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
+import uuid
 
 router = APIRouter()
 
 class JobTrigger(BaseModel):
-    job_type: str  # gap_analysis, build, etc.
+    job_type: str  # gap_analysis, build, proposal, etc.
     target_id: Optional[str] = None
     params: Optional[dict] = None
 
 class JobResponse(BaseModel):
     job_id: str
     status: str
-    message: str
 
 @router.post("/trigger", response_model=JobResponse)
 async def trigger_job(trigger: JobTrigger, background_tasks: BackgroundTasks):
-    job_id = generate_job_id()
+    job_id = str(uuid.uuid4())
     background_tasks.add_task(execute_job, job_id, trigger)
-    return JobResponse(
-        job_id=job_id,
-        status="queued",
-        message=f"Job {trigger.job_type} queued"
-    )
+    return JobResponse(job_id=job_id, status="queued")
 
-@router.get("/{job_id}/status")
-async def job_status(job_id: str):
-    # Query job status
+@router.get("/{job_id}")
+async def get_job_status(job_id: str):
+    # Query job status from DB
     pass
 ```
 
-### 3.5 Running the API
+### 3.6 Agent Status Routes
+
+```python
+# coding-loops/api/routes/agents.py
+from fastapi import APIRouter
+from pydantic import BaseModel
+from typing import List
+from datetime import datetime
+
+router = APIRouter()
+
+class AgentStatus(BaseModel):
+    name: str
+    status: str
+    last_ping: datetime
+    current_task: Optional[str]
+
+@router.get("/", response_model=List[AgentStatus])
+async def list_agents():
+    # Query from AgentHealth table
+    pass
+
+@router.post("/{agent_name}/ping")
+async def agent_ping(agent_name: str):
+    # Update last_ping
+    pass
+
+@router.post("/{agent_name}/stuck")
+async def report_stuck(agent_name: str, reason: str):
+    # Trigger escalation
+    pass
+```
+
+### 3.7 Run
 
 ```bash
-# Add to requirements.txt
-fastapi>=0.109.0
-uvicorn>=0.27.0
-pydantic>=2.0.0
-
-# Run
 cd coding-loops
+pip install fastapi uvicorn pydantic
 uvicorn api.main:app --reload --port 8001
 ```
+
+**Acceptance Criteria:**
+- [ ] Health endpoint returns in <10ms
+- [ ] Job trigger queues successfully
+- [ ] OpenAPI docs at `/docs`
+- [ ] Agent ping updates health table
 
 ---
 
 ## 4. Migration Scripts
 
-### 4.1 SQLite → Neo4j (Blocks)
+### 4.1 SQLite Blocks → Neo4j
 
 ```typescript
 // scripts/migrate-blocks-to-neo4j.ts
 import { db } from '../database';
-import { getSession } from '../config/neo4j';
+import { driver } from '../config/neo4j';
+
+const TYPE_MAPPING: Record<string, string> = {
+  'content': 'Knowledge',
+  'synthesis': 'Knowledge',
+  'pattern': 'Knowledge',
+  'decision': 'Decision',
+  'option': 'Decision',
+  'assumption': 'Assumption',
+  'action': 'Task',
+  'external': 'Evidence',
+  // Add all mappings from 02-NEO4J-SCHEMA.md
+};
 
 async function migrateBlocks() {
-  const session = await getSession();
-  
-  // Get all blocks from SQLite
+  const session = driver.session();
   const blocks = await db.query.memoryBlocks.findMany();
   
   console.log(`Migrating ${blocks.length} blocks...`);
   
+  let migrated = 0;
+  let errors = 0;
+  
   for (const block of blocks) {
-    // Map old type to new 9 types
-    const newType = mapBlockType(block.type);
-    
-    await session.run(`
-      CREATE (b:Block:${newType} {
-        id: $id,
-        sessionId: $sessionId,
-        ideaId: $ideaId,
-        title: $title,
-        content: $content,
-        status: $status,
-        confidence: $confidence,
-        createdAt: datetime($createdAt),
-        updatedAt: datetime($updatedAt)
-      })
-    `, {
-      id: block.id,
-      sessionId: block.sessionId,
-      ideaId: block.ideaId,
-      title: block.title,
-      content: block.content,
-      status: block.status || 'active',
-      confidence: block.confidence || 0.5,
-      createdAt: block.createdAt,
-      updatedAt: block.updatedAt,
-    });
+    try {
+      const newType = TYPE_MAPPING[block.type] || 'Knowledge';
+      
+      await session.run(`
+        CREATE (b:Block:${newType} {
+          id: $id,
+          sessionId: $sessionId,
+          ideaId: $ideaId,
+          title: $title,
+          content: $content,
+          status: $status,
+          confidence: $confidence,
+          properties: $properties,
+          createdAt: datetime($createdAt),
+          updatedAt: datetime($updatedAt)
+        })
+      `, {
+        id: block.id,
+        sessionId: block.sessionId || 'default',
+        ideaId: block.ideaId,
+        title: block.title || '',
+        content: block.content || '',
+        status: block.status || 'active',
+        confidence: block.confidence || 0.5,
+        properties: JSON.stringify({ migratedFrom: block.type }),
+        createdAt: block.createdAt?.toISOString() || new Date().toISOString(),
+        updatedAt: block.updatedAt?.toISOString() || new Date().toISOString(),
+      });
+      
+      migrated++;
+    } catch (err) {
+      console.error(`Failed to migrate block ${block.id}:`, err);
+      errors++;
+    }
   }
   
-  console.log('Block migration complete');
+  console.log(`Migration complete: ${migrated} migrated, ${errors} errors`);
   await session.close();
 }
-
-function mapBlockType(oldType: string): string {
-  const mapping: Record<string, string> = {
-    'content': 'Knowledge',
-    'synthesis': 'Knowledge',
-    'pattern': 'Knowledge',
-    'decision': 'Decision',
-    'option': 'Decision',
-    'assumption': 'Assumption',
-    'action': 'Task',
-    'external': 'Evidence',
-    // ... etc from 02-NEO4J-SCHEMA.md
-  };
-  return mapping[oldType] || 'Knowledge';
-}
 ```
 
-### 4.2 Drizzle → Prisma (Operational)
-
-```typescript
-// scripts/migrate-drizzle-to-prisma.ts
-import { db as drizzleDb } from '../database';
-import { prisma } from '../utils/prisma';
-
-async function migrateOperational() {
-  // Migrate users
-  const users = await drizzleDb.query.users.findMany();
-  for (const user of users) {
-    await prisma.user.create({
-      data: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        createdAt: user.createdAt,
-      }
-    });
-  }
-  
-  // Migrate sessions
-  const sessions = await drizzleDb.query.sessions.findMany();
-  for (const session of sessions) {
-    await prisma.session.create({
-      data: {
-        id: session.id,
-        userId: session.userId,
-        channel: session.channel || 'web',
-        kind: session.kind || 'main',
-        createdAt: session.createdAt,
-      }
-    });
-  }
-  
-  // Migrate tasks
-  const tasks = await drizzleDb.query.tasks.findMany();
-  for (const task of tasks) {
-    await prisma.task.create({
-      data: {
-        id: task.id,
-        sessionId: task.sessionId,
-        ideaId: task.ideaId,
-        title: task.title,
-        description: task.description,
-        status: task.status,
-        priority: task.priority || 'P2',
-        createdAt: task.createdAt,
-      }
-    });
-  }
-  
-  console.log('Operational data migration complete');
-}
-```
-
-### 4.3 Migration Validation
+### 4.2 Validation
 
 ```typescript
 // scripts/validate-migration.ts
-async function validateMigration() {
-  // Count comparison
-  const sqliteBlockCount = await db.query.memoryBlocks.findMany().then(b => b.length);
-  const neo4jBlockCount = await neo4jSession.run('MATCH (b:Block) RETURN count(b) as count')
-    .then(r => r.records[0].get('count').toNumber());
+async function validate() {
+  const sqliteCount = await db.query.memoryBlocks.findMany().then(b => b.length);
   
-  console.log(`SQLite blocks: ${sqliteBlockCount}`);
-  console.log(`Neo4j blocks: ${neo4jBlockCount}`);
+  const session = driver.session();
+  const neo4jResult = await session.run('MATCH (b:Block) RETURN count(b) as count');
+  const neo4jCount = neo4jResult.records[0].get('count').toNumber();
   
-  if (sqliteBlockCount !== neo4jBlockCount) {
-    throw new Error('Block count mismatch!');
+  console.log(`SQLite: ${sqliteCount}, Neo4j: ${neo4jCount}`);
+  
+  if (sqliteCount !== neo4jCount) {
+    console.error('❌ Count mismatch!');
+    process.exit(1);
   }
   
-  // Relationship validation
-  // ... similar checks for links
+  // Spot check 10 random blocks
+  const randomBlocks = await db.query.memoryBlocks.findMany({ limit: 10 });
+  for (const block of randomBlocks) {
+    const result = await session.run(
+      'MATCH (b:Block {id: $id}) RETURN b',
+      { id: block.id }
+    );
+    if (result.records.length === 0) {
+      console.error(`❌ Block ${block.id} not found in Neo4j`);
+      process.exit(1);
+    }
+    console.log(`✅ Block ${block.id} verified`);
+  }
   
   console.log('✅ Migration validated');
+  await session.close();
 }
 ```
 
 ---
 
-## 5. Exit Criteria Checklist
+## 5. Exit Criteria
 
 ### Neo4j
 - [ ] Docker container running
-- [ ] Schema applied (constraints + indexes)
-- [ ] Test block creation works
-- [ ] Full-text search works
-- [ ] Connection from TypeScript works
+- [ ] Schema applied, all indexes created
+- [ ] 100 test blocks created
+- [ ] Queries return in <50ms
+- [ ] TypeScript connection works
 
 ### Prisma
-- [ ] Schema defined
-- [ ] Migrations applied
-- [ ] Client generated
-- [ ] CRUD operations work
-- [ ] Nested creates work
+- [ ] Schema generated from existing Drizzle
+- [ ] All existing data accessible
+- [ ] Nested relations work
+- [ ] No data loss
 
 ### FastAPI
 - [ ] App starts on port 8001
-- [ ] Health endpoint responds
-- [ ] Job trigger endpoint works
-- [ ] OpenAPI docs at `/docs`
+- [ ] Health returns in <10ms
+- [ ] Job trigger works
+- [ ] Agent ping works
+- [ ] Docs at `/docs`
 
 ### Migration
-- [ ] Block migration script works
-- [ ] Operational data migrated
-- [ ] Validation passes
-- [ ] No data loss
+- [ ] All blocks migrated
+- [ ] Count matches
+- [ ] 10 random blocks spot-checked
+- [ ] Type mapping correct
 
 ### Code Audit
-- [ ] All components audited
+- [ ] P0 components audited
 - [ ] Issues documented
-- [ ] Blockers resolved
-- [ ] Major issues have tasks
+- [ ] Blockers have fix plan
 
 ---
 
@@ -587,6 +544,7 @@ async function validateMigration() {
 | Date | Change | Author |
 |------|--------|--------|
 | 2026-02-05 | Initial creation | AI Agent (Kai) |
+| 2026-02-05 | Simplified migration, clarified FastAPI purpose, generate Prisma from existing | AI Agent (Kai) |
 
 ---
 
