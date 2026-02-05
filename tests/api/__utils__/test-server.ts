@@ -7,26 +7,99 @@
 import express, { Express, Request, Response, NextFunction } from "express";
 import { vi } from "vitest";
 
-// Database mocks - must be set before imports
-const mockQuery = vi.fn();
-const mockRun = vi.fn();
-const mockGetOne = vi.fn();
+// Database mocks - defined outside vi.mock to avoid hoisting issues
+export const mockQuery = vi.fn();
+export const mockRun = vi.fn();
+export const mockGetOne = vi.fn();
 
-vi.mock("../../../database/db.js", () => ({
-  query: mockQuery,
-  run: mockRun,
-  getOne: mockGetOne,
-  getDb: vi.fn(() => ({
-    run: vi.fn(),
-    exec: vi.fn(() => []),
-  })),
-  saveDb: vi.fn(() => Promise.resolve()),
-  insert: vi.fn(),
-  update: vi.fn(),
-  remove: vi.fn(),
-  exec: vi.fn(),
-  closeDb: vi.fn(),
-  reloadDb: vi.fn(),
+vi.mock("../../../database/db.js", () => {
+  return {
+    query: (...args: unknown[]) => mockQuery(...args),
+    run: (...args: unknown[]) => mockRun(...args),
+    getOne: (...args: unknown[]) => mockGetOne(...args),
+    getDb: vi.fn(() => ({
+      run: vi.fn(),
+      exec: vi.fn(() => []),
+    })),
+    saveDb: vi.fn(() => Promise.resolve()),
+    insert: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    exec: vi.fn(),
+    closeDb: vi.fn(),
+    reloadDb: vi.fn(),
+  };
+});
+
+// Service mocks for observability services - use wrapper functions to avoid hoisting issues
+export const mockExecutionService = {
+  getExecution: vi.fn(),
+  listExecutions: vi.fn(),
+  getExecutionStats: vi.fn(),
+};
+
+export const mockTranscriptService = {
+  getTranscript: vi.fn(),
+  getTranscriptEntry: vi.fn(),
+};
+
+export const mockToolUseService = {
+  getToolUses: vi.fn(),
+  getToolUse: vi.fn(),
+  getToolSummary: vi.fn(),
+};
+
+export const mockAssertionService = {
+  getAssertions: vi.fn(),
+  getAssertion: vi.fn(),
+  getAssertionSummary: vi.fn(),
+};
+
+export const mockSkillService = {
+  getSkillTraces: vi.fn(),
+  getSkillTrace: vi.fn(),
+};
+
+export const mockMessageBusService = {
+  getLogs: vi.fn(),
+  getLog: vi.fn(),
+};
+
+export const mockCrossReferenceService = {
+  getCrossReferences: vi.fn(),
+};
+
+vi.mock("../../../server/services/observability/index.js", () => ({
+  executionService: {
+    getExecution: (...args: unknown[]) => mockExecutionService.getExecution(...args),
+    listExecutions: (...args: unknown[]) => mockExecutionService.listExecutions(...args),
+    getExecutionStats: (...args: unknown[]) => mockExecutionService.getExecutionStats(...args),
+  },
+  transcriptService: {
+    getTranscript: (...args: unknown[]) => mockTranscriptService.getTranscript(...args),
+    getTranscriptEntry: (...args: unknown[]) => mockTranscriptService.getTranscriptEntry(...args),
+  },
+  toolUseService: {
+    getToolUses: (...args: unknown[]) => mockToolUseService.getToolUses(...args),
+    getToolUse: (...args: unknown[]) => mockToolUseService.getToolUse(...args),
+    getToolSummary: (...args: unknown[]) => mockToolUseService.getToolSummary(...args),
+  },
+  assertionService: {
+    getAssertions: (...args: unknown[]) => mockAssertionService.getAssertions(...args),
+    getAssertion: (...args: unknown[]) => mockAssertionService.getAssertion(...args),
+    getAssertionSummary: (...args: unknown[]) => mockAssertionService.getAssertionSummary(...args),
+  },
+  skillService: {
+    getSkillTraces: (...args: unknown[]) => mockSkillService.getSkillTraces(...args),
+    getSkillTrace: (...args: unknown[]) => mockSkillService.getSkillTrace(...args),
+  },
+  messageBusService: {
+    getLogs: (...args: unknown[]) => mockMessageBusService.getLogs(...args),
+    getLog: (...args: unknown[]) => mockMessageBusService.getLog(...args),
+  },
+  crossReferenceService: {
+    getCrossReferences: (...args: unknown[]) => mockCrossReferenceService.getCrossReferences(...args),
+  },
 }));
 
 // Import observability routes after mocks
@@ -214,22 +287,62 @@ export function getMocks(): {
   mockQuery: typeof mockQuery;
   mockRun: typeof mockRun;
   mockGetOne: typeof mockGetOne;
+  mockExecutionService: typeof mockExecutionService;
+  mockTranscriptService: typeof mockTranscriptService;
+  mockToolUseService: typeof mockToolUseService;
+  mockAssertionService: typeof mockAssertionService;
+  mockSkillService: typeof mockSkillService;
+  mockMessageBusService: typeof mockMessageBusService;
+  mockCrossReferenceService: typeof mockCrossReferenceService;
 } {
-  return { mockQuery, mockRun, mockGetOne };
+  return {
+    mockQuery,
+    mockRun,
+    mockGetOne,
+    mockExecutionService,
+    mockTranscriptService,
+    mockToolUseService,
+    mockAssertionService,
+    mockSkillService,
+    mockMessageBusService,
+    mockCrossReferenceService,
+  };
 }
 
 /**
  * Reset all mocks to default behavior
  */
 export function resetMocks(): void {
+  // Reset database mocks
   mockQuery.mockReset();
   mockRun.mockReset();
   mockGetOne.mockReset();
+
+  // Reset service mocks
+  mockExecutionService.getExecution.mockReset();
+  mockExecutionService.listExecutions.mockReset();
+  mockExecutionService.getExecutionStats.mockReset();
+  mockTranscriptService.getTranscript.mockReset();
+  mockTranscriptService.getTranscriptEntry.mockReset();
+  mockToolUseService.getToolUses.mockReset();
+  mockToolUseService.getToolUse.mockReset();
+  mockToolUseService.getToolSummary.mockReset();
+  mockAssertionService.getAssertions.mockReset();
+  mockAssertionService.getAssertion.mockReset();
+  mockAssertionService.getAssertionSummary.mockReset();
+  mockSkillService.getSkillTraces.mockReset();
+  mockSkillService.getSkillTrace.mockReset();
+  mockMessageBusService.getLogs.mockReset();
+  mockMessageBusService.getLog.mockReset();
+  mockCrossReferenceService.getCrossReferences.mockReset();
 
   // Default implementations
   mockQuery.mockResolvedValue([]);
   mockRun.mockResolvedValue(undefined);
   mockGetOne.mockResolvedValue(null);
+  mockExecutionService.getExecution.mockResolvedValue(null);
+  mockExecutionService.listExecutions.mockResolvedValue([]);
+  mockExecutionService.getExecutionStats.mockResolvedValue({ activeRuns: 0, totalRuns: 0, failedRecent: 0 });
 }
 
 /**
@@ -299,6 +412,26 @@ export function mockExecution(execution: {
   completedCount?: number;
   failedCount?: number;
 }): void {
+  // Use service mock (new architecture)
+  mockExecutionService.getExecution.mockImplementation((id: string) => {
+    if (id === execution.id) {
+      return Promise.resolve({
+        id: execution.id,
+        taskListId: execution.taskListId,
+        runNumber: execution.runNumber,
+        status: execution.status,
+        startTime: execution.startedAt,
+        endTime: execution.completedAt || null,
+        waveCount: execution.waveCount || 0,
+        taskCount: execution.taskCount || 0,
+        completedCount: execution.completedCount || 0,
+        failedCount: execution.failedCount || 0,
+      });
+    }
+    return Promise.resolve(null);
+  });
+
+  // Also keep query mock for backwards compatibility
   mockQuery.mockImplementation((sql: string, params: unknown[]) => {
     if (sql.includes("FROM task_list_execution_runs WHERE id = ?")) {
       if (params[0] === execution.id) {
