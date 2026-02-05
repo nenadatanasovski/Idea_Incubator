@@ -4,13 +4,11 @@
 // =============================================================================
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { UnifiedLayout, IdeaPhase } from "../components/UnifiedLayout";
 import { ChatPanel, ChatMessage } from "../components/ChatPanel";
 import { ContentArea } from "../components/ContentArea";
-import { GraphContainer } from "../components/graph/GraphContainer";
-import { ArtifactPanel } from "../components/ideation/ArtifactPanel";
-import { Loader2 } from "lucide-react";
+import { Loader2, Network, FileText } from "lucide-react";
 
 // API response types
 interface PipelineState {
@@ -47,7 +45,6 @@ interface IdeationSession {
 
 export function UnifiedIdeaPage() {
   const { ideaId } = useParams<{ ideaId: string }>();
-  const navigate = useNavigate();
 
   // State
   const [pipelineState, setPipelineState] = useState<PipelineState | null>(null);
@@ -56,7 +53,8 @@ export function UnifiedIdeaPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isStreaming, setIsStreaming] = useState(false);
   const [agentActivity, setAgentActivity] = useState<string | undefined>();
-  const [error, setError] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_error, setError] = useState<string | null>(null);
 
   // Load pipeline state
   useEffect(() => {
@@ -259,16 +257,37 @@ export function UnifiedIdeaPage() {
     />
   );
 
-  // Render content area
+  // Render content area - placeholder implementations
+  // TODO: Wire these to actual graph/artifact loading hooks
   const renderGraph = () => (
-    <div className="h-full p-4">
-      <GraphContainer ideaId={ideaId || ""} />
+    <div className="h-full p-4 flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <Network className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+        <p className="text-gray-600 font-medium">Memory Graph</p>
+        <p className="text-sm text-gray-400 mt-1">
+          Knowledge extracted from conversations will appear here
+        </p>
+        <p className="text-xs text-gray-300 mt-4">
+          Idea: {ideaId}
+        </p>
+      </div>
     </div>
   );
 
   const renderArtifacts = () => (
-    <div className="h-full">
-      <ArtifactPanel sessionId={session?.id || ""} ideaId={ideaId || ""} />
+    <div className="h-full p-4 flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+        <p className="text-gray-600 font-medium">Artifacts</p>
+        <p className="text-sm text-gray-400 mt-1">
+          Generated specs, briefs, and documents will appear here
+        </p>
+        {session && (
+          <p className="text-xs text-gray-300 mt-4">
+            Session: {session.id}
+          </p>
+        )}
+      </div>
     </div>
   );
 
