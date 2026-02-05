@@ -871,6 +871,38 @@ export function mockMessageBusLogs(
     executionId?: string;
   }>,
 ): void {
+  // Use service mock (new architecture)
+  mockMessageBusService.getLogs.mockImplementation((options?: { limit?: number; offset?: number }) => {
+    const limit = options?.limit || 50;
+    const offset = options?.offset || 0;
+    const paginatedData = logs.slice(offset, offset + limit);
+    const hasMore = offset + paginatedData.length < logs.length;
+    
+    return Promise.resolve({
+      data: paginatedData.map((l) => ({
+        id: l.id,
+        eventId: `event-${l.id}`,
+        timestamp: new Date().toISOString(),
+        source: "test",
+        eventType: l.eventType,
+        correlationId: null,
+        humanSummary: l.humanSummary,
+        severity: l.severity,
+        category: "general",
+        transcriptEntryId: null,
+        taskId: null,
+        executionId: l.executionId || null,
+        payload: null,
+        createdAt: new Date().toISOString(),
+      })),
+      total: logs.length,
+      limit,
+      offset,
+      hasMore,
+    });
+  });
+
+  // Also keep query mock for backwards compatibility
   mockQuery.mockImplementation((sql: string) => {
     if (sql.includes("FROM message_bus_log")) {
       if (sql.includes("COUNT(*)")) {
