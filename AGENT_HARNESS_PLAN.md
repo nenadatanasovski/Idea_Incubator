@@ -567,6 +567,389 @@ requests.post(f"{DASHBOARD_URL}/api/tasks/TASK-042/complete", json={
 
 ---
 
+## Observability & Agent Logs UI (CRITICAL)
+
+> **This is the most important part of the UI.** Inspired by Vibe's PipelineDashboard, AgentsTab, and AgentSessionsView components.
+
+### Overview
+
+The Observability UI provides real-time visibility into:
+1. **Agent Status** - Health, current task, metrics
+2. **Event Stream** - Live feed of all events with filtering
+3. **Agent Sessions** - Loop iterations, log previews, checkpoints
+4. **Log Viewer** - Full log files with search and highlighting
+
+### Main Dashboard Layout
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  AGENT HARNESS DASHBOARD                              🟢 Connected   [⟳]   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  [Kanban] [Observability] [Analytics] [Settings]                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─── OBSERVABILITY TAB ─────────────────────────────────────────────────┐  │
+│  │  [Agent Status] [Event Stream] [Sessions] [Logs]                      │  │
+│  │                                                                        │  │
+│  │  ... content based on selected sub-tab ...                            │  │
+│  │                                                                        │  │
+│  └────────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Sub-Tab 1: Agent Status Cards
+
+Real-time health cards for each agent (like AgentsTab monitoring view):
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  AGENT STATUS                                     Last updated: 10:45:32    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐              │
+│  │ 🤖 ORCHESTRATOR │  │ 🔨 BUILD AGENT  │  │ 📋 SPEC AGENT   │              │
+│  │ Status: 🟢 Active│  │ Status: 🟢 Working│ │ Status: ⚪ Idle  │              │
+│  │ Model: Haiku    │  │ Model: Opus     │  │ Model: Opus     │              │
+│  │                 │  │                 │  │                 │              │
+│  │ Current Task:   │  │ Current Task:   │  │ Waiting for     │              │
+│  │ Tick #142       │  │ TASK-042        │  │ assignment      │              │
+│  │                 │  │ Fix candidate..  │  │                 │              │
+│  │ ─────────────── │  │ ─────────────── │  │ ─────────────── │              │
+│  │ Tasks: 0        │  │ Tasks: 12 ✅ 2 ❌│  │ Tasks: 8 ✅ 0 ❌ │              │
+│  │ Tokens: 45K/500K│  │ Tokens: 1.2M/2M │  │ Tokens: 400K/1M │              │
+│  │ Cost: $0.12     │  │ Cost: $42.50    │  │ Cost: $12.00    │              │
+│  │ Heartbeat: 5s   │  │ Heartbeat: 12s  │  │ Heartbeat: 45s  │              │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘              │
+│                                                                              │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐              │
+│  │ 🔍 QA AGENT     │  │ 📊 TASK AGENT   │  │ 🔬 RESEARCH     │              │
+│  │ Status: 🟡 Queue│  │ Status: 🟢 Working│ │ Status: ⚪ Idle  │              │
+│  │ Model: Opus     │  │ Model: Sonnet   │  │ Model: Sonnet   │              │
+│  │                 │  │                 │  │                 │              │
+│  │ Queued:         │  │ Current Task:   │  │ No active       │              │
+│  │ Verify TASK-042 │  │ Decompose       │  │ research        │              │
+│  │ (in 2 ticks)    │  │ EPIC-003        │  │ requests        │              │
+│  │ ─────────────── │  │ ─────────────── │  │ ─────────────── │              │
+│  │ Verified: 15    │  │ Created: 24     │  │ Searches: 8     │              │
+│  │ Rejected: 2     │  │ Decomposed: 5   │  │ Reports: 4      │              │
+│  │ Tokens: 380K/500K│ │ Tokens: 200K/500K│ │ Tokens: 50K/300K│              │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘              │
+│                                                                              │
+│  ┌─────────────────┐                                                        │
+│  │ 💡 SIA (Ideation)│                                                       │
+│  │ Status: 🔴 Error │  ⚠️ IntentClassifier API key issue                    │
+│  │ Model: Opus     │  Using fallback (not blocking)                         │
+│  │ ─────────────── │                                                        │
+│  │ Sessions: 3     │  [View Logs] [Restart Agent]                           │
+│  │ Ideas: 2        │                                                        │
+│  └─────────────────┘                                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Sub-Tab 2: Event Stream (Real-Time)
+
+Live feed of all events, inspired by ExecutionStream component:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  EVENT STREAM                                    [Auto-scroll: ON] [Clear]  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Filter: [All ▼] [Tasks ▼] [Agents ▼] [Tools ▼] [Errors ▼]   🔍 Search...  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  10:45:32  🟢 task:assigned     TASK-042 → Build Agent                      │
+│  10:45:33  🔧 tool:started      Build Agent: read_file                      │
+│                                 → agents/ideation/system-prompt.ts          │
+│  10:45:34  🔧 tool:completed    Build Agent: read_file (1.2s, 2.4KB)        │
+│  10:45:35  🔧 tool:started      Build Agent: edit_file                      │
+│                                 → agents/ideation/system-prompt.ts          │
+│  10:45:38  🔧 tool:completed    Build Agent: edit_file (+26 lines)          │
+│  10:45:38  📝 file:modified     system-prompt.ts                            │
+│                                 Diff: +26 / -0 lines [View Diff]            │
+│  10:45:39  🔧 tool:started      Build Agent: exec                           │
+│                                 → npm run typecheck                         │
+│  10:45:45  🔧 tool:completed    Build Agent: exec (exit 0, 6.1s)            │
+│  10:45:46  ✅ criteria:passed   TASK-042 criteria[0]: "System prompt..."    │
+│  10:45:46  ✅ criteria:passed   TASK-042 criteria[1]: "Add examples..."     │
+│  10:45:47  📋 task:progress     TASK-042: 2/4 criteria complete             │
+│  10:45:48  💬 telegram:sent     @vibe-build: "✏️ File Modified..."          │
+│  10:45:50  🔧 tool:started      Build Agent: exec                           │
+│                                 → git add -A && git commit -m "fix: ..."    │
+│  10:45:52  🔧 tool:completed    Build Agent: exec (exit 0, 2.1s)            │
+│  10:45:52  📝 git:commit        3af31af: "fix: strengthen candidateUpdate"  │
+│  10:45:53  💬 telegram:sent     @vibe-build: "📝 Commit: 3af31af..."        │
+│  10:46:00  ⏰ cron:tick         Tick #143: 3 agents working, 1 idle         │
+│  10:46:01  🔍 qa:scheduled      QA verification for TASK-042 (next tick)    │
+│                                                                              │
+│  ─────────────────────────── End of stream ───────────────────────────────  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Event Types:**
+| Category | Events |
+|----------|--------|
+| Task | `task:assigned`, `task:started`, `task:completed`, `task:failed`, `task:blocked`, `task:progress` |
+| Agent | `agent:started`, `agent:idle`, `agent:error`, `agent:heartbeat` |
+| Tool | `tool:started`, `tool:completed`, `tool:error` |
+| File | `file:read`, `file:modified`, `file:created`, `file:deleted` |
+| Git | `git:commit`, `git:push`, `git:branch`, `git:pr` |
+| QA | `qa:scheduled`, `qa:started`, `qa:passed`, `qa:failed` |
+| Cron | `cron:tick`, `cron:qa_cycle` |
+| Telegram | `telegram:sent`, `telegram:error` |
+
+### Sub-Tab 3: Agent Sessions View
+
+Loop iterations with expandable logs, inspired by AgentSessionsView:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  AGENT SESSIONS                                          [Refresh] [Export] │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Filter: [All Agents ▼] [Running ▼] [Last 24h ▼]         🔍 Search...      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ▼ SESSION-001: Build Agent Alpha                                           │
+│    Status: 🟢 Running    Started: 2h ago    Tasks: 12 ✅ 2 ❌               │
+│    Task List: API Implementation    Current: Iteration 3                    │
+│                                                                              │
+│    Loop Iterations:                                                          │
+│    ┌──────┬──────────┬────────┬───────┬────────────────────────────────────┐│
+│    │ Iter │ Status   │ Tasks  │ Time  │ Log Preview                        ││
+│    ├──────┼──────────┼────────┼───────┼────────────────────────────────────┤│
+│    │  1   │ ✅ Done  │ 5/5    │ 10min │ ✓ Created endpoint /api/users     ││
+│    │      │          │        │       │ ✓ Added validation middleware     ││
+│    │      │          │        │       │ ✓ Generated types                 ││
+│    │      │          │        │       │ [View Full Log]                   ││
+│    ├──────┼──────────┼────────┼───────┼────────────────────────────────────┤│
+│    │  2   │ ❌ Failed│ 3/5    │ 13min │ ✓ Updated database schema         ││
+│    │      │          │        │       │ ✗ Test suite failed               ││
+│    │      │          │        │       │ TypeError: Cannot read 'id'...    ││
+│    │      │          │        │       │ [View Full Log] [View Errors]     ││
+│    ├──────┼──────────┼────────┼───────┼────────────────────────────────────┤│
+│    │  3   │ 🔄 Active│ 4/?    │ 8min  │ ✓ Fixed auth.ts type error        ││
+│    │      │          │        │       │ ✓ Updated test mocks              ││
+│    │      │          │        │       │ ▶ Running integration tests...    ││
+│    │      │          │        │       │ [View Live Log]                   ││
+│    └──────┴──────────┴────────┴───────┴────────────────────────────────────┘│
+│                                                                              │
+│  ▶ SESSION-002: Spec Agent                                                  │
+│    Status: ✅ Completed    Duration: 45min    Tasks: 8 ✅ 0 ❌              │
+│                                                                              │
+│  ▶ SESSION-003: QA Agent                                                    │
+│    Status: 🟡 Queued    Waiting: Verify TASK-042                            │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Sub-Tab 4: Log Viewer Modal
+
+Full log viewing with search and syntax highlighting:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  LOG: Build Agent - Session 001 - Iteration 3                    [X Close] │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  🔍 Search: [candidateUpdate          ]  [Prev] [Next]  Matches: 3         │
+│  Filter: [All ▼]   [Show timestamps ☑]  [Wrap lines ☑]  [Download]        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  [10:42:15] === ITERATION 3 STARTED ===                                     │
+│  [10:42:15] Task: TASK-042 - Fix candidateUpdate not triggering            │
+│  [10:42:15] Pass Criteria:                                                  │
+│  [10:42:15]   [ ] Strengthen system prompt instructions                    │
+│  [10:42:15]   [ ] Add explicit candidateUpdate examples                    │
+│  [10:42:15]   [ ] Verify with E2E test                                     │
+│  [10:42:15]   [ ] QA Agent confirms fix                                    │
+│  [10:42:16]                                                                 │
+│  [10:42:16] > Reading file: agents/ideation/system-prompt.ts               │
+│  [10:42:17] < File read: 24,892 bytes                                      │
+│  [10:42:18]                                                                 │
+│  [10:42:18] Analyzing current candidateUpdate instructions...              │ ← HIGHLIGHTED
+│  [10:42:19] Found: candidateUpdate mentioned but no usage guidelines       │ ← HIGHLIGHTED
+│  [10:42:20]                                                                 │
+│  [10:42:20] > Editing file: agents/ideation/system-prompt.ts               │
+│  [10:42:21] + Added section: "CANDIDATE UPDATE — WHEN TO USE"              │
+│  [10:42:21] + Added 26 lines of instructions and examples                  │
+│  [10:42:22] < Edit complete: +26 / -0 lines                                │
+│  [10:42:23]                                                                 │
+│  [10:42:23] > Running: npm run typecheck                                   │
+│  [10:42:29] < Exit 0 (6.1s) - No TypeScript errors                         │
+│  [10:42:30]                                                                 │
+│  [10:42:30] ✅ Criteria[0] PASSED: System prompt strengthened              │
+│  [10:42:30] ✅ Criteria[1] PASSED: Examples added                          │
+│  [10:42:31]                                                                 │
+│  [10:42:31] > Running: git add -A && git commit -m "fix: strengthen..."    │
+│  [10:42:33] < Commit: 3af31af                                              │
+│  [10:42:34]                                                                 │
+│  [10:42:34] Progress: 2/4 criteria complete                                │
+│  [10:42:35] Notifying Telegram: @vibe-build                                │
+│  [10:42:36]                                                                 │
+│  [10:42:36] Next: Run E2E test to verify fix...                            │
+│  [10:42:37] ▶ ITERATION CONTINUING...                                      │
+│                                                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Lines: 156   Size: 12.4KB   Updated: 3s ago   [Auto-refresh: ON]          │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### WebSocket Events Schema
+
+```typescript
+// WebSocket connection
+const ws = new WebSocket('ws://localhost:3333/ws/observability');
+
+// Subscribe to specific event types
+ws.send(JSON.stringify({
+  type: 'subscribe',
+  filters: {
+    eventTypes: ['task:*', 'agent:*', 'tool:*'],
+    agents: ['build_agent', 'qa_agent'],
+    severity: ['info', 'warning', 'error']
+  }
+}));
+
+// Incoming events
+interface ObservabilityEvent {
+  id: string;
+  timestamp: string;
+  eventType: string;
+  agentId: string;
+  agentName: string;
+  taskId?: string;
+  sessionId?: string;
+  iterationNumber?: number;
+  severity: 'debug' | 'info' | 'warning' | 'error';
+  payload: {
+    message: string;
+    details?: Record<string, unknown>;
+    duration?: number;
+    exitCode?: number;
+    filePath?: string;
+    diff?: { added: number; removed: number };
+    error?: string;
+    stackTrace?: string;
+  };
+}
+
+// Agent status update
+interface AgentStatusUpdate {
+  type: 'agent:status';
+  agentId: string;
+  status: 'idle' | 'working' | 'error' | 'stuck';
+  currentTask?: string;
+  metrics: {
+    tasksCompleted: number;
+    tasksFailed: number;
+    tokensUsed: number;
+    tokenLimit: number;
+    costUsd: number;
+    lastHeartbeat: string;
+  };
+}
+
+// Log stream (for live log viewing)
+interface LogChunk {
+  type: 'log:chunk';
+  sessionId: string;
+  iteration: number;
+  timestamp: string;
+  line: string;
+  level: 'debug' | 'info' | 'warning' | 'error';
+}
+```
+
+### Observability API Endpoints
+
+```typescript
+// Event stream (paginated)
+GET  /api/observability/events?limit=100&before=<cursor>&types=task:*,agent:*
+
+// Agent status
+GET  /api/observability/agents              // All agents
+GET  /api/observability/agents/:id          // Single agent
+GET  /api/observability/agents/:id/metrics  // Agent metrics
+
+// Sessions
+GET  /api/observability/sessions            // All sessions (paginated)
+GET  /api/observability/sessions/:id        // Session detail
+GET  /api/observability/sessions/:id/iterations  // Iterations
+GET  /api/observability/sessions/:id/iterations/:num/log  // Full log
+
+// Live log streaming
+GET  /api/observability/sessions/:id/log/stream  // SSE stream
+
+// Search
+GET  /api/observability/search?q=candidateUpdate&agent=build_agent
+
+// Analytics
+GET  /api/observability/analytics/events-per-minute
+GET  /api/observability/analytics/agent-activity
+GET  /api/observability/analytics/error-rate
+```
+
+### Database Schema for Observability
+
+```sql
+-- Events table (append-only, high-write)
+CREATE TABLE observability_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    event_type TEXT NOT NULL,
+    agent_id TEXT NOT NULL,
+    task_id TEXT,
+    session_id TEXT,
+    iteration_number INTEGER,
+    severity TEXT CHECK(severity IN ('debug', 'info', 'warning', 'error')),
+    message TEXT NOT NULL,
+    payload JSON,
+    telegram_message_id TEXT
+);
+
+CREATE INDEX idx_events_timestamp ON observability_events(timestamp);
+CREATE INDEX idx_events_type ON observability_events(event_type);
+CREATE INDEX idx_events_agent ON observability_events(agent_id);
+CREATE INDEX idx_events_session ON observability_events(session_id);
+
+-- Agent sessions
+CREATE TABLE agent_sessions (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    agent_name TEXT NOT NULL,
+    status TEXT CHECK(status IN ('running', 'completed', 'failed', 'paused')),
+    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME,
+    current_iteration INTEGER DEFAULT 1,
+    total_iterations INTEGER DEFAULT 0,
+    tasks_completed INTEGER DEFAULT 0,
+    tasks_failed INTEGER DEFAULT 0,
+    parent_session_id TEXT,
+    task_id TEXT,
+    metadata JSON
+);
+
+-- Iteration logs
+CREATE TABLE iteration_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    iteration_number INTEGER NOT NULL,
+    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME,
+    status TEXT CHECK(status IN ('running', 'completed', 'failed')),
+    log_content TEXT,  -- Full log text
+    log_preview TEXT,  -- First 500 chars
+    tasks_completed INTEGER DEFAULT 0,
+    tasks_failed INTEGER DEFAULT 0,
+    errors JSON,
+    checkpoints JSON,
+    FOREIGN KEY (session_id) REFERENCES agent_sessions(id),
+    UNIQUE(session_id, iteration_number)
+);
+
+CREATE INDEX idx_logs_session ON iteration_logs(session_id);
+```
+
+---
+
 ## Architecture Overview
 
 ```
