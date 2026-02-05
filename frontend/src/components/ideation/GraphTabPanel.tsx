@@ -27,6 +27,7 @@ import type {
   CascadeEffect,
 } from "../graph/GraphUpdateConfirmation";
 import { analyzeCascadeEffects } from "../graph/utils/cascadeDetection";
+import { MemoryGraphStats } from "./MemoryGraphStats";
 
 // Lazy load GraphContainer for code splitting
 const GraphContainer = lazy(() => import("../graph/GraphContainer"));
@@ -714,6 +715,11 @@ export const GraphTabPanel = memo(function GraphTabPanel({
       aria-hidden={!isVisible}
       data-testid="graph-panel"
     >
+      {/* Neo4j Memory Graph Stats */}
+      <div className="flex-shrink-0 px-4 py-2 border-b">
+        <MemoryGraphStats sessionId={sessionId} compact />
+      </div>
+
       {/* Graph Container */}
       <div className="flex-1 min-h-0 relative" data-testid="graph-canvas">
         <GraphErrorBoundary>
