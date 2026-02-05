@@ -66,7 +66,7 @@ describe("TaskAppendixService", () => {
 
     it("should add an appendix with reference content", async () => {
       const appendix = await taskAppendixService.create({ taskId: testTaskId,
-        appendixType: "references",
+        appendixType: "prd_reference",
         referenceId: "docs/api.md#authentication",
       });
 
@@ -77,15 +77,15 @@ describe("TaskAppendixService", () => {
       const types = [
         "code_context",
         "research_notes",
-        "gotcha",
+        "gotcha_list",
         "rollback_plan",
-        "related_tasks",
-        "references",
-        "decision_log",
-        "discovery",
-        "config",
-        "snippet",
-        "test_data",
+        "user_story",
+        "prd_reference",
+        "architecture_decision",
+        "research_notes",
+        "dependency_notes",
+        "code_context",
+        "test_context",
       ];
 
       for (const type of types) {
@@ -105,65 +105,64 @@ describe("TaskAppendixService", () => {
   describe("getByTaskId", () => {
     it("should return appendices in sort order", async () => {
       await taskAppendixService.create({ taskId: testTaskId,
-        appendixType: "gotcha",
+        appendixType: "gotcha_list",
         content: "Content 1",
       });
 
       await taskAppendixService.create({ taskId: testTaskId,
-        appendixType: "gotcha",
+        appendixType: "gotcha_list",
         content: "Content 2",
       });
 
       const appendices = await taskAppendixService.getByTaskId(testTaskId);
 
       expect(appendices.length).toBe(2);
-      expect(appendices[0].sortOrder).toBeLessThan(appendices[1].sortOrder);
+      expect(appendices[0].position).toBeLessThan(appendices[1].position);
     });
   });
 
-  describe("updateAppendix", () => {
+  describe("update", () => {
     it("should update appendix content", async () => {
       const appendix = await taskAppendixService.create({ taskId: testTaskId,
         appendixType: "research_notes",
         content: "Original content",
       });
 
-      const updated = await taskAppendixService.updateAppendix(appendix.id, {
+      const updated = await taskAppendixService.update(appendix.id, {
         content: "Updated content",
       });
 
-      expect(updated.metadata?.title).toBe("Updated Title");
       expect(updated.content).toBe("Updated content");
     });
   });
 
-  describe("removeAppendix", () => {
+  describe("delete", () => {
     it("should remove an appendix", async () => {
       const appendix = await taskAppendixService.create({ taskId: testTaskId,
-        appendixType: "discovery",
+        appendixType: "research_notes",
         content: "Will be deleted",
       });
 
-      await taskAppendixService.removeAppendix(appendix.id);
+      await taskAppendixService.delete(appendix.id);
 
       const appendices = await taskAppendixService.getByTaskId(testTaskId);
       expect(appendices.length).toBe(0);
     });
   });
 
-  describe("reorderAppendices", () => {
+  describe("reorder", () => {
     it("should reorder appendices", async () => {
       const a1 = await taskAppendixService.create({ taskId: testTaskId,
-        appendixType: "gotcha",
+        appendixType: "gotcha_list",
         content: "Content 1",
       });
 
       const a2 = await taskAppendixService.create({ taskId: testTaskId,
-        appendixType: "gotcha",
+        appendixType: "gotcha_list",
         content: "Content 2",
       });
 
-      await taskAppendixService.reorderAppendices(testTaskId, [a2.id, a1.id]);
+      await taskAppendixService.reorder(testTaskId, [a2.id, a1.id]);
 
       const appendices = await taskAppendixService.getByTaskId(testTaskId);
 
@@ -175,14 +174,15 @@ describe("TaskAppendixService", () => {
   describe("resolve", () => {
     it("should resolve inline content directly", async () => {
       const appendix = await taskAppendixService.create({ taskId: testTaskId,
-        appendixType: "snippet",
+        appendixType: "code_context",
         content: "const x = 1;",
       });
 
-      const resolved = await taskAppendixService.resolve(appendix.id);
+      // resolve() takes a TaskAppendix object, not an id
+      const resolved = await taskAppendixService.resolve(appendix);
 
-      expect(resolved.content).toBe("const x = 1;");
-      expect(resolved.resolvedAt).toBeDefined();
+      // ResolvedAppendix has resolvedContent field
+      expect(resolved.resolvedContent).toBe("const x = 1;");
     });
   });
 });
