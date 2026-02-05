@@ -6,9 +6,9 @@
  */
 
 import { EventEmitter } from 'events';
-import { SpecAgent, createSpecAgent, SpecOutput } from '../../agents/specification/core.js';
+import { createSpecAgent, SpecOutput } from '../../agents/specification/core.js';
 import { getOrchestrator, SpecProgress } from './orchestrator.js';
-import { query, getOne, run } from '../../database/db.js';
+import { run } from '../../database/db.js';
 import * as fs from 'fs';
 import * as path from 'path';
 

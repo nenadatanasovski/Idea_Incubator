@@ -9,14 +9,19 @@
  * - POST /api/idea-pipeline/:ideaId/transition - Request transition
  * - POST /api/idea-pipeline/:ideaId/pause - Pause pipeline
  * - POST /api/idea-pipeline/:ideaId/resume - Resume pipeline
+ * - POST /api/idea-pipeline/:ideaId/rollback - Rollback to previous phase
+ * - POST /api/idea-pipeline/:ideaId/retry - Retry current phase
  * - GET /api/idea-pipeline/:ideaId/history - Get transition history
+ * - GET /api/idea-pipeline/:ideaId/progress - Get current phase progress
  * - PATCH /api/idea-pipeline/:ideaId/settings - Update settings
  * - POST /api/idea-pipeline/:ideaId/spec/start - Start spec generation
  * - GET /api/idea-pipeline/:ideaId/spec/status - Get spec session status
  * - POST /api/idea-pipeline/:ideaId/spec/answer - Answer spec questions
+ * - GET /api/idea-pipeline/:ideaId/spec/output - Get generated spec content
  * - POST /api/idea-pipeline/:ideaId/build/start - Start build
  * - GET /api/idea-pipeline/:ideaId/build/status - Get build session status
  * - POST /api/idea-pipeline/:ideaId/build/resume - Resume build after intervention
+ * - POST /api/idea-pipeline/:ideaId/build/intervention - Record human intervention
  */
 
 import { Router, Request, Response } from 'express';
@@ -140,6 +145,53 @@ router.post('/:ideaId/resume', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[IdeaPipeline] Error resuming:', error);
     res.status(500).json({ error: 'Failed to resume pipeline' });
+  }
+});
+
+/**
+ * POST /api/idea-pipeline/:ideaId/rollback
+ * Rollback to previous phase after failure
+ */
+router.post('/:ideaId/rollback', async (req: Request, res: Response) => {
+  const { ideaId } = req.params;
+  const { reason } = req.body;
+  
+  try {
+    const orchestrator = getOrchestrator();
+    const result = await orchestrator.rollback(ideaId, reason);
+    
+    if (result.success) {
+      const state = await orchestrator.getState(ideaId);
+      res.json({ success: true, newPhase: result.newPhase, state });
+    } else {
+      res.status(400).json({ success: false, error: result.error });
+    }
+  } catch (error) {
+    console.error('[IdeaPipeline] Error rolling back:', error);
+    res.status(500).json({ error: 'Failed to rollback pipeline' });
+  }
+});
+
+/**
+ * POST /api/idea-pipeline/:ideaId/retry
+ * Retry current phase (clears progress and restarts)
+ */
+router.post('/:ideaId/retry', async (req: Request, res: Response) => {
+  const { ideaId } = req.params;
+  
+  try {
+    const orchestrator = getOrchestrator();
+    const result = await orchestrator.retry(ideaId);
+    
+    if (result.success) {
+      const state = await orchestrator.getState(ideaId);
+      res.json({ success: true, state });
+    } else {
+      res.status(400).json({ success: false, error: result.error });
+    }
+  } catch (error) {
+    console.error('[IdeaPipeline] Error retrying:', error);
+    res.status(500).json({ error: 'Failed to retry pipeline' });
   }
 });
 
@@ -439,7 +491,7 @@ router.get('/:ideaId/spec/status', async (req: Request, res: Response) => {
  * Answer pending questions and resume spec generation
  */
 router.post('/:ideaId/spec/answer', async (req: Request, res: Response) => {
-  const { ideaId } = req.params;
+  const { ideaId: _ideaId } = req.params; // TODO: Use for session validation
   const { sessionId, answers } = req.body;
   
   if (!sessionId || !answers || typeof answers !== 'object') {
@@ -649,7 +701,7 @@ router.get('/:ideaId/build/status', async (req: Request, res: Response) => {
  * Resume build after human intervention
  */
 router.post('/:ideaId/build/resume', async (req: Request, res: Response) => {
-  const { ideaId } = req.params;
+  const { ideaId: _ideaId } = req.params; // TODO: Use for session validation
   const { sessionId, resolution } = req.body;
   
   if (!sessionId) {
@@ -693,7 +745,7 @@ router.post('/:ideaId/build/resume', async (req: Request, res: Response) => {
  * Record a human intervention for a build task
  */
 router.post('/:ideaId/build/intervention', async (req: Request, res: Response) => {
-  const { ideaId } = req.params;
+  const { ideaId: _ideaId } = req.params; // TODO: Use for session validation
   const { sessionId, taskId, resolution } = req.body;
   
   if (!sessionId || !taskId || !resolution) {

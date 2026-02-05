@@ -6,9 +6,9 @@
  */
 
 import { EventEmitter } from 'events';
-import { BuildAgent, createBuildAgent, BuildResult } from '../../agents/build/core.js';
-import { getOrchestrator, BuildProgress } from './orchestrator.js';
-import { getOne, query, run } from '../../database/db.js';
+import { BuildAgent, createBuildAgent } from '../../agents/build/core.js';
+import { getOrchestrator } from './orchestrator.js';
+import { getOne, run } from '../../database/db.js';
 import * as fs from 'fs';
 import * as path from 'path';
 

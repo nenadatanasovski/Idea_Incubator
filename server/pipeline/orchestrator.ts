@@ -91,18 +91,18 @@ const VALID_TRANSITIONS: Record<IdeaPhase, IdeaPhase[]> = {
 
 interface Database {
   run(sql: string, params?: unknown[]): Promise<{ lastID: number; changes: number }>;
-  get<T>(sql: string, params?: unknown[]): Promise<T | undefined>;
+  get<T>(sql: string, params?: unknown[]): Promise<T | null | undefined>;
   all<T>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
-interface SpecAgent {
+interface PipelineSpecBridge {
   startSession(ideaId: string, handoff: any): Promise<any>;
-  on(event: string, handler: Function): void;
+  on(event: string, handler: (...args: any[]) => void): void;
 }
 
-interface BuildAgent {
+interface PipelineBuildBridge {
   startBuild(ideaId: string): Promise<any>;
-  on(event: string, handler: Function): void;
+  on(event: string, handler: (...args: any[]) => void): void;
 }
 
 export class PipelineOrchestrator extends EventEmitter {
@@ -110,8 +110,8 @@ export class PipelineOrchestrator extends EventEmitter {
   
   constructor(
     private db: Database,
-    private specAgent?: SpecAgent,
-    private buildAgent?: BuildAgent
+    private specBridge?: PipelineSpecBridge,
+    private buildBridge?: PipelineBuildBridge
   ) {
     super();
     this.setupAgentListeners();
@@ -248,6 +248,78 @@ export class PipelineOrchestrator extends EventEmitter {
     }
     
     return this.requestTransition(ideaId, state.previousPhase, 'User resumed', 'user');
+  }
+  
+  /**
+   * Rollback to a previous phase after failure
+   * This is a force transition that skips prerequisite checks
+   */
+  async rollback(ideaId: string, reason: string = 'Rollback after failure'): Promise<TransitionResult> {
+    const state = await this.getState(ideaId);
+    
+    // Determine rollback target based on current phase
+    const rollbackTargets: Partial<Record<IdeaPhase, IdeaPhase>> = {
+      'specification': 'ideation_ready',
+      'spec_ready': 'specification',
+      'building': 'spec_ready',
+      'build_review': 'building',
+      'failed': state.previousPhase || 'ideation',
+    };
+    
+    const targetPhase = rollbackTargets[state.currentPhase];
+    
+    if (!targetPhase) {
+      return { success: false, error: `Cannot rollback from phase: ${state.currentPhase}` };
+    }
+    
+    // Clear phase-specific progress when rolling back
+    if (targetPhase === 'ideation_ready' || targetPhase === 'ideation') {
+      state.specProgress = null;
+      state.buildProgress = null;
+    } else if (targetPhase === 'specification' || targetPhase === 'spec_ready') {
+      state.buildProgress = null;
+    }
+    
+    return this.requestTransition(ideaId, targetPhase, reason, 'system', true);
+  }
+  
+  /**
+   * Mark a pipeline as failed
+   */
+  async markFailed(ideaId: string, error: string): Promise<TransitionResult> {
+    return this.requestTransition(ideaId, 'failed', `Failed: ${error}`, 'system', true);
+  }
+  
+  /**
+   * Retry from current phase (clears progress and restarts)
+   */
+  async retry(ideaId: string): Promise<TransitionResult> {
+    const state = await this.getState(ideaId);
+    
+    // Can only retry from failed or certain phases
+    if (state.currentPhase === 'failed') {
+      const targetPhase = state.previousPhase || 'ideation';
+      return this.requestTransition(ideaId, targetPhase, 'Retrying from failure', 'user');
+    }
+    
+    // For other phases, restart the current phase
+    const restartPhases: IdeaPhase[] = ['specification', 'building'];
+    if (restartPhases.includes(state.currentPhase)) {
+      // Clear progress for current phase
+      if (state.currentPhase === 'specification') {
+        state.specProgress = null;
+      } else if (state.currentPhase === 'building') {
+        state.buildProgress = null;
+      }
+      await this.saveState(ideaId, state);
+      
+      // Re-start the phase agent
+      await this.startPhaseAgent(ideaId, state.currentPhase);
+      
+      return { success: true, newPhase: state.currentPhase };
+    }
+    
+    return { success: false, error: `Cannot retry from phase: ${state.currentPhase}` };
   }
   
   // Private methods
@@ -525,15 +597,15 @@ export class PipelineOrchestrator extends EventEmitter {
   private async startPhaseAgent(ideaId: string, phase: IdeaPhase): Promise<void> {
     switch (phase) {
       case 'specification':
-        if (this.specAgent) {
+        if (this.specBridge) {
           const handoff = await this.prepareIdeationHandoff(ideaId);
-          await this.specAgent.startSession(ideaId, handoff);
+          await this.specBridge.startSession(ideaId, handoff);
         }
         break;
         
       case 'building':
-        if (this.buildAgent) {
-          await this.buildAgent.startBuild(ideaId);
+        if (this.buildBridge) {
+          await this.buildBridge.startBuild(ideaId);
         }
         break;
     }
@@ -637,9 +709,9 @@ export class PipelineOrchestrator extends EventEmitter {
   }
   
   private setupAgentListeners(): void {
-    // Listen for spec agent events
-    if (this.specAgent) {
-      this.specAgent.on('specComplete', async ({ ideaId, taskCount }: { ideaId: string; taskCount: number }) => {
+    // Listen for spec bridge events
+    if (this.specBridge) {
+      this.specBridge.on('specComplete', async ({ ideaId, taskCount }: { ideaId: string; taskCount: number }) => {
         const state = await this.getState(ideaId);
         
         await this.updateSpecProgress(ideaId, {
@@ -656,20 +728,50 @@ export class PipelineOrchestrator extends EventEmitter {
           );
         }
       });
+      
+      // Listen for questions that block spec generation
+      this.specBridge.on('questionsRequired', async ({ ideaId, questions }: { ideaId: string; questions: any[] }) => {
+        await this.updateSpecProgress(ideaId, {
+          pendingQuestions: questions.map((q: any) => q.content || q),
+        });
+        
+        this.emit('specQuestionsRequired', { ideaId, questions });
+      });
+      
+      // Listen for spec failures
+      this.specBridge.on('specFailed', async ({ ideaId, error }: { ideaId: string; error: string }) => {
+        this.emit('specFailed', { ideaId, error });
+      });
     }
     
-    // Listen for build agent events
-    if (this.buildAgent) {
-      this.buildAgent.on('buildComplete', async ({ ideaId }: { ideaId: string }) => {
+    // Listen for build bridge events
+    if (this.buildBridge) {
+      this.buildBridge.on('buildComplete', async ({ ideaId }: { ideaId: string }) => {
         await this.requestTransition(ideaId, 'deployed', 'Build complete', 'auto');
       });
       
-      this.buildAgent.on('humanNeeded', async ({ ideaId }: { ideaId: string }) => {
+      this.buildBridge.on('humanNeeded', async ({ ideaId }: { ideaId: string }) => {
         const state = await this.getState(ideaId);
         state.humanReviewRequired = true;
         await this.saveState(ideaId, state);
         
         this.emit('humanReviewRequired', { ideaId, phase: 'building' });
+      });
+      
+      // Listen for build progress updates
+      this.buildBridge.on('buildProgress', async ({ ideaId, progress }: { ideaId: string; progress: any }) => {
+        await this.updateBuildProgress(ideaId, {
+          tasksComplete: progress.completed || 0,
+          tasksTotal: progress.total || 0,
+          currentTask: progress.current || null,
+        });
+        
+        this.emit('buildProgress', { ideaId, progress });
+      });
+      
+      // Listen for build failures
+      this.buildBridge.on('buildFailed', async ({ ideaId, error }: { ideaId: string; error: string }) => {
+        this.emit('buildFailed', { ideaId, error });
       });
     }
   }
@@ -687,9 +789,9 @@ export function getOrchestrator(): PipelineOrchestrator {
 
 export function initializeOrchestrator(
   db: Database,
-  specAgent?: SpecAgent,
-  buildAgent?: BuildAgent
+  specBridge?: PipelineSpecBridge,
+  buildBridge?: PipelineBuildBridge
 ): PipelineOrchestrator {
-  orchestratorInstance = new PipelineOrchestrator(db, specAgent, buildAgent);
+  orchestratorInstance = new PipelineOrchestrator(db, specBridge, buildBridge);
   return orchestratorInstance;
 }
