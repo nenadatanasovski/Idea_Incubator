@@ -34,16 +34,16 @@ async function createTestTask(attrs: {
   return taskId;
 }
 
-// Add file impact to task
+// Add file impact to task (uses task_impacts table that validator queries)
 async function addFileImpact(
   taskId: string,
   filePath: string,
   operation: string = "UPDATE",
 ): Promise<void> {
   await run(
-    `INSERT INTO task_file_impacts (id, task_id, file_path, operation, confidence, source, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 0.9, 'ai_estimate', datetime('now'), datetime('now'))`,
-    [uuidv4(), taskId, filePath, operation],
+    `INSERT INTO task_impacts (id, task_id, impact_type, operation, target_path, confidence, source, created_at, updated_at)
+     VALUES (?, ?, 'file', ?, ?, 0.9, 'ai', datetime('now'), datetime('now'))`,
+    [uuidv4(), taskId, operation, filePath],
   );
   await saveDb();
 }
@@ -51,7 +51,7 @@ async function addFileImpact(
 // Cleanup test data
 async function cleanupTestData(): Promise<void> {
   await run(
-    `DELETE FROM task_file_impacts WHERE task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
+    `DELETE FROM task_impacts WHERE task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
   );
   await run(`DELETE FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%'`);
   await saveDb();
@@ -100,7 +100,7 @@ describe("AtomicityValidator", () => {
       const result = await atomicityValidator.validateById(taskId);
 
       expect(result.isAtomic).toBe(false);
-      expect(result.violations.some((v) => v.rule === "single_file")).toBe(
+      expect(result.violations.some((v) => v.rule === "bounded_files")).toBe(
         true,
       );
     });
@@ -113,7 +113,7 @@ describe("AtomicityValidator", () => {
 
       const result = await atomicityValidator.validateById(taskId);
 
-      expect(result.violations.some((v) => v.rule === "time_bound")).toBe(true);
+      expect(result.violations.some((v) => v.rule === "time_bounded")).toBe(true);
     });
 
     it("should flag tasks with multiple concerns in title", async () => {
@@ -131,7 +131,7 @@ describe("AtomicityValidator", () => {
   });
 
   describe("rules", () => {
-    it("should check single_file rule", async () => {
+    it("should check bounded_files rule", async () => {
       const taskId = await createTestTask({ title: "Multi-file task" });
 
       await addFileImpact(taskId, "file1.ts", "UPDATE");
@@ -142,22 +142,22 @@ describe("AtomicityValidator", () => {
 
       const result = await atomicityValidator.validateById(taskId);
 
-      expect(result.violations.some((v) => v.rule === "single_file")).toBe(
+      expect(result.violations.some((v) => v.rule === "bounded_files")).toBe(
         true,
       );
     });
 
-    it("should check time_bound rule based on effort", async () => {
+    it("should check time_bounded rule based on effort", async () => {
       const smallTask = await createTestTask({ effort: "small" });
       const epicTask = await createTestTask({ effort: "epic" });
 
       const smallResult = await atomicityValidator.validateById(smallTask);
       const epicResult = await atomicityValidator.validateById(epicTask);
 
-      expect(smallResult.violations.some((v) => v.rule === "time_bound")).toBe(
+      expect(smallResult.violations.some((v) => v.rule === "time_bounded")).toBe(
         false,
       );
-      expect(epicResult.violations.some((v) => v.rule === "time_bound")).toBe(
+      expect(epicResult.violations.some((v) => v.rule === "time_bounded")).toBe(
         true,
       );
     });
