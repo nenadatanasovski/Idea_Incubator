@@ -63,9 +63,7 @@ async function cleanupTestData(): Promise<void> {
     await run(
       `DELETE FROM prd_task_lists WHERE prd_id IN (SELECT id FROM prds WHERE title LIKE '${TEST_PREFIX}%')`,
     );
-    await run(
-      `DELETE FROM task_list_items WHERE task_id IN (SELECT id FROM tasks WHERE title LIKE '${TEST_PREFIX}%')`,
-    );
+    // Note: task_list_items table doesn't exist - tasks link to task_lists_v2 via task_list_id column directly
     await run(`DELETE FROM tasks WHERE title LIKE '${TEST_PREFIX}%'`);
     await run(`DELETE FROM task_lists_v2 WHERE name LIKE '${TEST_PREFIX}%'`);
     await run(`DELETE FROM prds WHERE title LIKE '${TEST_PREFIX}%'`);
@@ -137,7 +135,7 @@ describe("8.1 PRD → Task Extraction → Execution", () => {
     const taskListId = uuidv4();
     await run(
       `INSERT INTO task_lists_v2 (id, name, project_id, status, auto_approve_reviews) VALUES (?, ?, ?, ?, ?)`,
-      [taskListId, `${TEST_PREFIX}Auth Task List`, null, "pending", 0],
+      [taskListId, `${TEST_PREFIX}Auth Task List`, null, "draft", 0],
     );
 
     // Step 4: Link the task list to the PRD
@@ -178,13 +176,13 @@ describe("8.1 PRD → Task Extraction → Execution", () => {
     );
 
     // Step 6: Link tasks directly to the PRD
-    await prdLinkService.linkTask(prd.id, task1.id, "FR-001");
-    await prdLinkService.linkTask(prd.id, task2.id, "FR-002");
-    await prdLinkService.linkTask(prd.id, task3.id, "FR-003");
+    await prdLinkService.linkTask(prd.id, task1.task.id, "FR-001");
+    await prdLinkService.linkTask(prd.id, task2.task.id, "FR-002");
+    await prdLinkService.linkTask(prd.id, task3.task.id, "FR-003");
 
     // Step 7: Add task impacts
     await taskImpactService.create({
-      taskId: task1.id,
+      taskId: task1.task.id,
       impactType: "file",
       operation: "CREATE",
       targetPath: "server/routes/auth.ts",
@@ -193,7 +191,7 @@ describe("8.1 PRD → Task Extraction → Execution", () => {
     });
 
     await taskImpactService.create({
-      taskId: task1.id,
+      taskId: task1.task.id,
       impactType: "api",
       operation: "CREATE",
       targetPath: "/api/auth/login",
@@ -203,7 +201,7 @@ describe("8.1 PRD → Task Extraction → Execution", () => {
     });
 
     await taskImpactService.create({
-      taskId: task3.id,
+      taskId: task3.task.id,
       impactType: "file",
       operation: "CREATE",
       targetPath: "server/middleware/auth.ts",
@@ -298,7 +296,7 @@ describe("8.2 Impact Conflict Detection", () => {
     taskListId = uuidv4();
     await run(
       `INSERT INTO task_lists_v2 (id, name, project_id, status) VALUES (?, ?, ?, ?)`,
-      [taskListId, `${TEST_PREFIX}Conflict Test List`, null, "pending"],
+      [taskListId, `${TEST_PREFIX}Conflict Test List`, null, "draft"],
     );
 
     // Create tasks
@@ -307,21 +305,21 @@ describe("8.2 Impact Conflict Detection", () => {
       taskListId,
       { category: "database" },
     );
-    task1Id = task1.id;
+    task1Id = task1.task.id;
 
     const task2 = await taskCreationService.createTaskInList(
       `${TEST_PREFIX}Task B - Also update database.ts`,
       taskListId,
       { category: "database" },
     );
-    task2Id = task2.id;
+    task2Id = task2.task.id;
 
     const task3 = await taskCreationService.createTaskInList(
       `${TEST_PREFIX}Task C - Update different file`,
       taskListId,
       { category: "api" },
     );
-    task3Id = task3.id;
+    task3Id = task3.task.id;
 
     await saveDb();
   });
@@ -562,7 +560,7 @@ describe("8.3 Cascade Propagation", () => {
     taskListId = uuidv4();
     await run(
       `INSERT INTO task_lists_v2 (id, name, project_id, status, auto_approve_reviews) VALUES (?, ?, ?, ?, ?)`,
-      [taskListId, `${TEST_PREFIX}Cascade Test List`, null, "pending", 0],
+      [taskListId, `${TEST_PREFIX}Cascade Test List`, null, "draft", 0],
     );
 
     // Create tasks with dependencies
@@ -571,21 +569,21 @@ describe("8.3 Cascade Propagation", () => {
       taskListId,
       { category: "types" },
     );
-    task1Id = task1.id;
+    task1Id = task1.task.id;
 
     const task2 = await taskCreationService.createTaskInList(
       `${TEST_PREFIX}Task 2 - Create user service (depends on types)`,
       taskListId,
       { category: "service" },
     );
-    task2Id = task2.id;
+    task2Id = task2.task.id;
 
     const task3 = await taskCreationService.createTaskInList(
       `${TEST_PREFIX}Task 3 - Create user API (depends on service)`,
       taskListId,
       { category: "api" },
     );
-    task3Id = task3.id;
+    task3Id = task3.task.id;
 
     // Create dependency chain: task1 <- task2 <- task3
     await run(
@@ -755,11 +753,11 @@ describe("8.4 Versioning and Rollback", () => {
     taskListId = uuidv4();
     await run(
       `INSERT INTO task_lists_v2 (id, name, project_id, status) VALUES (?, ?, ?, ?)`,
-      [taskListId, `${TEST_PREFIX}Version Test List`, null, "pending"],
+      [taskListId, `${TEST_PREFIX}Version Test List`, null, "draft"],
     );
 
     // Create initial task
-    const task = await taskCreationService.createTaskInList(
+    const taskResult = await taskCreationService.createTaskInList(
       `${TEST_PREFIX}Versioned Task - Original`,
       taskListId,
       {
@@ -768,7 +766,7 @@ describe("8.4 Versioning and Rollback", () => {
         priority: "P2",
       },
     );
-    taskId = task.id;
+    taskId = taskResult.task.id;
 
     await saveDb();
   });
@@ -1020,7 +1018,7 @@ describe("Integration: Full Task System Workflow", () => {
     const taskListId = uuidv4();
     await run(
       `INSERT INTO task_lists_v2 (id, name, project_id, status) VALUES (?, ?, ?, ?)`,
-      [taskListId, `${TEST_PREFIX}Integration Task List`, null, "pending"],
+      [taskListId, `${TEST_PREFIX}Integration Task List`, null, "draft"],
     );
     await prdLinkService.linkTaskList(prd.id, taskListId);
     console.log(`  [3/8] Task list created and linked: ${taskListId}`);
@@ -1032,7 +1030,7 @@ describe("Integration: Full Task System Workflow", () => {
       { category: "feature" },
     );
     await taskImpactService.create({
-      taskId: task1.id,
+      taskId: task1.task.id,
       impactType: "file",
       operation: "CREATE",
       targetPath: "server/routes/integration.ts",
@@ -1046,7 +1044,7 @@ describe("Integration: Full Task System Workflow", () => {
       { category: "feature" },
     );
     await taskImpactService.create({
-      taskId: task2.id,
+      taskId: task2.task.id,
       impactType: "file",
       operation: "UPDATE",
       targetPath: "server/routes/index.ts",
@@ -1057,14 +1055,14 @@ describe("Integration: Full Task System Workflow", () => {
 
     // 5. Check conflicts
     const canParallel = await fileConflictDetector.canRunParallel(
-      task1.id,
-      task2.id,
+      task1.task.id,
+      task2.task.id,
     );
     expect(canParallel).toBe(true); // Different files
     console.log(`  [5/8] Conflict check passed (canParallel: ${canParallel})`);
 
     // 6. Create version
-    await taskVersionService.createVersion(task1.id, {
+    await taskVersionService.createVersion(task1.task.id, {
       title: `${TEST_PREFIX}Integration Task 1 - Updated`,
       description: "Added more requirements",
       changedBy: "test-user",

@@ -137,12 +137,26 @@ export async function createListlessTask(
 /**
  * Create a task directly in a task list
  *
- * @param input Task creation input (must include taskListId)
+ * @param titleOrInput Task title (string) or full input object
+ * @param taskListId Task list ID (when using title string)
+ * @param options Additional options (when using title string)
  * @returns Created task
  */
 export async function createTaskInList(
-  input: CreateTaskInput & { taskListId: string },
+  titleOrInput: string | (CreateTaskInput & { taskListId: string }),
+  taskListId?: string,
+  options?: Partial<CreateTaskInput>,
 ): Promise<CreateTaskResponse> {
+  // Support both calling conventions:
+  // 1. createTaskInList({ title, taskListId, ... })
+  // 2. createTaskInList(title, taskListId, { ... })
+  const input: CreateTaskInput & { taskListId: string } = typeof titleOrInput === 'string'
+    ? {
+        title: titleOrInput,
+        taskListId: taskListId!,
+        ...options,
+      }
+    : titleOrInput;
   const id = uuidv4();
   const category = input.category || "task";
 
