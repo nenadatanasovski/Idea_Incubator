@@ -149,7 +149,7 @@ export class TaskVersionService {
    */
   async getVersions(taskId: string): Promise<TaskVersion[]> {
     const rows = await query<TaskVersionRow>(
-      "SELECT * FROM task_versions WHERE task_id = ? ORDER BY version DESC",
+      "SELECT * FROM task_versions WHERE task_id = ? ORDER BY version ASC",
       [taskId],
     );
     return rows.map(mapTaskVersionRow);
