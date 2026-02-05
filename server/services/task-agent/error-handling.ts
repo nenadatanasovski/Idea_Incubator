@@ -8,6 +8,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { query, run, getOne, saveDb } from "../../../database/db.js";
 import { orchestratorEvents } from "./build-agent-orchestrator.js";
+import { queryKnowledge } from "../../../agents/sia/db.js";
 
 // ============================================================
 // Types
@@ -469,23 +470,82 @@ export async function escalateToSIA(
     escalationId,
   });
 
-  // GAP-012: TODO - Spawn SIA agent to analyze the failure and suggest fixes
-  // The SIA (Self-Improvement Agent) should:
-  // 1. Analyze the failure context and error patterns
-  // 2. Query the knowledge base for similar issues
-  // 3. Generate suggestions for fixes or gotchas
-  // 4. Potentially update the task with corrective guidance
-  // For now, the event is emitted and can be handled by a listener
-  // Future implementation: spawnSIAAgent(escalationId, context)
+  // Spawn async SIA analysis (GAP-012)
+  spawnSIAAnalysis(escalationId, context).catch((err) => {
+    console.error(`[ErrorHandling] SIA analysis failed: ${err.message}`);
+  });
 
   console.log(
     `[ErrorHandling] Task ${context.taskDisplayId} escalated to SIA: ${reason}`,
   );
-  console.log(
-    `[ErrorHandling] GAP-012: SIA spawning not yet implemented - escalation ID: ${escalationId}`,
-  );
 
   return escalationId;
+}
+
+/**
+ * Spawn async SIA analysis for an escalation (GAP-012)
+ * 
+ * Queries the knowledge base for similar issues and stores suggestions.
+ */
+async function spawnSIAAnalysis(
+  escalationId: string,
+  context: FailureContext,
+): Promise<void> {
+  console.log(`[SIA] Starting analysis for escalation ${escalationId}`);
+
+  // Extract keywords from errors for knowledge search
+  const errorKeywords = context.recentErrors
+    .flatMap((e) => e.errorMessage.split(/\s+/))
+    .filter((w) => w.length > 3)
+    .slice(0, 10);
+
+  // Query knowledge base for similar gotchas
+  const similarGotchas = await queryKnowledge({
+    type: "gotcha",
+    searchText: errorKeywords.join(" "),
+    limit: 5,
+  });
+
+  // Query for relevant patterns
+  const relevantPatterns = await queryKnowledge({
+    type: "pattern",
+    searchText: context.filePath || context.taskTitle,
+    limit: 3,
+  });
+
+  // Store SIA analysis results
+  const suggestions = [
+    ...similarGotchas.map((g) => ({
+      type: "gotcha",
+      content: g.content,
+      confidence: g.confidenceScore || 0.5,
+    })),
+    ...relevantPatterns.map((p) => ({
+      type: "pattern",
+      content: p.content,
+      confidence: p.confidenceScore || 0.5,
+    })),
+  ];
+
+  // Update escalation with suggestions
+  await run(
+    `UPDATE sia_escalations 
+     SET analysis_result = ?, analyzed_at = datetime('now')
+     WHERE id = ?`,
+    [JSON.stringify({ suggestions, analyzedAt: new Date().toISOString() }), escalationId],
+  );
+  await saveDb();
+
+  console.log(
+    `[SIA] Analysis complete for ${escalationId}: ${suggestions.length} suggestions found`,
+  );
+
+  // Emit event for UI updates
+  orchestratorEvents.emit("sia.analysis_complete", {
+    escalationId,
+    taskId: context.taskId,
+    suggestionsCount: suggestions.length,
+  });
 }
 
 // ============================================================
