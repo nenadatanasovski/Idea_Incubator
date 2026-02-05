@@ -30,6 +30,7 @@ import { analyzeCascadeEffects } from "../graph/utils/cascadeDetection";
 import { MemoryGraphStats } from "./MemoryGraphStats";
 import { CreateBlockForm } from "./CreateBlockForm";
 import { MemoryBlockSearch } from "./MemoryBlockSearch";
+import { Neo4jGraphView } from "./Neo4jGraphView";
 
 // Lazy load GraphContainer for code splitting
 const GraphContainer = lazy(() => import("../graph/GraphContainer"));
@@ -207,6 +208,8 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   const [showCreateBlock, setShowCreateBlock] = useState(false);
   // State for showing search panel
   const [showSearch, setShowSearch] = useState(false);
+  // State for switching to Neo4j view
+  const [showNeo4jView, setShowNeo4jView] = useState(false);
 
   // State for update confirmation dialog (T6.3)
   const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
@@ -726,6 +729,15 @@ export const GraphTabPanel = memo(function GraphTabPanel({
         <MemoryGraphStats sessionId={sessionId} compact />
         <div className="flex gap-2">
           <button
+            onClick={() => setShowNeo4jView(!showNeo4jView)}
+            className={`text-sm px-3 py-1 rounded-lg transition-colors ${
+              showNeo4jView ? 'bg-teal-200 text-teal-800' : 'bg-teal-100 text-teal-700 hover:bg-teal-200'
+            }`}
+            title="Toggle Neo4j Memory Graph visualization"
+          >
+            {showNeo4jView ? '📊 SQLite View' : '🧠 Neo4j View'}
+          </button>
+          <button
             onClick={() => { setShowSearch(!showSearch); setShowCreateBlock(false); }}
             className={`text-sm px-3 py-1 rounded-lg transition-colors ${
               showSearch ? 'bg-purple-200 text-purple-800' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
@@ -775,6 +787,16 @@ export const GraphTabPanel = memo(function GraphTabPanel({
 
       {/* Graph Container */}
       <div className="flex-1 min-h-0 relative" data-testid="graph-canvas">
+        {showNeo4jView ? (
+          <Neo4jGraphView
+            sessionId={sessionId}
+            onSelectBlock={(block) => {
+              // Could sync with the main node selection
+              console.log('[GraphTabPanel] Neo4j block selected:', block.id);
+            }}
+            className="h-full"
+          />
+        ) : (
         <GraphErrorBoundary>
           <Suspense fallback={<GraphLoadingSkeleton />}>
             <GraphContainer
@@ -845,6 +867,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
             />
           </Suspense>
         </GraphErrorBoundary>
+        )}
       </div>
 
       {/* Pending updates banner */}
