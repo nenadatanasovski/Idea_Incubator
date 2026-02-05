@@ -359,8 +359,8 @@ export class CascadeAnalyzerService {
 
     // Find tasks that overlap with the new impacts
     for (const impact of newImpacts) {
-      const overlapping = await query<{ task_id: string; display_id: string }>(
-        `SELECT DISTINCT task_id, display_id FROM task_impacts 
+      const overlapping = await query<{ task_id: string }>(
+        `SELECT DISTINCT task_id FROM task_impacts 
          WHERE target_path = ? AND task_id != ? AND impact_type = ?`,
         [impact.targetPath, taskId, impact.impactType],
       );
