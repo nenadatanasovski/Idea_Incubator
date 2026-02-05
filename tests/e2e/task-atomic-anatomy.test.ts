@@ -176,9 +176,11 @@ describe("8.1 PRD → Task Extraction → Execution", () => {
     );
 
     // Step 6: Link tasks directly to the PRD
-    await prdLinkService.linkTask(prd.id, task1.task.id, "FR-001");
-    await prdLinkService.linkTask(prd.id, task2.task.id, "FR-002");
-    await prdLinkService.linkTask(prd.id, task3.task.id, "FR-003");
+    // Note: requirement_ref must match format expected by prd-coverage-service
+    // (success_criteria[N] or constraints[N]) for coverage calculation
+    await prdLinkService.linkTask(prd.id, task1.task.id, "success_criteria[0]");
+    await prdLinkService.linkTask(prd.id, task2.task.id, "success_criteria[1]");
+    await prdLinkService.linkTask(prd.id, task3.task.id, "success_criteria[2]");
 
     // Step 7: Add task impacts
     await taskImpactService.create({
@@ -247,8 +249,7 @@ describe("8.1 PRD → Task Extraction → Execution", () => {
       {
         title: `${TEST_PREFIX}Authentication Module`,
         problemStatement: "Need secure auth",
-        parentId: parentPrd.id,
-        status: "draft",
+        parentPrdId: parentPrd.id,
       },
       "test-user",
     );
@@ -257,8 +258,7 @@ describe("8.1 PRD → Task Extraction → Execution", () => {
       {
         title: `${TEST_PREFIX}Dashboard Module`,
         problemStatement: "Need user dashboard",
-        parentId: parentPrd.id,
-        status: "draft",
+        parentPrdId: parentPrd.id,
       },
       "test-user",
     );
