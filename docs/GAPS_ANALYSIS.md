@@ -9,11 +9,11 @@
 
 The Idea Incubator has three architectural gaps that significantly undermine evaluation quality:
 
-| Issue                  | Severity     | Root Cause                                   |
-| ---------------------- | ------------ | -------------------------------------------- |
-| Q&A not picked up      | **Critical** | Two parallel systems that don't communicate  |
-| Profile not considered | **High**     | Hard-coded category restriction in evaluator |
-| No web search          | **Medium**   | Capability simply doesn't exist              |
+| Issue                  | Severity     | Status       | Root Cause / Resolution                      |
+| ---------------------- | ------------ | ------------ | -------------------------------------------- |
+| Q&A not picked up      | **Critical** | ✅ FIXED     | evaluate.ts now loads development.md         |
+| Profile not considered | **High**     | ✅ FIXED     | formatProfileForCategory() in profile-context.ts |
+| No web search          | **Medium**   | ✅ FIXED     | research.ts with conductPreEvaluationResearch |
 
 These issues compound: without Q&A data, evaluators rely on sparse README content; without profiles, Fit scores are guesses; without web search, Market/Competition claims are unverifiable.
 
