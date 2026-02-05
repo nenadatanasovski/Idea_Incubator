@@ -66,7 +66,7 @@ export class TaskStateHistoryService {
    */
   async getHistory(taskId: string): Promise<TaskStateHistoryEntry[]> {
     const rows = await query<TaskStateHistoryRow>(
-      "SELECT * FROM task_state_history WHERE task_id = ? ORDER BY created_at DESC",
+      "SELECT * FROM task_state_history WHERE task_id = ? ORDER BY created_at ASC",
       [taskId],
     );
     return rows.map(mapTaskStateHistoryRow);
