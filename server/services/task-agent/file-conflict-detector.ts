@@ -115,11 +115,10 @@ export async function detectConflicts(
       ti1.confidence AS confidence_a,
       ti2.confidence AS confidence_b
     FROM task_impacts ti1
-    JOIN task_impacts ti2 ON ti1.target_path = ti2.target_path
+    JOIN task_impacts ti2 ON ti1.target_path = ti2.target_path AND ti1.impact_type = ti2.impact_type
     WHERE ti1.task_id = ?
       AND ti2.task_id = ?
-      AND ti1.impact_type = 'file'
-      AND ti2.impact_type = 'file'`,
+      AND ti1.impact_type IN ('file', 'api')`,
     [taskAId, taskBId],
   );
 
