@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { WebSocket } from "ws";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 type Transport = "console" | "websocket";
@@ -91,7 +92,67 @@ export function logDebate(
 
   // WebSocket transport for Phase 6
   if (config.transport === "websocket" && config.websocketUrl) {
-    // TODO: Implement WebSocket broadcast
+    broadcastDebateEvent(agent, message, type);
+  }
+}
+
+// Queue for WebSocket messages when connection not ready
+let wsMessageQueue: Array<{ agent: string; message: string; type: string }> = [];
+let wsConnection: WebSocket | null = null;
+
+function broadcastDebateEvent(
+  agent: string,
+  message: string,
+  type: string,
+): void {
+  const event = {
+    type: "debate:log",
+    data: {
+      agent,
+      message,
+      messageType: type,
+      timestamp: new Date().toISOString(),
+    },
+  };
+
+  if (wsConnection?.readyState === 1) {
+    // WebSocket.OPEN
+    wsConnection.send(JSON.stringify(event));
+  } else {
+    // Queue message for later
+    wsMessageQueue.push({ agent, message, type });
+
+    // Try to connect if not already
+    if (!wsConnection && config.websocketUrl) {
+      try {
+        wsConnection = new WebSocket(config.websocketUrl);
+        wsConnection.on("open", () => {
+          // Flush queued messages
+          for (const queued of wsMessageQueue) {
+            wsConnection?.send(
+              JSON.stringify({
+                type: "debate:log",
+                data: {
+                  agent: queued.agent,
+                  message: queued.message,
+                  messageType: queued.type,
+                  timestamp: new Date().toISOString(),
+                },
+              }),
+            );
+          }
+          wsMessageQueue = [];
+        });
+        wsConnection.on("error", () => {
+          wsConnection = null;
+        });
+        wsConnection.on("close", () => {
+          wsConnection = null;
+        });
+      } catch {
+        // WebSocket not available, silently ignore
+      }
+    }
   }
 }
 

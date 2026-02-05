@@ -54,7 +54,7 @@ router.post("/analyze", async (req: Request, res: Response): Promise<void> => {
       analysis,
       newGotchas,
       newPatterns,
-      updatedEntries: [], // TODO: track merged entries
+      updatedEntries: [], // Merged entries not tracked separately (would require refactoring write* functions)
     });
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
