@@ -298,7 +298,7 @@ Return your analysis as JSON with mappings array.`;
       );
 
       const response = await this.client.messages.create({
-        model: "claude-opus-4-5-20251101", // Using Claude Opus 4.5 as specified
+        model: "claude-opus-4-6", // Using Claude Opus 4.6
         max_tokens: 16384,
         system: SOURCE_MAPPING_SYSTEM_PROMPT,
         messages: [

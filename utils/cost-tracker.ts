@@ -8,6 +8,8 @@ interface ModelPricing {
 }
 
 const MODEL_PRICING: Record<string, ModelPricing> = {
+  // Opus 4.6
+  "claude-opus-4-6": { inputPerMillion: 15.0, outputPerMillion: 75.0 },
   // Opus 4.5
   "claude-opus-4-5-20251101": { inputPerMillion: 15.0, outputPerMillion: 75.0 },
   "claude-opus-4-5": { inputPerMillion: 15.0, outputPerMillion: 75.0 },
@@ -45,7 +47,7 @@ function getPricingForModel(model?: string): ModelPricing {
     }
   }
   // Try fuzzy match for model family
-  if (model.includes("opus")) return MODEL_PRICING["claude-opus-4-5"];
+  if (model.includes("opus")) return MODEL_PRICING["claude-opus-4-6"];
   if (model.includes("sonnet")) return MODEL_PRICING["claude-sonnet-4"];
   if (model.includes("haiku")) return MODEL_PRICING["claude-3-5-haiku"];
   return DEFAULT_PRICING;

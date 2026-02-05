@@ -3,7 +3,7 @@
  */
 export const config = {
   // Model settings
-  model: "claude-opus-4-5-20251101",
+  model: "claude-opus-4-6",
   maxTokens: 4096,
 
   // Budget (increased from $10 to $15 to accommodate research phase)
