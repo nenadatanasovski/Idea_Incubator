@@ -433,9 +433,61 @@ export function resetMocks(): void {
     chains: { total: 0, passed: 0, failed: 0 },
   });
   mockCrossReferenceService.getCrossReferences.mockResolvedValue(null);
-  mockToolUseService.getToolUses.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0 });
-  mockSkillService.getSkillTraces.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0 });
-  mockMessageBusService.getLogs.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0 });
+  mockToolUseService.getToolUses.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
+  mockToolUseService.getToolSummary.mockResolvedValue({ total: 0, errors: 0, blocked: 0, errorRate: 0, blockRate: 0, byTool: {}, byCategory: {}, byStatus: {}, avgDurationMs: 0 });
+  mockSkillService.getSkillTraces.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
+  mockMessageBusService.getLogs.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
+}
+
+/**
+ * Mock skill traces for testing
+ */
+export function mockSkillTraces(
+  executionId: string,
+  skills: Array<{
+    id: string;
+    skillName: string;
+    skillFile?: string;
+    status: string;
+    durationMs?: number;
+  }>,
+): void {
+  mockSkillService.getSkillTraces.mockImplementation((execId: string, options?: { limit?: number; offset?: number }) => {
+    if (execId === executionId) {
+      const limit = options?.limit || 50;
+      const offset = options?.offset || 0;
+      const paginatedData = skills.slice(offset, offset + limit);
+      const hasMore = offset + paginatedData.length < skills.length;
+      
+      return Promise.resolve({
+        data: paginatedData.map(s => ({
+          id: s.id,
+          executionId,
+          taskId: null,
+          skillName: s.skillName,
+          skillFile: s.skillFile || "skill.md",
+          lineNumber: 1,
+          sectionTitle: "Section",
+          inputSummary: "Input",
+          outputSummary: "Output",
+          startTime: new Date().toISOString(),
+          endTime: new Date().toISOString(),
+          durationMs: s.durationMs || 100,
+          tokenEstimate: 100,
+          status: s.status,
+          errorMessage: null,
+          toolCalls: [],
+          subSkills: [],
+          createdAt: new Date().toISOString(),
+        })),
+        total: skills.length,
+        limit,
+        offset,
+        hasMore,
+      });
+    }
+    return Promise.resolve({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
+  });
 }
 
 /**

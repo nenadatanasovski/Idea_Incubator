@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import request from "supertest";
-import { createTestApp, resetMocks, getMocks } from "../__utils__/test-server";
+import { createTestApp, resetMocks, getMocks, mockSkillTraces } from "../__utils__/test-server";
 import { testSkillTraces } from "../__fixtures__/observability-fixtures";
 import type { Express } from "express";
 
@@ -204,34 +204,14 @@ describe("GET /api/observability/executions/:id/skills", () => {
   });
 
   it("respects limit parameter", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string) => {
-      if (sql.includes("COUNT(*)")) {
-        return Promise.resolve([{ count: 5 }]);
-      }
-      return Promise.resolve([
-        {
-          id: "skill-001",
-          execution_id: execId,
-          task_id: "task-001",
-          skill_name: "skill",
-          skill_file: "skills/skill.ts",
-          line_number: null,
-          section_title: null,
-          input_summary: null,
-          output_summary: null,
-          start_time: new Date().toISOString(),
-          end_time: new Date().toISOString(),
-          duration_ms: 100,
-          token_estimate: null,
-          status: "completed",
-          error_message: null,
-          tool_calls: null,
-          sub_skills: null,
-          created_at: new Date().toISOString(),
-        },
-      ]);
-    });
+    // Create 5 skill traces
+    mockSkillTraces(execId, [
+      { id: "s-1", skillName: "skill-1", status: "completed" },
+      { id: "s-2", skillName: "skill-2", status: "completed" },
+      { id: "s-3", skillName: "skill-3", status: "completed" },
+      { id: "s-4", skillName: "skill-4", status: "completed" },
+      { id: "s-5", skillName: "skill-5", status: "completed" },
+    ]);
 
     const res = await request(app)
       .get(`/api/observability/executions/${execId}/skills`)
