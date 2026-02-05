@@ -24,6 +24,9 @@ export interface TaskVersion {
 
   createdBy: string;
   createdAt: string;
+
+  // Computed: version this supersedes (version - 1 if version > 1)
+  supersedesVersion?: number;
 }
 
 /**
@@ -85,6 +88,7 @@ export function mapTaskVersionRow(row: TaskVersionRow): TaskVersion {
     checkpointName: row.checkpoint_name || undefined,
     createdBy: row.created_by,
     createdAt: row.created_at,
+    supersedesVersion: row.version > 1 ? row.version - 1 : undefined,
   };
 }
 
