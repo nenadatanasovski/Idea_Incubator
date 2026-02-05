@@ -15,6 +15,11 @@ export class BotRegistry {
 
   async initialize(): Promise<void> {
     console.log("[BotRegistry] Initializing bot registry...");
+    
+    const skipValidation = process.env.SKIP_TELEGRAM_VALIDATION === 'true';
+    if (skipValidation) {
+      console.log("[BotRegistry] Skipping token validation (SKIP_TELEGRAM_VALIDATION=true)");
+    }
 
     for (const config of BOT_CONFIGS) {
       const token = process.env[config.envTokenVar];
@@ -23,6 +28,22 @@ export class BotRegistry {
         console.warn(
           `[BotRegistry] Missing token for ${config.agentType}: ${config.envTokenVar}`,
         );
+        continue;
+      }
+
+      // In skip mode, register bot without validation
+      if (skipValidation) {
+        const username = process.env[config.envUsernameVar] || `${config.agentType}_bot`;
+        this.bots.set(config.agentType, {
+          agentType: config.agentType,
+          token,
+          botId: 0, // Unknown without validation
+          username,
+          displayName: config.displayName,
+          healthy: true, // Assume healthy
+          lastChecked: new Date(),
+        });
+        console.log(`[BotRegistry] Registered ${config.agentType} bot (unvalidated): @${username}`);
         continue;
       }
 
