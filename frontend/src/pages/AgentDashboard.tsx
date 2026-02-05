@@ -170,11 +170,26 @@ export default function AgentDashboard(): JSX.Element {
     }
   }
 
-  function handleAnswerQuestion(questionId: string, answer: string): void {
-    // TODO: Call API to submit answer
-    console.log("Answering question:", questionId, "with:", answer);
-    setQuestions((qs) => qs.filter((q) => q.id !== questionId));
-    setSelectedQuestion(null);
+  async function handleAnswerQuestion(questionId: string, answer: string): Promise<void> {
+    try {
+      const response = await fetch(`/api/questions/${questionId}/answer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answer }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Failed to submit answer" }));
+        console.error("Failed to answer question:", error);
+        return;
+      }
+
+      console.log("Question answered:", questionId);
+      setQuestions((qs) => qs.filter((q) => q.id !== questionId));
+      setSelectedQuestion(null);
+    } catch (error) {
+      console.error("Failed to submit answer:", error);
+    }
   }
 
   const runningAgents = agents.filter((a) => a.status === "running").length;
