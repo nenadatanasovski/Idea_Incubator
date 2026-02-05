@@ -27,6 +27,8 @@
     "questions:load:force": "tsx questions/loader.ts --force",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:unit": "vitest run --exclude 'tests/integration/**'",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:coverage": "vitest run --coverage",
     "test:obs:api": "vitest run tests/unit/observability/api",
     "test:obs:ui": "vitest run frontend/src/components/observability/__tests__",
