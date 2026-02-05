@@ -645,12 +645,11 @@ graphRouter.post(
       emitBlockCreated(sessionId, {
         id: blockId,
         type: data.type,
-        title: data.title,
         content: data.content,
-        properties: data.properties,
+        properties: data.properties ?? undefined,
         status: data.status,
-        confidence: data.confidence,
-        abstractionLevel: data.abstractionLevel,
+        confidence: data.confidence ?? undefined,
+        abstractionLevel: data.abstractionLevel ?? undefined,
         graphMembership: data.graphMembership,
       });
 
@@ -807,12 +806,11 @@ graphRouter.patch(
       emitBlockUpdated(sessionId, {
         id: blockId,
         type: data.type,
-        title: data.title,
         content: data.content,
-        properties: data.properties,
+        properties: data.properties ?? undefined,
         status: data.status,
-        confidence: data.confidence,
-        abstractionLevel: data.abstractionLevel,
+        confidence: data.confidence ?? undefined,
+        abstractionLevel: data.abstractionLevel ?? undefined,
         graphMembership: data.graphMembership,
       });
 

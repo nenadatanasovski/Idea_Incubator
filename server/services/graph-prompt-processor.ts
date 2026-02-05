@@ -68,6 +68,11 @@ export interface Block {
   content: string;
   properties: Record<string, unknown>;
   status: BlockStatus;
+  confidence?: number;
+  abstractionLevel?: "vision" | "strategy" | "tactic" | "implementation";
+  graphMembership?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Link {
@@ -77,6 +82,9 @@ export interface Link {
   linkType: LinkType;
   confidence?: number;
   reason?: string;
+  degree?: "full" | "partial" | "minimal";
+  status?: string;
+  createdAt?: string;
 }
 
 export interface PromptParseResult {

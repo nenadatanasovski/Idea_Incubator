@@ -460,7 +460,7 @@ export class BlockExtractor {
   ): Promise<ExtractionResponse> {
     try {
       const response = await this.client.messages.create({
-        model: "claude-haiku-3-5-latest",
+        model: "claude-3-5-haiku-latest",
         max_tokens: 4096,
         system: BLOCK_EXTRACTION_PROMPT,
         messages: [

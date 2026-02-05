@@ -1322,10 +1322,9 @@ ideationRouter.post("/message/edit", async (req: Request, res: Response) => {
 
       // Load graph state if session is linked to an idea
       const editSession = await sessionManager.load(sessionId);
-      if (editSession?.ideaSlug) {
-        const graphState = await graphStateLoader.loadState(
-          editSession.ideaSlug,
-        );
+      const ideaSlug = editSession?.ideaSlug;
+      if (ideaSlug) {
+        const graphState = await graphStateLoader.loadState(ideaSlug as string);
         if (graphState.selfDiscovery) {
           contextParts.push(
             `## Self Discovery\n${JSON.stringify(graphState.selfDiscovery, null, 2)}`,

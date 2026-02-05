@@ -347,7 +347,7 @@ export class GraphAnalysisSubagent {
     onProgress?.(50, "Calling AI for link inference...");
 
     const response = await this.client.messages.create({
-      model: "claude-haiku-3-5-latest",
+      model: "claude-3-5-haiku-latest",
       max_tokens: 2048,
       system: `You are a knowledge graph analyst. Given a list of blocks and existing links, suggest new links that should exist but are missing.
 
@@ -411,7 +411,7 @@ Output JSON only:
     onProgress?.(50, "Calling AI for contradiction detection...");
 
     const response = await this.client.messages.create({
-      model: "claude-haiku-3-5-latest",
+      model: "claude-3-5-haiku-latest",
       max_tokens: 2048,
       system: `You are a logic analyst. Given blocks of information, find any contradictions between them.
 
@@ -473,7 +473,7 @@ Output JSON only:
     onProgress?.(50, "Calling AI for assumption detection...");
 
     const response = await this.client.messages.create({
-      model: "claude-haiku-3-5-latest",
+      model: "claude-3-5-haiku-latest",
       max_tokens: 2048,
       system: `You are an assumption analyst. Given blocks of information, surface any implicit assumptions that are not explicitly stated.
 

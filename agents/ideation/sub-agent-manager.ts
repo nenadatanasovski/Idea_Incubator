@@ -6,6 +6,7 @@
  */
 
 import { client as anthropicClient } from "../../utils/anthropic-client.js";
+import type { StoredArtifact } from "./artifact-store.js";
 
 /**
  * Task types supported by the sub-agent manager.
@@ -507,9 +508,8 @@ export async function extractBlocksFromArtifact(
 }> {
   // Dynamically import to avoid circular dependencies
   const { blockExtractor } = await import("./block-extractor.js");
-  const { StoredArtifact } = await import("./artifact-store.js");
 
-  const artifact = {
+  const artifact: StoredArtifact = {
     id: artifactId,
     sessionId,
     type: artifactType as
