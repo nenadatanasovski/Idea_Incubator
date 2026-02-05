@@ -1,0 +1,186 @@
+AI Tech Stack Guidelines
+
+Core infrastructure
+- Database: PostgreSQL
+    - Database for everything (RAG too). 
+    - Scales extremely well
+    - Open source & self-host able
+    - Easy hosting with Supabase/Neon
+- Caching: Langfuse 
+    - FAST
+    - Valkey is a compatible OSS alternative
+- AI Coding: Claude Code
+    - Best current AI coding assistant
+    - Slash commands, subagents, SKILLS
+    - Archon for RAG + task management
+- Prototyping: N8N
+    - Hundreds of app integrations
+    - Very AI focused
+    - Open source and self-host able
+
+General AI Agents (foundation for building any agents) (store knowledge in DB ahead of time)
+- AI Agent Framework: Pedantic AI
+    - Flexibility and control
+    - Still very easy to work with
+    - Constant support for new protocols (MCP, AG-UI, A2A, Temporal)
+- Multi-Agent Framework: Langraph
+    - Everything I want for multi-agent: state management, human in the loop, node routing, graph persistence, UI
+    - All easy to work with
+- Agent Tooling: Arcade (+MCP Server SDK)
+    - Agent authorisation - very underrated
+    - Build auth first MCP servers
+    - MCP servers that are actually secure
+- Agent Observability: Langfuse (more around the tool calling)
+    - Very feature rich
+    - Open source and self-host able
+    - Integrations with every agent framework
+
+RAG Agents (when agent needs to reason across docs) (store knowledge in DB ahead of time)
+- File Extraction + Chunking: Docling
+    - Handles complex document extraction
+    - Easy to use self-hosted models
+    - Hybrid Chunking is insane
+- Website Data Extraction
+    - FAST and efficient web crawling
+    - Automatically cleans junk
+    - LLM integrations
+- Vector Database: PostgreSQL
+    - Many RAG strategies need a regular database too
+    - Scales very well
+- Long Term Memory: MemO
+    - Super easy to add to any agent 
+    - Integrates with many DBs
+- Graph Database: Neo4j
+    - High speed, very scalable
+    - Comes with a fantastic UI
+    - Supported by most KG libraries
+- Knowledge Graph Framework: Graphiti (light rag alternative supporting both graph and vector db)
+    - Very intelligent entity/relationship extraction from raw text (episodes)
+    - Nice having KG separate from vector DB
+- RAG Evaluation: Ragas
+    - Specialized metrics for Rag: faithfulness, relevance, etc.
+    - Works with any LLM provider
+    - Automated test dataset generation
+- Web Search: Brave
+    - Privacy-focused, no tracking
+    - Independent index (no Google proxy)
+    - AI search functionality
+
+Web Automation Agents (when agent needs to access the web)
+- AI Browser control: Browserbase
+    - Managed infrastructure
+    - All sessions are recorded & stored
+    - Anti-bot detection built in
+    - Stagehand MCP for AI driven browsing
+    - Director to auto create Playwright scripts
+- Browser Automations: Playwright
+    - Deterministic web automation king
+    - Helps with web testing too
+    - Multi-browser support
+- Web Crawling: Crawl4AI
+    - FAST and efficient web crawling
+    - Automatically cleans junk
+    - LLM integrations
+- Social Scraping: Apify
+    - Specifically good at getting platform data that is hard with other tools.
+
+Full Stack Development (building complete applications with AI)
+- API Framework: FastAPI
+    - Fastest Python API Framework
+    - Native async/await support
+    - Automatic API documentation
+- Database: PostgreSQL
+    - Database for everything
+    - Scales very well
+    - Open source & self-host able
+    - Easy hosting with Supabase/Neon
+- Simple Authentication: Supabase
+    - Easiest auth ever
+    - Integrates w/ Auth0 for enterprise
+    - Auth integrates directly with RLS
+    - Automatic user table
+- Enterprise Authentication: Auth0
+    - Universal origin w/ 30+ providers
+    - MFA + anomaly detection built in 
+    - Enterprise SSO (SAML, AD)
+- Frontend Library/Framework: React
+    - Keeping it simple
+    - Largest framework ecosystem
+    - Standard for all coding assistants
+- Frontend Build tool: Site
+    - FAST
+    - Standard for all coding assistants
+- Component Library: ShadCN
+    - Easy to incorporate AND edit components
+    - Standard for all coding assistants
+- Styling Library: Tailwind CSS
+    - There’s a class for every style
+    - Standard for all coding assistants
+- Agentic Frontend Builder: Lovable
+    - Creates the most beautiful UIs
+    - Great integrations (Supabase, Stripe, Github)
+    - Agent Mode
+- Simple UI Library: Streamline
+    - Easiest UIs possible
+    - Great for prototyping
+    - Python only UIs!
+- App Analytics/Monitoring: Sentry
+    - Real-time analytics for everything
+    - Native AI features
+    - Integrates with 100+ tools
+- Payments: Stripe
+    - Best developer experience
+    - Fantastic documentation
+
+Deployment & Infrastructure (getting everything into production) 
+- Deployment Platform: Render
+    - So easy to use and deploy apps
+    - Git-based deployments (push -> deploy)
+    - Free for frontend apps and their CDN
+    - Background workers and cron jobs
+- GPU Platform: RunPod
+    - Cheapest (trusted) GPU pricing
+    - Spot instances for lower cost
+    - Get GPUs instantly
+- VM Platform: DigitalOcean (if you want to own the machine)
+    - Very reliable
+    - Predictable pricing
+    - App platform for managed DBs, hosting local LLMs, etc.
+- Containerisation: Docker
+    - Industry standard for deploying apps
+    - Fixes the “works on my machine” problem
+- CI/CD: Github Actions
+    - Integrated directly in Github
+    - Free for public repos
+    - Huge marketplace of actions
+- Python Testing: Pytest
+    - Simple to use
+    - Extensive plugin ecosystem
+    - Fixtures for setup/teardown
+    - Easy to mock
+- TypeScript Testing: Jest
+    - Fast parallel test execution
+    - Built-in mocking + coverage
+    - Easy to set up
+- AI Code Review: CodeRabbit
+    - AI code review on every PR
+    - Security vulnerability detection
+    - Very thorough
+    - Free for open source repos
+
+Self-Hosting Options (when I need full control)
+- Local LLM Chat Platform: Open WebUI
+    - ChatGPT but it’s local
+    - Custom AI agents w/ functions/pipelines
+    - RAG built in
+- Local Web Search: SearXNG
+    - Completely local web search
+    - Even more private than Brave
+- Local LLM Serving: Ollama
+    - Super easy to run basically any local LLM
+    - Easy to configure quantisation, context limit, etc.
+    - Auto leverages multiple GPUs
+- HTTPS/TLS Platform: Caddy
+    - Automatic HTTPS width Let’s Encrypt 
+    - Super simple
+    - Built-in reverse proxy + load balancing
