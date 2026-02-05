@@ -581,6 +581,85 @@ export function mockToolUses(
     durationMs?: number;
   }>,
 ): void {
+  // Use service mock (new architecture)
+  mockToolUseService.getToolUses.mockImplementation((execId: string, options?: { limit?: number; offset?: number }) => {
+    if (execId === executionId) {
+      const limit = options?.limit || 50;
+      const offset = options?.offset || 0;
+      const paginatedData = toolUses.slice(offset, offset + limit);
+      const hasMore = offset + paginatedData.length < toolUses.length;
+      
+      return Promise.resolve({
+        data: paginatedData.map((t) => ({
+          id: t.id,
+          executionId,
+          taskId: null,
+          transcriptEntryId: "transcript-001",
+          tool: t.tool,
+          toolCategory: t.toolCategory,
+          input: "{}",
+          inputSummary: t.inputSummary,
+          resultStatus: t.resultStatus,
+          output: null,
+          outputSummary: "Output summary",
+          isError: t.isError || false,
+          isBlocked: t.isBlocked || false,
+          errorMessage: null,
+          blockReason: null,
+          startTime: new Date().toISOString(),
+          endTime: new Date().toISOString(),
+          durationMs: t.durationMs || 100,
+          withinSkill: null,
+          parentToolUseId: null,
+          createdAt: new Date().toISOString(),
+        })),
+        total: toolUses.length,
+        limit,
+        offset,
+        hasMore,
+      });
+    }
+    return Promise.resolve({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
+  });
+
+  // Mock tool summary
+  const errorCount = toolUses.filter(t => t.isError).length;
+  const blockedCount = toolUses.filter(t => t.isBlocked).length;
+  const byTool: Record<string, { count: number; errors: number; blocked: number; avgDurationMs: number }> = {};
+  const byCategory: Record<string, { count: number }> = {};
+  for (const t of toolUses) {
+    if (!byTool[t.tool]) {
+      byTool[t.tool] = { count: 0, errors: 0, blocked: 0, avgDurationMs: 0 };
+    }
+    byTool[t.tool].count++;
+    if (t.isError) byTool[t.tool].errors++;
+    if (t.isBlocked) byTool[t.tool].blocked++;
+    byTool[t.tool].avgDurationMs = (byTool[t.tool].avgDurationMs + (t.durationMs || 100)) / 2;
+    
+    if (!byCategory[t.toolCategory]) {
+      byCategory[t.toolCategory] = { count: 0 };
+    }
+    byCategory[t.toolCategory].count++;
+  }
+
+  mockToolUseService.getToolSummary.mockImplementation((execId: string) => {
+    if (execId === executionId) {
+      return Promise.resolve({
+        total: toolUses.length,
+        errors: errorCount,
+        blocked: blockedCount,
+        errorRate: toolUses.length > 0 ? (errorCount / toolUses.length) * 100 : 0,
+        blockRate: toolUses.length > 0 ? (blockedCount / toolUses.length) * 100 : 0,
+        byTool,
+        byCategory,
+        byStatus: { success: toolUses.length - errorCount, error: errorCount },
+        avgDurationMs: toolUses.reduce((sum, t) => sum + (t.durationMs || 100), 0) / (toolUses.length || 1),
+      });
+    }
+    return Promise.resolve({ total: 0, errors: 0, blocked: 0, errorRate: 0, blockRate: 0, byTool: {}, byCategory: {}, byStatus: {}, avgDurationMs: 0 });
+  });
+
+  // Also keep query mock for backwards compatibility
   mockQuery.mockImplementation((sql: string, params: unknown[]) => {
     if (sql.includes("FROM tool_uses") && params.includes(executionId)) {
       if (sql.includes("COUNT(*)")) {

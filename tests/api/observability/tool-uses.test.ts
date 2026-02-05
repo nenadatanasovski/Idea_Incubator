@@ -225,6 +225,15 @@ describe("GET /api/observability/executions/:id/tool-summary", () => {
   });
 
   it("returns aggregated tool statistics", async () => {
+    // Use mockToolUses which also sets up getToolSummary
+    mockToolUses(execId, [
+      { id: "t-1", tool: "Read", toolCategory: "file_operation", inputSummary: "Read file", resultStatus: "success", durationMs: 100 },
+      { id: "t-2", tool: "Read", toolCategory: "file_operation", inputSummary: "Read file", resultStatus: "success", durationMs: 100 },
+      { id: "t-3", tool: "Write", toolCategory: "file_operation", inputSummary: "Write file", resultStatus: "success", durationMs: 200 },
+      { id: "t-4", tool: "Write", toolCategory: "file_operation", inputSummary: "Write file", resultStatus: "error", isError: true, durationMs: 50 },
+    ]);
+
+    // Additional mock for getMocks compatibility (ignore this)
     const { mockQuery } = getMocks();
     mockQuery.mockImplementation((sql: string) => {
       if (sql.includes("GROUP BY tool")) {
@@ -266,29 +275,11 @@ describe("GET /api/observability/executions/:id/tool-summary", () => {
   });
 
   it("byTool breakdown includes counts", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string) => {
-      if (sql.includes("GROUP BY tool")) {
-        return Promise.resolve([
-          { tool: "Read", count: 10 },
-          { tool: "Write", count: 5 },
-        ]);
-      }
-      if (sql.includes("GROUP BY tool_category")) {
-        return Promise.resolve([
-          { tool_category: "file_operation", count: 15 },
-        ]);
-      }
-      if (sql.includes("GROUP BY result_status")) {
-        return Promise.resolve([{ result_status: "success", count: 15 }]);
-      }
-      if (sql.includes("AVG(duration_ms)")) {
-        return Promise.resolve([
-          { total: 15, avg_duration: 100, error_count: 0, block_count: 0 },
-        ]);
-      }
-      return Promise.resolve([]);
-    });
+    // Use mockToolUses to set up both getToolUses and getToolSummary
+    mockToolUses(execId, [
+      ...Array(10).fill(null).map((_, i) => ({ id: `r-${i}`, tool: "Read", toolCategory: "file_operation", inputSummary: "Read", resultStatus: "success", durationMs: 100 })),
+      ...Array(5).fill(null).map((_, i) => ({ id: `w-${i}`, tool: "Write", toolCategory: "file_operation", inputSummary: "Write", resultStatus: "success", durationMs: 100 })),
+    ]);
 
     const res = await request(app).get(
       `/api/observability/executions/${execId}/tool-summary`,
@@ -301,18 +292,11 @@ describe("GET /api/observability/executions/:id/tool-summary", () => {
   });
 
   it("includes error rate calculation", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string) => {
-      if (sql.includes("GROUP BY")) {
-        return Promise.resolve([]);
-      }
-      if (sql.includes("AVG(duration_ms)")) {
-        return Promise.resolve([
-          { total: 10, avg_duration: 100, error_count: 2, block_count: 1 },
-        ]);
-      }
-      return Promise.resolve([]);
-    });
+    // Use mockToolUses with some errors
+    mockToolUses(execId, [
+      ...Array(8).fill(null).map((_, i) => ({ id: `s-${i}`, tool: "Read", toolCategory: "file_operation", inputSummary: "Read", resultStatus: "success", durationMs: 100 })),
+      ...Array(2).fill(null).map((_, i) => ({ id: `e-${i}`, tool: "Read", toolCategory: "file_operation", inputSummary: "Read", resultStatus: "error", isError: true, durationMs: 50 })),
+    ]);
 
     const res = await request(app).get(
       `/api/observability/executions/${execId}/tool-summary`,
