@@ -496,16 +496,64 @@ Nice work! What's next?`,
     try {
       const status = await taskListOrchestrator.getOrchestratorStatus();
 
-      // Check if we have multiple lists that could run in parallel
+      // Check if we have capacity and active lists
       if (
-        status.activeLists.length > 0 &&
-        status.globalAgentPool.availableSlots > 0
+        status.activeLists.length === 0 ||
+        status.globalAgentPool.availableSlots === 0
       ) {
-        // TODO: Implement parallel opportunity detection
-        // Check for non-conflicting lists that could run simultaneously
+        return null;
       }
 
-      return null;
+      // Find ready lists that could run in parallel
+      const readyLists = query<{
+        id: string;
+        name: string;
+        total_tasks: number;
+        project_id: string | null;
+      }>(
+        `SELECT id, name, total_tasks, project_id FROM task_lists_v2 
+         WHERE status = 'ready' 
+         AND total_tasks > 0
+         ORDER BY created_at ASC
+         LIMIT 3`,
+      );
+
+      if (!readyLists || readyLists.length === 0) {
+        return null;
+      }
+
+      // Get active list project IDs to check for conflicts
+      const activeProjectIds = new Set(
+        status.activeLists.map((l) => l.projectId).filter(Boolean),
+      );
+
+      // Find a list that doesn't conflict with active lists (different project)
+      const nonConflicting = readyLists.find(
+        (list) => !list.project_id || !activeProjectIds.has(list.project_id),
+      );
+
+      if (!nonConflicting) {
+        return null; // All ready lists would conflict
+      }
+
+      return {
+        type: "parallel_opportunity",
+        message: `"${nonConflicting.name}" can run in parallel with current execution (${status.globalAgentPool.availableSlots} agents available)`,
+        priority: 3,
+        buttons: [
+          [
+            {
+              text: "▶️ Start Parallel",
+              callbackData: `task_parallel:${nonConflicting.id}`,
+            },
+            { text: "⏭️ Later", callbackData: `task_later:${nonConflicting.id}` },
+          ],
+        ],
+        metadata: {
+          taskListId: nonConflicting.id,
+          availableSlots: status.globalAgentPool.availableSlots,
+        },
+      };
     } catch (error) {
       console.error(
         "[SuggestionEngine] Error checking parallel opportunities:",
