@@ -784,9 +784,10 @@ export function mockAssertions(
         total: assertions.length,
         limit: 50,
         offset: 0,
+        hasMore: false,
       });
     }
-    return Promise.resolve({ data: [], total: 0, limit: 50, offset: 0 });
+    return Promise.resolve({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
   });
 
   // Mock assertion summary
