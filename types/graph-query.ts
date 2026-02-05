@@ -25,15 +25,22 @@ export type GraphDimension =
   | "customer"
   | "product";
 
-// Valid block types (21 total)
+// Valid block types (25 total - includes canonical ARCH-001 types + legacy types for compatibility)
 export type BlockType =
+  // ARCH-001 canonical types
+  | "knowledge"   // Verified facts, patterns, insights
+  | "decision"    // Choices made with rationale  
+  | "assumption"  // Unverified beliefs to test
+  | "question"    // Open unknowns to investigate
+  | "requirement" // Constraints, must-haves
+  | "task"        // Work items, actions
+  | "proposal"    // Suggested changes awaiting approval
+  | "artifact"    // Outputs (code, docs, specs)
+  | "evidence"    // Validation data, proof
+  // Legacy types (kept for compatibility)
   | "insight"
   | "fact"
-  | "assumption"
-  | "question"
-  | "decision"
   | "action"
-  | "requirement"
   | "option"
   | "pattern"
   | "synthesis"
@@ -42,7 +49,6 @@ export type BlockType =
   | "blocker"
   | "epic"
   | "story"
-  | "task"
   | "bug"
   | "persona"
   | "milestone"
