@@ -41,3 +41,8 @@ export {
 export { ProjectFilesPanel, type FileNode } from "./ProjectFilesPanel";
 export { SpecViewPanel, type SpecVersion } from "./SpecViewPanel";
 export { ContextLimitModal } from "./ContextLimitModal";
+
+// Memory Graph components
+export { MemoryGraphStats } from "./MemoryGraphStats";
+export { CreateBlockForm } from "./CreateBlockForm";
+export { MemoryBlockSearch } from "./MemoryBlockSearch";
