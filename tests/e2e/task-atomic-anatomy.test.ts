@@ -790,12 +790,12 @@ describe("8.4 Versioning and Rollback", () => {
       changeReason: "Updated requirements",
     });
 
-    // Get version history
+    // Get version history (returned in DESC order - newest first)
     const versions = await taskVersionService.getVersions(taskId);
 
     expect(versions.length).toBe(2);
-    expect(versions[1].version).toBe(2);
-    expect(versions[1].changeReason).toBe("Updated requirements");
+    expect(versions[0].version).toBe(2); // Latest version first
+    expect(versions[0].changeReason).toBe("Updated requirements");
   });
 
   it("should track all field changes between versions", async () => {
