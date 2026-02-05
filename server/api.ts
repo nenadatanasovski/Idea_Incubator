@@ -91,10 +91,12 @@ import pipelineRouter from "./routes/pipeline.js";
 import objectsRouter from "./routes/objects.js";
 import projectsRouter from "./routes/projects.js";
 import specsRouter from "./routes/specs.js";
+import specificationRouter from "./routes/specification.js";
 import traceabilityRouter from "./routes/traceability.js";
 import aiSyncRouter from "./routes/ai-sync.js";
 import eventsRouter from "./routes/events.js";
 import ideaPipelineRouter from "./routes/idea-pipeline.js";
+import buildRouter from "./routes/build.js";
 import { initNotificationSystem } from "./notifications/index.js";
 import { getCommunicationHub } from "./communication/communication-hub.js";
 import { initializeOrchestrator } from "./pipeline/orchestrator.js";
@@ -139,8 +141,11 @@ app.use("/api/ideation", splitIdeationRouter);
 // Mount main ideation routes (message handling, actions)
 app.use("/api/ideation", ideationRouter);
 
-// Mount build agent routes
+// Mount build agent routes (legacy - by build ID)
 app.use("/api/builds", buildsRouter);
+
+// Mount build routes (idea-centric - by idea ID)
+app.use("/api/build", buildRouter);
 
 // Mount stats routes
 app.use("/api/stats", statsRouter);
@@ -213,6 +218,9 @@ app.use("/api/projects", projectsRouter);
 
 // Spec generation routes
 app.use("/api/specs", specsRouter);
+
+// Specification session routes (SPEC-004: new session-based spec agent)
+app.use("/api/specification", specificationRouter);
 
 // Idea Pipeline Orchestration routes (phase transitions)
 app.use("/api/idea-pipeline", ideaPipelineRouter);

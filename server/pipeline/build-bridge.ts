@@ -16,7 +16,7 @@ export interface BuildSession {
   sessionId: string;
   ideaId: string;
   buildId?: string;
-  status: 'pending' | 'running' | 'complete' | 'failed' | 'human_needed';
+  status: 'pending' | 'running' | 'complete' | 'failed' | 'human_needed' | 'paused';
   startedAt: Date;
   completedAt?: Date;
   tasksTotal: number;
@@ -25,6 +25,10 @@ export interface BuildSession {
   currentTask?: string;
   siaInterventions: number;
   error?: string;
+  
+  // Internal control flags
+  _pauseRequested?: boolean;
+  _skipRequested?: boolean;
 }
 
 /**
@@ -141,22 +145,65 @@ export class BuildBridge extends EventEmitter {
       onTaskComplete: async (result) => {
         if (result.state === 'done') {
           session.tasksComplete++;
+          
+          // Emit task complete event
+          this.emit('taskComplete', {
+            ideaId: session.ideaId,
+            sessionId: session.sessionId,
+            taskId: result.taskId,
+            attempt: result.attempt,
+            duration: result.duration,
+          });
         }
         await this.updateProgress(session);
+        
+        // Check for pause request
+        if ((session as any)._pauseRequested) {
+          (session as any)._pauseRequested = false;
+          session.status = 'paused';
+          this.emit('buildPaused', {
+            ideaId: session.ideaId,
+            sessionId: session.sessionId,
+          });
+          // Note: Agent will need to check this and stop
+        }
       },
       
       onTaskFailed: async (taskId, error) => {
         session.tasksFailed++;
         
+        // Emit task failed event
+        this.emit('taskFailed', {
+          ideaId: session.ideaId,
+          sessionId: session.sessionId,
+          taskId,
+          error: error.message,
+          attempt: session.tasksFailed,
+        });
+        
         // Check if we should request human intervention
         if (session.tasksFailed >= this.config.humanInterventionThreshold) {
+          // First emit SIA triggered event
+          this.emit('siaTriggered', {
+            ideaId: session.ideaId,
+            sessionId: session.sessionId,
+            taskId,
+            interventionNumber: session.siaInterventions + 1,
+          });
+          
+          session.siaInterventions++;
+          
+          // If SIA can't fix it, request human intervention
           session.status = 'human_needed';
+          session.currentTask = taskId;
+          
           this.emit('humanNeeded', {
             ideaId: session.ideaId,
             sessionId: session.sessionId,
             taskId,
             error: error.message,
             failedCount: session.tasksFailed,
+            reason: 'Max retries exceeded after SIA intervention',
           });
           
           await this.updateProgress(session);
