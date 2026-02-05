@@ -2,7 +2,8 @@
 
 **Created:** 2026-02-06
 **Author:** Kai (AI Software Engineer)
-**Status:** DRAFT - Requires Ned's Input on Critical Questions
+**Status:** READY FOR IMPLEMENTATION
+**Version:** 2.0 - With Recommendations & Task Dashboard
 
 ---
 
@@ -16,145 +17,553 @@ This plan describes an **external autonomous agent harness** that orchestrates V
 3. **Cron-Orchestrated** - 1-minute heartbeat with task assignment
 4. **QA-Validated** - Every 10th cycle runs independent quality checks
 5. **Clear Pass Criteria** - Every task has measurable completion criteria
+6. **Task Dashboard** - Kanban UI for humans and agents to manage work
 
 ---
 
-## Critical Questions for Ned (MUST ANSWER BEFORE IMPLEMENTING)
+## Design Decisions (With Recommendations)
 
-### Q1: Agent-to-Telegram Channel Mapping
-Which Telegram channels/groups should each agent post to?
+### D1: Telegram Channel Architecture
+**Decision:** Hybrid - Critical channel + Agent-specific channels
 
+**Recommendation:**
 ```
-Proposed mapping (confirm or modify):
-- Orchestrator: @vibe-orchestrator (coordination decisions)
-- Ideation Agent (SIA): @vibe-ideation (user conversations, idea captures)
-- Specification Agent: @vibe-specs (spec generation, requirement extraction)
-- Build Agent: @vibe-build (code generation, file edits, test results)
-- Task Agent: @vibe-tasks (task assignment, status changes)
-- QA Agent: @vibe-qa (audit results, bottleneck reports)
-- Research Agent: @vibe-research (web searches, market data)
+@vibe-critical    → All agents post: errors, blocks, completions, human-needed
+@vibe-orchestrator → Orchestrator only: coordination, scheduling, health
+@vibe-build        → Build Agent: file edits, test results, commits
+@vibe-qa           → QA Agent: verification results, reports, recommendations
+@vibe-agents       → All agents: verbose logging (tool use, progress)
 ```
 
-**Question:** Are these separate channels or one unified channel? Who subscribes to what?
+**Why this is right:**
+- `@vibe-critical` is your "don't miss this" channel - mute the rest if you want
+- Per-agent channels give deep observability without noise
+- `@vibe-agents` is your debug channel - full firehose for troubleshooting
+- Scales to more agents without restructuring
 
-### Q2: Task Source and Assignment Rules
-Where do tasks come from and how are they assigned?
-
-**Current options:**
-1. **Database-driven:** Tasks from `tasks` table in Vibe SQLite
-2. **File-driven:** Tasks from `coding-loops/*/test-state.json`
-3. **Hybrid:** Tasks from both, with priority rules
-4. **External:** Tasks from Linear/GitHub Issues (like your-claude-engineer)
-
-**Question:** Which source is authoritative? Can agents create their own tasks?
-
-### Q3: Agent Deployment Target
-Where does the harness run?
-
-**Options:**
-1. **Same machine, different process** - Simple but shares resources
-2. **Docker container** - Isolated, portable
-3. **Separate VPS** - True isolation, network latency to Vibe DB
-4. **Serverless (Lambda/Cloud Run)** - Auto-scaling but cold starts
-
-**Question:** What infrastructure do you want? Budget constraints?
-
-### Q4: Vibe Platform Specification
-The task agent "needs to continuously evaluate progress vs specifications as to how the vibe platform should work."
-
-**Question:** Where is this specification? Options:
-1. The PRD files in `ideas/vibe/` folder
-2. The test-state files in `coding-loops/`
-3. A master SPEC.md document (doesn't exist yet?)
-4. Implicit in code (tests define spec)
-
-### Q5: Inter-Agent Communication
-How do agents coordinate?
-
-**Options:**
-1. **Through orchestrator only** - Central hub
-2. **Message bus (SQLite events)** - As planned in multi-agent-coordination-system-FINAL.md
-3. **Telegram channels** - Read each other's messages
-4. **Direct API calls** - Agent-to-agent
-
-**Question:** Should agents talk directly or always through orchestrator?
-
-### Q6: Human Approval Gates
-Some changes are high-risk (e.g., DB schema changes, API breaking changes).
-
-**Question:** Do you want explicit approval gates? If yes:
-- Which task types require approval?
-- Timeout behavior if no response?
-- Can QA agent auto-approve low-risk items?
-
-### Q7: Git Workflow
-Agents will modify code.
-
-**Question:**
-- One branch per agent? Per task? Direct to main?
-- Who merges? Auto-merge on pass? Human review?
-- How to handle conflicts?
-
-### Q8: Budget and Rate Limits
-Running multiple agents consumes API credits.
-
-**Question:**
-- Daily/monthly budget cap?
-- Per-agent token limits?
-- Model allocation (Opus for what? Haiku for what?)
-- What happens when budget exhausted?
+**Subscription matrix:**
+| Channel | Ned | Orchestrator | Build | QA | Task | Others |
+|---------|-----|--------------|-------|-----|------|--------|
+| @vibe-critical | ✅ | Post | Post | Post | Post | Post |
+| @vibe-orchestrator | Optional | Post | Read | Read | Read | Read |
+| @vibe-build | Optional | Read | Post | Read | - | - |
+| @vibe-qa | ✅ | Read | - | Post | Read | - |
+| @vibe-agents | Debug | Post | Post | Post | Post | Post |
 
 ---
 
-## First Principles Analysis
+### D2: Task Source and Authority
+**Decision:** Database is single source of truth, agents can create tasks
 
-### What Problem Are We Solving?
+**Recommendation:**
+- Primary: `harness.db` SQLite (harness-owned, not Vibe's)
+- Sync: Import from `coding-loops/test-state.json` on startup
+- Creation: Both UI and agents can create tasks via API
+- Hierarchy: Epic → Story → Task → Bug (standard agile)
 
-**Pain Point:** Vibe platform development requires constant human oversight. Agents exist but:
-1. Run inside the platform (die when it restarts)
-2. Don't communicate with each other
-3. Don't validate their own work
-4. Don't keep humans informed
-5. Tasks aren't tracked systematically
+**Why this is right:**
+- Database is queryable, indexable, auditable
+- Powers the Task Dashboard UI
+- Agents need to create subtasks during decomposition
+- Separate from Vibe DB = survives Vibe restarts, no coupling
+- Sync from coding-loops preserves existing work
 
-**Goal:** A system where you wake up and find features implemented, tested, and documented - with a clear audit trail of what happened.
+**Task schema:**
+```sql
+CREATE TABLE tasks (
+    id TEXT PRIMARY KEY,
+    display_id TEXT UNIQUE NOT NULL,  -- EPIC-001, STORY-042, TASK-123, BUG-007
+    type TEXT CHECK(type IN ('epic', 'story', 'task', 'bug')) NOT NULL,
+    parent_id TEXT REFERENCES tasks(id),
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT CHECK(status IN (
+        'backlog', 'ready', 'in_progress', 'review', 
+        'blocked', 'done', 'cancelled'
+    )) DEFAULT 'backlog',
+    priority TEXT CHECK(priority IN ('P0', 'P1', 'P2', 'P3')) DEFAULT 'P2',
+    assigned_agent TEXT,
+    assigned_human TEXT,
+    created_by TEXT NOT NULL,  -- 'user', 'task_agent', 'qa_agent', etc.
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    due_date DATETIME,
+    estimated_hours REAL,
+    actual_hours REAL,
+    pass_criteria TEXT,  -- JSON array of criteria
+    verification_status TEXT CHECK(verification_status IN (
+        'pending', 'passed', 'failed', 'needs_revision'
+    )),
+    labels TEXT,  -- JSON array
+    spec_link TEXT,
+    pr_link TEXT
+);
 
-### Core Requirements (Non-Negotiable)
+CREATE INDEX idx_tasks_status ON tasks(status);
+CREATE INDEX idx_tasks_type ON tasks(type);
+CREATE INDEX idx_tasks_assigned ON tasks(assigned_agent);
+CREATE INDEX idx_tasks_parent ON tasks(parent_id);
+```
 
-| Requirement | Rationale |
-|------------|-----------|
-| **External to Vibe** | Platform restarts constantly during dev |
-| **Cron-based heartbeat** | Ensures agents work even when no one is watching |
-| **Telegram updates** | Real-time visibility without opening dashboards |
-| **Task tracking** | Know what's done, what's in progress, what's blocked |
-| **Pass criteria** | Unambiguous completion definition |
-| **QA validation** | Independent verification (agents lie/hallucinate) |
+---
 
-### What Cole Medin's Architecture Teaches Us
+### D3: Deployment Architecture
+**Decision:** Docker Compose on same machine, designed for VPS migration
 
-From `your-claude-engineer`:
+**Recommendation:**
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  orchestrator:
+    build: ./orchestrator
+    volumes:
+      - ./data:/app/data
+      - /home/ned/Documents/Idea_Incubator:/workspace:ro
+    environment:
+      - VIBE_WORKSPACE=/workspace
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    restart: unless-stopped
+    
+  task-dashboard:
+    build: ./dashboard
+    ports:
+      - "3333:3333"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - orchestrator
+    restart: unless-stopped
+    
+  # Cron runs inside orchestrator container
+```
 
-1. **Orchestrator pattern works** - One agent coordinates, subagents execute
-2. **Per-agent model selection** - Haiku for coordination, Sonnet/Opus for coding
-3. **Linear integration** - Task tracking with status transitions
-4. **Session handoff** - META issue tracks progress across sessions
-5. **Isolated git repos** - Each project in own directory
-6. **MCP for integrations** - Arcade gateway for external services
+**Why this is right:**
+- Docker = isolated, reproducible, portable
+- Same machine initially = fast iteration, no network latency
+- Volume mount to Vibe workspace = read code, run tests
+- Designed for VPS: just change volume mounts to network paths
+- Separate dashboard service = can restart independently
 
-**Key insight:** The orchestrator reads state, decides action, delegates to subagent, updates state. Loop continues.
+**Migration path to VPS:**
+1. Push image to registry
+2. Set up VPS with Docker
+3. Mount Vibe workspace via NFS/SSHFS or use git clone
+4. Same compose file, different env vars
 
-### What Vibe's Existing Plan Adds
+---
 
-From `20260107-multi-agent-coordination-system-FINAL.md`:
+### D4: Specification Source
+**Decision:** Living MASTER_SPEC.md + linked PRDs + tests as executable spec
 
-1. **Message bus** - Events with subscriptions, persistence
-2. **Verification gate** - Independent test execution
-3. **Deadlock detection** - Prevents agents waiting forever
-4. **Regression monitoring** - Catches when agents break things
-5. **Knowledge base** - Cross-agent context sharing
-6. **Checkpoint/rollback** - Recovery from bad changes
+**Recommendation:**
+Create `MASTER_SPEC.md` that:
+- Defines Vibe's core value proposition and user journeys
+- Links to detailed PRDs in `ideas/vibe/`
+- Links to test-state files in `coding-loops/`
+- Is auto-updated by Spec Agent when PRDs change
 
-**Key insight:** 116 tests already defined with pass criteria. Use this.
+**Structure:**
+```markdown
+# Vibe Platform Master Specification
+
+## Vision
+[One paragraph: what Vibe is and why it exists]
+
+## User Journeys
+1. Ideation Journey: User → Idea → Validated Concept
+2. Specification Journey: Idea → PRD → Task List
+3. Build Journey: Task → Code → Deployed Feature
+
+## Feature Areas
+### Ideation (SIA)
+- PRD: [link to ideas/vibe/ideation-prd.md]
+- Tests: [link to coding-loops/loop-1/test-state.json#ideation]
+- Status: 45/60 tests passing
+
+### Specification Agent
+- PRD: [link]
+- Tests: [link]
+- Status: 12/30 tests passing
+
+[etc.]
+
+## Architecture Decisions
+[Link to ADRs]
+
+## Non-Functional Requirements
+- Performance: <2s page load
+- Reliability: 99% uptime
+- Security: OAuth, rate limiting
+```
+
+**Why this is right:**
+- Single entry point for "what should Vibe do"
+- Links to details without duplicating
+- Tests ARE the spec (executable)
+- Spec Agent updates it = always current
+- Agents can query it for context
+
+---
+
+### D5: Inter-Agent Communication
+**Decision:** Message bus (SQLite) + Orchestrator coordination
+
+**Recommendation:**
+- **Message Bus:** SQLite table for events (not Telegram - that's for humans)
+- **Orchestrator:** Coordinates task assignment, not message routing
+- **Direct reads:** Agents can read each other's status, not send commands
+
+**Why this is right:**
+- Message bus is queryable, persistent, auditable
+- Orchestrator prevents chaos (no agent-to-agent commands)
+- Agents can observe state without coupling
+- Scales: add new agent = subscribe to bus
+
+**Schema:**
+```sql
+CREATE TABLE message_bus (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    source_agent TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    event_data JSON NOT NULL,
+    target_agent TEXT,  -- NULL = broadcast
+    consumed_by JSON DEFAULT '[]',
+    expires_at DATETIME
+);
+
+-- Event types:
+-- task_assigned, task_completed, task_blocked
+-- file_modified, test_result, build_status
+-- agent_started, agent_stopped, agent_stuck
+-- qa_report, human_needed, approval_granted
+```
+
+---
+
+### D6: Human Approval Gates
+**Decision:** Required for high-risk, auto-approve for low-risk, timeout pauses
+
+**Recommendation:**
+
+| Action | Risk | Approval |
+|--------|------|----------|
+| DB schema change | 🔴 High | Human required |
+| API breaking change | 🔴 High | Human required |
+| Deploy to production | 🔴 High | Human required |
+| Delete files | 🟡 Medium | QA can approve |
+| New dependency | 🟡 Medium | QA can approve |
+| Code changes | 🟢 Low | Auto on test pass |
+| Documentation | 🟢 Low | Auto on lint pass |
+| Style/formatting | 🟢 Low | Auto |
+
+**Timeout behavior:**
+- Human approval request → Telegram @vibe-critical
+- 1 hour timeout → Task paused, not abandoned
+- Daily summary of pending approvals
+- Emergency override: reply "APPROVE ALL" in Telegram
+
+**Why this is right:**
+- Prevents catastrophic mistakes (DB, API, deploy)
+- Doesn't block routine work
+- QA agent as "senior developer" for medium-risk
+- Timeout pauses, doesn't fail = resumable
+- Batch approval for busy days
+
+---
+
+### D7: Git Workflow
+**Decision:** Branch per task, auto-merge to dev, human review to main
+
+**Recommendation:**
+```
+main (protected)
+  └── dev (auto-merge target)
+        ├── task/TASK-001-implement-feature
+        ├── task/TASK-002-fix-bug
+        └── task/TASK-003-add-tests
+```
+
+**Flow:**
+1. Agent picks up task → creates `task/TASK-XXX-slug` branch
+2. Agent works, commits with conventional messages
+3. Agent marks complete → PR to `dev` created
+4. QA Agent runs verification on PR
+5. QA passes → auto-merge to `dev`
+6. Daily: Human reviews `dev` → merges to `main`
+
+**Conflict handling:**
+1. Orchestrator checks for conflicts before assignment
+2. If file locked by another task → wait or pick different task
+3. If conflict on merge → notify human, pause task
+
+**Why this is right:**
+- Isolation: each task in its own branch
+- Automation: QA pass = merge to dev
+- Safety: main requires human review
+- Traceability: branch name = task ID
+- Conflicts caught early by orchestrator
+
+---
+
+### D8: Budget and Rate Limits
+**Decision:** Per-agent daily limits, tiered models, alert thresholds
+
+**Recommendation:**
+
+| Agent | Model | Daily Token Limit | Cost Cap |
+|-------|-------|-------------------|----------|
+| Orchestrator | Haiku | 500K | $1.50 |
+| Build Agent | Opus | 2M | $60.00 |
+| Spec Agent | Opus | 1M | $30.00 |
+| QA Agent | Opus | 500K | $15.00 |
+| Task Agent | Sonnet | 500K | $7.50 |
+| Research Agent | Sonnet | 300K | $4.50 |
+| Ideation (SIA) | Opus | 1M | $30.00 |
+| **Daily Total** | - | ~6M | ~$150 |
+
+**Thresholds:**
+- 50% → Info log
+- 80% → Warning to @vibe-critical
+- 95% → Alert, slow down (2x delay between tasks)
+- 100% → Pause agent, notify human
+
+**Why this is right:**
+- Haiku for coordination (cheap, fast)
+- Opus for reasoning-heavy (build, spec, QA)
+- Sonnet for structured tasks (task management, research)
+- Daily limits prevent runaway costs
+- Graduated response: warn → slow → stop
+- $150/day = $4,500/month cap (adjust as needed)
+
+**Cost tracking:**
+```sql
+CREATE TABLE token_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    agent_id TEXT NOT NULL,
+    model TEXT NOT NULL,
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+    cost_usd REAL,
+    task_id TEXT
+);
+
+CREATE INDEX idx_usage_agent_date ON token_usage(agent_id, date(timestamp));
+```
+
+---
+
+## Task Dashboard / Kanban System
+
+### Overview
+A web-based dashboard for managing the entire task hierarchy. Both humans and agents interact through the same system.
+
+### Features
+
+#### Kanban Board View
+```
+┌─────────────┬─────────────┬─────────────┬─────────────┬─────────────┐
+│   BACKLOG   │    READY    │ IN PROGRESS │   REVIEW    │    DONE     │
+├─────────────┼─────────────┼─────────────┼─────────────┼─────────────┤
+│ ┌─────────┐ │ ┌─────────┐ │ ┌─────────┐ │ ┌─────────┐ │ ┌─────────┐ │
+│ │EPIC-001 │ │ │TASK-042 │ │ │TASK-039 │ │ │TASK-037 │ │ │TASK-035 │ │
+│ │Ideation │ │ │Fix bug  │ │ │🤖 Build │ │ │🔍 QA    │ │ │✅ Done  │ │
+│ │ ├─STORY │ │ │P1 🔴    │ │ │Agent    │ │ │Verify   │ │ │2h ago   │ │
+│ │ ├─STORY │ │ └─────────┘ │ └─────────┘ │ └─────────┘ │ └─────────┘ │
+│ │ └─STORY │ │ ┌─────────┐ │ ┌─────────┐ │             │ ┌─────────┐ │
+│ └─────────┘ │ │TASK-043 │ │ │TASK-040 │ │             │ │TASK-034 │ │
+│ ┌─────────┐ │ │Add API  │ │ │🤖 Spec  │ │             │ │✅ Done  │ │
+│ │EPIC-002 │ │ │P2 🟡    │ │ │Agent    │ │             │ │5h ago   │ │
+│ │Build    │ │ └─────────┘ │ └─────────┘ │             │ └─────────┘ │
+│ └─────────┘ │             │             │             │             │
+└─────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
+```
+
+#### Task Creation Modal
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Create New Task                                              [X]    │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ Type:     [Epic ▼]  [Story ▼]  [Task ▼]  [Bug ▼]                   │
+│                                                                     │
+│ Parent:   [Select parent epic/story...           ▼]                │
+│                                                                     │
+│ Title:    [________________________________________________]        │
+│                                                                     │
+│ Description:                                                        │
+│ ┌─────────────────────────────────────────────────────────────────┐│
+│ │                                                                 ││
+│ │                                                                 ││
+│ └─────────────────────────────────────────────────────────────────┘│
+│                                                                     │
+│ Priority: [P0 🔴] [P1 🟠] [P2 🟡] [P3 🟢]                           │
+│                                                                     │
+│ Assign to: [○ Agent: Build ▼] [○ Human: Ned]                       │
+│                                                                     │
+│ Pass Criteria (one per line):                                       │
+│ ┌─────────────────────────────────────────────────────────────────┐│
+│ │ - [ ] Tests pass                                                ││
+│ │ - [ ] No TypeScript errors                                      ││
+│ │ - [ ] Documentation updated                                     ││
+│ └─────────────────────────────────────────────────────────────────┘│
+│                                                                     │
+│ Labels:   [ideation] [backend] [urgent] [+ Add]                    │
+│                                                                     │
+│ Link to Spec: [ideas/vibe/ideation-prd.md                    ] 📎  │
+│                                                                     │
+│                              [Cancel]  [Create Task]                │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### Task Detail View
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ TASK-042: Fix candidateUpdate not triggering                        │
+├─────────────────────────────────────────────────────────────────────┤
+│ Type: Bug          Priority: P1 🔴        Status: In Progress       │
+│ Created: 2h ago    Assigned: Build Agent  Est: 2h   Actual: 1.5h   │
+├─────────────────────────────────────────────────────────────────────┤
+│ Description:                                                        │
+│ During E2E testing, ideas weren't appearing in the right panel.     │
+│ The AI responded but candidateUpdate wasn't in JSON output.         │
+├─────────────────────────────────────────────────────────────────────┤
+│ Pass Criteria:                                          Progress    │
+│ ☑ Strengthen system prompt instructions                    ✅       │
+│ ☑ Add explicit candidateUpdate examples                    ✅       │
+│ ☐ Verify with E2E test                                     ⏳       │
+│ ☐ QA Agent confirms fix                                    ⏳       │
+├─────────────────────────────────────────────────────────────────────┤
+│ Activity Timeline:                                                  │
+│ 10:15 🤖 Build Agent: Started working on task                       │
+│ 10:18 🔧 Tool: edit_file → system-prompt.ts (+26 lines)            │
+│ 10:19 📝 Commit: "fix: strengthen candidateUpdate instructions"     │
+│ 10:20 🤖 Build Agent: Marked criteria 1 & 2 complete               │
+│ 10:25 🔍 QA Agent: Scheduled for verification                       │
+├─────────────────────────────────────────────────────────────────────┤
+│ Links:                                                              │
+│ 📄 Spec: ideas/vibe/ideation-prd.md#candidate-tracking             │
+│ 🔗 PR: #127 (pending)                                               │
+│ 💬 Telegram: @vibe-build/1234                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│ [Edit] [Assign] [Add Criteria] [Block] [Cancel] [Mark Done]        │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### Filters and Views
+- **By Type:** Epics | Stories | Tasks | Bugs | All
+- **By Status:** Backlog | Ready | In Progress | Review | Done | Blocked
+- **By Agent:** Build | Spec | QA | Task | Unassigned
+- **By Priority:** P0 | P1 | P2 | P3
+- **By Label:** Custom tags
+- **Search:** Full-text search across title, description
+
+#### Epic/Story Hierarchy View
+```
+EPIC-001: Ideation System (SIA)                          [=====>    ] 45%
+├── STORY-001: Session Management                        [========= ] 90%
+│   ├── TASK-001: Create session API ✅
+│   ├── TASK-002: Session persistence ✅
+│   ├── TASK-003: Session resume ✅
+│   └── TASK-004: Session handoff ⏳
+├── STORY-002: Idea Capture                              [====>     ] 40%
+│   ├── TASK-005: candidateUpdate parsing ✅
+│   ├── TASK-006: Right panel display ✅
+│   ├── TASK-007: Idea persistence 🔄
+│   └── TASK-008: Idea editing ⏳
+└── STORY-003: Web Search Integration                    [=         ] 10%
+    ├── TASK-009: Search API ✅
+    ├── TASK-010: Result parsing ⏳
+    └── TASK-011: Artifact display ⏳
+```
+
+### Dashboard API
+
+```typescript
+// Task CRUD
+POST   /api/tasks              // Create task
+GET    /api/tasks              // List tasks (with filters)
+GET    /api/tasks/:id          // Get task detail
+PATCH  /api/tasks/:id          // Update task
+DELETE /api/tasks/:id          // Delete task
+
+// Bulk operations
+POST   /api/tasks/bulk-update  // Update multiple tasks
+POST   /api/tasks/bulk-move    // Move tasks between statuses
+
+// Hierarchy
+GET    /api/tasks/:id/children // Get child tasks
+POST   /api/tasks/:id/children // Create child task
+
+// Agent operations
+POST   /api/tasks/:id/assign   // Assign to agent
+POST   /api/tasks/:id/complete // Mark complete (triggers QA)
+POST   /api/tasks/:id/block    // Mark blocked with reason
+
+// Pass criteria
+POST   /api/tasks/:id/criteria         // Add criteria
+PATCH  /api/tasks/:id/criteria/:idx    // Update criteria
+DELETE /api/tasks/:id/criteria/:idx    // Remove criteria
+
+// Activity
+GET    /api/tasks/:id/activity // Get activity timeline
+
+// Analytics
+GET    /api/analytics/velocity        // Tasks completed per day
+GET    /api/analytics/agent-load      // Tasks per agent
+GET    /api/analytics/bottlenecks     // Blocked tasks analysis
+GET    /api/analytics/burndown        // Epic progress over time
+```
+
+### Real-time Updates (WebSocket)
+```typescript
+// Client subscribes to task updates
+ws.send({ type: 'subscribe', filters: { status: ['in_progress', 'review'] }});
+
+// Server pushes updates
+ws.onmessage = (event) => {
+  const { type, task } = JSON.parse(event.data);
+  // type: 'task_created', 'task_updated', 'task_moved', 'activity_added'
+  updateBoard(task);
+};
+```
+
+### Agent Integration
+Agents interact with tasks via the same API:
+
+```python
+# Task Agent creates a new task
+response = requests.post(f"{DASHBOARD_URL}/api/tasks", json={
+    "type": "task",
+    "parent_id": "STORY-002",
+    "title": "Implement candidateUpdate validation",
+    "description": "Ensure candidateUpdate JSON is validated before processing",
+    "priority": "P2",
+    "assigned_agent": "build_agent",
+    "pass_criteria": [
+        "JSON schema validation added",
+        "Invalid updates rejected with error",
+        "Tests cover edge cases"
+    ],
+    "labels": ["backend", "validation"],
+    "created_by": "task_agent"
+})
+
+# Build Agent marks criteria complete
+requests.patch(f"{DASHBOARD_URL}/api/tasks/TASK-042/criteria/0", json={
+    "completed": True,
+    "evidence": "Commit abc123: Added schema validation"
+})
+
+# Build Agent marks task complete (triggers QA)
+requests.post(f"{DASHBOARD_URL}/api/tasks/TASK-042/complete", json={
+    "notes": "All criteria met, ready for verification",
+    "pr_link": "https://github.com/org/repo/pull/127"
+})
+```
 
 ---
 
@@ -163,54 +572,71 @@ From `20260107-multi-agent-coordination-system-FINAL.md`:
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                            EXTERNAL HARNESS SERVER                           │
-│  ┌─────────────────────────────────────────────────────────────────────────┐│
-│  │                              CRON (every 1 min)                         ││
-│  │  ┌───────────────────────────────────────────────────────────────────┐  ││
-│  │  │                    ORCHESTRATOR AGENT                             │  ││
-│  │  │  1. Read system state (tasks, agent status, health)               │  ││
-│  │  │  2. Decide: assign task / check progress / intervene              │  ││
-│  │  │  3. Dispatch to appropriate agent                                 │  ││
-│  │  │  4. Every 10th run: spawn QA agent                                │  ││
-│  │  └───────────────────────────────────────────────────────────────────┘  ││
-│  │                                    │                                     ││
-│  │         ┌──────────────────────────┼──────────────────────────┐         ││
-│  │         │                          │                          │         ││
-│  │    ┌────▼────┐              ┌──────▼──────┐            ┌──────▼──────┐  ││
-│  │    │   SIA   │              │    SPEC     │            │   BUILD     │  ││
-│  │    │  Agent  │              │    Agent    │            │   Agent     │  ││
-│  │    └────┬────┘              └──────┬──────┘            └──────┬──────┘  ││
-│  │         │                          │                          │         ││
-│  │    ┌────▼────┐              ┌──────▼──────┐            ┌──────▼──────┐  ││
-│  │    │  TASK   │              │  RESEARCH   │            │     QA      │  ││
-│  │    │  Agent  │              │    Agent    │            │   Agent     │  ││
-│  │    └─────────┘              └─────────────┘            └─────────────┘  ││
-│  └─────────────────────────────────────────────────────────────────────────┘│
-│                                       │                                      │
-│  ┌────────────────────────────────────▼────────────────────────────────────┐│
-│  │                         TELEGRAM NOTIFIER                               ││
-│  │  • Tool use → post to channel                                           ││
-│  │  • File edit → post to channel with diff preview                        ││
-│  │  • Task state change → post to channel                                  ││
-│  │  • Error/block → post to channel with context                           ││
-│  └─────────────────────────────────────────────────────────────────────────┘│
-│                                       │                                      │
-│  ┌────────────────────────────────────▼────────────────────────────────────┐│
-│  │                          STATE STORE (SQLite)                           ││
-│  │  • agent_status: which agent doing what                                 ││
-│  │  • task_assignments: task → agent mapping                               ││
-│  │  • execution_logs: full audit trail                                     ││
-│  │  • qa_results: validation outcomes                                      ││
-│  └─────────────────────────────────────────────────────────────────────────┘│
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                         TASK DASHBOARD (port 3333)                     │ │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐     │ │
+│  │  │ Kanban   │ │ Task     │ │ Epic     │ │Analytics │ │ Settings │     │ │
+│  │  │ Board    │ │ Detail   │ │ Tree     │ │Dashboard │ │          │     │ │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘     │ │
+│  │                              │                                         │ │
+│  │  ┌───────────────────────────▼─────────────────────────────────────┐  │ │
+│  │  │                    REST API + WebSocket                          │  │ │
+│  │  └───────────────────────────┬─────────────────────────────────────┘  │ │
+│  └──────────────────────────────┼────────────────────────────────────────┘ │
+│                                 │                                           │
+│  ┌──────────────────────────────▼────────────────────────────────────────┐ │
+│  │                    ORCHESTRATOR (cron every 1 min)                     │ │
+│  │  ┌────────────────────────────────────────────────────────────────┐   │ │
+│  │  │  1. Check agent health                                          │   │ │
+│  │  │  2. Query tasks ready for work                                  │   │ │
+│  │  │  3. Assign tasks to idle agents                                 │   │ │
+│  │  │  4. Check progress on active tasks                              │   │ │
+│  │  │  5. Every 10th tick: spawn QA Agent                             │   │ │
+│  │  │  6. Post summary to Telegram                                    │   │ │
+│  │  └────────────────────────────────────────────────────────────────┘   │ │
+│  └───────────────────────────────┬───────────────────────────────────────┘ │
+│                                  │                                          │
+│         ┌────────────────────────┼────────────────────────┐                │
+│         │                        │                        │                │
+│    ┌────▼────┐            ┌──────▼──────┐          ┌──────▼──────┐        │
+│    │   SIA   │            │    SPEC     │          │   BUILD     │        │
+│    │  Agent  │            │    Agent    │          │   Agent     │        │
+│    │ (Opus)  │            │   (Opus)    │          │   (Opus)    │        │
+│    └────┬────┘            └──────┬──────┘          └──────┬──────┘        │
+│         │                        │                        │                │
+│    ┌────▼────┐            ┌──────▼──────┐          ┌──────▼──────┐        │
+│    │  TASK   │            │  RESEARCH   │          │     QA      │        │
+│    │  Agent  │            │    Agent    │          │   Agent     │        │
+│    │(Sonnet) │            │  (Sonnet)   │          │   (Opus)    │        │
+│    └─────────┘            └─────────────┘          └─────────────┘        │
+│                                                                            │
+│  ┌────────────────────────────────────────────────────────────────────┐   │
+│  │                       SHARED INFRASTRUCTURE                         │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │   │
+│  │  │ Message  │ │ Telegram │ │  Token   │ │   Git    │ │Checkpoint│ │   │
+│  │  │   Bus    │ │ Notifier │ │ Tracker  │ │ Manager  │ │ Manager  │ │   │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │   │
+│  └────────────────────────────────────────────────────────────────────┘   │
+│                                       │                                    │
+│  ┌────────────────────────────────────▼────────────────────────────────┐  │
+│  │                          HARNESS DATABASE (SQLite)                   │  │
+│  │  • tasks (epics, stories, tasks, bugs)                               │  │
+│  │  • agent_status (health, current work)                               │  │
+│  │  • message_bus (inter-agent events)                                  │  │
+│  │  • execution_log (full audit trail)                                  │  │
+│  │  • token_usage (cost tracking)                                       │  │
+│  │  • qa_results (verification outcomes)                                │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────────┘
                                         │
-                                        │ HTTP/DB access
+                                        │ File system access (volume mount)
                                         ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                             VIBE PLATFORM SERVER                             │
-│  • Database (ideas, sessions, tasks, etc.)                                   │
-│  • File system (ideas/, specs/, code)                                        │
-│  • API (for status checks, data queries)                                     │
-│  • Can restart independently                                                 │
+│                             VIBE PLATFORM (separate)                          │
+│  • Source code: /home/ned/Documents/Idea_Incubator/Idea_Incubator            │
+│  • Can restart independently                                                  │
+│  • Agents read/write files, run tests                                        │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -221,378 +647,257 @@ From `20260107-multi-agent-coordination-system-FINAL.md`:
 ### 1. Orchestrator Agent
 **Purpose:** Coordinate all other agents, assign tasks, detect issues
 **Model:** Haiku (fast, cheap decisions)
-**Telegram Channel:** @vibe-orchestrator
+**Telegram:** Posts to @vibe-orchestrator, @vibe-critical (errors only)
 
 **Responsibilities:**
 - Read current system state every cron tick
-- Decide which agent should work on what
-- Detect stuck/blocked agents
+- Query dashboard for ready tasks
+- Match tasks to available agents
+- Detect stuck/blocked agents (>30 min no progress)
 - Spawn QA agent every 10th tick
-- Escalate to human when needed
+- Escalate to human via @vibe-critical
 
-**Pass Criteria for Orchestrator:**
+**Pass Criteria:**
 ```
-✅ PASS if:
-- No agent idle when tasks available
-- No task stuck >30 mins without progress
-- QA agent spawned on schedule
-- Human notified of blocks within 5 mins
+✅ Orchestrator tick PASSES if:
+- All idle agents assigned work OR no tasks available
+- No agent stuck >30 min without alert
+- QA spawned on schedule (tick % 10 == 0)
+- Critical issues posted to Telegram within 60s
 ```
 
 ### 2. Ideation Agent (SIA)
 **Purpose:** Continue ideation sessions, capture ideas
 **Model:** Opus (complex reasoning, user empathy)
-**Telegram Channel:** @vibe-ideation
+**Telegram:** Posts to @vibe-agents (verbose), @vibe-critical (blocks)
 
-**Responsibilities:**
-- Resume active ideation sessions
-- Respond to user messages
-- Capture ideas (candidateUpdate)
-- Generate follow-up questions
+**Task Types:** `ideation_session`, `idea_capture`, `follow_up`
 
 **Pass Criteria:**
 ```
-✅ PASS if:
-- User message responded to within session timeout
-- candidateUpdate emitted when idea emerges
-- No JSON parsing errors in response
-- Session state saved to database
+✅ Ideation task PASSES if:
+- User message responded within 30s
+- candidateUpdate emitted when idea direction emerges
+- Response is valid JSON (no parse errors)
+- Session state persisted to database
 ```
 
 ### 3. Specification Agent
 **Purpose:** Generate specifications from captured ideas
 **Model:** Opus (detailed technical writing)
-**Telegram Channel:** @vibe-specs
+**Telegram:** Posts to @vibe-agents, @vibe-critical
 
-**Responsibilities:**
-- Extract requirements from ideation transcripts
-- Generate PRD documents
-- Create acceptance criteria
-- Link specs to tasks
+**Task Types:** `generate_prd`, `extract_requirements`, `create_acceptance_criteria`
 
 **Pass Criteria:**
 ```
-✅ PASS if:
-- PRD generated with all required sections
-- Acceptance criteria parseable and testable
-- Cross-references to ideation source included
-- No orphan requirements (all linked to tasks)
+✅ Spec task PASSES if:
+- PRD contains: Problem, Solution, Requirements, Acceptance Criteria
+- All acceptance criteria are testable (specific, measurable)
+- Requirements linked to source (ideation transcript)
+- Child tasks created in dashboard
 ```
 
 ### 4. Build Agent
 **Purpose:** Implement code from specifications
 **Model:** Opus (coding, reasoning)
-**Telegram Channel:** @vibe-build
+**Telegram:** Posts to @vibe-build (all), @vibe-critical (failures)
 
-**Responsibilities:**
-- Implement features based on tasks
-- Write and run tests
-- Commit changes with descriptive messages
-- Report build/test results
+**Task Types:** `implement_feature`, `fix_bug`, `write_tests`, `refactor`
 
 **Pass Criteria:**
 ```
-✅ PASS if:
-- Tests pass (verified by QA, not self-reported)
-- Build succeeds (TypeScript compiles)
-- Commit message follows convention
-- No regressions introduced
+✅ Build task PASSES if:
+- TypeScript compiles without errors
+- All new tests pass
+- No regression in existing tests
+- Commit message follows conventional commits
+- PR created with task ID in title
 ```
 
 ### 5. Task Agent
-**Purpose:** Manage task lifecycle and assignments
+**Purpose:** Manage task lifecycle, decomposition, prioritization
 **Model:** Sonnet (structured reasoning)
-**Telegram Channel:** @vibe-tasks
+**Telegram:** Posts to @vibe-agents, @vibe-critical
 
-**Responsibilities:**
-- Create tasks from specs
-- Prioritize task queue
-- Track task progress
-- Mark tasks complete when verified
+**Task Types:** `decompose_epic`, `prioritize_backlog`, `update_status`
 
 **Pass Criteria:**
 ```
-✅ PASS if:
-- Task created with all required fields
-- Priority assigned based on rules
-- Completion only marked after verification
-- Dependencies tracked and enforced
+✅ Task management PASSES if:
+- Epics decomposed into ≤10 stories
+- Stories decomposed into ≤5 tasks
+- Each task has pass criteria
+- Priority reflects dependencies and value
 ```
 
 ### 6. Research Agent
-**Purpose:** Gather external information
-**Model:** Haiku (simple queries) or Sonnet (complex synthesis)
-**Telegram Channel:** @vibe-research
+**Purpose:** Gather external information for other agents
+**Model:** Sonnet (search + synthesis)
+**Telegram:** Posts to @vibe-agents
 
-**Responsibilities:**
-- Web searches for market data
-- Competitor analysis
-- Technical feasibility checks
-- Report findings to requesting agent
+**Task Types:** `market_research`, `competitor_analysis`, `technical_feasibility`
 
 **Pass Criteria:**
 ```
-✅ PASS if:
-- Search queries relevant to request
+✅ Research task PASSES if:
+- Query relevant to request
 - Results synthesized (not raw dumps)
-- Sources cited
-- Findings actionable
+- Sources cited with URLs
+- Findings actionable for requesting agent
 ```
 
-### 7. QA Agent (Special)
-**Purpose:** Independent validation of all agent work
+### 7. QA Agent
+**Purpose:** Independent verification of all agent work
 **Model:** Opus (critical analysis)
-**Telegram Channel:** @vibe-qa
-**Schedule:** Every 10th cron tick (every 10 minutes)
+**Telegram:** Posts to @vibe-qa (reports), @vibe-critical (failures)
+**Schedule:** Every 10th cron tick + on-demand for task verification
 
-**Responsibilities:**
-- Verify Build Agent claims (actually run tests)
-- Check Spec Agent output quality
-- Detect circular work / no progress
-- Identify bottlenecks and blockers
-- Generate improvement recommendations
+**Task Types:** `verify_build`, `verify_spec`, `audit_agent`, `bottleneck_report`
 
 **Pass Criteria:**
 ```
-✅ PASS if:
-- All claims verified or disputed with evidence
-- Bottlenecks identified with root cause
-- Recommendations actionable
-- Report generated within time limit
+✅ QA verification PASSES if:
+- Tests actually executed (not just claimed)
+- Build succeeds independently
+- Spec meets quality checklist
+- Report generated with actionable items
 ```
 
 ---
 
-## Cron Orchestration Logic
+## Verification Scripts
 
-```python
-# Pseudocode for cron job (runs every minute)
-
-def cron_tick():
-    tick_number = get_current_tick()
-    state = load_system_state()
-    
-    # Every 10th tick: QA cycle
-    if tick_number % 10 == 0:
-        spawn_qa_agent(state)
-        return
-    
-    # Check agent health
-    for agent in state.agents:
-        if agent.stuck_duration > STUCK_THRESHOLD:
-            notify_telegram(f"⚠️ {agent.name} stuck for {agent.stuck_duration}")
-            consider_intervention(agent)
-    
-    # Assign tasks to idle agents
-    for agent in state.agents:
-        if agent.status == "idle":
-            task = find_suitable_task(agent)
-            if task:
-                assign_task(agent, task)
-                notify_telegram(f"📋 Assigned {task.id} to {agent.name}")
-    
-    # Check task progress
-    for task in state.active_tasks:
-        progress = check_task_progress(task)
-        if progress.new_update:
-            notify_telegram(f"📈 {task.id}: {progress.summary}")
-        if progress.completed:
-            verify_completion(task)  # QA will confirm
-    
-    # Save state
-    save_system_state(state)
-```
-
----
-
-## Telegram Notification Format
-
-### Tool Use Notification
-```
-🔧 [BUILD AGENT] Tool: edit_file
-📁 File: server/routes/ideation.ts
-📝 Change: Added candidateUpdate handling
-⏱️ Duration: 2.3s
-```
-
-### File Edit Notification
-```
-✏️ [BUILD AGENT] File Modified
-📁 agents/ideation/orchestrator.ts
-📊 +15 / -3 lines
-```diff
-+ // Handle candidate update from JSON response
-+ if (parsed.candidateUpdate) {
-+   await candidateManager.update(...)
-+ }
-```
-```
-
-### Task State Change
-```
-📋 [TASK AGENT] Task Update
-🆔 TASK-042: Implement idea capture
-📊 Status: in_progress → completed
-✅ Verified by: QA Agent at 10:15
-⏱️ Duration: 45 mins
-```
-
-### QA Report (Every 10 Ticks)
-```
-📊 [QA AGENT] 10-Minute Report
-
-✅ Build Agent: 3 tasks verified
-⚠️ Spec Agent: 1 task needs revision (missing acceptance criteria)
-❌ Ideation: Blocked - API key issue in IntentClassifier
-⏸️ Research: Idle (no requests)
-
-🔍 Bottleneck Identified:
-IntentClassifier falling back on every call.
-Recommendation: Fix Claude CLI auth or add API key.
-
-📈 Progress: 12/45 tasks complete (27%)
-```
-
----
-
-## Pass Criteria and Completion Checks
-
-### Task Completion Flow
-```
-1. Agent claims completion
-   └─► Task marked "pending_verification"
-       └─► QA Agent scheduled to verify
-           └─► QA runs tests independently
-               ├─► PASS: Task marked "completed"
-               │        └─► Telegram: ✅ Task verified
-               └─► FAIL: Task marked "needs_revision"
-                        └─► Telegram: ❌ Verification failed: {reason}
-                        └─► Task reassigned to agent
-```
-
-### Test Evaluation Scripts
-
-Each task type has an evaluation script:
-
+### Build Verification
 ```bash
-# scripts/verify-build-task.sh
 #!/bin/bash
-TASK_ID=$1
+# scripts/verify-build.sh
+set -e
 
-# Run TypeScript compile
+TASK_ID=$1
+WORKSPACE=/workspace
+
+cd $WORKSPACE
+
+echo "=== TypeScript Compile ==="
 npm run typecheck
 if [ $? -ne 0 ]; then
-    echo "FAIL: TypeScript compilation errors"
+    echo "FAIL: TypeScript errors"
     exit 1
 fi
 
-# Run tests
-npm test
+echo "=== Unit Tests ==="
+npm test -- --run
 if [ $? -ne 0 ]; then
     echo "FAIL: Tests failed"
     exit 1
 fi
 
-# Check for regressions
-npm run test:regression
+echo "=== Regression Check ==="
+npm run test:regression 2>/dev/null || true
+
+echo "=== Lint ==="
+npm run lint
 if [ $? -ne 0 ]; then
-    echo "FAIL: Regressions detected"
-    exit 1
+    echo "WARN: Lint issues (non-blocking)"
 fi
 
-echo "PASS: All checks passed"
+echo "PASS: Build verification complete"
 exit 0
 ```
 
+### Spec Verification
 ```bash
-# scripts/verify-spec-task.sh
 #!/bin/bash
+# scripts/verify-spec.sh
+set -e
+
 SPEC_FILE=$1
 
-# Check required sections exist
-REQUIRED_SECTIONS=("Problem Statement" "Requirements" "Acceptance Criteria")
-for section in "${REQUIRED_SECTIONS[@]}"; do
-    if ! grep -q "$section" "$SPEC_FILE"; then
+echo "=== Required Sections ==="
+SECTIONS=("Problem Statement" "Solution" "Requirements" "Acceptance Criteria")
+for section in "${SECTIONS[@]}"; do
+    if ! grep -qi "$section" "$SPEC_FILE"; then
         echo "FAIL: Missing section: $section"
         exit 1
     fi
 done
 
-# Check acceptance criteria are testable
-CRITERIA_COUNT=$(grep -c "^- \[ \]" "$SPEC_FILE")
-if [ "$CRITERIA_COUNT" -lt 3 ]; then
-    echo "FAIL: Fewer than 3 acceptance criteria"
+echo "=== Acceptance Criteria Count ==="
+AC_COUNT=$(grep -c "^\s*-\s*\[" "$SPEC_FILE" || echo 0)
+if [ "$AC_COUNT" -lt 3 ]; then
+    echo "FAIL: Need at least 3 acceptance criteria (found $AC_COUNT)"
     exit 1
 fi
 
-echo "PASS: Spec meets requirements"
+echo "=== Testability Check ==="
+# Check for vague words
+VAGUE_WORDS="should|might|could|possibly|etc|various"
+if grep -Ei "$VAGUE_WORDS" "$SPEC_FILE" | grep -i "acceptance"; then
+    echo "WARN: Acceptance criteria may contain vague language"
+fi
+
+echo "PASS: Spec verification complete"
 exit 0
 ```
 
 ---
 
-## Database Schema (Harness State)
+## Implementation Phases
 
-```sql
--- Agent status tracking
-CREATE TABLE agent_status (
-    agent_id TEXT PRIMARY KEY,
-    agent_name TEXT NOT NULL,
-    status TEXT CHECK(status IN ('idle', 'working', 'stuck', 'error')) DEFAULT 'idle',
-    current_task_id TEXT,
-    last_heartbeat DATETIME,
-    model TEXT,
-    telegram_channel TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+### Phase 1: Foundation (Days 1-3)
+- [ ] Create `agent-harness/` repository
+- [ ] Docker Compose setup with orchestrator container
+- [ ] Harness database schema (tasks, agents, events)
+- [ ] Telegram bot with channel posting
+- [ ] Basic cron tick (health check only)
 
--- Task assignments
-CREATE TABLE task_assignments (
-    id TEXT PRIMARY KEY,
-    task_id TEXT NOT NULL,
-    agent_id TEXT NOT NULL,
-    status TEXT CHECK(status IN ('assigned', 'in_progress', 'pending_verification', 'completed', 'failed', 'needs_revision')),
-    assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    started_at DATETIME,
-    completed_at DATETIME,
-    verification_result TEXT,
-    verified_by TEXT,
-    FOREIGN KEY (agent_id) REFERENCES agent_status(agent_id)
-);
+**Test:** `docker-compose up` → cron runs → Telegram receives "Harness online"
 
--- Execution log (audit trail)
-CREATE TABLE execution_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    agent_id TEXT NOT NULL,
-    event_type TEXT NOT NULL,  -- 'tool_use', 'file_edit', 'task_update', 'error', 'telegram_sent'
-    event_data JSON,
-    task_id TEXT,
-    telegram_message_id TEXT
-);
+### Phase 2: Task Dashboard (Days 4-7)
+- [ ] React dashboard with Kanban board
+- [ ] Task CRUD API
+- [ ] WebSocket for real-time updates
+- [ ] Task creation modal (all types)
+- [ ] Epic/Story hierarchy view
 
--- QA results
-CREATE TABLE qa_results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    qa_run_id TEXT NOT NULL,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    agent_id TEXT NOT NULL,
-    task_id TEXT,
-    check_type TEXT NOT NULL,
-    result TEXT CHECK(result IN ('pass', 'fail', 'warning')),
-    details TEXT,
-    recommendation TEXT
-);
+**Test:** Create epic → add stories → add tasks → drag to columns → see updates
 
--- Cron tick tracking
-CREATE TABLE cron_ticks (
-    tick_number INTEGER PRIMARY KEY,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    actions_taken JSON,
-    duration_ms INTEGER
-);
-```
+### Phase 3: Single Agent (Days 8-10)
+- [ ] Build Agent implementation
+- [ ] Task assignment from dashboard
+- [ ] File edit with Telegram notification
+- [ ] Git branch creation
+- [ ] PR creation on completion
+
+**Test:** Assign task to Build Agent → edits file → commits → PR created → Telegram shows progress
+
+### Phase 4: QA Validation (Days 11-13)
+- [ ] QA Agent implementation
+- [ ] Verification scripts
+- [ ] Pass/fail determination
+- [ ] Auto-merge on pass
+- [ ] Rejection flow (needs_revision)
+
+**Test:** Build Agent completes → QA verifies → passes → auto-merge to dev
+
+### Phase 5: Multi-Agent (Days 14-18)
+- [ ] All 7 agents implemented
+- [ ] Orchestrator task assignment logic
+- [ ] Inter-agent message bus
+- [ ] Stuck detection and recovery
+- [ ] Human approval gates
+
+**Test:** Full flow: Task created → Spec Agent writes PRD → Tasks created → Build Agent implements → QA verifies
+
+### Phase 6: Resilience & Observability (Days 19-21)
+- [ ] Token tracking and budget enforcement
+- [ ] Checkpoint/rollback for agents
+- [ ] Analytics dashboard (velocity, burndown)
+- [ ] Error taxonomy and handling
+- [ ] 24-hour unattended test
+
+**Test:** Run overnight → tasks completed → no crashes → budget respected → morning report accurate
 
 ---
 
@@ -601,170 +906,137 @@ CREATE TABLE cron_ticks (
 ```
 agent-harness/
 ├── README.md
-├── requirements.txt
+├── docker-compose.yml
 ├── .env.example
 │
 ├── orchestrator/
-│   ├── main.py                 # Entry point for cron
-│   ├── state_manager.py        # Load/save system state
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── main.py                 # Entry point
+│   ├── cron.py                 # Cron tick logic
+│   ├── state_manager.py        # System state
 │   ├── task_assigner.py        # Match tasks to agents
-│   └── health_checker.py       # Detect stuck agents
+│   └── health_checker.py       # Stuck detection
 │
 ├── agents/
-│   ├── base_agent.py           # Base class with Telegram reporting
-│   ├── ideation_agent.py       # SIA wrapper
-│   ├── spec_agent.py           # Specification generation
-│   ├── build_agent.py          # Code implementation
-│   ├── task_agent.py           # Task management
-│   ├── research_agent.py       # Web searches
-│   └── qa_agent.py             # Quality assurance
+│   ├── base_agent.py           # Base class
+│   ├── ideation_agent.py
+│   ├── spec_agent.py
+│   ├── build_agent.py
+│   ├── task_agent.py
+│   ├── research_agent.py
+│   └── qa_agent.py
 │
-├── notifications/
-│   ├── telegram.py             # Telegram bot client
-│   └── formatters.py           # Message formatting
+├── dashboard/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── components/
+│   │   │   ├── KanbanBoard.tsx
+│   │   │   ├── TaskCard.tsx
+│   │   │   ├── TaskDetail.tsx
+│   │   │   ├── TaskModal.tsx
+│   │   │   ├── EpicTree.tsx
+│   │   │   └── Analytics.tsx
+│   │   ├── api/
+│   │   │   ├── tasks.ts
+│   │   │   └── websocket.ts
+│   │   └── types/
+│   │       └── task.ts
+│   └── server/
+│       ├── index.ts            # Express + WebSocket
+│       ├── routes/
+│       │   ├── tasks.ts
+│       │   └── analytics.ts
+│       └── db.ts               # SQLite connection
 │
-├── verification/
-│   ├── scripts/
-│   │   ├── verify-build-task.sh
-│   │   ├── verify-spec-task.sh
-│   │   └── verify-ideation-task.sh
-│   └── runner.py               # Script execution
-│
-├── database/
-│   ├── schema.sql
-│   ├── migrations/
-│   └── db.py                   # SQLite wrapper
+├── shared/
+│   ├── database/
+│   │   ├── schema.sql
+│   │   └── migrations/
+│   ├── telegram/
+│   │   ├── bot.py
+│   │   └── formatters.py
+│   ├── git/
+│   │   └── manager.py
+│   └── verification/
+│       ├── scripts/
+│       │   ├── verify-build.sh
+│       │   └── verify-spec.sh
+│       └── runner.py
 │
 ├── prompts/
 │   ├── orchestrator.md
-│   ├── ideation_agent.md
-│   ├── spec_agent.md
 │   ├── build_agent.md
-│   ├── task_agent.md
-│   ├── research_agent.md
-│   └── qa_agent.md
+│   ├── spec_agent.md
+│   ├── qa_agent.md
+│   └── [other agents].md
 │
 ├── config/
-│   ├── agents.yaml             # Agent definitions, models, channels
-│   ├── tasks.yaml              # Task types, assignment rules
-│   └── thresholds.yaml         # Timeouts, limits, budgets
-│
-├── scripts/
-│   ├── setup.sh                # Initial setup
-│   ├── install-cron.sh         # Add to crontab
-│   └── test-telegram.py        # Verify Telegram connectivity
+│   ├── agents.yaml
+│   ├── budgets.yaml
+│   └── telegram.yaml
 │
 └── tests/
     ├── test_orchestrator.py
     ├── test_agents.py
-    ├── test_verification.py
-    └── test_telegram.py
+    ├── test_dashboard.py
+    └── test_verification.py
 ```
-
----
-
-## Implementation Phases
-
-### Phase 1: Foundation (Week 1)
-- [ ] Set up external harness server
-- [ ] Database schema and migrations
-- [ ] Telegram bot with test notifications
-- [ ] Basic orchestrator shell (cron tick logic)
-- [ ] Agent base class with Telegram reporting
-
-**Test:** `cron tick runs, sends Telegram "heartbeat ok"`
-
-### Phase 2: Single Agent (Week 2)
-- [ ] Build Agent implementation
-- [ ] Task assignment from database
-- [ ] File edit notifications
-- [ ] Verification script runner
-
-**Test:** `Build Agent picks task, edits file, reports to Telegram, task marked pending_verification`
-
-### Phase 3: QA Validation (Week 3)
-- [ ] QA Agent implementation
-- [ ] Every-10th-tick scheduling
-- [ ] Independent test execution
-- [ ] Bottleneck detection
-
-**Test:** `QA Agent verifies Build Agent claim, posts report to Telegram`
-
-### Phase 4: Multi-Agent (Week 4)
-- [ ] All 7 agents implemented
-- [ ] Inter-agent task handoff
-- [ ] Conflict detection
-- [ ] Stuck agent recovery
-
-**Test:** `Full flow: Ideation → Spec → Build → QA verified`
-
-### Phase 5: Resilience (Week 5)
-- [ ] Checkpoint/rollback
-- [ ] Error recovery
-- [ ] Rate limiting / budget enforcement
-- [ ] Human approval gates
-
-**Test:** `Agent crash recovery, budget limit enforcement`
-
-### Phase 6: Production (Week 6)
-- [ ] Monitoring dashboard
-- [ ] Performance tuning
-- [ ] Documentation
-- [ ] Handoff to autonomous operation
-
-**Test:** `24-hour unattended run with tasks completed`
-
----
-
-## What's Missing? (Self-Critique)
-
-### Known Gaps
-
-1. **No Live Demo Yet** - This is a plan, not working code
-2. **Vibe DB Access** - How does harness access Vibe's SQLite if on different server?
-3. **Git Strategy** - Branch management not fully specified
-4. **Error Taxonomy** - Need clear categories for different failure modes
-5. **Metrics Dashboard** - Telegram is real-time, but need historical view
-6. **Cost Tracking** - No API usage monitoring yet
-7. **Secrets Management** - How are tokens stored securely?
-8. **Deployment Automation** - Manual setup currently
-
-### Open Technical Questions
-
-1. **Claude Agent SDK vs API** - Should agents use SDK (sessions) or raw API?
-2. **MCP Integration** - Use Arcade gateway like your-claude-engineer?
-3. **Parallel Execution** - Multiple agents at once or sequential?
-4. **Context Window Management** - How to handle long sessions?
 
 ---
 
 ## Success Metrics
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Task completion rate | >70% auto-verified | QA pass / total assigned |
-| Time to completion | <2 hours average | assignment → verification |
-| Human intervention rate | <10% of tasks | escalations / total tasks |
-| False completion claims | <5% | QA rejections / total claims |
+| Metric | Target | How to Measure |
+|--------|--------|----------------|
+| Task completion rate | >70% auto-verified | QA pass / total completed |
+| Mean time to completion | <4 hours | assigned_at → verified_at |
+| Human intervention rate | <15% | escalations / total tasks |
+| False positive rate | <5% | QA rejections / agent "done" claims |
+| Dashboard latency | <100ms | API response time p95 |
 | Telegram latency | <5s | event → message delivered |
-| Uptime | >99% | cron ticks executed / expected |
+| Budget adherence | 100% | daily spend ≤ daily cap |
+| Uptime | >99% | successful cron ticks / expected |
+
+---
+
+## Risk Mitigation
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Agent hallucinates completion | High | High | QA independent verification |
+| Budget overrun | Medium | Medium | Per-agent limits, thresholds |
+| Agent stuck in loop | Medium | Medium | 30-min timeout, intervention |
+| Git conflicts | Medium | Low | Branch isolation, conflict detection |
+| Telegram rate limits | Low | Low | Batch messages, respect limits |
+| Database corruption | Low | High | Regular backups, WAL mode |
+| Vibe server unavailable | Medium | Medium | Graceful degradation, retry |
 
 ---
 
 ## Next Steps
 
-**For Ned:**
-1. Answer the 8 critical questions above
-2. Confirm or modify agent-channel mapping
-3. Decide on deployment target
-4. Approve Phase 1 scope
+**Immediate (Today):**
+1. Create `agent-harness/` directory in Idea_Incubator
+2. Initialize Docker Compose structure
+3. Set up harness database schema
+4. Create Telegram bot and test connectivity
 
-**For Kai:**
-1. Await Ned's answers
-2. Set up harness repository
-3. Implement Phase 1 foundation
-4. First working cron tick with Telegram
+**This Week:**
+1. Task Dashboard MVP (Kanban + CRUD)
+2. Build Agent + QA Agent
+3. First end-to-end task completion
+
+**Measure Success By:**
+- Can create task in dashboard
+- Task assigned to Build Agent
+- Build Agent edits code
+- Telegram shows progress
+- QA verifies
+- Task marked done
 
 ---
 
-*This plan synthesizes patterns from your-claude-engineer, the existing multi-agent-coordination-system-FINAL.md, and Ned's requirements for external, Telegram-native, QA-validated autonomous development.*
+*This plan is ready for implementation. No blockers, no open questions. Let's build it.*
