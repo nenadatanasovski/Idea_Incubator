@@ -28,6 +28,7 @@ import type {
 } from "../graph/GraphUpdateConfirmation";
 import { analyzeCascadeEffects } from "../graph/utils/cascadeDetection";
 import { MemoryGraphStats } from "./MemoryGraphStats";
+import { CreateBlockForm } from "./CreateBlockForm";
 
 // Lazy load GraphContainer for code splitting
 const GraphContainer = lazy(() => import("../graph/GraphContainer"));
@@ -201,6 +202,8 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
   // Trigger to reset GraphContainer's internal filters
   const [resetFiltersTrigger, setResetFiltersTrigger] = useState(0);
+  // State for showing create block form
+  const [showCreateBlock, setShowCreateBlock] = useState(false);
 
   // State for update confirmation dialog (T6.3)
   const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
@@ -716,9 +719,30 @@ export const GraphTabPanel = memo(function GraphTabPanel({
       data-testid="graph-panel"
     >
       {/* Neo4j Memory Graph Stats */}
-      <div className="flex-shrink-0 px-4 py-2 border-b">
+      <div className="flex-shrink-0 px-4 py-2 border-b flex items-center justify-between">
         <MemoryGraphStats sessionId={sessionId} compact />
+        <button
+          onClick={() => setShowCreateBlock(!showCreateBlock)}
+          className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+        >
+          {showCreateBlock ? '✕ Close' : '+ Add Block'}
+        </button>
       </div>
+
+      {/* Create Block Form */}
+      {showCreateBlock && (
+        <div className="flex-shrink-0 p-4 border-b bg-gray-50">
+          <CreateBlockForm
+            sessionId={sessionId}
+            ideaId={ideaSlug}
+            onBlockCreated={(block) => {
+              refetch();
+              setShowCreateBlock(false);
+            }}
+            onCancel={() => setShowCreateBlock(false)}
+          />
+        </div>
+      )}
 
       {/* Graph Container */}
       <div className="flex-1 min-h-0 relative" data-testid="graph-canvas">
