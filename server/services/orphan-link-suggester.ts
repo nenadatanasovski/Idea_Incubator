@@ -97,7 +97,7 @@ export class OrphanLinkSuggester {
 
     try {
       const response = await this.client.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-opus-4-6",
         max_tokens: 1024,
         system: `You are a project management assistant that analyzes tasks and requirements to suggest appropriate links.
 Respond ONLY with a valid JSON array of suggestions. Each suggestion should have:

@@ -277,7 +277,7 @@ export class ReportGenerator {
 
     try {
       const response = await this.client.messages.create({
-        model: "claude-sonnet-4-20250514", // Using Sonnet for faster, cheaper reports
+        model: "claude-opus-4-6", // Using Opus 4.6
         max_tokens: 8192,
         system,
         messages: [{ role: "user", content: user }],
@@ -352,7 +352,7 @@ export class ReportGenerator {
         edgeCount,
         now,
         durationMs,
-        "claude-sonnet-4-20250514",
+        "claude-opus-4-6",
       ],
     );
 
@@ -375,7 +375,7 @@ export class ReportGenerator {
       edgeCount,
       generatedAt: now,
       generationDurationMs: durationMs,
-      modelUsed: "claude-sonnet-4-20250514",
+      modelUsed: "claude-opus-4-6",
     };
   }
 

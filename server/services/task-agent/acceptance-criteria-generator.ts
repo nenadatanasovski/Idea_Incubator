@@ -99,7 +99,7 @@ export class AcceptanceCriteriaGenerator {
 
     try {
       const response = await this.client.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-opus-4-6",
         max_tokens: 2000,
         system: `You are a senior software engineer helping to define acceptance criteria for development tasks.
 Your goal is to ask clarifying questions that will help generate comprehensive, testable acceptance criteria.
@@ -186,7 +186,7 @@ Generate 3-5 relevant questions. Each question should have 2-3 suggested answers
 
     try {
       const response = await this.client.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-opus-4-6",
         max_tokens: 3000,
         system: `You are a senior software engineer generating acceptance criteria for development tasks.
 

@@ -150,7 +150,7 @@ export async function runClaudeCliWithPrompt(
   } = {},
 ): Promise<string> {
   const response = await callClaudeCli([{ role: "user", content: prompt }], {
-    model: options.model || "sonnet",
+    model: options.model || "opus",
     _maxTokens: options.maxTokens || 4096,
     systemPrompt: options.systemPrompt,
     tools: options.tools,

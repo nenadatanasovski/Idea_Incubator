@@ -112,7 +112,7 @@ Please apply the requested changes and return the complete updated content.`;
   try {
     // Call Claude with dedicated artifact editor context
     const response = await anthropicClient.messages.create({
-      model: getConfig().model || "claude-sonnet-4-20250514",
+      model: getConfig().model || "claude-opus-4-6",
       max_tokens: 16384, // Large limit for full artifact content
       system: ARTIFACT_EDITOR_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }],

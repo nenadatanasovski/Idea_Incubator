@@ -262,7 +262,7 @@ ${hasLocation ? "8" : "4"}. Technology feasibility: ${claims.technology.join(", 
 Return ONLY the JSON object after completing your searches.`;
 
     const researchResult = await runClaudeCliWithPrompt(researchPrompt, {
-      model: "sonnet", // Use Sonnet for better tool use
+      model: "opus", // Use Opus 4.6
       maxTokens: 4000,
       systemPrompt:
         "You are a market research analyst with access to WebSearch. Search for current market data and return structured findings. Always include source URLs.",

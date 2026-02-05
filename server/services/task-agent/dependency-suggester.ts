@@ -502,7 +502,7 @@ Return empty suggestions array if no strong dependencies exist.`;
 
     try {
       const response = await this.client.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-opus-4-6",
         max_tokens: 1500,
         system:
           "You are a software project manager analyzing task dependencies. Only suggest dependencies that have a clear logical reason. Err on the side of fewer, high-confidence suggestions.",

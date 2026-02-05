@@ -14,7 +14,7 @@ import {
 } from "../../../utils/anthropic-client.js";
 import type { PrdRow } from "../../../types/prd.js";
 
-const DEFAULT_MODEL = "claude-sonnet-4-20250514";
+const DEFAULT_MODEL = "claude-opus-4-6";
 const DEFAULT_MAX_TOKENS = 4096;
 
 // Rate limiting: track last call time per operation type

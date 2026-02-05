@@ -241,7 +241,7 @@ export class TraceabilityGapAnalyzer {
 
     try {
       const response = await this.client.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-opus-4-6",
         max_tokens: 1024,
         system: `You are a project management assistant helping to improve traceability between requirements and tasks. Provide a clear, cohesive action plan to address the gap. Write a brief paragraph explaining what should be done and why.`,
         messages: [{ role: "user", content: prompt }],

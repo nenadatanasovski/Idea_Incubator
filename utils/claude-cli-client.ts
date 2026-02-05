@@ -36,7 +36,7 @@ export async function callClaudeCli(
   options: ClaudeCliOptions = {},
 ): Promise<ClaudeResponse> {
   const {
-    model = "sonnet",
+    model = "opus",
     systemPrompt,
     // _maxTokens not used - Claude CLI doesn't expose this parameter
     tools = [],

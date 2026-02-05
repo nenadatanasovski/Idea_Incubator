@@ -78,7 +78,7 @@ export class SpecSessionAgent extends EventEmitter {
     
     this.claudeClient = new ClaudeClient({
       apiKey: config.apiKey,
-      model: config.model || 'claude-sonnet-4-20250514',
+      model: config.model || 'claude-opus-4-6',
       maxTokens: config.maxTokens,
     });
   }

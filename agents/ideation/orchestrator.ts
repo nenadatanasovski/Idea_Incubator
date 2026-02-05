@@ -270,7 +270,7 @@ export class AgentOrchestrator {
 
     // Call Claude
     const response = await this.client.messages.create({
-      model: getConfig().model || "claude-sonnet-4-20250514",
+      model: getConfig().model || "claude-opus-4-6",
       max_tokens: 4096,
       system: context.systemPrompt,
       messages: context.messages,
