@@ -30,7 +30,7 @@ async function cleanupTestData(prefix: string = "TEST-") {
     `DELETE FROM parallelism_analysis WHERE task_a_id IN (SELECT id FROM tasks WHERE display_id LIKE '${prefix}%')`,
   );
   await run(
-    `DELETE FROM grouping_suggestions WHERE suggested_list_name LIKE '${prefix}%'`,
+    `DELETE FROM grouping_suggestions WHERE suggested_name LIKE '${prefix}%'`,
   );
   await saveDb();
 }
