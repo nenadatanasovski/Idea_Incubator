@@ -157,7 +157,41 @@ export async function seedTestData(
     sessionId?: string;
   }>,
 ): Promise<void> {
-  // Configure mock to return seeded data
+  // Use service mock (new architecture)
+  mockExecutionService.listExecutions.mockImplementation((options?: { status?: string[]; taskListId?: string; limit?: number; offset?: number }) => {
+    let filtered = executions;
+    if (options?.status?.length) {
+      filtered = filtered.filter(e => options.status!.includes(e.status));
+    }
+    if (options?.taskListId) {
+      filtered = filtered.filter(e => e.taskListId === options.taskListId);
+    }
+    const limit = options?.limit || 50;
+    const offset = options?.offset || 0;
+    const paginatedData = filtered.slice(offset, offset + limit);
+    const hasMore = offset + paginatedData.length < filtered.length;
+    
+    return Promise.resolve({
+      data: paginatedData.map(e => ({
+        id: e.id,
+        taskListId: e.taskListId,
+        runNumber: e.runNumber,
+        status: e.status,
+        startTime: e.startedAt,
+        endTime: e.completedAt || null,
+        waveCount: 0,
+        taskCount: 0,
+        completedCount: 0,
+        failedCount: 0,
+      })),
+      total: filtered.length,
+      limit,
+      offset,
+      hasMore,
+    });
+  });
+
+  // Also keep query mock for backwards compatibility
   mockQuery.mockImplementation((sql: string, params: unknown[]) => {
     if (sql.includes("FROM task_list_execution_runs")) {
       if (sql.includes("COUNT(*)")) {

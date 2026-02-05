@@ -72,28 +72,8 @@ describe("GET /api/observability/executions", () => {
   });
 
   it("filters by status", async () => {
-    const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string, params: unknown[]) => {
-      if (sql.includes("FROM task_list_execution_runs")) {
-        if (sql.includes("COUNT(*)")) {
-          return Promise.resolve([{ count: 2 }]);
-        }
-        // Return only running executions when filtered
-        const filtered = testExecutions.filter((e) => e.status === "running");
-        return Promise.resolve(
-          filtered.map((e) => ({
-            id: e.id,
-            task_list_id: e.taskListId,
-            run_number: e.runNumber,
-            status: e.status,
-            started_at: e.startedAt,
-            completed_at: e.completedAt || null,
-            session_id: e.sessionId || null,
-          })),
-        );
-      }
-      return Promise.resolve([]);
-    });
+    // Seed test data including running executions
+    await seedTestData(testExecutions);
 
     const res = await request(app)
       .get("/api/observability/executions")
