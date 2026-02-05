@@ -471,16 +471,16 @@ export class GraphStateLoader {
   }
 
   /**
-   * Update idea type selection state (no-op in graph-based system - use block creation)
-   * TODO: Task 3.7 - This should create/update decision blocks instead
+   * Update idea type selection state (no-op in graph-based system)
+   * 
+   * In graph-based architecture, state is reconstructed from graph queries.
+   * The orchestrator extraction handles decision block creation.
    */
   async updateIdeaTypeSelection(
     _ideaId: string,
     _state: IdeaTypeSelectionState,
   ): Promise<void> {
-    // In graph-based architecture, this would create/update a decision block
-    // For now, this is a no-op as the orchestrator extraction handles this
-    // The state will be reconstructed from graph queries on next load
+    // No-op: state reconstructed from graph queries on next load
   }
 
   /**
