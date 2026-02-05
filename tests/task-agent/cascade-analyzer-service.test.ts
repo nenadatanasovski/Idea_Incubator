@@ -35,7 +35,7 @@ async function createDependency(
   relType: string = "depends_on",
 ): Promise<void> {
   await run(
-    `INSERT INTO task_relationships (id, task_a_id, task_b_id, relationship_type, created_at)
+    `INSERT INTO task_relationships (id, source_task_id, target_task_id, relationship_type, created_at)
      VALUES (?, ?, ?, ?, datetime('now'))`,
     [uuidv4(), taskA, taskB, relType],
   );
@@ -45,7 +45,7 @@ async function createDependency(
 // Cleanup test data
 async function cleanupTestData(): Promise<void> {
   await run(
-    `DELETE FROM task_relationships WHERE task_a_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
+    `DELETE FROM task_relationships WHERE source_task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
   );
   await run(
     `DELETE FROM task_relationships WHERE task_b_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
