@@ -195,7 +195,8 @@ export class TaskVersionService {
       throw new Error(`Version not found for task ${taskId}`);
     }
 
-    const changes: { field: string; from: unknown; to: unknown }[] = [];
+    // Build changes as object with field names as keys
+    const changes: Record<string, { from: unknown; to: unknown }> = {};
     const allFields = new Set([
       ...Object.keys(from.snapshot),
       ...Object.keys(to.snapshot),
@@ -206,7 +207,7 @@ export class TaskVersionService {
       const toValue = to.snapshot[field];
 
       if (JSON.stringify(fromValue) !== JSON.stringify(toValue)) {
-        changes.push({ field, from: fromValue, to: toValue });
+        changes[field] = { from: fromValue, to: toValue };
       }
     }
 
