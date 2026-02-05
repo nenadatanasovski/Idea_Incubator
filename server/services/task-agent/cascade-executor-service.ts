@@ -254,6 +254,17 @@ export class CascadeExecutorService {
 
     await saveDb();
   }
+
+  /**
+   * Check if a task list has auto-approve enabled for cascade changes
+   */
+  async canAutoApprove(taskListId: string): Promise<boolean> {
+    const taskList = await getOne<{ auto_approve_reviews: number }>(
+      "SELECT auto_approve_reviews FROM task_lists_v2 WHERE id = ?",
+      [taskListId],
+    );
+    return taskList?.auto_approve_reviews === 1;
+  }
 }
 
 // Export singleton instance
