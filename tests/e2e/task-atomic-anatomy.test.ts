@@ -567,14 +567,14 @@ describe("8.3 Cascade Propagation", () => {
     const task1 = await taskCreationService.createTaskInList(
       `${TEST_PREFIX}Task 1 - Create user types`,
       taskListId,
-      { category: "types" },
+      { category: "feature" },
     );
     task1Id = task1.task.id;
 
     const task2 = await taskCreationService.createTaskInList(
       `${TEST_PREFIX}Task 2 - Create user service (depends on types)`,
       taskListId,
-      { category: "service" },
+      { category: "feature" },
     );
     task2Id = task2.task.id;
 
