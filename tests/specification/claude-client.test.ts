@@ -13,17 +13,20 @@ import {
   Gotcha,
 } from "../../agents/specification/context-loader.js";
 
-// Mock the Anthropic SDK
-vi.mock("@anthropic-ai/sdk", () => {
+// Mock the anthropic client module to avoid CLI/API key requirements
+vi.mock("../../utils/anthropic-client.js", () => {
+  const mockClient = {
+    messages: {
+      create: vi.fn().mockResolvedValue({
+        content: [{ type: "text", text: "{}" }],
+        usage: { input_tokens: 100, output_tokens: 50 },
+      }),
+    },
+  };
   return {
-    default: vi.fn().mockImplementation(() => ({
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [{ type: "text", text: "{}" }],
-          usage: { input_tokens: 100, output_tokens: 50 },
-        }),
-      },
-    })),
+    createAnthropicClient: vi.fn().mockReturnValue(mockClient),
+    useClaudeCli: false,
+    client: mockClient,
   };
 });
 
