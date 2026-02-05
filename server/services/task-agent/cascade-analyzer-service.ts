@@ -345,6 +345,132 @@ export class CascadeAnalyzerService {
   private isAutoApprovable(trigger: CascadeTrigger): boolean {
     return trigger === "status_changed" || trigger === "priority_changed";
   }
+
+  /**
+   * Analyze cascade effects when task impacts are edited
+   * Compares original and new impacts to determine affected tasks
+   */
+  async analyzeTaskEdit(
+    taskId: string,
+    originalImpacts: TaskImpact[],
+    newImpacts: TaskImpact[],
+  ): Promise<{ affectedTasks: Array<{ taskId: string; reason: string }> }> {
+    const affectedTasks: Array<{ taskId: string; reason: string }> = [];
+
+    // Find tasks that overlap with the new impacts
+    for (const impact of newImpacts) {
+      const overlapping = await query<{ task_id: string; display_id: string }>(
+        `SELECT DISTINCT task_id, display_id FROM task_impacts 
+         WHERE target_path = ? AND task_id != ? AND impact_type = ?`,
+        [impact.targetPath, taskId, impact.impactType],
+      );
+
+      for (const task of overlapping) {
+        if (!affectedTasks.find((t) => t.taskId === task.task_id)) {
+          affectedTasks.push({
+            taskId: task.task_id,
+            reason: `Overlapping impact on ${impact.targetPath}`,
+          });
+        }
+      }
+    }
+
+    return { affectedTasks };
+  }
+
+  /**
+   * Find all tasks with impacts overlapping a specific target
+   */
+  async findTasksWithOverlappingImpacts(
+    impactType: string,
+    targetPath: string,
+  ): Promise<Array<{ id: string; displayId: string }>> {
+    const tasks = await query<{ task_id: string; display_id: string }>(
+      `SELECT DISTINCT t.id AS task_id, t.display_id 
+       FROM tasks t
+       JOIN task_impacts ti ON t.id = ti.task_id
+       WHERE ti.impact_type = ? AND ti.target_path = ?`,
+      [impactType, targetPath],
+    );
+
+    return tasks.map((t) => ({ id: t.task_id, displayId: t.display_id || t.task_id }));
+  }
+
+  /**
+   * Generate a cascade report for a task showing all potential effects
+   */
+  async generateCascadeReport(
+    taskId: string,
+  ): Promise<{
+    taskId: string;
+    impacts: TaskImpact[];
+    dependentTasks: Array<{ taskId: string; reason: string }>;
+    impactOverlaps: Array<{ targetPath: string; taskIds: string[] }>;
+    recommendations: string[];
+  }> {
+    // Get task impacts
+    const impacts = await query<TaskImpactRow>(
+      "SELECT * FROM task_impacts WHERE task_id = ?",
+      [taskId],
+    );
+
+    // Find dependent tasks (via task_relationships)
+    const dependents = await query<{ source_task_id: string }>(
+      `SELECT source_task_id FROM task_relationships 
+       WHERE target_task_id = ? AND relationship_type = 'depends_on'`,
+      [taskId],
+    );
+    const dependentTasks = dependents.map((d) => ({
+      taskId: d.source_task_id,
+      reason: "Depends on this task",
+    }));
+
+    // Find impact overlaps
+    const impactOverlaps: Array<{ targetPath: string; taskIds: string[] }> = [];
+    for (const impact of impacts) {
+      const overlapping = await query<{ task_id: string }>(
+        `SELECT DISTINCT task_id FROM task_impacts 
+         WHERE target_path = ? AND task_id != ?`,
+        [impact.target_path, taskId],
+      );
+
+      if (overlapping.length > 0) {
+        impactOverlaps.push({
+          targetPath: impact.target_path,
+          taskIds: overlapping.map((o) => o.task_id),
+        });
+      }
+    }
+
+    // Generate recommendations
+    const recommendations: string[] = [];
+    if (dependentTasks.length > 0) {
+      recommendations.push(`${dependentTasks.length} tasks depend on this task`);
+    }
+    if (impactOverlaps.length > 0) {
+      recommendations.push(`${impactOverlaps.length} files overlap with other tasks`);
+    }
+
+    return {
+      taskId,
+      impacts: impacts.map((i) => ({
+        id: i.id,
+        taskId: i.task_id,
+        impactType: i.impact_type,
+        operation: i.operation,
+        targetPath: i.target_path,
+        targetName: i.target_name,
+        targetSignature: i.target_signature,
+        confidence: i.confidence,
+        source: i.source,
+        createdAt: i.created_at,
+        updatedAt: i.updated_at,
+      })),
+      dependentTasks,
+      impactOverlaps,
+      recommendations,
+    };
+  }
 }
 
 // Export singleton instance
