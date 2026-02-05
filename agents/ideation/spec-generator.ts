@@ -344,7 +344,7 @@ export async function generateSpec(
   console.log(`[SpecGenerator] Generating spec for session ${sessionId}`);
 
   // Get session messages
-  const messages = await messageStore.getMessages(sessionId);
+  const messages = await messageStore.getBySession(sessionId);
 
   if (messages.length < 3) {
     throw new Error("Not enough conversation to generate spec");
