@@ -14,11 +14,15 @@
  * - POST /api/idea-pipeline/:ideaId/spec/start - Start spec generation
  * - GET /api/idea-pipeline/:ideaId/spec/status - Get spec session status
  * - POST /api/idea-pipeline/:ideaId/spec/answer - Answer spec questions
+ * - POST /api/idea-pipeline/:ideaId/build/start - Start build
+ * - GET /api/idea-pipeline/:ideaId/build/status - Get build session status
+ * - POST /api/idea-pipeline/:ideaId/build/resume - Resume build after intervention
  */
 
 import { Router, Request, Response } from 'express';
 import { getOrchestrator, IdeaPhase } from '../pipeline/orchestrator.js';
 import { getSpecBridge } from '../pipeline/spec-bridge.js';
+import { getBuildBridge } from '../pipeline/build-bridge.js';
 import { query, getOne } from '../../database/db.js';
 
 const router = Router();
@@ -513,6 +517,201 @@ router.get('/:ideaId/spec/output', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[IdeaPipeline] Error getting spec output:', error);
     res.status(500).json({ error: 'Failed to get spec output' });
+  }
+});
+
+// ==================== BUILD ROUTES ====================
+
+/**
+ * POST /api/idea-pipeline/:ideaId/build/start
+ * Start build for an idea
+ */
+router.post('/:ideaId/build/start', async (req: Request, res: Response) => {
+  const { ideaId } = req.params;
+  
+  try {
+    const orchestrator = getOrchestrator();
+    const state = await orchestrator.getState(ideaId);
+    
+    // Check if we're in a valid phase for building
+    if (state.currentPhase !== 'spec_ready' && state.currentPhase !== 'building') {
+      res.status(400).json({
+        error: `Cannot start build from phase: ${state.currentPhase}. Must be in spec_ready or building phase.`
+      });
+      return;
+    }
+    
+    // Check if spec exists
+    const specOutput = await getOne<{ task_count: number }>(
+      'SELECT task_count FROM spec_outputs WHERE idea_id = ?',
+      [ideaId]
+    );
+    
+    if (!specOutput || specOutput.task_count === 0) {
+      res.status(400).json({
+        error: 'No tasks available for building. Run spec generation first.'
+      });
+      return;
+    }
+    
+    // Start build
+    const buildBridge = getBuildBridge();
+    const session = await buildBridge.startBuild(ideaId);
+    
+    // Transition to building phase if not already there
+    if (state.currentPhase === 'spec_ready') {
+      await orchestrator.requestTransition(
+        ideaId,
+        'building',
+        'Build started',
+        'system'
+      );
+    }
+    
+    res.json({
+      success: true,
+      sessionId: session.sessionId,
+      status: session.status,
+    });
+  } catch (error) {
+    console.error('[IdeaPipeline] Error starting build:', error);
+    res.status(500).json({
+      error: 'Failed to start build',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/idea-pipeline/:ideaId/build/status
+ * Get build session status
+ */
+router.get('/:ideaId/build/status', async (req: Request, res: Response) => {
+  const { ideaId } = req.params;
+  
+  try {
+    const buildBridge = getBuildBridge();
+    const session = buildBridge.getSessionForIdea(ideaId);
+    
+    if (!session) {
+      // Check if there's a completed build in the database
+      const lastBuild = await getOne<{
+        id: string;
+        status: string;
+        tasks_completed: number;
+        tasks_total: number;
+        completed_at: string;
+      }>(
+        `SELECT * FROM build_executions 
+         WHERE spec_id = ? 
+         ORDER BY started_at DESC LIMIT 1`,
+        [ideaId]
+      );
+      
+      if (lastBuild) {
+        res.json({
+          status: lastBuild.status,
+          buildId: lastBuild.id,
+          tasksComplete: lastBuild.tasks_completed,
+          tasksTotal: lastBuild.tasks_total,
+          completedAt: lastBuild.completed_at,
+        });
+        return;
+      }
+      
+      res.json({
+        status: 'not_started',
+      });
+      return;
+    }
+    
+    res.json({
+      sessionId: session.sessionId,
+      buildId: session.buildId,
+      status: session.status,
+      startedAt: session.startedAt,
+      completedAt: session.completedAt,
+      tasksTotal: session.tasksTotal,
+      tasksComplete: session.tasksComplete,
+      tasksFailed: session.tasksFailed,
+      currentTask: session.currentTask,
+      siaInterventions: session.siaInterventions,
+      error: session.error,
+    });
+  } catch (error) {
+    console.error('[IdeaPipeline] Error getting build status:', error);
+    res.status(500).json({ error: 'Failed to get build status' });
+  }
+});
+
+/**
+ * POST /api/idea-pipeline/:ideaId/build/resume
+ * Resume build after human intervention
+ */
+router.post('/:ideaId/build/resume', async (req: Request, res: Response) => {
+  const { ideaId } = req.params;
+  const { sessionId, resolution } = req.body;
+  
+  if (!sessionId) {
+    res.status(400).json({ error: 'sessionId is required' });
+    return;
+  }
+  
+  try {
+    const buildBridge = getBuildBridge();
+    
+    // Record intervention if resolution provided
+    if (resolution) {
+      const session = buildBridge.getSession(sessionId);
+      if (session?.currentTask) {
+        await buildBridge.recordSiaIntervention(sessionId, session.currentTask, resolution);
+      }
+    }
+    
+    // Resume the build
+    await buildBridge.resumeBuild(sessionId);
+    
+    const session = buildBridge.getSession(sessionId);
+    
+    res.json({
+      success: true,
+      status: session?.status,
+      tasksComplete: session?.tasksComplete || 0,
+      tasksFailed: session?.tasksFailed || 0,
+    });
+  } catch (error) {
+    console.error('[IdeaPipeline] Error resuming build:', error);
+    res.status(500).json({
+      error: 'Failed to resume build',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * POST /api/idea-pipeline/:ideaId/build/intervention
+ * Record a human intervention for a build task
+ */
+router.post('/:ideaId/build/intervention', async (req: Request, res: Response) => {
+  const { ideaId } = req.params;
+  const { sessionId, taskId, resolution } = req.body;
+  
+  if (!sessionId || !taskId || !resolution) {
+    res.status(400).json({ error: 'sessionId, taskId, and resolution are required' });
+    return;
+  }
+  
+  try {
+    const buildBridge = getBuildBridge();
+    await buildBridge.recordSiaIntervention(sessionId, taskId, resolution);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[IdeaPipeline] Error recording intervention:', error);
+    res.status(500).json({
+      error: 'Failed to record intervention',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
