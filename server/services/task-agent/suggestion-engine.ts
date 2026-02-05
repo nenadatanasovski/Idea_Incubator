@@ -22,6 +22,7 @@
  */
 
 import { EventEmitter } from "events";
+import { query } from "../../../database/db.js";
 import evaluationQueueManager from "./evaluation-queue-manager.js";
 import autoGroupingEngine from "./auto-grouping-engine.js";
 import taskListOrchestrator from "./task-list-orchestrator.js";
@@ -455,10 +456,33 @@ Nice work! What's next?`,
         return null; // At capacity
       }
 
-      // TODO: Query for validated task lists that are ready to execute
-      // For now, return null - implement when task list validation is complete
+      // Query for task lists that are ready to execute (sync query)
+      const readyLists = query<{ id: string; name: string; total_tasks: number }>(
+        `SELECT id, name, total_tasks FROM task_lists_v2 
+         WHERE status = 'ready' 
+         AND total_tasks > 0
+         ORDER BY created_at ASC
+         LIMIT 1`,
+      );
 
-      return null;
+      if (!readyLists || readyLists.length === 0) {
+        return null; // No ready lists
+      }
+
+      const readyList = readyLists[0];
+      return {
+        type: "task_list_ready",
+        message: `Task list "${readyList.name}" is ready to execute (${readyList.total_tasks} tasks)`,
+        priority: 2,
+        buttons: [
+          [
+            { text: "✅ Execute", callbackData: `task_execute:${readyList.id}` },
+            { text: "📋 Details", callbackData: `task_details:${readyList.id}` },
+            { text: "❌ Skip", callbackData: `task_skip:${readyList.id}` },
+          ],
+        ],
+        metadata: { taskListId: readyList.id },
+      };
     } catch (error) {
       console.error("[SuggestionEngine] Error checking ready lists:", error);
       return null;
