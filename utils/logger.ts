@@ -178,7 +178,6 @@ export function logProgress(
   cost?: number,
 ): void {
   if (!shouldLog("info")) return;
-  const __percentage = Math.round((current / total) * 100);
   const barLength = 20;
   const filled = Math.round(barLength * (current / total));
   const bar = "█".repeat(filled) + "░".repeat(barLength - filled);

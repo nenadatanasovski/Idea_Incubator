@@ -5,7 +5,7 @@
  * Part of: Task System V2 Implementation Plan (IMPL-2.6)
  */
 
-import { Task, TaskStatus } from "./task-agent.js";
+import { TaskStatus } from "./task-agent.js";
 
 /**
  * Task version entity

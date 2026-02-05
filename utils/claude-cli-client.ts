@@ -38,7 +38,7 @@ export async function callClaudeCli(
   const {
     model = "sonnet",
     systemPrompt,
-    _maxTokens = 4096,
+    // _maxTokens not used - Claude CLI doesn't expose this parameter
     tools = [],
   } = options;
 
@@ -127,13 +127,13 @@ export async function callClaudeCli(
     // Limit output size to prevent memory issues
     const MAX_OUTPUT_SIZE = 500 * 1024; // 500KB
 
-    child.stdout.on("data", (data) => {
+    child.stdout?.on("data", (data) => {
       if (stdout.length < MAX_OUTPUT_SIZE) {
         stdout += data.toString();
       }
     });
 
-    child.stderr.on("data", (data) => {
+    child.stderr?.on("data", (data) => {
       if (stderr.length < MAX_OUTPUT_SIZE) {
         stderr += data.toString();
       }
