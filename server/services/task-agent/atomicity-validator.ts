@@ -25,6 +25,7 @@ export interface AtomicityResult {
   isAtomic: boolean;
   score: number; // 0-100
   rules: RuleResult[];
+  violations: RuleResult[]; // Rules that didn't pass
   suggestedSplits?: string[];
 }
 
@@ -66,12 +67,31 @@ export class AtomicityValidator {
       ? undefined
       : await this.suggestSplits(task, rules);
 
+    // Filter to get violations (rules that didn't pass)
+    const violations = rules.filter((r) => !r.passed);
+
     return {
       isAtomic,
       score: avgScore,
       rules,
+      violations,
       suggestedSplits,
     };
+  }
+
+  /**
+   * Validate a task by ID (fetches task first)
+   */
+  async validateById(taskId: string): Promise<AtomicityResult> {
+    const task = await getOne<Task>("SELECT * FROM tasks WHERE id = ?", [
+      taskId,
+    ]);
+
+    if (!task) {
+      throw new Error(`Task ${taskId} not found`);
+    }
+
+    return this.validate(task);
   }
 
   /**

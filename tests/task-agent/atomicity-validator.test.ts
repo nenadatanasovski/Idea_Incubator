@@ -79,7 +79,7 @@ describe("AtomicityValidator", () => {
 
       await addFileImpact(taskId, "README.md", "UPDATE");
 
-      const result = await atomicityValidator.validate(taskId);
+      const result = await atomicityValidator.validateById(taskId);
 
       expect(result.isAtomic).toBe(true);
       expect(result.score).toBeGreaterThan(70);
@@ -97,7 +97,7 @@ describe("AtomicityValidator", () => {
         await addFileImpact(taskId, `src/file${i}.ts`, "UPDATE");
       }
 
-      const result = await atomicityValidator.validate(taskId);
+      const result = await atomicityValidator.validateById(taskId);
 
       expect(result.isAtomic).toBe(false);
       expect(result.violations.some((v) => v.rule === "single_file")).toBe(
@@ -111,7 +111,7 @@ describe("AtomicityValidator", () => {
         effort: "epic",
       });
 
-      const result = await atomicityValidator.validate(taskId);
+      const result = await atomicityValidator.validateById(taskId);
 
       expect(result.violations.some((v) => v.rule === "time_bound")).toBe(true);
     });
@@ -122,7 +122,7 @@ describe("AtomicityValidator", () => {
         description: "Multiple unrelated changes",
       });
 
-      const result = await atomicityValidator.validate(taskId);
+      const result = await atomicityValidator.validateById(taskId);
 
       expect(result.violations.some((v) => v.rule === "single_concern")).toBe(
         true,
@@ -140,7 +140,7 @@ describe("AtomicityValidator", () => {
       await addFileImpact(taskId, "file4.ts", "UPDATE");
       await addFileImpact(taskId, "file5.ts", "UPDATE");
 
-      const result = await atomicityValidator.validate(taskId);
+      const result = await atomicityValidator.validateById(taskId);
 
       expect(result.violations.some((v) => v.rule === "single_file")).toBe(
         true,
@@ -151,8 +151,8 @@ describe("AtomicityValidator", () => {
       const smallTask = await createTestTask({ effort: "small" });
       const epicTask = await createTestTask({ effort: "epic" });
 
-      const smallResult = await atomicityValidator.validate(smallTask);
-      const epicResult = await atomicityValidator.validate(epicTask);
+      const smallResult = await atomicityValidator.validateById(smallTask);
+      const epicResult = await atomicityValidator.validateById(epicTask);
 
       expect(smallResult.violations.some((v) => v.rule === "time_bound")).toBe(
         false,
@@ -174,7 +174,7 @@ describe("AtomicityValidator", () => {
         await addFileImpact(taskId, `src/module${i}/file.ts`, "UPDATE");
       }
 
-      const result = await atomicityValidator.validate(taskId);
+      const result = await atomicityValidator.validateById(taskId);
 
       expect(result.canDecompose).toBe(true);
       expect(result.suggestedSubtasks).toBeGreaterThan(1);
@@ -190,7 +190,7 @@ describe("AtomicityValidator", () => {
         await addFileImpact(taskId, `file${i}.ts`, "UPDATE");
       }
 
-      const result = await atomicityValidator.validate(taskId);
+      const result = await atomicityValidator.validateById(taskId);
 
       result.violations.forEach((violation) => {
         expect(violation.suggestion).toBeDefined();
@@ -203,7 +203,7 @@ describe("AtomicityValidator", () => {
     it("should calculate score between 0 and 100", async () => {
       const taskId = await createTestTask({});
 
-      const result = await atomicityValidator.validate(taskId);
+      const result = await atomicityValidator.validateById(taskId);
 
       expect(result.score).toBeGreaterThanOrEqual(0);
       expect(result.score).toBeLessThanOrEqual(100);
@@ -224,8 +224,8 @@ describe("AtomicityValidator", () => {
         await addFileImpact(nonAtomicTask, `module${i}/file.ts`, "UPDATE");
       }
 
-      const atomicResult = await atomicityValidator.validate(atomicTask);
-      const nonAtomicResult = await atomicityValidator.validate(nonAtomicTask);
+      const atomicResult = await atomicityValidator.validateById(atomicTask);
+      const nonAtomicResult = await atomicityValidator.validateById(nonAtomicTask);
 
       expect(atomicResult.score).toBeGreaterThan(nonAtomicResult.score);
     });
