@@ -357,7 +357,7 @@ describe("8.2 Impact Conflict Detection", () => {
     );
     expect(details.canRunParallel).toBe(false);
     expect(details.fileConflicts.length).toBeGreaterThan(0);
-    expect(details.fileConflicts[0].conflictType).toBe("write-write");
+    expect(details.fileConflicts[0].conflictType).toBe("write_write");
   });
 
   it("should detect CREATE-CREATE conflict on same file", async () => {

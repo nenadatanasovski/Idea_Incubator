@@ -100,6 +100,7 @@ export async function detectConflicts(
   taskAId: string,
   taskBId: string,
 ): Promise<FileConflict[]> {
+  // Query task_impacts table (not task_file_impacts) for file impacts
   const conflicts = await query<{
     file_path: string;
     operation_a: string;
@@ -108,15 +109,17 @@ export async function detectConflicts(
     confidence_b: number;
   }>(
     `SELECT
-      fi1.file_path,
-      fi1.operation AS operation_a,
-      fi2.operation AS operation_b,
-      fi1.confidence AS confidence_a,
-      fi2.confidence AS confidence_b
-    FROM task_file_impacts fi1
-    JOIN task_file_impacts fi2 ON fi1.file_path = fi2.file_path
-    WHERE fi1.task_id = ?
-      AND fi2.task_id = ?`,
+      ti1.target_path AS file_path,
+      ti1.operation AS operation_a,
+      ti2.operation AS operation_b,
+      ti1.confidence AS confidence_a,
+      ti2.confidence AS confidence_b
+    FROM task_impacts ti1
+    JOIN task_impacts ti2 ON ti1.target_path = ti2.target_path
+    WHERE ti1.task_id = ?
+      AND ti2.task_id = ?
+      AND ti1.impact_type = 'file'
+      AND ti2.impact_type = 'file'`,
     [taskAId, taskBId],
   );
 
