@@ -13,6 +13,23 @@ import { prdLinkService } from "../../server/services/prd-link-service";
 import { run, saveDb } from "../../database/db";
 
 const TEST_PREFIX = "COVERAGE-TEST-";
+const TEST_USER_ID = "test-user-prd-coverage";
+
+// Create test PRD (wrapper to provide userId and map fields)
+async function createTestPRD(input: { 
+  title: string; 
+  problemStatement?: string;
+  successCriteria?: string[];
+  constraints?: string[];
+  description?: string; // Legacy - mapped to problemStatement
+  status?: string; // Ignored - always draft
+}) {
+  const { description, status, ...rest } = input;
+  return prdService.create({
+    ...rest,
+    problemStatement: input.problemStatement || description,
+  }, TEST_USER_ID);
+}
 
 // Create test task
 async function createTestTask(status: string = "pending"): Promise<string> {
@@ -72,7 +89,7 @@ describe("PRDCoverageService", () => {
 
   describe("calculateCoverage", () => {
     it("should calculate coverage for PRD with no requirements", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}Empty PRD`,
         status: "draft",
       });
@@ -81,32 +98,32 @@ describe("PRDCoverageService", () => {
 
       expect(coverage).toBeDefined();
       expect(coverage.totalRequirements).toBe(0);
-      expect(coverage.coveragePercentage).toBe(100); // 0/0 = 100% complete
+      expect(coverage.coveragePercent).toBe(100); // 0/0 = 100% complete
     });
 
     it("should calculate coverage for PRD with linked tasks", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}PRD with tasks`,
-        description: "REQ-001: First requirement\nREQ-002: Second requirement",
-        status: "draft",
+        successCriteria: ["First requirement", "Second requirement"],
       });
 
       const task1 = await createTestTask("completed");
       const task2 = await createTestTask("pending");
 
-      await prdLinkService.linkTask(prd.id, task1, "REQ-001");
-      await prdLinkService.linkTask(prd.id, task2, "REQ-002");
+      // Use proper requirement refs that match the service's parsing
+      await prdLinkService.linkTask(prd.id, task1, "success_criteria[0]");
+      await prdLinkService.linkTask(prd.id, task2, "success_criteria[1]");
 
       const coverage = await prdCoverageService.calculateCoverage(prd.id);
 
-      expect(coverage.totalRequirements).toBeGreaterThan(0);
-      expect(coverage.coveredRequirements).toBeGreaterThan(0);
+      expect(coverage.totalRequirements).toBe(2);
+      expect(coverage.coveredRequirements).toBe(2); // Both are linked
     });
   });
 
   describe("getUncoveredRequirements", () => {
     it("should return empty array for fully covered PRD", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}Fully covered PRD`,
         description: "REQ-001: Only requirement",
         status: "draft",
@@ -123,7 +140,7 @@ describe("PRDCoverageService", () => {
     });
 
     it("should return uncovered requirements", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}Partial PRD`,
         description: "REQ-001: Covered\nREQ-002: Not covered",
         status: "draft",
@@ -144,92 +161,71 @@ describe("PRDCoverageService", () => {
 
   describe("getCompletionProgress", () => {
     it("should calculate completion progress", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}Progress PRD`,
-        status: "draft",
       });
 
-      const taskList = await createTestTaskList();
-      await prdLinkService.linkTaskList(prd.id, taskList);
-
+      // Link tasks directly to PRD
       const completedTask = await createTestTask("completed");
       const pendingTask = await createTestTask("pending");
 
-      await run("UPDATE tasks SET task_list_id = ? WHERE id IN (?, ?)", [
-        taskList,
-        completedTask,
-        pendingTask,
-      ]);
-      await saveDb();
+      await prdLinkService.linkTask(prd.id, completedTask, "task-1");
+      await prdLinkService.linkTask(prd.id, pendingTask, "task-2");
 
       const progress = await prdCoverageService.getCompletionProgress(prd.id);
 
       expect(progress).toBeDefined();
-      expect(progress.totalTasks).toBe(2);
-      expect(progress.completedTasks).toBe(1);
-      expect(progress.completionPercentage).toBe(50);
+      expect(progress.total).toBe(2);
+      expect(progress.completed).toBe(1);
+      expect(progress.percentage).toBe(50);
     });
 
     it("should return 100% for PRD with all completed tasks", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}Complete PRD`,
-        status: "draft",
       });
 
-      const taskList = await createTestTaskList();
-      await prdLinkService.linkTaskList(prd.id, taskList);
-
+      // Link tasks directly to PRD
       const task1 = await createTestTask("completed");
       const task2 = await createTestTask("completed");
 
-      await run("UPDATE tasks SET task_list_id = ? WHERE id IN (?, ?)", [
-        taskList,
-        task1,
-        task2,
-      ]);
-      await saveDb();
+      await prdLinkService.linkTask(prd.id, task1, "task-1");
+      await prdLinkService.linkTask(prd.id, task2, "task-2");
 
       const progress = await prdCoverageService.getCompletionProgress(prd.id);
 
-      expect(progress.completionPercentage).toBe(100);
+      expect(progress.percentage).toBe(100);
     });
 
     it("should return 0% for PRD with no completed tasks", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}Zero progress PRD`,
-        status: "draft",
       });
 
-      const taskList = await createTestTaskList();
-      await prdLinkService.linkTaskList(prd.id, taskList);
-
+      // Link pending tasks directly to PRD
       const task1 = await createTestTask("pending");
-      const task2 = await createTestTask("in_progress");
+      const task2 = await createTestTask("pending");
 
-      await run("UPDATE tasks SET task_list_id = ? WHERE id IN (?, ?)", [
-        taskList,
-        task1,
-        task2,
-      ]);
-      await saveDb();
+      await prdLinkService.linkTask(prd.id, task1, "task-1");
+      await prdLinkService.linkTask(prd.id, task2, "task-2");
 
       const progress = await prdCoverageService.getCompletionProgress(prd.id);
 
-      expect(progress.completionPercentage).toBe(0);
+      expect(progress.percentage).toBe(0);
     });
   });
 
   describe("edge cases", () => {
     it("should handle PRD with no linked task lists", async () => {
-      const prd = await prdService.create({
+      const prd = await createTestPRD({
         title: `${TEST_PREFIX}Isolated PRD`,
         status: "draft",
       });
 
       const progress = await prdCoverageService.getCompletionProgress(prd.id);
 
-      expect(progress.totalTasks).toBe(0);
-      expect(progress.completionPercentage).toBe(100);
+      expect(progress.total).toBe(0);
+      expect(progress.percentage).toBe(100);
     });
 
     it("should handle non-existent PRD", async () => {
