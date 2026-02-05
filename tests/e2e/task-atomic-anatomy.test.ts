@@ -303,21 +303,21 @@ describe("8.2 Impact Conflict Detection", () => {
     const task1 = await taskCreationService.createTaskInList(
       `${TEST_PREFIX}Task A - Update database.ts`,
       taskListId,
-      { category: "database" },
+      { category: "infrastructure" },
     );
     task1Id = task1.task.id;
 
     const task2 = await taskCreationService.createTaskInList(
       `${TEST_PREFIX}Task B - Also update database.ts`,
       taskListId,
-      { category: "database" },
+      { category: "infrastructure" },
     );
     task2Id = task2.task.id;
 
     const task3 = await taskCreationService.createTaskInList(
       `${TEST_PREFIX}Task C - Update different file`,
       taskListId,
-      { category: "api" },
+      { category: "feature" },
     );
     task3Id = task3.task.id;
 
@@ -581,7 +581,7 @@ describe("8.3 Cascade Propagation", () => {
     const task3 = await taskCreationService.createTaskInList(
       `${TEST_PREFIX}Task 3 - Create user API (depends on service)`,
       taskListId,
-      { category: "api" },
+      { category: "feature" },
     );
     task3Id = task3.task.id;
 
