@@ -29,6 +29,7 @@ import type {
 import { analyzeCascadeEffects } from "../graph/utils/cascadeDetection";
 import { MemoryGraphStats } from "./MemoryGraphStats";
 import { CreateBlockForm } from "./CreateBlockForm";
+import { MemoryBlockSearch } from "./MemoryBlockSearch";
 
 // Lazy load GraphContainer for code splitting
 const GraphContainer = lazy(() => import("../graph/GraphContainer"));
@@ -204,6 +205,8 @@ export const GraphTabPanel = memo(function GraphTabPanel({
   const [resetFiltersTrigger, setResetFiltersTrigger] = useState(0);
   // State for showing create block form
   const [showCreateBlock, setShowCreateBlock] = useState(false);
+  // State for showing search panel
+  const [showSearch, setShowSearch] = useState(false);
 
   // State for update confirmation dialog (T6.3)
   const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
@@ -721,12 +724,24 @@ export const GraphTabPanel = memo(function GraphTabPanel({
       {/* Neo4j Memory Graph Stats */}
       <div className="flex-shrink-0 px-4 py-2 border-b flex items-center justify-between">
         <MemoryGraphStats sessionId={sessionId} compact />
-        <button
-          onClick={() => setShowCreateBlock(!showCreateBlock)}
-          className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-        >
-          {showCreateBlock ? '✕ Close' : '+ Add Block'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setShowSearch(!showSearch); setShowCreateBlock(false); }}
+            className={`text-sm px-3 py-1 rounded-lg transition-colors ${
+              showSearch ? 'bg-purple-200 text-purple-800' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+            }`}
+          >
+            {showSearch ? '✕ Close Search' : '🔍 Search'}
+          </button>
+          <button
+            onClick={() => { setShowCreateBlock(!showCreateBlock); setShowSearch(false); }}
+            className={`text-sm px-3 py-1 rounded-lg transition-colors ${
+              showCreateBlock ? 'bg-blue-200 text-blue-800' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
+          >
+            {showCreateBlock ? '✕ Close' : '+ Add Block'}
+          </button>
+        </div>
       </div>
 
       {/* Create Block Form */}
@@ -740,6 +755,20 @@ export const GraphTabPanel = memo(function GraphTabPanel({
               setShowCreateBlock(false);
             }}
             onCancel={() => setShowCreateBlock(false)}
+          />
+        </div>
+      )}
+
+      {/* Search Panel */}
+      {showSearch && (
+        <div className="flex-shrink-0 h-80 border-b bg-gray-50">
+          <MemoryBlockSearch
+            sessionId={sessionId}
+            onSelectBlock={(block) => {
+              // Highlight the selected block in the graph
+              setHighlightedNodeIds([block.id]);
+              // Could also navigate to the block in the graph view
+            }}
           />
         </div>
       )}
