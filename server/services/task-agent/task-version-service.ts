@@ -346,6 +346,32 @@ export class TaskVersionService {
     }
     return this.diff(taskId, latestVersion.version, targetVersion);
   }
+
+  /**
+   * Compare two versions (alias for diff)
+   */
+  async compareVersions(
+    taskId: string,
+    fromVersion: number,
+    toVersion: number,
+  ): Promise<VersionDiff> {
+    return this.diff(taskId, fromVersion, toVersion);
+  }
+
+  /**
+   * Rollback to a previous version (alias for restore)
+   */
+  async rollbackToVersion(
+    taskId: string,
+    targetVersion: number,
+    reason?: string,
+    userId: string = "system",
+  ): Promise<Task> {
+    return this.restore(
+      { taskId, targetVersion, reason },
+      userId,
+    );
+  }
 }
 
 // Export singleton instance
