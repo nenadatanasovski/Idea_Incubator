@@ -131,12 +131,19 @@ export class BotRegistry {
 
   /**
    * Validate a bot token by calling Telegram's getMe API.
+   * Uses AbortController for timeout to prevent hanging on network issues.
    */
   private async validateToken(token: string): Promise<TelegramBot | null> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     try {
       const response = await fetch(
         `https://api.telegram.org/bot${token}/getMe`,
+        { signal: controller.signal }
       );
+      clearTimeout(timeoutId);
+      
       const data = await response.json();
 
       if (data.ok) {
@@ -146,7 +153,12 @@ export class BotRegistry {
       console.error("[BotRegistry] getMe failed:", data.description);
       return null;
     } catch (error) {
-      console.error("[BotRegistry] Failed to validate bot token:", error);
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.warn("[BotRegistry] Token validation timed out (10s)");
+      } else {
+        console.error("[BotRegistry] Failed to validate bot token:", error);
+      }
       return null;
     }
   }
