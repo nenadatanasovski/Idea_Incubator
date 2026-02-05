@@ -423,7 +423,7 @@ export function resetMocks(): void {
   mockGetOne.mockResolvedValue(null);
   mockExecutionService.getExecution.mockResolvedValue(null);
   mockExecutionService.listExecutions.mockResolvedValue([]);
-  mockExecutionService.getExecutionStats.mockResolvedValue({ activeRuns: 0, totalRuns: 0, failedRecent: 0 });
+  mockExecutionService.getExecutionStats.mockResolvedValue({ activeCount: 0, totalRecent: 0, failedRecent: 0 });
   mockTranscriptService.getTranscript.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
   mockTranscriptService.getTranscriptEntry.mockResolvedValue(null);
   mockAssertionService.getAssertions.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0 });
@@ -447,13 +447,22 @@ export function mockStats(stats: {
   blockedAgents?: number;
   pendingQuestions?: number;
 }): void {
+  // Use service mock (new architecture)
+  const failedRecent = stats.errorRate ? parseFloat(stats.errorRate) / 10 : 0;
+  mockExecutionService.getExecutionStats.mockResolvedValue({
+    activeCount: stats.activeExecutions || 0,
+    totalRecent: 10,
+    failedRecent,
+  });
+
+  // Also mock the database queries for blocked/pending counts
   mockQuery.mockImplementation((sql: string) => {
     if (sql.includes("task_list_execution_runs")) {
       return Promise.resolve([
         {
           active_count: stats.activeExecutions || 0,
           total_recent: 10,
-          failed_recent: stats.errorRate ? parseFloat(stats.errorRate) / 10 : 0,
+          failed_recent: failedRecent,
         },
       ]);
     }
