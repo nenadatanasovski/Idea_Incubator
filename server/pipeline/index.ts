@@ -3,3 +3,4 @@
 
 export * from './orchestrator';
 export * from './types';
+export * from './ideation-bridge';
