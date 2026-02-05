@@ -168,11 +168,75 @@ For each component, verify:
 
 | Component | Priority | Auditor | Status | Issues |
 |-----------|----------|---------|--------|--------|
-| Memory Block Schema | 🔴 P0 | — | 🔲 | — |
-| Block Extractor | 🔴 P0 | — | 🔲 | — |
-| Graph State Loader | 🔴 P0 | — | 🔲 | — |
+| Memory Block Schema | 🔴 P0 | Kai | ✅ Done | 0 - Already aligned |
+| Block Extractor | 🔴 P0 | Kai | ✅ Done | 2 - Fixed (prompt text, example type) |
+| Graph State Loader | 🔴 P0 | Kai | ✅ Done | 5 - Fixed (old type references) |
 | Gap Analysis Agent | 🟡 P1 | — | 🔲 | — |
 | Message Bus | 🟡 P1 | — | 🔲 | — |
+
+---
+
+## P0 Audit Reports
+
+### Memory Block Schema
+**Location:** `schema/entities/memory-block.ts`
+**Auditor:** Kai | **Date:** 2026-02-05
+
+**Summary:** Already fully aligned with ARCH-001. Uses exactly 9 canonical types with migration comments.
+
+| Decision | Status | Notes |
+|----------|--------|-------|
+| ARCH-001 (9 types) | ✅ | Uses `blockTypes` array with all 9 |
+| Deterministic routing | ✅ | N/A - schema only |
+| Observability | ✅ | N/A - schema only |
+
+**Issues Found:** None
+**Recommendation:** Keep as-is
+
+---
+
+### Block Extractor
+**Location:** `agents/ideation/block-extractor.ts`
+**Auditor:** Kai | **Date:** 2026-02-05
+
+**Summary:** Good type mapping logic exists. Fixed minor prompt inconsistencies.
+
+| Decision | Status | Notes |
+|----------|--------|-------|
+| ARCH-001 (9 types) | ✅ | Has correct mapping, prompt fixed |
+| Deterministic routing | ✅ | Validation is code-based |
+| Observability | 🟡 | Could add Langfuse tracing |
+
+**Issues Found:**
+1. **Minor** - Prompt said "11 types" → Fixed to "9 types"
+2. **Minor** - Example JSON used `"types": ["fact"]` → Fixed to `"knowledge"`
+
+**Effort:** 5 minutes
+**Recommendation:** Keep - issues fixed
+
+---
+
+### Graph State Loader  
+**Location:** `agents/ideation/graph-state-loader.ts`
+**Auditor:** Kai | **Date:** 2026-02-05
+
+**Summary:** Multiple hardcoded references to old block types. All fixed.
+
+| Decision | Status | Notes |
+|----------|--------|-------|
+| ARCH-001 (9 types) | ✅ | Fixed - all references updated |
+| Deterministic routing | ✅ | Graph queries are deterministic |
+| Observability | 🟡 | Has console logging, could add Langfuse |
+
+**Issues Found:**
+1. **Major** - `extractSelfDiscovery` used "insight" → Fixed to "knowledge"
+2. **Major** - `extractSelfDiscovery` used "fact" → Fixed to "knowledge"  
+3. **Major** - `extractSelfDiscovery` used "constraint" → Fixed to "requirement"
+4. **Major** - `extractMarketDiscovery` used "insight", "option", "learning" → Fixed
+5. **Minor** - `blockTypeDescriptions` listed old types → Fixed to 9 canonical
+
+**Effort:** 15 minutes
+**Recommendation:** Keep - issues fixed
 
 ---
 
