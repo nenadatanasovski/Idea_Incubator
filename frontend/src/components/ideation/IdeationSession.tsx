@@ -3,13 +3,61 @@
 // Main container for an ideation session
 // =============================================================================
 
-import { useEffect, useReducer, useCallback, useRef, useState } from "react";
+import { useEffect, useReducer, useCallback, useRef, useState, Component, type ReactNode, type ErrorInfo } from "react";
 import { SessionHeader, type SessionTab } from "./SessionHeader";
 import { ConversationPanel } from "./ConversationPanel";
 import { IdeaArtifactPanel } from "./IdeaArtifactPanel";
 import { GraphTabPanel } from "./GraphTabPanel";
 import { ProjectFilesPanel } from "./ProjectFilesPanel";
 import { SpecViewPanel } from "./SpecViewPanel";
+
+// Error boundary to wrap GraphTabPanel and prevent crashes from breaking the whole page
+interface GraphErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class GraphPanelErrorBoundary extends Component<{ children: ReactNode }, GraphErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): GraphErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("[GraphPanelErrorBoundary] Caught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center h-full min-h-[400px] bg-amber-50 rounded-lg p-6">
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-amber-800 mb-2">Graph Panel Issue</h3>
+            <p className="text-sm text-amber-600 mb-4 max-w-md">
+              The graph visualization encountered an error. The rest of the session is still working.
+            </p>
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="px-4 py-2 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition-colors text-sm font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import {
   MemoryDatabasePanel,
   type MemoryTableName,
@@ -2631,33 +2679,35 @@ export function IdeationSession({
             />
           </div>
 
-          {/* Graph Tab Panel (T6.1 - lazy loaded) */}
-          <GraphTabPanel
-            sessionId={state.session.sessionId || ""}
-            ideaSlug={state.artifacts.linkedIdea?.ideaSlug}
-            isVisible={activeTab === "graph"}
-            onUpdateCount={handleGraphUpdateCount}
-            onUpdateMemoryGraph={handleAnalyzeGraph}
-            isAnalyzingGraph={state.memoryGraph.isAnalyzing}
-            pendingGraphChanges={state.memoryGraph.pendingChangesCount}
-            onNavigateToChatMessage={handleNavigateToChatMessage}
-            onNavigateToArtifact={handleNavigateToArtifact}
-            onNavigateToMemoryDB={handleNavigateToMemoryDB}
-            onNavigateToExternal={handleNavigateToExternal}
-            onNavigateToInsight={handleNavigateToInsight}
-            onLinkNode={handleLinkNode}
-            onGroupIntoSynthesis={handleGroupIntoSynthesis}
-            onDeleteNode={handleDeleteNode}
-            onDeleteNodeGroup={handleDeleteNodeGroup}
-            refetchTrigger={graphRefetchTrigger}
-            successNotification={graphSuccessNotification}
-            onClearNotification={handleClearGraphNotification}
-            onSnapshotRestored={() =>
-              setGraphRefetchTrigger((prev) => prev + 1)
-            }
-            existingInsights={state.memoryGraph.analysis?.proposedChanges || []}
-            onInsightsRefresh={handleInsightsRefresh}
-          />
+          {/* Graph Tab Panel (T6.1 - lazy loaded) - wrapped in error boundary */}
+          <GraphPanelErrorBoundary>
+            <GraphTabPanel
+              sessionId={state.session.sessionId || ""}
+              ideaSlug={state.artifacts.linkedIdea?.ideaSlug}
+              isVisible={activeTab === "graph"}
+              onUpdateCount={handleGraphUpdateCount}
+              onUpdateMemoryGraph={handleAnalyzeGraph}
+              isAnalyzingGraph={state.memoryGraph.isAnalyzing}
+              pendingGraphChanges={state.memoryGraph.pendingChangesCount}
+              onNavigateToChatMessage={handleNavigateToChatMessage}
+              onNavigateToArtifact={handleNavigateToArtifact}
+              onNavigateToMemoryDB={handleNavigateToMemoryDB}
+              onNavigateToExternal={handleNavigateToExternal}
+              onNavigateToInsight={handleNavigateToInsight}
+              onLinkNode={handleLinkNode}
+              onGroupIntoSynthesis={handleGroupIntoSynthesis}
+              onDeleteNode={handleDeleteNode}
+              onDeleteNodeGroup={handleDeleteNodeGroup}
+              refetchTrigger={graphRefetchTrigger}
+              successNotification={graphSuccessNotification}
+              onClearNotification={handleClearGraphNotification}
+              onSnapshotRestored={() =>
+                setGraphRefetchTrigger((prev) => prev + 1)
+              }
+              existingInsights={state.memoryGraph.analysis?.proposedChanges || []}
+              onInsightsRefresh={handleInsightsRefresh}
+            />
+          </GraphPanelErrorBoundary>
 
           {/* Files Tab Panel (T9.2 - Project folder browser) */}
           {state.artifacts.linkedIdea && (
