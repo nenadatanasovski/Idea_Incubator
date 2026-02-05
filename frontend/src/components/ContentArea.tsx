@@ -3,14 +3,20 @@
 // Phase-aware content tabs for the unified layout
 // =============================================================================
 
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, lazy, Suspense } from "react";
 import clsx from "clsx";
+import { Loader2 } from "lucide-react";
 import type { IdeaPhase } from "./UnifiedLayout";
+
+// Lazy load phase-specific components
+const SpecificationView = lazy(() => import("./spec/SpecificationView"));
+const BuildProgressView = lazy(() => import("./build/BuildProgressView"));
 
 export type ContentTab = 
   | "graph" 
   | "artifacts" 
   | "spec" 
+  | "build"
   | "tasks" 
   | "evaluation"
   | "pipeline";
@@ -22,6 +28,7 @@ interface ContentAreaProps {
   renderGraph?: () => ReactNode;
   renderArtifacts?: () => ReactNode;
   renderSpec?: () => ReactNode;
+  renderBuild?: () => ReactNode;
   renderTasks?: () => ReactNode;
   renderEvaluation?: () => ReactNode;
   renderPipeline?: () => ReactNode;
@@ -34,6 +41,7 @@ const TAB_CONFIG: Record<ContentTab, { label: string; icon?: string }> = {
   graph: { label: "Memory Graph" },
   artifacts: { label: "Artifacts" },
   spec: { label: "Specification" },
+  build: { label: "Build" },
   tasks: { label: "Tasks" },
   evaluation: { label: "Evaluation" },
   pipeline: { label: "Pipeline" },
@@ -50,15 +58,27 @@ function getTabsForPhase(phase: IdeaPhase): ContentTab[] {
       return ["spec", "graph", "artifacts", "pipeline"];
     case "building":
     case "build_review":
-      return ["tasks", "spec", "artifacts", "pipeline"];
+      return ["build", "spec", "artifacts", "pipeline"];
     case "deployed":
-      return ["tasks", "evaluation", "artifacts", "pipeline"];
+      return ["build", "evaluation", "artifacts", "pipeline"];
     case "paused":
     case "failed":
-      return ["graph", "artifacts", "spec", "tasks", "pipeline"];
+      return ["graph", "artifacts", "spec", "build", "pipeline"];
     default:
       return ["graph", "artifacts"];
   }
+}
+
+// Loading fallback for lazy-loaded components
+function LoadingFallback() {
+  return (
+    <div className="h-full flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
 }
 
 export function ContentArea({
@@ -67,6 +87,7 @@ export function ContentArea({
   renderGraph,
   renderArtifacts,
   renderSpec,
+  renderBuild,
   renderTasks,
   renderEvaluation,
   renderPipeline,
@@ -87,7 +108,17 @@ export function ContentArea({
       case "artifacts":
         return renderArtifacts ? renderArtifacts() : <TabPlaceholder tab="artifacts" />;
       case "spec":
-        return renderSpec ? renderSpec() : <TabPlaceholder tab="spec" />;
+        return renderSpec ? renderSpec() : (
+          <Suspense fallback={<LoadingFallback />}>
+            <SpecificationView ideaId={ideaId} />
+          </Suspense>
+        );
+      case "build":
+        return renderBuild ? renderBuild() : (
+          <Suspense fallback={<LoadingFallback />}>
+            <BuildProgressView ideaId={ideaId} />
+          </Suspense>
+        );
       case "tasks":
         return renderTasks ? renderTasks() : <TabPlaceholder tab="tasks" />;
       case "evaluation":
