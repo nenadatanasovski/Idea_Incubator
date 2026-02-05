@@ -1348,10 +1348,23 @@ export class AgentOrchestrator {
         await blockExtractor.getBlocksForSession(sessionId);
 
       // Extract blocks from the message
-      const result = await blockExtractor.extractFromMessage(
-        messageContent,
+      // Construct a minimal IdeationMessage for the extractor
+      const message: IdeationMessage = {
+        id: messageId,
         sessionId,
-        messageId,
+        role: "assistant",
+        content: messageContent,
+        buttonsShown: null,
+        buttonClicked: null,
+        formShown: null,
+        formResponse: null,
+        webSearchResults: null,
+        tokenCount: 0,
+        createdAt: new Date(),
+      };
+      const result = await blockExtractor.extractFromMessage(
+        message,
+        sessionId,
         existingBlocks,
       );
 
@@ -1400,8 +1413,8 @@ export class AgentOrchestrator {
 
       // Run cascade detection analysis
       const result = await graphAnalysisSubagent.runAnalysis(
-        sessionId,
         "cascade-detection",
+        sessionId,
         {
           newBlockIds,
           detectSupersession: true,
@@ -1409,28 +1422,15 @@ export class AgentOrchestrator {
         },
       );
 
-      if (result.success && result.result) {
-        const cascadeResult = result.result as {
-          supersessionChains?: unknown[];
-          conflicts?: unknown[];
-        };
+      if (result.success && result.cascadeResult) {
+        const { affectedBlocks, propagationDepth } = result.cascadeResult;
 
-        if (
-          cascadeResult.supersessionChains &&
-          cascadeResult.supersessionChains.length > 0
-        ) {
+        if (affectedBlocks.length > 0) {
           console.log(
-            "[Orchestrator] Detected",
-            cascadeResult.supersessionChains.length,
-            "supersession chains",
-          );
-        }
-
-        if (cascadeResult.conflicts && cascadeResult.conflicts.length > 0) {
-          console.log(
-            "[Orchestrator] Detected",
-            cascadeResult.conflicts.length,
-            "conflicts",
+            "[Orchestrator] Cascade detection found",
+            affectedBlocks.length,
+            "affected blocks with propagation depth",
+            propagationDepth,
           );
         }
       }

@@ -29,6 +29,9 @@ export interface GraphAnalysisParams {
   // For cascade-detection
   triggeredByBlockId?: string;
   changeType?: "created" | "updated" | "deleted";
+  newBlockIds?: string[];
+  detectSupersession?: boolean;
+  detectConflicts?: boolean;
 
   // For link-inference
   minConfidence?: number;
