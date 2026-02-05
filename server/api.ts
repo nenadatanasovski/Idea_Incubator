@@ -97,6 +97,24 @@ import eventsRouter from "./routes/events.js";
 import ideaPipelineRouter from "./routes/idea-pipeline.js";
 import { initNotificationSystem } from "./notifications/index.js";
 import { getCommunicationHub } from "./communication/communication-hub.js";
+import { initializeOrchestrator } from "./pipeline/orchestrator.js";
+import { initializeSpecBridge } from "./pipeline/spec-bridge.js";
+import { initializeBuildBridge } from "./pipeline/build-bridge.js";
+import { run as dbRun, getOne as dbGetOne, query as dbQuery } from "../database/db.js";
+
+// Database adapter for orchestrator (matches expected interface)
+const dbAdapter = {
+  async run(sql: string, params?: unknown[]) {
+    await dbRun(sql, params);
+    return { lastID: 0, changes: 0 }; // Not used by orchestrator
+  },
+  async get<T>(sql: string, params?: unknown[]) {
+    return dbGetOne<T>(sql, params);
+  },
+  async all<T>(sql: string, params?: unknown[]) {
+    return dbQuery<T>(sql, params);
+  }
+};
 
 const app = express();
 const PORT = process.env.API_PORT || 3001;
@@ -210,6 +228,12 @@ app.use("/api/events", eventsRouter);
 
 // Initialize notification system
 initNotificationSystem();
+
+// Initialize pipeline orchestrator with agent bridges
+const specBridge = initializeSpecBridge();
+const buildBridge = initializeBuildBridge();
+initializeOrchestrator(dbAdapter, specBridge, buildBridge);
+console.log('[API] Pipeline orchestrator initialized');
 
 // Types
 interface ApiResponse<T> {
