@@ -61,14 +61,14 @@ function stopCleanup(): void {
  */
 function defaultKeyGenerator(req: Request): string {
   // Check for forwarded IP (behind proxy)
-  const forwarded = req.headers["x-forwarded-for"];
+  const forwarded = req.headers?.["x-forwarded-for"];
   if (forwarded) {
     const ip = Array.isArray(forwarded)
       ? forwarded[0]
       : forwarded.split(",")[0];
     return ip.trim();
   }
-  return req.ip || req.socket.remoteAddress || "unknown";
+  return req.ip || req.socket?.remoteAddress || "unknown";
 }
 
 /**

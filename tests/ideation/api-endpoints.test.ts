@@ -133,7 +133,7 @@ interface RouteLayer {
   };
 }
 
-// Helper function to get route handler
+// Helper function to get route handler (gets the final handler, skipping middleware)
 function getRouteHandler(
   path: string,
   method: "get" | "post",
@@ -142,7 +142,9 @@ function getRouteHandler(
   const layer = router.stack.find(
     (l) => l.route?.path === path && l.route?.methods?.[method],
   );
-  return layer?.route?.stack[0].handle;
+  // Get the last handler in the stack (the actual route handler, not middleware)
+  const stack = layer?.route?.stack;
+  return stack?.[stack.length - 1]?.handle;
 }
 
 // Helper to create mock request
@@ -163,12 +165,17 @@ function createMockResponse() {
   const res = {
     statusCode: 200,
     jsonData: null as unknown,
+    headers: {} as Record<string, string | number>,
     status(code: number) {
       this.statusCode = code;
       return this;
     },
     json(data: unknown) {
       this.jsonData = data;
+      return this;
+    },
+    setHeader(name: string, value: string | number) {
+      this.headers[name] = value;
       return this;
     },
   };
