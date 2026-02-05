@@ -42,7 +42,7 @@ async function addFileImpact(
 ): Promise<void> {
   await run(
     `INSERT INTO task_file_impacts (id, task_id, file_path, operation, confidence, source, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 0.9, 'ai_estimated', datetime('now'), datetime('now'))`,
+     VALUES (?, ?, ?, ?, 0.9, 'ai_estimate', datetime('now'), datetime('now'))`,
     [uuidv4(), taskId, filePath, operation],
   );
   await saveDb();
@@ -89,7 +89,7 @@ describe("AtomicityValidator", () => {
     it("should flag task with many file impacts", async () => {
       const taskId = await createTestTask({
         title: "Refactor entire codebase",
-        effort: "xlarge",
+        effort: "epic",
       });
 
       // Add many file impacts
@@ -105,10 +105,10 @@ describe("AtomicityValidator", () => {
       );
     });
 
-    it("should flag xlarge effort tasks", async () => {
+    it("should flag epic effort tasks", async () => {
       const taskId = await createTestTask({
         title: "Implement new feature",
-        effort: "xlarge",
+        effort: "epic",
       });
 
       const result = await atomicityValidator.validate(taskId);
@@ -149,15 +149,15 @@ describe("AtomicityValidator", () => {
 
     it("should check time_bound rule based on effort", async () => {
       const smallTask = await createTestTask({ effort: "small" });
-      const xlargeTask = await createTestTask({ effort: "xlarge" });
+      const epicTask = await createTestTask({ effort: "epic" });
 
       const smallResult = await atomicityValidator.validate(smallTask);
-      const xlargeResult = await atomicityValidator.validate(xlargeTask);
+      const epicResult = await atomicityValidator.validate(epicTask);
 
       expect(smallResult.violations.some((v) => v.rule === "time_bound")).toBe(
         false,
       );
-      expect(xlargeResult.violations.some((v) => v.rule === "time_bound")).toBe(
+      expect(epicResult.violations.some((v) => v.rule === "time_bound")).toBe(
         true,
       );
     });
@@ -167,7 +167,7 @@ describe("AtomicityValidator", () => {
     it("should suggest decomposition for non-atomic tasks", async () => {
       const taskId = await createTestTask({
         title: "Large task with many concerns",
-        effort: "xlarge",
+        effort: "epic",
       });
 
       for (let i = 0; i < 8; i++) {
@@ -218,7 +218,7 @@ describe("AtomicityValidator", () => {
 
       const nonAtomicTask = await createTestTask({
         title: "Major refactor across modules",
-        effort: "xlarge",
+        effort: "epic",
       });
       for (let i = 0; i < 10; i++) {
         await addFileImpact(nonAtomicTask, `module${i}/file.ts`, "UPDATE");

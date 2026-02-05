@@ -48,7 +48,7 @@ async function cleanupTestData(): Promise<void> {
     `DELETE FROM task_relationships WHERE source_task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
   );
   await run(
-    `DELETE FROM task_relationships WHERE task_b_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
+    `DELETE FROM task_relationships WHERE target_task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
   );
   await run(`DELETE FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%'`);
   await saveDb();
