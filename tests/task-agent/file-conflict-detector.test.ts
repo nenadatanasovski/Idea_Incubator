@@ -31,6 +31,7 @@ async function cleanupTestData(): Promise<void> {
     `DELETE FROM task_impacts WHERE task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
   );
   await run(`DELETE FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%'`);
+  await run(`DELETE FROM task_lists_v2 WHERE name LIKE '${TEST_PREFIX}%'`);
   await saveDb();
 }
 
@@ -48,7 +49,7 @@ describe("FileConflictDetector", () => {
   });
 
   describe("detectConflicts", () => {
-    it("should detect write-write conflict on same file", async () => {
+    it("should detect write_write conflict on same file", async () => {
       const taskA = await createTestTask();
       const taskB = await createTestTask();
 
@@ -72,25 +73,25 @@ describe("FileConflictDetector", () => {
       );
 
       expect(conflicts.length).toBeGreaterThan(0);
-      expect(conflicts[0].conflictType).toBe("write-write");
+      expect(conflicts[0].conflictType).toBe("write_write");
     });
 
-    it("should detect write-delete conflict", async () => {
+    it("should detect create_delete conflict", async () => {
       const taskA = await createTestTask();
       const taskB = await createTestTask();
 
-      // Task A updates, Task B deletes same file
+      // Task A creates, Task B deletes same file - race condition
       await taskImpactService.create({
         taskId: taskA,
         impactType: "file",
-        operation: "UPDATE",
-        targetPath: "server/services/old.ts",
+        operation: "CREATE",
+        targetPath: "server/services/new.ts",
       });
       await taskImpactService.create({
         taskId: taskB,
         impactType: "file",
         operation: "DELETE",
-        targetPath: "server/services/old.ts",
+        targetPath: "server/services/new.ts",
       });
 
       const conflicts = await fileConflictDetector.detectConflicts(
@@ -99,10 +100,10 @@ describe("FileConflictDetector", () => {
       );
 
       expect(conflicts.length).toBeGreaterThan(0);
-      expect(conflicts[0].conflictType).toBe("write-delete");
+      expect(conflicts[0].conflictType).toBe("create_delete");
     });
 
-    it("should not detect conflict for read-read operations", async () => {
+    it("should not detect conflict for no_conflict operations", async () => {
       const taskA = await createTestTask();
       const taskB = await createTestTask();
 
@@ -210,37 +211,60 @@ describe("FileConflictDetector", () => {
   });
 
   describe("getConflictType", () => {
-    it("should return blocking for write-write", () => {
+    it("should return blocking for write_write", () => {
       const result = fileConflictDetector.getConflictType("UPDATE", "UPDATE");
-      expect(result).toBe("blocking");
+      expect(result).toBe("write_write");
     });
 
-    it("should return blocking for create-create", () => {
+    it("should return create_create for create-create", () => {
       const result = fileConflictDetector.getConflictType("CREATE", "CREATE");
-      expect(result).toBe("blocking");
+      expect(result).toBe("create_create");
     });
 
-    it("should return blocking for delete-delete", () => {
+    it("should return write_write for delete-delete", () => {
       const result = fileConflictDetector.getConflictType("DELETE", "DELETE");
-      expect(result).toBe("blocking");
+      expect(result).toBe("write_write");
     });
 
-    it("should return null for read-read", () => {
+    it("should return no_conflict for read-read", () => {
       const result = fileConflictDetector.getConflictType("READ", "READ");
-      expect(result).toBeNull();
+      expect(result).toBe("no_conflict");
     });
 
-    it("should return warning for read-update", () => {
+    it("should return no_conflict for read-update", () => {
       const result = fileConflictDetector.getConflictType("READ", "UPDATE");
-      expect(result).toBe("warning");
+      expect(result).toBe("no_conflict");
     });
   });
 
   describe("getConflictingTasks", () => {
     it("should return all tasks with conflicts", async () => {
-      const taskA = await createTestTask();
-      const taskB = await createTestTask();
-      const taskC = await createTestTask();
+      // Create a task list for the tasks
+      const taskListId = uuidv4();
+      await run(
+        `INSERT INTO task_lists_v2 (id, name, status, created_at, updated_at)
+         VALUES (?, ?, 'draft', datetime('now'), datetime('now'))`,
+        [taskListId, `${TEST_PREFIX}Test List`],
+      );
+      await saveDb();
+
+      // Create tasks in the same list
+      const taskA = uuidv4();
+      const taskB = uuidv4();
+      const taskC = uuidv4();
+
+      for (const [id, name] of [
+        [taskA, "A"],
+        [taskB, "B"],
+        [taskC, "C"],
+      ]) {
+        await run(
+          `INSERT INTO tasks (id, display_id, title, status, category, priority, effort, task_list_id, created_at, updated_at)
+           VALUES (?, ?, ?, 'pending', 'feature', 'P2', 'medium', ?, datetime('now'), datetime('now'))`,
+          [id, `${TEST_PREFIX}${(id as string).slice(0, 8)}`, `${TEST_PREFIX}Task ${name}`, taskListId],
+        );
+      }
+      await saveDb();
 
       // A and B conflict
       await taskImpactService.create({
