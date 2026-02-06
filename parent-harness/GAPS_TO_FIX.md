@@ -2,48 +2,55 @@
 
 ## FIXED ✅
 
-### C1-C3: Agent Spawning (Commit `6c0661e`)
-- ✅ Added file read/write/list tools
-- ✅ Added shell command execution
-- ✅ Added task_complete/task_failed signal tools
-- ✅ Implemented multi-turn conversation loop (20 iterations max)
-- ✅ Tool calls executed and results returned to Claude
-- ✅ Files modified tracked
-- ✅ Tokens and tool calls counted
+### Core Infrastructure (Complete)
+- ✅ OAuth spawner (uses OpenClaw sessions_spawn - no API keys needed)
+- ✅ Multi-turn conversation support
+- ✅ Agent CRUD (create, update, status transitions)
+- ✅ Task CRUD (create, update, fail with retry_count)
+- ✅ Session management
+- ✅ Events logging
+- ✅ Foreign key constraints
+- ✅ Task flow: pending → pending_verification → completed/failed
 
-### H1-H2: QA Verification (Commit `b975373`)
-- ✅ QA module verifies task completion claims
-- ✅ Runs TypeScript, build, and test checks
-- ✅ Creates fix tasks for failures
-- ✅ Integrated into orchestrator (every 10th tick)
-- ✅ Proper task flow: pending → pending_verification → completed/failed
+### Orchestrator (Complete)
+- ✅ Tick loop (30s interval, self-starting)
+- ✅ Agent health monitoring (stuck detection at 15min)
+- ✅ Task assignment to idle agents
+- ✅ QA verification every 10th tick
+- ✅ Self-improvement retry queue (every 5th tick)
+- ✅ Manual tick API for cron (`POST /api/orchestrator/trigger`)
+
+### External Triggers (Complete)
+- ✅ Cron job (every 5 min) triggers orchestrator
+- ✅ Status API (`GET /api/orchestrator/status`)
+- ✅ Summary API (`GET /api/orchestrator/summary`) for Telegram
+
+### E2E Tests (14/16 pass)
+- ✅ Database layer tests
+- ✅ Agent status transitions
+- ✅ Task flow tests
+- ✅ Retry tracking
+- ✅ Event integrity
+- ✅ Concurrent access
+- ⚠️ Telegram (needs token)
+- ⚠️ OpenClaw gateway (needs running)
 
 ---
 
 ## REMAINING TO FIX
 
-### HIGH Priority
-
-#### H3: Telegram Notifications for Tools/Files
-**Status:** Partially done - events created but not sent to Telegram
-**Fix needed:** Update telegram/index.ts to format and send tool:use and file:edit events
-
-#### H4: Self-Healing Retry Loop
-**Status:** Not started
-**Fix needed:** When task fails, analyze error, create fix task, retry up to 5x
-
 ### MEDIUM Priority
 
 #### M1: Test System Seed Data
-**Status:** Suites exist, cases/steps/assertions missing
+**Status:** Tables exist, no seed data
 **Fix needed:** Create test_cases, test_steps for phase 1 tasks
 
 #### M2: Clarification Agent
-**Status:** DB entry only
+**Status:** DB entry + stub module
 **Fix needed:** Implement question-asking flow for vague tasks
 
-#### M3: Human Sim Agent
-**Status:** DB entry only
+#### M3: Human Sim Agent  
+**Status:** DB entry + stub module
 **Fix needed:** Implement persona-based UI testing
 
 #### M4: Agent Memory
@@ -65,22 +72,31 @@
 ### LOW Priority
 
 #### L1-L4: Polish items
-- 404 route handling
+- 404 route handling (done via middleware)
 - Task version history
 - Traceability service
 - LaneGrid in Waves view
 
 ---
 
-## Current Commit History
-- `b975373` - feat(qa): QA verification system
-- `6c0661e` - fix(spawner): Real tool execution loop
+## Commit History
+- `9a5612a` - feat(harness): Orchestrator API + cron trigger
+- `19296f1` - fix(harness): OAuth spawner, schema fixes, E2E tests
 - `c69669a` - fix(spawner): Use Anthropic SDK
 - `dc68813` - feat(dashboard): Vibe Platform UI components
 
-## Test Commands
+## Start Commands
 ```bash
-# Enable real agent spawning and QA
-cd parent-harness/orchestrator
-ANTHROPIC_API_KEY=<key> HARNESS_SPAWN_AGENTS=true HARNESS_RUN_QA=true npm run dev
+# Backend only
+cd parent-harness/orchestrator && npm run dev
+
+# Dashboard (separate terminal)
+cd parent-harness/dashboard && npm run dev
+
+# Run tests
+cd parent-harness/orchestrator && npm test
 ```
+
+## Cron Jobs
+- `76fafe0e-a9e1-4fb1-8e11-b9c679ee66e9`: Orchestrator tick (every 5 min)
+- `d2f506d3-ad51-49ae-b81f-b4f2bc0cdee2`: Progress reporter (every 30 min)
