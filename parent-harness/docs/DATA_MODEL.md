@@ -317,6 +317,37 @@ Track clarification conversations.
 | completed_at | TEXT | ISO timestamp |
 | timeout_at | TEXT | When to proceed with assumptions |
 
+### harness_modifications
+Audit log for harness self-modification (G7 = C).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| agent_id | TEXT | Which agent made the change |
+| session_id | TEXT | FK to agent_sessions |
+| file_path | TEXT | Which harness file was modified |
+| change_type | TEXT | create/update/delete |
+| diff | TEXT | Git-style diff |
+| reason | TEXT | Why the change was made |
+| related_failure_id | TEXT | FK to iteration that triggered this |
+| reverted | INTEGER | Boolean - was this rolled back |
+| reverted_at | TEXT | ISO timestamp if reverted |
+| created_at | TEXT | ISO timestamp |
+
+### planning_evaluations
+Planning Agent's periodic evaluations.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| timestamp | TEXT | ISO timestamp |
+| project_state | TEXT | JSON snapshot of project metrics |
+| vision_alignment_score | REAL | 0.0-1.0 how aligned with vision |
+| gaps_identified | TEXT | JSON array of gaps |
+| tasks_created | TEXT | JSON array of task IDs created |
+| recommendations | TEXT | JSON array |
+| trigger | TEXT | cron/manual/post_completion |
+
 ## Observability Tables
 
 ### observability_events

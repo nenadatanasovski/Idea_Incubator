@@ -7,17 +7,18 @@ Each agent is a Claude Code instance with a specific role.
 | Agent | Model | Purpose |
 |-------|-------|---------|
 | Orchestrator | Haiku | Coordinate agents, assign tasks |
+| **Planning Agent** | Opus | Strategic vision, create improvement tasks |
 | Build Agent | Opus | Write code, implement features |
 | Spec Agent | Opus | Write PRDs, technical specs |
 | QA Agent | Opus | Validate work, detect stuck agents |
 | Task Agent | Sonnet | Manage task queue, decompose work |
-| SIA | Opus | Ideation, brainstorming |
+| SIA | Opus | Ideation, arbitrate disputes |
 | Research Agent | Sonnet | External research, documentation |
 | Evaluator Agent | Opus | Evaluate task complexity |
 | Decomposition Agent | Sonnet | Break down large tasks |
 | Validation Agent | Sonnet | Validate completed work |
-| **Clarification Agent** | Sonnet | Ask users clarifying questions |
-| **Human Sim Agent** | Sonnet | Usability testing with personas |
+| Clarification Agent | Sonnet | Ask users clarifying questions |
+| Human Sim Agent | Sonnet | Usability testing with personas |
 
 ## Agent Details
 
@@ -37,7 +38,54 @@ Each agent is a Claude Code instance with a specific role.
 - Make architectural decisions
 - Interact with users directly
 
-### 2. Build Agent
+### 2. Planning Agent ⭐ NEW
+**Model:** Opus (strategic thinking)  
+**Telegram:** @vibe-planning
+
+**The Strategic Brain of the Harness**
+
+**Responsibilities:**
+- Maintain "soul vision" for the Vibe platform
+- Continuously evaluate project state
+- Analyze CLI logs and past iterations
+- Create new tasks/features/bugs to improve platform
+- Identify technical debt and improvement opportunities
+- Align work with user's long-term vision
+
+**Runs on cron schedule** (every 2 hours or after major completions)
+
+**Inputs:**
+- Current project state (codebase analysis)
+- Recent CLI logs and transcripts
+- Completed task history
+- Failed task patterns
+- User's stated vision (from config)
+
+**Outputs:**
+- New feature tasks
+- Bug reports
+- Improvement suggestions
+- Technical debt tickets
+- Architecture recommendations
+
+**Example evaluations:**
+```
+"Noticed 3 tasks failed due to missing type exports.
+ Creating task: 'Add barrel exports to all modules'"
+
+"Test coverage dropped below 80% in server/services/.
+ Creating task: 'Add unit tests for task-agent services'"
+
+"User's vision mentions 'real-time collaboration'.
+ No tasks exist for this. Creating epic: 'WebSocket collaboration layer'"
+```
+
+**Does NOT:**
+- Execute tasks (creates them for other agents)
+- Override human decisions
+- Change core architecture without approval
+
+### 3. Build Agent
 **Model:** Opus (powerful)  
 **Telegram:** @vibe-build
 

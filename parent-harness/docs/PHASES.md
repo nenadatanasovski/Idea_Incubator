@@ -341,7 +341,40 @@ Build order designed for incremental testing. Updated with gap solutions.
 
 ---
 
-## Phase 14: Self-Improvement Loop (Days 34-36)
+## Phase 14: Planning Agent (Days 34-36)
+
+**Goal:** Strategic brain that creates improvement tasks.
+
+**Tasks:**
+1. Planning Agent system prompt with "soul vision"
+2. Project state analyzer:
+   - Codebase structure analysis
+   - Test coverage metrics
+   - Recent failure patterns
+   - Completed task history
+3. Task creation logic:
+   ```typescript
+   // Planning Agent creates tasks proactively
+   await createTask({
+     title: 'Add unit tests for task-agent services',
+     description: 'Test coverage dropped below 80%',
+     category: 'improvement',
+     priority: 'P2',
+     created_by: 'planning_agent'
+   });
+   ```
+4. Vision alignment check:
+   - Compare current state to user's stated goals
+   - Identify gaps between vision and reality
+   - Create epics for missing capabilities
+5. Cron schedule (every 2 hours)
+6. Telegram reporting to @vibe-planning
+
+**Test:** Planning Agent runs → analyzes project → creates improvement tasks.
+
+---
+
+## Phase 15: Self-Improvement Loop (Days 37-39)
 
 **Goal:** System improves from failures.
 
@@ -362,14 +395,18 @@ Build order designed for incremental testing. Updated with gap solutions.
    - Suggest highest success-rate technique
 4. Prompt improvement proposals:
    - Generate suggested change
-   - Require human approval
-   - Track effectiveness after change
+   - Log to harness_modifications table
+   - Can auto-apply (G7 = C)
+5. Harness self-modification:
+   - Agents can modify harness code
+   - All changes logged for audit
+   - Autonomous but traceable
 
-**Test:** Repeated failure → learning triggers → technique suggested.
+**Test:** Repeated failure → learning triggers → harness improves itself.
 
 ---
 
-## Phase 15: Polish (Days 37-40)
+## Phase 16: Polish (Days 40-43)
 
 **Goal:** Production ready.
 
@@ -397,20 +434,21 @@ Build order designed for incremental testing. Updated with gap solutions.
 | 1 | Frontend Shell | 1-2 | - |
 | 2 | Data Model | 3-4 | Memory tables, Transcripts, Interventions |
 | 3 | Backend API | 5-7 | Gap solution endpoints |
-| 4 | Frontend + API | 8-9 | New views |
+| 4 | Frontend + API | 8-9 | New views, notification center |
 | 5 | WebSocket | 10-11 | Live transcripts |
-| 6 | Telegram Bot | 12-13 | 13 channels |
+| 6 | Telegram Bot | 12-13 | 14 channels |
 | 7 | Orchestrator | 14-16 | Clarification gate |
 | 8 | Clarification Agent | 17-18 | **Gap 1** |
-| 9 | Agent Spawner | 19-21 | Transcript capture |
+| 9 | Agent Spawner | 19-21 | Transcript capture, multi-instance |
 | 10 | Agent Memory | 22-23 | **Gap 3** |
-| 11 | QA Validation | 24-26 | Build interventions |
-| 12 | Human Sim Agent | 27-30 | **Gap 2** (personas) |
-| 13 | Wave Execution | 31-33 | File impact |
-| 14 | Self-Improvement | 34-36 | Learning loop |
-| 15 | Polish | 37-40 | Priority, Criteria |
+| 11 | QA Validation | 24-26 | Build interventions, SIA arbitration |
+| 12 | Human Sim Agent | 27-30 | **Gap 2** (5 personas) |
+| 13 | Wave Execution | 31-33 | File impact, unlimited agents |
+| 14 | Planning Agent | 34-36 | **Strategic brain** ⭐ NEW |
+| 15 | Self-Improvement | 37-39 | Learning loop, harness self-mod |
+| 16 | Polish | 40-43 | Priority, Criteria |
 
-**Total:** ~40 days
+**Total:** ~43 days
 
 ---
 
@@ -463,6 +501,19 @@ Phase 3 (API) ───────┘
 | Agent | Phase | Purpose |
 |-------|-------|---------|
 | Clarification Agent | 8 | Ask users clarifying questions |
-| Human Sim Agent | 12 | Usability testing with personas |
+| Human Sim Agent | 12 | Usability testing with 5 personas |
+| Planning Agent | 14 | Strategic brain, creates improvement tasks |
 
-**Total agents:** 12 (was 10)
+**Total agents:** 13
+
+## Key Design Decisions (from Ned's answers)
+
+| Decision | Answer | Impact |
+|----------|--------|--------|
+| Agent instances | Unlimited (classes with N instances) | Can spawn multiple Build Agents |
+| Harness self-mod | Autonomous + logged | Agents can improve harness code |
+| Agent disputes | SIA arbitrates → escalate to human | Clear resolution path |
+| Human involvement | Only when stuck or need permissions | Minimal interruptions |
+| Task sources | All (Telegram, Dashboard, API, queues) | Multiple entry points |
+| Database | Separate from Vibe | Independent operation |
+| Retention | 2 weeks logs, 30 days memory | Manageable storage |
