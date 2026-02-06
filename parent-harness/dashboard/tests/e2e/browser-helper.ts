@@ -1,233 +1,126 @@
 /**
- * OpenClaw Browser Helper for E2E Tests
+ * Browser Helper for E2E Tests
  * 
- * Uses OpenClaw's built-in browser control API for automation.
- * This is more stable than Puppeteer for agent-driven testing.
+ * Uses Puppeteer for browser automation (no Playwright dependency).
  */
 
-import { execSync } from 'child_process';
-
-const BROWSER_PROFILE = 'openclaw';
-const DEFAULT_TIMEOUT = 30000;
-
-export interface SnapshotResult {
-  snapshot: string;
-  refs: Record<string, unknown>;
-}
-
-export interface TabInfo {
-  targetId: string;
-  url: string;
-  title: string;
-}
+import puppeteer, { Browser, Page } from 'puppeteer';
 
 export class BrowserHelper {
-  private targetId: string | null = null;
+  private browser: Browser | null = null;
+  private page: Page | null = null;
 
   /**
-   * Execute an OpenClaw browser command
-   */
-  private exec(args: string): string {
-    const cmd = `openclaw browser --browser-profile ${BROWSER_PROFILE} ${args} --json 2>/dev/null`;
-    try {
-      const result = execSync(cmd, { encoding: 'utf-8', timeout: DEFAULT_TIMEOUT });
-      return result;
-    } catch (error: unknown) {
-      const err = error as { status?: number; stderr?: Buffer };
-      if (err.status) {
-        throw new Error(`Browser command failed: ${args}`);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Parse JSON output from CLI
-   */
-  private parseJson<T>(output: string): T {
-    try {
-      return JSON.parse(output) as T;
-    } catch {
-      throw new Error(`Failed to parse browser output: ${output.slice(0, 100)}`);
-    }
-  }
-
-  /**
-   * Start the browser if not running
+   * Start the browser
    */
   async start(): Promise<void> {
-    this.exec('start');
+    this.browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    this.page = await this.browser.newPage();
+    await this.page.setViewport({ width: 1280, height: 800 });
   }
 
   /**
    * Stop the browser
    */
   async stop(): Promise<void> {
-    this.exec('stop');
-  }
-
-  /**
-   * Get browser status
-   */
-  async status(): Promise<{ running: boolean; cdpReady: boolean }> {
-    const output = this.exec('status');
-    return this.parseJson(output);
-  }
-
-  /**
-   * Open a URL in a new tab
-   */
-  async open(url: string): Promise<string> {
-    const output = this.exec(`open "${url}"`);
-    const result = this.parseJson<{ targetId: string }>(output);
-    this.targetId = result.targetId;
-    return result.targetId;
-  }
-
-  /**
-   * Navigate current tab to URL
-   */
-  async navigate(url: string): Promise<void> {
-    this.exec(`navigate "${url}"`);
-  }
-
-  /**
-   * List all tabs
-   */
-  async tabs(): Promise<TabInfo[]> {
-    const output = this.exec('tabs');
-    const result = this.parseJson<{ tabs: TabInfo[] }>(output);
-    return result.tabs || [];
-  }
-
-  /**
-   * Focus a tab by targetId
-   */
-  async focus(targetId: string): Promise<void> {
-    this.exec(`focus ${targetId}`);
-    this.targetId = targetId;
-  }
-
-  /**
-   * Close a tab by targetId
-   */
-  async close(targetId?: string): Promise<void> {
-    const id = targetId || this.targetId;
-    if (id) {
-      this.exec(`close ${id}`);
-      if (id === this.targetId) {
-        this.targetId = null;
-      }
+    if (this.browser) {
+      await this.browser.close();
+      this.browser = null;
+      this.page = null;
     }
   }
 
   /**
-   * Get interactive snapshot of the page
+   * Get the current page
    */
-  async snapshot(options: { interactive?: boolean; compact?: boolean } = {}): Promise<string> {
-    let args = 'snapshot';
-    if (options.interactive) args += ' --interactive';
-    if (options.compact) args += ' --compact';
-    const output = this.exec(args);
-    
-    // For interactive mode, extract just the snapshot text
-    try {
-      const result = this.parseJson<{ snapshot?: string }>(output);
-      return result.snapshot || output;
-    } catch {
-      return output;
+  getPage(): Page {
+    if (!this.page) {
+      throw new Error('Browser not started. Call start() first.');
     }
+    return this.page;
   }
 
   /**
-   * Click an element by ref
+   * Navigate to a URL
    */
-  async click(ref: string | number): Promise<void> {
-    this.exec(`click ${ref}`);
+  async goto(url: string): Promise<void> {
+    await this.getPage().goto(url, { waitUntil: 'networkidle0' });
+  }
+
+  /**
+   * Wait for an element to appear
+   */
+  async waitFor(selector: string, timeout = 10000): Promise<void> {
+    await this.getPage().waitForSelector(selector, { timeout });
+  }
+
+  /**
+   * Click an element
+   */
+  async click(selector: string): Promise<void> {
+    await this.getPage().click(selector);
   }
 
   /**
    * Type text into an element
    */
-  async type(ref: string | number, text: string, options: { submit?: boolean } = {}): Promise<void> {
-    let args = `type ${ref} "${text}"`;
-    if (options.submit) args += ' --submit';
-    this.exec(args);
+  async type(selector: string, text: string): Promise<void> {
+    await this.getPage().type(selector, text);
   }
 
   /**
-   * Press a key
+   * Get element text content
    */
-  async press(key: string): Promise<void> {
-    this.exec(`press ${key}`);
+  async getText(selector: string): Promise<string | null> {
+    const element = await this.getPage().$(selector);
+    if (!element) return null;
+    return element.evaluate(el => el.textContent);
   }
 
   /**
-   * Wait for a condition
+   * Check if element exists
    */
-  async wait(options: {
-    text?: string;
-    url?: string;
-    timeoutMs?: number;
-    ms?: number;  // Simple timeout
-  } = {}): Promise<void> {
-    // Simple timeout wait
-    if (options.ms) {
-      await new Promise(r => setTimeout(r, options.ms));
-      return;
-    }
-    
-    let args = 'wait';
-    if (options.text) args += ` --text "${options.text}"`;
-    if (options.url) args += ` --url "${options.url}"`;
-    if (options.timeoutMs) args += ` --timeout-ms ${options.timeoutMs}`;
-    
-    // Only run command if we have wait conditions
-    if (options.text || options.url) {
-      try {
-        this.exec(args);
-      } catch {
-        // Wait command can fail, continue
-      }
-    }
-  }
-
-  /**
-   * Take a screenshot (returns path)
-   */
-  async screenshot(options: { fullPage?: boolean } = {}): Promise<string> {
-    let args = 'screenshot';
-    if (options.fullPage) args += ' --full-page';
-    const output = this.exec(args);
-    // Extract path from MEDIA:<path> format
-    const match = output.match(/MEDIA:(.+)/);
-    return match ? match[1].trim() : output.trim();
-  }
-
-  /**
-   * Get page title from snapshot
-   */
-  async getTitle(): Promise<string> {
-    const tabs = await this.tabs();
-    const currentTab = tabs.find(t => t.targetId === this.targetId);
-    return currentTab?.title || '';
-  }
-
-  /**
-   * Check if element exists in snapshot
-   */
-  async hasElement(text: string): Promise<boolean> {
-    const snapshot = await this.snapshot({ interactive: true });
-    return snapshot.includes(text);
+  async exists(selector: string): Promise<boolean> {
+    const element = await this.getPage().$(selector);
+    return element !== null;
   }
 
   /**
    * Get current URL
    */
-  async getUrl(): Promise<string> {
-    const tabs = await this.tabs();
-    const currentTab = tabs.find(t => t.targetId === this.targetId);
-    return currentTab?.url || '';
+  getUrl(): string {
+    return this.getPage().url();
+  }
+
+  /**
+   * Take a screenshot
+   */
+  async screenshot(path: string): Promise<void> {
+    await this.getPage().screenshot({ path });
+  }
+
+  /**
+   * Wait for navigation
+   */
+  async waitForNavigation(): Promise<void> {
+    await this.getPage().waitForNavigation({ waitUntil: 'networkidle0' });
+  }
+
+  /**
+   * Get page title
+   */
+  async getTitle(): Promise<string> {
+    return this.getPage().title();
+  }
+
+  /**
+   * Simple wait
+   */
+  async wait(ms: number): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 

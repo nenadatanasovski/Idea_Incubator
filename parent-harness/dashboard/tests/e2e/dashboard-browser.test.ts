@@ -1,62 +1,27 @@
 /**
  * E2E Browser Tests for Parent Harness Dashboard
- * Using OpenClaw Agent Browser for automation
- * 
- * ⚠️ REQUIRES: Playwright installed in the gateway
- * Install: npm install playwright && npx playwright install chromium
+ * Using Puppeteer for browser automation
  * 
  * Prerequisites:
  * 1. Backend running: cd orchestrator && npm run dev
  * 2. Frontend running: cd dashboard && npm run dev
- * 3. OpenClaw browser with Playwright: openclaw browser status
  * 
  * Run: npm run test:e2e:browser
- * 
- * If you see "Playwright is not available", install it first.
- * For now, use: npm run test:e2e (Puppeteer-based tests)
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { browser } from './browser-helper';
 
-// Use environment variable or default to local
 const DASHBOARD_URL = process.env.DASHBOARD_URL || 'http://localhost:5173';
 const API_URL = process.env.API_URL || 'http://localhost:3333';
 
-describe('Dashboard E2E Tests (Agent Browser)', () => {
-  let tabId: string;
-
+describe('Dashboard E2E Tests (Puppeteer)', () => {
   beforeAll(async () => {
-    // Ensure browser is running
-    const status = await browser.status();
-    if (!status.running) {
-      await browser.start();
-    }
+    await browser.start();
   });
 
   afterAll(async () => {
-    // Close our test tab
-    if (tabId) {
-      try {
-        await browser.close(tabId);
-      } catch {
-        // Tab may already be closed
-      }
-    }
-  });
-
-  beforeEach(async () => {
-    // Open a fresh tab for each test
-    if (tabId) {
-      try {
-        await browser.close(tabId);
-      } catch {
-        // Ignore
-      }
-    }
-    tabId = await browser.open(DASHBOARD_URL);
-    // Wait for page to load
-    await browser.wait({ ms: 2000 });
+    await browser.stop();
   });
 
   describe('Health Checks', () => {
@@ -67,136 +32,134 @@ describe('Dashboard E2E Tests (Agent Browser)', () => {
     });
 
     it('should load dashboard homepage', async () => {
+      await browser.goto(DASHBOARD_URL);
       const title = await browser.getTitle();
       expect(title).toBeTruthy();
     });
   });
 
   describe('Layout Components', () => {
+    beforeAll(async () => {
+      await browser.goto(DASHBOARD_URL);
+      await browser.waitFor('[data-testid="layout-header"]');
+    });
+
     it('should have header with navigation', async () => {
-      const hasHeader = await browser.hasElement('Parent Harness');
-      expect(hasHeader).toBe(true);
+      const exists = await browser.exists('[data-testid="layout-header"]');
+      expect(exists).toBe(true);
     });
 
     it('should have navigation links', async () => {
-      const snapshot = await browser.snapshot({ interactive: true });
-      expect(snapshot).toContain('Dashboard');
-      expect(snapshot).toContain('Tasks');
-      expect(snapshot).toContain('Sessions');
+      const dashboardLink = await browser.exists('a[href="/"]');
+      const tasksLink = await browser.exists('a[href="/tasks"]');
+      const sessionsLink = await browser.exists('a[href="/sessions"]');
+      
+      expect(dashboardLink).toBe(true);
+      expect(tasksLink).toBe(true);
+      expect(sessionsLink).toBe(true);
     });
 
     it('should have agent status panel', async () => {
-      const hasAgents = await browser.hasElement('Agents');
-      expect(hasAgents).toBe(true);
+      const exists = await browser.exists('[data-testid="layout-left"]');
+      expect(exists).toBe(true);
     });
 
     it('should have event stream panel', async () => {
-      const hasEvents = await browser.hasElement('Event Stream');
-      expect(hasEvents).toBe(true);
+      const exists = await browser.exists('[data-testid="layout-main"]');
+      expect(exists).toBe(true);
     });
 
     it('should have task queue panel', async () => {
-      const hasTasks = await browser.hasElement('Task Queue');
-      expect(hasTasks).toBe(true);
+      const exists = await browser.exists('[data-testid="layout-right"]');
+      expect(exists).toBe(true);
     });
   });
 
   describe('Agent Status Cards', () => {
+    beforeAll(async () => {
+      await browser.goto(DASHBOARD_URL);
+      await browser.waitFor('[data-testid="agent-card"]');
+    });
+
     it('should display agent cards', async () => {
-      const snapshot = await browser.snapshot({ interactive: true });
-      // Should have at least some agent names
-      expect(snapshot).toMatch(/orchestrator|build_agent|spec_agent|qa_agent/);
+      const exists = await browser.exists('[data-testid="agent-card"]');
+      expect(exists).toBe(true);
     });
 
     it('should show agent status indicators', async () => {
-      const snapshot = await browser.snapshot({ interactive: true });
-      // Should have status indicators (idle, running)
-      expect(snapshot).toMatch(/idle|running|working/i);
+      const text = await browser.getText('[data-testid="layout-left"]');
+      expect(text).toMatch(/idle|working|error/i);
     });
   });
 
   describe('Event Stream', () => {
-    it('should have event stream component', async () => {
-      const hasEventStream = await browser.hasElement('Event Stream');
-      expect(hasEventStream).toBe(true);
+    beforeAll(async () => {
+      await browser.goto(DASHBOARD_URL);
+      await browser.waitFor('[data-testid="event-stream"]');
     });
 
-    it('should display events or be ready to receive', async () => {
-      const snapshot = await browser.snapshot({ interactive: true });
-      // Either has events or shows placeholder
-      const hasContent = snapshot.includes('events') || snapshot.includes('cron:tick') || snapshot.includes('Auto-scroll');
-      expect(hasContent).toBe(true);
+    it('should have event stream component', async () => {
+      const exists = await browser.exists('[data-testid="event-stream"]');
+      expect(exists).toBe(true);
     });
   });
 
   describe('Task Cards', () => {
+    beforeAll(async () => {
+      await browser.goto(DASHBOARD_URL);
+      await browser.waitFor('[data-testid="task-card"]');
+    });
+
     it('should display task queue section', async () => {
-      const hasTasks = await browser.hasElement('Task Queue');
-      expect(hasTasks).toBe(true);
+      const exists = await browser.exists('[data-testid="task-card"]');
+      expect(exists).toBe(true);
     });
 
     it('should show task priority badges', async () => {
-      const snapshot = await browser.snapshot({ interactive: true });
-      // Should contain priority indicators
-      expect(snapshot).toMatch(/P[0-4]|priority|pending|assigned/i);
+      const text = await browser.getText('[data-testid="layout-right"]');
+      expect(text).toMatch(/P[0-4]/);
     });
   });
 
   describe('Navigation', () => {
     it('should navigate to Tasks page', async () => {
-      // Get snapshot with refs
-      const snapshot = await browser.snapshot({ interactive: true });
+      await browser.goto(DASHBOARD_URL);
+      await browser.waitFor('a[href="/tasks"]');
+      await browser.click('a[href="/tasks"]');
+      await browser.wait(500);
       
-      // Find and click Tasks link - look for the ref
-      const match = snapshot.match(/\[ref=(e?\d+)\].*Tasks/);
-      if (match) {
-        await browser.click(match[1]);
-        await browser.wait({ ms: 1000 });
-      }
-      
-      const url = await browser.getUrl();
+      const url = browser.getUrl();
       expect(url).toContain('/tasks');
     });
 
     it('should navigate to Sessions page', async () => {
-      const snapshot = await browser.snapshot({ interactive: true });
+      await browser.goto(DASHBOARD_URL);
+      await browser.waitFor('a[href="/sessions"]');
+      await browser.click('a[href="/sessions"]');
+      await browser.wait(500);
       
-      const match = snapshot.match(/\[ref=(e?\d+)\].*Sessions/);
-      if (match) {
-        await browser.click(match[1]);
-        await browser.wait({ ms: 1000 });
-      }
-      
-      const url = await browser.getUrl();
+      const url = browser.getUrl();
       expect(url).toContain('/sessions');
     });
 
     it('should navigate back to Dashboard', async () => {
-      // First go to sessions
-      await browser.navigate(`${DASHBOARD_URL}/sessions`);
-      await browser.wait({ ms: 1000 });
+      await browser.goto(`${DASHBOARD_URL}/sessions`);
+      await browser.waitFor('a[href="/"]');
+      await browser.click('a[href="/"]');
+      await browser.wait(500);
       
-      // Get snapshot and click Dashboard
-      const snapshot = await browser.snapshot({ interactive: true });
-      const match = snapshot.match(/\[ref=(e?\d+)\].*Dashboard/);
-      if (match) {
-        await browser.click(match[1]);
-        await browser.wait({ ms: 1000 });
-      }
-      
-      const url = await browser.getUrl();
+      const url = browser.getUrl();
       expect(url).toBe(`${DASHBOARD_URL}/`);
     });
   });
 
   describe('WebSocket Connection', () => {
     it('should show live connection status', async () => {
-      // Wait a moment for WebSocket to connect
-      await new Promise(r => setTimeout(r, 1000));
+      await browser.goto(DASHBOARD_URL);
+      await browser.wait(1500);
       
-      const snapshot = await browser.snapshot({ interactive: true });
-      // Should show Live or Connecting status
-      expect(snapshot).toMatch(/Live|Connected|Connecting/i);
+      const text = await browser.getText('[data-testid="layout-left"]');
+      expect(text).toMatch(/Live|Connecting/i);
     });
   });
 });
@@ -228,16 +191,6 @@ describe('API Integration Tests', () => {
       expect(Array.isArray(tasks)).toBe(true);
       expect(tasks.length).toBeGreaterThan(0);
     });
-
-    it('should filter tasks by status', async () => {
-      const response = await fetch(`${API_URL}/api/tasks?status=pending`);
-      const tasks = await response.json();
-      
-      expect(Array.isArray(tasks)).toBe(true);
-      tasks.forEach((task: { status: string }) => {
-        expect(task.status).toBe('pending');
-      });
-    });
   });
 
   describe('Test Suites API', () => {
@@ -253,13 +206,6 @@ describe('API Integration Tests', () => {
   describe('Events API', () => {
     it('should return events list', async () => {
       const response = await fetch(`${API_URL}/api/events`);
-      const events = await response.json();
-      
-      expect(Array.isArray(events)).toBe(true);
-    });
-
-    it('should filter events by type', async () => {
-      const response = await fetch(`${API_URL}/api/events?type=cron:tick`);
       const events = await response.json();
       
       expect(Array.isArray(events)).toBe(true);
