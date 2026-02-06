@@ -6,6 +6,8 @@
  */
 
 import { spawn, ChildProcess } from 'child_process';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import * as agents from '../db/agents.js';
 import * as sessions from '../db/sessions.js';
 import * as tasks from '../db/tasks.js';
@@ -13,6 +15,9 @@ import { events } from '../db/events.js';
 import { ws } from '../websocket.js';
 import { notify } from '../telegram/direct-telegram.js';
 import * as git from '../git/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Codebase root
 const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
@@ -181,17 +186,17 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
   const agent = agentData;
 
   return new Promise((resolve) => {
-    const args = [
-      '--print',
-      '--model', model,
-      '--allowedTools', 'Read,Write,Edit,exec',
-      '--dangerously-skip-permissions',
-      fullPrompt
-    ];
-
-    const child = spawn('claude', args, {
+    // Use shell wrapper to pipe prompt to claude - works with OAuth auth
+    // Exclude ANTHROPIC_AUTH_TOKEN - it forces CLI to use direct API mode which rejects OAuth
+    const escapedPrompt = fullPrompt.replace(/'/g, "'\\''");
+    const shellCmd = `echo '${escapedPrompt}' | claude --model ${model} --permission-mode bypassPermissions --allowedTools 'Read,Write,Edit,Bash'`;
+    
+    const { ANTHROPIC_AUTH_TOKEN, ...cleanEnv } = process.env;
+    
+    const child = spawn('bash', ['-c', shellCmd], {
       cwd: CODEBASE_ROOT,
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: cleanEnv,
     });
 
     runningProcesses.set(session.id, {
@@ -359,42 +364,27 @@ export async function spawnWithPrompt(
     return { success: false, error: 'At max capacity' };
   }
 
-  console.log(`🧠 Spawning ${label} agent...`);
+  console.log(`🧠 Spawning ${label} agent via shell wrapper...`);
+  console.log(`   Prompt length: ${prompt.length} chars`);
 
   return new Promise((resolve) => {
-    // Use stdin for large prompts (avoid CLI arg length limits)
-    const useStdin = prompt.length > 10000;
+    // Use bash shell wrapper to pipe prompt to claude
+    // This ensures proper TTY handling for OAuth auth
+    const escapedPrompt = prompt.replace(/'/g, "'\\''");
+    const shellCmd = `echo '${escapedPrompt}' | claude --model ${model} --permission-mode bypassPermissions --allowedTools 'Read,Write,Edit,Bash'`;
     
-    const args = [
-      '--print',
-      '--model', model,
-      '--no-session-persistence',
-      '--tools', 'Read,Write,Edit,Bash',
-      '--allowedTools', 'Read,Write,Edit,Bash',
-    ];
+    console.log(`   Shell cmd length: ${shellCmd.length}`);
+    console.log(`   HOME: ${process.env.HOME}`);
+
+    // Remove ANTHROPIC_AUTH_TOKEN from env - it forces CLI to use direct API mode
+    // which rejects OAuth tokens. Let CLI use its own auth.
+    const { ANTHROPIC_AUTH_TOKEN, ...cleanEnv } = process.env;
     
-    if (!useStdin) {
-      args.push(prompt);
-    }
-
-    // Clean environment (remove API tokens so CLI uses its OAuth session)
-    const { ANTHROPIC_AUTH_TOKEN, ANTHROPIC_API_KEY, ...cleanEnv } = process.env;
-
-    const child = spawn('claude', args, {
+    const child = spawn('bash', ['-c', shellCmd], {
       cwd: CODEBASE_ROOT,
-      stdio: [useStdin ? 'pipe' : 'ignore', 'pipe', 'pipe'],
-      env: {
-        ...cleanEnv,
-        HOME: process.env.HOME,
-        PATH: process.env.PATH,
-      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: cleanEnv,
     });
-
-    // Write prompt to stdin if needed
-    if (useStdin) {
-      child.stdin?.write(prompt);
-      child.stdin?.end();
-    }
 
     const sessionId = `${label}-${Date.now()}`;
     runningProcesses.set(sessionId, {
@@ -424,6 +414,12 @@ export async function spawnWithPrompt(
 
       const output = stdout + stderr;
       const isComplete = output.includes('TASK_COMPLETE');
+
+      // Debug logging
+      console.log(`📋 ${label} agent output (${output.length} chars):`);
+      console.log(`   stdout: ${stdout.slice(0, 500)}...`);
+      console.log(`   stderr: ${stderr.slice(0, 200)}...`);
+      console.log(`   exit code: ${code}, has TASK_COMPLETE: ${isComplete}`);
 
       if (isComplete) {
         console.log(`✅ ${label} agent completed`);

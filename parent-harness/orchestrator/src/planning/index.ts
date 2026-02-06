@@ -287,6 +287,7 @@ export async function runDailyPlanning(taskListId: string): Promise<PlanningSess
   const createdTaskIds: string[] = [];
   for (const plan of plannedTasks) {
     try {
+      console.log(`   📝 Creating task: ${plan.title} (category: ${plan.category}, priority: ${plan.priority})`);
       const task = await createTaskFromPlan(taskListId, plan);
       createdTaskIds.push(task.id);
       console.log(`   ✅ Created: ${task.display_id} - ${task.title}`);
@@ -303,7 +304,9 @@ export async function runDailyPlanning(taskListId: string): Promise<PlanningSess
       // Small delay between messages to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (err) {
-      console.warn(`   ⚠️ Failed to create task: ${plan.title}`);
+      console.error(`   ⚠️ Failed to create task: ${plan.title}`);
+      console.error(`      Error: ${err instanceof Error ? err.message : String(err)}`);
+      console.error(`      Stack: ${err instanceof Error ? err.stack?.split('\n')[1] : ''}`);
     }
   }
 
