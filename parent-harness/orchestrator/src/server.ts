@@ -10,9 +10,12 @@ import { spawnRouter } from './api/spawn.js';
 import { memoryRouter } from './api/memory.js';
 import { qaRouter } from './api/qa.js';
 import { wavesRouter } from './api/waves.js';
+import { clarificationRouter } from './api/clarification.js';
+import { configRouter } from './api/config.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { initWebSocket } from './websocket.js';
 import { startOrchestrator } from './orchestrator/index.js';
+import { initTelegram } from './telegram/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -22,6 +25,9 @@ const server = createServer(app);
 
 // Initialize WebSocket
 initWebSocket(server);
+
+// Initialize Telegram (optional)
+initTelegram();
 
 // Middleware
 app.use(cors());
@@ -42,6 +48,8 @@ app.use('/api/spawn', spawnRouter);
 app.use('/api/memory', memoryRouter);
 app.use('/api/qa', qaRouter);
 app.use('/api/waves', wavesRouter);
+app.use('/api/clarifications', clarificationRouter);
+app.use('/api/config', configRouter);
 
 // Error handling
 app.use(notFoundHandler);
