@@ -185,7 +185,7 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
       '--print',
       '--model', model,
       '--allowedTools', 'Read,Write,Edit,exec',
-      '--max-turns', '20',
+      '--dangerously-skip-permissions',
       fullPrompt
     ];
 
@@ -366,7 +366,7 @@ export async function spawnWithPrompt(
       '--print',
       '--model', model,
       '--allowedTools', 'Read,Write,Edit,exec',
-      '--max-turns', '30',
+      '--dangerously-skip-permissions',
       prompt,
     ];
 
