@@ -11,6 +11,8 @@ export interface AgentSession {
   total_iterations: number;
   current_iteration: number;
   metadata: string | null;
+  output: string | null;
+  error_message: string | null;
 }
 
 export interface IterationLog {
@@ -175,11 +177,22 @@ export function terminateSession(id: string): void {
   updateSessionStatus(id, 'terminated');
 }
 
+/**
+ * Get sessions by task ID (most recent first)
+ */
+export function getSessionsByTask(taskId: string): AgentSession[] {
+  return query<AgentSession>(
+    'SELECT * FROM agent_sessions WHERE task_id = ? ORDER BY started_at DESC',
+    [taskId]
+  );
+}
+
 export default {
   getSessions,
   getSession,
   getSessionWithIterations,
   getSessionIterations,
+  getSessionsByTask,
   createSession,
   updateSessionStatus,
   logIteration,

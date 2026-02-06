@@ -6,6 +6,7 @@ import { ws } from '../websocket.js';
 import * as spawner from '../spawner/index.js';
 import * as planning from '../planning/index.js';
 import * as qa from '../qa/index.js';
+import * as selfImprovement from '../self-improvement/index.js';
 
 // Configuration
 const TICK_INTERVAL_MS = 30_000; // 30 seconds
@@ -110,7 +111,15 @@ async function tick(): Promise<void> {
       await qa.runQACycle();
     }
 
-    // 3. Assign pending tasks to idle agents
+    // 3. Process failed tasks for retry (every 5th tick)
+    if (tickCount % 5 === 0) {
+      const retried = await selfImprovement.processFailedTasks();
+      if (retried > 0) {
+        console.log(`🔄 Queued ${retried} tasks for retry`);
+      }
+    }
+
+    // 4. Assign pending tasks to idle agents
     await assignTasks();
 
     // 4. Log tick event
