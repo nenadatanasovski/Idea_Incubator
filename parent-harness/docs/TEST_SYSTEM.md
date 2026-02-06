@@ -198,7 +198,7 @@ test_fix_attempts
 ```typescript
 // Discovered from test files
 // Jest: **/*.test.ts, **/*.spec.ts
-// Playwright: tests/**/*.spec.ts
+// E2E: Agent Browser skill (during agent sessions) or Puppeteer MCP (programmatic)
 ```
 
 ### 2. PHASES.md Pass Criteria

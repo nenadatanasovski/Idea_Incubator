@@ -63,7 +63,7 @@ Findings aggregated → fix tasks created
 ```
 
 **Capabilities:**
-- Browser automation (Playwright)
+- Browser automation (Agent Browser)
 - Screenshot analysis
 - Persona-based expectations
 - Frustration detection

@@ -33,7 +33,7 @@ Every test writes to the test system tables:
 |------|--------|---------|
 | unit | Jest/Vitest | Isolated function tests |
 | integration | Jest | API/service tests |
-| e2e | Playwright | Browser automation |
+| e2e | Agent Browser (skill) / Puppeteer MCP (fallback) | Browser automation |
 | verification | Bash | Phase gate checks |
 | lint | ESLint | Code quality |
 | typecheck | tsc | Type safety |
@@ -240,27 +240,44 @@ cd ../dashboard && npm run preview &
 FE_PID=$!
 sleep 3
 
-# Use Playwright to verify
-npx playwright test tests/phase-04.spec.ts
+# Browser verification via Agent Browser skill or Puppeteer MCP
+# Agent spawns with browser testing task, verifies UI
+
+node scripts/browser-verify-phase-04.js
 
 kill $API_PID $FE_PID
 echo "✅ Phase 4 PASSED"
 ```
 
-**Playwright Test:** `tests/phase-04.spec.ts`
-```typescript
-test('dashboard shows real agents', async ({ page }) => {
-  await page.goto('http://localhost:4173');
-  await expect(page.locator('[data-testid="agent-card"]')).toHaveCount(13);
-});
+**Browser Verification:** `scripts/browser-verify-phase-04.js`
+```javascript
+// Uses Puppeteer MCP as programmatic fallback
+// Agent Browser (Claude Code skill) used during agent sessions
 
-test('tasks page shows real tasks', async ({ page }) => {
+const puppeteer = require('puppeteer');
+
+async function verify() {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  
+  // Test 1: Dashboard shows agents
+  await page.goto('http://localhost:4173');
+  const agentCards = await page.$$('[data-testid="agent-card"]');
+  if (agentCards.length < 13) throw new Error('Expected 13 agent cards');
+  
+  // Test 2: Tasks page shows tasks
   await page.goto('http://localhost:4173/tasks');
-  await expect(page.locator('[data-testid="task-card"]')).toHaveCount.greaterThan(0);
-});
+  const taskCards = await page.$$('[data-testid="task-card"]');
+  if (taskCards.length === 0) throw new Error('Expected task cards');
+  
+  await browser.close();
+  console.log('✅ Browser verification passed');
+}
+
+verify().catch(e => { console.error(e); process.exit(1); });
 ```
 
-**Gate:** Playwright tests pass, script exits 0.
+**Gate:** Browser verification passes, script exits 0.
 
 ---
 
@@ -658,7 +675,7 @@ echo "✅ Phase 11 PASSED"
 **Pass Criteria:**
 - [ ] Human Sim spawns for completed UI task
 - [ ] All 5 personas defined and loadable
-- [ ] Playwright navigates to test URL
+- [ ] Agent Browser navigates to test URL
 - [ ] Screenshots captured
 - [ ] Findings recorded in human_sim_results
 - [ ] Fix tasks created for issues found
