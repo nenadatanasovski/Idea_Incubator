@@ -1,125 +1,38 @@
 /**
- * Agent Spawner - STANDALONE Anthropic SDK execution
+ * Agent Spawner - Uses Claude CLI for OAuth-based execution
  * 
- * The harness runs ITSELF. No OpenClaw dependency.
- * Uses ANTHROPIC_API_KEY directly for tool-based agent execution.
+ * Claude CLI handles OAuth internally, so we don't need API keys.
+ * Agents use Claude CLI's built-in tools (Read, Write, exec).
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-import * as fs from 'fs';
-import * as path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import * as agents from '../db/agents.js';
 import * as sessions from '../db/sessions.js';
 import * as tasks from '../db/tasks.js';
 import { events } from '../db/events.js';
 import { ws } from '../websocket.js';
 import { notify } from '../telegram/index.js';
-import * as budget from '../budget/index.js';
 import * as git from '../git/index.js';
-
-const execAsync = promisify(exec);
 
 // Codebase root
 const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
 
-// Initialize Anthropic client - supports API key OR OAuth token
-const apiKey = process.env.ANTHROPIC_API_KEY;
-const oauthToken = process.env.ANTHROPIC_OAUTH_TOKEN;
-let anthropic: Anthropic | null = null;
-
-if (apiKey) {
-  anthropic = new Anthropic({ apiKey });
-  console.log('✅ Anthropic client initialized (API key)');
-} else if (oauthToken) {
-  // OAuth token works as Bearer token with the SDK
-  anthropic = new Anthropic({ apiKey: oauthToken });
-  console.log('✅ Anthropic client initialized (OAuth token)');
-} else {
-  console.warn('⚠️ No ANTHROPIC_API_KEY or ANTHROPIC_OAUTH_TOKEN - agent spawning disabled');
-  console.warn('   Set one of these environment variables to enable agent spawning');
+// Check if claude CLI is available
+let claudeAvailable = false;
+try {
+  const { execSync } = await import('child_process');
+  execSync('which claude', { stdio: 'ignore' });
+  claudeAvailable = true;
+  console.log('✅ Claude CLI available for agent spawning');
+} catch {
+  console.warn('⚠️ Claude CLI not found - agent spawning disabled');
 }
-
-// Tool definitions
-const TOOLS: Anthropic.Tool[] = [
-  {
-    name: 'read_file',
-    description: 'Read the contents of a file',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        path: { type: 'string', description: 'Path to the file (relative to codebase root or absolute)' },
-      },
-      required: ['path'],
-    },
-  },
-  {
-    name: 'write_file',
-    description: 'Write content to a file (creates directories if needed)',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        path: { type: 'string', description: 'Path to the file' },
-        content: { type: 'string', description: 'Content to write' },
-      },
-      required: ['path', 'content'],
-    },
-  },
-  {
-    name: 'run_command',
-    description: 'Execute a shell command',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        command: { type: 'string', description: 'Shell command to execute' },
-        cwd: { type: 'string', description: 'Working directory (optional)' },
-      },
-      required: ['command'],
-    },
-  },
-  {
-    name: 'list_directory',
-    description: 'List contents of a directory',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        path: { type: 'string', description: 'Path to the directory' },
-      },
-      required: ['path'],
-    },
-  },
-  {
-    name: 'task_complete',
-    description: 'Signal that the task is complete',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        summary: { type: 'string', description: 'Summary of what was accomplished' },
-        files_modified: { type: 'array', items: { type: 'string' }, description: 'List of modified files' },
-      },
-      required: ['summary'],
-    },
-  },
-  {
-    name: 'task_failed',
-    description: 'Signal that the task cannot be completed',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        error: { type: 'string', description: 'What went wrong' },
-        reason: { type: 'string', description: 'Why it cannot be completed' },
-      },
-      required: ['error'],
-    },
-  },
-];
 
 interface SpawnOptions {
   taskId: string;
   agentId: string;
   model?: string;
-  maxIterations?: number;
+  timeout?: number;
 }
 
 interface SpawnResult {
@@ -127,120 +40,38 @@ interface SpawnResult {
   sessionId: string;
   output?: string;
   error?: string;
-  tokensUsed?: number;
   filesModified?: string[];
-  toolCalls?: number;
 }
 
-// Running sessions for cancellation
-const runningSessions = new Map<string, { aborted: boolean }>();
+// Running sessions
+const runningSessions = new Map<string, { process: ReturnType<typeof spawn>; aborted: boolean }>();
 
 /**
- * Resolve path relative to codebase root
- */
-function resolvePath(filePath: string): string {
-  if (path.isAbsolute(filePath)) return filePath;
-  return path.join(CODEBASE_ROOT, filePath);
-}
-
-/**
- * Execute a tool call
- */
-async function executeTool(
-  toolName: string,
-  toolInput: Record<string, unknown>,
-  sessionId: string,
-  agentId: string
-): Promise<{ success: boolean; output: string }> {
-  try {
-    switch (toolName) {
-      case 'read_file': {
-        const filePath = resolvePath(toolInput.path as string);
-        if (!fs.existsSync(filePath)) {
-          return { success: false, output: `File not found: ${filePath}` };
-        }
-        const content = fs.readFileSync(filePath, 'utf-8');
-        events.toolUse(agentId, sessionId, 'read_file', { path: filePath });
-        return { success: true, output: content };
-      }
-
-      case 'write_file': {
-        const filePath = resolvePath(toolInput.path as string);
-        const content = toolInput.content as string;
-        const dir = path.dirname(filePath);
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
-        fs.writeFileSync(filePath, content);
-        const linesChanged = content.split('\n').length;
-        events.fileEdit(agentId, sessionId, filePath, linesChanged);
-        notify.fileEdit(agentId, filePath, linesChanged).catch(() => {});
-        return { success: true, output: `File written: ${filePath}` };
-      }
-
-      case 'run_command': {
-        const command = toolInput.command as string;
-        const cwd = toolInput.cwd ? resolvePath(toolInput.cwd as string) : CODEBASE_ROOT;
-        try {
-          const { stdout, stderr } = await execAsync(command, { cwd, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
-          events.toolUse(agentId, sessionId, 'run_command', { command, cwd });
-          return { success: true, output: stdout + (stderr ? `\nSTDERR:\n${stderr}` : '') };
-        } catch (err: unknown) {
-          const error = err as { stdout?: string; stderr?: string; message?: string };
-          return { success: false, output: `Command failed: ${error.stderr || error.message}\nSTDOUT: ${error.stdout || ''}` };
-        }
-      }
-
-      case 'list_directory': {
-        const dirPath = resolvePath(toolInput.path as string);
-        if (!fs.existsSync(dirPath)) {
-          return { success: false, output: `Directory not found: ${dirPath}` };
-        }
-        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-        const listing = entries.map(e => `${e.isDirectory() ? '[DIR]' : '[FILE]'} ${e.name}`).join('\n');
-        return { success: true, output: listing };
-      }
-
-      case 'task_complete':
-        return { success: true, output: `TASK_COMPLETE: ${toolInput.summary}` };
-
-      case 'task_failed':
-        return { success: false, output: `TASK_FAILED: ${toolInput.error}` };
-
-      default:
-        return { success: false, output: `Unknown tool: ${toolName}` };
-    }
-  } catch (error) {
-    return { success: false, output: `Tool error: ${error instanceof Error ? error.message : String(error)}` };
-  }
-}
-
-/**
- * Build system prompt for agent type
+ * Build system prompt for agent
  */
 function getSystemPrompt(agentType: string): string {
   const base = `You are an autonomous AI agent working on the Vibe Platform codebase at ${CODEBASE_ROOT}.
 
-TOOLS: read_file, write_file, run_command, list_directory, task_complete, task_failed
+Your tools: Read (files), Write (files), exec (shell commands)
 
 WORKFLOW:
-1. Understand the task
-2. Explore relevant files
-3. Implement changes
-4. Test with run_command (npm test, npm run build)
-5. Call task_complete when done, or task_failed if stuck
+1. Read relevant files to understand the task
+2. Make changes using Write
+3. Test with exec (npm test, npm run build)
+4. When done, output: TASK_COMPLETE: <summary>
+5. If stuck, output: TASK_FAILED: <reason>
 
 RULES:
-- Verify changes work before completing
-- Write clean code
+- Verify your changes work before completing
+- Write clean, documented code
 - Don't make unnecessary changes
 `;
 
   const roles: Record<string, string> = {
-    build_agent: 'ROLE: Build Agent - Implement features and fix bugs.',
-    qa_agent: 'ROLE: QA Agent - Verify implementations, run tests, find bugs.',
-    spec_agent: 'ROLE: Spec Agent - Create technical specifications.',
-    planning_agent: 'ROLE: Planning Agent - Analyze codebase, plan work.',
+    build_agent: 'You are a Build Agent - implement features and fix bugs.',
+    qa_agent: 'You are a QA Agent - verify implementations and run tests.',
+    spec_agent: 'You are a Spec Agent - create technical specifications.',
+    planning_agent: 'You are a Planning Agent - analyze codebase and plan work.',
   };
 
   return base + '\n' + (roles[agentType] || roles.build_agent);
@@ -252,7 +83,6 @@ RULES:
 function buildTaskPrompt(task: tasks.Task): string {
   let prompt = `# Task: ${task.display_id}\n\n## Title\n${task.title}\n\n`;
   if (task.description) prompt += `## Description\n${task.description}\n\n`;
-  if (task.spec_content) prompt += `## Specification\n${task.spec_content}\n\n`;
   if (task.pass_criteria) {
     try {
       const criteria = JSON.parse(task.pass_criteria);
@@ -261,23 +91,24 @@ function buildTaskPrompt(task: tasks.Task): string {
       }
     } catch { /* ignore */ }
   }
+  prompt += `\nComplete this task. Output TASK_COMPLETE when done or TASK_FAILED if stuck.`;
   return prompt;
 }
 
 /**
- * Spawn an agent session - FULLY AUTONOMOUS
+ * Spawn agent using Claude CLI
  */
 export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnResult> {
-  const { taskId, agentId, model = 'claude-sonnet-4-20250514', maxIterations = 20 } = options;
+  const { taskId, agentId, model = 'sonnet', timeout = 300 } = options;
 
-  if (!anthropic) {
-    return { success: false, sessionId: '', error: 'ANTHROPIC_API_KEY not set' };
+  if (!claudeAvailable) {
+    return { success: false, sessionId: '', error: 'Claude CLI not available' };
   }
 
   const task = tasks.getTask(taskId);
   const agent = agents.getAgent(agentId);
   if (!task || !agent) {
-    return { success: false, sessionId: '', error: `Task or agent not found` };
+    return { success: false, sessionId: '', error: 'Task or agent not found' };
   }
 
   // Create session
@@ -293,147 +124,139 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
 
   const systemPrompt = getSystemPrompt(agent.type);
   const taskPrompt = buildTaskPrompt(task);
+  const fullPrompt = `${systemPrompt}\n\n---\n\n${taskPrompt}`;
 
-  console.log(`🚀 Spawning ${agent.name} for ${task.display_id}`);
+  console.log(`🚀 Spawning ${agent.name} for ${task.display_id} via Claude CLI`);
 
-  const sessionState = { aborted: false };
-  runningSessions.set(session.id, sessionState);
+  return new Promise((resolve) => {
+    const args = [
+      '--print',
+      '--model', model,
+      '--system-prompt', systemPrompt,
+      '--allowedTools', 'Read,Write,Edit,exec',
+      '--no-session-persistence',
+      fullPrompt
+    ];
 
-  const startTime = Date.now();
-  let totalInputTokens = 0;
-  let totalOutputTokens = 0;
-  let totalToolCalls = 0;
-  const filesModified: string[] = [];
+    const child = spawn('claude', args, {
+      cwd: CODEBASE_ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: timeout * 1000,
+    });
 
-  const messages: Anthropic.MessageParam[] = [{ role: 'user', content: taskPrompt }];
+    const sessionState = { process: child, aborted: false };
+    runningSessions.set(session.id, sessionState);
 
-  let iteration = 0;
-  let taskCompleted = false;
-  let taskFailed = false;
-  let finalOutput = '';
+    let stdout = '';
+    let stderr = '';
 
-  try {
-    while (iteration < maxIterations && !sessionState.aborted && !taskCompleted && !taskFailed) {
-      iteration++;
-      console.log(`  📍 Iteration ${iteration}/${maxIterations}`);
-
-      const response = await anthropic.messages.create({
-        model,
-        max_tokens: 8192,
-        system: systemPrompt,
-        tools: TOOLS,
-        messages,
-      });
-
-      totalInputTokens += response.usage.input_tokens;
-      totalOutputTokens += response.usage.output_tokens;
+    child.stdout?.on('data', (data) => {
+      stdout += data.toString();
       agents.updateHeartbeat(agentId);
+    });
 
-      // Track budget
-      budget.recordUsage(agentId, model, response.usage.input_tokens, response.usage.output_tokens, {
-        sessionId: session.id,
-        taskId,
-      });
+    child.stderr?.on('data', (data) => {
+      stderr += data.toString();
+    });
 
-      const assistantContent: Anthropic.ContentBlock[] = [];
-      const toolResults: Anthropic.ToolResultBlockParam[] = [];
+    child.on('close', async (code) => {
+      runningSessions.delete(session.id);
+      
+      const output = stdout + stderr;
+      const isComplete = output.includes('TASK_COMPLETE');
+      const isFailed = output.includes('TASK_FAILED') || code !== 0;
 
-      for (const block of response.content) {
-        assistantContent.push(block);
+      // Extract files modified from output
+      const filesModified = extractFilesModified(output);
 
-        if (block.type === 'text') {
-          finalOutput += block.text + '\n';
-        } else if (block.type === 'tool_use') {
-          totalToolCalls++;
-          console.log(`    🔧 Tool: ${block.name}`);
+      if (isComplete && !isFailed) {
+        sessions.updateSessionStatus(session.id, 'completed', output);
+        tasks.updateTask(task.id, { status: 'pending_verification' });
+        agents.incrementTasksCompleted(agentId);
+        events.taskCompleted(taskId, agentId, task.title);
+        ws.taskCompleted(tasks.getTask(taskId));
+        notify.taskCompleted(agentId, task.display_id, task.title).catch(() => {});
 
-          const result = await executeTool(block.name, block.input as Record<string, unknown>, session.id, agentId);
-
-          if (block.name === 'write_file') {
-            const filePath = (block.input as { path: string }).path;
-            if (!filesModified.includes(filePath)) filesModified.push(filePath);
-          }
-
-          if (block.name === 'task_complete') {
-            taskCompleted = true;
-            finalOutput = result.output;
-          } else if (block.name === 'task_failed') {
-            taskFailed = true;
-            finalOutput = result.output;
-          }
-
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: block.id,
-            content: result.output.slice(0, 50000),
-          });
+        // Auto-commit if files were modified
+        if (filesModified.length > 0) {
+          await git.autoCommitForTask(taskId, task.display_id, agentId, session.id).catch(() => {});
         }
+
+        console.log(`✅ ${agent.name} completed ${task.display_id}`);
+        resolve({ success: true, sessionId: session.id, output, filesModified });
+      } else {
+        const errorMsg = extractError(output) || `Exit code ${code}`;
+        sessions.updateSessionStatus(session.id, 'failed', undefined, errorMsg);
+        tasks.failTask(taskId);
+        agents.incrementTasksFailed(agentId);
+        events.taskFailed(taskId, agentId, task.title, errorMsg);
+        ws.taskFailed(tasks.getTask(taskId), errorMsg);
+        notify.taskFailed(agentId, task.display_id, errorMsg).catch(() => {});
+
+        console.log(`❌ ${agent.name} failed ${task.display_id}: ${errorMsg.slice(0, 100)}`);
+        resolve({ success: false, sessionId: session.id, error: errorMsg, filesModified });
       }
 
-      messages.push({ role: 'assistant', content: assistantContent });
+      agents.updateAgentStatus(agentId, 'idle', null, null);
+      ws.agentStatusChanged(agents.getAgent(agentId));
+      ws.sessionEnded(sessions.getSession(session.id));
+    });
 
-      if (toolResults.length > 0 && !taskCompleted && !taskFailed) {
-        messages.push({ role: 'user', content: toolResults });
-      }
-
-      if (response.stop_reason === 'end_turn' && !taskCompleted && !taskFailed) {
-        messages.push({ role: 'user', content: 'Continue. Use task_complete when done or task_failed if stuck.' });
-      }
-    }
-
-    runningSessions.delete(session.id);
-    const tokensUsed = totalInputTokens + totalOutputTokens;
-
-    if (taskCompleted) {
-      sessions.updateSessionStatus(session.id, 'completed', finalOutput);
-      tasks.updateTask(task.id, { status: 'pending_verification' });
-      agents.incrementTasksCompleted(agentId);
-      events.taskCompleted(taskId, agentId, task.title);
-      ws.taskCompleted(tasks.getTask(taskId));
-      notify.taskCompleted(agentId, task.display_id, task.title).catch(() => {});
-
-      // Auto-commit
-      if (filesModified.length > 0) {
-        await git.autoCommitForTask(taskId, task.display_id, agentId, session.id);
-      }
-
-      console.log(`✅ ${agent.name} completed ${task.display_id}`);
-      return { success: true, sessionId: session.id, output: finalOutput, tokensUsed, filesModified, toolCalls: totalToolCalls };
-    } else {
-      const errorMsg = taskFailed ? finalOutput : `Max iterations reached`;
+    child.on('error', (err) => {
+      runningSessions.delete(session.id);
+      const errorMsg = err.message;
+      
       sessions.updateSessionStatus(session.id, 'failed', undefined, errorMsg);
       tasks.failTask(taskId);
       agents.incrementTasksFailed(agentId);
-      events.taskFailed(taskId, agentId, task.title, errorMsg);
-      ws.taskFailed(tasks.getTask(taskId), errorMsg);
-      notify.taskFailed(agentId, task.display_id, errorMsg).catch(() => {});
+      
+      agents.updateAgentStatus(agentId, 'idle', null, null);
+      ws.agentStatusChanged(agents.getAgent(agentId));
+      ws.sessionEnded(sessions.getSession(session.id));
 
-      console.log(`❌ ${agent.name} failed ${task.display_id}`);
-      return { success: false, sessionId: session.id, error: errorMsg, tokensUsed, filesModified, toolCalls: totalToolCalls };
+      console.log(`❌ ${agent.name} error: ${errorMsg}`);
+      resolve({ success: false, sessionId: session.id, error: errorMsg });
+    });
+  });
+}
+
+/**
+ * Extract files modified from output
+ */
+function extractFilesModified(output: string): string[] {
+  const files: string[] = [];
+  const patterns = [
+    /(?:Write|wrote|created|modified)\s+(?:to\s+)?([\/\w.-]+\.[a-z]+)/gi,
+    /File written:\s*([\/\w.-]+)/gi,
+  ];
+  
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(output)) !== null) {
+      if (!files.includes(match[1])) {
+        files.push(match[1]);
+      }
     }
-  } catch (error) {
-    runningSessions.delete(session.id);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    sessions.updateSessionStatus(session.id, 'failed', undefined, errorMessage);
-    tasks.failTask(taskId);
-    agents.incrementTasksFailed(agentId);
-    events.taskFailed(taskId, agentId, task.title, errorMessage);
-    ws.taskFailed(tasks.getTask(taskId), errorMessage);
-
-    console.log(`❌ ${agent.name} error: ${errorMessage}`);
-    return { success: false, sessionId: session.id, error: errorMessage };
-  } finally {
-    agents.updateAgentStatus(agentId, 'idle', null, null);
-    ws.agentStatusChanged(agents.getAgent(agentId));
-    ws.sessionEnded(sessions.getSession(session.id));
   }
+  return files;
+}
+
+/**
+ * Extract error message from output
+ */
+function extractError(output: string): string {
+  const match = output.match(/TASK_FAILED:\s*(.+)/);
+  return match ? match[1].trim() : '';
 }
 
 export function killSession(sessionId: string): boolean {
   const state = runningSessions.get(sessionId);
   if (!state) return false;
+  
   state.aborted = true;
+  state.process.kill('SIGTERM');
   runningSessions.delete(sessionId);
+  
   sessions.updateSessionStatus(sessionId, 'terminated');
   ws.sessionEnded(sessions.getSession(sessionId));
   return true;
@@ -444,7 +267,7 @@ export function getRunningSessions(): string[] {
 }
 
 export function isEnabled(): boolean {
-  return !!anthropic;
+  return claudeAvailable;
 }
 
 export default { spawnAgentSession, killSession, getRunningSessions, isEnabled };
