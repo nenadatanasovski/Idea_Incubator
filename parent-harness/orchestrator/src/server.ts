@@ -8,6 +8,7 @@ import { eventsRouter } from './api/events.js';
 import { testsRouter } from './api/tests.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { initWebSocket } from './websocket.js';
+import { startOrchestrator } from './orchestrator/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -43,6 +44,9 @@ server.listen(PORT, () => {
   console.log(`🚀 Orchestrator API running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🔌 WebSocket: ws://localhost:${PORT}/ws`);
+
+  // Start orchestration loop
+  startOrchestrator();
 });
 
 export default app;
