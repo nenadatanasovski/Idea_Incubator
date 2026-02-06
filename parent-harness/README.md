@@ -1,42 +1,113 @@
 # Parent Harness
 
-External autonomous agent orchestration system for Vibe platform development.
+External orchestration system for Vibe's AI agents. Runs OUTSIDE the Vibe platform to test and build it.
 
-## Key Concept
+## What Is This?
 
-This harness runs **COPIES** of the Vibe platform agents on a separate server to test and build the Vibe platform itself. These are not the same agent instances - they are clones used as a litmus test during development.
+Copies of Vibe's agents (Build, Spec, QA, etc.) running on a separate server. They work on Vibe itself — like a mechanic using their own tools to fix their own workshop.
 
 ## Quick Start
 
 ```bash
-# From parent-harness/
+cd parent-harness
 docker-compose up -d
-
-# View dashboard
 open http://localhost:3333
-```
-
-## Architecture
-
-```
-parent-harness/ (this server)      →      Vibe Platform (target)
-├── Orchestrator                          ├── Source code
-├── Build Agent (copy)                    ├── Tests
-├── Spec Agent (copy)                     └── Database
-├── QA Agent (copy)
-├── Task Agent (copy)
-├── SIA Agent (copy)
-└── [other agent copies]
-
-Agents modify Vibe code, run tests, commit changes.
-QA Agent verifies every 15 minutes.
 ```
 
 ## Documentation
 
-- [AGENT_HARNESS_PLAN.md](./AGENT_HARNESS_PLAN.md) - Full specification
-- [DECISIONS.md](./DECISIONS.md) - Design decisions and approvals
+| Doc | Description |
+|-----|-------------|
+| [DECISIONS.md](./DECISIONS.md) | Approved architecture decisions |
+| [docs/FRONTEND.md](./docs/FRONTEND.md) | Dashboard UI specification |
+| [docs/BACKEND.md](./docs/BACKEND.md) | API and orchestrator spec |
+| [docs/DATA_MODEL.md](./docs/DATA_MODEL.md) | Database schema |
+| [docs/AGENTS.md](./docs/AGENTS.md) | Agent definitions |
+| [docs/PHASES.md](./docs/PHASES.md) | Build order and phases |
+| [docs/CRITICAL_GAPS.md](./docs/CRITICAL_GAPS.md) | Missing pieces analysis |
 
-## Status
+## Architecture
 
-🚧 Under development
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     PARENT HARNESS SERVER                       │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │ Orchestrator │  │   REST API   │  │  WebSocket   │          │
+│  │  (60s cron)  │  │  :3333/api   │  │  :3333/ws    │          │
+│  └──────┬───────┘  └──────────────┘  └──────────────┘          │
+│         │                                                       │
+│         ▼                                                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   SQLite DB  │  │ Telegram Bot │  │Agent Spawner │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        VIBE CODEBASE                            │
+│                /home/user/Documents/Idea_Incubator              │
+│                                                                 │
+│  Agents read/write files, run tests, make commits               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Key Concepts
+
+- **Wave:** Group of tasks that can run in parallel
+- **Lane:** Category swimlane (database, api, ui, tests)
+- **Session:** One agent working on one task
+- **Iteration:** One loop/attempt within a session
+- **QA Validation:** Every iteration must be validated
+
+## Agents
+
+| Agent | Model | Channel |
+|-------|-------|---------|
+| Orchestrator | Haiku | @vibe-orchestrator |
+| Build Agent | Opus | @vibe-build |
+| Spec Agent | Opus | @vibe-spec |
+| QA Agent | Opus | @vibe-qa |
+| Task Agent | Sonnet | @vibe-task |
+| SIA | Opus | @vibe-sia |
+| Clarification Agent | Sonnet | @vibe-clarification |
+| Human Sim Agent | Sonnet | @vibe-human-sim |
+
+## Files
+
+```
+parent-harness/
+├── README.md              # This file
+├── DECISIONS.md           # Architecture decisions
+├── docker-compose.yml     # Container config
+├── .env.example           # Environment template
+├── docs/
+│   ├── FRONTEND.md        # UI spec
+│   ├── BACKEND.md         # API spec
+│   ├── DATA_MODEL.md      # Database spec
+│   ├── AGENTS.md          # Agent definitions
+│   ├── PHASES.md          # Build phases
+│   └── CRITICAL_GAPS.md   # Missing pieces
+├── database/
+│   └── schema.sql         # Full DB schema
+├── snippets/
+│   └── websocket-events.ts
+├── orchestrator/          # Backend (to build)
+├── dashboard/             # Frontend (to build)
+└── data/                  # Runtime data
+```
+
+## Build Order
+
+1. Frontend Shell (static UI)
+2. Data Model (database)
+3. Backend API
+4. Connect Frontend ↔ API
+5. WebSocket
+6. Telegram Bot
+7. Orchestrator Loop
+8. Agent Spawner
+9. QA Validation
+10. Wave Execution
+
+See [docs/PHASES.md](./docs/PHASES.md) for details.
