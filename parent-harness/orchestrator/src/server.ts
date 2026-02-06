@@ -6,6 +6,7 @@ import { tasksRouter } from './api/tasks.js';
 import { sessionsRouter } from './api/sessions.js';
 import { eventsRouter } from './api/events.js';
 import { testsRouter } from './api/tests.js';
+import { spawnRouter } from './api/spawn.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { initWebSocket } from './websocket.js';
 import { startOrchestrator } from './orchestrator/index.js';
@@ -34,6 +35,7 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/sessions', sessionsRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/tests', testsRouter);
+app.use('/api/spawn', spawnRouter);
 
 // Error handling
 app.use(notFoundHandler);
