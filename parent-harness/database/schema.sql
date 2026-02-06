@@ -47,8 +47,10 @@ CREATE TABLE IF NOT EXISTS tasks (
     )) DEFAULT 'task',
     status TEXT DEFAULT 'pending' CHECK(status IN (
         'draft', 'evaluating', 'pending', 'in_progress',
-        'completed', 'failed', 'blocked', 'skipped'
+        'completed', 'failed', 'blocked', 'skipped',
+        'pending_verification'
     )),
+    retry_count INTEGER DEFAULT 0,
     queue TEXT CHECK(queue IS NULL OR queue = 'evaluation'),
     task_list_id TEXT REFERENCES task_lists(id) ON DELETE SET NULL,
     project_id TEXT,

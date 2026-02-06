@@ -19,6 +19,7 @@ export interface Task {
   complexity_estimate: number | null;
   wave_number: number | null;
   execution_order: number | null;
+  retry_count: number;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
@@ -31,7 +32,8 @@ export interface CreateTaskInput {
   description?: string;
   category?: string;
   priority?: Task['priority'];
-  task_list_id: string;
+  status?: Task['status'];
+  task_list_id?: string;
   parent_task_id?: string;
   pass_criteria?: string[];
 }
@@ -107,13 +109,15 @@ export function getPendingTasks(): Task[] {
 export function createTask(input: CreateTaskInput): Task {
   const id = uuidv4();
   const passCriteria = input.pass_criteria ? JSON.stringify(input.pass_criteria) : null;
+  const taskListId = input.task_list_id ?? null;  // Allow NULL for FK
+  const status = input.status ?? 'pending';
 
   run(`
     INSERT INTO tasks (
       id, display_id, title, description, category, 
-      priority, task_list_id, parent_task_id, pass_criteria, status
+      priority, task_list_id, parent_task_id, pass_criteria, status, retry_count
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
   `, [
     id,
     input.display_id,
@@ -121,9 +125,10 @@ export function createTask(input: CreateTaskInput): Task {
     input.description ?? null,
     input.category ?? null,
     input.priority ?? 'P2',
-    input.task_list_id,
+    taskListId,
     input.parent_task_id ?? null,
     passCriteria,
+    status,
   ]);
 
   return getTask(id)!;
@@ -206,10 +211,20 @@ export function completeTask(taskId: string): Task | undefined {
 }
 
 /**
- * Fail a task
+ * Fail a task (increments retry count)
  */
 export function failTask(taskId: string): Task | undefined {
-  return updateTask(taskId, { status: 'failed' });
+  // First increment retry count
+  run(`
+    UPDATE tasks 
+    SET retry_count = COALESCE(retry_count, 0) + 1,
+        status = 'failed',
+        completed_at = datetime('now'),
+        updated_at = datetime('now')
+    WHERE id = ?
+  `, [taskId]);
+  
+  return getTask(taskId);
 }
 
 export default {

@@ -132,6 +132,40 @@ export function incrementTasksFailed(id: string): void {
   `, [id]);
 }
 
+export interface CreateAgentInput {
+  id: string;
+  name: string;
+  type: string;
+  description?: string;
+  model?: string;
+  temperature?: number;
+  telegramChannel?: string;
+}
+
+/**
+ * Create a new agent
+ */
+export function createAgent(input: CreateAgentInput): Agent {
+  run(`
+    INSERT INTO agents (id, name, type, model, telegram_channel, status, tasks_completed, tasks_failed)
+    VALUES (?, ?, ?, ?, ?, 'idle', 0, 0)
+    ON CONFLICT(id) DO UPDATE SET
+      name = excluded.name,
+      type = excluded.type,
+      model = excluded.model,
+      telegram_channel = excluded.telegram_channel,
+      updated_at = datetime('now')
+  `, [
+    input.id,
+    input.name,
+    input.type,
+    input.model ?? 'sonnet',
+    input.telegramChannel ?? null,
+  ]);
+  
+  return getAgent(input.id)!;
+}
+
 export default {
   getAgents,
   getAgent,
@@ -142,4 +176,5 @@ export default {
   updateHeartbeat,
   incrementTasksCompleted,
   incrementTasksFailed,
+  createAgent,
 };
