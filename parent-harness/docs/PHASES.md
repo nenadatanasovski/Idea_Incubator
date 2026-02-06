@@ -1,972 +1,738 @@
 # Implementation Phases
 
-Each phase has explicit pass criteria and verification scripts. **No phase starts until the previous phase passes all criteria.**
+Each task has its own test record, build steps, pass criteria, and validation query.
 
-## Test System
-
-See `TEST_SYSTEM.md` for complete specification.
-
-### Core Concept: Self-Healing Loop
-
-Tests don't just record pass/fail - they trigger automatic fixes:
-
-```
-Test fails → Agent analyzes → Fixes code → Retry → Repeat until pass
-```
-
-### Test Recording Pattern
-
-Every test writes to the test system tables:
-
-```
-1. Create test_run record
-2. For each suite → test_suite_results
-3. For each case → test_case_results  
-4. For each step → test_step_results
-5. For each assertion → test_assertion_results
-6. If failed → trigger fix loop via test_fix_attempts
-```
-
-### Test Types
-
-| Type | Runner | Purpose |
-|------|--------|---------|
-| unit | Jest/Vitest | Isolated function tests |
-| integration | Jest | API/service tests |
-| e2e | Agent Browser (skill) / Puppeteer MCP (fallback) | Browser automation |
-| verification | Bash | Phase gate checks |
-| lint | ESLint | Code quality |
-| typecheck | tsc | Type safety |
-
-### Self-Healing
-
-When a test fails:
-1. Agent analyzes failure (error message, stack trace)
-2. Agent attempts fix (edit code, add missing files, etc.)
-3. Fix recorded in `test_fix_attempts`
-4. Test re-runs
-5. If still failing, retry up to `retry_limit` (default 5)
-6. If all retries exhausted → escalate to human
-
-### Retention
-
-- **Last 2 weeks** of test results kept
-- Older results pruned automatically
-- Fix attempts kept until test passes
+**Rule:** A task is only complete when its validation query returns a passed result.
 
 ---
 
-## Phase 1: Frontend Shell (Days 1-2)
+## Test System Integration
+
+Every task creates a test record:
+```sql
+INSERT INTO test_cases (id, suite_id, name, description) 
+VALUES ('phase_1_task_1', 'phase_1', 'Vite Setup', '...');
+```
+
+After build steps complete, pass criteria are verified and results recorded:
+```sql
+INSERT INTO test_case_results (case_id, status, ...) 
+VALUES ('phase_1_task_1', 'passed', ...);
+```
+
+Next task can only start when previous task's validation query succeeds.
+
+---
+
+# Phase 1: Frontend Shell (Days 1-2)
 
 **Goal:** Static dashboard that can be tested independently.
 
-**Tasks:**
-- [ ] 1. Vite + React + TypeScript setup
-- [ ] 2. Tailwind CSS config
-- [ ] 3. Three-column layout (header, main grid)
-- [ ] 4. AgentStatusCard component (hardcoded data)
-- [ ] 5. EventStream component (mock events)
-- [ ] 6. TaskCard component (mock tasks)
-- [ ] 7. Basic routing (/, /tasks, /sessions)
-- [ ] 8. Notification center (top left)
-
-**Pass Criteria:**
-- [ ] `npm run build` succeeds with zero errors
-- [ ] `npm run typecheck` passes
-- [ ] Dashboard loads at http://localhost:5173
-- [ ] All 3 routes render without crash (/, /tasks, /sessions)
-- [ ] AgentStatusCard displays 3+ mock agents
-- [ ] EventStream shows 5+ mock events
-- [ ] Notification center icon visible in header
-
-**Verification Script:** `scripts/verify-phase-01.sh`
-```bash
-#!/bin/bash
-set -e
-cd dashboard
-npm run build
-npm run typecheck
-npm run preview &
-PID=$!
-sleep 3
-curl -s http://localhost:4173 | grep -q "Agent Status" || exit 1
-curl -s http://localhost:4173/tasks | grep -q "Tasks" || exit 1
-curl -s http://localhost:4173/sessions | grep -q "Sessions" || exit 1
-kill $PID
-echo "✅ Phase 1 PASSED"
-```
-
-**Gate:** All criteria checked, script exits 0.
+**Test Suite:** `phase_1_frontend_shell`
 
 ---
 
-## Phase 2: Data Model (Days 3-4)
+### Task 1.1: Vite + React + TypeScript Setup
+
+**Test Record:** `phase_1_task_1_vite_setup`
+
+**Build Steps:**
+- [ ] 1.1.1: Run `npm create vite@latest dashboard -- --template react-ts`
+- [ ] 1.1.2: `cd dashboard && npm install`
+- [ ] 1.1.3: Verify `npm run dev` starts server
+
+**Pass Criteria:**
+- [ ] `dashboard/` folder exists
+- [ ] `dashboard/package.json` contains "vite", "react", "typescript"
+- [ ] `dashboard/src/main.tsx` exists
+- [ ] `npm run dev` starts server on port 5173
+- [ ] Browser shows React template page
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_1_task_1_vite_setup' AND status = 'passed';
+-- Must return 1 row
+```
+
+---
+
+### Task 1.2: Tailwind CSS Configuration
+
+**Test Record:** `phase_1_task_2_tailwind`
+
+**Build Steps:**
+- [ ] 1.2.1: `npm install -D tailwindcss postcss autoprefixer`
+- [ ] 1.2.2: `npx tailwindcss init -p`
+- [ ] 1.2.3: Configure `tailwind.config.js` content paths
+- [ ] 1.2.4: Add Tailwind directives to `src/index.css`
+- [ ] 1.2.5: Test with a Tailwind class in App.tsx
+
+**Pass Criteria:**
+- [ ] `tailwind.config.js` exists
+- [ ] `postcss.config.js` exists
+- [ ] `src/index.css` contains `@tailwind base/components/utilities`
+- [ ] A Tailwind class (e.g., `bg-blue-500`) renders correctly
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_1_task_2_tailwind' AND status = 'passed';
+```
+
+---
+
+### Task 1.3: Three-Column Layout
+
+**Test Record:** `phase_1_task_3_layout`
+
+**Build Steps:**
+- [ ] 1.3.1: Create `src/components/Layout.tsx`
+- [ ] 1.3.2: Implement header with logo/title
+- [ ] 1.3.3: Implement three-column grid (left sidebar, main, right sidebar)
+- [ ] 1.3.4: Add responsive breakpoints
+- [ ] 1.3.5: Export and use in App.tsx
+
+**Pass Criteria:**
+- [ ] `src/components/Layout.tsx` exists
+- [ ] Layout has `data-testid="layout-header"`
+- [ ] Layout has `data-testid="layout-left"` (agent status area)
+- [ ] Layout has `data-testid="layout-main"` (event stream area)
+- [ ] Layout has `data-testid="layout-right"` (task queue area)
+- [ ] CSS grid or flexbox creates 3 columns
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_1_task_3_layout' AND status = 'passed';
+```
+
+---
+
+### Task 1.4: AgentStatusCard Component
+
+**Test Record:** `phase_1_task_4_agent_card`
+
+**Build Steps:**
+- [ ] 1.4.1: Create `src/components/AgentStatusCard.tsx`
+- [ ] 1.4.2: Define props interface (id, name, status, currentTask, lastHeartbeat)
+- [ ] 1.4.3: Implement status badge (idle/working/error/stuck)
+- [ ] 1.4.4: Add Telegram channel link
+- [ ] 1.4.5: Create mock data with 3+ agents
+- [ ] 1.4.6: Render cards in Layout left column
+
+**Pass Criteria:**
+- [ ] `src/components/AgentStatusCard.tsx` exists
+- [ ] Component has `data-testid="agent-card"`
+- [ ] Status badge shows correct color per status
+- [ ] Mock data renders 3+ agent cards
+- [ ] Card displays: name, status, current task (if any)
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_1_task_4_agent_card' AND status = 'passed';
+```
+
+---
+
+### Task 1.5: EventStream Component
+
+**Test Record:** `phase_1_task_5_event_stream`
+
+**Build Steps:**
+- [ ] 1.5.1: Create `src/components/EventStream.tsx`
+- [ ] 1.5.2: Define event interface (id, timestamp, type, message, agentId)
+- [ ] 1.5.3: Implement scrollable list with auto-scroll toggle
+- [ ] 1.5.4: Add color coding by event type
+- [ ] 1.5.5: Create mock data with 5+ events
+- [ ] 1.5.6: Render in Layout main column
+
+**Pass Criteria:**
+- [ ] `src/components/EventStream.tsx` exists
+- [ ] Component has `data-testid="event-stream"`
+- [ ] Events have `data-testid="event-item"`
+- [ ] Mock data renders 5+ events
+- [ ] Events show timestamp, type, message
+- [ ] Auto-scroll toggle exists
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_1_task_5_event_stream' AND status = 'passed';
+```
+
+---
+
+### Task 1.6: TaskCard Component
+
+**Test Record:** `phase_1_task_6_task_card`
+
+**Build Steps:**
+- [ ] 1.6.1: Create `src/components/TaskCard.tsx`
+- [ ] 1.6.2: Define props interface (id, displayId, title, status, priority, assignedAgent)
+- [ ] 1.6.3: Implement priority badge (P0-P4 with colors)
+- [ ] 1.6.4: Implement status badge
+- [ ] 1.6.5: Create mock data with 3+ tasks
+- [ ] 1.6.6: Render cards in Layout right column
+
+**Pass Criteria:**
+- [ ] `src/components/TaskCard.tsx` exists
+- [ ] Component has `data-testid="task-card"`
+- [ ] Priority badge shows P0-P4 with correct colors
+- [ ] Status badge shows correct state
+- [ ] Mock data renders 3+ task cards
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_1_task_6_task_card' AND status = 'passed';
+```
+
+---
+
+### Task 1.7: Basic Routing
+
+**Test Record:** `phase_1_task_7_routing`
+
+**Build Steps:**
+- [ ] 1.7.1: `npm install react-router-dom`
+- [ ] 1.7.2: Create `src/pages/Dashboard.tsx` (home page)
+- [ ] 1.7.3: Create `src/pages/Tasks.tsx` (task board)
+- [ ] 1.7.4: Create `src/pages/Sessions.tsx` (agent sessions)
+- [ ] 1.7.5: Configure routes in App.tsx
+- [ ] 1.7.6: Add navigation links in header
+
+**Pass Criteria:**
+- [ ] `react-router-dom` in package.json
+- [ ] `/` route renders Dashboard page
+- [ ] `/tasks` route renders Tasks page
+- [ ] `/sessions` route renders Sessions page
+- [ ] Navigation links work without page reload
+- [ ] Invalid routes show 404 or redirect
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_1_task_7_routing' AND status = 'passed';
+```
+
+---
+
+### Task 1.8: Notification Center
+
+**Test Record:** `phase_1_task_8_notifications`
+
+**Build Steps:**
+- [ ] 1.8.1: Create `src/components/NotificationCenter.tsx`
+- [ ] 1.8.2: Add bell icon in header (top left as specified)
+- [ ] 1.8.3: Implement dropdown with notification list
+- [ ] 1.8.4: Add unread count badge
+- [ ] 1.8.5: Create mock notifications
+- [ ] 1.8.6: Add click to dismiss functionality
+
+**Pass Criteria:**
+- [ ] `src/components/NotificationCenter.tsx` exists
+- [ ] Bell icon visible in header top-left
+- [ ] Component has `data-testid="notification-center"`
+- [ ] Dropdown shows on click
+- [ ] Unread count badge displays
+- [ ] Mock notifications render
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_1_task_8_notifications' AND status = 'passed';
+```
+
+---
+
+## Phase 1 Completion Gate
+
+**All tasks must pass before Phase 2 begins.**
+
+**Final Validation:**
+```sql
+SELECT 
+  COUNT(*) as total,
+  SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as passed
+FROM test_case_results 
+WHERE case_id LIKE 'phase_1_task_%';
+-- Must return: total = 8, passed = 8
+```
+
+**Verification Script:** `scripts/verify-phase-01.sh`
+- Runs `npm run build` and `npm run typecheck`
+- Starts preview server
+- Uses Puppeteer MCP to verify all routes
+- Checks all test records in database
+- Exits 0 only if all 8 tasks passed
+
+---
+
+# Phase 2: Data Model (Days 3-4)
 
 **Goal:** Database ready with schema and seed data.
 
-**Tasks:**
-- [ ] 1. SQLite database setup (better-sqlite3)
-- [ ] 2. Run schema.sql (all tables from DATA_MODEL.md)
-- [ ] 3. Seed agents table (13 agents)
-- [ ] 4. Seed sample task_list with 5 tasks
-- [ ] 5. Create all views
-- [ ] 6. Query functions for each table
-
-**Pass Criteria:**
-- [ ] Database file exists at `data/harness.db`
-- [ ] All 25+ tables created (SELECT count(*) FROM sqlite_master WHERE type='table')
-- [ ] 13 agents seeded in agents table
-- [ ] 5 sample tasks exist
-- [ ] All views queryable without error
-- [ ] `db.getAgents()` returns 13 agents
-- [ ] `db.getTasks()` returns 5 tasks
-
-**Verification Script:** `scripts/verify-phase-02.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator
-node -e "
-const db = require('./dist/db').default;
-const agents = db.getAgents();
-if (agents.length !== 13) throw new Error('Expected 13 agents, got ' + agents.length);
-const tasks = db.getTasks();
-if (tasks.length < 5) throw new Error('Expected 5+ tasks, got ' + tasks.length);
-const tables = db.query('SELECT count(*) as c FROM sqlite_master WHERE type=\"table\"');
-if (tables[0].c < 25) throw new Error('Expected 25+ tables, got ' + tables[0].c);
-console.log('✅ Phase 2 PASSED');
-"
-```
-
-**Gate:** All criteria checked, script exits 0.
+**Test Suite:** `phase_2_data_model`
 
 ---
 
-## Phase 3: Backend API (Days 5-7)
+### Task 2.1: SQLite Database Setup
+
+**Test Record:** `phase_2_task_1_sqlite_setup`
+
+**Build Steps:**
+- [ ] 2.1.1: Create `orchestrator/` folder
+- [ ] 2.1.2: `npm init -y && npm install better-sqlite3 typescript @types/better-sqlite3`
+- [ ] 2.1.3: Create `src/db/index.ts` with connection logic
+- [ ] 2.1.4: Create `data/` folder for database file
+- [ ] 2.1.5: Test connection opens successfully
+
+**Pass Criteria:**
+- [ ] `orchestrator/package.json` exists with better-sqlite3
+- [ ] `orchestrator/src/db/index.ts` exists
+- [ ] `data/harness.db` created on first run
+- [ ] Connection opens without error
+- [ ] Can execute simple query (`SELECT 1`)
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_2_task_1_sqlite_setup' AND status = 'passed';
+```
+
+---
+
+### Task 2.2: Run Schema
+
+**Test Record:** `phase_2_task_2_schema`
+
+**Build Steps:**
+- [ ] 2.2.1: Create `src/db/migrate.ts` 
+- [ ] 2.2.2: Read `database/schema.sql`
+- [ ] 2.2.3: Execute all CREATE TABLE statements
+- [ ] 2.2.4: Verify all tables created
+
+**Pass Criteria:**
+- [ ] `src/db/migrate.ts` exists
+- [ ] All 40+ tables from schema.sql created
+- [ ] All indexes created
+- [ ] All views created
+- [ ] `SELECT count(*) FROM sqlite_master WHERE type='table'` >= 40
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_2_task_2_schema' AND status = 'passed';
+```
+
+---
+
+### Task 2.3: Seed Agents
+
+**Test Record:** `phase_2_task_3_seed_agents`
+
+**Build Steps:**
+- [ ] 2.3.1: Create `src/db/seed.ts`
+- [ ] 2.3.2: Insert 13 agents (from AGENTS.md)
+- [ ] 2.3.3: Set default status = 'idle'
+- [ ] 2.3.4: Set telegram_channel for each
+
+**Pass Criteria:**
+- [ ] 13 rows in `agents` table
+- [ ] All agent types present (orchestrator, planning, build, spec, qa, task, sia, research, evaluator, decomposition, validation, clarification, human_sim)
+- [ ] All have telegram_channel set
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_2_task_3_seed_agents' AND status = 'passed';
+```
+
+---
+
+### Task 2.4: Seed Sample Tasks
+
+**Test Record:** `phase_2_task_4_seed_tasks`
+
+**Build Steps:**
+- [ ] 2.4.1: Create sample task_list
+- [ ] 2.4.2: Create 5 sample tasks with various statuses
+- [ ] 2.4.3: Add task relationships (dependencies)
+- [ ] 2.4.4: Set pass_criteria for each task
+
+**Pass Criteria:**
+- [ ] 1 row in `task_lists` table
+- [ ] 5 rows in `tasks` table
+- [ ] At least 2 task relationships exist
+- [ ] All tasks have pass_criteria JSON
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_2_task_4_seed_tasks' AND status = 'passed';
+```
+
+---
+
+### Task 2.5: Create Query Functions
+
+**Test Record:** `phase_2_task_5_queries`
+
+**Build Steps:**
+- [ ] 2.5.1: Create `src/db/agents.ts` with getAgents(), getAgent(id), updateAgent()
+- [ ] 2.5.2: Create `src/db/tasks.ts` with getTasks(), getTask(id), createTask(), updateTask(), deleteTask()
+- [ ] 2.5.3: Create `src/db/sessions.ts` with getSessions(), getSession(id), createSession()
+- [ ] 2.5.4: Create `src/db/events.ts` with getEvents(), createEvent()
+- [ ] 2.5.5: Export all from `src/db/index.ts`
+
+**Pass Criteria:**
+- [ ] All query files exist
+- [ ] `getAgents()` returns 13 agents
+- [ ] `getTasks()` returns 5 tasks
+- [ ] `createTask()` returns new task with ID
+- [ ] `createEvent()` inserts and returns event
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_2_task_5_queries' AND status = 'passed';
+```
+
+---
+
+### Task 2.6: Create Test System Tables Seed
+
+**Test Record:** `phase_2_task_6_test_seed`
+
+**Build Steps:**
+- [ ] 2.6.1: Create test_suites for each phase (16 suites)
+- [ ] 2.6.2: Create test_cases for Phase 1 tasks (8 cases)
+- [ ] 2.6.3: Create test_steps for each case
+- [ ] 2.6.4: Create test_assertions for key criteria
+
+**Pass Criteria:**
+- [ ] 16 rows in `test_suites` (one per phase)
+- [ ] 8 rows in `test_cases` for phase_1
+- [ ] Each test_case has at least 1 test_step
+- [ ] Key assertions defined
+
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_2_task_6_test_seed' AND status = 'passed';
+```
+
+---
+
+## Phase 2 Completion Gate
+
+**Final Validation:**
+```sql
+SELECT 
+  COUNT(*) as total,
+  SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as passed
+FROM test_case_results 
+WHERE case_id LIKE 'phase_2_task_%';
+-- Must return: total = 6, passed = 6
+```
+
+---
+
+# Phase 3: Backend API (Days 5-7)
 
 **Goal:** REST API serving real data.
 
-**Tasks:**
-- [ ] 1. Express server setup with TypeScript
-- [ ] 2. `/api/agents` - GET (list), GET/:id, PATCH/:id
-- [ ] 3. `/api/tasks` - GET (list), GET/:id, POST, PATCH/:id, DELETE/:id
-- [ ] 4. `/api/sessions` - GET (list), GET/:id, POST/:id/terminate
-- [ ] 5. `/api/iterations` - GET/:id, GET/:id/log
-- [ ] 6. `/api/events` - GET (list with filters)
-- [ ] 7. Error handling middleware
-- [ ] 8. CORS config
+**Test Suite:** `phase_3_backend_api`
+
+---
+
+### Task 3.1: Express Server Setup
+
+**Test Record:** `phase_3_task_1_express`
+
+**Build Steps:**
+- [ ] 3.1.1: `npm install express cors`
+- [ ] 3.1.2: `npm install -D @types/express @types/cors`
+- [ ] 3.1.3: Create `src/server.ts` with Express app
+- [ ] 3.1.4: Configure CORS middleware
+- [ ] 3.1.5: Add health check endpoint `/health`
+- [ ] 3.1.6: Start server on port 3333
 
 **Pass Criteria:**
+- [ ] `src/server.ts` exists
 - [ ] Server starts on port 3333
-- [ ] GET /api/agents returns 13 agents
-- [ ] GET /api/tasks returns 5+ tasks
-- [ ] POST /api/tasks creates a task (returns 201)
-- [ ] PATCH /api/tasks/:id updates a task
-- [ ] DELETE /api/tasks/:id removes a task
-- [ ] GET /api/sessions returns array
-- [ ] GET /api/events returns array
-- [ ] Invalid routes return 404 JSON
-- [ ] Server errors return 500 JSON
+- [ ] `GET /health` returns `{"status": "ok"}`
+- [ ] CORS headers present in response
 
-**Verification Script:** `scripts/verify-phase-03.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator && npm run build && npm start &
-PID=$!
-sleep 3
-
-# Test endpoints
-AGENTS=$(curl -s http://localhost:3333/api/agents | jq length)
-[ "$AGENTS" -eq 13 ] || exit 1
-
-TASKS=$(curl -s http://localhost:3333/api/tasks | jq '.tasks | length')
-[ "$TASKS" -ge 5 ] || exit 1
-
-# Create task
-CREATED=$(curl -s -X POST http://localhost:3333/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Test task","description":"Test"}' | jq -r '.id')
-[ -n "$CREATED" ] || exit 1
-
-# Delete task
-curl -s -X DELETE http://localhost:3333/api/tasks/$CREATED | jq -e '.success' || exit 1
-
-# 404 test
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3333/api/notfound)
-[ "$STATUS" -eq 404 ] || exit 1
-
-kill $PID
-echo "✅ Phase 3 PASSED"
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_3_task_1_express' AND status = 'passed';
 ```
-
-**Gate:** All criteria checked, script exits 0.
 
 ---
 
-## Phase 4: Frontend + API (Days 8-9)
+### Task 3.2: Agents API Endpoints
 
-**Goal:** Dashboard shows real data from API.
+**Test Record:** `phase_3_task_2_agents_api`
 
-**Tasks:**
-- [ ] 1. useApi hook with fetch wrapper
-- [ ] 2. Connect AgentStatusCard to /api/agents
-- [ ] 3. Connect TaskBoard to /api/tasks
-- [ ] 4. Connect SessionsView to /api/sessions
-- [ ] 5. Connect EventStream to /api/events
-- [ ] 6. Loading states for all components
-- [ ] 7. Error states for failed fetches
+**Build Steps:**
+- [ ] 3.2.1: Create `src/api/agents.ts` router
+- [ ] 3.2.2: Implement `GET /api/agents` (list all)
+- [ ] 3.2.3: Implement `GET /api/agents/:id` (get one)
+- [ ] 3.2.4: Implement `PATCH /api/agents/:id` (update status)
+- [ ] 3.2.5: Mount router in server.ts
 
 **Pass Criteria:**
-- [ ] Dashboard fetches agents from API on load
-- [ ] Agent cards show real data (not hardcoded)
-- [ ] Tasks page shows tasks from database
-- [ ] Sessions page shows sessions from database
-- [ ] Loading spinners appear during fetch
-- [ ] Error message appears if API is down
-- [ ] No console errors in browser
+- [ ] `GET /api/agents` returns 13 agents
+- [ ] `GET /api/agents/build_agent` returns single agent
+- [ ] `GET /api/agents/invalid` returns 404
+- [ ] `PATCH /api/agents/build_agent` updates status
 
-**Verification Script:** `scripts/verify-phase-04.sh`
-```bash
-#!/bin/bash
-set -e
-# Start API
-cd orchestrator && npm start &
-API_PID=$!
-sleep 2
-
-# Start frontend
-cd ../dashboard && npm run preview &
-FE_PID=$!
-sleep 3
-
-# Browser verification via Agent Browser skill or Puppeteer MCP
-# Agent spawns with browser testing task, verifies UI
-
-node scripts/browser-verify-phase-04.js
-
-kill $API_PID $FE_PID
-echo "✅ Phase 4 PASSED"
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_3_task_2_agents_api' AND status = 'passed';
 ```
-
-**Browser Verification:** `scripts/browser-verify-phase-04.js`
-```javascript
-// Uses Puppeteer MCP as programmatic fallback
-// Agent Browser (Claude Code skill) used during agent sessions
-
-const puppeteer = require('puppeteer');
-
-async function verify() {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  
-  // Test 1: Dashboard shows agents
-  await page.goto('http://localhost:4173');
-  const agentCards = await page.$$('[data-testid="agent-card"]');
-  if (agentCards.length < 13) throw new Error('Expected 13 agent cards');
-  
-  // Test 2: Tasks page shows tasks
-  await page.goto('http://localhost:4173/tasks');
-  const taskCards = await page.$$('[data-testid="task-card"]');
-  if (taskCards.length === 0) throw new Error('Expected task cards');
-  
-  await browser.close();
-  console.log('✅ Browser verification passed');
-}
-
-verify().catch(e => { console.error(e); process.exit(1); });
-```
-
-**Gate:** Browser verification passes, script exits 0.
 
 ---
 
-## Phase 5: WebSocket (Days 10-11)
+### Task 3.3: Tasks API Endpoints
 
-**Goal:** Real-time updates without polling.
+**Test Record:** `phase_3_task_3_tasks_api`
 
-**Tasks:**
-- [ ] 1. WebSocket server on /ws
-- [ ] 2. useHarnessWebSocket hook
-- [ ] 3. Broadcast agent:status events
-- [ ] 4. Broadcast task:updated events
-- [ ] 5. Broadcast event:new events
-- [ ] 6. Auto-reconnect on disconnect
-- [ ] 7. Connection status indicator in UI
+**Build Steps:**
+- [ ] 3.3.1: Create `src/api/tasks.ts` router
+- [ ] 3.3.2: Implement `GET /api/tasks` (list with filters)
+- [ ] 3.3.3: Implement `GET /api/tasks/:id` (get one)
+- [ ] 3.3.4: Implement `POST /api/tasks` (create)
+- [ ] 3.3.5: Implement `PATCH /api/tasks/:id` (update)
+- [ ] 3.3.6: Implement `DELETE /api/tasks/:id` (delete)
 
 **Pass Criteria:**
-- [ ] WebSocket connects at ws://localhost:3333/ws
-- [ ] Agent status change in DB broadcasts to clients
-- [ ] Task update in DB broadcasts to clients
-- [ ] New event in DB broadcasts to clients
-- [ ] UI updates without page refresh
-- [ ] Reconnects within 5 seconds after disconnect
-- [ ] Connection indicator shows green when connected
+- [ ] `GET /api/tasks` returns tasks array
+- [ ] `GET /api/tasks?status=pending` filters correctly
+- [ ] `POST /api/tasks` creates and returns 201
+- [ ] `PATCH /api/tasks/:id` updates and returns task
+- [ ] `DELETE /api/tasks/:id` removes and returns success
 
-**Verification Script:** `scripts/verify-phase-05.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator && npm start &
-PID=$!
-sleep 2
-
-# WebSocket test
-node -e "
-const WebSocket = require('ws');
-const ws = new WebSocket('ws://localhost:3333/ws');
-let received = false;
-ws.on('message', (data) => {
-  const msg = JSON.parse(data);
-  if (msg.type === 'agent:status') received = true;
-});
-ws.on('open', () => {
-  // Trigger an agent status change via API
-  fetch('http://localhost:3333/api/agents/build_agent', {
-    method: 'PATCH',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({status: 'working'})
-  });
-});
-setTimeout(() => {
-  if (!received) process.exit(1);
-  console.log('✅ Phase 5 PASSED');
-  process.exit(0);
-}, 3000);
-"
-
-kill $PID
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_3_task_3_tasks_api' AND status = 'passed';
 ```
-
-**Gate:** WebSocket test passes, script exits 0.
 
 ---
 
-## Phase 6: Telegram Bot (Days 12-13)
+### Task 3.4: Sessions API Endpoints
 
-**Goal:** Messages to Telegram channels.
+**Test Record:** `phase_3_task_4_sessions_api`
 
-**Tasks:**
-- [ ] 1. Create Telegram bot via @BotFather
-- [ ] 2. Create 14 channels and add bot as admin
-- [ ] 3. Bot connection logic
-- [ ] 4. `sendToChannel(channel, message)` function
-- [ ] 5. `sendCritical(message)` function
-- [ ] 6. Message formatting with emojis
-- [ ] 7. Test message to @vibe-critical on startup
+**Build Steps:**
+- [ ] 3.4.1: Create `src/api/sessions.ts` router
+- [ ] 3.4.2: Implement `GET /api/sessions` (list with filters)
+- [ ] 3.4.3: Implement `GET /api/sessions/:id` (get with iterations)
+- [ ] 3.4.4: Implement `GET /api/sessions/:id/iterations` (list iterations)
+- [ ] 3.4.5: Implement `POST /api/sessions/:id/terminate` (terminate session)
 
 **Pass Criteria:**
-- [ ] Bot token configured in .env
-- [ ] 14 channel IDs configured
-- [ ] `sendToChannel('@vibe-critical', 'Test')` succeeds
-- [ ] `sendToChannel('@vibe-build', 'Test')` succeeds
-- [ ] Message appears in Telegram channel
-- [ ] Emoji formatting renders correctly
-- [ ] Startup message sent to @vibe-orchestrator
+- [ ] `GET /api/sessions` returns sessions array
+- [ ] `GET /api/sessions/:id` includes iterations
+- [ ] `GET /api/sessions/:id/iterations` returns iteration list
+- [ ] `POST /api/sessions/:id/terminate` updates status
 
-**Verification Script:** `scripts/verify-phase-06.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator
-
-# Test Telegram connection
-node -e "
-const telegram = require('./dist/telegram').default;
-await telegram.sendToChannel('@vibe-critical', '🧪 Phase 6 verification test');
-await telegram.sendToChannel('@vibe-build', '🧪 Phase 6 verification test');
-console.log('✅ Phase 6 PASSED');
-"
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_3_task_4_sessions_api' AND status = 'passed';
 ```
-
-**Gate:** Messages appear in Telegram, script exits 0.
 
 ---
 
-## Phase 7: Orchestrator Loop (Days 14-16)
+### Task 3.5: Events API Endpoints
 
-**Goal:** Automated cron loop with clarification gate.
+**Test Record:** `phase_3_task_5_events_api`
 
-**Tasks:**
-- [ ] 1. Cron loop (60s interval)
-- [ ] 2. Clarification gate check
-- [ ] 3. Get idle agents query
-- [ ] 4. Get ready tasks query
-- [ ] 5. Task assignment logic
-- [ ] 6. Create sessions + iterations
-- [ ] 7. Emit events
-- [ ] 8. Telegram notifications
+**Build Steps:**
+- [ ] 3.5.1: Create `src/api/events.ts` router
+- [ ] 3.5.2: Implement `GET /api/events` (list with filters)
+- [ ] 3.5.3: Support filters: type, agent_id, session_id, severity, since, limit
+- [ ] 3.5.4: Implement pagination (offset/limit)
 
 **Pass Criteria:**
-- [ ] Orchestrator starts and logs tick every 60s
-- [ ] Idle agents detected correctly
-- [ ] Ready tasks (dependencies met + clarified) detected
-- [ ] Task assigned to agent → agent status = 'working'
-- [ ] Session created with iteration 1
-- [ ] Event emitted for task:assigned
-- [ ] Telegram message sent to agent channel
-- [ ] Unclarified tasks NOT assigned (gate works)
+- [ ] `GET /api/events` returns events array
+- [ ] `GET /api/events?type=task:assigned` filters correctly
+- [ ] `GET /api/events?limit=10&offset=0` paginates
+- [ ] Events ordered by timestamp desc
 
-**Verification Script:** `scripts/verify-phase-07.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator && npm start &
-PID=$!
-sleep 5
-
-# Create a clarified task
-TASK_ID=$(curl -s -X POST http://localhost:3333/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Test","description":"Test","clarification_status":"complete"}' | jq -r '.id')
-
-# Wait for orchestrator tick
-sleep 65
-
-# Check task was assigned
-STATUS=$(curl -s http://localhost:3333/api/tasks/$TASK_ID | jq -r '.status')
-[ "$STATUS" = "in_progress" ] || exit 1
-
-# Check session was created
-SESSIONS=$(curl -s "http://localhost:3333/api/sessions?task_id=$TASK_ID" | jq length)
-[ "$SESSIONS" -ge 1 ] || exit 1
-
-kill $PID
-echo "✅ Phase 7 PASSED"
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_3_task_5_events_api' AND status = 'passed';
 ```
-
-**Gate:** Orchestrator assigns task correctly, script exits 0.
 
 ---
 
-## Phase 8: Clarification Agent (Days 17-18)
+### Task 3.6: Test Results API Endpoints
 
-**Goal:** Proactive question-asking for vague tasks.
+**Test Record:** `phase_3_task_6_tests_api`
 
-**Tasks:**
-- [ ] 1. Clarification Agent system prompt
-- [ ] 2. Question generation logic
-- [ ] 3. Telegram interaction (ask in @vibe-clarification)
-- [ ] 4. Answer processing
-- [ ] 5. Task enrichment
-- [ ] 6. Timeout handling (24h)
+**Build Steps:**
+- [ ] 3.6.1: Create `src/api/tests.ts` router
+- [ ] 3.6.2: Implement `GET /api/tests/suites` (list suites)
+- [ ] 3.6.3: Implement `GET /api/tests/runs` (list runs)
+- [ ] 3.6.4: Implement `GET /api/tests/runs/:id` (run with results)
+- [ ] 3.6.5: Implement `POST /api/tests/runs` (trigger test run)
 
 **Pass Criteria:**
-- [ ] New user task triggers Clarification Agent
-- [ ] Agent asks at least 2 clarifying questions
-- [ ] Questions appear in @vibe-clarification
-- [ ] User answer updates task description
-- [ ] Task status changes to clarification_status='complete'
-- [ ] Clarified task enters normal queue
-- [ ] Timeout after 24h proceeds with assumptions
+- [ ] `GET /api/tests/suites` returns 16 suites
+- [ ] `GET /api/tests/runs` returns runs array
+- [ ] `POST /api/tests/runs` creates and triggers run
+- [ ] Results include case/step/assertion hierarchy
 
-**Verification Script:** `scripts/verify-phase-08.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator && npm start &
-PID=$!
-sleep 3
-
-# Create vague task
-TASK_ID=$(curl -s -X POST http://localhost:3333/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Add auth","description":"Add authentication"}' | jq -r '.id')
-
-# Wait for clarification to start
-sleep 10
-
-# Check clarification session exists
-CLAR=$(curl -s "http://localhost:3333/api/clarifications?task_id=$TASK_ID" | jq length)
-[ "$CLAR" -ge 1 ] || exit 1
-
-# Simulate answer
-curl -s -X POST http://localhost:3333/api/clarifications/$TASK_ID/answer \
-  -H "Content-Type: application/json" \
-  -d '{"answer":"OAuth with Google, protect /api/* routes, use JWT"}'
-
-# Check task was enriched
-sleep 5
-DESC=$(curl -s http://localhost:3333/api/tasks/$TASK_ID | jq -r '.description')
-echo "$DESC" | grep -q "OAuth" || exit 1
-
-kill $PID
-echo "✅ Phase 8 PASSED"
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_3_task_6_tests_api' AND status = 'passed';
 ```
-
-**Gate:** Clarification flow completes, script exits 0.
 
 ---
 
-## Phase 9: Agent Spawner (Days 19-21)
+### Task 3.7: Error Handling Middleware
 
-**Goal:** Actually run Claude Code instances.
+**Test Record:** `phase_3_task_7_error_handling`
 
-**Tasks:**
-- [ ] 1. Claude Code CLI integration
-- [ ] 2. Process spawning with config
-- [ ] 3. Transcript capture to transcript_entries
-- [ ] 4. Output parsing for tool calls
-- [ ] 5. Heartbeat monitoring
-- [ ] 6. Graceful termination
-- [ ] 7. Error handling
+**Build Steps:**
+- [ ] 3.7.1: Create `src/middleware/error-handler.ts`
+- [ ] 3.7.2: Handle 404 for unknown routes
+- [ ] 3.7.3: Handle 500 for server errors
+- [ ] 3.7.4: Return consistent JSON error format
+- [ ] 3.7.5: Log errors to console
 
 **Pass Criteria:**
-- [ ] Claude Code process spawns for assigned task
-- [ ] Output captured to transcript_entries table
-- [ ] Tool calls parsed and stored
-- [ ] Heartbeat updates agent.last_heartbeat
-- [ ] Process terminates cleanly on task complete
-- [ ] Failed process updates iteration status
-- [ ] Memory usage stays under 2GB per agent
+- [ ] Unknown route returns `{"error": "Not found", "status": 404}`
+- [ ] Server error returns `{"error": "...", "status": 500}`
+- [ ] All errors have consistent JSON structure
+- [ ] Errors logged to console
 
-**Verification Script:** `scripts/verify-phase-09.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator && npm start &
-PID=$!
-sleep 3
-
-# Create and assign a simple task
-TASK_ID=$(curl -s -X POST http://localhost:3333/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title":"Create test file",
-    "description":"Create a file called test.txt with content Hello",
-    "clarification_status":"complete",
-    "pass_criteria":["test.txt exists","test.txt contains Hello"]
-  }' | jq -r '.id')
-
-# Wait for agent to complete (max 5 min)
-for i in {1..60}; do
-  STATUS=$(curl -s http://localhost:3333/api/tasks/$TASK_ID | jq -r '.status')
-  [ "$STATUS" = "completed" ] && break
-  sleep 5
-done
-
-[ "$STATUS" = "completed" ] || exit 1
-
-# Check transcript exists
-TRANS=$(curl -s "http://localhost:3333/api/transcripts?task_id=$TASK_ID" | jq length)
-[ "$TRANS" -ge 1 ] || exit 1
-
-kill $PID
-echo "✅ Phase 9 PASSED"
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_3_task_7_error_handling' AND status = 'passed';
 ```
-
-**Gate:** Agent spawns, completes task, transcript captured.
 
 ---
 
-## Phase 10: Agent Memory (Days 22-23)
+## Phase 3 Completion Gate
 
-**Goal:** Agents remember and learn from experience.
+**Final Validation:**
+```sql
+SELECT 
+  COUNT(*) as total,
+  SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as passed
+FROM test_case_results 
+WHERE case_id LIKE 'phase_3_task_%';
+-- Must return: total = 7, passed = 7
+```
 
-**Tasks:**
-- [ ] 1. Memory creation on task completion
-- [ ] 2. Memory retrieval before task start
-- [ ] 3. Memory decay (reduce relevance over time)
-- [ ] 4. SIA task memory (technique tracking)
-- [ ] 5. Technique effectiveness tracking
+---
+
+# Phases 4-16: Structure Template
+
+Each remaining phase follows the same structure:
+
+```
+# Phase N: Name (Days X-Y)
+
+**Goal:** [description]
+
+**Test Suite:** `phase_N_name`
+
+---
+
+### Task N.1: [Task Name]
+
+**Test Record:** `phase_N_task_1_[slug]`
+
+**Build Steps:**
+- [ ] N.1.1: [step description]
+- [ ] N.1.2: [step description]
+...
 
 **Pass Criteria:**
-- [ ] Successful task creates memory entry
-- [ ] Failed task creates failure memory
-- [ ] Memory injected into agent system prompt
-- [ ] Old memories (>30 days) pruned
-- [ ] Similar task matches by signature
-- [ ] Technique effectiveness calculated
-- [ ] Agent avoids previously failed techniques
+- [ ] [criterion 1]
+- [ ] [criterion 2]
+...
 
-**Verification Script:** `scripts/verify-phase-10.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator
-
-node -e "
-const db = require('./dist/db').default;
-const memory = require('./dist/memory').default;
-
-// Create test memory
-await memory.create({
-  agentId: 'build_agent',
-  memoryType: 'success_pattern',
-  content: 'Always run typecheck before commit',
-  taskSignature: 'test-sig-123'
-});
-
-// Retrieve memory
-const memories = await memory.getRelevant('build_agent', {signature: 'test-sig-123'});
-if (memories.length < 1) throw new Error('Memory not retrieved');
-
-// Check technique effectiveness
-const eff = await memory.getTechniqueEffectiveness('decomposition');
-console.log('Technique effectiveness:', eff);
-
-console.log('✅ Phase 10 PASSED');
-"
+**Validation Query:**
+```sql
+SELECT * FROM test_case_results 
+WHERE case_id = 'phase_N_task_1_[slug]' AND status = 'passed';
 ```
 
-**Gate:** Memory CRUD works, script exits 0.
-
 ---
 
-## Phase 11: QA Validation (Days 24-26)
+## Phase N Completion Gate
 
-**Goal:** Every iteration validated + stuck detection.
-
-**Tasks:**
-- [ ] 1. QA Agent system prompt
-- [ ] 2. Per-iteration validation checks
-- [ ] 3. 15-minute audit cycle
-- [ ] 4. Stuck detection logic
-- [ ] 5. Build interventions recording
-- [ ] 6. SIA arbitration for disputes
-
-**Pass Criteria:**
-- [ ] Completed iteration triggers QA validation
-- [ ] QA runs typecheck, tests, lint
-- [ ] Validation result stored in iteration_logs
-- [ ] 15-min audit detects stuck agents
-- [ ] Stuck agent terminated after detection
-- [ ] Build intervention recorded when QA/SIA fixes
-- [ ] SIA called for agent disputes
-
-**Verification Script:** `scripts/verify-phase-11.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator && npm start &
-PID=$!
-sleep 3
-
-# Complete a task and trigger QA
-# ... (simulate completed iteration)
-
-# Wait for QA cycle
-sleep 60
-
-# Check QA result exists
-QA=$(curl -s "http://localhost:3333/api/qa-audits?limit=1" | jq length)
-[ "$QA" -ge 1 ] || exit 1
-
-kill $PID
-echo "✅ Phase 11 PASSED"
+**Final Validation:**
+```sql
+SELECT 
+  COUNT(*) as total,
+  SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as passed
+FROM test_case_results 
+WHERE case_id LIKE 'phase_N_task_%';
+```
 ```
 
-**Gate:** QA validation runs, script exits 0.
+---
+
+# Summary
+
+| Phase | Name | Tasks | Days |
+|-------|------|-------|------|
+| 1 | Frontend Shell | 8 | 1-2 |
+| 2 | Data Model | 6 | 3-4 |
+| 3 | Backend API | 7 | 5-7 |
+| 4 | Frontend + API | 7 | 8-9 |
+| 5 | WebSocket | 7 | 10-11 |
+| 6 | Telegram Bot | 7 | 12-13 |
+| 7 | Orchestrator | 8 | 14-16 |
+| 8 | Clarification Agent | 6 | 17-18 |
+| 9 | Agent Spawner | 7 | 19-21 |
+| 10 | Agent Memory | 5 | 22-23 |
+| 11 | QA Validation | 6 | 24-26 |
+| 12 | Human Sim Agent | 6 | 27-30 |
+| 13 | Wave Execution | 6 | 31-33 |
+| 14 | Planning Agent | 6 | 34-36 |
+| 15 | Self-Improvement | 5 | 37-39 |
+| 16 | Polish | 9 | 40-43 |
+
+**Total:** 106 tasks across 16 phases over 43 days
 
 ---
 
-## Phase 12: Human Sim Agent (Days 27-30)
+# Test System Flow
 
-**Goal:** Usability testing with multiple personas.
-
-**Tasks:**
-- [ ] 1. Human Sim Agent system prompt
-- [ ] 2. Persona system (5 personas)
-- [ ] 3. Agent Browser integration (Claude Code skill) + Puppeteer MCP fallback
-- [ ] 4. Multi-instance spawning
-- [ ] 5. Results aggregation
-- [ ] 6. Fix task creation
-
-**Pass Criteria:**
-- [ ] Human Sim spawns for completed UI task
-- [ ] All 5 personas defined and loadable
-- [ ] Agent Browser navigates to test URL
-- [ ] Screenshots captured
-- [ ] Findings recorded in human_sim_results
-- [ ] Fix tasks created for issues found
-- [ ] Multiple personas run in parallel
-
-**Verification Script:** `scripts/verify-phase-12.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator
-
-node -e "
-const humanSim = require('./dist/agents/human-sim').default;
-
-// Test persona loading
-const personas = humanSim.getPersonas();
-if (Object.keys(personas).length !== 5) throw new Error('Expected 5 personas');
-
-// Test single run (mock)
-const result = await humanSim.runTest({
-  taskId: 'test-task',
-  persona: 'casual',
-  testUrl: 'http://localhost:4173'
-});
-
-if (!result.findings) throw new Error('No findings returned');
-
-console.log('✅ Phase 12 PASSED');
-"
+```
+1. Agent starts task N.X
+2. Creates test_case_results record with status='running'
+3. Executes build steps (checking off as completed)
+4. For each pass criterion:
+   a. Creates test_step_results record
+   b. Runs verification
+   c. Creates test_assertion_results record
+5. If all pass → status='passed'
+6. If any fail → status='failed', triggers fix loop
+7. Next task checks validation query before starting
 ```
 
-**Gate:** Human Sim runs with personas, script exits 0.
-
 ---
 
-## Phase 13: Wave Execution (Days 31-33)
+# Browser Testing
 
-**Goal:** Parallel task execution in waves.
+- **Primary:** Agent Browser (Vercel Claude Code skill)
+- **Fallback:** Puppeteer MCP
 
-**Tasks:**
-- [ ] 1. Wave calculation from dependencies
-- [ ] 2. Lane assignment by file patterns
-- [ ] 3. Wave lifecycle management
-- [ ] 4. Parallel agent spawning
-- [ ] 5. Wave progress tracking
-- [ ] 6. File impact analysis
-
-**Pass Criteria:**
-- [ ] Task list generates correct wave numbers
-- [ ] Tasks assigned to lanes by category
-- [ ] Wave N+1 only starts after Wave N completes
-- [ ] Multiple agents work in parallel within wave
-- [ ] Wave progress visible in dashboard
-- [ ] File conflicts detected between parallel tasks
-
-**Verification Script:** `scripts/verify-phase-13.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator
-
-node -e "
-const waves = require('./dist/waves').default;
-
-// Create test task list with dependencies
-const tasks = [
-  {id: 'a', deps: []},
-  {id: 'b', deps: []},
-  {id: 'c', deps: ['a']},
-  {id: 'd', deps: ['a', 'b']},
-  {id: 'e', deps: ['c', 'd']}
-];
-
-const waveMap = waves.calculate(tasks);
-
-// Validate wave assignments
-if (waveMap.get('a') !== 1) throw new Error('Task a should be wave 1');
-if (waveMap.get('b') !== 1) throw new Error('Task b should be wave 1');
-if (waveMap.get('c') !== 2) throw new Error('Task c should be wave 2');
-if (waveMap.get('d') !== 2) throw new Error('Task d should be wave 2');
-if (waveMap.get('e') !== 3) throw new Error('Task e should be wave 3');
-
-console.log('✅ Phase 13 PASSED');
-"
-```
-
-**Gate:** Wave calculation correct, script exits 0.
-
----
-
-## Phase 14: Planning Agent (Days 34-36)
-
-**Goal:** Strategic brain that creates improvement tasks.
-
-**Tasks:**
-- [ ] 1. Planning Agent system prompt with vision
-- [ ] 2. Project state analyzer
-- [ ] 3. Task creation logic
-- [ ] 4. Vision alignment check
-- [ ] 5. Cron schedule (every 2 hours)
-- [ ] 6. Telegram reporting
-
-**Pass Criteria:**
-- [ ] Planning Agent runs on cron schedule
-- [ ] Analyzes project state (codebase, tests, coverage)
-- [ ] Creates improvement tasks in database
-- [ ] Tasks have proper category='improvement'
-- [ ] Vision alignment score calculated
-- [ ] Results stored in planning_evaluations
-- [ ] Report sent to @vibe-planning
-
-**Verification Script:** `scripts/verify-phase-14.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator && npm start &
-PID=$!
-
-# Wait for planning cycle (or trigger manually)
-curl -s -X POST http://localhost:3333/api/planning/evaluate
-
-sleep 30
-
-# Check evaluation exists
-EVAL=$(curl -s "http://localhost:3333/api/planning/evaluations?limit=1" | jq length)
-[ "$EVAL" -ge 1 ] || exit 1
-
-# Check tasks were created
-TASKS=$(curl -s "http://localhost:3333/api/tasks?category=improvement" | jq '.tasks | length')
-[ "$TASKS" -ge 1 ] || exit 1
-
-kill $PID
-echo "✅ Phase 14 PASSED"
-```
-
-**Gate:** Planning Agent creates improvement tasks.
-
----
-
-## Phase 15: Self-Improvement (Days 37-39)
-
-**Goal:** System improves from failures.
-
-**Tasks:**
-- [ ] 1. Failure pattern detection
-- [ ] 2. Learning analysis
-- [ ] 3. Technique recommendation
-- [ ] 4. Harness self-modification
-- [ ] 5. Modification audit logging
-
-**Pass Criteria:**
-- [ ] Repeated failure (3+) triggers learning
-- [ ] Learning identifies failure pattern
-- [ ] Technique with highest success rate recommended
-- [ ] Harness code modification logged
-- [ ] harness_modifications table updated
-- [ ] Modification can be reverted
-
-**Verification Script:** `scripts/verify-phase-15.sh`
-```bash
-#!/bin/bash
-set -e
-cd orchestrator
-
-node -e "
-const learning = require('./dist/learning').default;
-const db = require('./dist/db').default;
-
-// Simulate repeated failures
-for (let i = 0; i < 3; i++) {
-  await db.createFailure({
-    taskId: 'test-task',
-    errorPattern: 'TypeScript error: Cannot find module',
-    technique: 'direct_fix'
-  });
-}
-
-// Trigger learning
-const result = await learning.analyze('test-task');
-
-if (!result.recommendation) throw new Error('No recommendation');
-if (!result.modificationProposed) throw new Error('No modification proposed');
-
-// Check audit log
-const mods = await db.getHarnessModifications();
-console.log('Modifications:', mods.length);
-
-console.log('✅ Phase 15 PASSED');
-"
-```
-
-**Gate:** Learning triggers modification, script exits 0.
-
----
-
-## Phase 16: Polish (Days 40-43)
-
-**Goal:** Production ready.
-
-**Tasks:**
-- [ ] 1. Error boundary components
-- [ ] 2. Loading/empty states
-- [ ] 3. Log viewer modal
-- [ ] 4. Task/session detail views
-- [ ] 5. Filters and search
-- [ ] 6. Docker optimization
-- [ ] 7. Priority escalation
-- [ ] 8. Acceptance criteria tracking
-- [ ] 9. Documentation
-
-**Pass Criteria:**
-- [ ] No unhandled errors crash the dashboard
-- [ ] All loading states implemented
-- [ ] Log viewer shows full iteration content
-- [ ] Search works for tasks and events
-- [ ] Docker build succeeds
-- [ ] P0 tasks preempt lower priority
-- [ ] Pass criteria tracked per-criterion
-- [ ] README.md complete with setup instructions
-
-**Verification Script:** `scripts/verify-phase-16.sh`
-```bash
-#!/bin/bash
-set -e
-
-# Docker build
-docker-compose build
-
-# Start all services
-docker-compose up -d
-sleep 10
-
-# Health check
-curl -s http://localhost:3333/health | jq -e '.status == "ok"' || exit 1
-curl -s http://localhost:3333 | grep -q "Dashboard" || exit 1
-
-# Cleanup
-docker-compose down
-
-echo "✅ Phase 16 PASSED"
-echo "🎉 ALL PHASES COMPLETE - HARNESS READY"
-```
-
-**Gate:** Docker builds and runs, all checks pass.
-
----
-
-## Summary
-
-| Phase | Focus | Days | Gate Script |
-|-------|-------|------|-------------|
-| 1 | Frontend Shell | 1-2 | verify-phase-01.sh |
-| 2 | Data Model | 3-4 | verify-phase-02.sh |
-| 3 | Backend API | 5-7 | verify-phase-03.sh |
-| 4 | Frontend + API | 8-9 | verify-phase-04.sh |
-| 5 | WebSocket | 10-11 | verify-phase-05.sh |
-| 6 | Telegram Bot | 12-13 | verify-phase-06.sh |
-| 7 | Orchestrator | 14-16 | verify-phase-07.sh |
-| 8 | Clarification Agent | 17-18 | verify-phase-08.sh |
-| 9 | Agent Spawner | 19-21 | verify-phase-09.sh |
-| 10 | Agent Memory | 22-23 | verify-phase-10.sh |
-| 11 | QA Validation | 24-26 | verify-phase-11.sh |
-| 12 | Human Sim Agent | 27-30 | verify-phase-12.sh |
-| 13 | Wave Execution | 31-33 | verify-phase-13.sh |
-| 14 | Planning Agent | 34-36 | verify-phase-14.sh |
-| 15 | Self-Improvement | 37-39 | verify-phase-15.sh |
-| 16 | Polish | 40-43 | verify-phase-16.sh |
-
-**Total:** 43 days
-
-**Rule:** Phase N cannot start until `verify-phase-{N-1}.sh` exits 0.
-
----
-
-## Agents
-
-| Agent | Phase | Purpose |
-|-------|-------|---------|
-| Clarification Agent | 8 | Ask users clarifying questions |
-| Human Sim Agent | 12 | Usability testing with 5 personas |
-| Planning Agent | 14 | Strategic brain, creates improvement tasks |
-
-**Total agents:** 13
-
-## Key Design Decisions
-
-| Decision | Answer | Impact |
-|----------|--------|--------|
-| Agent instances | Unlimited | Can spawn multiple Build Agents |
-| Harness self-mod | Autonomous + logged | Agents can improve harness code |
-| Agent disputes | SIA arbitrates → human | Clear resolution path |
-| Human involvement | Only when stuck | Minimal interruptions |
-| Database | Separate from Vibe | Independent operation |
-| Retention | 2 weeks logs, 30 days memory | Manageable storage |
+Used for E2E tests and UI verification.
