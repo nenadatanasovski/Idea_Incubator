@@ -453,18 +453,18 @@ WHERE case_id LIKE 'phase_2_task_%';
 **Test Record:** `phase_3_task_1_express`
 
 **Build Steps:**
-- [ ] 3.1.1: `npm install express cors`
-- [ ] 3.1.2: `npm install -D @types/express @types/cors`
-- [ ] 3.1.3: Create `src/server.ts` with Express app
-- [ ] 3.1.4: Configure CORS middleware
-- [ ] 3.1.5: Add health check endpoint `/health`
-- [ ] 3.1.6: Start server on port 3333
+- [x] 3.1.1: `npm install express cors` ✅
+- [x] 3.1.2: `npm install -D @types/express @types/cors` ✅
+- [x] 3.1.3: Create `src/server.ts` with Express app ✅
+- [x] 3.1.4: Configure CORS middleware ✅
+- [x] 3.1.5: Add health check endpoint `/health` ✅
+- [x] 3.1.6: Start server on port 3333 ✅
 
 **Pass Criteria:**
-- [ ] `src/server.ts` exists
-- [ ] Server starts on port 3333
-- [ ] `GET /health` returns `{"status": "ok"}`
-- [ ] CORS headers present in response
+- [x] `src/server.ts` exists ✅
+- [x] Server starts on port 3333 ✅
+- [x] `GET /health` returns `{"status": "ok"}` ✅
+- [x] CORS headers present in response ✅
 
 **Validation Query:**
 ```sql
@@ -479,17 +479,17 @@ WHERE case_id = 'phase_3_task_1_express' AND status = 'passed';
 **Test Record:** `phase_3_task_2_agents_api`
 
 **Build Steps:**
-- [ ] 3.2.1: Create `src/api/agents.ts` router
-- [ ] 3.2.2: Implement `GET /api/agents` (list all)
-- [ ] 3.2.3: Implement `GET /api/agents/:id` (get one)
-- [ ] 3.2.4: Implement `PATCH /api/agents/:id` (update status)
-- [ ] 3.2.5: Mount router in server.ts
+- [x] 3.2.1: Create `src/api/agents.ts` router ✅
+- [x] 3.2.2: Implement `GET /api/agents` (list all) ✅
+- [x] 3.2.3: Implement `GET /api/agents/:id` (get one) ✅
+- [x] 3.2.4: Implement `PATCH /api/agents/:id` (update status) ✅
+- [x] 3.2.5: Implement `POST /api/agents/:id/heartbeat` ✅
 
 **Pass Criteria:**
-- [ ] `GET /api/agents` returns 13 agents
-- [ ] `GET /api/agents/build_agent` returns single agent
-- [ ] `GET /api/agents/invalid` returns 404
-- [ ] `PATCH /api/agents/build_agent` updates status
+- [x] `GET /api/agents` returns 13 agents ✅
+- [x] `GET /api/agents/build_agent` returns single agent ✅
+- [x] `GET /api/agents/invalid` returns 404 ✅
+- [x] `PATCH /api/agents/build_agent` updates status ✅
 
 **Validation Query:**
 ```sql
@@ -504,19 +504,20 @@ WHERE case_id = 'phase_3_task_2_agents_api' AND status = 'passed';
 **Test Record:** `phase_3_task_3_tasks_api`
 
 **Build Steps:**
-- [ ] 3.3.1: Create `src/api/tasks.ts` router
-- [ ] 3.3.2: Implement `GET /api/tasks` (list with filters)
-- [ ] 3.3.3: Implement `GET /api/tasks/:id` (get one)
-- [ ] 3.3.4: Implement `POST /api/tasks` (create)
-- [ ] 3.3.5: Implement `PATCH /api/tasks/:id` (update)
-- [ ] 3.3.6: Implement `DELETE /api/tasks/:id` (delete)
+- [x] 3.3.1: Create `src/api/tasks.ts` router ✅
+- [x] 3.3.2: Implement `GET /api/tasks` (list with filters) ✅
+- [x] 3.3.3: Implement `GET /api/tasks/:id` (get one) ✅
+- [x] 3.3.4: Implement `POST /api/tasks` (create) ✅
+- [x] 3.3.5: Implement `PATCH /api/tasks/:id` (update) ✅
+- [x] 3.3.6: Implement `DELETE /api/tasks/:id` (delete) ✅
+- [x] 3.3.7: Implement `POST /api/tasks/:id/assign|complete|fail` ✅
 
 **Pass Criteria:**
-- [ ] `GET /api/tasks` returns tasks array
-- [ ] `GET /api/tasks?status=pending` filters correctly
-- [ ] `POST /api/tasks` creates and returns 201
-- [ ] `PATCH /api/tasks/:id` updates and returns task
-- [ ] `DELETE /api/tasks/:id` removes and returns success
+- [x] `GET /api/tasks` returns tasks array ✅
+- [x] `GET /api/tasks?status=pending` filters correctly ✅
+- [x] `POST /api/tasks` creates and returns 201 ✅
+- [x] `PATCH /api/tasks/:id` updates and returns task ✅
+- [x] `DELETE /api/tasks/:id` removes and returns success ✅
 
 **Validation Query:**
 ```sql
@@ -531,17 +532,17 @@ WHERE case_id = 'phase_3_task_3_tasks_api' AND status = 'passed';
 **Test Record:** `phase_3_task_4_sessions_api`
 
 **Build Steps:**
-- [ ] 3.4.1: Create `src/api/sessions.ts` router
-- [ ] 3.4.2: Implement `GET /api/sessions` (list with filters)
-- [ ] 3.4.3: Implement `GET /api/sessions/:id` (get with iterations)
-- [ ] 3.4.4: Implement `GET /api/sessions/:id/iterations` (list iterations)
-- [ ] 3.4.5: Implement `POST /api/sessions/:id/terminate` (terminate session)
+- [x] 3.4.1: Create `src/api/sessions.ts` router ✅
+- [x] 3.4.2: Implement `GET /api/sessions` (list with filters) ✅
+- [x] 3.4.3: Implement `GET /api/sessions/:id` (get with iterations) ✅
+- [x] 3.4.4: Implement `POST /api/sessions/:id/iterations` (log iteration) ✅
+- [x] 3.4.5: Implement `POST /api/sessions/:id/terminate` (terminate session) ✅
 
 **Pass Criteria:**
-- [ ] `GET /api/sessions` returns sessions array
-- [ ] `GET /api/sessions/:id` includes iterations
-- [ ] `GET /api/sessions/:id/iterations` returns iteration list
-- [ ] `POST /api/sessions/:id/terminate` updates status
+- [x] `GET /api/sessions` returns sessions array ✅
+- [x] `GET /api/sessions/:id` includes iterations ✅
+- [x] `POST /api/sessions/:id/iterations` logs iteration ✅
+- [x] `POST /api/sessions/:id/terminate` updates status ✅
 
 **Validation Query:**
 ```sql
@@ -556,16 +557,16 @@ WHERE case_id = 'phase_3_task_4_sessions_api' AND status = 'passed';
 **Test Record:** `phase_3_task_5_events_api`
 
 **Build Steps:**
-- [ ] 3.5.1: Create `src/api/events.ts` router
-- [ ] 3.5.2: Implement `GET /api/events` (list with filters)
-- [ ] 3.5.3: Support filters: type, agent_id, session_id, severity, since, limit
-- [ ] 3.5.4: Implement pagination (offset/limit)
+- [x] 3.5.1: Create `src/api/events.ts` router ✅
+- [x] 3.5.2: Implement `GET /api/events` (list with filters) ✅
+- [x] 3.5.3: Support filters: type, agent_id, session_id, severity, since, limit ✅
+- [x] 3.5.4: Implement pagination (offset/limit) ✅
 
 **Pass Criteria:**
-- [ ] `GET /api/events` returns events array
-- [ ] `GET /api/events?type=task:assigned` filters correctly
-- [ ] `GET /api/events?limit=10&offset=0` paginates
-- [ ] Events ordered by timestamp desc
+- [x] `GET /api/events` returns events array ✅
+- [x] `GET /api/events?type=task:assigned` filters correctly ✅
+- [x] `GET /api/events?limit=10&offset=0` paginates ✅
+- [x] Events ordered by timestamp desc ✅
 
 **Validation Query:**
 ```sql
@@ -580,17 +581,17 @@ WHERE case_id = 'phase_3_task_5_events_api' AND status = 'passed';
 **Test Record:** `phase_3_task_6_tests_api`
 
 **Build Steps:**
-- [ ] 3.6.1: Create `src/api/tests.ts` router
-- [ ] 3.6.2: Implement `GET /api/tests/suites` (list suites)
-- [ ] 3.6.3: Implement `GET /api/tests/runs` (list runs)
-- [ ] 3.6.4: Implement `GET /api/tests/runs/:id` (run with results)
-- [ ] 3.6.5: Implement `POST /api/tests/runs` (trigger test run)
+- [x] 3.6.1: Create `src/api/tests.ts` router ✅
+- [x] 3.6.2: Implement `GET /api/tests/suites` (list suites) ✅
+- [x] 3.6.3: Implement `GET /api/tests/runs` (list runs) ✅
+- [x] 3.6.4: Implement `GET /api/tests/runs/:id` (run with results) ✅
+- [x] 3.6.5: Implement `POST /api/tests/runs` (trigger test run) ✅
 
 **Pass Criteria:**
-- [ ] `GET /api/tests/suites` returns 16 suites
-- [ ] `GET /api/tests/runs` returns runs array
-- [ ] `POST /api/tests/runs` creates and triggers run
-- [ ] Results include case/step/assertion hierarchy
+- [x] `GET /api/tests/suites` returns 16 suites ✅
+- [x] `GET /api/tests/runs` returns runs array ✅
+- [x] `POST /api/tests/runs` creates test run ✅
+- [x] Results include suite/case results ✅
 
 **Validation Query:**
 ```sql
@@ -605,17 +606,17 @@ WHERE case_id = 'phase_3_task_6_tests_api' AND status = 'passed';
 **Test Record:** `phase_3_task_7_error_handling`
 
 **Build Steps:**
-- [ ] 3.7.1: Create `src/middleware/error-handler.ts`
-- [ ] 3.7.2: Handle 404 for unknown routes
-- [ ] 3.7.3: Handle 500 for server errors
-- [ ] 3.7.4: Return consistent JSON error format
-- [ ] 3.7.5: Log errors to console
+- [x] 3.7.1: Create `src/middleware/error-handler.ts` ✅
+- [x] 3.7.2: Handle 404 for unknown routes ✅
+- [x] 3.7.3: Handle 500 for server errors ✅
+- [x] 3.7.4: Return consistent JSON error format ✅
+- [x] 3.7.5: Log errors to console ✅
 
 **Pass Criteria:**
-- [ ] Unknown route returns `{"error": "Not found", "status": 404}`
-- [ ] Server error returns `{"error": "...", "status": 500}`
-- [ ] All errors have consistent JSON structure
-- [ ] Errors logged to console
+- [x] Unknown route returns `{"error": "Not found", "status": 404}` ✅
+- [x] Server error returns `{"error": "...", "status": 500}` ✅
+- [x] All errors have consistent JSON structure ✅
+- [x] Errors logged to console ✅
 
 **Validation Query:**
 ```sql
