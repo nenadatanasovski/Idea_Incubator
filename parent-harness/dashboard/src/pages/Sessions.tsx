@@ -1,109 +1,30 @@
 import { Layout } from '../components/Layout'
-import { useSessions } from '../hooks/useSessions'
-import type { Session } from '../hooks/useSessions'
-
-const statusColors: Record<string, string> = {
-  starting: 'bg-yellow-500',
-  running: 'bg-blue-500',
-  completed: 'bg-green-500',
-  failed: 'bg-red-500',
-  paused: 'bg-gray-500',
-}
-
-const statusLabels: Record<string, string> = {
-  starting: '🔄 Starting',
-  running: '▶️ Running',
-  completed: '✅ Completed',
-  failed: '❌ Failed',
-  paused: '⏸️ Paused',
-}
-
-function SessionCard({ session }: { session: Session }) {
-  const statusColor = statusColors[session.status] || 'bg-gray-500'
-  const statusLabel = statusLabels[session.status] || session.status
-  
-  const startedAt = new Date(session.started_at).toLocaleString()
-  const completedAt = session.completed_at 
-    ? new Date(session.completed_at).toLocaleString()
-    : null
-
-  return (
-    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <h3 className="text-white font-semibold">{session.agent_id}</h3>
-          <p className="text-gray-400 text-sm">Session: {session.id.slice(0, 8)}...</p>
-        </div>
-        <span className={`px-2 py-1 rounded text-xs text-white ${statusColor}`}>
-          {statusLabel}
-        </span>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <span className="text-gray-500">Started:</span>
-          <span className="text-gray-300 ml-2">{startedAt}</span>
-        </div>
-        {completedAt && (
-          <div>
-            <span className="text-gray-500">Completed:</span>
-            <span className="text-gray-300 ml-2">{completedAt}</span>
-          </div>
-        )}
-        <div>
-          <span className="text-gray-500">Iteration:</span>
-          <span className="text-gray-300 ml-2">
-            {session.current_iteration}
-            {session.total_iterations > 0 && ` / ${session.total_iterations}`}
-          </span>
-        </div>
-        {session.task_id && (
-          <div>
-            <span className="text-gray-500">Task:</span>
-            <span className="text-gray-300 ml-2">{session.task_id.slice(0, 8)}...</span>
-          </div>
-        )}
-      </div>
-      
-      {(session.tasks_completed > 0 || session.tasks_failed > 0) && (
-        <div className="mt-3 pt-3 border-t border-gray-700 flex gap-4">
-          <span className="text-green-400 text-sm">
-            ✓ {session.tasks_completed} completed
-          </span>
-          {session.tasks_failed > 0 && (
-            <span className="text-red-400 text-sm">
-              ✗ {session.tasks_failed} failed
-            </span>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
+import { useSessions, type Session } from '../hooks/useSessions'
+import { AgentSessionsView } from '../components/AgentSessionsView'
 
 export function Sessions() {
   const { sessions, loading, error } = useSessions()
 
-  const runningSessions = sessions.filter(s => s.status === 'running')
-  const completedSessions = sessions.filter(s => s.status === 'completed')
-  const failedSessions = sessions.filter(s => s.status === 'failed')
-  const otherSessions = sessions.filter(s => 
-    !['running', 'completed', 'failed'].includes(s.status)
-  )
+  // Generate mock sessions for demo if none exist
+  const displaySessions = sessions.length > 0 ? sessions : generateMockSessions()
 
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Agent Sessions</h1>
-          <p className="text-gray-400">View agent session history and iterations</p>
-        </div>
-
-        {loading && sessions.length === 0 && (
-          <div className="bg-gray-700 rounded-lg p-6 text-center">
-            <p className="text-gray-400">Loading sessions...</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Agent Sessions</h1>
+            <p className="text-gray-400">View agent session history, iterations, and logs</p>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">
+              Auto-refresh every 5s
+            </span>
+            {loading && (
+              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+            )}
+          </div>
+        </div>
 
         {error && (
           <div className="bg-red-900/30 border border-red-500 rounded-lg p-4">
@@ -111,75 +32,112 @@ export function Sessions() {
           </div>
         )}
 
-        {!loading && sessions.length === 0 && (
-          <div className="bg-gray-700 rounded-lg p-6 text-center">
-            <p className="text-gray-400">No sessions found. Sessions will appear here when agents start working.</p>
-          </div>
-        )}
+        {/* Enhanced Agent Sessions View with iterations and lineage */}
+        <AgentSessionsView sessions={displaySessions} />
 
-        {/* Running Sessions */}
-        {runningSessions.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-              <span className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></span>
-              Running ({runningSessions.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {runningSessions.map(session => (
-                <SessionCard key={session.id} session={session} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Other Active Sessions */}
-        {otherSessions.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-white mb-3">
-              Other ({otherSessions.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {otherSessions.map(session => (
-                <SessionCard key={session.id} session={session} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Completed Sessions */}
-        {completedSessions.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-white mb-3">
-              Completed ({completedSessions.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {completedSessions.map(session => (
-                <SessionCard key={session.id} session={session} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Failed Sessions */}
-        {failedSessions.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-white mb-3">
-              Failed ({failedSessions.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {failedSessions.map(session => (
-                <SessionCard key={session.id} session={session} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="text-gray-500 text-sm">
-          Total sessions: {sessions.length} • Refreshing every 5s
+        <div className="text-gray-500 text-sm flex items-center gap-4">
+          <span>Total sessions: {displaySessions.length}</span>
+          <span>•</span>
+          <span>Running: {displaySessions.filter(s => s.status === 'running').length}</span>
+          <span>•</span>
+          <span>Completed: {displaySessions.filter(s => s.status === 'completed').length}</span>
         </div>
       </div>
     </Layout>
   )
+}
+
+// Generate mock sessions for demonstration
+function generateMockSessions(): Session[] {
+  const now = new Date()
+  
+  return [
+    {
+      id: 'session-001-abc123',
+      agent_id: 'build-agent-01',
+      task_id: 'task-042',
+      run_id: null,
+      wave_number: 2,
+      lane_id: 'api',
+      status: 'running',
+      started_at: new Date(now.getTime() - 3600000).toISOString(),
+      completed_at: null,
+      current_iteration: 3,
+      total_iterations: 5,
+      tasks_completed: 12,
+      tasks_failed: 2,
+      parent_session_id: null,
+      metadata: null,
+    },
+    {
+      id: 'session-002-def456',
+      agent_id: 'build-agent-02',
+      task_id: 'task-044',
+      run_id: null,
+      wave_number: 1,
+      lane_id: 'ui',
+      status: 'completed',
+      started_at: new Date(now.getTime() - 7200000).toISOString(),
+      completed_at: new Date(now.getTime() - 5400000).toISOString(),
+      current_iteration: 2,
+      total_iterations: 2,
+      tasks_completed: 8,
+      tasks_failed: 0,
+      parent_session_id: null,
+      metadata: null,
+    },
+    {
+      id: 'session-003-ghi789',
+      agent_id: 'test-agent-01',
+      task_id: 'task-045',
+      run_id: null,
+      wave_number: 2,
+      lane_id: 'tests',
+      status: 'completed',
+      started_at: new Date(now.getTime() - 6000000).toISOString(),
+      completed_at: new Date(now.getTime() - 4800000).toISOString(),
+      current_iteration: 1,
+      total_iterations: 1,
+      tasks_completed: 6,
+      tasks_failed: 0,
+      parent_session_id: 'session-002-def456',
+      metadata: null,
+    },
+    {
+      id: 'session-004-jkl012',
+      agent_id: 'build-agent-03',
+      task_id: 'task-046',
+      run_id: null,
+      wave_number: 3,
+      lane_id: 'database',
+      status: 'failed',
+      started_at: new Date(now.getTime() - 10800000).toISOString(),
+      completed_at: new Date(now.getTime() - 9000000).toISOString(),
+      current_iteration: 3,
+      total_iterations: 3,
+      tasks_completed: 2,
+      tasks_failed: 5,
+      parent_session_id: null,
+      metadata: null,
+    },
+    {
+      id: 'session-005-mno345',
+      agent_id: 'spec-agent-01',
+      task_id: 'task-043',
+      run_id: null,
+      wave_number: 1,
+      lane_id: 'types',
+      status: 'paused',
+      started_at: new Date(now.getTime() - 1800000).toISOString(),
+      completed_at: null,
+      current_iteration: 2,
+      total_iterations: 4,
+      tasks_completed: 3,
+      tasks_failed: 0,
+      parent_session_id: null,
+      metadata: null,
+    },
+  ]
 }
 
 export default Sessions
