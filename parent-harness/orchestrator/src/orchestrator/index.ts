@@ -36,13 +36,16 @@ export async function startOrchestrator(): Promise<void> {
   isRunning = true;
   console.log('🎯 Orchestrator started');
   
+  // Wait for spawner to check Claude CLI availability
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
   const canSpawn = SPAWN_AGENTS && spawner.isEnabled();
   if (SPAWN_AGENTS && !spawner.isEnabled()) {
-    console.warn('   ⚠️ HARNESS_SPAWN_AGENTS=true but no auth token!');
+    console.warn('   ⚠️ HARNESS_SPAWN_AGENTS=true but Claude CLI not found!');
   }
   console.log(`   Spawn agents: ${canSpawn ? 'ENABLED ✅' : 'DISABLED'}`);
   if (!canSpawn) {
-    console.log(`      Set HARNESS_SPAWN_AGENTS=true and ANTHROPIC_OAUTH_TOKEN to enable`);
+    console.log(`      Set HARNESS_SPAWN_AGENTS=true (Claude CLI must be installed)`);
   }
   console.log(`   Run planning: ${RUN_PLANNING ? 'ENABLED' : 'DISABLED (set HARNESS_RUN_PLANNING=true)'}`);
 

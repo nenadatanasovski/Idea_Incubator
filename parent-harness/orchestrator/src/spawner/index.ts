@@ -1,32 +1,52 @@
 /**
- * Agent Spawner - Uses Claude CLI for OAuth-based execution
+ * Agent Spawner - Uses Claude CLI directly
  * 
- * Claude CLI handles OAuth internally, so we don't need API keys.
- * Agents use Claude CLI's built-in tools (Read, Write, exec).
+ * NO OpenClaw. Spawns Claude CLI processes directly.
+ * Agents use Claude CLI's built-in tools (Read, Write, Edit, exec).
  */
 
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import * as agents from '../db/agents.js';
 import * as sessions from '../db/sessions.js';
 import * as tasks from '../db/tasks.js';
 import { events } from '../db/events.js';
 import { ws } from '../websocket.js';
-import { notify } from '../telegram/index.js';
+import { notify } from '../telegram/direct-telegram.js';
 import * as git from '../git/index.js';
 
 // Codebase root
 const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
 
+// Max concurrent (limit to avoid overwhelming system)
+const MAX_CONCURRENT = 8;
+
+// Track running processes
+const runningProcesses = new Map<string, { 
+  process: ChildProcess;
+  startTime: number;
+}>();
+
 // Check if claude CLI is available
 let claudeAvailable = false;
-try {
-  const { execSync } = await import('child_process');
-  execSync('which claude', { stdio: 'ignore' });
-  claudeAvailable = true;
-  console.log('✅ Claude CLI available for agent spawning');
-} catch {
-  console.warn('⚠️ Claude CLI not found - agent spawning disabled');
+
+async function checkClaudeCLI(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const check = spawn('which', ['claude'], { stdio: 'pipe' });
+    check.on('close', (code) => resolve(code === 0));
+    check.on('error', () => resolve(false));
+    setTimeout(() => { check.kill(); resolve(false); }, 3000);
+  });
 }
+
+// Check on startup
+checkClaudeCLI().then(available => {
+  claudeAvailable = available;
+  if (available) {
+    console.log('✅ Claude CLI available for agent spawning');
+  } else {
+    console.warn('⚠️ Claude CLI not found - agent spawning disabled');
+  }
+});
 
 interface SpawnOptions {
   taskId: string;
@@ -43,20 +63,17 @@ interface SpawnResult {
   filesModified?: string[];
 }
 
-// Running sessions
-const runningSessions = new Map<string, { process: ReturnType<typeof spawn>; aborted: boolean }>();
-
 /**
  * Build system prompt for agent
  */
 function getSystemPrompt(agentType: string): string {
   const base = `You are an autonomous AI agent working on the Vibe Platform codebase at ${CODEBASE_ROOT}.
 
-Your tools: Read (files), Write (files), exec (shell commands)
+Your tools: Read (files), Write (files), Edit (precise edits), exec (shell commands)
 
 WORKFLOW:
 1. Read relevant files to understand the task
-2. Make changes using Write
+2. Make changes using Write or Edit
 3. Test with exec (npm test, npm run build)
 4. When done, output: TASK_COMPLETE: <summary>
 5. If stuck, output: TASK_FAILED: <reason>
@@ -69,9 +86,25 @@ RULES:
 
   const roles: Record<string, string> = {
     build_agent: 'You are a Build Agent - implement features and fix bugs.',
+    build: 'You are a Build Agent - implement features and fix bugs.',
     qa_agent: 'You are a QA Agent - verify implementations and run tests.',
+    qa: 'You are a QA Agent - verify implementations and run tests.',
     spec_agent: 'You are a Spec Agent - create technical specifications.',
+    spec: 'You are a Spec Agent - create technical specifications.',
     planning_agent: 'You are a Planning Agent - analyze codebase and plan work.',
+    planning: 'You are a Planning Agent - analyze codebase and plan work.',
+    test_agent: 'You are a Test Agent - write and run tests.',
+    test: 'You are a Test Agent - write and run tests.',
+    validation_agent: 'You are a Validation Agent - validate completed work.',
+    validation: 'You are a Validation Agent - validate completed work.',
+    research_agent: 'You are a Research Agent - investigate and analyze.',
+    research: 'You are a Research Agent - investigate and analyze.',
+    evaluator_agent: 'You are an Evaluator Agent - assess quality.',
+    evaluator: 'You are an Evaluator Agent - assess quality.',
+    decomposition_agent: 'You are a Decomposition Agent - break down complex tasks.',
+    decomposition: 'You are a Decomposition Agent - break down complex tasks.',
+    task_agent: 'You are a Task Agent - execute specific tasks.',
+    task: 'You are a Task Agent - execute specific tasks.',
   };
 
   return base + '\n' + (roles[agentType] || roles.build_agent);
@@ -101,13 +134,26 @@ function buildTaskPrompt(task: tasks.Task): string {
 export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnResult> {
   const { taskId, agentId, model = 'sonnet', timeout = 300 } = options;
 
+  // Check capacity
+  if (runningProcesses.size >= MAX_CONCURRENT) {
+    return { 
+      success: false, 
+      sessionId: '', 
+      error: `At max capacity (${MAX_CONCURRENT} concurrent agents)` 
+    };
+  }
+
+  // Check CLI availability
+  if (!claudeAvailable) {
+    claudeAvailable = await checkClaudeCLI();
+  }
   if (!claudeAvailable) {
     return { success: false, sessionId: '', error: 'Claude CLI not available' };
   }
 
-  const task = tasks.getTask(taskId);
-  const agent = agents.getAgent(agentId);
-  if (!task || !agent) {
+  const taskData = tasks.getTask(taskId);
+  const agentData = agents.getAgent(agentId);
+  if (!taskData || !agentData) {
     return { success: false, sessionId: '', error: 'Task or agent not found' };
   }
 
@@ -120,116 +166,130 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
   events.agentStarted(agentId, session.id);
   ws.sessionStarted(session);
   ws.agentStatusChanged(agents.getAgent(agentId));
-  notify.sessionStarted(agentId, task.display_id).catch(() => {});
 
-  const systemPrompt = getSystemPrompt(agent.type);
-  const taskPrompt = buildTaskPrompt(task);
+  // Notify agent's dedicated channel
+  await notify.agentSpawned(agentData.type, taskData.display_id).catch(() => {});
+
+  const systemPrompt = getSystemPrompt(agentData.type);
+  const taskPrompt = buildTaskPrompt(taskData);
   const fullPrompt = `${systemPrompt}\n\n---\n\n${taskPrompt}`;
 
-  console.log(`🚀 Spawning ${agent.name} for ${task.display_id} via Claude CLI`);
+  console.log(`🚀 Spawning ${agentData.name} for ${taskData.display_id} via Claude CLI`);
+
+  // Store refs for use in callbacks
+  const task = taskData;
+  const agent = agentData;
 
   return new Promise((resolve) => {
     const args = [
       '--print',
       '--model', model,
-      '--system-prompt', systemPrompt,
       '--allowedTools', 'Read,Write,Edit,exec',
-      '--no-session-persistence',
+      '--max-turns', '20',
       fullPrompt
     ];
 
     const child = spawn('claude', args, {
       cwd: CODEBASE_ROOT,
       stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: timeout * 1000,
     });
 
-    const sessionState = { process: child, aborted: false };
-    runningSessions.set(session.id, sessionState);
+    runningProcesses.set(session.id, {
+      process: child,
+      startTime: Date.now(),
+    });
 
     let stdout = '';
     let stderr = '';
 
-    child.stdout?.on('data', (data) => {
-      stdout += data.toString();
+    // Timeout handler
+    const timeoutId = setTimeout(() => {
+      child.kill('SIGTERM');
+      finishSession(false, `Timeout after ${timeout}s`);
+    }, timeout * 1000);
+
+    // Heartbeat interval
+    const heartbeatInterval = setInterval(() => {
       agents.updateHeartbeat(agentId);
+    }, 10000);
+
+    child.stdout?.on('data', (data: Buffer) => {
+      stdout += data.toString();
     });
 
-    child.stderr?.on('data', (data) => {
+    child.stderr?.on('data', (data: Buffer) => {
       stderr += data.toString();
     });
 
-    child.on('close', async (code) => {
-      runningSessions.delete(session.id);
-      
-      const output = stdout + stderr;
-      const isComplete = output.includes('TASK_COMPLETE');
-      const isFailed = output.includes('TASK_FAILED') || code !== 0;
+    function finishSession(success: boolean, errorMsg?: string) {
+      clearTimeout(timeoutId);
+      clearInterval(heartbeatInterval);
+      runningProcesses.delete(session.id);
 
-      // Extract files modified from output
+      const output = stdout + stderr;
       const filesModified = extractFilesModified(output);
 
-      if (isComplete && !isFailed) {
+      if (success) {
         sessions.updateSessionStatus(session.id, 'completed', output);
         tasks.updateTask(task.id, { status: 'pending_verification' });
         agents.incrementTasksCompleted(agentId);
         events.taskCompleted(taskId, agentId, task.title);
         ws.taskCompleted(tasks.getTask(taskId));
-        notify.taskCompleted(agentId, task.display_id, task.title).catch(() => {});
 
-        // Auto-commit if files were modified
+        // Notify agent's channel
+        notify.taskCompleted(agent.type, task.display_id, task.title, extractSummary(output)).catch(() => {});
+
+        // Auto-commit
         if (filesModified.length > 0) {
-          await git.autoCommitForTask(taskId, task.display_id, agentId, session.id).catch(() => {});
+          git.autoCommitForTask(taskId, task.display_id, agentId, session.id).catch(() => {});
         }
 
         console.log(`✅ ${agent.name} completed ${task.display_id}`);
         resolve({ success: true, sessionId: session.id, output, filesModified });
       } else {
-        const errorMsg = extractError(output) || `Exit code ${code}`;
-        sessions.updateSessionStatus(session.id, 'failed', undefined, errorMsg);
+        sessions.updateSessionStatus(session.id, 'failed', output, errorMsg);
         tasks.failTask(taskId);
         agents.incrementTasksFailed(agentId);
-        events.taskFailed(taskId, agentId, task.title, errorMsg);
-        ws.taskFailed(tasks.getTask(taskId), errorMsg);
-        notify.taskFailed(agentId, task.display_id, errorMsg).catch(() => {});
+        events.taskFailed(taskId, agentId, task.title, errorMsg || 'Unknown error');
+        ws.taskFailed(tasks.getTask(taskId), errorMsg || 'Unknown error');
 
-        console.log(`❌ ${agent.name} failed ${task.display_id}: ${errorMsg.slice(0, 100)}`);
-        resolve({ success: false, sessionId: session.id, error: errorMsg, filesModified });
+        // Notify agent's channel
+        notify.taskFailed(agent.type, task.display_id, errorMsg || 'Unknown error').catch(() => {});
+
+        console.log(`❌ ${agent.name} failed ${task.display_id}: ${(errorMsg || '').slice(0, 100)}`);
+        resolve({ success: false, sessionId: session.id, error: errorMsg, output, filesModified });
       }
 
+      // Cleanup
       agents.updateAgentStatus(agentId, 'idle', null, null);
       ws.agentStatusChanged(agents.getAgent(agentId));
       ws.sessionEnded(sessions.getSession(session.id));
+    }
+
+    child.on('close', (code) => {
+      const output = stdout + stderr;
+      const isComplete = output.includes('TASK_COMPLETE');
+      const isFailed = output.includes('TASK_FAILED') || code !== 0;
+
+      if (isComplete && !isFailed) {
+        finishSession(true);
+      } else {
+        const errorMsg = extractError(output) || `Exit code ${code}`;
+        finishSession(false, errorMsg);
+      }
     });
 
     child.on('error', (err) => {
-      runningSessions.delete(session.id);
-      const errorMsg = err.message;
-      
-      sessions.updateSessionStatus(session.id, 'failed', undefined, errorMsg);
-      tasks.failTask(taskId);
-      agents.incrementTasksFailed(agentId);
-      
-      agents.updateAgentStatus(agentId, 'idle', null, null);
-      ws.agentStatusChanged(agents.getAgent(agentId));
-      ws.sessionEnded(sessions.getSession(session.id));
-
-      console.log(`❌ ${agent.name} error: ${errorMsg}`);
-      resolve({ success: false, sessionId: session.id, error: errorMsg });
+      finishSession(false, `Spawn error: ${err.message}`);
     });
   });
 }
 
-/**
- * Extract files modified from output
- */
 function extractFilesModified(output: string): string[] {
   const files: string[] = [];
   const patterns = [
-    /(?:Write|wrote|created|modified)\s+(?:to\s+)?([\/\w.-]+\.[a-z]+)/gi,
-    /File written:\s*([\/\w.-]+)/gi,
+    /(?:Write|wrote|created|modified|Wrote to)\s+(?:to\s+)?([\/\w.-]+\.[a-z]+)/gi,
   ];
-  
   for (const pattern of patterns) {
     let match;
     while ((match = pattern.exec(output)) !== null) {
@@ -241,33 +301,48 @@ function extractFilesModified(output: string): string[] {
   return files;
 }
 
-/**
- * Extract error message from output
- */
 function extractError(output: string): string {
   const match = output.match(/TASK_FAILED:\s*(.+)/);
   return match ? match[1].trim() : '';
 }
 
+function extractSummary(output: string): string {
+  const match = output.match(/TASK_COMPLETE:\s*(.+)/s);
+  return match ? match[1].trim().slice(0, 500) : '';
+}
+
 export function killSession(sessionId: string): boolean {
-  const state = runningSessions.get(sessionId);
-  if (!state) return false;
+  const running = runningProcesses.get(sessionId);
+  if (!running) return false;
   
-  state.aborted = true;
-  state.process.kill('SIGTERM');
-  runningSessions.delete(sessionId);
-  
+  running.process.kill('SIGTERM');
+  runningProcesses.delete(sessionId);
   sessions.updateSessionStatus(sessionId, 'terminated');
   ws.sessionEnded(sessions.getSession(sessionId));
   return true;
 }
 
 export function getRunningSessions(): string[] {
-  return Array.from(runningSessions.keys());
+  return Array.from(runningProcesses.keys());
+}
+
+export function getRunningCount(): number {
+  return runningProcesses.size;
 }
 
 export function isEnabled(): boolean {
   return claudeAvailable;
 }
 
-export default { spawnAgentSession, killSession, getRunningSessions, isEnabled };
+export function canSpawnMore(): boolean {
+  return claudeAvailable && runningProcesses.size < MAX_CONCURRENT;
+}
+
+export default { 
+  spawnAgentSession, 
+  killSession, 
+  getRunningSessions, 
+  getRunningCount,
+  isEnabled,
+  canSpawnMore,
+};
