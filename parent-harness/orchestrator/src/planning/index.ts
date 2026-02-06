@@ -1,23 +1,26 @@
 /**
  * Planning Agent System
  * 
- * Strategic planning for improvements and task generation.
- * Analyzes patterns and creates high-level improvement tasks.
+ * Spawns a planning agent to analyze the codebase and create implementation tasks.
+ * This is the brain of the autonomous system.
  */
 
 import { query, run, getOne } from '../db/index.js';
 import * as tasks from '../db/tasks.js';
-import * as memory from '../memory/index.js';
+import * as spawner from '../spawner/index.js';
+import { notify } from '../telegram/index.js';
 import { v4 as uuidv4 } from 'uuid';
+
+const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
 
 export interface PlanningSession {
   id: string;
-  type: 'daily' | 'weekly' | 'incident' | 'optimization';
+  type: 'daily' | 'weekly' | 'incident' | 'optimization' | 'initial';
   status: 'planning' | 'completed' | 'cancelled';
-  input_data: string; // JSON
+  input_data: string;
   analysis: string | null;
-  recommendations: string | null; // JSON array
-  tasks_created: string | null; // JSON array of task IDs
+  recommendations: string | null;
+  tasks_created: string | null;
   created_at: string;
   completed_at: string | null;
 }
@@ -42,101 +45,173 @@ function ensurePlanningTable(): void {
 ensurePlanningTable();
 
 /**
- * Analyze recent performance and patterns
+ * Build the planning agent prompt
  */
-export function analyzePerformance(): {
-  successRate: number;
-  avgTaskDuration: number;
-  commonErrors: string[];
-  bottlenecks: string[];
-  recommendations: string[];
-} {
-  // Get recent task statistics
-  const taskStats = getOne<{ total: number; completed: number; failed: number }>(
-    `SELECT 
-      COUNT(*) as total,
-      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
-    FROM tasks 
-    WHERE created_at > datetime('now', '-7 days')`
-  );
+function buildPlanningPrompt(): string {
+  return `You are a Planning Agent for the Vibe Platform codebase at ${CODEBASE_ROOT}.
 
-  const successRate = taskStats && taskStats.total > 0
-    ? (taskStats.completed / taskStats.total) * 100
-    : 100;
+## YOUR MISSION
+Analyze the current state of the codebase and create a prioritized implementation plan.
 
-  // Get common error patterns from agent memory
-  const errorPatterns = query<{ key: string; access_count: number }>(
-    `SELECT key, access_count FROM agent_memory 
-     WHERE type = 'error_pattern' 
-     ORDER BY access_count DESC LIMIT 5`
-  );
+## WHAT TO ANALYZE
+1. Read CLAUDE.md, README.md, or any project documentation to understand the project
+2. Check parent-harness/docs/ for architecture and requirements
+3. Look at existing test failures: run \`npm test 2>&1 | tail -100\`
+4. Check TypeScript errors: run \`npm run build 2>&1 | tail -100\`
+5. Review any TODO comments or incomplete features
 
-  // Identify bottlenecks
-  const bottlenecks: string[] = [];
-  
-  // Check for tasks stuck too long
-  const stuckTasks = getOne<{ count: number }>(
-    `SELECT COUNT(*) as count FROM tasks 
-     WHERE status = 'in_progress' 
-     AND started_at < datetime('now', '-2 hours')`
-  );
-  if ((stuckTasks?.count ?? 0) > 0) {
-    bottlenecks.push(`${stuckTasks!.count} tasks stuck for 2+ hours`);
-  }
+## OUTPUT FORMAT
+Create a prioritized list of tasks in this exact format:
 
-  // Check agent utilization
-  const agentStats = getOne<{ working: number; idle: number }>(
-    `SELECT 
-      SUM(CASE WHEN status = 'working' THEN 1 ELSE 0 END) as working,
-      SUM(CASE WHEN status = 'idle' THEN 1 ELSE 0 END) as idle
-    FROM agents`
-  );
-  if (agentStats && agentStats.idle > agentStats.working * 2) {
-    bottlenecks.push('Low agent utilization - consider adding more tasks');
-  }
+### TASK_LIST_START ###
+TASK: <title>
+CATEGORY: feature|bug|test|documentation|improvement
+PRIORITY: P0|P1|P2|P3
+DESCRIPTION: <detailed description of what needs to be done>
+PASS_CRITERIA:
+- <criterion 1>
+- <criterion 2>
+- <criterion 3>
+---
+TASK: <next task title>
+...
+### TASK_LIST_END ###
 
-  // Generate recommendations
-  const recommendations: string[] = [];
-  
-  if (successRate < 80) {
-    recommendations.push('Improve task specifications to reduce failures');
-  }
-  if (errorPatterns.length > 0) {
-    recommendations.push(`Address recurring error: ${errorPatterns[0].key}`);
-  }
-  if (bottlenecks.length > 0) {
-    recommendations.push('Review and resolve identified bottlenecks');
-  }
+## PRIORITIES
+- P0: Critical blockers (tests failing, build broken)
+- P1: High priority features or bugs
+- P2: Normal priority improvements
+- P3: Nice to have, tech debt
 
-  return {
-    successRate,
-    avgTaskDuration: 0, // Would calculate from completed tasks
-    commonErrors: errorPatterns.map(e => e.key),
-    bottlenecks,
-    recommendations,
-  };
+## RULES
+1. Create 5-10 actionable tasks
+2. Each task should be completable by a single agent in 5-15 minutes
+3. Order tasks by dependency (foundational tasks first)
+4. Be specific - vague tasks are useless
+5. Include pass criteria that can be verified
+
+Now analyze the codebase and create the task list.
+
+When done, output: TASK_COMPLETE: Planning analysis finished with X tasks created
+`;
 }
 
 /**
- * Create a planning session
+ * Parse tasks from planning agent output
+ */
+function parseTasksFromOutput(output: string): Array<{
+  title: string;
+  category: string;
+  priority: string;
+  description: string;
+  passCriteria: string[];
+}> {
+  const tasks: Array<{
+    title: string;
+    category: string;
+    priority: string;
+    description: string;
+    passCriteria: string[];
+  }> = [];
+
+  // Find task list section
+  const startMatch = output.match(/### TASK_LIST_START ###/);
+  const endMatch = output.match(/### TASK_LIST_END ###/);
+  
+  if (!startMatch || !endMatch) {
+    console.warn('⚠️ Could not find task list markers in planning output');
+    return tasks;
+  }
+
+  const startIdx = startMatch.index! + startMatch[0].length;
+  const endIdx = endMatch.index!;
+  const taskSection = output.slice(startIdx, endIdx);
+
+  // Split by task delimiter
+  const taskBlocks = taskSection.split('---').filter(b => b.trim());
+
+  for (const block of taskBlocks) {
+    const titleMatch = block.match(/TASK:\s*(.+)/);
+    const categoryMatch = block.match(/CATEGORY:\s*(\w+)/);
+    const priorityMatch = block.match(/PRIORITY:\s*(P\d)/);
+    const descMatch = block.match(/DESCRIPTION:\s*(.+?)(?=PASS_CRITERIA:|$)/s);
+    const criteriaMatch = block.match(/PASS_CRITERIA:\s*([\s\S]+)/);
+
+    if (titleMatch) {
+      const passCriteria: string[] = [];
+      if (criteriaMatch) {
+        const criteriaLines = criteriaMatch[1].split('\n');
+        for (const line of criteriaLines) {
+          const cleaned = line.replace(/^[-*]\s*/, '').trim();
+          if (cleaned && !cleaned.startsWith('TASK:')) {
+            passCriteria.push(cleaned);
+          }
+        }
+      }
+
+      tasks.push({
+        title: titleMatch[1].trim(),
+        category: categoryMatch?.[1]?.toLowerCase() || 'improvement',
+        priority: priorityMatch?.[1] || 'P2',
+        description: descMatch?.[1]?.trim() || '',
+        passCriteria: passCriteria.slice(0, 5), // Max 5 criteria
+      });
+    }
+  }
+
+  return tasks;
+}
+
+/**
+ * Create a task from planning output
+ */
+async function createTaskFromPlan(
+  taskListId: string,
+  plan: {
+    title: string;
+    category: string;
+    priority: string;
+    description: string;
+    passCriteria: string[];
+  }
+): Promise<tasks.Task> {
+  // Generate display ID
+  const lastTask = getOne<{ display_id: string }>(
+    "SELECT display_id FROM tasks ORDER BY created_at DESC LIMIT 1"
+  );
+  const lastNum = lastTask?.display_id 
+    ? parseInt(lastTask.display_id.replace('TASK-', ''), 10) 
+    : 0;
+  const displayId = `TASK-${String(lastNum + 1).padStart(3, '0')}`;
+
+  return tasks.createTask({
+    display_id: displayId,
+    title: plan.title,
+    description: plan.description,
+    category: plan.category as tasks.Task['category'],
+    priority: plan.priority as tasks.Task['priority'],
+    task_list_id: taskListId,
+    pass_criteria: plan.passCriteria,
+  });
+}
+
+/**
+ * Create planning session record
  */
 export function createPlanningSession(
   type: PlanningSession['type'],
   inputData: object
 ): PlanningSession {
   const id = uuidv4();
-
   run(`
     INSERT INTO planning_sessions (id, type, input_data)
     VALUES (?, ?, ?)
   `, [id, type, JSON.stringify(inputData)]);
-
   return getPlanningSession(id)!;
 }
 
 /**
- * Complete a planning session with analysis
+ * Complete planning session
  */
 export function completePlanningSession(
   sessionId: string,
@@ -158,76 +233,112 @@ export function completePlanningSession(
     JSON.stringify(createdTaskIds),
     sessionId,
   ]);
-
   return getPlanningSession(sessionId);
 }
 
 /**
- * Get a planning session
+ * Get planning session
  */
 export function getPlanningSession(id: string): PlanningSession | undefined {
   return getOne<PlanningSession>('SELECT * FROM planning_sessions WHERE id = ?', [id]);
 }
 
 /**
- * Create improvement task from recommendation
- */
-export async function createImprovementTask(
-  taskListId: string,
-  recommendation: string,
-  priority: tasks.Task['priority'] = 'P2'
-): Promise<tasks.Task> {
-  // Generate display ID
-  const lastTask = getOne<{ display_id: string }>(
-    "SELECT display_id FROM tasks ORDER BY created_at DESC LIMIT 1"
-  );
-  const lastNum = lastTask?.display_id 
-    ? parseInt(lastTask.display_id.replace('TASK-', ''), 10) 
-    : 0;
-  const displayId = `TASK-${String(lastNum + 1).padStart(3, '0')}`;
-
-  return tasks.createTask({
-    display_id: displayId,
-    title: recommendation,
-    description: `Auto-generated improvement task from planning analysis.`,
-    category: 'improvement',
-    priority,
-    task_list_id: taskListId,
-    pass_criteria: [
-      'Implementation complete',
-      'No regressions introduced',
-      'Tests pass',
-    ],
-  });
-}
-
-/**
- * Run daily planning analysis
+ * Run the planning agent
  */
 export async function runDailyPlanning(taskListId: string): Promise<PlanningSession> {
-  // Create planning session
-  const analysis = analyzePerformance();
-  const session = createPlanningSession('daily', analysis);
-
-  // Create tasks for recommendations
-  const createdTaskIds: string[] = [];
+  console.log('🧠 Spawning planning agent to analyze codebase...');
   
-  for (const rec of analysis.recommendations.slice(0, 3)) { // Max 3 tasks
-    const task = await createImprovementTask(taskListId, rec, 'P3');
-    createdTaskIds.push(task.id);
+  // Create session record
+  const session = createPlanningSession('daily', { taskListId });
+  
+  // Notify via Telegram
+  await notify.systemStatus(0, 0, 0).catch(() => {});
+
+  // Check if spawner is available
+  if (!spawner.isEnabled()) {
+    console.warn('⚠️ Spawner not available, skipping planning agent');
+    completePlanningSession(session.id, 'Spawner not available', [], []);
+    return getPlanningSession(session.id)!;
   }
 
-  // Complete the session
+  // Spawn the planning agent with custom prompt
+  const prompt = buildPlanningPrompt();
+  
+  const result = await spawner.spawnWithPrompt(prompt, {
+    model: 'sonnet',
+    timeout: 600, // 10 minutes for thorough analysis
+    label: 'planning',
+  });
+
+  if (!result.success || !result.output) {
+    console.error('❌ Planning agent failed:', result.error);
+    completePlanningSession(session.id, result.error || 'Planning failed', [], []);
+    return getPlanningSession(session.id)!;
+  }
+
+  // Parse tasks from output
+  const plannedTasks = parseTasksFromOutput(result.output);
+  console.log(`📋 Planning agent created ${plannedTasks.length} task proposals`);
+
+  // Create actual tasks in database
+  const createdTaskIds: string[] = [];
+  for (const plan of plannedTasks) {
+    try {
+      const task = await createTaskFromPlan(taskListId, plan);
+      createdTaskIds.push(task.id);
+      console.log(`   ✅ Created: ${task.display_id} - ${task.title}`);
+    } catch (err) {
+      console.warn(`   ⚠️ Failed to create task: ${plan.title}`);
+    }
+  }
+
+  // Complete session
   completePlanningSession(
     session.id,
-    `Daily analysis: ${analysis.successRate.toFixed(1)}% success rate, ${analysis.bottlenecks.length} bottlenecks identified`,
-    analysis.recommendations,
+    `Planning complete: ${createdTaskIds.length} tasks created`,
+    plannedTasks.map(t => t.title),
     createdTaskIds
   );
 
-  console.log(`📊 Daily planning complete: ${createdTaskIds.length} improvement tasks created`);
+  // Notify
+  await notify.waveStarted(1, createdTaskIds.length).catch(() => {});
+
+  console.log(`🧠 Planning complete: ${createdTaskIds.length} tasks ready for execution`);
 
   return getPlanningSession(session.id)!;
+}
+
+/**
+ * Analyze performance (lightweight version for status checks)
+ */
+export function analyzePerformance(): {
+  successRate: number;
+  avgTaskDuration: number;
+  commonErrors: string[];
+  bottlenecks: string[];
+  recommendations: string[];
+} {
+  const taskStats = getOne<{ total: number; completed: number; failed: number }>(
+    `SELECT 
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+    FROM tasks 
+    WHERE created_at > datetime('now', '-7 days')`
+  );
+
+  const successRate = taskStats && taskStats.total > 0
+    ? (taskStats.completed / taskStats.total) * 100
+    : 100;
+
+  return {
+    successRate,
+    avgTaskDuration: 0,
+    commonErrors: [],
+    bottlenecks: [],
+    recommendations: [],
+  };
 }
 
 export default {
@@ -235,6 +346,5 @@ export default {
   createPlanningSession,
   completePlanningSession,
   getPlanningSession,
-  createImprovementTask,
   runDailyPlanning,
 };

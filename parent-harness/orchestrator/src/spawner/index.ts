@@ -338,8 +338,92 @@ export function canSpawnMore(): boolean {
   return claudeAvailable && runningProcesses.size < MAX_CONCURRENT;
 }
 
+/**
+ * Spawn an agent with a custom prompt (for planning, etc.)
+ * Doesn't require a task in the database.
+ */
+export async function spawnWithPrompt(
+  prompt: string,
+  options: { model?: string; timeout?: number; label?: string } = {}
+): Promise<{ success: boolean; output?: string; error?: string }> {
+  const { model = 'sonnet', timeout = 600, label = 'planning' } = options;
+
+  if (!claudeAvailable) {
+    claudeAvailable = await checkClaudeCLI();
+  }
+  if (!claudeAvailable) {
+    return { success: false, error: 'Claude CLI not available' };
+  }
+
+  if (runningProcesses.size >= MAX_CONCURRENT) {
+    return { success: false, error: 'At max capacity' };
+  }
+
+  console.log(`🧠 Spawning ${label} agent...`);
+
+  return new Promise((resolve) => {
+    const args = [
+      '--print',
+      '--model', model,
+      '--allowedTools', 'Read,Write,Edit,exec',
+      '--max-turns', '30',
+      prompt,
+    ];
+
+    const child = spawn('claude', args, {
+      cwd: CODEBASE_ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    const sessionId = `${label}-${Date.now()}`;
+    runningProcesses.set(sessionId, {
+      process: child,
+      startTime: Date.now(),
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    const timeoutId = setTimeout(() => {
+      child.kill('SIGTERM');
+      resolve({ success: false, error: `Timeout after ${timeout}s` });
+    }, timeout * 1000);
+
+    child.stdout?.on('data', (data: Buffer) => {
+      stdout += data.toString();
+    });
+
+    child.stderr?.on('data', (data: Buffer) => {
+      stderr += data.toString();
+    });
+
+    child.on('close', (code) => {
+      clearTimeout(timeoutId);
+      runningProcesses.delete(sessionId);
+
+      const output = stdout + stderr;
+      const isComplete = output.includes('TASK_COMPLETE');
+
+      if (isComplete) {
+        console.log(`✅ ${label} agent completed`);
+        resolve({ success: true, output });
+      } else {
+        console.log(`❌ ${label} agent failed (code ${code})`);
+        resolve({ success: false, output, error: `Exit code ${code}` });
+      }
+    });
+
+    child.on('error', (err) => {
+      clearTimeout(timeoutId);
+      runningProcesses.delete(sessionId);
+      resolve({ success: false, error: err.message });
+    });
+  });
+}
+
 export default { 
   spawnAgentSession, 
+  spawnWithPrompt,
   killSession, 
   getRunningSessions, 
   getRunningCount,

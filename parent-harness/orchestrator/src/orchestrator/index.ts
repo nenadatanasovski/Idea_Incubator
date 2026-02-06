@@ -61,18 +61,16 @@ export async function startOrchestrator(): Promise<void> {
 
   // Schedule planning analysis (every 2 hours)
   if (RUN_PLANNING) {
+    // Run initial planning IMMEDIATELY on startup
+    console.log('📊 Running initial planning analysis...');
+    runPlanning().catch(err => console.error('Initial planning error:', err));
+    
+    // Then schedule recurring planning
     setInterval(async () => {
       if (isRunning) {
         await runPlanning();
       }
     }, PLANNING_INTERVAL_MS);
-    
-    // Run initial planning after 1 minute
-    setTimeout(async () => {
-      if (isRunning) {
-        await runPlanning();
-      }
-    }, 60_000);
   }
 }
 
