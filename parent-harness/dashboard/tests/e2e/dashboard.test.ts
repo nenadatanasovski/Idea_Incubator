@@ -52,6 +52,8 @@ describe('Dashboard E2E Tests', () => {
   describe('Layout Components', () => {
     beforeAll(async () => {
       await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle0' });
+      // Wait for React to render
+      await page.waitForSelector('[data-testid="layout-header"]', { timeout: 10000 });
     });
 
     it('should have header with navigation', async () => {

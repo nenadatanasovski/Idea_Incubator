@@ -1,5 +1,6 @@
 import { Layout } from '../components/Layout'
-import { useSessions, Session } from '../hooks/useSessions'
+import { useSessions } from '../hooks/useSessions'
+import type { Session } from '../hooks/useSessions'
 
 const statusColors: Record<string, string> = {
   starting: 'bg-yellow-500',

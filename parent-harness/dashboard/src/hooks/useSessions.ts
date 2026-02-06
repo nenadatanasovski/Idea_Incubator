@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { apiClient } from '../api/client'
+import { api } from '../api/client'
 
 export interface Session {
   id: string
@@ -27,7 +27,7 @@ export function useSessions() {
   const fetchSessions = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await apiClient.get<Session[]>('/api/sessions')
+      const data = await api.get<Session[]>('/api/sessions')
       setSessions(data)
       setError(null)
     } catch (err) {
