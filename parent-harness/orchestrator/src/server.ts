@@ -1,14 +1,22 @@
 import express from 'express';
 import cors from 'cors';
+import { createServer } from 'http';
 import { agentsRouter } from './api/agents.js';
 import { tasksRouter } from './api/tasks.js';
 import { sessionsRouter } from './api/sessions.js';
 import { eventsRouter } from './api/events.js';
 import { testsRouter } from './api/tests.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
+import { initWebSocket } from './websocket.js';
 
 const app = express();
 const PORT = process.env.PORT || 3333;
+
+// Create HTTP server
+const server = createServer(app);
+
+// Initialize WebSocket
+initWebSocket(server);
 
 // Middleware
 app.use(cors());
@@ -31,9 +39,10 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Orchestrator API running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔌 WebSocket: ws://localhost:${PORT}/ws`);
 });
 
 export default app;
