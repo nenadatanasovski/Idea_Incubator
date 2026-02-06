@@ -1,33 +1,119 @@
 /**
- * Agent Spawner - Executes tasks via OpenClaw sessions_spawn
+ * Agent Spawner - STANDALONE Anthropic SDK execution
  * 
- * Uses OpenClaw's sub-agent spawning which:
- * - Handles OAuth authentication automatically
- * - Provides full tool access (file, exec, browser)
- * - Returns results when complete
- * 
- * NO API KEYS NEEDED - uses OpenClaw's OAuth session
+ * The harness runs ITSELF. No OpenClaw dependency.
+ * Uses ANTHROPIC_API_KEY directly for tool-based agent execution.
  */
 
+import Anthropic from '@anthropic-ai/sdk';
+import * as fs from 'fs';
+import * as path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import * as agents from '../db/agents.js';
 import * as sessions from '../db/sessions.js';
 import * as tasks from '../db/tasks.js';
 import { events } from '../db/events.js';
 import { ws } from '../websocket.js';
 import { notify } from '../telegram/index.js';
+import * as budget from '../budget/index.js';
+import * as git from '../git/index.js';
+
+const execAsync = promisify(exec);
 
 // Codebase root
-const CODEBASE_ROOT = '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
+const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
 
-// OpenClaw Gateway URL
-const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://localhost:3030';
-const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN;
+// Initialize Anthropic client - REQUIRES ANTHROPIC_API_KEY
+const apiKey = process.env.ANTHROPIC_API_KEY;
+let anthropic: Anthropic | null = null;
+
+if (apiKey) {
+  anthropic = new Anthropic({ apiKey });
+  console.log('✅ Anthropic client initialized');
+} else {
+  console.warn('⚠️ ANTHROPIC_API_KEY not set - agent spawning disabled');
+}
+
+// Tool definitions
+const TOOLS: Anthropic.Tool[] = [
+  {
+    name: 'read_file',
+    description: 'Read the contents of a file',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        path: { type: 'string', description: 'Path to the file (relative to codebase root or absolute)' },
+      },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'write_file',
+    description: 'Write content to a file (creates directories if needed)',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        path: { type: 'string', description: 'Path to the file' },
+        content: { type: 'string', description: 'Content to write' },
+      },
+      required: ['path', 'content'],
+    },
+  },
+  {
+    name: 'run_command',
+    description: 'Execute a shell command',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        command: { type: 'string', description: 'Shell command to execute' },
+        cwd: { type: 'string', description: 'Working directory (optional)' },
+      },
+      required: ['command'],
+    },
+  },
+  {
+    name: 'list_directory',
+    description: 'List contents of a directory',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        path: { type: 'string', description: 'Path to the directory' },
+      },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'task_complete',
+    description: 'Signal that the task is complete',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        summary: { type: 'string', description: 'Summary of what was accomplished' },
+        files_modified: { type: 'array', items: { type: 'string' }, description: 'List of modified files' },
+      },
+      required: ['summary'],
+    },
+  },
+  {
+    name: 'task_failed',
+    description: 'Signal that the task cannot be completed',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        error: { type: 'string', description: 'What went wrong' },
+        reason: { type: 'string', description: 'Why it cannot be completed' },
+      },
+      required: ['error'],
+    },
+  },
+];
 
 interface SpawnOptions {
   taskId: string;
   agentId: string;
-  timeout?: number; // seconds
   model?: string;
+  maxIterations?: number;
 }
 
 interface SpawnResult {
@@ -37,366 +123,322 @@ interface SpawnResult {
   error?: string;
   tokensUsed?: number;
   filesModified?: string[];
+  toolCalls?: number;
 }
 
-// Track running sessions (for cancellation)
+// Running sessions for cancellation
 const runningSessions = new Map<string, { aborted: boolean }>();
 
 /**
- * Get the system prompt for an agent type
+ * Resolve path relative to codebase root
  */
-function getAgentSystemPrompt(agentType: string): string {
-  const basePrompt = `You are an autonomous AI agent working on the Vibe Platform codebase.
-
-## CODEBASE LOCATION
-${CODEBASE_ROOT}
-
-## AVAILABLE TOOLS
-Use the standard file and exec tools:
-- Read: Read file contents
-- Write: Create or modify files  
-- exec: Execute shell commands (npm, git, etc.)
-
-## WORKFLOW
-1. Understand the task requirements
-2. Explore relevant files using Read
-3. Make changes using Write
-4. Test your changes using exec (npm test, npm run build, etc.)
-5. When done, output "TASK_COMPLETE:" followed by a summary
-6. If you cannot complete the task, output "TASK_FAILED:" followed by the reason
-
-## RULES
-- Always verify your changes work before completing
-- Write clean, documented code
-- Don't make unnecessary changes
-- If stuck, explain why in TASK_FAILED
-
-`;
-
-  const typePrompts: Record<string, string> = {
-    build_agent: `## ROLE: Build Agent
-You implement features and fix bugs. Focus on:
-- Clean, maintainable code
-- Proper TypeScript types
-- Unit tests for new code
-- No regressions`,
-
-    qa_agent: `## ROLE: QA Agent
-You verify implementations and find bugs. Focus on:
-- Running test suites
-- Checking edge cases
-- Verifying requirements met
-- Reporting issues clearly`,
-
-    spec_agent: `## ROLE: Specification Agent
-You create technical specifications. Focus on:
-- Clear requirements
-- Testable acceptance criteria
-- Technical approach
-- Dependencies and risks`,
-
-    planning_agent: `## ROLE: Planning Agent
-You analyze the codebase and plan work. Focus on:
-- Identifying gaps and improvements
-- Breaking work into tasks
-- Setting priorities
-- Tracking dependencies`,
-
-    research_agent: `## ROLE: Research Agent
-You investigate and gather information. Focus on:
-- Finding relevant documentation
-- Analyzing code patterns
-- Synthesizing findings
-- Actionable recommendations`,
-  };
-
-  return basePrompt + (typePrompts[agentType] || typePrompts.build_agent);
+function resolvePath(filePath: string): string {
+  if (path.isAbsolute(filePath)) return filePath;
+  return path.join(CODEBASE_ROOT, filePath);
 }
 
 /**
- * Build the task prompt for an agent
+ * Execute a tool call
+ */
+async function executeTool(
+  toolName: string,
+  toolInput: Record<string, unknown>,
+  sessionId: string,
+  agentId: string
+): Promise<{ success: boolean; output: string }> {
+  try {
+    switch (toolName) {
+      case 'read_file': {
+        const filePath = resolvePath(toolInput.path as string);
+        if (!fs.existsSync(filePath)) {
+          return { success: false, output: `File not found: ${filePath}` };
+        }
+        const content = fs.readFileSync(filePath, 'utf-8');
+        events.toolUse(agentId, sessionId, 'read_file', { path: filePath });
+        return { success: true, output: content };
+      }
+
+      case 'write_file': {
+        const filePath = resolvePath(toolInput.path as string);
+        const content = toolInput.content as string;
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, content);
+        const linesChanged = content.split('\n').length;
+        events.fileEdit(agentId, sessionId, filePath, linesChanged);
+        notify.fileEdit(agentId, filePath, linesChanged).catch(() => {});
+        return { success: true, output: `File written: ${filePath}` };
+      }
+
+      case 'run_command': {
+        const command = toolInput.command as string;
+        const cwd = toolInput.cwd ? resolvePath(toolInput.cwd as string) : CODEBASE_ROOT;
+        try {
+          const { stdout, stderr } = await execAsync(command, { cwd, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
+          events.toolUse(agentId, sessionId, 'run_command', { command, cwd });
+          return { success: true, output: stdout + (stderr ? `\nSTDERR:\n${stderr}` : '') };
+        } catch (err: unknown) {
+          const error = err as { stdout?: string; stderr?: string; message?: string };
+          return { success: false, output: `Command failed: ${error.stderr || error.message}\nSTDOUT: ${error.stdout || ''}` };
+        }
+      }
+
+      case 'list_directory': {
+        const dirPath = resolvePath(toolInput.path as string);
+        if (!fs.existsSync(dirPath)) {
+          return { success: false, output: `Directory not found: ${dirPath}` };
+        }
+        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+        const listing = entries.map(e => `${e.isDirectory() ? '[DIR]' : '[FILE]'} ${e.name}`).join('\n');
+        return { success: true, output: listing };
+      }
+
+      case 'task_complete':
+        return { success: true, output: `TASK_COMPLETE: ${toolInput.summary}` };
+
+      case 'task_failed':
+        return { success: false, output: `TASK_FAILED: ${toolInput.error}` };
+
+      default:
+        return { success: false, output: `Unknown tool: ${toolName}` };
+    }
+  } catch (error) {
+    return { success: false, output: `Tool error: ${error instanceof Error ? error.message : String(error)}` };
+  }
+}
+
+/**
+ * Build system prompt for agent type
+ */
+function getSystemPrompt(agentType: string): string {
+  const base = `You are an autonomous AI agent working on the Vibe Platform codebase at ${CODEBASE_ROOT}.
+
+TOOLS: read_file, write_file, run_command, list_directory, task_complete, task_failed
+
+WORKFLOW:
+1. Understand the task
+2. Explore relevant files
+3. Implement changes
+4. Test with run_command (npm test, npm run build)
+5. Call task_complete when done, or task_failed if stuck
+
+RULES:
+- Verify changes work before completing
+- Write clean code
+- Don't make unnecessary changes
+`;
+
+  const roles: Record<string, string> = {
+    build_agent: 'ROLE: Build Agent - Implement features and fix bugs.',
+    qa_agent: 'ROLE: QA Agent - Verify implementations, run tests, find bugs.',
+    spec_agent: 'ROLE: Spec Agent - Create technical specifications.',
+    planning_agent: 'ROLE: Planning Agent - Analyze codebase, plan work.',
+  };
+
+  return base + '\n' + (roles[agentType] || roles.build_agent);
+}
+
+/**
+ * Build task prompt
  */
 function buildTaskPrompt(task: tasks.Task): string {
-  let prompt = `# Task: ${task.display_id}\n\n`;
-  prompt += `## Title\n${task.title}\n\n`;
-
-  if (task.description) {
-    prompt += `## Description\n${task.description}\n\n`;
-  }
-
-  if (task.spec_content) {
-    prompt += `## Specification\n${task.spec_content}\n\n`;
-  }
-
-  if (task.implementation_plan) {
-    prompt += `## Implementation Plan\n${task.implementation_plan}\n\n`;
-  }
-
+  let prompt = `# Task: ${task.display_id}\n\n## Title\n${task.title}\n\n`;
+  if (task.description) prompt += `## Description\n${task.description}\n\n`;
+  if (task.spec_content) prompt += `## Specification\n${task.spec_content}\n\n`;
   if (task.pass_criteria) {
     try {
       const criteria = JSON.parse(task.pass_criteria);
       if (Array.isArray(criteria)) {
-        prompt += `## Pass Criteria (ALL must be met)\n`;
-        criteria.forEach((c: string, i: number) => {
-          prompt += `${i + 1}. ${c}\n`;
-        });
-        prompt += '\n';
+        prompt += `## Pass Criteria\n${criteria.map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')}\n\n`;
       }
-    } catch {
-      prompt += `## Pass Criteria\n${task.pass_criteria}\n\n`;
-    }
+    } catch { /* ignore */ }
   }
-
-  prompt += `## Instructions\n`;
-  prompt += `1. Read relevant files to understand the current state\n`;
-  prompt += `2. Implement the required changes\n`;
-  prompt += `3. Run tests to verify (npm test, npm run build)\n`;
-  prompt += `4. Output TASK_COMPLETE: with a summary when done\n`;
-  prompt += `5. Output TASK_FAILED: with reason if you cannot proceed\n`;
-
   return prompt;
 }
 
 /**
- * Call OpenClaw Gateway to spawn a sub-agent
- */
-async function callOpenClawSpawn(
-  task: string,
-  options: { label?: string; model?: string; timeoutSeconds?: number }
-): Promise<{ success: boolean; output?: string; error?: string }> {
-  try {
-    const response = await fetch(`${GATEWAY_URL}/api/sessions/spawn`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(GATEWAY_TOKEN ? { 'Authorization': `Bearer ${GATEWAY_TOKEN}` } : {}),
-      },
-      body: JSON.stringify({
-        task,
-        label: options.label,
-        model: options.model || 'sonnet',
-        runTimeoutSeconds: options.timeoutSeconds || 300,
-        cleanup: 'delete',
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return { success: false, error: `Gateway error: ${response.status} ${errorText}` };
-    }
-
-    const result = await response.json() as { 
-      error?: string; 
-      output?: string; 
-      result?: string;
-      sessionKey?: string;
-    };
-    return { 
-      success: !result.error,
-      output: result.output || result.result,
-      error: result.error,
-    };
-  } catch (error) {
-    return { 
-      success: false, 
-      error: `Failed to call OpenClaw: ${error instanceof Error ? error.message : String(error)}` 
-    };
-  }
-}
-
-/**
- * Spawn an agent session via OpenClaw
+ * Spawn an agent session - FULLY AUTONOMOUS
  */
 export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnResult> {
-  const { 
-    taskId, 
-    agentId, 
-    model = 'sonnet',
-    timeout = 300,
-  } = options;
+  const { taskId, agentId, model = 'claude-sonnet-4-20250514', maxIterations = 20 } = options;
 
-  // Get task and agent details
-  const task = tasks.getTask(taskId);
-  const agent = agents.getAgent(agentId);
-
-  if (!task || !agent) {
-    return {
-      success: false,
-      sessionId: '',
-      error: `Task ${taskId} or agent ${agentId} not found`,
-    };
+  if (!anthropic) {
+    return { success: false, sessionId: '', error: 'ANTHROPIC_API_KEY not set' };
   }
 
-  // Create session record
+  const task = tasks.getTask(taskId);
+  const agent = agents.getAgent(agentId);
+  if (!task || !agent) {
+    return { success: false, sessionId: '', error: `Task or agent not found` };
+  }
+
+  // Create session
   const session = sessions.createSession(agentId, taskId);
   sessions.updateSessionStatus(session.id, 'running');
-
-  // Update agent status
   agents.updateAgentStatus(agentId, 'working', taskId, session.id);
   agents.updateHeartbeat(agentId);
 
-  // Log event & notify
   events.agentStarted(agentId, session.id);
   ws.sessionStarted(session);
   ws.agentStatusChanged(agents.getAgent(agentId));
-  
-  // Telegram notification
-  await notify.sessionStarted(agentId, task.display_id).catch(() => {});
+  notify.sessionStarted(agentId, task.display_id).catch(() => {});
 
-  // Build the full task prompt with system context
-  const systemPrompt = getAgentSystemPrompt(agent.type);
+  const systemPrompt = getSystemPrompt(agent.type);
   const taskPrompt = buildTaskPrompt(task);
-  const fullTask = `${systemPrompt}\n\n---\n\n${taskPrompt}`;
 
-  console.log(`🚀 Spawning ${agent.name} for ${task.display_id} via OpenClaw...`);
+  console.log(`🚀 Spawning ${agent.name} for ${task.display_id}`);
 
-  // Track session for cancellation
   const sessionState = { aborted: false };
   runningSessions.set(session.id, sessionState);
 
   const startTime = Date.now();
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let totalToolCalls = 0;
+  const filesModified: string[] = [];
+
+  const messages: Anthropic.MessageParam[] = [{ role: 'user', content: taskPrompt }];
+
+  let iteration = 0;
+  let taskCompleted = false;
+  let taskFailed = false;
+  let finalOutput = '';
 
   try {
-    // Call OpenClaw to spawn the agent
-    const result = await callOpenClawSpawn(fullTask, {
-      label: `harness-${agent.type}-${task.display_id}`,
-      model: model,
-      timeoutSeconds: timeout,
-    });
+    while (iteration < maxIterations && !sessionState.aborted && !taskCompleted && !taskFailed) {
+      iteration++;
+      console.log(`  📍 Iteration ${iteration}/${maxIterations}`);
 
-    const durationMs = Date.now() - startTime;
+      const response = await anthropic.messages.create({
+        model,
+        max_tokens: 8192,
+        system: systemPrompt,
+        tools: TOOLS,
+        messages,
+      });
+
+      totalInputTokens += response.usage.input_tokens;
+      totalOutputTokens += response.usage.output_tokens;
+      agents.updateHeartbeat(agentId);
+
+      // Track budget
+      budget.recordUsage(agentId, model, response.usage.input_tokens, response.usage.output_tokens, {
+        sessionId: session.id,
+        taskId,
+      });
+
+      const assistantContent: Anthropic.ContentBlock[] = [];
+      const toolResults: Anthropic.ToolResultBlockParam[] = [];
+
+      for (const block of response.content) {
+        assistantContent.push(block);
+
+        if (block.type === 'text') {
+          finalOutput += block.text + '\n';
+        } else if (block.type === 'tool_use') {
+          totalToolCalls++;
+          console.log(`    🔧 Tool: ${block.name}`);
+
+          const result = await executeTool(block.name, block.input as Record<string, unknown>, session.id, agentId);
+
+          if (block.name === 'write_file') {
+            const filePath = (block.input as { path: string }).path;
+            if (!filesModified.includes(filePath)) filesModified.push(filePath);
+          }
+
+          if (block.name === 'task_complete') {
+            taskCompleted = true;
+            finalOutput = result.output;
+          } else if (block.name === 'task_failed') {
+            taskFailed = true;
+            finalOutput = result.output;
+          }
+
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: block.id,
+            content: result.output.slice(0, 50000),
+          });
+        }
+      }
+
+      messages.push({ role: 'assistant', content: assistantContent });
+
+      if (toolResults.length > 0 && !taskCompleted && !taskFailed) {
+        messages.push({ role: 'user', content: toolResults });
+      }
+
+      if (response.stop_reason === 'end_turn' && !taskCompleted && !taskFailed) {
+        messages.push({ role: 'user', content: 'Continue. Use task_complete when done or task_failed if stuck.' });
+      }
+    }
+
     runningSessions.delete(session.id);
+    const tokensUsed = totalInputTokens + totalOutputTokens;
 
-    // Parse the result
-    const output = result.output || '';
-    const isComplete = output.includes('TASK_COMPLETE:');
-    const isFailed = output.includes('TASK_FAILED:') || !result.success;
-
-    if (isComplete && !isFailed) {
-      // Extract files modified from output (heuristic)
-      const filesModified = extractFilesModified(output);
-
-      // Mark session completed
-      sessions.updateSessionStatus(session.id, 'completed', output);
-
-      // Mark task as pending_verification
+    if (taskCompleted) {
+      sessions.updateSessionStatus(session.id, 'completed', finalOutput);
       tasks.updateTask(task.id, { status: 'pending_verification' });
       agents.incrementTasksCompleted(agentId);
-
       events.taskCompleted(taskId, agentId, task.title);
       ws.taskCompleted(tasks.getTask(taskId));
+      notify.taskCompleted(agentId, task.display_id, task.title).catch(() => {});
 
-      // Telegram notification
-      await notify.taskCompleted(agentId, task.display_id, task.title).catch(() => {});
+      // Auto-commit
+      if (filesModified.length > 0) {
+        await git.autoCommitForTask(taskId, task.display_id, agentId, session.id);
+      }
 
-      console.log(`✅ ${agent.name} completed ${task.display_id} (${durationMs}ms)`);
-
-      return {
-        success: true,
-        sessionId: session.id,
-        output,
-        filesModified,
-      };
+      console.log(`✅ ${agent.name} completed ${task.display_id}`);
+      return { success: true, sessionId: session.id, output: finalOutput, tokensUsed, filesModified, toolCalls: totalToolCalls };
     } else {
-      // Task failed
-      const errorMsg = isFailed 
-        ? output.split('TASK_FAILED:')[1]?.trim() || result.error || 'Unknown failure'
-        : result.error || 'No completion signal received';
-      
+      const errorMsg = taskFailed ? finalOutput : `Max iterations reached`;
       sessions.updateSessionStatus(session.id, 'failed', undefined, errorMsg);
       tasks.failTask(taskId);
       agents.incrementTasksFailed(agentId);
-
       events.taskFailed(taskId, agentId, task.title, errorMsg);
       ws.taskFailed(tasks.getTask(taskId), errorMsg);
+      notify.taskFailed(agentId, task.display_id, errorMsg).catch(() => {});
 
-      // Telegram notification
-      await notify.taskFailed(agentId, task.display_id, errorMsg).catch(() => {});
-
-      console.log(`❌ ${agent.name} failed ${task.display_id}: ${errorMsg.slice(0, 100)}`);
-
-      return {
-        success: false,
-        sessionId: session.id,
-        error: errorMsg,
-      };
+      console.log(`❌ ${agent.name} failed ${task.display_id}`);
+      return { success: false, sessionId: session.id, error: errorMsg, tokensUsed, filesModified, toolCalls: totalToolCalls };
     }
-
   } catch (error) {
-    const durationMs = Date.now() - startTime;
     runningSessions.delete(session.id);
-
     const errorMessage = error instanceof Error ? error.message : String(error);
-
     sessions.updateSessionStatus(session.id, 'failed', undefined, errorMessage);
     tasks.failTask(taskId);
     agents.incrementTasksFailed(agentId);
-
     events.taskFailed(taskId, agentId, task.title, errorMessage);
     ws.taskFailed(tasks.getTask(taskId), errorMessage);
 
-    // Telegram notification
-    await notify.taskFailed(agentId, task.display_id, errorMessage).catch(() => {});
-
-    console.log(`❌ ${agent.name} error on ${task.display_id}: ${errorMessage}`);
-
-    return {
-      success: false,
-      sessionId: session.id,
-      error: errorMessage,
-    };
+    console.log(`❌ ${agent.name} error: ${errorMessage}`);
+    return { success: false, sessionId: session.id, error: errorMessage };
   } finally {
-    // Always reset agent to idle
     agents.updateAgentStatus(agentId, 'idle', null, null);
     ws.agentStatusChanged(agents.getAgent(agentId));
     ws.sessionEnded(sessions.getSession(session.id));
   }
 }
 
-/**
- * Extract modified files from agent output (heuristic)
- */
-function extractFilesModified(output: string): string[] {
-  const files: string[] = [];
-  
-  // Look for Write tool usage patterns
-  const writePattern = /(?:Write|write_file|wrote|created|modified).*?([\/\w.-]+\.[a-z]+)/gi;
-  let match;
-  while ((match = writePattern.exec(output)) !== null) {
-    if (!files.includes(match[1])) {
-      files.push(match[1]);
-    }
-  }
-
-  return files;
-}
-
-/**
- * Kill a running agent session
- */
 export function killSession(sessionId: string): boolean {
   const state = runningSessions.get(sessionId);
   if (!state) return false;
-
   state.aborted = true;
   runningSessions.delete(sessionId);
-
   sessions.updateSessionStatus(sessionId, 'terminated');
   ws.sessionEnded(sessions.getSession(sessionId));
-
-  console.log(`🛑 Killed session ${sessionId}`);
   return true;
 }
 
-/**
- * Get list of running sessions
- */
 export function getRunningSessions(): string[] {
   return Array.from(runningSessions.keys());
 }
 
-export default {
-  spawnAgentSession,
-  killSession,
-  getRunningSessions,
-};
+export function isEnabled(): boolean {
+  return !!anthropic;
+}
+
+export default { spawnAgentSession, killSession, getRunningSessions, isEnabled };
