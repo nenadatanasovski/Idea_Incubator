@@ -2,6 +2,38 @@
 
 Each phase has explicit pass criteria and verification scripts. **No phase starts until the previous phase passes all criteria.**
 
+## Verification Event Pattern
+
+Every test step writes events to `verification_events` table:
+
+```
+1. BEFORE step: write_event(phase, task, step, "started")
+2. EXECUTE step
+3. AFTER step: write_event(phase, task, step, "completed" | "failed")
+4. VALIDATION: query DB to confirm all events exist
+```
+
+**Example:**
+```sql
+-- Step writes these:
+INSERT INTO verification_events (phase, task_number, step_name, status) 
+VALUES (1, 1, 'npm_build', 'started');
+
+INSERT INTO verification_events (phase, task_number, step_name, status, exit_code) 
+VALUES (1, 1, 'npm_build', 'completed', 0);
+
+-- Validation checks:
+SELECT COUNT(*) FROM verification_events 
+WHERE phase = 1 AND step_name = 'npm_build' AND status = 'completed';
+-- Must return 1, otherwise test failed
+```
+
+**Why this matters:**
+- Proves each step actually ran (not just exit code)
+- Creates audit trail
+- Easy debugging (query which step is missing)
+- Next agent can see exactly what passed/failed
+
 ---
 
 ## Phase 1: Frontend Shell (Days 1-2)

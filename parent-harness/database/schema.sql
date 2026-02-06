@@ -400,6 +400,43 @@ CREATE TABLE IF NOT EXISTS qa_audits (
 );
 
 -- ============================================
+-- VERIFICATION TABLES
+-- ============================================
+
+-- Every test step writes events here for audit trail
+CREATE TABLE IF NOT EXISTS verification_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT DEFAULT (datetime('now')),
+    phase INTEGER NOT NULL,
+    task_number INTEGER NOT NULL,
+    step_name TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('started', 'completed', 'failed')),
+    exit_code INTEGER,
+    duration_ms INTEGER,
+    output TEXT,
+    error_message TEXT,
+    session_id TEXT
+);
+
+-- Track complete verification runs
+CREATE TABLE IF NOT EXISTS verification_runs (
+    id TEXT PRIMARY KEY,
+    phase INTEGER NOT NULL,
+    started_at TEXT DEFAULT (datetime('now')),
+    completed_at TEXT,
+    status TEXT CHECK(status IN ('running', 'passed', 'failed')),
+    events_expected INTEGER DEFAULT 0,
+    events_found INTEGER DEFAULT 0,
+    missing_steps TEXT,  -- JSON array
+    session_id TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_verif_events_phase ON verification_events(phase);
+CREATE INDEX IF NOT EXISTS idx_verif_events_step ON verification_events(step_name);
+CREATE INDEX IF NOT EXISTS idx_verif_events_status ON verification_events(status);
+CREATE INDEX IF NOT EXISTS idx_verif_runs_phase ON verification_runs(phase);
+
+-- ============================================
 -- INDEXES
 -- ============================================
 

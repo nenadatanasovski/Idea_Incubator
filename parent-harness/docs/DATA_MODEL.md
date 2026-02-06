@@ -348,6 +348,40 @@ Planning Agent's periodic evaluations.
 | recommendations | TEXT | JSON array |
 | trigger | TEXT | cron/manual/post_completion |
 
+## Verification Tables
+
+### verification_events
+Audit log for every verification step. Tests write events before/after each step.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | INTEGER PK | Auto-increment |
+| timestamp | TEXT | ISO timestamp |
+| phase | INTEGER | Phase number (1-16) |
+| task_number | INTEGER | Task within phase |
+| step_name | TEXT | e.g., "npm_build", "typecheck", "route_test" |
+| status | TEXT | started/completed/failed |
+| exit_code | INTEGER | Command exit code (if applicable) |
+| duration_ms | INTEGER | Time taken |
+| output | TEXT | Stdout/stderr snippet |
+| error_message | TEXT | Error details if failed |
+| session_id | TEXT | Which agent session ran this |
+
+### verification_runs
+Track complete verification runs.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| phase | INTEGER | Phase being verified |
+| started_at | TEXT | ISO timestamp |
+| completed_at | TEXT | ISO timestamp |
+| status | TEXT | running/passed/failed |
+| events_expected | INTEGER | How many steps expected |
+| events_found | INTEGER | How many completed events found |
+| missing_steps | TEXT | JSON array of missing step names |
+| session_id | TEXT | Which session ran verification |
+
 ## Observability Tables
 
 ### observability_events
