@@ -1,114 +1,178 @@
 /**
- * Direct Telegram Bot API Integration
+ * Direct Telegram Bot API Integration - Multi-Bot Architecture
  * 
- * NO OpenClaw. Direct HTTPS calls to Telegram Bot API.
- * Each agent type has its own dedicated channel (loaded from database).
+ * Each agent type has its OWN dedicated bot.
+ * Uses IPv4 to avoid Node.js IPv6 timeout issues.
  */
 
-import * as agents from '../db/agents.js';
+import https from 'https';
 
-// Bot token from environment
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
+// Bot tokens per agent type
+const BOT_TOKENS: Record<string, string> = {
+  // System/Admin
+  system: process.env.TELEGRAM_BOT_SYSTEM || '8289522845:AAGsvjg3dnCrodJW1W1EhLjdp2s07LGe6CU',
+  monitor: process.env.TELEGRAM_BOT_MONITOR || '8411912868:AAG8zE_B1RhpQcBcKepJkBjJZ1CtZHk0neQ',
+  orchestrator: process.env.TELEGRAM_BOT_ORCHESTRATOR || '8437865967:AAEwfQ46b5tF94_7TRV90fzt1nOXdRJv86I',
+  
+  // Agent bots
+  build: process.env.TELEGRAM_BOT_BUILD || '8258850025:AAFQUFfaIgC0N1a5GZykcBEJE-sLJrc9lpA',
+  spec: process.env.TELEGRAM_BOT_SPEC || '8293978861:AAHNCRkaEn1xnanYekLNU1jTZcES7HX0k2A',
+  validation: process.env.TELEGRAM_BOT_VALIDATION || '8497591949:AAFqIpnUdIQors9v5pzFRNGPqv0gQ2ZkWx4',
+  sia: process.env.TELEGRAM_BOT_SIA || '8366604835:AAG2xGWqVoc4gDTenPxGk9SfNbGg_wFvRGc',
+};
 
-// Admin channel (fallback for all notifications)
-const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID || '';
+// Map agent types to their bot
+const AGENT_BOT_MAP: Record<string, string> = {
+  build: 'build', build_agent: 'build',
+  spec: 'spec', spec_agent: 'spec', planning: 'spec', planning_agent: 'spec',
+  decomposition: 'spec', decomposition_agent: 'spec',
+  qa: 'validation', qa_agent: 'validation', validation: 'validation', 
+  validation_agent: 'validation', test: 'validation', test_agent: 'validation',
+  research: 'monitor', research_agent: 'monitor', evaluator: 'monitor', evaluator_agent: 'monitor',
+  task: 'system', task_agent: 'system',
+  sia: 'sia', sia_agent: 'sia',
+  orchestrator: 'orchestrator', system: 'system',
+};
+
+// Admin chat ID
+const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID || '8397599412';
 
 /**
- * Send a message directly via Telegram Bot API
+ * Make HTTPS POST with IPv4 forced (avoids timeout issues)
+ */
+function httpsPostIPv4(url: string, body: object, timeoutMs = 10000): Promise<{ ok: boolean; result?: unknown; error?: string }> {
+  return new Promise((resolve) => {
+    const urlObj = new URL(url);
+    const bodyString = JSON.stringify(body);
+    
+    const req = https.request({
+      method: 'POST',
+      hostname: urlObj.hostname,
+      path: urlObj.pathname,
+      family: 4, // Force IPv4
+      timeout: timeoutMs,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(bodyString),
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch {
+          resolve({ ok: false, error: 'Invalid JSON' });
+        }
+      });
+    });
+    
+    req.on('error', (err) => resolve({ ok: false, error: err.message }));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ ok: false, error: 'Timeout' });
+    });
+    
+    req.write(bodyString);
+    req.end();
+  });
+}
+
+/**
+ * Make HTTPS GET with IPv4 forced
+ */
+function httpsGetIPv4(url: string, timeoutMs = 10000): Promise<{ ok: boolean; result?: unknown; error?: string }> {
+  return new Promise((resolve) => {
+    const urlObj = new URL(url);
+    
+    const req = https.get({
+      hostname: urlObj.hostname,
+      path: urlObj.pathname,
+      family: 4, // Force IPv4
+      timeout: timeoutMs,
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch {
+          resolve({ ok: false, error: 'Invalid JSON' });
+        }
+      });
+    });
+    
+    req.on('error', (err) => resolve({ ok: false, error: err.message }));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ ok: false, error: 'Timeout' });
+    });
+  });
+}
+
+/**
+ * Get bot token for an agent type
+ */
+function getBotToken(agentType: string): string {
+  const botKey = AGENT_BOT_MAP[agentType] || 'system';
+  return BOT_TOKENS[botKey] || BOT_TOKENS.system;
+}
+
+/**
+ * Send a message via a specific bot
  */
 async function sendTelegramMessage(
+  botToken: string,
   chatId: string,
   text: string,
   parseMode: 'HTML' | 'Markdown' = 'Markdown'
 ): Promise<boolean> {
-  if (!BOT_TOKEN) {
-    console.warn('⚠️ TELEGRAM_BOT_TOKEN not set, skipping notification');
-    return false;
-  }
+  if (!botToken || !chatId) return false;
 
-  if (!chatId) {
-    console.warn('⚠️ No chat ID provided, skipping notification');
-    return false;
-  }
-
-  try {
-    const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: parseMode,
-        disable_web_page_preview: true,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.warn(`❌ Telegram API error (${response.status}):`, error);
-      return false;
+  const result = await httpsPostIPv4(
+    `https://api.telegram.org/bot${botToken}/sendMessage`,
+    {
+      chat_id: chatId,
+      text,
+      parse_mode: parseMode,
+      disable_web_page_preview: true,
     }
+  );
 
-    return true;
-  } catch (error) {
-    console.warn(`❌ Telegram send failed:`, error instanceof Error ? error.message : error);
+  if (!result.ok) {
+    console.warn(`❌ Telegram: ${result.error}`);
     return false;
   }
+  return true;
 }
 
 /**
- * Get the channel for an agent (from database or fallback to admin)
- */
-function getAgentChannel(agentId: string): string {
-  try {
-    const agent = agents.getAgent(agentId);
-    if (agent?.telegram_channel) {
-      return agent.telegram_channel;
-    }
-  } catch {
-    // Database might not be ready
-  }
-  return ADMIN_CHAT_ID;
-}
-
-/**
- * Get the channel for an agent type (find first agent of that type)
- */
-function getAgentTypeChannel(agentType: string): string {
-  try {
-    const allAgents = agents.getAgents();
-    const agent = allAgents.find(a => a.type === agentType || a.id === agentType || a.id === `${agentType}_agent`);
-    if (agent?.telegram_channel) {
-      return agent.telegram_channel;
-    }
-  } catch {
-    // Database might not be ready
-  }
-  return ADMIN_CHAT_ID;
-}
-
-/**
- * Initialize Telegram (validate token)
+ * Initialize Telegram (validate all bot tokens)
  */
 export async function initTelegram(): Promise<boolean> {
-  if (!BOT_TOKEN) {
-    console.warn('⚠️ TELEGRAM_BOT_TOKEN not set - Telegram notifications disabled');
-    return false;
-  }
-
-  try {
-    const response = await fetch(`${TELEGRAM_API}/getMe`);
-    if (response.ok) {
-      const data = await response.json() as { result?: { username?: string } };
-      console.log(`📱 Telegram bot initialized`);
-      return true;
+  let anyValid = false;
+  
+  for (const [name, token] of Object.entries(BOT_TOKENS)) {
+    if (!token) continue;
+    
+    const result = await httpsGetIPv4(`https://api.telegram.org/bot${token}/getMe`);
+    
+    if (result.ok && result.result) {
+      const botInfo = result.result as { username?: string };
+      console.log(`📱 Bot ${name}: @${botInfo.username}`);
+      anyValid = true;
+    } else {
+      console.warn(`⚠️ Bot ${name}: ${result.error || 'failed'}`);
     }
-    return false;
-  } catch {
-    console.warn('⚠️ Could not connect to Telegram');
-    return false;
   }
+  
+  if (anyValid) {
+    console.log(`📱 Telegram multi-bot system ready`);
+  } else {
+    console.warn('⚠️ No Telegram bots available');
+  }
+  
+  return anyValid;
 }
 
 /**
@@ -117,24 +181,25 @@ export async function initTelegram(): Promise<boolean> {
 export async function sendMessage(
   chatId: string | number,
   message: string,
-  options?: { parseMode?: 'HTML' | 'Markdown' }
+  options?: { parseMode?: 'HTML' | 'Markdown'; botType?: string }
 ): Promise<boolean> {
-  return sendTelegramMessage(String(chatId), message, options?.parseMode || 'Markdown');
+  const token = options?.botType ? getBotToken(options.botType) : BOT_TOKENS.system;
+  return sendTelegramMessage(token, String(chatId), message, options?.parseMode || 'Markdown');
 }
 
 /**
  * Send notification to admin
  */
 export async function notifyAdmin(message: string): Promise<boolean> {
-  return sendTelegramMessage(ADMIN_CHAT_ID, message);
+  return sendTelegramMessage(BOT_TOKENS.system, ADMIN_CHAT_ID, message);
 }
 
 /**
- * Send notification to an agent's dedicated channel
+ * Send notification from an agent's dedicated bot
  */
 export async function notifyAgent(agentIdOrType: string, message: string): Promise<boolean> {
-  const channel = getAgentChannel(agentIdOrType) || getAgentTypeChannel(agentIdOrType);
-  return sendTelegramMessage(channel, message);
+  const token = getBotToken(agentIdOrType);
+  return sendTelegramMessage(token, ADMIN_CHAT_ID, message);
 }
 
 /**
@@ -142,52 +207,37 @@ export async function notifyAgent(agentIdOrType: string, message: string): Promi
  */
 export const notify = {
   taskAssigned: async (agentIdOrType: string, taskDisplayId: string, taskTitle: string) => {
-    const msg = `📋 *Task Assigned*\n\`${taskDisplayId}\`\n${taskTitle}`;
-    await notifyAgent(agentIdOrType, msg);
+    await notifyAgent(agentIdOrType, `📋 *Task Assigned*\n\`${taskDisplayId}\`\n${taskTitle}`);
   },
 
   taskCompleted: async (agentIdOrType: string, taskDisplayId: string, taskTitle: string, summary?: string) => {
     let msg = `✅ *Task Completed*\n\`${taskDisplayId}\`\n${taskTitle}`;
-    if (summary) {
-      msg += `\n\n${summary.slice(0, 500)}`;
-    }
+    if (summary) msg += `\n\n${summary.slice(0, 500)}`;
     await notifyAgent(agentIdOrType, msg);
   },
 
   taskFailed: async (agentIdOrType: string, taskDisplayId: string, error: string) => {
-    const msg = `❌ *Task Failed*\n\`${taskDisplayId}\`\n${error.slice(0, 300)}`;
-    await notifyAgent(agentIdOrType, msg);
-    // Also notify admin for visibility
-    await notifyAdmin(`❌ ${agentIdOrType}: ${taskDisplayId} failed`);
+    await notifyAgent(agentIdOrType, `❌ *Task Failed*\n\`${taskDisplayId}\`\n${error.slice(0, 300)}`);
   },
 
   agentSpawned: async (agentIdOrType: string, taskDisplayId: string) => {
-    const msg = `🚀 *Agent Spawned*\nWorking on: \`${taskDisplayId}\``;
-    await notifyAgent(agentIdOrType, msg);
+    await notifyAgent(agentIdOrType, `🚀 *Agent Spawned*\nWorking on: \`${taskDisplayId}\``);
   },
 
   agentOutput: async (agentIdOrType: string, taskDisplayId: string, output: string) => {
-    // Truncate long output
-    const truncated = output.length > 2000 
-      ? output.slice(0, 2000) + '\n\n... (truncated)'
-      : output;
-    const msg = `📤 *Agent Output*\n\`${taskDisplayId}\`\n\n\`\`\`\n${truncated}\n\`\`\``;
-    await notifyAgent(agentIdOrType, msg);
+    const truncated = output.length > 1500 ? output.slice(0, 1500) + '...' : output;
+    await notifyAgent(agentIdOrType, `📤 *Output*\n\`${taskDisplayId}\`\n\n\`\`\`\n${truncated}\n\`\`\``);
   },
 
   agentError: async (agentIdOrType: string, error: string) => {
-    const msg = `🔴 *Agent Error*\n${error.slice(0, 300)}`;
-    await notifyAgent(agentIdOrType, msg);
+    await notifyAgent(agentIdOrType, `🔴 *Error*\n${error.slice(0, 300)}`);
   },
 
   sessionStarted: async (agentIdOrType: string, taskDisplayId: string) => {
-    const msg = `🚀 *Session Started*\nWorking on: \`${taskDisplayId}\``;
-    await notifyAgent(agentIdOrType, msg);
+    await notifyAgent(agentIdOrType, `🚀 *Session Started*\nWorking on: \`${taskDisplayId}\``);
   },
 
-  sessionIteration: async (_agentId: string, _iteration: number, _maxIterations: number) => {
-    // Don't spam iterations
-  },
+  sessionIteration: async () => { /* Don't spam */ },
 
   waveStarted: async (waveNumber: number, taskCount: number) => {
     await notifyAdmin(`🌊 *Wave ${waveNumber}* started with ${taskCount} tasks`);
@@ -199,20 +249,17 @@ export const notify = {
   },
 
   systemStatus: async (workingCount: number, idleCount: number, pendingTasks: number) => {
-    const msg = `📊 *System Status*\nAgents: ${workingCount} working, ${idleCount} idle\nPending: ${pendingTasks} tasks`;
-    await notifyAdmin(msg);
+    await notifyAdmin(`📊 *Status*\nAgents: ${workingCount} working, ${idleCount} idle\nPending: ${pendingTasks}`);
   },
 
   fileEdit: async (agentIdOrType: string, filePath: string, linesChanged: number) => {
     const fileName = filePath.split('/').pop() || filePath;
-    const msg = `✏️ *File Edit*\n${fileName} (${linesChanged} lines)`;
-    await notifyAgent(agentIdOrType, msg);
+    await notifyAgent(agentIdOrType, `✏️ *File Edit*\n${fileName} (${linesChanged} lines)`);
   },
 
   testResults: async (agentIdOrType: string, passed: number, failed: number, skipped: number) => {
     const icon = failed > 0 ? '⚠️' : '✅';
-    const msg = `${icon} *Test Results*\n✅ ${passed} passed | ❌ ${failed} failed | ⏭️ ${skipped} skipped`;
-    await notifyAgent(agentIdOrType, msg);
+    await notifyAgent(agentIdOrType, `${icon} *Tests*\n✅ ${passed} | ❌ ${failed} | ⏭️ ${skipped}`);
   },
 
   buildResult: async (agentIdOrType: string, success: boolean, errors?: number) => {
@@ -224,15 +271,8 @@ export const notify = {
   },
 
   commitMade: async (agentIdOrType: string, hash: string, message: string) => {
-    const msg = `📝 *Commit*\n\`${hash.slice(0, 7)}\` ${message.slice(0, 100)}`;
-    await notifyAgent(agentIdOrType, msg);
+    await notifyAgent(agentIdOrType, `📝 *Commit*\n\`${hash.slice(0, 7)}\` ${message.slice(0, 100)}`);
   },
 };
 
-export default {
-  initTelegram,
-  sendMessage,
-  notifyAdmin,
-  notifyAgent,
-  notify,
-};
+export default { initTelegram, sendMessage, notifyAdmin, notifyAgent, notify };
