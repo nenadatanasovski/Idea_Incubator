@@ -1025,6 +1025,205 @@ CREATE INDEX idx_logs_session ON iteration_logs(session_id);
 
 ---
 
+## Parallelism, Waves & Loop Validation
+
+> **Critical for observability:** Every loop (iteration) done by an agent must be validated. This mirrors how Vibe's Observability → Agents → Sessions tab works.
+
+### Execution Hierarchy
+
+```
+Execution Run (one run of a task list)
+├── Wave 1 (parallel group)
+│   ├── Lane: database
+│   │   ├── Task A → Agent Session → Iteration 1 ✅ QA Passed
+│   │   │                          → Iteration 2 ✅ QA Passed
+│   │   └── Task B → Agent Session → Iteration 1 ❌ QA Failed
+│   │                              → Iteration 2 ✅ QA Passed
+│   └── Lane: api
+│       └── Task C → Agent Session → Iteration 1 ✅ QA Passed
+├── Wave 2 (starts after Wave 1 completes)
+│   ├── Lane: ui
+│   │   └── Task D → Agent Session → ...
+│   └── Lane: tests
+│       └── Task E → Agent Session → ...
+└── Wave 3
+    └── ...
+```
+
+### Waves
+
+**Definition:** A wave is a group of tasks that CAN run in parallel (no dependencies between them).
+
+**Rules:**
+1. All tasks in Wave N must complete before Wave N+1 starts
+2. Tasks within a wave can run simultaneously
+3. Wave number is calculated based on dependency graph
+4. Failed tasks in a wave may block the entire wave
+
+**Database:** `execution_waves` table
+
+### Lanes (Swimlanes)
+
+**Definition:** A lane is a category grouping for tasks based on file patterns.
+
+**Categories:**
+- `database` - migrations, schema changes
+- `types` - TypeScript types, interfaces
+- `api` - backend routes, controllers
+- `ui` - frontend components, pages
+- `tests` - test files
+- `infrastructure` - config, CI/CD
+- `other` - everything else
+
+**Why Lanes Matter:**
+1. Visual organization in UI (swimlane view)
+2. Conflict detection (same lane = potential file conflicts)
+3. Agent specialization (Build Agent might prefer `api` lane)
+
+**Database:** `execution_lanes`, `lane_tasks` tables
+
+### Agent Sessions & Iterations
+
+**Session:** One execution run of an agent on a task.
+
+**Iteration (Loop):** Each attempt within a session. An agent might take multiple iterations to complete a task.
+
+```
+Agent Session
+├── Iteration 1: Attempted fix, tests failed
+├── Iteration 2: Fixed bug, tests still failing
+├── Iteration 3: All tests pass ✅
+└── Session Complete
+```
+
+**What's tracked per iteration:**
+- `tasks_attempted`, `tasks_completed`, `tasks_failed`
+- `files_modified` (JSON array)
+- `commits` (JSON array)
+- `log_content` (full CLI output)
+- `tool_calls` (JSON array of all tool invocations)
+- `skill_uses` (JSON array of Claude skill uses)
+- `errors` (JSON array)
+- `checkpoints` (for rollback)
+
+### Loop-by-Loop QA Validation
+
+**Every single iteration must be validated by QA.** This is critical.
+
+**Validation Flow:**
+```
+1. Agent completes an iteration
+2. Iteration status → 'qa_pending'
+3. QA Agent picks up pending iterations
+4. QA runs verification:
+   - TypeScript compiles?
+   - Tests pass?
+   - No regressions?
+   - Lint passes?
+5. QA records result:
+   - 'passed' → iteration verified
+   - 'failed' → needs revision
+6. Iteration status updated with QA result
+```
+
+**Database:** `iteration_logs.qa_result`, `iteration_qa_results` table
+
+### Stuck Detection (Every 15 Minutes)
+
+**QA Agent audits all active sessions every 15 minutes:**
+
+1. Check CLI output (`log_content`) for each active iteration
+2. Look for signs of being stuck:
+   - No new tool calls in last 5 minutes
+   - Repeating the same action
+   - Error loop
+   - No output at all
+3. If genuinely stuck:
+   - Terminate the session
+   - Mark iteration as failed
+   - Notify Telegram @vibe-critical
+   - Free up the agent for new work
+
+**Why verbose output matters:**
+```
+# Good: Easy to detect progress
+10:45:32 🔧 tool:read_file → system-prompt.ts
+10:45:33 🔧 tool:edit_file → system-prompt.ts (+26 lines)
+10:45:34 🔧 tool:exec → npm run typecheck (exit 0)
+10:45:35 ✅ Criteria 1 passed
+
+# Bad: Impossible to know if stuck
+... silence for 10 minutes ...
+```
+
+**Agents MUST log:**
+- Every tool call with parameters
+- Every skill use
+- Every file read/write
+- Every command execution
+- Progress on criteria
+
+### Session Grouping in UI
+
+**Sessions View (like Vibe's Observability → Agents → Sessions):**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ AGENT SESSIONS                                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│ ▼ Run #42: Task List "API Implementation"                   [Wave 2 of 3]  │
+│   │                                                                         │
+│   ├─ Wave 1 (completed)                                                     │
+│   │   ├── Build Agent: TASK-001 [3 iterations] ✅ All QA Passed            │
+│   │   ├── Build Agent: TASK-002 [1 iteration]  ✅ QA Passed                │
+│   │   └── Spec Agent:  TASK-003 [2 iterations] ✅ All QA Passed            │
+│   │                                                                         │
+│   ├─ Wave 2 (active)                                                        │
+│   │   ├── Build Agent: TASK-004 [Iteration 2]  🔄 Running                  │
+│   │   │   └── [View Live Log] [View Iteration 1 QA: ✅]                    │
+│   │   └── Build Agent: TASK-005 [Iteration 1]  ⏳ QA Pending               │
+│   │       └── [View Log] [Trigger QA]                                       │
+│   │                                                                         │
+│   └─ Wave 3 (pending)                                                       │
+│       └── 5 tasks waiting                                                   │
+│                                                                              │
+│ ▶ Run #41: Task List "Database Migrations"                  [Completed]    │
+│ ▶ Run #40: Task List "UI Components"                        [Completed]    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Iteration Detail (expandable):**
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TASK-004 Iteration 2                                        [🔄 Running]   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Started: 10:42:15    Duration: 8m 32s    Agent: Build Agent                │
+│                                                                              │
+│ Previous Iterations:                                                         │
+│ ┌──────┬────────┬────────┬────────────────────────────────────────────────┐│
+│ │ #    │ Status │ QA     │ Summary                                         ││
+│ ├──────┼────────┼────────┼────────────────────────────────────────────────┤│
+│ │ 1    │ Done   │ ✅     │ Created endpoint, tests failed (auth issue)     ││
+│ └──────┴────────┴────────┴────────────────────────────────────────────────┘│
+│                                                                              │
+│ Current Iteration Log:                                                       │
+│ ┌─────────────────────────────────────────────────────────────────────────┐│
+│ │ 10:42:15 ▶ Starting iteration 2                                         ││
+│ │ 10:42:16 🔧 tool:read_file → server/routes/api.ts                       ││
+│ │ 10:42:18 🔧 tool:edit_file → server/routes/api.ts (+15 lines)           ││
+│ │ 10:42:20 🔧 tool:exec → npm test (running...)                           ││
+│ │ 10:50:47 ▶ Waiting for test completion...                               ││
+│ └─────────────────────────────────────────────────────────────────────────┘│
+│                                                                              │
+│ Tool Calls: 3    Files Modified: 1    Commits: 0                            │
+│ [View Full Log] [View Diff] [Trigger QA] [Terminate Session]               │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Agent Definitions
 
 ### 1. Orchestrator Agent

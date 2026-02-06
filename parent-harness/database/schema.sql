@@ -1,9 +1,9 @@
 -- Parent Harness Database Schema
--- Based on Vibe platform task structure with observability additions
+-- Based on Vibe platform structure with full parallelism and loop validation
 -- Created: 2026-02-06
 
 -- ============================================
--- TASK MANAGEMENT (copied from Vibe)
+-- TASK MANAGEMENT (from Vibe)
 -- ============================================
 
 -- Display ID sequences (per-project)
@@ -62,6 +62,9 @@ CREATE TABLE IF NOT EXISTS tasks (
     parent_task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
     is_decomposed INTEGER DEFAULT 0,
     decomposition_id TEXT,
+    -- Wave/Lane assignment
+    wave_number INTEGER,
+    lane_id TEXT,
     -- Pass criteria (JSON array)
     pass_criteria TEXT,
     verification_status TEXT CHECK(verification_status IN (
@@ -70,9 +73,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     -- Links
     spec_link TEXT,
     pr_link TEXT,
-    -- Created by
-    created_by TEXT,  -- 'user', 'task_agent', 'qa_agent', etc.
-    -- Timestamps
+    created_by TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),
     started_at TEXT,
@@ -92,6 +93,123 @@ CREATE TABLE IF NOT EXISTS task_relationships (
 );
 
 -- ============================================
+-- PARALLELISM: WAVES & LANES
+-- ============================================
+
+-- Execution Runs (a single execution of a task list)
+CREATE TABLE IF NOT EXISTS execution_runs (
+    id TEXT PRIMARY KEY,
+    task_list_id TEXT NOT NULL REFERENCES task_lists(id),
+    status TEXT DEFAULT 'pending' CHECK(status IN (
+        'pending', 'running', 'paused', 'completed', 'failed', 'cancelled'
+    )),
+    total_waves INTEGER DEFAULT 0,
+    current_wave INTEGER DEFAULT 0,
+    total_tasks INTEGER DEFAULT 0,
+    completed_tasks INTEGER DEFAULT 0,
+    failed_tasks INTEGER DEFAULT 0,
+    started_at TEXT,
+    completed_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Execution Waves (parallel task groups within a run)
+CREATE TABLE IF NOT EXISTS execution_waves (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES execution_runs(id) ON DELETE CASCADE,
+    wave_number INTEGER NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK(status IN (
+        'pending', 'active', 'completed', 'failed'
+    )),
+    tasks_total INTEGER DEFAULT 0,
+    tasks_completed INTEGER DEFAULT 0,
+    tasks_running INTEGER DEFAULT 0,
+    tasks_failed INTEGER DEFAULT 0,
+    tasks_blocked INTEGER DEFAULT 0,
+    max_parallelism INTEGER DEFAULT 0,
+    actual_parallelism INTEGER DEFAULT 0,
+    started_at TEXT,
+    completed_at TEXT,
+    duration_ms INTEGER,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(run_id, wave_number)
+);
+
+-- Execution Lanes (swimlanes by category)
+CREATE TABLE IF NOT EXISTS execution_lanes (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES execution_runs(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL CHECK(category IN (
+        'database', 'types', 'api', 'ui', 'tests', 'infrastructure', 'other'
+    )),
+    file_patterns TEXT,  -- JSON array of glob patterns
+    status TEXT DEFAULT 'idle' CHECK(status IN (
+        'idle', 'active', 'blocked', 'complete'
+    )),
+    block_reason TEXT,
+    current_agent_id TEXT,
+    tasks_total INTEGER DEFAULT 0,
+    tasks_completed INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Lane-Task mapping (which task in which lane/wave)
+CREATE TABLE IF NOT EXISTS lane_tasks (
+    id TEXT PRIMARY KEY,
+    lane_id TEXT NOT NULL REFERENCES execution_lanes(id) ON DELETE CASCADE,
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    wave_number INTEGER NOT NULL,
+    position_in_wave INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'pending' CHECK(status IN (
+        'pending', 'running', 'complete', 'failed', 'blocked', 'skipped'
+    )),
+    started_at TEXT,
+    completed_at TEXT,
+    duration_ms INTEGER,
+    block_reason TEXT,
+    blocking_task_id TEXT,
+    agent_id TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(lane_id, task_id)
+);
+
+-- Parallelism Analysis (can tasks run in parallel?)
+CREATE TABLE IF NOT EXISTS parallelism_analysis (
+    id TEXT PRIMARY KEY,
+    task_a_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    task_b_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    can_parallel INTEGER NOT NULL DEFAULT 0,
+    conflict_type TEXT CHECK(conflict_type IN (
+        'dependency', 'file_conflict', 'resource_conflict'
+    )),
+    conflict_details TEXT,
+    analyzed_at TEXT DEFAULT (datetime('now')),
+    invalidated_at TEXT,
+    UNIQUE(task_a_id, task_b_id),
+    CHECK(task_a_id < task_b_id)
+);
+
+-- Task Conflicts (runtime conflicts detected)
+CREATE TABLE IF NOT EXISTS task_conflicts (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES execution_runs(id) ON DELETE CASCADE,
+    task_a_id TEXT NOT NULL REFERENCES tasks(id),
+    task_b_id TEXT NOT NULL REFERENCES tasks(id),
+    conflict_type TEXT NOT NULL CHECK(conflict_type IN (
+        'file_conflict', 'dependency', 'resource_lock'
+    )),
+    details TEXT NOT NULL,
+    file_path TEXT,
+    operation_a TEXT,
+    operation_b TEXT,
+    resolved_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(run_id, task_a_id, task_b_id)
+);
+
+-- ============================================
 -- AGENT MANAGEMENT
 -- ============================================
 
@@ -99,8 +217,8 @@ CREATE TABLE IF NOT EXISTS task_relationships (
 CREATE TABLE IF NOT EXISTS agents (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    type TEXT NOT NULL,  -- 'orchestrator', 'build', 'spec', 'qa', 'task', 'sia', 'research', etc.
-    model TEXT NOT NULL,  -- 'haiku', 'sonnet', 'opus'
+    type TEXT NOT NULL,
+    model TEXT NOT NULL,
     telegram_channel TEXT,
     status TEXT DEFAULT 'idle' CHECK(status IN ('idle', 'working', 'error', 'stuck', 'stopped')),
     current_task_id TEXT,
@@ -112,11 +230,14 @@ CREATE TABLE IF NOT EXISTS agents (
     updated_at TEXT DEFAULT (datetime('now'))
 );
 
--- Agent sessions (each run of an agent)
+-- Agent Sessions (each execution run of an agent)
 CREATE TABLE IF NOT EXISTS agent_sessions (
     id TEXT PRIMARY KEY,
     agent_id TEXT NOT NULL REFERENCES agents(id),
     task_id TEXT REFERENCES tasks(id),
+    run_id TEXT REFERENCES execution_runs(id),  -- Link to execution run
+    wave_number INTEGER,  -- Which wave this session is part of
+    lane_id TEXT REFERENCES execution_lanes(id),  -- Which lane
     status TEXT CHECK(status IN ('running', 'completed', 'failed', 'paused', 'terminated')),
     started_at TEXT DEFAULT (datetime('now')),
     completed_at TEXT,
@@ -125,24 +246,82 @@ CREATE TABLE IF NOT EXISTS agent_sessions (
     tasks_completed INTEGER DEFAULT 0,
     tasks_failed INTEGER DEFAULT 0,
     parent_session_id TEXT REFERENCES agent_sessions(id),
-    metadata TEXT  -- JSON
+    metadata TEXT
 );
 
--- Iteration logs
+-- ============================================
+-- LOOP/ITERATION TRACKING WITH QA VALIDATION
+-- ============================================
+
+-- Iteration Logs (each loop of an agent session)
 CREATE TABLE IF NOT EXISTS iteration_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT NOT NULL REFERENCES agent_sessions(id),
+    id TEXT PRIMARY KEY,  -- Changed to TEXT for UUID
+    session_id TEXT NOT NULL REFERENCES agent_sessions(id) ON DELETE CASCADE,
     iteration_number INTEGER NOT NULL,
     started_at TEXT DEFAULT (datetime('now')),
     completed_at TEXT,
-    status TEXT CHECK(status IN ('running', 'completed', 'failed')),
-    log_content TEXT,
-    log_preview TEXT,
+    status TEXT CHECK(status IN ('running', 'completed', 'failed', 'qa_pending', 'qa_passed', 'qa_failed')),
+    -- Work done in this iteration
+    tasks_attempted INTEGER DEFAULT 0,
     tasks_completed INTEGER DEFAULT 0,
     tasks_failed INTEGER DEFAULT 0,
-    errors TEXT,  -- JSON array
-    checkpoints TEXT,  -- JSON array
+    files_modified TEXT,  -- JSON array of file paths
+    commits TEXT,  -- JSON array of commit hashes
+    -- CLI Output (critical for QA stuck detection)
+    log_content TEXT,
+    log_preview TEXT,  -- First 500 chars for quick view
+    tool_calls TEXT,  -- JSON array of tool calls made
+    skill_uses TEXT,  -- JSON array of Claude skills used
+    -- Errors
+    errors TEXT,  -- JSON array of errors
+    -- Checkpoints for rollback
+    checkpoints TEXT,  -- JSON array of checkpoint IDs
+    -- QA Validation
+    qa_validated_at TEXT,
+    qa_session_id TEXT,  -- Which QA session validated this
+    qa_result TEXT CHECK(qa_result IN ('pending', 'passed', 'failed', 'skipped')),
+    qa_notes TEXT,
+    -- Timestamps
+    created_at TEXT DEFAULT (datetime('now')),
     UNIQUE(session_id, iteration_number)
+);
+
+-- QA Validation Results (per iteration)
+CREATE TABLE IF NOT EXISTS iteration_qa_results (
+    id TEXT PRIMARY KEY,
+    iteration_log_id TEXT NOT NULL REFERENCES iteration_logs(id) ON DELETE CASCADE,
+    qa_session_id TEXT NOT NULL REFERENCES agent_sessions(id),
+    result TEXT NOT NULL CHECK(result IN ('passed', 'failed', 'needs_revision')),
+    -- What was checked
+    tests_run INTEGER DEFAULT 0,
+    tests_passed INTEGER DEFAULT 0,
+    tests_failed INTEGER DEFAULT 0,
+    build_status TEXT CHECK(build_status IN ('success', 'failed', 'skipped')),
+    lint_status TEXT CHECK(lint_status IN ('success', 'failed', 'skipped')),
+    -- Findings
+    findings TEXT,  -- JSON array
+    recommendations TEXT,  -- JSON array
+    -- Evidence
+    verification_log TEXT,
+    -- Timestamps
+    validated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Agent Heartbeats (for stuck detection)
+CREATE TABLE IF NOT EXISTS agent_heartbeats (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    session_id TEXT REFERENCES agent_sessions(id),
+    iteration_number INTEGER,
+    task_id TEXT,
+    status TEXT NOT NULL,
+    progress_percent INTEGER CHECK(progress_percent >= 0 AND progress_percent <= 100),
+    current_step TEXT,
+    last_tool_call TEXT,
+    last_output TEXT,  -- Last CLI output line
+    memory_mb INTEGER,
+    cpu_percent REAL,
+    recorded_at TEXT DEFAULT (datetime('now'))
 );
 
 -- ============================================
@@ -154,17 +333,28 @@ CREATE TABLE IF NOT EXISTS message_bus (
     timestamp TEXT DEFAULT (datetime('now')),
     source_agent TEXT NOT NULL,
     event_type TEXT NOT NULL,
-    event_data TEXT NOT NULL,  -- JSON
-    target_agent TEXT,  -- NULL = broadcast
-    consumed_by TEXT DEFAULT '[]',  -- JSON array
+    event_data TEXT NOT NULL,
+    target_agent TEXT,
+    consumed_by TEXT DEFAULT '[]',
     expires_at TEXT
 );
 
 -- ============================================
--- OBSERVABILITY
+-- OBSERVABILITY EVENTS
 -- ============================================
 
--- Events (append-only, high-write)
+-- Pipeline Events (real-time streaming)
+CREATE TABLE IF NOT EXISTS pipeline_events (
+    id TEXT PRIMARY KEY,
+    run_id TEXT REFERENCES execution_runs(id),
+    session_id TEXT REFERENCES agent_sessions(id),
+    timestamp TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Observability Events (all events)
 CREATE TABLE IF NOT EXISTS observability_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT DEFAULT (datetime('now')),
@@ -175,7 +365,7 @@ CREATE TABLE IF NOT EXISTS observability_events (
     iteration_number INTEGER,
     severity TEXT CHECK(severity IN ('debug', 'info', 'warning', 'error')),
     message TEXT NOT NULL,
-    payload TEXT,  -- JSON
+    payload TEXT,
     telegram_message_id TEXT
 );
 
@@ -183,24 +373,30 @@ CREATE TABLE IF NOT EXISTS observability_events (
 CREATE TABLE IF NOT EXISTS cron_ticks (
     tick_number INTEGER PRIMARY KEY,
     timestamp TEXT DEFAULT (datetime('now')),
-    actions_taken TEXT,  -- JSON
+    actions_taken TEXT,
     agents_working INTEGER DEFAULT 0,
     agents_idle INTEGER DEFAULT 0,
     tasks_assigned INTEGER DEFAULT 0,
-    qa_cycle INTEGER DEFAULT 0,  -- 1 if this was a QA cycle
+    qa_cycle INTEGER DEFAULT 0,
     duration_ms INTEGER
 );
 
--- QA audit results (every 15 minutes)
+-- QA Audits (every 15 minutes)
 CREATE TABLE IF NOT EXISTS qa_audits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT DEFAULT (datetime('now')),
     tick_number INTEGER REFERENCES cron_ticks(tick_number),
-    agents_checked TEXT,  -- JSON array of agent IDs
-    stuck_agents TEXT,  -- JSON array of stuck agent IDs
+    -- Sessions checked
+    sessions_checked TEXT,  -- JSON array
+    iterations_validated TEXT,  -- JSON array of iteration IDs validated
+    -- Stuck detection
+    stuck_sessions TEXT,  -- JSON array of stuck session IDs
     sessions_terminated TEXT,  -- JSON array of terminated session IDs
-    findings TEXT,  -- JSON
-    recommendations TEXT  -- JSON
+    -- Findings
+    loops_passed INTEGER DEFAULT 0,
+    loops_failed INTEGER DEFAULT 0,
+    findings TEXT,
+    recommendations TEXT
 );
 
 -- ============================================
@@ -212,38 +408,97 @@ CREATE INDEX IF NOT EXISTS idx_tasks_display_id ON tasks(display_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_queue ON tasks(queue);
 CREATE INDEX IF NOT EXISTS idx_tasks_task_list_id ON tasks(task_list_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
-CREATE INDEX IF NOT EXISTS idx_tasks_parent_task_id ON tasks(parent_task_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_wave ON tasks(wave_number);
+CREATE INDEX IF NOT EXISTS idx_tasks_lane ON tasks(lane_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_assigned_agent ON tasks(assigned_agent_id);
 
--- Task relationships
-CREATE INDEX IF NOT EXISTS idx_task_rel_source ON task_relationships(source_task_id);
-CREATE INDEX IF NOT EXISTS idx_task_rel_target ON task_relationships(target_task_id);
+-- Waves and Lanes
+CREATE INDEX IF NOT EXISTS idx_waves_run ON execution_waves(run_id);
+CREATE INDEX IF NOT EXISTS idx_waves_status ON execution_waves(status);
+CREATE INDEX IF NOT EXISTS idx_lanes_run ON execution_lanes(run_id);
+CREATE INDEX IF NOT EXISTS idx_lanes_status ON execution_lanes(status);
+CREATE INDEX IF NOT EXISTS idx_lane_tasks_lane ON lane_tasks(lane_id);
+CREATE INDEX IF NOT EXISTS idx_lane_tasks_wave ON lane_tasks(wave_number);
 
--- Agents
-CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
-CREATE INDEX IF NOT EXISTS idx_agents_type ON agents(type);
-
--- Sessions
+-- Sessions and Iterations
 CREATE INDEX IF NOT EXISTS idx_sessions_agent ON agent_sessions(agent_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_run ON agent_sessions(run_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_wave ON agent_sessions(wave_number);
 CREATE INDEX IF NOT EXISTS idx_sessions_status ON agent_sessions(status);
-CREATE INDEX IF NOT EXISTS idx_sessions_task ON agent_sessions(task_id);
+CREATE INDEX IF NOT EXISTS idx_iterations_session ON iteration_logs(session_id);
+CREATE INDEX IF NOT EXISTS idx_iterations_qa_result ON iteration_logs(qa_result);
 
--- Iteration logs
-CREATE INDEX IF NOT EXISTS idx_logs_session ON iteration_logs(session_id);
+-- Events
+CREATE INDEX IF NOT EXISTS idx_pipeline_events_run ON pipeline_events(run_id);
+CREATE INDEX IF NOT EXISTS idx_pipeline_events_timestamp ON pipeline_events(timestamp);
+CREATE INDEX IF NOT EXISTS idx_obs_events_timestamp ON observability_events(timestamp);
+CREATE INDEX IF NOT EXISTS idx_obs_events_session ON observability_events(session_id);
 
--- Message bus
-CREATE INDEX IF NOT EXISTS idx_msgbus_timestamp ON message_bus(timestamp);
-CREATE INDEX IF NOT EXISTS idx_msgbus_source ON message_bus(source_agent);
-CREATE INDEX IF NOT EXISTS idx_msgbus_type ON message_bus(event_type);
+-- ============================================
+-- VIEWS
+-- ============================================
 
--- Observability events
-CREATE INDEX IF NOT EXISTS idx_events_timestamp ON observability_events(timestamp);
-CREATE INDEX IF NOT EXISTS idx_events_type ON observability_events(event_type);
-CREATE INDEX IF NOT EXISTS idx_events_agent ON observability_events(agent_id);
-CREATE INDEX IF NOT EXISTS idx_events_session ON observability_events(session_id);
-CREATE INDEX IF NOT EXISTS idx_events_severity ON observability_events(severity);
+-- Active agents with current work
+CREATE VIEW IF NOT EXISTS v_active_agents AS
+SELECT
+    a.id,
+    a.name,
+    a.type,
+    a.status,
+    a.current_task_id,
+    t.display_id AS task_display_id,
+    t.title AS task_title,
+    s.id AS session_id,
+    s.current_iteration,
+    s.wave_number,
+    (julianday('now') - julianday(a.last_heartbeat)) * 86400 AS seconds_since_heartbeat
+FROM agents a
+LEFT JOIN tasks t ON a.current_task_id = t.id
+LEFT JOIN agent_sessions s ON a.current_session_id = s.id
+WHERE a.status != 'stopped';
+
+-- Iteration validation status
+CREATE VIEW IF NOT EXISTS v_iteration_qa_status AS
+SELECT
+    il.id AS iteration_id,
+    il.session_id,
+    il.iteration_number,
+    il.status,
+    il.qa_result,
+    il.tasks_completed,
+    il.tasks_failed,
+    a.name AS agent_name,
+    s.task_id,
+    t.display_id AS task_display_id,
+    il.qa_validated_at,
+    CASE
+        WHEN il.qa_result = 'pending' THEN 'Awaiting QA'
+        WHEN il.qa_result = 'passed' THEN 'Verified'
+        WHEN il.qa_result = 'failed' THEN 'Failed QA'
+        ELSE 'Not Validated'
+    END AS validation_status
+FROM iteration_logs il
+JOIN agent_sessions s ON il.session_id = s.id
+JOIN agents a ON s.agent_id = a.id
+LEFT JOIN tasks t ON s.task_id = t.id;
+
+-- Wave progress summary
+CREATE VIEW IF NOT EXISTS v_wave_progress AS
+SELECT
+    ew.run_id,
+    ew.wave_number,
+    ew.status,
+    ew.tasks_total,
+    ew.tasks_completed,
+    ew.tasks_failed,
+    ew.tasks_running,
+    ROUND(ew.tasks_completed * 100.0 / NULLIF(ew.tasks_total, 0), 1) AS completion_pct,
+    ew.max_parallelism,
+    ew.actual_parallelism,
+    ew.started_at,
+    ew.completed_at,
+    ew.duration_ms
+FROM execution_waves ew;
 
 -- ============================================
 -- INITIAL DATA: Agent definitions
