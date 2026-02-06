@@ -5,34 +5,24 @@ export interface AgentSession {
   id: string;
   agent_id: string;
   task_id: string | null;
-  status: 'starting' | 'running' | 'completed' | 'failed' | 'terminated';
+  status: 'running' | 'completed' | 'failed' | 'paused' | 'terminated';
   started_at: string;
-  ended_at: string | null;
+  completed_at: string | null;
   total_iterations: number;
-  total_tokens_input: number;
-  total_tokens_output: number;
-  total_cost: number;
-  final_result: string | null;
-  error_message: string | null;
-  created_at: string;
-  updated_at: string;
+  current_iteration: number;
+  metadata: string | null;
 }
 
 export interface IterationLog {
   id: string;
   session_id: string;
   iteration_number: number;
-  input_message: string | null;
-  output_message: string | null;
-  tool_calls: string | null;
-  tool_results: string | null;
-  tokens_input: number;
-  tokens_output: number;
-  cost: number;
-  duration_ms: number;
-  status: 'running' | 'completed' | 'failed';
-  error_message: string | null;
-  created_at: string;
+  started_at: string;
+  completed_at: string | null;
+  status: 'running' | 'completed' | 'failed' | 'qa_pending' | 'qa_passed' | 'qa_failed';
+  tasks_attempted: number;
+  tasks_completed: number;
+  tasks_failed: number;
 }
 
 /**
@@ -61,7 +51,7 @@ export function getSessions(filters?: {
     params.push(filters.status);
   }
 
-  sql += ' ORDER BY created_at DESC';
+  sql += ' ORDER BY started_at DESC';
 
   if (filters?.limit) {
     sql += ' LIMIT ?';
@@ -114,8 +104,8 @@ export function createSession(agentId: string, taskId?: string): AgentSession {
   const id = uuidv4();
 
   run(`
-    INSERT INTO agent_sessions (id, agent_id, task_id, status, started_at)
-    VALUES (?, ?, ?, 'starting', datetime('now'))
+    INSERT INTO agent_sessions (id, agent_id, task_id, status)
+    VALUES (?, ?, ?, 'running')
   `, [id, agentId, taskId ?? null]);
 
   return getSession(id)!;
@@ -127,28 +117,14 @@ export function createSession(agentId: string, taskId?: string): AgentSession {
 export function updateSessionStatus(
   id: string,
   status: AgentSession['status'],
-  finalResult?: string,
-  errorMessage?: string
+  _finalResult?: string,
+  _errorMessage?: string
 ): void {
-  const updates: string[] = ['status = ?', 'updated_at = datetime(\'now\')'];
-  const params: unknown[] = [status];
-
   if (status === 'completed' || status === 'failed' || status === 'terminated') {
-    updates.push('ended_at = datetime(\'now\')');
+    run(`UPDATE agent_sessions SET status = ?, completed_at = datetime('now') WHERE id = ?`, [status, id]);
+  } else {
+    run(`UPDATE agent_sessions SET status = ? WHERE id = ?`, [status, id]);
   }
-
-  if (finalResult !== undefined) {
-    updates.push('final_result = ?');
-    params.push(finalResult);
-  }
-
-  if (errorMessage !== undefined) {
-    updates.push('error_message = ?');
-    params.push(errorMessage);
-  }
-
-  params.push(id);
-  run(`UPDATE agent_sessions SET ${updates.join(', ')} WHERE id = ?`, params);
 }
 
 /**
@@ -166,46 +142,28 @@ export function logIteration(
     tokensOutput: number;
     cost: number;
     durationMs: number;
-    status: IterationLog['status'];
+    status: 'running' | 'completed' | 'failed';
     errorMessage?: string;
   }
 ): IterationLog {
   const id = uuidv4();
 
-  run(`
-    INSERT INTO iteration_logs (
-      id, session_id, iteration_number, input_message, output_message,
-      tool_calls, tool_results, tokens_input, tokens_output, cost,
-      duration_ms, status, error_message
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    id,
-    sessionId,
-    iterationNumber,
-    data.inputMessage ?? null,
-    data.outputMessage ?? null,
-    data.toolCalls ? JSON.stringify(data.toolCalls) : null,
-    data.toolResults ? JSON.stringify(data.toolResults) : null,
-    data.tokensInput,
-    data.tokensOutput,
-    data.cost,
-    data.durationMs,
-    data.status,
-    data.errorMessage ?? null,
-  ]);
+  // Map status to schema-compatible value
+  const schemaStatus = data.status === 'running' ? 'running' : 
+                       data.status === 'completed' ? 'completed' : 'failed';
 
-  // Update session totals
+  run(`
+    INSERT INTO iteration_logs (id, session_id, iteration_number, status)
+    VALUES (?, ?, ?, ?)
+  `, [id, sessionId, iterationNumber, schemaStatus]);
+
+  // Update session iteration count
   run(`
     UPDATE agent_sessions 
     SET total_iterations = total_iterations + 1,
-        total_tokens_input = total_tokens_input + ?,
-        total_tokens_output = total_tokens_output + ?,
-        total_cost = total_cost + ?,
-        status = 'running',
-        updated_at = datetime('now')
+        current_iteration = ?
     WHERE id = ?
-  `, [data.tokensInput, data.tokensOutput, data.cost, sessionId]);
+  `, [iterationNumber, sessionId]);
 
   return getOne<IterationLog>('SELECT * FROM iteration_logs WHERE id = ?', [id])!;
 }

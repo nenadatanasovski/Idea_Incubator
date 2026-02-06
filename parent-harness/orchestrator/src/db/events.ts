@@ -2,14 +2,13 @@ import { query, getOne, run } from './index.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface ObservabilityEvent {
-  id: string;
+  id: number;
   type: string;
   message: string;
-  agent_id: string | null;
+  agent_id: string;
   session_id: string | null;
   task_id: string | null;
   severity: 'debug' | 'info' | 'warning' | 'error';
-  metadata: string | null;
   created_at: string;
 }
 
@@ -36,11 +35,11 @@ export function getEvents(filters?: {
   limit?: number;
   offset?: number;
 }): ObservabilityEvent[] {
-  let sql = 'SELECT * FROM observability_events WHERE 1=1';
+  let sql = 'SELECT id, timestamp as created_at, event_type as type, message, agent_id, session_id, task_id, severity FROM observability_events WHERE 1=1';
   const params: unknown[] = [];
 
   if (filters?.type) {
-    sql += ' AND type = ?';
+    sql += ' AND event_type = ?';
     params.push(filters.type);
   }
   if (filters?.agentId) {
@@ -60,11 +59,11 @@ export function getEvents(filters?: {
     params.push(filters.severity);
   }
   if (filters?.since) {
-    sql += ' AND created_at >= ?';
+    sql += ' AND timestamp >= ?';
     params.push(filters.since);
   }
 
-  sql += ' ORDER BY created_at DESC';
+  sql += ' ORDER BY timestamp DESC';
 
   if (filters?.limit) {
     sql += ' LIMIT ?';
@@ -82,32 +81,36 @@ export function getEvents(filters?: {
  * Get a single event by ID
  */
 export function getEvent(id: string): ObservabilityEvent | undefined {
-  return getOne<ObservabilityEvent>('SELECT * FROM observability_events WHERE id = ?', [id]);
+  return getOne<ObservabilityEvent>(
+    'SELECT id, timestamp as created_at, event_type as type, message, agent_id, session_id, task_id, severity FROM observability_events WHERE id = ?', 
+    [id]
+  );
 }
 
 /**
  * Create a new event
  */
 export function createEvent(input: CreateEventInput): ObservabilityEvent {
-  const id = uuidv4();
-
   run(`
     INSERT INTO observability_events (
-      id, type, message, agent_id, session_id, task_id, severity, metadata
+      event_type, message, agent_id, session_id, task_id, severity, payload
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `, [
-    id,
     input.type,
     input.message,
-    input.agentId ?? null,
+    input.agentId ?? 'system',
     input.sessionId ?? null,
     input.taskId ?? null,
     input.severity ?? 'info',
     input.metadata ? JSON.stringify(input.metadata) : null,
   ]);
 
-  return getEvent(id)!;
+  // Get the last inserted row
+  const result = query<ObservabilityEvent>(
+    'SELECT id, timestamp as created_at, event_type as type, message, agent_id, session_id, task_id, severity FROM observability_events ORDER BY id DESC LIMIT 1'
+  );
+  return result[0];
 }
 
 /**
