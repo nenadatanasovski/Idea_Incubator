@@ -2,8 +2,10 @@
  * Direct Telegram Bot API Integration
  * 
  * NO OpenClaw. Direct HTTPS calls to Telegram Bot API.
- * Each agent type has its own dedicated channel.
+ * Each agent type has its own dedicated channel (loaded from database).
  */
+
+import * as agents from '../db/agents.js';
 
 // Bot token from environment
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -11,30 +13,6 @@ const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 // Admin channel (fallback for all notifications)
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID || '';
-
-// Dedicated channels per agent type
-// These should be set up as Telegram groups/channels with the bot added
-const AGENT_CHANNELS: Record<string, string> = {
-  // Build & Development
-  build_agent: process.env.TELEGRAM_CHANNEL_BUILD || ADMIN_CHAT_ID,
-  
-  // QA & Testing
-  qa_agent: process.env.TELEGRAM_CHANNEL_QA || ADMIN_CHAT_ID,
-  test_agent: process.env.TELEGRAM_CHANNEL_QA || ADMIN_CHAT_ID,
-  validation_agent: process.env.TELEGRAM_CHANNEL_QA || ADMIN_CHAT_ID,
-  
-  // Planning & Specs
-  spec_agent: process.env.TELEGRAM_CHANNEL_PLANNING || ADMIN_CHAT_ID,
-  planning_agent: process.env.TELEGRAM_CHANNEL_PLANNING || ADMIN_CHAT_ID,
-  decomposition_agent: process.env.TELEGRAM_CHANNEL_PLANNING || ADMIN_CHAT_ID,
-  
-  // Research & Evaluation
-  research_agent: process.env.TELEGRAM_CHANNEL_RESEARCH || ADMIN_CHAT_ID,
-  evaluator_agent: process.env.TELEGRAM_CHANNEL_RESEARCH || ADMIN_CHAT_ID,
-  
-  // General
-  task_agent: process.env.TELEGRAM_CHANNEL_TASKS || ADMIN_CHAT_ID,
-};
 
 /**
  * Send a message directly via Telegram Bot API
@@ -80,10 +58,34 @@ async function sendTelegramMessage(
 }
 
 /**
- * Get the channel for an agent type
+ * Get the channel for an agent (from database or fallback to admin)
  */
-function getAgentChannel(agentType: string): string {
-  return AGENT_CHANNELS[agentType] || ADMIN_CHAT_ID;
+function getAgentChannel(agentId: string): string {
+  try {
+    const agent = agents.getAgent(agentId);
+    if (agent?.telegram_channel) {
+      return agent.telegram_channel;
+    }
+  } catch {
+    // Database might not be ready
+  }
+  return ADMIN_CHAT_ID;
+}
+
+/**
+ * Get the channel for an agent type (find first agent of that type)
+ */
+function getAgentTypeChannel(agentType: string): string {
+  try {
+    const allAgents = agents.getAgents();
+    const agent = allAgents.find(a => a.type === agentType || a.id === agentType || a.id === `${agentType}_agent`);
+    if (agent?.telegram_channel) {
+      return agent.telegram_channel;
+    }
+  } catch {
+    // Database might not be ready
+  }
+  return ADMIN_CHAT_ID;
 }
 
 /**
@@ -91,7 +93,7 @@ function getAgentChannel(agentType: string): string {
  */
 export async function initTelegram(): Promise<boolean> {
   if (!BOT_TOKEN) {
-    console.warn('⚠️ TELEGRAM_BOT_TOKEN not set');
+    console.warn('⚠️ TELEGRAM_BOT_TOKEN not set - Telegram notifications disabled');
     return false;
   }
 
@@ -99,7 +101,7 @@ export async function initTelegram(): Promise<boolean> {
     const response = await fetch(`${TELEGRAM_API}/getMe`);
     if (response.ok) {
       const data = await response.json() as { result?: { username?: string } };
-      console.log(`📱 Telegram bot connected: @${data.result?.username}`);
+      console.log(`📱 Telegram bot initialized`);
       return true;
     }
     return false;
@@ -130,8 +132,8 @@ export async function notifyAdmin(message: string): Promise<boolean> {
 /**
  * Send notification to an agent's dedicated channel
  */
-export async function notifyAgent(agentType: string, message: string): Promise<boolean> {
-  const channel = getAgentChannel(agentType);
+export async function notifyAgent(agentIdOrType: string, message: string): Promise<boolean> {
+  const channel = getAgentChannel(agentIdOrType) || getAgentTypeChannel(agentIdOrType);
   return sendTelegramMessage(channel, message);
 }
 
@@ -139,43 +141,52 @@ export async function notifyAgent(agentType: string, message: string): Promise<b
  * Notification templates
  */
 export const notify = {
-  taskAssigned: async (agentType: string, taskDisplayId: string, taskTitle: string) => {
+  taskAssigned: async (agentIdOrType: string, taskDisplayId: string, taskTitle: string) => {
     const msg = `📋 *Task Assigned*\n\`${taskDisplayId}\`\n${taskTitle}`;
-    await notifyAgent(agentType, msg);
+    await notifyAgent(agentIdOrType, msg);
   },
 
-  taskCompleted: async (agentType: string, taskDisplayId: string, taskTitle: string, summary?: string) => {
+  taskCompleted: async (agentIdOrType: string, taskDisplayId: string, taskTitle: string, summary?: string) => {
     let msg = `✅ *Task Completed*\n\`${taskDisplayId}\`\n${taskTitle}`;
     if (summary) {
       msg += `\n\n${summary.slice(0, 500)}`;
     }
-    await notifyAgent(agentType, msg);
+    await notifyAgent(agentIdOrType, msg);
   },
 
-  taskFailed: async (agentType: string, taskDisplayId: string, error: string) => {
+  taskFailed: async (agentIdOrType: string, taskDisplayId: string, error: string) => {
     const msg = `❌ *Task Failed*\n\`${taskDisplayId}\`\n${error.slice(0, 300)}`;
-    await notifyAgent(agentType, msg);
+    await notifyAgent(agentIdOrType, msg);
     // Also notify admin for visibility
-    await notifyAdmin(`❌ ${agentType}: ${taskDisplayId} failed`);
+    await notifyAdmin(`❌ ${agentIdOrType}: ${taskDisplayId} failed`);
   },
 
-  agentSpawned: async (agentType: string, taskDisplayId: string) => {
+  agentSpawned: async (agentIdOrType: string, taskDisplayId: string) => {
     const msg = `🚀 *Agent Spawned*\nWorking on: \`${taskDisplayId}\``;
-    await notifyAgent(agentType, msg);
+    await notifyAgent(agentIdOrType, msg);
   },
 
-  agentOutput: async (agentType: string, taskDisplayId: string, output: string) => {
+  agentOutput: async (agentIdOrType: string, taskDisplayId: string, output: string) => {
     // Truncate long output
     const truncated = output.length > 2000 
       ? output.slice(0, 2000) + '\n\n... (truncated)'
       : output;
     const msg = `📤 *Agent Output*\n\`${taskDisplayId}\`\n\n\`\`\`\n${truncated}\n\`\`\``;
-    await notifyAgent(agentType, msg);
+    await notifyAgent(agentIdOrType, msg);
   },
 
-  agentError: async (agentType: string, error: string) => {
+  agentError: async (agentIdOrType: string, error: string) => {
     const msg = `🔴 *Agent Error*\n${error.slice(0, 300)}`;
-    await notifyAgent(agentType, msg);
+    await notifyAgent(agentIdOrType, msg);
+  },
+
+  sessionStarted: async (agentIdOrType: string, taskDisplayId: string) => {
+    const msg = `🚀 *Session Started*\nWorking on: \`${taskDisplayId}\``;
+    await notifyAgent(agentIdOrType, msg);
+  },
+
+  sessionIteration: async (_agentId: string, _iteration: number, _maxIterations: number) => {
+    // Don't spam iterations
   },
 
   waveStarted: async (waveNumber: number, taskCount: number) => {
@@ -192,29 +203,29 @@ export const notify = {
     await notifyAdmin(msg);
   },
 
-  fileEdit: async (agentType: string, filePath: string, linesChanged: number) => {
+  fileEdit: async (agentIdOrType: string, filePath: string, linesChanged: number) => {
     const fileName = filePath.split('/').pop() || filePath;
     const msg = `✏️ *File Edit*\n${fileName} (${linesChanged} lines)`;
-    await notifyAgent(agentType, msg);
+    await notifyAgent(agentIdOrType, msg);
   },
 
-  testResults: async (agentType: string, passed: number, failed: number, skipped: number) => {
+  testResults: async (agentIdOrType: string, passed: number, failed: number, skipped: number) => {
     const icon = failed > 0 ? '⚠️' : '✅';
     const msg = `${icon} *Test Results*\n✅ ${passed} passed | ❌ ${failed} failed | ⏭️ ${skipped} skipped`;
-    await notifyAgent(agentType, msg);
+    await notifyAgent(agentIdOrType, msg);
   },
 
-  buildResult: async (agentType: string, success: boolean, errors?: number) => {
+  buildResult: async (agentIdOrType: string, success: boolean, errors?: number) => {
     if (success) {
-      await notifyAgent(agentType, `✅ *Build Passed*`);
+      await notifyAgent(agentIdOrType, `✅ *Build Passed*`);
     } else {
-      await notifyAgent(agentType, `❌ *Build Failed* (${errors || '?'} errors)`);
+      await notifyAgent(agentIdOrType, `❌ *Build Failed* (${errors || '?'} errors)`);
     }
   },
 
-  commitMade: async (agentType: string, hash: string, message: string) => {
+  commitMade: async (agentIdOrType: string, hash: string, message: string) => {
     const msg = `📝 *Commit*\n\`${hash.slice(0, 7)}\` ${message.slice(0, 100)}`;
-    await notifyAgent(agentType, msg);
+    await notifyAgent(agentIdOrType, msg);
   },
 };
 
