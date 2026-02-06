@@ -193,6 +193,130 @@ Detailed QA validation per iteration.
 | findings | TEXT | JSON array |
 | recommendations | TEXT | JSON array |
 
+## Gap Solution Tables
+
+### agent_memories
+Per-agent long-term memory.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| agent_id | TEXT | Which agent |
+| memory_type | TEXT | decision/failure/preference/pattern/success |
+| content | TEXT | Memory content |
+| task_signature | TEXT | Hash for similar task matching |
+| relevance_score | REAL | 0.0-1.0, decays over time |
+| created_at | TEXT | ISO timestamp |
+| last_accessed | TEXT | ISO timestamp |
+| access_count | INTEGER | Usage count |
+
+### technique_effectiveness
+Track which techniques work for which errors.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| technique | TEXT | decomposition/prompt_restructure/fresh_start/etc |
+| error_pattern | TEXT | Regex or signature |
+| success_count | INTEGER | Times it worked |
+| failure_count | INTEGER | Times it failed |
+| success_rate | REAL | Calculated |
+| last_used | TEXT | ISO timestamp |
+
+### sia_task_memory
+Per-task technique history (from Vibe).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| task_id | TEXT PK | Task ID |
+| task_signature | TEXT | Hash for matching similar tasks |
+| attempts | TEXT | JSON array of {technique, result, timestamp} |
+| techniques_tried | TEXT | JSON array of technique names |
+| successful_technique | TEXT | What worked (if any) |
+| total_interventions | INTEGER | Count |
+
+### transcript_entries
+Detailed action logging (from Vibe).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| timestamp | TEXT | ISO with milliseconds |
+| sequence | INTEGER | Order within session |
+| session_id | TEXT | FK to agent_sessions |
+| iteration_number | INTEGER | Which iteration |
+| entry_type | TEXT | tool_start/tool_end/skill_use/file_op/etc |
+| category | TEXT | tool/file/git/test/etc |
+| summary | TEXT | Human-readable (max 200 chars) |
+| details | TEXT | JSON structured details |
+| tool_calls | TEXT | JSON array |
+| duration_ms | INTEGER | Time for operation |
+
+### task_versions
+Task change history with rollback support.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| task_id | TEXT | FK to tasks |
+| version_number | INTEGER | Auto-increment per task |
+| snapshot | TEXT | JSON of full task state |
+| changed_fields | TEXT | JSON array of field names |
+| changed_by | TEXT | user/agent_id |
+| change_reason | TEXT | Why changed |
+| created_at | TEXT | ISO timestamp |
+
+### build_interventions
+Track when agents fix each other's work.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| session_id | TEXT | FK to agent_sessions |
+| task_id | TEXT | FK to tasks |
+| original_agent_id | TEXT | Who failed |
+| intervening_agent_id | TEXT | Who fixed it |
+| intervention_type | TEXT | fix/decompose/escalate |
+| resolution | TEXT | What was done |
+| created_at | TEXT | ISO timestamp |
+
+### human_sim_results
+Usability test results per persona.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| task_id | TEXT | FK to tasks |
+| session_id | TEXT | FK to agent_sessions |
+| persona | TEXT | technical/power-user/casual/confused/impatient |
+| test_type | TEXT | happy_path/error_recovery/workflow/etc |
+| started_at | TEXT | ISO timestamp |
+| completed_at | TEXT | ISO timestamp |
+| passed | INTEGER | Boolean |
+| completion_time_ms | INTEGER | How long to complete |
+| frustration_score | REAL | 0.0-1.0 |
+| findings | TEXT | JSON array of issues |
+| recommendations | TEXT | JSON array |
+| screenshots | TEXT | JSON array of paths |
+| fix_tasks_created | TEXT | JSON array of task IDs |
+
+### clarification_sessions
+Track clarification conversations.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| task_id | TEXT | FK to tasks |
+| status | TEXT | pending/in_progress/complete/timeout |
+| questions_asked | TEXT | JSON array |
+| answers_received | TEXT | JSON array |
+| original_description | TEXT | Before clarification |
+| enriched_description | TEXT | After clarification |
+| pass_criteria_added | TEXT | JSON array |
+| started_at | TEXT | ISO timestamp |
+| completed_at | TEXT | ISO timestamp |
+| timeout_at | TEXT | When to proceed with assumptions |
+
 ## Observability Tables
 
 ### observability_events

@@ -16,6 +16,8 @@ Each agent is a Claude Code instance with a specific role.
 | Evaluator Agent | Opus | Evaluate task complexity |
 | Decomposition Agent | Sonnet | Break down large tasks |
 | Validation Agent | Sonnet | Validate completed work |
+| **Clarification Agent** | Sonnet | Ask users clarifying questions |
+| **Human Sim Agent** | Sonnet | Usability testing with personas |
 
 ## Agent Details
 
@@ -156,6 +158,84 @@ Each agent is a Claude Code instance with a specific role.
 - Integration testing
 - Documentation check
 - Ready-for-human-review
+
+### 11. Clarification Agent
+**Model:** Sonnet (balanced)  
+**Telegram:** @vibe-clarification
+
+**Responsibilities:**
+- Intercept new user tasks before execution
+- Identify ambiguous requirements
+- Ask targeted clarifying questions via Telegram
+- Build complete task specification
+- Only release task when sufficiently defined
+
+**Flow:**
+```
+User: "Add authentication"
+    ↓
+Clarification Agent:
+  "To implement authentication, I need to know:
+   1. OAuth (Google/GitHub) or username/password?
+   2. Which routes need protection?
+   3. Session-based or JWT tokens?"
+    ↓
+User answers
+    ↓
+Agent updates task with full spec
+    ↓
+Task enters normal queue
+```
+
+**Bypass conditions:**
+- Tasks created by other agents (already well-defined)
+- Tasks with complete pass_criteria
+- Tasks marked `skip_clarification = true`
+
+**Timeout:** If no response in 24h, proceed with documented assumptions.
+
+### 12. Human Simulation Agent
+**Model:** Sonnet (balanced)  
+**Telegram:** @vibe-human-sim
+
+**Responsibilities:**
+- Test completed UI features like a real user
+- Run multiple personas in parallel
+- Report usability issues
+- Create fix tasks automatically
+
+**Personas:**
+| Persona | Tech Level | Patience | Focus Areas |
+|---------|------------|----------|-------------|
+| `technical` | High | High | CLI, API endpoints, error messages, dev tools |
+| `power-user` | Medium-high | Medium | Complex workflows, edge cases, shortcuts |
+| `casual` | Medium | Medium | Happy path, discoverability, intuitive UX |
+| `confused` | Low | Low | Error recovery, help text, clear messaging |
+| `impatient` | Any | Very low | Loading states, feedback, responsiveness |
+
+**Multi-instance execution:**
+```typescript
+// Spawn 3 personas in parallel for different angles
+await Promise.all([
+  spawnHumanSim(taskId, 'technical'),
+  spawnHumanSim(taskId, 'casual'),
+  spawnHumanSim(taskId, 'confused')
+]);
+```
+
+**Capabilities:**
+- Browser automation (Playwright)
+- Screenshot capture and analysis
+- Form filling and navigation
+- Error state detection
+- Task completion verification
+- Frustration indicators (repeated clicks, back navigation)
+
+**Output:**
+- `human_sim_results` table entries
+- Aggregated findings across personas
+- Auto-generated fix tasks for issues
+- Telegram summary to @vibe-human-sim
 
 ## Agent Communication
 

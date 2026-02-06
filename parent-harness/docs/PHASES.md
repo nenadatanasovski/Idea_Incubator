@@ -1,6 +1,6 @@
 # Implementation Phases
 
-Build order designed for incremental testing.
+Build order designed for incremental testing. Updated with gap solutions.
 
 ## Phase 1: Frontend Shell (Days 1-2)
 
@@ -19,21 +19,47 @@ Build order designed for incremental testing.
 
 **Deliverable:** `dashboard/` folder with working static UI.
 
+---
+
 ## Phase 2: Data Model (Days 3-4)
 
 **Goal:** Database ready with schema and seed data.
 
 **Tasks:**
 1. SQLite database setup
-2. Run schema.sql
-3. Seed agents table (10 agents)
-4. Seed sample task_list, tasks
+2. Run schema.sql (core tables)
+3. Add gap solution tables:
+   ```sql
+   -- Agent memory (from Gap 3)
+   agent_memories (id, agent_id, memory_type, content, task_signature, relevance_score)
+   
+   -- Technique effectiveness (from Gap 3)
+   technique_effectiveness (id, technique, error_pattern, success_count, failure_count)
+   
+   -- SIA task memory (copy from Vibe)
+   sia_task_memory (task_id, task_signature, attempts, techniques_tried, successful_technique)
+   
+   -- Transcript entries (from Gap 4A)
+   transcript_entries (id, timestamp, session_id, entry_type, summary, details, tool_calls)
+   
+   -- Task versions (from Gap 4B)
+   task_versions (id, task_id, version_number, snapshot, changed_by, change_reason)
+   
+   -- Build interventions (from Gap 4E)
+   build_interventions (id, session_id, task_id, intervening_agent, resolution)
+   
+   -- Human sim results (from Gap 2)
+   human_sim_results (id, task_id, persona, test_type, passed, findings, screenshots)
+   ```
+4. Seed agents table (12 agents now including Clarification + Human Sim)
 5. Create views
-6. Basic query functions (db/*.ts)
+6. Basic query functions
 
-**Test:** Can query agents, tasks via Node REPL.
+**Test:** Can query all tables via Node REPL.
 
-**Deliverable:** `data/harness.db` with schema + seeds.
+**Deliverable:** `data/harness.db` with full schema.
+
+---
 
 ## Phase 3: Backend API (Days 5-7)
 
@@ -41,16 +67,26 @@ Build order designed for incremental testing.
 
 **Tasks:**
 1. Express server setup
-2. `/api/agents` endpoints
-3. `/api/tasks` endpoints
-4. `/api/sessions` endpoints
-5. `/api/events` endpoints
-6. Error handling middleware
-7. CORS config
+2. Core endpoints:
+   - `/api/agents` - CRUD
+   - `/api/tasks` - CRUD
+   - `/api/sessions` - CRUD
+   - `/api/iterations` - CRUD
+   - `/api/events` - List/filter
+3. Gap solution endpoints:
+   - `/api/transcripts` - Transcript entries
+   - `/api/memories` - Agent memories
+   - `/api/techniques` - Technique effectiveness
+   - `/api/interventions` - Build interventions
+   - `/api/human-sim` - Human sim results
+4. Error handling middleware
+5. CORS config
 
 **Test:** curl commands return real data.
 
 **Deliverable:** API at `localhost:3333/api`.
+
+---
 
 ## Phase 4: Frontend + API (Days 8-9)
 
@@ -58,12 +94,16 @@ Build order designed for incremental testing.
 
 **Tasks:**
 1. useApi hook for data fetching
-2. Connect AgentStatusCard to `/api/agents`
-3. Connect TaskBoard to `/api/tasks`
-4. Connect SessionsView to `/api/sessions`
-5. Connect EventStream to `/api/events`
+2. Connect all components to API
+3. Add new views:
+   - Transcript viewer
+   - Memory browser
+   - Technique stats
+   - Intervention log
 
 **Test:** Dashboard shows database data.
+
+---
 
 ## Phase 5: WebSocket (Days 10-11)
 
@@ -72,12 +112,17 @@ Build order designed for incremental testing.
 **Tasks:**
 1. WebSocket server setup
 2. useHarnessWebSocket hook
-3. Broadcast agent status changes
-4. Broadcast task updates
-5. Broadcast new events
-6. Auto-reconnect logic
+3. Event types:
+   - Agent status changes
+   - Task updates
+   - Iteration progress
+   - Transcript entries (live)
+   - Human sim results (live)
+4. Auto-reconnect logic
 
 **Test:** Changes in DB appear in UI instantly.
+
+---
 
 ## Phase 6: Telegram Bot (Days 12-13)
 
@@ -85,107 +130,289 @@ Build order designed for incremental testing.
 
 **Tasks:**
 1. Create Telegram bot via @BotFather
-2. Create test channels
+2. Create channels (12 total):
+   - @vibe-critical
+   - @vibe-orchestrator
+   - @vibe-build
+   - @vibe-spec
+   - @vibe-qa
+   - @vibe-task
+   - @vibe-sia
+   - @vibe-research
+   - @vibe-evaluator
+   - @vibe-decomposition
+   - @vibe-validation
+   - @vibe-clarification
+   - @vibe-human-sim
 3. Bot connection logic
-4. sendToChannel function
-5. sendCritical function
-6. Message formatting (emojis, markdown)
+4. Message formatting with emojis
 
 **Test:** API call triggers Telegram message.
 
+---
+
 ## Phase 7: Orchestrator Loop (Days 14-16)
 
-**Goal:** Automated task assignment.
+**Goal:** Automated task assignment with clarification gate.
 
 **Tasks:**
 1. Cron loop (60s interval)
-2. Check idle agents
-3. Get ready tasks
-4. Assignment logic
-5. Create sessions + iterations
-6. Emit events
-7. Telegram notifications
+2. **Clarification gate (Gap 1):**
+   ```
+   New user task → Check clarification_status
+   If 'pending' → Spawn Clarification Agent
+   If 'complete' → Continue to assignment
+   ```
+3. Check idle agents
+4. Get ready tasks (dependencies met + clarified)
+5. Assignment logic
+6. Create sessions + iterations
+7. Emit events
+8. Telegram notifications
 
-**Test:** Create task → auto-assigned to agent → Telegram notified.
+**Test:** User task → clarification → assignment → Telegram.
 
-**Note:** Agent spawning stubbed (just creates records).
+---
 
-## Phase 8: Agent Spawner (Days 17-19)
+## Phase 8: Clarification Agent (Days 17-18)
+
+**Goal:** Proactive question-asking for vague tasks.
+
+**Tasks:**
+1. Clarification Agent system prompt
+2. Question generation logic (port from Vibe's `question_engine.ts`)
+3. Telegram interaction:
+   - Bot asks questions in @vibe-clarification
+   - User replies
+   - Agent processes answers
+4. Task enrichment:
+   - Update task description
+   - Add pass criteria
+   - Set clarification_status = 'complete'
+5. Timeout handling (24h → proceed with assumptions)
+
+**Test:** Vague task → questions asked → detailed task created.
+
+---
+
+## Phase 9: Agent Spawner (Days 19-21)
 
 **Goal:** Actually run Claude Code instances.
 
 **Tasks:**
 1. Claude Code CLI integration
-2. Process spawning
-3. Output capture to iteration_logs
+2. Process spawning with config:
+   ```typescript
+   {
+     agentId: string,
+     taskId: string,
+     model: 'haiku' | 'sonnet' | 'opus',
+     systemPrompt: string,
+     workingDir: string,
+     memory: AgentMemory[]  // Inject relevant memories
+   }
+   ```
+3. **Transcript capture (Gap 4A):**
+   - Pipe all output to transcript_entries
+   - Parse tool calls
+   - Extract skill uses
 4. Heartbeat monitoring
 5. Graceful termination
 6. Error handling
 
-**Test:** Task assigned → Claude Code runs → output captured.
+**Test:** Task assigned → Claude Code runs → transcript captured.
 
-## Phase 9: QA Validation (Days 20-22)
+---
 
-**Goal:** Every iteration validated.
+## Phase 10: Agent Memory System (Days 22-23)
+
+**Goal:** Agents remember and learn from experience.
+
+**Tasks:**
+1. Memory creation on task completion:
+   ```typescript
+   await createMemory({
+     agentId: 'build_agent',
+     memoryType: 'success_pattern',
+     content: 'For migration tasks, always run typecheck before commit',
+     taskSignature: hashTask(task)
+   });
+   ```
+2. Memory retrieval before task start:
+   ```typescript
+   const memories = await getRelevantMemories(agentId, task);
+   // Inject into system prompt
+   ```
+3. Memory decay (reduce relevance over time)
+4. **SIA task memory (Gap 3):**
+   - Track techniques tried per task
+   - Match similar tasks by signature
+   - Avoid repeating failed techniques
+5. **Technique effectiveness (Gap 3):**
+   - Record success/failure per technique
+   - Calculate success rates
+   - Inform agent choices
+
+**Test:** Agent fails with technique A → tries technique B next time.
+
+---
+
+## Phase 11: QA Validation (Days 24-26)
+
+**Goal:** Every iteration validated + stuck detection.
 
 **Tasks:**
 1. QA Agent system prompt
-2. Verification script runner
-3. 15-minute cron cycle
-4. Stuck detection logic
-5. Session termination
-6. QA results recording
-7. Telegram alerts
+2. Per-iteration validation:
+   - TypeScript compiles?
+   - Tests pass?
+   - No regressions?
+   - Lint clean?
+   - Pass criteria met?
+3. 15-minute audit cycle:
+   - Check all active iterations
+   - Analyze transcripts for stuck signs
+   - Terminate stuck sessions
+4. **Build interventions (Gap 4E):**
+   - Record when QA/SIA fixes agent's work
+   - Track intervening agent
+   - Store resolution
 
 **Test:** Agent completes iteration → QA validates → result recorded.
 
-## Phase 10: Wave Execution (Days 23-25)
+---
 
-**Goal:** Parallel task execution.
+## Phase 12: Human Simulation Agent (Days 27-30)
+
+**Goal:** Usability testing with multiple personas.
+
+**Tasks:**
+1. Human Sim Agent system prompt
+2. **Persona system (Gap 2):**
+   ```typescript
+   const personas = {
+     technical: { techLevel: 'high', patience: 'high', tests: ['cli', 'api', 'errors'] },
+     'power-user': { techLevel: 'medium-high', patience: 'medium', tests: ['workflows', 'edge-cases'] },
+     casual: { techLevel: 'medium', patience: 'medium', tests: ['happy-path', 'discoverability'] },
+     confused: { techLevel: 'low', patience: 'low', tests: ['error-recovery', 'help-text'] },
+     impatient: { techLevel: 'any', patience: 'very-low', tests: ['loading', 'feedback'] }
+   };
+   ```
+3. Playwright integration:
+   - Navigate UI
+   - Click/type simulation
+   - Screenshot capture
+   - Error detection
+4. **Multi-instance spawning:**
+   ```typescript
+   // Spawn 3 personas in parallel
+   await Promise.all([
+     spawnHumanSim(taskId, 'technical'),
+     spawnHumanSim(taskId, 'casual'),
+     spawnHumanSim(taskId, 'confused')
+   ]);
+   ```
+5. Results aggregation:
+   - Merge findings from all personas
+   - Create fix tasks for issues
+   - Update human_sim_results table
+6. Telegram reporting to @vibe-human-sim
+
+**Test:** UI task complete → 3 personas test → findings → fix tasks created.
+
+---
+
+## Phase 13: Wave Execution (Days 31-33)
+
+**Goal:** Parallel task execution in waves.
 
 **Tasks:**
 1. Wave calculation from dependencies
 2. Lane assignment by file patterns
 3. Wave lifecycle management
-4. Parallel agent spawning
+4. Parallel agent spawning (respecting max_parallel)
 5. Wave progress tracking
 6. UI wave visualization
+7. **File impact analysis (Gap 4G):**
+   - Predict files touched by task
+   - Detect conflicts between parallel tasks
 
-**Test:** Task list with deps → runs in correct wave order → parallelizes within waves.
+**Test:** Task list → waves calculated → parallel execution → correct order.
 
-## Phase 11: Polish (Days 26-28)
+---
+
+## Phase 14: Self-Improvement Loop (Days 34-36)
+
+**Goal:** System improves from failures.
+
+**Tasks:**
+1. Failure pattern detection:
+   ```typescript
+   // When same error occurs 3+ times
+   if (errorCount >= 3) {
+     await triggerLearningAnalysis(errorPattern, failedTasks);
+   }
+   ```
+2. Learning analysis:
+   - What went wrong?
+   - Which technique would help?
+   - Should prompt be updated?
+3. Technique recommendation:
+   - Query technique_effectiveness
+   - Suggest highest success-rate technique
+4. Prompt improvement proposals:
+   - Generate suggested change
+   - Require human approval
+   - Track effectiveness after change
+
+**Test:** Repeated failure → learning triggers → technique suggested.
+
+---
+
+## Phase 15: Polish (Days 37-40)
 
 **Goal:** Production ready.
 
 **Tasks:**
 1. Error boundary components
-2. Loading states
-3. Empty states
-4. Log viewer modal
-5. Task detail modal
-6. Session detail view
-7. Full iteration history
-8. Filters and search
-9. Docker optimization
-10. Documentation
+2. Loading/empty states
+3. Full log viewer modal
+4. Task/session detail views
+5. Filters and search
+6. Docker optimization
+7. Documentation
+8. **Priority escalation:**
+   - P0 tasks preempt lower work
+   - Critical alerts to @vibe-critical
+9. **Acceptance criteria tracking (Gap 4K):**
+   - Per-criterion pass/fail
+   - Visual progress in UI
+
+---
 
 ## Summary
 
-| Phase | Focus | Days | Testable Deliverable |
-|-------|-------|------|---------------------|
-| 1 | Frontend Shell | 1-2 | Static UI with mock data |
-| 2 | Data Model | 3-4 | Database with schema |
-| 3 | Backend API | 5-7 | REST endpoints |
-| 4 | Frontend + API | 8-9 | UI with real data |
-| 5 | WebSocket | 10-11 | Real-time updates |
-| 6 | Telegram Bot | 12-13 | Channel messaging |
-| 7 | Orchestrator | 14-16 | Auto task assignment |
-| 8 | Agent Spawner | 17-19 | Claude Code execution |
-| 9 | QA Validation | 20-22 | Per-iteration validation |
-| 10 | Wave Execution | 23-25 | Parallel execution |
-| 11 | Polish | 26-28 | Production ready |
+| Phase | Focus | Days | Key Gap Solutions |
+|-------|-------|------|-------------------|
+| 1 | Frontend Shell | 1-2 | - |
+| 2 | Data Model | 3-4 | Memory tables, Transcripts, Interventions |
+| 3 | Backend API | 5-7 | Gap solution endpoints |
+| 4 | Frontend + API | 8-9 | New views |
+| 5 | WebSocket | 10-11 | Live transcripts |
+| 6 | Telegram Bot | 12-13 | 13 channels |
+| 7 | Orchestrator | 14-16 | Clarification gate |
+| 8 | Clarification Agent | 17-18 | **Gap 1** |
+| 9 | Agent Spawner | 19-21 | Transcript capture |
+| 10 | Agent Memory | 22-23 | **Gap 3** |
+| 11 | QA Validation | 24-26 | Build interventions |
+| 12 | Human Sim Agent | 27-30 | **Gap 2** (personas) |
+| 13 | Wave Execution | 31-33 | File impact |
+| 14 | Self-Improvement | 34-36 | Learning loop |
+| 15 | Polish | 37-40 | Priority, Criteria |
 
-**Total:** ~28 days
+**Total:** ~40 days
+
+---
 
 ## Build Dependencies
 
@@ -205,17 +432,37 @@ Phase 3 (API) ───────┘
                      ▼
               Phase 7 (Orchestrator)
                      │
+           ┌─────────┴─────────┐
+           ▼                   ▼
+    Phase 8 (Clarification)   Phase 9 (Spawner)
+           │                   │
+           └─────────┬─────────┘
                      ▼
-              Phase 8 (Spawner)
+              Phase 10 (Memory)
                      │
                      ▼
-              Phase 9 (QA)
+              Phase 11 (QA)
                      │
                      ▼
-              Phase 10 (Waves)
+              Phase 12 (Human Sim)
                      │
                      ▼
-              Phase 11 (Polish)
+              Phase 13 (Waves)
+                     │
+                     ▼
+              Phase 14 (Self-Improve)
+                     │
+                     ▼
+              Phase 15 (Polish)
 ```
 
-**Key insight:** Frontend, Data Model, and Backend can be built in parallel by different agents.
+---
+
+## New Agents Added
+
+| Agent | Phase | Purpose |
+|-------|-------|---------|
+| Clarification Agent | 8 | Ask users clarifying questions |
+| Human Sim Agent | 12 | Usability testing with personas |
+
+**Total agents:** 12 (was 10)
