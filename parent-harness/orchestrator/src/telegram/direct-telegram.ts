@@ -19,13 +19,17 @@ const BOT_TOKENS: Record<string, string> = {
   spec: process.env.TELEGRAM_BOT_SPEC || '8293978861:AAHNCRkaEn1xnanYekLNU1jTZcES7HX0k2A',
   validation: process.env.TELEGRAM_BOT_VALIDATION || '8497591949:AAFqIpnUdIQors9v5pzFRNGPqv0gQ2ZkWx4',
   sia: process.env.TELEGRAM_BOT_SIA || '8366604835:AAG2xGWqVoc4gDTenPxGk9SfNbGg_wFvRGc',
+  planning: process.env.TELEGRAM_BOT_PLANNING || '8567955026:AAHTA8GNPBheu7m59d6TZue6Y-65fnbbH5w',
+  clarification: process.env.TELEGRAM_BOT_CLARIFICATION || '8136650121:AAGjQQV3JS9HS-00A11IL6uqLFeSdV9s-Mw',
 };
 
 // Map agent types to their bot
 const AGENT_BOT_MAP: Record<string, string> = {
   build: 'build', build_agent: 'build',
-  spec: 'spec', spec_agent: 'spec', planning: 'spec', planning_agent: 'spec',
+  spec: 'spec', spec_agent: 'spec',
   decomposition: 'spec', decomposition_agent: 'spec',
+  planning: 'planning', planning_agent: 'planning',
+  clarification: 'clarification', clarification_agent: 'clarification',
   qa: 'validation', qa_agent: 'validation', validation: 'validation', 
   validation_agent: 'validation', test: 'validation', test_agent: 'validation',
   research: 'monitor', research_agent: 'monitor', evaluator: 'monitor', evaluator_agent: 'monitor',
@@ -272,6 +276,59 @@ export const notify = {
 
   commitMade: async (agentIdOrType: string, hash: string, message: string) => {
     await notifyAgent(agentIdOrType, `📝 *Commit*\n\`${hash.slice(0, 7)}\` ${message.slice(0, 100)}`);
+  },
+
+  // Planning & Approval workflow
+  taskProposed: async (taskId: string, title: string, description: string, priority: string, passCriteria: string[]) => {
+    const criteriaList = passCriteria.slice(0, 5).map((c, i) => `  ${i + 1}. ${c}`).join('\n');
+    const msg = `📋 *Task Proposal*
+
+*ID:* \`${taskId}\`
+*Title:* ${title}
+*Priority:* ${priority}
+
+*Description:*
+${description.slice(0, 500)}
+
+*Pass Criteria:*
+${criteriaList}
+
+Reply with:
+✅ /approve ${taskId}
+❌ /reject ${taskId} <reason>
+❓ /clarify ${taskId} <question>`;
+    await notifyAgent('planning', msg);
+  },
+
+  planningStarted: async () => {
+    await notifyAgent('planning', `🧠 *Planning Agent Started*\nAnalyzing codebase and creating task proposals...`);
+  },
+
+  planningComplete: async (taskCount: number) => {
+    await notifyAgent('planning', `✅ *Planning Complete*\n${taskCount} tasks proposed for your review.`);
+  },
+
+  clarificationRequest: async (taskId: string, question: string) => {
+    const msg = `❓ *Clarification Needed*
+
+*Task:* \`${taskId}\`
+
+${question}
+
+Please provide clarification or type /skip to proceed without.`;
+    await notifyAgent('clarification', msg);
+  },
+
+  clarificationResponse: async (taskId: string, response: string) => {
+    await notifyAgent('clarification', `📝 *Clarification Received*\n\`${taskId}\`\n\n${response.slice(0, 500)}`);
+  },
+
+  taskApproved: async (taskId: string) => {
+    await notifyAgent('planning', `✅ *Task Approved*\n\`${taskId}\` - Moving to execution queue.`);
+  },
+
+  taskRejected: async (taskId: string, reason: string) => {
+    await notifyAgent('planning', `❌ *Task Rejected*\n\`${taskId}\`\nReason: ${reason}`);
   },
 };
 

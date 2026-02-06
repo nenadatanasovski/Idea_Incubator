@@ -247,17 +247,18 @@ export function getPlanningSession(id: string): PlanningSession | undefined {
  * Run the planning agent
  */
 export async function runDailyPlanning(taskListId: string): Promise<PlanningSession> {
-  console.log('🧠 Spawning planning agent to analyze codebase...');
+  console.log('🧠 Starting planning agent...');
   
   // Create session record
   const session = createPlanningSession('daily', { taskListId });
   
-  // Notify via Telegram
-  await notify.systemStatus(0, 0, 0).catch(() => {});
+  // Notify via Telegram that planning is starting
+  await notify.planningStarted().catch(() => {});
 
   // Check if spawner is available
   if (!spawner.isEnabled()) {
     console.warn('⚠️ Spawner not available, skipping planning agent');
+    await notify.agentError('planning', 'Spawner not available').catch(() => {});
     completePlanningSession(session.id, 'Spawner not available', [], []);
     return getPlanningSession(session.id)!;
   }
@@ -273,6 +274,7 @@ export async function runDailyPlanning(taskListId: string): Promise<PlanningSess
 
   if (!result.success || !result.output) {
     console.error('❌ Planning agent failed:', result.error);
+    await notify.agentError('planning', result.error || 'Planning failed').catch(() => {});
     completePlanningSession(session.id, result.error || 'Planning failed', [], []);
     return getPlanningSession(session.id)!;
   }
@@ -281,13 +283,25 @@ export async function runDailyPlanning(taskListId: string): Promise<PlanningSess
   const plannedTasks = parseTasksFromOutput(result.output);
   console.log(`📋 Planning agent created ${plannedTasks.length} task proposals`);
 
-  // Create actual tasks in database
+  // Create tasks and send each to Telegram for approval
   const createdTaskIds: string[] = [];
   for (const plan of plannedTasks) {
     try {
       const task = await createTaskFromPlan(taskListId, plan);
       createdTaskIds.push(task.id);
       console.log(`   ✅ Created: ${task.display_id} - ${task.title}`);
+      
+      // Send task proposal to Telegram for human approval
+      await notify.taskProposed(
+        task.display_id,
+        task.title,
+        plan.description || 'No description',
+        plan.priority,
+        plan.passCriteria
+      ).catch(() => {});
+      
+      // Small delay between messages to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (err) {
       console.warn(`   ⚠️ Failed to create task: ${plan.title}`);
     }
@@ -296,15 +310,15 @@ export async function runDailyPlanning(taskListId: string): Promise<PlanningSess
   // Complete session
   completePlanningSession(
     session.id,
-    `Planning complete: ${createdTaskIds.length} tasks created`,
+    `Planning complete: ${createdTaskIds.length} tasks proposed`,
     plannedTasks.map(t => t.title),
     createdTaskIds
   );
 
-  // Notify
-  await notify.waveStarted(1, createdTaskIds.length).catch(() => {});
+  // Notify completion
+  await notify.planningComplete(createdTaskIds.length).catch(() => {});
 
-  console.log(`🧠 Planning complete: ${createdTaskIds.length} tasks ready for execution`);
+  console.log(`🧠 Planning complete: ${createdTaskIds.length} tasks proposed for approval`);
 
   return getPlanningSession(session.id)!;
 }
