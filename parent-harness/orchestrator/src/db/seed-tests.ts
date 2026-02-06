@@ -266,8 +266,8 @@ export function seedTests(): void {
     const suiteId = uuidv4();
     
     run(`
-      INSERT INTO test_suites (id, name, description, status)
-      VALUES (?, ?, ?, 'active')
+      INSERT INTO test_suites (id, name, description, type, source, enabled)
+      VALUES (?, ?, ?, 'integration', 'phases', 1)
       ON CONFLICT(id) DO UPDATE SET name = excluded.name
     `, [suiteId, suite.name, suite.description]);
 
@@ -279,10 +279,10 @@ export function seedTests(): void {
       const caseId = uuidv4();
 
       run(`
-        INSERT INTO test_cases (id, suite_id, name, description, sequence, status)
-        VALUES (?, ?, ?, ?, ?, 'pending')
+        INSERT INTO test_cases (id, suite_id, name, description, priority, enabled)
+        VALUES (?, ?, ?, ?, 'P2', 1)
         ON CONFLICT(id) DO UPDATE SET name = excluded.name
-      `, [caseId, suiteId, testCase.name, testCase.description, caseIdx + 1]);
+      `, [caseId, suiteId, testCase.name, testCase.description]);
 
       console.log(`    📝 Created case: ${testCase.name}`);
 
@@ -292,8 +292,8 @@ export function seedTests(): void {
         const stepId = uuidv4();
 
         run(`
-          INSERT INTO test_steps (id, case_id, sequence, name, action_type, command, expected_exit_code, expected_output_contains)
-          VALUES (?, ?, ?, ?, 'shell', ?, ?, ?)
+          INSERT INTO test_steps (id, case_id, sequence, name, command, expected_exit_code, expected_output_contains)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET name = excluded.name
         `, [
           stepId,
