@@ -169,6 +169,51 @@ export const notify = {
       `Pending tasks: ${pendingTasks}`;
     await notifyAdmin(message);
   },
+
+  /**
+   * Tool use notification
+   */
+  toolUse: async (agentId: string, toolName: string, args: Record<string, unknown>) => {
+    const argsStr = JSON.stringify(args).slice(0, 100);
+    const message = `🔧 <b>${toolName}</b>\n<code>${argsStr}${argsStr.length >= 100 ? '...' : ''}</code>`;
+    await notifyAgent(agentId, message);
+  },
+
+  /**
+   * File edit notification
+   */
+  fileEdit: async (agentId: string, filePath: string, linesChanged: number) => {
+    const fileName = filePath.split('/').pop() || filePath;
+    const message = `✏️ <b>File Modified</b>\n<code>${fileName}</code>\n${linesChanged} lines`;
+    await notifyAgent(agentId, message);
+    await notifyAdmin(`✏️ ${agentId}: ${fileName} (${linesChanged} lines)`);
+  },
+
+  /**
+   * Command execution notification
+   */
+  commandRun: async (agentId: string, command: string, success: boolean) => {
+    const icon = success ? '✅' : '❌';
+    const cmdShort = command.length > 50 ? command.slice(0, 50) + '...' : command;
+    const message = `${icon} <code>${cmdShort}</code>`;
+    await notifyAgent(agentId, message);
+  },
+
+  /**
+   * Session started
+   */
+  sessionStarted: async (agentId: string, taskDisplayId: string) => {
+    const message = `🚀 <b>Session Started</b>\n\nWorking on: <code>${taskDisplayId}</code>`;
+    await notifyAgent(agentId, message);
+  },
+
+  /**
+   * Session iteration
+   */
+  sessionIteration: async (agentId: string, iteration: number, maxIterations: number) => {
+    const message = `📍 Iteration ${iteration}/${maxIterations}`;
+    await notifyAgent(agentId, message);
+  },
 };
 
 export default {

@@ -18,6 +18,7 @@ import * as sessions from '../db/sessions.js';
 import * as tasks from '../db/tasks.js';
 import { events } from '../db/events.js';
 import { ws } from '../websocket.js';
+import { notify } from '../telegram/index.js';
 
 const execAsync = promisify(exec);
 
@@ -202,7 +203,9 @@ async function executeTool(
         }
         
         fs.writeFileSync(filePath, content);
-        events.fileEdit(agentId, sessionId, filePath, content.split('\n').length);
+        const linesChanged = content.split('\n').length;
+        events.fileEdit(agentId, sessionId, filePath, linesChanged);
+        notify.fileEdit(agentId, filePath, linesChanged).catch(() => {});
         return { success: true, output: `File written: ${filePath}` };
       }
 
@@ -217,12 +220,14 @@ async function executeTool(
             maxBuffer: 10 * 1024 * 1024, // 10MB
           });
           events.toolUse(agentId, sessionId, 'run_command', { command, cwd });
+          notify.commandRun(agentId, command, true).catch(() => {});
           return { 
             success: true, 
             output: stdout + (stderr ? `\nSTDERR:\n${stderr}` : '') 
           };
         } catch (err: unknown) {
           const error = err as { stdout?: string; stderr?: string; message?: string };
+          notify.commandRun(agentId, command, false).catch(() => {});
           return { 
             success: false, 
             output: `Command failed: ${error.stderr || error.message || 'Unknown error'}\nSTDOUT: ${error.stdout || ''}` 
