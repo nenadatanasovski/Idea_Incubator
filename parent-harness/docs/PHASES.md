@@ -9,14 +9,14 @@ Each phase has explicit pass criteria and verification scripts. **No phase start
 **Goal:** Static dashboard that can be tested independently.
 
 **Tasks:**
-1. Vite + React + TypeScript setup
-2. Tailwind CSS config
-3. Three-column layout (header, main grid)
-4. AgentStatusCard component (hardcoded data)
-5. EventStream component (mock events)
-6. TaskCard component (mock tasks)
-7. Basic routing (/, /tasks, /sessions)
-8. Notification center (top left)
+- [ ] 1. Vite + React + TypeScript setup
+- [ ] 2. Tailwind CSS config
+- [ ] 3. Three-column layout (header, main grid)
+- [ ] 4. AgentStatusCard component (hardcoded data)
+- [ ] 5. EventStream component (mock events)
+- [ ] 6. TaskCard component (mock tasks)
+- [ ] 7. Basic routing (/, /tasks, /sessions)
+- [ ] 8. Notification center (top left)
 
 **Pass Criteria:**
 - [ ] `npm run build` succeeds with zero errors
@@ -53,12 +53,12 @@ echo "✅ Phase 1 PASSED"
 **Goal:** Database ready with schema and seed data.
 
 **Tasks:**
-1. SQLite database setup (better-sqlite3)
-2. Run schema.sql (all tables from DATA_MODEL.md)
-3. Seed agents table (13 agents)
-4. Seed sample task_list with 5 tasks
-5. Create all views
-6. Query functions for each table
+- [ ] 1. SQLite database setup (better-sqlite3)
+- [ ] 2. Run schema.sql (all tables from DATA_MODEL.md)
+- [ ] 3. Seed agents table (13 agents)
+- [ ] 4. Seed sample task_list with 5 tasks
+- [ ] 5. Create all views
+- [ ] 6. Query functions for each table
 
 **Pass Criteria:**
 - [ ] Database file exists at `data/harness.db`
@@ -95,14 +95,14 @@ console.log('✅ Phase 2 PASSED');
 **Goal:** REST API serving real data.
 
 **Tasks:**
-1. Express server setup with TypeScript
-2. `/api/agents` - GET (list), GET/:id, PATCH/:id
-3. `/api/tasks` - GET (list), GET/:id, POST, PATCH/:id, DELETE/:id
-4. `/api/sessions` - GET (list), GET/:id, POST/:id/terminate
-5. `/api/iterations` - GET/:id, GET/:id/log
-6. `/api/events` - GET (list with filters)
-7. Error handling middleware
-8. CORS config
+- [ ] 1. Express server setup with TypeScript
+- [ ] 2. `/api/agents` - GET (list), GET/:id, PATCH/:id
+- [ ] 3. `/api/tasks` - GET (list), GET/:id, POST, PATCH/:id, DELETE/:id
+- [ ] 4. `/api/sessions` - GET (list), GET/:id, POST/:id/terminate
+- [ ] 5. `/api/iterations` - GET/:id, GET/:id/log
+- [ ] 6. `/api/events` - GET (list with filters)
+- [ ] 7. Error handling middleware
+- [ ] 8. CORS config
 
 **Pass Criteria:**
 - [ ] Server starts on port 3333
@@ -157,13 +157,13 @@ echo "✅ Phase 3 PASSED"
 **Goal:** Dashboard shows real data from API.
 
 **Tasks:**
-1. useApi hook with fetch wrapper
-2. Connect AgentStatusCard to /api/agents
-3. Connect TaskBoard to /api/tasks
-4. Connect SessionsView to /api/sessions
-5. Connect EventStream to /api/events
-6. Loading states for all components
-7. Error states for failed fetches
+- [ ] 1. useApi hook with fetch wrapper
+- [ ] 2. Connect AgentStatusCard to /api/agents
+- [ ] 3. Connect TaskBoard to /api/tasks
+- [ ] 4. Connect SessionsView to /api/sessions
+- [ ] 5. Connect EventStream to /api/events
+- [ ] 6. Loading states for all components
+- [ ] 7. Error states for failed fetches
 
 **Pass Criteria:**
 - [ ] Dashboard fetches agents from API on load
@@ -217,13 +217,13 @@ test('tasks page shows real tasks', async ({ page }) => {
 **Goal:** Real-time updates without polling.
 
 **Tasks:**
-1. WebSocket server on /ws
-2. useHarnessWebSocket hook
-3. Broadcast agent:status events
-4. Broadcast task:updated events
-5. Broadcast event:new events
-6. Auto-reconnect on disconnect
-7. Connection status indicator in UI
+- [ ] 1. WebSocket server on /ws
+- [ ] 2. useHarnessWebSocket hook
+- [ ] 3. Broadcast agent:status events
+- [ ] 4. Broadcast task:updated events
+- [ ] 5. Broadcast event:new events
+- [ ] 6. Auto-reconnect on disconnect
+- [ ] 7. Connection status indicator in UI
 
 **Pass Criteria:**
 - [ ] WebSocket connects at ws://localhost:3333/ws
@@ -278,13 +278,13 @@ kill $PID
 **Goal:** Messages to Telegram channels.
 
 **Tasks:**
-1. Create Telegram bot via @BotFather
-2. Create 14 channels and add bot as admin
-3. Bot connection logic
-4. `sendToChannel(channel, message)` function
-5. `sendCritical(message)` function
-6. Message formatting with emojis
-7. Test message to @vibe-critical on startup
+- [ ] 1. Create Telegram bot via @BotFather
+- [ ] 2. Create 14 channels and add bot as admin
+- [ ] 3. Bot connection logic
+- [ ] 4. `sendToChannel(channel, message)` function
+- [ ] 5. `sendCritical(message)` function
+- [ ] 6. Message formatting with emojis
+- [ ] 7. Test message to @vibe-critical on startup
 
 **Pass Criteria:**
 - [ ] Bot token configured in .env
@@ -319,14 +319,14 @@ console.log('✅ Phase 6 PASSED');
 **Goal:** Automated cron loop with clarification gate.
 
 **Tasks:**
-1. Cron loop (60s interval)
-2. Clarification gate check
-3. Get idle agents query
-4. Get ready tasks query
-5. Task assignment logic
-6. Create sessions + iterations
-7. Emit events
-8. Telegram notifications
+- [ ] 1. Cron loop (60s interval)
+- [ ] 2. Clarification gate check
+- [ ] 3. Get idle agents query
+- [ ] 4. Get ready tasks query
+- [ ] 5. Task assignment logic
+- [ ] 6. Create sessions + iterations
+- [ ] 7. Emit events
+- [ ] 8. Telegram notifications
 
 **Pass Criteria:**
 - [ ] Orchestrator starts and logs tick every 60s
@@ -375,12 +375,12 @@ echo "✅ Phase 7 PASSED"
 **Goal:** Proactive question-asking for vague tasks.
 
 **Tasks:**
-1. Clarification Agent system prompt
-2. Question generation logic
-3. Telegram interaction (ask in @vibe-clarification)
-4. Answer processing
-5. Task enrichment
-6. Timeout handling (24h)
+- [ ] 1. Clarification Agent system prompt
+- [ ] 2. Question generation logic
+- [ ] 3. Telegram interaction (ask in @vibe-clarification)
+- [ ] 4. Answer processing
+- [ ] 5. Task enrichment
+- [ ] 6. Timeout handling (24h)
 
 **Pass Criteria:**
 - [ ] New user task triggers Clarification Agent
@@ -434,13 +434,13 @@ echo "✅ Phase 8 PASSED"
 **Goal:** Actually run Claude Code instances.
 
 **Tasks:**
-1. Claude Code CLI integration
-2. Process spawning with config
-3. Transcript capture to transcript_entries
-4. Output parsing for tool calls
-5. Heartbeat monitoring
-6. Graceful termination
-7. Error handling
+- [ ] 1. Claude Code CLI integration
+- [ ] 2. Process spawning with config
+- [ ] 3. Transcript capture to transcript_entries
+- [ ] 4. Output parsing for tool calls
+- [ ] 5. Heartbeat monitoring
+- [ ] 6. Graceful termination
+- [ ] 7. Error handling
 
 **Pass Criteria:**
 - [ ] Claude Code process spawns for assigned task
@@ -495,11 +495,11 @@ echo "✅ Phase 9 PASSED"
 **Goal:** Agents remember and learn from experience.
 
 **Tasks:**
-1. Memory creation on task completion
-2. Memory retrieval before task start
-3. Memory decay (reduce relevance over time)
-4. SIA task memory (technique tracking)
-5. Technique effectiveness tracking
+- [ ] 1. Memory creation on task completion
+- [ ] 2. Memory retrieval before task start
+- [ ] 3. Memory decay (reduce relevance over time)
+- [ ] 4. SIA task memory (technique tracking)
+- [ ] 5. Technique effectiveness tracking
 
 **Pass Criteria:**
 - [ ] Successful task creates memory entry
@@ -549,12 +549,12 @@ console.log('✅ Phase 10 PASSED');
 **Goal:** Every iteration validated + stuck detection.
 
 **Tasks:**
-1. QA Agent system prompt
-2. Per-iteration validation checks
-3. 15-minute audit cycle
-4. Stuck detection logic
-5. Build interventions recording
-6. SIA arbitration for disputes
+- [ ] 1. QA Agent system prompt
+- [ ] 2. Per-iteration validation checks
+- [ ] 3. 15-minute audit cycle
+- [ ] 4. Stuck detection logic
+- [ ] 5. Build interventions recording
+- [ ] 6. SIA arbitration for disputes
 
 **Pass Criteria:**
 - [ ] Completed iteration triggers QA validation
@@ -596,12 +596,12 @@ echo "✅ Phase 11 PASSED"
 **Goal:** Usability testing with multiple personas.
 
 **Tasks:**
-1. Human Sim Agent system prompt
-2. Persona system (5 personas)
-3. Playwright integration
-4. Multi-instance spawning
-5. Results aggregation
-6. Fix task creation
+- [ ] 1. Human Sim Agent system prompt
+- [ ] 2. Persona system (5 personas)
+- [ ] 3. Playwright integration
+- [ ] 4. Multi-instance spawning
+- [ ] 5. Results aggregation
+- [ ] 6. Fix task creation
 
 **Pass Criteria:**
 - [ ] Human Sim spawns for completed UI task
@@ -647,12 +647,12 @@ console.log('✅ Phase 12 PASSED');
 **Goal:** Parallel task execution in waves.
 
 **Tasks:**
-1. Wave calculation from dependencies
-2. Lane assignment by file patterns
-3. Wave lifecycle management
-4. Parallel agent spawning
-5. Wave progress tracking
-6. File impact analysis
+- [ ] 1. Wave calculation from dependencies
+- [ ] 2. Lane assignment by file patterns
+- [ ] 3. Wave lifecycle management
+- [ ] 4. Parallel agent spawning
+- [ ] 5. Wave progress tracking
+- [ ] 6. File impact analysis
 
 **Pass Criteria:**
 - [ ] Task list generates correct wave numbers
@@ -702,12 +702,12 @@ console.log('✅ Phase 13 PASSED');
 **Goal:** Strategic brain that creates improvement tasks.
 
 **Tasks:**
-1. Planning Agent system prompt with vision
-2. Project state analyzer
-3. Task creation logic
-4. Vision alignment check
-5. Cron schedule (every 2 hours)
-6. Telegram reporting
+- [ ] 1. Planning Agent system prompt with vision
+- [ ] 2. Project state analyzer
+- [ ] 3. Task creation logic
+- [ ] 4. Vision alignment check
+- [ ] 5. Cron schedule (every 2 hours)
+- [ ] 6. Telegram reporting
 
 **Pass Criteria:**
 - [ ] Planning Agent runs on cron schedule
@@ -751,11 +751,11 @@ echo "✅ Phase 14 PASSED"
 **Goal:** System improves from failures.
 
 **Tasks:**
-1. Failure pattern detection
-2. Learning analysis
-3. Technique recommendation
-4. Harness self-modification
-5. Modification audit logging
+- [ ] 1. Failure pattern detection
+- [ ] 2. Learning analysis
+- [ ] 3. Technique recommendation
+- [ ] 4. Harness self-modification
+- [ ] 5. Modification audit logging
 
 **Pass Criteria:**
 - [ ] Repeated failure (3+) triggers learning
@@ -807,15 +807,15 @@ console.log('✅ Phase 15 PASSED');
 **Goal:** Production ready.
 
 **Tasks:**
-1. Error boundary components
-2. Loading/empty states
-3. Log viewer modal
-4. Task/session detail views
-5. Filters and search
-6. Docker optimization
-7. Priority escalation
-8. Acceptance criteria tracking
-9. Documentation
+- [ ] 1. Error boundary components
+- [ ] 2. Loading/empty states
+- [ ] 3. Log viewer modal
+- [ ] 4. Task/session detail views
+- [ ] 5. Filters and search
+- [ ] 6. Docker optimization
+- [ ] 7. Priority escalation
+- [ ] 8. Acceptance criteria tracking
+- [ ] 9. Documentation
 
 **Pass Criteria:**
 - [ ] No unhandled errors crash the dashboard
