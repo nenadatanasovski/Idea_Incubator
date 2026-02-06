@@ -215,6 +215,14 @@ export const events = {
       message: `Tick #${tickNumber}: ${workingCount} agents working, ${idleCount} idle`,
       severity: 'debug',
     }),
+
+  planningCompleted: (cycleNumber: number, tasksCreated: number) =>
+    createEvent({
+      type: 'planning:completed',
+      message: `Planning cycle #${cycleNumber} complete: ${tasksCreated} tasks created`,
+      agentId: 'planning_agent',
+      severity: 'info',
+    }),
 };
 
 export default {

@@ -3,13 +3,21 @@ import * as tasks from '../db/tasks.js';
 import * as sessions from '../db/sessions.js';
 import { events } from '../db/events.js';
 import { ws } from '../websocket.js';
+import * as spawner from '../spawner/index.js';
+import * as planning from '../planning/index.js';
 
 // Configuration
 const TICK_INTERVAL_MS = 30_000; // 30 seconds
 const STUCK_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
+const PLANNING_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
 const MAX_RETRIES = 5;
 
+// Feature flags
+const SPAWN_AGENTS = process.env.HARNESS_SPAWN_AGENTS === 'true'; // Set to 'true' to enable
+const RUN_PLANNING = process.env.HARNESS_RUN_PLANNING === 'true'; // Set to 'true' to enable
+
 let tickCount = 0;
+let planningCount = 0;
 let isRunning = false;
 
 /**
@@ -23,6 +31,8 @@ export async function startOrchestrator(): Promise<void> {
 
   isRunning = true;
   console.log('🎯 Orchestrator started');
+  console.log(`   Spawn agents: ${SPAWN_AGENTS ? 'ENABLED' : 'DISABLED (set HARNESS_SPAWN_AGENTS=true)'}`);
+  console.log(`   Run planning: ${RUN_PLANNING ? 'ENABLED' : 'DISABLED (set HARNESS_RUN_PLANNING=true)'}`);
 
   // Initial tick
   await tick();
@@ -33,6 +43,43 @@ export async function startOrchestrator(): Promise<void> {
       await tick();
     }
   }, TICK_INTERVAL_MS);
+
+  // Schedule planning analysis (every 2 hours)
+  if (RUN_PLANNING) {
+    setInterval(async () => {
+      if (isRunning) {
+        await runPlanning();
+      }
+    }, PLANNING_INTERVAL_MS);
+    
+    // Run initial planning after 1 minute
+    setTimeout(async () => {
+      if (isRunning) {
+        await runPlanning();
+      }
+    }, 60_000);
+  }
+}
+
+/**
+ * Run planning analysis
+ */
+async function runPlanning(): Promise<void> {
+  planningCount++;
+  console.log(`📊 Planning cycle #${planningCount} starting...`);
+  
+  try {
+    // Get or create default task list
+    const taskListId = 'default-task-list';
+    
+    const session = await planning.runDailyPlanning(taskListId);
+    
+    events.planningCompleted(planningCount, session.tasks_created ? JSON.parse(session.tasks_created).length : 0);
+    
+    console.log(`📊 Planning cycle #${planningCount} complete`);
+  } catch (error) {
+    console.error('❌ Planning error:', error);
+  }
 }
 
 /**
@@ -171,22 +218,40 @@ function findSuitableAgent(task: tasks.Task, availableAgents: agents.Agent[]): a
  * Assign a task to an agent
  */
 async function assignTaskToAgent(task: tasks.Task, agent: agents.Agent): Promise<void> {
-  // Create session for the task
-  const session = sessions.createSession(agent.id, task.id);
-
-  // Update task status
-  tasks.assignTask(task.id, agent.id);
-
-  // Update agent status
-  agents.updateAgentStatus(agent.id, 'working', task.id, session.id);
-
   // Log event
   events.taskAssigned(task.id, agent.id, task.title);
 
-  // Broadcast via WebSocket
-  ws.taskAssigned(tasks.getTask(task.id), agent.id);
-  ws.agentStatusChanged(agents.getAgent(agent.id));
-  ws.sessionStarted(session);
+  if (SPAWN_AGENTS) {
+    // Actually spawn the agent process
+    console.log(`🚀 Spawning ${agent.name} for ${task.display_id}...`);
+    
+    // Spawn in background (don't await - let it run)
+    spawner.spawnAgentSession({
+      taskId: task.id,
+      agentId: agent.id,
+      model: agent.model || 'opus',
+    }).then(result => {
+      if (result.success) {
+        console.log(`✅ ${agent.name} completed ${task.display_id}`);
+      } else {
+        console.log(`❌ ${agent.name} failed ${task.display_id}: ${result.error}`);
+      }
+    }).catch(err => {
+      console.error(`❌ Spawn error for ${agent.name}:`, err);
+    });
+
+    // Broadcast task assigned (session created by spawner)
+    ws.taskAssigned(tasks.getTask(task.id), agent.id);
+  } else {
+    // Simulation mode: just update DB records
+    const session = sessions.createSession(agent.id, task.id);
+    tasks.assignTask(task.id, agent.id);
+    agents.updateAgentStatus(agent.id, 'working', task.id, session.id);
+
+    ws.taskAssigned(tasks.getTask(task.id), agent.id);
+    ws.agentStatusChanged(agents.getAgent(agent.id));
+    ws.sessionStarted(session);
+  }
 
   console.log(`📋 Assigned ${task.display_id} to ${agent.name}`);
 }
