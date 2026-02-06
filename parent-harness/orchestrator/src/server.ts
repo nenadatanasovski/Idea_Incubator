@@ -12,6 +12,7 @@ import { qaRouter } from './api/qa.js';
 import { wavesRouter } from './api/waves.js';
 import { clarificationRouter } from './api/clarification.js';
 import { configRouter } from './api/config.js';
+import { orchestratorRouter } from './api/orchestrator.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { initWebSocket } from './websocket.js';
 import { startOrchestrator } from './orchestrator/index.js';
@@ -50,6 +51,7 @@ app.use('/api/qa', qaRouter);
 app.use('/api/waves', wavesRouter);
 app.use('/api/clarifications', clarificationRouter);
 app.use('/api/config', configRouter);
+app.use('/api/orchestrator', orchestratorRouter);
 
 // Error handling
 app.use(notFoundHandler);

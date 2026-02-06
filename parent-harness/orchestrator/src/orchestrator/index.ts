@@ -334,9 +334,37 @@ export async function failTask(taskId: string, agentId: string, error: string): 
   console.log(`❌ Failed ${task.display_id}: ${error}`);
 }
 
+/**
+ * Manual tick trigger (for cron jobs)
+ */
+export async function manualTick(): Promise<{
+  workingCount: number;
+  idleCount: number;
+  pendingTasks: number;
+  assignedTasks: number;
+}> {
+  const startTime = Date.now();
+  
+  // Run the tick logic
+  await tick();
+  
+  // Return status
+  const workingAgents = agents.getWorkingAgents();
+  const idleAgents = agents.getIdleAgents();
+  const pendingTasksList = tasks.getPendingTasks();
+  
+  return {
+    workingCount: workingAgents.length,
+    idleCount: idleAgents.length,
+    pendingTasks: pendingTasksList.length,
+    assignedTasks: 0, // Would need to track this in tick()
+  };
+}
+
 export default {
   startOrchestrator,
   stopOrchestrator,
   completeTask,
   failTask,
+  manualTick,
 };
