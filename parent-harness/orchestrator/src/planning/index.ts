@@ -187,9 +187,9 @@ async function createTaskFromPlan(
   return tasks.createTask({
     display_id: displayId,
     title: plan.title,
-    description: plan.description,
-    category: plan.category as tasks.Task['category'],
-    priority: plan.priority as tasks.Task['priority'],
+    description: plan.description || undefined,
+    category: plan.category || undefined,
+    priority: (plan.priority || 'P2') as tasks.Task['priority'],
     task_list_id: taskListId,
     pass_criteria: plan.passCriteria,
   });
