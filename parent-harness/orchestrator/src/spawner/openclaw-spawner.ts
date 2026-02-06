@@ -144,7 +144,12 @@ export async function spawnViaOpenClaw(request: SpawnRequest): Promise<SpawnResp
       };
     }
 
-    const result = await response.json();
+    const result = await response.json() as {
+      output?: string;
+      result?: string;
+      error?: string;
+      sessionKey?: string;
+    };
     
     // Check for completion signals in output
     const output = result.output || result.result || '';

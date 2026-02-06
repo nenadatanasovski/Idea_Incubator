@@ -53,7 +53,7 @@ router.get('/status', (_req, res) => {
       id: s.id,
       agentId: s.agent_id,
       status: s.status,
-      createdAt: s.created_at,
+      startedAt: s.started_at,
     })),
     recentEvents: recentEvents.slice(0, 5).map(e => ({
       type: e.type,

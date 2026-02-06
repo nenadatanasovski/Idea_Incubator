@@ -185,7 +185,12 @@ async function callOpenClawSpawn(
       return { success: false, error: `Gateway error: ${response.status} ${errorText}` };
     }
 
-    const result = await response.json();
+    const result = await response.json() as { 
+      error?: string; 
+      output?: string; 
+      result?: string;
+      sessionKey?: string;
+    };
     return { 
       success: !result.error,
       output: result.output || result.result,
