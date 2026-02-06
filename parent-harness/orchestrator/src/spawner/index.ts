@@ -1,27 +1,145 @@
 /**
- * Agent Spawner - Executes tasks using Claude via Anthropic SDK
+ * Agent Spawner - Executes tasks using Claude with REAL tool execution
  * 
- * This module runs Claude agents directly using the Anthropic SDK,
- * following the same pattern as the Vibe platform's agent-runner.
+ * This module runs Claude agents with:
+ * - File read/write tools
+ * - Shell execution
+ * - Multi-turn conversation loop
+ * - Tool call tracking and Telegram notifications
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import * as fs from 'fs';
+import * as path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import * as agents from '../db/agents.js';
 import * as sessions from '../db/sessions.js';
 import * as tasks from '../db/tasks.js';
 import { events } from '../db/events.js';
 import { ws } from '../websocket.js';
 
+const execAsync = promisify(exec);
+
 // Initialize Anthropic client
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+// Codebase root
+const CODEBASE_ROOT = '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
+
+// Tool definitions for Claude
+const TOOLS: Anthropic.Tool[] = [
+  {
+    name: 'read_file',
+    description: 'Read the contents of a file',
+    input_schema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'Path to the file (relative to codebase root or absolute)',
+        },
+      },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'write_file',
+    description: 'Write content to a file (creates directories if needed)',
+    input_schema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'Path to the file (relative to codebase root or absolute)',
+        },
+        content: {
+          type: 'string',
+          description: 'Content to write to the file',
+        },
+      },
+      required: ['path', 'content'],
+    },
+  },
+  {
+    name: 'run_command',
+    description: 'Execute a shell command and return the output',
+    input_schema: {
+      type: 'object',
+      properties: {
+        command: {
+          type: 'string',
+          description: 'Shell command to execute',
+        },
+        cwd: {
+          type: 'string',
+          description: 'Working directory (optional, defaults to codebase root)',
+        },
+      },
+      required: ['command'],
+    },
+  },
+  {
+    name: 'list_directory',
+    description: 'List contents of a directory',
+    input_schema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'Path to the directory',
+        },
+      },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'task_complete',
+    description: 'Signal that the task is complete with a summary',
+    input_schema: {
+      type: 'object',
+      properties: {
+        summary: {
+          type: 'string',
+          description: 'Summary of what was accomplished',
+        },
+        files_modified: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of files that were modified',
+        },
+      },
+      required: ['summary'],
+    },
+  },
+  {
+    name: 'task_failed',
+    description: 'Signal that the task failed with an error',
+    input_schema: {
+      type: 'object',
+      properties: {
+        error: {
+          type: 'string',
+          description: 'Description of what went wrong',
+        },
+        reason: {
+          type: 'string',
+          description: 'Why the task cannot be completed',
+        },
+      },
+      required: ['error'],
+    },
+  },
+];
 
 interface SpawnOptions {
   taskId: string;
   agentId: string;
   timeout?: number; // seconds
   model?: string;
+  maxIterations?: number;
 }
 
 interface SpawnResult {
@@ -30,98 +148,200 @@ interface SpawnResult {
   output?: string;
   error?: string;
   tokensUsed?: number;
+  filesModified?: string[];
+  toolCalls?: number;
+}
+
+interface ToolResult {
+  success: boolean;
+  output: string;
 }
 
 // Track running sessions (for cancellation)
-const runningSessions = new Map<string, AbortController>();
+const runningSessions = new Map<string, { aborted: boolean }>();
+
+/**
+ * Resolve path relative to codebase root
+ */
+function resolvePath(filePath: string): string {
+  if (path.isAbsolute(filePath)) {
+    return filePath;
+  }
+  return path.join(CODEBASE_ROOT, filePath);
+}
+
+/**
+ * Execute a tool call
+ */
+async function executeTool(
+  toolName: string,
+  toolInput: Record<string, unknown>,
+  sessionId: string,
+  agentId: string
+): Promise<ToolResult> {
+  try {
+    switch (toolName) {
+      case 'read_file': {
+        const filePath = resolvePath(toolInput.path as string);
+        if (!fs.existsSync(filePath)) {
+          return { success: false, output: `File not found: ${filePath}` };
+        }
+        const content = fs.readFileSync(filePath, 'utf-8');
+        events.toolUse(agentId, sessionId, 'read_file', { path: filePath });
+        return { success: true, output: content };
+      }
+
+      case 'write_file': {
+        const filePath = resolvePath(toolInput.path as string);
+        const content = toolInput.content as string;
+        
+        // Create directory if needed
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        
+        fs.writeFileSync(filePath, content);
+        events.fileEdit(agentId, sessionId, filePath, content.split('\n').length);
+        return { success: true, output: `File written: ${filePath}` };
+      }
+
+      case 'run_command': {
+        const command = toolInput.command as string;
+        const cwd = toolInput.cwd ? resolvePath(toolInput.cwd as string) : CODEBASE_ROOT;
+        
+        try {
+          const { stdout, stderr } = await execAsync(command, { 
+            cwd, 
+            timeout: 60000,
+            maxBuffer: 10 * 1024 * 1024, // 10MB
+          });
+          events.toolUse(agentId, sessionId, 'run_command', { command, cwd });
+          return { 
+            success: true, 
+            output: stdout + (stderr ? `\nSTDERR:\n${stderr}` : '') 
+          };
+        } catch (err: unknown) {
+          const error = err as { stdout?: string; stderr?: string; message?: string };
+          return { 
+            success: false, 
+            output: `Command failed: ${error.stderr || error.message || 'Unknown error'}\nSTDOUT: ${error.stdout || ''}` 
+          };
+        }
+      }
+
+      case 'list_directory': {
+        const dirPath = resolvePath(toolInput.path as string);
+        if (!fs.existsSync(dirPath)) {
+          return { success: false, output: `Directory not found: ${dirPath}` };
+        }
+        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+        const listing = entries.map(e => `${e.isDirectory() ? '[DIR]' : '[FILE]'} ${e.name}`).join('\n');
+        return { success: true, output: listing };
+      }
+
+      case 'task_complete': {
+        return { 
+          success: true, 
+          output: `TASK_COMPLETE: ${toolInput.summary}` 
+        };
+      }
+
+      case 'task_failed': {
+        return { 
+          success: false, 
+          output: `TASK_FAILED: ${toolInput.error}` 
+        };
+      }
+
+      default:
+        return { success: false, output: `Unknown tool: ${toolName}` };
+    }
+  } catch (error) {
+    return { 
+      success: false, 
+      output: `Tool execution error: ${error instanceof Error ? error.message : String(error)}` 
+    };
+  }
+}
 
 /**
  * Get the system prompt for an agent type
  */
 function getAgentSystemPrompt(agentType: string): string {
-  const prompts: Record<string, string> = {
-    build_agent: `You are a senior software engineer. Your job is to implement features and fix bugs.
+  const basePrompt = `You are an autonomous AI agent working on the Vibe Platform codebase.
 
-## APPROACH
-1. Read the task requirements carefully
-2. Plan your implementation before coding
-3. Write clean, well-documented code
-4. Add appropriate tests
-5. Verify your changes work
+## CODEBASE LOCATION
+${CODEBASE_ROOT}
 
-## OUTPUT
-When you complete the task, provide:
-- Summary of changes made
-- Files modified/created
-- Tests added
-- Any follow-up tasks needed`,
+## AVAILABLE TOOLS
+- read_file: Read file contents
+- write_file: Create or modify files
+- run_command: Execute shell commands (npm, git, etc.)
+- list_directory: List directory contents
+- task_complete: Signal task completion with summary
+- task_failed: Signal task failure with reason
 
-    qa_agent: `You are a QA engineer. Your job is to test implementations and find bugs.
+## WORKFLOW
+1. Understand the task requirements
+2. Explore relevant files using read_file and list_directory
+3. Make changes using write_file
+4. Test your changes using run_command (npm test, npm run build, etc.)
+5. If tests pass, call task_complete with a summary
+6. If you cannot complete the task, call task_failed with the reason
 
-## APPROACH
-1. Understand what was implemented
-2. Write comprehensive test cases
-3. Test edge cases and error handling
-4. Verify performance if applicable
+## RULES
+- Always verify your changes work before completing
+- Write clean, documented code
+- Don't make unnecessary changes
+- If stuck, explain why in task_failed
 
-## OUTPUT
-Provide a test report including:
-- Tests run and results
-- Bugs found (if any)
-- Recommendations`,
+`;
 
-    spec_agent: `You are a technical writer and architect. Your job is to create specifications.
+  const typePrompts: Record<string, string> = {
+    build_agent: `## ROLE: Build Agent
+You implement features and fix bugs. Focus on:
+- Clean, maintainable code
+- Proper TypeScript types
+- Unit tests for new code
+- No regressions`,
 
-## APPROACH
-1. Understand the requirements
-2. Define clear acceptance criteria
-3. Document technical approach
-4. Identify dependencies and risks
+    qa_agent: `## ROLE: QA Agent
+You verify implementations and find bugs. Focus on:
+- Running test suites
+- Checking edge cases
+- Verifying requirements met
+- Reporting issues clearly`,
 
-## OUTPUT
-Provide a specification document with:
-- Overview
-- Requirements
+    spec_agent: `## ROLE: Specification Agent
+You create technical specifications. Focus on:
+- Clear requirements
+- Testable acceptance criteria
 - Technical approach
-- Acceptance criteria`,
+- Dependencies and risks`,
 
-    planning_agent: `You are a project planner. Your job is to analyze work and create actionable tasks.
+    planning_agent: `## ROLE: Planning Agent
+You analyze the codebase and plan work. Focus on:
+- Identifying gaps and improvements
+- Breaking work into tasks
+- Setting priorities
+- Tracking dependencies`,
 
-## APPROACH
-1. Analyze the codebase and current state
-2. Identify gaps and improvements needed
-3. Break work into small, actionable tasks
-4. Prioritize based on impact and dependencies
-
-## OUTPUT
-Provide a list of tasks with:
-- Clear titles
-- Descriptions
-- Priority (P0-P4)
-- Dependencies`,
-
-    research_agent: `You are a research analyst. Your job is to investigate and provide insights.
-
-## APPROACH
-1. Understand what needs to be researched
-2. Gather relevant information
-3. Analyze and synthesize findings
-4. Provide actionable recommendations
-
-## OUTPUT
-Provide a research report with:
-- Findings
-- Analysis
-- Recommendations`,
+    research_agent: `## ROLE: Research Agent
+You investigate and gather information. Focus on:
+- Finding relevant documentation
+- Analyzing code patterns
+- Synthesizing findings
+- Actionable recommendations`,
   };
 
-  return prompts[agentType] || prompts.build_agent;
+  return basePrompt + (typePrompts[agentType] || typePrompts.build_agent);
 }
 
 /**
  * Build the task prompt for an agent
  */
-function buildTaskPrompt(task: tasks.Task, agent: agents.Agent): string {
+function buildTaskPrompt(task: tasks.Task): string {
   let prompt = `# Task: ${task.display_id}\n\n`;
   prompt += `## Title\n${task.title}\n\n`;
 
@@ -141,7 +361,7 @@ function buildTaskPrompt(task: tasks.Task, agent: agents.Agent): string {
     try {
       const criteria = JSON.parse(task.pass_criteria);
       if (Array.isArray(criteria)) {
-        prompt += `## Pass Criteria\n`;
+        prompt += `## Pass Criteria (ALL must be met)\n`;
         criteria.forEach((c: string, i: number) => {
           prompt += `${i + 1}. ${c}\n`;
         });
@@ -152,25 +372,25 @@ function buildTaskPrompt(task: tasks.Task, agent: agents.Agent): string {
     }
   }
 
-  // Add codebase context
-  prompt += `## Codebase\n`;
-  prompt += `Working directory: /home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator\n`;
-  prompt += `This is a TypeScript project with React frontend and Express backend.\n\n`;
-
   prompt += `## Instructions\n`;
-  prompt += `1. Implement the task according to the specification\n`;
-  prompt += `2. Ensure all pass criteria are met\n`;
-  prompt += `3. Write tests to verify the implementation\n`;
-  prompt += `4. Provide a summary of your changes\n`;
+  prompt += `1. Read relevant files to understand the current state\n`;
+  prompt += `2. Implement the required changes\n`;
+  prompt += `3. Run tests to verify (npm test, npm run build)\n`;
+  prompt += `4. Call task_complete when done, or task_failed if you cannot proceed\n`;
 
   return prompt;
 }
 
 /**
- * Spawn an agent session to work on a task
+ * Spawn an agent session with full tool execution loop
  */
 export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnResult> {
-  const { taskId, agentId, model = 'claude-sonnet-4-20250514' } = options;
+  const { 
+    taskId, 
+    agentId, 
+    model = 'claude-sonnet-4-20250514',
+    maxIterations = 20 
+  } = options;
 
   // Get task and agent details
   const task = tasks.getTask(taskId);
@@ -199,71 +419,173 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
 
   // Build prompts
   const systemPrompt = getAgentSystemPrompt(agent.type);
-  const taskPrompt = buildTaskPrompt(task, agent);
+  const taskPrompt = buildTaskPrompt(task);
 
-  console.log(`🚀 Spawning ${agent.name} for ${task.display_id} (using Anthropic SDK)`);
+  console.log(`🚀 Spawning ${agent.name} for ${task.display_id} (with tools, max ${maxIterations} iterations)`);
 
-  // Create abort controller for cancellation
-  const abortController = new AbortController();
-  runningSessions.set(session.id, abortController);
+  // Track session for cancellation
+  const sessionState = { aborted: false };
+  runningSessions.set(session.id, sessionState);
 
   const startTime = Date.now();
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let totalToolCalls = 0;
+  const filesModified: string[] = [];
+
+  // Conversation history
+  const messages: Anthropic.MessageParam[] = [
+    { role: 'user', content: taskPrompt }
+  ];
+
+  let iteration = 0;
+  let taskCompleted = false;
+  let taskFailed = false;
+  let finalOutput = '';
 
   try {
-    // Call Claude via Anthropic SDK
-    const response = await anthropic.messages.create({
-      model: model,
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages: [
-        { role: 'user', content: taskPrompt }
-      ],
-    });
+    // Main conversation loop
+    while (iteration < maxIterations && !sessionState.aborted && !taskCompleted && !taskFailed) {
+      iteration++;
+      console.log(`  📍 Iteration ${iteration}/${maxIterations}`);
+
+      // Call Claude
+      const response = await anthropic.messages.create({
+        model: model,
+        max_tokens: 8192,
+        system: systemPrompt,
+        tools: TOOLS,
+        messages: messages,
+      });
+
+      totalInputTokens += response.usage.input_tokens;
+      totalOutputTokens += response.usage.output_tokens;
+
+      // Update heartbeat
+      agents.updateHeartbeat(agentId);
+
+      // Process response
+      const assistantContent: Anthropic.ContentBlock[] = [];
+      const toolResults: Anthropic.ToolResultBlockParam[] = [];
+
+      for (const block of response.content) {
+        assistantContent.push(block);
+
+        if (block.type === 'text') {
+          finalOutput += block.text + '\n';
+        } else if (block.type === 'tool_use') {
+          totalToolCalls++;
+          console.log(`    🔧 Tool: ${block.name}`);
+
+          // Execute tool
+          const result = await executeTool(
+            block.name,
+            block.input as Record<string, unknown>,
+            session.id,
+            agentId
+          );
+
+          // Track file modifications
+          if (block.name === 'write_file') {
+            const filePath = (block.input as { path: string }).path;
+            if (!filesModified.includes(filePath)) {
+              filesModified.push(filePath);
+            }
+          }
+
+          // Check for completion signals
+          if (block.name === 'task_complete') {
+            taskCompleted = true;
+            finalOutput = result.output;
+          } else if (block.name === 'task_failed') {
+            taskFailed = true;
+            finalOutput = result.output;
+          }
+
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: block.id,
+            content: result.output.slice(0, 50000), // Limit result size
+          });
+        }
+      }
+
+      // Add assistant response to history
+      messages.push({ role: 'assistant', content: assistantContent });
+
+      // If there were tool calls, add results and continue
+      if (toolResults.length > 0 && !taskCompleted && !taskFailed) {
+        messages.push({ role: 'user', content: toolResults });
+      }
+
+      // If model stopped without tool calls and didn't complete, prompt it
+      if (response.stop_reason === 'end_turn' && !taskCompleted && !taskFailed) {
+        messages.push({ 
+          role: 'user', 
+          content: 'Please continue working on the task. Use task_complete when done or task_failed if you cannot proceed.' 
+        });
+      }
+
+      // Log iteration
+      sessions.logIteration(session.id, iteration, {
+        outputMessage: finalOutput.slice(-1000),
+        tokensInput: response.usage.input_tokens,
+        tokensOutput: response.usage.output_tokens,
+        toolCalls: toolResults.map(r => ({ tool_use_id: r.tool_use_id })),
+        cost: (response.usage.input_tokens * 0.000003) + (response.usage.output_tokens * 0.000015),
+        durationMs: Date.now() - startTime,
+        status: taskCompleted ? 'completed' : taskFailed ? 'failed' : 'running',
+      });
+    }
 
     const durationMs = Date.now() - startTime;
     runningSessions.delete(session.id);
 
-    // Extract response text
-    const output = response.content
-      .filter(block => block.type === 'text')
-      .map(block => (block as { type: 'text'; text: string }).text)
-      .join('\n');
+    const tokensUsed = totalInputTokens + totalOutputTokens;
 
-    const tokensUsed = response.usage.input_tokens + response.usage.output_tokens;
+    if (taskCompleted) {
+      // Mark session completed
+      sessions.updateSessionStatus(session.id, 'completed', finalOutput);
 
-    // Log iteration
-    sessions.logIteration(session.id, 1, {
-      outputMessage: output,
-      tokensInput: response.usage.input_tokens,
-      tokensOutput: response.usage.output_tokens,
-      cost: tokensUsed * 0.00001, // Rough estimate
-      durationMs,
-      status: 'completed',
-    });
+      // Mark task as pending_verification (not completed - QA needs to verify)
+      tasks.updateTask(task.id, { status: 'pending_verification' });
+      agents.incrementTasksCompleted(agentId);
 
-    // Mark session completed
-    sessions.updateSessionStatus(session.id, 'completed', output);
+      events.taskCompleted(taskId, agentId, task.title);
+      ws.taskCompleted(tasks.getTask(taskId));
 
-    // Mark task completed
-    tasks.completeTask(taskId);
-    agents.incrementTasksCompleted(agentId);
+      console.log(`✅ ${agent.name} completed ${task.display_id} (${tokensUsed} tokens, ${totalToolCalls} tools, ${durationMs}ms)`);
 
-    events.taskCompleted(taskId, agentId, task.title);
-    ws.taskCompleted(tasks.getTask(taskId));
+      return {
+        success: true,
+        sessionId: session.id,
+        output: finalOutput,
+        tokensUsed,
+        filesModified,
+        toolCalls: totalToolCalls,
+      };
+    } else {
+      // Task failed or ran out of iterations
+      const errorMsg = taskFailed ? finalOutput : `Max iterations (${maxIterations}) reached without completion`;
+      
+      sessions.updateSessionStatus(session.id, 'failed', undefined, errorMsg);
+      tasks.failTask(taskId);
+      agents.incrementTasksFailed(agentId);
 
-    // Reset agent to idle
-    agents.updateAgentStatus(agentId, 'idle', null, null);
-    ws.agentStatusChanged(agents.getAgent(agentId));
-    ws.sessionEnded(sessions.getSession(session.id));
+      events.taskFailed(taskId, agentId, task.title, errorMsg);
+      ws.taskFailed(tasks.getTask(taskId), errorMsg);
 
-    console.log(`✅ ${agent.name} completed ${task.display_id} (${tokensUsed} tokens, ${durationMs}ms)`);
+      console.log(`❌ ${agent.name} failed ${task.display_id}: ${errorMsg.slice(0, 100)}`);
 
-    return {
-      success: true,
-      sessionId: session.id,
-      output,
-      tokensUsed,
-    };
+      return {
+        success: false,
+        sessionId: session.id,
+        error: errorMsg,
+        tokensUsed,
+        filesModified,
+        toolCalls: totalToolCalls,
+      };
+    }
 
   } catch (error) {
     const durationMs = Date.now() - startTime;
@@ -271,21 +593,7 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    // Log failed iteration
-    sessions.logIteration(session.id, 1, {
-      outputMessage: '',
-      tokensInput: 0,
-      tokensOutput: 0,
-      cost: 0,
-      durationMs,
-      status: 'failed',
-      errorMessage: errorMessage,
-    });
-
-    // Mark session failed
     sessions.updateSessionStatus(session.id, 'failed', undefined, errorMessage);
-
-    // Mark task failed
     tasks.failTask(taskId);
     agents.incrementTasksFailed(agentId);
 
@@ -297,13 +605,20 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
     ws.agentStatusChanged(agents.getAgent(agentId));
     ws.sessionEnded(sessions.getSession(session.id));
 
-    console.log(`❌ ${agent.name} failed ${task.display_id}: ${errorMessage}`);
+    console.log(`❌ ${agent.name} error on ${task.display_id}: ${errorMessage}`);
 
     return {
       success: false,
       sessionId: session.id,
       error: errorMessage,
+      tokensUsed: totalInputTokens + totalOutputTokens,
+      toolCalls: totalToolCalls,
     };
+  } finally {
+    // Always reset agent to idle
+    agents.updateAgentStatus(agentId, 'idle', null, null);
+    ws.agentStatusChanged(agents.getAgent(agentId));
+    ws.sessionEnded(sessions.getSession(session.id));
   }
 }
 
@@ -311,10 +626,10 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
  * Kill a running agent session
  */
 export function killSession(sessionId: string): boolean {
-  const controller = runningSessions.get(sessionId);
-  if (!controller) return false;
+  const state = runningSessions.get(sessionId);
+  if (!state) return false;
 
-  controller.abort();
+  state.aborted = true;
   runningSessions.delete(sessionId);
 
   sessions.updateSessionStatus(sessionId, 'terminated');

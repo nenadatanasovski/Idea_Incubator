@@ -223,6 +223,26 @@ export const events = {
       agentId: 'planning_agent',
       severity: 'info',
     }),
+
+  toolUse: (agentId: string, sessionId: string, toolName: string, args: Record<string, unknown>) =>
+    createEvent({
+      type: 'tool:use',
+      message: `🔧 ${toolName}: ${JSON.stringify(args).slice(0, 200)}`,
+      agentId,
+      sessionId,
+      severity: 'info',
+      metadata: { tool: toolName, args },
+    }),
+
+  fileEdit: (agentId: string, sessionId: string, filePath: string, linesChanged: number) =>
+    createEvent({
+      type: 'file:edit',
+      message: `✏️ File modified: ${filePath} (${linesChanged} lines)`,
+      agentId,
+      sessionId,
+      severity: 'info',
+      metadata: { filePath, linesChanged },
+    }),
 };
 
 export default {

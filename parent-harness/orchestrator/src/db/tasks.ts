@@ -7,7 +7,7 @@ export interface Task {
   title: string;
   description: string | null;
   category: string | null;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'blocked';
+  status: 'pending' | 'in_progress' | 'pending_verification' | 'completed' | 'failed' | 'blocked';
   priority: 'P0' | 'P1' | 'P2' | 'P3' | 'P4';
   assigned_agent_id: string | null;
   task_list_id: string;
