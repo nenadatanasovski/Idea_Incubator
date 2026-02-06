@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: orchestrator/Dockerfile
+    container_name: harness-orchestrator
+    volumes:
+      - ./data:/app/data
+      - ../:/workspace:rw  # Vibe platform source
+    environment:
+      - VIBE_WORKSPACE=/workspace
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DATABASE_PATH=/app/data/harness.db
+    depends_on:
+      - dashboard
+    restart: unless-stopped
+    networks:
+      - harness-net
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    container_name: harness-dashboard
+    ports:
+      - "3333:3333"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/harness.db
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - harness-net
+
+networks:
+  harness-net:
+    driver: bridge
+
+volumes:
+  harness-data:
