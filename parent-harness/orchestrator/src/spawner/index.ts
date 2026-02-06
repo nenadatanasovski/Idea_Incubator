@@ -362,18 +362,39 @@ export async function spawnWithPrompt(
   console.log(`🧠 Spawning ${label} agent...`);
 
   return new Promise((resolve) => {
+    // Use stdin for large prompts (avoid CLI arg length limits)
+    const useStdin = prompt.length > 10000;
+    
     const args = [
       '--print',
       '--model', model,
-      '--allowedTools', 'Read,Write,Edit,exec',
-      '--dangerously-skip-permissions',
-      prompt,
+      '--no-session-persistence',
+      '--tools', 'Read,Write,Edit,Bash',
+      '--allowedTools', 'Read,Write,Edit,Bash',
     ];
+    
+    if (!useStdin) {
+      args.push(prompt);
+    }
+
+    // Clean environment (remove API tokens so CLI uses its OAuth session)
+    const { ANTHROPIC_AUTH_TOKEN, ANTHROPIC_API_KEY, ...cleanEnv } = process.env;
 
     const child = spawn('claude', args, {
       cwd: CODEBASE_ROOT,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: [useStdin ? 'pipe' : 'ignore', 'pipe', 'pipe'],
+      env: {
+        ...cleanEnv,
+        HOME: process.env.HOME,
+        PATH: process.env.PATH,
+      },
     });
+
+    // Write prompt to stdin if needed
+    if (useStdin) {
+      child.stdin?.write(prompt);
+      child.stdin?.end();
+    }
 
     const sessionId = `${label}-${Date.now()}`;
     runningProcesses.set(sessionId, {
