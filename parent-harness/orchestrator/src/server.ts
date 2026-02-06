@@ -7,6 +7,8 @@ import { sessionsRouter } from './api/sessions.js';
 import { eventsRouter } from './api/events.js';
 import { testsRouter } from './api/tests.js';
 import { spawnRouter } from './api/spawn.js';
+import { memoryRouter } from './api/memory.js';
+import { qaRouter } from './api/qa.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { initWebSocket } from './websocket.js';
 import { startOrchestrator } from './orchestrator/index.js';
@@ -36,6 +38,8 @@ app.use('/api/sessions', sessionsRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/tests', testsRouter);
 app.use('/api/spawn', spawnRouter);
+app.use('/api/memory', memoryRouter);
+app.use('/api/qa', qaRouter);
 
 // Error handling
 app.use(notFoundHandler);
