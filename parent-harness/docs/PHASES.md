@@ -37,16 +37,16 @@ Next task can only start when previous task's validation query succeeds.
 **Test Record:** `phase_1_task_1_vite_setup`
 
 **Build Steps:**
-- [ ] 1.1.1: Run `npm create vite@latest dashboard -- --template react-ts`
-- [ ] 1.1.2: `cd dashboard && npm install`
-- [ ] 1.1.3: Verify `npm run dev` starts server
+- [x] 1.1.1: Run `npm create vite@latest dashboard -- --template react-ts` ✅
+- [x] 1.1.2: `cd dashboard && npm install` ✅
+- [x] 1.1.3: Verify `npm run dev` starts server ✅
 
 **Pass Criteria:**
-- [ ] `dashboard/` folder exists
-- [ ] `dashboard/package.json` contains "vite", "react", "typescript"
-- [ ] `dashboard/src/main.tsx` exists
-- [ ] `npm run dev` starts server on port 5173
-- [ ] Browser shows React template page
+- [x] `dashboard/` folder exists ✅
+- [x] `dashboard/package.json` contains "vite", "react", "typescript" ✅
+- [x] `dashboard/src/main.tsx` exists ✅
+- [x] `npm run dev` starts server on port 5173 ✅
+- [ ] Browser shows React template page (verified via dev server output)
 
 **Validation Query:**
 ```sql
@@ -62,17 +62,18 @@ WHERE case_id = 'phase_1_task_1_vite_setup' AND status = 'passed';
 **Test Record:** `phase_1_task_2_tailwind`
 
 **Build Steps:**
-- [ ] 1.2.1: `npm install -D tailwindcss postcss autoprefixer`
-- [ ] 1.2.2: `npx tailwindcss init -p`
-- [ ] 1.2.3: Configure `tailwind.config.js` content paths
-- [ ] 1.2.4: Add Tailwind directives to `src/index.css`
-- [ ] 1.2.5: Test with a Tailwind class in App.tsx
+- [x] 1.2.1: `npm install -D tailwindcss @tailwindcss/vite` ✅ (Tailwind v4)
+- [x] 1.2.2: Configure vite.config.ts with @tailwindcss/vite plugin ✅
+- [x] 1.2.3: N/A (Tailwind v4 uses Vite plugin, no tailwind.config.js needed)
+- [x] 1.2.4: Add `@import "tailwindcss"` to `src/index.css` ✅
+- [x] 1.2.5: Test with a Tailwind class in App.tsx ✅
 
 **Pass Criteria:**
-- [ ] `tailwind.config.js` exists
-- [ ] `postcss.config.js` exists
-- [ ] `src/index.css` contains `@tailwind base/components/utilities`
-- [ ] A Tailwind class (e.g., `bg-blue-500`) renders correctly
+- [x] Tailwind packages installed ✅
+- [x] vite.config.ts has tailwindcss plugin ✅
+- [x] `src/index.css` contains `@import "tailwindcss"` ✅
+- [x] A Tailwind class (e.g., `bg-gray-900`) renders correctly ✅
+- [x] `npm run build` succeeds ✅
 
 **Validation Query:**
 ```sql
@@ -87,19 +88,19 @@ WHERE case_id = 'phase_1_task_2_tailwind' AND status = 'passed';
 **Test Record:** `phase_1_task_3_layout`
 
 **Build Steps:**
-- [ ] 1.3.1: Create `src/components/Layout.tsx`
-- [ ] 1.3.2: Implement header with logo/title
-- [ ] 1.3.3: Implement three-column grid (left sidebar, main, right sidebar)
-- [ ] 1.3.4: Add responsive breakpoints
-- [ ] 1.3.5: Export and use in App.tsx
+- [x] 1.3.1: Create `src/components/Layout.tsx` ✅
+- [x] 1.3.2: Implement header with logo/title ✅
+- [x] 1.3.3: Implement three-column grid (left sidebar, main, right sidebar) ✅
+- [x] 1.3.4: Add responsive breakpoints (12-col grid: 3-6-3) ✅
+- [x] 1.3.5: Export and use in App.tsx ✅
 
 **Pass Criteria:**
-- [ ] `src/components/Layout.tsx` exists
-- [ ] Layout has `data-testid="layout-header"`
-- [ ] Layout has `data-testid="layout-left"` (agent status area)
-- [ ] Layout has `data-testid="layout-main"` (event stream area)
-- [ ] Layout has `data-testid="layout-right"` (task queue area)
-- [ ] CSS grid or flexbox creates 3 columns
+- [x] `src/components/Layout.tsx` exists ✅
+- [x] Layout has `data-testid="layout-header"` ✅
+- [x] Layout has `data-testid="layout-left"` (agent status area) ✅
+- [x] Layout has `data-testid="layout-main"` (event stream area) ✅
+- [x] Layout has `data-testid="layout-right"` (task queue area) ✅
+- [x] CSS grid creates 3 columns ✅
 
 **Validation Query:**
 ```sql
@@ -114,19 +115,19 @@ WHERE case_id = 'phase_1_task_3_layout' AND status = 'passed';
 **Test Record:** `phase_1_task_4_agent_card`
 
 **Build Steps:**
-- [ ] 1.4.1: Create `src/components/AgentStatusCard.tsx`
-- [ ] 1.4.2: Define props interface (id, name, status, currentTask, lastHeartbeat)
-- [ ] 1.4.3: Implement status badge (idle/working/error/stuck)
-- [ ] 1.4.4: Add Telegram channel link
-- [ ] 1.4.5: Create mock data with 3+ agents
-- [ ] 1.4.6: Render cards in Layout left column
+- [x] 1.4.1: Create `src/components/AgentStatusCard.tsx` ✅
+- [x] 1.4.2: Define props interface (id, name, status, currentTask, lastHeartbeat) ✅
+- [x] 1.4.3: Implement status badge (idle/working/error/stuck) ✅
+- [x] 1.4.4: Add Telegram channel link ✅
+- [x] 1.4.5: Create mock data with 7 agents ✅
+- [x] 1.4.6: Render cards in Layout left column ✅
 
 **Pass Criteria:**
-- [ ] `src/components/AgentStatusCard.tsx` exists
-- [ ] Component has `data-testid="agent-card"`
-- [ ] Status badge shows correct color per status
-- [ ] Mock data renders 3+ agent cards
-- [ ] Card displays: name, status, current task (if any)
+- [x] `src/components/AgentStatusCard.tsx` exists ✅
+- [x] Component has `data-testid="agent-card"` ✅
+- [x] Status badge shows correct color per status ✅
+- [x] Mock data renders 7 agent cards ✅
+- [x] Card displays: name, status, current task (if any) ✅
 
 **Validation Query:**
 ```sql
@@ -141,20 +142,20 @@ WHERE case_id = 'phase_1_task_4_agent_card' AND status = 'passed';
 **Test Record:** `phase_1_task_5_event_stream`
 
 **Build Steps:**
-- [ ] 1.5.1: Create `src/components/EventStream.tsx`
-- [ ] 1.5.2: Define event interface (id, timestamp, type, message, agentId)
-- [ ] 1.5.3: Implement scrollable list with auto-scroll toggle
-- [ ] 1.5.4: Add color coding by event type
-- [ ] 1.5.5: Create mock data with 5+ events
-- [ ] 1.5.6: Render in Layout main column
+- [x] 1.5.1: Create `src/components/EventStream.tsx` ✅
+- [x] 1.5.2: Define event interface (id, timestamp, type, message, agentId) ✅
+- [x] 1.5.3: Implement scrollable list with auto-scroll toggle ✅
+- [x] 1.5.4: Add color coding by event type ✅
+- [x] 1.5.5: Create mock data with 8 events ✅
+- [x] 1.5.6: Render in Layout main column ✅
 
 **Pass Criteria:**
-- [ ] `src/components/EventStream.tsx` exists
-- [ ] Component has `data-testid="event-stream"`
-- [ ] Events have `data-testid="event-item"`
-- [ ] Mock data renders 5+ events
-- [ ] Events show timestamp, type, message
-- [ ] Auto-scroll toggle exists
+- [x] `src/components/EventStream.tsx` exists ✅
+- [x] Component has `data-testid="event-stream"` ✅
+- [x] Events have `data-testid="event-item"` ✅
+- [x] Mock data renders 8 events ✅
+- [x] Events show timestamp, type, message ✅
+- [x] Auto-scroll toggle exists ✅
 
 **Validation Query:**
 ```sql
@@ -169,19 +170,19 @@ WHERE case_id = 'phase_1_task_5_event_stream' AND status = 'passed';
 **Test Record:** `phase_1_task_6_task_card`
 
 **Build Steps:**
-- [ ] 1.6.1: Create `src/components/TaskCard.tsx`
-- [ ] 1.6.2: Define props interface (id, displayId, title, status, priority, assignedAgent)
-- [ ] 1.6.3: Implement priority badge (P0-P4 with colors)
-- [ ] 1.6.4: Implement status badge
-- [ ] 1.6.5: Create mock data with 3+ tasks
-- [ ] 1.6.6: Render cards in Layout right column
+- [x] 1.6.1: Create `src/components/TaskCard.tsx` ✅
+- [x] 1.6.2: Define props interface (id, displayId, title, status, priority, assignedAgent) ✅
+- [x] 1.6.3: Implement priority badge (P0-P4 with colors) ✅
+- [x] 1.6.4: Implement status badge ✅
+- [x] 1.6.5: Create mock data with 5 tasks ✅
+- [x] 1.6.6: Render cards in Layout right column ✅
 
 **Pass Criteria:**
-- [ ] `src/components/TaskCard.tsx` exists
-- [ ] Component has `data-testid="task-card"`
-- [ ] Priority badge shows P0-P4 with correct colors
-- [ ] Status badge shows correct state
-- [ ] Mock data renders 3+ task cards
+- [x] `src/components/TaskCard.tsx` exists ✅
+- [x] Component has `data-testid="task-card"` ✅
+- [x] Priority badge shows P0-P4 with correct colors ✅
+- [x] Status badge shows correct state ✅
+- [x] Mock data renders 5 task cards ✅
 
 **Validation Query:**
 ```sql
@@ -196,20 +197,20 @@ WHERE case_id = 'phase_1_task_6_task_card' AND status = 'passed';
 **Test Record:** `phase_1_task_7_routing`
 
 **Build Steps:**
-- [ ] 1.7.1: `npm install react-router-dom`
-- [ ] 1.7.2: Create `src/pages/Dashboard.tsx` (home page)
-- [ ] 1.7.3: Create `src/pages/Tasks.tsx` (task board)
-- [ ] 1.7.4: Create `src/pages/Sessions.tsx` (agent sessions)
-- [ ] 1.7.5: Configure routes in App.tsx
-- [ ] 1.7.6: Add navigation links in header
+- [x] 1.7.1: `npm install react-router-dom` ✅
+- [x] 1.7.2: Create `src/pages/Dashboard.tsx` (home page) ✅
+- [x] 1.7.3: Create `src/pages/Tasks.tsx` (task board) ✅
+- [x] 1.7.4: Create `src/pages/Sessions.tsx` (agent sessions) ✅
+- [x] 1.7.5: Configure routes in App.tsx ✅
+- [x] 1.7.6: Add navigation links in header with active state ✅
 
 **Pass Criteria:**
-- [ ] `react-router-dom` in package.json
-- [ ] `/` route renders Dashboard page
-- [ ] `/tasks` route renders Tasks page
-- [ ] `/sessions` route renders Sessions page
-- [ ] Navigation links work without page reload
-- [ ] Invalid routes show 404 or redirect
+- [x] `react-router-dom` in package.json ✅
+- [x] `/` route renders Dashboard page ✅
+- [x] `/tasks` route renders Tasks page ✅
+- [x] `/sessions` route renders Sessions page ✅
+- [x] Navigation links work without page reload ✅
+- [ ] Invalid routes show 404 or redirect (TODO)
 
 **Validation Query:**
 ```sql
@@ -224,20 +225,20 @@ WHERE case_id = 'phase_1_task_7_routing' AND status = 'passed';
 **Test Record:** `phase_1_task_8_notifications`
 
 **Build Steps:**
-- [ ] 1.8.1: Create `src/components/NotificationCenter.tsx`
-- [ ] 1.8.2: Add bell icon in header (top left as specified)
-- [ ] 1.8.3: Implement dropdown with notification list
-- [ ] 1.8.4: Add unread count badge
-- [ ] 1.8.5: Create mock notifications
-- [ ] 1.8.6: Add click to dismiss functionality
+- [x] 1.8.1: Create `src/components/NotificationCenter.tsx` ✅
+- [x] 1.8.2: Add bell icon in header (top left as specified) ✅
+- [x] 1.8.3: Implement dropdown with notification list ✅
+- [x] 1.8.4: Add unread count badge ✅
+- [x] 1.8.5: Create mock notifications (3) ✅
+- [x] 1.8.6: Add click to dismiss/mark as read functionality ✅
 
 **Pass Criteria:**
-- [ ] `src/components/NotificationCenter.tsx` exists
-- [ ] Bell icon visible in header top-left
-- [ ] Component has `data-testid="notification-center"`
-- [ ] Dropdown shows on click
-- [ ] Unread count badge displays
-- [ ] Mock notifications render
+- [x] `src/components/NotificationCenter.tsx` exists ✅
+- [x] Bell icon visible in header top-left ✅
+- [x] Component has `data-testid="notification-center"` ✅
+- [x] Dropdown shows on click ✅
+- [x] Unread count badge displays ✅
+- [x] Mock notifications render ✅
 
 **Validation Query:**
 ```sql
