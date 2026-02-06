@@ -5,16 +5,19 @@ import { events } from '../db/events.js';
 import { ws } from '../websocket.js';
 import * as spawner from '../spawner/index.js';
 import * as planning from '../planning/index.js';
+import * as qa from '../qa/index.js';
 
 // Configuration
 const TICK_INTERVAL_MS = 30_000; // 30 seconds
 const STUCK_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
 const PLANNING_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
+const QA_EVERY_N_TICKS = 10; // Run QA every 10th tick
 const MAX_RETRIES = 5;
 
 // Feature flags
 const SPAWN_AGENTS = process.env.HARNESS_SPAWN_AGENTS === 'true'; // Set to 'true' to enable
 const RUN_PLANNING = process.env.HARNESS_RUN_PLANNING === 'true'; // Set to 'true' to enable
+const RUN_QA = process.env.HARNESS_RUN_QA !== 'false'; // Enabled by default
 
 let tickCount = 0;
 let planningCount = 0;
@@ -101,10 +104,16 @@ async function tick(): Promise<void> {
     // 1. Check agent health
     await checkAgentHealth();
 
-    // 2. Assign pending tasks to idle agents
+    // 2. Run QA verification every 10th tick
+    if (RUN_QA && tickCount % QA_EVERY_N_TICKS === 0) {
+      console.log(`🔍 QA cycle triggered (tick #${tickCount})`);
+      await qa.runQACycle();
+    }
+
+    // 3. Assign pending tasks to idle agents
     await assignTasks();
 
-    // 3. Log tick event
+    // 4. Log tick event
     const workingAgents = agents.getWorkingAgents();
     const idleAgents = agents.getIdleAgents();
 
