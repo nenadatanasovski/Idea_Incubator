@@ -272,7 +272,8 @@ await Promise.all([
 ```
 
 **Capabilities:**
-- Browser automation (Playwright)
+- Browser automation (Agent Browser - Claude Code skill)
+- Fallback: Puppeteer MCP
 - Screenshot capture and analysis
 - Form filling and navigation
 - Error state detection

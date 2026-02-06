@@ -15,10 +15,15 @@ Test fails → Agent analyzes failure → Fixes code → Retry → Repeat until 
 |------|---------|-------|--------|
 | unit | Isolated function tests | Fast | Jest/Vitest |
 | integration | API/service tests | Medium | Jest |
-| e2e | Browser automation | Slow | Playwright |
+| e2e | Browser automation | Slow | Agent Browser (Claude Code skill) |
+| e2e-backup | Browser automation fallback | Slow | Puppeteer MCP |
 | verification | Phase gate checks | Medium | Bash scripts |
 | lint | Code quality | Fast | ESLint/Prettier |
 | typecheck | Type safety | Fast | tsc |
+
+**Browser Testing Stack:**
+- **Primary:** Agent Browser (Vercel Claude Code skill)
+- **Backup:** Puppeteer MCP (if Agent Browser unavailable)
 
 ## Data Model
 

@@ -650,7 +650,7 @@ echo "✅ Phase 11 PASSED"
 **Tasks:**
 - [ ] 1. Human Sim Agent system prompt
 - [ ] 2. Persona system (5 personas)
-- [ ] 3. Playwright integration
+- [ ] 3. Agent Browser integration (Claude Code skill) + Puppeteer MCP fallback
 - [ ] 4. Multi-instance spawning
 - [ ] 5. Results aggregation
 - [ ] 6. Fix task creation
