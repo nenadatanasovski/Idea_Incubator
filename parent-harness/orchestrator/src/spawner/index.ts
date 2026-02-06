@@ -24,15 +24,21 @@ const execAsync = promisify(exec);
 // Codebase root
 const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
 
-// Initialize Anthropic client - REQUIRES ANTHROPIC_API_KEY
+// Initialize Anthropic client - supports API key OR OAuth token
 const apiKey = process.env.ANTHROPIC_API_KEY;
+const oauthToken = process.env.ANTHROPIC_OAUTH_TOKEN;
 let anthropic: Anthropic | null = null;
 
 if (apiKey) {
   anthropic = new Anthropic({ apiKey });
-  console.log('✅ Anthropic client initialized');
+  console.log('✅ Anthropic client initialized (API key)');
+} else if (oauthToken) {
+  // OAuth token works as Bearer token with the SDK
+  anthropic = new Anthropic({ apiKey: oauthToken });
+  console.log('✅ Anthropic client initialized (OAuth token)');
 } else {
-  console.warn('⚠️ ANTHROPIC_API_KEY not set - agent spawning disabled');
+  console.warn('⚠️ No ANTHROPIC_API_KEY or ANTHROPIC_OAUTH_TOKEN - agent spawning disabled');
+  console.warn('   Set one of these environment variables to enable agent spawning');
 }
 
 // Tool definitions

@@ -38,11 +38,11 @@ export async function startOrchestrator(): Promise<void> {
   
   const canSpawn = SPAWN_AGENTS && spawner.isEnabled();
   if (SPAWN_AGENTS && !spawner.isEnabled()) {
-    console.warn('   ⚠️ HARNESS_SPAWN_AGENTS=true but ANTHROPIC_API_KEY missing!');
+    console.warn('   ⚠️ HARNESS_SPAWN_AGENTS=true but no auth token!');
   }
   console.log(`   Spawn agents: ${canSpawn ? 'ENABLED ✅' : 'DISABLED'}`);
   if (!canSpawn) {
-    console.log(`      Set HARNESS_SPAWN_AGENTS=true and ANTHROPIC_API_KEY to enable`);
+    console.log(`      Set HARNESS_SPAWN_AGENTS=true and ANTHROPIC_OAUTH_TOKEN to enable`);
   }
   console.log(`   Run planning: ${RUN_PLANNING ? 'ENABLED' : 'DISABLED (set HARNESS_RUN_PLANNING=true)'}`);
 
