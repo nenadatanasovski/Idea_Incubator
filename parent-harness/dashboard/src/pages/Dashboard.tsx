@@ -19,6 +19,7 @@ function mapAgentToCard(agent: Agent) {
       ? formatRelativeTime(agent.last_heartbeat) 
       : undefined,
     telegramChannel: agent.telegram_channel ?? undefined,
+    runningInstances: (agent as Agent & { running_instances?: number }).running_instances ?? 0,
   }
 }
 

@@ -14,13 +14,39 @@ export interface Agent {
   tasks_failed: number;
   created_at: string;
   updated_at: string;
+  running_instances?: number;  // Count of active sessions for this agent type
 }
 
 /**
- * Get all agents
+ * Get running session counts per agent type
+ */
+export function getRunningInstanceCounts(): Record<string, number> {
+  const rows = query<{ agent_id: string; count: number }>(`
+    SELECT agent_id, COUNT(*) as count 
+    FROM agent_sessions 
+    WHERE status = 'running' 
+    GROUP BY agent_id
+  `);
+  
+  const counts: Record<string, number> = {};
+  for (const row of rows) {
+    counts[row.agent_id] = row.count;
+  }
+  return counts;
+}
+
+/**
+ * Get all agents with running instance counts
  */
 export function getAgents(): Agent[] {
-  return query<Agent>('SELECT * FROM agents ORDER BY name');
+  const agents = query<Agent>('SELECT * FROM agents ORDER BY name');
+  const instanceCounts = getRunningInstanceCounts();
+  
+  // Add running_instances to each agent
+  return agents.map(agent => ({
+    ...agent,
+    running_instances: instanceCounts[agent.id] || 0
+  }));
 }
 
 /**

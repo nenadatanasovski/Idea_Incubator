@@ -5,6 +5,7 @@ interface AgentStatusCardProps {
   currentTask?: string
   lastHeartbeat?: string
   telegramChannel?: string
+  runningInstances?: number  // Number of active sessions for this agent type
 }
 
 const statusColors = {
@@ -28,6 +29,7 @@ export function AgentStatusCard({
   currentTask,
   lastHeartbeat,
   telegramChannel,
+  runningInstances = 0,
 }: AgentStatusCardProps) {
   return (
     <div
@@ -36,7 +38,18 @@ export function AgentStatusCard({
       className="bg-gray-700 rounded-lg p-3 mb-3"
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="font-medium text-sm">{name}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-sm">{name}</span>
+          {/* Instance count badge */}
+          {runningInstances > 0 && (
+            <span 
+              className="bg-blue-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
+              title={`${runningInstances} instance${runningInstances > 1 ? 's' : ''} running`}
+            >
+              {runningInstances}
+            </span>
+          )}
+        </div>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[status]} text-white`}
         >
@@ -78,6 +91,7 @@ export const mockAgents: AgentStatusCardProps[] = [
     status: 'working',
     lastHeartbeat: '2s ago',
     telegramChannel: '@vibe-orchestrator',
+    runningInstances: 1,
   },
   {
     id: 'planning_agent',
@@ -85,6 +99,7 @@ export const mockAgents: AgentStatusCardProps[] = [
     status: 'idle',
     lastHeartbeat: '15s ago',
     telegramChannel: '@vibe-planning',
+    runningInstances: 0,
   },
   {
     id: 'build_agent',
@@ -93,6 +108,7 @@ export const mockAgents: AgentStatusCardProps[] = [
     currentTask: 'TASK-042: Add auth endpoint',
     lastHeartbeat: '1s ago',
     telegramChannel: '@vibe-build',
+    runningInstances: 3,  // Multiple build agents can run in parallel
   },
   {
     id: 'spec_agent',
@@ -100,6 +116,7 @@ export const mockAgents: AgentStatusCardProps[] = [
     status: 'idle',
     lastHeartbeat: '30s ago',
     telegramChannel: '@vibe-spec',
+    runningInstances: 0,
   },
   {
     id: 'qa_agent',
@@ -108,6 +125,7 @@ export const mockAgents: AgentStatusCardProps[] = [
     currentTask: 'Validating TASK-041',
     lastHeartbeat: '5s ago',
     telegramChannel: '@vibe-qa',
+    runningInstances: 2,
   },
   {
     id: 'task_agent',
@@ -115,6 +133,7 @@ export const mockAgents: AgentStatusCardProps[] = [
     status: 'idle',
     lastHeartbeat: '45s ago',
     telegramChannel: '@vibe-task',
+    runningInstances: 0,
   },
   {
     id: 'sia_agent',
@@ -122,6 +141,7 @@ export const mockAgents: AgentStatusCardProps[] = [
     status: 'error',
     lastHeartbeat: '2m ago',
     telegramChannel: '@vibe-sia',
+    runningInstances: 0,
   },
 ]
 
